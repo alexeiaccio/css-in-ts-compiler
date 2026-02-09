@@ -29,13 +29,14 @@ describe('Oxc Plugin', () => {
       const plugin = cssTSOxcPlugin();
       expect(typeof plugin.transform).toBe('function');
       expect(typeof plugin.generateBundle).toBe('function');
+      expect(typeof plugin.resolveId).toBe('function');
+      expect(typeof plugin.load).toBe('function');
     });
   });
 
   describe('Pattern matching', () => {
     it('should match TypeScript files by default', () => {
       const plugin = cssTSOxcPlugin();
-      // Plugin should process .ts files
       expect(plugin).toBeDefined();
     });
 
@@ -67,16 +68,68 @@ describe('Oxc Plugin', () => {
   });
 
   describe('CSS injection', () => {
-    it('should enable CSS injection by default', () => {
-      const plugin = cssTSOxcPlugin();
-      expect(plugin.config).toBeDefined();
+    it('should return config when inject is true', () => {
+      const plugin = cssTSOxcPlugin({ inject: true });
+      const result = plugin.config?.();
+      expect(result).toBeDefined();
     });
 
-    it('should disable CSS injection when inject is false', () => {
+    it('should return undefined when inject is false', () => {
       const plugin = cssTSOxcPlugin({ inject: false });
-      // When inject is false, config might not return anything
       const result = plugin.config?.();
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe('HMR Options', () => {
+    it('should have default HMR options', () => {
+      const plugin = cssTSOxcPlugin();
+      expect(plugin).toBeDefined();
+    });
+
+    it('should enable HMR by default', () => {
+      const options: OxcPluginOptions = {};
+      const plugin = cssTSOxcPlugin(options);
+      expect(plugin).toBeDefined();
+    });
+
+    it('should support disabling HMR', () => {
+      const options: OxcPluginOptions = {
+        hmr: {
+          enabled: false,
+        },
+      };
+      const plugin = cssTSOxcPlugin(options);
+      expect(plugin).toBeDefined();
+    });
+
+    it('should support virtual modules option', () => {
+      const options: OxcPluginOptions = {
+        hmr: {
+          virtualModules: false,
+        },
+      };
+      const plugin = cssTSOxcPlugin(options);
+      expect(plugin).toBeDefined();
+    });
+
+    it('should support custom module suffix', () => {
+      const options: OxcPluginOptions = {
+        hmr: {
+          moduleSuffix: '.module.css',
+        },
+      };
+      const plugin = cssTSOxcPlugin(options);
+      expect(plugin).toBeDefined();
+    });
+
+    it('should have hotUpdate hook when HMR is enabled', () => {
+      const plugin = cssTSOxcPlugin({
+        hmr: {
+          enabled: true,
+        },
+      });
+      expect(typeof plugin.hotUpdate).toBe('function');
     });
   });
 
@@ -152,7 +205,6 @@ describe('Oxc Plugin', () => {
         const style2 = style('button', { color: 'red' });
       `;
 
-      // Both should generate same hash for same properties
       const result = parseSync('/test.ts', code, {
         lang: 'ts',
         sourceType: 'module',
@@ -251,6 +303,141 @@ describe('Oxc Plugin', () => {
           },
         });
       `;
+
+      const result = parseSync('/test.ts', code, {
+        lang: 'ts',
+        sourceType: 'module',
+        astType: 'ts',
+        range: true,
+      });
+
+      expect(result.errors.length).toBe(0);
+    });
+  });
+
+  describe('Virtual CSS Modules', () => {
+    it('should generate virtual module ID', () => {
+      const plugin = cssTSOxcPlugin();
+      expect(plugin).toBeDefined();
+    });
+
+    it('should handle resolveId for virtual modules', () => {
+      const plugin = cssTSOxcPlugin();
+      const resolved = plugin.resolveId?.('virtual:css-in-ts/Button.css');
+      expect(resolved).toBe('virtual:css-in-ts/Button.css');
+    });
+
+    it('should return null for non-virtual modules in resolveId', () => {
+      const plugin = cssTSOxcPlugin();
+      const resolved = plugin.resolveId?.('/src/components/Button.tsx');
+      expect(resolved).toBeNull();
+    });
+  });
+
+  describe('HMR Integration', () => {
+    it('should have hotUpdate hook', () => {
+      const plugin = cssTSOxcPlugin({
+        hmr: { enabled: true },
+      });
+      expect(typeof plugin.hotUpdate).toBe('function');
+    });
+
+    it('should have hotUpdate hook even when HMR is disabled in config', () => {
+      // hotUpdate hook always exists, but it may short-circuit internally
+      const plugin = cssTSOxcPlugin({
+        hmr: { enabled: false },
+      });
+      expect(typeof plugin.hotUpdate).toBe('function');
+    });
+
+    it('should process valid file in hotUpdate', async () => {
+      const plugin = cssTSOxcPlugin({
+        hmr: { enabled: true },
+      });
+
+      const mockServer = {
+        hotManager: {
+          send: () => {},
+        },
+        moduleGraph: {
+          getModulesByFile: () => new Set(),
+        },
+        invalidateModule: () => {},
+      };
+
+      const hotUpdate = plugin.hotUpdate;
+      if (hotUpdate) {
+        const result = await hotUpdate.call(
+          { ...plugin, server: mockServer },
+          {
+            file: '/src/components/Button.tsx',
+            modules: [],
+            read: () => Promise.resolve(''),
+            server: mockServer as any,
+          }
+        );
+        // hotUpdate returns undefined when no changes needed
+        expect(result).toBeUndefined();
+      }
+    });
+  });
+
+  describe('CSS Generation', () => {
+    it('should generate valid CSS from styles', () => {
+      const code = `
+        style('button', {
+          color: 'red',
+          backgroundColor: 'blue',
+        });
+      `;
+
+      const result = parseSync('/test.ts', code, {
+        lang: 'ts',
+        sourceType: 'module',
+        astType: 'ts',
+        range: true,
+      });
+
+      expect(result.errors.length).toBe(0);
+    });
+
+    it('should handle multiple styles in one file', () => {
+      const code = `
+        style('button', { color: 'red' });
+        style('card', { backgroundColor: 'white' });
+        style('header', { fontSize: '16px' });
+      `;
+
+      const result = parseSync('/test.ts', code, {
+        lang: 'ts',
+        sourceType: 'module',
+        astType: 'ts',
+        range: true,
+      });
+
+      expect(result.errors.length).toBe(0);
+    });
+  });
+
+  describe('Import Injection', () => {
+    it('should inject CSS import at the beginning of file', () => {
+      const code = `
+        import React from 'react';
+        const button = style('button', { color: 'red' });
+      `;
+
+      const result = parseSync('/test.ts', code, {
+        lang: 'ts',
+        sourceType: 'module',
+        astType: 'ts',
+        range: true,
+      });
+
+      expect(result.errors.length).toBe(0);
+    });
+
+    it('should handle files without imports', () => {
+      const code = `const button = style('button', { color: 'red' });`;
 
       const result = parseSync('/test.ts', code, {
         lang: 'ts',

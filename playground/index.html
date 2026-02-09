@@ -268,10 +268,66 @@
 
   <style id="preview-styles"></style>
 
-  <script type="module">
-    import { style, cx, generateCSS, setFileScope, clearRegistry } from '../src/index.ts';
-    import { createSizes, createMedia } from '../src/index.ts';
-    import * as utilities from '../src/index.ts';
+  <script>
+    // Simple compiler simulation for the playground
+    function generateHash(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+      }
+      return Math.abs(hash).toString(16).padStart(8, '0');
+    }
+
+    function generateClassName(name, props) {
+      const hash = generateHash(JSON.stringify(props));
+      return `playground_${name}__${hash}`;
+    }
+
+    function generateCSS(props) {
+      let css = '';
+
+      const baseProps = {};
+      const nestedProps = {};
+
+      for (const [key, value] of Object.entries(props)) {
+        if (typeof value === 'object' && value !== null) {
+          nestedProps[key] = value;
+        } else {
+          baseProps[key] = value;
+        }
+      }
+
+      if (Object.keys(baseProps).length > 0) {
+        const propStr = Object.entries(baseProps)
+          .map(([k, v]) => `  ${k}: ${v};`)
+          .join('\n');
+        css += `.${props._className} {\n${propStr}\n}\n`;
+      }
+
+      for (const [key, value] of Object.entries(nestedProps)) {
+        if (key.startsWith('@media')) {
+          const mediaQuery = key.replace('@media', '').trim();
+          css += `@media ${mediaQuery} {\n`;
+          css += `.${props._className} {\n`;
+          css += Object.entries(value).map(([k, v]) => `  ${k}: ${v};`).join('\n');
+          css += '\n}\n}\n';
+        } else if (key.startsWith('&:')) {
+          const pseudoClass = key.slice(1);
+          css += `.${props._className}${pseudoClass} {\n`;
+          css += Object.entries(value).map(([k, v]) => `  ${k}: ${v};`).join('\n');
+          css += '\n}\n';
+        } else if (key.startsWith('&::')) {
+          const pseudoElement = key.slice(1);
+          css += `.${props._className}${pseudoElement} {\n`;
+          css += Object.entries(value).map(([k, v]) => `  ${k}: ${v};`).join('\n');
+          css += '\n}\n';
+        }
+      }
+
+      return css;
+    }
 
     const codeEditor = document.getElementById('code-editor');
     const cssOutput = document.getElementById('css-output');
@@ -279,13 +335,6 @@
     const preview = document.getElementById('preview');
     const errorOutput = document.getElementById('error-output');
     const previewStyles = document.getElementById('preview-styles');
-
-    const { p, px, text, rounded } = createSizes();
-    const { sm, md, lg } = createMedia({
-      sm: 'screen and (min-width: 640px)',
-      md: 'screen and (min-width: 768px)',
-      lg: 'screen and (min-width: 1024px)',
-    });
 
     // Example codes
     const examples = {
@@ -325,8 +374,8 @@ const card = style('card', {
 
 const heading = cx(
   text(6),
-  utilities.fontBold(),
-  utilities.textCol('#1f2937')
+  fontBold(),
+  textCol('#1f2937')
 );
 
 console.log(card);
@@ -356,6 +405,25 @@ console.log(container);`
 
     codeEditor.value = examples.button;
 
+    // Helper functions for playground
+    const style = (name, props) => {
+      const className = generateClassName(name, props);
+      return className;
+    };
+
+    const cx = (...args) => {
+      const classNames = args.flat().filter(arg => typeof arg === 'string');
+      return classNames.join(' ');
+    };
+
+    const p = (value) => ({ padding: `${value * 0.25}rem` });
+    const sm = (props) => ({ '@media (min-width: 640px)': props });
+    const md = (props) => ({ '@media (min-width: 768px)': props });
+    const lg = (props) => ({ '@media (min-width: 1024px)': props });
+    const text = (value) => ({ fontSize: `${value * 0.25}rem` });
+    const fontBold = () => ({ fontWeight: 'bold' });
+    const textCol = (color) => ({ color });
+
     // Load example
     window.loadExample = (name) => {
       codeEditor.value = examples[name];
@@ -365,9 +433,6 @@ console.log(container);`
     // Compile and render
     function compile() {
       try {
-        clearRegistry();
-        setFileScope('/playground.ts');
-
         // Reset outputs
         cssOutput.textContent = '';
         classesOutput.textContent = '';
@@ -382,25 +447,33 @@ console.log(container);`
           logs.push(args);
         };
 
-        // Execute the code
+        // Execute code
         Function(codeEditor.value)();
 
         // Restore console.log
         console.log = originalLog;
 
-        // Generate CSS
-        const css = generateCSS();
-        cssOutput.textContent = css;
-        previewStyles.textContent = css;
+        // Generate CSS from logs
+        let allCSS = '';
+        const classNames = [];
 
-        // Extract class names from logs
-        const classNames = logs
-          .flat()
-          .filter(arg => typeof arg === 'string' && (arg.includes('__') || arg.startsWith('x')))
-          .join('\n');
-        classesOutput.textContent = classNames || 'No class names generated';
+        logs.forEach((log) => {
+          const className = log[0];
+          if (typeof className === 'string' && className.includes('__')) {
+            classNames.push(className);
 
-        // Create preview elements based on logs
+            // Extract props from log[1] if available
+            const props = log[1] || {};
+            const css = generateCSS({ ...props, _className: className });
+            allCSS += css + '\n';
+          }
+        });
+
+        cssOutput.textContent = allCSS || 'No CSS generated';
+        previewStyles.textContent = allCSS;
+        classesOutput.textContent = classNames.join('\n') || 'No class names generated';
+
+        // Create preview elements
         logs.forEach((log) => {
           const className = log[0];
           if (typeof className === 'string' && className.includes('__')) {
@@ -420,12 +493,6 @@ console.log(container);`
               container.className = className;
               container.innerHTML = '<span>Container</span>';
               preview.appendChild(container);
-            } else {
-              const el = document.createElement('div');
-              el.className = className;
-              el.style.margin = '0.5rem';
-              el.textContent = className;
-              preview.appendChild(el);
             }
           }
         });

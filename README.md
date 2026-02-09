@@ -1,6 +1,8 @@
-# CSS-in-TS Compiler
+# CSS-in-TS Compiler ⏎
 
 A compile-time CSS-in-TypeScript compiler with hash-based class names, following StyleX and vanilla-extract patterns, with full W3C Design Tokens support.
+
+> **Note:** This project is looking for a better name! See [Potential Names](#potential-names) below.
 
 ## Features
 
@@ -14,6 +16,59 @@ A compile-time CSS-in-TypeScript compiler with hash-based class names, following
 ✅ **Vite plugins** - Both regex-based and oxc-based AST plugins available  
 ✅ **Theming** - Global themes with CSS variables  
 ✅ **CLI** - Command-line interface for building styles
+
+## Potential Names
+
+This project is seeking a better name. Inspired by vanilla-extract's clever naming (extracting the "vanilla" essence), here are some options:
+
+### Brewing/Food Metaphors
+| Name | Vibe |
+|------|------|
+| **wort** | Malt extract for beer brewing - the essence before fermentation |
+| **malt** | The sweet foundation of beer |
+| **hops** | The bitter accent that defines flavor |
+| **infuse** | Steeping flavors into something |
+| **steep** | Tea/coffee extraction |
+| **tincture** | Dissolved essence |
+
+### Nature Metaphors
+| Name | Vibe |
+|------|------|
+| **resin** | Tree essence |
+| **sap** | Tree essence |
+| **nectar** | Flower essence |
+| **bloom** | Flowers extracting essence |
+
+### Craft/Alchemy Metaphors
+| Name | Vibe |
+|------|------|
+| **forge** | Metal working - refining through heat |
+| **temper** | Refinement through heat and cooling |
+| **quench** | Cooling process after forging |
+| **flux** | Purifying agent |
+
+### Short & Punchy
+| Name | Vibe |
+|------|------|
+| **brisk** | Quick, lively |
+| **snap** | Sharp, quick |
+| **zest** | Energy, flavor |
+| **pith** | Essential part |
+
+### Current Favorites
+| Rank | Name | Rationale |
+|------|------|-----------|
+| 1 | **wort** | Obscure, memorable, only beer brewers get it. Exclusive. |
+| 2 | **zest** | Energetic, flavorful, easy to say |
+| 3 | **tincture** | Apothecary vibe, extracted essence |
+
+### Our Recommendation
+
+**`wort`** - It's unexpected, memorable, has "worth" sound-alike, and fits the "extract" theme perfectly. The name is a nod to vanilla-extract's brewing metaphor while being its own thing.
+
+---
+
+*Have a suggestion? Open an issue!*
 
 ## Quick Start
 
