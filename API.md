@@ -187,9 +187,12 @@ Sadly, [`csstype`](https://github.com/frenic/csstype) has not types for function
 
 ```ts
 import bcd from "@mdn/browser-compat-data" with { type: "json" };
+import atRules from 'mdn-data/css/at-rules.json' with { type: 'json' };
+// ...
 
 // TODO: compiler should generate this
-// 1. Types as in `csstype` but with fuctions etc.
+
+// 1. Types as in `csstype` but with fuctions etc. ??
 
 /**
  * Mix two colors with interpolation.
@@ -208,13 +211,32 @@ type ColorMix =
 	| `color-mix(in ${ColorInterpolationMethod}, ${Color} ${Percentage}, ${Color} ${Percentage})`;
 
 // 2. TS functions for each property etc.
-declare function colorMix(colorSpace: ColorInterpolationMethod, color1: Color, percentage1: Percentage, color2: Color, percentage2: Percentage): string
+
+/**
+ * Mix two colors with interpolation.
+ *
+ * **Syntax**: `color-mix( <color-interpolation-method> , [ <color> && <percentage [0,100]>? ]#{2})`
+ * 
+ * | Chrome   | Firefox    | Safari    |  Edge   |
+ * | :------: | :--------: | :-------: | :-----: |
+ * | **111**  |  **1113**  | **16.2**  | **111** |
+ *
+ * @see https://developer.mozilla.org/docs/Web/CSS/Reference/Values/color_value/color-mix
+ */
+declare function colorMix(color1: Color, color2: Color): string
+declare function colorMix(color1: Color, color2: Color): string
+declare function colorMix(color1: Color, percentage1: Percentage, color2: Color): string
+declare function colorMix(color1: Color, percentage1: Percentage, color2: Color, percentage2: Percentage): string
+declare function colorMix(colorInterpolationMethod: ColorInterpolationMethod, color1: Color, color2: Color): string
+declare function colorMix(colorInterpolationMethod: ColorInterpolationMethod, color1: Color, percentage1: Percentage, color2: Color): string
+declare function colorMix(colorInterpolationMethod: ColorInterpolationMethod, color1: Color, percentage1: Percentage, color2: Color, percentage2: Percentage): string
 
 // fns usage variants
-colorMix('srgb', 'red', 0.2, 'blue') // color-mix(in srgb, red 0.2, blue)
-colorMix('srgb', 'red', '20%', 'blue') // color-mix(in srgb, red 20%, blue)
-color.mix('oklch').from('red', 0.2).to('blue') // color-mix(in oklch, red, 0.2 blue)
-colorMix({ in: 'lch increasing hue', from: 'red', to: 'blue' }) // color-mix(in lch increasing hue, red, blue)
+
+css.colorMix('red', 'blue') // → color-mix(in oklch, red, blue)
+css.colorMix('srgb', 'red', 0.2, 'blue') // → color-mix(in srgb, red 0.2, blue)
+css.colorMix('srgb', 'red', '20%', 'blue', '50%') // → color-mix(in srgb, red 20%, blue 50%)
+css.colorMix('lch increasing hue', 'red', 'blue') // → color-mix(in lch increasing hue, red, blue)
 ```
 
 ## References
@@ -259,11 +281,11 @@ Namespace form - for config-defined variables:
 
 ```ts
 // Setting a namespaced variable
-css.set.color $primary ("#000");
+css.set.color.$primary("#000");
 // → --color-primary: #000
 
 // Setting a top-level variable
-css.set.$spacing ("0.1em");
+css.set.$spacing("0.1em");
 // → --spacing: 0.1em
 
 // Setting mid-chain
@@ -271,49 +293,54 @@ css.flex.col.set.color.$primary("#000");
 // → display: flex; flex-direction: column; --color-primary: #000
 
 // Setting inside a wrapping mixin (e.g., dark mode)
-css.dark(css.set.color-$primary("#93c5fd").set.color $white("#f0f0f0"));
+css.dark(css.set.color.$primary("#93c5fd").set.color.$white("#f0f0f0"));
 // → @media (prefers-color-scheme: dark) { --color-primary: #93c5fd; --color-white: #f0f0f0 }
 ```
 
-Callable form - for any variable, including defineVar () variables:
+Callable form - for any variable, including defineVar() variables:
 
 ```ts
 const custom = css.defineVar();
 
 // Setting a custom variable mid-chain
-css.flex.col.set (custom, "value");
-// - display: flex; flex-direction: column; --dyn-a7Bk3: value
+css.flex.col.set(custom, "value");
+// → display: flex; flex-direction: column; --dyn-a7Bk3: value
 
 // Setting a config variable (equivalent to the namespace form)
-css.set(css.vars.color-$primary, "#000");
+css.set(css.vars.color.$primary, "#000");
 // → --color-primary: #000
 ```
 
 ### 7.2 Custom Helper Functions
 
-Percentage parameters accept both string percentages ("20%" ) and floating-point numbers between 0 and 1 ( 0.2 ).Both forms are equivalent:
+Percentage parameters accept both string percentages ("20%") and floating-point numbers between 0 and 1 (0.2) .Both forms are equivalent:
 
 ```ts
 // color-mix) wrapper all equivalent
-css.bg-mix.$primary-$white;
-css.bg-mix.$primary-$white (0.5);
-css.bg (css-mix-$primary-$white(0.5));
-css.bg (css.mix(css.vars.color.$primary, css.vars.color $white, 0.5));
-css.bg(css-mix(css.vars.color.$primary, css.vars.color.$white, "50%")) ;
+css.bg.mix.$primary.$white;
+css.bg.mix.$primary.$white (0.5);
+css.bg(css.mix.$primary.$white(0.5));
+css.bg(css.mix(css.vars.color.$primary, css.vars.color $white, 0.5));
+css.bg(css.mix(css.vars.color.$primary, css.vars.color.$white, "50%")) ;
 // → background-color: color-mixin srgb, var (--color-primary), var(--color-white) 50%)
 
 // Relative color syntax wrapper for lightening
-css.bg.ligthen.$primary; css.bg.ligthen $primary (0.1);
-css.bg (css.lighten (css.vars.color.$primary, 0.1)); css.bg (css.lighten(css.vars.color.$primary, "10%"));
-// - background-color: oklch(from var(--color-primary) calc (l + 0.1) c h)
+css.bg.ligthen.$primary; 
+css.bg.ligthen $primary (0.1);
+css.bg(css.lighten(css.vars.color.$primary, 0.1)); 
+css.bg(css.lighten(css.vars.color.$primary, "10%"));
+// → background-color: oklch(from var(--color-primary) calc (l + 0.1) c h)
 
 // Relative color syntax wrapper for darkening
-css.bg.darken.$primary; css.bg.darken.$primary (0.1); css.bg (css.darken (css.vars.color.$primary, 0.1));
-css.bg (css.darken (css.vars.color.$primary, "10%"));
+css.bg.darken.$primary; 
+css.bg.darken.$primary (0.1); 
+css.bg(css.darken(css.vars.color.$primary, 0.1));
+css.bg(css.darken(css.vars.color.$primary, "10%"));
 // → background-color: oklch(from var (--color-primary) calc(l - 0.1) c h)
 
 // Opacity modifier
-css.bg.alpha $primary (0.5); css.bg(css.alpha(css.vars.color-$primary, 0.5)) ;
+css.bg.alpha $primary(0.5);
+css.bg(css.alpha(css.vars.color-$primary, 0.5));
 css.bg (css.alpha(css.vars.color-$primary, "50%"));
 // → background-color: oklch(from var(--color-primary) l ch / 50%)
 ```
