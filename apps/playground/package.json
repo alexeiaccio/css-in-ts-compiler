@@ -1,17 +1,17 @@
 {
-  "name": "@cssints/playground",
-  "version": "0.1.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@cssints/compiler": "*"
-  },
-  "devDependencies": {
-    "vite": "^7.3.1",
-    "@types/bun": "latest"
-  }
+	"name": "@cssints/playground",
+	"version": "0.1.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"@cssints/compiler": "*"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"vite": "^7.3.1"
+	}
 }

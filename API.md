@@ -6,9 +6,7 @@
 import { p, display } from "cssints" with { type: "cssints" };
 import * as css from "cssints" with { type: "cssints" };
 
-<div className={css.cx(display("flex"), p(4))}>
-	Hello, world!
-</div>
+<div className={css.cx(display("flex"), p(4))}>Hello, world!</div>;
 ```
 
 ### Breakpoints
@@ -20,10 +18,7 @@ const { md } = createMediaQueries({
 	md: "screen and min-width > 40rem",
 });
 
-const styles = css.cx(
-	css.p(2),
-	md(css.pl("8ch"), css.pt(css.pxToRem("16px"))),
-);
+const styles = css.cx(css.p(2), md(css.pl("8ch"), css.pt(css.pxToRem("16px"))));
 ```
 
 Output:
@@ -39,7 +34,6 @@ Output:
 		padding-top: 1rem;
 	}
 }
-
 ```
 
 ### Tokens
@@ -47,15 +41,18 @@ Output:
 ```ts
 import * as css from "cssints" with { type: "cssints" };
 
-const tokens = css.createTokens({
-	colors: css.types.color({
-		blue: {
-			100: "oklch(4.820% 0.0334 264.05)"
+const tokens = css.createTokens(
+	{
+		colors: css.types.color({
+			blue: {
+				100: "oklch(4.820% 0.0334 264.05)",
+				// ...
+			},
 			// ...
-		},
-		// ...
-	}),
-}, (_, path) => kebabCase(path));
+		}),
+	},
+	(_, path) => kebabCase(path),
+);
 
 const styles = css.cx(css.bg(tokens("colors.blue.100")));
 ```
@@ -66,7 +63,7 @@ Output:
 @property --colors-blue-100 {
 	syntax: "<color>";
 	inherits: true;
-	initial-value: oklch(4.820% 0.0334 264.05);
+	initial-value: oklch(4.82% 0.0334 264.05);
 }
 
 .styles_jdf78hs {
@@ -130,11 +127,11 @@ Output:
 }
 
 @media (prefers-color-scheme: dark) {
-	--colors-blue-100: oklch(4.820% 0.0334 264.05);
+	--colors-blue-100: oklch(4.82% 0.0334 264.05);
 }
 
 .light {
-	--colors-blue-100: oklch(4.820% 0.0334 264.05);
+	--colors-blue-100: oklch(4.82% 0.0334 264.05);
 }
 
 .styles_jdf78hs {
@@ -185,7 +182,7 @@ Sadly, [`csstype`](https://github.com/frenic/csstype) has not types for function
 ## Browser Compat
 
 ```ts
-import bcd from '@mdn/browser-compat-data' with { type: 'json' };
+import bcd from "@mdn/browser-compat-data" with { type: "json" };
 
 // TODO: compiler should generate this
 // 1. Types as in `csstype` but with fuctions etc.

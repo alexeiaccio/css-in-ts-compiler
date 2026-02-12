@@ -1,0 +1,17 @@
+{
+	"$schema": "./node_modules/oxfmt/configuration_schema.json",
+	"printWidth": 120,
+	"tabWidth": 2,
+	"useTabs": true,
+	"singleQuote": false,
+	"semi": true,
+	"trailingComma": "all",
+	"arrowParens": "always",
+	"bracketSpacing": true,
+	"bracketSameLine": false,
+	"quoteProps": "as-needed",
+	"experimentalSortImports": {
+		"newlinesBetween": true
+	},
+	"ignorePatterns": ["**/node_modules/**", "**/dist/**", "**/.turbo/**"]
+}

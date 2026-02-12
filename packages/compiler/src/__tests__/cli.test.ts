@@ -1,72 +1,73 @@
 // CLI tests
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { build } from '../cli';
-import { clearRegistry } from '../compiler';
-import { clearThemeRegistry } from '../theme';
-import { writeFileSync, unlinkSync, existsSync } from 'fs';
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { writeFileSync, unlinkSync, existsSync } from "fs";
 
-describe('CLI', () => {
-  beforeEach(() => {
-    clearRegistry();
-    clearThemeRegistry();
-  });
+import { build } from "../cli";
+import { clearRegistry } from "../compiler";
+import { clearThemeRegistry } from "../theme";
 
-  afterEach(() => {
-    clearRegistry();
-    clearThemeRegistry();
-  });
+describe("CLI", () => {
+	beforeEach(() => {
+		clearRegistry();
+		clearThemeRegistry();
+	});
 
-  describe('build()', () => {
-    it('should write CSS to file when output path is provided', async () => {
-      const { style, setFileScope } = await import('../compiler');
+	afterEach(() => {
+		clearRegistry();
+		clearThemeRegistry();
+	});
 
-      setFileScope('/test.ts');
-      style('test', { color: 'blue' });
+	describe("build()", () => {
+		it("should write CSS to file when output path is provided", async () => {
+			const { style, setFileScope } = await import("../compiler");
 
-      const testFilePath = '/tmp/css-in-ts-test-output.css';
-      await build('/test.ts', testFilePath);
+			setFileScope("/test.ts");
+			style("test", { color: "blue" });
 
-      expect(existsSync(testFilePath)).toBe(true);
+			const testFilePath = "/tmp/css-in-ts-test-output.css";
+			await build("/test.ts", testFilePath);
 
-      const content = await Bun.file(testFilePath).text();
-      expect(content).toContain('color: blue');
+			expect(existsSync(testFilePath)).toBe(true);
 
-      if (existsSync(testFilePath)) {
-        unlinkSync(testFilePath);
-      }
-    });
+			const content = await Bun.file(testFilePath).text();
+			expect(content).toContain("color: blue");
 
-    it('should use [hash] placeholder in output filename', async () => {
-      const { style, setFileScope } = await import('../compiler');
+			if (existsSync(testFilePath)) {
+				unlinkSync(testFilePath);
+			}
+		});
 
-      setFileScope('/test.ts');
-      style('test', { color: 'green' });
+		it("should use [hash] placeholder in output filename", async () => {
+			const { style, setFileScope } = await import("../compiler");
 
-      const testFilePath = '/tmp/css-in-ts-[hash].css';
-      await build('/test.ts', testFilePath);
+			setFileScope("/test.ts");
+			style("test", { color: "green" });
 
-      const glob = new Bun.Glob('/tmp/css-in-ts-*.css');
-      const files = await Array.fromAsync(glob.scan('/tmp'));
+			const testFilePath = "/tmp/css-in-ts-[hash].css";
+			await build("/test.ts", testFilePath);
 
-      expect(files.length).toBeGreaterThan(0);
+			const glob = new Bun.Glob("/tmp/css-in-ts-*.css");
+			const files = await Array.fromAsync(glob.scan("/tmp"));
 
-      for (const file of files) {
-        unlinkSync(file);
-      }
-    });
+			expect(files.length).toBeGreaterThan(0);
 
-    it('should clear registry after build', async () => {
-      const { style, setFileScope, getRegisteredClasses } = await import('../compiler');
+			for (const file of files) {
+				unlinkSync(file);
+			}
+		});
 
-      setFileScope('/test.ts');
-      style('test', { color: 'red' });
+		it("should clear registry after build", async () => {
+			const { style, setFileScope, getRegisteredClasses } = await import("../compiler");
 
-      expect(getRegisteredClasses().size).toBeGreaterThan(0);
+			setFileScope("/test.ts");
+			style("test", { color: "red" });
 
-      await build();
+			expect(getRegisteredClasses().size).toBeGreaterThan(0);
 
-      expect(getRegisteredClasses().size).toBe(0);
-    });
-  });
+			await build();
+
+			expect(getRegisteredClasses().size).toBe(0);
+		});
+	});
 });

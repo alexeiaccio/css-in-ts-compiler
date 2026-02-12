@@ -8,9 +8,13 @@ A compile-time CSS-in-TypeScript compiler with hash-based class names, following
 - [Bun](https://bun.sh)
 - [OXC parser](https://oxc.rs/docs/guide/usage/parser)
 - [OXC transformer](https://oxc.rs/docs/guide/usage/transformer)
+- [Lighting CSS](https://lightningcss.dev)
+- [Vite 8](https://main.vite.dev/)
+- [Vitest](https://main.vitest.dev/)
 - [TypeScript Go](https://github.com/microsoft/typescript-go)
 - [OXC lint](https://oxc.rs/blog/2025-12-08-type-aware-alpha)
 - [OXC fmt](https://oxc.rs/docs/guide/usage/formatter)
+- [Knip](https://knip.dev/)
 
 ## Features
 
@@ -34,39 +38,38 @@ bun add cssints
 ## Vite Setup
 
 ### Option 1: Oxc Plugin (Recommended - AST-based)
+
 New, faster, more reliable plugin using oxc-parser for proper AST traversal:
 
 ```typescript
 // vite.config.ts
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { cssTSOxcPlugin } from 'cssints/oxc';
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { cssTSOxcPlugin } from "cssints/oxc";
 
 export default defineConfig({
-  plugins: [
-    react(),
-    cssTSOxcPlugin({
-      include: ['**/*.tsx', '**/*.ts'],
-      debug: false, // Enable for source maps
-    }),
-  ],
+	plugins: [
+		react(),
+		cssTSOxcPlugin({
+			include: ["**/*.tsx", "**/*.ts"],
+			debug: false, // Enable for source maps
+		}),
+	],
 });
 ```
 
 ### Option 2: Legacy Plugin (Regex-based)
+
 Original plugin, marked as deprecated but still functional:
 
 ```typescript
 // vite.config.ts
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { cssTSPlugin } from 'cssints/vite';
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { cssTSPlugin } from "cssints/vite";
 
 export default defineConfig({
-  plugins: [
-    react(),
-    cssTSPlugin(),
-  ],
+	plugins: [react(), cssTSPlugin()],
 });
 ```
 
@@ -129,31 +132,31 @@ cssints watch src/styles.ts -o dist/styles.css
 ## Theming
 
 ```typescript
-import { createGlobalTheme, globalStyle } from 'cssints';
+import { createGlobalTheme, globalStyle } from "cssints";
 
 // Create a global theme with CSS variables
-export const vars = createGlobalTheme(':root', {
-  color: {
-    primary: '#3b82f6',
-    secondary: '#6366f1',
-  },
-  spacing: {
-    sm: '0.5rem',
-    md: '1rem',
-    lg: '1.5rem',
-  },
+export const vars = createGlobalTheme(":root", {
+	color: {
+		primary: "#3b82f6",
+		secondary: "#6366f1",
+	},
+	spacing: {
+		sm: "0.5rem",
+		md: "1rem",
+		lg: "1.5rem",
+	},
 });
 
 // Use in styles
-const button = style('button', {
-  padding: vars.spacing.md,
-  backgroundColor: vars.color.primary,
+const button = style("button", {
+	padding: vars.spacing.md,
+	backgroundColor: vars.color.primary,
 });
 
 // Global styles
-globalStyle('body', {
-  margin: 0,
-  fontFamily: 'system-ui',
+globalStyle("body", {
+	margin: 0,
+	fontFamily: "system-ui",
 });
 ```
 
@@ -164,18 +167,18 @@ globalStyle('body', {
 Create a component style with a hash-based class name.
 
 ```typescript
-const card = style('card', {
-  display: 'flex',
-  flexDirection: 'column',
-  padding: '1rem',
-  backgroundColor: 'white',
-  borderRadius: '0.5rem',
-  '@media (min-width: 768px)': {
-    padding: '1.5rem',
-  },
-  '&:hover': {
-    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-  },
+const card = style("card", {
+	display: "flex",
+	flexDirection: "column",
+	padding: "1rem",
+	backgroundColor: "white",
+	borderRadius: "0.5rem",
+	"@media (min-width: 768px)": {
+		padding: "1.5rem",
+	},
+	"&:hover": {
+		boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+	},
 });
 ```
 
@@ -184,12 +187,7 @@ const card = style('card', {
 Compose multiple styles and utilities.
 
 ```typescript
-const heading = cx(
-  text(6),
-  fontBold(),
-  textCol('var(--css-color-neutral-900)'),
-  md(text(8))
-);
+const heading = cx(text(6), fontBold(), textCol("var(--css-color-neutral-900)"), md(text(8)));
 ```
 
 ### `createSizes()`
@@ -200,12 +198,12 @@ Create size-based utility functions.
 const { p, m, w, h, gap, rounded } = createSizes();
 
 const className = cx(
-  p(4),      // padding: 1rem
-  m(2),      // margin: 0.5rem
-  w(64),     // width: 16rem
-  h(32),     // height: 8rem
-  gap(4),    // gap: 1rem
-  rounded(2) // borderRadius: 0.5rem
+	p(4), // padding: 1rem
+	m(2), // margin: 0.5rem
+	w(64), // width: 16rem
+	h(32), // height: 8rem
+	gap(4), // gap: 1rem
+	rounded(2), // borderRadius: 0.5rem
 );
 ```
 
@@ -215,18 +213,13 @@ Create responsive breakpoint functions.
 
 ```typescript
 const { sm, md, lg, xl } = createMedia({
-  sm: 'screen and (min-width: 640px)',
-  md: 'screen and (min-width: 768px)',
-  lg: 'screen and (min-width: 1024px)',
-  xl: 'screen and (min-width: 1280px)',
+	sm: "screen and (min-width: 640px)",
+	md: "screen and (min-width: 768px)",
+	lg: "screen and (min-width: 1024px)",
+	xl: "screen and (min-width: 1280px)",
 });
 
-const className = cx(
-  p(2),
-  sm(p(4)),
-  md(p(6)),
-  lg(p(8))
-);
+const className = cx(p(2), sm(p(4)), md(p(6)), lg(p(8)));
 ```
 
 ### Design Tokens
@@ -234,13 +227,13 @@ const className = cx(
 Use design tokens following the W3C Design Tokens standard.
 
 ```typescript
-import { token, resolveToken, getCSSVariables } from 'cssints';
+import { token, resolveToken, getCSSVariables } from "cssints";
 
-const primaryColor = resolveToken('color.primary'); // #3b82f6
+const primaryColor = resolveToken("color.primary"); // #3b82f6
 
-const button = style('button', {
-  backgroundColor: token('color.primary'),
-  color: token('color.neutral.50'),
+const button = style("button", {
+	backgroundColor: token("color.primary"),
+	color: token("color.neutral.50"),
 });
 
 const variables = getCSSVariables();

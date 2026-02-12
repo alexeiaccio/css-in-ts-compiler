@@ -1,54 +1,55 @@
-import { generateCSS } from './compiler.js';
-import { clearRegistry } from './compiler.js';
-import * as Bun from 'bun';
+import * as Bun from "bun";
+
+import { generateCSS } from "./compiler.js";
+import { clearRegistry } from "./compiler.js";
 
 const args = Bun.argv.slice(2);
 
 interface CLIOptions {
-  output?: string;
-  watch: boolean;
-  help: boolean;
+	output?: string;
+	watch: boolean;
+	help: boolean;
 }
 
 function parseArgs(args: string[]): CLIOptions {
-  const options: CLIOptions = {
-    watch: false,
-    help: false,
-  };
+	const options: CLIOptions = {
+		watch: false,
+		help: false,
+	};
 
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
+	for (let i = 0; i < args.length; i++) {
+		const arg = args[i];
 
-    if (arg === 'build' || arg === undefined) {
-      continue;
-    }
+		if (arg === "build" || arg === undefined) {
+			continue;
+		}
 
-    if (arg === 'watch') {
-      options.watch = true;
-      continue;
-    }
+		if (arg === "watch") {
+			options.watch = true;
+			continue;
+		}
 
-    if (arg === '-o' || arg === '--output') {
-      options.output = args[i + 1];
-      i++;
-      continue;
-    }
+		if (arg === "-o" || arg === "--output") {
+			options.output = args[i + 1];
+			i++;
+			continue;
+		}
 
-    if (arg === '-h' || arg === '--help') {
-      options.help = true;
-      continue;
-    }
+		if (arg === "-h" || arg === "--help") {
+			options.help = true;
+			continue;
+		}
 
-    if (!arg.startsWith('-')) {
-      continue;
-    }
-  }
+		if (!arg.startsWith("-")) {
+			continue;
+		}
+	}
 
-  return options;
+	return options;
 }
 
 function showHelp(): void {
-  console.log(`
+	console.log(`
 Usage: wort [command] [options]
 
 Commands:
@@ -66,108 +67,104 @@ Examples:
 }
 
 async function generateHash(): Promise<string> {
-  const timestamp = Date.now().toString();
-  let hash = 0;
-  for (let i = 0; i < timestamp.length; i++) {
-    const char = timestamp.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(16).padStart(8, '0');
+	const timestamp = Date.now().toString();
+	let hash = 0;
+	for (let i = 0; i < timestamp.length; i++) {
+		const char = timestamp.charCodeAt(i);
+		hash = (hash << 5) - hash + char;
+		hash = hash & hash;
+	}
+	return Math.abs(hash).toString(16).padStart(8, "0");
 }
 
 export async function build(inputPath?: string, outputPath?: string): Promise<void> {
-  const originalLog = console.log;
-  const originalError = console.error;
-  const originalWarn = console.warn;
+	const originalLog = console.log;
+	const originalError = console.error;
+	const originalWarn = console.warn;
 
-  console.log = (...args) => originalError(...args);
-  console.error = (...args) => originalError(...args);
-  console.warn = (...args) => originalWarn(...args);
+	console.log = (...args) => originalError(...args);
+	console.error = (...args) => originalError(...args);
+	console.warn = (...args) => originalWarn(...args);
 
-  if (inputPath) {
-    try {
-      await import(Bun.pathToFileURL(inputPath).href);
-    } catch (error) {
-      // Ignore import errors, the file might already be imported
-    }
-  }
+	if (inputPath) {
+		try {
+			await import(Bun.pathToFileURL(inputPath).href);
+		} catch (error) {
+			// Ignore import errors, the file might already be imported
+		}
+	}
 
-  const css = generateCSS();
+	const css = generateCSS();
 
-  console.log = originalLog;
-  console.error = originalError;
-  console.warn = originalWarn;
+	console.log = originalLog;
+	console.error = originalError;
+	console.warn = originalWarn;
 
-  if (outputPath) {
-    let finalPath = outputPath;
+	if (outputPath) {
+		let finalPath = outputPath;
 
-    if (outputPath.includes('[hash]')) {
-      const hash = await generateHash();
-      finalPath = outputPath.replace('[hash]', hash);
-    }
+		if (outputPath.includes("[hash]")) {
+			const hash = await generateHash();
+			finalPath = outputPath.replace("[hash]", hash);
+		}
 
-    await Bun.write(finalPath, css);
-    console.log(`Output written to: ${finalPath}`);
-  } else {
-    process.stdout.write(css);
-  }
+		await Bun.write(finalPath, css);
+		console.log(`Output written to: ${finalPath}`);
+	} else {
+		process.stdout.write(css);
+	}
 
-  clearRegistry();
+	clearRegistry();
 }
 
 export async function watch(inputPath: string, outputPath: string): Promise<void> {
-  console.log(`Watching ${inputPath} for changes...`);
+	console.log(`Watching ${inputPath} for changes...`);
 
-  const watcher = Bun.watch(inputPath);
+	const watcher = Bun.watch(inputPath);
 
-  for await (const event of watcher) {
-    if (event === 'change') {
-      console.log('Changes detected, rebuilding...');
-      try {
-        await build(inputPath, outputPath);
-        console.log('Build complete.');
-      } catch (error) {
-        console.error('Build failed:', error);
-      }
-    }
-  }
+	for await (const event of watcher) {
+		if (event === "change") {
+			console.log("Changes detected, rebuilding...");
+			try {
+				await build(inputPath, outputPath);
+				console.log("Build complete.");
+			} catch (error) {
+				console.error("Build failed:", error);
+			}
+		}
+	}
 }
 
 export async function main(): Promise<void> {
-  const options = parseArgs(args);
+	const options = parseArgs(args);
 
-  if (options.help) {
-    showHelp();
-    return;
-  }
+	if (options.help) {
+		showHelp();
+		return;
+	}
 
-  const inputPath = args.find((arg) =>
-    !arg.startsWith('-') &&
-    arg !== 'build' &&
-    arg !== 'watch'
-  );
+	const inputPath = args.find((arg) => !arg.startsWith("-") && arg !== "build" && arg !== "watch");
 
-  if (options.watch) {
-    if (!inputPath) {
-      console.error('Error: Input file required for watch mode');
-      process.exit(1);
-    }
-    if (!options.output) {
-      console.error('Error: Output file required for watch mode');
-      process.exit(1);
-    }
-    watch(inputPath, options.output);
-    return;
-  }
+	if (options.watch) {
+		if (!inputPath) {
+			console.error("Error: Input file required for watch mode");
+			process.exit(1);
+		}
+		if (!options.output) {
+			console.error("Error: Output file required for watch mode");
+			process.exit(1);
+		}
+		watch(inputPath, options.output);
+		return;
+	}
 
-  if (inputPath) {
-    await build(inputPath, options.output);
-  } else {
-    showHelp();
-  }
+	if (inputPath) {
+		await build(inputPath, options.output);
+	} else {
+		showHelp();
+	}
 }
 
 if (import.meta.main) {
-  main().catch(console.error);
+	main().catch(console.error);
 }

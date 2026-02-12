@@ -1,21 +1,21 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(pwd:*)",
-      "Bash(bun init:*)",
-      "Write(**)",
-      "Edit(//Users/Accio/development/css-in-ts-compiler/**)",
-      "Bash(bun run example.ts:*)",
-      "Bash(bun add:*)",
-      "Bash(bun test:*)",
-      "Bash(bun run dev:*)",
-      "Bash(sleep 5)",
-      "KillBash",
-      "Bash(bun install:*)",
-      "Bash(sleep 3)",
-      "Bash(ls:*)",
-      "Read(**)",
-      "Bash(cd /Users/a.tukachev/github/css-in-ts-compiler && **)"
-    ]
-  }
+	"permissions": {
+		"allow": [
+			"Bash(pwd:*)",
+			"Bash(bun init:*)",
+			"Write(**)",
+			"Edit(//Users/Accio/development/css-in-ts-compiler/**)",
+			"Bash(bun run example.ts:*)",
+			"Bash(bun add:*)",
+			"Bash(bun test:*)",
+			"Bash(bun run dev:*)",
+			"Bash(sleep 5)",
+			"KillBash",
+			"Bash(bun install:*)",
+			"Bash(sleep 3)",
+			"Bash(ls:*)",
+			"Read(**)",
+			"Bash(cd /Users/a.tukachev/github/css-in-ts-compiler && **)"
+		]
+	}
 }

@@ -1,344 +1,348 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CSS-in-TS Playground</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>CSS-in-TS Playground</title>
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
-      height: 100vh;
-      overflow: hidden;
-    }
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+				background: #0f172a;
+				color: #e2e8f0;
+				height: 100vh;
+				overflow: hidden;
+			}
 
-    .header {
-      background: #1e293b;
-      padding: 1rem 2rem;
-      border-bottom: 1px solid #334155;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
+			.header {
+				background: #1e293b;
+				padding: 1rem 2rem;
+				border-bottom: 1px solid #334155;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+			}
 
-    .header h1 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: #60a5fa;
-    }
+			.header h1 {
+				font-size: 1.25rem;
+				font-weight: 600;
+				color: #60a5fa;
+			}
 
-    .header .subtitle {
-      font-size: 0.875rem;
-      color: #94a3b8;
-      margin-left: 1rem;
-    }
+			.header .subtitle {
+				font-size: 0.875rem;
+				color: #94a3b8;
+				margin-left: 1rem;
+			}
 
-    .container {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      height: calc(100vh - 65px);
-    }
+			.container {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				height: calc(100vh - 65px);
+			}
 
-    .panel {
-      display: flex;
-      flex-direction: column;
-      border-right: 1px solid #334155;
-    }
+			.panel {
+				display: flex;
+				flex-direction: column;
+				border-right: 1px solid #334155;
+			}
 
-    .panel:last-child {
-      border-right: none;
-    }
+			.panel:last-child {
+				border-right: none;
+			}
 
-    .panel-header {
-      background: #1e293b;
-      padding: 0.75rem 1rem;
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: #94a3b8;
-      border-bottom: 1px solid #334155;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
+			.panel-header {
+				background: #1e293b;
+				padding: 0.75rem 1rem;
+				font-size: 0.875rem;
+				font-weight: 600;
+				color: #94a3b8;
+				border-bottom: 1px solid #334155;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+			}
 
-    .panel-header .badge {
-      background: #334155;
-      padding: 0.25rem 0.5rem;
-      border-radius: 0.25rem;
-      font-size: 0.75rem;
-    }
+			.panel-header .badge {
+				background: #334155;
+				padding: 0.25rem 0.5rem;
+				border-radius: 0.25rem;
+				font-size: 0.75rem;
+			}
 
-    .editor-container {
-      flex: 1;
-      position: relative;
-      overflow: hidden;
-    }
+			.editor-container {
+				flex: 1;
+				position: relative;
+				overflow: hidden;
+			}
 
-    #code-editor {
-      width: 100%;
-      height: 100%;
-      background: #0f172a;
-      color: #e2e8f0;
-      border: none;
-      padding: 1rem;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
-      font-size: 14px;
-      line-height: 1.6;
-      resize: none;
-      outline: none;
-    }
+			#code-editor {
+				width: 100%;
+				height: 100%;
+				background: #0f172a;
+				color: #e2e8f0;
+				border: none;
+				padding: 1rem;
+				font-family: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", monospace;
+				font-size: 14px;
+				line-height: 1.6;
+				resize: none;
+				outline: none;
+			}
 
-    .output-container {
-      flex: 1;
-      overflow: auto;
-      background: #0f172a;
-    }
+			.output-container {
+				flex: 1;
+				overflow: auto;
+				background: #0f172a;
+			}
 
-    .output-section {
-      padding: 1rem;
-      border-bottom: 1px solid #334155;
-    }
+			.output-section {
+				padding: 1rem;
+				border-bottom: 1px solid #334155;
+			}
 
-    .output-section:last-child {
-      border-bottom: none;
-    }
+			.output-section:last-child {
+				border-bottom: none;
+			}
 
-    .output-title {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: #60a5fa;
-      margin-bottom: 0.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
+			.output-title {
+				font-size: 0.875rem;
+				font-weight: 600;
+				color: #60a5fa;
+				margin-bottom: 0.5rem;
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+			}
 
-    .output-content {
-      background: #1e293b;
-      padding: 1rem;
-      border-radius: 0.5rem;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
-      font-size: 13px;
-      line-height: 1.6;
-      color: #e2e8f0;
-      white-space: pre-wrap;
-      word-break: break-all;
-      max-height: 200px;
-      overflow: auto;
-    }
+			.output-content {
+				background: #1e293b;
+				padding: 1rem;
+				border-radius: 0.5rem;
+				font-family: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", monospace;
+				font-size: 13px;
+				line-height: 1.6;
+				color: #e2e8f0;
+				white-space: pre-wrap;
+				word-break: break-all;
+				max-height: 200px;
+				overflow: auto;
+			}
 
-    .preview-box {
-      background: white;
-      padding: 2rem;
-      border-radius: 0.5rem;
-      min-height: 100px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1rem;
-    }
+			.preview-box {
+				background: white;
+				padding: 2rem;
+				border-radius: 0.5rem;
+				min-height: 100px;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				gap: 1rem;
+			}
 
-    .error {
-      background: #7f1d1d;
-      border: 1px solid #dc2626;
-      color: #fca5a5;
-      padding: 1rem;
-      border-radius: 0.5rem;
-      margin: 1rem;
-    }
+			.error {
+				background: #7f1d1d;
+				border: 1px solid #dc2626;
+				color: #fca5a5;
+				padding: 1rem;
+				border-radius: 0.5rem;
+				margin: 1rem;
+			}
 
-    .copy-btn {
-      background: #3b82f6;
-      color: white;
-      border: none;
-      padding: 0.25rem 0.5rem;
-      border-radius: 0.25rem;
-      font-size: 0.75rem;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
+			.copy-btn {
+				background: #3b82f6;
+				color: white;
+				border: none;
+				padding: 0.25rem 0.5rem;
+				border-radius: 0.25rem;
+				font-size: 0.75rem;
+				cursor: pointer;
+				transition: background 0.2s;
+			}
 
-    .copy-btn:hover {
-      background: #2563eb;
-    }
+			.copy-btn:hover {
+				background: #2563eb;
+			}
 
-    .copy-btn:active {
-      background: #1d4ed8;
-    }
+			.copy-btn:active {
+				background: #1d4ed8;
+			}
 
-    .example-btn {
-      background: #334155;
-      color: #94a3b8;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 0.25rem;
-      font-size: 0.875rem;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
+			.example-btn {
+				background: #334155;
+				color: #94a3b8;
+				border: none;
+				padding: 0.5rem 1rem;
+				border-radius: 0.25rem;
+				font-size: 0.875rem;
+				cursor: pointer;
+				transition: all 0.2s;
+			}
 
-    .example-btn:hover {
-      background: #475569;
-      color: #e2e8f0;
-    }
+			.example-btn:hover {
+				background: #475569;
+				color: #e2e8f0;
+			}
 
-    @media (max-width: 768px) {
-      .container {
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr 1fr;
-      }
+			@media (max-width: 768px) {
+				.container {
+					grid-template-columns: 1fr;
+					grid-template-rows: 1fr 1fr;
+				}
 
-      .panel {
-        border-right: none;
-        border-bottom: 1px solid #334155;
-      }
+				.panel {
+					border-right: none;
+					border-bottom: 1px solid #334155;
+				}
 
-      .panel:last-child {
-        border-bottom: none;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div style="display: flex; align-items: center;">
-      <h1>CSS-in-TS</h1>
-      <span class="subtitle">Playground</span>
-    </div>
-    <div style="display: flex; gap: 1rem; align-items: center;">
-      <button class="example-btn" onclick="loadExample('button')">Button</button>
-      <button class="example-btn" onclick="loadExample('card')">Card</button>
-      <button class="example-btn" onclick="loadExample('responsive')">Responsive</button>
-      <div style="font-size: 0.875rem; color: #94a3b8;">
-        Hash-based • Compile-time • Type-safe
-      </div>
-    </div>
-  </div>
+				.panel:last-child {
+					border-bottom: none;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="header">
+			<div style="display: flex; align-items: center">
+				<h1>CSS-in-TS</h1>
+				<span class="subtitle">Playground</span>
+			</div>
+			<div style="display: flex; gap: 1rem; align-items: center">
+				<button class="example-btn" onclick="loadExample('button')">Button</button>
+				<button class="example-btn" onclick="loadExample('card')">Card</button>
+				<button class="example-btn" onclick="loadExample('responsive')">Responsive</button>
+				<div style="font-size: 0.875rem; color: #94a3b8">Hash-based • Compile-time • Type-safe</div>
+			</div>
+		</div>
 
-  <div class="container">
-    <div class="panel">
-      <div class="panel-header">
-        <span>TypeScript Code</span>
-        <span class="badge">Input</span>
-      </div>
-      <div class="editor-container">
-        <textarea id="code-editor" spellcheck="false"></textarea>
-      </div>
-    </div>
+		<div class="container">
+			<div class="panel">
+				<div class="panel-header">
+					<span>TypeScript Code</span>
+					<span class="badge">Input</span>
+				</div>
+				<div class="editor-container">
+					<textarea id="code-editor" spellcheck="false"></textarea>
+				</div>
+			</div>
 
-    <div class="panel">
-      <div class="panel-header">
-        <span>Compilation Results</span>
-        <span class="badge">Output</span>
-      </div>
-      <div class="output-container">
-        <div class="output-section">
-          <div class="output-title">
-            Generated CSS
-            <button class="copy-btn" onclick="copyCSS()">Copy</button>
-          </div>
-          <div id="css-output" class="output-content"></div>
-        </div>
+			<div class="panel">
+				<div class="panel-header">
+					<span>Compilation Results</span>
+					<span class="badge">Output</span>
+				</div>
+				<div class="output-container">
+					<div class="output-section">
+						<div class="output-title">
+							Generated CSS
+							<button class="copy-btn" onclick="copyCSS()">Copy</button>
+						</div>
+						<div id="css-output" class="output-content"></div>
+					</div>
 
-        <div class="output-section">
-          <div class="output-title">
-            Class Names
-            <button class="copy-btn" onclick="copyClasses()">Copy</button>
-          </div>
-          <div id="classes-output" class="output-content"></div>
-        </div>
+					<div class="output-section">
+						<div class="output-title">
+							Class Names
+							<button class="copy-btn" onclick="copyClasses()">Copy</button>
+						</div>
+						<div id="classes-output" class="output-content"></div>
+					</div>
 
-        <div class="output-section">
-          <div class="output-title">Live Preview</div>
-          <div id="preview" class="preview-box"></div>
-        </div>
+					<div class="output-section">
+						<div class="output-title">Live Preview</div>
+						<div id="preview" class="preview-box"></div>
+					</div>
 
-        <div id="error-output"></div>
-      </div>
-    </div>
-  </div>
+					<div id="error-output"></div>
+				</div>
+			</div>
+		</div>
 
-  <style id="preview-styles"></style>
+		<style id="preview-styles"></style>
 
-  <script>
-    // Simple compiler simulation for the playground
-    function generateHash(str) {
-      let hash = 0;
-      for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-      }
-      return Math.abs(hash).toString(16).padStart(8, '0');
-    }
+		<script>
+			// Simple compiler simulation for the playground
+			function generateHash(str) {
+				let hash = 0;
+				for (let i = 0; i < str.length; i++) {
+					const char = str.charCodeAt(i);
+					hash = (hash << 5) - hash + char;
+					hash = hash & hash;
+				}
+				return Math.abs(hash).toString(16).padStart(8, "0");
+			}
 
-    function generateClassName(name, props) {
-      const hash = generateHash(JSON.stringify(props));
-      return `playground_${name}__${hash}`;
-    }
+			function generateClassName(name, props) {
+				const hash = generateHash(JSON.stringify(props));
+				return `playground_${name}__${hash}`;
+			}
 
-    function generateCSS(props) {
-      let css = '';
+			function generateCSS(props) {
+				let css = "";
 
-      const baseProps = {};
-      const nestedProps = {};
+				const baseProps = {};
+				const nestedProps = {};
 
-      for (const [key, value] of Object.entries(props)) {
-        if (typeof value === 'object' && value !== null) {
-          nestedProps[key] = value;
-        } else {
-          baseProps[key] = value;
-        }
-      }
+				for (const [key, value] of Object.entries(props)) {
+					if (typeof value === "object" && value !== null) {
+						nestedProps[key] = value;
+					} else {
+						baseProps[key] = value;
+					}
+				}
 
-      if (Object.keys(baseProps).length > 0) {
-        const propStr = Object.entries(baseProps)
-          .map(([k, v]) => `  ${k}: ${v};`)
-          .join('\n');
-        css += `.${props._className} {\n${propStr}\n}\n`;
-      }
+				if (Object.keys(baseProps).length > 0) {
+					const propStr = Object.entries(baseProps)
+						.map(([k, v]) => `  ${k}: ${v};`)
+						.join("\n");
+					css += `.${props._className} {\n${propStr}\n}\n`;
+				}
 
-      for (const [key, value] of Object.entries(nestedProps)) {
-        if (key.startsWith('@media')) {
-          const mediaQuery = key.replace('@media', '').trim();
-          css += `@media ${mediaQuery} {\n`;
-          css += `.${props._className} {\n`;
-          css += Object.entries(value).map(([k, v]) => `  ${k}: ${v};`).join('\n');
-          css += '\n}\n}\n';
-        } else if (key.startsWith('&:')) {
-          const pseudoClass = key.slice(1);
-          css += `.${props._className}${pseudoClass} {\n`;
-          css += Object.entries(value).map(([k, v]) => `  ${k}: ${v};`).join('\n');
-          css += '\n}\n';
-        } else if (key.startsWith('&::')) {
-          const pseudoElement = key.slice(1);
-          css += `.${props._className}${pseudoElement} {\n`;
-          css += Object.entries(value).map(([k, v]) => `  ${k}: ${v};`).join('\n');
-          css += '\n}\n';
-        }
-      }
+				for (const [key, value] of Object.entries(nestedProps)) {
+					if (key.startsWith("@media")) {
+						const mediaQuery = key.replace("@media", "").trim();
+						css += `@media ${mediaQuery} {\n`;
+						css += `.${props._className} {\n`;
+						css += Object.entries(value)
+							.map(([k, v]) => `  ${k}: ${v};`)
+							.join("\n");
+						css += "\n}\n}\n";
+					} else if (key.startsWith("&:")) {
+						const pseudoClass = key.slice(1);
+						css += `.${props._className}${pseudoClass} {\n`;
+						css += Object.entries(value)
+							.map(([k, v]) => `  ${k}: ${v};`)
+							.join("\n");
+						css += "\n}\n";
+					} else if (key.startsWith("&::")) {
+						const pseudoElement = key.slice(1);
+						css += `.${props._className}${pseudoElement} {\n`;
+						css += Object.entries(value)
+							.map(([k, v]) => `  ${k}: ${v};`)
+							.join("\n");
+						css += "\n}\n";
+					}
+				}
 
-      return css;
-    }
+				return css;
+			}
 
-    const codeEditor = document.getElementById('code-editor');
-    const cssOutput = document.getElementById('css-output');
-    const classesOutput = document.getElementById('classes-output');
-    const preview = document.getElementById('preview');
-    const errorOutput = document.getElementById('error-output');
-    const previewStyles = document.getElementById('preview-styles');
+			const codeEditor = document.getElementById("code-editor");
+			const cssOutput = document.getElementById("css-output");
+			const classesOutput = document.getElementById("classes-output");
+			const preview = document.getElementById("preview");
+			const errorOutput = document.getElementById("error-output");
+			const previewStyles = document.getElementById("preview-styles");
 
-    // Example codes
-    const examples = {
-      button: `// Button component
+			// Example codes
+			const examples = {
+				button: `// Button component
 const button = style('button', {
   display: 'flex',
   alignItems: 'center',
@@ -361,7 +365,7 @@ const button = style('button', {
 
 console.log(button);`,
 
-      card: `// Card component
+				card: `// Card component
 const card = style('card', {
   display: 'flex',
   flexDirection: 'column',
@@ -381,7 +385,7 @@ const heading = cx(
 console.log(card);
 console.log(heading);`,
 
-      responsive: `// Responsive utilities
+				responsive: `// Responsive utilities
 const responsive = cx(
   p(2),
   sm(p(4)),
@@ -400,129 +404,128 @@ const container = style('container', {
 });
 
 console.log(responsive);
-console.log(container);`
-    };
+console.log(container);`,
+			};
 
-    codeEditor.value = examples.button;
+			codeEditor.value = examples.button;
 
-    // Helper functions for playground
-    const style = (name, props) => {
-      const className = generateClassName(name, props);
-      return className;
-    };
+			// Helper functions for playground
+			const style = (name, props) => {
+				const className = generateClassName(name, props);
+				return className;
+			};
 
-    const cx = (...args) => {
-      const classNames = args.flat().filter(arg => typeof arg === 'string');
-      return classNames.join(' ');
-    };
+			const cx = (...args) => {
+				const classNames = args.flat().filter((arg) => typeof arg === "string");
+				return classNames.join(" ");
+			};
 
-    const p = (value) => ({ padding: `${value * 0.25}rem` });
-    const sm = (props) => ({ '@media (min-width: 640px)': props });
-    const md = (props) => ({ '@media (min-width: 768px)': props });
-    const lg = (props) => ({ '@media (min-width: 1024px)': props });
-    const text = (value) => ({ fontSize: `${value * 0.25}rem` });
-    const fontBold = () => ({ fontWeight: 'bold' });
-    const textCol = (color) => ({ color });
+			const p = (value) => ({ padding: `${value * 0.25}rem` });
+			const sm = (props) => ({ "@media (min-width: 640px)": props });
+			const md = (props) => ({ "@media (min-width: 768px)": props });
+			const lg = (props) => ({ "@media (min-width: 1024px)": props });
+			const text = (value) => ({ fontSize: `${value * 0.25}rem` });
+			const fontBold = () => ({ fontWeight: "bold" });
+			const textCol = (color) => ({ color });
 
-    // Load example
-    window.loadExample = (name) => {
-      codeEditor.value = examples[name];
-      compile();
-    };
+			// Load example
+			window.loadExample = (name) => {
+				codeEditor.value = examples[name];
+				compile();
+			};
 
-    // Compile and render
-    function compile() {
-      try {
-        // Reset outputs
-        cssOutput.textContent = '';
-        classesOutput.textContent = '';
-        preview.innerHTML = '';
-        errorOutput.innerHTML = '';
-        previewStyles.textContent = '';
+			// Compile and render
+			function compile() {
+				try {
+					// Reset outputs
+					cssOutput.textContent = "";
+					classesOutput.textContent = "";
+					preview.innerHTML = "";
+					errorOutput.innerHTML = "";
+					previewStyles.textContent = "";
 
-        // Capture console.log
-        const logs = [];
-        const originalLog = console.log;
-        console.log = (...args) => {
-          logs.push(args);
-        };
+					// Capture console.log
+					const logs = [];
+					const originalLog = console.log;
+					console.log = (...args) => {
+						logs.push(args);
+					};
 
-        // Execute code
-        Function(codeEditor.value)();
+					// Execute code
+					Function(codeEditor.value)();
 
-        // Restore console.log
-        console.log = originalLog;
+					// Restore console.log
+					console.log = originalLog;
 
-        // Generate CSS from logs
-        let allCSS = '';
-        const classNames = [];
+					// Generate CSS from logs
+					let allCSS = "";
+					const classNames = [];
 
-        logs.forEach((log) => {
-          const className = log[0];
-          if (typeof className === 'string' && className.includes('__')) {
-            classNames.push(className);
+					logs.forEach((log) => {
+						const className = log[0];
+						if (typeof className === "string" && className.includes("__")) {
+							classNames.push(className);
 
-            // Extract props from log[1] if available
-            const props = log[1] || {};
-            const css = generateCSS({ ...props, _className: className });
-            allCSS += css + '\n';
-          }
-        });
+							// Extract props from log[1] if available
+							const props = log[1] || {};
+							const css = generateCSS({ ...props, _className: className });
+							allCSS += css + "\n";
+						}
+					});
 
-        cssOutput.textContent = allCSS || 'No CSS generated';
-        previewStyles.textContent = allCSS;
-        classesOutput.textContent = classNames.join('\n') || 'No class names generated';
+					cssOutput.textContent = allCSS || "No CSS generated";
+					previewStyles.textContent = allCSS;
+					classesOutput.textContent = classNames.join("\n") || "No class names generated";
 
-        // Create preview elements
-        logs.forEach((log) => {
-          const className = log[0];
-          if (typeof className === 'string' && className.includes('__')) {
-            // Determine element type based on class name
-            if (className.includes('button')) {
-              const btn = document.createElement('button');
-              btn.className = className;
-              btn.textContent = 'Button';
-              preview.appendChild(btn);
-            } else if (className.includes('card')) {
-              const card = document.createElement('div');
-              card.className = className;
-              card.innerHTML = '<h3 style="margin:0">Card</h3><p style="margin:0.5rem 0 0 0">Card content</p>';
-              preview.appendChild(card);
-            } else if (className.includes('container')) {
-              const container = document.createElement('div');
-              container.className = className;
-              container.innerHTML = '<span>Container</span>';
-              preview.appendChild(container);
-            }
-          }
-        });
+					// Create preview elements
+					logs.forEach((log) => {
+						const className = log[0];
+						if (typeof className === "string" && className.includes("__")) {
+							// Determine element type based on class name
+							if (className.includes("button")) {
+								const btn = document.createElement("button");
+								btn.className = className;
+								btn.textContent = "Button";
+								preview.appendChild(btn);
+							} else if (className.includes("card")) {
+								const card = document.createElement("div");
+								card.className = className;
+								card.innerHTML = '<h3 style="margin:0">Card</h3><p style="margin:0.5rem 0 0 0">Card content</p>';
+								preview.appendChild(card);
+							} else if (className.includes("container")) {
+								const container = document.createElement("div");
+								container.className = className;
+								container.innerHTML = "<span>Container</span>";
+								preview.appendChild(container);
+							}
+						}
+					});
+				} catch (error) {
+					errorOutput.innerHTML = `<div class="error"><strong>Error:</strong><br>${error.message}</div>`;
+					console.error(error);
+				}
+			}
 
-      } catch (error) {
-        errorOutput.innerHTML = `<div class="error"><strong>Error:</strong><br>${error.message}</div>`;
-        console.error(error);
-      }
-    }
+			// Compile on input with debounce
+			let debounceTimer;
+			codeEditor.addEventListener("input", () => {
+				clearTimeout(debounceTimer);
+				debounceTimer = setTimeout(compile, 500);
+			});
 
-    // Compile on input with debounce
-    let debounceTimer;
-    codeEditor.addEventListener('input', () => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(compile, 500);
-    });
+			// Initial compile
+			compile();
 
-    // Initial compile
-    compile();
+			// Copy functions
+			window.copyCSS = () => {
+				navigator.clipboard.writeText(cssOutput.textContent);
+				alert("CSS copied to clipboard!");
+			};
 
-    // Copy functions
-    window.copyCSS = () => {
-      navigator.clipboard.writeText(cssOutput.textContent);
-      alert('CSS copied to clipboard!');
-    };
-
-    window.copyClasses = () => {
-      navigator.clipboard.writeText(classesOutput.textContent);
-      alert('Class names copied to clipboard!');
-    };
-  </script>
-</body>
+			window.copyClasses = () => {
+				navigator.clipboard.writeText(classesOutput.textContent);
+				alert("Class names copied to clipboard!");
+			};
+		</script>
+	</body>
 </html>

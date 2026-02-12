@@ -14,6 +14,6 @@ export type SizeScale = (value: number) => CSSProperties;
 export type SizeUtilities = Record<string, SizeScale>;
 
 export type CompiledCSS = {
-  classes: Map<string, CSSProperties>;
-  css: string;
+	classes: Map<string, CSSProperties>;
+	css: string;
 };
