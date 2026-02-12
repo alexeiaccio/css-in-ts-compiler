@@ -12,7 +12,10 @@
       "Bash(sleep 5)",
       "KillBash",
       "Bash(bun install:*)",
-      "Bash(sleep 3)"
+      "Bash(sleep 3)",
+      "Bash(ls:*)",
+      "Read(**)",
+      "Bash(cd /Users/a.tukachev/github/css-in-ts-compiler && **)"
     ]
   }
 }

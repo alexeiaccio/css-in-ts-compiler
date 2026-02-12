@@ -1,8 +1,16 @@
-# CSS-in-TS Compiler ⏎
+# CSSinTS Compiler ⏎
 
 A compile-time CSS-in-TypeScript compiler with hash-based class names, following StyleX and vanilla-extract patterns, with full W3C Design Tokens support.
 
-> **Note:** This project is looking for a better name! See [Potential Names](#potential-names) below.
+## Tech stack
+
+- [Turborepo](https://turborepo.dev/)
+- [Bun](https://bun.sh)
+- [OXC parser](https://oxc.rs/docs/guide/usage/parser)
+- [OXC transformer](https://oxc.rs/docs/guide/usage/transformer)
+- [TypeScript Go](https://github.com/microsoft/typescript-go)
+- [OXC lint](https://oxc.rs/blog/2025-12-08-type-aware-alpha)
+- [OXC fmt](https://oxc.rs/docs/guide/usage/formatter)
 
 ## Features
 
@@ -17,63 +25,10 @@ A compile-time CSS-in-TypeScript compiler with hash-based class names, following
 ✅ **Theming** - Global themes with CSS variables  
 ✅ **CLI** - Command-line interface for building styles
 
-## Potential Names
-
-This project is seeking a better name. Inspired by vanilla-extract's clever naming (extracting the "vanilla" essence), here are some options:
-
-### Brewing/Food Metaphors
-| Name | Vibe |
-|------|------|
-| **wort** | Malt extract for beer brewing - the essence before fermentation |
-| **malt** | The sweet foundation of beer |
-| **hops** | The bitter accent that defines flavor |
-| **infuse** | Steeping flavors into something |
-| **steep** | Tea/coffee extraction |
-| **tincture** | Dissolved essence |
-
-### Nature Metaphors
-| Name | Vibe |
-|------|------|
-| **resin** | Tree essence |
-| **sap** | Tree essence |
-| **nectar** | Flower essence |
-| **bloom** | Flowers extracting essence |
-
-### Craft/Alchemy Metaphors
-| Name | Vibe |
-|------|------|
-| **forge** | Metal working - refining through heat |
-| **temper** | Refinement through heat and cooling |
-| **quench** | Cooling process after forging |
-| **flux** | Purifying agent |
-
-### Short & Punchy
-| Name | Vibe |
-|------|------|
-| **brisk** | Quick, lively |
-| **snap** | Sharp, quick |
-| **zest** | Energy, flavor |
-| **pith** | Essential part |
-
-### Current Favorites
-| Rank | Name | Rationale |
-|------|------|-----------|
-| 1 | **wort** | Obscure, memorable, only beer brewers get it. Exclusive. |
-| 2 | **zest** | Energetic, flavorful, easy to say |
-| 3 | **tincture** | Apothecary vibe, extracted essence |
-
-### Our Recommendation
-
-**`wort`** - It's unexpected, memorable, has "worth" sound-alike, and fits the "extract" theme perfectly. The name is a nod to vanilla-extract's brewing metaphor while being its own thing.
-
----
-
-*Have a suggestion? Open an issue!*
-
 ## Quick Start
 
 ```bash
-bun add css-in-ts
+bun add cssints
 ```
 
 ## Vite Setup
@@ -85,7 +40,7 @@ New, faster, more reliable plugin using oxc-parser for proper AST traversal:
 // vite.config.ts
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { cssTSOxcPlugin } from 'css-in-ts/oxc';
+import { cssTSOxcPlugin } from 'cssints/oxc';
 
 export default defineConfig({
   plugins: [
@@ -105,7 +60,7 @@ Original plugin, marked as deprecated but still functional:
 // vite.config.ts
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { cssTSPlugin } from 'css-in-ts/vite';
+import { cssTSPlugin } from 'cssints/vite';
 
 export default defineConfig({
   plugins: [
@@ -118,9 +73,9 @@ export default defineConfig({
 ## Usage
 
 ```typescript
-import { style, cx } from 'css-in-ts';
-import { createSizes, createMedia } from 'css-in-ts';
-import { flex, itemsCenter, bg, textCol } from 'css-in-ts';
+import { style, cx } from 'cssints';
+import { createSizes, createMedia } from 'cssints';
+import { flex, itemsCenter, bg, textCol } from 'cssints';
 
 const { p } = createSizes();
 
@@ -165,16 +120,16 @@ function Button({ children }) {
 
 ```bash
 # Build styles from a file
-css-in-ts build src/styles.ts -o dist/[hash].css
+cssints build src/styles.ts -o dist/[hash].css
 
 # Watch mode for development
-css-in-ts watch src/styles.ts -o dist/styles.css
+cssints watch src/styles.ts -o dist/styles.css
 ```
 
 ## Theming
 
 ```typescript
-import { createGlobalTheme, globalStyle } from 'css-in-ts';
+import { createGlobalTheme, globalStyle } from 'cssints';
 
 // Create a global theme with CSS variables
 export const vars = createGlobalTheme(':root', {
@@ -279,7 +234,7 @@ const className = cx(
 Use design tokens following the W3C Design Tokens standard.
 
 ```typescript
-import { token, resolveToken, getCSSVariables } from 'css-in-ts';
+import { token, resolveToken, getCSSVariables } from 'cssints';
 
 const primaryColor = resolveToken('color.primary'); // #3b82f6
 

@@ -1,6 +1,6 @@
-import { style, cx } from 'css-in-ts';
-import { createSizes, createMedia } from 'css-in-ts';
-import { flex, itemsCenter, justifyContent, bg, textCol, fontBold, rounded, hover } from 'css-in-ts';
+import { style, cx } from '@cssints/compiler';
+import { createSizes, createMedia } from '@cssints/compiler';
+import { flex, itemsCenter, justifyContent, bg, textCol, fontBold, rounded, hover } from '@cssints/compiler';
 
 // Create size utilities
 const { p, px, py } = createSizes();

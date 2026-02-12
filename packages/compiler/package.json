@@ -1,0 +1,58 @@
+{
+  "name": "@cssints/compiler",
+  "version": "0.1.0",
+  "description": "A CSS-in-TS compiler with hash-based class names, following StyleX and vanilla-extract patterns",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "css-in-ts": "./bin/css-in-ts"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vite-plugin.d.ts",
+      "import": "./dist/vite-plugin.js"
+    },
+    "./oxc": {
+      "types": "./dist/oxc-plugin.d.ts",
+      "import": "./dist/oxc-plugin.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "bin"
+  ],
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target node && bun build ./src/vite-plugin.ts --outdir ./dist --target node && bun build ./src/oxc-plugin.ts --outdir ./dist --target node",
+    "test": "bun test"
+  },
+  "keywords": [
+    "css-in-js",
+    "css-in-ts",
+    "stylex",
+    "vanilla-extract",
+    "atomic-css",
+    "design-tokens"
+  ],
+  "author": "Alexei Accio",
+  "license": "MIT",
+  "dependencies": {
+    "oxc-parser": "^0.112.0",
+    "oxc-transform": "^0.112.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5",
+    "vite": "^5 || ^6 || ^7"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
+  }
+}

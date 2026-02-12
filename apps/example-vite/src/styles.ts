@@ -1,7 +1,7 @@
 // Example styles using CSS-in-TS compiler with parameter-based API
 
-import { style, cx } from '../../src/compiler';
-import { createSizes, createMedia } from '../../src/api';
+import { style, cx } from '@cssints/compiler';
+import { createSizes, createMedia } from '@cssints/compiler';
 import {
   flex,
   alignItems,
@@ -13,8 +13,8 @@ import {
   transition,
   scale,
   hover,
-} from '../../src/utilities';
-import { token } from '../../src/tokens';
+} from '@cssints/compiler';
+import { token } from '@cssints/compiler';
 
 const { p, px, text, rounded } = createSizes();
 

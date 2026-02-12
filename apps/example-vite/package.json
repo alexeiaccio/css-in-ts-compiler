@@ -1,5 +1,5 @@
 {
-  "name": "css-in-ts-example",
+  "name": "@cssints/example-vite",
   "version": "0.1.0",
   "type": "module",
   "scripts": {
@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "@cssints/compiler": "*"
   },
   "devDependencies": {
     "@types/react": "^19.2.13",
