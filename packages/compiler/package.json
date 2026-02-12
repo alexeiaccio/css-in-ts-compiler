@@ -40,19 +40,15 @@
 	},
 	"scripts": {
 		"build": "bun build ./src/index.ts --outdir ./dist --target node && bun build ./src/vite-plugin.ts --outdir ./dist --target node && bun build ./src/oxc-plugin.ts --outdir ./dist --target node",
+		"typecheck": "tsgo --noEmit",
 		"test": "bun test"
 	},
 	"dependencies": {
-		"oxc-parser": "^0.112.0",
-		"oxc-transform": "^0.112.0"
+		"oxc-parser": "catalog:",
+		"oxc-transform": "catalog:"
 	},
-	"peerDependencies": {
-		"typescript": "^5",
-		"vite": "^5 || ^6 || ^7"
-	},
-	"peerDependenciesMeta": {
-		"vite": {
-			"optional": true
-		}
+	"devDependencies": {
+		"typescript": "catalog:",
+		"vite": "catalog:"
 	}
 }

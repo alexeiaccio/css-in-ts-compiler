@@ -1,6 +1,6 @@
 // Design Tokens implementation following W3C Design Tokens Community Group format
 
-import { CSSProperties } from "./types";
+import type { CSSProperties } from "./types";
 
 // Design Token types (following W3C DTCG spec)
 export type DesignToken = {

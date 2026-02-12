@@ -1,6 +1,6 @@
 // Non-size-based utility functions
 
-import { CSSProperties } from "./types";
+import type { CSSProperties } from "./types";
 
 // Display
 export const display = (value: string): CSSProperties => ({ display: value });

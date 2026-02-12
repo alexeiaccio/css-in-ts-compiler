@@ -6,7 +6,8 @@
  */
 
 import { parseSync, Visitor } from "oxc-parser";
-import { Plugin, ViteDevServer } from "vite";
+import type { Plugin } from "vite";
+import type { ViteDevServer } from "vite";
 
 import type { CSSProperties } from "./types.js";
 

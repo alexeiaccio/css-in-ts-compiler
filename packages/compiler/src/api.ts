@@ -1,6 +1,6 @@
 // Core API functions
 
-import { CSSProperties, MediaQueries, MediaFunctions, SizeUtilities, SizeScale } from "./types";
+import type { CSSProperties, MediaQueries, MediaFunctions, SizeUtilities, SizeScale } from "./types";
 
 // Default scale: 0.25rem per unit (4px)
 const DEFAULT_SCALE = 0.25;

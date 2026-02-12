@@ -9,6 +9,7 @@ A compile-time CSS-in-TypeScript compiler with hash-based class names, following
 - [OXC parser](https://oxc.rs/docs/guide/usage/parser)
 - [OXC transformer](https://oxc.rs/docs/guide/usage/transformer)
 - [Lighting CSS](https://lightningcss.dev)
+- [tsdown](https://tsdown.dev/)
 - [Vite 8](https://main.vite.dev/)
 - [Vitest](https://main.vitest.dev/)
 - [TypeScript Go](https://github.com/microsoft/typescript-go)

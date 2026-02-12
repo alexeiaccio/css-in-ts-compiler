@@ -1,8 +1,8 @@
 // Comprehensive example demonstrating CSS-in-TS compiler features
 
-import { createSizes, createMedia } from "./src/api";
-import { style, cx, generateCSS, setFileScope } from "./src/compiler";
-import { token, resolveToken, getCSSVariables } from "./src/tokens";
+import { createSizes, createMedia } from "@cssints/compiler";
+import { style, cx, generateCSS, setFileScope } from "@cssints/compiler";
+import { token, resolveToken, getCSSVariables } from "@cssints/compiler";
 import {
 	flex,
 	flexDirection,
@@ -19,7 +19,7 @@ import {
 	textAlign,
 	border,
 	borderRadius,
-} from "./src/utilities";
+} from "@cssints/compiler";
 
 // Set file scope for this example
 setFileScope("/example.ts");

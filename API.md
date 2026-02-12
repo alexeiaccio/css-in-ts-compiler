@@ -3,22 +3,24 @@
 ### Basic usage
 
 ```tsx
+import { cx } from "css-variants";
 import { p, display } from "cssints" with { type: "cssints" };
 import * as css from "cssints" with { type: "cssints" };
 
-<div className={css.cx(display("flex"), p(4))}>Hello, world!</div>;
+<div className={cx(display("flex"), p(4))}>Hello, world!</div>;
 ```
 
 ### Breakpoints
 
 ```ts
+import { cx } from "css-variants";
 import * as css from "cssints" with { type: "cssints" };
 
 const { md } = createMediaQueries({
 	md: "screen and min-width > 40rem",
 });
 
-const styles = css.cx(css.p(2), md(css.pl("8ch"), css.pt(css.pxToRem("16px"))));
+const styles = cx(css.p(2), md(css.pl("8ch"), css.pt(css.pxToRem("16px"))));
 ```
 
 Output:
@@ -39,6 +41,7 @@ Output:
 ### Tokens
 
 ```ts
+import { cx } from "css-variants";
 import * as css from "cssints" with { type: "cssints" };
 
 const tokens = css.createTokens(
@@ -54,7 +57,7 @@ const tokens = css.createTokens(
 	(_, path) => kebabCase(path),
 );
 
-const styles = css.cx(css.bg(tokens("colors.blue.100")));
+const styles = cx(css.bg(tokens("colors.blue.100")));
 ```
 
 Output:
@@ -74,6 +77,7 @@ Output:
 ### Theme
 
 ```ts
+import { cx } from 'css-variants'
 import * as css from "cssints" with { type: "cssints" };
 
 const tokens = css.createTokens({
@@ -112,7 +116,7 @@ css.createGlobalTheme(tokens, '.light', {
 	},
 });
 
-const styles = css.cx(css.bg(tokens("colors.blue.100")));
+const styles = cx(css.bg(tokens("colors.blue.100")));
 
 <div className={styles}>Hello, world!</div>
 ```
@@ -160,7 +164,7 @@ export {} as Properties;
 // example.tsx
 import * as css from "cssints" with { type: "cssints" };
 
-<div className={css.cx(css.paadding(4), css.hover(css.bg("red")))}>
+<div className={cx(css.paadding(4), css.hover(css.bg("red")))}>
 	Hello, world!
 </div>
 ```
@@ -177,9 +181,9 @@ In compile time convert methods to CSS properties.
 }
 ```
 
-Sadly, [`csstype`](https://github.com/frenic/csstype) has not types for functions (`mix-color` for example). So, we need to make our own, to generate types from [`@mdn/browser-compat-data`](https://github.com/mdn/browser-compat-data).
-
 ## Browser Compat
+
+Sadly, [`csstype`](https://github.com/frenic/csstype) has not types for functions (`mix-color` for example). So, we need to make our own, to generate types from [`@mdn/browser-compat-data`](https://github.com/mdn/browser-compat-data).
 
 ```ts
 import bcd from "@mdn/browser-compat-data" with { type: "json" };
