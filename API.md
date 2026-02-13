@@ -226,7 +226,7 @@ import { cx } from "css-variants";
 
 #### `cn` — Compile type class Merger
 
-Merges class names from type to string. And do class order specificity.
+Merges class names from type to string. And resolve class order specificity.
 
 ```ts
 // branded type for any function
