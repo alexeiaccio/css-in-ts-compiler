@@ -4,10 +4,65 @@
 
 ```tsx
 import { cx } from "css-variants";
-import { p, display } from "cssints" with { type: "cssints" };
+import { display, alignItems, justifyContent, padding, } from "cssints" with { type: "cssints" };
 import * as css from "cssints" with { type: "cssints" };
 
-<div className={cx(display("flex"), p(4))}>Hello, world!</div>;
+<div className={cx(display("flex"), alignItems("center"), justifyContent("center"), prop&& padding(4))}>Hello, world!</div>;
+// or with shorthands
+<div className={cx(css.flex("items-center", "justify-center"), prop&&css.p(4))}>Hello, world!</div>;
+```
+
+Output:
+
+```tsx
+import { cx } from "css-variants";
+
+<div className={cx("_fsdfssdf _jdf78hs _jdfsddfs", prop && "_swg4thgf")}>Hello, world!</div>;
+```
+
+
+```css
+._fsdfssdf {
+	display: flex;
+}
+._jdf78hs {
+	align-items: center;
+}
+._jdfsddfs {
+	justify-content: center;
+}
+._swg4thgf {
+	padding: 0.5rem;
+}
+```
+
+### Without runtime
+
+```tsx
+import * as css from "cssints" with { type: "cssints" };
+
+<div className={css.class(css.flex("items-center", "justify-center"), css.p(4))}>Hello, world!</div>;
+```
+
+Output:
+
+```tsx
+<div className="_fsdfssdf _jdf78hs _jdfsddfs _swg4thgf">Hello, world!</div>;
+```
+
+```css
+._fsdfssdf {
+	display: flex;
+}
+._jdf78hs {
+	align-items: center;
+}
+._jdfsddfs {
+	justify-content: center;
+}
+._swg4thgf {
+	padding: 0.5rem;
+}
 ```
 
 ### Breakpoints
@@ -21,18 +76,29 @@ const { md } = createMediaQueries({
 });
 
 const styles = cx(css.p(2), md(css.pl("8ch"), css.pt(css.pxToRem("16px"))));
+
+<div className={styles}>Hello, world!</div>;
 ```
 
 Output:
 
+```tsx
+import { cx } from "css-variants";
+
+<div className={cx("_jdf78hs", "_swg4thgf", "_jdfsddfs")}>Hello, world!</div>;
+```
+
 ```css
-.styles_jdf78hs {
+._jdf78hs {
 	padding: 0.5rem;
 }
-
 @media (screen and min-width > 40rem) {
-	.styles_jdf78hs {
+	._jdf78hs._swg4thgf {
 		padding-left: 8ch;
+	}
+}
+@media (screen and min-width > 40rem) {
+	._jdf78hs._jdfsddfs {
 		padding-top: 1rem;
 	}
 }
@@ -62,9 +128,16 @@ const theme = css.createTokens({
 });
 
 const styles = cx(css.bg(theme("primary")));
+<div className={styles}>Hello, world!</div>;
 ```
 
 Output:
+
+```tsx
+import { cx } from "css-variants";
+
+<div className={cx("_jdf78hs")}>Hello, world!</div>;
+```
 
 ```css
 @property --colors-blue-100 {
@@ -72,8 +145,7 @@ Output:
 	inherits: true;
 	initial-value: oklch(4.82% 0.0334 264.05);
 }
-
-.styles_jdf78hs {
+._jdf78hs {
 	background-color: var(--colors-blue-100);
 }
 ```
@@ -127,22 +199,25 @@ const styles = cx(css.bg(tokens("colors.blue.100")));
 
 Output:
 
+```tsx
+import { cx } from "css-variants";
+
+<div className={cx("_jdf78hs")}>Hello, world!</div>;
+```
+
 ```css
 @property --colors-blue-100 {
 	syntax: "<color>";
 	inherits: true;
 	initial-value: unset;
 }
-
 @media (prefers-color-scheme: dark) {
 	--colors-blue-100: oklch(4.82% 0.0334 264.05);
 }
-
 .light {
 	--colors-blue-100: oklch(4.82% 0.0334 264.05);
 }
-
-.styles_jdf78hs {
+._jdf78hs {
 	background-color: var(--colors-blue-100);
 }
 ```
@@ -168,19 +243,22 @@ export {} as Properties;
 // example.tsx
 import * as css from "cssints" with { type: "cssints" };
 
-<div className={cx(css.paadding(4), css.hover(css.bg("red")))}>
+<div className={css.class(css.paadding(4), css.hover(css.bg("red")))}>
 	Hello, world!
 </div>
 ```
 
 In compile time convert methods to CSS properties.
 
+```tsx
+<div className="_jdf78hs _sfdsfdd">Hello, world!</div>;
+```
+
 ```css
-.styles_jdf78hs {
+._jdf78hs {
 	padding: 0.5rem;
 }
-
-.styles_jdf78hs:hover {
+._sfdsfdd:hover {
 	background-color: red;
 }
 ```
@@ -195,26 +273,7 @@ import atRules from 'mdn-data/css/at-rules.json' with { type: 'json' };
 // ...
 
 // TODO: compiler should generate this
-
-// 1. Types as in `csstype` but with fuctions etc. ??
-
-/**
- * Mix two colors with interpolation.
- *
- * **Syntax**: `color-mix( <color-interpolation-method> , [ <color> && <percentage [0,100]>? ]#{2})`
- * 
- * | Chrome   | Firefox    | Safari    |  Edge   |
- * | :------: | :--------: | :-------: | :-----: |
- * | **111**  |  **1113**  | **16.2**  | **111** |
- *
- * @see https://developer.mozilla.org/docs/Web/CSS/Reference/Values/color_value/color-mix
- */
-type ColorMix = 
-	| `color-mix(in ${ColorInterpolationMethod}, ${Color}, ${Color})`;
-	| `color-mix(in ${ColorInterpolationMethod}, ${Color} ${Percentage}, ${Color}`;
-	| `color-mix(in ${ColorInterpolationMethod}, ${Color} ${Percentage}, ${Color} ${Percentage})`;
-
-// 2. TS functions for each property etc.
+// TS functions for each property etc.
 
 /**
  * Mix two colors with interpolation.

@@ -1,20 +1,25 @@
 {
-	"permissions": {
-		"allow": [
-			"Bash(bun install:*)",
-			"Bash(bun:*)",
-			"Bash(cd ~/github/css-in-ts-compiler && :*)",
-			"Bash(ls:*)",
-			"Bash(mkdir:*)",
-			"Bash(node:*)",
-			"Bash(pwd:*)",
-			"Bash(sleep 3)",
-			"Bash(sleep 5)",
-			"Edit(~/github/css-in-ts-compiler/**)",
-			"Edit(~/development/css-in-ts-compiler/**)",
-			"KillBash",
-			"Read(**)",
-			"Write(**)"
-		]
-	}
+  "permissions": {
+    "allow": [
+      "Bash(bun install:*)",
+      "Bash(bun:*)",
+      "Bash(cd ~/github/css-in-ts-compiler && :*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(node:*)",
+      "Bash(pwd:*)",
+      "Bash(sleep 3)",
+      "Bash(sleep 5)",
+      "Edit(~/github/css-in-ts-compiler/**)",
+      "Edit(~/development/css-in-ts-compiler/**)",
+      "KillBash",
+      "Read(**)",
+      "Write(**)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)"
+    ]
+  }
 }
