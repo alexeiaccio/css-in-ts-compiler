@@ -57,7 +57,11 @@ const tokens = css.createTokens(
 	(_, path) => kebabCase(path),
 );
 
-const styles = cx(css.bg(tokens("colors.blue.100")));
+const theme = css.createTokens({
+    primary: tokens("colors.blue.100"),
+});
+
+const styles = cx(css.bg(theme("primary")));
 ```
 
 Output:

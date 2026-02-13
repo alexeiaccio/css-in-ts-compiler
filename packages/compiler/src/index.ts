@@ -6,7 +6,10 @@ export { style, createStyle, cx, generateCSS, getRegisteredClasses, clearRegistr
 // Utility functions
 export { createSizes, createMedia, defaultMediaQueries } from "./api";
 
-// Re-export all utilities
+// cssints compile-time utilities (exported before utilities to allow overwriting)
+export { setScale, getScale, pxToRem, remToPx } from "./cssints";
+
+// Re-export all utilities (may overwrite some cssints exports)
 export * from "./utilities";
 
 // Design tokens

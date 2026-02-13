@@ -10,6 +10,7 @@ import type { Plugin } from "vite";
 import type { ViteDevServer } from "vite";
 
 import type { CSSProperties } from "./types.js";
+import { transformCode } from "./cssints/transformer.js";
 
 export interface HmrOptions {
 	/** Enable HMR in development (default: true) */
@@ -252,23 +253,53 @@ export function cssTSOxcPlugin(options: OxcPluginOptions = {}): Plugin {
 				return null;
 			}
 
+			// First, extract style() calls (existing functionality)
 			const styleInfo = extractStyles(id, code);
 
-			if (styleInfo.styles.size === 0) {
+			// Also transform css.* function calls (new cssints functionality)
+			const cssintsResult = transformCode(code, id, { debug: opts.debug });
+			
+			// Merge CSS from both sources
+			let mergedCss = "";
+			if (styleInfo.styles.size > 0) {
+				fileStyles.set(id, styleInfo);
+				const virtualModuleId = getVirtualModuleId(id);
+				virtualCssModules.set(virtualModuleId, styleInfo.css);
+				mergedCss = styleInfo.css;
+			}
+			
+			if (cssintsResult.css) {
+				mergedCss += (mergedCss ? "\n\n" : "") + cssintsResult.css;
+			}
+
+			// If no styles at all, return null
+			if (styleInfo.styles.size === 0 && !cssintsResult.css) {
 				return null;
 			}
 
-			fileStyles.set(id, styleInfo);
+			// Update virtual CSS module with merged CSS
+			if (mergedCss) {
+				const virtualModuleId = getVirtualModuleId(id);
+				virtualCssModules.set(virtualModuleId, mergedCss);
+			}
 
-			const virtualModuleId = getVirtualModuleId(id);
-			virtualCssModules.set(virtualModuleId, styleInfo.css);
+			// Apply style() transformations
+			let transformed = code;
+			if (styleInfo.styles.size > 0) {
+				transformed = replaceStyleCalls(code, Array.from(styleInfo.styles.values()), isDevMode(), id);
+			}
 
-			const transformed = replaceStyleCalls(code, Array.from(styleInfo.styles.values()), isDevMode(), id);
+			// Apply cssints transformations
+			if (cssintsResult.code !== code) {
+				// If cssints made changes, apply them on top of the style() transformations
+				// We need to re-apply style replacements to the transformed code
+				transformed = cssintsResult.code;
+			}
 
 			const finalCode = isDevMode() && opts.hmr?.virtualModules ? injectCssImport(transformed, id) : transformed;
 
 			if (opts.debug) {
-				console.log(`[css-in-ts-oxc] Processed ${id}: ${styleInfo.styles.size} styles`);
+				console.log(`[css-in-ts-oxc] Processed ${id}: ${styleInfo.styles.size} styles, cssints: ${cssintsResult.css ? "yes" : "no"}`);
 			}
 
 			return {
