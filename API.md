@@ -235,47 +235,6 @@ type CSSintsFn = ((...args: any[]) => string) & { __brand: "cssints" }
 declare function cn<T extends CSSintsFn>(...args: T[]): string
 ```
 
-## Implemetation details
-
-Export all types from `csstype` as CSS.Properties. All methods are just a type mapping to CSS properties.
-
-```tsx
-// cssints.ts
-import type * as CSS from 'csstype';
-
-interface Properties extends CSS.Properties, MapPseudos<CSS.SimplePseudos>, MapPseudos<CSS.AdvancedPseudos> {
-	// Shorthands
-	p: CSS.Properties["padding"];
-	bg: CSS.Properties["backgroundColor"];
-	// ...
-}
-
-export {} as Properties;
-//
-
-// example.tsx
-import * as css from "cssints" with { type: "cssints" };
-
-<div className={css.cn(css.paadding(4), css.hover(css.bg("red")))}>
-	Hello, world!
-</div>
-```
-
-In compile time convert methods to CSS properties.
-
-```tsx
-<div className="_jdf78hs _sfdsfdd">Hello, world!</div>;
-```
-
-```css
-._jdf78hs {
-	padding: 0.5rem;
-}
-._sfdsfdd:hover {
-	background-color: red;
-}
-```
-
 ## Browser Compat
 
 Sadly, [`csstype`](https://github.com/frenic/csstype) has not types for functions (`mix-color` for example). So, we need to make our own, to generate types from [mdn/data](https://github.com/mdn/data) and [`@mdn/browser-compat-data`](https://github.com/mdn/browser-compat-data).
