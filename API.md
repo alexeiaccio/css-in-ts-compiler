@@ -41,7 +41,7 @@ import { cx } from "css-variants";
 ```tsx
 import * as css from "cssints" with { type: "cssints" };
 
-<div className={css.class(css.flex("items-center", "justify-center"), css.p(4))}>Hello, world!</div>;
+<div className={css.cn(css.flex("items-center", "justify-center"), css.p(4))}>Hello, world!</div>;
 ```
 
 Output:
@@ -222,6 +222,19 @@ import { cx } from "css-variants";
 }
 ```
 
+### Functions
+
+#### `cn` — Compile type class Merger
+
+Merges class names from type to string. And do class order specificity.
+
+```ts
+// branded type for any function
+type CSSintsFn = ((...args: any[]) => string) & { __brand: "cssints" }
+
+declare function cn<T extends CSSintsFn>(...args: T[]): string
+```
+
 ## Implemetation details
 
 Export all types from `csstype` as CSS.Properties. All methods are just a type mapping to CSS properties.
@@ -243,7 +256,7 @@ export {} as Properties;
 // example.tsx
 import * as css from "cssints" with { type: "cssints" };
 
-<div className={css.class(css.paadding(4), css.hover(css.bg("red")))}>
+<div className={css.cn(css.paadding(4), css.hover(css.bg("red")))}>
 	Hello, world!
 </div>
 ```
