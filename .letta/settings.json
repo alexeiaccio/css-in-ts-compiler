@@ -21,7 +21,9 @@
       "Bash(git pull:*)",
       "Bash(git stash:*)",
       "Bash(cat:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "AskUserQuestion",
+      "Bash(head:*)"
     ]
   }
 }

@@ -13,8 +13,15 @@
 	},
 	"dependencies": {
 		"@mdn/browser-compat-data": "^7.3.2",
+		"@types/web": "^0.0.335",
+		"@types/webidl2": "^24.4.3",
+		"@webref/css": "^8.2.5",
+		"@webref/idl": "^3.72.2",
+		"bcd-idl-mapper": "^3.0.1",
+		"csstype": "^3.2.3",
 		"es-toolkit": "^1.44.0",
-		"mdn-data": "^2.27.1"
+		"mdn-data": "^2.27.1",
+		"webidl2": "^24.5.0"
 	},
 	"devDependencies": {
 		"vitest": "^4.0.18"

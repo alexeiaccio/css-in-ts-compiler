@@ -32,6 +32,9 @@ export type Vmax = `${number}vmax`;
 export type Vmin = `${number}vmin`;
 export type Vb = `${number}vb`;
 export type Vi = `${number}vi`;
+// ... and new ones
+export type Dvw = `${number}dvw`;
+
 // Container
 export type Cqw = `${number}cqw`;
 export type Cqh = `${number}cqh`;
@@ -88,6 +91,7 @@ export type Length =
 	| In
 	| Pc
 	| Pt;
+export type None = "none";
 export type Number = number;
 export type Zero = 0 | "0";
 
@@ -124,13 +128,44 @@ export type FilterValueList = FilterFunction | Url;
 
 // Properties
 export type Filter = Typed<string, "Filter">;
-export const filter = createTyped<(...value: FilterValueList[]) => Filter, "FilterFn">(
-	(...value) => `${value.join(" ")}` as Filter,
+/**
+ * The **`filter`** CSS property applies graphical effects like blur or color shift to an element. Filters are commonly used to adjust the rendering of images, backgrounds, and borders.
+ *
+ * **Syntax**: `none | <filter-value-list>`
+ *
+ * **Initial value**: `none`
+ *
+ * This feature is well established and works across many devices and browser versions. It’s been available across browsers since September 2016.
+ *
+ * |  Chrome  | Firefox | Safari  |
+ * | :------: | :-----: | :-----: |
+ * |  **53**  | **35**  | **9.1** |
+ *
+ * @see https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/filter
+ */
+export const filter = createTyped<(...value: FilterValueList[] | [None]) => Filter, "FilterFn">(
+	(...value) => value.join(" ") as Filter,
 );
 
 // JSX CSS Properties
 export type CSSProperties = {
+	/**
+	 * The **`filter`** CSS property applies graphical effects like blur or color shift to an element. Filters are commonly used to adjust the rendering of images, backgrounds, and borders.
+	 *
+	 * **Syntax**: `none | <filter-value-list>`
+	 *
+	 * **Initial value**: `none`
+	 *
+	 * This feature is well established and works across many devices and browser versions. It’s been available across browsers since September 2016.
+	 *
+	 * |  Chrome  | Firefox | Safari  |
+	 * | :------: | :-----: | :-----: |
+	 * |  **53**  | **35**  | **9.1** |
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/filter
+	 */
 	filter?: Filter;
+	// ...
 	minHeight?: Length;
 };
 
