@@ -19,7 +19,9 @@
       "Bash(git diff:*)",
       "Bash(git fetch:*)",
       "Bash(git pull:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(cat:*)",
+      "Bash(find:*)"
     ]
   }
 }

@@ -1,0 +1,22 @@
+{
+	"name": "cssints",
+	"version": "1.0.0",
+	"description": "",
+	"keywords": [],
+	"license": "ISC",
+	"author": "",
+	"type": "commonjs",
+	"main": "index.js",
+	"scripts": {
+		"test": "vitest",
+		"typecheck": "tsgo --noEmit"
+	},
+	"dependencies": {
+		"@mdn/browser-compat-data": "^7.3.2",
+		"es-toolkit": "^1.44.0",
+		"mdn-data": "^2.27.1"
+	},
+	"devDependencies": {
+		"vitest": "^4.0.18"
+	}
+}

@@ -1,3 +1,38 @@
 {
-    "typescript.experimental.useTsgo": true
+	"editor.tabSize": 2,
+	"editor.insertSpaces": false,
+	"editor.detectIndentation": false,
+	"editor.trimAutoWhitespace": true,
+	"files.trimTrailingWhitespace": true,
+	"files.trimTrailingWhitespaceInRegexAndStrings": true,
+	"files.trimFinalNewlines": true,
+	"typescript.tsdk": "node_modules/typescript/lib",
+
+	"oxc.fmt.configPath": ".oxfmtrc.json",
+	"editor.defaultFormatter": "oxc.oxc-vscode",
+	"editor.formatOnSave": true,
+	"editor.codeActionsOnSave": {
+		"source.fixAll.oxc": "always"
+	},
+	"[javascript]": {
+		"editor.defaultFormatter": "oxc.oxc-vscode",
+		"editor.formatOnSave": true
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "oxc.oxc-vscode",
+		"editor.formatOnSave": true
+	},
+
+	"oxc.typeAware": true,
+	"typescript.experimental.useTsgo": true,
+
+	"explorer.fileNesting.enabled": true,
+	"explorer.fileNesting.expand": false,
+	"explorer.fileNesting.patterns": {
+		"*.ts": "${basename}.*.${extname}",
+		".env": ".env.*",
+		"*.tsx": "${basename}.*.${extname},${basename}.*.ts",
+		"package.json": "*.lock, .*rc, .node-version, *.json, *.yml, *.lockb, *.config.js, *.config.cjs, *.config.mjs, *.config.ts, *.config.mts, *.yaml, *.workspace.ts, *.worspaces.ts, *.d.ts, *.jsonc",
+		"Dockerfile": "*.dockerfile, .devcontainer.*, .dockerignore, captain-definition, compose.*, docker-compose.*, dockerfile*"
+	}
 }

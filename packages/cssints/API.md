@@ -4,12 +4,14 @@
 
 ```tsx
 import { cx } from "css-variants";
-import { display, alignItems, justifyContent, padding, } from "cssints" with { type: "cssints" };
+import { display, alignItems, justifyContent, padding } from "cssints" with { type: "cssints" };
 import * as css from "cssints" with { type: "cssints" };
 
-<div className={cx(display("flex"), alignItems("center"), justifyContent("center"), prop&& padding(4))}>Hello, world!</div>;
+<div className={cx(display("flex"), alignItems("center"), justifyContent("center"), prop && padding(4))}>
+	Hello, world!
+</div>;
 // or with shorthands
-<div className={cx(css.flex("items-center", "justify-center"), prop&&css.p(4))}>Hello, world!</div>;
+<div className={cx(css.flex("items-center", "justify-center"), prop && css.p(4))}>Hello, world!</div>;
 ```
 
 Output:
@@ -19,7 +21,6 @@ import { cx } from "css-variants";
 
 <div className={cx("_fsdfssdf _jdf78hs _jdfsddfs", prop && "_swg4thgf")}>Hello, world!</div>;
 ```
-
 
 ```css
 ._fsdfssdf {
@@ -47,7 +48,7 @@ import * as css from "cssints" with { type: "cssints" };
 Output:
 
 ```tsx
-<div className="_fsdfssdf _jdf78hs _jdfsddfs _swg4thgf">Hello, world!</div>;
+<div className="_fsdfssdf _jdf78hs _jdfsddfs _swg4thgf">Hello, world!</div>
 ```
 
 ```css
@@ -230,9 +231,9 @@ Merges class names from type to string. And resolve class order specificity.
 
 ```ts
 // branded type for any function
-type CSSintsFn = ((...args: any[]) => string) & { __brand: "cssints" }
+type CSSintsFn = ((...args: any[]) => string) & { __brand: "cssints" };
 
-declare function cn<T extends CSSintsFn>(...args: T[]): string
+declare function cn<T extends CSSintsFn>(...args: T[]): string;
 ```
 
 ## Browser Compat
@@ -241,7 +242,7 @@ Sadly, [`csstype`](https://github.com/frenic/csstype) has not types for function
 
 ```ts
 import bcd from "@mdn/browser-compat-data" with { type: "json" };
-import atRules from 'mdn-data/css/at-rules.json' with { type: 'json' };
+import atRules from "mdn-data/css/at-rules.json" with { type: "json" };
 // ...
 
 // TODO: compiler should generate this
@@ -251,27 +252,65 @@ import atRules from 'mdn-data/css/at-rules.json' with { type: 'json' };
  * Mix two colors with interpolation.
  *
  * **Syntax**: `color-mix( <color-interpolation-method> , [ <color> && <percentage [0,100]>? ]#{2})`
- * 
+ *
  * | Chrome   | Firefox    | Safari    |  Edge   |
  * | :------: | :--------: | :-------: | :-----: |
  * | **111**  |  **1113**  | **16.2**  | **111** |
  *
  * @see https://developer.mozilla.org/docs/Web/CSS/Reference/Values/color_value/color-mix
  */
-declare function colorMix(color1: Color, color2: Color): string
-declare function colorMix(color1: Color, color2: Color): string
-declare function colorMix(color1: Color, percentage1: Percentage, color2: Color): string
-declare function colorMix(color1: Color, percentage1: Percentage, color2: Color, percentage2: Percentage): string
-declare function colorMix(colorInterpolationMethod: ColorInterpolationMethod, color1: Color, color2: Color): string
-declare function colorMix(colorInterpolationMethod: ColorInterpolationMethod, color1: Color, percentage1: Percentage, color2: Color): string
-declare function colorMix(colorInterpolationMethod: ColorInterpolationMethod, color1: Color, percentage1: Percentage, color2: Color, percentage2: Percentage): string
+declare function colorMix(color1: Color, color2: Color): string;
+declare function colorMix(color1: Color, color2: Color): string;
+declare function colorMix(color1: Color, percentage1: Percentage, color2: Color): string;
+declare function colorMix(color1: Color, percentage1: Percentage, color2: Color, percentage2: Percentage): string;
+declare function colorMix(colorInterpolationMethod: ColorInterpolationMethod, color1: Color, color2: Color): string;
+declare function colorMix(
+	colorInterpolationMethod: ColorInterpolationMethod,
+	color1: Color,
+	percentage1: Percentage,
+	color2: Color,
+): string;
+declare function colorMix(
+	colorInterpolationMethod: ColorInterpolationMethod,
+	color1: Color,
+	percentage1: Percentage,
+	color2: Color,
+	percentage2: Percentage,
+): string;
 
 // fns usage variants
 
-css.colorMix('red', 'blue') // → color-mix(in oklch, red, blue)
-css.colorMix('srgb', 'red', 0.2, 'blue') // → color-mix(in srgb, red 0.2, blue)
-css.colorMix('srgb', 'red', '20%', 'blue', '50%') // → color-mix(in srgb, red 20%, blue 50%)
-css.colorMix('lch increasing hue', 'red', 'blue') // → color-mix(in lch increasing hue, red, blue)
+css.colorMix("red", "blue"); // → color-mix(in oklch, red, blue)
+css.colorMix("srgb", "red", 0.2, "blue"); // → color-mix(in srgb, red 0.2, blue)
+css.colorMix("srgb", "red", "20%", "blue", "50%"); // → color-mix(in srgb, red 20%, blue 50%)
+css.colorMix("lch increasing hue", "red", "blue"); // → color-mix(in lch increasing hue, red, blue)
+```
+
+```ts
+declare const __type: unique symbol;
+type Type<__Type> = { [__type]: __Type };
+type Typed<T, __Type> = T & Type<__Type>;
+function createTypeed<T, __Type>(value: T): Typed<T, __Type> {
+	return value as Typed<T, __Type>;
+}
+```
+
+```ts
+// types.gen.ts
+
+/**
+ * @groups CssTypes
+ * @status Standard
+ * @see https://developer.mozilla.org/docs/Web/CSS/angle
+ */
+export type Angle = Typed<number | `${number}deg` | `${number}rad` | `${number}grad` | `${number}turn`, "Angle">;
+// ...
+export type Zero = Typed<0, "Zero">;
+
+// syntaxes.get.ts
+
+export type HueRotate = Typed<(angle?: Angle | Zero) => string, "HueRotate">;
+// ...
 ```
 
 ## References
@@ -293,6 +332,7 @@ Maybe not possible?
 
 5:13 PM · Feb 7, 2026
 ```
+
 ```
 CSS is evolving quickly, but JS/TS are hard to beat for expressiveness, tooling, and type safety.
 
@@ -360,15 +400,15 @@ css.bg(css.mix(css.vars.color.$primary, css.vars.color.$white, "50%")) ;
 // → background-color: color-mixin srgb, var (--color-primary), var(--color-white) 50%)
 
 // Relative color syntax wrapper for lightening
-css.bg.ligthen.$primary; 
+css.bg.ligthen.$primary;
 css.bg.ligthen $primary (0.1);
-css.bg(css.lighten(css.vars.color.$primary, 0.1)); 
+css.bg(css.lighten(css.vars.color.$primary, 0.1));
 css.bg(css.lighten(css.vars.color.$primary, "10%"));
 // → background-color: oklch(from var(--color-primary) calc (l + 0.1) c h)
 
 // Relative color syntax wrapper for darkening
-css.bg.darken.$primary; 
-css.bg.darken.$primary (0.1); 
+css.bg.darken.$primary;
+css.bg.darken.$primary (0.1);
 css.bg(css.darken(css.vars.color.$primary, 0.1));
 css.bg(css.darken(css.vars.color.$primary, "10%"));
 // → background-color: oklch(from var (--color-primary) calc(l - 0.1) c h)
