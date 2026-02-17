@@ -8,7 +8,7 @@ export function createTyped<T, __Type>(value: T): Typed<T, __Type> {
 	return value as Typed<T, __Type>;
 }
 
-const identity = <T>(value: unknown): T => value as T;
+const identity = <T>(...value: unknown[]): T => value as T;
 
 // Units
 // Length
@@ -147,31 +147,16 @@ export const filter = createTyped<(...value: FilterValueList[] | [None]) => Filt
 	(...value) => value.join(" ") as Filter,
 );
 
-// JSX CSS Properties
-export type CSSProperties = {
-	/**
-	 * The **`filter`** CSS property applies graphical effects like blur or color shift to an element. Filters are commonly used to adjust the rendering of images, backgrounds, and borders.
-	 *
-	 * **Syntax**: `none | <filter-value-list>`
-	 *
-	 * **Initial value**: `none`
-	 *
-	 * This feature is well established and works across many devices and browser versions. It’s been available across browsers since September 2016.
-	 *
-	 * |  Chrome  | Firefox | Safari  |
-	 * | :------: | :-----: | :-----: |
-	 * |  **53**  | **35**  | **9.1** |
-	 *
-	 * @see https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/filter
-	 */
-	filter?: Filter;
-	// ...
-	minHeight?: Length;
-};
+export const minHeight = createTyped<(value: Length) => Length, "MinHeightFn">(
+	(value) => `min-height: ${value}` as Length,
+);
 
 // Constructors
 export type Style = Typed<object, "JSXStyle">;
-export const style = createTyped<(value?: CSSProperties) => Style, "StyleFn">(identity);
+export const style = createTyped<(...value: (Filter | Length)[]) => Style, "StyleFn">(
+	// @ts-expect-error TODO: fix this
+	(...value) => Object.fromEntries(...value) as Style,
+);
 
 // Examples
 export const example1 = hueRotate(deg(10));
@@ -180,13 +165,10 @@ export const example2 = hueRotate("3rad");
 export const wrong = hueRotate("60px"); // → Argument of type '"60px"' is not assignable to parameter of type 'number | `${number}deg` | `${number}rad` | `${number}grad` | `${number}turn` | "0" | undefined'.ts(2345)
 export const example3 = filter(hueRotate("0"));
 export const example4 = filter(blur("100px"), hueRotate("0"));
-export const example5 = style({
-	filter: filter(blur("100px"), hueRotate("0")),
-	minHeight: 100,
-});
-export const example6 = style({
+export const example5 = style(filter(blur("100px"), hueRotate("0")), minHeight(100));
+export const example6 = style(
 	// @ts-expect-error
-	filter: filter(blur("100px"), hueRotate("0"), rad(10)), // → Argument of type '`${number}rad`' is not assignable to parameter of type 'FilterValueList'.ts(2345)
+	filter(blur("100px"), hueRotate("0"), rad(10)), // → Argument of type '`${number}rad`' is not assignable to parameter of type 'FilterValueList'.ts(2345)
 	// @ts-expect-error
-	wrong: "100px", // → Object literal may only specify known properties, and 'wrong' does not exist in type 'CSSProperties'.ts(2353)
-});
+	wrong("100px"), // → Object literal may only specify known properties, and 'wrong' does not exist in type 'CSSProperties'.ts(2353)
+);
