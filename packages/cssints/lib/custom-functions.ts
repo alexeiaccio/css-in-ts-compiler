@@ -24,7 +24,7 @@
  * ```
  */
 
-import { createTyped, type Typed } from "./typed";
+import { createTyped, type Typed } from "./core";
 
 // Re-export types for convenience
 export { createTyped, type Typed };

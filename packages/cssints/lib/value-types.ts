@@ -9,43 +9,37 @@
  * - TypeScript types from typed.ts (e.g., Length, Color, Angle)
  */
 
+// Import only the essential primitive types from generated-types
 import type {
 	Angle,
-	Cap,
-	Ch,
-	Cqh,
-	Cqi,
-	Cqb,
-	Cqmax,
-	Cqmin,
-	Cqw,
-	Deg,
-	Grad,
-	In,
-	Pc,
-	Pt,
-	Px,
-	Q,
-	Rad,
-	Rcap,
-	Rch,
-	Rem,
-	Rex,
-	Rlh,
-	Turn,
-	Vb,
-	Vh,
-	Vi,
-	Vmax,
-	Vmin,
-	Vw,
-	Cm,
-	Mm,
-	Ex,
-	Em,
-	Ic,
-	Lh,
-} from "./typed";
+	Px, Rem, Em, Ch,
+	Vw, Vh, Vmin, Vmax,
+	Deg, Rad, Grad, Turn,
+} from "./generated-types";
+
+// Define additional unit types locally
+export type Cap = `${number}cap`;
+export type Ex = `${number}ex`;
+export type Ic = `${number}ic`;
+export type Lh = `${number}lh`;
+export type Rcap = `${number}rcap`;
+export type Rch = `${number}rch`;
+export type Rex = `${number}rex`;
+export type Rlh = `${number}rlh`;
+export type Vb = `${number}vb`;
+export type Vi = `${number}vi`;
+export type Cqw = `${number}cqw`;
+export type Cqh = `${number}cqh`;
+export type Cqi = `${number}cqi`;
+export type Cqb = `${number}cqb`;
+export type Cqmin = `${number}cqmin`;
+export type Cqmax = `${number}cqmax`;
+export type Cm = `${number}cm`;
+export type Mm = `${number}mm`;
+export type Q = `${number}q`;
+export type In = `${number}in`;
+export type Pc = `${number}pc`;
+export type Pt = `${number}pt`;
 
 // ============================================================================
 // Primitive CSS Types (mapped to TS types)
