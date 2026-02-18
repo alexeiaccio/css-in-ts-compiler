@@ -44,5 +44,8 @@ export * from "./types";
 export { cssTSPlugin } from "./vite-plugin";
 export type { CSSTSPluginOptions } from "./vite-plugin";
 
-// Oxc Vite plugin (new AST-based implementation)
-export { cssTSOxcPlugin, type OxcPluginOptions } from "./oxc-plugin";
+// Simple Vite plugin (regex-based, no native dependencies)
+export { cssintsPlugin } from "./simple-plugin";
+
+// Note: Oxc plugin is exported separately via ./oxc entry point to avoid
+// bundling native dependencies in the main entry
