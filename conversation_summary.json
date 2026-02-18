@@ -1,0 +1,64 @@
+{
+  "distilled_actions": [
+    {
+      "summary": "Reviewed API.md and compared to current compiler implementation",
+      "files": ["API.md"],
+      "outcome": "Identified missing features and mismatches between spec and implementation"
+    },
+    {
+      "summary": "Updated example app to test new cssints API pattern from API.md",
+      "files": ["example/App.tsx"],
+      "outcome": "Created test case for API validation"
+    },
+    {
+      "summary": "Created type declarations for cssints module",
+      "files": ["cssints/types.d.ts"],
+      "outcome": "Added proper TypeScript types for compiler integration"
+    },
+    {
+      "summary": "Fixed transformer logic for nested function calls",
+      "files": ["compiler/transformer.ts"],
+      "outcome": "Regex now matches full nested expressions"
+    },
+    {
+      "summary": "Added CSS injection for dev mode in Vite plugin",
+      "files": ["compiler/vite-plugin.ts"],
+      "outcome": "Development environment shows generated CSS"
+    },
+    {
+      "summary": "Created simpler Vite plugin for transformer",
+      "files": ["compiler/vite-plugin.ts"],
+      "outcome": "Plugin successfully converts cssints function calls to class names"
+    }
+  ],
+  "facts": [
+    {
+      "topic": "project-architecture",
+      "content": "Two packages: cssints (Type-safe CSS utilities + generated functions) and compiler (compile-time transformer regex-based → hash-based class names)"
+    },
+    {
+      "topic": "cssints-generated-functions",
+      "content": "Current generated-functions.ts returns raw CSS strings like \"color-mix(...)\" but should return CSSProperties objects for compiler integration"
+    },
+    {
+      "topic": "cssints-composables",
+      "content": "flex() takes CSSProperties objects, but API expects css.flex(css.items(\"center\")) pattern where utilities are passed as arguments"
+    },
+    {
+      "topic": "cssints-missing-features",
+      "content": "Missing cn(), media(), token.*, set.*, createTokens/createGlobalTheme, color helpers (mix, lighten, darken)"
+    },
+    {
+      "topic": "transformer-expectations",
+      "content": "Transformer expects CSSProperties objects, not strings, for class name generation"
+    }
+  ],
+  "decisions": [
+    "Unify return types - functions should return typed CSS property objects (CSSProperties), not strings",
+    "Add cn function - branded type merger that compiler recognizes for cx pattern",
+    "Fix composable pattern - make flex(), grid() accept utility functions as shown in API",
+    "Add media wrapper - media() returns wrapper that compounds class names",
+    "Transformer should replace function calls with string class names at compile time, types should reflect that",
+    "Created simpler Vite plugin for transformation that integrates with cssints module resolution"
+  ]
+}
