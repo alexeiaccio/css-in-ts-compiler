@@ -96,5 +96,8 @@ export {
 	type CSSValueType,
 } from "./tokens";
 
+// Class name utilities
+export { cn, cx, cva, type CSSintsFn } from "./cn";
+
 // Custom functions (extension point)
 export * from "./custom-functions";
