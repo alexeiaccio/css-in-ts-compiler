@@ -2,9 +2,29 @@
 
 ## Metadata
 
-- **Status**: Proposal
+- **Status**: ✅ Implemented (Feb 18, 2026)
 - **Created**: February 15, 2026
 - **Type**: Implementation Plan
+
+## Implementation Summary
+
+Implemented in `packages/cssints/`:
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| Data Collection | `scripts/collect-webref.ts` | Fetches & caches @webref/css data |
+| Baseline Filter | `scripts/filter-baseline.ts` | Filters to modern baseline via browserslist + BCD |
+| Syntax Parser | `scripts/parse-value-syntax.ts` | Parses MDN value definition syntax |
+| Type Inference | `scripts/infer-types.ts` | Converts parsed syntax to TypeScript types |
+| JSDoc Generator | `scripts/generate-jsdoc.ts` | Generates JSDoc with browser compat |
+| Function Generator | `scripts/generate-functions.ts` | Emits typed CSS functions |
+| Main Script | `scripts/generate-all.ts` | Orchestrates the pipeline |
+| Type Taxonomy | `lib/value-types.ts` | CSS type to TS type mapping |
+| Custom Functions | `lib/custom-functions.ts` | Extension point |
+
+**Run:** `bun run generate` (in packages/cssints)
+
+**Tests:** 22 passing across 3 test files
 
 ## Abstract
 

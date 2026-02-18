@@ -11,7 +11,7 @@ import * as css from "cssints" with { type: "cssints" };
 	Hello, world!
 </div>;
 // or with shorthands
-<div className={cx(css.flex("items-center", "justify-center"), prop && css.p(4))}>Hello, world!</div>;
+<div className={cx(css.flex(css.items("center"), css.justify("center")), prop && css.p(4))}>Hello, world!</div>;
 ```
 
 Output:
@@ -42,7 +42,7 @@ import { cx } from "css-variants";
 ```tsx
 import * as css from "cssints" with { type: "cssints" };
 
-<div className={css.cn(css.flex("items-center", "justify-center"), css.p(4))}>Hello, world!</div>;
+<div className={css.cn(css.flex(css.items("center"), css.justify("center")), css.p(4))}>Hello, world!</div>;
 ```
 
 Output:
@@ -72,11 +72,9 @@ Output:
 import { cx } from "css-variants";
 import * as css from "cssints" with { type: "cssints" };
 
-const { md } = createMediaQueries({
-	md: "screen and min-width > 40rem",
-});
+const md = media("screen and min-width > 40rem");
 
-const styles = cx(css.p(2), md(css.pl("8ch"), css.pt(css.pxToRem("16px"))));
+const styles = cx(css.p(2), md(css.pl("8ch"), prop && css.pt(css.pxToRem("16px"))));
 
 <div className={styles}>Hello, world!</div>;
 ```
@@ -86,7 +84,7 @@ Output:
 ```tsx
 import { cx } from "css-variants";
 
-<div className={cx("_jdf78hs", "_swg4thgf", "_jdfsddfs")}>Hello, world!</div>;
+<div className={cx("_jdf78hs", "_swg4thgf", prop && "_jdfsddfs")}>Hello, world!</div>;
 ```
 
 ```css
@@ -107,64 +105,81 @@ import { cx } from "css-variants";
 
 ### Tokens
 
-```ts
-import { cx } from "css-variants";
-import * as css from "cssints" with { type: "cssints" };
+With style function:
 
-const tokens = css.createTokens(
-	{
-		colors: css.types.color({
-			blue: {
-				100: "oklch(4.820% 0.0334 264.05)",
-				// ...
-			},
-			// ...
-		}),
-	},
-	(_, path) => kebabCase(path),
-);
+```tsx
+const blue = css.token.color("blue", { var: "color-primary", inherit: true });
+// or
+const blue = css.token.color("blue", "color-primary");
 
-const theme = css.createTokens({
-    primary: tokens("colors.blue.100"),
-});
-
-const styles = cx(css.bg(theme("primary")));
-<div className={styles}>Hello, world!</div>;
+<div style={css.style(css.color(blue), css.token.set(blue, "red"))}>Hello, world!</div>;
 ```
 
 Output:
 
 ```tsx
-import { cx } from "css-variants";
-
-<div className={cx("_jdf78hs")}>Hello, world!</div>;
+<div
+	style={{
+		"--color-primary": "red",
+		color: "var(--color-primary)",
+	}}
+>
+	Hello, world!
+</div>
 ```
 
 ```css
-@property --colors-blue-100 {
+@property --color-primary {
 	syntax: "<color>";
 	inherits: true;
-	initial-value: oklch(4.82% 0.0334 264.05);
-}
-._jdf78hs {
-	background-color: var(--colors-blue-100);
+	initial-value: blue;
 }
 ```
 
-### Theme
+With class:
+
+```tsx
+const blue = css.token.color("blue", false);
+
+// css.token.set(blue, "red") -> will show ts error
+
+<div className={css.cn(css.color(blue))}>Hello, world!</div>;
+```
+
+Output:
+
+```tsx
+<div className="_jdf78hs">Hello, world!</div>
+```
+
+```css
+@property --_sdfhgo8f {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: blue;
+}
+._jdf78hs {
+	color: var(--_sdfhgo8f);
+}
+```
+
+#### Themes (WIP)
 
 ```ts
 import { cx } from 'css-variants'
 import * as css from "cssints" with { type: "cssints" };
 
 const tokens = css.createTokens({
-	colors: css.types.color({
+	colors: {
+		$type: "color",
 		blue: {
-			100: "unset"
+			100: "unset",
+			// or
+			200: "oklch(4.820% 0.0334 264.05)",
 			// ...
 		},
 		// ...
-	}),
+	},
 }, (_, path) => kebabCase(path));
 
 const { dark } = css.createMediaQueries({

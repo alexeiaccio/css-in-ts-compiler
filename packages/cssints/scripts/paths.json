@@ -1,0 +1,22 @@
+{
+	"cache": {
+		"dir": "./node_modules/.cache/cssints",
+		"webref": "./node_modules/.cache/cssints/webref-cache.json",
+		"browserslist": "./node_modules/.cache/cssints/browserslist-cache.json",
+		"log": "./node_modules/.cache/cssints/generation.log"
+	},
+	"output": {
+		"generatedFunctions": "./lib/generated-functions.ts",
+		"generatedTypes": "./lib/generated-types.ts",
+		"generatedProps": "./lib/generated-props.ts"
+	},
+	"custom": {
+		"functions": "./lib/custom-functions.ts"
+	},
+	"sources": {
+		"webrefCss": "@webref/css",
+		"webrefIdl": "@webref/idl",
+		"mdnData": "mdn-data",
+		"mdnBcd": "@mdn/browser-compat-data"
+	}
+}

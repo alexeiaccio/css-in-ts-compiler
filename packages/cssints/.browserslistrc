@@ -1,0 +1,17 @@
+# Modern baseline - widely available features with good tooling support
+# See: https://web.dev/baseline
+
+# Last 2 versions of major browsers
+last 2 versions
+
+# Edge versions
+Edge >= 18
+
+# Firefox ESR
+Firefox ESR
+
+# Safari versions
+Safari >= 15.4
+
+# Node.js for tooling
+node >= 18

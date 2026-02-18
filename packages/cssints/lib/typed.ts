@@ -102,9 +102,27 @@ export const rad = createTyped<(value: number) => Rad, "RadFn">((value) => `${va
 export const grad = createTyped<(value: number) => Grad, "GradFn">((value) => `${value}grad`);
 export const turn = createTyped<(value: number) => Turn, "TurnFn">((value) => `${value}turn`);
 
+// Length Units
+export const px = createTyped<(value: number) => Px, "PxFn">((value) => `${value}px`);
+export const rem = createTyped<(value: number) => Rem, "RemFn">((value) => `${value}rem`);
+export const em = createTyped<(value: number) => Em, "EmFn">((value) => `${value}em`);
+export const ch = createTyped<(value: number) => Ch, "ChFn">((value) => `${value}ch`);
+export const vh = createTyped<(value: number) => Vh, "VhFn">((value) => `${value}vh`);
+export const vw = createTyped<(value: number) => Vw, "VwFn">((value) => `${value}vw`);
+export const vmin = createTyped<(value: number) => Vmin, "VminFn">((value) => `${value}vmin`);
+export const vmax = createTyped<(value: number) => Vmax, "VmaxFn">((value) => `${value}vmax`);
+export const pct = createTyped<(value: number) => `${number}%`, "PctFn">((value) => `${value}%`);
+
+// Time Units
+export type Seconds = `${number}s`;
+export type Milliseconds = `${number}ms`;
+export const s = createTyped<(value: number) => Seconds, "SecondsFn">((value) => `${value}s`);
+export const ms = createTyped<(value: number) => Milliseconds, "MsFn">((value) => `${value}ms`);
+
 // Types
 export const zero = createTyped<(value: 0) => Zero, "ZeroFn">(identity);
 export const angle = createTyped<(value: Number | Deg | Rad | Grad | Turn) => Angle, "AngleFn">(identity);
+export const length = createTyped<(value: Number | Length) => Length, "LengthFn">(identity);
 
 // Functions
 export type Blur = Typed<string, "Blur">;
@@ -154,21 +172,5 @@ export const minHeight = createTyped<(value: Length) => Length, "MinHeightFn">(
 // Constructors
 export type Style = Typed<object, "JSXStyle">;
 export const style = createTyped<(...value: (Filter | Length)[]) => Style, "StyleFn">(
-	// @ts-expect-error TODO: fix this
-	(...value) => Object.fromEntries(...value) as Style,
-);
-
-// Examples
-export const example1 = hueRotate(deg(10));
-export const example2 = hueRotate("3rad");
-// @ts-expect-error
-export const wrong = hueRotate("60px"); // → Argument of type '"60px"' is not assignable to parameter of type 'number | `${number}deg` | `${number}rad` | `${number}grad` | `${number}turn` | "0" | undefined'.ts(2345)
-export const example3 = filter(hueRotate("0"));
-export const example4 = filter(blur("100px"), hueRotate("0"));
-export const example5 = style(filter(blur("100px"), hueRotate("0")), minHeight(100));
-export const example6 = style(
-	// @ts-expect-error
-	filter(blur("100px"), hueRotate("0"), rad(10)), // → Argument of type '`${number}rad`' is not assignable to parameter of type 'FilterValueList'.ts(2345)
-	// @ts-expect-error
-	wrong("100px"), // → Object literal may only specify known properties, and 'wrong' does not exist in type 'CSSProperties'.ts(2353)
+	(...value) => Object.assign({}, ...value) as unknown as Style,
 );
