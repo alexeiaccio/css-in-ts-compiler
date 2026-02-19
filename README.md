@@ -6,6 +6,7 @@ A compile-time CSS-in-TypeScript compiler with hash-based class names, following
 
 - [Turborepo](https://turborepo.dev/)
 - [Bun](https://bun.sh)
+- [Effect TS 4 Beta](https://effect.website/blog/releases/effect/40-beta/)
 - [OXC parser](https://oxc.rs/docs/guide/usage/parser)
 - [OXC transformer](https://oxc.rs/docs/guide/usage/transformer)
 - [Lighting CSS](https://lightningcss.dev)
@@ -19,15 +20,15 @@ A compile-time CSS-in-TypeScript compiler with hash-based class names, following
 
 ## Features
 
-✅ **Hash-based class names** - Collision-free atomic classes (like StyleX, vanilla-extract)  
-✅ **Compile-time deduplication** - Global registry for atomic classes  
-✅ **Design Tokens support** - Follows W3C Design Tokens Community Group standard  
-✅ **Responsive utilities** - Media query functions via `createMedia()`  
-✅ **Composable API** - Functional utilities like `p(2)`, `md(p(4))`  
-✅ **Type-safe** - Full TypeScript support  
-✅ **Zero runtime** - All styles compiled at build time  
-✅ **Vite plugins** - Both regex-based and oxc-based AST plugins available  
-✅ **Theming** - Global themes with CSS variables  
+✅ **Hash-based class names** - Collision-free atomic classes (like StyleX, vanilla-extract)
+✅ **Compile-time deduplication** - Global registry for atomic classes
+✅ **Design Tokens support** - Follows W3C Design Tokens Community Group standard
+✅ **Responsive utilities** - Media query functions via `createMedia()`
+✅ **Composable API** - Functional utilities like `p(2)`, `md(p(4))`
+✅ **Type-safe** - Full TypeScript support
+✅ **Zero runtime** - All styles compiled at build time
+✅ **Vite plugins** - Both regex-based and oxc-based AST plugins available
+✅ **Theming** - Global themes with CSS variables
 ✅ **CLI** - Command-line interface for building styles
 
 ## Quick Start
