@@ -408,3 +408,31 @@ export const token = {
 	setMultiple,
 	style,
 };
+
+// Re-export from create-tokens module (DTCG format)
+export {
+	createTokens,
+	clearTokenRegistry as clearDTCGTokenRegistry,
+	getToken,
+	generateTokenCSS,
+	generateCSS as generateDTCGCSS,
+	type CreateTokensOptions,
+	type TokenDefinition as DTCGTokenDefinition,
+} from "./tokens/create-tokens";
+
+export type {
+	DTCGToken,
+	DTCGGroup,
+	DTCGTokenType,
+	ColorToken,
+	DimensionToken,
+	DurationToken,
+	NumberToken,
+	FontFamilyToken,
+	FontWeightToken,
+	CubicBezierToken,
+	ShadowToken,
+	GradientToken,
+} from "./tokens/dtcg-types";
+
+export type { TokenWalkResult } from "./tokens/walker";

@@ -4,9 +4,12 @@
  * Uses regex-based transformation to convert css.* calls to class names.
  */
 
-import type { Plugin, ResolvedConfig } from "vite";
+import type { Plugin } from "vite";
 import * as cssints from "./cssints/index";
-import { generateHash } from "./cssints/hash";
+import {
+	registerMultiPropertyClass,
+	generateCSS as generateIntegrationCSS,
+} from "./integration";
 
 interface SimplePluginOptions {
 	include?: string[];
@@ -23,10 +26,7 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 		debug = false,
 	} = options;
 
-	const styles = new Map<string, { className: string; properties: Record<string, any> }>();
 	const fileStyles = new Map<string, Set<string>>();
-	let config: ResolvedConfig | null = null;
-	let cssCache = "";
 
 	function matchesPattern(id: string, patterns: string[]): boolean {
 		return patterns.some((pattern) => {
@@ -36,72 +36,17 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 	}
 
 	function generateClassName(props: Record<string, any>): string {
-		const hash = generateHash(JSON.stringify(props));
-		return `x${hash}`;
-	}
-
-	function generateCSS(): string {
-		if (cssCache) return cssCache;
-		const parts: string[] = [];
-		for (const [, data] of styles) {
-			parts.push(generateClassCSS(data.className, data.properties));
-		}
-		cssCache = parts.join("\n\n");
-		return cssCache;
+		return registerMultiPropertyClass(
+			Object.fromEntries(
+				Object.entries(props).map(([k, v]) => [toKebabCase(k), String(v)])
+			)
+		);
 	}
 
 	function toKebabCase(str: string): string {
 		return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
 	}
 
-	function generatePropertiesCSS(props: Record<string, any>, indent = "  "): string {
-		const lines: string[] = [];
-		for (const [key, value] of Object.entries(props)) {
-			const cssKey = toKebabCase(key);
-			if (typeof value === "object" && value !== null && !key.startsWith("@") && !key.startsWith("&")) {
-				lines.push(`${indent}${cssKey}: ${JSON.stringify(value)};`);
-			} else if (typeof value !== "object") {
-				lines.push(`${indent}${cssKey}: ${value};`);
-			}
-		}
-		return lines.join("\n");
-	}
-
-	function generateClassCSS(className: string, props: Record<string, any>): string {
-		const lines: string[] = [];
-		const nested: string[] = [];
-
-		for (const [key, value] of Object.entries(props)) {
-			const cssKey = toKebabCase(key);
-			if (typeof value === "object" && value !== null) {
-				if (key.startsWith("@media") || key.startsWith("@")) {
-					// Media queries go outside the class
-					const nestedProps = generatePropertiesCSS(value as Record<string, any>, "    ");
-					nested.push(`${key} {\n  .${className} {\n${nestedProps}\n  }\n}`);
-				} else if (key.startsWith("&")) {
-					// Pseudo-classes/elements
-					const selector = key.replace("&", `.${className}`);
-					const nestedProps = generatePropertiesCSS(value as Record<string, any>);
-					nested.push(`${selector} {\n${nestedProps}\n}`);
-				} else {
-					lines.push(`  ${cssKey}: ${JSON.stringify(value)};`);
-				}
-			} else {
-				lines.push(`  ${cssKey}: ${value};`);
-			}
-		}
-
-		const parts: string[] = [];
-		if (lines.length > 0) {
-			parts.push(`.${className} {\n${lines.join("\n")}\n}`);
-		}
-		if (nested.length > 0) {
-			parts.push(nested.join("\n\n"));
-		}
-		return parts.join("\n\n");
-	}
-
-	// Evaluate a cssints expression and return the result
 	function evaluateCssintsExpr(expr: string, cssVar: string): any {
 		expr = expr.trim();
 		
@@ -200,10 +145,6 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 		name: "cssints",
 		enforce: "pre",
 
-		configResolved(resolvedConfig) {
-			config = resolvedConfig;
-		},
-
 		resolveId(id) {
 			if (id === "cssints") {
 				return "virtual:cssints";
@@ -273,11 +214,7 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 								if (result && typeof result === "object") {
 									const className = generateClassName(result);
 									
-									styles.set(className, { className, properties: result });
 									currentFileStyles.add(className);
-									
-									// Invalidate CSS cache
-									cssCache = "";
 									
 									replacements.push({ start, end, className });
 									
@@ -316,7 +253,7 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 			// Serve CSS on a special endpoint
 			server.middlewares.use((req, res, next) => {
 				if (req.url === "/__cssints__/styles.css") {
-					const css = generateCSS();
+					const css = generateIntegrationCSS();
 					res.setHeader("Content-Type", "text/css");
 					res.end(css);
 					return;
@@ -328,8 +265,7 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 		transformIndexHtml: {
 			order: "post",
 			handler(html: string) {
-				// Inject CSS link for both dev and prod
-				const css = generateCSS();
+				const css = generateIntegrationCSS();
 				if (css) {
 					return html.replace(
 						"</head>",
@@ -341,7 +277,7 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 		},
 
 		generateBundle() {
-			const css = generateCSS();
+			const css = generateIntegrationCSS();
 			if (css) {
 				this.emitFile({
 					type: "asset",
@@ -351,51 +287,6 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 			}
 		},
 	};
-}
-
-function parseArgs(str: string): any[] {
-	if (!str.trim()) return [];
-	
-	const args: any[] = [];
-	let current = "";
-	let depth = 0;
-	let inString = false;
-	let stringChar = "";
-
-	for (let i = 0; i < str.length; i++) {
-		const char = str[i];
-		
-		if ((char === '"' || char === "'") && str[i - 1] !== '\\') {
-			if (!inString) {
-				inString = true;
-				stringChar = char;
-			} else if (char === stringChar) {
-				inString = false;
-			}
-			current += char;
-		} else if (!inString) {
-			if (char === '(' || char === '[' || char === '{') {
-				depth++;
-				current += char;
-			} else if (char === ')' || char === ']' || char === '}') {
-				depth--;
-				current += char;
-			} else if (char === ',' && depth === 0) {
-				args.push(parseValue(current.trim()));
-				current = "";
-			} else {
-				current += char;
-			}
-		} else {
-			current += char;
-		}
-	}
-	
-	if (current.trim()) {
-		args.push(parseValue(current.trim()));
-	}
-	
-	return args;
 }
 
 function parseValue(value: string): any {

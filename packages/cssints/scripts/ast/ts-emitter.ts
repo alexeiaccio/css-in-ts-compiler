@@ -168,19 +168,28 @@ function emitIDLInterface(iface: IDLInterface, config: EmitterConfig): string {
 
 	lines.push(`export interface ${iface.name} {`);
 
+	const seenNames = new Set<string>();
 	for (const member of iface.members) {
 		const type = resolveTypeRef(member.type);
 		const optional = member.kind === "attribute" ? "" : "?";
+		// Sanitize member name: font-family -> fontFamily
+		let memberName = member.name.replace(/-([a-z])/g, (_: string, c: string) => c.toUpperCase());
+		
+		// Skip duplicates (e.g., both fontFamily and font-family in IDL)
+		if (seenNames.has(memberName)) continue;
+		seenNames.add(memberName);
 
 		if (member.kind === "attribute") {
-			lines.push(`  ${member.name}: ${type};`);
+			lines.push(`  ${memberName}: ${type};`);
 		} else if (member.kind === "operation" && member.parameters) {
 			const params = member.parameters.map((p) => {
 				const pt = resolveTypeRef(p.type);
 				const opt = p.optional ? "?" : "";
-				return `${p.name}${opt}: ${pt}`;
+				// Sanitize parameter name too
+				const paramName = p.name.replace(/-([a-z])/g, (_: string, c: string) => c.toUpperCase());
+				return `${paramName}${opt}: ${pt}`;
 			});
-			lines.push(`  ${member.name}(${params.join(", ")}): ${type};`);
+			lines.push(`  ${memberName}(${params.join(", ")}): ${type};`);
 		}
 	}
 
@@ -258,8 +267,20 @@ function resolveTypeRef(ref: TypeReference): string {
 	return type;
 }
 
+const RESERVED_WORDS = new Set([
+	"break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete",
+	"do", "else", "enum", "export", "extends", "false", "finally", "for", "function",
+	"if", "import", "in", "instanceof", "new", "null", "return", "super", "switch",
+	"this", "throw", "true", "try", "typeof", "var", "void", "while", "with", "yield",
+	"let", "static", "implements", "interface", "package", "private", "protected", "public",
+	"await", "abstract", "boolean", "byte", "char", "double", "final", "float", "goto",
+	"int", "long", "native", "short", "synchronized", "throws", "transient", "volatile",
+]);
+
 function camelCase(str: string): string {
-	return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+	const camel = str.replace(/-([a-z])/g, (_: string, c: string) => c.toUpperCase());
+	// Add underscore suffix to reserved words
+	return RESERVED_WORDS.has(camel) ? `${camel}_` : camel;
 }
 
 function capitalize(str: string): string {
@@ -360,7 +381,9 @@ function emitIDLDictionary(dict: any, config: EmitterConfig): string {
 
 	for (const member of dict.members) {
 		const type = resolveTypeRef(member.type);
-		lines.push(`  ${member.name}${member.required ? "" : "?"}: ${type};`);
+		// Sanitize member name: font-family -> fontFamily
+		const memberName = member.name.replace(/-([a-z])/g, (_: string, c: string) => c.toUpperCase());
+		lines.push(`  ${memberName}${member.required ? "" : "?"}: ${type};`);
 	}
 
 	lines.push("}");
@@ -478,7 +501,8 @@ export function emitFunctions(functions: Map<string, CSSFunction>, config: Emitt
 	lines.push("// ============================================================================\n");
 
 	for (const [name, fn] of functions) {
-		const fnName = capitalize(fn.name);
+		// Sanitize function name: anchor-size -> AnchorSize
+		const fnName = capitalize(fn.name).replace(/-([a-z])/g, (_: string, c: string) => c.toUpperCase());
 		if (config.jsdoc) {
 			lines.push(`/** CSS \`${fn.name}()\` function */`);
 		}

@@ -14,18 +14,10 @@ export { createTyped, type Typed } from "./core";
 // Scale utility
 export { scaleValue, scaleValues, scaleShorthand, needsScaling, createScaler, scaler, type ScaleValue } from "./scale";
 
-// Note: Generated type exports will be available after running `bun run generate`
-// - types.gen.ts - IDL types from @webref/idl
-// - syntax.gen.ts - CSS syntax types from mdn-data
-// - properties.gen.ts - CSS property functions from @webref/css
-// - functions.gen.ts - CSS function types from @webref/css
-// - compat.gen.ts - Browser compatibility data
-
-// Example usage after generation:
-// export * from "./types.gen";
-// export * from "./syntax.gen";
-// export * from "./properties.gen";
-// export * from "./functions.gen";
+// Generated types from IDL and CSS specs
+export * from "./types.gen";
+export * from "./properties.gen";
+export * from "./functions.gen";
 
 // Composable utilities
 export {

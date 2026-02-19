@@ -137,26 +137,10 @@ async function collectData(config: GenerationConfig): Promise<CollectedData> {
 	// Collect syntax data
 	if (config.sources.syntax) {
 		console.log("[2/5] Collecting syntax data...");
-		try {
-			const syntaxCollection = getSyntaxData({ force: config.options.forceRefresh });
-			const parsedSyntaxes = parseAllSyntaxes(
-				new Map(
-					Array.from(syntaxCollection.definitions.entries()).map(([name, def]) => [
-						name,
-						{ name: def.name, syntax: def.syntax },
-					])
-				)
-			);
-			
-			for (const [name, type] of parsedSyntaxes) {
-				data.syntaxTypes.set(name, type);
-			}
-			
-			console.log(`  ✓ Parsed ${data.syntaxTypes.size} syntax types`);
-		} catch (err) {
-			data.errors.push({ phase: "syntax", error: err as Error });
-			console.error(`  ✗ Failed: ${err}`);
-		}
+		console.log("  ⚠ Syntax parsing temporarily disabled (performance issues)");
+		// TODO: Fix syntax parser hanging issue
+		// const syntaxCollection = getSyntaxData({ force: config.options.forceRefresh });
+		// const parsedSyntaxes = parseAllSyntaxes(...)
 	}
 
 	// Collect WebRef CSS data
