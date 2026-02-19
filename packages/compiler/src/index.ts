@@ -47,5 +47,27 @@ export type { CSSTSPluginOptions } from "./vite-plugin";
 // Simple Vite plugin (regex-based, no native dependencies)
 export { cssintsPlugin } from "./simple-plugin";
 
+// CSSints integration
+export {
+	// Registry
+	clearCSSRegistry,
+	getCSSRegistry,
+	// Registration
+	registerClass,
+	registerMultiPropertyClass,
+	registerCSSProperty,
+	registerToken,
+	// Transform
+	transformPropertyCall,
+	transformFunctionCall,
+	transformComposableCall,
+	// Generation
+	generateCSS as generateCSSintsCSS,
+	generateHash,
+	generateClassName,
+	// Stats
+	getStats,
+} from "./integration";
+
 // Note: Oxc plugin is exported separately via ./oxc entry point to avoid
 // bundling native dependencies in the main entry
