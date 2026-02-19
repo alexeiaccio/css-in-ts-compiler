@@ -34,7 +34,7 @@ describe("Integration Module", () => {
 
 		it("generates class names", () => {
 			const className = generateClassName("display", "flex");
-			expect(className).toMatch(/^\_css_display_/);
+			expect(className).toMatch(/^_css_display_/);
 		});
 	});
 
@@ -78,7 +78,7 @@ describe("Integration Module", () => {
 		it("transforms property calls", () => {
 			const result = transformPropertyCall("display", "flex");
 			
-			expect(result.className).toMatch(/^\_css_display_/);
+			expect(result.className).toMatch(/^_css_display_/);
 			expect(result.css).toContain("display: flex");
 		});
 

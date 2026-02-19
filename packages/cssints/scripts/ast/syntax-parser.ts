@@ -190,7 +190,7 @@ class SyntaxLexer {
 		const start = this.pos;
 		while (
 			this.pos < this.input.length &&
-			/[a-zA-Z0-9_\-]/.test(this.input[this.pos]!)
+			/[a-zA-Z0-9_-]/.test(this.input[this.pos]!)
 		) {
 			this.pos++;
 		}

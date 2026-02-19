@@ -13,13 +13,12 @@ import {
 	generateTokenCSS,
 	generateCSS,
 	type TokenTree,
-	type TokenFn,
 } from "../../lib/tokens/create-tokens";
 
 // Define test token input shape
 const testTokensInput = {
 	colors: {
-		$type: "color" as const,
+		$type: "color",
 		primary: { $value: "#007bff" },
 		secondary: { $value: "#6c757d" },
 		brand: {
@@ -27,25 +26,25 @@ const testTokensInput = {
 		},
 	},
 	spacing: {
-		$type: "dimension" as const,
+		$type: "dimension",
 		sm: { $value: "4px" },
 		md: { $value: "8px" },
 	},
 	transitions: {
-		$type: "duration" as const,
+		$type: "duration",
 		fast: { $value: "100ms" },
 	},
 	scale: {
-		$type: "number" as const,
+		$type: "number",
 		base: { $value: 1 },
 		large: { $value: 1.5 },
 	},
 	mixed: {
-		$type: "color" as const,
+		$type: "color",
 		colorToken: { $value: "#fff" },
-		explicitToken: { $type: "dimension" as const, $value: "16px" },
+		explicitToken: { $type: "dimension", $value: "16px" },
 	},
-};
+} as const;
 
 describe("createTokens", () => {
 	beforeEach(() => {
