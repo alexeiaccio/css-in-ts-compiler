@@ -9,13 +9,10 @@ import type {
 	Time,
 	Percentage,
 	CSSNumber,
-	CSSInteger,
-	Frequency,
-	Resolution,
 	LengthPercentage,
 	AnglePercentage,
 	TimePercentage,
-} from "../generated-types";
+} from "../value-types";
 import type { DTCGTokenType } from "./dtcg-types";
 
 // ============================================================================
