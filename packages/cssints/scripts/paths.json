@@ -2,13 +2,17 @@
 	"cache": {
 		"dir": "./node_modules/.cache/cssints",
 		"webref": "./node_modules/.cache/cssints/webref-cache.json",
+		"idl": "./node_modules/.cache/cssints/idl-cache.json",
+		"syntax": "./node_modules/.cache/cssints/syntax-cache.json",
 		"browserslist": "./node_modules/.cache/cssints/browserslist-cache.json",
 		"log": "./node_modules/.cache/cssints/generation.log"
 	},
 	"output": {
-		"generatedFunctions": "./lib/generated-functions.ts",
-		"generatedTypes": "./lib/generated-types.ts",
-		"generatedProps": "./lib/generated-props.ts"
+		"types": "./lib/types.gen.ts",
+		"syntax": "./lib/syntax.gen.ts",
+		"compat": "./lib/compat.gen.ts",
+		"properties": "./lib/properties.gen.ts",
+		"functions": "./lib/functions.gen.ts"
 	},
 	"custom": {
 		"functions": "./lib/custom-functions.ts"

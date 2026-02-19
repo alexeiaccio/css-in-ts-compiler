@@ -1,10 +1,20 @@
 import { describe, it, expect } from "vitest";
 import type {
-	Length, Angle, Color,
+	Length, Angle,
 	Px, Rem, Deg, Turn,
 	LengthPercentage, AnglePercentage,
-} from "../lib/generated-types";
-import { px, rem, em, deg, turn, sec, ms, pct } from "../lib/generated-types";
+} from "../lib/value-types";
+import type { Color } from "../lib/tokens";
+
+// Helper functions for unit creation
+const px = (v: number): Px => `${v}px`;
+const rem = (v: number): Rem => `${v}rem`;
+const em = (v: number) => `${v}em`;
+const deg = (v: number): Deg => `${v}deg`;
+const turn = (v: number): Turn => `${v}turn`;
+const sec = (v: number) => `${v}s`;
+const ms = (v: number) => `${v}ms`;
+const pct = (v: number) => `${v}%`;
 
 describe("Primitive Types", () => {
 	it("Length accepts number and unit strings", () => {

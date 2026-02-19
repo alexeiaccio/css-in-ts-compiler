@@ -5,20 +5,19 @@
  * Supports all CSS primitive types with automatic syntax inference.
  */
 
-import type {
-	Color,
-	Length,
-	Angle,
-	Time,
-	Percentage,
-	CSSNumber,
-	CSSInteger,
-	Frequency,
-	Resolution,
-	LengthPercentage,
-	AnglePercentage,
-	TimePercentage,
-} from "./generated-types";
+// Type definitions (previously from generated-types)
+export type CSSNumber = number;
+export type CSSInteger = number;
+export type Percentage = `${number}%`;
+export type Length = number | `${number}${string}`;
+export type Angle = number | `${number}deg` | `${number}rad` | `${number}grad` | `${number}turn`;
+export type Time = `${number}s` | `${number}ms`;
+export type Frequency = `${number}Hz` | `${number}kHz`;
+export type Resolution = `${number}dpi` | `${number}dppx`;
+export type LengthPercentage = Length | Percentage;
+export type AnglePercentage = Angle | Percentage;
+export type TimePercentage = Time | Percentage;
+export type Color = string;
 
 // ============================================================================
 // Token Types

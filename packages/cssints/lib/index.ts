@@ -11,33 +11,21 @@
 // Core type system
 export { createTyped, type Typed } from "./core";
 
-// Primitive types and unit helpers (auto-generated)
-export {
-	// Unit helpers
-	px, rem, em, vw, vh, deg, turn, pct, sec, ms,
-} from "./generated-types";
-
-export type {
-	// Types
-	CSSNumber, CSSInteger,
-	Px, Rem, Em, Ch, Vw, Vh, Vmin, Vmax,
-	Deg, Rad, Grad, Turn,
-	Seconds, Milliseconds,
-	Hz, kHz,
-	Dpi, Dppx,
-	Length, Angle, Time, Frequency, Resolution,
-	Percentage, LengthPercentage, AnglePercentage, TimePercentage,
-	Color, Url, Image, Position,
-} from "./generated-types";
-
 // Scale utility
 export { scaleValue, scaleValues, scaleShorthand, needsScaling, createScaler, scaler, type ScaleValue } from "./scale";
 
-// Generated CSS functions
-export * from "./generated-functions";
+// Note: Generated type exports will be available after running `bun run generate`
+// - types.gen.ts - IDL types from @webref/idl
+// - syntax.gen.ts - CSS syntax types from mdn-data
+// - properties.gen.ts - CSS property functions from @webref/css
+// - functions.gen.ts - CSS function types from @webref/css
+// - compat.gen.ts - Browser compatibility data
 
-// Generated CSS properties  
-export * from "./generated-props";
+// Example usage after generation:
+// export * from "./types.gen";
+// export * from "./syntax.gen";
+// export * from "./properties.gen";
+// export * from "./functions.gen";
 
 // Composable utilities
 export {

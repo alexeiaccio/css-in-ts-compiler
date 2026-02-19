@@ -9,15 +9,20 @@
  * - TypeScript types from typed.ts (e.g., Length, Color, Angle)
  */
 
-// Import only the essential primitive types from generated-types
-import type {
-	Angle,
-	Px, Rem, Em, Ch,
-	Vw, Vh, Vmin, Vmax,
-	Deg, Rad, Grad, Turn,
-} from "./generated-types";
-
-// Define additional unit types locally
+// Define unit types locally (previously imported from generated-types)
+export type Px = `${number}px`;
+export type Rem = `${number}rem`;
+export type Em = `${number}em`;
+export type Ch = `${number}ch`;
+export type Vw = `${number}vw`;
+export type Vh = `${number}vh`;
+export type Vmin = `${number}vmin`;
+export type Vmax = `${number}vmax`;
+export type Deg = `${number}deg`;
+export type Rad = `${number}rad`;
+export type Grad = `${number}grad`;
+export type Turn = `${number}turn`;
+export type Angle = number | Deg | Rad | Grad | Turn;
 export type Cap = `${number}cap`;
 export type Ex = `${number}ex`;
 export type Ic = `${number}ic`;
@@ -46,7 +51,6 @@ export type Pt = `${number}pt`;
 // ============================================================================
 
 /** <angle> - Angle values (deg, rad, grad, turn) */
-export type { Angle };
 
 /** <length> - Distance values */
 export type Length =
@@ -87,6 +91,12 @@ export type Percentage = `${number}%`;
 
 /** <length-percentage> - Length or percentage */
 export type LengthPercentage = Length | Percentage;
+
+/** <angle-percentage> - Angle or percentage */
+export type AnglePercentage = Angle | Percentage;
+
+/** <time-percentage> - Time or percentage */
+export type TimePercentage = Time | Percentage;
 
 /** <number> - Numeric values */
 export type CSSNumber = number;
