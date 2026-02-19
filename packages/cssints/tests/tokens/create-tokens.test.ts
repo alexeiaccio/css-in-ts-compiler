@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
+
 import {
 	createTokens,
 	clearTokenRegistry,
@@ -11,11 +12,226 @@ import {
 	generatePropertyCSS,
 	generateTokenCSS,
 	generateCSS,
+	type TokenTree,
+	type TokenFn,
 } from "../../lib/tokens/create-tokens";
+
+// Define test token input shape
+const testTokensInput = {
+	colors: {
+		$type: "color" as const,
+		primary: { $value: "#007bff" },
+		secondary: { $value: "#6c757d" },
+		brand: {
+			primary: { $value: "#000000" },
+		},
+	},
+	spacing: {
+		$type: "dimension" as const,
+		sm: { $value: "4px" },
+		md: { $value: "8px" },
+	},
+	transitions: {
+		$type: "duration" as const,
+		fast: { $value: "100ms" },
+	},
+	scale: {
+		$type: "number" as const,
+		base: { $value: 1 },
+		large: { $value: 1.5 },
+	},
+	mixed: {
+		$type: "color" as const,
+		colorToken: { $value: "#fff" },
+		explicitToken: { $type: "dimension" as const, $value: "16px" },
+	},
+};
 
 describe("createTokens", () => {
 	beforeEach(() => {
 		clearTokenRegistry();
+	});
+
+	describe("function-call API", () => {
+		it("should call token as function to get CSS var", () => {
+			const tokens = createTokens({
+				colors: {
+					$type: "color",
+					primary: { $value: "#007bff" },
+				},
+			} as const);
+
+			expect(tokens.colors.primary()).toBe("var(--colors-primary)");
+		});
+
+		it("should work with nested tokens", () => {
+			const tokens = createTokens({
+				colors: {
+					$type: "color",
+					brand: {
+						primary: { $value: "#007bff" },
+					},
+				},
+			} as const);
+
+			expect(tokens.colors.brand.primary()).toBe("var(--colors-brand-primary)");
+		});
+
+		it("should also work as string (backward compatible)", () => {
+			const tokens = createTokens({
+				colors: {
+					$type: "color",
+					primary: { $value: "#007bff" },
+				},
+			} as const);
+
+			// Should work as string for backward compatibility
+			expect(String(tokens.colors.primary)).toBe("var(--colors-primary)");
+			expect(tokens.colors.primary.valueOf()).toBe("var(--colors-primary)");
+			expect(tokens.colors.primary.toString()).toBe("var(--colors-primary)");
+		});
+	});
+
+	describe("metadata properties", () => {
+		it("should expose type property", () => {
+			const tokens = createTokens({
+				colors: {
+					$type: "color",
+					primary: { $value: "#007bff" },
+				},
+			} as const);
+
+			expect(tokens.colors.primary.type).toBe("color");
+		});
+
+		it("should expose value property", () => {
+			const tokens = createTokens({
+				colors: {
+					$type: "color",
+					primary: { $value: "#007bff" },
+				},
+			} as const);
+
+			expect(tokens.colors.primary.value).toBe("#007bff");
+		});
+
+		it("should expose name property", () => {
+			const tokens = createTokens({
+				colors: {
+					$type: "color",
+					primary: { $value: "#007bff" },
+				},
+			} as const) as unknown as TokenTree<typeof testTokensInput>;
+
+			expect(tokens.colors.primary.name).toBe("colors-primary");
+		});
+
+		it("should expose cssName property", () => {
+			const tokens = createTokens({
+				colors: {
+					$type: "color",
+					primary: { $value: "#007bff" },
+				},
+			} as const) as unknown as TokenTree<typeof testTokensInput>;
+
+			expect(tokens.colors.primary.cssName).toBe("--colors-primary");
+		});
+
+		it("should expose cssSyntax property", () => {
+			const tokens = createTokens({
+				colors: {
+					$type: "color",
+					primary: { $value: "#007bff" },
+				},
+			} as const) as unknown as TokenTree<typeof testTokensInput>;
+
+			expect(tokens.colors.primary.cssSyntax).toBe("<color>");
+		});
+
+		it("should expose description property when provided", () => {
+			const tokens = createTokens({
+				colors: {
+					$type: "color",
+					primary: {
+						$value: "#007bff",
+						$description: "Primary brand color",
+					},
+				},
+			} as const) as unknown as TokenTree<typeof testTokensInput>;
+
+			expect(tokens.colors.primary.description).toBe("Primary brand color");
+		});
+	});
+
+	describe("shorthand $ properties", () => {
+		it("should expose $type shorthand", () => {
+			const tokens = createTokens({
+				colors: {
+					$type: "color",
+					primary: { $value: "#007bff" },
+				},
+			} as const) as unknown as TokenTree<typeof testTokensInput>;
+
+			expect(tokens.colors.primary.$type).toBe("color");
+		});
+
+		it("should expose $value shorthand", () => {
+			const tokens = createTokens({
+				colors: {
+					$type: "color",
+					primary: { $value: "#007bff" },
+				},
+			} as const) as unknown as TokenTree<typeof testTokensInput>;
+
+			expect(tokens.colors.primary.$value).toBe("#007bff");
+		});
+
+		it("should expose $name shorthand", () => {
+			const tokens = createTokens({
+				colors: {
+					$type: "color",
+					primary: { $value: "#007bff" },
+				},
+			} as const) as unknown as TokenTree<typeof testTokensInput>;
+
+			expect(tokens.colors.primary.$name).toBe("colors-primary");
+		});
+
+		it("should expose $cssName shorthand", () => {
+			const tokens = createTokens({
+				colors: {
+					$type: "color",
+					primary: { $value: "#007bff" },
+				},
+			} as const) as unknown as TokenTree<typeof testTokensInput>;
+
+			expect(tokens.colors.primary.$cssName).toBe("--colors-primary");
+		});
+
+		it("should expose $cssSyntax shorthand", () => {
+			const tokens = createTokens({
+				colors: {
+					$type: "color",
+					primary: { $value: "#007bff" },
+				},
+			} as const) as unknown as TokenTree<typeof testTokensInput>;
+
+			expect(tokens.colors.primary.$cssSyntax).toBe("<color>");
+		});
+
+		it("should expose $description shorthand when provided", () => {
+			const tokens = createTokens({
+				colors: {
+					$type: "color",
+					primary: {
+						$value: "#007bff",
+						$description: "Primary brand color",
+					},
+				},
+			} as const) as unknown as TokenTree<typeof testTokensInput>;
+
+			expect(tokens.colors.primary.$description).toBe("Primary brand color");
+		});
 	});
 
 	describe("basic token creation", () => {

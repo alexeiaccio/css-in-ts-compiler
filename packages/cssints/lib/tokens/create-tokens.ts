@@ -3,6 +3,13 @@
  * 
  * Based on W3C DTCG specification 2025.10
  * https://www.designtokens.org/TR/2025.10/format/
+ * 
+ * Token API:
+ * - tokens.colors.primary() → "var(--colors-primary)"
+ * - tokens.colors.primary.type → "color"
+ * - tokens.colors.primary.value → "#007bff"
+ * - tokens.colors.primary.name → "colors-primary"
+ * - tokens.colors.primary.description → "Primary brand color"
  */
 
 import type { DTCGGroup, DTCGTokenType } from "./dtcg-types";
@@ -19,6 +26,51 @@ export type Token<CSSValue, Name extends string> = `var(--${Name})` & {
 	readonly __token: CSSValue;
 	readonly __name: Name;
 };
+
+/** Token metadata accessible via property access */
+export interface TokenMetadata {
+	/** DTCG type (color, dimension, etc.) */
+	readonly type: string;
+	/** Token value */
+	readonly value: string;
+	/** Full token name (e.g., "colors-primary") */
+	readonly name: string;
+	/** CSS variable name (e.g., "--colors-primary") */
+	readonly cssName: string;
+	/** CSS @property syntax (e.g., "<color>") */
+	readonly cssSyntax: string;
+	/** Optional description */
+	readonly description?: string;
+}
+
+/** Token function that returns CSS var() and has metadata properties */
+export interface TokenFn<Name extends string> {
+	(): `var(--${Name})`;
+	/** Token type (e.g., "color") */
+	type: string;
+	/** Token value */
+	value: string;
+	/** Full token name */
+	name: string;
+	/** CSS variable name */
+	cssName: string;
+	/** CSS @property syntax */
+	cssSyntax: string;
+	/** Token description */
+	description?: string;
+	/** Shorthand for type */
+	$type: string;
+	/** Shorthand for value */
+	$value: string;
+	/** Shorthand for name */
+	$name: string;
+	/** Shorthand for description */
+	$description?: string;
+	/** Shorthand for cssName */
+	$cssName: string;
+	/** Shorthand for cssSyntax */
+	$cssSyntax: string;
+}
 
 /** Token definition with metadata */
 export interface TokenDefinition<T extends DTCGTokenType, Name extends string> {
@@ -170,27 +222,53 @@ function buildTokenTree(
 		const leafKey = result.path[result.path.length - 1];
 		if (leafKey === undefined) continue;
 		
-		const tokenStr = `var(--${result.name})`;
+		const tokenStr = `var(--${result.name})` as const;
+		const cssSyntax = tokenTypeToPropertySyntax[result.type];
 		
-		// Create token object that behaves like a string but has metadata properties
-		const token = Object.create(String.prototype, {
-			[Symbol.toPrimitive]: {
-				value: () => tokenStr,
-				enumerable: false,
-			},
-		});
-		token.valueOf = () => tokenStr;
-		token.toString = () => tokenStr;
-		Object.assign(token, {
+		// Create token function with metadata properties
+		const metadata = {
+			type: result.type,
+			value: result.value,
+			name: result.name,
+			cssName: `--${result.name}`,
+			cssSyntax,
+			description: result.description,
 			$type: result.type,
 			$value: result.value,
 			$name: result.name,
 			$cssName: `--${result.name}`,
-			$cssSyntax: tokenTypeToPropertySyntax[result.type],
-			...(result.description ? { $description: result.description } : {}),
-		});
+			$cssSyntax: cssSyntax,
+			$description: result.description,
+		};
 		
-		current[leafKey] = token as Token<unknown, string>;
+		// Use a proxy to make the function callable and have properties
+		const tokenFn = new Proxy(
+			function(this: TokenMetadata) { 
+				return tokenStr; 
+			} as TokenFn<typeof result.name>,
+			{
+				get(target, prop) {
+					if (prop === "valueOf") {
+						return () => tokenStr;
+					}
+					if (prop === "toString") {
+						return () => tokenStr;
+					}
+					if (prop === Symbol.toPrimitive) {
+						return () => tokenStr;
+					}
+					if (prop in metadata) {
+						return (metadata as Record<string, unknown>)[prop as string];
+					}
+					return undefined;
+				},
+				apply(target, thisArg, args) {
+					return tokenStr;
+				},
+			}
+		);
+		
+		current[leafKey] = tokenFn;
 	}
 
 	return tree;
@@ -250,23 +328,33 @@ export function generateCSS(): string {
 // ============================================================================
 
 /**
+ * Token leaf - represents a single token with callable function and metadata
+ */
+export type TokenLeaf<Name extends string> = TokenFn<Name>;
+
+/**
  * Map DTCG tree structure to typed Token tree
  * 
  * This is a type-level helper that recurses through the DTCG structure
- * and produces the equivalent typed Token structure.
+ * and produces the equivalent typed TokenFn structure.
+ * 
+ * @example
+ * tokens.colors.primary() → "var(--colors-primary)"
+ * tokens.colors.primary.type → "color"
+ * tokens.colors.primary.$type → "color"
+ * tokens.colors.primary.$value → "#007bff"
  */
-export type TokenTree<T, Prefix extends string = ""> = T extends DTCGGroup
-	? {
-			[K in keyof T as K extends `$${string}` ? never : K]: T[K] extends DTCGGroup
-				? TokenTree<T[K], `${Prefix}${K & string}-`>
-				: T[K] extends { $value: infer V; $type?: infer Type }
-					? Token<
-							Type extends keyof DTCGToCSSTypeMap ? DTCGToCSSTypeMap[Type] : unknown,
-							`${Prefix}${K & string}`
-						>
-					: unknown;
-		}
-	: never;
+export type TokenTree<T, Prefix extends string = ""> = 
+	T extends Record<string, unknown>
+		? {
+				[K in keyof T as K extends `$${string}` ? never : K]: 
+					T[K] extends Record<string, unknown> 
+						? T[K] extends { $value: unknown } 
+							? TokenLeaf<`${Prefix}${K & string}`>
+							: TokenTree<T[K], `${Prefix}${K & string}-`>
+						: never;
+		  }
+		: never;
 
-// Re-export types
+// Re-export types (TokenFn and TokenMetadata already exported above)
 export type { DTCGGroup, DTCGTokenType, TokenWalkResult };
