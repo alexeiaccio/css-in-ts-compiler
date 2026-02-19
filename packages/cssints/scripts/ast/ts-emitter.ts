@@ -265,3 +265,226 @@ function camelCase(str: string): string {
 function capitalize(str: string): string {
 	return str.charAt(0).toUpperCase() + str.slice(1);
 }
+
+// ============================================================================
+// Split Output Emitters
+// ============================================================================
+
+/**
+ * Emit IDL types to types.gen.ts
+ */
+export function emitIDLTypes(types: Map<string, IDLType>, config: EmitterConfig = DEFAULT_CONFIG): string {
+	const lines: string[] = [];
+	
+	if (config.header) {
+		lines.push(config.header);
+	}
+	
+	lines.push(`/**
+ * CSS IDL Types - AUTO-GENERATED
+ * Generated from @webref/idl
+ * Do not edit manually.
+ */
+
+`);
+
+	// Emit interfaces
+	const interfaces: IDLInterface[] = [];
+	const dictionaries: any[] = [];
+	const enums: IDLEnum[] = [];
+	
+	for (const [name, type] of types) {
+		switch (type.type) {
+			case "interface":
+				interfaces.push(type);
+				break;
+			case "dictionary":
+				dictionaries.push(type);
+				break;
+			case "idl-enum":
+				enums.push(type);
+				break;
+		}
+	}
+
+	// Interfaces section
+	if (interfaces.length > 0) {
+		lines.push("// ============================================================================");
+		lines.push("// CSS Typed OM Interfaces");
+		lines.push("// ============================================================================\n");
+
+		for (const iface of interfaces) {
+			lines.push(emitIDLInterface(iface, config));
+			lines.push("");
+		}
+	}
+
+	// Dictionaries section
+	if (dictionaries.length > 0) {
+		lines.push("// ============================================================================");
+		lines.push("// CSS Dictionaries");
+		lines.push("// ============================================================================\n");
+
+		for (const dict of dictionaries) {
+			lines.push(emitIDLDictionary(dict, config));
+			lines.push("");
+		}
+	}
+
+	// Enums section
+	if (enums.length > 0) {
+		lines.push("// ============================================================================");
+		lines.push("// CSS Enums");
+		lines.push("// ============================================================================\n");
+
+		for (const enum_ of enums) {
+			lines.push(emitIDLEnum(enum_, config));
+			lines.push("");
+		}
+	}
+
+	return lines.join("\n");
+}
+
+/**
+ * Emit dictionary type
+ */
+function emitIDLDictionary(dict: any, config: EmitterConfig): string {
+	const lines: string[] = [];
+
+	if (config.jsdoc && dict.description) {
+		lines.push(`/** ${dict.description} */`);
+	}
+
+	lines.push(`export interface ${dict.name} {`);
+
+	for (const member of dict.members) {
+		const type = resolveTypeRef(member.type);
+		lines.push(`  ${member.name}${member.required ? "" : "?"}: ${type};`);
+	}
+
+	lines.push("}");
+	return lines.join("\n");
+}
+
+/**
+ * Emit syntax types to syntax.gen.ts
+ */
+export function emitSyntaxTypes(types: Map<string, CSSValueType>, config: EmitterConfig = DEFAULT_CONFIG): string {
+	const lines: string[] = [];
+	
+	if (config.header) {
+		lines.push(config.header);
+	}
+	
+	lines.push(`/**
+ * CSS Syntax Types - AUTO-GENERATED
+ * Generated from mdn-data/css/syntaxes.json
+ * Do not edit manually.
+ */
+
+`);
+
+	lines.push("// ============================================================================");
+	lines.push("// CSS Value Types");
+	lines.push("// ============================================================================\n");
+
+	for (const [name, type] of types) {
+		lines.push(emitType(type, config));
+		lines.push("");
+	}
+
+	return lines.join("\n");
+}
+
+/**
+ * Emit browser compat data to compat.gen.ts
+ */
+export function emitCompatData(config: EmitterConfig = DEFAULT_CONFIG): string {
+	const lines: string[] = [];
+	
+	if (config.header) {
+		lines.push(config.header);
+	}
+	
+	lines.push(`/**
+ * CSS Browser Compatibility - AUTO-GENERATED
+ * Generated from @mdn/browser-compat-data
+ * Do not edit manually.
+ */
+
+`);
+
+	lines.push("// ============================================================================");
+	lines.push("// Browser Support Metadata");
+	lines.push("// ============================================================================\n");
+
+	lines.push("// TODO: Implement browser compat data extraction\n");
+	lines.push("export type BrowserSupport = {};\n");
+
+	return lines.join("\n");
+}
+
+/**
+ * Emit properties to properties.gen.ts
+ */
+export function emitProperties(properties: Map<string, CSSProperty>, config: EmitterConfig = DEFAULT_CONFIG): string {
+	const lines: string[] = [];
+	
+	if (config.header) {
+		lines.push(config.header);
+	}
+	
+	lines.push(`/**
+ * CSS Properties - AUTO-GENERATED
+ * Generated from @webref/css
+ * Do not edit manually.
+ */
+
+`);
+
+	lines.push("// ============================================================================");
+	lines.push("// CSS Property Functions");
+	lines.push("// ============================================================================\n");
+
+	for (const [name, prop] of properties) {
+		lines.push(emitProperty(prop, config));
+		lines.push("");
+	}
+
+	return lines.join("\n");
+}
+
+/**
+ * Emit functions to functions.gen.ts
+ */
+export function emitFunctions(functions: Map<string, CSSFunction>, config: EmitterConfig = DEFAULT_CONFIG): string {
+	const lines: string[] = [];
+	
+	if (config.header) {
+		lines.push(config.header);
+	}
+	
+	lines.push(`/**
+ * CSS Functions - AUTO-GENERATED
+ * Generated from @webref/css
+ * Do not edit manually.
+ */
+
+`);
+
+	lines.push("// ============================================================================");
+	lines.push("// CSS Function Types");
+	lines.push("// ============================================================================\n");
+
+	for (const [name, fn] of functions) {
+		const fnName = capitalize(fn.name);
+		if (config.jsdoc) {
+			lines.push(`/** CSS \`${fn.name}()\` function */`);
+		}
+		lines.push(`export type ${fnName}Function = (value: string) => string;`);
+		lines.push("");
+	}
+
+	return lines.join("\n");
+}

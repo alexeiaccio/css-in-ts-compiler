@@ -119,7 +119,13 @@ export interface IDLNamespace extends BaseNode {
 	readonly members: readonly IDLFunction[];
 }
 
-export type IDLType = IDLInterface | IDLDictionary | IDLEnum | IDLTypedef | IDLNamespace;
+export interface IDLCallback extends BaseNode {
+	readonly type: "callback";
+	readonly parameters: readonly Parameter[];
+	readonly returnType: TypeReference;
+}
+
+export type IDLType = IDLInterface | IDLDictionary | IDLEnum | IDLTypedef | IDLNamespace | IDLCallback;
 
 export interface IDLMember {
 	readonly name: string;

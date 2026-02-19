@@ -12,6 +12,7 @@ import type {
 	IDLEnum,
 	IDLTypedef,
 	IDLNamespace,
+	IDLCallback,
 	IDLType,
 	IDLMember,
 	IDLField,
@@ -33,20 +34,56 @@ import {
 export interface IDLParseResult {
 	types: Map<string, IDLType>;
 	errors: Array<{ file: string; error: Error }>;
+	warnings: Array<{ file: string; message: string }>;
 }
 
-export function parseWebIDL(idlText: string, sourceName: string): IDLParseResult {
+export interface ParseOptions {
+	/** Merge partial interfaces with their base definitions */
+	mergePartials?: boolean;
+	/** Include extended attributes in output */
+	includeExtAttrs?: boolean;
+}
+
+const DEFAULT_OPTIONS: ParseOptions = {
+	mergePartials: true,
+	includeExtAttrs: true,
+};
+
+/**
+ * Parse WebIDL text and convert to our AST format
+ */
+export function parseWebIDL(
+	idlText: string, 
+	sourceName: string, 
+	options?: ParseOptions
+): IDLParseResult {
+	const opts = { ...DEFAULT_OPTIONS, ...options };
 	const types = new Map<string, IDLType>();
+	const partialTypes = new Map<string, IDLInterface[]>();
 	const errors: Array<{ file: string; error: Error }> = [];
+	const warnings: Array<{ file: string; message: string }> = [];
 
 	try {
 		const ast = parseIDL(idlText);
 
+		// First pass: convert all nodes
 		for (const node of ast) {
 			try {
 				const converted = convertIDLNode(node);
 				if (converted) {
-					types.set(converted.name, converted);
+					// Handle partial interfaces
+					if (node.type === "interface" && (node as any).partial) {
+						if (!partialTypes.has(converted.name)) {
+							partialTypes.set(converted.name, []);
+						}
+						partialTypes.get(converted.name)!.push(converted as IDLInterface);
+						warnings.push({
+							file: sourceName,
+							message: `Found partial interface: ${converted.name}`,
+						});
+					} else {
+						types.set(converted.name, converted);
+					}
 				}
 			} catch (err) {
 				errors.push({
@@ -55,6 +92,26 @@ export function parseWebIDL(idlText: string, sourceName: string): IDLParseResult
 				});
 			}
 		}
+
+		// Second pass: merge partial interfaces if enabled
+		if (opts.mergePartials) {
+			for (const [baseName, partials] of partialTypes) {
+				const baseType = types.get(baseName);
+				if (baseType && baseType.type === "interface") {
+					let merged = baseType;
+					for (const partial of partials) {
+						merged = mergePartialInterface(merged, partial);
+					}
+					types.set(baseName, merged);
+				} else {
+					warnings.push({
+						file: sourceName,
+						message: `Orphaned partial interface: ${baseName} (no base definition found)`,
+					});
+				}
+			}
+		}
+
 	} catch (err) {
 		errors.push({
 			file: sourceName,
@@ -62,7 +119,29 @@ export function parseWebIDL(idlText: string, sourceName: string): IDLParseResult
 		});
 	}
 
-	return { types, errors };
+	return { types, errors, warnings };
+}
+
+/**
+ * Merge partial interface members into base interface
+ * Returns a new interface with merged members (doesn't modify readonly properties)
+ */
+function mergePartialInterface(base: IDLInterface, partial: IDLInterface): IDLInterface {
+	// Merge members into new array
+	const mergedMembers = [...base.members, ...partial.members];
+	
+	// Merge mixins
+	const mergedMixins = base.mixins && partial.mixins
+		? [...base.mixins, ...partial.mixins]
+		: partial.mixins
+			? [...partial.mixins]
+			: base.mixins;
+	
+	return {
+		...base,
+		members: mergedMembers,
+		mixins: mergedMixins,
+	};
 }
 
 function convertIDLNode(node: IDLRootType): IDLType | null {
@@ -79,8 +158,9 @@ function convertIDLNode(node: IDLRootType): IDLType | null {
 		case "namespace":
 			return convertNamespace(node as NamespaceType);
 		case "callback":
+			return convertCallback(node as any);
 		case "callback interface":
-			return null;
+			return convertCallbackInterface(node as any);
 		case "includes":
 			return null;
 		default:
@@ -94,6 +174,7 @@ function convertIDLNode(node: IDLRootType): IDLType | null {
 
 function convertInterface(node: InterfaceType): IDLInterface {
 	const members: IDLMember[] = [];
+	const extAttrs = extractExtendedAttributes(node.extAttrs);
 
 	for (const member of node.members ?? []) {
 		const converted = convertInterfaceMember(member as any);
@@ -107,7 +188,51 @@ function convertInterface(node: InterfaceType): IDLInterface {
 		name: node.name,
 		members,
 		mixins: [],
+		description: extAttrs.description,
+		// Store extended attributes for reference
+		// @ts-ignore - extended attributes not in base type
+		extendedAttributes: extAttrs.attributes,
+	};
+}
+
+// ============================================================================
+// Callback Conversion
+// ============================================================================
+
+function convertCallback(node: any): IDLCallback | null {
+	if (!node.idlType) return null;
+
+	return {
+		type: "callback",
+		name: node.name,
+		parameters: (node.arguments ?? []).map(convertArgument),
+		returnType: convertType(node.idlType),
 		description: extractDescription(node.extAttrs),
+	};
+}
+
+function convertCallbackInterface(node: any): IDLInterface | null {
+	// Callback interfaces are similar to regular interfaces but marked as callbacks
+	const members: IDLMember[] = [];
+	const extAttrs = extractExtendedAttributes(node.extAttrs);
+
+	for (const member of node.members ?? []) {
+		const converted = convertInterfaceMember(member as any);
+		if (converted) {
+			members.push(converted);
+		}
+	}
+
+	return {
+		type: "interface",
+		name: node.name,
+		members,
+		mixins: [],
+		description: extAttrs.description,
+		// @ts-ignore - extended attributes for reference
+		extendedAttributes: extAttrs.attributes,
+		// @ts-ignore - mark as callback interface
+		isCallback: true,
 	};
 }
 
@@ -321,6 +446,48 @@ function convertArgument(arg: Argument): Parameter {
 		optional: arg.optional ?? false,
 		variadic: arg.variadic ?? false,
 	};
+}
+
+// ============================================================================
+// Extended Attributes Extraction
+// ============================================================================
+
+interface ExtendedAttributes {
+	description?: string;
+	attributes: Record<string, string | boolean>;
+}
+
+function extractExtendedAttributes(extAttrs?: any[]): ExtendedAttributes {
+	const result: ExtendedAttributes = {
+		attributes: {},
+	};
+
+	if (!extAttrs || !Array.isArray(extAttrs)) {
+		return result;
+	}
+
+	for (const attr of extAttrs) {
+		if (typeof attr === "object" && attr !== null) {
+			const name = attr.name;
+			if (name) {
+				// Handle different attribute formats
+				if (attr.rhs && attr.rhs.type === "identifier-list") {
+					result.attributes[name] = attr.rhs.value?.join(", ") ?? true;
+				} else if (attr.rhs && attr.rhs.type === "identifier") {
+					result.attributes[name] = attr.rhs.value ?? true;
+				} else {
+					result.attributes[name] = true;
+				}
+			}
+		}
+	}
+
+	// Extract common metadata
+	if (result.attributes["Exposed"]) {
+		result.description = result.attributes["Exposed"] as string;
+	}
+
+	return result;
 }
 
 // ============================================================================

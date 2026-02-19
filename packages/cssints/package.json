@@ -1,12 +1,43 @@
 {
 	"name": "cssints",
 	"version": "1.0.0",
-	"description": "",
-	"keywords": [],
+	"description": "CSS-in-TypeScript utilities with type-safe CSS functions and properties",
+	"keywords": ["css", "typescript", "types", "css-in-ts"],
 	"license": "ISC",
 	"author": "",
 	"type": "module",
-	"main": "index.js",
+	"main": "./lib/index.js",
+	"types": "./lib/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./lib/index.d.ts",
+			"import": "./lib/index.js"
+		},
+		"./types": {
+			"types": "./lib/types.gen.d.ts",
+			"import": "./lib/types.gen.js"
+		},
+		"./syntax": {
+			"types": "./lib/syntax.gen.d.ts",
+			"import": "./lib/syntax.gen.js"
+		},
+		"./compat": {
+			"types": "./lib/compat.gen.d.ts",
+			"import": "./lib/compat.gen.js"
+		},
+		"./properties": {
+			"types": "./lib/properties.gen.d.ts",
+			"import": "./lib/properties.gen.js"
+		},
+		"./functions": {
+			"types": "./lib/functions.gen.d.ts",
+			"import": "./lib/functions.gen.js"
+		}
+	},
+	"files": [
+		"lib",
+		"scripts"
+	],
 	"scripts": {
 		"generate": "bun run scripts/generate-all.ts",
 		"generate:force": "bun run scripts/generate-all.ts --force",
