@@ -2,9 +2,18 @@
 	"name": "cssints",
 	"version": "1.0.0",
 	"description": "CSS-in-TypeScript utilities with type-safe CSS functions and properties",
-	"keywords": ["css", "typescript", "types", "css-in-ts"],
+	"keywords": [
+		"css",
+		"css-in-ts",
+		"types",
+		"typescript"
+	],
 	"license": "ISC",
 	"author": "",
+	"files": [
+		"lib",
+		"scripts"
+	],
 	"type": "module",
 	"main": "./lib/index.js",
 	"types": "./lib/index.d.ts",
@@ -34,10 +43,6 @@
 			"import": "./lib/functions.gen.js"
 		}
 	},
-	"files": [
-		"lib",
-		"scripts"
-	],
 	"scripts": {
 		"generate": "bun run scripts/generate-all.ts",
 		"generate:force": "bun run scripts/generate-all.ts --force",
@@ -54,6 +59,7 @@
 		"@webref/idl": "^3.72.2",
 		"bcd-idl-mapper": "^3.0.1",
 		"csstype": "^3.2.3",
+		"effect": "4.0.0-beta.5",
 		"es-toolkit": "^1.44.0",
 		"mdn-data": "^2.27.1",
 		"webidl2": "^24.5.0"
