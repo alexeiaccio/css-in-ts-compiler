@@ -1,0 +1,22 @@
+{
+  "distilled_actions": [],
+  "facts": [
+    {
+      "topic": "project-tech-stack",
+      "content": "CSSinTS Compiler uses Turborepo, Bun, Effect TS 4 Beta, OXC parser/transformer, Lightning CSS, tsdown, Vite 8, Vitest, TypeScript Go, OXC lint/fmt, Knip"
+    },
+    {
+      "topic": "build-commands",
+      "content": "turbo run build, turbo run dev, turbo run test"
+    },
+    {
+      "topic": "lint-format",
+      "content": "oxlint --type-aware for linting, oxfmt for formatting"
+    },
+    {
+      "topic": "user-request",
+      "content": "Wants AGENTS.md file for agentic coding agents with build/lint/test commands and code style guidelines"
+    }
+  ],
+  "decisions": []
+}
