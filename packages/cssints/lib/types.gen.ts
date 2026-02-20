@@ -4,101 +4,6 @@
  * Do not edit manually.
  */
 
-export type EventHandler = any;
-export type sequence<T> = T[];
-export type CSSNumberish = number | string;
-
-export interface ChildBreakToken {}
-export interface LayoutConstraintsOptions {}
-export interface BlockFragmentationType {}
-export interface AnimationPlayState {}
-export interface AnimationReplaceState {}
-export interface CompositeOperation {}
-export interface CompositeOperationOrAuto {}
-export interface FillMode {}
-export interface PlaybackDirection {}
-export interface BreakTokenOptions {}
-export interface DOMMatrix {}
-export interface CSSNumericArray {}
-export interface CSSNumericType {}
-export interface CSSMathOperator {}
-
-export interface HighlightType {}
-export interface HighlightsFromPointOptions {}
-export interface HighlightHitResult {}
-export interface CSSUnparsedSegment {}
-export interface CSSPerspectiveValue {}
-
-export interface CSSRuleList {
-  length: number;
-  item(index: number): CSSRule | null;
-}
-
-export interface CSSRule {
-  cssText: string;
-  parentRule: CSSRule | null;
-  parentStyleSheet: StyleSheet | null;
-  type: number;
-}
-
-export interface CSSStyleProperties extends CSSStyleDeclaration {}
-
-export interface OptionalEffectTiming extends EffectTiming {}
-
-export interface StyleSheet {
-  type: string;
-  href: string | null;
-  ownerNode: string;
-  parentStyleSheet: StyleSheet | null;
-  title: string | null;
-  media: MediaList;
-  disabled: boolean;
-}
-
-export interface MediaList {
-  mediaText: string;
-  length: number;
-  item(index: number): string | null;
-  appendMedium(medium: string): undefined;
-  deleteMedium(medium: string): undefined;
-}
-
-export interface StyleSheetList {
-  item(index: number): StyleSheet | null;
-  length: number;
-}
-
-export interface StylePropertyMap extends StylePropertyMapReadOnly {
-  set(property: string, values: string): undefined;
-  append(property: string, values: string): undefined;
-  delete(property: string): undefined;
-  clear(): undefined;
-}
-
-export interface StylePropertyMapReadOnly {
-  get(property: string): CSSStyleValue | undefined;
-  getAll(property: string): sequence<CSSStyleValue>;
-  has(property: string): boolean;
-  size: number;
-}
-
-export interface CSSStyleDeclaration {
-  cssText: string;
-  length: number;
-  item(index: number): string;
-  getPropertyValue(property: string): string;
-  getPropertyPriority(property: string): string;
-  setProperty(property: string, value: string, priority?: string): undefined;
-  removeProperty(property: string): string;
-  parentRule: CSSRule | null;
-}
-
-export interface CSSStyleValue {
-  (): any;
-  parse(property: string, cssText: string): CSSStyleValue;
-  parseAll(property: string, cssText: string): sequence<CSSStyleValue>;
-}
-
 
 // ============================================================================
 // CSS Typed OM Interfaces
@@ -109,12 +14,6 @@ export interface LayoutChild {
   styleMap: StylePropertyMapReadOnly;
   intrinsicSizes(): Promise<IntrinsicSizes>;
   layoutNextFragment(constraints: LayoutConstraintsOptions, breakToken: ChildBreakToken): Promise<LayoutFragment>;
-}
-
-/** LayoutWorklet */
-export interface IntrinsicSizes {
-  minContentSize: number;
-  maxContentSize: number;
 }
 
 /** LayoutWorklet */
@@ -228,6 +127,95 @@ export interface MediaList {
 }
 
 /** Window */
+export interface StyleSheet {
+  type: string;
+  href: any | null;
+  ownerNode: string;
+  parentStyleSheet: any | null;
+  title: any | null;
+  media: MediaList;
+  disabled: boolean;
+}
+
+/** Window */
+export interface CSSStyleSheet {
+  ownerRule: any | null;
+  cssRules: CSSRuleList;
+  insertRule(rule: string, index?: number): number;
+  deleteRule(index: number): undefined;
+  replace(text: string): Promise<CSSStyleSheet>;
+  replaceSync(text: string): undefined;
+  rules: CSSRuleList;
+  addRule(selector?: string, style?: string, index?: number): number;
+  removeRule(index?: number): undefined;
+}
+
+/** Window */
+export interface StyleSheetList {
+  item(index: number): any | null;
+  length: number;
+}
+
+export interface LinkStyle {
+  sheet: any | null;
+}
+
+/** Window */
+export interface CSSRule {
+  cssText: string;
+  parentRule: any | null;
+  parentStyleSheet: any | null;
+  type: number;
+}
+
+/** Window */
+export interface CSSStyleRule {
+  selectorText: string;
+  style: CSSStyleProperties;
+}
+
+/** Window */
+export interface CSSStyleDeclaration {
+  cssText: string;
+  length: number;
+  item(index: number): string;
+  getPropertyValue(property: string): string;
+  getPropertyPriority(property: string): string;
+  setProperty(property: string, value: string, priority?: string): undefined;
+  removeProperty(property: string): string;
+  parentRule: any | null;
+}
+
+export interface ElementCSSInlineStyle {
+  attributeStyleMap: StylePropertyMap;
+}
+
+/** Window */
+export interface CSSFontFaceDescriptors {
+  src: string;
+  fontFamily: string;
+  fontStyle: string;
+  fontWeight: string;
+  fontStretch: string;
+  fontWidth: string;
+  fontSize: string;
+  sizeAdjust: string;
+  unicodeRange: string;
+  fontFeatureSettings: string;
+  fontVariationSettings: string;
+  fontNamedInstance: string;
+  fontDisplay: string;
+  fontLanguageOverride: string;
+  ascentOverride: string;
+  descentOverride: string;
+  lineGapOverride: string;
+  superscriptPositionOverride: string;
+  subscriptPositionOverride: string;
+  superscriptSizeOverride: string;
+  subscriptSizeOverride: string;
+}
+
+/** Window */
 export interface Highlight {
   priority: number;
   type: HighlightType;
@@ -265,7 +253,6 @@ export interface StylePropertyMap {
 export interface CSSUnparsedValue {
   length: number;
   (index: number): CSSUnparsedSegment;
-  (index: number, val: CSSUnparsedSegment): undefined;
 }
 
 /** [object Object], [object Object], [object Object], [object Object] */
@@ -339,7 +326,6 @@ export interface CSSMathMax {
 export interface CSSTransformValue {
   length: number;
   (index: number): CSSTransformComponent;
-  (index: number, val: CSSTransformComponent): undefined;
   is2D: boolean;
   toMatrix(): DOMMatrix;
 }

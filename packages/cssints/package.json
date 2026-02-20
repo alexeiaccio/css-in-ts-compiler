@@ -49,12 +49,12 @@
 		"test": "vitest",
 		"typecheck": "tsgo --noEmit",
 		"lint": "oxlint --type-aware",
-		"lint:fix": "oxlint --type-aware --fix"
+		"lint:fix": "oxlint --type-aware --fix",
+		"generate:ohm": "ohm generateBundles --withTypes --esm 'src/grammars/*.ohm' && bun run src/parser/build-grammar.ts"
 	},
 	"dependencies": {
 		"@mdn/browser-compat-data": "^7.3.2",
 		"@types/web": "^0.0.335",
-		"@types/webidl2": "^24.4.3",
 		"@webref/css": "^8.2.5",
 		"@webref/idl": "^3.72.2",
 		"bcd-idl-mapper": "^3.0.1",
@@ -62,7 +62,7 @@
 		"effect": "4.0.0-beta.5",
 		"es-toolkit": "^1.44.0",
 		"mdn-data": "^2.27.1",
-		"webidl2": "^24.5.0"
+		"ohm-js": "^17.5.0"
 	},
 	"devDependencies": {
 		"browserslist": "^4.28.1",

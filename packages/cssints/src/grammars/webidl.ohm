@@ -1,0 +1,75 @@
+ WebIDL {
+  // Main structure - definitions only (no extended attributes)
+  Definitions = Definition+
+
+  // All definition types
+  Definition = Interface | Namespace | Dictionary | Enum | Typedef | Partial
+
+  // Interface definition
+  Interface = "interface" ident Inheritance? "{" InterfaceMembers "}" ";"
+  InterfaceMembers = InterfaceMember*
+
+  // Interface members
+  InterfaceMember = Attribute | Operation | Constructor | Stringifier
+
+  // Attribute
+  Attribute = "readonly"? "attribute" Type ident ";"
+
+  // Operation (method)
+  Operation = "static"? Type ident "(" ArgumentList? ")" ";"
+
+  // Constructor
+  Constructor = "constructor" "(" ArgumentList? ")" ";"
+
+  // Type system
+  Type = SingleType | UnionType | SequenceType | FrozenArrayType
+
+  // Single types
+  SingleType = PrimitiveType | ident
+
+  // Primitive types
+  PrimitiveType = "unsigned" "long" | "unsigned" "short"
+               | "unrestricted" "double" | "unrestricted" "float"
+               | "boolean" ident | "byte" ident | "octet" ident
+               | "DOMString" ident | "USVString" ident | "void" ident
+               | "numberish" ident
+
+  // Union types
+  UnionType = "(" Type "or" Type ("or" Type)* ")"
+
+  // Sequence type
+  SequenceType = "sequence" "<" Type ">"
+
+  // Frozen array type
+  FrozenArrayType = "FrozenArray" "<" Type ">"
+
+  // Inheritance
+  Inheritance = ":" ident
+
+  // Argument lists
+  ArgumentList = Argument ("," Argument)*
+
+  Argument = "optional"? Type ident ("=" DefaultValue)?
+
+  DefaultValue = num | str | ident
+
+  // Other definitions
+  Partial = "partial" (Interface | Namespace | Dictionary)
+  Namespace = "namespace" ident "{" NamespaceMembers "}" ";"
+  Dictionary = "dictionary" ident Inheritance? "{" DictionaryMember "}" ";"
+  NamespaceMembers = DictionaryMember
+
+  DictionaryMember = ident Type ";"
+
+  Enum = "enum" ident "{" EnumValues "}" ";"
+  EnumValues = ident | str
+
+  Typedef = "typedef" Type ident ";"
+
+  Stringifier = "stringifier" ";"
+
+  // Common elements
+  ident = letter+ (letter | digit | "_")*
+  num = digit+
+  str = "\"" "\"" "\"" | "\'" "\'" "\'"
+}
