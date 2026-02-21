@@ -80,7 +80,7 @@ const [md, lg, xl] = media(
 	"screen and min-width > 80rem",
 );
 
-const styles = cx(css.p(2), md(css.pl("8ch"), prop && css.pt(css.pxToRem("16px"))));
+const styles = cx(css.p(2), md(css.pl("8ch"), prop && css.pt("16px")));
 
 <div className={styles}>Hello, world!</div>;
 ```
@@ -110,6 +110,10 @@ import { cx } from "css-variants";
 ```
 
 ### Tokens
+
+[Format JSON Schema](https://www.designtokens.org/schemas/2025.10/format.json)
+[Resolver JSON Schema](https://www.designtokens.org/schemas/2025.10/resolver.json)
+[JSON Schema to TS](https://github.com/ThomasAribart/json-schema-to-ts)
 
 With style function:
 
@@ -242,7 +246,7 @@ import { cx } from "css-variants";
 }
 ```
 
-### Functions
+### Functions (WIP)
 
 #### `cn` — Compile type class Merger
 

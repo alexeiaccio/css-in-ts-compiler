@@ -131,3 +131,11 @@ if (import.meta.vitest) {
 		});
 	});
 }
+
+const CSS = {
+	/** Padding ... */
+	padding: PaddingClass,
+	/** Color ... */
+	color: ColorClass,
+	// ...
+};
