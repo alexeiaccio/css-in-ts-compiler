@@ -4,6 +4,7 @@ declare module "@webref/css" {
 	}
 	interface Data {
 		properties: Property[];
+		types: { name: string }[];
 	}
 	function listAll(): Promise<Data>;
 }
