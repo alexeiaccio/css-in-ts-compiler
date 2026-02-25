@@ -2,9 +2,11 @@ import type * as CSS from "css-tree";
 
 import { generate } from "css-tree";
 import * as data from "css-tree/definition-syntax-data";
-import { Layer, ManagedRuntime } from "effect";
+import { Layer, ManagedRuntime, ServiceMap } from "effect";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
+
+export const NumberSchema = Schema.Number.check(Schema.isGreaterThan(0), Schema.isLessThan(Infinity));
 
 type UnwrapValue<T extends { value: unknown }> = T["value"];
 
@@ -43,64 +45,69 @@ export function px(value: UnwrapValue<Px>): Px {
 	return Px.makeUnsafe({ value, ast: { type: "Dimension", unit: "px", value: String(value) } });
 }
 
-// export const Rem = Schema.Union([Schema.Finite, Schema.TemplateLiteral([Schema.Finite])]).pipe(
-// 	Schema.encodeTo(Schema.TemplateLiteral([Schema.FiniteFromString, "rem"]), {
-// 		encode: SchemaGetter.transform((value) => {
-// 			return `${value}rem` as const;
-// 		}),
-// 		decode: SchemaGetter.transform((value) => {
-// 			return parseFloat(value.replace("rem", ""));
-// 		}),
-// 	}),
-// );
-// export type Rem = typeof Rem.Type;
+class CSSSyntax extends ServiceMap.Service<CSSSyntax>()("CSSSyntax", {
+	make: (syntax: string) => {
+		return Effect.succeed(() => syntax);
+	},
+}) {}
 
-// export const rem = Schema.encodeSync(Rem);
+/**
+ * Shorthand property to set values for the thickness of the padding area. If left is omitted, it is the same as right. If bottom is omitted it is the same as top, if right is omitted it is the same as top. The value may not be negative.
+ *
+ * **Syntax**
+ * padding = <'padding-top'>{1,4}
+ * <'padding-top'> = <'length-percentage' [0,∞]>
+ * <'length-percentage'> = <'length'> | <'percentage'>
+ *
+ * **Initial**
+ * 0
+ *
+ * **Supports**
+ * Chrome 1 | Firefox 1 | Safari 1
+ *
+ * **Widely available**
+ * @since January 2018
+ *
+ * @example
+ * ```tsx
+ * import * as css from "cssints" with { type: "cssints" };
+ *
+ * <div style={css.style(css.padding(10))} /> // → padding: 10px;
+ * <div style={css.style(css.padding('1rem', '2rem'))} /> // → padding: 1rem 2rem;
+ * <div style={css.style(css.padding('10%', '20px', 0, '3vw'))} /> // → padding: 10% 20px 0 3vw;
+ * ```
+ *
+ * @see https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/padding
+ * @see https://drafts.csswg.org/css-box/#padding-shorthand
+ */
+export const padding = CSSSyntax.make("<'padding-top'>{1,4}");
 
-// export const Length = Schema.Union([
-// 	Rem,
-// 	Px,
-// 	Schema.TemplateLiteral([Schema.FiniteFromString, "rem"]),
-// 	Schema.TemplateLiteral([Schema.FiniteFromString, "px"]),
-// ]).pipe(
-// 	Schema.encodeTo(Schema.TemplateLiteral([Schema.FiniteFromString, "rem"]), {
-// 		encode: SchemaGetter.transform((value) => {
-// 			if (String(value).includes("px")) {
-// 				return px(Number.parseFloat(value.replace("px", "")));
-// 			}
-// 			if (String(value).includes("rem")) {
-// 				return rem(Number.parseFloat(value.replace("rem", "")));
-// 			}
-// 			return rem(Number.parseFloat(value));
-// 		}),
-// 		decode: SchemaGetter.transform(identity),
-// 	}),
-// );
-// export type Length = Schema.toType<typeof Length>;
+export const Length = Schema.Union([Finite, Schema.TemplateLiteral([Schema.FiniteFromString, "px"])]);
 
-// export const length = Schema.encodeSync(Length);
+export const Percentage = Schema.TemplateLiteral([Schema.FiniteFromString, "%"]);
 
-// TODO: make it function
-// export const Padding = Schema.Union([Length, Globals, None]).pipe(
-// 	Schema.encodeTo(Schema.TemplateLiteral(["padding: ", Schema.Union([Length, Globals, None])]), {
-// 		encode: SchemaGetter.transform((value) => {
-// 			if (value === "none") {
-// 				return "padding: none" as const;
-// 			}
-// 			if (value === "unset") {
-// 				return "padding: unset" as const;
-// 			}
-// 			if (value === "inherit") {
-// 				return "padding: inherit" as const;
-// 			}
-// 			return `padding: ${value};` as const;
-// 		}),
-// 		decode: SchemaGetter.passthrough,
-// 	}),
-// );
-// export type Padding = Schema.toType<typeof Padding>;
+export const LengthPercentage = Schema.Union([Length, Percentage]);
 
-// export const padding = Schema.encodeSync(Padding);
+export const PaddingTop = LengthPercentage.check(Schema.isGreaterThan(0), Schema.isLessThan(Infinity));
+
+export const Padding = Schema.Tuple([
+	PaddingTop,
+	Schema.optional(PaddingTop),
+	Schema.optional(PaddingTop),
+	Schema.optional(PaddingTop),
+]);
+
+declare function p(...value: typeof Padding.Type): Schema.Unknown;
+
+p(12, "10px", "20", "30%");
+
+type Enumerate<N extends number, Acc extends number[] = []> = Acc["length"] extends N
+	? Acc[number]
+	: Enumerate<N, [...Acc, Acc["length"]]>;
+
+export type Range<F extends number, T extends number> = Exclude<Enumerate<T>, Enumerate<F>>;
+
+export type Percent = Range<0, 256>;
 
 const runtime = ManagedRuntime.make(Layer.empty);
 
@@ -117,6 +124,8 @@ if (import.meta.vitest) {
 	const { it, expect, describe } = import.meta.vitest;
 	describe("effect", () => {
 		it("works", () => {
+			// expect(cn(padding(10))).toMatchInlineSnapshot(`["padding", [10, px]]"`);
+
 			expect(cn(px(0.4))).toMatchInlineSnapshot(`"0.4px"`);
 			expect(cn(px("0"))).toMatchInlineSnapshot(`"0px"`);
 

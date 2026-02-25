@@ -1,24 +1,430 @@
-import type * as BSD from "@mdn/browser-compat-data/types";
-
 import bcd from "@mdn/browser-compat-data" with { type: "json" };
-import webref from "@webref/css";
+import webref from "@webref/css/css.json" with { type: "json" };
+import { Data, Effect, Schema } from "effect";
 
-const compat = bcd.css.types as unknown as Record<string, BSD.CompatStatement>;
+import { type CompatData, CSSCompatData } from "./bcd-schema";
+import { type WebrefAtRule, WebrefCSSData, type WebrefProperty, type WebrefType } from "./webref-schema";
 
-export async function getCompatTypes() {
+class DecodeError extends Data.TaggedError("DecodeError")<{
+	readonly source: string;
+	readonly reason: string;
+}> {}
+
+const normalizeAtRuleKey = (name: string): string => {
+	return name.startsWith("@") ? name.slice(1) : name;
+};
+
+const filterSupport = (support: Record<string, unknown> | undefined): Record<string, boolean> | undefined => {
+	if (!support) return undefined;
+
+	const browsers = ["chrome", "firefox", "safari"] as const;
+	const filtered: Record<string, boolean> = {};
+
+	for (const browser of browsers) {
+		if (support[browser] !== undefined) {
+			const value = support[browser];
+			if (typeof value === "boolean") {
+				filtered[browser] = value;
+			} else if (typeof value === "object" && value !== null && "version_added" in value) {
+				filtered[browser] = (value as { version_added: string | boolean }).version_added !== false;
+			}
+		}
+	}
+
+	return Object.keys(filtered).length > 0 ? filtered : undefined;
+};
+
+const filterCompat = (compat: CompatData | undefined): CompatData | undefined => {
+	if (!compat) return undefined;
+	if (compat.status?.deprecated === true) return undefined;
+
+	const filteredSupport: Record<string, boolean | unknown> = {};
+	if (compat.support) {
+		for (const [browser, value] of Object.entries(compat.support)) {
+			if (browser === "chrome" || browser === "firefox" || browser === "safari") {
+				if (typeof value === "boolean") {
+					filteredSupport[browser] = value;
+				} else if (typeof value === "object" && value !== null && "version_added" in value) {
+					filteredSupport[browser] = (value as { version_added: string | boolean }).version_added;
+				}
+			}
+		}
+	}
+
+	return Object.keys(filteredSupport).length > 0
+		? { ...compat, support: filteredSupport as CompatData["support"] }
+		: undefined;
+};
+
+type AtRuleWithCompat = WebrefAtRule & { __compat: CompatData | undefined };
+type PropertyWithCompat = WebrefProperty & { __compat: CompatData | undefined };
+type TypeWithCompat = WebrefType & { __compat: CompatData | undefined };
+
+const mergeAtRules = (
+	bcdAtRules: CSSCompatData["at-rules"],
+	webrefAtRules: WebrefCSSData["atrules"],
+): Record<string, AtRuleWithCompat> => {
+	const result: Record<string, AtRuleWithCompat> = {};
+
+	for (const item of webrefAtRules) {
+		const bcdKey = normalizeAtRuleKey(item.name);
+		const compat = bcdAtRules?.[bcdKey];
+		const filteredCompat = filterCompat(compat?.__compat);
+
+		if (filteredCompat) {
+			result[item.name] = {
+				...item,
+				__compat: filteredCompat,
+			};
+		}
+	}
+
+	return result;
+};
+
+const mergeProperties = (
+	bcdProperties: CSSCompatData["properties"],
+	webrefProperties: WebrefCSSData["properties"],
+): Record<string, PropertyWithCompat> => {
+	const result: Record<string, PropertyWithCompat> = {};
+
+	for (const item of webrefProperties) {
+		const compatKey = item.legacyAliasOf || item.name;
+		const compat = bcdProperties?.[compatKey];
+		const filteredCompat = filterCompat(compat?.__compat);
+
+		if (filteredCompat) {
+			result[item.name] = {
+				...item,
+				__compat: filteredCompat,
+			};
+		}
+	}
+
+	return result;
+};
+
+type BCDOnlyType = {
+  readonly name: string;
+  readonly __compat: CompatData;
+};
+
+const extractBCDTypes = (
+  bcdTypes: CSSCompatData["types"],
+): Record<string, BCDOnlyType> => {
+  const result: Record<string, BCDOnlyType> = {};
+
+  if (!bcdTypes) return result;
+
+  for (const [typeName, typeData] of Object.entries(bcdTypes)) {
+    if (typeName === "__compat") continue;
+
+    const filteredCompat = filterCompat(typeData.__compat);
+    if (filteredCompat) {
+      result[typeName] = {
+        name: typeName,
+        __compat: filteredCompat,
+      };
+    }
+
+    for (const [subType, subData] of Object.entries(typeData)) {
+      if (subType === "__compat") continue;
+      if (typeof subData !== "object" || subData === null) continue;
+      if (!("__compat" in subData)) continue;
+
+      const subCompat = filterCompat((subData as { __compat?: CompatData }).__compat);
+      if (subCompat) {
+        result[subType] = {
+          name: subType,
+          __compat: subCompat,
+        };
+      }
+    }
+  }
+
+  return result;
+};
+
+const mergeTypes = (
+	bcdTypes: CSSCompatData["types"],
+	webrefTypes: WebrefCSSData["types"],
+): Record<string, TypeWithCompat> => {
+	const result: Record<string, TypeWithCompat> = {};
+	const bcdTypesRecord = bcdTypes as Record<string, { __compat?: CompatData }> | undefined;
+
+	for (const item of webrefTypes) {
+		const compat = bcdTypesRecord?.[item.name];
+		const filteredCompat = filterCompat(compat?.__compat);
+
+		if (filteredCompat) {
+			result[item.name] = {
+				...item,
+				__compat: filteredCompat,
+			};
+		}
+	}
+
+	return result;
+};
+
+const parseData = Effect.gen(function* () {
+	const bcdCSS = yield* Effect.try({
+		try: () => Schema.decodeUnknownSync(CSSCompatData)(bcd.css),
+		catch: (reason) =>
+			new DecodeError({
+				source: "@mdn/browser-compat-data",
+				reason: reason instanceof Error ? reason.message : "Unknown error",
+			}),
+	});
+
+	const webrefCSS = yield* Effect.try({
+		try: () => Schema.decodeUnknownSync(WebrefCSSData)(webref),
+		catch: (reason) =>
+			new DecodeError({
+				source: "@webref/css",
+				reason: reason instanceof Error ? reason.message : "Unknown error",
+			}),
+	});
+
 	return {
-		...(await webref.listAll()).types.find((t) => t.name === "length"),
-		...compat.length,
+		atrules: mergeAtRules(bcdCSS["at-rules"], webrefCSS.atrules),
+		properties: mergeProperties(bcdCSS.properties, webrefCSS.properties),
+		selectors: bcdCSS.selectors,
+		types: {
+			...mergeTypes(bcdCSS.types, webrefCSS.types),
+			...extractBCDTypes(bcdCSS.types),
+		},
 	};
-}
+});
 
 if (import.meta.vitest) {
 	const { it, expect, describe } = import.meta.vitest;
-	describe("mdn-data", () => {
+	describe("css-data", () => {
 		it("works", async () => {
-			const data = await getCompatTypes();
+			const data = await Effect.runPromise(parseData);
 
-			expect(data).toMatchInlineSnapshot(`
+			expect(data.atrules).toBeDefined();
+			expect(data.properties).toBeDefined();
+			expect(data.selectors).toBeDefined();
+			expect(Object.keys(data.types)).toMatchInlineSnapshot(`
+				[
+				  "anchor-size",
+				  "angle",
+				  "angle-percentage",
+				  "basic-shape",
+				  "blend-mode",
+				  "calc-keyword",
+				  "color",
+				  "corner-shape-value",
+				  "counter",
+				  "dashed-function",
+				  "dimension",
+				  "easing-function",
+				  "filter-function",
+				  "flex",
+				  "gradient",
+				  "image",
+				  "integer",
+				  "length",
+				  "length-percentage",
+				  "line-style",
+				  "number",
+				  "percentage",
+				  "position",
+				  "ratio",
+				  "resolution",
+				  "string",
+				  "text-edge",
+				  "time",
+				  "transform-function",
+				  "type",
+				  "url",
+				  "abs",
+				  "acos",
+				  "anchor",
+				  "inset_margin",
+				  "deg",
+				  "grad",
+				  "rad",
+				  "turn",
+				  "asin",
+				  "atan",
+				  "atan2",
+				  "attr",
+				  "declaration-value",
+				  "type_function",
+				  "animation",
+				  "circle",
+				  "ellipse",
+				  "inset",
+				  "path",
+				  "polygon",
+				  "rect",
+				  "shape",
+				  "xywh",
+				  "color_component",
+				  "gradient_color_stops",
+				  "nested",
+				  "number_values",
+				  "typed_division_produces_unitless_number",
+				  "NaN",
+				  "e",
+				  "infinity",
+				  "pi",
+				  "calc-size",
+				  "clamp",
+				  "color-mix",
+				  "contrast-color",
+				  "currentcolor",
+				  "hsl",
+				  "hwb",
+				  "lab",
+				  "lch",
+				  "light-dark",
+				  "named-color",
+				  "oklab",
+				  "oklch",
+				  "rgb",
+				  "rgb_hexadecimal_notation",
+				  "system-color",
+				  "transparent",
+				  "bevel",
+				  "notch",
+				  "round",
+				  "scoop",
+				  "square",
+				  "squircle",
+				  "superellipse",
+				  "cos",
+				  "counters",
+				  "dynamic-range-limit-mix",
+				  "cubic-bezier",
+				  "linear-function",
+				  "steps",
+				  "env",
+				  "keyboard-inset-bottom",
+				  "keyboard-inset-height",
+				  "keyboard-inset-left",
+				  "keyboard-inset-right",
+				  "keyboard-inset-top",
+				  "keyboard-inset-width",
+				  "safe-area-inset-bottom",
+				  "safe-area-inset-left",
+				  "safe-area-inset-right",
+				  "safe-area-inset-top",
+				  "titlebar-area-height",
+				  "titlebar-area-width",
+				  "titlebar-area-x",
+				  "titlebar-area-y",
+				  "viewport-segment-bottom",
+				  "viewport-segment-height",
+				  "viewport-segment-left",
+				  "viewport-segment-right",
+				  "viewport-segment-top",
+				  "viewport-segment-width",
+				  "exp",
+				  "blur",
+				  "brightness",
+				  "contrast",
+				  "drop-shadow",
+				  "grayscale",
+				  "hue-rotate",
+				  "invert",
+				  "opacity",
+				  "saturate",
+				  "sepia",
+				  "global_keywords",
+				  "inherit",
+				  "initial",
+				  "revert",
+				  "revert-layer",
+				  "unset",
+				  "conic-gradient",
+				  "repeating-conic-gradient",
+				  "hypot",
+				  "if",
+				  "style",
+				  "cross-fade",
+				  "element",
+				  "filter",
+				  "paint",
+				  "Q",
+				  "cap",
+				  "ch",
+				  "container_query_length_units",
+				  "em",
+				  "ex",
+				  "ic",
+				  "lh",
+				  "rcap",
+				  "rch",
+				  "rem",
+				  "rex",
+				  "ric",
+				  "rlh",
+				  "vb",
+				  "vh",
+				  "vi",
+				  "viewport_percentage_units_dynamic",
+				  "viewport_percentage_units_large",
+				  "viewport_percentage_units_small",
+				  "vmax",
+				  "vmin",
+				  "vw",
+				  "log",
+				  "max",
+				  "min",
+				  "mod",
+				  "mixed_type_parameters",
+				  "scientific_notation",
+				  "overflow",
+				  "clip",
+				  "four_value_syntax",
+				  "keyword_value_syntax",
+				  "pow",
+				  "progress",
+				  "random",
+				  "number_value",
+				  "ray",
+				  "size",
+				  "dpcm",
+				  "dpi",
+				  "dppx",
+				  "x",
+				  "sibling-count",
+				  "sibling-index",
+				  "sign",
+				  "sin",
+				  "sqrt",
+				  "unicode_escaped_characters",
+				  "tan",
+				  "alphabetic",
+				  "text",
+				  "matrix",
+				  "matrix3d",
+				  "perspective",
+				  "rotate",
+				  "rotate3d",
+				  "rotateX",
+				  "rotateY",
+				  "rotateZ",
+				  "scale",
+				  "scale3d",
+				  "scaleX",
+				  "scaleY",
+				  "scaleZ",
+				  "skew",
+				  "skewX",
+				  "skewY",
+				  "translate",
+				  "translate3d",
+				  "translateX",
+				  "translateY",
+				  "translateZ",
+				  "var",
+				]
+			`);
+			expect(bcd.css.types?.length).toMatchInlineSnapshot(`
 				{
 				  "Q": {
 				    "__compat": {
@@ -430,8 +836,6 @@ if (import.meta.vitest) {
 				      ],
 				    },
 				  },
-				  "extended": [],
-				  "href": "https://drafts.csswg.org/css-values-4/#length-value",
 				  "ic": {
 				    "__compat": {
 				      "description": "<code>ic</code> unit",
@@ -549,8 +953,6 @@ if (import.meta.vitest) {
 				      ],
 				    },
 				  },
-				  "name": "length",
-				  "prose": "Lengths refer to distance measurements and are denoted by <length> in the property definitions. A length is a dimension.",
 				  "rcap": {
 				    "__compat": {
 				      "description": "<code>rcap</code> unit",
@@ -1448,6 +1850,16 @@ if (import.meta.vitest) {
 				  },
 				}
 			`);
+
+			const charset = data.atrules["@charset"];
+			expect(charset).toBeDefined();
+			expect(charset?.__compat).toBeDefined();
+
+			const alignContent = data.properties["-webkit-align-content"];
+			expect(alignContent).toBeDefined();
+			expect(alignContent?.__compat).toBeDefined();
 		});
 	});
 }
+
+export { parseData };

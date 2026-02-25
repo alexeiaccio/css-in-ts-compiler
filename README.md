@@ -4,8 +4,7 @@ A compile-time CSS-in-TypeScript compiler with hash-based class names, following
 
 ## Tech stack
 
-- [Turborepo](https://turborepo.dev/)
-- [Bun](https://bun.sh)
+- [Effect Schema](https://github.com/Effect-TS/effect-smol/blob/main/packages/effect/SCHEMA.md)
 - [Effect TS 4 Beta](https://effect.website/blog/releases/effect/40-beta/)
 - [OXC parser](https://oxc.rs/docs/guide/usage/parser)
 - [OXC transformer](https://oxc.rs/docs/guide/usage/transformer)
@@ -16,6 +15,8 @@ A compile-time CSS-in-TypeScript compiler with hash-based class names, following
 - [TypeScript Go](https://github.com/microsoft/typescript-go)
 - [OXC lint](https://oxc.rs/blog/2025-12-08-type-aware-alpha)
 - [OXC fmt](https://oxc.rs/docs/guide/usage/formatter)
+- [Turborepo](https://turborepo.dev/)
+- [Bun](https://bun.sh)
 - [Knip](https://knip.dev/)
 
 ## Features

@@ -5,6 +5,7 @@ This repository is a CSS-in-TypeScript compiler with hash-based class names, fol
 ## Commands
 
 ### Build & Development
+
 ```bash
 # Build all packages
 bun run build
@@ -14,6 +15,7 @@ bun run dev
 ```
 
 ### Testing
+
 ```bash
 # Run all tests
 bun test
@@ -28,6 +30,7 @@ bun test --run -t "should generate hash-based class names"
 ```
 
 ### Linting & Formatting
+
 ```bash
 # Type-aware linting
 bun run lint
@@ -45,9 +48,27 @@ bun run fmt
 bun run fmt:check
 ```
 
+## Tech stack
+
+- [Effect Schema](https://github.com/Effect-TS/effect-smol/blob/main/packages/effect/SCHEMA.md)
+- [Effect TS 4 Beta](https://effect.website/blog/releases/effect/40-beta/)
+- [OXC parser](https://oxc.rs/docs/guide/usage/parser)
+- [OXC transformer](https://oxc.rs/docs/guide/usage/transformer)
+- [Lighting CSS](https://lightningcss.dev)
+- [tsdown](https://tsdown.dev/)
+- [Vite 8](https://main.vite.dev/)
+- [Vitest](https://main.vitest.dev/)
+- [TypeScript Go](https://github.com/microsoft/typescript-go)
+- [OXC lint](https://oxc.rs/blog/2025-12-08-type-aware-alpha)
+- [OXC fmt](https://oxc.rs/docs/guide/usage/formatter)
+- [Turborepo](https://turborepo.dev/)
+- [Bun](https://bun.sh)
+- [Knip](https://knip.dev/)
+
 ## Code Style Guidelines
 
 ### Formatting (oxfmt)
+
 - **Indentation**: 2 spaces (configured as tabs in config)
 - **Line width**: 120 characters
 - **Quotes**: Double quotes
@@ -57,6 +78,7 @@ bun run fmt:check
 - **Import sorting**: Enabled with newlines between groups
 
 ### TypeScript Configuration
+
 - **Strict mode**: Enabled
 - **Target**: ESNext
 - **Module**: Preserve (for bundlers)
@@ -65,18 +87,21 @@ bun run fmt:check
 - **Verbatim module syntax**: Enabled (no `import type`)
 
 ### Import Style
+
 - Use ES module imports (no CommonJS)
 - Keep imports at the top of files
 - Use explicit type imports where appropriate: `import type { … }`
 - Avoid namespace imports when named imports available
 
 ### Type Definitions
+
 - Use `interface` for object shapes that can be extended
 - Use `type` for unions, primitives, and utility types
 - Prefer explicit type annotations over inference where intent matters
 - Use branded types for runtime type guards: `type Brand = { __brand: "brand" }`
 
 ### Naming Conventions
+
 - **Functions/Variables**: camelCase (`generateHash`, `classRegistry`)
 - **Types/Interfaces**: PascalCase (`CSSProperties`, `MediaFunction`)
 - **Constants**: UPPER_SNAKE_CASE for true constants, PascalCase for enums
@@ -84,12 +109,14 @@ bun run fmt:check
 - **Classes**: PascalCase with descriptive names
 
 ### Error Handling
+
 - Use try-catch for async operations with proper error logging
 - Provide meaningful error messages with context
 - Use Effect TS for functional error handling and composability
 - Exit with non-zero code on CLI errors: `process.exit(1)`
 
 ### Testing (Vitest)
+
 - Use `describe` blocks for grouping related tests
 - Use `beforeEach`/`afterEach` for setup/teardown
 - Prefer `expect().toBe()` over `===` for assertions
@@ -97,13 +124,16 @@ bun run fmt:check
 - Use `import.meta.vitest` for test-only imports
 
 ### File Structure
+
 - Core compiler code in `packages/compiler/src/`
 - CSS-in-TS utilities in `packages/cssints/src/`
-- Tests co-located in `src/__tests__/` or test files alongside source
+- Tests co-located in `tests/` or test files alongside source
 - Generated types in separate `.gen.ts` files
 
 ### OXC Linting Rules
+
 All TypeScript and correctness rules enforced as errors:
+
 - No `any` types
 - No unsafe operations
 - No duplicate keys/values
@@ -118,42 +148,3 @@ All TypeScript and correctness rules enforced as errors:
 - OXC parser/transformer for AST manipulation
 - Vite plugins: Both AST-based (oxc) and regex-based (legacy)
 - API documentation: `docs/API.md` (primary reference)
-
-## Common Patterns
-
-### Style Definition
-```typescript
-const button = style("button", {
-  color: "red",
-  "&:hover": { color: "blue" },
-});
-```
-
-### Utility Composition
-```typescript
-const styles = cx({ color: "red" }, { padding: "1rem" });
-```
-
-### Registry Pattern
-```typescript
-const classRegistry = new Map<string, RegisteredClass>();
-export function getRegisteredClasses() {
-  return new Map(classRegistry);
-}
-export function clearRegistry() {
-  classRegistry.clear();
-}
-```
-
-### Hash Generation
-```typescript
-function generateHash(props: CSSProperties): string {
-  const str = JSON.stringify(normalizeProperties(props));
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(16).padStart(8, "0");
-}
-```
