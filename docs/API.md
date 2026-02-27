@@ -66,7 +66,20 @@ Output:
 }
 ```
 
-### Breakpoints
+### CSS @layer Priority System
+
+CSS layers to control specificity:
+
+```typescript
+// Layers are declared in priority order
+@layer _.a, _.b, _.c, _.d, _.e;
+
+// Each condition increments priority:
+// - default: _.a (priority 0)
+// - :hover: _.b (priority 1)
+// - @media: _.c (priority 1)
+// - nested conditions: _.d, _.e (higher)
+```
 
 ```ts
 import { cx } from "css-variants";
@@ -97,14 +110,18 @@ import { cx } from "css-variants";
 ._jdf78hs {
 	padding: 0.5rem;
 }
-@media (screen and min-width > 40rem) {
-	._jdf78hs._swg4thgf {
-		padding-left: 8ch;
+@layer _.a {
+	@media (screen and min-width > 40rem) {
+		._jdf78hs {
+			padding-left: 8ch;
+		}
 	}
 }
-@media (screen and min-width > 40rem) {
-	._jdf78hs._jdfsddfs {
-		padding-top: 1rem;
+@layer _.b {
+	@media (screen and min-width > 40rem) {
+		._jdf78hs {
+			padding-top: 1rem;
+		}
 	}
 }
 ```
