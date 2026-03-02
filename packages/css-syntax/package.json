@@ -3,31 +3,30 @@
 	"version": "0.1.0",
 	"description": "Fast CSS parser using unbash architecture - complete CSS syntax support",
 	"keywords": [
-		"css",
-		"parser",
-		"lexer",
-		"tokenizer",
 		"ast",
-		"syntax",
-		"css-values",
+		"css",
 		"css-selectors",
-		"css-syntax"
+		"css-syntax",
+		"css-values",
+		"lexer",
+		"parser",
+		"syntax",
+		"tokenizer"
 	],
+	"homepage": "https://github.com/css-in-ts-compiler/css-syntax",
 	"license": "MIT",
 	"author": "Alexei Accio",
-	"files": [
-		"dist",
-		"src",
-		"playground"
-	],
-	"type": "module",
-	"main": "./dist/index.js",
-	"types": "./dist/index.d.ts",
-	"homepage": "https://github.com/css-in-ts-compiler/css-syntax",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/css-in-ts-compiler/css-syntax"
 	},
+	"files": [
+		"dist",
+		"src"
+	],
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -53,8 +52,8 @@
 			"types": "./dist/walker/index.d.ts",
 			"import": "./dist/walker/index.js"
 		},
-		"./playground": {
-			"import": "./playground/index.html"
+		"./ts": {
+			"default": "./index.ts"
 		}
 	},
 	"scripts": {
@@ -69,11 +68,11 @@
 		"effect": "4.0.0-beta.5"
 	},
 	"devDependencies": {
-		"vitest": "^4.0.18",
-		"typescript": "^5.9.3",
+		"fast-check": "^3.22.0",
 		"oxlint": "^1.46.0",
 		"oxlint-tsgolint": "^0.12.0",
 		"turbo": "latest",
-		"fast-check": "^3.22.0"
+		"typescript": "^5.9.3",
+		"vitest": "^4.0.18"
 	}
 }

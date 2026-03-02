@@ -136,7 +136,7 @@ See `src/tests/*.test.ts` for test coverage.
 - [x] Property-based testing with FastCheck
 - [x] Parallel lexing (Effect.all with concurrency)
 - [x] CSS Color Level 4 support
-- [ ] CSS Container Queries
+- [x] CSS Container Queries
 - [ ] CSS Nesting syntax
 
 ## Comparison with css-tree
