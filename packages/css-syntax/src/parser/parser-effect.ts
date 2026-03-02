@@ -7,6 +7,17 @@ import { StylesheetParser } from "./stylesheet-parser.js";
 import { CssParseError } from "../lexer/errors-effect.js";
 import type { TokenValue } from "../lexer/token.js";
 
+/**
+ * Parse a CSS value definition syntax string
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect";
+ *
+ * const result = Effect.runSync(parseValueDefEffect("<length> | <percentage>"));
+ * // → { type: "group", terms: [...], multiplier: {...} }
+ * ```
+ */
 export const parseValueDefEffect = (
   source: string,
 ): Effect.Effect<ReturnType<typeof parseValueDef>, CssParseError> =>
@@ -19,6 +30,17 @@ export const parseValueDefEffect = (
       }),
   });
 
+/**
+ * Parse a CSS value string into an AST
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect";
+ *
+ * const result = Effect.runSync(parseValueEffect("10px solid red"));
+ * // → { type: "dimension", number: 10, unit: "px" }
+ * ```
+ */
 export const parseValueEffect = (
   source: string,
 ): Effect.Effect<ReturnType<CSSValueParser["parse"]>, CssParseError> =>
@@ -31,6 +53,17 @@ export const parseValueEffect = (
       }),
   });
 
+/**
+ * Parse a CSS selector string into an AST
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect";
+ *
+ * const result = Effect.runSync(parseSelectorEffect(".foo > .bar:hover"));
+ * // → { type: "complex", children: [...], specificity: {...} }
+ * ```
+ */
 export const parseSelectorEffect = (
   source: string,
 ): Effect.Effect<ReturnType<SelectorParser["parse"]>, CssParseError> =>
@@ -43,6 +76,17 @@ export const parseSelectorEffect = (
       }),
   });
 
+/**
+ * Parse a full CSS stylesheet into an AST
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect";
+ *
+ * const result = Effect.runSync(parseStylesheetEffect(".foo { color: red; }"));
+ * // → { type: "stylesheet", rules: [...] }
+ * ```
+ */
 export const parseStylesheetEffect = (
   source: string,
 ): Effect.Effect<ReturnType<StylesheetParser["parse"]>, CssParseError> =>

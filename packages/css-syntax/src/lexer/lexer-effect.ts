@@ -11,10 +11,26 @@ class LexerError extends Data.TaggedError("LexerError")<{
   readonly source: string;
 }> {}
 
+/**
+ * Options for creating a lexer instance
+ */
 export interface LexerOptions {
+  /** The CSS source code to tokenize */
   readonly source: string;
 }
 
+/**
+ * Execute a function with a lexer instance, handling errors effectfully
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect";
+ *
+ * const result = withLexer("color: red", (lexer) =>
+ *   Effect.sync(() => lexer.next(LexContext.Normal))
+ * );
+ * ```
+ */
 export const withLexer = <A, E>(
   source: string,
   f: (lexer: Lexer) => Effect.Effect<A, E>,
@@ -27,6 +43,17 @@ export const withLexer = <A, E>(
     catch: (e) => new LexerError({ message: String(e), position: 0, source }),
   });
 
+/**
+ * Tokenize a CSS string using the Normal lexing context
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect";
+ *
+ * const tokens = Effect.runSync(lexAll(".foo { color: red }"));
+ * // [{ token: "Delim", value: ".", ... }, { token: "Ident", value: "foo", ... }, ...]
+ * ```
+ */
 export const lexAll = (source: string): Effect.Effect<readonly TokenValue[], LexerError> =>
   withLexer(source, (lexer) =>
     Effect.sync(() => {
@@ -39,6 +66,17 @@ export const lexAll = (source: string): Effect.Effect<readonly TokenValue[], Lex
       return tokens;
     }));
 
+/**
+ * Tokenize a CSS value definition using the ValueDef lexing context
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect";
+ *
+ * const tokens = Effect.runSync(lexValue("10px solid red"));
+ * // [{ token: "Dimension", value: "10px", number: 10, unit: "px" }, ...]
+ * ```
+ */
 export const lexValue = (source: string): Effect.Effect<readonly TokenValue[], LexerError> =>
   withLexer(source, (lexer) =>
     Effect.sync(() => {
@@ -51,6 +89,15 @@ export const lexValue = (source: string): Effect.Effect<readonly TokenValue[], L
       return tokens;
     }));
 
+/**
+ * Create a new Lexer instance for a given CSS source
+ *
+ * @example
+ * ```ts
+ * const lexer = createLexer("color: red");
+ * const token = lexer.next(LexContext.Normal);
+ * ```
+ */
 export const createLexer = (source: string): Lexer => new Lexer(source);
 
 export { LexerError };
