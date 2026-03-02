@@ -1,32 +1,25 @@
 import type { TokenValue } from "../lexer/token.js";
 
-export enum CombinatorType {
-  /** XOR - exactly one of the alternatives */
-  Bar = "bar",
-  /** OR - one or more, in any order */
-  DoubleBar = "double-bar",
-  /** AND - all, in any order */
-  DoubleAmpersand = "double-ampersand",
-  /** All, in given order */
-  Juxtapose = "juxtapose",
-}
+export const CombinatorType = {
+  Bar: "bar",
+  DoubleBar: "double-bar",
+  DoubleAmpersand: "double-ampersand",
+  Juxtapose: "juxtapose",
+} as const;
 
-export enum MultiplierType {
-  /** Zero or more */
-  Star = "*",
-  /** One or more */
-  Plus = "+",
-  /** Zero or one */
-  Question = "?",
-  /** Exactly n */
-  Exact = "{n}",
-  /** Between n and m */
-  Range = "{n,m}",
-  /** N or more */
-  Min = "{n,}",
-  /** One or more, comma-separated */
-  Hash = "#",
-}
+export type CombinatorType = (typeof CombinatorType)[keyof typeof CombinatorType];
+
+export const MultiplierType = {
+  Star: "*",
+  Plus: "+",
+  Question: "?",
+  Exact: "{n}",
+  Range: "{n,m}",
+  Min: "{n,}",
+  Hash: "#",
+} as const;
+
+export type MultiplierType = (typeof MultiplierType)[keyof typeof MultiplierType];
 
 export interface Multiplier {
   type: MultiplierType;

@@ -11,7 +11,7 @@ import type {
 import { generateSelector } from "./selector-generator.js";
 import { generateCSSValue } from "./css-value-generator.js";
 
-export type AnyCSSNode =
+type AnyCSSNode =
   | SelectorNode
   | CSSValueNode
   | CSSStyleSheet

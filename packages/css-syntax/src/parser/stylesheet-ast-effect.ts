@@ -24,7 +24,7 @@ export const CSSCommentSchema = Schema.Struct({
 
 export type CSSComment = Schema.Schema.Type<typeof CSSCommentSchema>;
 
-export const CSSBlockChildSchema = Schema.Union([
+const CSSBlockChildSchema = Schema.Union([
   CSSDeclarationSchema,
   CSSInvalidDeclarationSchema,
 ]);
