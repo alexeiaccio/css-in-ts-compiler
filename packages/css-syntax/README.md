@@ -137,7 +137,7 @@ See `src/tests/*.test.ts` for test coverage.
 - [x] Parallel lexing (Effect.all with concurrency)
 - [x] CSS Color Level 4 support
 - [x] CSS Container Queries
-- [ ] CSS Nesting syntax
+- [x] CSS Nesting syntax
 
 ## Comparison with css-tree
 

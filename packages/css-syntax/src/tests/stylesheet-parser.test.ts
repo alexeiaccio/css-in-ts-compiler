@@ -81,6 +81,42 @@ describe("Stylesheet Parser", () => {
   it("should parse nested rules", () => {
     const result = parseStylesheet(".foo { .bar { color: red; } }") as CSSStyleSheet;
     expect(result.children).toHaveLength(1);
+    const rule = result.children[0] as any;
+    expect(rule.selector).toBe(".foo");
+    expect(rule.children).toHaveLength(1);
+    expect(rule.children[0]!.selector).toBe(".bar");
+    expect(rule.children[0]!.declarations).toHaveLength(1);
+  });
+
+  it("should parse deeply nested rules", () => {
+    const result = parseStylesheet(".a { .b { .c { color: red; } } }") as CSSStyleSheet;
+    const a = result.children[0] as any;
+    const b = a.children[0];
+    const c = b.children[0];
+    expect(a.selector).toBe(".a");
+    expect(b.selector).toBe(".b");
+    expect(c.selector).toBe(".c");
+  });
+
+  it("should parse multiple nested rules", () => {
+    const result = parseStylesheet(".parent { .child1 { color: red; } .child2 { color: blue; } }") as CSSStyleSheet;
+    const parent = result.children[0] as any;
+    expect(parent.children).toHaveLength(2);
+    expect(parent.children[0]!.selector).toBe(".child1");
+    expect(parent.children[1]!.selector).toBe(".child2");
+  });
+
+  it("should parse & selector nesting", () => {
+    const result = parseStylesheet(".foo { &:hover { color: red; } }") as CSSStyleSheet;
+    const rule = result.children[0] as any;
+    expect(rule.children[0]!.selector).toBe("&:hover");
+  });
+
+  it("should parse mixed declarations and nested rules", () => {
+    const result = parseStylesheet(".foo { color: red; .bar { color: blue; } }") as CSSStyleSheet;
+    const rule = result.children[0] as any;
+    expect(rule.declarations).toHaveLength(1);
+    expect(rule.children).toHaveLength(1);
   });
 
   it("should parse important declarations", () => {

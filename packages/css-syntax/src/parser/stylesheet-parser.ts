@@ -385,10 +385,14 @@ export class StylesheetParser {
   private isNestedSelector(): boolean {
     const start = this.pos;
     let depth = 0;
+    let hasNestedBrace = false;
 
     while (this.pos < this.source.length) {
       const code = this.source.charCodeAt(this.pos);
       if (code === 123) {
+        if (depth === 0) {
+          hasNestedBrace = true;
+        }
         depth++;
         this.pos++;
       } else if (code === 125) {
@@ -398,15 +402,16 @@ export class StylesheetParser {
       } else if (depth === 0 && code === 59) {
         break;
       } else if (depth === 0 && code === 58) {
-        this.pos = start;
-        return false;
+        // Could be property:value or pseudo-class. Continue to find { or ;
+        // Don't break immediately, just skip to next char
+        this.pos++;
       } else {
         this.pos++;
       }
     }
 
     this.pos = start;
-    return depth > 0;
+    return hasNestedBrace;
   }
 
   private parseDeclaration(): CSSDeclaration | null {
