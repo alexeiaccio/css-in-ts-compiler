@@ -1,6 +1,6 @@
 # Deep Dive: Technical Implementation of CSS-in-TS Frameworks
 
-This document provides a comprehensive technical analysis of the implementation details, tech stack, compiler architecture, and bundler integrations for four major CSS-in-TS frameworks: SugarCube, StyleX, vanilla-extract, and Tailwind CSS v4.
+This document provides a comprehensive technical analysis of the implementation details, tech stack, compiler architecture, and bundler integrations for five major CSS-in-TS frameworks: SugarCube, StyleX, vanilla-extract, Tailwind CSS v4, and Tokenami.
 
 ---
 
@@ -10,7 +10,8 @@ This document provides a comprehensive technical analysis of the implementation 
 2. [StyleX](#stylex)
 3. [vanilla-extract](#vanilla-extract)
 4. [Tailwind CSS v4](#tailwind-css-v4)
-5. [Comparison Summary](#comparison-summary)
+5. [Tokenami](#tokenami)
+6. [Comparison Summary](#comparison-summary)
 
 ---
 
@@ -688,46 +689,228 @@ v4 leverages:
 
 ---
 
+## Tokenami
+
+### Overview
+
+Tokenami is a utility-first CSS library that uses atomic CSS variables instead of utility classes. It's unique in that it doesn't require a bundler - just a CLI to generate static CSS.
+
+### Tech Stack
+
+| Aspect | Details |
+|--------|---------|
+| **Language** | TypeScript |
+| **Package Manager** | pnpm |
+| **Build Tool** | Turborepo + TypeScript |
+| **Testing** | Vitest |
+| **Type System** | TypeScript (first-class) |
+| **Monorepo** | Lerna + pnpm |
+
+### Packages
+
+```
+@tokenami/css          # Core runtime (~2.5kb)
+tokenami              # CLI tool
+@tokenami/ts-plugin   # TypeScript plugin for autocomplete
+@tokenami/ds         # Official design system
+```
+
+### Compiler Architecture
+
+Tokenami uses a **CLI-first** approach without requiring bundler integration.
+
+#### Processing Pipeline
+
+1. **Configuration**
+   - Load `.tokenami/tokenami.config.ts`
+   - Parse theme definitions (colors, spacing, radii, etc.)
+
+2. **CSS Generation**
+   - Scan source files for `css()` and `css.compose()` calls
+   - Extract styles to static CSS file
+   - Generate short class names (`.tk-xxxx`)
+
+3. **Runtime Injection**
+   - Process variant overrides inline
+   - Apply breakpoint-based styles via CSS variables
+
+#### Config Structure
+
+```typescript
+// .tokenami/tokenami.config.ts
+import { createConfig } from '@tokenami/css';
+
+export default createConfig({
+  // Theme tokens
+  theme: {
+    color: {
+      'slate-100': '#f1f5f9',
+      'sky-500': '#0ea5e9',
+    },
+    radii: {
+      rounded: '10px',
+    },
+  },
+  
+  // Multiple themes (light/dark)
+  modes: {
+    light: { color: { primary: '#000' } },
+    dark: { color: { primary: '#fff' } },
+  },
+  
+  // Grid for numeric values (default: 0.25rem)
+  grid: '4px',
+  
+  // Responsive breakpoints
+  responsive: {
+    md: '@media (min-width: 700px)',
+    lg: '@media (min-width: 1024px)',
+  },
+  
+  // Global styles
+  globalStyles: {
+    body: { margin: 0 },
+  },
+});
+```
+
+#### CSS Variable Generation
+
+```typescript
+// Theme: color: { primary: '#3b82f6' }
+// Generates: --color_primary: #3b82f6
+```
+
+The underscore separator avoids needing quotes in CSS:
+
+```css
+:root {
+  --color_primary: #3b82f6;
+  --spacing_4: 1rem;  /* grid * 4 */
+}
+```
+
+### css() Utility
+
+```typescript
+import { css } from '@tokenami/css';
+
+// Basic usage
+<div style={css({
+  '--background': 'var(--color_primary)',
+  '--padding': 4,  // Uses grid (4 * 4px = 16px)
+})} />
+```
+
+### css.compose() API
+
+```typescript
+const button = css.compose({
+  '--background': 'var(--color_primary)',
+  '--color': 'var(--color_white)',
+  '--padding': 4,
+
+  variants: {
+    variant: {
+      primary: { '--background': 'var(--color_blue)' },
+      secondary: { '--background': 'var(--color_gray)' },
+    },
+  },
+});
+
+// Usage
+const [cn, styles] = button({ variant: 'primary' });
+<button className={cn(className)} style={styles(styleProps)} />
+```
+
+### Bundler Integrations
+
+#### CLI (No Bundler Required)
+
+```bash
+# Generate static CSS
+npx tokenami --output ./public/styles.css
+
+# Watch mode
+npx tokenami --output ./public/styles.css --watch
+```
+
+#### TypeScript Plugin
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "plugins": [{ "name": "tokenami" }]
+  }
+}
+```
+
+Provides:
+- Autocomplete for CSS variables
+- Type checking for theme values
+- IntelliSense
+
+#### Framework Support
+
+Tokenami works with:
+- React
+- Preact
+- Vue
+- SolidJS
+- Qwik
+
+### Performance Characteristics
+
+- **CSS Size**: One rule per component (vs dozens of utility classes)
+- **Runtime**: ~2.5kb (small)
+- **Build**: Fast (no bundler integration needed)
+- **Browser Support**: Requires cascade layers (modern browsers)
+
+---
+
 ## Comparison Summary
 
 ### Tech Stack Comparison
 
-| Aspect | SugarCube | StyleX | vanilla-extract | Tailwind v4 |
-|--------|-----------|--------|-----------------|-------------|
-| **Language** | TypeScript | JavaScript/Flow | TypeScript | Rust + JS |
-| **Engine** | TypeScript | Babel | TypeScript | Lightning CSS |
-| **Build Output** | CSS variables + utilities | Atomic CSS | Static CSS files | Utility CSS |
-| **Type System** | TypeScript | Flow | TypeScript | None (CSS) |
-| **Monorepo** | pnpm | Yarn | npm | npm |
+| Aspect | SugarCube | StyleX | vanilla-extract | Tailwind v4 | Tokenami |
+|--------|-----------|--------|-----------------|-------------|----------|
+| **Language** | TypeScript | JavaScript/Flow | TypeScript | Rust + JS | TypeScript |
+| **Engine** | TypeScript | Babel | TypeScript | Lightning CSS | TypeScript + CLI |
+| **Build Output** | CSS variables + utilities | Atomic CSS | Static CSS files | Utility CSS | CSS variables |
+| **Type System** | TypeScript | Flow | TypeScript | None (CSS) | TypeScript |
+| **Monorepo** | pnpm | Yarn | npm | npm | Lerna + pnpm |
 
 ### Compiler Comparison
 
-| Aspect | SugarCube | StyleX | vanilla-extract | Tailwind v4 |
-|--------|-----------|--------|-----------------|-------------|
-| **Transform** | Token → CSS | JS → Atomic CSS | TS → CSS | CSS → CSS |
-| **AST** | JSON parsing | Babel AST | TypeScript AST | Lightning AST |
-| **Caching** | Unknown | File-level | Module-level | Rust caching |
-| **Dev Mode** | HMR via Vite | Runtime injection | HMR via bundler | Native HMR |
+| Aspect | SugarCube | StyleX | vanilla-extract | Tailwind v4 | Tokenami |
+|--------|-----------|--------|-----------------|-------------|----------|
+| **Transform** | Token → CSS | JS → Atomic CSS | TS → CSS | CSS → CSS | Config + TS → CSS |
+| **AST** | JSON parsing | Babel AST | TypeScript AST | Lightning AST | TypeScript AST |
+| **Caching** | Unknown | File-level | Module-level | Rust caching | File-level |
+| **Dev Mode** | HMR via Vite | Runtime injection | HMR via bundler | Native HMR | CLI watch mode |
 
 ### Bundler Support
 
-| Bundler | SugarCube | StyleX | vanilla-extract | Tailwind v4 |
-|---------|-----------|--------|-----------------|-------------|
-| **Vite** | ✅ Native | ✅ Via Rollup | ✅ Native | ✅ Native |
-| **Webpack** | ❌ | ✅ | ✅ | ❌ (PostCSS) |
-| **esbuild** | ❌ | ❌ | ✅ | ❌ |
-| **Rollup** | ❌ | ✅ | ❌ | ❌ |
-| **PostCSS** | ❌ | ✅ | ❌ | ✅ |
-| **CLI** | ✅ | ✅ | ❌ | ✅ |
+| Bundler | SugarCube | StyleX | vanilla-extract | Tailwind v4 | Tokenami |
+|---------|-----------|--------|-----------------|-------------|----------|
+| **Vite** | ✅ Native | ✅ Via Rollup | ✅ Native | ✅ Native | ❌ |
+| **Webpack** | ❌ | ✅ | ✅ | ❌ (PostCSS) | ❌ |
+| **esbuild** | ❌ | ❌ | ✅ | ❌ | ❌ |
+| **Rollup** | ❌ | ✅ | ❌ | ❌ | ❌ |
+| **PostCSS** | ❌ | ✅ | ❌ | ✅ | ❌ |
+| **CLI** | ✅ | ✅ | ❌ | ✅ | ✅ (native) |
+| **None** | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 ### Performance Characteristics
 
-| Metric | SugarCube | StyleX | vanilla-extract | Tailwind v4 |
-|--------|-----------|--------|-----------------|-------------|
-| **Build Speed** | Unknown | Fast | Fast | Fastest (Rust) |
-| **Incremental** | Unknown | File-level | Module-level | Microsecond |
-| **Memory** | Unknown | Cached | Standard | Optimized |
-| **Large Projects** | Unknown | Excellent | Good | Excellent |
+| Metric | SugarCube | StyleX | vanilla-extract | Tailwind v4 | Tokenami |
+|--------|-----------|--------|-----------------|-------------|----------|
+| **Build Speed** | Unknown | Fast | Fast | Fastest (Rust) | Fast |
+| **Incremental** | Unknown | File-level | Module-level | Microsecond | File-level |
+| **Memory** | Unknown | Cached | Standard | Optimized | Standard |
+| **Large Projects** | Unknown | Excellent | Good | Excellent | Good |
+| **Runtime Size** | Zero | Zero | Zero | Zero | ~2.5kb |
 
 ### Architecture Patterns
 
@@ -789,6 +972,11 @@ v4 leverages:
 - **Strength**: W3C DTCG compliance, CUBE CSS integration
 - **Weakness**: Newer, less mature
 
+### Tokenami
+- **Best for**: Projects needing no bundler, clean HTML
+- **Strength**: CSS variable-first, CLI-only, framework agnostic
+- **Weakness**: ~2.5kb runtime, inline styles for variants
+
 ---
 
 ## References
@@ -799,3 +987,5 @@ v4 leverages:
 - [Tailwind CSS v4 Announcement](https://tailwindcss.com/blog/tailwindcss-v4)
 - [Lightning CSS](https://lightningcss.dev/)
 - [SugarCube Documentation](https://sugarcube.sh)
+- [Tokenami GitHub](https://github.com/tokenami/tokenami)
+- [Tokenami Documentation](https://tokenami.com)

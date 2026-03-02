@@ -1,0 +1,69 @@
+{
+	"name": "@cssints/css-syntax",
+	"version": "0.1.0",
+	"description": "Fast CSS parser using unbash architecture - complete CSS syntax support",
+	"keywords": [
+		"css",
+		"parser",
+		"lexer",
+		"tokenizer",
+		"ast",
+		"syntax",
+		"css-values",
+		"css-selectors",
+		"css-syntax"
+	],
+	"license": "MIT",
+	"author": "Alexei Accio",
+	"files": [
+		"dist",
+		"src"
+	],
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./lexer": {
+			"types": "./dist/lexer/index.d.ts",
+			"import": "./dist/lexer/index.js"
+		},
+		"./parser": {
+			"types": "./dist/parser/index.d.ts",
+			"import": "./dist/parser/index.js"
+		},
+		"./ast": {
+			"types": "./dist/ast/index.d.ts",
+			"import": "./dist/ast/index.js"
+		},
+		"./generator": {
+			"types": "./dist/generator/index.d.ts",
+			"import": "./dist/generator/index.js"
+		},
+		"./walker": {
+			"types": "./dist/walker/index.d.ts",
+			"import": "./dist/walker/index.js"
+		}
+	},
+	"scripts": {
+		"build": "bun build ./src/index.ts --outdir ./dist --target node && bun build ./src/lexer/index.ts --outdir ./dist/lexer --target node && bun build ./src/parser/index.ts --outdir ./dist/parser --target node && bun build ./src/ast/index.ts --outdir ./dist/ast --target node && bun build ./src/generator/index.ts --outdir ./dist/generator --target node && bun build ./src/walker/index.ts --outdir ./dist/walker --target node && tsgo --emit",
+		"test": "vitest",
+		"benchmark": "vitest run --reporter=verbose src/lexer/benchmarks.test.ts src/parser/benchmarks.test.ts",
+		"typecheck": "tsgo --noEmit",
+		"lint": "oxlint --type-aware",
+		"lint:fix": "oxlint --type-aware --fix"
+	},
+	"dependencies": {
+		"effect": "4.0.0-beta.5"
+	},
+	"devDependencies": {
+		"vitest": "^4.0.18",
+		"typescript": "^5.9.3",
+		"oxlint": "^1.46.0",
+		"oxlint-tsgolint": "^0.12.0",
+		"turbo": "latest"
+	}
+}
