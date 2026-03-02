@@ -3,6 +3,7 @@ export * from "./value-def-parser.js";
 export * from "./css-value-parser.js";
 export * from "./selector-ast.js";
 export * from "./selector-parser.js";
+export * from "./stylesheet-parser.js";
 
 export {
   SpecificitySchema,

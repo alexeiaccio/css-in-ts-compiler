@@ -1,0 +1,144 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>css-syntax playground</title>
+    <style>
+      * {
+        margin: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: monospace;
+        height: 100vh;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto 1fr;
+      }
+      header {
+        grid-column: 1 / -1;
+        padding: 0.5rem 1rem;
+        background: black;
+        font-size: 1rem;
+        text-align: right;
+      }
+      header a {
+        color: whitesmoke;
+        text-decoration: none;
+      }
+      textarea,
+      #print {
+        grid-column: 1;
+      }
+      textarea {
+        padding: 1rem;
+        border: none;
+        border-right: 1px solid grey;
+        border-bottom: 1px solid grey;
+        outline: none;
+        resize: none;
+        height: 65vh;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        font-family: monospace;
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+      #print {
+        padding: 1rem;
+        border-right: 1px solid grey;
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow: auto;
+        background: dimgray;
+        color: whitesmoke;
+      }
+      #parse {
+        white-space: pre;
+        padding: 1rem;
+        overflow: auto;
+        background: whitesmoke;
+        grid-column: 2;
+        grid-row: 2 / -1;
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a href="https://github.com/css-in-ts-compiler/css-syntax">css-syntax <span id="version">0.1.0</span></a>
+    </header>
+    <textarea id="input" spellcheck="false">.foo {
+  color: red;
+  padding: 10px 20px;
+}
+
+@media (min-width: 768px) {
+  .foo {
+    font-size: 16px;
+  }
+}</textarea
+    >
+    <output id="parse"></output>
+    <output id="print"></output>
+    <script type="module">
+      import { Lexer, LexContext } from "../../packages/css-syntax/src/lexer/index.js";
+      import { StylesheetParser } from "../../packages/css-syntax/src/parser/stylesheet-parser.js";
+
+      const TokenNames = [
+        "EOF", "Ident", "Function", "AtKeyword", "Hash", "String", "Url",
+        "Number", "Dimension", "Percentage", "UnicodeRange", "Comma", "Colon",
+        "Semicolon", "Slash", "Asterisk", "Plus", "Minus", "Dollar", "Tilde",
+        "Caret", "At", "LeftBracket", "RightBracket", "LeftParen", "RightParen",
+        "LeftBrace", "RightBrace", "DoubleBar", "DoubleAmp", "Bar", "QuestionMark",
+        "ExclamationMark", "HashMark", "Whitespace", "Comment", "CDOToken", "CDCToken",
+        "BadString", "BadUrl", "Delim"
+      ];
+
+      const encode = (s) => s
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+      const formatToken = (t) => {
+        return `${TokenNames[t.token] || t.token}: ${encode(t.value)}`;
+      };
+
+      const _input = document.getElementById("input");
+      const _parse = document.getElementById("parse");
+      const _print = document.getElementById("print");
+
+      const update = () => {
+        try {
+          const src = _input.value;
+
+          // Tokenize
+          const lexer = new Lexer(src);
+          const tokens = [];
+          while (lexer.getPos() < lexer.length) {
+            const token = lexer.next(LexContext.Normal);
+            tokens.push(token);
+            if (token.token === 0) break; // EOF
+          }
+
+          _print.textContent = tokens.map(formatToken).join("\n");
+
+          // Parse
+          try {
+            const parser = new StylesheetParser(src);
+            const ast = parser.parse();
+            _parse.textContent = JSON.stringify(ast, null, 2);
+          } catch (e) {
+            _parse.textContent = "Parse error: " + e.message;
+          }
+        } catch (e) {
+          _parse.textContent = e.message;
+          _print.textContent = e.stack;
+        }
+      };
+
+      _input.oninput = update;
+      update();
+    </script>
+  </body>
+</html>

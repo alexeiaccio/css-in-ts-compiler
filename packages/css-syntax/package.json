@@ -17,11 +17,17 @@
 	"author": "Alexei Accio",
 	"files": [
 		"dist",
-		"src"
+		"src",
+		"playground"
 	],
 	"type": "module",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
+	"homepage": "https://github.com/css-in-ts-compiler/css-syntax",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/css-in-ts-compiler/css-syntax"
+	},
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -46,10 +52,13 @@
 		"./walker": {
 			"types": "./dist/walker/index.d.ts",
 			"import": "./dist/walker/index.js"
+		},
+		"./playground": {
+			"import": "./playground/index.html"
 		}
 	},
 	"scripts": {
-		"build": "bun build ./src/index.ts --outdir ./dist --target node && bun build ./src/lexer/index.ts --outdir ./dist/lexer --target node && bun build ./src/parser/index.ts --outdir ./dist/parser --target node && bun build ./src/ast/index.ts --outdir ./dist/ast --target node && bun build ./src/generator/index.ts --outdir ./dist/generator --target node && bun build ./src/walker/index.ts --outdir ./dist/walker --target node && tsgo --emit",
+		"build": "bun build ./src/index.ts --outdir ./dist --target node && bun build ./src/lexer/index.ts --outdir ./dist/lexer --target node && bun build ./src/parser/index.ts --outdir ./dist/parser --target node && bun build ./src/generator/index.ts --outdir ./dist/generator --target node && bun build ./src/walker/index.ts --outdir ./dist/walker --target node && tsgo --emit",
 		"test": "vitest",
 		"benchmark": "vitest run --reporter=verbose src/lexer/benchmarks.test.ts src/parser/benchmarks.test.ts",
 		"typecheck": "tsgo --noEmit",
