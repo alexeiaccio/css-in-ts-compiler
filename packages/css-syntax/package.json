@@ -73,6 +73,7 @@
 		"typescript": "^5.9.3",
 		"oxlint": "^1.46.0",
 		"oxlint-tsgolint": "^0.12.0",
-		"turbo": "latest"
+		"turbo": "latest",
+		"fast-check": "^3.22.0"
 	}
 }
