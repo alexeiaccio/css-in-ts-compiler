@@ -9,6 +9,9 @@ import type {
   UrlNode,
   FunctionNode,
   CompositeNode,
+  ColorFunctionNode,
+  ColorMixNode,
+  LightDarkNode,
 } from "../parser/css-value-parser.js";
 
 export function generateCSSValue(node: CSSValueNode): string {
@@ -31,6 +34,12 @@ export function generateCSSValue(node: CSSValueNode): string {
       return generateFunction(node);
     case "composite":
       return generateComposite(node);
+    case "color-function":
+      return generateColorFunction(node);
+    case "color-mix":
+      return generateColorMix(node);
+    case "light-dark":
+      return generateLightDark(node);
     default:
       return "";
   }
@@ -87,4 +96,25 @@ function getCombinatorString(combinator: CompositeNode["combinator"]): string {
     default:
       return " ";
   }
+}
+
+function generateColorFunction(node: ColorFunctionNode): string {
+  const components = node.components
+    .map((c) => typeof c.value === "number" ? String(c.value) : c.value)
+    .join(" ");
+  const alpha = node.alpha !== undefined ? ` / ${node.alpha * 100}%` : "";
+  return `${node.name}(${components}${alpha})`;
+}
+
+function generateColorMix(node: ColorMixNode): string {
+  const c1 = generateCSSValue(node.color1);
+  const c2 = generateCSSValue(node.color2);
+  const weight = node.weight1 !== undefined ? ` / ${node.weight1}%` : "";
+  return `color-mix(${node.mode}, ${c1}, ${c2}${weight})`;
+}
+
+function generateLightDark(node: LightDarkNode): string {
+  const light = generateCSSValue(node.light);
+  const dark = generateCSSValue(node.dark);
+  return `light-dark(${light}, ${dark})`;
 }

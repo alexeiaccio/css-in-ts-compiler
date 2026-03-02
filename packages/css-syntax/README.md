@@ -83,7 +83,7 @@ Benchmarks (preliminary, on M1 Pro):
 - **Value parser**: ~2x faster than css-tree's parseValue()
 - **Memory**: Single-pass parsing, minimal allocations
 
-See `src/lexer/benchmarks.test.ts` for details.
+See `src/tests/*.test.ts` for test coverage.
 
 ## Architecture
 
@@ -133,9 +133,9 @@ See `src/lexer/benchmarks.test.ts` for details.
 - [x] Walker module
 
 ### Phase 6: Future Enhancements
-- [ ] Property-based testing with FastCheck
-- [ ] Performance optimizations (parallel lexing, memoization)
-- [ ] CSS Color Level 4 support
+- [x] Property-based testing with FastCheck
+- [x] Parallel lexing (Effect.all with concurrency)
+- [x] CSS Color Level 4 support
 - [ ] CSS Container Queries
 - [ ] CSS Nesting syntax
 

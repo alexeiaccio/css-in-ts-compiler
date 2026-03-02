@@ -81,3 +81,77 @@ describe("CSS Value Parser", () => {
     expect(result).toMatchObject({ type: "ident", value: "myValue" });
   });
 });
+
+describe("CSS Color Level 4", () => {
+  it("should parse oklch color function", () => {
+    const result = parseValue("oklch(70% 0.15 200)");
+    expect(result).toMatchObject({
+      type: "color-function",
+      name: "oklch",
+    });
+  });
+
+  it("should parse oklab color function", () => {
+    const result = parseValue("oklab(70% 0.1 -0.1)");
+    expect(result).toMatchObject({
+      type: "color-function",
+      name: "oklab",
+    });
+  });
+
+  it("should parse lab color function", () => {
+    const result = parseValue("lab(70% 10 -10)");
+    expect(result).toMatchObject({
+      type: "color-function",
+      name: "lab",
+    });
+  });
+
+  it("should parse lch color function", () => {
+    const result = parseValue("lch(70% 50 200)");
+    expect(result).toMatchObject({
+      type: "color-function",
+      name: "lch",
+    });
+  });
+
+  it("should parse hwb color function", () => {
+    const result = parseValue("hwb(200 20% 30%)");
+    expect(result).toMatchObject({
+      type: "color-function",
+      name: "hwb",
+    });
+  });
+
+  it("should parse color function with srgb", () => {
+    const result = parseValue("color(srgb 1 0 0)");
+    expect(result).toMatchObject({
+      type: "color-function",
+      name: "color",
+    });
+  });
+
+  it("should parse color-mix function", () => {
+    const result = parseValue("color-mix(in oklch, red, blue)");
+    expect(result).toMatchObject({
+      type: "color-mix",
+      mode: "in oklch",
+    });
+  });
+
+  it("should parse light-dark function", () => {
+    const result = parseValue("light-dark(white, black)");
+    expect(result).toMatchObject({
+      type: "light-dark",
+    });
+  });
+
+  it("should parse color with alpha", () => {
+    const result = parseValue("oklch(70% 0.15 200 / 50%)");
+    expect(result).toMatchObject({
+      type: "color-function",
+      name: "oklch",
+      alpha: 0.5,
+    });
+  });
+});
