@@ -199,8 +199,6 @@ export const isLetter = (code: number): boolean => {
 		(code >= 0x0D85 && code <= 0x0D96) ||
 		(code >= 0x0D9A && code <= 0x0D9B) ||
 		(code >= 0x0D9C && code <= 0x0D9D) ||
-		(code >= 0x0D9E && code <= 0x09F0) ||
-		(code >= 0x0D9F && code <= 0x09F1) ||
 		(code >= 0x0DA2 && code <= 0x0DA5) ||
 		(code >= 0x0DA6 && code <= 0x0DA6) ||
 		(code >= 0x0DA8 && code <= 0x0DAE) ||
@@ -223,7 +221,7 @@ export const isLetter = (code: number): boolean => {
 		(code >= 0x0EBD && code <= 0x0EBD) ||
 		(code >= 0x0EC0 && code <= 0x0EC4) ||
 		(code >= 0x0EC6 && code <= 0x0EC6) ||
-		(code >= 0x0ECC && code <= 0x0CCD) ||
+		(code >= 0x0ECC && code <= 0x0ECF) ||
 		(code >= 0x0CE0 && code <= 0x0CE1) ||
 		(code >= 0x0CE6 && code <= 0x0CEF) ||
 		(code >= 0x0CF1 && code <= 0x0CF2) ||

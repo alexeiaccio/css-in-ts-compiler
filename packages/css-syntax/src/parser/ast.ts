@@ -1,4 +1,4 @@
-import type { Token, TokenValue } from "../lexer/token.js";
+import type { TokenValue } from "../lexer/token.js";
 
 export enum CombinatorType {
   /** XOR - exactly one of the alternatives */
@@ -56,7 +56,7 @@ export interface Range {
   max: number;
 }
 
-export interface Function {
+export interface FunctionNode {
   type: "function";
   name: string;
   args: SyntaxNode[];
@@ -88,7 +88,7 @@ export type SyntaxNode =
   | Keyword
   | PropertyReference
   | Range
-  | Function
+  | FunctionNode
   | Group
   | MultipliedNode
   | CombinedNode;

@@ -12,7 +12,7 @@ import type {
   CSSLayerRule,
   CSSNestedStyleRule,
   CSSContainerRule,
-} from "./stylesheet-ast.js";
+} from "./stylesheet-ast-effect.js";
 
 export class StylesheetParser {
   private source: string;

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { parseStylesheet } from "../parser/stylesheet-parser.js";
-import type { CSSStyleSheet, CSSRule } from "../parser/stylesheet-ast.js";
+import type { CSSStyleSheet } from "../parser/stylesheet-ast-effect.js";
 
 describe("Stylesheet Parser", () => {
   it("should parse simple style rule", () => {

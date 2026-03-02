@@ -1,6 +1,13 @@
-import type { SelectorNode } from "../parser/selector-ast.js";
+import type { SelectorNode } from "../parser/selector-ast-effect.js";
 import type { CSSValueNode } from "../parser/css-value-parser.js";
-import type { CSSStyleSheet, CSSRule, CSSDeclaration, CSSBlock, CSSComment, CSSInvalidDeclaration } from "../parser/stylesheet-ast.js";
+import type {
+  CSSStyleSheet,
+  CSSRule,
+  CSSDeclaration,
+  CSSBlock,
+  CSSComment,
+  CSSInvalidDeclaration,
+} from "../parser/stylesheet-ast-effect.js";
 import { generateSelector } from "./selector-generator.js";
 import { generateCSSValue } from "./css-value-generator.js";
 

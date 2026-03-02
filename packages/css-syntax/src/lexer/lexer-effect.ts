@@ -29,7 +29,7 @@ export const withLexer = <A, E>(
 
 export const lexAll = (source: string): Effect.Effect<readonly TokenValue[], LexerError> =>
   withLexer(source, (lexer) =>
-    Effect.gen(function* () {
+    Effect.sync(() => {
       const tokens: TokenValue[] = [];
       while (lexer.getPos() < lexer.length) {
         const token = lexer.next(LexContext.Normal);
@@ -41,7 +41,7 @@ export const lexAll = (source: string): Effect.Effect<readonly TokenValue[], Lex
 
 export const lexValue = (source: string): Effect.Effect<readonly TokenValue[], LexerError> =>
   withLexer(source, (lexer) =>
-    Effect.gen(function* () {
+    Effect.sync(() => {
       const tokens: TokenValue[] = [];
       while (lexer.getPos() < lexer.length) {
         const token = lexer.next(LexContext.ValueDef);

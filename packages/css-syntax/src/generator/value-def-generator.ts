@@ -5,7 +5,7 @@ import type {
   Keyword,
   PropertyReference,
   Range,
-  Function,
+  FunctionNode,
   Group,
   MultipliedNode,
   CombinedNode,
@@ -55,7 +55,7 @@ function generateRange(node: Range): string {
   return `[${node.base} ${node.min} ${node.max}]`;
 }
 
-function generateFunction(node: Function): string {
+function generateFunction(node: FunctionNode): string {
   const args = node.args.map(generateSyntaxNode).join(", ");
   return `${node.name}(${args})`;
 }

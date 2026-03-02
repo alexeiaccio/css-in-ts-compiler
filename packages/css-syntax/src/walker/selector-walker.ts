@@ -10,7 +10,7 @@ import type {
   PseudoElementSelector,
   Combinator,
   Specificity,
-} from "../parser/selector-ast.js";
+} from "../parser/selector-ast-effect.js";
 
 export function walkSelector(node: SelectorNode, fn: (n: SelectorNode) => void): void {
   fn(node);
@@ -62,7 +62,7 @@ export function mapSelector(node: ComplexSelector, fn: (n: SelectorNode) => Sele
     if (n.type === "compound") {
       return {
         type: "compound",
-        children: n.children.map((child) => mapNode(child)),
+        children: n.children.map((child) => mapNode(child)) as any,
       };
     }
     return fn(n);

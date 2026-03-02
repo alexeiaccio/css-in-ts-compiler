@@ -11,7 +11,7 @@ import {
 	CHAR_DIGIT,
 	CHAR_WS,
 } from "./char-table.js";
-import { isNameStartCodePoint, isNameCodePoint, isDigit, isHexDigit, isWhitespace } from "./unicode-rules.js";
+import { isNameStartCodePoint, isNameCodePoint, isDigit, isWhitespace } from "./unicode-rules.js";
 import type { TokenValue } from "./token.js";
 import { Token } from "./token.js";
 import { LexContext } from "./contexts.js";
@@ -267,7 +267,7 @@ export class Lexer {
 		};
 	}
 
-	private scanIdent(ctx: LexContext): TokenValue {
+	private scanIdent(_ctx: LexContext): TokenValue {
 		const startPos = this.pos;
 		const code = this.charCode();
 

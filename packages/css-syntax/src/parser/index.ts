@@ -1,9 +1,9 @@
 export * from "./ast.js";
 export * from "./value-def-parser.js";
 export * from "./css-value-parser.js";
-export * from "./selector-ast.js";
 export * from "./selector-parser.js";
 export * from "./stylesheet-parser.js";
+export * from "./parser-effect.js";
 
 export {
   SpecificitySchema,
@@ -17,6 +17,19 @@ export {
   CompoundSelectorSchema,
   ComplexSelectorSchema,
   SelectorNodeSchema,
+  specificityToNumber,
+  compareSpecificity,
+  type Specificity,
+  type SelectorNode,
+  type TypeSelector,
+  type ClassSelector,
+  type IdSelector,
+  type AttributeSelector,
+  type PseudoClassSelector,
+  type PseudoElementSelector,
+  type Combinator,
+  type CompoundSelector,
+  type ComplexSelector,
 } from "./selector-ast-effect.js";
 
 export {
@@ -31,6 +44,17 @@ export {
   CompositeNodeSchema,
   BaseCSSValueNodeSchema,
   FullCSSValueNodeSchema,
+  type KeywordNode,
+  type IdentNode,
+  type NumberNode,
+  type DimensionNode,
+  type PercentageNode,
+  type StringNode,
+  type UrlNode,
+  type FunctionNode,
+  type CompositeNode,
+  type BaseCSSValueNode,
+  type FullCSSValueNode,
 } from "./css-value-ast-effect.js";
 
 export {
@@ -50,4 +74,21 @@ export {
   CSSStyleRuleSchema,
   CSSRuleSchema,
   CSSStyleSheetSchema,
+  type CSSDeclaration,
+  type CSSInvalidDeclaration,
+  type CSSComment,
+  type CSSBlock,
+  type CSSBlockChild,
+  type CSSImportRule,
+  type CSSKeyframeRule,
+  type CSSKeyframesRule,
+  type CSSSupportsRule,
+  type CSSMediaRule,
+  type CSSContainerRule,
+  type CSSLayerRule,
+  type CSSNestedStyleRule,
+  type CSSAtRule,
+  type CSSStyleRule,
+  type CSSRule,
+  type CSSStyleSheet,
 } from "./stylesheet-ast-effect.js";

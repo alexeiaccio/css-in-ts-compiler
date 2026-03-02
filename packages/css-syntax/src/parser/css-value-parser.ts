@@ -83,8 +83,12 @@ export class CSSValueParser {
     this.options = options;
   }
 
-  parse(source: string): CSSValueNode {
-    this.tokenize(source);
+  parse(source: string, tokens?: readonly TokenValue[]): CSSValueNode {
+    if (tokens) {
+      this.tokens = tokens as TokenValue[];
+    } else {
+      this.tokenize(source);
+    }
     this.pos = 0;
 
     if (this.tokens.length === 0) {

@@ -9,7 +9,7 @@ import type {
   PseudoElementSelector,
   Combinator,
   Specificity,
-} from "./selector-ast.js";
+} from "./selector-ast-effect.js";
 
 const PSEUDO_ELEMENTS = new Set([
   "before",
@@ -106,7 +106,7 @@ export class SelectorParser {
       }
     }
 
-    return { type: "compound", children };
+    return { type: "compound", children: children as any };
   }
 
   private parseSimpleSelector(): SelectorNode {

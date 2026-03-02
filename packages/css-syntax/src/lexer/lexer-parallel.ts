@@ -11,14 +11,14 @@ export interface ParseChunk {
   readonly source: string;
 }
 
-export interface ParseError {
+export interface LexParallelError {
   readonly message: string;
   readonly position: number;
 }
 
 export interface ParseResult<T> {
   readonly value: T;
-  readonly errors: readonly ParseError[];
+  readonly errors: readonly LexParallelError[];
 }
 
 export const findBlockStarts = (source: string): readonly number[] => {
@@ -114,7 +114,7 @@ export const splitIntoChunks = (source: string): readonly ParseChunk[] => {
 export const parseChunk = (
   chunk: ParseChunk,
 ): Effect.Effect<ParseResult<readonly TokenValue[]>, never> =>
-  Effect.gen(function* () {
+  Effect.sync(() => {
     const lexer = new Lexer(chunk.source);
     const tokens: TokenValue[] = [];
 
@@ -131,18 +131,23 @@ export const parseChunk = (
     };
   });
 
-export const parseStylesheet = (source: string): Effect.Effect<readonly TokenValue[], Error> =>
+export const lexStylesheet = (source: string): Effect.Effect<readonly TokenValue[], Error> =>
   Effect.gen(function* () {
     const chunks = splitIntoChunks(source);
-    const allTokens: TokenValue[] = [];
 
-    for (const chunk of chunks) {
-      const result = yield* parseChunk(chunk);
+    const results = yield* Effect.all(
+      chunks.map((chunk) => parseChunk(chunk)),
+      { concurrency: "unbounded" },
+    );
+
+    for (const result of results) {
       if (result.errors.length > 0) {
-        yield* Effect.fail(new Error(`Parse errors: ${result.errors.map((e) => e.message).join(", ")}`));
+        yield* Effect.fail(
+          new Error(`Parse errors: ${result.errors.map((e) => e.message).join(", ")}`),
+        );
       }
-      allTokens.push(...result.value);
     }
 
+    const allTokens = results.flatMap((result) => result.value);
     return allTokens;
   });

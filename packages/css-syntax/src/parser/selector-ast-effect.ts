@@ -66,14 +66,25 @@ export type Combinator = Schema.Schema.Type<typeof CombinatorSchema>;
 
 export const CompoundSelectorSchema = Schema.Struct({
   type: Schema.Literal("compound"),
-  children: Schema.Array(Schema.Unknown),
+  children: Schema.Array(
+    Schema.Union([
+      TypeSelectorSchema,
+      ClassSelectorSchema,
+      IdSelectorSchema,
+      AttributeSelectorSchema,
+      PseudoClassSelectorSchema,
+      PseudoElementSelectorSchema,
+    ]),
+  ),
 });
 
 export type CompoundSelector = Schema.Schema.Type<typeof CompoundSelectorSchema>;
 
 export const ComplexSelectorSchema = Schema.Struct({
   type: Schema.Literal("complex"),
-  children: Schema.Array(Schema.Unknown),
+  children: Schema.Array(
+    Schema.Union([CompoundSelectorSchema, CombinatorSchema]),
+  ),
   specificity: SpecificitySchema,
 });
 
@@ -92,3 +103,11 @@ export const SelectorNodeSchema = Schema.Union([
 ]);
 
 export type SelectorNode = Schema.Schema.Type<typeof SelectorNodeSchema>;
+
+export const specificityToNumber = (s: Specificity): number => s.a * 65536 + s.b * 256 + s.c;
+
+export const compareSpecificity = (a: Specificity, b: Specificity): number => {
+  if (a.a !== b.a) return b.a - a.a;
+  if (a.b !== b.b) return b.b - a.b;
+  return b.c - a.c;
+};

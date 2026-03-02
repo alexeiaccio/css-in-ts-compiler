@@ -4,10 +4,9 @@ import type {
   ParserOptions,
   Multiplier,
   TypeReference,
-  Keyword,
   PropertyReference,
   Range,
-  Function,
+  FunctionNode,
   Group,
   MultipliedNode,
   CombinedNode,
@@ -69,7 +68,8 @@ export class Parser {
   private expect(token: Token, expected?: string[]): TokenValue {
     const current = this.peek();
     if (current.token !== token) {
-      this.error(`Expected ${Token[token]}`, current, expected ?? [Token[token]]);
+      const tokenName = Object.entries(Token).find(([, v]) => v === token)?.[0] ?? String(token);
+      this.error(`Expected ${tokenName}`, current, expected ?? [tokenName]);
     }
     return this.consume();
   }
@@ -280,7 +280,7 @@ export class Parser {
     return { type: "range", base, min, max };
   }
 
-  private parseFunction(name: string): Function {
+  private parseFunction(name: string): FunctionNode {
     const args: SyntaxNode[] = [];
     while (this.peek().token !== Token.RightParen && this.peek().token !== Token.EOF) {
       args.push(this.parseSyntax());

@@ -9,7 +9,7 @@ import type {
   PseudoClassSelector,
   PseudoElementSelector,
   Combinator,
-} from "../parser/selector-ast.js";
+} from "../parser/selector-ast-effect.js";
 
 export function generateSelector(node: ComplexSelector): string {
   return node.children.map(generateSelectorNode).join("");
@@ -88,7 +88,7 @@ function generatePseudoClassSelector(node: PseudoClassSelector): string {
 
   if (node.args && node.args.length > 0) {
     result += "(";
-    result += node.args.map(generateSelectorNode).join("");
+    result += node.args.map((arg) => generateSelectorNode(arg as SelectorNode)).join("");
     result += ")";
   }
 
@@ -100,7 +100,7 @@ function generatePseudoElementSelector(node: PseudoElementSelector): string {
 
   if (node.args && node.args.length > 0) {
     result += "(";
-    result += node.args.map(generateSelectorNode).join("");
+    result += node.args.map((arg) => generateSelectorNode(arg as SelectorNode)).join("");
     result += ")";
   }
 

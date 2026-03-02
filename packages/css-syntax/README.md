@@ -110,27 +110,34 @@ See `src/lexer/benchmarks.test.ts` for details.
 ### Phase 1: Lexer + Value Parsing
 - [x] Lexer with Uint8Array
 - [x] CSS spec Unicode rules
-- [ ] Value definition syntax parser
-- [ ] CSS value parser
-- [ ] Tests + benchmarks
+- [x] Value definition syntax parser
+- [x] CSS value parser
+- [x] Tests + benchmarks
 
 ### Phase 2: Declarations & Rules
-- [ ] Declaration parser
-- [ ] Rule parser
-- [ ] At-rule parser (basic)
+- [x] Declaration parser
+- [x] Rule parser
+- [x] At-rule parser (basic)
 
 ### Phase 3: Selectors
-- [ ] Selector parser (Level 4)
-- [ ] Combinators, pseudo-classes, attributes
+- [x] Selector parser (Level 4)
+- [x] Combinators, pseudo-classes, attributes
 
 ### Phase 4: Media Queries & At-Rules
-- [ ] Media query parser
-- [ ] Complete at-rule support
+- [x] Media query parser
+- [x] Complete at-rule support
 
 ### Phase 5: Complete CSS
-- [ ] Full stylesheet parser
-- [ ] Generator module
-- [ ] Walker module
+- [x] Full stylesheet parser
+- [x] Generator module
+- [x] Walker module
+
+### Phase 6: Future Enhancements
+- [ ] Property-based testing with FastCheck
+- [ ] Performance optimizations (parallel lexing, memoization)
+- [ ] CSS Color Level 4 support
+- [ ] CSS Container Queries
+- [ ] CSS Nesting syntax
 
 ## Comparison with css-tree
 
