@@ -3,8 +3,24 @@
  * @version 1.0.0
  */
 
-import { SchemaGetter } from "effect";
+import type { Brand } from "effect";
+
+import { DimensionNodeSchema } from "@cssints/css-syntax";
 import * as Schema from "effect/Schema";
+
+const NumberString = Schema.Union([Schema.Number, Schema.TemplateLiteral([Schema.Number])]);
+
+class Q extends Schema.TaggedClass<Q>()("Q", {
+	value: NumberString,
+	ast: DimensionNodeSchema,
+}) {
+	static make(value: typeof NumberString.Type): Q {
+		return new Q({
+			value,
+			ast: DimensionNodeSchema.makeUnsafe({ type: "dimension", value: value.toString(), unit: "Q" }),
+		});
+	}
+}
 
 /**
  * **Syntax**
@@ -13,27 +29,55 @@ import * as Schema from "effect/Schema";
  * **Supports**
  * Chrome 63 | Firefox 49 | Safari 13.1
  */
-export const Q = Schema.TemplateLiteral([Schema.Number, "Q"]);
+export const q = Q.make;
 
 /**
  * ...
  */
-export const Px = Schema.TemplateLiteral([Schema.Number, "px"]);
+class Px extends Schema.TaggedClass<Px>()("Px", {
+	value: NumberString,
+	ast: DimensionNodeSchema,
+}) {
+	static make(value: typeof NumberString.Type): Px {
+		return new Px({
+			value,
+			ast: DimensionNodeSchema.makeUnsafe({ type: "dimension", value: value.toString(), unit: "px" }),
+		});
+	}
+}
+
+/**
+ * **Syntax**
+ * <code>px</code> unit
+ *
+ * **Supports**
+ * Chrome 1 | Firefox 1 | Safari 1
+ */
+export const px = Px.make;
 
 /**
  * ...
  */
-export const NumberPx = Schema.Union([Schema.Number, Schema.TemplateLiteral([Schema.Number])]).pipe(
-	Schema.encodeTo(Px, {
-		encode: SchemaGetter.transform((value) => `${value}px` as const),
-		decode: SchemaGetter.transform((value) => parseFloat(value.replace("px", ""))),
-	}),
-);
+class Rem extends Schema.TaggedClass<Rem>()("Rem", {
+	value: NumberString,
+	ast: DimensionNodeSchema,
+}) {
+	static make(value: typeof NumberString.Type): Rem {
+		return new Rem({
+			value,
+			ast: DimensionNodeSchema.makeUnsafe({ type: "dimension", value: value.toString(), unit: "rem" }),
+		});
+	}
+}
 
 /**
- * ...
+ * **Syntax**
+ * <code>rem</code> unit
+ *
+ * **Supports**
+ * Chrome 1 | Firefox 1 | Safari 1
  */
-export const Rem = Schema.TemplateLiteral([Schema.Number, "rem"]);
+export const rem = Rem.make;
 
 // ...
 
@@ -96,6 +140,17 @@ export const ViewportUnitVariants = Schema.Union([
 	ViewportPercentageUnitsSmall,
 ]);
 
+const LengthSchema = Schema.Union([
+	NumberString,
+	Px,
+	Q,
+	Px,
+	Rem,
+	// ...
+	// ContainerQueryLengthUnits,
+	// ViewportUnitVariants,
+]);
+
 /**
  * **Syntax**
  * <code>&lt;length&gt;</code>
@@ -106,15 +161,21 @@ export const ViewportUnitVariants = Schema.Union([
  * @see https://developer.mozilla.org/docs/Web/CSS/Reference/Values/length
  * @see https://drafts.csswg.org/css-values/#lengths
  */
-export const Length = Schema.Union([
-	NumberPx,
-	Q,
-	Px,
-	Rem,
-	// ...
-	ContainerQueryLengthUnits,
-	ViewportUnitVariants,
-]);
+class Length extends Schema.TaggedClass<Length>()("Length", {
+	value: LengthSchema,
+	ast: DimensionNodeSchema,
+}) {
+	static make(value: typeof LengthSchema.Type): Length {
+		return new Length({
+			value,
+			ast: DimensionNodeSchema.makeUnsafe({ type: "dimension", value: value.toString(), unit: "px" }),
+		});
+	}
+}
+
+const length = Length.make;
+
+length(px(0));
 
 /**
  * ...
