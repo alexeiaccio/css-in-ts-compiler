@@ -36,6 +36,8 @@ export interface OxcPluginOptions {
 	debug?: boolean;
 	/** HMR options */
 	hmr?: HmrOptions;
+	/** Plugin packages to load */
+	plugins?: string[];
 }
 
 interface StyleMapping {
@@ -63,6 +65,7 @@ const defaultOptions: Required<OxcPluginOptions> = {
 		virtualModules: true,
 		moduleSuffix: ".css",
 	},
+	plugins: [],
 };
 
 const defaultHmrOptions: Required<HmrOptions> = {
@@ -259,8 +262,8 @@ export function cssTSOxcPlugin(options: OxcPluginOptions = {}): Plugin {
 			const styleInfo = extractStyles(id, code);
 
 			// Also transform css.* function calls (new cssints functionality)
-			const cssintsResult = transformCode(code, id, { debug: opts.debug });
-
+			const cssintsResult = transformCode(code, id, { debug: opts.debug, plugins: opts.plugins });
+			
 			// Merge CSS from both sources
 			let mergedCss = "";
 			if (styleInfo.styles.size > 0) {
