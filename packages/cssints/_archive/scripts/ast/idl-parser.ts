@@ -5,7 +5,18 @@
  * Inspired by TypeScript-DOM-lib-generator's widlprocess.ts.
  */
 
-import { parse as parseIDL, type IDLRootType, type InterfaceType, type DictionaryType, type EnumType, type TypedefType, type NamespaceType, type IDLTypeDescription, type Argument } from "webidl2";
+import {
+	parse as parseIDL,
+	type IDLRootType,
+	type InterfaceType,
+	type DictionaryType,
+	type EnumType,
+	type TypedefType,
+	type NamespaceType,
+	type IDLTypeDescription,
+	type Argument,
+} from "webidl2";
+
 import type {
 	IDLInterface,
 	IDLDictionary,
@@ -22,10 +33,8 @@ import type {
 	CSSTypeAST,
 	CSSValueType,
 } from "./css-type-ast";
-import {
-	createTypeRef,
-	createPrimitiveType,
-} from "./css-type-ast";
+
+import { createTypeRef, createPrimitiveType } from "./css-type-ast";
 
 // ============================================================================
 // IDL AST Conversion
@@ -52,11 +61,7 @@ const DEFAULT_OPTIONS: ParseOptions = {
 /**
  * Parse WebIDL text and convert to our AST format
  */
-export function parseWebIDL(
-	idlText: string, 
-	sourceName: string, 
-	options?: ParseOptions
-): IDLParseResult {
+export function parseWebIDL(idlText: string, sourceName: string, options?: ParseOptions): IDLParseResult {
 	const opts = { ...DEFAULT_OPTIONS, ...options };
 	const types = new Map<string, IDLType>();
 	const partialTypes = new Map<string, IDLInterface[]>();
@@ -111,7 +116,6 @@ export function parseWebIDL(
 				}
 			}
 		}
-
 	} catch (err) {
 		errors.push({
 			file: sourceName,
@@ -129,14 +133,15 @@ export function parseWebIDL(
 function mergePartialInterface(base: IDLInterface, partial: IDLInterface): IDLInterface {
 	// Merge members into new array
 	const mergedMembers = [...base.members, ...partial.members];
-	
+
 	// Merge mixins
-	const mergedMixins = base.mixins && partial.mixins
-		? [...base.mixins, ...partial.mixins]
-		: partial.mixins
-			? [...partial.mixins]
-			: base.mixins;
-	
+	const mergedMixins =
+		base.mixins && partial.mixins
+			? [...base.mixins, ...partial.mixins]
+			: partial.mixins
+				? [...partial.mixins]
+				: base.mixins;
+
 	return {
 		...base,
 		members: mergedMembers,
@@ -238,7 +243,7 @@ function convertCallbackInterface(node: any): IDLInterface | null {
 
 function convertInterfaceMember(member: any): IDLMember | null {
 	const idlType = Array.isArray(member.idlType) ? member.idlType[0] : member.idlType;
-	
+
 	switch (member.type) {
 		case "attribute":
 			return {
@@ -303,9 +308,7 @@ function convertDictionary(node: DictionaryType): IDLDictionary {
 // ============================================================================
 
 function convertEnum(node: EnumType): IDLEnum {
-	const values = (node.values ?? [])
-		.filter((v: any) => v.type === "enum-value")
-		.map((v: any) => v.value);
+	const values = (node.values ?? []).filter((v: any) => v.type === "enum-value").map((v: any) => v.value);
 
 	return {
 		type: "idl-enum",
@@ -374,8 +377,8 @@ function convertType(idlType: IDLTypeDescription): TypeReference {
 		const genericArgs = Array.isArray(args)
 			? args.filter(Boolean).map((t: IDLTypeDescription) => convertType(t))
 			: args
-			  ? [convertType(args as IDLTypeDescription)]
-			  : [];
+				? [convertType(args as IDLTypeDescription)]
+				: [];
 		return createTypeRef(mapIDLTypeToTS(idlType.generic), { genericArgs });
 	}
 

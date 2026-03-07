@@ -206,18 +206,23 @@ export type FlexDirection = "row" | "row-reverse" | "column" | "column-reverse";
 export type FlexWrap = "nowrap" | "wrap" | "wrap-reverse";
 
 /** <justify-content> - Content justification */
-export type JustifyContent = 
-	| "flex-start" | "flex-end" | "center" 
-	| "space-between" | "space-around" | "space-evenly"
-	| "start" | "end" | "left" | "right";
+export type JustifyContent =
+	| "flex-start"
+	| "flex-end"
+	| "center"
+	| "space-between"
+	| "space-around"
+	| "space-evenly"
+	| "start"
+	| "end"
+	| "left"
+	| "right";
 
 /** <align-items> - Item alignment */
 export type AlignItems = "flex-start" | "flex-end" | "center" | "baseline" | "stretch";
 
 /** <align-content> - Content alignment */
-export type AlignContent = 
-	| "flex-start" | "flex-end" | "center" 
-	| "space-between" | "space-around" | "stretch";
+export type AlignContent = "flex-start" | "flex-end" | "center" | "space-between" | "space-around" | "stretch";
 
 /** <align-self> - Self alignment */
 export type AlignSelf = "auto" | "flex-start" | "flex-end" | "center" | "baseline" | "stretch";
@@ -230,7 +235,18 @@ export type AlignSelf = "auto" | "flex-start" | "flex-end" | "center" | "baselin
 export type FontFamily = string;
 
 /** <font-size> - Font size */
-export type FontSize = Length | Percentage | "xx-small" | "x-small" | "small" | "medium" | "large" | "x-large" | "xx-large" | "larger" | "smaller";
+export type FontSize =
+	| Length
+	| Percentage
+	| "xx-small"
+	| "x-small"
+	| "small"
+	| "medium"
+	| "large"
+	| "x-large"
+	| "xx-large"
+	| "larger"
+	| "smaller";
 
 /** <font-weight> - Font weight */
 export type FontWeight = "normal" | "bold" | "lighter" | "bolder" | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
@@ -255,9 +271,17 @@ export type TextTransform = "none" | "capitalize" | "uppercase" | "lowercase" | 
 // ============================================================================
 
 /** <border-style> - Border style */
-export type BorderStyle = 
-	| "none" | "hidden" | "dotted" | "dashed" | "solid" 
-	| "double" | "groove" | "ridge" | "inset" | "outset";
+export type BorderStyle =
+	| "none"
+	| "hidden"
+	| "dotted"
+	| "dashed"
+	| "solid"
+	| "double"
+	| "groove"
+	| "ridge"
+	| "inset"
+	| "outset";
 
 /** <border-width> - Border width */
 export type BorderWidth = Length | "thin" | "medium" | "thick";
@@ -276,9 +300,15 @@ export type BackgroundColor = Color;
 export type BackgroundImage = "none" | Image;
 
 /** <background-repeat> - Background repeat */
-export type BackgroundRepeat = 
-	| "repeat" | "repeat-x" | "repeat-y" | "no-repeat" 
-	| "space" | "round" | "repeat-space" | "repeat-round";
+export type BackgroundRepeat =
+	| "repeat"
+	| "repeat-x"
+	| "repeat-y"
+	| "no-repeat"
+	| "space"
+	| "round"
+	| "repeat-space"
+	| "repeat-round";
 
 /** <background-attachment> - Background attachment */
 export type BackgroundAttachment = "scroll" | "fixed" | "local";
@@ -287,9 +317,11 @@ export type BackgroundAttachment = "scroll" | "fixed" | "local";
 export type BackgroundPosition = string;
 
 /** <background-size> - Background size */
-export type BackgroundSize = 
-	| "auto" | "cover" | "contain" 
-	| LengthPercentage 
+export type BackgroundSize =
+	| "auto"
+	| "cover"
+	| "contain"
+	| LengthPercentage
 	| `${LengthPercentage} ${LengthPercentage}`;
 
 // ============================================================================
@@ -297,9 +329,12 @@ export type BackgroundSize =
 // ============================================================================
 
 /** <easing-function> - Easing function */
-export type EasingFunction = 
-	| "linear" 
-	| "ease" | "ease-in" | "ease-out" | "ease-in-out"
+export type EasingFunction =
+	| "linear"
+	| "ease"
+	| "ease-in"
+	| "ease-out"
+	| "ease-in-out"
 	| `cubic-bezier(${number}, ${number}, ${number}, ${number})`
 	| `steps(${number}, ${string})`;
 
@@ -363,10 +398,17 @@ export type Saturate = `saturate(${number | Percentage})`;
 export type Sepia = `sepia(${number | Percentage})`;
 
 /** <filter-function> - Any filter function */
-export type FilterFunction = 
-	| Blur | Brightness | Contrast | DropShadow 
-	| Grayscale | HueRotate | Invert | OpacityFilter 
-	| Saturate | Sepia;
+export type FilterFunction =
+	| Blur
+	| Brightness
+	| Contrast
+	| DropShadow
+	| Grayscale
+	| HueRotate
+	| Invert
+	| OpacityFilter
+	| Saturate
+	| Sepia;
 
 // ============================================================================
 // MDN Syntax to TypeScript Type Mapping

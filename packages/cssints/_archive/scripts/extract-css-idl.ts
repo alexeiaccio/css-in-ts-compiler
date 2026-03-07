@@ -5,34 +5,35 @@
  * Filters IDL files and types relevant to CSS Typed OM and CSS properties.
  */
 
-import type { IDLCollection } from "./collect-idl";
-import { parseWebIDL, type IDLParseResult } from "./ast/idl-parser";
 import type { IDLType } from "./ast/css-type-ast";
+import type { IDLCollection } from "./collect-idl";
+
+import { parseWebIDL, type IDLParseResult } from "./ast/idl-parser";
 
 // CSS-related IDL specifications to extract from
 const CSS_IDL_SPECS = [
 	// Core CSS Typed OM
 	"css-typed-om",
 	"css-typed-om-2",
-	
+
 	// CSS Animation/Transition
 	"web-animations",
 	"web-animations-2",
 	"css-transitions",
 	"css-animations",
-	
+
 	// CSS Layout
 	"css-layout-api",
-	
+
 	// CSS Painting
 	"css-paint-api",
-	
+
 	// CSS Custom Highlight
 	"css-custom-highlight-api",
-	
+
 	// CSS Properties and Values
 	"css-properties-values-api",
-	
+
 	// CSS Object Model
 	"cssom",
 	"cssom-view",
@@ -47,7 +48,7 @@ const CSS_INTERFACE_NAMES = new Set([
 	"CSSKeywordValue",
 	"CSSUnparsedValue",
 	"CSSVariableReferenceValue",
-	
+
 	// CSS Math Values
 	"CSSMathValue",
 	"CSSMathSum",
@@ -56,7 +57,7 @@ const CSS_INTERFACE_NAMES = new Set([
 	"CSSMathMax",
 	"CSSMathNegate",
 	"CSSMathInvert",
-	
+
 	// CSS Transform Values
 	"CSSTransformValue",
 	"CSSTransformComponent",
@@ -69,7 +70,7 @@ const CSS_INTERFACE_NAMES = new Set([
 	"CSSPerspective",
 	"CSSMatrixComponent",
 	"CSSMatrix3DComponent",
-	
+
 	// CSS Color Values
 	"CSSColorValue",
 	"CSSHexColor",
@@ -80,21 +81,21 @@ const CSS_INTERFACE_NAMES = new Set([
 	"CSSOKLCHColor",
 	"CSSOKLabColor",
 	"CSSColorLAB",
-	
+
 	// CSS Image Values
 	"CSSImageValue",
 	"CSSGradientValue",
-	
+
 	// CSS Position Values
 	"CSSPositionValue",
-	
+
 	// CSS Font Values
 	"CSSFontFaceDescriptors",
-	
+
 	// Style Property Maps
 	"StylePropertyMap",
 	"StylePropertyMapReadOnly",
-	
+
 	// CSS Animation Types
 	"Animation",
 	"AnimationEffect",
@@ -104,13 +105,13 @@ const CSS_INTERFACE_NAMES = new Set([
 	"KeyframeEffect",
 	"KeyframeAnimationOptions",
 	"BaseKeyframe",
-	
+
 	// CSS Transition Types
 	"TransitionEvent",
-	
+
 	// CSS Animation Events
 	"AnimationEvent",
-	
+
 	// CSS Layout API
 	"LayoutChild",
 	"LayoutFragment",
@@ -118,15 +119,15 @@ const CSS_INTERFACE_NAMES = new Set([
 	"LayoutEdges",
 	"FragmentResultOptions",
 	"IntrinsicSizesResultOptions",
-	
+
 	// CSS Paint API
 	"PaintRenderingContext2D",
 	"PaintSize",
-	
+
 	// CSS Custom Highlight
 	"Highlight",
 	"HighlightRegistry",
-	
+
 	// CSS OM Types
 	"CSS",
 	"CSSRule",
@@ -143,16 +144,16 @@ const CSS_INTERFACE_NAMES = new Set([
 export interface CSSIDLExtraction {
 	/** Map of all parsed IDL types from CSS-related specs */
 	cssTypes: Map<string, IDLType>;
-	
+
 	/** Map of specifically CSS Typed OM classes */
 	typedOMTypes: Map<string, IDLType>;
-	
+
 	/** Map of CSS property-related types */
 	propertyTypes: Map<string, IDLType>;
-	
+
 	/** Map of CSS animation types */
 	animationTypes: Map<string, IDLType>;
-	
+
 	/** Errors encountered during parsing */
 	errors: Array<{ file: string; error: Error }>;
 }
@@ -171,23 +172,23 @@ export function extractCSSIDLTypes(data: IDLCollection): CSSIDLExtraction {
 
 	// Find CSS-related spec files
 	const cssFiles = findCSSSpecFiles(data);
-	
+
 	console.log(`Extracting from ${cssFiles.size} CSS-related IDL files...`);
 
 	// Parse each CSS-related file
 	for (const [specName, content] of cssFiles) {
 		try {
 			const parseResult = parseWebIDL(content, specName);
-			
+
 			// Add errors to result
 			result.errors.push(...parseResult.errors);
-			
+
 			// Process each type
 			for (const [typeName, type] of parseResult.types) {
 				// Categorize the type
 				if (CSS_INTERFACE_NAMES.has(typeName)) {
 					result.cssTypes.set(typeName, type);
-					
+
 					// Further categorize
 					if (isTypedOMType(typeName)) {
 						result.typedOMTypes.set(typeName, type);
@@ -219,26 +220,26 @@ export function extractCSSIDLTypes(data: IDLCollection): CSSIDLExtraction {
  */
 function findCSSSpecFiles(data: IDLCollection): Map<string, string> {
 	const cssFiles = new Map<string, string>();
-	
+
 	for (const [specName, content] of data.files) {
 		// Check if spec name matches CSS patterns
-		const isCSSSpec = CSS_IDL_SPECS.some(pattern => 
-			specName.toLowerCase().includes(pattern.toLowerCase())
-		);
-		
+		const isCSSSpec = CSS_IDL_SPECS.some((pattern) => specName.toLowerCase().includes(pattern.toLowerCase()));
+
 		// Also check if content contains CSS-related interface definitions
-		const hasCSSInterfaces = CSS_INTERFACE_NAMES.size > 0 && 
-			Array.from(CSS_INTERFACE_NAMES).some(name => 
-				content.includes(`interface ${name}`) ||
-				content.includes(`interface mixin ${name}`) ||
-				content.includes(`dictionary ${name}`)
+		const hasCSSInterfaces =
+			CSS_INTERFACE_NAMES.size > 0 &&
+			Array.from(CSS_INTERFACE_NAMES).some(
+				(name) =>
+					content.includes(`interface ${name}`) ||
+					content.includes(`interface mixin ${name}`) ||
+					content.includes(`dictionary ${name}`),
 			);
-		
+
 		if (isCSSSpec || hasCSSInterfaces) {
 			cssFiles.set(specName, content);
 		}
 	}
-	
+
 	return cssFiles;
 }
 
@@ -246,36 +247,42 @@ function findCSSSpecFiles(data: IDLCollection): Map<string, string> {
  * Check if a type name is a CSS Typed OM type
  */
 function isTypedOMType(name: string): boolean {
-	return name.startsWith("CSS") && 
-		(name.includes("Value") || 
-		 name.includes("Style") ||
-		 name === "StylePropertyMap" ||
-		 name === "StylePropertyMapReadOnly");
+	return (
+		name.startsWith("CSS") &&
+		(name.includes("Value") ||
+			name.includes("Style") ||
+			name === "StylePropertyMap" ||
+			name === "StylePropertyMapReadOnly")
+	);
 }
 
 /**
  * Check if a type name is an animation type
  */
 function isAnimationType(name: string): boolean {
-	return name.includes("Animation") ||
+	return (
+		name.includes("Animation") ||
 		name.includes("Keyframe") ||
 		name === "EffectTiming" ||
 		name === "ComputedEffectTiming" ||
 		name === "AnimationTimeline" ||
 		name === "AnimationEffect" ||
 		name === "TransitionEvent" ||
-		name === "AnimationEvent";
+		name === "AnimationEvent"
+	);
 }
 
 /**
  * Check if a type name is a property-related type
  */
 function isPropertyType(name: string): boolean {
-	return name.includes("Property") ||
+	return (
+		name.includes("Property") ||
 		name.includes("StyleDeclaration") ||
 		name.includes("StyleSheet") ||
 		name.includes("CSSRule") ||
-		name === "MediaList";
+		name === "MediaList"
+	);
 }
 
 /**
@@ -295,7 +302,7 @@ export function getTypedOMCategories(extraction: CSSIDLExtraction): {
 		image: new Map<string, IDLType>(),
 		misc: new Map<string, IDLType>(),
 	};
-	
+
 	for (const [name, type] of extraction.typedOMTypes) {
 		if (name.includes("Numeric") || name.includes("Math") || name.includes("Unit")) {
 			categories.numeric.set(name, type);
@@ -309,7 +316,7 @@ export function getTypedOMCategories(extraction: CSSIDLExtraction): {
 			categories.misc.set(name, type);
 		}
 	}
-	
+
 	return categories;
 }
 
@@ -319,25 +326,25 @@ if (import.meta.main) {
 		getIDLData()
 			.then((data) => {
 				const extraction = extractCSSIDLTypes(data);
-				
+
 				console.log("\n=== CSS Typed OM Types ===");
 				const categories = getTypedOMCategories(extraction);
-				
+
 				console.log("\nNumeric Types:");
 				for (const name of categories.numeric.keys()) {
 					console.log(`  - ${name}`);
 				}
-				
+
 				console.log("\nTransform Types:");
 				for (const name of categories.transform.keys()) {
 					console.log(`  - ${name}`);
 				}
-				
+
 				console.log("\nColor Types:");
 				for (const name of categories.color.keys()) {
 					console.log(`  - ${name}`);
 				}
-				
+
 				if (extraction.errors.length > 0) {
 					console.log(`\n⚠️  ${extraction.errors.length} errors during extraction`);
 				}

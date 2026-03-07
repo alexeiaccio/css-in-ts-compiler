@@ -2,8 +2,12 @@
 	"name": "@cssints/monorepo",
 	"private": true,
 	"workspaces": {
-		"packages": ["packages/*"],
-		"apps": ["apps/*"],
+		"packages": [
+			"packages/*"
+		],
+		"apps": [
+			"apps/*"
+		],
 		"catalog": {
 			"oxc-parser": "^0.112.0",
 			"oxc-transform": "^0.112.0",

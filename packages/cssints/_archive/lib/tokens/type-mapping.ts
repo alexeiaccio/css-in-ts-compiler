@@ -39,10 +39,7 @@ export type DTCGToCSSTypeMap = {
 };
 
 /** Convert DTCG type to CSS type */
-export type DTCGToCSS<T extends DTCGTokenType> = 
-	T extends keyof DTCGToCSSTypeMap 
-		? DTCGToCSSTypeMap[T] 
-		: string;
+export type DTCGToCSS<T extends DTCGTokenType> = T extends keyof DTCGToCSSTypeMap ? DTCGToCSSTypeMap[T] : string;
 
 // ============================================================================
 // @property Syntax Mapping
@@ -80,10 +77,12 @@ export function detectTokenType(value: unknown): DTCGTokenType | null {
 	}
 
 	// Color detection (hex, rgb, hsl, oklch, etc.)
-	if (/^#[0-9A-Fa-f]{3,8}$/.test(value) || 
+	if (
+		/^#[0-9A-Fa-f]{3,8}$/.test(value) ||
 		/^(rgb|rgba|hsl|hsla|oklch|oklab|lab|lch|hwb)/i.test(value) ||
 		/^(transparent|currentcolor)/i.test(value) ||
-		/^\w+$/i.test(value)) {
+		/^\w+$/i.test(value)
+	) {
 		return "color";
 	}
 

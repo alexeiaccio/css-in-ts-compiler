@@ -9,6 +9,7 @@ This document analyzes how [React Spectrum S2](https://github.com/adobe/react-sp
 React Spectrum S2 uses a macro-based styling system where style functions execute at build time via Parcel's macro implementation (made available across bundlers through `unplugin-parcel-macros`). Styles are transformed into optimized CSS with deterministic class names and optional runtime composition.
 
 Key features:
+
 - Build-time macro execution with `import ... with {type: 'macro'}`
 - Dual-mode compilation: static styles return class strings, dynamic styles return functions
 - Advanced condition system: CSS conditions (`:hover`), runtime props (`isFocusVisible`), variant conditions
@@ -62,10 +63,10 @@ The macro detects whether styles are static or dynamic:
 
 ```typescript
 const staticStyle = style({
-  backgroundColor: {
-    default: 'primary',
-    ':hover': 'secondary',
-  },
+	backgroundColor: {
+		default: "primary",
+		":hover": "secondary",
+	},
 });
 
 // Returns: " -m1a2b3c4 -m1hover4d5e6"
@@ -75,10 +76,10 @@ const staticStyle = style({
 
 ```typescript
 const dynamicStyle = style({
-  backgroundColor: {
-    default: 'primary',
-    isFocusVisible: 'focus-ring',
-  },
+	backgroundColor: {
+		default: "primary",
+		isFocusVisible: "focus-ring",
+	},
 });
 
 // Returns: (props) => ` -m1a2b3c4${props.isFocusVisible ? ' -m1focus4d5e6' : ''}`
@@ -102,10 +103,10 @@ Example breakdown:
 
 ```typescript
 style({
-  backgroundColor: {
-    default: 'primary',
-    ':hover': 'secondary',
-  },
+	backgroundColor: {
+		default: "primary",
+		":hover": "secondary",
+	},
 });
 ```
 
@@ -127,16 +128,16 @@ Macros emit CSS assets via the macro context:
 
 ```typescript
 export function style(this: MacroContext | void, styleObj) {
-  // ... compile styles ...
+	// ... compile styles ...
 
-  if (this && typeof this.addAsset === 'function') {
-    this.addAsset({
-      type: 'css',
-      content: css // Generated CSS string
-    });
-  }
+	if (this && typeof this.addAsset === "function") {
+		this.addAsset({
+			type: "css",
+			content: css, // Generated CSS string
+		});
+	}
 
-  return classNameString;
+	return classNameString;
 }
 ```
 
@@ -154,12 +155,12 @@ React Spectrum supports three types of conditions:
 
 ```typescript
 style({
-  backgroundColor: {
-    default: 'primary',
-    ':hover': 'secondary',
-    '@media (prefers-color-scheme: dark)': 'dark-primary',
-    ':focus-visible': 'focus-ring',
-  },
+	backgroundColor: {
+		default: "primary",
+		":hover": "secondary",
+		"@media (prefers-color-scheme: dark)": "dark-primary",
+		":focus-visible": "focus-ring",
+	},
 });
 ```
 
@@ -167,21 +168,29 @@ Generated CSS:
 
 ```css
 @layer _.a {
-  .-m1a2b3c4 { background-color: var(--color-primary); }
+	.-m1a2b3c4 {
+		background-color: var(--color-primary);
+	}
 }
 
 @layer _.b {
-  .-m1hover4d5e6:hover { background-color: var(--color-secondary); }
+	.-m1hover4d5e6:hover {
+		background-color: var(--color-secondary);
+	}
 }
 
 @layer _.b._dark {
-  @media (prefers-color-scheme: dark) {
-    .-m1dark5e6f7 { background-color: var(--color-dark-primary); }
-  }
+	@media (prefers-color-scheme: dark) {
+		.-m1dark5e6f7 {
+			background-color: var(--color-dark-primary);
+		}
+	}
 }
 
 @layer _.c {
-  .-m1focus4d5e6:focus-visible { background-color: var(--color-focus-ring); }
+	.-m1focus4d5e6:focus-visible {
+		background-color: var(--color-focus-ring);
+	}
 }
 ```
 
@@ -189,14 +198,14 @@ Generated CSS:
 
 ```typescript
 style({
-  outlineStyle: {
-    default: 'none',
-    isFocusVisible: 'solid',
-  },
-  outlineColor: {
-    default: 'focus-ring',
-    forcedColors: 'Highlight',
-  },
+	outlineStyle: {
+		default: "none",
+		isFocusVisible: "solid",
+	},
+	outlineColor: {
+		default: "focus-ring",
+		forcedColors: "Highlight",
+	},
 });
 
 // Returns function: (props) => `...${props.isFocusVisible ? ' -o2solid' : ''}...`
@@ -206,13 +215,13 @@ style({
 
 ```typescript
 style({
-  padding: {
-    default: 'medium',
-    size: {
-      small: 'small',
-      large: 'large',
-    },
-  },
+	padding: {
+		default: "medium",
+		size: {
+			small: "small",
+			large: "large",
+		},
+	},
 });
 
 // Returns function: (props) => `...${props.size === 'small' ? ' -p3small' : ''}...`
@@ -234,6 +243,7 @@ React Spectrum uses CSS layers to control specificity:
 ```
 
 This ensures:
+
 - Later conditions always override earlier ones
 - No need for `!important`
 - Predictable cascade regardless of declaration order
@@ -244,20 +254,20 @@ Shorthands expand to multiple CSS properties:
 
 ```typescript
 const theme = {
-  shorthands: {
-    padding: ['paddingTop', 'paddingBottom', 'paddingLeft', 'paddingRight'],
-    margin: (value) => ({
-      marginTop: value,
-      marginBottom: value,
-      marginStart: value,
-      marginEnd: value,
-    }),
-  },
+	shorthands: {
+		padding: ["paddingTop", "paddingBottom", "paddingLeft", "paddingRight"],
+		margin: (value) => ({
+			marginTop: value,
+			marginBottom: value,
+			marginStart: value,
+			marginEnd: value,
+		}),
+	},
 };
 
 style({
-  padding: 'medium',
-  // Expands to: paddingTop, paddingBottom, paddingLeft, paddingRight
+	padding: "medium",
+	// Expands to: paddingTop, paddingBottom, paddingLeft, paddingRight
 });
 ```
 
@@ -283,17 +293,17 @@ Multiple syntaxes for arbitrary values:
 
 ```typescript
 style({
-  // CSS variable reference
-  color: '--my-color',
+	// CSS variable reference
+	color: "--my-color",
 
-  // Arbitrary value in brackets
-  padding: '[20px]',
+	// Arbitrary value in brackets
+	padding: "[20px]",
 
-  // CSS functions
-  width: 'calc(100% - 20px)',
+	// CSS functions
+	width: "calc(100% - 20px)",
 
-  // CSS wide keywords
-  color: 'inherit',
+	// CSS wide keywords
+	color: "inherit",
 });
 ```
 
@@ -320,7 +330,7 @@ style({
 Dedicated macro for animations:
 
 ```typescript
-import { keyframes } from '@react-spectrum/s2/style' with {type: 'macro'};
+import { keyframes } from "@react-spectrum/s2/style" with { type: "macro" };
 
 const fadeIn = keyframes(`
   from { opacity: 0; }
@@ -335,11 +345,14 @@ const fadeIn = keyframes(`
 Inject arbitrary CSS with custom layers:
 
 ```typescript
-import { raw } from '@react-spectrum/s2/style' with {type: 'macro'};
+import { raw } from "@react-spectrum/s2/style" with { type: "macro" };
 
-const customClass = raw(`
+const customClass = raw(
+	`
   background: linear-gradient(to right, red, blue);
-`, '_.custom');
+`,
+	"_.custom",
+);
 ```
 
 ---
@@ -352,36 +365,36 @@ Themes define properties with type mappings and condition sets:
 
 ```typescript
 const theme = {
-  properties: {
-    // Simple mapping
-    color: {
-      primary: 'var(--color-primary)',
-      secondary: 'var(--color-secondary)',
-    },
+	properties: {
+		// Simple mapping
+		color: {
+			primary: "var(--color-primary)",
+			secondary: "var(--color-secondary)",
+		},
 
-    // Array of allowed values
-    display: ['block', 'flex', 'grid', 'none'],
+		// Array of allowed values
+		display: ["block", "flex", "grid", "none"],
 
-    // Custom Property class
-    backgroundColor: new MappedProperty('background-color', {
-      primary: 'var(--color-primary)',
-      // ...
-    }),
-  },
+		// Custom Property class
+		backgroundColor: new MappedProperty("background-color", {
+			primary: "var(--color-primary)",
+			// ...
+		}),
+	},
 
-  conditions: {
-    // CSS conditions
-    ':hover': ':hover',
-    '@media (prefers-color-scheme: dark)': '@media (prefers-color-scheme: dark)',
+	conditions: {
+		// CSS conditions
+		":hover": ":hover",
+		"@media (prefers-color-scheme: dark)": "@media (prefers-color-scheme: dark)",
 
-    // Media query aliases
-    'dark': '@media (prefers-color-scheme: dark)',
-    'light': '@media (prefers-color-scheme: light)',
-  },
+		// Media query aliases
+		dark: "@media (prefers-color-scheme: dark)",
+		light: "@media (prefers-color-scheme: light)",
+	},
 
-  shorthands: {
-    padding: ['paddingTop', 'paddingBottom', 'paddingLeft', 'paddingRight'],
-  },
+	shorthands: {
+		padding: ["paddingTop", "paddingBottom", "paddingLeft", "paddingRight"],
+	},
 };
 ```
 
@@ -395,10 +408,10 @@ type StyleProps = ThemeProperties<SpectrumTheme>;
 
 // Usage is fully type-checked
 const buttonStyle = style<StyleProps>({
-  backgroundColor: 'primary',      // ✅ Valid
-  padding: 'medium',                // ✅ Valid
-  display: 'flex',                  // ✅ Valid
-  display: 'invalid',               // ❌ TypeScript error
+	backgroundColor: "primary", // ✅ Valid
+	padding: "medium", // ✅ Valid
+	display: "flex", // ✅ Valid
+	display: "invalid", // ❌ TypeScript error
 });
 ```
 
@@ -406,23 +419,23 @@ const buttonStyle = style<StyleProps>({
 
 ## Detailed Comparison
 
-| Aspect | React Spectrum Macros | Our Approach |
-|--------|----------------------|--------------|
-| **Build-time execution** | Macros via `import {type: 'macro'}` | Vite plugin (oxc transformer) |
-| **Class naming** | Deterministic: `prop + conditions + value + version` | Simple: `name__hash` |
-| **CSS output** | Emitted as assets via macro context | Extracted to CSS file |
-| **Static vs dynamic** | Auto-detected, returns string or function | Always string (runtime composition) |
-| **Conditions** | CSS, runtime bool, variant conditions | Only runtime props |
-| **Priority system** | CSS @layer ordering | N/A (cascade-based) |
-| **Token format** | Theme object with type inference | W3C DTCG format |
-| **Type safety** | Auto-inferred from theme | Manual typing needed |
-| **Shorthands** | Built-in expansion support | Manual implementation |
-| **Custom properties** | Type-mapped to theme values | Direct CSS vars |
-| **Arbitrary values** | `[$value]`, CSS vars, functions | Full CSS support |
-| **Asset generation** | `this.addAsset()` in macro context | Plugin collects styles |
-| **Build tools** | webpack, Vite, Rollup, esbuild, Next.js | Vite (oxc) |
-| **Keyframes** | Dedicated `keyframes()` macro | Standard CSS |
-| **Zero runtime** | For static styles | Always zero runtime |
+| Aspect                   | React Spectrum Macros                                | Our Approach                        |
+| ------------------------ | ---------------------------------------------------- | ----------------------------------- |
+| **Build-time execution** | Macros via `import {type: 'macro'}`                  | Vite plugin (oxc transformer)       |
+| **Class naming**         | Deterministic: `prop + conditions + value + version` | Simple: `name__hash`                |
+| **CSS output**           | Emitted as assets via macro context                  | Extracted to CSS file               |
+| **Static vs dynamic**    | Auto-detected, returns string or function            | Always string (runtime composition) |
+| **Conditions**           | CSS, runtime bool, variant conditions                | Only runtime props                  |
+| **Priority system**      | CSS @layer ordering                                  | N/A (cascade-based)                 |
+| **Token format**         | Theme object with type inference                     | W3C DTCG format                     |
+| **Type safety**          | Auto-inferred from theme                             | Manual typing needed                |
+| **Shorthands**           | Built-in expansion support                           | Manual implementation               |
+| **Custom properties**    | Type-mapped to theme values                          | Direct CSS vars                     |
+| **Arbitrary values**     | `[$value]`, CSS vars, functions                      | Full CSS support                    |
+| **Asset generation**     | `this.addAsset()` in macro context                   | Plugin collects styles              |
+| **Build tools**          | webpack, Vite, Rollup, esbuild, Next.js              | Vite (oxc)                          |
+| **Keyframes**            | Dedicated `keyframes()` macro                        | Standard CSS                        |
+| **Zero runtime**         | For static styles                                    | Always zero runtime                 |
 
 ---
 
@@ -435,18 +448,18 @@ Automatic optimization based on condition types:
 ```typescript
 // Static - returns string at build time
 const staticStyle = style({
-  color: {
-    default: 'primary',
-    ':hover': 'secondary',
-  },
+	color: {
+		default: "primary",
+		":hover": "secondary",
+	},
 });
 
 // Dynamic - returns function for runtime props
 const dynamicStyle = style({
-  color: {
-    default: 'primary',
-    isFocusVisible: 'focus-ring',
-  },
+	color: {
+		default: "primary",
+		isFocusVisible: "focus-ring",
+	},
 });
 ```
 
@@ -467,16 +480,17 @@ Support for three condition types in one API:
 
 ```typescript
 style({
-  color: {
-    default: 'primary',              // Default
-    ':hover': 'secondary',           // CSS pseudo-class
-    '@media (prefers-color-scheme: dark)': 'dark',  // CSS media query
-    isFocusVisible: 'focus-ring',    // Runtime boolean
-    size: {                          // Variant condition
-      small: 'small-text',
-      large: 'large-text',
-    },
-  },
+	color: {
+		default: "primary", // Default
+		":hover": "secondary", // CSS pseudo-class
+		"@media (prefers-color-scheme: dark)": "dark", // CSS media query
+		isFocusVisible: "focus-ring", // Runtime boolean
+		size: {
+			// Variant condition
+			small: "small-text",
+			large: "large-text",
+		},
+	},
 });
 ```
 
@@ -489,8 +503,8 @@ type StyleProps = ThemeProperties<SpectrumTheme>;
 
 // Full autocomplete and type checking
 const styleFn = style<StyleProps>({
-  backgroundColor: 'primary',  // ✅ Auto-completes
-  invalidProp: 'value',       // ❌ TypeScript error
+	backgroundColor: "primary", // ✅ Auto-completes
+	invalidProp: "value", // ❌ TypeScript error
 });
 ```
 
@@ -500,12 +514,12 @@ Automatic expansion of shorthands to longhands:
 
 ```typescript
 const theme = {
-  shorthands: {
-    padding: ['paddingTop', 'paddingBottom', 'paddingLeft', 'paddingRight'],
-  },
+	shorthands: {
+		padding: ["paddingTop", "paddingBottom", "paddingLeft", "paddingRight"],
+	},
 };
 
-style({ padding: 'medium' });
+style({ padding: "medium" });
 // Expands to all four padding properties
 ```
 
@@ -515,8 +529,8 @@ Properties can reference other properties:
 
 ```typescript
 style({
-  '--shadow-color': { type: 'color', value: 'primary' },
-  boxShadow: 'self(--shadow-color)',
+	"--shadow-color": { type: "color", value: "primary" },
+	boxShadow: "self(--shadow-color)",
 });
 ```
 
@@ -560,10 +574,14 @@ export default { plugins: [macros.rollup()] };
 
 ```css
 /* React Spectrum */
-.-m1a2b3c4 { background-color: var(--color-primary); }
+.-m1a2b3c4 {
+	background-color: var(--color-primary);
+}
 
 /* Our approach */
-.button__a1b2c3d4 { background-color: var(--color-primary); }
+.button__a1b2c3d4 {
+	background-color: var(--color-primary);
+}
 ```
 
 More readable, component-scoped names.
@@ -573,13 +591,13 @@ More readable, component-scoped names.
 ```typescript
 // Our approach follows Design Tokens Community Group spec
 const tokens = {
-  color: {
-    primary: {
-      $value: "#3b82f6",
-      $type: "color",
-      $description: "Brand primary color",
-    },
-  },
+	color: {
+		primary: {
+			$value: "#3b82f6",
+			$type: "color",
+			$description: "Brand primary color",
+		},
+	},
 };
 ```
 
@@ -598,6 +616,7 @@ className={styleFn(props)}
 ### 4. Registry Pattern
 
 Runtime registry for:
+
 - SSR hydration
 - Style extraction
 - Dynamic theming
@@ -608,14 +627,14 @@ Runtime registry for:
 ```typescript
 // Our approach - single Vite plugin
 export default {
-  plugins: [cssInTsCompiler()],
+	plugins: [cssInTsCompiler()],
 };
 
 // React Spectrum - unplugin + macro system
-import macros from 'unplugin-parcel-macros';
+import macros from "unplugin-parcel-macros";
 export default {
-  plugins: [macros.vite()],
-  // Plus configure macro system...
+	plugins: [macros.vite()],
+	// Plus configure macro system...
 };
 ```
 
@@ -628,7 +647,7 @@ style("button", { color: "red" });
 // Always produces: .button__abc123
 
 // React Spectrum hashes include version
-style({ color: 'red' });
+style({ color: "red" });
 // Produces: .-mhash_v1.2.3 (changes on version update)
 ```
 
@@ -641,10 +660,10 @@ style({ color: 'red' });
 ```typescript
 // Proposed
 style("button", {
-  color: "red",
-  "@layer higher": {
-    color: "blue",  // Always wins via layer ordering
-  },
+	color: "red",
+	"@layer higher": {
+		color: "blue", // Always wins via layer ordering
+	},
 });
 ```
 
@@ -653,14 +672,14 @@ style("button", {
 ```typescript
 // Proposed - detect static vs dynamic
 const staticStyle = style({
-  color: "red",  // Static, returns string
+	color: "red", // Static, returns string
 });
 
 const dynamicStyle = style({
-  color: {
-    default: "red",
-    isHover: "blue",  // Dynamic, returns function
-  },
+	color: {
+		default: "red",
+		isHover: "blue", // Dynamic, returns function
+	},
 });
 ```
 
@@ -669,9 +688,9 @@ const dynamicStyle = style({
 ```typescript
 // Proposed
 const theme = {
-  shorthands: {
-    padding: ['paddingTop', 'paddingBottom', 'paddingLeft', 'paddingRight'],
-  },
+	shorthands: {
+		padding: ["paddingTop", "paddingBottom", "paddingLeft", "paddingRight"],
+	},
 };
 
 style("button", { padding: "medium" });
@@ -683,16 +702,17 @@ style("button", { padding: "medium" });
 ```typescript
 // Proposed
 style("button", {
-  color: {
-    default: "red",
-    ":hover": "blue",          // CSS condition
-    "@media (min-width: 768px)": "green",  // Media query
-    isFocus: "yellow",         // Runtime prop
-    size: {                     // Variant
-      small: "blue",
-      large: "red",
-    },
-  },
+	color: {
+		default: "red",
+		":hover": "blue", // CSS condition
+		"@media (min-width: 768px)": "green", // Media query
+		isFocus: "yellow", // Runtime prop
+		size: {
+			// Variant
+			small: "blue",
+			large: "red",
+		},
+	},
 });
 ```
 
@@ -701,8 +721,8 @@ style("button", {
 ```typescript
 // Proposed
 style("button", {
-  "--shadow-color": "primary",
-  boxShadow: "self(--shadow-color)",
+	"--shadow-color": "primary",
+	boxShadow: "self(--shadow-color)",
 });
 ```
 
@@ -723,7 +743,7 @@ const fadeIn = keyframes(`
 type StyleProps = InferTokenTypes<typeof tokens>;
 
 const buttonStyle = style<StyleProps>("button", {
-  color: "primary",  // Auto-completes from tokens
+	color: "primary", // Auto-completes from tokens
 });
 ```
 
@@ -732,8 +752,8 @@ const buttonStyle = style<StyleProps>("button", {
 ```typescript
 // Proposed
 style("button", {
-  width: "[calc(100% - 20px)]",  // Arbitrary value
-  color: "--my-var",              // CSS variable
+	width: "[calc(100% - 20px)]", // Arbitrary value
+	color: "--my-var", // CSS variable
 });
 ```
 
@@ -742,6 +762,7 @@ style("button", {
 ## Conclusion
 
 React Spectrum's macro-based approach excels at:
+
 - **Dual-mode compilation** - Automatic optimization for static/dynamic styles
 - **Advanced condition system** - CSS, runtime, and variant conditions in one API
 - **Priority control** - CSS @layer system for predictable specificity
@@ -750,6 +771,7 @@ React Spectrum's macro-based approach excels at:
 - **Shorthands & self references** - Advanced style composition features
 
 Our approach excels at:
+
 - **Simpler class names** - Component-scoped, readable names
 - **W3C DTCG compliance** - Industry-standard token format
 - **Composition API** - Explicit `cx()` for style merging
@@ -760,12 +782,14 @@ Our approach excels at:
 ### When to Use Each
 
 **Choose React Spectrum Macros** if you need:
+
 - Complex condition systems (CSS + runtime + variants)
 - Predictable specificity via layers
 - Cross-bundler compatibility
 - Theme-driven type inference
 
 **Choose Our Approach** if you need:
+
 - W3C DTCG token compliance
 - Simpler, more readable class names
 - Explicit composition patterns

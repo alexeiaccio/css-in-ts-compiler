@@ -241,10 +241,7 @@ export function turnToken<Name extends string>(value: number, options: string | 
 // Time Tokens
 // ============================================================================
 
-export function time<Name extends string>(
-	value: Time,
-	options: string | TokenOptions,
-): TokenDefinition<"time", Name> {
+export function time<Name extends string>(value: Time, options: string | TokenOptions): TokenDefinition<"time", Name> {
 	return createToken("time", value, options);
 }
 
@@ -321,10 +318,7 @@ export function string<Name extends string>(
 	return createToken("string", value, options);
 }
 
-export function url<Name extends string>(
-	value: string,
-	options: string | TokenOptions,
-): TokenDefinition<"url", Name> {
+export function url<Name extends string>(value: string, options: string | TokenOptions): TokenDefinition<"url", Name> {
 	return createToken("url", value, options);
 }
 
@@ -351,9 +345,7 @@ export function set<N extends string>(token: Token<unknown, N>, value: string): 
 	return { [`--${name}`]: value } as Record<`--${N}`, string>;
 }
 
-export function setMultiple(
-	...pairs: [Token<unknown, string>, string][]
-): Record<string, string> {
+export function setMultiple(...pairs: [Token<unknown, string>, string][]): Record<string, string> {
 	return Object.assign({}, ...pairs.map(([token, value]) => set(token, value)));
 }
 

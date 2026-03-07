@@ -6,13 +6,6 @@
 		"declaration": true,
 		"declarationMap": true
 	},
-	"include": [
-		"src/**/*"
-	],
-	"exclude": [
-		"dist",
-		"node_modules",
-		"**/*.test.ts",
-		"**/*.bench.ts"
-	]
+	"include": ["src/**/*"],
+	"exclude": ["dist", "node_modules", "**/*.test.ts", "**/*.bench.ts"]
 }

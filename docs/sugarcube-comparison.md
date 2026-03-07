@@ -18,12 +18,12 @@ Both approaches use W3C DTCG format for design tokens.
 
 ```json
 {
-  "color": {
-    "primary": {
-      "$value": "#3b82f6",
-      "$type": "color"
-    }
-  }
+	"color": {
+		"primary": {
+			"$value": "#3b82f6",
+			"$type": "color"
+		}
+	}
 }
 ```
 
@@ -55,23 +55,30 @@ Both approaches use W3C DTCG format for design tokens.
 SugarCube generates semantic class names derived from token paths:
 
 ```css
-.bg-primary { background-color: var(--color-primary); }
-.text-lg { font-size: var(--font-size-lg); }
-.p-md { padding: var(--space-md); }
+.bg-primary {
+	background-color: var(--color-primary);
+}
+.text-lg {
+	font-size: var(--font-size-lg);
+}
+.p-md {
+	padding: var(--space-md);
+}
 ```
 
 **How it works:**
 
 1. Define utility mappings in config:
+
 ```typescript
 // sugarcube.config.ts
 export default defineConfig({
-  utilities: {
-    "background-color": {
-      source: "color.*",
-      prefix: "bg"
-    }
-  }
+	utilities: {
+		"background-color": {
+			source: "color.*",
+			prefix: "bg",
+		},
+	},
 });
 ```
 
@@ -79,6 +86,7 @@ export default defineConfig({
 3. Generates only used utilities (JIT)
 
 **Resolver document** handles token composition:
+
 ```json
 {
   "version": "2025.10",
@@ -94,20 +102,26 @@ export default defineConfig({
 We generate deterministic hash-based class names (StyleX/vanilla-extract pattern):
 
 ```css
-.button__a1b2c3d4 { color: red; }
-.card__e5f6g7h8 { padding: 1rem; }
+.button__a1b2c3d4 {
+	color: red;
+}
+.card__e5f6g7h8 {
+	padding: 1rem;
+}
 ```
 
 CSS variables use hash scoping:
+
 ```css
 :root {
-  --scope-primary__a1b2c3d4: #3b82f6;
+	--scope-primary__a1b2c3d4: #3b82f6;
 }
 ```
 
 **How it works:**
 
 1. Define styles via API:
+
 ```typescript
 const button = style("button", { color: "red" });
 ```
@@ -120,17 +134,17 @@ const button = style("button", { color: "red" });
 
 ## Detailed Comparison
 
-| Aspect | SugarCube | Our Approach |
-|--------|-----------|--------------|
-| **Class names** | Semantic (`.bg-primary`) | Opaque (`.button__a1b2c3d4`) |
-| **Source of truth** | Token files (JSON) | Runtime registry + code |
-| **Theming** | Built-in via modifiers | Manual via theme system |
-| **Organization** | CUBE CSS methodology | Custom API |
-| **Utilities** | Config-based token mapping | Pre-built functions |
-| **CSS Output** | Variables + utilities | Hash-scoped classes |
-| **Delivery** | Vite plugin + CLI | Vite plugin (oxc) |
-| **Token references** | `{color.primary}` syntax | Manual resolution |
-| **CSS cascade** | Embraces cascade (CUBE CSS) | Avoids cascade (scoped) |
+| Aspect               | SugarCube                   | Our Approach                 |
+| -------------------- | --------------------------- | ---------------------------- |
+| **Class names**      | Semantic (`.bg-primary`)    | Opaque (`.button__a1b2c3d4`) |
+| **Source of truth**  | Token files (JSON)          | Runtime registry + code      |
+| **Theming**          | Built-in via modifiers      | Manual via theme system      |
+| **Organization**     | CUBE CSS methodology        | Custom API                   |
+| **Utilities**        | Config-based token mapping  | Pre-built functions          |
+| **CSS Output**       | Variables + utilities       | Hash-scoped classes          |
+| **Delivery**         | Vite plugin + CLI           | Vite plugin (oxc)            |
+| **Token references** | `{color.primary}` syntax    | Manual resolution            |
+| **CSS cascade**      | Embraces cascade (CUBE CSS) | Avoids cascade (scoped)      |
 
 ---
 
@@ -142,11 +156,11 @@ Elegant token composition with sets and modifiers:
 
 ```json
 {
-  "resolutionOrder": [
-    { "type": "set", "name": "foundation", "sources": [{ "$ref": "./foundation.json" }] },
-    { "type": "set", "name": "semantic", "sources": [{ "$ref": "./semantic.json" }] },
-    { "type": "modifier", "name": "theme", "default": "light", "contexts": { "dark": [{ "$ref": "./dark.json" }] } }
-  ]
+	"resolutionOrder": [
+		{ "type": "set", "name": "foundation", "sources": [{ "$ref": "./foundation.json" }] },
+		{ "type": "set", "name": "semantic", "sources": [{ "$ref": "./semantic.json" }] },
+		{ "type": "modifier", "name": "theme", "default": "light", "contexts": { "dark": [{ "$ref": "./dark.json" }] } }
+	]
 }
 ```
 
@@ -216,6 +230,7 @@ const styles = cx({ color: "red" }, { padding: "1rem" });
 ### 4. Runtime Registry
 
 Can extract/inspect styles at runtime for:
+
 - SSR hydration
 - Style debugging
 - Dynamic style extraction
@@ -256,11 +271,11 @@ Declarative utility generation from tokens:
 ```typescript
 // Proposed API
 defineConfig({
-  utilities: [
-    { property: "background-color", source: "color.*", prefix: "bg" },
-    { property: "color", source: "color.text.*", prefix: "text" }
-  ]
-})
+	utilities: [
+		{ property: "background-color", source: "color.*", prefix: "bg" },
+		{ property: "color", source: "color.text.*", prefix: "text" },
+	],
+});
 ```
 
 ### 4. CSS Variables from Tokens
@@ -269,12 +284,12 @@ Generate `--token-*` variables alongside hash-based classes:
 
 ```css
 :root {
-  /* From tokens */
-  --color-primary: #3b82f6;
-  --space-md: 1rem;
-  
-  /* Hash-scoped for component styles */
-  --button-color__a1b2c3d4: red;
+	/* From tokens */
+	--color-primary: #3b82f6;
+	--space-md: 1rem;
+
+	/* Hash-scoped for component styles */
+	--button-color__a1b2c3d4: red;
 }
 ```
 
@@ -284,11 +299,11 @@ Support `{path.to.token}` syntax:
 
 ```json
 {
-  "color": {
-    "button": {
-      "background": { "$value": "{color.primary}" }
-    }
-  }
+	"color": {
+		"button": {
+			"background": { "$value": "{color.primary}" }
+		}
+	}
 }
 ```
 
@@ -297,12 +312,14 @@ Support `{path.to.token}` syntax:
 ## Conclusion
 
 SugarCube excels at:
+
 - Token-driven workflows
 - Semantic class naming
 - CUBE CSS methodology
 - Full DTCG compliance
 
 Our approach excels at:
+
 - Zero-runtime overhead potential
 - Type-safe API
 - Hash-based isolation

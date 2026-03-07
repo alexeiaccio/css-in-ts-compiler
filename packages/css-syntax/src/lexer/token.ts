@@ -48,7 +48,7 @@ export const Token = {
 	Delim: 40,
 } as const;
 
-export type Token = typeof Token[keyof typeof Token];
+export type Token = (typeof Token)[keyof typeof Token];
 
 export interface TokenValue {
 	readonly token: Token;

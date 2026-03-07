@@ -8,7 +8,7 @@ created_at: 2026-02-18T10:18:03Z
 updated_at: 2026-02-18T10:42:08Z
 parent: css-in-ts-compiler-jphr
 blocked_by:
-    - css-in-ts-compiler-6y4a
+  - css-in-ts-compiler-6y4a
 ---
 
 - [ ] Include browser support table in JSDoc

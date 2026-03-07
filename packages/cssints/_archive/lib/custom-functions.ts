@@ -18,7 +18,7 @@
  * export const customColorMix = createTyped<
  *   (color1: Color, color2: Color, amount: Percentage) => CustomColorMix,
  *   "CustomColorMixFn"
- * >((color1, color2, amount) => 
+ * >((color1, color2, amount) =>
  *   `color-mix(in srgb, ${color1} ${amount}, ${color2})`
  * );
  * ```

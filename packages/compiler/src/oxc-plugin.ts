@@ -5,11 +5,13 @@
  * providing reliable parsing with full HMR support.
  */
 
-import { parseSync, Visitor } from "oxc-parser";
 import type { Plugin } from "vite";
 import type { ViteDevServer } from "vite";
 
+import { parseSync, Visitor } from "oxc-parser";
+
 import type { CSSProperties } from "./types.js";
+
 import { transformCode } from "./cssints/transformer.js";
 
 export interface HmrOptions {
@@ -258,7 +260,7 @@ export function cssTSOxcPlugin(options: OxcPluginOptions = {}): Plugin {
 
 			// Also transform css.* function calls (new cssints functionality)
 			const cssintsResult = transformCode(code, id, { debug: opts.debug });
-			
+
 			// Merge CSS from both sources
 			let mergedCss = "";
 			if (styleInfo.styles.size > 0) {
@@ -267,7 +269,7 @@ export function cssTSOxcPlugin(options: OxcPluginOptions = {}): Plugin {
 				virtualCssModules.set(virtualModuleId, styleInfo.css);
 				mergedCss = styleInfo.css;
 			}
-			
+
 			if (cssintsResult.css) {
 				mergedCss += (mergedCss ? "\n\n" : "") + cssintsResult.css;
 			}
@@ -299,7 +301,9 @@ export function cssTSOxcPlugin(options: OxcPluginOptions = {}): Plugin {
 			const finalCode = isDevMode() && opts.hmr?.virtualModules ? injectCssImport(transformed, id) : transformed;
 
 			if (opts.debug) {
-				console.log(`[css-in-ts-oxc] Processed ${id}: ${styleInfo.styles.size} styles, cssints: ${cssintsResult.css ? "yes" : "no"}`);
+				console.log(
+					`[css-in-ts-oxc] Processed ${id}: ${styleInfo.styles.size} styles, cssints: ${cssintsResult.css ? "yes" : "no"}`,
+				);
 			}
 
 			return {
@@ -426,17 +430,17 @@ class StyleExtractor extends Visitor {
 		const callee = node.callee;
 
 		if (callee.type === "Identifier" && callee.name === "style" && node.arguments.length >= 2) {
-			const nameArg = node.arguments[0];
-			const propsArg = node.arguments[1];
+		const nameArg = node.arguments[0] as import("oxc-parser").StringLiteral | import("oxc-parser").Literal;
+		const propsArg = node.arguments[1] as import("oxc-parser").ObjectExpression;
 
-			const name =
-				nameArg.type === "StringLiteral"
+		const name =
+			nameArg.type === "StringLiteral"
+				? nameArg.value
+				: nameArg.type === "Literal" && typeof nameArg.value === "string"
 					? nameArg.value
-					: nameArg.type === "Literal" && typeof nameArg.value === "string"
-						? nameArg.value
-						: null;
+					: null;
 
-			if (name && propsArg.type === "ObjectExpression") {
+		if (name) {
 				const properties = extractObjectProperties(propsArg);
 				const className = this.devMode
 					? generateDevClassNameStatic(this.fileId, name)

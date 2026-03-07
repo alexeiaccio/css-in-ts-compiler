@@ -18,26 +18,24 @@ const mdPadding = css.md(css.p(6));
 const hoverStyles = css.hover(css.bg("#2563eb"));
 
 // Test more utilities from API.md pattern
-const flexRow = css.flex();  // display: flex
-const centeredItems = css.items("center");  // align-items: center
-const spacedBetween = css.justify("between");  // justify-content: space-between
+const flexRow = css.flex(); // display: flex
+const centeredItems = css.items("center"); // align-items: center
+const spacedBetween = css.justify("between"); // justify-content: space-between
 
 export default function App() {
 	return (
 		<div className={flexCenter}>
 			<h1>css-in-ts compiler</h1>
-			
+
 			<div className={column}>
 				<p className={padding}>Basic padding test</p>
-				
+
 				<div className={mdPadding}>
 					<p>Responsive padding (md breakpoint)</p>
 				</div>
-				
-				<button className={hoverStyles}>
-					Hover me (check CSS)
-				</button>
-				
+
+				<button className={hoverStyles}>Hover me (check CSS)</button>
+
 				<div className={`${flexRow} ${centeredItems} ${spacedBetween}`}>
 					<span>Left</span>
 					<span>Right</span>

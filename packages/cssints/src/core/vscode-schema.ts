@@ -1,66 +1,66 @@
 import { Schema } from "effect";
 
 const Baseline = Schema.Struct({
-  status: Schema.String,
-  baseline_low_date: Schema.optional(Schema.String),
-  baseline_high_date: Schema.optional(Schema.String),
+	status: Schema.String,
+	baseline_low_date: Schema.optional(Schema.String),
+	baseline_high_date: Schema.optional(Schema.String),
 });
 
 const Reference = Schema.Struct({
-  name: Schema.String,
-  url: Schema.String,
+	name: Schema.String,
+	url: Schema.String,
 });
 
 const PropertyValue = Schema.Struct({
-  name: Schema.String,
-  description: Schema.optional(Schema.String),
-  browsers: Schema.optional(Schema.Array(Schema.String)),
-  baseline: Schema.optional(Baseline),
+	name: Schema.String,
+	description: Schema.optional(Schema.String),
+	browsers: Schema.optional(Schema.Array(Schema.String)),
+	baseline: Schema.optional(Baseline),
 });
 
 export const VSCodeCSSProperty = Schema.Struct({
-  name: Schema.String,
-  browsers: Schema.optional(Schema.Array(Schema.String)),
-  atRule: Schema.optional(Schema.String),
-  syntax: Schema.optional(Schema.String),
-  relevance: Schema.optional(Schema.Number),
-  description: Schema.optional(Schema.String),
-  restrictions: Schema.optional(Schema.Array(Schema.String)),
-  values: Schema.optional(Schema.Array(PropertyValue)),
-  references: Schema.optional(Schema.Array(Reference)),
-  baseline: Schema.optional(Baseline),
+	name: Schema.String,
+	browsers: Schema.optional(Schema.Array(Schema.String)),
+	atRule: Schema.optional(Schema.String),
+	syntax: Schema.optional(Schema.String),
+	relevance: Schema.optional(Schema.Number),
+	description: Schema.optional(Schema.String),
+	restrictions: Schema.optional(Schema.Array(Schema.String)),
+	values: Schema.optional(Schema.Array(PropertyValue)),
+	references: Schema.optional(Schema.Array(Reference)),
+	baseline: Schema.optional(Baseline),
 });
 
 export const VSCodeAtDirective = Schema.Struct({
-  name: Schema.String,
-  browsers: Schema.optional(Schema.Array(Schema.String)),
-  references: Schema.optional(Schema.Array(Reference)),
-  baseline: Schema.optional(Baseline),
-  description: Schema.optional(Schema.String),
+	name: Schema.String,
+	browsers: Schema.optional(Schema.Array(Schema.String)),
+	references: Schema.optional(Schema.Array(Reference)),
+	baseline: Schema.optional(Baseline),
+	description: Schema.optional(Schema.String),
 });
 
 export const VSCodePseudoClass = Schema.Struct({
-  name: Schema.String,
-  browsers: Schema.optional(Schema.Array(Schema.String)),
-  references: Schema.optional(Schema.Array(Reference)),
-  baseline: Schema.optional(Baseline),
-  description: Schema.optional(Schema.String),
+	name: Schema.String,
+	browsers: Schema.optional(Schema.Array(Schema.String)),
+	references: Schema.optional(Schema.Array(Reference)),
+	baseline: Schema.optional(Baseline),
+	description: Schema.optional(Schema.String),
 });
 
 export const VSCodePseudoElement = Schema.Struct({
-  name: Schema.String,
-  browsers: Schema.optional(Schema.Array(Schema.String)),
-  references: Schema.optional(Schema.Array(Reference)),
-  baseline: Schema.optional(Baseline),
-  description: Schema.optional(Schema.String),
+	name: Schema.String,
+	browsers: Schema.optional(Schema.Array(Schema.String)),
+	references: Schema.optional(Schema.Array(Reference)),
+	baseline: Schema.optional(Baseline),
+	description: Schema.optional(Schema.String),
 });
 
 export const VSCodeCSSData = Schema.Struct({
-  version: Schema.Number,
-  properties: Schema.optional(Schema.Array(VSCodeCSSProperty)),
-  atDirectives: Schema.optional(Schema.Array(VSCodeAtDirective)),
-  pseudoClasses: Schema.optional(Schema.Array(VSCodePseudoClass)),
-  pseudoElements: Schema.optional(Schema.Array(VSCodePseudoElement)),
+	version: Schema.Number,
+	properties: Schema.optional(Schema.Array(VSCodeCSSProperty)),
+	atDirectives: Schema.optional(Schema.Array(VSCodeAtDirective)),
+	pseudoClasses: Schema.optional(Schema.Array(VSCodePseudoClass)),
+	pseudoElements: Schema.optional(Schema.Array(VSCodePseudoElement)),
 });
 
 export type VSCodeCSSProperty = Schema.Schema.Type<typeof VSCodeCSSProperty>;

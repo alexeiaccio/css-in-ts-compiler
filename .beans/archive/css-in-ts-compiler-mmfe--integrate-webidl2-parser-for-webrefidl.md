@@ -11,19 +11,19 @@ parent: css-in-ts-compiler-9h2z
 
 Use webidl2 package to parse IDL files from @webref/idl. Extract CSS-related interfaces and types.
 
-
-
 ## Summary of Changes
 
 Integrated webidl2 parser for @webref/idl processing:
 
 ### Implementation
+
 - Uses `webidl2.parse()` to parse IDL text into AST
 - Converts IDL nodes to our internal AST format
 - Handles: interfaces, dictionaries, enums, typedefs, namespaces
 - Extracts CSS-specific types like `CSSNumericBaseType` enum
 
 ### Key Functions
+
 - `parseWebIDL(idlText, sourceName)` - Main entry point
 - `convertIDLNode()` - Node type dispatcher
 - `convertType()` - IDL type to TypeScript type mapping

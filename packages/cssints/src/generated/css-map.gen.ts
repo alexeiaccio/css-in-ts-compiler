@@ -1,5 +1,5 @@
-import type { Style } from './core/style.js';
-import type { PropertyValueTypeMap } from './types.gen.js';
+import type { Style } from "./core/style.js";
+import type { PropertyValueTypeMap } from "./types.gen.js";
 
 /**
  * CSS Property Map
@@ -17,13 +17,13 @@ export const CSS = {
 	/** The align-tracks CSS property sets the alignment in the masonry axis for grid containers that have masonry in their block axis. */
 	"align-tracks": alignTracks,
 	/** Shorthand that resets all properties except 'direction' and 'unicode-bidi'. */
-	"all": all,
+	all: all,
 	/** The anchor-name property declares that an element is an anchor element, and gives it a list of anchor names to be targeted by. */
 	"anchor-name": anchorName,
 	/** This property scopes the specified anchor names, and lookups for these anchor names, to this element’s subtree */
 	"anchor-scope": anchorScope,
 	/** Shorthand property combines six of the animation properties into a single property. */
-	"animation": animation,
+	animation: animation,
 	/** The composite operation to use when multiple animations affect the same property. */
 	"animation-composition": animationComposition,
 	/** Defines when the animation will start. */
@@ -51,17 +51,17 @@ export const CSS = {
 	/** Specifies the names of one or more @scroll-timeline at-rules to describe the element's scroll animations. */
 	"animation-timeline": animationTimeline,
 	/** Changes the appearance of buttons and other controls to resemble native controls. */
-	"appearance": appearance,
+	appearance: appearance,
 	/** The aspect-ratio   CSS property sets a preferred aspect ratio for the box, which will be used in the calculation of auto sizes and some other layout functions. */
 	"aspect-ratio": aspectRatio,
 	/** azimuth */
-	"azimuth": azimuth,
+	azimuth: azimuth,
 	/** The backdrop-filter CSS property lets you apply graphical effects such as blurring or color shifting to the area behind an element. Because it applies to everything behind the element, to see the effect you must make the element or its background at least partially transparent. */
 	"backdrop-filter": backdropFilter,
 	/** Determines whether or not the 'back' side of a transformed element is visible when facing the viewer. With an identity transform, the front side of an element faces the viewer. */
 	"backface-visibility": backfaceVisibility,
 	/** Shorthand property for setting most background properties at the same place in the style sheet. */
-	"background": background,
+	background: background,
 	/** Specifies whether the background images are fixed with regard to the viewport ('fixed') or scroll along with the element ('scroll') or its contents ('local'). */
 	"background-attachment": backgroundAttachment,
 	/** Defines the blending mode of each background layer. */
@@ -87,7 +87,7 @@ export const CSS = {
 	/** Size of an element in the direction opposite that of the direction specified by 'writing-mode'. */
 	"block-size": blockSize,
 	/** Shorthand property for setting border width, style, and color. */
-	"border": border,
+	border: border,
 	/** The border-block CSS property is a shorthand property for setting the individual logical block border property values in a single place in the style sheet. */
 	"border-block": borderBlock,
 	/** The border-block-color CSS property defines the color of the logical block borders of an element, which maps to a physical border color depending on the element's writing mode, directionality, and text orientation. It corresponds to the border-top-color and border-bottom-color, or border-right-color and border-left-color property depending on the values defined for writing-mode, direction, and text-orientation. */
@@ -209,7 +209,7 @@ export const CSS = {
 	/** Shorthand that sets the four 'border-*-width' properties. If it has four values, they set top, right, bottom and left in that order. If left is missing, it is the same as right; if bottom is missing, it is the same as top; if right is missing, it is the same as top. */
 	"border-width": borderWidth,
 	/** Specifies how far an absolutely positioned box's bottom margin edge is offset above the bottom edge of the box's 'containing block'. */
-	"bottom": bottom,
+	bottom: bottom,
 	/** The box-align CSS property specifies how an element aligns its contents across its layout in a perpendicular direction. The effect of the property is only visible if there is extra space in the box. */
 	"box-align": boxAlign,
 	/** Specifies whether individual boxes are treated as broken pieces of one continuous box, or whether each box is individually wrapped with the border and padding. */
@@ -241,21 +241,21 @@ export const CSS = {
 	/** Specifies the position of the caption box with respect to the table box. */
 	"caption-side": captionSide,
 	/** Shorthand for setting caret-color and caret-shape. */
-	"caret": caret,
+	caret: caret,
 	/** Controls the color of the text insertion indicator. */
 	"caret-color": caretColor,
 	/** Specifies the desired shape of the text insertion caret. */
 	"caret-shape": caretShape,
 	/** Indicates which sides of an element's box(es) may not be adjacent to an earlier floating box. The 'clear' property does not consider floats inside the element itself or in other block formatting contexts. */
-	"clear": clear,
+	clear: clear,
 	/** Deprecated. Use the 'clip-path' property when support allows. Defines the visible portion of an element's box. */
-	"clip": clip,
+	clip: clip,
 	/** Specifies a clipping path where everything inside the path is visible and everything outside is clipped out. */
 	"clip-path": clipPath,
 	/** Indicates the algorithm which is to be used to determine what parts of the canvas are included inside the shape. */
 	"clip-rule": clipRule,
 	/** Sets the color of an element's text */
-	"color": color,
+	color: color,
 	/** Specifies the color space for imaging operations performed via filter effects. */
 	"color-interpolation-filters": colorInterpolationFilters,
 	/** The color-scheme CSS property allows an element to indicate which color schemes it can comfortably be rendered in. */
@@ -279,9 +279,9 @@ export const CSS = {
 	/** Describes the width of columns in multicol elements. */
 	"column-width": columnWidth,
 	/** A shorthand property which sets both 'column-width' and 'column-count'. */
-	"columns": columns,
+	columns: columns,
 	/** Indicates that an element and its contents are, as much as possible, independent of the rest of the document tree. */
-	"contain": contain,
+	contain: contain,
 	/** Size of an element when the element is subject to size containment. */
 	"contain-intrinsic-size": containIntrinsicSize,
 	/** Block size of an element when the element is subject to size containment. */
@@ -293,13 +293,13 @@ export const CSS = {
 	/** Width of an element when the element is subject to size containment. */
 	"contain-intrinsic-width": containIntrinsicWidth,
 	/** The container shorthand CSS property establishes the element as a query container and specifies the name or name for the containment context used in a container query. */
-	"container": container,
+	container: container,
 	/** The container-name CSS property specifies a list of query container names used by the @container at-rule in a container query. */
 	"container-name": containerName,
 	/** The container-type CSS property is used to define the type of containment used in a container query. */
 	"container-type": containerType,
 	/** Determines which page-based occurrence of a given element is applied to a counter or string value. */
-	"content": content,
+	content: content,
 	/** Controls whether or not an element renders its contents at all, along with forcing a strong set of containments, allowing user agents to potentially omit large swathes of layout and rendering work until it becomes needed. */
 	"content-visibility": contentVisibility,
 	/** Manipulate the value of existing counters. */
@@ -309,17 +309,17 @@ export const CSS = {
 	/** The counter-set CSS property sets a CSS counter to a given value. It manipulates the value of existing counters, and will only create new counters if there isn't already a counter of the given name on the element. */
 	"counter-set": counterSet,
 	/** Allows control over cursor appearance in an element */
-	"cursor": cursor,
+	cursor: cursor,
 	/** The d CSS property defines a path to be drawn by the SVG path element. If present, it overrides the element's d attribute. */
-	"d": d,
+	d: d,
 	/** The cx CSS property defines the x-axis center point of an SVG circle or ellipse element. If present, it overrides the element's cx attribute. */
-	"cx": cx,
+	cx: cx,
 	/** The cy CSS property defines the y-axis center point of an SVG circle or ellipse elements. If present, it overrides the element's cy attribute. */
-	"cy": cy,
+	cy: cy,
 	/** Specifies the inline base direction or directionality of any bidi paragraph, embedding, isolate, or override established by the box. Note: for HTML content use the 'dir' attribute and 'bdo' element rather than this property. */
-	"direction": direction,
+	direction: direction,
 	/** In combination with 'float' and 'position', determines the type of box or boxes that are generated for an element. */
-	"display": display,
+	display: display,
 	/** The dominant-baseline CSS property specifies the specific baseline used to align the box's text and inline-level contents. It also indicates the default alignment baseline of any boxes participating in baseline alignment in the box's alignment context. If present, it overrides the shape's dominant-baseline attribute. */
 	"dominant-baseline": dominantBaseline,
 	/** In the separated borders model, this property controls the rendering of borders and backgrounds around cells that have no visible content. */
@@ -327,15 +327,15 @@ export const CSS = {
 	/** The field-sizing CSS property enables you to control the sizing behavior of elements that are given a default preferred size, such as form control elements. This property enables you to override the default sizing behavior, allowing form controls to adjust in size to fit their contents. */
 	"field-sizing": fieldSizing,
 	/** Paints the interior of the given graphical element. */
-	"fill": fill,
+	fill: fill,
 	/** Specifies the opacity of the painting operation used to paint the interior the current object. */
 	"fill-opacity": fillOpacity,
 	/** Indicates the algorithm (or winding rule) which is to be used to determine what parts of the canvas are included inside the shape. */
 	"fill-rule": fillRule,
 	/** Processes an element's rendering before it is displayed in the document, by applying one or more filter effects. */
-	"filter": filter,
+	filter: filter,
 	/** Specifies the components of a flexible length: the flex grow factor and flex shrink factor, and the flex basis. */
-	"flex": flex,
+	flex: flex,
 	/** Sets the flex basis. */
 	"flex-basis": flexBasis,
 	/** Specifies how flex items are placed in the flex container, by setting the direction of the flex container's main axis. */
@@ -349,9 +349,9 @@ export const CSS = {
 	/** Controls whether the flex container is single-line or multi-line, and the direction of the cross-axis, which determines the direction new lines are stacked in. */
 	"flex-wrap": flexWrap,
 	/** Specifies how a box should be floated. It may be set for any element, but only applies to elements that generate boxes that are not absolutely positioned. */
-	"float": float,
+	float: float,
 	/** Shorthand property for setting 'font-style', 'font-variant', 'font-weight', 'font-size', 'line-height', and 'font-family', at the same place in the style sheet. The syntax of this property is based on a traditional typographical shorthand notation to set multiple properties related to fonts. */
-	"font": font,
+	font: font,
 	/** Specifies a prioritized list of font family names or generic family names. A user agent iterates through the list of family names until it matches an available font that contains a glyph for the character to be rendered. */
 	"font-family": fontFamily,
 	/** Provides low-level control over OpenType font features. It is intended as a way of providing access to font features that are not widely used but are needed for a particular use case. */
@@ -407,9 +407,9 @@ export const CSS = {
 	/** Allows authors to opt certain elements out of forced colors mode. This then restores the control of those values to CSS */
 	"forced-color-adjust": forcedColorAdjust,
 	/** The gap CSS property is a shorthand property for row-gap and column-gap specifying the gutters between grid rows and columns. */
-	"gap": gap,
+	gap: gap,
 	/** The grid CSS property is a shorthand property that sets all of the explicit grid properties ('grid-template-rows', 'grid-template-columns', and 'grid-template-areas'), and all the implicit grid properties ('grid-auto-rows', 'grid-auto-columns', and 'grid-auto-flow'), in a single declaration. */
-	"grid": grid,
+	grid: grid,
 	/** Determine a grid item's size and location within the grid by contributing a line, a span, or nothing (automatic) to its grid placement. Shorthand for 'grid-row-start', 'grid-column-start', 'grid-row-end', and 'grid-column-end'. */
 	"grid-area": gridArea,
 	/** Specifies the size of implicitly created columns. */
@@ -447,13 +447,13 @@ export const CSS = {
 	/** The hanging-punctuation CSS property specifies whether a punctuation mark should hang at the start or end of a line of text. Hanging punctuation may be placed outside the line box. */
 	"hanging-punctuation": hangingPunctuation,
 	/** Specifies the height of the content area, padding area or border area (depending on 'box-sizing') of certain boxes. */
-	"height": height,
+	height: height,
 	/** A hyphenate character used at the end of a line. */
 	"hyphenate-character": hyphenateCharacter,
 	/** The hyphenate-limit-chars CSS property specifies the minimum word length to allow hyphenation of words as well as the minimum number of characters before and after the hyphen. */
 	"hyphenate-limit-chars": hyphenateLimitChars,
 	/** Controls whether hyphenation is allowed to create more break opportunities within a line of text. */
-	"hyphens": hyphens,
+	hyphens: hyphens,
 	/** Specifies an orthogonal rotation to be applied to an image before it is laid out. */
 	"image-orientation": imageOrientation,
 	/** Provides a hint to the user-agent about what aspects of an image are most important to preserve when the image is scaled, to aid the user-agent in the choice of an appropriate scaling algorithm. */
@@ -471,7 +471,7 @@ export const CSS = {
 	/** input-security */
 	"input-security": inputSecurity,
 	/** The inset CSS property defines the logical block and inline start and end offsets of an element, which map to physical offsets depending on the element's writing mode, directionality, and text orientation. It corresponds to the top and bottom, or right and left properties depending on the values defined for writing-mode, direction, and text-orientation. */
-	"inset": inset,
+	inset: inset,
 	/** The inset-block CSS property defines the logical block start and end offsets of an element, which maps to physical offsets depending on the element's writing mode, directionality, and text orientation. It corresponds to the top and bottom, or right and left properties depending on the values defined for writing-mode, direction, and text-orientation. */
 	"inset-block": insetBlock,
 	/** The inset-block-end CSS property defines the logical block end offset of an element, which maps to a physical offset depending on the element's writing mode, directionality, and text orientation. It corresponds to the top, right, bottom, or left property depending on the values defined for writing-mode, direction, and text-orientation. */
@@ -487,7 +487,7 @@ export const CSS = {
 	/** The interpolate-size CSS property allows you to enable animations and transitions between a <length-percentage> value and an intrinsic size value such as auto, fit-content, or max-content. */
 	"interpolate-size": interpolateSize,
 	/** In CSS setting to 'isolate' will turn the element into a stacking context. In SVG, it defines whether an element is isolated or not. */
-	"isolation": isolation,
+	isolation: isolation,
 	/** Aligns flex items along the main axis of the current line of the flex container. */
 	"justify-content": justifyContent,
 	/** Defines the default justify-self for all items of the box, giving them the default way of justifying each box along the appropriate axis */
@@ -497,7 +497,7 @@ export const CSS = {
 	/** The justify-tracks CSS property sets the alignment in the masonry axis for grid containers that have masonry in their inline axis */
 	"justify-tracks": justifyTracks,
 	/** Specifies how far an absolutely positioned box's left margin edge is offset to the right of the left edge of the box's 'containing block'. */
-	"left": left,
+	left: left,
 	/** Specifies the minimum, maximum, and optimal spacing between grapheme clusters. */
 	"letter-spacing": letterSpacing,
 	/** Specifies what set of line breaking restrictions are in effect within the element. */
@@ -517,7 +517,7 @@ export const CSS = {
 	/** Used to construct the default contents of a list item's marker */
 	"list-style-type": listStyleType,
 	/** Shorthand property to set values for the thickness of the margin area. If left is omitted, it is the same as right. If bottom is omitted it is the same as top, if right is omitted it is the same as top. Negative values for margin properties are allowed, but there may be implementation-specific limits. */
-	"margin": margin,
+	margin: margin,
 	/** The margin-block CSS property defines the logical block start and end margins of an element, which maps to physical margins depending on the element's writing mode, directionality, and text orientation. */
 	"margin-block": marginBlock,
 	/** Logical 'margin-bottom'. Mapping depends on the parent element's 'writing-mode', 'direction', and 'text-orientation'. */
@@ -541,7 +541,7 @@ export const CSS = {
 	/** The margin-trim property allows the container to trim the margins of its children where they adjoin the container’s edges. */
 	"margin-trim": marginTrim,
 	/** Specifies the marker symbol that shall be used for all points on the sets the value for all vertices on the given 'path' element or basic shape. */
-	"marker": marker,
+	marker: marker,
 	/** Specifies the marker that will be drawn at the last vertices of the given markable element. */
 	"marker-end": markerEnd,
 	/** Specifies the marker that will be drawn at all vertices except the first and last. */
@@ -549,7 +549,7 @@ export const CSS = {
 	/** Specifies the marker that will be drawn at the first vertices of the given markable element. */
 	"marker-start": markerStart,
 	/** The mask CSS property alters the visibility of an element by either partially or fully hiding it. This is accomplished by either masking or clipping the image at specific points. */
-	"mask": mask,
+	mask: mask,
 	/** The mask-border CSS property lets you create a mask along the edge of an element's border.
 
 This property is a shorthand for mask-border-source, mask-border-slice, mask-border-width, mask-border-outset, mask-border-repeat, and mask-border-mode. As with all shorthand properties, any omitted sub-values will be set to their initial value. */
@@ -619,7 +619,7 @@ The mask-border-slice property is used to divide the source image into regions, 
 	/** Determines the alignment of the replaced element inside its box. */
 	"object-position": objectPosition,
 	/** The offset CSS property is a shorthand property for animating an element along a defined path. */
-	"offset": offset,
+	offset: offset,
 	/** Defines an anchor point of the box positioned along the path. The anchor point specifies the point of the box which is to be considered as the point that is moved along the path. */
 	"offset-anchor": offsetAnchor,
 	/** The offset-distance CSS property specifies a position along an offset-path. */
@@ -633,13 +633,13 @@ In this specification, a direction (or rotation) of 0 degrees is equivalent to t
 	/** The offset-rotate CSS property defines the direction of the element while positioning along the offset path. */
 	"offset-rotate": offsetRotate,
 	/** Opacity of an element's text, where 1 is opaque and 0 is entirely transparent. */
-	"opacity": opacity,
+	opacity: opacity,
 	/** Controls the order in which children of a flex container appear within the flex container, by assigning them to ordinal groups. */
-	"order": order,
+	order: order,
 	/** Specifies the minimum number of line boxes in a block container that must be left in a fragment before a fragmentation break. */
-	"orphans": orphans,
+	orphans: orphans,
 	/** Shorthand property for 'outline-style', 'outline-width', and 'outline-color'. */
-	"outline": outline,
+	outline: outline,
 	/** The color of the outline. */
 	"outline-color": outlineColor,
 	/** Offset the outline and draw it beyond the border edge. */
@@ -649,7 +649,7 @@ In this specification, a direction (or rotation) of 0 degrees is equivalent to t
 	/** Width of the outline. */
 	"outline-width": outlineWidth,
 	/** Shorthand for setting 'overflow-x' and 'overflow-y'. */
-	"overflow": overflow,
+	overflow: overflow,
 	/** The overflow-anchor CSS property provides a way to opt out browser scroll anchoring behavior which adjusts scroll position to minimize content shifts. */
 	"overflow-anchor": overflowAnchor,
 	/** The overflow-block CSS media feature can be used to test how the output device handles content that overflows the initial containing block along the block axis. */
@@ -667,7 +667,7 @@ In this specification, a direction (or rotation) of 0 degrees is equivalent to t
 	/** Specifies the handling of overflow in the vertical direction. */
 	"overflow-y": overflowY,
 	/** The overlay CSS property specifies whether an element appearing in the top layer (for example, a shown popover or modal {{htmlelement("dialog")}} element) is actually rendered in the top layer. This property is only relevant within a list of transition-property values, and only if allow-discrete is set as the transition-behavior. */
-	"overlay": overlay,
+	overlay: overlay,
 	/** The overscroll-behavior CSS property is shorthand for the overscroll-behavior-x and overscroll-behavior-y properties, which allow you to control the browser's scroll overflow behavior — what happens when the boundary of a scrolling area is reached. */
 	"overscroll-behavior": overscrollBehavior,
 	/** The overscroll-behavior-block CSS property sets the browser's behavior when the block direction boundary of a scrolling area is reached. */
@@ -679,7 +679,7 @@ In this specification, a direction (or rotation) of 0 degrees is equivalent to t
 	/** The overscroll-behavior-y CSS property is allows you to control the browser's scroll overflow behavior — what happens when the boundary of a scrolling area is reached — in the y axis direction. */
 	"overscroll-behavior-y": overscrollBehaviorY,
 	/** Shorthand property to set values for the thickness of the padding area. If left is omitted, it is the same as right. If bottom is omitted it is the same as top, if right is omitted it is the same as top. The value may not be negative. */
-	"padding": padding,
+	padding: padding,
 	/** The padding-block CSS property defines the logical block start and end padding of an element, which maps to physical padding properties depending on the element's writing mode, directionality, and text orientation. */
 	"padding-block": paddingBlock,
 	/** Logical 'padding-bottom'. Mapping depends on the parent element's 'writing-mode', 'direction', and 'text-orientation'. */
@@ -701,7 +701,7 @@ In this specification, a direction (or rotation) of 0 degrees is equivalent to t
 	/** Shorthand property to set values for the thickness of the padding area. If left is omitted, it is the same as right. If bottom is omitted it is the same as top, if right is omitted it is the same as top. The value may not be negative. */
 	"padding-top": paddingTop,
 	/** The page CSS property is used to specify the named page, a specific type of page defined by the @page at-rule. */
-	"page": page,
+	page: page,
 	/** Defines rules for page breaks after an element. */
 	"page-break-after": pageBreakAfter,
 	/** Defines rules for page breaks before an element. */
@@ -711,7 +711,7 @@ In this specification, a direction (or rotation) of 0 degrees is equivalent to t
 	/** Controls the order that the three paint operations that shapes and text are rendered with: their fill, their stroke and any markers they might have. */
 	"paint-order": paintOrder,
 	/** Applies the same transform as the perspective(<number>) transform function, except that it applies only to the positioned or transformed children of the element, not to the transform on the element itself. */
-	"perspective": perspective,
+	perspective: perspective,
 	/** Establishes the origin for the perspective property. It effectively sets the X and Y position at which the viewer appears to be looking at the children of the element. */
 	"perspective-origin": perspectiveOrigin,
 	/** The place-content CSS shorthand property sets both the align-content and justify-content properties. */
@@ -723,7 +723,7 @@ In this specification, a direction (or rotation) of 0 degrees is equivalent to t
 	/** Specifies under what circumstances a given element can be the target element for a pointer event. */
 	"pointer-events": pointerEvents,
 	/** The position CSS property sets how an element is positioned in a document. The top, right, bottom, and left properties determine the final location of positioned elements. */
-	"position": position,
+	position: position,
 	/** The position-anchor property defines the default anchor specifier for all anchor functions on the element, allowing multiple elements to use the same set of anchor functions (and position options lists!) while changing which anchor element each is referring to. */
 	"position-anchor": positionAnchor,
 	/** The position-area CSS property enables an anchor-positioned element to be positioned relative to the edges of its associated anchor element by placing the positioned element on one or more tiles of an implicit 3x3 grid, where the anchoring element is the center cell. */
@@ -739,15 +739,15 @@ In this specification, a direction (or rotation) of 0 degrees is equivalent to t
 	/** Defines what optimization the user agent is allowed to do when adjusting the appearance for an output device. */
 	"print-color-adjust": printColorAdjust,
 	/** Specifies quotation marks for any number of embedded quotations. */
-	"quotes": quotes,
+	quotes: quotes,
 	/** The r CSS property defines the radius of a circle. It can only be used with the SVG circle element. If present, it overrides the circle's r attribute. */
-	"r": r,
+	r: r,
 	/** Specifies whether or not an element is resizable by the user, and if so, along which axis/axes. */
-	"resize": resize,
+	resize: resize,
 	/** Specifies how far an absolutely positioned box's right margin edge is offset to the left of the right edge of the box's 'containing block'. */
-	"right": right,
+	right: right,
 	/** The rotate CSS property allows you to specify rotation transforms individually and independently of the transform property. This maps better to typical user interface usage, and saves having to remember the exact order of transform functions to specify in the transform value. */
-	"rotate": rotate,
+	rotate: rotate,
 	/** The row-gap CSS property specifies the gutter between grid rows. */
 	"row-gap": rowGap,
 	/** Specifies how text is distributed within the various ruby boxes when their contents do not exactly fill their respective boxes. */
@@ -757,11 +757,11 @@ In this specification, a direction (or rotation) of 0 degrees is equivalent to t
 	/** Used by the parent of elements with display: ruby-text to control the position of the ruby text with respect to its base. */
 	"ruby-position": rubyPosition,
 	/** The rx CSS property defines the x-axis, or horizontal, radius of an SVG ellipse and the horizontal curve of the corners of an SVG rect rectangle. If present, it overrides the shape's rx attribute. */
-	"rx": rx,
+	rx: rx,
 	/** The ry CSS property defines the y-axis, or vertical, radius of an SVG ellipse and the vertical curve of the corners of an SVG rect rectangle. If present, it overrides the shape's ry attribute. */
-	"ry": ry,
+	ry: ry,
 	/** The scale CSS property allows you to specify scale transforms individually and independently of the transform property. This maps better to typical user interface usage, and saves having to remember the exact order of transform functions to specify in the transform value. */
-	"scale": scale,
+	scale: scale,
 	/** The scrollbar-color CSS property sets the color of the scrollbar track and thumb. */
 	"scrollbar-color": scrollbarColor,
 	/** The scrollbar-gutter CSS property allows authors to reserve space for the scrollbar, preventing unwanted layout changes as the content grows while also avoiding unnecessary visuals when scrolling isn't needed. */
@@ -851,7 +851,7 @@ Specifying any precise animations or physics used to enforce those snap points i
 	/** Provides hints about what tradeoffs to make as it renders vector graphics elements such as <path> elements and basic shapes such as circles and rectangles. */
 	"shape-rendering": shapeRendering,
 	/** Paints along the outline of the given graphical element. */
-	"stroke": stroke,
+	stroke: stroke,
 	/** Controls the pattern of dashes and gaps used to stroke paths. */
 	"stroke-dasharray": strokeDasharray,
 	/** Specifies the distance into the dash pattern to start the dash. */
@@ -933,11 +933,11 @@ This is used to produce an effect that is known as tate-chū-yoko (縦中横) in
 	/** The timeline-scope CSS property modifies the scope of a named animation timeline. */
 	"timeline-scope": timelineScope,
 	/** Specifies how far an absolutely positioned box's top margin edge is offset below the top edge of the box's 'containing block'. */
-	"top": top,
+	top: top,
 	/** Determines whether touch input may trigger default behavior supplied by user agent. */
 	"touch-action": touchAction,
 	/** A two-dimensional transformation is applied to an element through the 'transform' property. This property contains a list of transform functions similar to those allowed by SVG. */
-	"transform": transform,
+	transform: transform,
 	/** The transform-box CSS property defines the layout box to which the transform and transform-origin properties relate. */
 	"transform-box": transformBox,
 	/** Establishes the origin of transformation for an element. */
@@ -945,7 +945,7 @@ This is used to produce an effect that is known as tate-chū-yoko (縦中横) in
 	/** Defines how nested elements are rendered in 3D space. */
 	"transform-style": transformStyle,
 	/** Shorthand property combines four of the transition properties into a single property. */
-	"transition": transition,
+	transition: transition,
 	/** The transition-behavior CSS property specifies whether transitions will be started for properties whose animation behavior is discrete. */
 	"transition-behavior": transitionBehavior,
 	/** Defines when the transition will start. It allows a transition to begin execution some period of time from when it is applied. */
@@ -957,7 +957,7 @@ This is used to produce an effect that is known as tate-chū-yoko (縦中横) in
 	/** Describes how the intermediate values used during a transition will be calculated. */
 	"transition-timing-function": transitionTimingFunction,
 	/** The translate CSS property allows you to specify translation transforms individually and independently of the transform property. This maps better to typical user interface usage, and saves having to remember the exact order of transform functions to specify in the transform value. */
-	"translate": translate,
+	translate: translate,
 	/** The level of embedding with respect to the bidirectional algorithm. */
 	"unicode-bidi": unicodeBidi,
 	/** Controls the appearance of selection. */
@@ -977,15 +977,15 @@ This is used to produce an effect that is known as tate-chū-yoko (縦中横) in
 	/** The view-transition-name CSS property provides the selected element with a distinct identifying name (a custom-ident) and causes it to participate in a separate view transition from the root view transition — or no view transition if the none value is specified. */
 	"view-transition-name": viewTransitionName,
 	/** Specifies whether the boxes generated by an element are rendered. Invisible boxes still affect layout (set the 'display' property to 'none' to suppress box generation altogether). */
-	"visibility": visibility,
+	visibility: visibility,
 	/** Specifies how whitespace is handled in an element. */
 	"white-space": whiteSpace,
 	/** The white-space-collapse CSS property controls how white space inside an element is collapsed. */
 	"white-space-collapse": whiteSpaceCollapse,
 	/** Specifies the minimum number of line boxes of a block container that must be left in a fragment after a break. */
-	"widows": widows,
+	widows: widows,
 	/** Specifies the width of the content area, padding area or border area (depending on 'box-sizing') of certain boxes. */
-	"width": width,
+	width: width,
 	/** Provides a rendering hint to the user agent, stating what kinds of changes the author expects to perform on the element. */
 	"will-change": willChange,
 	/** Specifies line break opportunities for non-CJK scripts. */
@@ -997,21 +997,21 @@ This is used to produce an effect that is known as tate-chū-yoko (縦中横) in
 	/** This is a shorthand property for both 'direction' and 'block-progression'. */
 	"writing-mode": writingMode,
 	/** The x CSS property defines the x-axis coordinate of the top left corner of the SVG rect shape, image image, foreignObject viewport or nested svg viewport relative to the nearest <svg> ancestor's user coordinate system. If present, it overrides the element's x attribute. */
-	"x": x,
+	x: x,
 	/** The y CSS property defines the y-axis coordinate of the top left corner of the SVG rect shape, image image, foreignObject viewport and nested svg viewport relative to the nearest <svg> ancestor's user coordinate system. If present, it overrides the element's y attribute. */
-	"y": y,
+	y: y,
 	/** For a positioned box, the 'z-index' property specifies the stack level of the box in the current stacking context and whether the box establishes a local stacking context. */
 	"z-index": zIndex,
 	/** Non-standard. Specifies the magnification scale of the object. See 'transform: scale()' for a standards-based alternative. */
-	"zoom": zoom,
+	zoom: zoom,
 	/** The alignment-baseline CSS property specifies the specific baseline used to align the box's text and inline-level contents. Baseline alignment is the relationship among the baselines of multiple alignment subjects within an alignment context. When performing baseline alignment, the alignment-baseline property value specifies which baseline of the box is aligned to the corresponding baseline of its alignment context. */
 	"alignment-baseline": alignmentBaseline,
 	/** Allows repositioning of the dominant-baseline relative to the dominant-baseline of the parent text content element. The shifted object might be a sub- or superscript. */
 	"baseline-shift": baselineShift,
 	/** IE only. Used to extend behaviors of the browser. */
-	"behavior": behavior,
+	behavior: behavior,
 	/** cue */
-	"cue": cue,
+	cue: cue,
 	/** cue-after */
 	"cue-after": cueAfter,
 	/** cue-before */
@@ -1021,23 +1021,23 @@ This is used to produce an effect that is known as tate-chū-yoko (縦中横) in
 	/** Controls glyph orientation when the inline-progression-direction is vertical. */
 	"glyph-orientation-vertical": glyphOrientationVertical,
 	/** Indicates whether the user agent should adjust inter-glyph spacing based on kerning tables that are included in the relevant font or instead disable auto-kerning and set inter-character spacing to a specific length. */
-	"kerning": kerning,
+	kerning: kerning,
 	/** pause */
-	"pause": pause,
+	pause: pause,
 	/** pause-after */
 	"pause-after": pauseAfter,
 	/** pause-before */
 	"pause-before": pauseBefore,
 	/** rest */
-	"rest": rest,
+	rest: rest,
 	/** rest-after */
 	"rest-after": restAfter,
 	/** rest-before */
 	"rest-before": restBefore,
 	/** @font-face descriptor. Specifies the resource containing font data. It is required, whether the font is downloadable or locally installed. */
-	"src": src,
+	src: src,
 	/** speak */
-	"speak": speak,
+	speak: speak,
 	/** The speak-as descriptor specifies how a counter symbol constructed with a given @counter-style will be represented in the spoken form. For example, an author can specify a counter symbol to be either spoken as its numerical value or just represented with an audio cue. */
 	"speak-as": speakAs,
 	/** @font-face descriptor. Defines the set of Unicode codepoints that may be supported by the font face for which it is declared. */
@@ -1063,11 +1063,11 @@ This is used to produce an effect that is known as tate-chū-yoko (縦中横) in
 	/** @counter-style descriptor. Specifies the symbols used by the marker-construction algorithm specified by the system descriptor. Needs to be specified if the counter system is 'additive'. */
 	"additive-symbols": additiveSymbols,
 	/** Provides alternative text for assistive technology to replace the generated content of a ::before or ::after element. */
-	"alt": alt,
+	alt: alt,
 	/** Deprecated. Use 'isolation' property instead when support allows. Specifies how the accumulation of the background image is managed. */
 	"enable-background": enableBackground,
 	/** @counter-style descriptor. Specifies a fallback counter style to be used when the current counter style can't create a representation for a given counter value. */
-	"fallback": fallback,
+	fallback: fallback,
 	/** Indicates what color to use to flood the current filter primitive subregion. */
 	"flood-color": floodColor,
 	/** Indicates what opacity to use to flood the current filter primitive subregion. */
@@ -1075,7 +1075,7 @@ This is used to produce an effect that is known as tate-chū-yoko (縦中横) in
 	/** Defines the color of the light source for filter primitives 'feDiffuseLighting' and 'feSpecularLighting'. */
 	"lighting-color": lightingColor,
 	/** Shorthand property for setting 'motion-path', 'motion-offset' and 'motion-rotation'. */
-	"motion": motion,
+	motion: motion,
 	/** A distance that describes the position along the specified motion path. */
 	"motion-offset": motionOffset,
 	/** Specifies the motion path the element gets positioned at. */
@@ -1093,7 +1093,7 @@ This is used to produce an effect that is known as tate-chū-yoko (縦中横) in
 	/** Provides an way to control directional focus navigation. */
 	"nav-up": navUp,
 	/** @counter-style descriptor. Defines how to alter the representation when the counter value is negative. */
-	"negative": negative,
+	negative: negative,
 	/** Logical 'bottom'. Mapping depends on the parent element's 'writing-mode', 'direction', and 'text-orientation'. */
 	"offset-block-end": offsetBlockEnd,
 	/** Logical 'top'. Mapping depends on the parent element's 'writing-mode', 'direction', and 'text-orientation'. */
@@ -1103,11 +1103,11 @@ This is used to produce an effect that is known as tate-chū-yoko (縦中横) in
 	/** Logical 'left'. Mapping depends on the parent element's 'writing-mode', 'direction', and 'text-orientation'. */
 	"offset-inline-start": offsetInlineStart,
 	/** @counter-style descriptor. Specifies a "fixed-width" counter style, where representations shorter than the pad value are padded with a particular <symbol> */
-	"pad": pad,
+	pad: pad,
 	/** @counter-style descriptor. Specifies a <symbol> that is prepended to the marker representation. */
-	"prefix": prefix,
+	prefix: prefix,
 	/** @counter-style descriptor. Defines the ranges over which the counter style is defined. */
-	"range": range,
+	range: range,
 	/** Determines whether, and on which side, ruby text is allowed to partially overhang any adjacent text in addition to its own base, when the ruby text is wider than the ruby base. */
 	"ruby-overhang": rubyOverhang,
 	/** Determines whether, and on which side, ruby text is allowed to partially overhang any adjacent text in addition to its own base, when the ruby text is wider than the ruby base. */
@@ -1129,17 +1129,17 @@ This is used to produce an effect that is known as tate-chū-yoko (縦中横) in
 	/** Determines the color of the track element of a scroll bar. */
 	"scrollbar-track-color": scrollbarTrackColor,
 	/** The size CSS at-rule descriptor, used with the @page at-rule, defines the size and orientation of the box which is used to represent a page. Most of the time, this size corresponds to the target size of the printed page if applicable. */
-	"size": size,
+	size: size,
 	/** Indicates what color to use at that gradient stop. */
 	"stop-color": stopColor,
 	/** Defines the opacity of a given gradient stop. */
 	"stop-opacity": stopOpacity,
 	/** @counter-style descriptor. Specifies a <symbol> that is appended to the marker representation. */
-	"suffix": suffix,
+	suffix: suffix,
 	/** @counter-style descriptor. Specifies which algorithm will be used to construct the counter's representation based on the counter value. */
-	"system": system,
+	system: system,
 	/** @counter-style descriptor. Specifies the symbols used by the marker-construction algorithm specified by the system descriptor. */
-	"symbols": symbols,
+	symbols: symbols,
 	/** font-width */
 	"font-width": fontWidth,
 	/** Defines a rectangle as a viewable area (viewbox) within a replaced element, enabling the content of the replaced element to be zoomed or panned. */
@@ -1173,21 +1173,21 @@ This is used to produce an effect that is known as tate-chū-yoko (縦中横) in
 	/** The override-colors CSS descriptor is used to override colors in the chosen base-palette for a color font. */
 	"override-colors": overrideColors,
 	/** The bleed CSS at-rule descriptor, used with the @page at-rule, specifies the extent of the page bleed area outside the page box. This property only has effect if crop marks are enabled using the marks property. */
-	"bleed": bleed,
+	bleed: bleed,
 	/** The marks CSS at-rule descriptor, used with the @page at-rule, adds crop and/or cross marks to the presentation of the document. Crop marks indicate where the page should be cut. Cross marks are used to align sheets. */
-	"marks": marks,
+	marks: marks,
 	/** The page-orientation CSS descriptor for the @page at-rule controls the rotation of a printed page. It handles the flow of content across pages when the orientation of a page is changed. This behavior differs from the size descriptor in that a user can define the direction in which to rotate the page. */
 	"page-orientation": pageOrientation,
 	/** Specifies the inherit flag of the custom property registration represented by the @property rule, controlling whether or not the property inherits by default. */
-	"inherits": inherits,
+	inherits: inherits,
 	/** Specifies the initial value of the custom property registration represented by the @property rule, controlling the property’s initial value. */
 	"initial-value": initialValue,
 	/** Specifies the syntax of the custom property registration represented by the @property rule, controlling how the property’s value is parsed at computed value time. */
-	"syntax": syntax,
+	syntax: syntax,
 	/** navigation */
-	"navigation": navigation,
+	navigation: navigation,
 	/** types */
-	"types": types,
+	types: types,
 } as const;
 
 export type CSSPropertyName = keyof typeof CSS;

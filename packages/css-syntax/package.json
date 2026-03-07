@@ -57,7 +57,7 @@
 		}
 	},
 	"scripts": {
-		"build": "bun build ./src/index.ts --outdir ./dist --target node && bun build ./src/lexer/index.ts --outdir ./dist/lexer --target node && bun build ./src/parser/index.ts --outdir ./dist/parser --target node && bun build ./src/generator/index.ts --outdir ./dist/generator --target node && bun build ./src/walker/index.ts --outdir ./dist/walker --target node && tsgo --emit",
+		"build": "bun build ./src/index.ts --outdir ./dist --target node && bun build ./src/lexer/index.ts --outdir ./dist/lexer --target node && bun build ./src/parser/index.ts --outdir ./dist/parser --target node && bun build ./src/generator/index.ts --outdir ./dist/generator --target node && bun build ./src/walker/index.ts --outdir ./dist/walker --target node",
 		"test": "vitest",
 		"benchmark": "vitest run --reporter=verbose src/lexer/benchmarks.test.ts src/parser/benchmarks.test.ts",
 		"typecheck": "tsgo --noEmit",

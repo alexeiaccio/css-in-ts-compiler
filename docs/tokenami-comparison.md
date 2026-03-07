@@ -9,6 +9,7 @@ This document analyzes how [Tokenami](https://tokenami.com) handles design token
 Tokenami is a utility-first CSS library for type-safe design systems. It uses atomic CSS variables—no runtime injection, no class soup, no bundler required—just predictable styling with atomic CSS variables.
 
 Key characteristics:
+
 - **CSS variable-first**: Converts any CSS property to a variable (`padding` → `--padding`)
 - **TypeScript plugin**: Provides autocomplete and type safety
 - **CLI-first**: Generate static CSS without bundler integration
@@ -25,25 +26,25 @@ Tokenami defines tokens in a config file:
 
 ```typescript
 // .tokenami/tokenami.config.ts
-import { createConfig } from '@tokenami/css';
+import { createConfig } from "@tokenami/css";
 
 export default createConfig({
-  theme: {
-    color: {
-      'slate-100': '#f1f5f9',
-      'slate-700': '#334155',
-      'sky-500': '#0ea5e9',
-    },
-    radii: {
-      rounded: '10px',
-      circle: '9999px',
-    },
-    spacing: {
-      1: '0.25rem',
-      2: '0.5rem',
-      4: '1rem',
-    },
-  },
+	theme: {
+		color: {
+			"slate-100": "#f1f5f9",
+			"slate-700": "#334155",
+			"sky-500": "#0ea5e9",
+		},
+		radii: {
+			rounded: "10px",
+			circle: "9999px",
+		},
+		spacing: {
+			1: "0.25rem",
+			2: "0.5rem",
+			4: "1rem",
+		},
+	},
 });
 ```
 
@@ -51,10 +52,10 @@ This generates CSS variables:
 
 ```css
 :root {
-  --color_slate-100: #f1f5f9;
-  --color_slate-700: #334155;
-  --radii_rounded: 10px;
-  --radii_circle: 9999px;
+	--color_slate-100: #f1f5f9;
+	--color_slate-700: #334155;
+	--radii_rounded: 10px;
+	--radii_circle: 9999px;
 }
 ```
 
@@ -62,19 +63,19 @@ This generates CSS variables:
 
 ```typescript
 export default createConfig({
-  theme: {
-    modes: {
-      light: {
-        color: { primary: '#f1f5f9' },
-      },
-      dark: {
-        color: { primary: '#0ea5e9' },
-      },
-    },
-    root: {
-      radii: { rounded: '10px' },
-    },
-  },
+	theme: {
+		modes: {
+			light: {
+				color: { primary: "#f1f5f9" },
+			},
+			dark: {
+				color: { primary: "#0ea5e9" },
+			},
+		},
+		root: {
+			radii: { rounded: "10px" },
+		},
+	},
 });
 ```
 
@@ -83,14 +84,14 @@ export default createConfig({
 ```typescript
 // tokens.ts - W3C DTCG format
 const defaultTokens = {
-  color: {
-    primary: { $value: "#3b82f6", $type: "color" },
-    secondary: { $value: "#6366f1", $type: "color" },
-  },
-  spacing: {
-    1: { $value: "0.25rem", $type: "dimension" },
-    2: { $value: "0.5rem", $type: "dimension" },
-  }
+	color: {
+		primary: { $value: "#3b82f6", $type: "color" },
+		secondary: { $value: "#6366f1", $type: "color" },
+	},
+	spacing: {
+		1: { $value: "0.25rem", $type: "dimension" },
+		2: { $value: "0.5rem", $type: "dimension" },
+	},
 };
 ```
 
@@ -128,17 +129,22 @@ function Button(props) {
 Output HTML:
 
 ```html
-<button class="tk-abc" style="--background: var(--color_primary); --color: var(--color_white); --padding: var(--spacing_4); --border-radius: var(--radii_rounded);">Click</button>
+<button
+	class="tk-abc"
+	style="--background: var(--color_primary); --color: var(--color_white); --padding: var(--spacing_4); --border-radius: var(--radii_rounded);"
+>
+	Click
+</button>
 ```
 
 Generated CSS (extracted to stylesheet):
 
 ```css
 .tk-abc {
-  background: var(--color_primary);
-  color: var(--color_white);
-  padding: var(--spacing_4);
-  border-radius: var(--radii_rounded);
+	background: var(--color_primary);
+	color: var(--color_white);
+	padding: var(--spacing_4);
+	border-radius: var(--radii_rounded);
 }
 ```
 
@@ -181,7 +187,7 @@ export default createConfig({
 });
 
 // Usage
-<div style={css({ '--padding': 2 })} /> 
+<div style={css({ '--padding': 2 })} />
 // Output: padding: 8px (2 * 4px grid)
 ```
 
@@ -189,9 +195,9 @@ export default createConfig({
 
 ```typescript
 const button = style("button", {
-  backgroundColor: "primary",
-  padding: "1rem",
-  borderRadius: "rounded",
+	backgroundColor: "primary",
+	padding: "1rem",
+	borderRadius: "rounded",
 });
 ```
 
@@ -199,17 +205,17 @@ const button = style("button", {
 
 ## Detailed Comparison
 
-| Aspect | Tokenami | Our Approach |
-|--------|----------|--------------|
-| **Class names** | Short (`.tk-abc`) | Scoped (`.button__hash`) |
-| **Token format** | TypeScript config | W3C DTCG JSON |
-| **CSS variables** | Atomic (`--color_primary`) | Simple (`--spacing-md`) |
-| **Styling model** | CSS variable in style | Class + inline |
-| **Theming** | Multiple modes | Theme registry |
-| **Build output** | Static CSS + inline | Extract to CSS |
-| **Zero-runtime** | Yes (static + inline vars) | Yes (static) |
-| **Type safety** | Full TypeScript | Full TypeScript |
-| **Framework** | CLI + TS plugin | Vite (oxc) |
+| Aspect            | Tokenami                   | Our Approach             |
+| ----------------- | -------------------------- | ------------------------ |
+| **Class names**   | Short (`.tk-abc`)          | Scoped (`.button__hash`) |
+| **Token format**  | TypeScript config          | W3C DTCG JSON            |
+| **CSS variables** | Atomic (`--color_primary`) | Simple (`--spacing-md`)  |
+| **Styling model** | CSS variable in style      | Class + inline           |
+| **Theming**       | Multiple modes             | Theme registry           |
+| **Build output**  | Static CSS + inline        | Extract to CSS           |
+| **Zero-runtime**  | Yes (static + inline vars) | Yes (static)             |
+| **Type safety**   | Full TypeScript            | Full TypeScript          |
+| **Framework**     | CLI + TS plugin            | Vite (oxc)               |
 
 ---
 
@@ -234,6 +240,7 @@ Instead of utility classes, Tokenami uses CSS variables:
 ```
 
 Benefits:
+
 - No class soup in HTML
 - One class per component
 - Consumer overrides via CSS variables
@@ -257,13 +264,14 @@ This makes it work with any setup—static HTML, PHP, Rails, etc.
 ```json
 // tsconfig.json
 {
-  "compilerOptions": {
-    "plugins": [{ "name": "tokenami" }]
-  }
+	"compilerOptions": {
+		"plugins": [{ "name": "tokenami" }]
+	}
 }
 ```
 
 Provides:
+
 - Autocomplete for CSS variables
 - Type checking for theme values
 - IntelliSense for properties
@@ -318,6 +326,7 @@ export default createConfig({
 ### 1. W3C DTCG Compliance
 
 Our token format follows the design tokens standard:
+
 - Better interoperability with design tools
 - Token references: `{color.primary}`
 - Metadata support
@@ -330,13 +339,14 @@ const button = style("button", { color: "red" });
 // Generates: .button__a1b2c3d4
 
 // Tokenami - shared classes
-const button = css.compose({ '--color': 'red' });
+const button = css.compose({ "--color": "red" });
 // Generates: .tk-abc (could collide)
 ```
 
 ### 3. Registry Pattern
 
 Runtime registry for:
+
 - SSR hydration
 - Style extraction
 - Dynamic theming
@@ -380,10 +390,10 @@ const button = style("button", {
 ```typescript
 // Proposed
 const button = compose({
-  base: { '--bg': 'blue' },
-  variants: {
-    size: { sm: { '--p': 2 }, lg: { '--p': 4 } },
-  },
+	base: { "--bg": "blue" },
+	variants: {
+		size: { sm: { "--p": 2 }, lg: { "--p": 4 } },
+	},
 });
 ```
 
@@ -406,21 +416,22 @@ const styles = style("el", { padding: 4 }); // 4 * grid
 
 ## Comparison: All Five Frameworks
 
-| Aspect | SugarCube | StyleX | Vanilla-Extract | Tailwind v4 | Tokenami | Our Approach |
-|--------|-----------|--------|-----------------|-------------|----------|--------------|
-| **Class names** | Semantic | Atomic | Scoped | Utility | Short | Scoped |
-| **Token format** | DTCG | JS | JS | CSS @theme | TS Config | DTCG |
-| **CSS output** | Variables | Atomic | Static CSS | Utilities | Var classes | Extract |
-| **Runtime** | Zero | Zero | Zero | Zero | ~2.5kb | Zero |
-| **Type safety** | Partial | Full | Full | Limited | Full | Full |
-| **Theming** | Modifiers | defineVars | createTheme | CSS vars | Modes | Registry |
-| **Bundler** | Vite | Babel | Multiple | Vite/PostCSS | CLI (none) | Vite |
+| Aspect           | SugarCube | StyleX     | Vanilla-Extract | Tailwind v4  | Tokenami    | Our Approach |
+| ---------------- | --------- | ---------- | --------------- | ------------ | ----------- | ------------ |
+| **Class names**  | Semantic  | Atomic     | Scoped          | Utility      | Short       | Scoped       |
+| **Token format** | DTCG      | JS         | JS              | CSS @theme   | TS Config   | DTCG         |
+| **CSS output**   | Variables | Atomic     | Static CSS      | Utilities    | Var classes | Extract      |
+| **Runtime**      | Zero      | Zero       | Zero            | Zero         | ~2.5kb      | Zero         |
+| **Type safety**  | Partial   | Full       | Full            | Limited      | Full        | Full         |
+| **Theming**      | Modifiers | defineVars | createTheme     | CSS vars     | Modes       | Registry     |
+| **Bundler**      | Vite      | Babel      | Multiple        | Vite/PostCSS | CLI (none)  | Vite         |
 
 ---
 
 ## Conclusion
 
 Tokenami excels at:
+
 - CSS variable-first approach (no class soup)
 - No bundler required (CLI-only)
 - TypeScript plugin for autocomplete
@@ -429,6 +440,7 @@ Tokenami excels at:
 - Small runtime
 
 Our approach excels at:
+
 - W3C DTCG token compliance
 - Component isolation via hashing
 - Zero runtime overhead

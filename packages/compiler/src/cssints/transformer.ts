@@ -5,24 +5,29 @@
  * css.* function calls. For production, you'd want to use OXC AST-based approach.
  */
 
+import { generateHash } from "./hash";
 import * as cssints from "./index";
 import { registry, StyleEntry } from "./registry";
-import { generateHash } from "./hash";
 
 export interface TransformOptions {
 	debug?: boolean;
 }
 
-export function transformCode(code: string, fileId: string, options: TransformOptions = {}): {
+export function transformCode(
+	code: string,
+	fileId: string,
+	options: TransformOptions = {},
+): {
 	code: string;
 	css: string;
 } {
 	const debug = options.debug || false;
 
 	// Find cssints imports
-	const importRegex = /import\s+\*\s+as\s+(\w+)\s+from\s+['"]cssints['"]\s+with\s*\{[^}]*type:\s*['"]cssints['"][^}]*\}/;
+	const importRegex =
+		/import\s+\*\s+as\s+(\w+)\s+from\s+['"]cssints['"]\s+with\s*\{[^}]*type:\s*['"]cssints['"][^}]*\}/;
 	const importMatch = code.match(importRegex);
-	
+
 	if (!importMatch) {
 		return { code, css: "" };
 	}
@@ -31,8 +36,8 @@ export function transformCode(code: string, fileId: string, options: TransformOp
 
 	// Find all css.* function calls
 	// Pattern: css.functionName(args)
-	const callPattern = new RegExp(`${cssVar}\\.(\\w+)\\s*\\(([^)]*)\\)`, 'g');
-	
+	const callPattern = new RegExp(`${cssVar}\\.(\\w+)\\s*\\(([^)]*)\\)`, "g");
+
 	let hasChanges = false;
 	let transformedCode = code;
 	const replacements: { start: number; end: number; replacement: string }[] = [];
@@ -42,13 +47,13 @@ export function transformCode(code: string, fileId: string, options: TransformOp
 		const fullMatch = match[0];
 		const fnName = match[1] as string;
 		const argsStr = match[2] as string;
-		
+
 		const start = match.index as number;
 		const end = start + fullMatch.length;
 
 		// Get the cssints function
 		const cssintsFn = (cssints as any)[fnName];
-		
+
 		if (typeof cssintsFn !== "function") {
 			if (debug) {
 				console.log(`[cssints] Unknown function: css.${fnName}`);
@@ -58,7 +63,7 @@ export function transformCode(code: string, fileId: string, options: TransformOp
 
 		// Parse arguments
 		const args = parseArguments(argsStr);
-		
+
 		// Evaluate the function
 		let result: any;
 		try {
@@ -72,7 +77,7 @@ export function transformCode(code: string, fileId: string, options: TransformOp
 
 		// Convert result to CSS properties
 		const cssProps = normalizeResult(result);
-		
+
 		if (!cssProps || Object.keys(cssProps).length === 0) {
 			if (debug) {
 				console.log(`[cssints] No CSS properties from css.${fnName}(${argsStr})`);
@@ -82,7 +87,7 @@ export function transformCode(code: string, fileId: string, options: TransformOp
 
 		// Generate class name
 		const className = generateClassName(cssProps);
-		
+
 		// Register the style
 		registry.register({
 			fileId,
@@ -110,7 +115,7 @@ export function transformCode(code: string, fileId: string, options: TransformOp
 
 	// Apply replacements (in reverse order to maintain correct positions)
 	const sortedReplacements = replacements.sort((a, b) => b.start - a.start);
-	
+
 	for (const { start, end, replacement } of sortedReplacements) {
 		transformedCode = transformedCode.slice(0, start) + replacement + transformedCode.slice(end);
 	}
@@ -136,7 +141,7 @@ function parseArguments(argsStr: string): any[] {
 	for (let i = 0; i < argsStr.length; i++) {
 		const char = argsStr[i];
 
-		if ((char === '"' || char === "'") && argsStr[i - 1] !== '\\') {
+		if ((char === '"' || char === "'") && argsStr[i - 1] !== "\\") {
 			if (!inString) {
 				inString = true;
 				stringChar = char;
@@ -148,13 +153,13 @@ function parseArguments(argsStr: string): any[] {
 				current += char;
 			}
 		} else if (!inString) {
-			if (char === '(' || char === '[' || char === '{') {
+			if (char === "(" || char === "[" || char === "{") {
 				depth++;
 				current += char;
-			} else if (char === ')' || char === ']' || char === '}') {
+			} else if (char === ")" || char === "]" || char === "}") {
 				depth--;
 				current += char;
-			} else if (char === ',' && depth === 0) {
+			} else if (char === "," && depth === 0) {
 				args.push(parseValue(current.trim()));
 				current = "";
 			} else {
@@ -174,10 +179,9 @@ function parseArguments(argsStr: string): any[] {
 
 function parseValue(value: string): any {
 	if (!value) return undefined;
-	
+
 	// String literal
-	if ((value.startsWith('"') && value.endsWith('"')) || 
-	    (value.startsWith("'") && value.endsWith("'"))) {
+	if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
 		return value.slice(1, -1);
 	}
 
@@ -212,7 +216,7 @@ function parseValue(value: string): any {
 function parseObjectLiteral(str: string): Record<string, any> {
 	const inner = str.slice(1, -1);
 	const result: Record<string, any> = {};
-	
+
 	if (!inner.trim()) return result;
 
 	let current = "";
@@ -224,7 +228,7 @@ function parseObjectLiteral(str: string): Record<string, any> {
 	for (let i = 0; i < inner.length; i++) {
 		const char = inner[i];
 
-		if ((char === '"' || char === "'") && inner[i - 1] !== '\\') {
+		if ((char === '"' || char === "'") && inner[i - 1] !== "\\") {
 			if (!inString) {
 				inString = true;
 				stringChar = char;
@@ -233,17 +237,17 @@ function parseObjectLiteral(str: string): Record<string, any> {
 			}
 			current += char;
 		} else if (!inString) {
-			if (char === ':' && depth === 0 && !key) {
+			if (char === ":" && depth === 0 && !key) {
 				key = current.trim();
 				current = "";
-			} else if (char === ',' && depth === 0) {
+			} else if (char === "," && depth === 0) {
 				result[key] = parseValue(current.trim());
 				key = "";
 				current = "";
-			} else if (char === '(' || char === '[' || char === '{') {
+			} else if (char === "(" || char === "[" || char === "{") {
 				depth++;
 				current += char;
-			} else if (char === ')' || char === ']' || char === '}') {
+			} else if (char === ")" || char === "]" || char === "}") {
 				depth--;
 				current += char;
 			} else {

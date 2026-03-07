@@ -322,7 +322,10 @@ function combineWithCombinators(nodes: SyntaxNode[], tokens: Token[]): SyntaxNod
 			const rightNodes = nodes.slice(Math.floor(nodes.length / 2));
 			return {
 				type: "or",
-				items: [combineWithCombinators(leftNodes, tokens.slice(0, i)), combineWithCombinators(rightNodes, tokens.slice(i + 1))],
+				items: [
+					combineWithCombinators(leftNodes, tokens.slice(0, i)),
+					combineWithCombinators(rightNodes, tokens.slice(i + 1)),
+				],
 			};
 		}
 		i++;
@@ -337,7 +340,10 @@ function combineWithCombinators(nodes: SyntaxNode[], tokens: Token[]): SyntaxNod
 			const rightNodes = nodes.slice(Math.floor(nodes.length / 2));
 			return {
 				type: "and",
-				items: [combineWithCombinators(leftNodes, tokens.slice(0, i)), combineWithCombinators(rightNodes, tokens.slice(i + 1))],
+				items: [
+					combineWithCombinators(leftNodes, tokens.slice(0, i)),
+					combineWithCombinators(rightNodes, tokens.slice(i + 1)),
+				],
 			};
 		}
 		i++;
@@ -352,7 +358,10 @@ function combineWithCombinators(nodes: SyntaxNode[], tokens: Token[]): SyntaxNod
 			const rightNodes = nodes.slice(Math.floor(nodes.length / 2));
 			return {
 				type: "or",
-				items: [combineWithCombinators(leftNodes, tokens.slice(0, i)), combineWithCombinators(rightNodes, tokens.slice(i + 1))],
+				items: [
+					combineWithCombinators(leftNodes, tokens.slice(0, i)),
+					combineWithCombinators(rightNodes, tokens.slice(i + 1)),
+				],
 			};
 		}
 		i++;

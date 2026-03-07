@@ -8,7 +8,7 @@ created_at: 2026-02-18T10:18:22Z
 updated_at: 2026-02-18T10:34:25Z
 parent: css-in-ts-compiler-4p4k
 blocked_by:
-    - css-in-ts-compiler-emqt
+  - css-in-ts-compiler-emqt
 ---
 
 - [ ] flex(...utils: FlexUtil[]) - container

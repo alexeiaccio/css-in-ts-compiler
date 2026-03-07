@@ -12,9 +12,11 @@ parent: css-in-ts-compiler-hztx
 Filter CSS features to modern baseline using browserslist and MDN compat data.
 
 ## Scope
+
 - Browserslist configuration
 - MDN BCD integration for browser versions
 - Filter out vendor prefixes, deprecated, experimental features
 
 ## Output
+
 - Filtered list of CSS functions with browser support info

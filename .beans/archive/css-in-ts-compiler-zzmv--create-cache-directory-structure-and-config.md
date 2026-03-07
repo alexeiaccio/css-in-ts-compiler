@@ -15,8 +15,6 @@ Set up node_modules/.cache directory and paths.json configuration file.
 - [x] Create paths.json with all cache/config paths
 - [x] Add .gitignore entry for cache files
 
-
-
 ## Summary of Changes
 
 - Created packages/cssints/scripts/paths.json with cache paths, output paths, and source references

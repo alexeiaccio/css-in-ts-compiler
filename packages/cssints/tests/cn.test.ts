@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import { cn, cx, cva } from "../lib/cn";
 
 describe("cn - Class Name Merger", () => {
@@ -35,25 +36,25 @@ describe("cx - Conditional Class Object", () => {
 	it("includes classes with truthy values", () => {
 		const result = cx({
 			"_display-flex": true,
-			"_hidden": false,
+			_hidden: false,
 		});
 		expect(result).toBe("_display-flex");
 	});
 
 	it("handles multiple truthy classes", () => {
 		const result = cx({
-			"_flex": true,
-			"_center": true,
-			"_block": false,
+			_flex: true,
+			_center: true,
+			_block: false,
 		});
 		expect(result).toBe("_flex _center");
 	});
 
 	it("returns empty string for all falsy", () => {
 		const result = cx({
-			"_a": false,
-			"_b": null,
-			"_c": undefined,
+			_a: false,
+			_b: null,
+			_c: undefined,
 		});
 		expect(result).toBe("");
 	});

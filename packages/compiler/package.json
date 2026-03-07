@@ -39,7 +39,7 @@
 		}
 	},
 	"scripts": {
-		"build": "bun build ./src/index.ts --outdir ./dist --target node && bun build ./src/vite-plugin.ts --outdir ./dist --target node && bun build ./src/oxc-plugin.ts --outdir ./dist --target node",
+		"build": "bun build ./src/index.ts --outdir ./dist --target node && bun build ./src/vite-plugin.ts --outdir ./dist --target node && bun build ./src/oxc-plugin.ts --outdir ./dist --target node && tsc --project tsconfig.declarations.json",
 		"typecheck": "tsgo --noEmit",
 		"test": "bun test"
 	},

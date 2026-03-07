@@ -19,23 +19,23 @@ Used at scale by: Facebook, Instagram, WhatsApp, Messenger, Threads, Figma, Snow
 StyleX uses `defineVars` to create theme variables:
 
 ```typescript
-import { defineVars, createTheme } from '@stylexjs/themes';
+import { defineVars, createTheme } from "@stylexjs/themes";
 
 const tokens = defineVars({
-  colors: {
-    primary: '#3b82f6',
-    secondary: '#6366f1',
-  },
-  spacing: {
-    small: '4px',
-    medium: '8px',
-    large: '16px',
-  },
-  fontSizes: {
-    small: '12px',
-    medium: '14px',
-    large: '18px',
-  },
+	colors: {
+		primary: "#3b82f6",
+		secondary: "#6366f1",
+	},
+	spacing: {
+		small: "4px",
+		medium: "8px",
+		large: "16px",
+	},
+	fontSizes: {
+		small: "12px",
+		medium: "14px",
+		large: "18px",
+	},
 });
 ```
 
@@ -43,14 +43,14 @@ Generates CSS variables:
 
 ```css
 :root {
-  --colors-primary: #3b82f6;
-  --colors-secondary: #6366f1;
-  --spacing-small: 4px;
-  --spacing-medium: 8px;
-  --spacing-large: 16px;
-  --fontSizes-small: 12px;
-  --fontSizes-medium: 14px;
-  --fontSizes-large: 18px;
+	--colors-primary: #3b82f6;
+	--colors-secondary: #6366f1;
+	--spacing-small: 4px;
+	--spacing-medium: 8px;
+	--spacing-large: 16px;
+	--fontSizes-small: 12px;
+	--fontSizes-medium: 14px;
+	--fontSizes-large: 18px;
 }
 ```
 
@@ -59,14 +59,14 @@ Generates CSS variables:
 ```typescript
 // tokens.ts
 const defaultTokens = {
-  color: {
-    primary: { $value: "#3b82f6", $type: "color" },
-    secondary: { $value: "#6366f1", $type: "color" },
-  },
-  spacing: {
-    small: { $value: "4px", $type: "dimension" },
-    medium: { $value: "8px", $type: "dimension" },
-  }
+	color: {
+		primary: { $value: "#3b82f6", $type: "color" },
+		secondary: { $value: "#6366f1", $type: "color" },
+	},
+	spacing: {
+		small: { $value: "4px", $type: "dimension" },
+		medium: { $value: "8px", $type: "dimension" },
+	},
 };
 ```
 
@@ -84,31 +84,43 @@ const defaultTokens = {
 StyleX transforms style objects into atomic CSS classes:
 
 ```typescript
-import { stylex } from '@stylexjs/stylex';
+import { stylex } from "@stylexjs/stylex";
 
 const styles = stylex.create({
-  button: {
-    backgroundColor: 'primary',
-    padding: '8px 16px',
-    borderRadius: '4px',
-  },
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-  },
+	button: {
+		backgroundColor: "primary",
+		padding: "8px 16px",
+		borderRadius: "4px",
+	},
+	container: {
+		display: "flex",
+		flexDirection: "column",
+		gap: "8px",
+	},
 });
 ```
 
 Generates:
 
 ```css
-.x1p7d1qz { background-color: var(--colors-primary); }
-.x1iumqq1 { padding: 8px 16px; }
-.x1avfquk { border-radius: 4px; }
-.xs7x2ga { display: flex; }
-.x1r1m6x3 { flex-direction: column; }
-.x1ipk5nv { gap: 8px; }
+.x1p7d1qz {
+	background-color: var(--colors-primary);
+}
+.x1iumqq1 {
+	padding: 8px 16px;
+}
+.x1avfquk {
+	border-radius: 4px;
+}
+.xs7x2ga {
+	display: flex;
+}
+.x1r1m6x3 {
+	flex-direction: column;
+}
+.x1ipk5nv {
+	gap: 8px;
+}
 ```
 
 Each unique CSS declaration becomes its own atomic class. Multiple elements sharing the same style reference the same class.
@@ -117,9 +129,9 @@ Each unique CSS declaration becomes its own atomic class. Multiple elements shar
 
 ```typescript
 const button = style("button", {
-  backgroundColor: "primary",
-  padding: "8px 16px",
-  borderRadius: "4px",
+	backgroundColor: "primary",
+	padding: "8px 16px",
+	borderRadius: "4px",
 });
 ```
 
@@ -127,9 +139,9 @@ Generates:
 
 ```css
 .button__a1b2c3d4 {
-  background-color: var(--colors-primary);
-  padding: 8px 16px;
-  border-radius: 4px;
+	background-color: var(--colors-primary);
+	padding: 8px 16px;
+	border-radius: 4px;
 }
 ```
 
@@ -137,16 +149,16 @@ Generates:
 
 ## Detailed Comparison
 
-| Aspect | StyleX | Our Approach |
-|--------|--------|--------------|
-| **Class names** | Atomic (`.x1p7d1qz`) | Scoped (`.button__a1b2c3d4`) |
-| **Token format** | Simple JS object | W3C DTCG format |
-| **Theme system** | `defineVars` + `createTheme` | Manual theme registry |
-| **CSS output** | Atomic/deduplicated | Component-scoped |
-| **Build tool** | Babel plugin | Vite plugin (oxc) |
-| **Type safety** | Full TypeScript | Full TypeScript |
-| **Runtime cost** | Zero (when static) | Zero (when static) |
-| **Style composition** | Via `className` merging | Via `cx()` |
+| Aspect                | StyleX                       | Our Approach                 |
+| --------------------- | ---------------------------- | ---------------------------- |
+| **Class names**       | Atomic (`.x1p7d1qz`)         | Scoped (`.button__a1b2c3d4`) |
+| **Token format**      | Simple JS object             | W3C DTCG format              |
+| **Theme system**      | `defineVars` + `createTheme` | Manual theme registry        |
+| **CSS output**        | Atomic/deduplicated          | Component-scoped             |
+| **Build tool**        | Babel plugin                 | Vite plugin (oxc)            |
+| **Type safety**       | Full TypeScript              | Full TypeScript              |
+| **Runtime cost**      | Zero (when static)           | Zero (when static)           |
+| **Style composition** | Via `className` merging      | Via `cx()`                   |
 
 ---
 
@@ -157,12 +169,19 @@ Generates:
 StyleX breaks every CSS declaration into its own class:
 
 ```css
-.x1p7d1qz { background-color: var(--colors-primary); }
-.x1iumqq1 { padding: 8px 16px; }
-.x1avfquk { border-radius: 4px; }
+.x1p7d1qz {
+	background-color: var(--colors-primary);
+}
+.x1iumqq1 {
+	padding: 8px 16px;
+}
+.x1avfquk {
+	border-radius: 4px;
+}
 ```
 
 This means:
+
 - Deduplication happens automatically
 - Bundle size plateaus as app grows
 - No unused styles
@@ -194,25 +213,31 @@ StyleX guarantees no specificity conflicts:
 
 ```typescript
 const tokens = defineVars({
-  colors: { primary: 'blue' }
+	colors: { primary: "blue" },
 });
 
 // Use in styles
 const button = stylex.create({
-  backgroundColor: tokens.colors.primary
+	backgroundColor: tokens.colors.primary,
 });
 ```
 
 ### 5. Multiple Themes
 
 ```typescript
-const [themeClass, vars] = createTheme({
-  colors: { primary: 'blue' }
-}, 'themeName');
+const [themeClass, vars] = createTheme(
+	{
+		colors: { primary: "blue" },
+	},
+	"themeName",
+);
 
-const darkTheme = createTheme({
-  colors: { primary: 'lightblue' }
-}, 'darkTheme');
+const darkTheme = createTheme(
+	{
+		colors: { primary: "lightblue" },
+	},
+	"darkTheme",
+);
 ```
 
 ---
@@ -227,6 +252,7 @@ const darkTheme = createTheme({
 ### 2. DTCG Token Format
 
 Our approach follows W3C Design Tokens spec:
+
 - `$value`, `$type`, `$description` metadata
 - Token references: `{color.primary}`
 - Better interoperability with design tools
@@ -244,6 +270,7 @@ className={stylex(styles.base, variant && styles.variant)}
 ### 4. Registry Pattern
 
 Our runtime registry allows:
+
 - SSR hydration
 - Style extraction
 - Dynamic inspection
@@ -268,7 +295,7 @@ style("button", { color: "red" }, { atomic: true });
 ```typescript
 // Proposed
 const tokens = defineVars({
-  colors: { primary: "#3b82f6" }
+	colors: { primary: "#3b82f6" },
 });
 ```
 
@@ -277,12 +304,15 @@ const tokens = defineVars({
 ```typescript
 // Proposed
 const [lightTheme, vars] = createTheme({
-  colors: { primary: "blue" }
+	colors: { primary: "blue" },
 });
 
-const [darkTheme] = createTheme({
-  colors: { primary: "lightblue" }
-}, "dark");
+const [darkTheme] = createTheme(
+	{
+		colors: { primary: "lightblue" },
+	},
+	"dark",
+);
 ```
 
 ### 4. Improve Build Performance
@@ -294,12 +324,14 @@ StyleX uses Babel with file-level caching. Consider similar optimization for lar
 ## Conclusion
 
 StyleX excels at:
+
 - Atomic CSS generation for minimal bundle size
 - Predictable specificity guarantees
 - Zero-runtime overhead for static styles
 - Scale to thousands of components
 
 Our approach excels at:
+
 - Readable scoped class names
 - W3C DTCG token compliance
 - Composition patterns

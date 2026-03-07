@@ -18,6 +18,7 @@ import type {
 	IDLInterface,
 	IDLEnum,
 } from "./css-type-ast";
+
 import { isPrimitive, isComposite, isEnum, isAlias } from "./css-type-ast";
 
 // ============================================================================
@@ -111,7 +112,9 @@ export function emitProperty(prop: CSSProperty, config: EmitterConfig = DEFAULT_
 	}
 
 	const valueType = resolveTypeRef(prop.valueType);
-	lines.push(`export const ${camelCase(prop.name)}: (value: ${valueType}) => string = (value) => \`${prop.name}: \${value}\`;`);
+	lines.push(
+		`export const ${camelCase(prop.name)}: (value: ${valueType}) => string = (value) => \`${prop.name}: \${value}\`;`,
+	);
 
 	return lines.join("\n");
 }
@@ -139,7 +142,9 @@ export function emitCSSFunction(fn: CSSFunction, config: EmitterConfig = DEFAULT
 	const args = fn.parameters.map((p) => `_${p.name}`);
 	const returnType = resolveTypeRef(fn.returnType);
 
-	lines.push(`export const fn${capitalize(fn.name)}: (${params.join(", ")}) => ${returnType} = (${args.join(", ")}) => \`${fn.name}(${args.join(", ")})\`;`);
+	lines.push(
+		`export const fn${capitalize(fn.name)}: (${params.join(", ")}) => ${returnType} = (${args.join(", ")}) => \`${fn.name}(${args.join(", ")})\`;`,
+	);
 
 	return lines.join("\n");
 }
@@ -174,7 +179,7 @@ function emitIDLInterface(iface: IDLInterface, config: EmitterConfig): string {
 		const optional = member.kind === "attribute" ? "" : "?";
 		// Sanitize member name: font-family -> fontFamily
 		let memberName = member.name.replace(/-([a-z])/g, (_: string, c: string) => c.toUpperCase());
-		
+
 		// Skip duplicates (e.g., both fontFamily and font-family in IDL)
 		if (seenNames.has(memberName)) continue;
 		seenNames.add(memberName);
@@ -225,19 +230,25 @@ export function emitAST(ast: CSSTypeAST, config: EmitterConfig = DEFAULT_CONFIG)
 
 	// Value types
 	if (ast.valueTypes.size > 0) {
-		sections.push("// ============================================================================\n// CSS Value Types\n// ============================================================================\n");
+		sections.push(
+			"// ============================================================================\n// CSS Value Types\n// ============================================================================\n",
+		);
 		sections.push(...Array.from(ast.valueTypes.values()).map((t) => emitType(t, config)));
 	}
 
 	// Properties
 	if (ast.properties.size > 0) {
-		sections.push("\n// ============================================================================\n// CSS Properties\n// ============================================================================\n");
+		sections.push(
+			"\n// ============================================================================\n// CSS Properties\n// ============================================================================\n",
+		);
 		sections.push(...Array.from(ast.properties.values()).map((p) => emitProperty(p, config)));
 	}
 
 	// Functions
 	if (ast.functions.size > 0) {
-		sections.push("\n// ============================================================================\n// CSS Functions\n// ============================================================================\n");
+		sections.push(
+			"\n// ============================================================================\n// CSS Functions\n// ============================================================================\n",
+		);
 		sections.push(...Array.from(ast.functions.values()).map((f) => emitCSSFunction(f, config)));
 	}
 
@@ -268,13 +279,68 @@ function resolveTypeRef(ref: TypeReference): string {
 }
 
 const RESERVED_WORDS = new Set([
-	"break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete",
-	"do", "else", "enum", "export", "extends", "false", "finally", "for", "function",
-	"if", "import", "in", "instanceof", "new", "null", "return", "super", "switch",
-	"this", "throw", "true", "try", "typeof", "var", "void", "while", "with", "yield",
-	"let", "static", "implements", "interface", "package", "private", "protected", "public",
-	"await", "abstract", "boolean", "byte", "char", "double", "final", "float", "goto",
-	"int", "long", "native", "short", "synchronized", "throws", "transient", "volatile",
+	"break",
+	"case",
+	"catch",
+	"class",
+	"const",
+	"continue",
+	"debugger",
+	"default",
+	"delete",
+	"do",
+	"else",
+	"enum",
+	"export",
+	"extends",
+	"false",
+	"finally",
+	"for",
+	"function",
+	"if",
+	"import",
+	"in",
+	"instanceof",
+	"new",
+	"null",
+	"return",
+	"super",
+	"switch",
+	"this",
+	"throw",
+	"true",
+	"try",
+	"typeof",
+	"var",
+	"void",
+	"while",
+	"with",
+	"yield",
+	"let",
+	"static",
+	"implements",
+	"interface",
+	"package",
+	"private",
+	"protected",
+	"public",
+	"await",
+	"abstract",
+	"boolean",
+	"byte",
+	"char",
+	"double",
+	"final",
+	"float",
+	"goto",
+	"int",
+	"long",
+	"native",
+	"short",
+	"synchronized",
+	"throws",
+	"transient",
+	"volatile",
 ]);
 
 function camelCase(str: string): string {
@@ -296,11 +362,11 @@ function capitalize(str: string): string {
  */
 export function emitIDLTypes(types: Map<string, IDLType>, config: EmitterConfig = DEFAULT_CONFIG): string {
 	const lines: string[] = [];
-	
+
 	if (config.header) {
 		lines.push(config.header);
 	}
-	
+
 	lines.push(`/**
  * CSS IDL Types - AUTO-GENERATED
  * Generated from @webref/idl
@@ -313,7 +379,7 @@ export function emitIDLTypes(types: Map<string, IDLType>, config: EmitterConfig 
 	const interfaces: IDLInterface[] = [];
 	const dictionaries: any[] = [];
 	const enums: IDLEnum[] = [];
-	
+
 	for (const [name, type] of types) {
 		switch (type.type) {
 			case "interface":
@@ -395,11 +461,11 @@ function emitIDLDictionary(dict: any, config: EmitterConfig): string {
  */
 export function emitSyntaxTypes(types: Map<string, CSSValueType>, config: EmitterConfig = DEFAULT_CONFIG): string {
 	const lines: string[] = [];
-	
+
 	if (config.header) {
 		lines.push(config.header);
 	}
-	
+
 	lines.push(`/**
  * CSS Syntax Types - AUTO-GENERATED
  * Generated from mdn-data/css/syntaxes.json
@@ -425,11 +491,11 @@ export function emitSyntaxTypes(types: Map<string, CSSValueType>, config: Emitte
  */
 export function emitCompatData(config: EmitterConfig = DEFAULT_CONFIG): string {
 	const lines: string[] = [];
-	
+
 	if (config.header) {
 		lines.push(config.header);
 	}
-	
+
 	lines.push(`/**
  * CSS Browser Compatibility - AUTO-GENERATED
  * Generated from @mdn/browser-compat-data
@@ -453,11 +519,11 @@ export function emitCompatData(config: EmitterConfig = DEFAULT_CONFIG): string {
  */
 export function emitProperties(properties: Map<string, CSSProperty>, config: EmitterConfig = DEFAULT_CONFIG): string {
 	const lines: string[] = [];
-	
+
 	if (config.header) {
 		lines.push(config.header);
 	}
-	
+
 	lines.push(`/**
  * CSS Properties - AUTO-GENERATED
  * Generated from @webref/css
@@ -483,11 +549,11 @@ export function emitProperties(properties: Map<string, CSSProperty>, config: Emi
  */
 export function emitFunctions(functions: Map<string, CSSFunction>, config: EmitterConfig = DEFAULT_CONFIG): string {
 	const lines: string[] = [];
-	
+
 	if (config.header) {
 		lines.push(config.header);
 	}
-	
+
 	lines.push(`/**
  * CSS Functions - AUTO-GENERATED
  * Generated from @webref/css

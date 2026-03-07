@@ -17,4 +17,3 @@ export type CompiledCSS = {
 	classes: Map<string, CSSProperties>;
 	css: string;
 };
-

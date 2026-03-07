@@ -1,1 +1,17 @@
-export { walkSelector, collectSelectorNodes, calculateSpecificity, specificityToNumber, compareSpecificity, mapSelector, filterSelector, findSelectorNodes, getTypeSelectors, getClassSelectors, getIdSelectors, getAttributeSelectors, getPseudoClasses, getPseudoElements, getCombinators } from "./selector-walker.js";
+export {
+	walkSelector,
+	collectSelectorNodes,
+	calculateSpecificity,
+	specificityToNumber,
+	compareSpecificity,
+	mapSelector,
+	filterSelector,
+	findSelectorNodes,
+	getTypeSelectors,
+	getClassSelectors,
+	getIdSelectors,
+	getAttributeSelectors,
+	getPseudoClasses,
+	getPseudoElements,
+	getCombinators,
+} from "./selector-walker.js";

@@ -37,8 +37,6 @@ export function accentColor(value: ColorValue): Style {
 	});
 }
 
-type AlignContent = Brand<"align-content", ["flex-start", "flex-end", "center", "space-between", "space-around"]>;
-
 /**
  * Aligns a flex container's lines within the flex container when there is extra
  * space in the cross-axis, similar to how 'justify-content' aligns individual
@@ -50,16 +48,21 @@ type AlignContent = Brand<"align-content", ["flex-start", "flex-end", "center", 
  *
  * | Browser | Version |
  * |:-------:|:-------:|
- * | Chrome  | 29      |
- * | Safari  | 9       |
- * | Firefox | 28      |
- * | Edge 	 | 12      |
+ * | Edge | 12 |
+ * | Firefox | 28 |
+ * | FFA | 28 |
+ * | Safari | 9 |
+ * | SM | 9 |
+ * | Chrome | 29 |
+ * | CA | 29 |
+ * | IE | 11 |
+ * | Opera | 16 |
  *
- * **Baseline:** Widely available
+ * **Baseline:** ✅ Widely available
  *
  * @see https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/align-content
  */
-export function alignContent(value: AlignContent): Style {
+export function alignContent(value: StringValue): Style {
 	return createStyle({
 		property: "align-content",
 		value: String(value),
@@ -3662,6 +3665,8 @@ export function bottom(value: LengthPercentageValue): Style {
  *
  * **Syntax:** `start | center | end | baseline | stretch`
  *
+ * @deprecated
+ *
  * **Browser Support:**
  *
  * | Browser | Version |
@@ -3727,6 +3732,8 @@ export function boxDecorationBreak(value: KeywordValue): Style {
  *
  * **Syntax:** `normal | reverse | inherit`
  *
+ * @deprecated
+ *
  * **Browser Support:**
  *
  * | Browser | Version |
@@ -3757,6 +3764,8 @@ export function boxDirection(value: KeywordValue): Style {
  *
  * **Syntax:** `<number>`
  *
+ * @deprecated
+ *
  * **Browser Support:**
  *
  * | Browser | Version |
@@ -3785,6 +3794,8 @@ export function boxFlex(value: NumberValue): Style {
  * group.
  *
  * **Syntax:** `<integer>`
+ *
+ * @deprecated
  *
  * **Browser Support:**
  *
@@ -3815,6 +3826,8 @@ export function boxFlexGroup(value: IntegerValue): Style {
  *
  * **Syntax:** `single | multiple`
  *
+ * @deprecated
+ *
  * **Browser Support:**
  *
  * | Browser | Version |
@@ -3844,6 +3857,8 @@ export function boxLines(value: KeywordValue): Style {
  *
  * **Syntax:** `<integer>`
  *
+ * @deprecated
+ *
  * **Browser Support:**
  *
  * | Browser | Version |
@@ -3871,6 +3886,8 @@ export function boxOrdinalGroup(value: IntegerValue): Style {
  * horizontally or vertically.
  *
  * **Syntax:** `horizontal | vertical | inline-axis | block-axis | inherit`
+ *
+ * @deprecated
  *
  * **Browser Support:**
  *
@@ -3901,6 +3918,8 @@ export function boxOrient(value: KeywordValue): Style {
  * of this is only visible if there is extra space in the box.
  *
  * **Syntax:** `start | center | end | justify`
+ *
+ * @deprecated
  *
  * **Browser Support:**
  *
@@ -4197,6 +4216,8 @@ export function caretColor(value: ColorValue): Style {
  *
  * **Syntax:** `auto | bar | block | underscore`
  *
+ * @experimental
+ *
  * **Browser Support:**
  *
  * | Browser | Version |
@@ -4262,6 +4283,8 @@ export function clear(value: KeywordValue): Style {
  * visible portion of an element's box.
  *
  * **Syntax:** `<shape> | auto`
+ *
+ * @deprecated
  *
  * **Browser Support:**
  *
@@ -6604,6 +6627,8 @@ export function fontSynthesis(value: StringValue): Style {
  *
  * **Syntax:** `auto | none`
  *
+ * @experimental
+ *
  * **Browser Support:**
  *
  * | Browser | Version |
@@ -8009,6 +8034,8 @@ export function imageResolution(value: ResolutionValue): Style {
  *
  * **Syntax:** `auto | normal | active | inactive | disabled`
  *
+ * @deprecated
+ *
  * **Browser Support:**
  *
  * | Browser | Version |
@@ -8409,6 +8436,8 @@ export function insetInlineStart(value: StringValue): Style {
  * such as auto, fit-content, or max-content.
  *
  * **Syntax:** `numeric-only | allow-keywords`
+ *
+ * @experimental
  *
  * **Browser Support:**
  *
@@ -9361,6 +9390,8 @@ export function marginTop(value: LengthPercentageValue): Style {
  *
  * **Syntax:** `none | in-flow | all`
  *
+ * @experimental
+ *
  * **Browser Support:**
  *
  * | Browser | Version |
@@ -9575,7 +9606,7 @@ This property is a shorthand for mask-border-source,
  * **Syntax:** `<'mask-border-source'> || <'mask-border-slice'> [ / <'mask-border-width'>? [ / <'mask-border-outset'> ]? ]? || <'mask-border-repeat'> || <'mask-border-mode'>`
  *
  * **Browser Support:**
- *
+ * 
  * | Browser | Version |
  * |:-------:|:-------:|
  * | Safari | 17.2 |
@@ -9723,7 +9754,7 @@ The mask-border-slice property is used to divide
  * **Syntax:** `none | <image>`
  *
  * **Browser Support:**
- *
+ * 
  * | Browser | Version |
  * |:-------:|:-------:|
  * | Safari | 17.2 |
@@ -10740,7 +10771,7 @@ In this specification, a direction (or
  * **Syntax:** `none | <offset-path> || <coord-box>`
  *
  * **Browser Support:**
- *
+ * 
  * | Browser | Version |
  * |:-------:|:-------:|
  * | Edge | 79 |
@@ -11430,6 +11461,8 @@ export function overflowY(value: KeywordValue): Style {
  *
  * **Syntax:** `none | auto`
  *
+ * @experimental
+ *
  * **Browser Support:**
  *
  * | Browser | Version |
@@ -12094,6 +12127,8 @@ export function page(value: CustomIdentValue): Style {
  *
  * **Syntax:** `auto | always | avoid | left | right | recto | verso`
  *
+ * @deprecated
+ *
  * **Browser Support:**
  *
  * | Browser | Version |
@@ -12129,6 +12164,8 @@ export function pageBreakAfter(value: KeywordValue): Style {
  *
  * **Syntax:** `auto | always | avoid | left | right | recto | verso`
  *
+ * @deprecated
+ *
  * **Browser Support:**
  *
  * | Browser | Version |
@@ -12163,6 +12200,8 @@ export function pageBreakBefore(value: KeywordValue): Style {
  * Defines rules for page breaks inside an element.
  *
  * **Syntax:** `auto | avoid`
+ *
+ * @deprecated
  *
  * **Browser Support:**
  *
@@ -15124,7 +15163,7 @@ This is used to
  * **Syntax:** `none | all | [ digits <integer>? ]`
  *
  * **Browser Support:**
- *
+ * 
  * | Browser | Version |
  * |:-------:|:-------:|
  * | Edge | 79 |
@@ -15267,6 +15306,8 @@ export function textDecorationLine(value: StringValue): Style {
  * lines drawn by its ancestors.
  *
  * **Syntax:** `none | [ objects || [ spaces | [ leading-spaces || trailing-spaces ] ] || edges || box-decoration ]`
+ *
+ * @experimental
  *
  * **Browser Support:**
  *
@@ -15768,6 +15809,8 @@ export function textShadow(value: StringValue): Style {
  *
  * **Syntax:** `none | auto | <percentage>`
  *
+ * @experimental
+ *
  * **Browser Support:**
  *
  * | Browser | Version |
@@ -15800,6 +15843,8 @@ export function textSizeAdjust(value: PercentageValue): Style {
  * characters (kerning) and at the start or end of text lines.
  *
  * **Syntax:** `space-all | normal | space-first | trim-start`
+ *
+ * @experimental
  *
  * **Browser Support:**
  *
@@ -17543,6 +17588,8 @@ export function glyphOrientationHorizontal(value: AngleValue): Style {
  *
  * **Syntax:** `<angle>`
  *
+ * @deprecated
+ *
  * **Browser Support:**
  *
  * | Browser | Version |
@@ -17722,6 +17769,8 @@ export function speak(value: KeywordValue): Style {
  * or just represented with an audio cue.
  *
  * **Syntax:** `auto | bullets | numbers | words | spell-out | <counter-style-name>`
+ *
+ * @experimental
  *
  * **Browser Support:**
  *
@@ -17941,6 +17990,8 @@ export function additiveSymbols(value: StringValue): Style {
  * content of a ::before or ::after element.
  *
  * **Syntax:** ``
+ *
+ * @deprecated
  *
  * **Baseline:** ❌ Limited support
  */
@@ -18943,6 +18994,8 @@ export function symbols(value: StringValue): Style {
  *
  * **Syntax:** `normal | <percentage [0,∞]> | ultra-condensed | extra-condensed | condensed | semi-condensed | semi-expanded | expanded | extra-expanded | ultra-expanded`
  *
+ * @experimental
+ *
  * **Browser Support:**
  *
  * | Browser | Version |
@@ -18969,6 +19022,8 @@ export function fontWidth(value: StringValue): Style {
  * enabling the content of the replaced element to be zoomed or panned.
  *
  * **Syntax:** `none | <basic-shape-rect>`
+ *
+ * @experimental
  *
  * **Browser Support:**
  *
@@ -19000,6 +19055,8 @@ export function objectViewBox(value: StringValue): Style {
  *
  * **Syntax:** `none | nearest`
  *
+ * @experimental
+ *
  * **Browser Support:**
  *
  * | Browser | Version |
@@ -19026,6 +19083,8 @@ export function scrollInitialTarget(value: KeywordValue): Style {
 /**
  *
  * **Syntax:** `<color>`
+ *
+ * @experimental
  *
  * **Browser Support:**
  *

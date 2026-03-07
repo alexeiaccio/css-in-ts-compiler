@@ -8,7 +8,7 @@ created_at: 2026-02-18T07:38:51Z
 updated_at: 2026-02-18T08:03:24Z
 parent: css-in-ts-compiler-ccbd
 blocked_by:
-    - css-in-ts-compiler-v8rd
+  - css-in-ts-compiler-v8rd
 ---
 
 Generate typed function code from parsed data.

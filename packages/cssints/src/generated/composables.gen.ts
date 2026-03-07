@@ -3,7 +3,7 @@
 // Do not edit manually.
 // ==============================================================================
 
-import { Style, createStyle } from '../core/style.js';
+import { Style, createStyle } from "../core/style.js";
 
 /**
  * Create a flex container with composable utilities

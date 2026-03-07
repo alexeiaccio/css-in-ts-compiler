@@ -679,7 +679,7 @@ export function roundedR(value: string | number): CSSProperties {
 }
 
 export function roundedFull(value?: string | number): CSSProperties {
-	return { borderRadius: value ? toRem(value) as string : "9999px" };
+	return { borderRadius: value ? (toRem(value) as string) : "9999px" };
 }
 
 export function ring(value?: string | number): CSSProperties {

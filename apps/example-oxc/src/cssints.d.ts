@@ -1,8 +1,8 @@
 /**
  * Type declarations for cssints module
- * 
+ *
  * Usage: import * as css from "cssints" with { type: "cssints" }
- * 
+ *
  * Note: At compile time, the transformer replaces function calls with class name strings.
  * So all functions return string (the generated class name).
  */

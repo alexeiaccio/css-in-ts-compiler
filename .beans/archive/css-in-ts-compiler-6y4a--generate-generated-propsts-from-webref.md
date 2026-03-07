@@ -8,9 +8,9 @@ created_at: 2026-02-18T10:18:00Z
 updated_at: 2026-02-18T10:38:57Z
 parent: css-in-ts-compiler-jphr
 blocked_by:
-    - css-in-ts-compiler-5e8s
-    - css-in-ts-compiler-wg7z
-    - css-in-ts-compiler-6o7e
+  - css-in-ts-compiler-5e8s
+  - css-in-ts-compiler-wg7z
+  - css-in-ts-compiler-6o7e
 ---
 
 - [ ] Generate all CSS properties from @webref/css

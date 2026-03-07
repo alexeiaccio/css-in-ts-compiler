@@ -12,10 +12,12 @@ parent: css-in-ts-compiler-hztx
 Build the infrastructure for collecting CSS data from WebRef and caching it locally.
 
 ## Scope
+
 - WebRef data fetcher with caching
 - Cache invalidation strategy
 - Debug logging system
 
 ## Output
+
 - node_modules/.cache/webref-cache.json
 - node_modules/.cache/generation.log

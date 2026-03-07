@@ -4,21 +4,15 @@
  * Based on unbash architecture with O(1) Uint8Array lookups
  */
 
-import {
-	CHAR_TABLE,
-	CHAR_NAME_START,
-	CHAR_NAME_CONTINUE,
-	CHAR_DIGIT,
-	CHAR_WS,
-} from "./char-table.js";
-import { isNameStartCodePoint, isNameCodePoint, isDigit, isWhitespace } from "./unicode-rules.js";
 import type { TokenValue } from "./token.js";
-import { Token } from "./token.js";
+
+import { CHAR_TABLE, CHAR_NAME_START, CHAR_NAME_CONTINUE, CHAR_DIGIT, CHAR_WS } from "./char-table.js";
 import { LexContext } from "./contexts.js";
+import { Token } from "./token.js";
+import { isNameStartCodePoint, isNameCodePoint, isDigit, isWhitespace } from "./unicode-rules.js";
 
 // Fast ASCII lookup helpers (unbash approach)
-const isWs = (code: number): boolean =>
-	code < 128 ? (CHAR_TABLE[code]! & CHAR_WS) !== 0 : isWhitespace(code);
+const isWs = (code: number): boolean => (code < 128 ? (CHAR_TABLE[code]! & CHAR_WS) !== 0 : isWhitespace(code));
 
 const isNameStart = (code: number): boolean =>
 	code < 128 ? (CHAR_TABLE[code]! & CHAR_NAME_START) !== 0 : isNameStartCodePoint(code);
@@ -26,8 +20,7 @@ const isNameStart = (code: number): boolean =>
 const isNameCont = (code: number): boolean =>
 	code < 128 ? (CHAR_TABLE[code]! & CHAR_NAME_CONTINUE) !== 0 : isNameCodePoint(code);
 
-const isDigitFast = (code: number): boolean =>
-	code < 128 ? (CHAR_TABLE[code]! & CHAR_DIGIT) !== 0 : isDigit(code);
+const isDigitFast = (code: number): boolean => (code < 128 ? (CHAR_TABLE[code]! & CHAR_DIGIT) !== 0 : isDigit(code));
 
 export class Lexer {
 	private source: string;
@@ -184,16 +177,36 @@ export class Lexer {
 
 		// CDC: --> (Comment End)
 		if (code === 45 && this.source.length > this.pos + 2) {
-			if (
-				this.source.charCodeAt(this.pos + 1) === 45 &&
-				this.source.charCodeAt(this.pos + 2) === 62
-			) {
+			if (this.source.charCodeAt(this.pos + 1) === 45 && this.source.charCodeAt(this.pos + 2) === 62) {
 				this.pos += 3;
 				return { token: Token.CDCToken, value: "-->", pos: startPos, end: this.pos };
 			}
 		}
 
-		if (code === 124 || code === 38 || code === 47 || code === 33 || code === 35 || code === 40 || code === 41 || code === 42 || code === 43 || code === 44 || code === 45 || code === 58 || code === 59 || code === 60 || code === 62 || code === 63 || code === 64 || code === 91 || code === 93 || code === 123 || code === 125 || code === 33) {
+		if (
+			code === 124 ||
+			code === 38 ||
+			code === 47 ||
+			code === 33 ||
+			code === 35 ||
+			code === 40 ||
+			code === 41 ||
+			code === 42 ||
+			code === 43 ||
+			code === 44 ||
+			code === 45 ||
+			code === 58 ||
+			code === 59 ||
+			code === 60 ||
+			code === 62 ||
+			code === 63 ||
+			code === 64 ||
+			code === 91 ||
+			code === 93 ||
+			code === 123 ||
+			code === 125 ||
+			code === 33
+		) {
 			if (code === 47 && this.nextCharCode() === 42) {
 				return this.scanComment(startPos);
 			}

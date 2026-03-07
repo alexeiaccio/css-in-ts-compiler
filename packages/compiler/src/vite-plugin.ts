@@ -5,8 +5,9 @@
  * @deprecated This plugin will be removed in a future version
  */
 
-import * as esbuild from "esbuild";
 import type { Plugin } from "vite";
+
+import * as esbuild from "esbuild";
 
 import { setFileScope, generateCSS, clearRegistry } from "./compiler.js";
 

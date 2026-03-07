@@ -71,7 +71,25 @@ export type Percentage = Brand<`${number}%`, "Percentage">;
 // Composite Types
 // ============================================================================
 
-export type LengthUnit = Px | Rem | Em | Ch | Ex | Vw | Vh | Vmin | Vmax | Cqw | Cqh | Cqi | Cqb | Cm | Mm | In | Pt | Pc;
+export type LengthUnit =
+	| Px
+	| Rem
+	| Em
+	| Ch
+	| Ex
+	| Vw
+	| Vh
+	| Vmin
+	| Vmax
+	| Cqw
+	| Cqh
+	| Cqi
+	| Cqb
+	| Cm
+	| Mm
+	| In
+	| Pt
+	| Pc;
 
 export type AngleUnit = Deg | Rad | Grad | Turn;
 

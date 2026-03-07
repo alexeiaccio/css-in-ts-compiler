@@ -5,8 +5,9 @@
  */
 
 import type { SyntaxNode } from "./parse-value-syntax";
-import { isTypeNode, isKeywordNode, isOrNode, isOptionalNode, isRepeatNode, isAndNode } from "./parse-value-syntax";
+
 import { CSS_TYPE_MAP } from "../lib/value-types";
+import { isTypeNode, isKeywordNode, isOrNode, isOptionalNode, isRepeatNode, isAndNode } from "./parse-value-syntax";
 
 export interface TypeInfo {
 	tsType: string;
@@ -177,11 +178,7 @@ export function inferParams(node: SyntaxNode, hints?: Record<string, string>): P
 /**
  * Generate a TypeScript function signature string.
  */
-export function generateFunctionSignature(
-	name: string,
-	params: ParamInfo[],
-	returnType: string,
-): string {
+export function generateFunctionSignature(name: string, params: ParamInfo[], returnType: string): string {
 	const paramList = params.map((p) => {
 		const optional = p.optional ? "?" : "";
 		return `${p.name}${optional}: ${p.type}`;

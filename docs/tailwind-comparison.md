@@ -9,6 +9,7 @@ This document analyzes how [Tailwind CSS v4](https://tailwindcss.com) handles de
 Tailwind CSS v4 is a ground-up rewrite of the popular utility-first CSS framework. It features a new high-performance engine, CSS-first configuration, and native CSS variable support.
 
 Key changes in v4:
+
 - New high-performance engine (5x faster builds, 100x faster incremental)
 - CSS-first configuration (`@theme` directive)
 - All design tokens exposed as CSS variables
@@ -27,24 +28,25 @@ Tailwind v4 defines tokens directly in CSS using `@theme`:
 @import "tailwindcss";
 
 @theme {
-  --font-display: "Satoshi", "sans-serif";
-  
-  --color-primary: #3b82f6;
-  --color-secondary: #6366f1;
-  
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
-  
-  --radius-sm: 0.125rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
+	--font-display: "Satoshi", "sans-serif";
+
+	--color-primary: #3b82f6;
+	--color-secondary: #6366f1;
+
+	--spacing-xs: 0.25rem;
+	--spacing-sm: 0.5rem;
+	--spacing-md: 1rem;
+	--spacing-lg: 1.5rem;
+	--spacing-xl: 2rem;
+
+	--radius-sm: 0.125rem;
+	--radius-md: 0.375rem;
+	--radius-lg: 0.5rem;
 }
 ```
 
 This generates:
+
 1. CSS variables in `:root`
 2. Utility classes automatically
 
@@ -52,28 +54,38 @@ This generates:
 
 ```css
 :root {
-  --font-display: "Satoshi", "sans-serif";
-  --color-primary: #3b82f6;
-  --color-secondary: #6366f1;
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
-  --radius-sm: 0.125rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
+	--font-display: "Satoshi", "sans-serif";
+	--color-primary: #3b82f6;
+	--color-secondary: #6366f1;
+	--spacing-xs: 0.25rem;
+	--spacing-sm: 0.5rem;
+	--spacing-md: 1rem;
+	--spacing-lg: 1.5rem;
+	--spacing-xl: 2rem;
+	--radius-sm: 0.125rem;
+	--radius-md: 0.375rem;
+	--radius-lg: 0.5rem;
 }
 ```
 
 ### Utility Classes Generated
 
 ```css
-.bg-primary { background-color: var(--color-primary); }
-.text-primary { color: var(--color-primary); }
-.p-md { padding: var(--spacing-md); }
-.rounded-md { border-radius: var(--radius-md); }
-.font-display { font-family: var(--font-display); }
+.bg-primary {
+	background-color: var(--color-primary);
+}
+.text-primary {
+	color: var(--color-primary);
+}
+.p-md {
+	padding: var(--spacing-md);
+}
+.rounded-md {
+	border-radius: var(--radius-md);
+}
+.font-display {
+	font-family: var(--font-display);
+}
 ```
 
 ### Our Implementation
@@ -81,15 +93,15 @@ This generates:
 ```typescript
 // tokens.ts - W3C DTCG format
 const defaultTokens = {
-  color: {
-    primary: { $value: "#3b82f6", $type: "color" },
-    secondary: { $value: "#6366f1", $type: "color" },
-  },
-  spacing: {
-    xs: { $value: "0.25rem", $type: "dimension" },
-    sm: { $value: "0.5rem", $type: "dimension" },
-    md: { $value: "1rem", $type: "dimension" },
-  }
+	color: {
+		primary: { $value: "#3b82f6", $type: "color" },
+		secondary: { $value: "#6366f1", $type: "color" },
+	},
+	spacing: {
+		xs: { $value: "0.25rem", $type: "dimension" },
+		sm: { $value: "0.5rem", $type: "dimension" },
+		md: { $value: "1rem", $type: "dimension" },
+	},
 };
 ```
 
@@ -107,46 +119,66 @@ const defaultTokens = {
 ```html
 <!-- Tailwind usage -->
 <div class="flex flex-col gap-4 p-6 bg-primary rounded-lg">
-  <button class="px-4 py-2 bg-secondary text-white rounded-md">
-    Click me
-  </button>
+	<button class="px-4 py-2 bg-secondary text-white rounded-md">Click me</button>
 </div>
 ```
 
 Generates:
 
 ```css
-.flex { display: flex; }
-.flex-col { flex-direction: column; }
-.gap-4 { gap: var(--spacing-4); }
-.p-6 { padding: var(--spacing-6); }
-.bg-primary { background-color: var(--color-primary); }
-.rounded-lg { border-radius: var(--radius-lg); }
-.px-4 { padding-inline: var(--spacing-4); }
-.py-2 { padding-block: var(--spacing-2); }
-.bg-secondary { background-color: var(--color-secondary); }
-.text-white { color: white; }
-.rounded-md { border-radius: var(--radius-md); }
+.flex {
+	display: flex;
+}
+.flex-col {
+	flex-direction: column;
+}
+.gap-4 {
+	gap: var(--spacing-4);
+}
+.p-6 {
+	padding: var(--spacing-6);
+}
+.bg-primary {
+	background-color: var(--color-primary);
+}
+.rounded-lg {
+	border-radius: var(--radius-lg);
+}
+.px-4 {
+	padding-inline: var(--spacing-4);
+}
+.py-2 {
+	padding-block: var(--spacing-2);
+}
+.bg-secondary {
+	background-color: var(--color-secondary);
+}
+.text-white {
+	color: white;
+}
+.rounded-md {
+	border-radius: var(--radius-md);
+}
 ```
 
 ### Our Approach: Component Styles
 
 ```typescript
 const container = style("container", {
-  display: "flex",
-  flexDirection: "column",
-  gap: "1rem",
-  padding: "1.5rem",
-  backgroundColor: "primary",
-  borderRadius: "0.5rem",
+	display: "flex",
+	flexDirection: "column",
+	gap: "1rem",
+	padding: "1.5rem",
+	backgroundColor: "primary",
+	borderRadius: "0.5rem",
 });
 
 const button = style("button", {
-  paddingInline: "1rem",
-  paddingBlock: "0.5rem",
-  backgroundColor: "secondary",
-  color: "white",
-  borderRadius: "0.375rem",
+	paddingInline: "1rem",
+	paddingBlock: "0.5rem",
+	backgroundColor: "secondary",
+	color: "white",
+	borderRadius: "0.375rem",
 });
 ```
 
@@ -154,7 +186,7 @@ Usage:
 
 ```tsx
 <div class={container}>
-  <button class={button}>Click me</button>
+	<button class={button}>Click me</button>
 </div>
 ```
 
@@ -162,17 +194,17 @@ Usage:
 
 ## Detailed Comparison
 
-| Aspect | Tailwind v4 | Our Approach |
-|--------|-------------|--------------|
-| **Class names** | Utility (`.flex`, `.p-4`) | Scoped (`.button__hash`) |
-| **Token format** | CSS `@theme` | W3C DTCG JSON |
-| **Styling model** | Utility-first | Component-scoped |
-| **CSS variables** | Auto-generated | Manual extraction |
-| **Build output** | Atomic utilities | Component CSS |
-| **Theming** | CSS variables + dark: | Theme registry |
-| **Zero-runtime** | Yes (static) | Yes (static) |
-| **Type safety** | Limited | Full TypeScript |
-| **Configuration** | CSS-first | TypeScript API |
+| Aspect            | Tailwind v4               | Our Approach             |
+| ----------------- | ------------------------- | ------------------------ |
+| **Class names**   | Utility (`.flex`, `.p-4`) | Scoped (`.button__hash`) |
+| **Token format**  | CSS `@theme`              | W3C DTCG JSON            |
+| **Styling model** | Utility-first             | Component-scoped         |
+| **CSS variables** | Auto-generated            | Manual extraction        |
+| **Build output**  | Atomic utilities          | Component CSS            |
+| **Theming**       | CSS variables + dark:     | Theme registry           |
+| **Zero-runtime**  | Yes (static)              | Yes (static)             |
+| **Type safety**   | Limited                   | Full TypeScript          |
+| **Configuration** | CSS-first                 | TypeScript API           |
 
 ---
 
@@ -184,8 +216,8 @@ All tokens defined in CSS:
 
 ```css
 @theme {
-  --color-brand: #3b82f6;
-  --spacing-4: 1rem;
+	--color-brand: #3b82f6;
+	--spacing-4: 1rem;
 }
 
 /* Variables available as: var(--color-brand) */
@@ -198,13 +230,16 @@ Tailwind generates utilities dynamically - no configuration needed for arbitrary
 
 ```html
 <div class="grid grid-cols-[1fr_2fr_1fr]">
-<div class="p-[calc(1rem+2px)]">
-<div data-active class="opacity-75 data-active:opacity-100">
+	<div class="p-[calc(1rem+2px)]">
+		<div data-active class="opacity-75 data-active:opacity-100"></div>
+	</div>
+</div>
 ```
 
 ### 3. Modern CSS Features
 
 v4 leverages:
+
 - Cascade layers (`@layer theme, base, components, utilities`)
 - `@property` for animating CSS variables
 - `color-mix()` for opacity
@@ -220,23 +255,22 @@ v4 leverages:
 
 ```html
 <div class="@container">
-  <div class="grid grid-cols-1 @sm:grid-cols-3 @lg:grid-cols-4">
-    Content
-  </div>
+	<div class="grid grid-cols-1 @sm:grid-cols-3 @lg:grid-cols-4">Content</div>
 </div>
 ```
 
 ### 6. Dark Mode
 
 ```html
-<div class="dark:bg-gray-900 dark:text-white">
+<div class="dark:bg-gray-900 dark:text-white"></div>
 ```
 
 ### 7. Arbitrary Values
 
 ```html
 <div class="top-[calc(100%-1rem)]">
-<div class="grid-cols-[repeat(3,minmax(0,1fr))]">
+	<div class="grid-cols-[repeat(3,minmax(0,1fr))]"></div>
+</div>
 ```
 
 ---
@@ -248,11 +282,11 @@ v4 leverages:
 ```typescript
 // Our approach - full TypeScript
 const button = style("button", {
-  backgroundColor: "primary", // TypeScript knows valid colors
+	backgroundColor: "primary", // TypeScript knows valid colors
 });
 
 // Tailwind - string-based
-className="bg-primary" // No compile-time checking
+className = "bg-primary"; // No compile-time checking
 ```
 
 ### 2. Component Isolation
@@ -263,7 +297,7 @@ const button = style("button", { color: "red" });
 // .button__a1b2c3d4 - won't conflict with anything
 
 // Tailwind - global utilities
-className="text-red-500" // Could conflict
+className = "text-red-500"; // Could conflict
 ```
 
 ### 3. Composition
@@ -279,6 +313,7 @@ className={`base ${variant} ${conditional && 'extra'}`}
 ### 4. Design Tokens
 
 Our approach follows W3C DTCG:
+
 - Better interoperability
 - Token references
 - Metadata support
@@ -308,10 +343,10 @@ Our approach follows W3C DTCG:
 ```typescript
 // Proposed
 defineConfig({
-  utilities: [
-    { property: "display", values: ["flex", "grid", "block"] },
-    { property: "gap", values: ["sm", "md", "lg"] },
-  ]
+	utilities: [
+		{ property: "display", values: ["flex", "grid", "block"] },
+		{ property: "gap", values: ["sm", "md", "lg"] },
+	],
 });
 ```
 
@@ -329,8 +364,8 @@ createTheme("dark", { colors: { primary: "#fff" } });
 ```typescript
 // Proposed
 const responsive = style("container", {
-  "@sm": { display: "flex" },
-  "@lg": { display: "grid" },
+	"@sm": { display: "flex" },
+	"@lg": { display: "grid" },
 });
 ```
 
@@ -339,8 +374,8 @@ const responsive = style("container", {
 ```typescript
 // Proposed
 const responsive = style("container", {
-  "@container": true,
-  "@sm:grid-cols-3": true,
+	"@container": true,
+	"@sm:grid-cols-3": true,
 });
 ```
 
@@ -351,8 +386,8 @@ Allow dynamic values without pre-configuration:
 ```typescript
 // Proposed
 style("el", {
-  padding: "{1rem + 2px}", // Arbitrary value
-  gridColumns: "{repeat(3, minmax(0, 1fr))}",
+	padding: "{1rem + 2px}", // Arbitrary value
+	gridColumns: "{repeat(3, minmax(0, 1fr))}",
 });
 ```
 
@@ -360,22 +395,23 @@ style("el", {
 
 ## Comparison: All Four Frameworks
 
-| Aspect | SugarCube | StyleX | Vanilla-Extract | Tailwind v4 | Our Approach |
-|--------|-----------|--------|-----------------|-------------|--------------|
-| **Class names** | Semantic | Atomic | Scoped | Utility | Scoped |
-| **Token format** | DTCG | JS | JS | CSS @theme | DTCG |
-| **Build output** | Variables | Atomic | Static CSS | Utilities | Extract |
-| **Runtime** | Zero | Zero | Zero | Zero | Zero |
-| **Type safety** | Partial | Full | Full | Limited | Full |
-| **Theming** | Modifiers | defineVars | createTheme | CSS vars | Registry |
-| **Atomic** | Optional | Yes | No | Yes | Optional |
-| **Configuration** | JSON/TS | TS | TS | CSS | TS |
+| Aspect            | SugarCube | StyleX     | Vanilla-Extract | Tailwind v4 | Our Approach |
+| ----------------- | --------- | ---------- | --------------- | ----------- | ------------ |
+| **Class names**   | Semantic  | Atomic     | Scoped          | Utility     | Scoped       |
+| **Token format**  | DTCG      | JS         | JS              | CSS @theme  | DTCG         |
+| **Build output**  | Variables | Atomic     | Static CSS      | Utilities   | Extract      |
+| **Runtime**       | Zero      | Zero       | Zero            | Zero        | Zero         |
+| **Type safety**   | Partial   | Full       | Full            | Limited     | Full         |
+| **Theming**       | Modifiers | defineVars | createTheme     | CSS vars    | Registry     |
+| **Atomic**        | Optional  | Yes        | No              | Yes         | Optional     |
+| **Configuration** | JSON/TS   | TS         | TS              | CSS         | TS           |
 
 ---
 
 ## Conclusion
 
 Tailwind v4 excels at:
+
 - Utility-first workflow
 - CSS-first configuration
 - Dynamic/arbitrary values
@@ -383,6 +419,7 @@ Tailwind v4 excels at:
 - No class name management
 
 Our approach excels at:
+
 - Type-safe component styles
 - W3C DTCG token compliance
 - Scoped isolation

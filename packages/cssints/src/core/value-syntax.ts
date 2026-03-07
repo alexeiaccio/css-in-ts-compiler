@@ -228,9 +228,7 @@ const tokenize = (syntax: string): Effect.Effect<Token[], ParseError> =>
 		return tokens;
 	});
 
-const parseMultiplier = (
-	mult: string,
-): { min: number; max: number | null } | "required" | "optional" => {
+const parseMultiplier = (mult: string): { min: number; max: number | null } | "required" | "optional" => {
 	if (mult === "?") return "optional";
 	if (mult === "*") return { min: 0, max: null };
 	if (mult === "+") return { min: 1, max: null };
@@ -343,10 +341,7 @@ const parseTokens = (tokens: Token[]): Effect.Effect<SyntaxNode[], ParseError> =
 		return nodes;
 	});
 
-const combineWithCombinators = (
-	nodes: SyntaxNode[],
-	tokens: Token[],
-): Effect.Effect<SyntaxNode, ParseError> =>
+const combineWithCombinators = (nodes: SyntaxNode[], tokens: Token[]): Effect.Effect<SyntaxNode, ParseError> =>
 	Effect.gen(function* () {
 		if (nodes.length === 0) {
 			return new KeywordNode({ value: "" });
@@ -472,9 +467,7 @@ export const syntaxToSchema = (node: SyntaxNode): Schema.Schema<unknown> => {
 		case "Or":
 			return Schema.Union([syntaxToSchema(node.items[0]!), syntaxToSchema(node.items[1]!)]);
 		case "And":
-			return Schema.Struct(
-				Object.fromEntries(node.items.map((item, idx) => [`_${idx}`, syntaxToSchema(item)])),
-			);
+			return Schema.Struct(Object.fromEntries(node.items.map((item, idx) => [`_${idx}`, syntaxToSchema(item)])));
 		case "Juxtaposition":
 			if (node.items.length === 1) {
 				return syntaxToSchema(node.items[0]!);

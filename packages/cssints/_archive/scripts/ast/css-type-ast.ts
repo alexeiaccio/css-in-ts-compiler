@@ -159,16 +159,16 @@ export interface IDLFunction {
 export interface CSSTypeAST {
 	readonly version: string;
 	readonly generatedAt: string;
-	
+
 	// CSS value types (from mdn-data syntaxes)
 	readonly valueTypes: Map<string, CSSValueType>;
-	
+
 	// CSS properties (from @webref/css)
 	readonly properties: Map<string, CSSProperty>;
-	
+
 	// CSS functions (from @webref/css)
 	readonly functions: Map<string, CSSFunction>;
-	
+
 	// IDL types (from @webref/idl)
 	readonly idlTypes: Map<string, IDLType>;
 }

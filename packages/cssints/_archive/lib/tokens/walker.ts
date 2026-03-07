@@ -3,6 +3,7 @@
  */
 
 import type { DTCGToken, DTCGGroup, DTCGTokenType } from "./dtcg-types";
+
 import { detectTokenType, normalizeTokenValue } from "./type-mapping";
 
 // ============================================================================
@@ -43,23 +44,23 @@ export function walkTokens(
 	inheritedType?: DTCGTokenType,
 ): TokenWalkResult[] {
 	const results: TokenWalkResult[] = [];
-	
+
 	// Extract group-level $type if present
 	const groupType = group.$type ?? inheritedType;
-	
+
 	// Process each property
 	for (const [key, value] of Object.entries(group)) {
 		// Skip metadata properties
 		if (key.startsWith("$") && key !== "$value") continue;
-		
+
 		const currentPath = [...parentPath, key];
-		
+
 		if (isToken(value)) {
 			// It's a token
 			const tokenType = value.$type ?? groupType ?? detectTokenType(value.$value) ?? "string";
 			const tokenValue = normalizeTokenValue(value.$value);
 			const name = options.transform(currentPath, tokenValue);
-			
+
 			results.push({
 				name,
 				path: currentPath,
@@ -73,7 +74,7 @@ export function walkTokens(
 			results.push(...walkTokens(value, options, currentPath, groupType));
 		}
 	}
-	
+
 	return results;
 }
 
@@ -96,11 +97,7 @@ function isGroup(value: unknown): value is DTCGGroup {
 /**
  * Default name transformer: joins path with separator
  */
-export function defaultTransform(
-	path: string[],
-	_separator: string,
-	prefix?: string,
-): string {
+export function defaultTransform(path: string[], _separator: string, prefix?: string): string {
 	const parts = prefix ? [prefix, ...path] : path;
 	return parts.join("-");
 }

@@ -1,17 +1,18 @@
 import { describe, it, expect } from "vitest";
+
 import { scaleShorthand } from "../lib/scale";
 
 describe("generated properties (multi-param)", () => {
 	it("scaleShorthand handles 1-4 params", () => {
 		// Single value
 		expect(scaleShorthand(1)).toBe("0.25rem");
-		
+
 		// Two values (vertical horizontal)
 		expect(scaleShorthand(1, 2)).toBe("0.25rem 0.5rem");
-		
+
 		// Three values (top horizontal bottom)
 		expect(scaleShorthand(1, 2, 3)).toBe("0.25rem 0.5rem 0.75rem");
-		
+
 		// Four values (top right bottom left)
 		expect(scaleShorthand(1, 2, 3, 4)).toBe("0.25rem 0.5rem 0.75rem 1rem");
 	});

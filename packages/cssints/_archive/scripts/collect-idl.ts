@@ -5,9 +5,9 @@
  * Caches to node_modules/.cache/cssints/idl-cache.json
  */
 
+import { listAll } from "@webref/idl";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { listAll } from "@webref/idl";
 
 const paths = JSON.parse(fs.readFileSync(path.join(__dirname, "paths.json"), "utf-8"));
 
@@ -67,7 +67,7 @@ function loadCache(): IDLCollection | null {
 
 	try {
 		const data = JSON.parse(fs.readFileSync(CACHE_FILE, "utf-8")) as CacheData;
-		
+
 		if (data.version !== CACHE_VERSION) {
 			log("  Cache version mismatch, refetching...");
 			return null;
@@ -92,14 +92,14 @@ function loadCache(): IDLCollection | null {
 
 function saveCache(data: IDLCollection): void {
 	fs.mkdirSync(CACHE_DIR, { recursive: true });
-	
+
 	// Convert Map to plain object for JSON serialization
 	const cacheData: CacheData = {
 		version: data.version,
 		timestamp: data.timestamp,
 		files: Object.fromEntries(data.files),
 	};
-	
+
 	fs.writeFileSync(CACHE_FILE, JSON.stringify(cacheData, null, 2));
 	log(`Cache saved to ${CACHE_FILE}`);
 }
@@ -123,14 +123,9 @@ export async function getIDLData(options?: { force?: boolean }): Promise<IDLColl
 	return data;
 }
 
-export function getIDLFilesByPattern(
-	data: IDLCollection, 
-	pattern: RegExp | string
-): Map<string, string> {
-	const regex = typeof pattern === "string" 
-		? new RegExp(pattern) 
-		: pattern;
-	
+export function getIDLFilesByPattern(data: IDLCollection, pattern: RegExp | string): Map<string, string> {
+	const regex = typeof pattern === "string" ? new RegExp(pattern) : pattern;
+
 	const matches = new Map<string, string>();
 	for (const [name, content] of data.files) {
 		if (regex.test(name)) {

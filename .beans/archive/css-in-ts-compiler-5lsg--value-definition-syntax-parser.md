@@ -12,10 +12,12 @@ parent: css-in-ts-compiler-hztx
 Parse MDN value definition syntax into TypeScript types.
 
 ## Scope
+
 - Parse syntax like <length>, <color>, <percentage>, <angle>
 - Handle combinators (|, ||, &&, [])
-- Handle multipliers (*, +, ?, {n,m})
+- Handle multipliers (\*, +, ?, {n,m})
 - Map to existing typed.ts types (Length, Angle, Color, etc.)
 
 ## Output
+
 - Type mapping from CSS syntax to TypeScript

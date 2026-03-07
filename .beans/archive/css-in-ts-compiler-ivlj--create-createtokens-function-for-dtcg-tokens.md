@@ -10,18 +10,18 @@ updated_at: 2026-02-19T09:34:44Z
 
 Implement createTokens that takes DTCG-compliant JSON and returns typed token objects. Include full type inference from JSON structure with $type support, options for prefix/separator, and CSS @property generation.
 
-
-
 ## Summary of Changes
 
 ### New Files
--  - Main createTokens function with DTCG format support
--  - DTCG specification type definitions
--  - DTCG to CSS type mappings
--  - Recursive token tree walker
--  - 20 comprehensive tests
+
+- - Main createTokens function with DTCG format support
+- - DTCG specification type definitions
+- - DTCG to CSS type mappings
+- - Recursive token tree walker
+- - 20 comprehensive tests
 
 ### Features
+
 - **DTCG format support**: $type, $value, $description, $extensions
 - **Type inheritance**: $type cascades from parent groups to tokens
 - **Runtime type detection**: Auto-detects types from values when $type not specified
@@ -36,11 +36,11 @@ Implement createTokens that takes DTCG-compliant JSON and returns typed token ob
 - **Registry**: Global token registry with clearTokenRegistry(), getRegisteredTokens(), getToken()
 
 ### Type Inference
+
 - Uses TypeScript 'as const' for full type inference from JSON structure
 - Maps DTCG types (color, dimension, duration, etc.) to CSS types
 - Template literal types preserve path structure
 
 ### Example Usage
-
 
 All 20 tests passing.

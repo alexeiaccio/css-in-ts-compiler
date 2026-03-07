@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import { inferType, inferParams } from "../scripts/infer-types";
 import { parseSyntaxSync } from "../src/core/value-syntax";
 

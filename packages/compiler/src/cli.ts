@@ -154,7 +154,7 @@ export async function main(): Promise<void> {
 			console.error("Error: Output file required for watch mode");
 			process.exit(1);
 		}
-		watch(inputPath, options.output);
+		void watch(inputPath, options.output);
 		return;
 	}
 

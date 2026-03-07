@@ -4,7 +4,6 @@
  * Do not edit manually.
  */
 
-
 // ============================================================================
 // CSS Property Functions
 // ============================================================================
@@ -43,7 +42,8 @@ export const WebkitAnimationFillMode: (value: string) => string = (value) => `-w
 
 /** CSS `-webkit-animation-iteration-count` property */
 /** @spec unknown */
-export const WebkitAnimationIterationCount: (value: string) => string = (value) => `-webkit-animation-iteration-count: ${value}`;
+export const WebkitAnimationIterationCount: (value: string) => string = (value) =>
+	`-webkit-animation-iteration-count: ${value}`;
 
 /** CSS `-webkit-animation-name` property */
 /** @spec unknown */
@@ -55,7 +55,8 @@ export const WebkitAnimationPlayState: (value: string) => string = (value) => `-
 
 /** CSS `-webkit-animation-timing-function` property */
 /** @spec unknown */
-export const WebkitAnimationTimingFunction: (value: string) => string = (value) => `-webkit-animation-timing-function: ${value}`;
+export const WebkitAnimationTimingFunction: (value: string) => string = (value) =>
+	`-webkit-animation-timing-function: ${value}`;
 
 /** CSS `-webkit-appearance` property */
 /** @spec css-ui-4 */
@@ -79,11 +80,13 @@ export const WebkitBackgroundSize: (value: string) => string = (value) => `-webk
 
 /** CSS `-webkit-border-bottom-left-radius` property */
 /** @spec unknown */
-export const WebkitBorderBottomLeftRadius: (value: string) => string = (value) => `-webkit-border-bottom-left-radius: ${value}`;
+export const WebkitBorderBottomLeftRadius: (value: string) => string = (value) =>
+	`-webkit-border-bottom-left-radius: ${value}`;
 
 /** CSS `-webkit-border-bottom-right-radius` property */
 /** @spec unknown */
-export const WebkitBorderBottomRightRadius: (value: string) => string = (value) => `-webkit-border-bottom-right-radius: ${value}`;
+export const WebkitBorderBottomRightRadius: (value: string) => string = (value) =>
+	`-webkit-border-bottom-right-radius: ${value}`;
 
 /** CSS `-webkit-border-radius` property */
 /** @spec unknown */
@@ -91,11 +94,13 @@ export const WebkitBorderRadius: (value: string) => string = (value) => `-webkit
 
 /** CSS `-webkit-border-top-left-radius` property */
 /** @spec unknown */
-export const WebkitBorderTopLeftRadius: (value: string) => string = (value) => `-webkit-border-top-left-radius: ${value}`;
+export const WebkitBorderTopLeftRadius: (value: string) => string = (value) =>
+	`-webkit-border-top-left-radius: ${value}`;
 
 /** CSS `-webkit-border-top-right-radius` property */
 /** @spec unknown */
-export const WebkitBorderTopRightRadius: (value: string) => string = (value) => `-webkit-border-top-right-radius: ${value}`;
+export const WebkitBorderTopRightRadius: (value: string) => string = (value) =>
+	`-webkit-border-top-right-radius: ${value}`;
 
 /** CSS `-webkit-box-shadow` property */
 /** @spec unknown */
@@ -263,7 +268,8 @@ export const WebkitTransitionProperty: (value: string) => string = (value) => `-
 
 /** CSS `-webkit-transition-timing-function` property */
 /** @spec unknown */
-export const WebkitTransitionTimingFunction: (value: string) => string = (value) => `-webkit-transition-timing-function: ${value}`;
+export const WebkitTransitionTimingFunction: (value: string) => string = (value) =>
+	`-webkit-transition-timing-function: ${value}`;
 
 /** CSS `-webkit-user-select` property */
 /** @spec css-ui-4 */
@@ -1003,11 +1009,13 @@ export const columnRuleInteriorInset: (value: string) => string = (value) => `co
 
 /** CSS `column-rule-interior-inset-end` property */
 /** @spec css-gaps-1 */
-export const columnRuleInteriorInsetEnd: (value: string) => string = (value) => `column-rule-interior-inset-end: ${value}`;
+export const columnRuleInteriorInsetEnd: (value: string) => string = (value) =>
+	`column-rule-interior-inset-end: ${value}`;
 
 /** CSS `column-rule-interior-inset-start` property */
 /** @spec css-gaps-1 */
-export const columnRuleInteriorInsetStart: (value: string) => string = (value) => `column-rule-interior-inset-start: ${value}`;
+export const columnRuleInteriorInsetStart: (value: string) => string = (value) =>
+	`column-rule-interior-inset-start: ${value}`;
 
 /** CSS `column-rule-style` property */
 /** @spec css-gaps-1 */
@@ -1051,7 +1059,8 @@ export const containIntrinsicHeight: (value: string) => string = (value) => `con
 
 /** CSS `contain-intrinsic-inline-size` property */
 /** @spec css-sizing-4 */
-export const containIntrinsicInlineSize: (value: string) => string = (value) => `contain-intrinsic-inline-size: ${value}`;
+export const containIntrinsicInlineSize: (value: string) => string = (value) =>
+	`contain-intrinsic-inline-size: ${value}`;
 
 /** CSS `contain-intrinsic-size` property */
 /** @spec css-sizing-4 */
@@ -2107,11 +2116,13 @@ export const overflowClipMarginBlock: (value: string) => string = (value) => `ov
 
 /** CSS `overflow-clip-margin-block-end` property */
 /** @spec css-overflow-4 */
-export const overflowClipMarginBlockEnd: (value: string) => string = (value) => `overflow-clip-margin-block-end: ${value}`;
+export const overflowClipMarginBlockEnd: (value: string) => string = (value) =>
+	`overflow-clip-margin-block-end: ${value}`;
 
 /** CSS `overflow-clip-margin-block-start` property */
 /** @spec css-overflow-4 */
-export const overflowClipMarginBlockStart: (value: string) => string = (value) => `overflow-clip-margin-block-start: ${value}`;
+export const overflowClipMarginBlockStart: (value: string) => string = (value) =>
+	`overflow-clip-margin-block-start: ${value}`;
 
 /** CSS `overflow-clip-margin-bottom` property */
 /** @spec css-overflow-4 */
@@ -2123,11 +2134,13 @@ export const overflowClipMarginInline: (value: string) => string = (value) => `o
 
 /** CSS `overflow-clip-margin-inline-end` property */
 /** @spec css-overflow-4 */
-export const overflowClipMarginInlineEnd: (value: string) => string = (value) => `overflow-clip-margin-inline-end: ${value}`;
+export const overflowClipMarginInlineEnd: (value: string) => string = (value) =>
+	`overflow-clip-margin-inline-end: ${value}`;
 
 /** CSS `overflow-clip-margin-inline-start` property */
 /** @spec css-overflow-4 */
-export const overflowClipMarginInlineStart: (value: string) => string = (value) => `overflow-clip-margin-inline-start: ${value}`;
+export const overflowClipMarginInlineStart: (value: string) => string = (value) =>
+	`overflow-clip-margin-inline-start: ${value}`;
 
 /** CSS `overflow-clip-margin-left` property */
 /** @spec css-overflow-4 */
@@ -2419,7 +2432,8 @@ export const rowRuleInteriorInsetEnd: (value: string) => string = (value) => `ro
 
 /** CSS `row-rule-interior-inset-start` property */
 /** @spec css-gaps-1 */
-export const rowRuleInteriorInsetStart: (value: string) => string = (value) => `row-rule-interior-inset-start: ${value}`;
+export const rowRuleInteriorInsetStart: (value: string) => string = (value) =>
+	`row-rule-interior-inset-start: ${value}`;
 
 /** CSS `row-rule-style` property */
 /** @spec css-gaps-1 */
@@ -2983,11 +2997,13 @@ export const timelineTriggerExitRange: (value: string) => string = (value) => `t
 
 /** CSS `timeline-trigger-exit-range-end` property */
 /** @spec css-animations-2 */
-export const timelineTriggerExitRangeEnd: (value: string) => string = (value) => `timeline-trigger-exit-range-end: ${value}`;
+export const timelineTriggerExitRangeEnd: (value: string) => string = (value) =>
+	`timeline-trigger-exit-range-end: ${value}`;
 
 /** CSS `timeline-trigger-exit-range-start` property */
 /** @spec css-animations-2 */
-export const timelineTriggerExitRangeStart: (value: string) => string = (value) => `timeline-trigger-exit-range-start: ${value}`;
+export const timelineTriggerExitRangeStart: (value: string) => string = (value) =>
+	`timeline-trigger-exit-range-start: ${value}`;
 
 /** CSS `timeline-trigger-name` property */
 /** @spec css-animations-2 */

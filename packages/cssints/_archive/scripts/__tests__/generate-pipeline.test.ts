@@ -5,13 +5,15 @@
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
-import { getIDLData } from "../collect-idl";
-import { extractCSSIDLTypes } from "../extract-css-idl";
-import { getSyntaxData } from "../collect-syntax";
-import { parseSyntax, parseAllSyntaxes } from "../ast/syntax-parser";
-import { parseWebIDL } from "../ast/idl-parser";
-import { emitIDLTypes, emitSyntaxTypes, emitProperties, emitFunctions } from "../ast/ts-emitter";
+
 import type { IDLType, CSSValueType, CSSProperty, CSSFunction } from "../ast/css-type-ast";
+
+import { parseWebIDL } from "../ast/idl-parser";
+import { parseSyntax, parseAllSyntaxes } from "../ast/syntax-parser";
+import { emitIDLTypes, emitSyntaxTypes, emitProperties, emitFunctions } from "../ast/ts-emitter";
+import { getIDLData } from "../collect-idl";
+import { getSyntaxData } from "../collect-syntax";
+import { extractCSSIDLTypes } from "../extract-css-idl";
 
 describe("IDL Collection", () => {
 	it("should collect IDL data from @webref/idl", async () => {
@@ -66,7 +68,7 @@ describe("Syntax Collection", () => {
 			functions: new Map(),
 			composites: new Map(),
 		};
-		
+
 		for (const [name, def] of data.definitions) {
 			if (name.endsWith("()")) {
 				categories.functions.set(name, def);
@@ -76,9 +78,10 @@ describe("Syntax Collection", () => {
 				categories.composites.set(name, def);
 			}
 		}
-		
-		expect(categories.primitives.size + categories.functions.size + categories.composites.size)
-			.toBe(data.definitions.size);
+
+		expect(categories.primitives.size + categories.functions.size + categories.composites.size).toBe(
+			data.definitions.size,
+		);
 	});
 });
 
@@ -114,15 +117,12 @@ describe("Syntax Parser", () => {
 	it("should parse all syntaxes without errors", () => {
 		const data = getSyntaxData();
 		const definitions = new Map(
-			Array.from(data.definitions.entries()).map(([name, def]) => [
-				name,
-				{ name: def.name, syntax: def.syntax },
-			])
+			Array.from(data.definitions.entries()).map(([name, def]) => [name, { name: def.name, syntax: def.syntax }]),
 		);
-		
+
 		const results = parseAllSyntaxes(definitions);
 		expect(results.size).toBeGreaterThan(0);
-		
+
 		// Check that we didn't fail completely
 		const successRate = results.size / definitions.size;
 		expect(successRate).toBeGreaterThan(0.5); // At least 50% success
@@ -175,7 +175,7 @@ describe("TypeScript Emitter", () => {
 			name: "CSSStyleValue",
 			members: [],
 		} as IDLType);
-		
+
 		const output = emitIDLTypes(types);
 		expect(output).toContain("export interface CSSStyleValue");
 		expect(output).toContain("AUTO-GENERATED");
@@ -188,7 +188,7 @@ describe("TypeScript Emitter", () => {
 			name: "TestType",
 			tsType: "number",
 		} as CSSValueType);
-		
+
 		const output = emitSyntaxTypes(types);
 		expect(output).toContain("export type TestType");
 	});
@@ -201,7 +201,7 @@ describe("TypeScript Emitter", () => {
 			syntax: "<color>",
 			valueType: { name: "string" },
 		} as CSSProperty);
-		
+
 		const output = emitProperties(properties);
 		expect(output).toContain("color");
 		expect(output).toContain("AUTO-GENERATED");
@@ -216,7 +216,7 @@ describe("TypeScript Emitter", () => {
 			parameters: [],
 			returnType: { name: "string" },
 		} as CSSFunction);
-		
+
 		const output = emitFunctions(functions);
 		expect(output).toContain("RgbFunction");
 	});
@@ -228,21 +228,18 @@ describe("Integration", () => {
 		const idlData = await getIDLData();
 		const extraction = extractCSSIDLTypes(idlData);
 		expect(extraction.cssTypes.size).toBeGreaterThan(0);
-		
+
 		const syntaxData = getSyntaxData();
 		const definitions = new Map(
-			Array.from(syntaxData.definitions.entries()).map(([name, def]) => [
-				name,
-				{ name: def.name, syntax: def.syntax },
-			])
+			Array.from(syntaxData.definitions.entries()).map(([name, def]) => [name, { name: def.name, syntax: def.syntax }]),
 		);
 		const syntaxTypes = parseAllSyntaxes(definitions);
 		expect(syntaxTypes.size).toBeGreaterThan(0);
-		
+
 		// Verify emitters work
 		const idlOutput = emitIDLTypes(extraction.cssTypes);
 		expect(idlOutput.length).toBeGreaterThan(100);
-		
+
 		const syntaxOutput = emitSyntaxTypes(syntaxTypes);
 		expect(syntaxOutput.length).toBeGreaterThan(100);
 	});

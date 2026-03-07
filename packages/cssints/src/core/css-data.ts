@@ -105,44 +105,42 @@ const mergeProperties = (
 };
 
 type BCDOnlyType = {
-  readonly name: string;
-  readonly __compat: CompatData;
+	readonly name: string;
+	readonly __compat: CompatData;
 };
 
-const extractBCDTypes = (
-  bcdTypes: CSSCompatData["types"],
-): Record<string, BCDOnlyType> => {
-  const result: Record<string, BCDOnlyType> = {};
+const extractBCDTypes = (bcdTypes: CSSCompatData["types"]): Record<string, BCDOnlyType> => {
+	const result: Record<string, BCDOnlyType> = {};
 
-  if (!bcdTypes) return result;
+	if (!bcdTypes) return result;
 
-  for (const [typeName, typeData] of Object.entries(bcdTypes)) {
-    if (typeName === "__compat") continue;
+	for (const [typeName, typeData] of Object.entries(bcdTypes)) {
+		if (typeName === "__compat") continue;
 
-    const filteredCompat = filterCompat(typeData.__compat);
-    if (filteredCompat) {
-      result[typeName] = {
-        name: typeName,
-        __compat: filteredCompat,
-      };
-    }
+		const filteredCompat = filterCompat(typeData.__compat);
+		if (filteredCompat) {
+			result[typeName] = {
+				name: typeName,
+				__compat: filteredCompat,
+			};
+		}
 
-    for (const [subType, subData] of Object.entries(typeData)) {
-      if (subType === "__compat") continue;
-      if (typeof subData !== "object" || subData === null) continue;
-      if (!("__compat" in subData)) continue;
+		for (const [subType, subData] of Object.entries(typeData)) {
+			if (subType === "__compat") continue;
+			if (typeof subData !== "object" || subData === null) continue;
+			if (!("__compat" in subData)) continue;
 
-      const subCompat = filterCompat((subData as { __compat?: CompatData }).__compat);
-      if (subCompat) {
-        result[subType] = {
-          name: subType,
-          __compat: subCompat,
-        };
-      }
-    }
-  }
+			const subCompat = filterCompat((subData as { __compat?: CompatData }).__compat);
+			if (subCompat) {
+				result[subType] = {
+					name: subType,
+					__compat: subCompat,
+				};
+			}
+		}
+	}
 
-  return result;
+	return result;
 };
 
 const mergeTypes = (

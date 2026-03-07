@@ -16,4 +16,4 @@ export const LexContext = {
 	TestMode: 7,
 } as const;
 
-export type LexContext = typeof LexContext[keyof typeof LexContext];
+export type LexContext = (typeof LexContext)[keyof typeof LexContext];

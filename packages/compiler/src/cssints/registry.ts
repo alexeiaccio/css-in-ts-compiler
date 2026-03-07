@@ -18,7 +18,7 @@ class StyleRegistry {
 		const key = `${entry.fileId}:${entry.className}`;
 		if (!this.entries.has(key)) {
 			this.entries.set(key, entry);
-			
+
 			// Track by file
 			if (!this.fileEntries.has(entry.fileId)) {
 				this.fileEntries.set(entry.fileId, []);

@@ -1,15 +1,13 @@
 /**
  * Simple Vite Plugin for cssints
- * 
+ *
  * Uses regex-based transformation to convert css.* calls to class names.
  */
 
 import type { Plugin } from "vite";
+
 import * as cssints from "./cssints/index";
-import {
-	registerMultiPropertyClass,
-	generateCSS as generateIntegrationCSS,
-} from "./integration";
+import { registerMultiPropertyClass, generateCSS as generateIntegrationCSS } from "./integration";
 
 interface SimplePluginOptions {
 	include?: string[];
@@ -37,9 +35,7 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 
 	function generateClassName(props: Record<string, any>): string {
 		return registerMultiPropertyClass(
-			Object.fromEntries(
-				Object.entries(props).map(([k, v]) => [toKebabCase(k), String(v)])
-			)
+			Object.fromEntries(Object.entries(props).map(([k, v]) => [toKebabCase(k), String(v)])),
 		);
 	}
 
@@ -49,14 +45,14 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 
 	function evaluateCssintsExpr(expr: string, cssVar: string): any {
 		expr = expr.trim();
-		
+
 		// Check if it's a cssints function call
 		const pattern = `${cssVar}.`;
 		if (!expr.startsWith(pattern)) {
 			// Not a cssints call - return the expression as-is (could be a string, number, etc.)
 			return parseValue(expr);
 		}
-		
+
 		// Parse the function name
 		let j = pattern.length;
 		let fnName = "";
@@ -64,11 +60,11 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 			fnName += expr[j];
 			j++;
 		}
-		
+
 		if (!fnName || expr[j] !== "(") {
 			return parseValue(expr);
 		}
-		
+
 		// Find matching closing paren
 		let depth = 1;
 		let k = j + 1;
@@ -77,18 +73,18 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 			else if (expr[k] === ")") depth--;
 			k++;
 		}
-		
+
 		const argsStr = expr.slice(j + 1, k - 1);
-		
+
 		// Get the function
 		const fn = (cssints as any)[fnName];
 		if (typeof fn !== "function") {
 			return parseValue(expr);
 		}
-		
+
 		// Parse arguments (recursively evaluating nested calls)
 		const args = parseArgsRecursive(argsStr, cssVar);
-		
+
 		try {
 			return fn(...args);
 		} catch (e) {
@@ -98,7 +94,7 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 
 	function parseArgsRecursive(str: string, cssVar: string): any[] {
 		if (!str.trim()) return [];
-		
+
 		const args: any[] = [];
 		let current = "";
 		let depth = 0;
@@ -107,8 +103,8 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 
 		for (let i = 0; i < str.length; i++) {
 			const char = str[i];
-			
-			if ((char === '"' || char === "'") && str[i - 1] !== '\\') {
+
+			if ((char === '"' || char === "'") && str[i - 1] !== "\\") {
 				if (!inString) {
 					inString = true;
 					stringChar = char;
@@ -117,13 +113,13 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 				}
 				current += char;
 			} else if (!inString) {
-				if (char === '(' || char === '[' || char === '{') {
+				if (char === "(" || char === "[" || char === "{") {
 					depth++;
 					current += char;
-				} else if (char === ')' || char === ']' || char === '}') {
+				} else if (char === ")" || char === "]" || char === "}") {
 					depth--;
 					current += char;
-				} else if (char === ',' && depth === 0) {
+				} else if (char === "," && depth === 0) {
 					args.push(evaluateCssintsExpr(current.trim(), cssVar));
 					current = "";
 				} else {
@@ -133,11 +129,11 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 				current += char;
 			}
 		}
-		
+
 		if (current.trim()) {
 			args.push(evaluateCssintsExpr(current.trim(), cssVar));
 		}
-		
+
 		return args;
 	}
 
@@ -164,22 +160,23 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 				return null;
 			}
 
-			const importRegex = /import\s+\*\s+as\s+(\w+)\s+from\s+['"]cssints['"]\s+with\s*\{[^}]*type:\s*['"]cssints['"][^}]*\}/;
+			const importRegex =
+				/import\s+\*\s+as\s+(\w+)\s+from\s+['"]cssints['"]\s+with\s*\{[^}]*type:\s*['"]cssints['"][^}]*\}/;
 			const importMatch = code.match(importRegex);
-			
+
 			if (!importMatch) {
 				return null;
 			}
 
 			const cssVar = importMatch[1]!;
-			
+
 			if (!fileStyles.has(id)) {
 				fileStyles.set(id, new Set());
 			}
 			const currentFileStyles = fileStyles.get(id)!;
 
 			const replacements: { start: number; end: number; className: string }[] = [];
-			
+
 			let i = 0;
 			while (i < code.length) {
 				const pattern = `${cssVar}.`;
@@ -190,7 +187,7 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 						fnName += code[j];
 						j++;
 					}
-					
+
 					if (fnName && j < code.length && code[j] === "(") {
 						const start = i;
 						let depth = 1;
@@ -200,24 +197,24 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 							else if (code[k] === ")") depth--;
 							k++;
 						}
-						
+
 						const end = k;
 						const argsStr = code.slice(j + 1, k - 1);
-						
+
 						const fn = (cssints as any)[fnName];
 						if (typeof fn === "function") {
 							const args = parseArgsRecursive(argsStr, cssVar);
-							
+
 							try {
 								const result = fn(...args);
-								
+
 								if (result && typeof result === "object") {
 									const className = generateClassName(result);
-									
+
 									currentFileStyles.add(className);
-									
+
 									replacements.push({ start, end, className });
-									
+
 									if (debug) {
 										console.log(`[cssints] ${cssVar}.${fnName}(${argsStr}) -> "${className}"`);
 									}
@@ -226,7 +223,7 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 								if (debug) console.error(`Error calling ${fnName}:`, e);
 							}
 						}
-						
+
 						i = end;
 						continue;
 					}
@@ -267,10 +264,7 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 			handler(html: string) {
 				const css = generateIntegrationCSS();
 				if (css) {
-					return html.replace(
-						"</head>",
-						`<link rel="stylesheet" href="/${cssFileName}">\n</head>`
-					);
+					return html.replace("</head>", `<link rel="stylesheet" href="/${cssFileName}">\n</head>`);
 				}
 				return html;
 			},
@@ -291,25 +285,24 @@ export function cssintsPlugin(options: SimplePluginOptions = {}): Plugin {
 
 function parseValue(value: string): any {
 	if (!value) return undefined;
-	
+
 	// String
-	if ((value.startsWith('"') && value.endsWith('"')) || 
-	    (value.startsWith("'") && value.endsWith("'"))) {
+	if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
 		return value.slice(1, -1);
 	}
-	
+
 	// Number
 	if (/^-?\d+(\.\d+)?$/.test(value)) {
 		return parseFloat(value);
 	}
-	
+
 	// Boolean
 	if (value === "true") return true;
 	if (value === "false") return false;
-	
+
 	// Undefined/null
 	if (value === "undefined") return undefined;
 	if (value === "null") return null;
-	
+
 	return value;
 }

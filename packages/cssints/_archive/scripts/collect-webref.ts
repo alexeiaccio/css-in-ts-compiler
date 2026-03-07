@@ -5,9 +5,9 @@
  * Caches to node_modules/.cache/cssints/webref-cache.json
  */
 
+import { listAll } from "@webref/css";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { listAll } from "@webref/css";
 
 interface CacheData {
 	version: string;

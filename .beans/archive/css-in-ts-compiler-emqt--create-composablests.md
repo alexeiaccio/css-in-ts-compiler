@@ -14,11 +14,10 @@ parent: css-in-ts-compiler-4p4k
 - [x] Export all composable utilities
 - [x] Follow typed.ts createTyped pattern
 
-
-
 ## Summary
 
 Created lib/composables.ts with:
+
 - Flex: flex(), items(), justify(), direction(), wrap(), gap()
 - Grid: grid(), cols(), rows(), areas()
 - Positioning: absolute(), relative(), fixed(), sticky(), inset()

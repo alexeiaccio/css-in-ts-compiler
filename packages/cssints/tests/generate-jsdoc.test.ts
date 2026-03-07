@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import { generateJSDoc, generateFunctionJSDoc } from "../scripts/generate-jsdoc";
 
 describe("generate-jsdoc", () => {

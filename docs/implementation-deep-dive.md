@@ -23,14 +23,14 @@ SugarCube is a design token to CSS compiler that generates CSS variables and uti
 
 ### Tech Stack
 
-| Aspect | Details |
-|--------|---------|
-| **Language** | TypeScript (68.9%) |
-| **Package Manager** | pnpm |
-| **Build Tool** | Unknown (likely tsup or rollup) |
-| **Testing** | Unknown |
-| **Monorepo** | pnpm workspaces |
-| **Code Quality** | Biome (linting/formatting) |
+| Aspect              | Details                         |
+| ------------------- | ------------------------------- |
+| **Language**        | TypeScript (68.9%)              |
+| **Package Manager** | pnpm                            |
+| **Build Tool**      | Unknown (likely tsup or rollup) |
+| **Testing**         | Unknown                         |
+| **Monorepo**        | pnpm workspaces                 |
+| **Code Quality**    | Biome (linting/formatting)      |
 
 ### Packages
 
@@ -63,15 +63,15 @@ SugarCube is a design token to CSS compiler that generates CSS variables and uti
 ```typescript
 // Resolver document structure
 interface ResolverDocument {
-  version: "2025.10";
-  resolutionOrder: Array<{
-    type: "set" | "modifier";
-    name: string;
-    sources: Array<{ $ref: string }>;
-    // For modifiers
-    default?: string;
-    contexts?: Record<string, Array<{ $ref: string }>>;
-  }>;
+	version: "2025.10";
+	resolutionOrder: Array<{
+		type: "set" | "modifier";
+		name: string;
+		sources: Array<{ $ref: string }>;
+		// For modifiers
+		default?: string;
+		contexts?: Record<string, Array<{ $ref: string }>>;
+	}>;
 }
 ```
 
@@ -97,11 +97,12 @@ interface ResolverDocument {
 import sugarcube from "@sugarcube-sh/vite";
 
 export default {
-  plugins: [sugarcube()],
+	plugins: [sugarcube()],
 };
 ```
 
 **Features:**
+
 - Hot reloading when tokens change
 - Automatic discovery of resolver files
 - CSS generation on build
@@ -145,14 +146,14 @@ StyleX is Meta's styling system that compiles component styles into atomic CSS. 
 
 ### Tech Stack
 
-| Aspect | Details |
-|--------|---------|
-| **Language** | JavaScript (93.2%), TypeScript (3.2%) |
-| **Package Manager** | Yarn |
-| **Build Tool** | Rollup (packages), Bazel (internal Meta) |
-| **Testing** | Jest, Flow |
-| **Type System** | Flow (primary), TypeScript support |
-| **Monorepo** | Yarn workspaces |
+| Aspect              | Details                                  |
+| ------------------- | ---------------------------------------- |
+| **Language**        | JavaScript (93.2%), TypeScript (3.2%)    |
+| **Package Manager** | Yarn                                     |
+| **Build Tool**      | Rollup (packages), Bazel (internal Meta) |
+| **Testing**         | Jest, Flow                               |
+| **Type System**     | Flow (primary), TypeScript support       |
+| **Monorepo**        | Yarn workspaces                          |
 
 ### Packages
 
@@ -177,13 +178,16 @@ StyleX uses **Babel plugin** as the primary compiler:
 ```javascript
 // babel.config.js
 module.exports = {
-  plugins: [
-    ["@stylexjs/babel-plugin", {
-      // Config options
-      classNamePrefix: "x",
-      stylexSheetName: "stylex.css",
-    }]
-  ]
+	plugins: [
+		[
+			"@stylexjs/babel-plugin",
+			{
+				// Config options
+				classNamePrefix: "x",
+				stylexSheetName: "stylex.css",
+			},
+		],
+	],
 };
 ```
 
@@ -237,12 +241,12 @@ StyleX uses a deterministic hashing algorithm:
 ```typescript
 // Simplified hash generation
 function generateHash(css: string): string {
-  // DJB2-like hash
-  let hash = 5381;
-  for (let i = 0; i < css.length; i++) {
-    hash = ((hash << 5) + hash) + css.charCodeAt(i);
-  }
-  return Math.abs(hash).toString(36).slice(0, 7);
+	// DJB2-like hash
+	let hash = 5381;
+	for (let i = 0; i < css.length; i++) {
+		hash = (hash << 5) + hash + css.charCodeAt(i);
+	}
+	return Math.abs(hash).toString(36).slice(0, 7);
 }
 ```
 
@@ -253,12 +257,15 @@ function generateHash(css: string): string {
 ```javascript
 // Most common setup
 module.exports = {
-  plugins: [
-    ["@stylexjs/babel-plugin", {
-      dev: process.env.NODE_ENV === "development",
-      stylexSheetName: "./styles/stylex.css",
-    }]
-  ]
+	plugins: [
+		[
+			"@stylexjs/babel-plugin",
+			{
+				dev: process.env.NODE_ENV === "development",
+				stylexSheetName: "./styles/stylex.css",
+			},
+		],
+	],
 };
 ```
 
@@ -276,7 +283,7 @@ module.exports = {
 const nextPlugin = require("@stylexjs/nextjs-plugin");
 
 module.exports = {
-  plugins: [nextPlugin()],
+	plugins: [nextPlugin()],
 };
 ```
 
@@ -285,11 +292,14 @@ module.exports = {
 ```javascript
 // postcss.config.js
 module.exports = {
-  plugins: [
-    ["@stylexjs/postcss-plugin", {
-      stylexSheetName: "stylex.css",
-    }]
-  ]
+	plugins: [
+		[
+			"@stylexjs/postcss-plugin",
+			{
+				stylexSheetName: "stylex.css",
+			},
+		],
+	],
 };
 ```
 
@@ -304,19 +314,19 @@ stylex-compiler --input ./src --output ./dist
 
 ```typescript
 // defineVars - creates CSS variables
-import { defineVars } from '@stylexjs/themes';
+import { defineVars } from "@stylexjs/themes";
 
 const tokens = defineVars({
-  colors: { primary: '#3b82f6' },
-  spacing: { md: '8px' },
+	colors: { primary: "#3b82f6" },
+	spacing: { md: "8px" },
 });
 
 // Usage in styles
 stylex.create({
-  button: {
-    backgroundColor: tokens.colors.primary,
-    padding: tokens.spacing.md,
-  }
+	button: {
+		backgroundColor: tokens.colors.primary,
+		padding: tokens.spacing.md,
+	},
 });
 ```
 
@@ -325,12 +335,12 @@ stylex.create({
 ```javascript
 // .eslintrc.js
 module.exports = {
-  plugins: ['@stylexjs'],
-  rules: {
-    '@stylexjs/valid-styles': 'error',
-    '@stylexjs/no-unused': 'error',
-    '@stylexjs/valid-shorthands': 'warn',
-  },
+	plugins: ["@stylexjs"],
+	rules: {
+		"@stylexjs/valid-styles": "error",
+		"@stylexjs/no-unused": "error",
+		"@stylexjs/valid-shorthands": "warn",
+	},
 };
 ```
 
@@ -344,13 +354,13 @@ vanilla-extract is a zero-runtime CSS-in-TypeScript library that generates stati
 
 ### Tech Stack
 
-| Aspect | Details |
-|--------|---------|
-| **Language** | TypeScript |
-| **Package Manager** | npm |
-| **Build Tool** | Rollup |
-| **Testing** | Jest |
-| **Type System** | TypeScript (first-class) |
+| Aspect              | Details                  |
+| ------------------- | ------------------------ |
+| **Language**        | TypeScript               |
+| **Package Manager** | npm                      |
+| **Build Tool**      | Rollup                   |
+| **Testing**         | Jest                     |
+| **Type System**     | TypeScript (first-class) |
 
 ### Packages
 
@@ -413,7 +423,7 @@ vanilla-extract uses **incremental hashing**:
 // Simplified
 let hashCounter = 0;
 function generateHash(): string {
-  return (hashCounter++).toString(36);
+	return (hashCounter++).toString(36);
 }
 ```
 
@@ -425,14 +435,15 @@ The hash is based on file structure + export order, ensuring consistency within 
 
 ```typescript
 // vite.config.ts
-import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
+import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
 
 export default {
-  plugins: [vanillaExtractPlugin()],
+	plugins: [vanillaExtractPlugin()],
 };
 ```
 
 **Features:**
+
 - Hot module replacement
 - TypeScript support
 - CSS bundling
@@ -441,14 +452,14 @@ export default {
 
 ```javascript
 // webpack.config.js
-const { VanillaExtractPlugin } = require('@vanilla-extract/webpack-plugin');
+const { VanillaExtractPlugin } = require("@vanilla-extract/webpack-plugin");
 
 module.exports = {
-  plugins: [
-    new VanillaExtractPlugin({
-      // Options
-    })
-  ],
+	plugins: [
+		new VanillaExtractPlugin({
+			// Options
+		}),
+	],
 };
 ```
 
@@ -456,13 +467,13 @@ module.exports = {
 
 ```javascript
 // build.js
-const { vanillaExtractPlugin } = require('@vanilla-extract/esbuild-plugin');
+const { vanillaExtractPlugin } = require("@vanilla-extract/esbuild-plugin");
 
-require('esbuild').build({
-  entryPoints: ['app.ts'],
-  bundle: true,
-  plugins: [vanillaExtractPlugin()],
-  outfile: 'out.js',
+require("esbuild").build({
+	entryPoints: ["app.ts"],
+	bundle: true,
+	plugins: [vanillaExtractPlugin()],
+	outfile: "out.js",
 });
 ```
 
@@ -471,30 +482,30 @@ require('esbuild').build({
 #### Theme Contracts
 
 ```typescript
-import { createThemeContract, createTheme } from '@vanilla-extract/css';
+import { createThemeContract, createTheme } from "@vanilla-extract/css";
 
 // Define required tokens (type-safe)
 export const vars = createThemeContract({
-  color: {
-    brand: null,
-    text: null,
-  },
-  space: {
-    sm: null,
-    md: null,
-  },
+	color: {
+		brand: null,
+		text: null,
+	},
+	space: {
+		sm: null,
+		md: null,
+	},
 });
 
 // Create theme with values
 export const [themeClass, vars] = createTheme(vars, {
-  color: {
-    brand: '#3b82f6',
-    text: '#1a1a1a',
-  },
-  space: {
-    sm: '4px',
-    md: '8px',
-  },
+	color: {
+		brand: "#3b82f6",
+		text: "#1a1a1a",
+	},
+	space: {
+		sm: "4px",
+		md: "8px",
+	},
 });
 ```
 
@@ -502,10 +513,10 @@ export const [themeClass, vars] = createTheme(vars, {
 
 ```css
 :root {
-  --color-brand__ya5b7b0: #3b82f6;
-  --color-text__ya5b7b1: #1a1a1a;
-  --space-sm__ya5b7b2: 4px;
-  --space-md__ya5b7b3: 8px;
+	--color-brand__ya5b7b0: #3b82f6;
+	--color-text__ya5b7b1: #1a1a1a;
+	--space-sm__ya5b7b2: 4px;
+	--space-md__ya5b7b3: 8px;
 }
 ```
 
@@ -541,13 +552,13 @@ Tailwind CSS v4 is a ground-up rewrite using Rust (Lightning CSS) for unpreceden
 
 ### Tech Stack
 
-| Aspect | Details |
-|--------|---------|
-| **Language** | Rust (engine), JavaScript/TypeScript (API) |
-| **Engine** | Lightning CSS (Rust) |
-| **Package Manager** | npm |
-| **Build Tool** | Rust + Cargo |
-| **Testing** | Unknown |
+| Aspect              | Details                                    |
+| ------------------- | ------------------------------------------ |
+| **Language**        | Rust (engine), JavaScript/TypeScript (API) |
+| **Engine**          | Lightning CSS (Rust)                       |
+| **Package Manager** | npm                                        |
+| **Build Tool**      | Rust + Cargo                               |
+| **Testing**         | Unknown                                    |
 
 ### Packages
 
@@ -600,8 +611,8 @@ Tailwind v4 uses **Lightning CSS** (Rust) as its core engine, called the "Oxide"
 ```css
 /* Input */
 @theme {
-  --color-primary: #3b82f6;
-  --spacing-md: 1rem;
+	--color-primary: #3b82f6;
+	--spacing-md: 1rem;
 }
 
 /* Processed into:
@@ -616,10 +627,14 @@ Tailwind generates utilities from the theme:
 
 ```css
 /* From @theme --spacing-md: 1rem */
-.p-md { padding: var(--spacing-md); }
+.p-md {
+	padding: var(--spacing-md);
+}
 
 /* From @theme --color-primary: #3b82f6 */
-.bg-primary { background-color: var(--color-primary); }
+.bg-primary {
+	background-color: var(--color-primary);
+}
 ```
 
 ### Bundler Integrations
@@ -631,11 +646,12 @@ Tailwind generates utilities from the theme:
 import tailwindcss from "@tailwindcss/vite";
 
 export default {
-  plugins: [tailwindcss()],
+	plugins: [tailwindcss()],
 };
 ```
 
 **Features:**
+
 - Best performance
 - Hot module replacement
 - Built-in import support
@@ -645,9 +661,9 @@ export default {
 ```javascript
 // postcss.config.js
 module.exports = {
-  plugins: {
-    "@tailwindcss/postcss": {},
-  },
+	plugins: {
+		"@tailwindcss/postcss": {},
+	},
 };
 ```
 
@@ -655,7 +671,7 @@ module.exports = {
 /* Input CSS */
 @import "tailwindcss";
 @theme {
-  --color-primary: #3b82f6;
+	--color-primary: #3b82f6;
 }
 ```
 
@@ -671,11 +687,11 @@ tailwindcss -i input.css -o output.css --watch
 
 ### Performance Characteristics
 
-| Operation | v3 | v4 | Improvement |
-|-----------|-----|-----|-------------|
-| Full build | 378ms | 100ms | 3.78x |
-| Incremental (new CSS) | 44ms | 5ms | 8.8x |
-| Incremental (no new CSS) | 35ms | 0.19ms | 182x |
+| Operation                | v3    | v4     | Improvement |
+| ------------------------ | ----- | ------ | ----------- |
+| Full build               | 378ms | 100ms  | 3.78x       |
+| Incremental (new CSS)    | 44ms  | 5ms    | 8.8x        |
+| Incremental (no new CSS) | 35ms  | 0.19ms | 182x        |
 
 ### Modern CSS Features
 
@@ -697,14 +713,14 @@ Tokenami is a utility-first CSS library that uses atomic CSS variables instead o
 
 ### Tech Stack
 
-| Aspect | Details |
-|--------|---------|
-| **Language** | TypeScript |
-| **Package Manager** | pnpm |
-| **Build Tool** | Turborepo + TypeScript |
-| **Testing** | Vitest |
-| **Type System** | TypeScript (first-class) |
-| **Monorepo** | Lerna + pnpm |
+| Aspect              | Details                  |
+| ------------------- | ------------------------ |
+| **Language**        | TypeScript               |
+| **Package Manager** | pnpm                     |
+| **Build Tool**      | Turborepo + TypeScript   |
+| **Testing**         | Vitest                   |
+| **Type System**     | TypeScript (first-class) |
+| **Monorepo**        | Lerna + pnpm             |
 
 ### Packages
 
@@ -738,39 +754,39 @@ Tokenami uses a **CLI-first** approach without requiring bundler integration.
 
 ```typescript
 // .tokenami/tokenami.config.ts
-import { createConfig } from '@tokenami/css';
+import { createConfig } from "@tokenami/css";
 
 export default createConfig({
-  // Theme tokens
-  theme: {
-    color: {
-      'slate-100': '#f1f5f9',
-      'sky-500': '#0ea5e9',
-    },
-    radii: {
-      rounded: '10px',
-    },
-  },
-  
-  // Multiple themes (light/dark)
-  modes: {
-    light: { color: { primary: '#000' } },
-    dark: { color: { primary: '#fff' } },
-  },
-  
-  // Grid for numeric values (default: 0.25rem)
-  grid: '4px',
-  
-  // Responsive breakpoints
-  responsive: {
-    md: '@media (min-width: 700px)',
-    lg: '@media (min-width: 1024px)',
-  },
-  
-  // Global styles
-  globalStyles: {
-    body: { margin: 0 },
-  },
+	// Theme tokens
+	theme: {
+		color: {
+			"slate-100": "#f1f5f9",
+			"sky-500": "#0ea5e9",
+		},
+		radii: {
+			rounded: "10px",
+		},
+	},
+
+	// Multiple themes (light/dark)
+	modes: {
+		light: { color: { primary: "#000" } },
+		dark: { color: { primary: "#fff" } },
+	},
+
+	// Grid for numeric values (default: 0.25rem)
+	grid: "4px",
+
+	// Responsive breakpoints
+	responsive: {
+		md: "@media (min-width: 700px)",
+		lg: "@media (min-width: 1024px)",
+	},
+
+	// Global styles
+	globalStyles: {
+		body: { margin: 0 },
+	},
 });
 ```
 
@@ -785,8 +801,8 @@ The underscore separator avoids needing quotes in CSS:
 
 ```css
 :root {
-  --color_primary: #3b82f6;
-  --spacing_4: 1rem;  /* grid * 4 */
+	--color_primary: #3b82f6;
+	--spacing_4: 1rem; /* grid * 4 */
 }
 ```
 
@@ -840,13 +856,14 @@ npx tokenami --output ./public/styles.css --watch
 ```json
 // tsconfig.json
 {
-  "compilerOptions": {
-    "plugins": [{ "name": "tokenami" }]
-  }
+	"compilerOptions": {
+		"plugins": [{ "name": "tokenami" }]
+	}
 }
 ```
 
 Provides:
+
 - Autocomplete for CSS variables
 - Type checking for theme values
 - IntelliSense
@@ -854,6 +871,7 @@ Provides:
 #### Framework Support
 
 Tokenami works with:
+
 - React
 - Preact
 - Vue
@@ -873,44 +891,44 @@ Tokenami works with:
 
 ### Tech Stack Comparison
 
-| Aspect | SugarCube | StyleX | vanilla-extract | Tailwind v4 | Tokenami |
-|--------|-----------|--------|-----------------|-------------|----------|
-| **Language** | TypeScript | JavaScript/Flow | TypeScript | Rust + JS | TypeScript |
-| **Engine** | TypeScript | Babel | TypeScript | Lightning CSS | TypeScript + CLI |
-| **Build Output** | CSS variables + utilities | Atomic CSS | Static CSS files | Utility CSS | CSS variables |
-| **Type System** | TypeScript | Flow | TypeScript | None (CSS) | TypeScript |
-| **Monorepo** | pnpm | Yarn | npm | npm | Lerna + pnpm |
+| Aspect           | SugarCube                 | StyleX          | vanilla-extract  | Tailwind v4   | Tokenami         |
+| ---------------- | ------------------------- | --------------- | ---------------- | ------------- | ---------------- |
+| **Language**     | TypeScript                | JavaScript/Flow | TypeScript       | Rust + JS     | TypeScript       |
+| **Engine**       | TypeScript                | Babel           | TypeScript       | Lightning CSS | TypeScript + CLI |
+| **Build Output** | CSS variables + utilities | Atomic CSS      | Static CSS files | Utility CSS   | CSS variables    |
+| **Type System**  | TypeScript                | Flow            | TypeScript       | None (CSS)    | TypeScript       |
+| **Monorepo**     | pnpm                      | Yarn            | npm              | npm           | Lerna + pnpm     |
 
 ### Compiler Comparison
 
-| Aspect | SugarCube | StyleX | vanilla-extract | Tailwind v4 | Tokenami |
-|--------|-----------|--------|-----------------|-------------|----------|
-| **Transform** | Token → CSS | JS → Atomic CSS | TS → CSS | CSS → CSS | Config + TS → CSS |
-| **AST** | JSON parsing | Babel AST | TypeScript AST | Lightning AST | TypeScript AST |
-| **Caching** | Unknown | File-level | Module-level | Rust caching | File-level |
-| **Dev Mode** | HMR via Vite | Runtime injection | HMR via bundler | Native HMR | CLI watch mode |
+| Aspect        | SugarCube    | StyleX            | vanilla-extract | Tailwind v4   | Tokenami          |
+| ------------- | ------------ | ----------------- | --------------- | ------------- | ----------------- |
+| **Transform** | Token → CSS  | JS → Atomic CSS   | TS → CSS        | CSS → CSS     | Config + TS → CSS |
+| **AST**       | JSON parsing | Babel AST         | TypeScript AST  | Lightning AST | TypeScript AST    |
+| **Caching**   | Unknown      | File-level        | Module-level    | Rust caching  | File-level        |
+| **Dev Mode**  | HMR via Vite | Runtime injection | HMR via bundler | Native HMR    | CLI watch mode    |
 
 ### Bundler Support
 
-| Bundler | SugarCube | StyleX | vanilla-extract | Tailwind v4 | Tokenami |
-|---------|-----------|--------|-----------------|-------------|----------|
-| **Vite** | ✅ Native | ✅ Via Rollup | ✅ Native | ✅ Native | ❌ |
-| **Webpack** | ❌ | ✅ | ✅ | ❌ (PostCSS) | ❌ |
-| **esbuild** | ❌ | ❌ | ✅ | ❌ | ❌ |
-| **Rollup** | ❌ | ✅ | ❌ | ❌ | ❌ |
-| **PostCSS** | ❌ | ✅ | ❌ | ✅ | ❌ |
-| **CLI** | ✅ | ✅ | ❌ | ✅ | ✅ (native) |
-| **None** | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Bundler     | SugarCube | StyleX        | vanilla-extract | Tailwind v4  | Tokenami    |
+| ----------- | --------- | ------------- | --------------- | ------------ | ----------- |
+| **Vite**    | ✅ Native | ✅ Via Rollup | ✅ Native       | ✅ Native    | ❌          |
+| **Webpack** | ❌        | ✅            | ✅              | ❌ (PostCSS) | ❌          |
+| **esbuild** | ❌        | ❌            | ✅              | ❌           | ❌          |
+| **Rollup**  | ❌        | ✅            | ❌              | ❌           | ❌          |
+| **PostCSS** | ❌        | ✅            | ❌              | ✅           | ❌          |
+| **CLI**     | ✅        | ✅            | ❌              | ✅           | ✅ (native) |
+| **None**    | ❌        | ❌            | ❌              | ❌           | ✅          |
 
 ### Performance Characteristics
 
-| Metric | SugarCube | StyleX | vanilla-extract | Tailwind v4 | Tokenami |
-|--------|-----------|--------|-----------------|-------------|----------|
-| **Build Speed** | Unknown | Fast | Fast | Fastest (Rust) | Fast |
-| **Incremental** | Unknown | File-level | Module-level | Microsecond | File-level |
-| **Memory** | Unknown | Cached | Standard | Optimized | Standard |
-| **Large Projects** | Unknown | Excellent | Good | Excellent | Good |
-| **Runtime Size** | Zero | Zero | Zero | Zero | ~2.5kb |
+| Metric             | SugarCube | StyleX     | vanilla-extract | Tailwind v4    | Tokenami   |
+| ------------------ | --------- | ---------- | --------------- | -------------- | ---------- |
+| **Build Speed**    | Unknown   | Fast       | Fast            | Fastest (Rust) | Fast       |
+| **Incremental**    | Unknown   | File-level | Module-level    | Microsecond    | File-level |
+| **Memory**         | Unknown   | Cached     | Standard        | Optimized      | Standard   |
+| **Large Projects** | Unknown   | Excellent  | Good            | Excellent      | Good       |
+| **Runtime Size**   | Zero      | Zero       | Zero            | Zero           | ~2.5kb     |
 
 ### Architecture Patterns
 
@@ -953,26 +971,31 @@ Tokenami works with:
 ## Key Takeaways
 
 ### StyleX
+
 - **Best for**: Large-scale applications at Meta
 - **Strength**: Atomic CSS deduplication, predictable specificity
 - **Weakness**: More complex setup, Flow-first
 
 ### vanilla-extract
+
 - **Best for**: TypeScript projects needing static CSS
 - **Strength**: Theme contracts, framework agnostic
 - **Weakness**: No atomic CSS by default, hash-suffixed variables
 
 ### Tailwind v4
+
 - **Best for**: Utility-first projects, performance-critical
 - **Strength**: Fastest engine, CSS-first config
 - **Weakness**: Utility class soup, limited type safety
 
 ### SugarCube
+
 - **Best for**: Design token-driven workflows
 - **Strength**: W3C DTCG compliance, CUBE CSS integration
 - **Weakness**: Newer, less mature
 
 ### Tokenami
+
 - **Best for**: Projects needing no bundler, clean HTML
 - **Strength**: CSS variable-first, CLI-only, framework agnostic
 - **Weakness**: ~2.5kb runtime, inline styles for variants

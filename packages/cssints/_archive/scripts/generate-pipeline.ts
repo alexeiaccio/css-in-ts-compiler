@@ -11,26 +11,28 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getIDLData } from "./collect-idl";
-import { extractCSSIDLTypes } from "./extract-css-idl";
-import { getSyntaxData, type SyntaxCollection } from "./collect-syntax";
-import { getWebRefData, getCSSFunctions, getCSSProperties } from "./collect-webref";
-import { filterFunctions } from "./filter-baseline";
+
+import type { CSSTypeAST, IDLType, CSSValueType, CSSProperty, CSSFunction } from "./ast/css-type-ast";
+
+import { createTypeRef } from "./ast/css-type-ast";
 import { parseWebIDL } from "./ast/idl-parser";
 import { parseSyntax, parseAllSyntaxes } from "./ast/syntax-parser";
-import { 
-  emitAST, 
-  emitType, 
-  emitProperty, 
-  emitCSSFunction,
-  emitIDLTypes,
-  emitSyntaxTypes,
-  emitCompatData,
-  emitProperties,
-  emitFunctions 
+import {
+	emitAST,
+	emitType,
+	emitProperty,
+	emitCSSFunction,
+	emitIDLTypes,
+	emitSyntaxTypes,
+	emitCompatData,
+	emitProperties,
+	emitFunctions,
 } from "./ast/ts-emitter";
-import type { CSSTypeAST, IDLType, CSSValueType, CSSProperty, CSSFunction } from "./ast/css-type-ast";
-import { createTypeRef } from "./ast/css-type-ast";
+import { getIDLData } from "./collect-idl";
+import { getSyntaxData, type SyntaxCollection } from "./collect-syntax";
+import { getWebRefData, getCSSFunctions, getCSSProperties } from "./collect-webref";
+import { extractCSSIDLTypes } from "./extract-css-idl";
+import { filterFunctions } from "./filter-baseline";
 
 const paths = JSON.parse(fs.readFileSync(path.join(__dirname, "paths.json"), "utf-8"));
 
@@ -50,11 +52,11 @@ export interface GenerationConfig {
 	/** Output file configuration */
 	output: {
 		dir: string;
-		types: string;      // types.gen.ts
-		syntax: string;     // syntax.gen.ts
-		compat: string;     // compat.gen.ts
+		types: string; // types.gen.ts
+		syntax: string; // syntax.gen.ts
+		compat: string; // compat.gen.ts
 		properties: string; // properties.gen.ts
-		functions: string;  // functions.gen.ts
+		functions: string; // functions.gen.ts
 	};
 	/** Generation options */
 	options: {
@@ -121,12 +123,12 @@ async function collectData(config: GenerationConfig): Promise<CollectedData> {
 		try {
 			const idlCollection = await getIDLData({ force: config.options.forceRefresh });
 			const cssExtraction = extractCSSIDLTypes(idlCollection);
-			
+
 			// Merge extracted types
 			for (const [name, type] of cssExtraction.cssTypes) {
 				data.idlTypes.set(name, type);
 			}
-			
+
 			console.log(`  ✓ Extracted ${data.idlTypes.size} CSS IDL types`);
 		} catch (err) {
 			data.errors.push({ phase: "idl", error: err as Error });
@@ -148,12 +150,12 @@ async function collectData(config: GenerationConfig): Promise<CollectedData> {
 		console.log("[3/5] Collecting WebRef CSS data...");
 		try {
 			const webrefData = await getWebRefData({ force: config.options.forceRefresh });
-			
+
 			// Extract properties
 			if (config.sources.properties) {
 				const allProps = getCSSProperties(webrefData);
 				const filteredProps = allProps; // TODO: Apply baseline filtering
-				
+
 				for (const prop of filteredProps) {
 					// Create CSSProperty AST node
 					const cssProp: CSSProperty = {
@@ -165,10 +167,10 @@ async function collectData(config: GenerationConfig): Promise<CollectedData> {
 					};
 					data.properties.set(prop.name, cssProp);
 				}
-				
+
 				console.log(`  ✓ Extracted ${data.properties.size} CSS properties`);
 			}
-			
+
 			// Extract functions
 			if (config.sources.functions) {
 				const allFunctions = getCSSFunctions(webrefData);
@@ -176,7 +178,7 @@ async function collectData(config: GenerationConfig): Promise<CollectedData> {
 					status: ["modern", "experimental"],
 					includeVendorPrefixed: false,
 				});
-				
+
 				for (const fn of filteredFunctions) {
 					// Create CSSFunction AST node
 					const cssFn: CSSFunction = {
@@ -189,7 +191,7 @@ async function collectData(config: GenerationConfig): Promise<CollectedData> {
 					};
 					data.functions.set(fn.name, cssFn);
 				}
-				
+
 				console.log(`  ✓ Extracted ${data.functions.size} CSS functions`);
 			}
 		} catch (err) {
@@ -206,7 +208,9 @@ async function collectData(config: GenerationConfig): Promise<CollectedData> {
 	}
 
 	console.log("\n=== Data Collection Complete ===");
-	console.log(`Total: ${data.idlTypes.size} IDL types, ${data.syntaxTypes.size} syntax types, ${data.properties.size} properties, ${data.functions.size} functions`);
+	console.log(
+		`Total: ${data.idlTypes.size} IDL types, ${data.syntaxTypes.size} syntax types, ${data.properties.size} properties, ${data.functions.size} functions`,
+	);
 
 	return data;
 }
@@ -326,8 +330,6 @@ function generateFiles(data: CollectedData, config: GenerationConfig): Generatio
 	return result;
 }
 
-
-
 // ============================================================================
 // Main Orchestrator
 // ============================================================================
@@ -345,7 +347,9 @@ export async function generatePipeline(config?: Partial<GenerationConfig>): Prom
 	};
 
 	console.log("Starting CSS type generation pipeline...");
-	console.log(`Sources: IDL=${fullConfig.sources.idl}, Syntax=${fullConfig.sources.syntax}, Compat=${fullConfig.sources.compat}, Properties=${fullConfig.sources.properties}, Functions=${fullConfig.sources.functions}`);
+	console.log(
+		`Sources: IDL=${fullConfig.sources.idl}, Syntax=${fullConfig.sources.syntax}, Compat=${fullConfig.sources.compat}, Properties=${fullConfig.sources.properties}, Functions=${fullConfig.sources.functions}`,
+	);
 
 	try {
 		// Phase 1: Collect data
@@ -357,15 +361,15 @@ export async function generatePipeline(config?: Partial<GenerationConfig>): Prom
 		// Phase 3: Write files
 		if (result.success) {
 			console.log("\n=== Phase 3: Writing Files ===\n");
-			
+
 			fs.mkdirSync(fullConfig.output.dir, { recursive: true });
-			
+
 			for (const [filename, content] of result.files) {
 				const filepath = path.join(fullConfig.output.dir, filename);
 				fs.writeFileSync(filepath, content);
 				console.log(`  ✓ Written ${filepath} (${content.length} bytes)`);
 			}
-			
+
 			console.log("\n✅ Generation complete!");
 		} else {
 			console.log("\n❌ Generation failed with errors:");
@@ -392,7 +396,7 @@ export async function generatePipeline(config?: Partial<GenerationConfig>): Prom
 if (import.meta.main) {
 	const args = process.argv.slice(2);
 	const force = args.includes("--force") || args.includes("-f");
-	
+
 	generatePipeline({
 		options: {
 			...DEFAULT_CONFIG.options,

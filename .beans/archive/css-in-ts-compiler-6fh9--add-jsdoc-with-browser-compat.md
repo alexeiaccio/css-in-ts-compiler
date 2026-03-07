@@ -8,7 +8,7 @@ created_at: 2026-02-18T07:38:54Z
 updated_at: 2026-02-18T08:00:46Z
 parent: css-in-ts-compiler-ccbd
 blocked_by:
-    - css-in-ts-compiler-aa40
+  - css-in-ts-compiler-aa40
 ---
 
 Generate JSDoc comments with browser compatibility info.

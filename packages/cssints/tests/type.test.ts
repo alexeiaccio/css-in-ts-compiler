@@ -1,10 +1,7 @@
 import { describe, it, expect } from "vitest";
-import type {
-	Length, Angle,
-	Px, Rem, Deg, Turn,
-	LengthPercentage, AnglePercentage,
-} from "../lib/value-types";
+
 import type { Color } from "../lib/tokens";
+import type { Length, Angle, Px, Rem, Deg, Turn, LengthPercentage, AnglePercentage } from "../lib/value-types";
 
 // Helper functions for unit creation
 const px = (v: number): Px => `${v}px`;
@@ -22,7 +19,7 @@ describe("Primitive Types", () => {
 		const l2: Length = "10px";
 		const l3: Length = "1rem";
 		const l4: Length = "2em";
-		
+
 		expect(l1).toBe(10);
 		expect(l2).toBe("10px");
 	});
@@ -31,7 +28,7 @@ describe("Primitive Types", () => {
 		const a1: Angle = 45;
 		const a2: Angle = "45deg";
 		const a3: Angle = "1turn";
-		
+
 		expect(a1).toBe(45);
 		expect(a2).toBe("45deg");
 	});
@@ -40,7 +37,7 @@ describe("Primitive Types", () => {
 		const c1: Color = "red";
 		const c2: Color = "#fff";
 		const c3: Color = "rgb(255, 0, 0)";
-		
+
 		expect(c1).toBe("red");
 		expect(c2).toBe("#fff");
 	});
@@ -61,7 +58,7 @@ describe("Primitive Types", () => {
 		const r: Rem = rem(2);
 		const d: Deg = deg(90);
 		const t: Turn = turn(0.5);
-		
+
 		expect(p).toBe("10px");
 		expect(r).toBe("2rem");
 	});
@@ -72,7 +69,7 @@ describe("Composite Types", () => {
 		const lp1: LengthPercentage = 10;
 		const lp2: LengthPercentage = "10px";
 		const lp3: LengthPercentage = "50%";
-		
+
 		expect(lp1).toBe(10);
 		expect(lp3).toBe("50%");
 	});
@@ -81,7 +78,7 @@ describe("Composite Types", () => {
 		const ap1: AnglePercentage = 45;
 		const ap2: AnglePercentage = "45deg";
 		const ap3: AnglePercentage = "50%";
-		
+
 		expect(ap1).toBe(45);
 		expect(ap3).toBe("50%");
 	});

@@ -84,10 +84,7 @@ function getBrowserVersions(bcdKey: string): CSSFeature["browserSupport"] {
 	return result;
 }
 
-function determineStatus(
-	browserSupport: CSSFeature["browserSupport"],
-	targetBrowsers: string[],
-): FeatureStatus {
+function determineStatus(browserSupport: CSSFeature["browserSupport"], targetBrowsers: string[]): FeatureStatus {
 	// Get target versions from browserslist
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const targets = browserslist(targetBrowsers as any);
@@ -119,11 +116,7 @@ function determineStatus(
 	}
 
 	// If version_added is false or null, it's deprecated or not supported
-	if (
-		browserSupport.chrome === "false" ||
-		browserSupport.firefox === "false" ||
-		browserSupport.safari === "false"
-	) {
+	if (browserSupport.chrome === "false" || browserSupport.firefox === "false" || browserSupport.safari === "false") {
 		return "deprecated";
 	}
 

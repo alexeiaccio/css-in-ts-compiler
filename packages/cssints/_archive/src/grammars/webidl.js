@@ -74,7 +74,7 @@ const grammar = _Grammar.fromSource(`
   // Common elements
   ident = letter+ (letter | digit | "_")*
   num = digit+
-  str = "\"" "\"" "\"" | "\'" "\'" "\'"
+  str = """ """ """ | "'" "'" "'"
 }
 
 `);

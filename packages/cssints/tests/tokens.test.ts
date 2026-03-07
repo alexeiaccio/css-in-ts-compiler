@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import {
 	token,
 	color,
@@ -138,10 +139,7 @@ describe("Token System", () => {
 			const c = token.color("blue", "primary-2");
 			const s = token.length("1rem", "size-2");
 
-			const result = setMultiple(
-				[c.token, "red"],
-				[s.token, "2rem"],
-			);
+			const result = setMultiple([c.token, "red"], [s.token, "2rem"]);
 
 			expect(result).toEqual({
 				"--primary-2": "red",
@@ -154,10 +152,7 @@ describe("Token System", () => {
 		it("combines style objects", () => {
 			const c = token.color("blue", "primary-3");
 
-			const result = style(
-				{ color: "red" },
-				[c.token, "green"],
-			);
+			const result = style({ color: "red" }, [c.token, "green"]);
 
 			expect(result).toEqual({
 				color: "red",

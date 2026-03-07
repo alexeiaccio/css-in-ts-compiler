@@ -4,8 +4,9 @@
  * Utilities for parsing and generating CSS using csstree.
  */
 
-import { parse, generate, definitionSyntax } from "css-tree";
 import type { CssNode, Value, DSNodeGroup } from "css-tree";
+
+import { parse, generate, definitionSyntax } from "css-tree";
 
 // ============================================================================
 // Parse CSS Value

@@ -4,9 +4,9 @@
  * Collects and normalizes CSS syntax definitions from mdn-data/css/syntaxes.json
  */
 
+import syntaxes from "mdn-data/css/syntaxes.json" with { type: "json" };
 import * as fs from "node:fs";
 import * as path from "node:path";
-import syntaxes from "mdn-data/css/syntaxes.json" with { type: "json" };
 
 const paths = JSON.parse(fs.readFileSync(path.join(__dirname, "paths.json"), "utf-8"));
 
@@ -95,16 +95,16 @@ function collectSyntaxes(): SyntaxCollection {
 function shouldSkipSyntax(name: string): boolean {
 	// Skip vendor-prefixed
 	if (name.startsWith("-")) return true;
-	
+
 	// Skip token types
 	if (name.endsWith("-token")) return true;
-	
+
 	// Skip internal/implementation details
 	if (name.includes("(@")) return true;
-	
+
 	// Skip function calls notation
 	if (name.startsWith("(") && name.endsWith(")")) return true;
-	
+
 	return false;
 }
 
@@ -115,7 +115,7 @@ function loadCache(): SyntaxCollection | null {
 
 	try {
 		const data = JSON.parse(fs.readFileSync(CACHE_FILE, "utf-8")) as CacheData;
-		
+
 		if (data.version !== CACHE_VERSION) {
 			log("  Cache version mismatch, reloading...");
 			return null;
@@ -141,14 +141,14 @@ function loadCache(): SyntaxCollection | null {
 
 function saveCache(data: SyntaxCollection): void {
 	fs.mkdirSync(CACHE_DIR, { recursive: true });
-	
+
 	const cacheData: CacheData = {
 		version: data.version,
 		timestamp: data.timestamp,
 		definitions: Object.fromEntries(data.definitions),
 		count: data.count,
 	};
-	
+
 	fs.writeFileSync(CACHE_FILE, JSON.stringify(cacheData, null, 2));
 	log(`Cache saved to ${CACHE_FILE}`);
 }
@@ -178,14 +178,9 @@ export function getSyntaxData(options?: { force?: boolean }): SyntaxCollection {
 /**
  * Get syntax definitions filtered by pattern
  */
-export function getSyntaxesByPattern(
-	data: SyntaxCollection,
-	pattern: RegExp | string
-): Map<string, SyntaxDefinition> {
-	const regex = typeof pattern === "string" 
-		? new RegExp(pattern) 
-		: pattern;
-	
+export function getSyntaxesByPattern(data: SyntaxCollection, pattern: RegExp | string): Map<string, SyntaxDefinition> {
+	const regex = typeof pattern === "string" ? new RegExp(pattern) : pattern;
+
 	const matches = new Map<string, SyntaxDefinition>();
 	for (const [name, def] of data.definitions) {
 		if (regex.test(name)) {
@@ -224,12 +219,27 @@ function isPrimitiveSyntax(name: string): boolean {
 	// Primitive types in mdn-data don't use angle brackets in keys
 	// They match CSS syntax references like "length", "color", "number"
 	const primitives = [
-		"length", "percentage", "length-percentage",
-		"angle", "time", "frequency", "resolution",
-		"color", "image", "url", "string", "number", "integer",
-		"position", "identifier", "custom-ident",
-		"angle-percentage", "time-percentage",
-		"flex", "line-height", "line-width",
+		"length",
+		"percentage",
+		"length-percentage",
+		"angle",
+		"time",
+		"frequency",
+		"resolution",
+		"color",
+		"image",
+		"url",
+		"string",
+		"number",
+		"integer",
+		"position",
+		"identifier",
+		"custom-ident",
+		"angle-percentage",
+		"time-percentage",
+		"flex",
+		"line-height",
+		"line-width",
 	];
 	return primitives.includes(name);
 }
@@ -257,30 +267,28 @@ export function getCommonValueTypes(data: SyntaxCollection): SyntaxDefinition[] 
 		"<integer>",
 	];
 
-	return common
-		.map(name => data.definitions.get(name))
-		.filter((def): def is SyntaxDefinition => def !== undefined);
+	return common.map((name) => data.definitions.get(name)).filter((def): def is SyntaxDefinition => def !== undefined);
 }
 
 // CLI entry point
 if (import.meta.main) {
 	// Run synchronously for CLI
 	const data = getSyntaxData({ force: true });
-	
+
 	console.log("\n=== CSS Syntax Collection ===");
 	console.log(`Total definitions: ${data.count}`);
-	
+
 	const categories = getSyntaxesByCategory(data);
 	console.log(`  Primitives: ${categories.primitives.size}`);
 	console.log(`  Functions: ${categories.functions.size}`);
 	console.log(`  Composites: ${categories.composites.size}`);
-	
+
 	console.log("\n=== Common Value Types ===");
 	const common = getCommonValueTypes(data);
 	for (const def of common) {
 		console.log(`  ${def.name}: ${def.syntax.slice(0, 60)}${def.syntax.length > 60 ? "..." : ""}`);
 	}
-	
+
 	console.log("\n=== Sample Composites ===");
 	const composites = Array.from(categories.composites.values()).slice(0, 5);
 	for (const def of composites) {

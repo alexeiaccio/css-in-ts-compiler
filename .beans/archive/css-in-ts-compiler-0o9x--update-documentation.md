@@ -8,8 +8,8 @@ created_at: 2026-02-18T10:18:50Z
 updated_at: 2026-02-18T10:48:44Z
 parent: css-in-ts-compiler-8gcl
 blocked_by:
-    - css-in-ts-compiler-e39e
-    - css-in-ts-compiler-o40o
+  - css-in-ts-compiler-e39e
+  - css-in-ts-compiler-o40o
 ---
 
 - [ ] Update API.md with new generated properties

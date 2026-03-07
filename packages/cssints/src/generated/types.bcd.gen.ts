@@ -408,7 +408,7 @@ export const hypot = Schema.String;
  * @see https://developer.mozilla.org/docs/Web/CSS/Reference/Values/if
  * @see https://drafts.csswg.org/css-values-5/#if-notation
  */
-export const if = Schema.String;
+export const ifNotation = Schema.String;
 
 /**
  * **Syntax**

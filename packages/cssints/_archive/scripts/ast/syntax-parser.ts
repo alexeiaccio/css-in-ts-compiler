@@ -2,7 +2,7 @@
  * CSS Syntax Parser
  *
  * Parses CSS value syntax definitions (like "<length> | <percentage>") into AST nodes.
- * 
+ *
  * CSS Syntax Grammar (simplified):
  *   expr     := term (combinator term)*
  *   combinator := '|' | '||' | '&&' | ' '
@@ -14,14 +14,8 @@
  *   repeat   := term ('*' | '+' | '{n,m}')
  */
 
-import type {
-	CSSValueType,
-	PrimitiveType,
-	CompositeType,
-	EnumType,
-	AliasType,
-	TypeReference,
-} from "./css-type-ast";
+import type { CSSValueType, PrimitiveType, CompositeType, EnumType, AliasType, TypeReference } from "./css-type-ast";
+
 import {
 	createPrimitiveType,
 	createCompositeType,
@@ -34,28 +28,28 @@ import {
 // Token Types
 // ============================================================================
 
-type TokenType = 
-	| "ANGLE_BRACKET_OPEN"   // <
-	| "ANGLE_BRACKET_CLOSE"  // >
-	| "BRACKET_OPEN"         // [
-	| "BRACKET_CLOSE"        // ]
-	| "PAREN_OPEN"           // (
-	| "PAREN_CLOSE"          // )
-	| "BRACE_OPEN"           // {
-	| "BRACE_CLOSE"          // }
-	| "PIPE"                 // |
-	| "DOUBLE_PIPE"          // ||
-	| "AMPERSAND"            // &
-	| "DOUBLE_AMPERSAND"     // &&
-	| "QUESTION"             // ?
-	| "ASTERISK"             // *
-	| "PLUS"                 // +
-	| "HASH"                 // #
-	| "COMMA"                // ,
-	| "EXCLAMATION"          // !
-	| "IDENTIFIER"           // word
-	| "STRING"               // "..." or '...'
-	| "NUMBER"               // 123
+type TokenType =
+	| "ANGLE_BRACKET_OPEN" // <
+	| "ANGLE_BRACKET_CLOSE" // >
+	| "BRACKET_OPEN" // [
+	| "BRACKET_CLOSE" // ]
+	| "PAREN_OPEN" // (
+	| "PAREN_CLOSE" // )
+	| "BRACE_OPEN" // {
+	| "BRACE_CLOSE" // }
+	| "PIPE" // |
+	| "DOUBLE_PIPE" // ||
+	| "AMPERSAND" // &
+	| "DOUBLE_AMPERSAND" // &&
+	| "QUESTION" // ?
+	| "ASTERISK" // *
+	| "PLUS" // +
+	| "HASH" // #
+	| "COMMA" // ,
+	| "EXCLAMATION" // !
+	| "IDENTIFIER" // word
+	| "STRING" // "..." or '...'
+	| "NUMBER" // 123
 	| "EOF";
 
 interface Token {
@@ -175,23 +169,20 @@ class SyntaxLexer {
 	private readString(quote: string): Token {
 		const start = this.pos;
 		this.pos++; // Skip opening quote
-		
+
 		while (this.pos < this.input.length && this.input[this.pos] !== quote) {
 			this.pos++;
 		}
-		
+
 		const value = this.input.slice(start + 1, this.pos);
 		this.pos++; // Skip closing quote
-		
+
 		return { type: "STRING", value, pos: start };
 	}
 
 	private readIdentifier(): Token {
 		const start = this.pos;
-		while (
-			this.pos < this.input.length &&
-			/[a-zA-Z0-9_-]/.test(this.input[this.pos]!)
-		) {
+		while (this.pos < this.input.length && /[a-zA-Z0-9_-]/.test(this.input[this.pos]!)) {
 			this.pos++;
 		}
 		return {
@@ -225,7 +216,7 @@ class SyntaxParser {
 
 	parse(): SyntaxNode[] {
 		const nodes: SyntaxNode[] = [];
-		
+
 		while (this.current().type !== "EOF") {
 			const node = this.parseExpression();
 			if (node) {
@@ -443,10 +434,7 @@ function nodeToAST(node: SyntaxNode, name: string): CSSValueType | null {
 
 		case "function":
 			// Function call - treat as composite
-			return createCompositeType(
-				name,
-				[node.args.map((arg) => createTypeRef(arg.type))].flat().filter(Boolean)
-			);
+			return createCompositeType(name, [node.args.map((arg) => createTypeRef(arg.type))].flat().filter(Boolean));
 
 		default:
 			return null;
@@ -491,13 +479,13 @@ export function parseSyntax(syntax: string): CSSValueType | null {
 	const tokens = lexer.lex();
 	const parser = new SyntaxParser(tokens);
 	const nodes = parser.parse();
-	
+
 	// Generate a name from the syntax content
 	const name = syntax
 		.replace(/[^a-zA-Z0-9_-]/g, "_")
 		.replace(/_+/g, "_")
 		.slice(0, 50);
-	
+
 	return syntaxToAST(nodes, name || "Anonymous");
 }
 
@@ -505,7 +493,7 @@ export function parseSyntax(syntax: string): CSSValueType | null {
  * Parse all syntax definitions
  */
 export function parseAllSyntaxes(
-	definitions: Map<string, { name: string; syntax: string }>
+	definitions: Map<string, { name: string; syntax: string }>,
 ): Map<string, CSSValueType> {
 	const result = new Map<string, CSSValueType>();
 

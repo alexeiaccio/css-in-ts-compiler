@@ -55,9 +55,7 @@ function loadUnifiedData(): Effect.Effect<UnifiedData, ReadError> {
 			const content = readFileSync(path, "utf-8");
 			return JSON.parse(content) as UnifiedData;
 		} catch (e) {
-			return yield* Effect.fail(
-				new ReadError({ path, reason: e instanceof Error ? e.message : "Unknown error" }),
-			);
+			return yield* Effect.fail(new ReadError({ path, reason: e instanceof Error ? e.message : "Unknown error" }));
 		}
 	});
 }
@@ -174,7 +172,7 @@ function generateTypesFile(data: UnifiedData): string {
 			lines.push(`export const ${unit} = (value: number): ${typeName} => \`\${value}${unit}\` as ${typeName};`);
 		}
 	}
-	lines.push("export const pct = (value: number): Percentage => \`\${value}%\` as Percentage;");
+	lines.push("export const pct = (value: number): Percentage => `${value}%` as Percentage;");
 	lines.push("");
 
 	// Property value type map
@@ -228,7 +226,7 @@ const program = Effect.gen(function* () {
 
 	console.log("Generated types.gen.ts");
 	console.log(`  Unit categories: ${Object.keys(data.units).length}`);
-	console.log(`  Properties mapped: ${data.properties.filter(p => !p.name.startsWith("-")).length}`);
+	console.log(`  Properties mapped: ${data.properties.filter((p) => !p.name.startsWith("-")).length}`);
 });
 
 void Effect.runPromiseExit(program).then((exit) => {

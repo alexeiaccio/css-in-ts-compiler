@@ -120,7 +120,38 @@ export type Percentage = `${number}%` & { readonly __percentage: unique symbol }
 // Composite Types
 // ============================================================================
 
-export type Length = number | Px | Rem | Em | Ch | Ex | Ic | Cap | Lh | Rcap | Rch | Rex | Rlh | Vw | Vh | Vmin | Vmax | Vb | Vi | Cqw | Cqh | Cqi | Cqb | Cqmin | Cqmax | Cm | Mm | Q | In | Pc | Pt;
+export type Length =
+	| number
+	| Px
+	| Rem
+	| Em
+	| Ch
+	| Ex
+	| Ic
+	| Cap
+	| Lh
+	| Rcap
+	| Rch
+	| Rex
+	| Rlh
+	| Vw
+	| Vh
+	| Vmin
+	| Vmax
+	| Vb
+	| Vi
+	| Cqw
+	| Cqh
+	| Cqi
+	| Cqb
+	| Cqmin
+	| Cqmax
+	| Cm
+	| Mm
+	| Q
+	| In
+	| Pc
+	| Pt;
 
 export type Angle = number | Deg | Rad | Grad | Turn;
 
@@ -155,7 +186,16 @@ export type OklabColor = `oklab(${string})` & { readonly __oklabColor: unique sy
 
 export type ColorFunction = `color(${string})` & { readonly __colorFunction: unique symbol };
 
-export type Color = NamedColor | HexColor | RgbColor | RgbaColor | HslColor | HslaColor | OklchColor | OklabColor | ColorFunction;
+export type Color =
+	| NamedColor
+	| HexColor
+	| RgbColor
+	| RgbaColor
+	| HslColor
+	| HslaColor
+	| OklchColor
+	| OklabColor
+	| ColorFunction;
 
 // ============================================================================
 // Transform Function Types
@@ -188,12 +228,27 @@ export type SkewY = `skewY(${string})` & { readonly __skewY: unique symbol };
 
 export type Perspective = `perspective(${string})` & { readonly __perspective: unique symbol };
 
-export type TransformFunction = 
-	| Matrix | Matrix3d 
-	| Translate | TranslateX | TranslateY | TranslateZ | Translate3d
-	| Scale | ScaleX | ScaleY | ScaleZ | Scale3d
-	| Rotate | RotateX | RotateY | RotateZ | Rotate3d
-	| Skew | SkewX | SkewY
+export type TransformFunction =
+	| Matrix
+	| Matrix3d
+	| Translate
+	| TranslateX
+	| TranslateY
+	| TranslateZ
+	| Translate3d
+	| Scale
+	| ScaleX
+	| ScaleY
+	| ScaleZ
+	| Scale3d
+	| Rotate
+	| RotateX
+	| RotateY
+	| RotateZ
+	| Rotate3d
+	| Skew
+	| SkewX
+	| SkewY
 	| Perspective;
 
 export type TransformList = string;
@@ -213,7 +268,17 @@ export type Opacity = `opacity(${string})` & { readonly __opacity: unique symbol
 export type Saturate = `saturate(${string})` & { readonly __saturate: unique symbol };
 export type Sepia = `sepia(${string})` & { readonly __sepia: unique symbol };
 
-export type FilterFunction = Blur | Brightness | Contrast | DropShadow | Grayscale | HueRotate | Invert | Opacity | Saturate | Sepia;
+export type FilterFunction =
+	| Blur
+	| Brightness
+	| Contrast
+	| DropShadow
+	| Grayscale
+	| HueRotate
+	| Invert
+	| Opacity
+	| Saturate
+	| Sepia;
 
 // ============================================================================
 // Position Types

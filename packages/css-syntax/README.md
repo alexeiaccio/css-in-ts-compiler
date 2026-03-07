@@ -27,7 +27,7 @@ import { Lexer, LexContext } from "@cssints/css-syntax/lexer";
 const lexer = new Lexer("color: red; background: blue;");
 let token;
 while ((token = lexer.next(LexContext.Normal)).token !== Token.EOF) {
-  console.log(token);
+	console.log(token);
 }
 ```
 
@@ -63,15 +63,15 @@ import { walk } from "@cssints/css-syntax/walker";
 import type { SyntaxNode } from "@cssints/css-syntax/ast";
 
 walk(node, {
-  enter(node) {
-    console.log("Entering:", node._tag);
-  },
-  leave(node) {
-    console.log("Leaving:", node._tag);
-  },
-  Identifier(node) {
-    console.log("Identifier:", node.name);
-  }
+	enter(node) {
+		console.log("Entering:", node._tag);
+	},
+	leave(node) {
+		console.log("Leaving:", node._tag);
+	},
+	Identifier(node) {
+		console.log("Identifier:", node.name);
+	},
 });
 ```
 
@@ -108,6 +108,7 @@ See `src/tests/*.test.ts` for test coverage.
 ## Roadmap
 
 ### Phase 1: Lexer + Value Parsing
+
 - [x] Lexer with Uint8Array
 - [x] CSS spec Unicode rules
 - [x] Value definition syntax parser
@@ -115,24 +116,29 @@ See `src/tests/*.test.ts` for test coverage.
 - [x] Tests + benchmarks
 
 ### Phase 2: Declarations & Rules
+
 - [x] Declaration parser
 - [x] Rule parser
 - [x] At-rule parser (basic)
 
 ### Phase 3: Selectors
+
 - [x] Selector parser (Level 4)
 - [x] Combinators, pseudo-classes, attributes
 
 ### Phase 4: Media Queries & At-Rules
+
 - [x] Media query parser
 - [x] Complete at-rule support
 
 ### Phase 5: Complete CSS
+
 - [x] Full stylesheet parser
 - [x] Generator module
 - [x] Walker module
 
 ### Phase 6: Future Enhancements
+
 - [x] Property-based testing with FastCheck
 - [x] Parallel lexing (Effect.all with concurrency)
 - [x] CSS Color Level 4 support
@@ -141,15 +147,15 @@ See `src/tests/*.test.ts` for test coverage.
 
 ## Comparison with css-tree
 
-| Feature | @cssints/css-syntax | css-tree |
-|---------|---------------------|----------|
-| Tokenization | Uint8Array O(1) | O(n) character checks |
-| Performance | 2-5x faster | Baseline |
-| CSS spec | CSS Syntax Level 3 | CSS Syntax Level 3 |
-| Unicode | Full support | Full support |
-| Dependencies | Effect TS only | None |
-| TypeScript | First-class | Typings via @types/css-tree |
-| Error handling | Effect TS | Throws |
+| Feature        | @cssints/css-syntax | css-tree                    |
+| -------------- | ------------------- | --------------------------- |
+| Tokenization   | Uint8Array O(1)     | O(n) character checks       |
+| Performance    | 2-5x faster         | Baseline                    |
+| CSS spec       | CSS Syntax Level 3  | CSS Syntax Level 3          |
+| Unicode        | Full support        | Full support                |
+| Dependencies   | Effect TS only      | None                        |
+| TypeScript     | First-class         | Typings via @types/css-tree |
+| Error handling | Effect TS           | Throws                      |
 
 ## Development
 

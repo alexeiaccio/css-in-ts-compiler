@@ -1,22 +1,23 @@
 import { Effect, Data } from "effect";
 
-import { Lexer } from "./lexer.js";
-import { LexContext } from "./contexts.js";
 import type { TokenValue } from "./token.js";
+
+import { LexContext } from "./contexts.js";
+import { Lexer } from "./lexer.js";
 import { Token } from "./token.js";
 
 class LexerError extends Data.TaggedError("LexerError")<{
-  readonly message: string;
-  readonly position: number;
-  readonly source: string;
+	readonly message: string;
+	readonly position: number;
+	readonly source: string;
 }> {}
 
 /**
  * Options for creating a lexer instance
  */
 export interface LexerOptions {
-  /** The CSS source code to tokenize */
-  readonly source: string;
+	/** The CSS source code to tokenize */
+	readonly source: string;
 }
 
 /**
@@ -32,16 +33,16 @@ export interface LexerOptions {
  * ```
  */
 export const withLexer = <A, E>(
-  source: string,
-  f: (lexer: Lexer) => Effect.Effect<A, E>,
+	source: string,
+	f: (lexer: Lexer) => Effect.Effect<A, E>,
 ): Effect.Effect<A, LexerError | E> =>
-  Effect.try({
-    try: () => {
-      const lexer = new Lexer(source);
-      return Effect.runSync(f(lexer));
-    },
-    catch: (e) => new LexerError({ message: String(e), position: 0, source }),
-  });
+	Effect.try({
+		try: () => {
+			const lexer = new Lexer(source);
+			return Effect.runSync(f(lexer));
+		},
+		catch: (e) => new LexerError({ message: String(e), position: 0, source }),
+	});
 
 /**
  * Tokenize a CSS string using the Normal lexing context
@@ -55,16 +56,17 @@ export const withLexer = <A, E>(
  * ```
  */
 export const lexAll = (source: string): Effect.Effect<readonly TokenValue[], LexerError> =>
-  withLexer(source, (lexer) =>
-    Effect.sync(() => {
-      const tokens: TokenValue[] = [];
-      while (lexer.getPos() < lexer.length) {
-        const token = lexer.next(LexContext.Normal);
-        tokens.push(token);
-        if (token.token === Token.EOF) break;
-      }
-      return tokens;
-    }));
+	withLexer(source, (lexer) =>
+		Effect.sync(() => {
+			const tokens: TokenValue[] = [];
+			while (lexer.getPos() < lexer.length) {
+				const token = lexer.next(LexContext.Normal);
+				tokens.push(token);
+				if (token.token === Token.EOF) break;
+			}
+			return tokens;
+		}),
+	);
 
 /**
  * Tokenize a CSS value definition using the ValueDef lexing context
@@ -78,16 +80,17 @@ export const lexAll = (source: string): Effect.Effect<readonly TokenValue[], Lex
  * ```
  */
 export const lexValue = (source: string): Effect.Effect<readonly TokenValue[], LexerError> =>
-  withLexer(source, (lexer) =>
-    Effect.sync(() => {
-      const tokens: TokenValue[] = [];
-      while (lexer.getPos() < lexer.length) {
-        const token = lexer.next(LexContext.ValueDef);
-        tokens.push(token);
-        if (token.token === Token.EOF) break;
-      }
-      return tokens;
-    }));
+	withLexer(source, (lexer) =>
+		Effect.sync(() => {
+			const tokens: TokenValue[] = [];
+			while (lexer.getPos() < lexer.length) {
+				const token = lexer.next(LexContext.ValueDef);
+				tokens.push(token);
+				if (token.token === Token.EOF) break;
+			}
+			return tokens;
+		}),
+	);
 
 /**
  * Create a new Lexer instance for a given CSS source

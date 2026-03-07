@@ -8,7 +8,7 @@ created_at: 2026-02-18T10:17:31Z
 updated_at: 2026-02-18T10:38:57Z
 parent: css-in-ts-compiler-k8hb
 blocked_by:
-    - css-in-ts-compiler-bz9u
+  - css-in-ts-compiler-bz9u
 ---
 
 - [ ] Create generate-types.ts script

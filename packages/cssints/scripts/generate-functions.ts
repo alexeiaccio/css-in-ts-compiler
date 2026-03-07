@@ -4,6 +4,7 @@
  * Generates TypeScript functions for all CSS properties with:
  * - Type-safe value parameters
  * - JSDoc with syntax, browser compat, and descriptions
+ * - @deprecated and @experimental tags from BCD status flags
  */
 
 import { Effect, Data } from "effect";
@@ -44,13 +45,21 @@ interface PropertyData {
 	values?: Array<{
 		name: string;
 		description?: string;
+		browsers?: string[];
 	}>;
 	references?: Array<{
 		name: string;
 		url: string;
 	}>;
+	relevance?: number;
+	restrictions?: string[];
 	typeRef: string;
 	typeRefs: string[];
+	atRule?: string;
+	// BCD status flags
+	deprecated?: boolean;
+	experimental?: boolean;
+	standard_track?: boolean;
 }
 
 interface UnifiedData {
@@ -76,9 +85,7 @@ function loadUnifiedData(): Effect.Effect<UnifiedData, ReadError> {
 			const content = readFileSync(path, "utf-8");
 			return JSON.parse(content) as UnifiedData;
 		} catch (e) {
-			return yield* Effect.fail(
-				new ReadError({ path, reason: e instanceof Error ? e.message : "Unknown error" }),
-			);
+			return yield* Effect.fail(new ReadError({ path, reason: e instanceof Error ? e.message : "Unknown error" }));
 		}
 	});
 }
@@ -163,6 +170,18 @@ function generateJSDoc(prop: PropertyData): string {
 	lines.push(" *");
 	lines.push(` * **Syntax:** \`${prop.syntax}\``);
 
+	// Add @deprecated tag
+	if (prop.deprecated) {
+		lines.push(" *");
+		lines.push(" * @deprecated");
+	}
+
+	// Add @experimental tag
+	if (prop.experimental) {
+		lines.push(" *");
+		lines.push(" * @experimental");
+	}
+
 	const browserTable = formatBrowserTable(prop.browsers);
 	if (browserTable) {
 		lines.push(" *");
@@ -210,15 +229,15 @@ function generateFunction(prop: PropertyData): string {
 
 	return `${jsDoc}
 export function ${fnName}(value: ${valueType}): Style {
-\treturn createStyle({
-\t\tproperty: "${prop.name}",
-\t\tvalue: String(value),
-\t\tdescription: ${prop.description ? JSON.stringify(prop.description) : "undefined"},
-\t\tsyntax: ${JSON.stringify(prop.syntax)},
-\t\tbrowserCompat: ${prop.browsers ? JSON.stringify(prop.browsers) : "undefined"},
-\t\tbaseline: ${prop.baseline ? JSON.stringify(prop.baseline) : "undefined"},
-\t\tast: createValueAST(String(value)),
-\t});
+	return createStyle({
+		property: "${prop.name}",
+		value: String(value),
+		description: ${prop.description ? JSON.stringify(prop.description) : "undefined"},
+		syntax: ${JSON.stringify(prop.syntax)},
+		browserCompat: ${prop.browsers ? JSON.stringify(prop.browsers) : "undefined"},
+		baseline: ${prop.baseline ? JSON.stringify(prop.baseline) : "undefined"},
+		ast: createValueAST(String(value)),
+	});
 }`;
 }
 
@@ -236,11 +255,11 @@ function generateComposable(pattern: UnifiedData["composablePatterns"][0]): stri
  * ${description}
  */
 export function ${fnName}(): Style {
-\treturn createStyle({
-\t\tproperty: "display",
-\t\tvalue: "${pattern.properties[0].value}",
-\t\tdescription: "${description}",
-\t});
+	return createStyle({
+		property: "display",
+		value: "${pattern.properties[0].value}",
+		description: "${description}",
+	});
 }`;
 	}
 
@@ -250,11 +269,11 @@ export function ${fnName}(): Style {
  * ${description}
  */
 export function ${fnName}(value: string): Style {
-\treturn createStyle({
-\t\tproperty: "${pattern.properties[0].property}",
-\t\tvalue: String(value),
-\t\tdescription: "${description}",
-\t});
+	return createStyle({
+		property: "${pattern.properties[0].property}",
+		value: String(value),
+		description: "${description}",
+	});
 }`;
 	}
 
@@ -263,7 +282,7 @@ export function ${fnName}(value: string): Style {
  * ${description}
  */
 export function ${fnName}(...styles: Style[]): Style[] {
-\treturn styles;
+	return styles;
 }`;
 }
 
@@ -406,6 +425,14 @@ const program = Effect.gen(function* () {
 
 	console.log("Generated:");
 	console.log(`  properties.gen.ts - ${standardProps.length} property functions`);
+	const deprecatedCount = standardProps.filter((p) => p.deprecated).length;
+	const experimentalCount = standardProps.filter((p) => p.experimental).length;
+	if (deprecatedCount > 0) {
+		console.log(`    - Deprecated: ${deprecatedCount}`);
+	}
+	if (experimentalCount > 0) {
+		console.log(`    - Experimental: ${experimentalCount}`);
+	}
 	console.log(`  composables.gen.ts - ${data.composablePatterns.length} composable utilities`);
 	console.log(`  css-map.gen.ts - CSS property map`);
 	console.log(`  index.gen.ts - Main exports`);

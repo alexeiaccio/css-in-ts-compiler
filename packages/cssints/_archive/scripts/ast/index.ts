@@ -46,18 +46,7 @@ export {
 } from "./css-type-ast";
 
 // IDL Parser
-export {
-	parseWebIDL,
-	extractCSSTypesFromIDL,
-	type IDLParseResult,
-} from "./idl-parser";
+export { parseWebIDL, extractCSSTypesFromIDL, type IDLParseResult } from "./idl-parser";
 
 // TypeScript Emitter
-export {
-	emitType,
-	emitProperty,
-	emitCSSFunction,
-	emitIDLType,
-	emitAST,
-	type EmitterConfig,
-} from "./ts-emitter";
+export { emitType, emitProperty, emitCSSFunction, emitIDLType, emitAST, type EmitterConfig } from "./ts-emitter";

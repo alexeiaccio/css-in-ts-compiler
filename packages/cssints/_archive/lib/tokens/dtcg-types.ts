@@ -1,6 +1,6 @@
 /**
  * DTCG (Design Tokens Community Group) Format Types
- * 
+ *
  * Based on W3C DTCG specification 2025.10
  * https://www.designtokens.org/TR/2025.10/format/
  */
@@ -53,13 +53,35 @@ export interface DTCGGroup extends Record<string, DTCGToken | DTCGGroup | DTCGTo
 export type ColorTokenValue = string;
 
 /** Dimension token value - with unit like "4px", "1rem" */
-export type DimensionTokenValue = `${number}px` | `${number}rem` | `${number}em` | `${number}vw` | `${number}vh` | `${number}%` | `${number}pt` | string;
+export type DimensionTokenValue =
+	| `${number}px`
+	| `${number}rem`
+	| `${number}em`
+	| `${number}vw`
+	| `${number}vh`
+	| `${number}%`
+	| `${number}pt`
+	| string;
 
 /** Duration token value - like "100ms", "0.5s" */
 export type DurationTokenValue = `${number}ms` | `${number}s`;
 
 /** Font weight value - number or named weight */
-export type FontWeightTokenValue = number | "normal" | "bold" | "lighter" | "bolder" | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
+export type FontWeightTokenValue =
+	| number
+	| "normal"
+	| "bold"
+	| "lighter"
+	| "bolder"
+	| 100
+	| 200
+	| 300
+	| 400
+	| 500
+	| 600
+	| 700
+	| 800
+	| 900;
 
 /** Number token value */
 export type NumberTokenValue = number;
@@ -68,7 +90,16 @@ export type NumberTokenValue = number;
 export type CubicBezierTokenValue = [number, number, number, number];
 
 /** Stroke style - line style pattern */
-export type StrokeStyleTokenValue = "solid" | "dashed" | "dotted" | "double" | "groove" | "ridge" | "inset" | "outset" | "none";
+export type StrokeStyleTokenValue =
+	| "solid"
+	| "dashed"
+	| "dotted"
+	| "double"
+	| "groove"
+	| "ridge"
+	| "inset"
+	| "outset"
+	| "none";
 
 /** Shadow token - can be single or multiple shadows */
 export type ShadowTokenValue = ShadowDefinition | ShadowDefinition[];

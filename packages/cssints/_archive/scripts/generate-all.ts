@@ -11,6 +11,7 @@
  */
 
 import * as fs from "node:fs";
+
 import { generatePipeline } from "./generate-pipeline";
 
 const LOG_FILE = "./node_modules/.cache/cssints/generation.log";

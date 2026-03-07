@@ -14,11 +14,10 @@ parent: css-in-ts-compiler-k8hb
 - [x] Add composite types: LengthPercentage, ColorPercentage
 - [x] Update CSS_TYPE_MAP for new types
 
-
-
 ## Summary
 
 Extended value-types.ts with 80+ new CSS types including:
+
 - Layout: FlexDirection, JustifyContent, AlignItems, DisplayBox
 - Typography: FontFamily, FontSize, FontWeight, TextAlign
 - Border: BorderStyle, BorderWidth, BorderRadius

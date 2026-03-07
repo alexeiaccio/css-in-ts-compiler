@@ -8,7 +8,7 @@ created_at: 2026-02-18T07:38:33Z
 updated_at: 2026-02-18T07:57:27Z
 parent: css-in-ts-compiler-d7yp
 blocked_by:
-    - css-in-ts-compiler-qqm7
+  - css-in-ts-compiler-qqm7
 ---
 
 Create module to filter CSS features by browser support.

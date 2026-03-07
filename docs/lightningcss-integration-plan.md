@@ -9,15 +9,18 @@ Integrate LightningCSS postprocessing into the compiler pipeline while using Lig
 ## Current System
 
 ### Data Sources
+
 - `@mdn/browser-compat-data` - Browser compatibility data
 - `@webref/css` - CSS specification data
 
 ### Type Generation
+
 - Custom BCD schema generator → Effect Schema
 - ~585 property functions generated
 - ~234 lines of type schemas
 
 ### Type Coverage
+
 - Length: ~18 units
 - Angle: deg, grad, rad, turn
 - Time: s, ms
@@ -31,6 +34,7 @@ Integrate LightningCSS postprocessing into the compiler pipeline while using Lig
 ## LightningCSS Reference
 
 ### Size & Coverage
+
 - ~10,000 lines of TypeScript definitions
 - 273 type definitions
 - ~400+ CSS properties (typed `PropertyId` union)
@@ -38,7 +42,9 @@ Integrate LightningCSS postprocessing into the compiler pipeline while using Lig
 ### Key Types Available
 
 #### Value Types
+
 **Length** (40+ units):
+
 - Physical: cm, mm, Q, in, pc, pt, px
 - Font: em, rem, ex, ch, cap, ic, lh, rlh, rcap, rch, rex, ric
 - Viewport: vw, vh, vmin, vmax, vb, vi
@@ -57,11 +63,13 @@ Integrate LightningCSS postprocessing into the compiler pipeline while using Lig
 **Transform Functions**: rotate, scale, translate, skew, matrix variants
 
 #### Rule Types
+
 - MediaRule, StyleRule, KeyframesRule, FontFaceRule
 - ContainerRule, ScopeRule, StartingStyleRule
 - SupportsRule, ImportRule, LayerRule, etc.
 
 #### Media Query Types
+
 - MediaCondition, QueryFeature, MediaFeatureValue
 - 30+ media features: width, height, aspect-ratio, orientation, resolution, prefers-color-scheme, prefers-reduced-motion, etc.
 
@@ -70,11 +78,13 @@ Integrate LightningCSS postprocessing into the compiler pipeline while using Lig
 ## Architecture: Integration Points
 
 ### Current Flow
+
 ```
 TS Source → OXC Parser → Style Extraction → CSS Registry → Raw CSS Generation
 ```
 
 ### Proposed Flow
+
 ```
 TS Source → OXC Parser → Style Extraction → CSS Registry
   → Raw CSS Generation → LightningCSS Postprocessing → Final CSS
@@ -115,6 +125,7 @@ TS Source → OXC Parser → Style Extraction → CSS Registry
 ```
 
 **Tasks**:
+
 1. Parse LightningCSS AST file (downloaded reference)
 2. Extract all `LengthUnit`, `AngleUnit`, `TimeUnit` values
 3. Extract all color type variants (RGB, HSL, LAB, OKLCH, etc.)
@@ -131,6 +142,7 @@ TS Source → OXC Parser → Style Extraction → CSS Registry
 **File**: `packages/cssints/scripts/validate-schema-completeness.ts`
 
 **Tasks**:
+
 1. Load BCD types from `mdn-data/css/syntaxes.json`
 2. Parse all nested type definitions (currently only top-level extracted)
 3. For each type, check if corresponding schema exists
@@ -149,6 +161,7 @@ TS Source → OXC Parser → Style Extraction → CSS Registry
 **File**: `packages/cssints/scripts/generate-bcd-schemas.ts`
 
 **Add Missing Units**:
+
 ```typescript
 // Currently have: px, rem, Q
 // LightningCSS has (40+):
@@ -169,6 +182,7 @@ TS Source → OXC Parser → Style Extraction → CSS Registry
 **Current**: `export const Color = Schema.String;`
 
 **Proposed**:
+
 ```typescript
 /**
  * Color value - complex type with multiple representations
@@ -176,44 +190,44 @@ TS Source → OXC Parser → Style Extraction → CSS Registry
  * Based on LightningCSS CssColor union
  */
 export const Color = Schema.Union([
-  // Named colors and hex
-  HexColor,
-  NamedColor,
-  CurrentColor,
+	// Named colors and hex
+	HexColor,
+	NamedColor,
+	CurrentColor,
 
-  // Functional notations
-  RGBColor,
-  RGBAColor,
-  HSLColor,
-  HSLAColor,
-  HWBColor,
+	// Functional notations
+	RGBColor,
+	RGBAColor,
+	HSLColor,
+	HSLAColor,
+	HWBColor,
 
-  // Modern color spaces
-  LABColor,
-  LCHColor,
-  OKLABColor,
-  OKLCHColor,
+	// Modern color spaces
+	LABColor,
+	LCHColor,
+	OKLABColor,
+	OKLCHColor,
 
-  // Light/dark mode
-  LightDark,
+	// Light/dark mode
+	LightDark,
 
-  // System colors
-  SystemColor,
+	// System colors
+	SystemColor,
 
-  // Variables
-  CSSVariable,
+	// Variables
+	CSSVariable,
 
-  // Unresolved (for future validation)
-  UnresolvedColor,
+	// Unresolved (for future validation)
+	UnresolvedColor,
 ]);
 
 // Helper schemas
 export const RGBColor = Schema.TemplateLiteral(
-  `rgb(${Schema.FiniteFromString}, ${Schema.FiniteFromString}, ${Schema.FiniteFromString})`
+	`rgb(${Schema.FiniteFromString}, ${Schema.FiniteFromString}, ${Schema.FiniteFromString})`,
 );
 
 export const OKLCHColor = Schema.TemplateLiteral(
-  `oklch(${Schema.FiniteFromString}% ${Schema.FiniteFromString} ${Schema.FiniteFromString})`
+	`oklch(${Schema.FiniteFromString}% ${Schema.FiniteFromString} ${Schema.FiniteFromString})`,
 );
 // ... more color schemas
 ```
@@ -223,62 +237,43 @@ export const OKLCHColor = Schema.TemplateLiteral(
 **File**: `packages/cssints/scripts/generate-bcd-schemas.ts`
 
 **New Schemas**:
+
 ```typescript
 /**
  * Math functions - from LightningCSS MathFunctionFor_Length
  */
-export const CalcFunction = Schema.TemplateLiteral(
-  `calc(${Schema.String})`
-);
+export const CalcFunction = Schema.TemplateLiteral(`calc(${Schema.String})`);
 
-export const MinFunction = Schema.TemplateLiteral(
-  `min(${Schema.String}, ${Schema.String.repeat()})`
-);
+export const MinFunction = Schema.TemplateLiteral(`min(${Schema.String}, ${Schema.String.repeat()})`);
 
-export const MaxFunction = Schema.TemplateLiteral(
-  `max(${Schema.String}, ${Schema.String.repeat()})`
-);
+export const MaxFunction = Schema.TemplateLiteral(`max(${Schema.String}, ${Schema.String.repeat()})`);
 
-export const ClampFunction = Schema.TemplateLiteral(
-  `clamp(${Schema.String}, ${Schema.String}, ${Schema.String})`
-);
+export const ClampFunction = Schema.TemplateLiteral(`clamp(${Schema.String}, ${Schema.String}, ${Schema.String})`);
 
-export const RoundFunction = Schema.TemplateLiteral(
-  `round(${Schema.String}, ${Schema.String}, ${Schema.String})`
-);
+export const RoundFunction = Schema.TemplateLiteral(`round(${Schema.String}, ${Schema.String}, ${Schema.String})`);
 
-export const RemFunction = Schema.TemplateLiteral(
-  `rem(${Schema.String}, ${Schema.String})`
-);
+export const RemFunction = Schema.TemplateLiteral(`rem(${Schema.String}, ${Schema.String})`);
 
-export const ModFunction = Schema.TemplateLiteral(
-  `mod(${Schema.String}, ${Schema.String})`
-);
+export const ModFunction = Schema.TemplateLiteral(`mod(${Schema.String}, ${Schema.String})`);
 
-export const AbsFunction = Schema.TemplateLiteral(
-  `abs(${Schema.String})`
-);
+export const AbsFunction = Schema.TemplateLiteral(`abs(${Schema.String})`);
 
-export const SignFunction = Schema.TemplateLiteral(
-  `sign(${Schema.String})`
-);
+export const SignFunction = Schema.TemplateLiteral(`sign(${Schema.String})`);
 
-export const HypotFunction = Schema.TemplateLiteral(
-  `hypot(${Schema.String.repeat()})`
-);
+export const HypotFunction = Schema.TemplateLiteral(`hypot(${Schema.String.repeat()})`);
 
 // Union of all math functions
 export const MathFunction = Schema.Union([
-  CalcFunction,
-  MinFunction,
-  MaxFunction,
-  ClampFunction,
-  RoundFunction,
-  RemFunction,
-  ModFunction,
-  AbsFunction,
-  SignFunction,
-  HypotFunction,
+	CalcFunction,
+	MinFunction,
+	MaxFunction,
+	ClampFunction,
+	RoundFunction,
+	RemFunction,
+	ModFunction,
+	AbsFunction,
+	SignFunction,
+	HypotFunction,
 ]);
 ```
 
@@ -287,34 +282,23 @@ export const MathFunction = Schema.Union([
 **File**: `packages/cssints/scripts/generate-bcd-schemas.ts`
 
 **New Schemas**:
+
 ```typescript
 /**
  * Gradient functions - from LightningCSS Gradient types
  */
-export const LinearGradient = Schema.TemplateLiteral(
-  `linear-gradient(${Schema.String}, ${Schema.String.repeat()})`
-);
+export const LinearGradient = Schema.TemplateLiteral(`linear-gradient(${Schema.String}, ${Schema.String.repeat()})`);
 
-export const RadialGradient = Schema.TemplateLiteral(
-  `radial-gradient(${Schema.String}, ${Schema.String.repeat()})`
-);
+export const RadialGradient = Schema.TemplateLiteral(`radial-gradient(${Schema.String}, ${Schema.String.repeat()})`);
 
-export const ConicGradient = Schema.TemplateLiteral(
-  `conic-gradient(${Schema.String}, ${Schema.String.repeat()})`
-);
+export const ConicGradient = Schema.TemplateLiteral(`conic-gradient(${Schema.String}, ${Schema.String.repeat()})`);
 
 // WebKit variants (for older browsers)
 export const WebKitLinearGradient = Schema.TemplateLiteral(
-  `-webkit-linear-gradient(${Schema.String}, ${Schema.String.repeat()})`
+	`-webkit-linear-gradient(${Schema.String}, ${Schema.String.repeat()})`,
 );
 
-export const Image = Schema.Union([
-  LinearGradient,
-  RadialGradient,
-  ConicGradient,
-  URLImage,
-  Gradient,
-]);
+export const Image = Schema.Union([LinearGradient, RadialGradient, ConicGradient, URLImage, Gradient]);
 ```
 
 ---
@@ -324,6 +308,7 @@ export const Image = Schema.Union([
 ### 3.1 Install & Configure
 
 **Command**:
+
 ```bash
 cd packages/compiler
 bun add lightningcss
@@ -335,48 +320,45 @@ bun add lightningcss
 import { transform, type Targets } from "lightningcss";
 
 export interface LightningCSSOptions {
-  /** Target browsers for autoprefixing */
-  targets?: Targets;
-  /** Minify CSS */
-  minify?: boolean;
-  /** Enable source maps */
-  sourceMaps?: boolean;
-  /** Enable CSS nesting support */
-  nesting?: boolean;
-  /** Enable custom properties */
-  customProperties?: boolean;
+	/** Target browsers for autoprefixing */
+	targets?: Targets;
+	/** Minify CSS */
+	minify?: boolean;
+	/** Enable source maps */
+	sourceMaps?: boolean;
+	/** Enable CSS nesting support */
+	nesting?: boolean;
+	/** Enable custom properties */
+	customProperties?: boolean;
 }
 
 const DEFAULT_TARGETS: Targets = {
-  // Browser targets for production
-  browsers: ["> 0.2%", "not dead"],
+	// Browser targets for production
+	browsers: ["> 0.2%", "not dead"],
 };
 
-export function transformWithLightningCSS(
-  css: string,
-  options: LightningCSSOptions = {},
-): string {
-  const {
-    targets = DEFAULT_TARGETS,
-    minify = true,
-    sourceMaps = false,
-    nesting = true,
-    customProperties = true
-  } = options;
+export function transformWithLightningCSS(css: string, options: LightningCSSOptions = {}): string {
+	const {
+		targets = DEFAULT_TARGETS,
+		minify = true,
+		sourceMaps = false,
+		nesting = true,
+		customProperties = true,
+	} = options;
 
-  const result = transform({
-    filename: "output.css",
-    code: Buffer.from(css),
-    minify,
-    sourceMap: sourceMaps,
-    targets,
-    drafts: {
-      nesting, // Enable @nest support
-      customProperties, // Enable @property support
-    },
-  });
+	const result = transform({
+		filename: "output.css",
+		code: Buffer.from(css),
+		minify,
+		sourceMap: sourceMaps,
+		targets,
+		drafts: {
+			nesting, // Enable @nest support
+			customProperties, // Enable @property support
+		},
+	});
 
-  return result.code.toString();
+	return result.code.toString();
 }
 ```
 
@@ -390,27 +372,27 @@ export function transformWithLightningCSS(
 import { transformWithLightningCSS, type LightningCSSOptions } from "./postprocess/lightningcss.js";
 
 export interface CompilerOptions {
-  lightningcss?: LightningCSSOptions;
+	lightningcss?: LightningCSSOptions;
 }
 
 let compilerOptions: CompilerOptions = {};
 
 export function setCompilerOptions(options: CompilerOptions): void {
-  compilerOptions = { ...compilerOptions, ...options };
+	compilerOptions = { ...compilerOptions, ...options };
 }
 
 // Generate CSS from all registered classes
 export function generateCSS(): string {
-  // ... existing code to generate raw CSS ...
+	// ... existing code to generate raw CSS ...
 
-  const rawCSS = css.join("\n\n");
+	const rawCSS = css.join("\n\n");
 
-  // Postprocess with LightningCSS
-  if (compilerOptions.lightningcss !== undefined) {
-    return transformWithLightningCSS(rawCSS, compilerOptions.lightningcss);
-  }
+	// Postprocess with LightningCSS
+	if (compilerOptions.lightningcss !== undefined) {
+		return transformWithLightningCSS(rawCSS, compilerOptions.lightningcss);
+	}
 
-  return rawCSS;
+	return rawCSS;
 }
 ```
 
@@ -424,23 +406,23 @@ export function generateCSS(): string {
 import { transformWithLightningCSS, type LightningCSSOptions } from "./postprocess/lightningcss.js";
 
 export interface OxcPluginOptions {
-  // ... existing options ...
-  lightningcss?: LightningCSSOptions;
+	// ... existing options ...
+	lightningcss?: LightningCSSOptions;
 }
 
 // ... in generateCssFromStyles ...
 
 function generateCssFromStyles(fileId: string, styles: Map<string, StyleMapping>, devMode: boolean): string {
-  // ... existing code to generate raw CSS ...
+	// ... existing code to generate raw CSS ...
 
-  const rawCSS = cssParts.join("\n\n");
+	const rawCSS = cssParts.join("\n\n");
 
-  // Postprocess with LightningCSS
-  if (opts.lightningcss && !isDevMode()) {
-    return transformWithLightningCSS(rawCSS, opts.lightningcss);
-  }
+	// Postprocess with LightningCSS
+	if (opts.lightningcss && !isDevMode()) {
+		return transformWithLightningCSS(rawCSS, opts.lightningcss);
+	}
 
-  return rawCSS;
+	return rawCSS;
 }
 ```
 
@@ -452,28 +434,30 @@ function generateCssFromStyles(fileId: string, styles: Map<string, StyleMapping>
 import { transformWithLightningCSS, type LightningCSSOptions } from "./postprocess/lightningcss.js";
 
 interface CLIOptions {
-  output?: string;
-  watch: boolean;
-  help: boolean;
-  // LightningCSS options
-  minify?: boolean;
-  noAutoprefixer?: boolean;
+	output?: string;
+	watch: boolean;
+	help: boolean;
+	// LightningCSS options
+	minify?: boolean;
+	noAutoprefixer?: boolean;
 }
 
 export async function build(inputPath?: string, outputPath?: string, minify: boolean = true): Promise<void> {
-  // ... existing code ...
+	// ... existing code ...
 
-  const rawCSS = generateCSS();
+	const rawCSS = generateCSS();
 
-  // Postprocess with LightningCSS
-  const finalCSS = transformWithLightningCSS(rawCSS, {
-    minify,
-    targets: !options.noAutoprefixer ? {
-      browsers: ["> 0.2%", "not dead"],
-    } : undefined,
-  });
+	// Postprocess with LightningCSS
+	const finalCSS = transformWithLightningCSS(rawCSS, {
+		minify,
+		targets: !options.noAutoprefixer
+			? {
+					browsers: ["> 0.2%", "not dead"],
+				}
+			: undefined,
+	});
 
-  // ... write finalCSS instead of rawCSS ...
+	// ... write finalCSS instead of rawCSS ...
 }
 ```
 
@@ -491,53 +475,53 @@ export async function build(inputPath?: string, outputPath?: string, minify: boo
 
 ```typescript
 const extractAllTypes = (bcdTypes: Record<string, unknown>): Map<string, TypeAnalysis> => {
-  const analyses = new Map<string, TypeAnalysis>();
+	const analyses = new Map<string, TypeAnalysis>();
 
-  const processEntry = (typeName: string, entry: any, parentName?: string): void => {
-    const compat = entry.__compat;
-    const fullTypeName = parentName ? `${parentName}-${typeName}` : typeName;
+	const processEntry = (typeName: string, entry: any, parentName?: string): void => {
+		const compat = entry.__compat;
+		const fullTypeName = parentName ? `${parentName}-${typeName}` : typeName;
 
-    // Extract units from description
-    const units = extractUnitsFromDescription(compat?.description, typeName);
+		// Extract units from description
+		const units = extractUnitsFromDescription(compat?.description, typeName);
 
-    // Extract type references
-    const references: string[] = [];
-    if (compat?.description) {
-      const typeRefMatch = compat.description.match(/<([a-z-]+)>/g);
-      if (typeRefMatch) {
-        for (const ref of typeRefMatch) {
-          const refName = ref.replace(/[<>]/g, "");
-          if (refName !== typeName) {
-            references.push(refName);
-          }
-        }
-      }
-    }
+		// Extract type references
+		const references: string[] = [];
+		if (compat?.description) {
+			const typeRefMatch = compat.description.match(/<([a-z-]+)>/g);
+			if (typeRefMatch) {
+				for (const ref of typeRefMatch) {
+					const refName = ref.replace(/[<>]/g, "");
+					if (refName !== typeName) {
+						references.push(refName);
+					}
+				}
+			}
+		}
 
-    analyses.set(fullTypeName, {
-      name: fullTypeName,
-      compat,
-      units,
-      references,
-    });
+		analyses.set(fullTypeName, {
+			name: fullTypeName,
+			compat,
+			units,
+			references,
+		});
 
-    // Recursively process nested types
-    if (entry && typeof entry === 'object') {
-      for (const [nestedName, nestedEntry] of Object.entries(entry)) {
-        if (nestedName === '__compat') continue;
-        if (nestedEntry && typeof nestedEntry === 'object' && nestedEntry.__compat) {
-          processEntry(nestedName, nestedEntry, fullTypeName);
-        }
-      }
-    }
-  };
+		// Recursively process nested types
+		if (entry && typeof entry === "object") {
+			for (const [nestedName, nestedEntry] of Object.entries(entry)) {
+				if (nestedName === "__compat") continue;
+				if (nestedEntry && typeof nestedEntry === "object" && nestedEntry.__compat) {
+					processEntry(nestedName, nestedEntry, fullTypeName);
+				}
+			}
+		}
+	};
 
-  for (const [typeName, typeData] of Object.entries(bcdTypes)) {
-    if (typeName === '__compat') continue;
-    processEntry(typeName, typeData);
-  }
+	for (const [typeName, typeData] of Object.entries(bcdTypes)) {
+		if (typeName === "__compat") continue;
+		processEntry(typeName, typeData);
+	}
 
-  return analyses;
+	return analyses;
 };
 ```
 
@@ -562,6 +546,7 @@ const extractAllTypes = (bcdTypes: Record<string, unknown>): Map<string, TypeAna
 ```
 
 **Generated schemas**:
+
 ```typescript
 // Generated in packages/cssints/src/generated/functions.gen.ts
 
@@ -573,18 +558,18 @@ const extractAllTypes = (bcdTypes: Record<string, unknown>): Map<string, TypeAna
  * @see https://developer.mozilla.org/docs/Web/CSS/color-mix
  */
 export const ColorMixFunction = Schema.TemplateLiteral(
-  `color-mix(${Schema.String}, ${Schema.String}, ${Schema.optional(Schema.String)})`
+	`color-mix(${Schema.String}, ${Schema.String}, ${Schema.optional(Schema.String)})`,
 );
 
 // Helper function
 export function colorMix(
-  interpolationMethod: string,
-  color1: string | Color,
-  color2: string | Color,
-  percentage1?: number,
-  percentage2?: number,
+	interpolationMethod: string,
+	color1: string | Color,
+	color2: string | Color,
+	percentage1?: number,
+	percentage2?: number,
 ): string {
-  // Implementation
+	// Implementation
 }
 ```
 
@@ -607,6 +592,7 @@ export function colorMix(
 ```
 
 **Generated types**:
+
 ```typescript
 // packages/cssints/src/generated/media.gen.ts
 
@@ -651,21 +637,21 @@ export const prefersReducedMotion = (value: "reduce" | "no-preference"): CSSProp
 
 ```typescript
 describe("Type Coverage", () => {
-  it("has all LightningCSS length units", () => {
-    // Verify all 40+ length units are present
-  });
+	it("has all LightningCSS length units", () => {
+		// Verify all 40+ length units are present
+	});
 
-  it("has all LightningCSS color types", () => {
-    // Verify RGB, HSL, LAB, OKLCH, etc.
-  });
+	it("has all LightningCSS color types", () => {
+		// Verify RGB, HSL, LAB, OKLCH, etc.
+	});
 
-  it("has all math functions", () => {
-    // Verify calc, min, max, clamp, round, etc.
-  });
+	it("has all math functions", () => {
+		// Verify calc, min, max, clamp, round, etc.
+	});
 
-  it("matches LightningCSS PropertyId coverage", () => {
-    // Compare generated properties with LightningCSS PropertyId union
-  });
+	it("matches LightningCSS PropertyId coverage", () => {
+		// Compare generated properties with LightningCSS PropertyId union
+	});
 });
 ```
 
@@ -677,40 +663,40 @@ describe("Type Coverage", () => {
 import { transformWithLightningCSS } from "../postprocess/lightningcss.js";
 
 describe("LightningCSS Integration", () => {
-  it("autoprefixes CSS properties", () => {
-    const input = `
+	it("autoprefixes CSS properties", () => {
+		const input = `
 .user-select-none {
   user-select: none;
 }`;
-    const output = transformWithLightningCSS(input);
-    expect(output).toContain("-webkit-user-select");
-  });
+		const output = transformWithLightningCSS(input);
+		expect(output).toContain("-webkit-user-select");
+	});
 
-  it("minifies CSS", () => {
-    const input = `
+	it("minifies CSS", () => {
+		const input = `
 .test {
   color: red;
   margin: 10px 20px;
 }`;
-    const output = transformWithLightningCSS(input, { minify: true });
-    expect(output).toBe(".test{color:red;margin:10px 20px}");
-  });
+		const output = transformWithLightningCSS(input, { minify: true });
+		expect(output).toBe(".test{color:red;margin:10px 20px}");
+	});
 
-  it("preserves source maps", () => {
-    // Test source map generation
-  });
+	it("preserves source maps", () => {
+		// Test source map generation
+	});
 
-  it("handles nesting", () => {
-    const input = `
+	it("handles nesting", () => {
+		const input = `
 .parent {
   color: red;
   &:hover {
     color: blue;
   }
 }`;
-    const output = transformWithLightningCSS(input, { nesting: true });
-    expect(output).toContain(".parent:hover");
-  });
+		const output = transformWithLightningCSS(input, { nesting: true });
+		expect(output).toContain(".parent:hover");
+	});
 });
 ```
 
@@ -720,17 +706,17 @@ describe("LightningCSS Integration", () => {
 
 ```typescript
 describe("Full Pipeline Integration", () => {
-  it("generates CSS with LightningCSS postprocessing", () => {
-    // Full pipeline test
-  });
+	it("generates CSS with LightningCSS postprocessing", () => {
+		// Full pipeline test
+	});
 
-  it("works with vite plugin", () => {
-    // Test vite plugin integration
-  });
+	it("works with vite plugin", () => {
+		// Test vite plugin integration
+	});
 
-  it("works with CLI", () => {
-    // Test CLI integration
-  });
+	it("works with CLI", () => {
+		// Test CLI integration
+	});
 });
 ```
 
@@ -743,6 +729,7 @@ describe("Full Pipeline Integration", () => {
 **File**: `docs/API.md`
 
 Add sections:
+
 - LightningCSS integration
 - Compiler options
 - Type-safe functions
@@ -753,6 +740,7 @@ Add sections:
 **File**: `docs/lightningcss-migration.md`
 
 Explain:
+
 - How LightningCSS postprocessing works
 - New types available
 - Migration path from old CSS generation
@@ -761,15 +749,15 @@ Explain:
 
 ## Gap Analysis: Current vs LightningCSS
 
-| Category | Current | LightningCSS | Priority |
-|----------|---------|---------------|----------|
-| **Length Units** | 18 units (px, rem, Q, container, viewport) | 40+ units (all CSS standard units) | 🔴 High |
-| **Color Types** | `Schema.String` | RGB, HSL, LAB, OKLCH, LightDark, SystemColor, PredefinedColor, UnresolvedColor | 🔴 High |
-| **Math Functions** | None | calc, min, max, clamp, round, rem, mod, abs, sign, hypot | 🔴 High |
-| **Gradients** | None | Linear, Radial, Conic, WebKit variants | 🟡 Medium |
-| **Transform Functions** | None | rotate, scale, translate, skew, matrix variants | 🟡 Medium |
-| **Media Query Types** | None | MediaCondition, QueryFeature, MediaFeatureValue (30+ features) | 🟡 Medium |
-| **Properties** | 585 functions | ~400 PropertyId union members (different coverage) | 🟢 Low (different approach) |
+| Category                | Current                                    | LightningCSS                                                                   | Priority                    |
+| ----------------------- | ------------------------------------------ | ------------------------------------------------------------------------------ | --------------------------- |
+| **Length Units**        | 18 units (px, rem, Q, container, viewport) | 40+ units (all CSS standard units)                                             | 🔴 High                     |
+| **Color Types**         | `Schema.String`                            | RGB, HSL, LAB, OKLCH, LightDark, SystemColor, PredefinedColor, UnresolvedColor | 🔴 High                     |
+| **Math Functions**      | None                                       | calc, min, max, clamp, round, rem, mod, abs, sign, hypot                       | 🔴 High                     |
+| **Gradients**           | None                                       | Linear, Radial, Conic, WebKit variants                                         | 🟡 Medium                   |
+| **Transform Functions** | None                                       | rotate, scale, translate, skew, matrix variants                                | 🟡 Medium                   |
+| **Media Query Types**   | None                                       | MediaCondition, QueryFeature, MediaFeatureValue (30+ features)                 | 🟡 Medium                   |
+| **Properties**          | 585 functions                              | ~400 PropertyId union members (different coverage)                             | 🟢 Low (different approach) |
 
 ---
 
@@ -807,20 +795,24 @@ docs/
 ## Questions & Trade-offs
 
 ### 1. LightningCSS Runtime Dependency
+
 - **Pro**: Production-ready CSS optimization, vendor prefixing, modern features
 - **Con**: Adds ~200KB to bundle size
 - **Decision**: Optional via `compilerOptions.lightningcss`, default enabled for production
 
 ### 2. Type Generation Priority
+
 - **Option A**: Fill all gaps at once (large PR, long review)
 - **Option B**: Incremental by category (length → colors → functions)
 - **Recommendation**: Option B, start with length units and color types (highest impact)
 
 ### 3. BCD vs LightningCSS Types
+
 - **Decision**: Keep BCD as primary source (your current approach), use LightningCSS AST as reference for completeness validation
 - **Rationale**: BCD has browser compatibility data already integrated
 
 ### 4. Postprocessing Stage
+
 - **Development**: Disable LightningCSS for faster builds, use raw CSS
 - **Production**: Enable LightningCSS for optimization
 - **Implementation**: Toggle via `compilerOptions.lightningcss` based on environment
@@ -830,36 +822,42 @@ docs/
 ## Implementation Priority
 
 ### Sprint 1: Foundation (1-2 days)
+
 1. ✅ Create gap analysis tool (`compare-lightningcss.ts`)
 2. ✅ Generate gap analysis report
 3. ✅ Install LightningCSS dependency
 4. ✅ Create `postprocess/lightningcss.ts`
 
 ### Sprint 2: Basic Integration (2-3 days)
+
 1. ✅ Integrate into `compiler.ts:generateCSS()`
 2. ✅ Integrate into `oxc-plugin.ts`
 3. ✅ Integrate into `cli.ts`
 4. ✅ Add basic tests
 
 ### Sprint 3: Type Enhancements - Part 1 (3-4 days)
+
 1. ✅ Enhance length units (add missing ~22 units)
 2. ✅ Add basic color types (RGB, HSL, Hex)
 3. ✅ Update BCD generator for nested types
 4. ✅ Regenerate schemas
 
 ### Sprint 4: Type Enhancements - Part 2 (3-4 days)
+
 1. ✅ Add modern color types (OKLCH, OKLAB, LightDark)
 2. ✅ Add math function types (calc, min, max, clamp)
 3. ✅ Generate function schemas
 4. ✅ Add tests for new types
 
 ### Sprint 5: Advanced Features (2-3 days)
+
 1. ✅ Add gradient types
 2. ✅ Add transform function types
 3. ✅ Add media query type builders
 4. ✅ Documentation updates
 
 ### Sprint 6: Polish & Optimization (1-2 days)
+
 1. ✅ Performance testing
 2. ✅ Source map validation
 3. ✅ Migration guide
@@ -872,23 +870,27 @@ docs/
 ## Benefits
 
 ### Type Safety
+
 - Complete CSS value type coverage
 - Prevents invalid CSS values at compile time
 - Better IDE autocomplete and error messages
 
 ### Production Optimization
+
 - Automatic vendor prefixing
 - CSS minification
 - Modern feature support (nesting, custom properties)
 - Optimized output size
 
 ### Developer Experience
+
 - Type-safe media query builders
 - Typed CSS functions
 - Better error messages
 - Incremental adoption path
 
 ### Maintainability
+
 - BCD as primary source (your current approach)
 - LightningCSS as reference and runtime
 - Clear separation of concerns

@@ -11,19 +11,19 @@ parent: css-in-ts-compiler-9h2z
 
 Define a unified CSS type AST format that decouples parsing from emission. Include types for primitives, composites, functions, and properties.
 
-
-
 ## Summary of Changes
 
 Created intermediate AST format for CSS types in `scripts/ast/`:
 
 ### Files Created
+
 - `css-type-ast.ts` - Core AST types (PrimitiveType, CompositeType, EnumType, CSSProperty, CSSFunction, IDLType)
 - `idl-parser.ts` - WebIDL2 parser integration
 - `ts-emitter.ts` - TypeScript type emitter from AST
 - `index.ts` - Module exports
 
 ### Key Types
+
 ```typescript
 interface CSSValueType = PrimitiveType | CompositeType | EnumType | AliasType
 interface CSSProperty { type, name, syntax, valueType, ... }
@@ -32,4 +32,5 @@ interface IDLType = IDLInterface | IDLDictionary | IDLEnum | ...
 ```
 
 ### Pipeline
+
 IDL/CSS → AST → TypeScript

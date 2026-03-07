@@ -15,8 +15,6 @@ parent: css-in-ts-compiler-jphr
 - [x] Handle 1-4 param variations
 - [x] Type: (v1, v2?, v3?, v4?) => string
 
-
-
 ## Summary
 
 Implemented in lib/scale.ts via scaleShorthand() and in composables.ts via m() and p() utilities.

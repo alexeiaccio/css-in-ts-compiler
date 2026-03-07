@@ -1,9 +1,9 @@
 /**
  * createTokens - Create typed design tokens from DTCG format
- * 
+ *
  * Based on W3C DTCG specification 2025.10
  * https://www.designtokens.org/TR/2025.10/format/
- * 
+ *
  * Token API:
  * - tokens.colors.primary() → "var(--colors-primary)"
  * - tokens.colors.primary.type → "color"
@@ -14,8 +14,9 @@
 
 import type { DTCGGroup, DTCGTokenType } from "./dtcg-types";
 import type { TokenWalkResult } from "./walker";
-import { walkTokens } from "./walker";
+
 import { tokenTypeToPropertySyntax, type DTCGToCSSTypeMap } from "./type-mapping";
+import { walkTokens } from "./walker";
 
 // ============================================================================
 // Token Type
@@ -131,7 +132,7 @@ export function getToken(name: string): TokenRegistryEntry | undefined {
 
 /**
  * Create typed tokens from DTCG format JSON
- * 
+ *
  * @example
  * ```ts
  * const tokens = createTokens({
@@ -140,14 +141,11 @@ export function getToken(name: string): TokenRegistryEntry | undefined {
  *     primary: { $value: "#007bff" }
  *   }
  * } as const, { prefix: "app" });
- * 
+ *
  * // tokens.colors.primary → "var(--app-colors-primary)"
  * ```
  */
-export function createTokens<T extends DTCGGroup>(
-	group: T,
-	options: CreateTokensOptions = {},
-): TokenTree<T> {
+export function createTokens<T extends DTCGGroup>(group: T, options: CreateTokensOptions = {}): TokenTree<T> {
 	const {
 		prefix = "",
 		separator = "-",
@@ -175,12 +173,7 @@ export function createTokens<T extends DTCGGroup>(
 // Helper Functions
 // ============================================================================
 
-function defaultTransform(
-	path: string[],
-	_value: string,
-	prefix?: string,
-	separator = "-",
-): string {
+function defaultTransform(path: string[], _value: string, prefix?: string, separator = "-"): string {
 	const parts = prefix ? [prefix, ...path] : [...path];
 	return parts.join(separator);
 }
@@ -221,10 +214,10 @@ function buildTokenTree(
 		// Add token at leaf
 		const leafKey = result.path[result.path.length - 1];
 		if (leafKey === undefined) continue;
-		
+
 		const tokenStr = `var(--${result.name})` as const;
 		const cssSyntax = tokenTypeToPropertySyntax[result.type];
-		
+
 		// Create token function with metadata properties
 		const metadata = {
 			type: result.type,
@@ -240,11 +233,11 @@ function buildTokenTree(
 			$cssSyntax: cssSyntax,
 			$description: result.description,
 		};
-		
+
 		// Use a proxy to make the function callable and have properties
 		const tokenFn = new Proxy(
-			function(this: TokenMetadata) { 
-				return tokenStr; 
+			function (this: TokenMetadata) {
+				return tokenStr;
 			} as TokenFn<typeof result.name>,
 			{
 				get(target, prop) {
@@ -265,9 +258,9 @@ function buildTokenTree(
 				apply(target, thisArg, args) {
 					return tokenStr;
 				},
-			}
+			},
 		);
-		
+
 		current[leafKey] = tokenFn;
 	}
 
@@ -334,26 +327,25 @@ export type TokenLeaf<Name extends string> = TokenFn<Name>;
 
 /**
  * Map DTCG tree structure to typed Token tree
- * 
+ *
  * This is a type-level helper that recurses through the DTCG structure
  * and produces the equivalent typed TokenFn structure.
- * 
+ *
  * @example
  * tokens.colors.primary() → "var(--colors-primary)"
  * tokens.colors.primary.type → "color"
  * tokens.colors.primary.$type → "color"
  * tokens.colors.primary.$value → "#007bff"
  */
-export type TokenTree<T, Prefix extends string = ""> = 
+export type TokenTree<T, Prefix extends string = ""> =
 	T extends Record<string, unknown>
 		? {
-				[K in keyof T as K extends `$${string}` ? never : K]: 
-					T[K] extends Record<string, unknown> 
-						? T[K] extends { $value: unknown } 
-							? TokenLeaf<`${Prefix}${K & string}`>
-							: TokenTree<T[K], `${Prefix}${K & string}-`>
-						: never;
-		  }
+				[K in keyof T as K extends `$${string}` ? never : K]: T[K] extends Record<string, unknown>
+					? T[K] extends { $value: unknown }
+						? TokenLeaf<`${Prefix}${K & string}`>
+						: TokenTree<T[K], `${Prefix}${K & string}-`>
+					: never;
+			}
 		: never;
 
 // Re-export types (TokenFn and TokenMetadata already exported above)

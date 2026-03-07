@@ -3,12 +3,11 @@
  * Fully data-driven - no hardcoded unit lists or type lists
  */
 
+import bcd from "@mdn/browser-compat-data" with { type: "json" };
 import { Effect, Data, Schema as SchemaEffect } from "effect";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-
-import bcd from "@mdn/browser-compat-data" with { type: "json" };
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -68,10 +67,7 @@ const pascalCase = (s: string): string => s.replace(/-([a-z])/g, (_: string, c: 
 const extractUnitsFromDescription = (description: string | undefined, typeName?: string): string[] => {
 	if (!description) return [];
 
-	const decoded = description
-		.replace(/&lt;/g, "<")
-		.replace(/&gt;/g, ">")
-		.replace(/&amp;/g, "&");
+	const decoded = description.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 
 	const allUnits = new Set<string>();
 
@@ -79,7 +75,10 @@ const extractUnitsFromDescription = (description: string | undefined, typeName?:
 	if (codeMatches) {
 		const hasUnitWord = decoded.toLowerCase().includes("unit");
 		for (const match of codeMatches) {
-			const content = match.replace(/<\/?code>/g, "").trim().replace(/[<>]/g, "");
+			const content = match
+				.replace(/<\/?code>/g, "")
+				.trim()
+				.replace(/[<>]/g, "");
 			const unitMatch = content.match(/^([a-zA-Z%]+)$/);
 			if (unitMatch && unitMatch[1]) {
 				const isSelfReference = typeName && unitMatch[1].toLowerCase() === typeName.toLowerCase();
@@ -159,10 +158,7 @@ const analyzeTypes = (bcdTypes: Record<string, unknown>): Map<string, TypeAnalys
 
 		const references: string[] = [];
 		if (compat?.description) {
-			const decoded = compat.description
-				.replace(/&lt;/g, "<")
-				.replace(/&gt;/g, ">")
-				.replace(/&amp;/g, "&");
+			const decoded = compat.description.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 			const typeRefMatch = decoded.match(/<([a-z-]+)>/g);
 			if (typeRefMatch) {
 				for (const ref of typeRefMatch) {
@@ -189,10 +185,7 @@ const analyzeTypes = (bcdTypes: Record<string, unknown>): Map<string, TypeAnalys
 
 		const references: string[] = [];
 		if (compat?.description) {
-			const decoded = compat.description
-				.replace(/&lt;/g, "<")
-				.replace(/&gt;/g, ">")
-				.replace(/&amp;/g, "&");
+			const decoded = compat.description.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 			const typeRefMatch = decoded.match(/<([a-z-]+)>/g);
 			if (typeRefMatch) {
 				for (const ref of typeRefMatch) {
@@ -265,10 +258,7 @@ const generateTypeSchema = (
 	const lines: string[] = [];
 
 	if (compat?.description) {
-		const decoded = compat.description
-			.replace(/&lt;/g, "<")
-			.replace(/&gt;/g, ">")
-			.replace(/&amp;/g, "&");
+		const decoded = compat.description.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 
 		lines.push("/**");
 		lines.push(` * **Syntax**`);
@@ -344,8 +334,8 @@ const generateSchemas = (): string => {
 		" * @version " + (bcd.__meta?.version || "unknown"),
 		" */",
 		"",
-		"import { SchemaGetter } from \"effect\";",
-		"import * as Schema from \"effect/Schema\";",
+		'import { SchemaGetter } from "effect";',
+		'import * as Schema from "effect/Schema";',
 		"",
 	];
 
