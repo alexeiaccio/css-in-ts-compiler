@@ -1,4 +1,4 @@
-import * as Data from "effect";
+import { Data } from "effect";
 
 export class IconNotFoundError extends Data.TaggedError("IconNotFoundError")<{
   readonly identifier: string;

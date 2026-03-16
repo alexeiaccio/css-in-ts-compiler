@@ -1,29 +1,40 @@
-import * as Effect from "effect";
-
-import type { CSSProperties } from "../../legacy-compiler/dist";
-
 export interface IconConfig {
-	collection: string;
-	name?: string;
-	color?: string;
-	size?: string;
+  collection: string;
+  name?: string;
+  color?: string;
+  size?: string;
 }
 
-export function icon(config: IconConfig): CSSProperties {
-	const { collection, name = config.name || "", color = "currentColor", size = "24px" } = config;
+export interface IconStyles {
+  maskImage: string;
+  webkitMaskImage: string;
+  maskSize: string;
+  webkitMaskSize: string;
+  maskRepeat: string;
+  webkitMaskRepeat: string;
+  maskPosition: string;
+  webkitMaskPosition: string;
+  width: string;
+  height: string;
+  backgroundColor: string;
+  display: string;
+}
 
-	return {
-		"mask-image": `url('${collection}:${name}')`,
-		"-webkit-mask-image": `url('${collection}:${name}')`,
-		"mask-size": "contain",
-		"-webkit-mask-size": "contain",
-		"mask-repeat": "no-repeat",
-		"-webkit-mask-repeat": "no-repeat",
-		"mask-position": "center",
-		"-webkit-mask-position": "center",
-		width: size,
-		height: size,
-		"background-color": color,
-		display: "inline-block",
-	};
+export function icon(config: IconConfig): IconStyles {
+  const { collection, name = "", color = "currentColor", size = "24px" } = config;
+
+  return {
+    maskImage: `url('${collection}:${name}')`,
+    webkitMaskImage: `url('${collection}:${name}')`,
+    maskSize: "contain",
+    webkitMaskSize: "contain",
+    maskRepeat: "no-repeat",
+    webkitMaskRepeat: "no-repeat",
+    maskPosition: "center",
+    webkitMaskPosition: "center",
+    width: size,
+    height: size,
+    backgroundColor: color,
+    display: "inline-block",
+  };
 }

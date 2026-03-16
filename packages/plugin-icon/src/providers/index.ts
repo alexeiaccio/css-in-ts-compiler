@@ -1,57 +1,65 @@
-import * as Effect from "effect";
-import type { CollectionConfig, NameTransformFunction } from "./types";
+import { Effect } from "effect";
+import type { CollectionConfig, NameTransformFunction, NameTransformContext } from "./types.js";
 
 export function createIconCollection(
   config: CollectionConfig
 ): Effect.Effect<(name: string) => string, never> {
-  return Effect.gen(function* ($) {
+  return Effect.gen(function* () {
     switch (config.provider) {
       case "iconify":
-        return yield* $(createIconifyProvider(config));
+        return yield* createIconifyProvider(config);
 
       case "fs":
-        return yield* $(createFilesystemProvider(config));
+        return yield* createFilesystemProvider(config);
 
       case "inline":
-        return yield* $(createInlineProvider(config));
+        return yield* createInlineProvider(config);
 
       default:
-        return yield* $(Effect.fail(new Error(`Unknown provider: ${(config as any).provider}`)));
+        return (name: string) => name;
     }
   });
 }
 
-async function createIconifyProvider(config: {
-  provider: string;
+function createIconifyProvider(config: {
+  provider: "iconify";
+  collection?: string;
   name?: NameTransformFunction;
 }): Effect.Effect<(name: string) => string, never> {
-  return Effect.gen(function* ($) {
-    const { collection, name: nameTransform } = config;
-
+  return Effect.gen(function* () {
+    const nameTransform = config.name ?? ((ctx: NameTransformContext) => ctx.filename);
+    
     return (originalName: string): string => {
-      return Effect.runSync(Effect.succeed(""));
+      return nameTransform({ filename: originalName, path: "", svg: "" });
     };
   });
 }
 
-async function createFilesystemProvider(config: {
+function createFilesystemProvider(config: {
+  provider: "fs";
   path: string;
   name?: NameTransformFunction;
 }): Effect.Effect<(name: string) => string, never> {
-  return Effect.gen(function* ($) {
+  return Effect.gen(function* () {
+    const nameTransform = config.name ?? ((ctx: NameTransformContext) => ctx.filename);
+    
     return (originalName: string): string => {
-      return Effect.runSync(Effect.succeed(""));
+      return nameTransform({ filename: originalName, path: config.path, svg: "" });
     };
   });
 }
 
-async function createInlineProvider(config: {
+function createInlineProvider(config: {
+  provider: "inline";
   icons: Record<string, string>;
   name?: NameTransformFunction;
 }): Effect.Effect<(name: string) => string, never> {
-  return Effect.gen(function* ($) {
+  return Effect.gen(function* () {
+    const nameTransform = config.name ?? ((ctx: NameTransformContext) => ctx.filename);
+    
     return (originalName: string): string => {
-      return Effect.runSync(Effect.succeed(""));
+      const svg = config.icons[originalName] ?? "";
+      return nameTransform({ filename: originalName, path: "", svg });
     };
   });
 }

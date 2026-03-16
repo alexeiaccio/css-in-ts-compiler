@@ -1,4 +1,4 @@
-import type { IconifyIcon } from "@iconify/types";
+import type { Effect } from "effect";
 
 export type ProviderType = "iconify" | "fs" | "inline";
 
@@ -15,11 +15,6 @@ export interface IconConfig {
   name?: string;
   color?: string;
   size?: string;
-}
-
-interface NameTransformCacheEntry {
-  originalName: string;
-  transformedName: string;
 }
 
 export interface IconifyProviderConfig {

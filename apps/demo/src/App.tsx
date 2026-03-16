@@ -8,61 +8,31 @@
  */
 
 import { 
-  p, m, flex, itemsCenter, justifyCenter,
-  calc, min, max,
-  rgb, hsl, oklch,
-  cn
+  calc, min,
+  rgb, hsl, oklch
 } from 'cssints'
 import { processCSS } from '@cssints/postprocessor'
+import { Effect } from 'effect'
 import { useEffect, useState } from 'react'
 
-// In a real app with Parcel macros, these would generate placeholder CSS
-// and return hashed class names at build time
-const spacing = {
-  padding: p(4),        // Returns "_a1b2c3" and generates: @atomic padding 1rem { }
-  margin: m(4),         // Returns "_d4e5f6" and generates: @atomic margin 1rem { }
-  smallMargin: m(2),    // Returns "_g7h8i9" and generates: @atomic margin 0.5rem { }
+// Demo color values using the color functions
+const _colors = {
+  primary: rgb(59, 130, 246),
+  secondary: hsl(30, 100, 50),
+  accent: oklch(0.7, 0.2, 30),
 }
 
-const layout = {
-  flex: flex(),         // Returns "_j0k1l2" and generates: @atomic display flex { }
-  itemsCenter: itemsCenter(),  // align-items: center
-  justifyCenter: justifyCenter(), // justify-content: center
+// Demo responsive calculations
+const _responsive = {
+  container: calc('100vw', '-', '4rem'),
+  halfWidth: calc('50%', '-', '1rem'),
+  minConstraint: min('100vw', '1200px'),
 }
-
-const responsive = {
-  // calc() expressions for responsive layouts
-  container: calc('100vw', '-', '4rem'),  // Full width minus padding
-  halfWidth: calc('50%', '-', '1rem'),    // Half with gap compensation
-  minConstraint: min('100vw', '1200px'),  // Max width constraint
-}
-
-const colors = {
-  primary: rgb(59, 130, 246),    // #3b82f6 (blue)
-  secondary: hsl(30, 100, 50),   // Orange
-  accent: oklch(0.7, 0.2, 30),   // Perceptually uniform color
-}
-
-// Combine classes using cn()
-const containerClasses = cn(
-  spacing.padding,
-  layout.flex,
-  layout.itemsCenter,
-  layout.justifyCenter,
-  responsive.container
-)
-
-const cardClasses = cn(
-  spacing.padding,
-  spacing.smallMargin,
-  spacing.flex
-)
 
 function App() {
   const [generatedCSS, setGeneratedCSS] = useState('')
 
   useEffect(() => {
-    // Simulate the postprocessor workflow
     const placeholderCSS = `
       @atomic padding 1rem { }
       @atomic margin 1rem { }
@@ -76,7 +46,7 @@ function App() {
     `
 
     // Process the CSS (in real app this happens at build time)
-    processCSS(placeholderCSS, { minify: false }).then(result => {
+    void Effect.runPromise(processCSS(placeholderCSS, { minify: false })).then(result => {
       setGeneratedCSS(result.code)
     })
   }, [])
@@ -89,15 +59,11 @@ function App() {
       <div className="section">
         <h2>1. Type-Safe Utilities</h2>
         <pre>{`
-import { p, m, flex, cn } from 'cssints'
+import { calc, min, max } from 'cssints'
 
-const padding = p(4)      // Type-safe: only numbers allowed
-const margin = m(4)       // Validates spacing scale
-const layout = flex()     // No typos in CSS values
-
-// Combine with cn()
-const classes = cn(padding, margin, layout)
-// Result: "_a1b2c3 _d4e5f6 _g7h8i9"
+const width = calc('100vw', '-', '4rem')
+const minWidth = min('100vw', '1200px')
+const maxWidth = max('300px', '50vw')
         `}</pre>
       </div>
 

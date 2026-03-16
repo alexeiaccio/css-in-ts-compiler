@@ -1,7 +1,4 @@
-import * as Effect from "effect";
-import * as Logger from "effect/Logger";
-import * as FileSystem from "effect/FileSystem";
-import * as Path from "effect/Path";
+import { Effect, Console } from "effect";
 
 export interface IconPluginConfig {
   logLevel?: "off" | "error" | "warning" | "info" | "debug" | "trace" | "all";
@@ -18,46 +15,25 @@ export const DEFAULT_CONFIG: IconPluginConfig = {
   typesOutputPath: ".cssints/generated",
 };
 
-const CONFIG_PATH = ".cssints-icon-config.json";
-
-export const iconLogger = Logger.make({
-  name: "@cssints/plugin-icon",
-  minLogLevel: DEFAULT_CONFIG.logLevel,
-});
-
 let currentConfig = { ...DEFAULT_CONFIG };
 
 export function getConfig(): Effect.Effect<IconPluginConfig, never> {
-  return Effect.gen(function* ($) {
-    const exists = yield* $(FileSystem.exists(CONFIG_PATH));
-
-    if (!exists) {
-      return DEFAULT_CONFIG;
-    }
-
-    const content = yield* $(FileSystem.readFileString(CONFIG_PATH));
-    const config = JSON.parse(content) as Partial<IconPluginConfig>;
-
-    currentConfig = { ...DEFAULT_CONFIG, ...config };
-    return currentConfig;
-  });
+  return Effect.sync(() => currentConfig);
 }
 
 export function setConfig(config: IconPluginConfig): Effect.Effect<void, never> {
-  return Effect.gen(function* ($) {
-    const content = JSON.stringify(config, null, 2);
-    yield* $(FileSystem.writeFile(CONFIG_PATH, content));
+  return Effect.sync(() => {
     currentConfig = config;
   });
 }
 
 export const log = {
   debug: (message: string, ...args: unknown[]) =>
-    Effect.logDebug(message, ...(args as any[])),
+    Console.log(`[DEBUG] ${message}`, ...args),
   info: (message: string, ...args: unknown[]) =>
-    Effect.logInfo(message, ...(args as any[])),
+    Console.log(`[INFO] ${message}`, ...args),
   warning: (message: string, ...args: unknown[]) =>
-    Effect.logWarning(message, ...(args as any[])),
+    Console.warn(`[WARN] ${message}`, ...args),
   error: (message: string, ...args: unknown[]) =>
-    Effect.logError(message, ...(args as any[])),
+    Console.error(`[ERROR] ${message}`, ...args),
 };

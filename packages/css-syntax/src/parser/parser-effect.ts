@@ -1,7 +1,5 @@
 import { Effect } from "effect";
 
-import type { TokenValue } from "../lexer/token.js";
-
 import { CssParseError } from "../lexer/errors-effect.js";
 import { CSSValueParser } from "./css-value-parser.js";
 import { SelectorParser } from "./selector-parser.js";

@@ -157,7 +157,7 @@ export type ResolutionValue = Dpi | Dpcm | Dppx;
 /** Hex color: `#${string}` */
 export type HexColor = `#${string}`;
 
-/** CSS named colors */
+/** CSS named colors - common ones */
 export type NamedColor = 
   | 'transparent'
   | 'currentColor'
@@ -168,8 +168,7 @@ export type NamedColor =
   | 'gray' | 'grey'
   | 'silver' | 'gold'
   | 'navy' | 'teal' | 'lime' | 'aqua'
-  | 'maroon' | 'olive' | 'fuchsia'
-  | string;  // Allow any other named colors
+  | 'maroon' | 'olive' | 'fuchsia';
 
 // Note: Use branded color functions (rgb(), hsl(), oklch(), etc.) for type-safe color construction
 // See src/color.ts for type-safe color functions
@@ -177,7 +176,7 @@ export type NamedColor =
 export type ColorValue = 
   | HexColor
   | NamedColor
-  | `${string}`;  // For any CSS color, prefer branded functions from src/color.ts
+  | (string & {});  // For any CSS color, prefer branded functions from src/color.ts
 
 // ============================================================================
 // Branded Types (Internal)

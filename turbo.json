@@ -1,5 +1,12 @@
 {
 	"$schema": "https://turbo.build/schema.json",
+	"catalog": {
+		"oxc-parser": "^0.112.0",
+		"oxc-transform": "^0.112.0",
+		"vite": "^7.3.1",
+		"typescript": "^5.9.3",
+		"esbuild": "^0.27.3"
+	},
 	"tasks": {
 		"build": {
 			"dependsOn": ["^build"],

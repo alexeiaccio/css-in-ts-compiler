@@ -1,20 +1,21 @@
 import { parseColors, SVG } from "@iconify/tools";
-import { log } from "../config";
 
 export type RenderMethod = "mask" | "background";
 
-export function detectRenderMethod(svg: string): RenderMethod {
+export function detectRenderMethod(svgContent: string): RenderMethod {
   try {
-    const svg = new SVG(svg);
-    const colors = parseColors(svg, {});
+    const parsed = new SVG(svgContent);
+    const result = parseColors(parsed, {});
 
-    const hasNonTransparentColor = colors.some(
-      color => color !== "none" && color !== "transparent"
-    );
+    const hasNonTransparentColor = result.colors.some((color) => {
+      if (typeof color === "string") {
+        return color !== "none" && color !== "transparent";
+      }
+      return true;
+    });
 
     return hasNonTransparentColor ? "background" : "mask";
-  } catch (e) {
-    log.debug(`Failed to detect render mode, defaulting to mask: ${e}`);
+  } catch {
     return "mask";
   }
 }

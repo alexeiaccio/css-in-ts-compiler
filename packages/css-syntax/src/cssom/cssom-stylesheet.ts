@@ -94,7 +94,6 @@ export class CSSStyleSheet {
 	 * @see https://drafts.csswg.org/cssom-1/#dom-cssstylesheet-deleterule
 	 */
 	deleteRule(index: number): void {
-		const safeIndex = index ?? this._cssRules.length;
 		if (index >= 0 && index < this._cssRules.length) {
 			this._cssRules.splice(index, 1);
 		}

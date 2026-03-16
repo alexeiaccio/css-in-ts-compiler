@@ -3,7 +3,7 @@
  * Transforms placeholder CSS into actual CSS
  */
 
-import { Effect, Console, Data } from "effect";
+import { Effect, Console } from "effect";
 import { transform } from "lightningcss";
 import { PostProcessError } from "./errors.js";
 

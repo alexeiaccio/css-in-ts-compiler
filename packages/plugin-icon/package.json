@@ -17,9 +17,9 @@
   "dependencies": {
     "@iconify/utils": "^2.2.0",
     "@iconify/tools": "^4.0.0",
-    "effect": "4.0.0-beta.5"
+    "effect": "^4.0.0-beta.30"
   },
   "devDependencies": {
-    "typescript": "catalog:"
+    "typescript": "^5.9.3"
   }
 }
