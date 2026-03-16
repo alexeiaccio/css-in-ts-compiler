@@ -11,101 +11,118 @@ import { registry, StyleEntry } from "./registry";
 
 export interface TransformOptions {
 	debug?: boolean;
+	plugins?: string[];
 }
 
-export function transformCode(
-	code: string,
-	fileId: string,
-	options: TransformOptions = {},
-): {
+interface PluginFunction {
+	name: string;
+	fn: (...args: any[]) => any;
+}
+
+const pluginRegistry = new Map<string, PluginFunction>();
+
+export function transformCode(code: string, fileId: string, options: TransformOptions = {}): {
 	code: string;
 	css: string;
 } {
 	const debug = options.debug || false;
 
-	// Find cssints imports
-	const importRegex =
-		/import\s+\*\s+as\s+(\w+)\s+from\s+['"]cssints['"]\s+with\s*\{[^}]*type:\s*['"]cssints['"][^}]*\}/;
-	const importMatch = code.match(importRegex);
+	// Load plugins if specified
+	if (options.plugins) {
+		loadPlugins(options.plugins, debug);
+	}
 
-	if (!importMatch) {
+	// Find cssints imports (both namespace and named imports)
+	const namespaceImportRegex = /import\s+\*\s+as\s+(\w+)\s+from\s+['"]cssints['"]\s+with\s*\{[^}]*type:\s*['"]cssints['"][^}]*\}/;
+	const namedImportRegex = /import\s+\{([^}]+)\}\s+from\s+['"](@cssints\/[^'"]+)['"]\s+with\s*\{[^}]*type:\s*['"]cssints['"][^}]*\}/;
+
+	const namespaceMatch = code.match(namespaceImportRegex);
+	const namedMatch = code.match(namedImportRegex);
+
+	const importedNames = new Map<string, string>();
+
+	if (namespaceMatch) {
+		const cssVar = namespaceMatch[1] as string;
+		importedNames.set(cssVar, "namespace");
+	}
+
+	if (namedMatch) {
+		const namesStr = namedMatch[1];
+		if (namesStr) {
+			const names = namesStr.split(",").map((n) => n.trim().replace(/as\s+\w+$/, "").trim());
+			for (const name of names) {
+				importedNames.set(name, "named");
+			}
+		}
+	}
+
+	if (importedNames.size === 0) {
 		return { code, css: "" };
 	}
 
-	const cssVar = importMatch[1] as string; // e.g., "css" from `import * as css from "cssints"`
-
-	// Find all css.* function calls
-	// Pattern: css.functionName(args)
-	const callPattern = new RegExp(`${cssVar}\\.(\\w+)\\s*\\(([^)]*)\\)`, "g");
+	const cssVar = namespaceMatch ? namespaceMatch[1] as string : "";
 
 	let hasChanges = false;
 	let transformedCode = code;
 	const replacements: { start: number; end: number; replacement: string }[] = [];
 
-	let match = callPattern.exec(code);
-	while (match !== null) {
-		const fullMatch = match[0];
-		const fnName = match[1] as string;
-		const argsStr = match[2] as string;
+	// Handle namespace imports (css.* function calls)
+	if (cssVar) {
+		const callPattern = new RegExp(`${cssVar}\\.(\\w+)\\s*\\(([^)]*)\\)`, 'g');
 
-		const start = match.index as number;
-		const end = start + fullMatch.length;
+		let match = callPattern.exec(code);
+		while (match !== null) {
+			const fullMatch = match[0];
+			const fnName = match[1] as string;
+			const argsStr = match[2] as string;
 
-		// Get the cssints function
-		const cssintsFn = (cssints as any)[fnName];
+			const start = match.index as number;
+			const end = start + fullMatch.length;
 
-		if (typeof cssintsFn !== "function") {
-			if (debug) {
-				console.log(`[cssints] Unknown function: css.${fnName}`);
+			// Try cssints function first
+			const cssintsFn = (cssints as any)[fnName];
+
+			// Try plugin function
+			const pluginFn = pluginRegistry.get(fnName);
+
+			if (typeof cssintsFn === "function") {
+				processFunctionCall(cssintsFn, fnName, argsStr, start, end, fileId, debug, replacements);
+				hasChanges = true;
+			} else if (pluginFn) {
+				processFunctionCall(pluginFn.fn, fnName, argsStr, start, end, fileId, debug, replacements);
+				hasChanges = true;
+			} else if (debug) {
+				console.log(`[cssints] Unknown function: ${cssVar}.${fnName}`);
 			}
-			continue;
+
+			match = callPattern.exec(code);
 		}
+	}
 
-		// Parse arguments
-		const args = parseArguments(argsStr);
+	// Handle named imports (direct function calls like icon())
+	for (const [name] of importedNames) {
+		if (!cssVar || name !== cssVar) {
+			const callPattern = new RegExp(`\\b${name}\\s*\\(([^)]*)\\)`, 'g');
 
-		// Evaluate the function
-		let result: any;
-		try {
-			result = cssintsFn(...args);
-		} catch (e) {
-			if (debug) {
-				console.error(`[cssints] Error evaluating css.${fnName}(${argsStr}):`, e);
+			let match = callPattern.exec(code);
+			while (match !== null) {
+				const fullMatch = match[0];
+				const argsStr = match[1] as string;
+
+				const start = match.index as number;
+				const end = start + fullMatch.length;
+
+				const pluginFn = pluginRegistry.get(name);
+
+				if (pluginFn) {
+					processFunctionCall(pluginFn.fn, name, argsStr, start, end, fileId, debug, replacements);
+					hasChanges = true;
+				} else if (debug) {
+					console.log(`[cssints] Unknown function: ${name}()`);
+				}
+
+				match = callPattern.exec(code);
 			}
-			continue;
-		}
-
-		// Convert result to CSS properties
-		const cssProps = normalizeResult(result);
-
-		if (!cssProps || Object.keys(cssProps).length === 0) {
-			if (debug) {
-				console.log(`[cssints] No CSS properties from css.${fnName}(${argsStr})`);
-			}
-			continue;
-		}
-
-		// Generate class name
-		const className = generateClassName(cssProps);
-
-		// Register the style
-		registry.register({
-			fileId,
-			className,
-			properties: cssProps,
-		});
-
-		// Store replacement
-		replacements.push({
-			start,
-			end,
-			replacement: `"${className}"`,
-		});
-
-		hasChanges = true;
-
-		if (debug) {
-			console.log(`[cssints] css.${fnName}(${argsStr}) → "${className}"`);
 		}
 	}
 
@@ -277,3 +294,74 @@ function generateClassName(properties: Record<string, any>): string {
 }
 
 export { registry };
+
+function processFunctionCall(
+	fn: (...args: any[]) => any,
+	fnName: string,
+	argsStr: string,
+	start: number,
+	end: number,
+	fileId: string,
+	debug: boolean,
+	replacements: { start: number; end: number; replacement: string }[],
+): void {
+	const args = parseArguments(argsStr);
+
+	let result: any;
+	try {
+		result = fn(...args);
+	} catch (e) {
+		if (debug) {
+			console.error(`[cssints] Error evaluating ${fnName}(${argsStr}):`, e);
+		}
+		return;
+	}
+
+	const cssProps = normalizeResult(result);
+
+	if (!cssProps || Object.keys(cssProps).length === 0) {
+		if (debug) {
+			console.log(`[cssints] No CSS properties from ${fnName}(${argsStr})`);
+		}
+		return;
+	}
+
+	const className = generateClassName(cssProps);
+
+	registry.register({
+		fileId,
+		className,
+		properties: cssProps,
+	});
+
+	replacements.push({
+		start,
+		end,
+		replacement: `"${className}"`,
+	});
+
+	if (debug) {
+		console.log(`[cssints] ${fnName}(${argsStr}) → "${className}"`);
+	}
+}
+
+function loadPlugins(pluginPackages: string[], debug: boolean): void {
+	for (const pkg of pluginPackages) {
+		try {
+			const plugin = require(pkg);
+
+			for (const [name, fn] of Object.entries(plugin)) {
+				if (typeof fn === "function") {
+					pluginRegistry.set(name, { name, fn: fn as (...args: any[]) => any });
+					if (debug) {
+						console.log(`[cssints] Registered plugin function: ${name} from ${pkg}`);
+					}
+				}
+			}
+		} catch (e) {
+			if (debug) {
+				console.warn(`[cssints] Failed to load plugin ${pkg}:`, e);
+			}
+		}
+	}
+}
