@@ -1,0 +1,26 @@
+{
+  "name": "@cssints/postprocessor",
+  "version": "1.0.0",
+  "description": "LightningCSS post-processor for CSS-in-TS placeholder CSS",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "effect": "^4.0.0-beta.30",
+    "lightningcss": "^1.32.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vitest": "^3.0.0"
+  }
+}
