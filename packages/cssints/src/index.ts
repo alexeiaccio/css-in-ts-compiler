@@ -41,6 +41,19 @@ export type {
 // Export calc functions
 export { calc, min, max, clamp, type CalcValue, type CalcOperator } from "./calc.js";
 
+// Export branded color functions
+export {
+  rgb,
+  hsl,
+  oklch,
+  oklab,
+  hex,
+  colorMix,
+  lightDark,
+  type BrandedColor,
+  type ColorError,
+} from "./color.js";
+
 // Export token system
 export { token, type TokenRef, type TokenOptions } from "./tokens.js";
 

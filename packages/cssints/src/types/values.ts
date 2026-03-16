@@ -171,29 +171,13 @@ export type NamedColor =
   | 'maroon' | 'olive' | 'fuchsia'
   | string;  // Allow any other named colors
 
-/** CSS function types - type-safe */
-export type RgbFunction = `rgb(${number}, ${number}, ${number})` | `rgb(${number} ${number} ${number})` | `rgba(${number}, ${number}, ${number}, ${number})`;
-export type HslFunction = `hsl(${number}, ${number}%, ${number}%)` | `hsl(${number} ${number}% ${number}%)` | `hsla(${number}, ${number}%, ${number}%, ${number})`;
-export type LabFunction = `lab(${number}% ${number} ${number})` | `lab(${number}% ${number} ${number} / ${number})`;
-export type LchFunction = `lch(${number}% ${number} ${number}deg)` | `lch(${number}% ${number} ${number}deg / ${number})`;
-export type OklabFunction = `oklab(${number}% ${number} ${number})` | `oklab(${number}% ${number} ${number} / ${number})`;
-export type OklchFunction = `oklch(${number}% ${number} ${number}deg)` | `oklch(${number}% ${number} ${number}deg / ${number})`;
-export type ColorMix = `color-mix(in ${string}, ${string}, ${string})` | `color-mix(in ${string}, ${string} ${number}%, ${string})`;
-export type LightDark = `light-dark(${string}, ${string})`;
-export type SystemColor = `SystemColor.${string}`;
+// Note: Use branded color functions (rgb(), hsl(), oklch(), etc.) for type-safe color construction
+// See src/color.ts for type-safe color functions
 
 export type ColorValue = 
   | HexColor
   | NamedColor
-  | RgbFunction
-  | HslFunction
-  | LabFunction
-  | LchFunction
-  | OklabFunction
-  | OklchFunction
-  | ColorMix
-  | LightDark
-  | SystemColor;
+  | `${string}`;  // For any CSS color, prefer branded functions from src/color.ts
 
 // ============================================================================
 // Branded Types (Internal)
