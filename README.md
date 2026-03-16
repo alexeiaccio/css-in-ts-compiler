@@ -1,269 +1,233 @@
-# CSSinTS Compiler ⏎
+# CSS-in-TS
 
-A compile-time CSS-in-TypeScript compiler with hash-based class names, following StyleX and vanilla-extract patterns, with full W3C Design Tokens support.
+A compile-time CSS-in-TypeScript compiler with hash-based class names, following StyleX and vanilla-extract patterns. Built with Effect TypeScript and LightningCSS.
 
-## Tech stack
+## Overview
 
-- [Effect Schema](https://github.com/Effect-TS/effect-smol/blob/main/packages/effect/SCHEMA.md)
-- [Effect TS 4 Beta](https://effect.website/blog/releases/effect/40-beta/)
-- [OXC parser](https://oxc.rs/docs/guide/usage/parser)
-- [OXC transformer](https://oxc.rs/docs/guide/usage/transformer)
-- [Lighting CSS](https://lightningcss.dev)
-- [tsdown](https://tsdown.dev/)
-- [Vite 8](https://main.vite.dev/)
-- [Vitest](https://main.vitest.dev/)
-- [TypeScript Go](https://github.com/microsoft/typescript-go)
-- [OXC lint](https://oxc.rs/blog/2025-12-08-type-aware-alpha)
-- [OXC fmt](https://oxc.rs/docs/guide/usage/formatter)
-- [Turborepo](https://turborepo.dev/)
-- [Bun](https://bun.sh)
-- [Knip](https://knip.dev/)
+CSS-in-TS provides:
 
-## Features
+- **Type Safety**: Full TypeScript types for CSS values using template literals
+- **Compile-Time Processing**: Macros generate CSS at build time (zero runtime overhead)
+- **Atomic CSS**: Automatic atomic class generation for minimal bundle size
+- **CSS Layers**: Cascade layer support for specificity management
+- **LightningCSS**: Built on LightningCSS for optimization and vendor prefixing
+- **Effect TypeScript**: Functional programming patterns for reliability
 
-✅ **Hash-based class names** - Collision-free atomic classes (like StyleX, vanilla-extract)
-✅ **Compile-time deduplication** - Global registry for atomic classes
-✅ **Design Tokens support** - Follows W3C Design Tokens Community Group standard
-✅ **Responsive utilities** - Media query functions via `createMedia()`
-✅ **Composable API** - Functional utilities like `p(2)`, `md(p(4))`
-✅ **Type-safe** - Full TypeScript support
-✅ **Zero runtime** - All styles compiled at build time
-✅ **Vite plugins** - Both regex-based and oxc-based AST plugins available
-✅ **Theming** - Global themes with CSS variables
-✅ **CLI** - Command-line interface for building styles
+## Tech Stack
+
+- [Effect TypeScript](https://effect.website/) - Functional programming and error handling
+- [LightningCSS](https://lightningcss.dev/) - CSS parsing and transformation
+- [Parcel Macros](https://parceljs.org/features/macros/) - Compile-time code execution
+- [TypeScript](https://www.typescriptlang.org/) - Type safety
+- [Bun](https://bun.sh/) - Fast JavaScript runtime and package manager
 
 ## Quick Start
 
+### 1. Install Packages
+
 ```bash
 bun add cssints
+bun add -D @cssints/postprocessor
 ```
 
-## Vite Setup
-
-### Option 1: Oxc Plugin (Recommended - AST-based)
-
-New, faster, more reliable plugin using oxc-parser for proper AST traversal:
+### 2. Use in Your Code
 
 ```typescript
-// vite.config.ts
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import { cssTSOxcPlugin } from "cssints/oxc";
+// Component.tsx
+import * as css from "cssints" with { type: "cssints" };
 
-export default defineConfig({
-	plugins: [
-		react(),
-		cssTSOxcPlugin({
-			include: ["**/*.tsx", "**/*.ts"],
-			debug: false, // Enable for source maps
-		}),
-	],
-});
+// Atomic utilities
+const padding = css.p(4);        // → "_a1b2c3"
+const margin = css.m(2);         // → "_d4e5f6"  
+const flex = css.flex();         // → "_g7h8i9"
+
+// Complex calculations
+const width = css.calc("100vw", "-", "2rem");  // → "_x1y2z3"
+
+// Combine classes
+const className = css.cn(padding, margin, flex);
+// Result: "_a1b2c3 _d4e5f6 _g7h8i9"
 ```
 
-### Option 2: Legacy Plugin (Regex-based)
+### 3. Generated CSS
 
-Original plugin, marked as deprecated but still functional:
-
-```typescript
-// vite.config.ts
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import { cssTSPlugin } from "cssints/vite";
-
-export default defineConfig({
-	plugins: [react(), cssTSPlugin()],
-});
-```
-
-## Usage
-
-```typescript
-import { style, cx } from 'cssints';
-import { createSizes, createMedia } from 'cssints';
-import { flex, itemsCenter, bg, textCol } from 'cssints';
-
-const { p } = createSizes();
-
-const { sm, md, lg } = createMedia({
-  sm: 'screen and (min-width: 640px)',
-  md: 'screen and (min-width: 768px)',
-  lg: 'screen and (min-width: 1024px)',
-});
-
-// Define a component style
-const button = style('button', {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '0.75rem 1.5rem',
-  backgroundColor: 'var(--css-color-primary)',
-  color: 'white',
-  borderRadius: '0.25rem',
-  fontWeight: 'bold',
-  cursor: 'pointer',
-  '&:hover': {
-    backgroundColor: 'var(--css-color-secondary)',
-    transform: 'scale(1.05)',
-  },
-});
-
-// Compose utilities
-const responsivePadding = cx(
-  p(2),
-  sm(p(4)),
-  md(p(6)),
-  lg(p(8))
-);
-
-// Use in React
-function Button({ children }) {
-  return <button className={button}>{children}</button>;
+```css
+@layer _.b {
+  ._a1b2c3 { padding: 1rem; }
+  ._d4e5f6 { margin: 0.5rem; }
+  ._g7h8i9 { display: flex; }
+  ._x1y2z3 { width: calc(100vw - 2rem); }
 }
 ```
 
-## CLI
+## Packages
 
-```bash
-# Build styles from a file
-cssints build src/styles.ts -o dist/[hash].css
+### `cssints` - Macro Package
 
-# Watch mode for development
-cssints watch src/styles.ts -o dist/styles.css
-```
-
-## Theming
+Type-safe CSS utility functions that generate placeholder CSS at compile time.
 
 ```typescript
-import { createGlobalTheme, globalStyle } from "cssints";
+import { p, m, flex, calc, cn, rgb, hsl, token } from "cssints";
 
-// Create a global theme with CSS variables
-export const vars = createGlobalTheme(":root", {
-	color: {
-		primary: "#3b82f6",
-		secondary: "#6366f1",
-	},
-	spacing: {
-		sm: "0.5rem",
-		md: "1rem",
-		lg: "1.5rem",
-	},
-});
+// Spacing
+p(4)           // padding: 1rem
+px(4)          // padding-left/right: 1rem
+py(2)          // padding-top/bottom: 0.5rem
+m(4)           // margin: 1rem
 
-// Use in styles
-const button = style("button", {
-	padding: vars.spacing.md,
-	backgroundColor: vars.color.primary,
-});
+// Layout
+flex()         // display: flex
+grid()         // display: grid
+block()        // display: block
 
-// Global styles
-globalStyle("body", {
-	margin: 0,
-	fontFamily: "system-ui",
-});
+// Calculations
+calc("100vw", "-", "2rem")     // calc(100vw - 2rem)
+min("100vw", "100%")           // min(100vw, 100%)
+max("50px", "10%")             // max(50px, 10%)
+
+// Colors
+rgb(255, 128, 0)               // rgb(255, 128, 0)
+hsl(30, 100, 50)              // hsl(30, 100%, 50%)
+oklch(0.7, 0.2, 30)           // oklch(0.7 0.2 30)
+hex("#3b82f6")                // #3b82f6
+
+// Tokens
+token.color("#3b82f6", { var: "color-primary" })
+token.length("1rem", { var: "spacing-md" })
+
+// Merge classes
+cn(p(4), m(2), flex())        // "_hash1 _hash2 _hash3"
 ```
 
-## API Reference
+### `@cssints/postprocessor` - CSS Processor
 
-### `style(name, properties)`
-
-Create a component style with a hash-based class name.
+Transforms placeholder CSS into optimized, production-ready CSS.
 
 ```typescript
-const card = style("card", {
-	display: "flex",
-	flexDirection: "column",
-	padding: "1rem",
-	backgroundColor: "white",
-	borderRadius: "0.5rem",
-	"@media (min-width: 768px)": {
-		padding: "1.5rem",
-	},
-	"&:hover": {
-		boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-	},
-});
-```
+import { processCSS } from "@cssints/postprocessor";
+import { Effect } from "effect";
 
-### `cx(...styles)`
+const placeholderCSS = `
+  @atomic padding 1rem { }
+  @atomic margin 0.5rem { }
+  @calc _abc123 100vw - 2rem { }
+`;
 
-Compose multiple styles and utilities.
-
-```typescript
-const heading = cx(text(6), fontBold(), textCol("var(--css-color-neutral-900)"), md(text(8)));
-```
-
-### `createSizes()`
-
-Create size-based utility functions.
-
-```typescript
-const { p, m, w, h, gap, rounded } = createSizes();
-
-const className = cx(
-	p(4), // padding: 1rem
-	m(2), // margin: 0.5rem
-	w(64), // width: 16rem
-	h(32), // height: 8rem
-	gap(4), // gap: 1rem
-	rounded(2), // borderRadius: 0.5rem
+const result = await Effect.runPromise(
+  processCSS(placeholderCSS, { minify: true })
 );
+
+console.log(result.code);
+// @layer _.b{._a1b2c3{padding:1rem}._d4e5f6{margin:.5rem}._abc123{width:calc(100vw - 2rem)}}
 ```
 
-### `createMedia(queries)`
+## Architecture
 
-Create responsive breakpoint functions.
+### 1. Macro Phase (Compile Time)
+
+TypeScript functions generate placeholder CSS:
 
 ```typescript
-const { sm, md, lg, xl } = createMedia({
-	sm: "screen and (min-width: 640px)",
-	md: "screen and (min-width: 768px)",
-	lg: "screen and (min-width: 1024px)",
-	xl: "screen and (min-width: 1280px)",
-});
+// Source
+const className = css.p(4);
 
-const className = cx(p(2), sm(p(4)), md(p(6)), lg(p(8)));
+// Macro expansion (what Parcel does at build time)
+this.addAsset({ 
+  type: "css", 
+  content: "@atomic padding 1rem { }" 
+});
+return "_a1b2c3";
 ```
 
-### Design Tokens
+### 2. Post-Processing (Build Time)
 
-Use design tokens following the W3C Design Tokens standard.
+The placeholder CSS is transformed by `@cssints/postprocessor`:
 
-```typescript
-import { token, resolveToken, getCSSVariables } from "cssints";
-
-const primaryColor = resolveToken("color.primary"); // #3b82f6
-
-const button = style("button", {
-	backgroundColor: token("color.primary"),
-	color: token("color.neutral.50"),
-});
-
-const variables = getCSSVariables();
+```
+@atomic padding 1rem { }          →  ._a1b2c3 { padding: 1rem; }
+@calc _abc123 100vw - 2rem { }    →  ._abc123 { width: calc(100vw - 2rem); }
 ```
 
-## Examples
+### 3. CSS Layers
 
-See the `example-vite` directory for the legacy plugin example and `example-oxc` for the new oxc-based plugin.
+All utility classes are wrapped in `@layer _.b` for specificity control:
 
-## Running Tests
+```css
+@layer _.a, _.b, _.c;  /* Declare layer order */
+
+@layer _.b {          /* Utilities layer */
+  ._a1b2c3 { padding: 1rem; }
+  ._d4e5f6 { margin: 0.5rem; }
+}
+```
+
+## Demo
+
+Check out the [demo app](apps/demo/) for a working example:
 
 ```bash
+cd apps/demo
+bun install
+bun run dev
+```
+
+## Project Structure
+
+```
+.
+├── packages/
+│   ├── cssints/              # Macro functions
+│   │   ├── src/
+│   │   │   ├── calc.ts       # Calculation functions
+│   │   │   ├── color.ts      # Color functions (rgb, hsl, oklch, etc.)
+│   │   │   ├── tokens.ts     # CSS token system
+│   │   │   ├── property.ts   # @property generator
+│   │   │   └── types/        # Type definitions
+│   │   └── package.json
+│   │
+│   └── cssints-postprocessor/  # CSS transformation
+│       ├── src/
+│       │   ├── index.ts       # Main processCSS function
+│       │   └── visitors/      # LightningCSS visitors
+│       └── package.json
+│
+├── apps/
+│   └── demo/                  # Vite + React demo app
+│
+└── examples/
+    └── 01-basic/             # Basic usage examples
+```
+
+## Development
+
+```bash
+# Install dependencies
+bun install
+
+# Run tests
 bun test
+
+# Run postprocessor tests specifically
+bun test --run packages/cssints-postprocessor
+
+# Type check
+bun run lint:check
 ```
 
-## Building
+## Roadmap
 
-```bash
-bun run build
-```
-
-## References
-
-- [StyleX](https://stylexjs.com/docs/learn/) - Inspiration for atomic CSS and hash-based class names
-- [vanilla-extract](https://vanilla-extract.style/documentation/getting-started) - Inspiration for file-scoped class names
-- [Oxc Parser](https://oxc.rs/docs/guide/usage/parser.html) - AST parser powering the new Vite plugin
-- [W3C Design Tokens](https://www.designtokens.org/tr/drafts/format/) - Design tokens standard
+- [x] Core macro functions (spacing, layout, calc, colors)
+- [x] Postprocessor with LightningCSS
+- [x] CSS layers support
+- [x] Token system with @property
+- [x] Integration tests
+- [x] Demo app
+- [ ] Vite plugin for seamless integration
+- [ ] Parcel integration for macro expansion
+- [ ] Plugin API for custom transformations
+- [ ] Media query support
+- [ ] Theme system
+- [ ] CLI tool
 
 ## License
 
