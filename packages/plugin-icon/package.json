@@ -15,7 +15,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@cssints/compiler": "workspace:*",
     "@iconify/utils": "^2.2.0",
     "@iconify/tools": "^4.0.0",
     "effect": "4.0.0-beta.5"
