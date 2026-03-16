@@ -1,6 +1,6 @@
 // CSS compiler - generates hash-based class names (StyleX/vanilla-extract pattern)
 
-import type { CSSProperties } from "./types";
+import type { CSSProperties } from "./types.js";
 
 // Global class registry for deduplication
 const classRegistry = new Map<

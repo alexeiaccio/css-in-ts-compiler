@@ -1,5 +1,5 @@
 import type { DesignTokenGroup } from "./tokens.js";
-import type { CSSProperties } from "./types";
+import type { CSSProperties } from "./types.js";
 
 export type ThemeVars = Record<string, string>;
 

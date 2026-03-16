@@ -5,7 +5,7 @@ status: todo
 type: epic
 priority: normal
 created_at: 2026-03-16T10:16:59Z
-updated_at: 2026-03-16T10:19:22Z
+updated_at: 2026-03-16T10:30:21Z
 ---
 
 ## Overview
@@ -14,8 +14,10 @@ Epic to track implementation of type-safe CSS-in-TS compiler using Parcel macros
 
 ## Architecture
 
-- **Phase 1 (Parcel Macros)**: `cssints` package generates placeholder CSS with `@atomic`, `@calc`, `@property` at-rules
-- **Phase 2 (LightningCSS)**: Post-processor transforms placeholders to final CSS with hashed classes, layers, and @property rules
+- **Phase 1 (Parcel Macros)**: `cssints` package generates placeholder CSS with `@atomic`, `@calc`, `@property` at-rules (using Effect TypeScript throughout)
+- **Phase 2 (LightningCSS)**: Post-processor transforms placeholders to final CSS with hashed classes, layers, and @property rules (Effect TypeScript for all I/O and error handling)
+
+**Pattern**: All code uses Effect TS following AGENTS.md - Effect.fn(), Effect.gen(), Data.TaggedError, Console.log
 
 ## Key Features
 
@@ -23,6 +25,7 @@ Epic to track implementation of type-safe CSS-in-TS compiler using Parcel macros
 - Branded template literal types for compile-time validation
 - Explicit calc operators: `calc('100vw', '-', '16px')`
 - Dual token/property API for @property generation
+- Plugin system with Effect TS (following plugin-icon patterns)
 
 ## Tasks
 
@@ -41,6 +44,9 @@ Epic to track implementation of type-safe CSS-in-TS compiler using Parcel macros
 - [ ] **css-in-ts-compiler-31jq**: Implement calc visitor for LightningCSS
 - [ ] **css-in-ts-compiler-g5hj**: Implement atomic CSS visitor
 - [ ] **css-in-ts-compiler-64o9**: Implement layer visitor for specificity
+
+### Plugin System
+- [ ] **css-in-ts-compiler-rc3k**: Design plugin API for CSS-in-TS macro system
 
 ### Integration
 - [ ] **css-in-ts-compiler-gfxm**: Update main exports and integration
