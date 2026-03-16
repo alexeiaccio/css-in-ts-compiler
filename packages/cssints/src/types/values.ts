@@ -94,9 +94,13 @@ export type AbsoluteUnits =
   | `${number}mm`
   | `${number}q`;
 
+// Number as string (for template literal compatibility)
+export type NumberString = `${number}`;
+
 // Complete length type
 export type LengthValue = 
-  | number  // Converts to rem by default (1 unit = 0.25rem)
+  | number  // Converts to px by default (CSS spec default)
+  | NumberString
   | Pixels
   | Ems
   | Rems

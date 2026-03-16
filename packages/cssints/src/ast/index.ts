@@ -8,12 +8,8 @@ export type {
   Length,
   LengthValue,
   LengthUnit,
-  Percentage,
-  LengthPercentage,
   Angle,
-  AngleValue,
   Time,
-  TimeValue,
   Resolution,
   Ratio,
 } from "lightningcss";
@@ -23,7 +19,6 @@ export type {
   CssColor,
   RGBColor,
   LABColor,
-  HSLColor,
   PredefinedColor,
   FloatColor,
   LightDark,
@@ -40,7 +35,6 @@ export type {
   MediaRule,
   SupportsRule,
   PropertyRule,
-  DeclarationBlock,
 } from "lightningcss";
 
 // Token and value types
@@ -54,8 +48,8 @@ export type {
 
 // Calculation types
 export type {
-  Calc,
-  MathFunction,
+  CalcFor_Length as Calc,
+  MathFunctionFor_Length as MathFunction,
   RoundingStrategy,
 } from "lightningcss";
 
@@ -63,15 +57,12 @@ export type {
 export type {
   Selector,
   SelectorComponent,
-  PseudoClass,
-  PseudoElement,
 } from "lightningcss";
 
 // Media and container query types
 export type {
   MediaCondition,
   MediaQuery,
-  QueryFeature,
   MediaFeatureValue,
   MediaFeatureId,
 } from "lightningcss";

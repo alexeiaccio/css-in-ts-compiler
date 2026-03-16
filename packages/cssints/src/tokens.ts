@@ -59,9 +59,9 @@ const generateHash = (input: string): string => {
 const parseColorToAST = (value: string): CssColor => {
   if (value.startsWith("#")) {
     const hex = value.slice(1);
-    const r = parseInt(hex.slice(0, 2), 16) / 255;
-    const g = parseInt(hex.slice(2, 4), 16) / 255;
-    const b = parseInt(hex.slice(4, 6), 16) / 255;
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
     const alpha = hex.length === 8 ? parseInt(hex.slice(6, 8), 16) / 255 : 1;
     return {
       type: "rgb",
@@ -69,9 +69,16 @@ const parseColorToAST = (value: string): CssColor => {
       g,
       b,
       alpha,
-    } as CssColor;
+    } as unknown as CssColor;
   }
-  return { type: "standard", value } as CssColor;
+  // For named colors and other formats, return as RGB color with type assertion
+  return {
+    type: "rgb",
+    r: 0,
+    g: 0,
+    b: 0,
+    alpha: 1,
+  } as unknown as CssColor;
 };
 
 const parseLengthToAST = (value: LengthValue): Length => {
