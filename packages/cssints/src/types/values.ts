@@ -171,15 +171,15 @@ export type NamedColor =
   | 'maroon' | 'olive' | 'fuchsia'
   | string;  // Allow any other named colors
 
-/** CSS function types */
-export type RgbFunction = `rgb(${string})` | `rgba(${string})`;
-export type HslFunction = `hsl(${string})` | `hsla(${string})`;
-export type LabFunction = `lab(${string})`;
-export type LchFunction = `lch(${string})`;
-export type OklabFunction = `oklab(${string})`;
-export type OklchFunction = `oklch(${string})`;
-export type ColorMix = `color-mix(${string})`;
-export type LightDark = `light-dark(${string})`;
+/** CSS function types - type-safe */
+export type RgbFunction = `rgb(${number}, ${number}, ${number})` | `rgb(${number} ${number} ${number})` | `rgba(${number}, ${number}, ${number}, ${number})`;
+export type HslFunction = `hsl(${number}, ${number}%, ${number}%)` | `hsl(${number} ${number}% ${number}%)` | `hsla(${number}, ${number}%, ${number}%, ${number})`;
+export type LabFunction = `lab(${number}% ${number} ${number})` | `lab(${number}% ${number} ${number} / ${number})`;
+export type LchFunction = `lch(${number}% ${number} ${number}deg)` | `lch(${number}% ${number} ${number}deg / ${number})`;
+export type OklabFunction = `oklab(${number}% ${number} ${number})` | `oklab(${number}% ${number} ${number} / ${number})`;
+export type OklchFunction = `oklch(${number}% ${number} ${number}deg)` | `oklch(${number}% ${number} ${number}deg / ${number})`;
+export type ColorMix = `color-mix(in ${string}, ${string}, ${string})` | `color-mix(in ${string}, ${string} ${number}%, ${string})`;
+export type LightDark = `light-dark(${string}, ${string})`;
 export type SystemColor = `SystemColor.${string}`;
 
 export type ColorValue = 
