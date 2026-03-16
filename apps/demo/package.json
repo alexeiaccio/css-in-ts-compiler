@@ -9,7 +9,10 @@
   },
   "dependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "cssints": "workspace:*",
+    "@cssints/postprocessor": "workspace:*",
+    "effect": "^4.0.0-beta.30"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
