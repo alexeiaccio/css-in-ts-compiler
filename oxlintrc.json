@@ -1,5 +1,6 @@
 {
 	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"ignorePatterns": ["packages/lightningcss/**", "packages/webref/**"],
 	"jsPlugins": ["eslint-plugin-playwright"],
 	"plugins": ["oxc", "typescript", "vitest", "import", "jsdoc", "promise"],
 	"categories": {

@@ -25,6 +25,6 @@
 		"noUnusedParameters": false,
 		"noPropertyAccessFromIndexSignature": false,
 
-		"types": ["vitest/importMeta"]
+		"types": ["vitest/importMeta", "bun"]
 	}
 }
