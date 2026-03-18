@@ -59,3 +59,19 @@ export { token, type TokenRef, type TokenOptions } from "./tokens.js";
 
 // Export property API
 export { property, propertyOf, type PropertyDefinition } from "./property.js";
+
+// Export variant macro functions
+export {
+  cv,
+  scv,
+  sv,
+  ssv,
+  cx,
+  cn,
+  type VariantConfig,
+  type SlotVariantConfig,
+  type StyleVariantConfig,
+  type ClassValue,
+  type ClassDictionary,
+  type ClassArray,
+} from "./variants.js";

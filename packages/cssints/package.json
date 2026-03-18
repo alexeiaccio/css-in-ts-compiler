@@ -11,6 +11,10 @@
     "./ast": {
       "types": "./dist/ast/index.d.ts",
       "import": "./dist/ast/index.js"
+    },
+    "./variants": {
+      "types": "./dist/variants.d.ts",
+      "import": "./dist/variants.js"
     }
   },
   "scripts": {
@@ -20,11 +24,12 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@cssints/unplugin": "workspace:*",
     "effect": "^4.0.0-beta.30",
     "lightningcss": "^1.32.0"
   },
   "peerDependencies": {
-    "parcel": "^2.12.0"
+    "unplugin-parcel-macros": "^0.2.0"
   },
   "devDependencies": {
     "@parcel/macros": "^2.12.0",

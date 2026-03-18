@@ -6,8 +6,7 @@
 	"files.trimTrailingWhitespace": true,
 	"files.trimTrailingWhitespaceInRegexAndStrings": true,
 	"files.trimFinalNewlines": true,
-	"typescript.tsdk": "node_modules/typescript/lib",
-
+	"ts.tsdk": "node_modules/typescript/lib",
 	"oxc.fmt.configPath": ".oxfmtrc.json",
 	"editor.defaultFormatter": "oxc.oxc-vscode",
 	"editor.formatOnSave": true,
@@ -22,10 +21,8 @@
 		"editor.defaultFormatter": "oxc.oxc-vscode",
 		"editor.formatOnSave": true
 	},
-
 	"oxc.typeAware": true,
-	"typescript.experimental.useTsgo": true,
-
+	"ts.experimental.useTsgo": true,
 	"explorer.fileNesting.enabled": true,
 	"explorer.fileNesting.expand": false,
 	"explorer.fileNesting.patterns": {
