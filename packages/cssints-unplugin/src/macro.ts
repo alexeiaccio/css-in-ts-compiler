@@ -10,10 +10,9 @@
  * Matches: import * as css from "cssints" with { type: "macro" }
  */
 export function hasCssintsMacro(code: string): boolean {
-  return (
-    code.includes('from "cssints" with { type: "macro" }') ||
-    code.includes("from 'cssints' with { type: 'macro' }")
-  );
+	return (
+		code.includes('from "cssints" with { type: "macro" }') || code.includes("from 'cssints' with { type: 'macro' }")
+	);
 }
 
 /**
@@ -23,9 +22,7 @@ export function hasCssintsMacro(code: string): boolean {
  * e.g., `import * as css from "cssints" with { type: "macro" }` returns "css"
  */
 export function extractMacroImportName(code: string): string | null {
-  // Match: import * as NAME from "cssints" with { type: "macro" }
-  const match = code.match(
-    /import\s*\*\s*as\s+(\w+)\s+from\s+["']cssints["']\s+with\s*{\s*type:\s*["']macro["']\s*}/
-  );
-  return match?.[1] ?? null;
+	// Match: import * as NAME from "cssints" with { type: "macro" }
+	const match = code.match(/import\s*\*\s*as\s+(\w+)\s+from\s+["']cssints["']\s+with\s*{\s*type:\s*["']macro["']\s*}/);
+	return match?.[1] ?? null;
 }

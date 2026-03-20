@@ -22,44 +22,20 @@ export type Rems = `${number}rem`;
 export type Percent = `${number}%`;
 
 // Viewport Width units
-export type ViewportWidth = 
-  | `${number}vw` 
-  | `${number}svw` 
-  | `${number}lvw` 
-  | `${number}dvw`;
+export type ViewportWidth = `${number}vw` | `${number}svw` | `${number}lvw` | `${number}dvw`;
 
 // Viewport Height units
-export type ViewportHeight = 
-  | `${number}vh` 
-  | `${number}svh` 
-  | `${number}lvh` 
-  | `${number}dvh`;
+export type ViewportHeight = `${number}vh` | `${number}svh` | `${number}lvh` | `${number}dvh`;
 
 // Viewport Min/Max units
-export type ViewportMin = 
-  | `${number}vmin` 
-  | `${number}svmin` 
-  | `${number}lvmin` 
-  | `${number}dvmin`;
+export type ViewportMin = `${number}vmin` | `${number}svmin` | `${number}lvmin` | `${number}dvmin`;
 
-export type ViewportMax = 
-  | `${number}vmax` 
-  | `${number}svmax` 
-  | `${number}lvmax` 
-  | `${number}dvmax`;
+export type ViewportMax = `${number}vmax` | `${number}svmax` | `${number}lvmax` | `${number}dvmax`;
 
 // Viewport Inline/Block (logical)
-export type ViewportInline = 
-  | `${number}vi` 
-  | `${number}svi` 
-  | `${number}lvi` 
-  | `${number}dvi`;
+export type ViewportInline = `${number}vi` | `${number}svi` | `${number}lvi` | `${number}dvi`;
 
-export type ViewportBlock = 
-  | `${number}vb` 
-  | `${number}svb` 
-  | `${number}lvb` 
-  | `${number}dvb`;
+export type ViewportBlock = `${number}vb` | `${number}svb` | `${number}lvb` | `${number}dvb`;
 
 // Container Query units
 export type ContainerWidth = `${number}cqw`;
@@ -70,55 +46,55 @@ export type ContainerMin = `${number}cqmin`;
 export type ContainerMax = `${number}cqmax`;
 
 // Font-relative units
-export type FontUnits = 
-  | `${number}em`
-  | `${number}rem`
-  | `${number}ex`
-  | `${number}rex`
-  | `${number}ch`
-  | `${number}rch`
-  | `${number}cap`
-  | `${number}rcap`
-  | `${number}ic`
-  | `${number}ric`
-  | `${number}lh`
-  | `${number}rlh`;
+export type FontUnits =
+	| `${number}em`
+	| `${number}rem`
+	| `${number}ex`
+	| `${number}rex`
+	| `${number}ch`
+	| `${number}rch`
+	| `${number}cap`
+	| `${number}rcap`
+	| `${number}ic`
+	| `${number}ric`
+	| `${number}lh`
+	| `${number}rlh`;
 
 // Absolute units
 export type AbsoluteUnits =
-  | `${number}px`
-  | `${number}pt`
-  | `${number}pc`
-  | `${number}in`
-  | `${number}cm`
-  | `${number}mm`
-  | `${number}q`;
+	| `${number}px`
+	| `${number}pt`
+	| `${number}pc`
+	| `${number}in`
+	| `${number}cm`
+	| `${number}mm`
+	| `${number}q`;
 
 // Number as string (for template literal compatibility)
 export type NumberString = `${number}`;
 
 // Complete length type
-export type LengthValue = 
-  | number  // Converts to px by default (CSS spec default)
-  | NumberString
-  | Pixels
-  | Ems
-  | Rems
-  | Percent
-  | ViewportWidth
-  | ViewportHeight
-  | ViewportMin
-  | ViewportMax
-  | ViewportInline
-  | ViewportBlock
-  | ContainerWidth
-  | ContainerHeight
-  | ContainerInline
-  | ContainerBlock
-  | ContainerMin
-  | ContainerMax
-  | FontUnits
-  | AbsoluteUnits;
+export type LengthValue =
+	| number // Converts to px by default (CSS spec default)
+	| NumberString
+	| Pixels
+	| Ems
+	| Rems
+	| Percent
+	| ViewportWidth
+	| ViewportHeight
+	| ViewportMin
+	| ViewportMax
+	| ViewportInline
+	| ViewportBlock
+	| ContainerWidth
+	| ContainerHeight
+	| ContainerInline
+	| ContainerBlock
+	| ContainerMin
+	| ContainerMax
+	| FontUnits
+	| AbsoluteUnits;
 
 // ============================================================================
 // Angle Units
@@ -158,25 +134,36 @@ export type ResolutionValue = Dpi | Dpcm | Dppx;
 export type HexColor = `#${string}`;
 
 /** CSS named colors - common ones */
-export type NamedColor = 
-  | 'transparent'
-  | 'currentColor'
-  | 'black' | 'white'
-  | 'red' | 'green' | 'blue'
-  | 'yellow' | 'cyan' | 'magenta'
-  | 'orange' | 'purple' | 'pink'
-  | 'gray' | 'grey'
-  | 'silver' | 'gold'
-  | 'navy' | 'teal' | 'lime' | 'aqua'
-  | 'maroon' | 'olive' | 'fuchsia';
+export type NamedColor =
+	| "transparent"
+	| "currentColor"
+	| "black"
+	| "white"
+	| "red"
+	| "green"
+	| "blue"
+	| "yellow"
+	| "cyan"
+	| "magenta"
+	| "orange"
+	| "purple"
+	| "pink"
+	| "gray"
+	| "grey"
+	| "silver"
+	| "gold"
+	| "navy"
+	| "teal"
+	| "lime"
+	| "aqua"
+	| "maroon"
+	| "olive"
+	| "fuchsia";
 
 // Note: Use branded color functions (rgb(), hsl(), oklch(), etc.) for type-safe color construction
 // See src/color.ts for type-safe color functions
 
-export type ColorValue = 
-  | HexColor
-  | NamedColor
-  | (string & {});  // For any CSS color, prefer branded functions from src/color.ts
+export type ColorValue = HexColor | NamedColor | (string & {}); // For any CSS color, prefer branded functions from src/color.ts
 
 // ============================================================================
 // Branded Types (Internal)
@@ -189,13 +176,13 @@ export type Branded<T, B> = T & { readonly [__cssint]: B };
 export type BrandedLength<U extends string = string> = Branded<string, { unit: U }>;
 
 /** Branded color for type-safe color operations */
-export type BrandedColor = Branded<string, 'color'>;
+export type BrandedColor = Branded<string, "color">;
 
 /** Branded angle for type-safe angle operations */
-export type BrandedAngle = Branded<string, 'angle'>;
+export type BrandedAngle = Branded<string, "angle">;
 
 /** Branded time for type-safe time operations */
-export type BrandedTime = Branded<string, 'time'>;
+export type BrandedTime = Branded<string, "time">;
 
 /** Branded calc expression */
-export type CalcExpression = Branded<string, 'calc'>;
+export type CalcExpression = Branded<string, "calc">;

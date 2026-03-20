@@ -14,6 +14,22 @@ bun run build
 bun run dev
 ```
 
+### lightningcss-napi (Rust NAPI bindings)
+
+```bash
+# Build native module (debug)
+cd packages/lightningcss-napi && npx napi build --platform
+
+# Build native module (release)
+cd packages/lightningcss-napi && npx napi build --platform --release
+
+# Run tests
+cd packages/lightningcss-napi && bunx vitest run
+
+# Generate ast.json (requires --features schema)
+cd packages/lightningcss-napi && cargo run --bin generate-ast --features schema
+```
+
 ### Testing
 
 ```bash
@@ -50,8 +66,13 @@ bun run fmt:check
 
 ## Tech stack
 
+Start here:
+
+- [Effect TS 4](https://github.com/Effect-TS/effect-smol/blob/main/LLMS.md)
+
+Other deps:
+
 - [Effect Schema](https://github.com/Effect-TS/effect-smol/blob/main/packages/effect/SCHEMA.md)
-- [Effect TS 4 Beta](https://effect.website/blog/releases/effect/40-beta/)
 - [OXC parser](https://oxc.rs/docs/guide/usage/parser)
 - [OXC transformer](https://oxc.rs/docs/guide/usage/transformer)
 - [Lighting CSS](https://lightningcss.dev)
@@ -120,22 +141,24 @@ bun run fmt:check
 - Exit with non-zero code on CLI errors: `process.exit(1)`
 
 Example:
+
 ```typescript
 export class FileError extends Data.TaggedErrorClass<FileError>()("FileError", {
-  path: Schema.String,
-  operation: Schema.Literal("read" | "write" | "delete"),
-  reason: Schema.String
+	path: Schema.String,
+	operation: Schema.Literal("read" | "write" | "delete"),
+	reason: Schema.String,
 }) {}
 
 const program = Effect.gen(function* () {
-  return yield* Effect.try({
-    try: () => riskyOperation(),
-    catch: (error) => new FileError({
-      path: "file.txt",
-      operation: "write",
-      reason: error.message
-    })
-  });
+	return yield* Effect.try({
+		try: () => riskyOperation(),
+		catch: (error) =>
+			new FileError({
+				path: "file.txt",
+				operation: "write",
+				reason: error.message,
+			}),
+	});
 });
 ```
 
@@ -144,6 +167,7 @@ const program = Effect.gen(function* () {
 **PRINCIPLE: All code with side effects MUST use Effect TypeScript.**
 
 Effect TS provides:
+
 - Type-safe error handling via tagged errors
 - Composable async operations via Effect.gen()
 - Predictable data flow
@@ -153,6 +177,7 @@ Effect TS provides:
 #### When to Use Effect TypeScript
 
 Use Effect for ANY operation that:
+
 - Performs I/O (file system, network)
 - Has possibility of failure (parsing, validation)
 - Needs sequencing of async operations
@@ -169,15 +194,15 @@ Use `Effect.gen()` for imperative-style effect composition with `yield*`:
 import { Effect, Console, Data } from "effect";
 
 Effect.gen(function* () {
-  yield* Console.log("Starting conversion...");
-  yield* Console.log("Reading file...");
-  
-  const data = yield* readFile("input.json");
-  const schema = yield* convertToSchema(data);
-  const code = yield* generateCode(schema);
-  
-  yield* writeFile("output.ts", code);
-  yield* Console.log("✓ Complete");
+	yield* Console.log("Starting conversion...");
+	yield* Console.log("Reading file...");
+
+	const data = yield* readFile("input.json");
+	const schema = yield* convertToSchema(data);
+	const code = yield* generateCode(schema);
+
+	yield* writeFile("output.ts", code);
+	yield* Console.log("✓ Complete");
 });
 ```
 
@@ -185,11 +210,11 @@ Effect.gen(function* () {
 
 ```typescript
 Effect.gen(function* () {
-  // Always return to ensure TypeScript knows code won't continue
-  return yield* new FileError({
-    path: "file.txt",
-    reason: "Read failed"
-  });
+	// Always return to ensure TypeScript knows code won't continue
+	return yield* new FileError({
+		path: "file.txt",
+		reason: "Read failed",
+	});
 });
 ```
 
@@ -201,26 +226,25 @@ Effect.gen(function* () {
 import { Effect, Console, Data } from "effect";
 
 // ✅ DO - Named function returning Effect
-export const readFile = Effect.fn("readFile")(
-  function*(path: string): Effect.Effect<string, ReadError> {
-    yield* Console.log(`Reading: ${path}`);
-    return yield* Effect.try({
-      try: () => readFileSync(path, "utf-8"),
-      catch: (error) => new ReadError({ path, reason: error.message })
-    });
-  }
-);
+export const readFile = Effect.fn("readFile")(function* (path: string): Effect.Effect<string, ReadError> {
+	yield* Console.log(`Reading: ${path}`);
+	return yield* Effect.try({
+		try: () => readFileSync(path, "utf-8"),
+		catch: (error) => new ReadError({ path, reason: error.message }),
+	});
+});
 
 // ❌ DON'T - Function that returns Effect.gen
-export const readFile = function*(path: string): Effect.Effect<string, ReadError> {
-  return Effect.gen(function* () {
-    // Less readable, worse stack traces
-    // Do NOT do this
-  });
+export const readFile = function* (path: string): Effect.Effect<string, ReadError> {
+	return Effect.gen(function* () {
+		// Less readable, worse stack traces
+		// Do NOT do this
+	});
 };
 ```
 
 **Benefits of Effect.fn():**
+
 - Improved stack traces (named spans)
 - Better debugging experience
 - Automatic span annotations
@@ -233,24 +257,24 @@ import { Data, Schema } from "effect";
 
 // ✅ DO - Use TaggedErrorClass
 export class ReadError extends Data.TaggedErrorClass<ReadError>()("ReadError", {
-  path: Schema.String,
-  reason: Schema.String
+	path: Schema.String,
+	reason: Schema.String,
 }) {}
 
 export class ParseError extends Data.TaggedErrorClass<ParseError>()("ParseError", {
-  input: Schema.String,
-  message: Schema.String
+	input: Schema.String,
+	message: Schema.String,
 }) {}
 
 export class WriteError extends Data.TaggedErrorClass<WriteError>()("WriteError", {
-  path: Schema.String,
-  reason: Schema.String
+	path: Schema.String,
+	reason: Schema.String,
 }) {}
 
 // ❌ DON'T - Use plain TaggedError factory
 export const ReadError = Data.TaggedError("ReadError", {
-  path: Schema.String,
-  reason: Schema.String
+	path: Schema.String,
+	reason: Schema.String,
 });
 ```
 
@@ -260,10 +284,10 @@ export const ReadError = Data.TaggedError("ReadError", {
 import { Console } from "effect";
 
 Effect.gen(function* () {
-  yield* Console.log("🔄 Starting process");
-  yield* Console.info("ℹ️  Additional context");
-  yield* Console.warn("⚠️  Warning: deprecated feature");
-  yield* Console.error("❌ Error:", error);
+	yield* Console.log("🔄 Starting process");
+	yield* Console.info("ℹ️  Additional context");
+	yield* Console.warn("⚠️  Warning: deprecated feature");
+	yield* Console.error("❌ Error:", error);
 });
 ```
 
@@ -273,11 +297,12 @@ Effect.gen(function* () {
 import { Effect, Data } from "effect";
 
 const parseJson = Effect.try({
-  try: (content: string) => JSON.parse(content),
-  catch: (error) => new ParseError({
-    input: content.slice(0, 100),
-    reason: error instanceof Error ? error.message : "Parse failed"
-  })
+	try: (content: string) => JSON.parse(content),
+	catch: (error) =>
+		new ParseError({
+			input: content.slice(0, 100),
+			reason: error instanceof Error ? error.message : "Parse failed",
+		}),
 });
 ```
 
@@ -287,10 +312,10 @@ const parseJson = Effect.try({
 import { Effect, Data } from "effect";
 
 const program = Effect.gen(function* () {
-  return yield* riskyOperation();
+	return yield* riskyOperation();
 }).pipe(
-  Effect.catchTag("ParseError", (_) => Effect.succeed(defaultValue)),
-  Effect.catch((error) => Effect.logError(`Unexpected error: ${error}`))
+	Effect.catchTag("ParseError", (_) => Effect.succeed(defaultValue)),
+	Effect.catch((error) => Effect.logError(`Unexpected error: ${error}`)),
 );
 ```
 
@@ -301,35 +326,36 @@ For complex modules requiring dependency injection, use `ServiceMap.Service`:
 ```typescript
 import { Effect, Layer, Schema, ServiceMap } from "effect";
 
-export class FileService extends ServiceMap.Service<FileService, {
-  read: (path: string) => Effect.Effect<string, ReadError>;
-  write: (path: string, content: string) => Effect.Effect<void, WriteError>;
-}>()(
-  "cssints/file-service"
-) {
-  static readonly layer = Layer.effect(
-    FileService,
-    Effect.gen(function* () {
-      const readFile = Effect.fn("readFile")(function*(path: string) {
-        return yield* Effect.try({
-          try: () => readFileSync(path, "utf-8"),
-          catch: (error) => new ReadError({ path, reason: error.message })
-        });
-      });
-      
-      const writeFile = Effect.fn("writeFile")(function*(path: string, content: string) {
-        yield* Effect.try({
-          try: () => {
-            mkdirSync(dirname(path), { recursive: true });
-            writeFileSync(path, content, "utf-8");
-          },
-          catch: (error) => new WriteError({ path, reason: error.message })
-        });
-      });
-      
-      return FileService.of({ readFile, writeFile });
-    })
-  );
+export class FileService extends ServiceMap.Service<
+	FileService,
+	{
+		read: (path: string) => Effect.Effect<string, ReadError>;
+		write: (path: string, content: string) => Effect.Effect<void, WriteError>;
+	}
+>()("cssints/file-service") {
+	static readonly layer = Layer.effect(
+		FileService,
+		Effect.gen(function* () {
+			const readFile = Effect.fn("readFile")(function* (path: string) {
+				return yield* Effect.try({
+					try: () => readFileSync(path, "utf-8"),
+					catch: (error) => new ReadError({ path, reason: error.message }),
+				});
+			});
+
+			const writeFile = Effect.fn("writeFile")(function* (path: string, content: string) {
+				yield* Effect.try({
+					try: () => {
+						mkdirSync(dirname(path), { recursive: true });
+						writeFileSync(path, content, "utf-8");
+					},
+					catch: (error) => new WriteError({ path, reason: error.message }),
+				});
+			});
+
+			return FileService.of({ readFile, writeFile });
+		}),
+	);
 }
 ```
 
@@ -337,16 +363,16 @@ export class FileService extends ServiceMap.Service<FileService, {
 
 ```typescript
 // CLI scripts
-Effect.runPromiseExit(program).then(exit => {
-  if (exit._tag === "Failure") {
-    Console.error("❌ Failed:", exit.cause);
-    process.exit(1);
-  }
+Effect.runPromiseExit(program).then((exit) => {
+	if (exit._tag === "Failure") {
+		Console.error("❌ Failed:", exit.cause);
+		process.exit(1);
+	}
 });
 
 // Library functions (let caller handle errors)
 export function run(): Effect.Effect<void, Error> {
-  return Effect.runPromise(program);
+	return Effect.runPromise(program);
 }
 ```
 
@@ -357,12 +383,12 @@ Even pure functions should return Effects for consistency:
 ```typescript
 // ✅ DO - Return Effect from simple functions
 function toUpperCase(str: string): Effect.Effect<string> {
-  return Effect.sync(() => str.toUpperCase());
+	return Effect.sync(() => str.toUpperCase());
 }
 
 // ❌ DON'T - Return plain values
 function toUpperCase(str: string): string {
-  return str.toUpperCase();
+	return str.toUpperCase();
 }
 ```
 
@@ -373,9 +399,9 @@ function toUpperCase(str: string): string {
 import { Data, Schema } from "effect";
 
 export class FileError extends Data.TaggedErrorClass<FileError>()("FileError", {
-  path: Schema.String,
-  operation: Schema.Literal("read" | "write" | "delete"),
-  reason: Schema.String
+	path: Schema.String,
+	operation: Schema.Literal("read" | "write" | "delete"),
+	reason: Schema.String,
 }) {}
 
 // Specific errors extend base

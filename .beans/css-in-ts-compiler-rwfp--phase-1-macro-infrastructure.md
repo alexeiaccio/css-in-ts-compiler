@@ -1,6 +1,6 @@
 ---
 # css-in-ts-compiler-rwfp
-title: 'Phase 1: Macro Infrastructure'
+title: "Phase 1: Macro Infrastructure"
 status: completed
 type: task
 priority: normal

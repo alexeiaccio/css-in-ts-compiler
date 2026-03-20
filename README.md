@@ -37,12 +37,12 @@ bun add -D @cssints/postprocessor
 import * as css from "cssints" with { type: "cssints" };
 
 // Atomic utilities
-const padding = css.p(4);        // → "_a1b2c3"
-const margin = css.m(2);         // → "_d4e5f6"  
-const flex = css.flex();         // → "_g7h8i9"
+const padding = css.p(4); // → "_a1b2c3"
+const margin = css.m(2); // → "_d4e5f6"
+const flex = css.flex(); // → "_g7h8i9"
 
 // Complex calculations
-const width = css.calc("100vw", "-", "2rem");  // → "_x1y2z3"
+const width = css.calc("100vw", "-", "2rem"); // → "_x1y2z3"
 
 // Combine classes
 const className = css.cn(padding, margin, flex);
@@ -53,10 +53,18 @@ const className = css.cn(padding, margin, flex);
 
 ```css
 @layer _.b {
-  ._a1b2c3 { padding: 1rem; }
-  ._d4e5f6 { margin: 0.5rem; }
-  ._g7h8i9 { display: flex; }
-  ._x1y2z3 { width: calc(100vw - 2rem); }
+	._a1b2c3 {
+		padding: 1rem;
+	}
+	._d4e5f6 {
+		margin: 0.5rem;
+	}
+	._g7h8i9 {
+		display: flex;
+	}
+	._x1y2z3 {
+		width: calc(100vw - 2rem);
+	}
 }
 ```
 
@@ -70,33 +78,33 @@ Type-safe CSS utility functions that generate placeholder CSS at compile time.
 import { p, m, flex, calc, cn, rgb, hsl, token } from "cssints";
 
 // Spacing
-p(4)           // padding: 1rem
-px(4)          // padding-left/right: 1rem
-py(2)          // padding-top/bottom: 0.5rem
-m(4)           // margin: 1rem
+p(4); // padding: 1rem
+px(4); // padding-left/right: 1rem
+py(2); // padding-top/bottom: 0.5rem
+m(4); // margin: 1rem
 
 // Layout
-flex()         // display: flex
-grid()         // display: grid
-block()        // display: block
+flex(); // display: flex
+grid(); // display: grid
+block(); // display: block
 
 // Calculations
-calc("100vw", "-", "2rem")     // calc(100vw - 2rem)
-min("100vw", "100%")           // min(100vw, 100%)
-max("50px", "10%")             // max(50px, 10%)
+calc("100vw", "-", "2rem"); // calc(100vw - 2rem)
+min("100vw", "100%"); // min(100vw, 100%)
+max("50px", "10%"); // max(50px, 10%)
 
 // Colors
-rgb(255, 128, 0)               // rgb(255, 128, 0)
-hsl(30, 100, 50)              // hsl(30, 100%, 50%)
-oklch(0.7, 0.2, 30)           // oklch(0.7 0.2 30)
-hex("#3b82f6")                // #3b82f6
+rgb(255, 128, 0); // rgb(255, 128, 0)
+hsl(30, 100, 50); // hsl(30, 100%, 50%)
+oklch(0.7, 0.2, 30); // oklch(0.7 0.2 30)
+hex("#3b82f6"); // #3b82f6
 
 // Tokens
-token.color("#3b82f6", { var: "color-primary" })
-token.length("1rem", { var: "spacing-md" })
+token.color("#3b82f6", { var: "color-primary" });
+token.length("1rem", { var: "spacing-md" });
 
 // Merge classes
-cn(p(4), m(2), flex())        // "_hash1 _hash2 _hash3"
+cn(p(4), m(2), flex()); // "_hash1 _hash2 _hash3"
 ```
 
 ### `@cssints/postprocessor` - CSS Processor
@@ -113,9 +121,7 @@ const placeholderCSS = `
   @calc _abc123 100vw - 2rem { }
 `;
 
-const result = await Effect.runPromise(
-  processCSS(placeholderCSS, { minify: true })
-);
+const result = await Effect.runPromise(processCSS(placeholderCSS, { minify: true }));
 
 console.log(result.code);
 // @layer _.b{._a1b2c3{padding:1rem}._d4e5f6{margin:.5rem}._abc123{width:calc(100vw - 2rem)}}
@@ -132,9 +138,9 @@ TypeScript functions generate placeholder CSS:
 const className = css.p(4);
 
 // Macro expansion (what Parcel does at build time)
-this.addAsset({ 
-  type: "css", 
-  content: "@atomic padding 1rem { }" 
+this.addAsset({
+	type: "css",
+	content: "@atomic padding 1rem { }",
 });
 return "_a1b2c3";
 ```
@@ -153,11 +159,16 @@ The placeholder CSS is transformed by `@cssints/postprocessor`:
 All utility classes are wrapped in `@layer _.b` for specificity control:
 
 ```css
-@layer _.a, _.b, _.c;  /* Declare layer order */
+@layer _.a, _.b, _.c; /* Declare layer order */
 
-@layer _.b {          /* Utilities layer */
-  ._a1b2c3 { padding: 1rem; }
-  ._d4e5f6 { margin: 0.5rem; }
+@layer _.b {
+	/* Utilities layer */
+	._a1b2c3 {
+		padding: 1rem;
+	}
+	._d4e5f6 {
+		margin: 0.5rem;
+	}
 }
 ```
 

@@ -1,6 +1,6 @@
 ---
 # css-in-ts-compiler-zqbf
-title: 'Phase 6: Demo Integration'
+title: "Phase 6: Demo Integration"
 status: completed
 type: task
 priority: normal

@@ -13,4 +13,4 @@ Create css.property() for direct @property generation. Add convenience methods: 
 
 ## Summary
 
-Completed: css.property() and propertyOf.* APIs in cssints/src/property.ts
+Completed: css.property() and propertyOf.\* APIs in cssints/src/property.ts

@@ -1,10 +1,10 @@
 export type {
-  CollectionConfig,
-  IconifyProviderConfig,
-  FilesystemProviderConfig,
-  InlineProviderConfig,
-  NameTransformFunction,
-  IconConfig,
+	CollectionConfig,
+	IconifyProviderConfig,
+	FilesystemProviderConfig,
+	InlineProviderConfig,
+	NameTransformFunction,
+	IconConfig,
 } from "./providers/types";
 
 export { icon } from "./icon";

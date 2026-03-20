@@ -1,6 +1,6 @@
 /**
  * Example: Full CSS-in-TS Workflow
- * 
+ *
  * This example demonstrates the complete CSS-in-TS workflow:
  * 1. Define styles using type-safe macro functions
  * 2. Generate placeholder CSS
@@ -8,6 +8,7 @@
  */
 
 import { Effect } from "effect";
+
 import { processCSS } from "./src/index.js";
 
 // ============================================================================
@@ -41,18 +42,16 @@ const placeholderCSS = `
 // ============================================================================
 
 async function main() {
-  console.log("=== CSS-in-TS Workflow Example ===\n");
-  
-  console.log("Input (Placeholder CSS):");
-  console.log(placeholderCSS);
-  console.log("\n" + "=".repeat(50) + "\n");
+	console.log("=== CSS-in-TS Workflow Example ===\n");
 
-  const result = await Effect.runPromise(
-    processCSS(placeholderCSS, { minify: false })
-  );
+	console.log("Input (Placeholder CSS):");
+	console.log(placeholderCSS);
+	console.log("\n" + "=".repeat(50) + "\n");
 
-  console.log("Output (Actual CSS):");
-  console.log(result.code);
+	const result = await Effect.runPromise(processCSS(placeholderCSS, { minify: false }));
+
+	console.log("Output (Actual CSS):");
+	console.log(result.code);
 }
 
 main().catch(console.error);

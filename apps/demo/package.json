@@ -1,26 +1,26 @@
 {
-  "name": "cssints-demo",
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "cssints": "workspace:*",
-    "@cssints/variants": "workspace:*",
-    "effect": "^4.0.0-beta.30"
-  },
-  "devDependencies": {
-    "@cssints/unplugin": "workspace:*",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@vitejs/plugin-react": "^4.0.0",
-    "typescript": "^5.0.0",
-    "unplugin-parcel-macros": "^0.2.0",
-    "vite": "^5.0.0"
-  }
+	"name": "cssints-demo",
+	"version": "1.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "tsc && vite build",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"@cssints/variants": "workspace:*",
+		"cssints": "workspace:*",
+		"effect": "^4.0.0-beta.30",
+		"react": "^18.2.0",
+		"react-dom": "^18.2.0"
+	},
+	"devDependencies": {
+		"@cssints/unplugin": "workspace:*",
+		"@types/react": "^18.2.0",
+		"@types/react-dom": "^18.2.0",
+		"@vitejs/plugin-react": "^4.0.0",
+		"typescript": "^5.0.0",
+		"unplugin-parcel-macros": "^0.2.0",
+		"vite": "^5.0.0"
+	}
 }

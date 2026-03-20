@@ -13,4 +13,4 @@ Create src/config.ts with file-based config using arktype pattern, Logger instan
 
 ## Summary
 
-Fixed config.ts to use Effect 4 beta patterns with Console.log/info/warn/error instead of Effect.log*. Removed file system operations for stub implementation.
+Fixed config.ts to use Effect 4 beta patterns with Console.log/info/warn/error instead of Effect.log\*. Removed file system operations for stub implementation.

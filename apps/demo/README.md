@@ -27,9 +27,9 @@ src/
 // In a real implementation with Parcel macros:
 import * as css from "cssints" with { type: "cssints" };
 
-const padding = css.p(4);        // Generates: @atomic padding 1rem { }
-const margin = css.m(2);         // Generates: @atomic margin 0.5rem { }
-const responsive = css.calc("100vw", "-", "2rem");  // @calc _hash 100vw - 2rem { }
+const padding = css.p(4); // Generates: @atomic padding 1rem { }
+const margin = css.m(2); // Generates: @atomic margin 0.5rem { }
+const responsive = css.calc("100vw", "-", "2rem"); // @calc _hash 100vw - 2rem { }
 
 // Use in component
 const className = css.cn(padding, margin);
@@ -54,8 +54,12 @@ Final CSS (hashed, minified, layered)
 
 ```css
 @layer _.b {
-  ._a1b2c3 { padding: 1rem; }
-  ._d4e5f6 { margin: 0.5rem; }
+	._a1b2c3 {
+		padding: 1rem;
+	}
+	._d4e5f6 {
+		margin: 0.5rem;
+	}
 }
 ```
 
@@ -77,23 +81,30 @@ bun run build
 ## Key Features Demonstrated
 
 ### CSS Layers
+
 The CSS uses `@layer _.b` to wrap utility classes. This provides:
+
 - **Specificity control**: Utilities have predictable precedence
 - **Cascade management**: Easy to override when needed
 - **Organization**: Different concerns in different layers
 
 ### Atomic CSS
+
 Each utility is a single declaration:
+
 - `._a1b2c3 { padding: 1rem; }`
 - `._d4e5f6 { margin: 0.5rem; }`
 
 Benefits:
+
 - **Minimal CSS**: Only includes what you use
 - **Cache friendly**: Reusable across components
 - **Fast runtime**: No CSS-in-JS overhead
 
 ### Type Safety
+
 In a full implementation:
+
 - `css.p(4)` validates that `4` is a valid spacing value
 - `css.calc("100vw", "-", "2rem")` ensures proper calc syntax
 - No typos in CSS property names (compile-time errors)

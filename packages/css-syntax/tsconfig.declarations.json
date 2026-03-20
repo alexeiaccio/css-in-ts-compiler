@@ -1,12 +1,9 @@
 {
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "declaration": true,
-    "emitDeclarationOnly": true,
-    "outDir": "./dist"
-  },
-  "include": [
-    "src/cssom/**/*.ts",
-    "src/utils/**/*.ts"
-  ]
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"declaration": true,
+		"emitDeclarationOnly": true,
+		"outDir": "./dist"
+	},
+	"include": ["src/cssom/**/*.ts", "src/utils/**/*.ts"]
 }

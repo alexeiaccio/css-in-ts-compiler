@@ -1,25 +1,25 @@
 {
-  "name": "@cssints/plugin-icon",
-  "version": "1.0.0",
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
-  "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target node",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@iconify/utils": "^2.2.0",
-    "@iconify/tools": "^4.0.0",
-    "effect": "^4.0.0-beta.30"
-  },
-  "devDependencies": {
-    "typescript": "^5.9.3"
-  }
+	"name": "@cssints/plugin-icon",
+	"version": "1.0.0",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"scripts": {
+		"build": "bun build ./src/index.ts --outdir ./dist --target node",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@iconify/tools": "^4.0.0",
+		"@iconify/utils": "^2.2.0",
+		"effect": "^4.0.0-beta.30"
+	},
+	"devDependencies": {
+		"typescript": "^5.9.3"
+	}
 }

@@ -30,25 +30,30 @@ Epic to track implementation of type-safe CSS-in-TS compiler using Parcel macros
 ## Tasks
 
 ### Type System Foundation
+
 - [x] **css-in-ts-compiler-klp8**: Setup macro package structure
-- [x] **css-in-ts-compiler-xqpt**: Re-export LightningCSS AST types  
+- [x] **css-in-ts-compiler-xqpt**: Re-export LightningCSS AST types
 - [x] **css-in-ts-compiler-1olb**: Implement branded TypeScript types
 
 ### Core Macro Functions
+
 - [x] **css-in-ts-compiler-oe0n**: Implement calc with explicit operators
 - [x] **css-in-ts-compiler-1r9b**: Implement token.color with LightningCSS types
 - [x] **css-in-ts-compiler-ei80**: Implement direct css.property() API
 
 ### Post-Processor
+
 - [x] **css-in-ts-compiler-g2cz**: Setup postprocessor package
 - [x] **css-in-ts-compiler-31jq**: Implement calc visitor for LightningCSS
 - [x] **css-in-ts-compiler-g5hj**: Implement atomic CSS visitor
 - [x] **css-in-ts-compiler-64o9**: Implement layer visitor for specificity
 
 ### Plugin System
+
 ~-~ **css-in-ts-compiler-rc3k**: Design plugin API (deferred)
 
 ### Integration
+
 - [x] **css-in-ts-compiler-gfxm**: Update main exports and integration
 
 ## Dependencies
@@ -62,35 +67,34 @@ import * as css from "cssints" with { type: "cssints" };
 import type { Length, CssColor } from "cssints/ast";
 
 // Type-safe length values
-css.p(4)                    // ✓ number → 1rem
-css.p('16px')              // ✓ `${number}px`
-css.p('100dvw')            // ✓ `${number}dvw`
-css.p('16foo')             // ✗ Type error
+css.p(4); // ✓ number → 1rem
+css.p("16px"); // ✓ `${number}px`
+css.p("100dvw"); // ✓ `${number}dvw`
+css.p("16foo"); // ✗ Type error
 
 // Explicit calc operators
-css.calc('100vw', '-', '16px')
-css.calc('(', '100%', '-', '2rem', ')', '/', 2)
+css.calc("100vw", "-", "16px");
+css.calc("(", "100%", "-", "2rem", ")", "/", 2);
 
 // Token-based @property
-const primary = css.token.color('#3b82f6', { 
-  var: 'color-primary', 
-  inherit: true 
+const primary = css.token.color("#3b82f6", {
+	var: "color-primary",
+	inherit: true,
 });
 
 // Direct @property
 css.property({
-  name: '--accent',
-  syntax: '<color>',
-  inherits: true,
-  initialValue: '#ff0000'
+	name: "--accent",
+	syntax: "<color>",
+	inherits: true,
+	initialValue: "#ff0000",
 });
 ```
-
-
 
 ## Summary
 
 All core tasks completed:
+
 - Phase 1: cssints macro package with Effect TS, branded types, calc/color/token/property APIs
 - Phase 2: @cssints/postprocessor with LightningCSS integration, string preprocessing
 - Phase 3: Demo app and integration tests (6 tests passing)

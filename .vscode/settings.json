@@ -7,6 +7,8 @@
 	"files.trimTrailingWhitespaceInRegexAndStrings": true,
 	"files.trimFinalNewlines": true,
 	"ts.tsdk": "node_modules/typescript/lib",
+	"typescript.tsdk": "node_modules/typescript/lib",
+	"typescript.enablePromptUseWorkspaceTsdk": true,
 	"oxc.fmt.configPath": ".oxfmtrc.json",
 	"editor.defaultFormatter": "oxc.oxc-vscode",
 	"editor.formatOnSave": true,

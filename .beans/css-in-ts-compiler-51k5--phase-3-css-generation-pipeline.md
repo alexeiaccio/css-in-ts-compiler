@@ -1,6 +1,6 @@
 ---
 # css-in-ts-compiler-51k5
-title: 'Phase 3: CSS Generation Pipeline'
+title: "Phase 3: CSS Generation Pipeline"
 status: completed
 type: task
 priority: normal

@@ -80,9 +80,9 @@ type NameTransformFunction = (context: NameTransformContext) => string;
 
 ```typescript
 interface NameTransformContext {
-  filename: string;
-  path: string;
-  svg: string;
+	filename: string;
+	path: string;
+	svg: string;
 }
 ```
 
@@ -90,21 +90,21 @@ interface NameTransformContext {
 
 ```typescript
 interface BaseConfig {
-  provider: ProviderType;
-  collection?: string; // Required for iconify/fs
-  path?: string;     // Required for fs provider
+	provider: ProviderType;
+	collection?: string; // Required for iconify/fs
+	path?: string; // Required for fs provider
 }
 
 interface IconifyProviderConfig extends BaseConfig {
-  collection: string;  // Iconify collection name (e.g., "mdi", "lucide", "heroicons")
+	collection: string; // Iconify collection name (e.g., "mdi", "lucide", "heroicons")
 }
 
 interface FilesystemProviderConfig extends BaseConfig {
-  path: string;  // Path to icons directory
+	path: string; // Path to icons directory
 }
 
 interface InlineProviderConfig extends BaseConfig {
-  icons: Record<string, string>; // Icon name -> SVG string
+	icons: Record<string, string>; // Icon name -> SVG string
 }
 ```
 
@@ -123,10 +123,10 @@ const kebabCase: (str: string): string => {
 **Prefix/ Suffix**
 
 ```typescript
-import { camelCase } from 'lodash-es';
+import { camelCase } from "lodash-es";
 
 const camelCase = (str: string): string => {
-  return str.replace(/-([a-z])([a-z])(g)/($1)/g);
+	return str.replace(/-([a-z])([a-z])(g)/($1) / g);
 };
 ```
 
@@ -265,6 +265,7 @@ const icons = createIconCollection({
 ### Type Safety
 
 The plugin uses Effect TS throughout:
+
 - TaggedError types for errors
 - Effect logging with configurable levels
 - Type-safe transformations
@@ -299,6 +300,7 @@ Three Providers
 ### Caching
 
 Each provider maintains its own cache:
+
 - **iconify**: `Map<string, IconData>` - API-fetched icons
 - **fs**: `Map<string, IconData>` - File-loaded icons
 - **inline**: `Map<string, IconData>` - Pre-processed icons
@@ -310,6 +312,7 @@ See [Examples](#examples) for complete usage examples.
 ## Type Safety
 
 All type definitions use strict TypeScript:
+
 - Full type safety on all functions
 - Proper error handling with TaggedError
 - Branded types for name transforms
@@ -319,6 +322,10 @@ All type definitions use strict TypeScript:
 ## Support
 
 For bugs, issues, or questions:
+
 - GitHub Issues: [github.com/username/repo/css-in-ts-compiler](https://github.com/username/repo/css-in-ts-compiler)
 - Discussions: [github.com/username/repo/css-in-ts-compiler/discussions](https://github.com/username/repo/css-in-ts-compiler/discussions)
+
+```
+
 ```

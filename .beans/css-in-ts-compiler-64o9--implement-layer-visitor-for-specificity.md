@@ -9,7 +9,7 @@ updated_at: 2026-03-16T15:47:20Z
 parent: css-in-ts-compiler-fv5y
 ---
 
-Create visitor to wrap rules in CSS layers (_.a, _.b, _.c) for specificity control. Automatically categorize rules by type. Parent: css-in-ts-compiler-fv5y
+Create visitor to wrap rules in CSS layers (_.a, _.b, \_.c) for specificity control. Automatically categorize rules by type. Parent: css-in-ts-compiler-fv5y
 
 ## Summary
 

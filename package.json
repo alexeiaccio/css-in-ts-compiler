@@ -6,6 +6,7 @@
 		"apps/*"
 	],
 	"scripts": {
+		"prepare": "effect-language-service patch",
 		"build": "turbo run build",
 		"dev": "turbo run dev",
 		"test": "turbo run test",
@@ -24,6 +25,8 @@
 		"unplugin-parcel-macros": "^0.2.0"
 	},
 	"devDependencies": {
+		"@effect/language-service": "^0.81.0",
+		"@effect/tsgo": "^0.0.15",
 		"@types/bun": "^1.3.10",
 		"@types/node": "^25.2.3",
 		"@typescript/native-preview": "^7.0.0-dev.20260212.1",

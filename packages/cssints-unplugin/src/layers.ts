@@ -22,10 +22,10 @@
  */
 
 export interface LayerConfig {
-  /** Base layer name (default: _.a) */
-  base?: string;
-  /** Starting ASCII code for layer suffix (default: 97 = 'a') */
-  startCode?: number;
+	/** Base layer name (default: _.a) */
+	base?: string;
+	/** Starting ASCII code for layer suffix (default: 97 = 'a') */
+	startCode?: number;
 }
 
 /**
@@ -40,23 +40,23 @@ export interface LayerConfig {
  * getLayerForDepth(2) // "_.c"
  */
 export function getLayerForDepth(depth: number): string {
-  // ASCII 97 = 'a', 98 = 'b', etc.
-  const char = String.fromCharCode(97 + depth);
-  return `_.${char}`;
+	// ASCII 97 = 'a', 98 = 'b', etc.
+	const char = String.fromCharCode(97 + depth);
+	return `_.${char}`;
 }
 
 /**
  * Layer information for a CSS rule
  */
 export interface LayerInfo {
-  /** Layer name (_.a, _.b, etc.) */
-  name: string;
-  /** Depth level */
-  depth: number;
-  /** Whether this is a pseudo-class (:hover, :focus) */
-  isPseudo: boolean;
-  /** Whether this is a media query */
-  isMedia: boolean;
+	/** Layer name (_.a, _.b, etc.) */
+	name: string;
+	/** Depth level */
+	depth: number;
+	/** Whether this is a pseudo-class (:hover, :focus) */
+	isPseudo: boolean;
+	/** Whether this is a media query */
+	isMedia: boolean;
 }
 
 /**
@@ -66,36 +66,36 @@ export interface LayerInfo {
  * @returns Layer information
  */
 export function determineLayer(css: string): LayerInfo {
-  const trimmed = css.trim();
+	const trimmed = css.trim();
 
-  // Check for media queries (depth 2+)
-  if (trimmed.startsWith("@media")) {
-    return {
-      name: getLayerForDepth(2),
-      depth: 2,
-      isPseudo: false,
-      isMedia: true,
-    };
-  }
+	// Check for media queries (depth 2+)
+	if (trimmed.startsWith("@media")) {
+		return {
+			name: getLayerForDepth(2),
+			depth: 2,
+			isPseudo: false,
+			isMedia: true,
+		};
+	}
 
-  // Check for pseudo-classes (depth 1)
-  // Matches: :hover, :focus, :active, :disabled, etc.
-  if (/:([a-z-]+)/.test(trimmed)) {
-    return {
-      name: getLayerForDepth(1),
-      depth: 1,
-      isPseudo: true,
-      isMedia: false,
-    };
-  }
+	// Check for pseudo-classes (depth 1)
+	// Matches: :hover, :focus, :active, :disabled, etc.
+	if (/:([a-z-]+)/.test(trimmed)) {
+		return {
+			name: getLayerForDepth(1),
+			depth: 1,
+			isPseudo: true,
+			isMedia: false,
+		};
+	}
 
-  // Base styles (depth 0)
-  return {
-    name: getLayerForDepth(0),
-    depth: 0,
-    isPseudo: false,
-    isMedia: false,
-  };
+	// Base styles (depth 0)
+	return {
+		name: getLayerForDepth(0),
+		depth: 0,
+		isPseudo: false,
+		isMedia: false,
+	};
 }
 
 /**
@@ -106,9 +106,9 @@ export function determineLayer(css: string): LayerInfo {
  * @returns Layered CSS
  */
 export function wrapInLayer(css: string, layerName: string): string {
-  if (!css.trim()) return "";
+	if (!css.trim()) return "";
 
-  return `@layer ${layerName} {\n${css}\n}`;
+	return `@layer ${layerName} {\n${css}\n}`;
 }
 
 /**
@@ -122,11 +122,11 @@ export function wrapInLayer(css: string, layerName: string): string {
  * // "@layer _.a, _.b, _.c;"
  */
 export function generateLayerDeclaration(maxDepth: number): string {
-  const layers: string[] = [];
-  for (let i = 0; i <= maxDepth; i++) {
-    layers.push(getLayerForDepth(i));
-  }
-  return `@layer ${layers.join(", ")};`;
+	const layers: string[] = [];
+	for (let i = 0; i <= maxDepth; i++) {
+		layers.push(getLayerForDepth(i));
+	}
+	return `@layer ${layers.join(", ")};`;
 }
 
 /**
@@ -136,21 +136,21 @@ export function generateLayerDeclaration(maxDepth: number): string {
  * @returns Object with layer names as keys and CSS content as values
  */
 export function organizeByLayer(rules: Array<{ content: string; depth: number }>): Record<string, string> {
-  const organized: Record<string, string[]> = {};
+	const organized: Record<string, string[]> = {};
 
-  for (const rule of rules) {
-    const layerName = getLayerForDepth(rule.depth);
-    if (!organized[layerName]) {
-      organized[layerName] = [];
-    }
-    organized[layerName].push(rule.content);
-  }
+	for (const rule of rules) {
+		const layerName = getLayerForDepth(rule.depth);
+		if (!organized[layerName]) {
+			organized[layerName] = [];
+		}
+		organized[layerName].push(rule.content);
+	}
 
-  // Join rules within each layer
-  const result: Record<string, string> = {};
-  for (const [layer, rules] of Object.entries(organized)) {
-    result[layer] = rules.join("\n");
-  }
+	// Join rules within each layer
+	const result: Record<string, string> = {};
+	for (const [layer, rules] of Object.entries(organized)) {
+		result[layer] = rules.join("\n");
+	}
 
-  return result;
+	return result;
 }
