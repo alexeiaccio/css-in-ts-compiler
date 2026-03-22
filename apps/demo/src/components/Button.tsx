@@ -1,30 +1,26 @@
-import * as css from "cssints" with { type: "macro" };
+import { cv } from "cssints" with { type: "macro" };
+import { _cv } from "cssints";
 
-export const button = css.cv({
-	base: [
-		css.inlineFlex(css.alignItems("center"), css.justifyContent("center")),
-		css.borderRadius("0.375rem"),
-		css.fontWeight(500),
-		css.transition("all", "0.2s"),
-	],
+export const buttonConfig = cv({
+	base: "display: inline-flex; align-items: center; justify-content: center; border-radius: 0.375rem; font-weight: 500; transition: all 0.2s; cursor: pointer; border: none",
 
 	variants: {
 		variant: {
-			primary: [css.backgroundColor("#3b82f6"), css.color("white"), css.border("1px", "solid", "#3b82f6")],
-			secondary: [css.backgroundColor("#6b7280"), css.color("white"), css.border("1px", "solid", "#6b7280")],
-			outline: [css.backgroundColor("transparent"), css.color("#3b82f6"), css.border("1px", "solid", "#3b82f6")],
-			ghost: [css.backgroundColor("transparent"), css.color("#3b82f6"), css.border("1px", "solid", "transparent")],
+			primary: "background-color: #3b82f6; color: white; border: 1px solid #3b82f6",
+			secondary: "background-color: #6b7280; color: white; border: 1px solid #6b7280",
+			outline: "background-color: transparent; color: #3b82f6; border: 1px solid #3b82f6",
+			ghost: "background-color: transparent; color: #3b82f6; border: 1px solid transparent",
 		},
 
 		size: {
-			sm: [css.padding("0.375rem", "0.75rem"), css.fontSize("0.875rem"), css.height("2rem")],
-			md: [css.padding("0.5rem", "1rem"), css.fontSize("1rem"), css.height("2.5rem")],
-			lg: [css.padding("0.75rem", "1.5rem"), css.fontSize("1.125rem"), css.height("3rem")],
+			sm: "padding: 0.375rem 0.75rem; font-size: 0.875rem; height: 2rem",
+			md: "padding: 0.5rem 1rem; font-size: 1rem; height: 2.5rem",
+			lg: "padding: 0.75rem 1.5rem; font-size: 1.125rem; height: 3rem",
 		},
 
 		fullWidth: {
-			true: [css.width("100%")],
-			false: [css.width("auto")],
+			true: "width: 100%",
+			false: "width: auto",
 		},
 	},
 
@@ -35,7 +31,13 @@ export const button = css.cv({
 	},
 });
 
-type ButtonVariants = Parameters<typeof button>[0];
+const button = _cv(buttonConfig);
+
+type ButtonVariants = {
+	variant?: "primary" | "secondary" | "outline" | "ghost";
+	size?: "sm" | "md" | "lg";
+	fullWidth?: boolean;
+};
 
 export function Button({
 	variant,
