@@ -1,171 +1,118 @@
 /**
  * CSS-in-TS Demo App
  *
- * Demonstrates the macro-based CSS-in-TS system with:
+ * Demonstrates oxc-macro-based CSS-in-TS with:
+ * - CSS property functions (display, p, bg, color, etc.)
  * - cv() for class variants (Button)
- * - scv() for slot variants (Card)
+ * - cx() for class name merging
  * - Atomic CSS generation at build time
- * - LightningCSS postprocessing
  */
 
+import { cx } from "cssints";
+import {
+	display, flexDirection, gap, padding, fontSize, fontWeight,
+	color, fontFamily, bg, borderRadius, border, margin, marginTop,
+	marginBottom, maxWidth, flexWrap,
+} from "cssints" with { type: "macro" };
 import { Button } from "./components/Button.js";
 import { Card } from "./components/Card.js";
 
+// Layout styles
+const page = [display("flex"), flexDirection("column"), gap("1rem")];
+const container = [maxWidth("800px"), margin("0 auto")];
+
+// Typography
+const h1 = [fontSize("2rem"), fontWeight("700"), marginBottom("0.5rem"), color("#111827")];
+const h2 = [fontSize("1.25rem"), fontWeight("600"), marginBottom("1rem")];
+const subtitle = [color("#6b7280"), marginBottom("2rem"), fontSize("1.125rem")];
+
+// Layout helpers
+const row = [display("flex"), gap("0.5rem"), flexWrap("wrap")];
+const column = [display("flex"), flexDirection("column"), gap("1rem")];
+
+// Info section
+const infoSection = [
+	marginTop("2rem"), padding("1.5rem"), bg("#eff6ff"),
+	borderRadius("0.5rem"), border("1px solid #dbeafe"),
+];
+const infoH2 = [fontSize("1.25rem"), fontWeight("600"), marginBottom("1rem"), color("#1e40af")];
+const infoList = [display("flex"), flexDirection("column"), gap("0.5rem"), color("#1e40af")];
+
+// Feature card
+const featureCard = [
+	padding("1rem"), bg("white"), borderRadius("0.375rem"), border("1px solid #e5e7eb"),
+];
+const featureTitle = [fontWeight("600"), marginBottom("0.25rem")];
+const featureDesc = [fontSize("0.875rem"), color("#6b7280")];
+const featureGrid = [display("grid"), gap("1rem")];
+
 function App() {
 	return (
-		<div
-			style={{
-				minHeight: "100vh",
-				backgroundColor: "#f3f4f6",
-				padding: "2rem",
-				fontFamily: "system-ui, -apple-system, sans-serif",
-			}}
-		>
-			<div style={{ maxWidth: "800px", margin: "0 auto" }}>
-				<h1
-					style={{
-						fontSize: "2rem",
-						fontWeight: 700,
-						marginBottom: "0.5rem",
-						color: "#111827",
-					}}
-				>
-					CSS-in-TS Demo
-				</h1>
-				<p
-					style={{
-						color: "#6b7280",
-						marginBottom: "2rem",
-						fontSize: "1.125rem",
-					}}
-				>
-					Type-safe CSS with macro-based atomic class generation
-				</p>
+		<div className={cx(...page, padding("2rem"), bg("#f3f4f6"), fontFamily("system-ui, -apple-system, sans-serif"))}>
+			<div className={cx(...container)}>
+				<h1 className={cx(...h1)}>CSS-in-TS Demo</h1>
+				<p className={cx(...subtitle)}>Type-safe CSS with macro-based atomic class generation</p>
 
-				{/* Button Variants Demo */}
 				<Card
 					title="Button Variants"
 					description="Demonstrates cv() macro with multiple variants"
 					footer={
 						<>
-							<Button variant="outline" size="sm">
-								Cancel
-							</Button>
-							<Button variant="primary" size="sm">
-								Save
-							</Button>
+							<Button variant="outline" size="sm">Cancel</Button>
+							<Button variant="primary" size="sm">Save</Button>
 						</>
 					}
 				>
-					<div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-						<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-							<Button variant="primary" size="sm">
-								Primary Small
-							</Button>
-							<Button variant="primary" size="md">
-								Primary Medium
-							</Button>
-							<Button variant="primary" size="lg">
-								Primary Large
-							</Button>
+					<div className={cx(...column)}>
+						<div className={cx(...row)}>
+							<Button variant="primary" size="sm">Primary Small</Button>
+							<Button variant="primary" size="md">Primary Medium</Button>
+							<Button variant="primary" size="lg">Primary Large</Button>
 						</div>
-
-						<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+						<div className={cx(...row)}>
 							<Button variant="secondary">Secondary</Button>
 							<Button variant="outline">Outline</Button>
 							<Button variant="ghost">Ghost</Button>
 						</div>
-
 						<div>
-							<Button variant="primary" fullWidth>
-								Full Width Button
-							</Button>
+							<Button variant="primary" fullWidth>Full Width Button</Button>
 						</div>
 					</div>
 				</Card>
 
-				<div style={{ marginTop: "1.5rem" }}>
+				<div className={cx(marginTop("1.5rem"))}>
 					<Card
 						variant="destructive"
 						size="sm"
 						title="Destructive Card"
 						description="This card uses the destructive variant"
 					>
-						<p>Slot variants (scv) allow styling multiple elements within a component consistently.</p>
+						<p>CSS property functions generate atomic CSS at build time.</p>
 					</Card>
 				</div>
 
-				{/* Info Section */}
-				<div
-					style={{
-						marginTop: "2rem",
-						padding: "1.5rem",
-						backgroundColor: "#eff6ff",
-						borderRadius: "0.5rem",
-						border: "1px solid #dbeafe",
-					}}
-				>
-					<h2
-						style={{
-							fontSize: "1.25rem",
-							fontWeight: 600,
-							marginBottom: "1rem",
-							color: "#1e40af",
-						}}
-					>
-						How It Works
-					</h2>
-					<ul
-						style={{
-							display: "flex",
-							flexDirection: "column",
-							gap: "0.5rem",
-							color: "#1e40af",
-						}}
-					>
-						<li>
-							<strong>1. Define Variants:</strong> Use <code>cv()</code> and <code>scv()</code> macros to define
-							component variants
-						</li>
-						<li>
-							<strong>2. Build-Time Generation:</strong> Macro transforms generate atomic CSS classes
-						</li>
-						<li>
-							<strong>3. Runtime Composition:</strong> Lightweight runtime composes pre-computed class names
-						</li>
-						<li>
-							<strong>4. LightningCSS:</strong> Postprocessing minifies and optimizes output
-						</li>
+				<div className={cx(...infoSection)}>
+					<h2 className={cx(...infoH2)}>How It Works</h2>
+					<ul className={cx(...infoList)}>
+						<li><strong>1. CSS Functions:</strong> Import property functions like <code>display()</code>, <code>p()</code>, <code>bg()</code></li>
+						<li><strong>2. Build-Time Generation:</strong> oxc-macro evaluates functions, generates atomic CSS classes</li>
+						<li><strong>3. Class Merging:</strong> Use <code>cx()</code> to compose multiple class names</li>
+						<li><strong>4. Variants:</strong> Use <code>cv()</code> for component variants with multiple props</li>
 					</ul>
 				</div>
 
-				{/* Features */}
-				<div style={{ marginTop: "2rem" }}>
-					<h2 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "1rem" }}>Key Features</h2>
-					<div
-						style={{
-							display: "grid",
-							gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-							gap: "1rem",
-						}}
-					>
+				<div className={cx(marginTop("2rem"))}>
+					<h2 className={cx(...h2)}>Key Features</h2>
+					<div className={cx(...featureGrid)}>
 						{[
 							{ title: "Zero Runtime", desc: "CSS generated at build time" },
 							{ title: "Type Safety", desc: "Full TypeScript inference" },
 							{ title: "Atomic CSS", desc: "Minimal bundle, maximum reuse" },
-							{ title: "Cascade Layers", desc: "Predictable specificity" },
+							{ title: "Macro-Based", desc: "oxc-macro evaluates at build time" },
 						].map((feature) => (
-							<div
-								key={feature.title}
-								style={{
-									padding: "1rem",
-									backgroundColor: "white",
-									borderRadius: "0.375rem",
-									border: "1px solid #e5e7eb",
-								}}
-							>
-								<h3 style={{ fontWeight: 600, marginBottom: "0.25rem" }}>{feature.title}</h3>
-								<p style={{ fontSize: "0.875rem", color: "#6b7280" }}>{feature.desc}</p>
+							<div key={feature.title} className={cx(...featureCard)}>
+								<h3 className={cx(...featureTitle)}>{feature.title}</h3>
+								<p className={cx(...featureDesc)}>{feature.desc}</p>
 							</div>
 						))}
 					</div>

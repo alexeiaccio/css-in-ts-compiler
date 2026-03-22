@@ -7,6 +7,7 @@
 		"build": "vite build"
 	},
 	"dependencies": {
+		"cssints": "file:../../packages/cssints",
 		"oxc-macro": "file:../../../oxc-macro/oxc-macro"
 	},
 	"devDependencies": {

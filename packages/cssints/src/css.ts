@@ -53,6 +53,7 @@ export const flexShrink = cssPropertyFn("flex-shrink");
 export const items = cssPropertyFn("align-items");
 export const justify = cssPropertyFn("justify-content");
 export const gap = cssPropertyFn("gap");
+export const flexWrap = cssPropertyFn("flex-wrap");
 export const width = cssPropertyFn("width");
 export const height = cssPropertyFn("height");
 export const maxWidth = cssPropertyFn("max-width");

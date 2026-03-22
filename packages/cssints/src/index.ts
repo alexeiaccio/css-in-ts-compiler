@@ -82,6 +82,7 @@ export {
 	items,
 	justify,
 	gap,
+	flexWrap,
 	width,
 	height,
 	maxWidth,
