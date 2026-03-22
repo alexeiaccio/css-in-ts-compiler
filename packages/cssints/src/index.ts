@@ -1,7 +1,10 @@
 /**
- * CSS-in-TS - Type-safe CSS with Parcel macros and LightningCSS
+ * CSS-in-TS - Type-safe CSS with oxc-macro
  *
- * Usage: import * as css from "cssints" with { type: "cssints" };
+ * Usage:
+ * import { display, p, bg, color } from "cssints" with { type: "macro" };
+ * import { cx, cn } from "cssints";
+ * import { cv, _cv } from "cssints" with { type: "macro" };
  */
 
 // Re-export LightningCSS AST types
@@ -53,15 +56,78 @@ export { property, propertyOf, type PropertyDefinition } from "./property.js";
 // Export variant macro functions
 export {
 	cv,
+	_cv,
 	scv,
 	sv,
 	ssv,
 	cx,
 	cn,
 	type VariantConfig,
+	type CvRuntimeConfig,
 	type SlotVariantConfig,
 	type StyleVariantConfig,
 	type ClassValue,
 	type ClassDictionary,
 	type ClassArray,
 } from "./variants.js";
+
+// Export CSS property functions (for use with oxc-macro)
+export {
+	display,
+	position,
+	flex,
+	flexDirection,
+	flexGrow,
+	flexShrink,
+	items,
+	justify,
+	gap,
+	width,
+	height,
+	maxWidth,
+	maxHeight,
+	overflow,
+	padding,
+	paddingTop,
+	paddingRight,
+	paddingBottom,
+	paddingLeft,
+	margin,
+	marginTop,
+	marginRight,
+	marginBottom,
+	marginLeft,
+	fontSize,
+	fontWeight,
+	fontFamily,
+	lineHeight,
+	letterSpacing,
+	textAlign,
+	textDecoration,
+	textTransform,
+	whiteSpace,
+	color,
+	bg,
+	background,
+	border,
+	borderColor,
+	borderWidth,
+	borderStyle,
+	borderRadius,
+	boxShadow,
+	opacity,
+	transition,
+	transform,
+	cursor,
+	zIndex,
+	p,
+	pt,
+	pr,
+	pb,
+	pl,
+	m,
+	mt,
+	mr,
+	mb,
+	ml,
+} from "./css.js";

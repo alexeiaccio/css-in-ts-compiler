@@ -17,8 +17,6 @@
  * ```
  */
 
-import { storeCss } from "@cssints/unplugin";
-
 /**
  * Variant configuration for cv() macro
  */
@@ -67,10 +65,15 @@ export interface StyleVariantConfig {
 /**
  * Class value types for cx() utility
  */
-export type ClassValue = string | number | boolean | undefined | null | ClassArray | ClassDictionary;
+export type ClassValue = string | number | boolean | undefined | null | ClassArray | ClassDictionary | MacroResultValue;
 
 export interface ClassDictionary {
 	[id: string]: boolean | undefined | null;
+}
+
+/** Matches oxc-macro's MacroResult shape */
+export interface MacroResultValue {
+	value: string | number | boolean | undefined | null;
 }
 
 export interface ClassArray extends Array<ClassValue> {}
@@ -126,47 +129,82 @@ function generateAtomicCSS(
 }
 
 /**
+ * Runtime config returned by cv() macro
+ */
+export interface CvRuntimeConfig {
+	base: string;
+	variants: Record<string, Record<string, string>>;
+	defaultVariants: Record<string, string>;
+}
+
+/**
+ * Runtime function that composes class names from cv() config
+ *
+ * This function is used at runtime. The cv() macro generates this config
+ * at build time and returns it as a MacroResult.
+ */
+export function _cv(config: CvRuntimeConfig): (props?: Record<string, string>) => string {
+	return (props = {}) => {
+		const classes: string[] = [config.base];
+
+		// Add variant classes
+		for (const [variantName, variantValue] of Object.entries(props)) {
+			const value = variantValue || config.defaultVariants?.[variantName];
+			if (value && config.variants[variantName]?.[value]) {
+				classes.push(config.variants[variantName][value]);
+			}
+		}
+
+		// Add default variants for unspecified props
+		if (config.defaultVariants) {
+			for (const [variantName, defaultValue] of Object.entries(config.defaultVariants)) {
+				if (!props[variantName] && config.variants[variantName]?.[defaultValue]) {
+					classes.push(config.variants[variantName][defaultValue]);
+				}
+			}
+		}
+
+		return classes.filter(Boolean).join(" ");
+	};
+}
+
+/**
  * Class Variants - Define component variants with atomic CSS
  *
- * This macro runs at build time to generate CSS and returns an optimized
- * runtime function for class name composition.
+ * This macro runs at build time when imported with { type: "macro" }.
+ * It generates atomic CSS and returns a MacroResult with:
+ * - value: CvRuntimeConfig for _cv() runtime function
+ * - assets: CSS files to emit
  *
  * @example
  * ```ts
- * import * as css from "cssints" with { type: "macro" };
+ * import { cv } from "cssints" with { type: "macro" };
  *
- * const button = css.cv({
+ * const button = cv({
  *   base: "padding: 1rem 2rem; background: #3b82f6; color: white",
  *   variants: {
  *     size: {
- *       sm: "padding: 0.5rem 1rem; font-size: 0.875rem",
- *       lg: "padding: 1rem 2rem; font-size: 1.125rem"
- *     },
- *     variant: {
- *       primary: "background: #3b82f6",
- *       secondary: "background: #6b7280"
+ *       sm: "padding: 0.5rem 1rem",
+ *       lg: "padding: 1rem 2rem"
  *     }
  *   },
- *   defaultVariants: {
- *     size: "md",
- *     variant: "primary"
- *   }
+ *   defaultVariants: { size: "md" }
  * });
  *
- * // Usage
- * button({ size: "lg", variant: "primary" }) // Returns class names
+ * // button({ size: "lg" }) // returns class names
  * ```
  */
-export function cv(config: VariantConfig): (props?: Record<string, string>) => string {
+export function cv(config: VariantConfig): CvRuntimeConfig {
 	const options = { devPrefix: true, hashLength: 7 };
-	const componentName = "Component"; // TODO: Extract from call site
+	const componentName = "Component";
+
+	// Collect all CSS
+	const cssParts: string[] = [];
 
 	// Generate base class
 	const baseStyles = config.base ? parseStyles(config.base) : [];
 	const { className: baseClass, css: baseCss } = generateAtomicCSS(componentName, baseStyles, options);
-
-	// Store CSS for this component
-	storeCss(componentName, baseCss);
+	if (baseCss) cssParts.push(baseCss);
 
 	// Generate variant classes
 	const variantClasses: Record<string, Record<string, string>> = {};
@@ -177,33 +215,19 @@ export function cv(config: VariantConfig): (props?: Record<string, string>) => s
 				const styles = parseStyles(styleStr);
 				const { className, css } = generateAtomicCSS(componentName, styles, options);
 				variantClasses[variantName][valueName] = className;
-				storeCss(componentName, css);
+				if (css) cssParts.push(css);
 			}
 		}
 	}
 
-	// Return runtime function (will be transformed at build time)
-	return (props = {}) => {
-		const classes: string[] = [baseClass];
-
-		// Add variant classes
-		for (const [variantName, variantValue] of Object.entries(props)) {
-			const value = variantValue || config.defaultVariants?.[variantName];
-			if (value && variantClasses[variantName]?.[value]) {
-				classes.push(variantClasses[variantName][value]);
-			}
-		}
-
-		// Add default variants
-		if (config.defaultVariants) {
-			for (const [variantName, defaultValue] of Object.entries(config.defaultVariants)) {
-				if (!props[variantName] && variantClasses[variantName]?.[defaultValue]) {
-					classes.push(variantClasses[variantName][defaultValue]);
-				}
-			}
-		}
-
-		return classes.join(" ");
+	// Return the runtime config — oxc-macro will detect this as the `value`
+	// The CSS will be returned as an `assets` array
+	return {
+		base: baseClass,
+		variants: variantClasses,
+		defaultVariants: config.defaultVariants || {},
+		// @ts-expect-error — oxc-macro detects the `assets` field on the return value
+		_assets: cssParts.map((content) => ({ type: "css", content })),
 	};
 }
 
@@ -234,15 +258,18 @@ export function scv(config: SlotVariantConfig): (props?: Record<string, string>)
 
 	// Generate classes for each slot
 	const slotClasses: Record<string, string> = {};
+	const cssParts: string[] = [];
 
 	for (const slot of config.slots) {
 		const baseStyle = config.base?.[slot] || "";
 		const styles = parseStyles(baseStyle);
 		const { className, css } = generateAtomicCSS(componentName, styles, options);
 		slotClasses[slot] = className;
-		storeCss(componentName, css);
+		if (css) cssParts.push(css);
 	}
 
+	// @ts-expect-error — oxc-macro detects the _assets field
+	slotClasses._assets = cssParts.map((content) => ({ type: "css", content }));
 	return (props = {}) => slotClasses;
 }
 
@@ -335,8 +362,14 @@ export function cx(...inputs: ClassValue[]): string {
 			const flattened = cx(...input);
 			if (flattened) classes.push(flattened);
 		} else if (typeof input === "object") {
-			for (const [key, value] of Object.entries(input)) {
-				if (value) classes.push(key);
+			// Handle MacroResult { value, assets } — extract the value
+			if ("value" in input && typeof input.value === "string") {
+				classes.push(input.value);
+			} else {
+				// Handle ClassDictionary { className: boolean }
+				for (const [key, value] of Object.entries(input)) {
+					if (value) classes.push(key);
+				}
 			}
 		}
 	}

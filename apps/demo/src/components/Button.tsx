@@ -1,37 +1,27 @@
-import { cv } from "cssints" with { type: "macro" };
-import { _cv } from "cssints";
+import { display, items, justify, p, bg, color, borderRadius, fontWeight, transition, border, cursor, fontSize, height, width } from "cssints" with { type: "macro" };
+import { cx } from "cssints";
 
-export const buttonConfig = cv({
-	base: "display: inline-flex; align-items: center; justify-content: center; border-radius: 0.375rem; font-weight: 500; transition: all 0.2s; cursor: pointer; border: none",
+const base = [
+	display("inline-flex"),
+	items("center"),
+	justify("center"),
+	borderRadius("0.375rem"),
+	fontWeight("500"),
+	transition("all 0.2s"),
+	cursor("pointer"),
+	border("none"),
+];
 
-	variants: {
-		variant: {
-			primary: "background-color: #3b82f6; color: white; border: 1px solid #3b82f6",
-			secondary: "background-color: #6b7280; color: white; border: 1px solid #6b7280",
-			outline: "background-color: transparent; color: #3b82f6; border: 1px solid #3b82f6",
-			ghost: "background-color: transparent; color: #3b82f6; border: 1px solid transparent",
-		},
+// Variant classes
+const primary = [bg("#3b82f6"), color("white"), border("1px solid #3b82f6")];
+const secondary = [bg("#6b7280"), color("white"), border("1px solid #6b7280")];
+const outline = [bg("transparent"), color("#3b82f6"), border("1px solid #3b82f6")];
+const ghost = [bg("transparent"), color("#3b82f6"), border("1px solid transparent")];
 
-		size: {
-			sm: "padding: 0.375rem 0.75rem; font-size: 0.875rem; height: 2rem",
-			md: "padding: 0.5rem 1rem; font-size: 1rem; height: 2.5rem",
-			lg: "padding: 0.75rem 1.5rem; font-size: 1.125rem; height: 3rem",
-		},
-
-		fullWidth: {
-			true: "width: 100%",
-			false: "width: auto",
-		},
-	},
-
-	defaultVariants: {
-		variant: "primary",
-		size: "md",
-		fullWidth: "false",
-	},
-});
-
-const button = _cv(buttonConfig);
+// Size classes
+const sm = [p("0.375rem 0.75rem"), fontSize("0.875rem"), height("2rem")];
+const md = [p("0.5rem 1rem"), fontSize("1rem"), height("2.5rem")];
+const lg = [p("0.75rem 1.5rem"), fontSize("1.125rem"), height("3rem")];
 
 type ButtonVariants = {
 	variant?: "primary" | "secondary" | "outline" | "ghost";
@@ -40,20 +30,30 @@ type ButtonVariants = {
 };
 
 export function Button({
-	variant,
-	size,
+	variant = "primary",
+	size = "md",
 	fullWidth,
 	children,
 	onClick,
 	disabled,
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & ButtonVariants) {
+	const variantClasses = variant === "primary" ? primary
+		: variant === "secondary" ? secondary
+		: variant === "outline" ? outline
+		: ghost;
+
+	const sizeClasses = size === "sm" ? sm
+		: size === "lg" ? lg
+		: md;
+
 	return (
 		<button
-			className={button({
-				variant: variant ?? "primary",
-				size: size ?? "md",
-				fullWidth: fullWidth ? "true" : "false",
-			})}
+			className={cx(
+				...base,
+				...variantClasses,
+				...sizeClasses,
+				fullWidth && width("100%"),
+			)}
 			onClick={onClick}
 			disabled={disabled}
 		>
