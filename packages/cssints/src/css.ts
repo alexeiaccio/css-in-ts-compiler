@@ -46,7 +46,7 @@ function cssPropertyFn(property: string) {
 // Layout
 export const display = cssPropertyFn("display");
 export const position = cssPropertyFn("position");
-export const flex = cssPropertyFn("display");
+export const flex = cssPropertyFn("flex");
 export const flexDirection = cssPropertyFn("flex-direction");
 export const flexGrow = cssPropertyFn("flex-grow");
 export const flexShrink = cssPropertyFn("flex-shrink");

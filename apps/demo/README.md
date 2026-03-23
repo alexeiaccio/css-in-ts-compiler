@@ -25,7 +25,7 @@ src/
 
 ```typescript
 // In a real implementation with Parcel macros:
-import * as css from "cssints" with { type: "cssints" };
+import * as css from "cssints" with { type: "macro" };
 
 const padding = css.p(4); // Generates: @atomic padding 1rem { }
 const margin = css.m(2); // Generates: @atomic margin 0.5rem { }
@@ -141,8 +141,5 @@ To integrate this into a real Vite app:
 
 - [Main README](../../README.md)
 - [cssints package](../../packages/cssints/)
-- [@cssints/postprocessor](../../packages/cssints-postprocessor/)
 
 ---
-
-**Note**: This demo uses standard CSS. The macro system is not yet integrated with Vite in this example.
