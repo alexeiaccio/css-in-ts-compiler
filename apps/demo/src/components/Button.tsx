@@ -19,7 +19,7 @@ const outline = [bg("transparent"), color("#3b82f6"), border("1px solid #3b82f6"
 const ghost = [bg("transparent"), color("#3b82f6"), border("1px solid transparent")];
 
 // Size classes
-const sm = [p("0.375rem 0.75rem"), fontSize("0.875rem"), height("2rem")];
+const sm = [p("0.375rem"), fontSize("0.875rem"), height("2rem")];
 const md = [p("0.5rem 1rem"), fontSize("1rem"), height("2.5rem")];
 const lg = [p("0.75rem 1.5rem"), fontSize("1.125rem"), height("3rem")];
 
@@ -39,12 +39,12 @@ export function Button({
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & ButtonVariants) {
 	const variantClasses = variant === "primary" ? primary
 		: variant === "secondary" ? secondary
-		: variant === "outline" ? outline
-		: ghost;
+			: variant === "outline" ? outline
+				: ghost;
 
 	const sizeClasses = size === "sm" ? sm
 		: size === "lg" ? lg
-		: md;
+			: md;
 
 	return (
 		<button
