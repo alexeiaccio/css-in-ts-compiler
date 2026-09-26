@@ -1,0 +1,13 @@
+declare const brand: unique symbol;
+export type Brand<T extends string> = { readonly [brand]: T };
+export type LengthValue = `${number}px` | `${number}rem` | `${number}em` | `${number}vw` | `${number}vh` | `${number}ch` | `${number}lh` | `${number}dvh` | `${number}dvw` | `${number}cqw` | `${number}cqh` | 0 | "0" | Brand<"length">;
+export type Percent = `${number}%`;
+export type TimeValue = `${number}s` | `${number}ms`;
+export type AngleValue = `${number}deg` | `${number}rad` | `${number}turn` | `${number}grad`;
+export type ResolutionValue = `${number}dpi` | `${number}dpcm` | `${number}dppx` | `${number}x`;
+export type ColorValue = Brand<"color">;
+export type ImageValue = Brand<"image">;
+export type UrlValue = Brand<"url">;
+export type PositionValue = Brand<"position">;
+export type CustomIdent = string & {};
+export type Fn<Name extends string> = Brand<`fn:${Name}`>;
