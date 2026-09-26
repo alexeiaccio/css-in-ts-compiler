@@ -1,0 +1,14 @@
+{
+  "name": "wyw-spike",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@wyw-in-js/processor-utils": "2.5.0",
+    "@wyw-in-js/shared": "2.5.0",
+    "@wyw-in-js/transform": "2.5.1",
+    "@wyw-in-js/vite": "^2.5.1",
+    "cssints": "file:cssints",
+    "lightningcss": "^1.33.0",
+    "vite": "^8.3.0"
+  }
+}

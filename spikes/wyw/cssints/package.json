@@ -1,0 +1,8 @@
+{
+  "name": "cssints",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": { "default": "./runtime.mjs" }, "./layers.css": "./layers.css" },
+  "wyw-in-js": { "tags": { "css": "./processor.cjs" } }
+}
