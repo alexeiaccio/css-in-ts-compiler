@@ -93,6 +93,8 @@ The code used wyw-in-js 2.5.1 with Vite 8.3. `spikes/wyw` was deleted once the M
 - `fixtures/` run through `run.mjs`, which calls `transform()` directly.
 - `app/` is a Vite app with LightningCSS. `hmr.mjs` edits `tokens.ts` on a live dev server.
 
+Historical, needs `git checkout 8202dbb -- spikes/wyw` first:
+
 ```bash
 cd spikes/wyw && npm i
 node run.mjs fixtures/risk1-vars.ts
