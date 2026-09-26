@@ -48,7 +48,7 @@ export function next(s: string): [Tok, string] {
 export type Node =
   | ["kw", string] | ["type", string, string?, string?] | ["prop", string] | ["fn", string, Node] | ["lit", string]
   | ["alt", Node[]] | ["or", Node[]] | ["and", Node[]] | ["seq", Node[]]
-  | ["opt", Node] | ["star", Node] | ["plus", Node] | ["list", Node] | ["rep", Node, string, string];
+  | ["opt", Node] | ["star", Node] | ["plus", Node] | ["list", Node] | ["rep", Node, string, string] | ["bang", Node];
 
 const parsed = new Map<string, Node>();
 export function parse(s: string): Node {
@@ -115,7 +115,8 @@ function mult(n: Node, s: string): [Node, string] {
     const [t, r] = next(s);
     if (t.t === "p" && MULT[t.v]) n = [MULT[t.v]!, n];
     else if (t.t === "range") n = n[0] === "list" ? ["seq", [n[1], ["rep", ["seq", [["lit", ","], n[1]]], dec(t.lo), dec(t.hi)]]] : ["rep", n, t.lo, t.hi];
-    else if (!(t.t === "p" && t.v === "!")) return [n, s];
+    else if (t.t === "p" && t.v === "!") n = ["bang", n];
+    else return [n, s];
     s = r;
   }
 }
@@ -203,6 +204,12 @@ export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<strin
       return closure(sub(n[1], s), (r) => (r.startsWith(",") ? sub(n[1], trim(r.slice(1))) : NONE));
     case "rep":
       return rep(s, Number(n[2]), n[3] === "∞" ? Infinity : Number(n[3]), (r) => sub(n[1], r));
+    case "bang": {
+      // `[ ... ]!`: the group must not be empty (CSS Values 4 §2.2)
+      const rs = new Set([...sub(n[1], s)].filter((r) => r !== s));
+      if (!rs.size) fail(ctx, s, label ?? "a non-empty group");
+      return rs;
+    }
     case "or":
       return anyOrder(n[1], s, false, sub);
     case "and":

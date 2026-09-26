@@ -52,7 +52,7 @@ type NextWord<S extends string> =
 type Node =
   | ["kw", string] | ["type", string] | ["prop", string] | ["fn", string, Node] | ["lit", string]
   | ["alt", Node, Node | null] | ["or", Node[]] | ["and", Node[]] | ["seq", Node[]]
-  | ["opt", Node] | ["star", Node] | ["plus", Node] | ["list", Node] | ["rep", Node, string, string];
+  | ["opt", Node] | ["star", Node] | ["plus", Node] | ["list", Node] | ["rep", Node, string, string] | ["bang", Node];
 
 export type Parse<S extends string> = ParseAlt<S> extends [infer N, any] ? N : never;
 
@@ -104,7 +104,7 @@ type Mult<N, S extends string> =
     : T extends { t: "p"; v: "*" } ? Mult<["star", N], R>
     : T extends { t: "p"; v: "+" } ? Mult<["plus", N], R>
     : T extends { t: "p"; v: "#" } ? Mult<["list", N], R>
-    : T extends { t: "p"; v: "!" } ? Mult<N, R>
+    : T extends { t: "p"; v: "!" } ? Mult<["bang", N], R>
     : T extends { t: "range"; lo: infer Lo extends string; hi: infer Hi extends string }
       ? Mult<N extends ["list", infer X extends Node] ? ["seq", [X, ["rep", ["seq", [["lit", ","], X]], Dec[Lo & keyof Dec], Dec[Hi & keyof Dec]]]] : ["rep", N, Lo, Hi], R>
     : [N, S]
@@ -160,6 +160,7 @@ export type Consume<N, S extends string> =
     : N extends ["rep", infer X, infer Lo extends string, infer Hi extends string] ? Rep<X, S, Lo, Hi>
     : N extends ["or", infer Xs extends Node[]] ? AnyOrder<Xs, S, false>
     : N extends ["and", infer Xs extends Node[]] ? AnyOrder<Xs, S, true>
+    : N extends ["bang", infer X] ? Exclude<Consume<X, S>, S> // `[ ... ]!`: the group must not be empty
     : never
   : never;
 

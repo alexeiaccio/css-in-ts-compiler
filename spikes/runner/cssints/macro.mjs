@@ -7,7 +7,7 @@ import { classOf, parseStyles, toDecls } from "./lib.mjs";
 
 export { CSS, CSSColorValue, CSSUnitValue } from "../../typelevel/values.ts";
 
-const registry = (globalThis.__cssints ??= { sites: new Map(), rules: new Map(), warnings: [] });
+const registry = (globalThis.__cssints ??= { sites: new Map(), rules: new Map(), warnings: [], warned: new Set() });
 
 const node = (decls) =>
   new Proxy(
@@ -87,7 +87,11 @@ const classesOf = (decls) => {
     valid(d[0], d[1]); // build-time twin of the type-level check; throws at the bad token
     checkRules(d[0], d[1]); // spec prose rules; throws like valid
     const cls = classOf(d);
-    if (!registry.rules.has(cls)) registry.warnings.push(...support(d[0], d[1]).map((w) => message(d[0], d[1], w)));
+    // once per property and BCD feature per build: an unsupported property warns once, not once per value
+    if (!registry.rules.has(cls)) for (const w of support(d[0], d[1])) {
+      const k = `${d[0]} ${w.key}`;
+      if (!registry.warned.has(k)) registry.warned.add(k), registry.warnings.push(message(d[0], d[1], w));
+    }
     if (!out.includes(cls)) out.push(cls);
     registry.rules.set(cls, `@layer _.a{.${cls}{${d[0]}:${d[1]}}}`);
   }

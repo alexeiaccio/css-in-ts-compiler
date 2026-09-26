@@ -13,6 +13,7 @@ export const cases = [
   ["color", "rgb(1%, 2%, 3%)", true], ["color", "rgb(1 2 3 / 50%)", true], ["color", "rgba(1, 2, 3, 0.5)", true], ["color", "hsl(120deg 50% 50%)", true],
   ["color", "color-mix(in srgb, red 10%, blue)", true], ["color", "light-dark(red, color-mix(in oklch longer hue, red, blue))", true],
   ["border-color", "light-dark(red, blue) currentColor", true], ["width", "calc-size(any, (1px + 2px) * 3)", true], ["width", "calc-size(any, 1px / 2)", true],
+  ["background", "image(red)", true], ["background", "image(\"a.png\", red)", true],
 
   ["padding", "1 rem", false], ["padding", "1rem 2rem 3rem 4rem 5rem", false], ["padding", "red", false],
   ["width", "fit", false], ["overflow", "hidden auto scroll", false], ["align-items", "baseline first", false],
@@ -24,6 +25,7 @@ export const cases = [
   ["color", "color-mix(in srgb, red)", false], ["color", "color-mix(in srgb, red, red, blue)", false], ["color", "light-dark(red)", false],
   ["border-color", "light-dark(red, light-dark(red, blue) currentColor", false], ["background", "red, url(a.png)", false],
   ["width", "fit-content(red)", false], ["width", "calc-size(any, 1px +)", false], ["width", "calc-size(any, 1px 2px)", false], ["width", "calc-size(any, (1px)", false],
+  ["background", "image()", false], ["background", "image(ltr)", false],
 ] as const;
 
 // Only the runtime rejects these: ranges and hex digits are beyond `${number}` / `#${string}`.
