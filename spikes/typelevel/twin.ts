@@ -191,7 +191,7 @@ export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<strin
     case "alt":
       return union(n[1].map((x) => sub(x, s)));
     case "seq":
-      return n[1].reduce((rs, x) => flatMap(rs, (r) => sub(x, r)), new Set([s]));
+      return seq(n[1], s, sub);
     case "opt":
       return new Set([s, ...sub(n[1], s)]);
     case "star":
@@ -231,6 +231,28 @@ function consumeType([, v, lo, hi]: ["type", string, string?, string?], s: strin
     else fail(ctx, s, `<${v} [${lo},${hi}]>`);
   }
   return out;
+}
+
+// Seq with comma omission (CSS Values 4 §2.6.1): a `,` is skipped for the remainders in `start` (nothing
+// consumed since the seq start or the previous comma; never before the first term). When every later term is
+// nullable it may also end the seq (`done`), and a consumed comma then needs something after it (`moved` is
+// banned). Like css.ts, `start` and `moved` are sets over all paths, not per path.
+export const nullable = (n: Node) => n[0] === "opt" || n[0] === "star" || (n[0] === "rep" && n[2] === "0");
+function seq(xs: Node[], s: string, sub: (x: Node, r: string) => Set<string>): Set<string> {
+  let rs = new Set([s]), start = NONE, moved = NONE;
+  const done = new Set<string>();
+  xs.forEach((x, i) => {
+    if (x[0] !== "lit" || x[1] !== ",") {
+      if (start === NONE) start = rs;
+      return void (rs = flatMap(rs, (r) => sub(x, r)));
+    }
+    const go = new Set([...rs].filter((r) => !start.has(r)));
+    const after = flatMap(go, (r) => sub(x, r));
+    const rest = xs.slice(i + 1);
+    if (rest.length && rest.every(nullable)) go.forEach((r) => done.add(r)), (moved = after);
+    rs = start = new Set([...rs].filter((r) => start.has(r)).concat(...after));
+  });
+  return new Set([...rs].filter((r) => !moved.has(r)).concat(...done));
 }
 
 // Star / list: repeat until no new remainder appears (css.ts stops after 8, the twin runs to the fixpoint).

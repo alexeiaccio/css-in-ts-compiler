@@ -143,7 +143,7 @@ export type Consume<N, S extends string> =
     : N extends ["prop", infer V extends string] ? (V extends keyof Props ? Consume<Parse<Props[V]>, S> : never)
     : N extends ["fn", infer F extends string] ? (S extends `${F}(${string})${infer R}` ? Trim<R> : never) // ponytail: inner args not checked yet
     : N extends ["alt", any, any] ? ConsumeAlt<N, S>
-    : N extends ["seq", infer Xs extends Node[]] ? ConsumeSeq<Xs, S>
+    : N extends ["seq", infer Xs extends Node[]] ? SeqRest<Xs, S, never, never, never>
     : N extends ["opt", infer X] ? S | Consume<X, S>
     : N extends ["star", infer X] ? Star<X, S>
     : N extends ["plus", infer X] ? Star<X, Consume<X, S>>
@@ -159,7 +159,22 @@ type OpaqueCall<S extends string> = S extends `${string}(${string})${infer R}` ?
 // tail-recursive walk of the alt cons list
 type ConsumeAlt<N, S extends string, Acc = never> =
   N extends ["alt", infer H, infer T] ? ConsumeAlt<T, S, Acc | Consume<H, S>> : Acc;
-type ConsumeSeq<Xs extends Node[], S extends string> = Xs extends [infer H, ...infer R extends Node[]] ? ConsumeSeq<R, Consume<H, S>> : S;
+// Seq with comma omission (CSS Values 4 §2.6.1), same as twin.ts `seq`: a `,` is skipped for the remainders in
+// Start (nothing consumed since the seq start or the previous comma; never before the first term). When every
+// later term is nullable it may also end the seq (Done), and a consumed comma then needs something after it
+// (Moved is banned). One Consume reference only: each generic one costs ~1.3 k instantiations at declaration.
+type Nullable = ["opt", any] | ["star", any] | ["rep", any, "0", string];
+type SeqRest<Xs extends Node[], S extends string, Start extends string, Moved extends string, Done extends string> =
+  Xs extends [infer H, ...infer R extends Node[]]
+    ? H extends ["lit", ","]
+      ? (AfterComma<Exclude<S, Start>> extends infer After extends string
+          ? R extends [Nullable, ...Nullable[]]
+            ? SeqRest<R, Extract<S, Start> | After, Extract<S, Start> | After, After, Done | Exclude<S, Start>>
+            : SeqRest<R, Extract<S, Start> | After, Extract<S, Start> | After, Moved, Done>
+          : never)
+      : SeqRest<R, Consume<H, S>, [Start] extends [never] ? S : Start, Moved, Done>
+    : Exclude<S, Moved> | Done;
+type AfterComma<S extends string> = S extends `,${infer Q}` ? Trim<Q> : never;
 
 // Recursive helpers use the indexed-object trick, and compare the depth tuple by pattern (`D extends Full`),
 // never `D["length"] extends 8`: that one resolves eagerly to the recursive arm because its constraint is number.

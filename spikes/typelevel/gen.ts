@@ -3,7 +3,7 @@
 import fc from "fast-check";
 
 import { properties, syntaxes } from "./mdn.ts";
-import { parse, type Node } from "./twin.ts";
+import { nullable, parse, type Node } from "./twin.ts";
 
 const props: Record<string, string> = properties;
 const syns: Record<string, string> = syntaxes;
@@ -69,7 +69,7 @@ export function arb(n: Node, depth = 0): Arb | null {
     }
     case "seq": {
       const as = all(n[1]);
-      return as && fc.tuple(...as).map(join);
+      return as && fc.tuple(...as).map((ps) => join(commas(n[1], ps)));
     }
     case "opt": {
       const a = sub(n[1]);
@@ -97,6 +97,20 @@ export function arb(n: Node, depth = 0): Arb | null {
       return fc.shuffledSubarray(ok, { minLength: n[0] === "and" ? ok.length : 1 }).chain((is) => fc.tuple(...is.map((i) => parts[i]!)).map(join));
     }
   }
+}
+
+// Comma omission, as in twin.ts `seq`: drop a `,` with nothing emitted since the seq start or the previous comma
+// (never before the first term), or with only omitted nullable terms after it.
+function commas(xs: Node[], ps: string[]): string[] {
+  let first = true, since = false;
+  return ps.map((p, i) => {
+    const x = xs[i]!;
+    if (x[0] !== "lit" || x[1] !== ",") return (first = false), (since ||= p !== ""), p;
+    if (!first && !since) return "";
+    if (i + 1 < xs.length && xs.slice(i + 1).every(nullable) && ps.slice(i + 1).every((q) => q === "")) return "";
+    first = since = false;
+    return p;
+  });
 }
 
 const join = (xs: string[]) => xs.filter(Boolean).join(" ").replace(/ ,/g, ",");
