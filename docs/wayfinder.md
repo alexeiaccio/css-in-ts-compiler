@@ -492,3 +492,35 @@ The 25 include:
 - Ranges missing inside newly generated function arguments (`steps(-94)`, a negative `box-shadow` blur).
 
 The demo builds with one noisy warning: `cursor: pointer` on iOS Safari, where BCD marks every `cursor` value unsupported.
+
+### Chrome triage: nothing unexplained
+
+`diff-support.ts` now gives a reason for every value that the twin accepts and Chrome 154 rejects. The same holds on seeds 1–8, 99, 123, 555 and 1000.
+
+| Reason | Values |
+|---|---|
+| support warning | 27 |
+| prose rule | 24 |
+| known, not ours | 11 |
+| unexplained | 0 |
+
+New prose rules:
+- `calc-size()` arguments must be lengths or percentages, checked by a small calc type checker.
+- `steps()` needs at least 1 step, or 2 with `jump-none`.
+- `anchor-size()` is allowed only in sizing, inset and margin properties.
+- `transition` cannot have two negative times, and cannot put an easing keyword before `steps()`.
+
+The known list (`KNOWN` in `diff-support.ts`):
+- BCD has no `display: run-in` or `inline-list-item`.
+- mdn-data and BCD keep `align-items: anchor-center`, which the spec allows only on `justify-self` and `align-self`.
+- The mdn-data `box-shadow` grammar cannot carry webref's non-negative blur range.
+- The spec allows `linear()` with one stop, but Chrome and WPT require two.
+
+Both parsers now enforce `!` (the group must not be empty), so `image()` fails. That check costs about 1.1 k in the fixed baseline and nothing per call.
+
+Support warnings are quieter:
+- A target that lacks the whole property gets one property warning.
+- Values are also looked up under longhands reached through `<'q'>`.
+- Each warning prints once per build.
+
+`cursor: pointer` still warns for iOS Safari, because BCD marks 34 `cursor` values unsupported there while the property itself is supported.
