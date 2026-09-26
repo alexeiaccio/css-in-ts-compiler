@@ -368,3 +368,13 @@ Only the recognizer is invented.
 3. An instantiation-count test in the style of attest over `bench/`, run with tsc and tsgo.
 4. File the three wyw-in-js issues.
 5. Commit.
+
+### Instantiation budgets
+
+The type-level cost of the recognizer now has a regression test in the style of arktype's `attest`. `node spikes/typelevel/budget.mjs` compiles every `bench/*.ts` file with tsc 5.9 and tsgo in parallel and reads the `Instantiations` count. It subtracts the `bench/empty.ts` baseline (about 13 k) and compares the result with `budget.json`. The test fails if a file goes over 110% of its budget or has the wrong number of type errors (3 in `err.ts`, 0 in every other file). The counts are the same on every run. The current net budgets for tsc and tsgo:
+
+- one `padding` call: 1.5 k and 2.8 k
+- one `color` call: 91 k and 93 k
+- 200 calls: 195 k and 197 k
+
+As a check, the `S extends string` guard in `Valid` was removed, and the test failed as it should: one `padding` call went to 4.2 k, and 200 calls went to 277 k. After a deliberate change, run `node budget.mjs --update`.

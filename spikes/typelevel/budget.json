@@ -1,0 +1,30 @@
+{
+  "b100.ts": {
+    "tsc": 180919,
+    "tsgo": 183038
+  },
+  "b200.ts": {
+    "tsc": 195359,
+    "tsgo": 197478
+  },
+  "empty.ts": {
+    "tsc": 13289,
+    "tsgo": 13448
+  },
+  "err.ts": {
+    "tsc": 122658,
+    "tsgo": 124373
+  },
+  "nocolor.ts": {
+    "tsc": 60991,
+    "tsgo": 63098
+  },
+  "onlycolor.ts": {
+    "tsc": 91218,
+    "tsgo": 92532
+  },
+  "onlypadding.ts": {
+    "tsc": 1478,
+    "tsgo": 2771
+  }
+}
