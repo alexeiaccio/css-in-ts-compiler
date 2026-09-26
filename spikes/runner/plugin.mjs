@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { Data, Effect } from "effect";
+import { Data, Effect, Semaphore } from "effect";
 import { Window } from "happy-dom";
 import MagicString from "magic-string";
 import { parseSync } from "oxc-parser";
@@ -96,10 +96,14 @@ class DomEvaluator extends ESModulesEvaluator {
 
 class MacroEvalError extends Data.TaggedError("MacroEvalError") {}
 
+// One evaluation at a time, each from a cleared runner: no transform joins another's fetch of an older
+// source or reuses exports computed from one, and no other evaluation touches the registry meanwhile.
+// Process-global, like the registry. Invariants and interleavings: spec/runner.qnt.
+const evalLock = Semaphore.makeUnsafe(1);
+
 const evaluate = Effect.fn("cssints.evaluate")(function* (runner, id) {
-  const registry = globalThis.__cssints;
-  registry?.sites.delete(id);
-  for (const m of runner.evaluatedModules.getModulesByFile(id) ?? []) runner.evaluatedModules.invalidateModule(m);
+  globalThis.__cssints?.sites.delete(id);
+  runner.evaluatedModules.clear();
   yield* Effect.tryPromise({
     try: () => runner.import(id),
     catch: (e) => new MacroEvalError({ file: id, message: e instanceof Error ? e.message : String(e) }),
@@ -115,6 +119,7 @@ export default function cssints({ inner = false } = {}) {
   let runner; // private runner with DOM bindings; server.environments.ssr.runner stays untouched
   const cssById = new Map(); // virtual css id -> text
   const depsOf = new Map(); // dependency file -> Set<client module id>
+  const inflight = new Set(); // client module ids inside transform: their deps are not in depsOf yet
 
   const runnerDeps = (env, id, out = new Set(), seen = new Set()) => {
     const mod = env.moduleGraph.getModuleById(id);
@@ -162,36 +167,49 @@ export default function cssints({ inner = false } = {}) {
       const parsed = instrument(code, id);
       if (!parsed) return;
       const env = server.environments.ssr;
-      runner ??= createServerModuleRunner(env, { evaluator: new DomEvaluator() });
-      const sites = await Effect.runPromise(evaluate(runner, id));
-
-      const ms = new MagicString(code);
-      parsed.sites.forEach((s, n) => {
-        const replacement = sites.get(n);
-        if (replacement === undefined) throw new Error(`cssints: site ${n} in ${id} was not evaluated`);
-        ms.overwrite(s.start, s.end, replacement);
-      });
-      // Drop compiled specifiers; keep cx/_cv. Remove the whole import when nothing is left.
-      for (const decl of parsed.imp.decls) {
-        const keep = decl.specifiers.filter((x) => !parsed.imp.locals.has(x.local.name));
-        if (!keep.length) ms.remove(decl.start, decl.end);
-        else ms.overwrite(decl.start, decl.end, `import { ${keep.map((x) => x.local.name).join(", ")} } from ${JSON.stringify(RUNTIME)};`);
+      // No runner HMR: its full-reload re-imports would run outside evalLock.
+      runner ??= createServerModuleRunner(env, { hmr: false, evaluator: new DomEvaluator() });
+      inflight.add(id);
+      try {
+        return await clientTransform(code, id, parsed, env);
+      } finally {
+        inflight.delete(id);
       }
-
-      const rules = globalThis.__cssints.rules;
-      const used = new Set([...sites.values()].flatMap((r) => [...r.matchAll(/"(_[a-z0-9]+(?: _[a-z0-9]+)*)"/g)].flatMap((m) => m[1].split(" "))));
-      const css = [...used].map((c) => rules.get(c)).filter(Boolean).join("\n");
-      const cssId = `${CSS_ID}?file=${id}&v=${createHash("sha1").update(css).digest("hex").slice(0, 8)}`;
-      cssById.set(cssId, css);
-      ms.prepend(`import ${JSON.stringify(cssId)};\n`);
-
-      for (const dep of runnerDeps(env, id)) (depsOf.get(dep) ?? depsOf.set(dep, new Set()).get(dep)).add(id);
-      return { code: ms.toString(), map: ms.generateMap({ hires: true, source: id, includeContent: true }) };
     },
     hotUpdate({ file, modules }) {
       if (this.environment.name !== "client") return;
-      const affected = [...(depsOf.get(file) ?? [])].map((id) => this.environment.moduleGraph.getModuleById(id)).filter(Boolean);
+      const graph = this.environment.moduleGraph;
+      const affected = [...new Set([...(depsOf.get(file) ?? []), ...inflight])].map((id) => graph.getModuleById(id)).filter(Boolean);
+      // HMR invalidation alone would still let Vite cache (and reuse) a result that is being computed now.
+      for (const m of affected) graph.invalidateModule(m);
       return [...modules, ...affected];
     },
   };
+
+  async function clientTransform(code, id, parsed, env) {
+    const sites = await Effect.runPromise(evalLock.withPermit(evaluate(runner, id)));
+
+    const ms = new MagicString(code);
+    parsed.sites.forEach((s, n) => {
+      const replacement = sites.get(n);
+      if (replacement === undefined) throw new Error(`cssints: site ${n} in ${id} was not evaluated`);
+      ms.overwrite(s.start, s.end, replacement);
+    });
+    // Drop compiled specifiers; keep cx/_cv. Remove the whole import when nothing is left.
+    for (const decl of parsed.imp.decls) {
+      const keep = decl.specifiers.filter((x) => !parsed.imp.locals.has(x.local.name));
+      if (!keep.length) ms.remove(decl.start, decl.end);
+      else ms.overwrite(decl.start, decl.end, `import { ${keep.map((x) => x.local.name).join(", ")} } from ${JSON.stringify(RUNTIME)};`);
+    }
+
+    const rules = globalThis.__cssints.rules;
+    const used = new Set([...sites.values()].flatMap((r) => [...r.matchAll(/"(_[a-z0-9]+(?: _[a-z0-9]+)*)"/g)].flatMap((m) => m[1].split(" "))));
+    const css = [...used].map((c) => rules.get(c)).filter(Boolean).join("\n");
+    const cssId = `${CSS_ID}?file=${id}&v=${createHash("sha1").update(css).digest("hex").slice(0, 8)}`;
+    cssById.set(cssId, css);
+    ms.prepend(`import ${JSON.stringify(cssId)};\n`);
+
+    for (const dep of runnerDeps(env, id)) (depsOf.get(dep) ?? depsOf.set(dep, new Set()).get(dep)).add(id);
+    return { code: ms.toString(), map: ms.generateMap({ hires: true, source: id, includeContent: true }) };
+  }
 }
