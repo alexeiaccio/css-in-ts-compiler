@@ -163,7 +163,7 @@ export default function cssints({ inner = false } = {}) {
       if (!parsed) return;
       const env = server.environments.ssr;
       runner ??= createServerModuleRunner(env, { evaluator: new DomEvaluator() });
-      const sites = await Effect.runPromise(evaluate(runner, id));
+      const sites = await Effect.runPromise(evaluate(runner, id)).finally(() => globalThis.__cssints?.warnings.splice(0).forEach((w) => this.warn(w)));
 
       const ms = new MagicString(code);
       parsed.sites.forEach((s, n) => {
