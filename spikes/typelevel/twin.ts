@@ -138,7 +138,8 @@ const PRIMITIVE: Record<string, RegExp> = {
   integer: re(String.raw`[+-]?\d+`),
   "hex-color": /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i,
   string: /^(?:"[^"]*"|'[^']*')$/,
-  "custom-ident": /^.+$/,
+  // an ident (escapes ignored), minus the CSS-wide keywords and `default`
+  "custom-ident": /^(?!(?:initial|inherit|unset|revert|revert-layer|default)$)(?:--|-?[A-Za-z_\u0080-\uffff])[\w\u0080-\uffff-]*$/i,
   "dashed-ident": /^--.+$/,
   angle: re(`${NUM}(?:deg|rad|grad|turn)`),
   time: re(`${NUM}(?:s|ms)`),

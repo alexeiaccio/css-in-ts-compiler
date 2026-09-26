@@ -122,11 +122,15 @@ type PrimitiveMap = {
   integer: `${bigint}`;
   "hex-color": `#${string}`;
   string: `"${string}"` | `'${string}'`;
-  "custom-ident": string;
+  "custom-ident": string; // minus NotIdent, see Consume
   "dashed-ident": `--${string}`;
   angle: `${number}${"deg" | "rad" | "grad" | "turn"}`;
   time: `${number}${"s" | "ms"}`;
 };
+// What a <custom-ident> cannot be: not an ident by its first characters, or a CSS-wide keyword / `default`.
+// The twin checks every character; `${number}` and friends cannot say "ident" here.
+type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+type NotIdent = `${"'" | '"' | "#" | "." | "+" | "(" | Digit | `-${Digit}`}${string}` | "initial" | "inherit" | "unset" | "revert" | "revert-layer" | "default";
 // Recursive syntaxes we do not descend into: the whole `name(...)` chunk is accepted as opaque.
 type Opaque = "calc-sum" | "calc-size()" | "anchor-size()" | "color-function" | "light-dark()";
 
@@ -135,7 +139,7 @@ export type Consume<N, S extends string> =
     ? N extends ["kw", infer V extends string] ? (Tok1<S> extends [V, infer R extends string] ? Trim<R> : never)
     : N extends ["lit", infer V extends string] ? (S extends `${V}${infer R}` ? Trim<R> : never)
     : N extends ["type", infer V extends string]
-      ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? Trim<R> : never) : never)
+      ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? (V extends "custom-ident" ? (Lowercase<T> extends NotIdent ? never : Trim<R>) : Trim<R>) : never) : never)
       : V extends Opaque ? OpaqueCall<S>
       : V extends `${infer F}()` ? Consume<["fn", F], S>
       : V extends keyof Syns ? Consume<Parse<Syns[V]>, S>

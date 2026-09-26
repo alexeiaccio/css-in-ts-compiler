@@ -9,11 +9,14 @@ export const cases = [
   ["z-index", "10", true], ["opacity", "0.5", true], ["color", "rgb(1 2 3)", true], ["color", "currentColor", true],
   ["border-radius", "1rem 2rem / 3rem", true], ["font-size", "1.2em", true], ["display", "inline flex", true], ["display", "list-item", true],
   ["background", "red", true], ["background", "none, red", true], ["background", "left top, repeat-x red", true], ["background", "none", true],
+  ["font-family", "\"Gill\", Futura, sans-serif", true], ["font-family", "Open Sans", true], ["font-family", "_a, -b, --c", true],
 
   ["padding", "1 rem", false], ["padding", "1rem 2rem 3rem 4rem 5rem", false], ["padding", "red", false],
   ["width", "fit", false], ["overflow", "hidden auto scroll", false], ["align-items", "baseline first", false],
   ["border", "solid solid", false], ["z-index", "1.5", false], ["color", "reddish", false], ["display", "flex flex", false],
   ["background", ", red", false], ["background", "none,", false], ["background", "red, none", false], ["background", "none red, none", false],
+  ["font-family", "\"a\" \"b\"", false], ["font-family", "1px", false], ["font-family", "Foo, initial", false], ["font-family", "a -1b", false],
+  ["font-family", "#x", false], ["font-family", "Foo Default", false],
 ] as const;
 
 // Only the runtime rejects these: ranges and hex digits are beyond `${number}` / `#${string}`.
