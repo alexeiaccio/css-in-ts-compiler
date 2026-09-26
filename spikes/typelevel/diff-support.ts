@@ -1,5 +1,6 @@
 // node diff-support.ts — the "twin accepts, Chrome rejects" rows of diff.ts (same samples, seed and N), split by
-// what explains them now: a support warning that names the Chrome version under test, a prose rule, or nothing.
+// what explains them now: a known upstream issue (KNOWN), a support warning that names the Chrome version under
+// test, a prose rule, or nothing.
 // Also lists the reverse: warnings or rule errors on values Chrome accepts.
 import fc from "fast-check";
 import { chromium } from "playwright-core";
@@ -34,7 +35,18 @@ const chrome: boolean[] = await page.evaluate((cs) => cs.map(([p, v]) => CSS.sup
 const major = browser.version().split(".")[0];
 await browser.close();
 
+// Known disagreements that are not ours to fix; the support lookup gets no overrides for them.
+const negBlur = (v: string) => v.split(",").some((s) => s.split(/\s+/).filter((t) => matches("<length>", t))[2]?.startsWith("-"));
+const KNOWN: [p: string, test: (v: string) => boolean, why: string][] = [
+  ["display", (v) => /\b(run-in|inline-list-item)\b/.test(v), "BCD gap: css.properties.display has no run-in / inline-list-item entry, and no engine ships them"],
+  ["align-items", (v) => v.includes("anchor-center"), "mdn-data and BCD bug: css-anchor-position-1 §4.2 adds anchor-center to justify-self and align-self only"],
+  ["box-shadow", negBlur, "range lost: webref's <shadow> blur is <length [0,∞]>, mdn-data's <length>{2,4} has no place for it"],
+  ["transition", (v) => /linear\([^,()]*\)/.test(v), "spec gap: css-easing-2 allows linear() with one stop, Chrome and WPT (linear-timing-functions-syntax.html) need two"],
+];
+
 const why = (p: string, v: string) => {
+  const k = KNOWN.find(([q, test]) => q === p && test(v));
+  if (k) return `known: ${k[2]}`;
   try {
     checkRules(p, v);
   } catch {

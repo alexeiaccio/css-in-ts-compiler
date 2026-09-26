@@ -3,10 +3,13 @@
 //
 // Lookup, per declaration `p: v`:
 //   - the property itself:  css.properties.<p>
-//   - each keyword k:       css.properties.<p>.<k>, else css.types.<T>.<k>
-//   - each function f(...): css.properties.<p>.<f>_function, else css.types.<f>, else css.types.<T>.<f>
-// where T ranges over the <type>s the property's mdn grammar reaches (so `scroll` in `overflow` is not mistaken
-// for css.types.timeline-range-name.scroll). Tokens inside strings are ignored; units are not looked up.
+//   - each keyword k:       css.properties.<P>.<k>, else css.types.<T>.<k>
+//   - each function f(...): css.properties.<P>.<f>_function, else css.types.<f>, else css.types.<T>.<f>
+// where P is p, then the properties its grammar reaches as <'q'> (flex-basis: fit-content() is under width), and
+// T ranges over the <type>s the grammar reaches (so `scroll` in `overflow` is not mistaken for
+// css.types.timeline-range-name.scroll). Tokens inside strings are ignored; units are not looked up.
+//
+// Targets where the property itself is unsupported get the property warning only: the values add nothing there.
 //
 // Support, per target browser version (browserslist agent mapped to a BCD browser):
 //   - some statement counts: no `prefix`, no `alternative_name`, no `flags` (we emit the plain standard form);
@@ -61,12 +64,12 @@ function supports(s: SupportStatement | undefined, v: string): boolean {
   });
 }
 
-// every <type> name reachable from a grammar, without "()"
+// every <type> name reachable from a grammar, without "()", and every <'property'> as "'property"
 function reach(syntax: string, seen = new Set<string>()): Set<string> {
-  for (const [, n] of syntax.matchAll(/<'?([a-z-]+)(?:\(\))?'?(?: \[[^\]]*\])?>/g)) {
-    if (seen.has(n!)) continue;
-    seen.add(n!);
-    const g = syns[n!] ?? syns[`${n}()`] ?? props[n!];
+  for (const [, q, n] of syntax.matchAll(/<('?)([a-z-]+)(?:\(\))?'?(?: \[[^\]]*\])?>/g)) {
+    if (seen.has(q + n)) continue;
+    seen.add(q + n);
+    const g = q ? props[n!] : (syns[n!] ?? syns[`${n}()`]);
     if (g) reach(g, seen);
   }
   return seen;
@@ -81,20 +84,26 @@ export interface Warning {
 }
 
 export function support(p: string, v: string, ts: Target[] = DEFAULT): Warning[] {
-  if (!get(`css.properties.${p}`)) return [];
-  const types = [...reach(props[p] ?? "")].filter((t) => get(`css.types.${t}`));
-  const found: [feature: string, key: string][] = [[p, `css.properties.${p}`]];
+  const pc = get(`css.properties.${p}`)?.__compat;
+  if (!pc) return [];
+  const reached = [...reach(props[p] ?? "")];
+  const types = reached.filter((t) => get(`css.types.${t}`));
+  const owners = [p, ...reached.filter((q) => q.startsWith("'")).map((q) => q.slice(1))];
+  const found: [feature: string, key: string][] = [];
   for (const [tok, fn] of v.replace(/"[^"]*"|'[^']*'/g, "").matchAll(/(?<![\w.#-])-?[A-Za-z_][\w-]*(\()?/g)) {
     const k = fn ? tok.slice(0, -1) : tok;
-    const keys = [`css.properties.${p}.${fn ? `${k}_function` : k}`, ...(fn ? [`css.types.${k}`] : []), ...types.map((t) => `css.types.${t}.${k}`)];
+    const keys = [...owners.map((q) => `css.properties.${q}.${fn ? `${k}_function` : k}`), ...(fn ? [`css.types.${k}`] : []), ...types.map((t) => `css.types.${t}.${k}`)];
     const key = keys.find((x) => get(x)?.__compat);
     if (key) found.push([fn ? `${k}()` : k, key]);
   }
-  const out: Warning[] = [];
+  const lacks = (c: typeof pc, on: Target[]) => on.filter(([a, ver]) => !supports(c.support[BCD_NAME[a]!], ver)).map((t) => t.join(" "));
+  const off = lacks(pc, ts);
+  const out: Warning[] = off.length ? [{ feature: p, key: `css.properties.${p}`, lacking: off }] : [];
+  const on = ts.filter((t) => !off.includes(t.join(" ")));
   for (const [feature, key] of found) {
     const c = get(key)?.__compat;
     if (!c || out.some((w) => w.key === key)) continue;
-    const lacking = ts.filter(([a, ver]) => !supports(c.support[BCD_NAME[a]!], ver)).map((t) => t.join(" "));
+    const lacking = lacks(c, on);
     if (lacking.length) out.push({ feature, key, lacking });
   }
   return out;

@@ -77,6 +77,15 @@ export function arb(n: Node, depth = 0): Arb | null {
       const hi = n[0] === "rep" && n[3] !== "∞" ? Number(n[3]) : lo + 3;
       return a ? fc.array(a, { minLength: lo, maxLength: hi }).map(join) : lo === 0 ? fc.constant("") : null;
     }
+    case "bang": {
+      // non-empty group: one of its optional parts is made required. Not a filter: deep down fc.option always
+      // picks nil, and the filter never ends.
+      const xs = n[1][0] === "seq" ? n[1][1] : [n[1]];
+      const forced = xs.flatMap((x, i) => (x[0] === "opt" ? [sub(["seq", xs.map((y, j) => (j === i ? x[1] : y))])] : []));
+      if (!forced.length) return sub(n[1]);
+      const as = forced.filter((a): a is Arb => !!a);
+      return as.length ? fc.oneof(...as) : null;
+    }
     case "list": {
       const a = sub(n[1]);
       return a && fc.array(a, { minLength: 1, maxLength: 3 }).map((xs) => xs.join(", "));
