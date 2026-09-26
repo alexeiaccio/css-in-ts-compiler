@@ -1,1 +1,1 @@
-{"type":"module","private":true,"devDependencies":{"fast-check":"^4.10.2","playwright-core":"^1.63.0"}}
+{"type":"module","private":true,"devDependencies":{"@webref/css":"8.7.5","fast-check":"^4.10.2","mdn-data":"2.27.1","playwright-core":"^1.63.0"}}
