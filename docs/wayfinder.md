@@ -378,3 +378,15 @@ The type-level cost of the recognizer now has a regression test in the style of 
 - 200 calls: 195 k and 197 k
 
 As a check, the `S extends string` guard in `Valid` was removed, and the test failed as it should: one `padding` call went to 4.2 k, and 200 calls went to 277 k. After a deliberate change, run `node budget.mjs --update`.
+
+### Top-level DOM access in the runner
+
+Modules evaluated for CSS extraction can now touch the DOM at load time, for example `document.title = …`. This is the same guarantee wyw-in-js gives with happy-dom, but without a vm context.
+
+The plugin runs its own Module Runner (`createServerModuleRunner(ssr, { evaluator })`), and the `DomEvaluator` passes every happy-dom window property that Node lacks (`document`, `window`, `HTMLElement`, …) into the module body as a local binding. They never go on the real `globalThis`, so Vite, React and the app's own SSR runner still run in plain Node. `server.environments.ssr.runner` is not changed.
+
+Two alternatives were rejected:
+- Setting globals only while `runner.import` runs. Code that checks for a browser once at load time, such as react-dom's `canUseDOM`, could run inside that window and keep the wrong answer. Concurrent imports would also race.
+- Prepending bindings when instrumenting. That changes real SSR modules too.
+
+Known limit: dependencies in `node_modules` load through Node's own `import()` and do not get the DOM. The workaround is `ssr.noExternal` for such a package. A shaker is still not needed.

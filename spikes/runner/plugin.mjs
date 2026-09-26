@@ -1,9 +1,11 @@
 import { createHash } from "node:crypto";
 
 import { Data, Effect } from "effect";
+import { Window } from "happy-dom";
 import MagicString from "magic-string";
 import { parseSync } from "oxc-parser";
-import { createServer } from "vite";
+import { createServer, createServerModuleRunner } from "vite";
+import { ESModulesEvaluator, ssrModuleExportsKey } from "vite/module-runner";
 
 const RUNTIME = "cssints";
 const FILE_RE = /\.(ts|tsx|js|jsx|mts|mjs)$/;
@@ -77,6 +79,21 @@ export function instrument(code, id) {
 
 // ---------- 2. evaluate (Effect: timeout + typed error)
 
+// Same as Vite's ESModulesEvaluator, but every happy-dom global that Node lacks (document, window,
+// HTMLElement, ...) is a closure binding around the module body. The real globalThis stays DOM-free,
+// so Vite, externalized deps and the app's own SSR never see a browser. The wrapper keeps the same
+// line padding as upstream, so the inherited startOffset (stack trace mapping) stays valid.
+class DomEvaluator extends ESModulesEvaluator {
+  win = new Window();
+  names = Object.getOwnPropertyNames(this.win).filter((k) => !(k in globalThis));
+  async runInlinedModule(context, code) {
+    const keys = Object.keys(context);
+    const fn = new Function(...this.names, `return async function (${keys}) {"use strict";\n${code}\n}`);
+    await fn(...this.names.map((k) => this.win[k]))(...keys.map((k) => context[k]));
+    Object.seal(context[ssrModuleExportsKey]);
+  }
+}
+
 class MacroEvalError extends Data.TaggedError("MacroEvalError") {}
 
 const evaluate = Effect.fn("cssints.evaluate")(function* (runner, id) {
@@ -95,6 +112,7 @@ const evaluate = Effect.fn("cssints.evaluate")(function* (runner, id) {
 export default function cssints({ inner = false } = {}) {
   let server; // dev server (dev) or a private one (build)
   let ownServer = false;
+  let runner; // private runner with DOM bindings; server.environments.ssr.runner stays untouched
   const cssById = new Map(); // virtual css id -> text
   const depsOf = new Map(); // dependency file -> Set<client module id>
 
@@ -144,7 +162,8 @@ export default function cssints({ inner = false } = {}) {
       const parsed = instrument(code, id);
       if (!parsed) return;
       const env = server.environments.ssr;
-      const sites = await Effect.runPromise(evaluate(env.runner, id));
+      runner ??= createServerModuleRunner(env, { evaluator: new DomEvaluator() });
+      const sites = await Effect.runPromise(evaluate(runner, id));
 
       const ms = new MagicString(code);
       parsed.sites.forEach((s, n) => {
