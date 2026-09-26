@@ -115,10 +115,10 @@ type SplitComma<T extends string, R extends string> = T extends `${infer A},${in
 type LengthUnit = "px" | "em" | "rem" | "vw" | "vh" | "vmin" | "vmax" | "ch" | "ex" | "lh" | "rlh" | "cm" | "mm" | "in" | "pt" | "pc" | "q"
   | "svw" | "svh" | "lvw" | "lvh" | "dvw" | "dvh" | "cqw" | "cqh" | "cqi" | "cqb" | "cqmin" | "cqmax" | "ic" | "cap" | "rex" | "rch" | "ric" | "rcap";
 type PrimitiveMap = {
-  length: `${number}${LengthUnit}` | "0";
-  percentage: `${number}%`;
-  "length-percentage": `${number}${LengthUnit}` | "0" | `${number}%`;
-  number: `${number}`;
+  length: `${number}${LengthUnit}` | "0" | "⟨length⟩";
+  percentage: `${number}%` | "⟨percentage⟩";
+  "length-percentage": `${number}${LengthUnit}` | "0" | `${number}%` | "⟨length⟩" | "⟨percentage⟩";
+  number: `${number}` | "⟨number⟩";
   integer: `${bigint}`;
   "hex-color": `#${string}`;
   string: `"${string}"` | `'${string}'`;
@@ -138,7 +138,7 @@ export type Consume<N, S extends string> =
       ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? Trim<R> : never) : never)
       : V extends Opaque ? OpaqueCall<S>
       : V extends `${infer F}()` ? Consume<["fn", F], S>
-      : V extends keyof Syns ? Consume<Parse<Syns[V]>, S>
+      : V extends keyof Syns ? (S extends `⟨${V}⟩${infer R}` ? Trim<R> : Consume<Parse<Syns[V]>, S>) // typed value sentinel (api-typed.ts)
       : never
     : N extends ["prop", infer V extends string] ? (V extends keyof Props ? Consume<Parse<Props[V]>, S> : never)
     : N extends ["fn", infer F extends string] ? (S extends `${F}(${string})${infer R}` ? Trim<R> : never) // ponytail: inner args not checked yet

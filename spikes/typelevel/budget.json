@@ -26,5 +26,9 @@
   "onlypadding.ts": {
     "tsc": 1478,
     "tsgo": 2771
+  },
+  "typed.ts": {
+    "tsc": 136826,
+    "tsgo": 139150
   }
 }
