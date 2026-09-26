@@ -460,3 +460,35 @@ A bad part names its token, as in `border: unexpected "⟨length⟩" in "1px sol
 - **Function arguments.** `name( args )` is now parsed with its argument grammar and consumed recursively. Quoted operators (`'+'`) are supported, and `X#{3}` is counted correctly. The opaque list is gone: `calc-size()`, `anchor-size()`, `light-dark()` and the color functions are checked at both levels. A `<name()>` type first tests for `name(`, so `<color>` stays cheap for `red`. The generator builds calls from the grammar instead of using samples.
 - **Cost.** A generic `Consume` reference costs about 1.3 k instantiations per helper even when unused, so helpers keep one. Function arguments added 4–6%. Merged with typed values, 200 calls now cost 205 k (tsc) and 207 k (tsgo).
 - **Still open:** units inside calc are not checked, the `!` multiplier is ignored, `<url>` is missing from `mdn.ts`, and quoted strings with spaces break the value tokenizer. Chrome accepts an unclosed `(` at end of input, and we reject it on purpose.
+
+## Beyond grammar: browser support and prose rules
+
+Some values that Chrome rejects are valid by the grammar, for two reasons.
+
+**Browser support: warnings.** `spikes/typelevel/support.ts` looks up the property, then each keyword and function name of the value, in `@mdn/browser-compat-data` 8.1.3:
+
+- the property itself as `css.properties.<p>`;
+- a keyword as `css.properties.<p>.<k>`, then `css.types.<T>.<k>`;
+- a function as `<f>_function`, then `css.types.<f>`, then `css.types.<T>.<f>`.
+
+`T` is limited to types the property's grammar can reach; otherwise `overflow: scroll` would hit an unrelated timeline type. Targets come from browserslist `defaults`, or the `BROWSERSLIST` env var. Only the plain form counts (no prefix, alternative name or flag), and missing data never warns. The plugin prints these with `this.warn` and never fails the build.
+
+**Prose rules: errors.** `spikes/typelevel/rules.ts` holds validity rules written in spec text, not in the grammar, and throws like the twin:
+
+- `transition`: `none` is valid only in a one-item list (css-transitions-1 §2.5).
+- `font-family`: no generic or CSS-wide keyword inside an unquoted family name (css-fonts-4 §2.1.1). This is stricter than Chrome, which checks only the first word.
+
+After merging with the grammar fixes, 66 generated values are accepted by the twin and rejected by Chrome 154:
+
+| Explained by | Values |
+|---|---|
+| a support warning | 27 |
+| a prose rule | 14 |
+| nothing yet | 25 |
+
+The 25 include:
+- BCD gaps (`run-in`).
+- A BCD–Chrome disagreement (`align-items: anchor-center`).
+- Ranges missing inside newly generated function arguments (`steps(-94)`, a negative `box-shadow` blur).
+
+The demo builds with one noisy warning: `cursor: pointer` on iOS Safari, where BCD marks every `cursor` value unsupported.

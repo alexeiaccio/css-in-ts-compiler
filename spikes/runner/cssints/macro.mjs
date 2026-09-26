@@ -1,11 +1,13 @@
 // Runs inside the Vite Module Runner. css.* builds declaration nodes; __site (injected by the
 // plugin) turns a node into its replacement expression and records it per call site.
+import { checkRules } from "../../typelevel/rules.ts";
+import { message, support } from "../../typelevel/support.ts";
 import { valid } from "../../typelevel/twin.ts";
 import { classOf, parseStyles, toDecls } from "./lib.mjs";
 
 export { CSS, CSSColorValue, CSSUnitValue } from "../../typelevel/values.ts";
 
-const registry = (globalThis.__cssints ??= { sites: new Map(), rules: new Map() });
+const registry = (globalThis.__cssints ??= { sites: new Map(), rules: new Map(), warnings: [] });
 
 const node = (decls) =>
   new Proxy(
@@ -83,7 +85,9 @@ const classesOf = (decls) => {
   const out = [];
   for (const d of decls) {
     valid(d[0], d[1]); // build-time twin of the type-level check; throws at the bad token
+    checkRules(d[0], d[1]); // spec prose rules; throws like valid
     const cls = classOf(d);
+    if (!registry.rules.has(cls)) registry.warnings.push(...support(d[0], d[1]).map((w) => message(d[0], d[1], w)));
     if (!out.includes(cls)) out.push(cls);
     registry.rules.set(cls, `@layer _.a{.${cls}{${d[0]}:${d[1]}}}`);
   }
