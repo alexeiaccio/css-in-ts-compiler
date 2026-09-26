@@ -424,3 +424,16 @@ The comma bug shows the limit of the self-check. The generator and both recogniz
 ### wyw-in-js issue drafts
 
 Dropped. cssints does not use wyw-in-js, so the drafts and repros were deleted with `spikes/wyw` without being filed. Bug 3 is already fixed upstream in open PR #427.
+
+### Grammar source: mdn-data, with ranges from @webref/css
+
+`@webref/css` 8.7.5 holds the grammars that W3C tooling extracts from the specs. Of our 200 grammars:
+
+- 116 are identical to mdn-data.
+- 2 differ only in ranges.
+- 9 exist in webref under other names.
+- 73 differ in other ways: cosmetic changes, restructured types, and spec-draft syntax that Chrome does not ship (`grid-lanes`, `contrast-color()`, `device-cmyk()`).
+
+A full switch would only move the Chrome disagreements. The twin parses 1384 of webref's 1396 grammars; all 12 failures are quoted delimiters, the same gap as `calc-sum` under mdn-data.
+
+Decision: keep mdn-data verbatim, and copy a range only when webref's grammar with the same name uses that type with that one range. A range on a union type such as `<length-percentage>` also applies to its members. This adds `[0,∞]` to `flex-grow`, `flex-shrink`, `row-gap`, `column-gap`, `line-height` and `<line-width>`. Both packages are pinned and named in the `mdn.ts` header. Agreement with Chrome went from 1863 to 1892 of 1950. The one negative value left is `transition: linear -100s`: both sources put the range only on the `transition-duration` longhand. The budgets did not change. `node extract.mjs` with no arguments regenerates for every property in the runner's `PROPS`.
