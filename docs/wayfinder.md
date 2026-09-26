@@ -127,7 +127,7 @@ The processor in `cssints/processor.cjs` has about 70 lines. It reads the call a
 
 1. **Nested usages share one argument queue.** `buildParams` takes arguments with `shift()` from one flat list for all usages in a file, in `transform/src/utils/applyOxcProcessors/expressionValues.ts`. A call whose arguments contain two or more tagged calls takes its neighbours' arguments. Chains fail the same way because every sub-chain is its own usage. Repro: `fixtures/risk1.ts` and `fixtures/risk1-chain.ts`.
 2. **Hybrid strategy passes class names instead of values.** The Vite plugin defaults to `hybrid`, which resolves a processor-bound local like `center` to an empty string or its class name. Manifest `preeval-call` semantics pass only the call arguments, not the member name, so they cannot describe `css.flex(...)`. Our fix is `eval: { strategy: "execute" }` in `app/vite.config.ts`. The wyw migration guide calls that mode evaluator-only compatibility. Build time was not measured.
-3. **HMR invalidation is consumed once per dependency file.** `consumeInvalidation` records consumption by the dependency's filename, in `transform/src/eval/broker.ts` and `transform/src/module.ts`. After a token edit, the first importer re-transformed reloads the token file, and later importers reuse the old module. Vite itself invalidates both modules correctly. Repro: `node hmr.mjs` and `ORDER=button-first node hmr.mjs`, which each leave the other file stale. Production builds are unaffected, and restarting the dev server clears it.
+3. **A token edit reaches only the first importer.** When the first importer is re-transformed, `transform/src/cache.ts` records the shared dependency's new hash. The second importer then compares against that hash, sees no change, and reuses its cached result. (The first version of this note blamed `consumeInvalidation`; the re-check of the drafts corrected it.) Upstream commit `180bccb7` in open PR #427 already fixes this, but it is unreleased and targets a branch, not `main`. Vite itself invalidates both modules correctly. Repro: `node hmr.mjs` and `ORDER=button-first node hmr.mjs`, which each leave the other file stale. Production builds are unaffected, and restarting the dev server clears it.
 
 A search of wyw-in-js issues found nothing matching any of the three.
 
@@ -418,3 +418,13 @@ What Chrome found, sorted by cause:
 | Prose rules outside the grammar | `transition` with `none` in a list, generic family as an unquoted family name | same draft |
 
 The comma bug shows the limit of the self-check. The generator and both recognizers read the grammar the same wrong way, so they agreed with each other. Only an outside judge could see it.
+
+### wyw-in-js issue drafts
+
+cssints no longer depends on wyw-in-js. The drafts in `spikes/wyw/issues/` exist only to hand the three bugs to upstream. They are checked against 2.5.1, which is still the latest release, and `main` is at the release commit. Each draft has a minimal repro that does not need cssints (`issues/repro/`).
+
+1. **Argument queue:** no duplicate found, worth filing.
+2. **Hybrid strategy:** a real bug of low severity, and `context.unresolved()` does not opt out of it. The intended `preeval-call` mechanism (#362) is undocumented and cannot describe `css.flex(...)`. Worth filing, with "document it" as an acceptable outcome.
+3. **HMR:** already fixed in PR #427. Only a comment with our sequential case as a regression test.
+
+Nothing is posted yet.
