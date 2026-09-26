@@ -15,7 +15,7 @@ const trim = (s: string) => s.replace(/^[ \n\t]+/, "");
 
 type Tok =
   | { t: "type"; v: string; lo?: string; hi?: string } | { t: "prop"; v: string } | { t: "kw"; v: string } | { t: "fn"; v: string }
-  | { t: "range"; lo: string; hi: string } | { t: "p"; v: string } | { t: "eof" };
+  | { t: "range"; lo: string; hi: string } | { t: "p"; v: string } | { t: "lit"; v: string } | { t: "eof" };
 
 export function next(s: string): [Tok, string] {
   s = trim(s);
@@ -27,12 +27,13 @@ export function next(s: string): [Tok, string] {
     const [lo, hi] = range ? range.slice(0, -1).split(",") : [];
     return [{ t: "type", v, lo, hi }, s.slice(m[0].length)];
   }
+  if ((m = /^'([^']*)'/.exec(s))) return [{ t: "lit", v: m[1]! }, s.slice(m[0].length)];
   if ((m = /^(\|\||&&)/.exec(s))) return [{ t: "p", v: m[1]! }, s.slice(2)];
   if ((m = /^\{([^}]*)\}/.exec(s))) {
     const [lo, hi = lo] = m[1]!.split(",") as [string, string?];
     return [{ t: "range", lo, hi }, s.slice(m[0].length)];
   }
-  if ((m = /^[[\])|?*+#!,/]/.exec(s))) return [{ t: "p", v: m[0] }, s.slice(1)];
+  if ((m = /^[[\]()|?*+#!,/]/.exec(s))) return [{ t: "p", v: m[0] }, s.slice(1)];
   if ((m = /^[^()[\]|&?*+#!,/{}<>' \n\t]+(?=[ \n\t]|$)/.exec(s))) return [{ t: "kw", v: m[0] }, s.slice(m[0].length)];
   const w = /^[A-Za-z0-9_-]*/.exec(s)![0];
   const r = s.slice(w.length);
@@ -45,7 +46,7 @@ export function next(s: string): [Tok, string] {
 // `type` keeps its numeric range.
 
 export type Node =
-  | ["kw", string] | ["type", string, string?, string?] | ["prop", string] | ["fn", string] | ["lit", string]
+  | ["kw", string] | ["type", string, string?, string?] | ["prop", string] | ["fn", string, Node] | ["lit", string]
   | ["alt", Node[]] | ["or", Node[]] | ["and", Node[]] | ["seq", Node[]]
   | ["opt", Node] | ["star", Node] | ["plus", Node] | ["list", Node] | ["rep", Node, string, string];
 
@@ -89,29 +90,31 @@ function parseTerm(s: string): [Node, string] {
     if (close.t !== "p" || close.v !== "]") throw new SyntaxError(`grammar: expected "]" at "${r2}"`);
     return mult(n, r3);
   }
-  if (t.t === "fn") return mult(["fn", t.v], skipFn(r));
+  if (t.t === "fn") return fnArgs(t.v, r);
+  if (t.t === "p" && t.v === "(") return fnArgs("", r);
   if (t.t === "type") return mult(t.lo === undefined ? ["type", t.v] : ["type", t.v, t.lo, t.hi], r);
   if (t.t === "prop" || t.t === "kw") return mult([t.t, t.v], r);
   if (t.t === "p" && (t.v === "," || t.v === "/")) return mult(["lit", t.v], r);
+  if (t.t === "lit") return mult(["lit", t.v], r);
   throw new SyntaxError(`grammar: unexpected token at "${s}"`);
 }
 
-// function arguments are not modelled yet: skip to the matching ")" (depth-aware).
-function skipFn(s: string): string {
-  let d = 0;
-  for (let i = 0; i < s.length; i++) {
-    if (s[i] === "(") d++;
-    else if (s[i] === ")" && d-- === 0) return s.slice(i + 1);
-  }
-  return "";
+// `name( args )`; a bare `( args )` group is a function with an empty name.
+function fnArgs(v: string, s: string): [Node, string] {
+  const [n, r] = parseAlt(s);
+  const [close, r2] = next(r);
+  if (close.t !== "p" || close.v !== ")") throw new SyntaxError(`grammar: expected ")" at "${r}"`);
+  return mult(["fn", v, n], r2);
 }
+// `X#{A,B}` is `X [ , X ]{A-1,B-1}`
+const dec = (b: string) => (b === "∞" ? b : String(Number(b) - 1));
 
 const MULT: Record<string, "opt" | "star" | "plus" | "list"> = { "?": "opt", "*": "star", "+": "plus", "#": "list" };
 function mult(n: Node, s: string): [Node, string] {
   for (;;) {
     const [t, r] = next(s);
     if (t.t === "p" && MULT[t.v]) n = [MULT[t.v]!, n];
-    else if (t.t === "range") n = ["rep", n, t.lo, t.hi];
+    else if (t.t === "range") n = n[0] === "list" ? ["seq", [n[1], ["rep", ["seq", [["lit", ","], n[1]]], dec(t.lo), dec(t.hi)]]] : ["rep", n, t.lo, t.hi];
     else if (!(t.t === "p" && t.v === "!")) return [n, s];
     s = r;
   }
@@ -120,11 +123,10 @@ function mult(n: Node, s: string): [Node, string] {
 // ---------------------------------------------------------------- value recognizer
 // consume(n, s) = set of possible remainders after n matched a prefix of s. s is left-trimmed.
 
+// A value token ends at a space, a comma or a ")"; the rest keeps the separator.
 function tok1(s: string): [string, string] {
-  const i = s.indexOf(" ");
-  const [t, r] = i < 0 ? [s, ""] : [s.slice(0, i), s.slice(i + 1)];
-  const j = t.indexOf(",");
-  return j < 0 ? [t, r] : [t.slice(0, j), `${t.slice(j)} ${r}`];
+  const t = /^[^ ,)]*/.exec(s)![0];
+  return [t, s.slice(t.length)];
 }
 
 const NUM = String.raw`[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?`;
@@ -143,9 +145,8 @@ const PRIMITIVE: Record<string, RegExp> = {
   "dashed-ident": /^--.+$/,
   angle: re(`${NUM}(?:deg|rad|grad|turn)`),
   time: re(`${NUM}(?:s|ms)`),
+  dimension: re(`${NUM}(?:${LENGTH_UNIT}|deg|rad|grad|turn|s|ms|hz|khz|dpi|dpcm|dppx|x|fr)`),
 };
-// Recursive syntaxes we do not descend into: the whole `name(...)` chunk is accepted as opaque.
-const OPAQUE = new Set(["calc-sum", "calc-size()", "anchor-size()", "color-function", "light-dark()"]);
 
 interface Ctx {
   len: number;
@@ -185,9 +186,8 @@ export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<strin
       return g ? consume(parse(g), s, ctx, label ?? `<'${n[1]}'>`) : leaf(false, s, `<'${n[1]}'>`);
     }
     case "fn": {
-      // ponytail: inner args not checked yet, same as css.ts
-      const close = s.indexOf(")");
-      return leaf(s.startsWith(`${n[1]}(`) && close > 0, s.slice(close + 1), `${n[1]}()`);
+      if (!s.startsWith(`${n[1]}(`)) return leaf(false, s, `${n[1]}()`);
+      return flatMap(sub(n[2], trim(s.slice(n[1].length + 1))), (r) => (r.startsWith(")") ? new Set([trim(r.slice(1))]) : (fail(ctx, r, label ?? "')'"), NONE)));
     }
     case "alt":
       return union(n[1].map((x) => sub(x, s)));
@@ -215,12 +215,10 @@ function consumeType([, v, lo, hi]: ["type", string, string?, string?], s: strin
   if (PRIMITIVE[v]) {
     const [t, r] = tok1(s);
     rs = PRIMITIVE[v].test(t) ? new Set([trim(r)]) : NONE;
-  } else if (OPAQUE.has(v)) {
-    const m = /^[^(]*\([^)]*\)/.exec(s);
-    rs = m ? new Set([trim(s.slice(m[0].length))]) : NONE;
-  } else if (v.endsWith("()")) return consume(["fn", v.slice(0, -2)], s, ctx, label);
-  else if (syns[v]) rs = consume(parse(syns[v]), s, ctx, label ?? `<${v}>`);
-  else rs = NONE;
+  } else if (syns[v]) {
+    // `<name()>`: the name must be next before its grammar is even parsed (as in css.ts)
+    rs = v.endsWith("()") && !s.startsWith(`${v.slice(0, -2)}(`) ? NONE : consume(parse(syns[v]), s, ctx, label ?? `<${v}>`);
+  } else rs = NONE;
   if (rs === NONE) fail(ctx, s, label ?? `<${v}>`);
   if (lo === undefined || hi === undefined) return rs;
   // Ranges: the type level strips them, the twin checks the number that was consumed.

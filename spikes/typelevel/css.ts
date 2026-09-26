@@ -25,7 +25,7 @@ type Word<S extends string, Acc extends string = ""> =
 
 type Tok =
   | { t: "type"; v: string } | { t: "prop"; v: string } | { t: "kw"; v: string } | { t: "fn"; v: string }
-  | { t: "range"; lo: string; hi: string } | { t: "p"; v: string } | { t: "eof" };
+  | { t: "range"; lo: string; hi: string } | { t: "p"; v: string } | { t: "lit"; v: string } | { t: "eof" };
 
 // Next<S> = [token, rest]
 type Next<S extends string> =
@@ -40,16 +40,17 @@ type Next<S extends string> =
   : S extends `${infer W} ${infer R}` ? (IsWord<W> extends true ? [{ t: "kw"; v: W }, R] : NextWord<S>)
   : IsWord<S> extends true ? [{ t: "kw"; v: S }, ""]
   : NextWord<S>;
+// A bare "(" and quoted literals like '+' are rare, so they are tried only here, off the hot path of Next.
 type NextWord<S extends string> =
   Word<S> extends [infer W extends string, infer R extends string]
-    ? W extends "" ? [{ t: "eof" }, ""] : R extends `(${infer R2}` ? [{ t: "fn"; v: W }, R2] : [{ t: "kw"; v: W }, R]
+    ? W extends "" ? (S extends `(${infer R2}` ? [{ t: "p"; v: "(" }, R2] : S extends `'${infer Q}'${infer R2}` ? [{ t: "lit"; v: Q }, R2] : [{ t: "eof" }, ""]) : R extends `(${infer R2}` ? [{ t: "fn"; v: W }, R2] : [{ t: "kw"; v: W }, R]
     : never;
 
 // ---------------------------------------------------------------- parser  (alt < or(||) < and(&&) < seq < term+mult)
 // Alternatives are cons lists ["alt", head, tail | null] built tail-recursively (order is irrelevant).
 
 type Node =
-  | ["kw", string] | ["type", string] | ["prop", string] | ["fn", string] | ["lit", string]
+  | ["kw", string] | ["type", string] | ["prop", string] | ["fn", string, Node] | ["lit", string]
   | ["alt", Node, Node | null] | ["or", Node[]] | ["and", Node[]] | ["seq", Node[]]
   | ["opt", Node] | ["star", Node] | ["plus", Node] | ["list", Node] | ["rep", Node, string, string];
 
@@ -81,36 +82,42 @@ type ParseSeq<S extends string, Acc extends Node[] = []> =
 type ParseTerm<S extends string> =
   Next<S> extends [infer T extends Tok, infer R extends string]
     ? T extends { t: "p"; v: "[" } ? (ParseAlt<R> extends [infer N extends Node, infer R2 extends string] ? (Next<R2> extends [{ t: "p"; v: "]" }, infer R3 extends string] ? Mult<N, R3> : never) : never)
-    : T extends { t: "fn"; v: infer V extends string } ? SkipFn<R> extends infer R2 extends string ? Mult<["fn", V], R2> : never
+    : T extends { t: "fn"; v: infer V extends string } ? FnArgs<V, R>
+    : T extends { t: "p"; v: "(" } ? FnArgs<"", R>
     : T extends { t: "type"; v: infer V extends string } ? Mult<["type", V], R>
     : T extends { t: "prop"; v: infer V extends string } ? Mult<["prop", V], R>
     : T extends { t: "kw"; v: infer V extends string } ? Mult<["kw", V], R>
     : T extends { t: "p"; v: infer V extends "," | "/" } ? Mult<["lit", V], R>
+    : T extends { t: "lit"; v: infer V extends string } ? Mult<["lit", V], R>
     : never
   : never;
 
-// function arguments are not modelled yet: skip to the matching ")" (depth-aware).
-type SkipFn<S extends string, D extends any[] = []> =
-  S extends `${infer C}${infer R}`
-    ? C extends ")" ? (D extends [] ? R : SkipFn<R, D extends [any, ...infer P] ? P : []>) : C extends "(" ? SkipFn<R, [...D, 0]> : SkipFn<R, D>
-    : "";
+// `name( args )`; a bare `( args )` group is a function with an empty name.
+type FnArgs<V extends string, S extends string> =
+  ParseAlt<S> extends [infer N extends Node, infer R extends string] ? (Next<R> extends [{ t: "p"; v: ")" }, infer R2 extends string] ? Mult<["fn", V, N], R2> : never) : never;
+// `X#{A,B}` is `X [ , X ]{A-1,B-1}`
+type Dec = { "1": "0"; "2": "1"; "3": "2"; "4": "3"; "6": "5"; "16": "15"; "∞": "∞" };
 
-type Mult<N extends Node, S extends string> =
+type Mult<N, S extends string> =
   Next<S> extends [infer T extends Tok, infer R extends string]
     ? T extends { t: "p"; v: "?" } ? Mult<["opt", N], R>
     : T extends { t: "p"; v: "*" } ? Mult<["star", N], R>
     : T extends { t: "p"; v: "+" } ? Mult<["plus", N], R>
     : T extends { t: "p"; v: "#" } ? Mult<["list", N], R>
     : T extends { t: "p"; v: "!" } ? Mult<N, R>
-    : T extends { t: "range"; lo: infer Lo extends string; hi: infer Hi extends string } ? Mult<["rep", N, Lo, Hi], R>
+    : T extends { t: "range"; lo: infer Lo extends string; hi: infer Hi extends string }
+      ? Mult<N extends ["list", infer X extends Node] ? ["seq", [X, ["rep", ["seq", [["lit", ","], X]], Dec[Lo & keyof Dec], Dec[Hi & keyof Dec]]]] : ["rep", N, Lo, Hi], R>
     : [N, S]
   : never;
 
 // ---------------------------------------------------------------- value recognizer
 // Consume<N, S> = union of possible remainders after N matched a prefix of S. S is left-trimmed.
 
-type Tok1<S extends string> = S extends `${infer T} ${infer R}` ? SplitComma<T, R> : SplitComma<S, "">;
-type SplitComma<T extends string, R extends string> = T extends `${infer A},${infer B}` ? [A, `,${B} ${R}`] : [T, R];
+// A value token ends at a space, a comma or a ")"; the rest keeps the separator.
+type Tok1<S extends string> = S extends `${infer T} ${infer R}` ? Split<T, ` ${R}`> : Split<S, "">;
+type Split<T extends string, R extends string> = T extends `${string}${"," | ")"}${string}` ? SplitComma<T, R> : [T, R];
+type SplitComma<T extends string, R extends string> = T extends `${infer A},${infer B}` ? SplitParen<A, `,${B}${R}`> : SplitParen<T, R>;
+type SplitParen<T extends string, R extends string> = T extends `${infer A})${infer B}` ? [A, `)${B}${R}`] : [T, R];
 
 type LengthUnit = "px" | "em" | "rem" | "vw" | "vh" | "vmin" | "vmax" | "ch" | "ex" | "lh" | "rlh" | "cm" | "mm" | "in" | "pt" | "pc" | "q"
   | "svw" | "svh" | "lvw" | "lvh" | "dvw" | "dvh" | "cqw" | "cqh" | "cqi" | "cqb" | "cqmin" | "cqmax" | "ic" | "cap" | "rex" | "rch" | "ric" | "rcap";
@@ -126,13 +133,12 @@ type PrimitiveMap = {
   "dashed-ident": `--${string}`;
   angle: `${number}${"deg" | "rad" | "grad" | "turn"}`;
   time: `${number}${"s" | "ms"}`;
+  dimension: `${number}${LengthUnit | "deg" | "rad" | "grad" | "turn" | "s" | "ms" | "hz" | "khz" | "dpi" | "dpcm" | "dppx" | "x" | "fr"}`;
 };
 // What a <custom-ident> cannot be: not an ident by its first characters, or a CSS-wide keyword / `default`.
 // The twin checks every character; `${number}` and friends cannot say "ident" here.
 type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 type NotIdent = `${"'" | '"' | "#" | "." | "+" | "(" | Digit | `-${Digit}`}${string}` | "initial" | "inherit" | "unset" | "revert" | "revert-layer" | "default";
-// Recursive syntaxes we do not descend into: the whole `name(...)` chunk is accepted as opaque.
-type Opaque = "calc-sum" | "calc-size()" | "anchor-size()" | "color-function" | "light-dark()";
 
 export type Consume<N, S extends string> =
   S extends string
@@ -140,12 +146,11 @@ export type Consume<N, S extends string> =
     : N extends ["lit", infer V extends string] ? (S extends `${V}${infer R}` ? Trim<R> : never)
     : N extends ["type", infer V extends string]
       ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? (V extends "custom-ident" ? (Lowercase<T> extends NotIdent ? never : Trim<R>) : Trim<R>) : never) : never)
-      : V extends Opaque ? OpaqueCall<S>
-      : V extends `${infer F}()` ? Consume<["fn", F], S>
-      : V extends keyof Syns ? Consume<Parse<Syns[V]>, S>
+      // `<name()>`: the name must be next before its grammar is even parsed (keeps <color> cheap)
+      : V extends keyof Syns ? (V extends `${infer F}()` ? (S extends `${F}(${string}` ? Consume<Parse<Syns[V]>, S> : never) : Consume<Parse<Syns[V]>, S>)
       : never
     : N extends ["prop", infer V extends string] ? (V extends keyof Props ? Consume<Parse<Props[V]>, S> : never)
-    : N extends ["fn", infer F extends string] ? (S extends `${F}(${string})${infer R}` ? Trim<R> : never) // ponytail: inner args not checked yet
+    : N extends ["fn", infer F extends string, infer A] ? (S extends `${F}(${infer R}` ? Close<Consume<A, Trim<R>>> : never)
     : N extends ["alt", any, any] ? ConsumeAlt<N, S>
     : N extends ["seq", infer Xs extends Node[]] ? SeqRest<Xs, S, never, never, never>
     : N extends ["opt", infer X] ? S | Consume<X, S>
@@ -158,7 +163,9 @@ export type Consume<N, S extends string> =
     : never
   : never;
 
-type OpaqueCall<S extends string> = S extends `${string}(${string})${infer R}` ? Trim<R> : never;
+// Unconstrained on purpose, like Mult's N: a constraint makes tsc expand the argument when it checks the
+// declaration (~1 k instantiations each, paid by every program).
+type Close<R> = R extends `)${infer Q}` ? Trim<Q> : never;
 
 // tail-recursive walk of the alt cons list
 type ConsumeAlt<N, S extends string, Acc = never> =
@@ -193,7 +200,7 @@ type ListRest<X, R extends string, D extends any[] = []> = {
   next: R | (R extends `,${infer Q}` ? ListRest<X, Consume<X, Trim<Q>>, [...D, 0]> : never);
 }[D extends Full ? "done" : "next"];
 
-type Digits = { "0": []; "1": [0]; "2": [0, 0]; "3": [0, 0, 0]; "4": [0, 0, 0, 0]; "5": [0, 0, 0, 0, 0]; "6": [0, 0, 0, 0, 0, 0]; "∞": [0, 0, 0, 0, 0, 0, 0, 0] };
+type Digits = { "0": []; "1": [0]; "2": [0, 0]; "3": [0, 0, 0]; "4": [0, 0, 0, 0]; "5": [0, 0, 0, 0, 0]; "6": [0, 0, 0, 0, 0, 0]; "15": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; "∞": [0, 0, 0, 0, 0, 0, 0, 0] };
 type Rep<X, S extends string, Lo extends string, Hi extends string> = RepN<X, S, Digits[Lo & keyof Digits], Digits[Hi & keyof Digits], []>;
 type RepN<X, S extends string, Lo extends any[], Hi extends any[], I extends any[]> = {
   done: S;
