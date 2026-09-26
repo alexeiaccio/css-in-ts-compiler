@@ -524,3 +524,30 @@ Support warnings are quieter:
 - Each warning prints once per build.
 
 `cursor: pointer` still warns for iOS Safari, because BCD marks 34 `cursor` values unsupported there while the property itself is supported.
+
+## Quint: the runner's HMR, checked
+
+We had claimed the engine's HMR was correct by construction. It was not.
+
+**The model.** `spikes/runner/spec/runner.qnt` (~200 lines) models the plugin in a dev server. Its state holds:
+- file versions and the ssr module graph;
+- runner fetches in flight and the runner cache;
+- the process-global registry and `depsOf`;
+- Vite's client cache with both kinds of invalidation.
+
+Each step is one stretch of JS between awaits, so concurrent requests interleave. The main invariant `servedFresh` says that once nothing is in flight, every client module serves classes from the current sources. `readsOwnSites` and `depsOfKnown` guard the registry and the wyw failure mode.
+
+**Two real races in the old plugin**, both reproduced against a real dev server in `spec/race.mjs`:
+1. A token edit during a module's first transform was lost, because `depsOf` did not know the module yet.
+2. After two quick saves, transforms joined the runner's own HMR fetch of the older source.
+
+The wyw bug (only the first importer updates) cannot happen here: `depsOfKnown` holds in both versions.
+
+**The fix:**
+- Evaluations are serialized with a semaphore and start from a cleared runner.
+- The runner's HMR is off.
+- `hotUpdate` also invalidates transforms in flight.
+
+The cost is that every transform re-evaluates the cssints library. After the fix there was no violation in one million traces of 60 steps (Rust backend, 2.5 min). Apalache found the old counterexample at depth 12, but took 14 min, so it was not used further.
+
+**Model-based test.** `spec/mbt.mjs` replays model traces against a real dev server, holding every ssr transform until the trace releases it, and compares what each module serves after every step. It passes on the fixed plugin (10×8 in 6 s) and fails on the old one. The `effect4` tag of `@firfi/quint-connect` failed on an Effect version split, so the test uses `latest` with Zod.

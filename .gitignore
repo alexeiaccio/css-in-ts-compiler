@@ -36,3 +36,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # git worktrees
 .worktrees
+
+# spikes/runner/spec/harness.mjs temp apps
+spikes/runner/.tmp-*
