@@ -72,9 +72,10 @@ export function toDecls(member, args) {
   }
   const prop = PROPS[member];
   if (!prop) throw new Error(`cssints: unknown css.${member}`);
-  if (plain.length !== 1) throw new Error(`cssints: css.${member} expects 1 value, got ${JSON.stringify(args)}`);
+  if (!plain.length) throw new Error(`cssints: css.${member} expects a value, got ${JSON.stringify(args)}`);
   const v = plain[0];
-  return [[prop, typeof v === "number" && SPACING.has(prop) ? `${v * 0.25}rem` : String(v)], ...children];
+  // parts (strings, Typed OM values) are joined by a space; a lone number is the spacing scale
+  return [[prop, plain.length === 1 && typeof v === "number" && SPACING.has(prop) ? `${v * 0.25}rem` : plain.join(" ")], ...children];
 }
 
 // "a: b; c: d" -> [["a","b"],["c","d"]]  (cv() config strings)

@@ -3,6 +3,8 @@
 import { valid } from "../../typelevel/twin.ts";
 import { classOf, parseStyles, toDecls } from "./lib.mjs";
 
+export { CSS, CSSColorValue, CSSUnitValue } from "../../typelevel/values.ts";
+
 const registry = (globalThis.__cssints ??= { sites: new Map(), rules: new Map() });
 
 const node = (decls) =>
