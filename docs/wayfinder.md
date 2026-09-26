@@ -551,3 +551,11 @@ The wyw bug (only the first importer updates) cannot happen here: `depsOfKnown` 
 The cost is that every transform re-evaluates the cssints library. After the fix there was no violation in one million traces of 60 steps (Rust backend, 2.5 min). Apalache found the old counterexample at depth 12, but took 14 min, so it was not used further.
 
 **Model-based test.** `spec/mbt.mjs` replays model traces against a real dev server, holding every ssr transform until the trace releases it, and compares what each module serves after every step. It passes on the fixed plugin (10×8 in 6 s) and fails on the old one. The `effect4` tag of `@firfi/quint-connect` failed on an Effect version split, so the test uses `latest` with Zod.
+
+### Value constructors are sites
+
+`new CSSColorValue(...)` and a top-level `CSS.rem(1)` are now instrumented like `css.*` calls. At build time they evaluate to objects, as before, so the twin checks real values. In the client the call is replaced by its CSS text: `export const accent = "#3b82f6"`, `const gap = "1rem"`. This closed two gaps:
+- A top-level `CSS.rem(1)` used to fail with "site did not produce a css.* value".
+- A token module that only did `new CSSColorValue(...)` had no sites, so it passed through untouched. Its `import { CSSColorValue } from "cssints"` then pulled `macro.mjs`, with the twin and BCD, into the client.
+
+Values used at runtime are strings in the client. `toString()` gives the same text, but `.value` and `.unit` are gone there.

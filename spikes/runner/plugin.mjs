@@ -39,7 +39,8 @@ function findSites(program, locals) {
   const sites = [];
   const walk = (node, inFn) => {
     if (!node || typeof node.type !== "string") return;
-    if (node.type === "CallExpression" && locals.has(rootIdent(node.callee))) {
+    // `new CSSColorValue(...)` too: value constructors are sites, replaced by their CSS text.
+    if ((node.type === "CallExpression" || node.type === "NewExpression") && locals.has(rootIdent(node.callee))) {
       sites.push({ start: node.start, end: node.end, inFn });
       return; // nested css calls are evaluated as part of this one
     }

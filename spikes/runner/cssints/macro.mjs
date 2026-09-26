@@ -5,6 +5,8 @@ import { message, support } from "../../typelevel/support.ts";
 import { valid } from "../../typelevel/twin.ts";
 import { classOf, parseStyles, toDecls } from "./lib.mjs";
 
+import { CSSStyleValue } from "../../typelevel/values.ts";
+
 export { CSS, CSSColorValue, CSSUnitValue } from "../../typelevel/values.ts";
 
 const registry = (globalThis.__cssints ??= { sites: new Map(), rules: new Map(), warnings: [], warned: new Set() });
@@ -110,8 +112,9 @@ export const cv = (config) => ({
 
 
 export function __site(file, n, value) {
-  const replacement = value?.__cssints ? JSON.stringify(classesOf(value.__cssints)) : value?.__cv ? JSON.stringify(value.__cv) : null;
-  if (replacement === null) throw new Error(`cssints: site ${n} in ${file} did not produce a css.* or cv() value`);
+  // A Typed OM value (CSS.rem(1), new CSSColorValue(...)) ships as its CSS text; the objects are eval-time only.
+  const replacement = value?.__cssints ? JSON.stringify(classesOf(value.__cssints)) : value?.__cv ? JSON.stringify(value.__cv) : value instanceof CSSStyleValue ? JSON.stringify(String(value)) : null;
+  if (replacement === null) throw new Error(`cssints: site ${n} in ${file} did not produce a css.*, cv() or Typed OM value`);
   if (!registry.sites.has(file)) registry.sites.set(file, new Map());
   registry.sites.get(file).set(n, replacement);
   return value;
