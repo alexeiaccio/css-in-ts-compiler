@@ -1,0 +1,209 @@
+// Type-level recognizer: does the string literal S belong to the language of an mdn-data value
+// definition syntax? Grammar strings are taken verbatim from mdn-data (see mdn.ts).
+//
+// Two rules keep tsc happy: (1) no token arrays and no `[...Acc, x]` spreads over long lists, the parser
+// reads the grammar string directly and builds cons lists; (2) every recursive alias is either
+// tail-recursive or guarded by the indexed-object trick so TS defers it.
+import type { properties, syntaxes } from "./mdn";
+
+type Props = typeof properties;
+type Syns = typeof syntaxes;
+
+// ---------------------------------------------------------------- lexer: one token at a time
+
+type Ws = " " | "\n" | "\t";
+type Trim<S extends string> = S extends `${Ws}${infer R}` ? Trim<R> : S;
+type Special = "(" | ")" | "[" | "]" | "|" | "&" | "?" | "*" | "+" | "#" | "!" | "," | "/" | "{" | "}" | "<" | ">" | "'" | Ws;
+type WordChar =
+  | "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z"
+  | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z"
+  | "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "-" | "_";
+type StripRange<T extends string> = T extends `${infer N} [${string}` ? N : T;
+type IsWord<W extends string> = W extends "" ? false : W extends `${string}${Special}${string}` ? false : true;
+type Word<S extends string, Acc extends string = ""> =
+  S extends `${infer C}${infer R}` ? (C extends WordChar ? Word<R, `${Acc}${C}`> : [Acc, S]) : [Acc, ""];
+
+type Tok =
+  | { t: "type"; v: string } | { t: "prop"; v: string } | { t: "kw"; v: string } | { t: "fn"; v: string }
+  | { t: "range"; lo: string; hi: string } | { t: "p"; v: string } | { t: "eof" };
+
+// Next<S> = [token, rest]
+type Next<S extends string> =
+  S extends "" ? [{ t: "eof" }, ""]
+  : S extends `${Ws}${infer R}` ? Next<R>
+  : S extends `<'${infer P}'>${infer R}` ? [{ t: "prop"; v: P }, R]
+  : S extends `<${infer T}>${infer R}` ? [{ t: "type"; v: StripRange<T> }, R]
+  : S extends `||${infer R}` ? [{ t: "p"; v: "||" }, R]
+  : S extends `&&${infer R}` ? [{ t: "p"; v: "&&" }, R]
+  : S extends `{${infer B}}${infer R}` ? (B extends `${infer Lo},${infer Hi}` ? [{ t: "range"; lo: Lo; hi: Hi }, R] : [{ t: "range"; lo: B; hi: B }, R])
+  : S extends `${infer C extends "[" | "]" | ")" | "|" | "?" | "*" | "+" | "#" | "!" | "," | "/"}${infer R}` ? [{ t: "p"; v: C }, R]
+  : S extends `${infer W} ${infer R}` ? (IsWord<W> extends true ? [{ t: "kw"; v: W }, R] : NextWord<S>)
+  : IsWord<S> extends true ? [{ t: "kw"; v: S }, ""]
+  : NextWord<S>;
+type NextWord<S extends string> =
+  Word<S> extends [infer W extends string, infer R extends string]
+    ? W extends "" ? [{ t: "eof" }, ""] : R extends `(${infer R2}` ? [{ t: "fn"; v: W }, R2] : [{ t: "kw"; v: W }, R]
+    : never;
+
+// ---------------------------------------------------------------- parser  (alt < or(||) < and(&&) < seq < term+mult)
+// Alternatives are cons lists ["alt", head, tail | null] built tail-recursively (order is irrelevant).
+
+type Node =
+  | ["kw", string] | ["type", string] | ["prop", string] | ["fn", string] | ["lit", string]
+  | ["alt", Node, Node | null] | ["or", Node[]] | ["and", Node[]] | ["seq", Node[]]
+  | ["opt", Node] | ["star", Node] | ["plus", Node] | ["list", Node] | ["rep", Node, string, string];
+
+export type Parse<S extends string> = ParseAlt<S> extends [infer N, any] ? N : never;
+
+type ParseAlt<S extends string> = ParseOr<S> extends [infer N extends Node, infer R extends string] ? AltRest<R, ["alt", N, null]> : never;
+type AltRest<S extends string, Acc extends Node> =
+  Next<S> extends [{ t: "p"; v: "|" }, infer R extends string]
+    ? (ParseOr<R> extends [infer N extends Node, infer R2 extends string] ? AltRest<R2, ["alt", N, Acc]> : never)
+    : [Acc extends ["alt", infer Only, null] ? Only : Acc, S];
+
+type ParseOr<S extends string> = ParseAnd<S> extends [infer N extends Node, infer R extends string] ? OrRest<R, [N]> : never;
+type OrRest<S extends string, Acc extends Node[]> =
+  Next<S> extends [{ t: "p"; v: "||" }, infer R extends string]
+    ? (ParseAnd<R> extends [infer N extends Node, infer R2 extends string] ? OrRest<R2, [...Acc, N]> : never)
+    : [Acc extends [infer Only] ? Only : ["or", Acc], S];
+
+type ParseAnd<S extends string> = ParseSeq<S> extends [infer N extends Node, infer R extends string] ? AndRest<R, [N]> : never;
+type AndRest<S extends string, Acc extends Node[]> =
+  Next<S> extends [{ t: "p"; v: "&&" }, infer R extends string]
+    ? (ParseSeq<R> extends [infer N extends Node, infer R2 extends string] ? AndRest<R2, [...Acc, N]> : never)
+    : [Acc extends [infer Only] ? Only : ["and", Acc], S];
+
+type ParseSeq<S extends string, Acc extends Node[] = []> =
+  Next<S> extends [{ t: "eof" } | { t: "p"; v: "|" | "||" | "&&" | "]" | ")" }, any]
+    ? [Acc extends [infer Only] ? Only : ["seq", Acc], S]
+    : ParseTerm<S> extends [infer N extends Node, infer R extends string] ? ParseSeq<R, [...Acc, N]> : never;
+
+type ParseTerm<S extends string> =
+  Next<S> extends [infer T extends Tok, infer R extends string]
+    ? T extends { t: "p"; v: "[" } ? (ParseAlt<R> extends [infer N extends Node, infer R2 extends string] ? (Next<R2> extends [{ t: "p"; v: "]" }, infer R3 extends string] ? Mult<N, R3> : never) : never)
+    : T extends { t: "fn"; v: infer V extends string } ? SkipFn<R> extends infer R2 extends string ? Mult<["fn", V], R2> : never
+    : T extends { t: "type"; v: infer V extends string } ? Mult<["type", V], R>
+    : T extends { t: "prop"; v: infer V extends string } ? Mult<["prop", V], R>
+    : T extends { t: "kw"; v: infer V extends string } ? Mult<["kw", V], R>
+    : T extends { t: "p"; v: infer V extends "," | "/" } ? Mult<["lit", V], R>
+    : never
+  : never;
+
+// function arguments are not modelled yet: skip to the matching ")" (depth-aware).
+type SkipFn<S extends string, D extends any[] = []> =
+  S extends `${infer C}${infer R}`
+    ? C extends ")" ? (D extends [] ? R : SkipFn<R, D extends [any, ...infer P] ? P : []>) : C extends "(" ? SkipFn<R, [...D, 0]> : SkipFn<R, D>
+    : "";
+
+type Mult<N extends Node, S extends string> =
+  Next<S> extends [infer T extends Tok, infer R extends string]
+    ? T extends { t: "p"; v: "?" } ? Mult<["opt", N], R>
+    : T extends { t: "p"; v: "*" } ? Mult<["star", N], R>
+    : T extends { t: "p"; v: "+" } ? Mult<["plus", N], R>
+    : T extends { t: "p"; v: "#" } ? Mult<["list", N], R>
+    : T extends { t: "p"; v: "!" } ? Mult<N, R>
+    : T extends { t: "range"; lo: infer Lo extends string; hi: infer Hi extends string } ? Mult<["rep", N, Lo, Hi], R>
+    : [N, S]
+  : never;
+
+// ---------------------------------------------------------------- value recognizer
+// Consume<N, S> = union of possible remainders after N matched a prefix of S. S is left-trimmed.
+
+type Tok1<S extends string> = S extends `${infer T} ${infer R}` ? SplitComma<T, R> : SplitComma<S, "">;
+type SplitComma<T extends string, R extends string> = T extends `${infer A},${infer B}` ? [A, `,${B} ${R}`] : [T, R];
+
+type LengthUnit = "px" | "em" | "rem" | "vw" | "vh" | "vmin" | "vmax" | "ch" | "ex" | "lh" | "rlh" | "cm" | "mm" | "in" | "pt" | "pc" | "q"
+  | "svw" | "svh" | "lvw" | "lvh" | "dvw" | "dvh" | "cqw" | "cqh" | "cqi" | "cqb" | "cqmin" | "cqmax" | "ic" | "cap" | "rex" | "rch" | "ric" | "rcap";
+type PrimitiveMap = {
+  length: `${number}${LengthUnit}` | "0";
+  percentage: `${number}%`;
+  "length-percentage": `${number}${LengthUnit}` | "0" | `${number}%`;
+  number: `${number}`;
+  integer: `${bigint}`;
+  "hex-color": `#${string}`;
+  string: `"${string}"` | `'${string}'`;
+  "custom-ident": string;
+  "dashed-ident": `--${string}`;
+  angle: `${number}${"deg" | "rad" | "grad" | "turn"}`;
+  time: `${number}${"s" | "ms"}`;
+};
+// Recursive syntaxes we do not descend into: the whole `name(...)` chunk is accepted as opaque.
+type Opaque = "calc-sum" | "calc-size()" | "anchor-size()" | "color-function" | "light-dark()";
+
+export type Consume<N, S extends string> =
+  S extends string
+    ? N extends ["kw", infer V extends string] ? (Tok1<S> extends [V, infer R extends string] ? Trim<R> : never)
+    : N extends ["lit", infer V extends string] ? (S extends `${V}${infer R}` ? Trim<R> : never)
+    : N extends ["type", infer V extends string]
+      ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends PrimitiveMap[V] ? Trim<R> : never) : never)
+      : V extends Opaque ? OpaqueCall<S>
+      : V extends `${infer F}()` ? Consume<["fn", F], S>
+      : V extends keyof Syns ? Consume<Parse<Syns[V]>, S>
+      : never
+    : N extends ["prop", infer V extends string] ? (V extends keyof Props ? Consume<Parse<Props[V]>, S> : never)
+    : N extends ["fn", infer F extends string] ? (S extends `${F}(${string})${infer R}` ? Trim<R> : never) // ponytail: inner args not checked yet
+    : N extends ["alt", any, any] ? ConsumeAlt<N, S>
+    : N extends ["seq", infer Xs extends Node[]] ? ConsumeSeq<Xs, S>
+    : N extends ["opt", infer X] ? S | Consume<X, S>
+    : N extends ["star", infer X] ? Star<X, S>
+    : N extends ["plus", infer X] ? Star<X, Consume<X, S>>
+    : N extends ["list", infer X] ? ListRest<X, Consume<X, S>>
+    : N extends ["rep", infer X, infer Lo extends string, infer Hi extends string] ? Rep<X, S, Lo, Hi>
+    : N extends ["or", infer Xs extends Node[]] ? AnyOrder<Xs, S, false>
+    : N extends ["and", infer Xs extends Node[]] ? AnyOrder<Xs, S, true>
+    : never
+  : never;
+
+type OpaqueCall<S extends string> = S extends `${string}(${string})${infer R}` ? Trim<R> : never;
+
+// tail-recursive walk of the alt cons list
+type ConsumeAlt<N, S extends string, Acc = never> =
+  N extends ["alt", infer H, infer T] ? ConsumeAlt<T, S, Acc | Consume<H, S>> : Acc;
+type ConsumeSeq<Xs extends Node[], S extends string> = Xs extends [infer H, ...infer R extends Node[]] ? ConsumeSeq<R, Consume<H, S>> : S;
+
+// Recursive helpers use the indexed-object trick, and compare the depth tuple by pattern (`D extends Full`),
+// never `D["length"] extends 8`: that one resolves eagerly to the recursive arm because its constraint is number.
+type Full = [0, 0, 0, 0, 0, 0, 0, 0, ...0[]];
+type Star<X, S extends string, D extends any[] = []> = {
+  done: S;
+  next: S | Star<X, Consume<X, S>, [...D, 0]>;
+}[D extends Full ? "done" : "next"];
+
+type ListRest<X, R extends string, D extends any[] = []> = {
+  done: R;
+  next: R | (R extends `,${infer Q}` ? ListRest<X, Consume<X, Trim<Q>>, [...D, 0]> : never);
+}[D extends Full ? "done" : "next"];
+
+type Digits = { "0": []; "1": [0]; "2": [0, 0]; "3": [0, 0, 0]; "4": [0, 0, 0, 0]; "5": [0, 0, 0, 0, 0]; "6": [0, 0, 0, 0, 0, 0]; "∞": [0, 0, 0, 0, 0, 0, 0, 0] };
+type Rep<X, S extends string, Lo extends string, Hi extends string> = RepN<X, S, Digits[Lo & keyof Digits], Digits[Hi & keyof Digits], []>;
+type RepN<X, S extends string, Lo extends any[], Hi extends any[], I extends any[]> = {
+  done: S;
+  next: (I extends [...Lo, ...any] ? S : never) | RepN<X, Consume<X, S>, Lo, Hi, [...I, 0]>;
+}[I["length"] extends Hi["length"] ? "done" : "next"];
+
+// || (All=false: at least one part) and && (All=true: every part), any order, each part at most once.
+type AnyOrder<Xs extends Node[], S extends string, All extends boolean> = Xs extends [] ? S : TryEach<Xs, Xs, S, All, []>;
+type TryEach<Parts extends Node[], Todo extends Node[], S extends string, All extends boolean, I extends any[]> =
+  Todo extends [infer H, ...infer R extends Node[]]
+    ? (Consume<H, S> extends infer R1 extends string
+        ? (All extends true ? never : R1) | AnyOrder<RemoveAt<Parts, `${I["length"]}`>, R1, All>
+        : never) | TryEach<Parts, R, S, All, [...I, 0]>
+    : never;
+type RemoveAt<T extends any[], K extends string, I extends any[] = [], Acc extends any[] = []> =
+  T extends [infer H, ...infer R] ? (`${I["length"]}` extends K ? [...Acc, ...R] : RemoveAt<R, K, [...I, 0], [...Acc, H]>) : Acc;
+
+// ---------------------------------------------------------------- public
+
+export type Matches<Syntax extends string, S extends string> = "" extends Consume<Parse<Syntax>, Trim<S>> ? true : false;
+
+// Furthest point the value reached: every remainder is a suffix of S, the shortest one is a suffix of all.
+type Stuck<U extends string, All extends string = U> = U extends string ? ([All] extends [`${string}${U}`] ? U : never) : never;
+type Unexpected<S extends string> = S extends "" ? "unexpected end" : `unexpected "${Tok1<S>[0]}"`;
+// On failure the parameter type becomes a message literal naming the bad token, the property and its grammar
+// (twin.ts `valid` says the same and adds what was expected at that point).
+// `S extends string ?` defers the message while S is still generic; without it tsc runs Consume over the
+// generic S once per property (+21 k instantiations each, measured; with it +5 k, and nothing per call).
+export type Valid<P extends keyof Props, S extends string> = Matches<Props[P], S> extends true ? S : S extends string ? Message<P, S> : never;
+type Message<P extends keyof Props, S extends string> =
+  `${P}: ${Unexpected<Stuck<Trim<S> | Consume<Parse<Props[P]>, Trim<S>>>>} in "${S}", grammar ${Props[P]}`;
+export type PropertyFn<P extends keyof Props> = <const S extends string>(value: Valid<P, S>) => string;

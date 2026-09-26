@@ -1,0 +1,11 @@
+import type { PropertyFn } from "./css";
+export declare const padding: PropertyFn<"padding">;
+export declare const margin: PropertyFn<"margin">;
+export declare const width: PropertyFn<"width">;
+export declare const gap: PropertyFn<"gap">;
+export declare const border: PropertyFn<"border">;
+export declare const color: PropertyFn<"color">;
+export declare const alignItems: PropertyFn<"align-items">;
+export declare const display: PropertyFn<"display">;
+export declare const borderRadius: PropertyFn<"border-radius">;
+export declare const fontSize: PropertyFn<"font-size">;
