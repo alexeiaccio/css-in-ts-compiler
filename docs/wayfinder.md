@@ -437,3 +437,18 @@ Dropped. cssints does not use wyw-in-js, so the drafts and repros were deleted w
 A full switch would only move the Chrome disagreements. The twin parses 1384 of webref's 1396 grammars; all 12 failures are quoted delimiters, the same gap as `calc-sum` under mdn-data.
 
 Decision: keep mdn-data verbatim, and copy a range only when webref's grammar with the same name uses that type with that one range. A range on a union type such as `<length-percentage>` also applies to its members. This adds `[0,∞]` to `flex-grow`, `flex-shrink`, `row-gap`, `column-gap`, `line-height` and `<line-width>`. Both packages are pinned and named in the `mdn.ts` header. Agreement with Chrome went from 1863 to 1892 of 1950. The one negative value left is `transition: linear -100s`: both sources put the range only on the `transition-duration` longhand. The budgets did not change. `node extract.mjs` with no arguments regenerates for every property in the runner's `PROPS`.
+
+## Typed OM values inside CSS strings
+
+A property function takes several parts, each a plain string or a Typed OM style value, joined by a space: `border("1px solid", accent)`, `padding(CSS.rem(1), CSS.rem(2))`, and still `padding("1rem 2rem")`.
+
+Tagged templates were checked and rejected. With tsc 5.9 and tsgo alike, the `strings` of a tagged template are plain `TemplateStringsArray`, and a plain template argument widens an object value to `${string}`.
+
+The values (`spikes/typelevel/values.ts`) are small classes in the Typed OM style: `CSSUnitValue`, `CSSColorValue`, and `CSS.px`/`rem`/`em`/`percent`/`number`. They serialize with `toString()`, and their static type records the CSS type.
+
+- **Types:** each value is one sentinel token, `⟨length⟩` or `⟨color⟩`. The token matches that type's primitive, the primitives that include it, or a named syntax of the same name. This needed two small edits in `css.ts`, and `api-typed.ts` joins the parts.
+- **Build time:** the real text is joined and checked by the twin.
+
+Unused, the cost is under 1% on the existing budgets. `typed.ts`, with 20 calls, is budgeted at 137 k for tsc and 139 k for tsgo.
+
+A bad part names its token, as in `border: unexpected "⟨length⟩" in "1px solid ⟨length⟩"`, but the error is reported on the first argument. A top-level `CSS.rem(1)` in a module that imports `CSS` from `cssints` still fails in the plugin, which treats every call on a `cssints` import as a style site.
