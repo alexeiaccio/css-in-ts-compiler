@@ -5,10 +5,12 @@ status: todo
 type: feature
 priority: high
 created_at: 2026-09-26T08:10:17Z
-updated_at: 2026-09-26T08:10:17Z
+updated_at: 2026-09-26T08:26:25Z
 parent: cssints-tmv8
 blocked_by:
     - cssints-2qiv
+    - cssints-n7hd
+    - cssints-j24s
 ---
 
 Today `fn` and opaque types accept `name(...)` up to the first `)` without checking the inside.
@@ -18,3 +20,5 @@ Today `fn` and opaque types accept `name(...)` up to the first `)` without check
 - [ ] Check `rgb()`, `color-mix()`, `fit-content()` args against their grammar
 - [ ] `calc()`: check it in the twin; keep it opaque at type level if the cost is too high
 - [ ] Add rows to `cases.ts`; instantiation budget holds
+
+Note from `diff.ts`: the opaque rule stops at the first `)`, so `border-color: light-dark(red, light-dark(red, blue) currentColor` is accepted. Needs the comma rule first (cssints-j24s): argument grammars rely on it, for example `rgb( <percentage>#{3} , <alpha-value>? )`.

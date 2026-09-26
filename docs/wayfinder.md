@@ -390,3 +390,31 @@ Two alternatives were rejected:
 - Prepending bindings when instrumenting. That changes real SSR modules too.
 
 Known limit: dependencies in `node_modules` load through Node's own `import()` and do not get the DOM. The workaround is `ssr.noExternal` for such a package. A shaker is still not needed.
+
+## Grammar-driven generator and three judges
+
+`spikes/typelevel/gen.ts` is a third interpretation of the same parse tree. Instead of recognizing values, it generates them. Each node becomes a fast-check Arbitrary:
+
+- `||` becomes a shuffled non-empty subset, and `&&` a full permutation.
+- `{m,n}`, `#`, `*` and `+` become bounded arrays.
+- Ranges bound the generated numbers.
+- Function calls use one known-valid sample each until function arguments are modelled.
+
+`node diff.ts` (about 3 s) puts the generated values, and simple mutants of them (a token dropped, duplicated, or rotated), in front of three judges:
+
+1. **The twin**: it must accept every generated value. fast-check runs 200 values per property and shrinks any counterexample. All 57 properties pass.
+2. **Chrome 154**, through `CSS.supports` in the installed browser (playwright-core, no download). It agrees with the twin on 1863 of 1950 values. Disagreements are reported but do not fail the run.
+3. **The types**, on a sample. Each case becomes `const cN: Matches<...> = <twin verdict>` checked by tsgo, so every compile error is a disagreement. 456 of 456 agree. The one disagreement on the first run was a real bug: `<custom-ident>` matched an empty token at type level, so a trailing comma passed. That is now fixed, and the budgets did not change.
+
+What Chrome found, sorted by cause:
+
+| Cause | Examples | Where it goes |
+|---|---|---|
+| Comma omission rule (CSS Values 4 §2.6) missing everywhere | `background: red` rejected, `", red"` accepted | bug, before function arguments |
+| `<custom-ident>` too loose | `font-family: "a" "b"` accepted | bug |
+| mdn-data lacks spec ranges | negative `flex-grow`, `gap`, `line-height`, `border-width` accepted | compare with `@webref/css` |
+| Opaque functions stop at the first `)` | `light-dark(red, light-dark(red, blue) currentColor` accepted | function arguments |
+| Browser support, not grammar | `fit-content()` on width, `anchor-center`, `match-parent`, `run-in` | draft: warnings from browser-compat-data |
+| Prose rules outside the grammar | `transition` with `none` in a list, generic family as an unquoted family name | same draft |
+
+The comma bug shows the limit of the self-check. The generator and both recognizers read the grammar the same wrong way, so they agreed with each other. Only an outside judge could see it.

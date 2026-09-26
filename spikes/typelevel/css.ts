@@ -135,7 +135,7 @@ export type Consume<N, S extends string> =
     ? N extends ["kw", infer V extends string] ? (Tok1<S> extends [V, infer R extends string] ? Trim<R> : never)
     : N extends ["lit", infer V extends string] ? (S extends `${V}${infer R}` ? Trim<R> : never)
     : N extends ["type", infer V extends string]
-      ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends PrimitiveMap[V] ? Trim<R> : never) : never)
+      ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? Trim<R> : never) : never)
       : V extends Opaque ? OpaqueCall<S>
       : V extends `${infer F}()` ? Consume<["fn", F], S>
       : V extends keyof Syns ? Consume<Parse<Syns[V]>, S>

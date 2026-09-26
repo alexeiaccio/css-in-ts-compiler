@@ -1,1 +1,1 @@
-{ "type": "module", "private": true }
+{"type":"module","private":true,"devDependencies":{"fast-check":"^4.10.2","playwright-core":"^1.63.0"}}
