@@ -452,3 +452,11 @@ The values (`spikes/typelevel/values.ts`) are small classes in the Typed OM styl
 Unused, the cost is under 1% on the existing budgets. `typed.ts`, with 20 calls, is budgeted at 137 k for tsc and 139 k for tsgo.
 
 A bad part names its token, as in `border: unexpected "⟨length⟩" in "1px solid ⟨length⟩"`, but the error is reported on the first argument. A top-level `CSS.rem(1)` in a module that imports `CSS` from `cssints` still fails in the plugin, which treats every call on a `cssints` import as a style site.
+
+## Grammar fixes found by the Chrome judge
+
+- **Comma omission (CSS Values 4 §2.6).** A grammar comma is skipped when nothing was written since the start of the sequence or since the previous comma. A comma that has nothing after it is rejected. This is fixed in both twins and the generator. `background: red` now passes, and `, red` and `none,` fail. It is tracked over all parse paths at once, not per path, which is an approximation.
+- **`<custom-ident>`.** The twin uses a real identifier pattern and rejects the CSS-wide keywords and `default`. The types reject tokens that start with a quote, a digit, `#`, `.`, `+` or `(`, and the same keywords. Keywords that one property forbids are the prose-rules layer's job.
+- **Function arguments.** `name( args )` is now parsed with its argument grammar and consumed recursively. Quoted operators (`'+'`) are supported, and `X#{3}` is counted correctly. The opaque list is gone: `calc-size()`, `anchor-size()`, `light-dark()` and the color functions are checked at both levels. A `<name()>` type first tests for `name(`, so `<color>` stays cheap for `red`. The generator builds calls from the grammar instead of using samples.
+- **Cost.** A generic `Consume` reference costs about 1.3 k instantiations per helper even when unused, so helpers keep one. Function arguments added 4–6%. Merged with typed values, 200 calls now cost 205 k (tsc) and 207 k (tsgo).
+- **Still open:** units inside calc are not checked, the `!` multiplier is ignored, `<url>` is missing from `mdn.ts`, and quoted strings with spaces break the value tokenizer. Chrome accepts an unclosed `(` at end of input, and we reject it on purpose.

@@ -8,10 +8,22 @@ export const cases = [
   ["border", "1px solid #fff", true], ["border", "solid", true], ["border", "red 2px", true],
   ["z-index", "10", true], ["opacity", "0.5", true], ["color", "rgb(1 2 3)", true], ["color", "currentColor", true],
   ["border-radius", "1rem 2rem / 3rem", true], ["font-size", "1.2em", true], ["display", "inline flex", true], ["display", "list-item", true],
+  ["background", "red", true], ["background", "none, red", true], ["background", "left top, repeat-x red", true], ["background", "none", true],
+  ["font-family", "\"Gill\", Futura, sans-serif", true], ["font-family", "Open Sans", true], ["font-family", "_a, -b, --c", true],
+  ["color", "rgb(1%, 2%, 3%)", true], ["color", "rgb(1 2 3 / 50%)", true], ["color", "rgba(1, 2, 3, 0.5)", true], ["color", "hsl(120deg 50% 50%)", true],
+  ["color", "color-mix(in srgb, red 10%, blue)", true], ["color", "light-dark(red, color-mix(in oklch longer hue, red, blue))", true],
+  ["border-color", "light-dark(red, blue) currentColor", true], ["width", "calc-size(any, (1px + 2px) * 3)", true], ["width", "calc-size(any, 1px / 2)", true],
 
   ["padding", "1 rem", false], ["padding", "1rem 2rem 3rem 4rem 5rem", false], ["padding", "red", false],
   ["width", "fit", false], ["overflow", "hidden auto scroll", false], ["align-items", "baseline first", false],
   ["border", "solid solid", false], ["z-index", "1.5", false], ["color", "reddish", false], ["display", "flex flex", false],
+  ["background", ", red", false], ["background", "none,", false], ["background", "red, none", false], ["background", "none red, none", false],
+  ["font-family", "\"a\" \"b\"", false], ["font-family", "1px", false], ["font-family", "Foo, initial", false], ["font-family", "a -1b", false],
+  ["font-family", "#x", false], ["font-family", "Foo Default", false],
+  ["color", "rgb(1%, 2, 3%)", false], ["color", "rgb(1 2)", false], ["color", "rgb(1, 2, 3,)", false], ["color", "rgb(1 2 3", false], ["color", "rgb(1 2 3) x", false],
+  ["color", "color-mix(in srgb, red)", false], ["color", "color-mix(in srgb, red, red, blue)", false], ["color", "light-dark(red)", false],
+  ["border-color", "light-dark(red, light-dark(red, blue) currentColor", false], ["background", "red, url(a.png)", false],
+  ["width", "fit-content(red)", false], ["width", "calc-size(any, 1px +)", false], ["width", "calc-size(any, 1px 2px)", false], ["width", "calc-size(any, (1px)", false],
 ] as const;
 
 // Only the runtime rejects these: ranges and hex digits are beyond `${number}` / `#${string}`.

@@ -3,19 +3,11 @@
 import fc from "fast-check";
 
 import { properties, syntaxes } from "./mdn.ts";
-import { parse, type Node } from "./twin.ts";
+import { nullable, parse, type Node } from "./twin.ts";
 
 const props: Record<string, string> = properties;
 const syns: Record<string, string> = syntaxes;
 type Arb = fc.Arbitrary<string>;
-
-// Function arguments are not modelled yet (cssints-aj2u): one known-valid call per function.
-const CALLS: Record<string, string> = {
-  "fit-content": "fit-content(10px)", rgb: "rgb(1 2 3)", rgba: "rgba(1 2 3 / 50%)", hsl: "hsl(120deg 50% 50%)",
-  hsla: "hsla(120 50% 50% / 0.5)", hwb: "hwb(120 10% 10%)", lab: "lab(50% 10 10)", lch: "lch(50% 10 120)",
-  oklab: "oklab(50% 0.1 0.1)", oklch: "oklch(50% 0.1 120)", color: "color(srgb 1 0 0)",
-  "color-mix": "color-mix(in srgb, red, blue)", "light-dark": "light-dark(red, blue)", url: "url(a.png)",
-};
 
 const LENGTH_UNITS = ["px", "em", "rem", "vw", "vh", "vmin", "vmax", "ch", "ex", "lh", "rlh", "cm", "mm", "in", "pt", "pc", "q", "svw", "svh", "lvw", "lvh", "dvw", "dvh", "cqw", "cqh", "cqi", "cqb", "cqmin", "cqmax", "ic", "cap", "rex", "rch", "ric", "rcap"];
 const bound = (b: string | undefined, dflt: number) => (b === undefined || b === "∞" ? dflt : b === "-∞" ? -dflt : Number(b));
@@ -39,6 +31,7 @@ function primitive(v: string, lo?: string, hi?: string): Arb | null {
     case "dashed-ident": return ident.map((s) => `--${s}`);
     case "angle": return unit(["deg", "rad", "grad", "turn"], lo, hi);
     case "time": return unit(["s", "ms"], lo, hi);
+    case "dimension": return unit([...LENGTH_UNITS, "deg", "s", "dppx", "fr"], lo, hi);
   }
   return null;
 }
@@ -56,20 +49,21 @@ export function arb(n: Node, depth = 0): Arb | null {
       const [, v, lo, hi] = n;
       const p = primitive(v, lo, hi);
       if (p) return p;
-      if (v.endsWith("()")) return CALLS[v.slice(0, -2)] ? fc.constant(CALLS[v.slice(0, -2)]!) : null;
       return syns[v] ? sub(parse(syns[v])) : null;
     }
     case "prop":
       return props[n[1]] ? sub(parse(props[n[1]]!)) : null;
-    case "fn":
-      return CALLS[n[1]] ? fc.constant(CALLS[n[1]]!) : null;
+    case "fn": {
+      const a = sub(n[2]);
+      return a && a.map((x) => `${n[1]}(${x})`);
+    }
     case "alt": {
       const as = n[1].map(sub).filter((a): a is Arb => !!a);
       return as.length ? fc.oneof(...as) : null;
     }
     case "seq": {
       const as = all(n[1]);
-      return as && fc.tuple(...as).map(join);
+      return as && fc.tuple(...as).map((ps) => join(commas(n[1], ps)));
     }
     case "opt": {
       const a = sub(n[1]);
@@ -97,6 +91,20 @@ export function arb(n: Node, depth = 0): Arb | null {
       return fc.shuffledSubarray(ok, { minLength: n[0] === "and" ? ok.length : 1 }).chain((is) => fc.tuple(...is.map((i) => parts[i]!)).map(join));
     }
   }
+}
+
+// Comma omission, as in twin.ts `seq`: drop a `,` with nothing emitted since the seq start or the previous comma
+// (never before the first term), or with only omitted nullable terms after it.
+function commas(xs: Node[], ps: string[]): string[] {
+  let first = true, since = false;
+  return ps.map((p, i) => {
+    const x = xs[i]!;
+    if (x[0] !== "lit" || x[1] !== ",") return (first = false), (since ||= p !== ""), p;
+    if (!first && !since) return "";
+    if (i + 1 < xs.length && xs.slice(i + 1).every(nullable) && ps.slice(i + 1).every((q) => q === "")) return "";
+    first = since = false;
+    return p;
+  });
 }
 
 const join = (xs: string[]) => xs.filter(Boolean).join(" ").replace(/ ,/g, ",");
