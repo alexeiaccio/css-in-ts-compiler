@@ -87,7 +87,7 @@ All five spike risks are checked. Results are below.
 
 ## Spike results
 
-Code lives in `spikes/wyw` and uses wyw-in-js 2.5.1 with Vite 8.3.
+The code used wyw-in-js 2.5.1 with Vite 8.3. `spikes/wyw` was deleted once the Module Runner engine replaced it; it is in git history before commit `8202dbb`.
 
 - `cssints/` is a real package. Its `package.json` declares the `css` tag, so wyw finds the processor without extra config.
 - `fixtures/` run through `run.mjs`, which calls `transform()` directly.
@@ -421,10 +421,4 @@ The comma bug shows the limit of the self-check. The generator and both recogniz
 
 ### wyw-in-js issue drafts
 
-cssints no longer depends on wyw-in-js. The drafts in `spikes/wyw/issues/` exist only to hand the three bugs to upstream. They are checked against 2.5.1, which is still the latest release, and `main` is at the release commit. Each draft has a minimal repro that does not need cssints (`issues/repro/`).
-
-1. **Argument queue:** no duplicate found, worth filing.
-2. **Hybrid strategy:** a real bug of low severity, and `context.unresolved()` does not opt out of it. The intended `preeval-call` mechanism (#362) is undocumented and cannot describe `css.flex(...)`. Worth filing, with "document it" as an acceptable outcome.
-3. **HMR:** already fixed in PR #427. Only a comment with our sequential case as a regression test.
-
-Nothing is posted yet.
+Dropped. cssints does not use wyw-in-js, so the drafts and repros were deleted with `spikes/wyw` without being filed. Bug 3 is already fixed upstream in open PR #427.
