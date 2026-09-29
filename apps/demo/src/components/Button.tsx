@@ -13,6 +13,7 @@ import {
   cursor,
   fontSize,
   height,
+  hover,
   width,
 } from "cssints" with { type: "cssints" };
 
@@ -28,10 +29,25 @@ const base = [
 ];
 
 // Variant classes
-const primary = [bg("#3b82f6"), color("white"), border("1px solid #3b82f6")];
-const secondary = [bg("#6b7280"), color("white"), border("1px solid #6b7280")];
-const outline = [bg("transparent"), color("#3b82f6"), border("1px solid #3b82f6")];
-const ghost = [bg("transparent"), color("#3b82f6"), border("1px solid transparent")];
+const primary = [bg("#3b82f6"), color("white"), border("1px solid #3b82f6"), hover(bg("#2563eb"))];
+const secondary = [
+  bg("#6b7280"),
+  color("white"),
+  border("1px solid #6b7280"),
+  hover(bg("#4b5563")),
+];
+const outline = [
+  bg("transparent"),
+  color("#3b82f6"),
+  border("1px solid #3b82f6"),
+  hover(bg("#eff6ff")),
+];
+const ghost = [
+  bg("transparent"),
+  color("#3b82f6"),
+  border("1px solid transparent"),
+  hover(bg("#eff6ff")),
+];
 
 // Size classes
 const sm = [p("0.375rem"), fontSize("0.875rem"), height("2rem")];
