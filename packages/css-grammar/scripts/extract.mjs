@@ -58,7 +58,11 @@ const WEBREF = [
   ),
   "xyz-params",
 ];
+// Math functions (cssints-91im): a <calc-value> is also a nested math function. The type level reads `<math-function>` as
+// balanced tokens (css.ts `MathCall`); the twin scans a whole <calc-sum> with its own typed parser (twin-core.ts
+// `mathScan`) and never reads this grammar.
 const COLOR = {
+  "calc-value": `${syn["calc-value"].syntax} | <math-function>`,
   color: `${syn.color.syntax} | <contrast-color()> | <if()> | <var()>`,
   "contrast-color()": "contrast-color( <color> )",
   "custom-property-name": "<dashed-ident>",

@@ -102,6 +102,9 @@ export const base = [
   flexGrow(1),
   flexShrink(0),
   bottom("0"),
+  width("calc(100% - 2rem)"),
+  maxWidth("min(100%, 48rem)"),
+  fontSize("clamp(1rem, 2.5vw, 2rem)"),
 ];
 
 export const spacing = [

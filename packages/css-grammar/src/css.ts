@@ -156,8 +156,9 @@ export type Consume<N, S extends string> =
     ? N extends ["kw", infer V extends string] ? (Tok1<S> extends [V, infer R extends string] ? Trim<R> : never)
     : N extends ["lit", infer V extends string] ? (S extends `${V}${infer R}` ? Trim<R> : never)
     : N extends ["type", infer V extends string]
-      ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? (V extends "custom-ident" ? (Lowercase<T> extends NotIdent ? never : Trim<R>) : V extends "ident" | "ident-token" ? (T extends NotIdentStart ? never : Trim<R>) : Trim<R>) : never) : never)
+      ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? (V extends "custom-ident" ? (Lowercase<T> extends NotIdent ? never : Trim<R>) : V extends "ident" | "ident-token" ? (T extends NotIdentStart ? never : Trim<R>) : Trim<R>) : V extends Numeric ? (T extends `${string}(${string}` ? MathCall<S> : never) : never) : never)
       : V extends "string" | "url" | "declaration-value" ? Scanned<V, S>
+      : V extends "math-function" ? MathCall<S>
       // <declaration> alternates over every property: types take it as balanced tokens, the twin checks it at build time
       : V extends "declaration" ? Scanned<"declaration-value", S>
       // <if()> has `;` between its branches, which no token of the grammar is: balanced tokens too, the twin checks the conditions
@@ -179,6 +180,12 @@ export type Consume<N, S extends string> =
     : N extends ["bang", infer X] ? Exclude<Consume<X, S>, S> // `[ ... ]!`: the group must not be empty
     : never
   : never;
+
+// The math functions (css-values-4 §10) stand wherever a numeric primitive does; types read the arguments as balanced
+// tokens (the twin checks the syntax and the calc type of the expression, and not the numeric range: `[0,∞]`).
+type Numeric = "length" | "percentage" | "length-percentage" | "number" | "integer" | "angle" | "time" | "resolution" | "x" | "y";
+type MathFn = "calc" | "min" | "max" | "clamp" | "round" | "mod" | "rem" | "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "atan2" | "pow" | "sqrt" | "hypot" | "log" | "exp" | "abs" | "sign";
+type MathCall<S extends string> = S extends `${MathFn}(${infer R}` ? Close<Declaration<Trim<R>, Trim<R>, []>> : never;
 
 // The colour functions that take `from <color>` (relative colour): what follows `from` is the origin colour and channel
 // keywords, `calc()` over them, or anything else a component takes. Types read it as balanced tokens, the twin checks it.
