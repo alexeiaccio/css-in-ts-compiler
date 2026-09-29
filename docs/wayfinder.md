@@ -619,3 +619,11 @@ A bare number is a 0.25rem step only in padding, margin, inset and gap propertie
 Calls inside functions now go into an exported `__cssints_hoisted()`, which runs only for the file being compiled. That lets helper modules whose calls use their own parameters load normally as dependencies.
 
 The demo's CSS is byte-identical after the migration. `grid().templateColumns(...)` and the other grid template methods still fail with "no grammar for this property" until the grammar covers every property (cssints-unkt).
+
+## Single runtime and typed cv (cssints-e2nn)
+
+`cssints` is the only runtime package. `packages/variants` is deleted. `cx` and `_cv` in `runtime.mjs` are the only code shipped to the browser. `cx` flattens nested arrays and skips falsy values, and its hand-written types are in `runtime.d.mts`, because TypeScript looks for `.d.mts` next to an `.mjs` file.
+
+`cn` is build-time only, and no `cn` or eval-time code reaches the demo bundle.
+
+`cv` takes css values for `base` and for every variant: one property, `cn(...)` or a `flex()` chain. The old CSS-string form is a build error that shows the new form. The demo's `Card` was migrated, and its CSS is byte-identical.
