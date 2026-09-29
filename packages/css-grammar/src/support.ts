@@ -4,7 +4,9 @@
 // Lookup, per declaration `p: v`:
 //   - the property itself:  css.properties.<p>
 //   - each keyword k:       css.properties.<P>.<k>, else css.types.<T>.<k>
-//   - each function f(...): css.properties.<P>.<f>_function, else css.types.<f>, else css.types.<T>.<f>
+//   - each function f(...): css.properties.<P>.<f>_function, else css.properties.<P>.<f> (BCD names some functions
+//                           without the suffix: counter-reset.reversed), else css.types.<f>, else css.types.<T>.<f>
+//   - a quoted string:      css.properties.<P>.string (text-overflow)
 // where P is p, then the properties its grammar reaches as <'q'> (flex-basis: fit-content() is under width), and
 // T ranges over the <type>s the grammar reaches (so `scroll` in `overflow` is not mistaken for
 // css.types.timeline-range-name.scroll). Tokens inside strings are ignored; units are not looked up.
@@ -125,11 +127,16 @@ export function supportOf(p: string, v: string, ts: Target[] = DEFAULT): Warning
     const k = fn ? tok.slice(0, -1) : tok;
     const keys = [
       ...owners.map((q) => `css.properties.${q}.${fn ? `${k}_function` : k}`),
+      ...(fn ? owners.map((q) => `css.properties.${q}.${k}`) : []),
       ...(fn ? [`css.types.${k}`] : []),
       ...types.map((t) => `css.types.${t}.${k}`),
     ];
     const key = keys.find((x) => get(x)?.__compat);
     if (key) found.push([fn ? `${k}()` : k, key]);
+  }
+  if (/"[^"]*"|'[^']*'/.test(v)) {
+    const key = owners.map((q) => `css.properties.${q}.string`).find((x) => get(x)?.__compat);
+    if (key) found.push(["string", key]);
   }
   const lacks = (c: typeof pc, on: Target[]) =>
     on.filter(([a, ver]) => !supports(c.support[BCD_NAME[a]!], ver)).map((t) => t.join(" "));
