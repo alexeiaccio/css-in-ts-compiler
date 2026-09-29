@@ -145,78 +145,51 @@ const muted = css.token.color("#6b7280");                                 // --_
 - **`style()` and `token.set()`** are build-time and take static values; the result is a style object. A dynamic value is set with a plain `style={{ "--color-primary": value }}`; a typed runtime setter is not part of 0.1.
 - Design-token constraints and math (DTCG, Ariakit Tailwind) are researched in cssints-kag5.
 
-#### Themes (WIP)
+#### Themes (decided 2026-09-29, cssints-exof)
+
+Tokens come from an inline DTCG-shaped `const` object. Every leaf is a token (see "Tokens") reached by property access. Values are DTCG values or CSS strings checked by the grammar of their `$type`. Aliases use DTCG `{path}` references.
 
 ```ts
-import { cx } from 'css-variants'
 import * as css from "cssints" with { type: "cssints" };
 
-const tokens = css.createTokens({
-	colors: {
+const t = css.createTokens({
+	color: {
 		$type: "color",
-		blue: {
-			100: "unset",
-			// or
-			200: "oklch(4.820% 0.0334 264.05)",
-			// ...
-		},
-		// ...
+		bg: { $value: "#ffffff" },
+		fg: { $value: "#111827" },
+		accent: { $value: "oklch(62% 0.19 259)" },
+		link: { $value: "{color.accent}" },
 	},
-}, (_, path) => kebabCase(path));
+	space: { $type: "dimension", md: { $value: "1rem" } },
+});
 
 const dark = css.media("(prefers-color-scheme: dark)");
+css.createGlobalTheme(t, dark, { color: { bg: "#0b0b0f", fg: "#f3f4f6" } });
+css.createGlobalTheme(t, ".light", { color: { bg: "#fff" } });
 
-// define with media queries
-css.createGlobalTheme(tokens, dark, {
-	colors: {
-		blue: {
-			100: "oklch(4.820% 0.0334 264.05)"
-			// ...
-		},
-		// ...
-	},
-});
+css.check.contrast(t.color.fg, t.color.bg, { min: 4.5 });
 
-// or with class
-css.createGlobalTheme(tokens, '.light', {
-	colors: {
-		blue: {
-			100: "oklch(4.820% 0.0334 264.05)"
-			// ...
-		},
-		// ...
-	},
-});
-
-const styles = cx(css.bg(tokens("colors.blue.100")));
-
-<div className={styles}>Hello, world!</div>
+<div className={css.cn(css.bg(t.color.bg), css.color(t.color.fg), css.p(t.space.md))} />;
 ```
+
+- **Names:** the variable name is the kebab-case path (`--color-bg`). A second argument to `createTokens` can map a path to a name.
+- **Themes:** `createGlobalTheme(tokens, condition | selector, overrides)` re-declares the overridden tokens under a media or container condition (on `:root`), or under a selector. Overrides are checked against the token types, and an unknown path is a type error.
+- **Aliases:** `@property initial-value` must be computationally independent, so it gets the flattened literal. The alias stays live as a `var()` declaration on `:root`. A theme re-declares the tokens that depend on an overridden one.
+- **`css.check.contrast(fg, bg, { min })`** computes the WCAG 2.x contrast ratio for the default values and for every theme at build time. A ratio below `min` is a build error that names the theme and both values. A value the check cannot evaluate (for example `color-mix()`) is a warning that names the token. The colour library is build-only and never ships.
 
 Output:
 
-```tsx
-import { cx } from "css-variants";
-
-<div className={cx("_jdf78hs")}>Hello, world!</div>;
-```
-
 ```css
-@property --colors-blue-100 {
-	syntax: "<color>";
-	inherits: true;
-	initial-value: unset;
-}
+@property --color-bg { syntax: "<color>"; inherits: true; initial-value: #ffffff; }
+@property --color-link { syntax: "<color>"; inherits: true; initial-value: oklch(62% 0.19 259); }
+:root { --color-link: var(--color-accent); }
 @media (prefers-color-scheme: dark) {
-	--colors-blue-100: oklch(4.82% 0.0334 264.05);
+	:root { --color-bg: #0b0b0f; --color-fg: #f3f4f6; }
 }
-.light {
-	--colors-blue-100: oklch(4.82% 0.0334 264.05);
-}
-._jdf78hs {
-	background-color: var(--colors-blue-100);
-}
+.light { --color-bg: #fff; }
 ```
+
+Derived tokens (`contrastColor()`, `derive()`), JSON input with generated types and slot variants are not part of 0.1.
 
 ### Runtime: `cx`, `cn`, `cv` (decided 2026-09-29, cssints-lo9x)
 
