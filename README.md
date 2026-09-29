@@ -42,8 +42,9 @@ Import `cssints/layers.css` once in the entry to declare the layer order.
 
 ```bash
 bun install
-bun run test    # all packages
+bun run test    # all packages (vp run -r test, cached where possible)
 bun run bench   # type instantiation budgets (tsc and tsgo)
+bun run check   # format, lint, type-check (vp check)
 cd apps/demo && bun run dev
 ```
 
