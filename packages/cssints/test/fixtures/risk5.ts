@@ -1,4 +1,5 @@
-import { css, cx } from "cssints";
+import { cx } from "cssints";
+import { css } from "cssints" with { type: "cssints" };
 
 const pad = css.p(4);
 const gap = css.gap(2);

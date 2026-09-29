@@ -30,14 +30,15 @@ function gen(n, dir) {
   names.forEach((name, i) => {
     const child = i ? names[Math.floor((i - 1) / 4)] : null; // a tree: every module imports its parent-level component
     const sp = ["xs", "sm", "md", "lg", "xl"][i % 5];
-    w(`src/components/${name}.tsx`, `import { css, cv, _cv, cx, CSS, display, items, gap, p, bg, color, borderRadius, fontSize, fontWeight, border } from "cssints";
+    w(`src/components/${name}.tsx`, `import { _cv, cx } from "cssints";
+import { css, cv, CSS, display, alignItems, gap, p, bg, color, borderRadius, fontSize, fontWeight, border } from "cssints" with { type: "cssints" };
 import { colors } from "../tokens/colors";
 import { radius, space } from "../tokens/space";
 import { size, weight } from "../tokens/type";
 ${child ? `import { ${child} } from "./${child}";\n` : ""}
-const root = [display("flex"), items("center"), gap(space.${sp}), p(space.md + ${i % 3}), bg(colors.c${i % 8}), borderRadius(radius.md)];
-const title = css.fontSize(size.lg).fontWeight(weight.bold).color(colors.text);
-const body = css.flex(css.items("flex-start"), css.justify("space-between")).p(space.sm);
+const root = [display("flex"), alignItems("center"), gap(space.${sp}), p(space.md + ${i % 3}), bg(colors.c${i % 8}), borderRadius(radius.md)];
+const title = css.cn(css.fontSize(size.lg), css.fontWeight(weight.bold), css.color(colors.text));
+const body = css.cn(css.flex().alignItems("flex-start").justifyContent("space-between"), css.p(space.sm));
 const muted = [color(colors.muted), fontSize(size.sm), border("1px solid", colors.border)];
 const inset = css.m(CSS.rem(${(i % 4) + 1}));
 const box = cv({

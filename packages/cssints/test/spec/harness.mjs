@@ -11,8 +11,8 @@ export const CLIENT = ["card", "button"];
 const pad = (v) => `css.p(${100 * (v + 1)} + space.md)`;
 const SOURCE = {
   tokens: (v) => `export const space = { md: ${v + 1} };\n`,
-  card: (v) => `import { css } from "cssints";\nimport { space } from "./tokens";\nexport const src = ${v};\nexport const card = ${pad(v)};\n`,
-  button: (v) => `import { css } from "cssints";\nimport { space } from "./tokens";\nexport const src = ${v};\nexport const button = css.flex(css.items("center"), ${pad(v)});\n`,
+  card: (v) => `import { css } from "cssints" with { type: "cssints" };\nimport { space } from "./tokens";\nexport const src = ${v};\nexport const card = ${pad(v)};\n`,
+  button: (v) => `import { css } from "cssints" with { type: "cssints" };\nimport { space } from "./tokens";\nexport const src = ${v};\nexport const button = css.cn(css.flex().alignItems("center"), ${pad(v)});\n`,
 };
 
 export async function start() {

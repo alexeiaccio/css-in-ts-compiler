@@ -1,6 +1,6 @@
 # CSS-in-TS
 
-Compile-time CSS-in-TypeScript: composable utility calls (`css.flex(css.items("center"))`) become atomic, content-hashed classes in `@layer`s. CSS values are checked against the spec grammars (mdn-data) both in the types and at build time. LightningCSS optimizes the output.
+Compile-time CSS-in-TypeScript: composable utility calls (`css.flex().alignItems("center")`) become atomic, content-hashed classes in `@layer`s. CSS values are checked against the spec grammars (mdn-data) both in the types and at build time. LightningCSS optimizes the output.
 
 Status: research restart. Decisions and findings are in [docs/wayfinder.md](docs/wayfinder.md), the target API is in [docs/API.md](docs/API.md).
 
@@ -25,10 +25,10 @@ export default { plugins: [cssints()], css: { transformer: "lightningcss" } };
 ```
 
 ```ts
-import { css } from "cssints";
+import * as css from "cssints" with { type: "cssints" };
 
 export const pad = css.p(4); // → "_lwugp7"
-export const row = css.flex(css.items("center")); // → "_1s47490 _1ob5z5m"
+export const row = css.flex().alignItems("center"); // → "_1s47490 _1ob5z5m"
 ```
 
 ```css

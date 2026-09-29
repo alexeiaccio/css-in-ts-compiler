@@ -1,9 +1,5 @@
-import { cv } from "cssints";
 import { _cv, cx } from "cssints";
-import {
-	display, flexDirection, gap, padding, fontSize, fontWeight,
-	color, lineHeight, justify,
-} from "cssints";
+import { cv, flex, padding, fontSize, fontWeight, color, lineHeight } from "cssints" with { type: "cssints" };
 
 const rootConfig = cv({
 	base: "background-color: white; border-radius: 0.5rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.1)",
@@ -23,11 +19,11 @@ const rootConfig = cv({
 
 const root = _cv(rootConfig);
 
-const headerSlot = [padding("1.5rem 1.5rem 0"), display("flex"), flexDirection("column"), gap("0.5rem")];
+const headerSlot = [padding("1.5rem 1.5rem 0"), flex().direction("column").gap("0.5rem")];
 const titleSlot = [fontSize("1.25rem"), fontWeight("600"), color("#111827"), lineHeight("1.4")];
 const descSlot = [fontSize("0.875rem"), color("#6b7280"), lineHeight("1.5")];
 const contentSlot = [padding("1.5rem"), color("#374151")];
-const footerSlot = [padding("0 1.5rem 1.5rem"), display("flex"), gap("0.75rem"), justify("flex-end")];
+const footerSlot = [padding("0 1.5rem 1.5rem"), flex().gap("0.75rem").justifyContent("flex-end")];
 
 export type CardProps = {
 	variant?: "default" | "destructive";

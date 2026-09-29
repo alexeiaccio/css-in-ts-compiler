@@ -1,10 +1,10 @@
-import { display, items, justify, p, bg, color, borderRadius, fontWeight, transition, border, cursor, fontSize, height, width } from "cssints";
 import { cx } from "cssints";
+import { display, alignItems, justifyContent, p, bg, color, borderRadius, fontWeight, transition, border, cursor, fontSize, height, width } from "cssints" with { type: "cssints" };
 
 const base = [
 	display("inline-flex"),
-	items("center"),
-	justify("center"),
+	alignItems("center"),
+	justifyContent("center"),
 	borderRadius("0.375rem"),
 	fontWeight("500"),
 	transition("all 0.2s"),
