@@ -649,3 +649,16 @@ So a longhand wins whatever the order of arguments to `cx`.
   - rules of a module deleted in dev stay until the server restarts;
   - forgetting `import "virtual:cssints.css"` gives no CSS and no warning;
   - sheet updates are not debounced.
+
+## Design-token constraints and math (cssints-kag5)
+
+DTCG 2025.10 has no constraints and no math. It is a static format: types, aliases, groups, and a resolver for modes. Its only checks are type validity, alias type match and no cycles. Colour functions, arithmetic and contrast rules are open issues (#88, #224, #268).
+
+Ariakit's Tailwind plugin does not use `contrast-color()`. It derives layers with relative colours and `calc`. Text contrast comes from a WCAG table computed in JS when the plugin is built, and CSS picks a row with style queries. That needs about Chrome 138, Firefox 151 and Safari 18, and only `ak-ink` claims AA.
+
+For us:
+- The compiler can check what is static: value types, alias graphs, theme completeness, and the contrast of token pairs in each theme.
+- Derived values (`calc`, `color-mix`, relative colour) and anything that depends on the DOM stay in CSS.
+- `@property` initial values must be computationally independent, so aliases need a flattened literal plus a live `var()` declaration.
+
+The research recommends typed tokens and themes first, then one build-time check, `css.check.contrast`, per theme. That is for the Themes ticket to decide. Findings: `docs/research/design-tokens.md`.
