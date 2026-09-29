@@ -1,23 +1,29 @@
 # CSS in TS
 
+### Authoring surface (decided 2026-09-29, cssints-5dbi)
+
+- **Import.** `with { type: "cssints" }` marks code that runs at build time: cssints itself, plugins such as icons, and your own helper modules. The plugin finds call sites by this attribute. Runtime helpers (`cx`, `_cv`) are imported without it. Using a build-time member without the attribute is a build error.
+- **Names.** Every mdn property as camelCase (`paddingLeft`, `alignItems`, `justifyContent`), plus a short set: `p pt pr pb pl`, `m mt mr mb ml`, `bg`. Everything is available both as named exports and through the namespace (`css.p`). There is no `items` or `justify`: they were ambiguous (`align-items` or `align-content`, `justify-content` or `justify-items`).
+- **Numbers.** A bare number is a spacing step of 0.25rem in `padding*`, `margin*`, `gap*` and `inset*` (`p(4)` is `1rem`). In any other property it is a CSS `<number>`.
+- **Values.** A property takes one or more parts joined by a space. Each part is a string or a Typed OM value: `border("1px solid", accent)`, `padding(CSS.rem(1), CSS.rem(2))`, `padding("1rem 2rem")`. Parts are checked against the mdn grammar in types and again at build time.
+- **Layout contexts.** `flex()` and `grid()` set `display` and chain only their container properties. Names drop only the context prefix: `flex().direction("column").wrap("wrap").alignItems("center").justifyContent("space-between")`, `grid().templateColumns("1fr 2fr").gap(4)`. Plain styles do not chain; merge them with `cn(...)` or `cx(...)`. Item properties (`flexGrow`, `alignSelf`, `gridColumn`, `order`) are plain functions.
+
 ### Basic usage
 
 ```tsx
-import { cx } from "css-variants";
-import { display, alignItems, justifyContent, padding } from "cssints" with { type: "cssints" };
+import { cx } from "cssints";
+import { alignItems, justifyContent, p } from "cssints" with { type: "cssints" };
 import * as css from "cssints" with { type: "cssints" };
 
-<div className={cx(display("flex"), alignItems("center"), justifyContent("center"), prop && padding(4))}>
-	Hello, world!
-</div>;
-// or with shorthands
-<div className={cx(css.flex(css.items("center"), css.justify("center")), prop && css.p(4))}>Hello, world!</div>;
+<div className={cx(css.display("flex"), alignItems("center"), justifyContent("center"), prop && p(4))}>Hello, world!</div>;
+// or with a layout context
+<div className={cx(css.flex().alignItems("center").justifyContent("center"), prop && css.p(4))}>Hello, world!</div>;
 ```
 
 Output:
 
 ```tsx
-import { cx } from "css-variants";
+import { cx } from "cssints";
 
 <div className={cx("_fsdfssdf _jdf78hs _jdfsddfs", prop && "_swg4thgf")}>Hello, world!</div>;
 ```
@@ -33,37 +39,24 @@ import { cx } from "css-variants";
 	justify-content: center;
 }
 ._swg4thgf {
-	padding: 0.5rem;
+	padding: 1rem;
 }
 ```
+
+The package that ships `cx` to the browser is decided in the "One runtime package" ticket (cssints-lo9x).
 
 ### Without runtime
 
 ```tsx
 import * as css from "cssints" with { type: "cssints" };
 
-<div className={css.cn(css.flex(css.items("center"), css.justify("center")), css.p(4))}>Hello, world!</div>;
+<div className={css.cn(css.flex().alignItems("center").justifyContent("center"), css.p(4))}>Hello, world!</div>;
 ```
 
 Output:
 
 ```tsx
 <div className="_fsdfssdf _jdf78hs _jdfsddfs _swg4thgf">Hello, world!</div>
-```
-
-```css
-._fsdfssdf {
-	display: flex;
-}
-._jdf78hs {
-	align-items: center;
-}
-._jdfsddfs {
-	justify-content: center;
-}
-._swg4thgf {
-	padding: 0.5rem;
-}
 ```
 
 ### CSS @layer Priority System
@@ -93,7 +86,7 @@ const [md, lg, xl] = media(
 	"screen and min-width > 80rem",
 );
 
-const styles = cx(css.p(2), md(css.pl("8ch"), prop && css.pt("16px")));
+const styles = cx(css.p(2), md(css.pl("8ch"), prop && css.pt("16px")));  // conditions API: cssints-kpq1
 
 <div className={styles}>Hello, world!</div>;
 ```

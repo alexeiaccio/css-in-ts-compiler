@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-29T13:28:04Z
-updated_at: 2026-09-29T13:52:01Z
+updated_at: 2026-09-29T13:53:19Z
 ---
 
 ## Destination
@@ -26,6 +26,7 @@ The API in `docs/API.md` works end to end in `apps/demo` on the Module Runner en
 
 - [How atomic CSS libraries emit and order CSS in Vite](cssints-wx85): one global sorted sheet (layer, condition, shorthand before longhand, class), filled late in build; per-module CSS cannot order rules inside a layer. Findings: docs/research/css-output.md
 - [Engine build cost at scale](cssints-grrd): evaluation is ~90% of plugin time; keeping the cssints library loaded in the runner (clear only app modules) halves it, 500 modules build in 4.7 s instead of 9.7 s. Findings: docs/research/engine-cost.md
+- [Public API shape for 0.1](cssints-5dbi): import attribute `with { type: "cssints" }` marks build-time code; camelCase names + p/m/bg; 0.25rem numbers only for spacing; variadic parts; chaining only on `flex()`/`grid()` with prefix-dropped names. Spec: docs/API.md "Authoring surface"; implementation: [Implement the 0.1 authoring surface in the engine](cssints-7fdc)
 
 ## Not yet specified
 
