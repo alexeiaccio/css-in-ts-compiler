@@ -4,7 +4,7 @@ Date: 2026-09-11. Snapshot of every approach we tried, plus dx-styles and wyw-in
 
 ## The target (unchanged)
 
-From `references.md` (Haz): composable utility functions `md(size(2))`, plugins are just functions, compiled to static CSS by default, dynamic only when needed, class order matters. Our additions: atomic content-hashed classes, `@layer` priority, typed CSS values, tokens via `@property`, LightningCSS at the end.
+From `research/references.md` (Haz): composable utility functions `md(size(2))`, plugins are just functions, compiled to static CSS by default, dynamic only when needed, class order matters. Our additions: atomic content-hashed classes, `@layer` priority, typed CSS values, tokens via `@property`, LightningCSS at the end.
 
 Every macro engine we built fails on the same thing: **arguments are passed to the macro as source text**, not evaluated values. `p(4)` works, `p(space.md)` does not. wyw-in-js exists to solve exactly that problem.
 
@@ -14,7 +14,7 @@ Every macro engine we built fails on the same thing: **arguments are passed to t
 |---|---|---|---|---|---|---|---|
 | 1 | this repo, `cssints` + postprocessor (Mar 2026) | none, Parcel `with {type:"cssints"}` | Parcel macros (never wired) | Parcel only | ~2k + Effect | postprocessor works on placeholder at-rules; no bundler integration ever landed | Parcel-only; `@atomic` placeholder CSS is a second language |
 | 2 | `../oxc-macro` (Apr 2026) | Rust NAPI (oxc visitor) | Node worker pool, loads macro module, calls export with `argsText` | Vite via unplugin | ~2.5k + Rust 850 | works for literals; detoured into Edge.js/WASIX sandbox; last commit "poop" | args are source text; sandbox rabbit hole; NAPI build per platform |
-| 3 | `../tsdown-macro` (Apr 2026) | `rolldown/utils` parseSync (no NAPI) | same worker pool | rolldown/tsdown | ~1.2k | smallest working one; demo in `apps/tsdown-demo` | args are source text; rolldown only; no HMR story |
+| 3 | `../tsdown-macro` (Apr 2026) | `rolldown/utils` parseSync (no NAPI) | same worker pool | rolldown/tsdown | ~1.2k | smallest working one; demo was `apps/tsdown-demo` (deleted) | args are source text; rolldown only; no HMR story |
 | 4 | `../macros` (27 Apr 2026) | Rust `macro-core` (oxc) | QuickJS via rquickjs, Node VM "later" | unplugin + VFS | Rust 630 + TS ~400 | parser + evaluator + VFS + one integration test; spec is 2k lines (polyfills, csskit typegen, VFS, 3 plugins) | QuickJS cannot import npm packages, so `cssints` itself cannot run in it; spec is 10x the code |
 | 5 | this repo, `lightningcss-napi` + `css-syntax` | own Rust bindings to LightningCSS, AST schema gen | n/a | n/a | large | builds; typed AST | duplicating what `lightningcss` npm already exposes; maintenance sink |
 
@@ -144,12 +144,12 @@ A search of wyw-in-js issues found nothing matching any of the three.
 
 ## Prototype B: own engine on Vite Module Runner
 
-Code lives in `spikes/runner`. No wyw-in-js. Sizes: `plugin.mjs` about 180 lines, `cssints/macro.mjs` about 100 (58 of them generated member exports), `cssints/lib.mjs` 45, `cssints/runtime.mjs` 15. Dependencies: `vite`, `oxc-parser`, `magic-string`, `effect`.
+Code lives in `packages/cssints` (was `spikes/runner`). No wyw-in-js. Sizes: `src/plugin.mjs` about 180 lines, `src/macro.mjs` about 100 (58 of them generated member exports), `src/lib.mjs` 45, `src/runtime.mjs` 15. Dependencies: `vite`, `oxc-parser`, `magic-string`, `effect`.
 
 ```bash
-cd spikes/runner && npm i
-node run.mjs fixtures/risk1.ts fixtures/risk1-chain.ts fixtures/risk2.ts fixtures/risk5.ts
-cd app && npx vite build && node hmr.mjs && ORDER=button-first node hmr.mjs
+bun install
+cd packages/cssints/test && node run.mjs fixtures/risk1.ts fixtures/risk1-chain.ts fixtures/risk2.ts fixtures/risk5.ts
+cd hmr && node hmr.mjs && ORDER=button-first node hmr.mjs
 ```
 
 How it works, per file that imports `cssints`:
@@ -174,10 +174,10 @@ The timing is not a fair comparison. wyw spawns an eval child process per harnes
 
 ### React demo on the prototype
 
-`spikes/runner/app-react` is `apps/demo` with the `with { type: "macro" }` attributes removed and nothing else changed. It uses named imports (`display`, `p`, `bg`, ...), `cv()` with CSS strings, `_cv` and `cx` at runtime, React 18 and JSX.
+`apps/demo` (was `spikes/runner/app-react`) is the old `apps/demo` with the `with { type: "macro" }` attributes removed and nothing else changed. It uses named imports (`display`, `p`, `bg`, ...), `cv()` with CSS strings, `_cv` and `cx` at runtime, React 18 and JSX.
 
 ```bash
-cd spikes/runner/app-react && npx vite build && npx vite preview
+cd apps/demo && bun run build && bun run preview
 ```
 
 - Build passes. All three files (`App.tsx`, `Button.tsx`, `Card.tsx`) compile, including `cv()` whose config becomes a plain object of class strings for `_cv`.
@@ -191,7 +191,7 @@ What the prototype does not have and wyw does:
 
 - **No shaker.** The whole module runs, with all its imports. A component file that imports a DOM-touching library breaks the build. Fixes, in order of cost: run the runner with `happy-dom` globals like wyw does, or strip everything except the `css.*` sites and their bindings before evaluation, which is the shaker wyw took years to stabilize.
 - **Vite only.** Rolldown-based tooling inherits it. webpack, esbuild, Next with Turbopack do not.
-- No processor API, no per-site diagnostics with code frames. Source maps come from `magic-string` (`spikes/runner/map-check.mjs` maps a replaced class back to its `css.*` call).
+- No processor API, no per-site diagnostics with code frames. Source maps come from `magic-string` (`packages/cssints/test/map-check.mjs` maps a replaced class back to its `css.*` call).
 
 Effect is used in one place, the evaluate step. It earned nothing measurable in this prototype. It becomes useful with worker isolation, cancellation on rebuild, and structured diagnostics, none of which exist yet.
 
@@ -208,9 +208,10 @@ Recommendation: continue on the Module Runner. Port the real API from `docs/API.
 
 ## Types: generator from mdn-data
 
-Code lives in `spikes/typegen`. `gen.mjs` is about 200 lines: a parser for CSS value-definition syntax, a shape classifier, and an emitter. Output is `out/properties.ts` and `out/values.ts`, checked with `tsc --strict` in `out/check.ts`.
+Code lived in `spikes/typegen` (deleted, in git history). `gen.mjs` is about 200 lines: a parser for CSS value-definition syntax, a shape classifier, and an emitter. Output is `out/properties.ts` and `out/values.ts`, checked with `tsc --strict` in `out/check.ts`.
 
 ```bash
+# historical: spikes/typegen was deleted in the repo restructure (cssints-vq75); it is in git history
 cd spikes/typegen && node gen.mjs && (cd out && ../../../node_modules/.bin/tsc -p tsconfig.json)
 ```
 
@@ -236,10 +237,10 @@ Remaining work for real use: JSDoc from `@mdn/browser-compat-data`, camelCase na
 
 ## Types, take two: a type-level recognizer
 
-Code lives in `spikes/typelevel`. `css.ts` is 202 lines of types: a lexer and parser for the mdn value-definition syntax, and a recognizer that checks a string literal against the parsed grammar. `mdn.ts` holds grammar strings verbatim from mdn-data (`extract.mjs` copies a property set plus the closure of `<refs>` it uses). No generated types.
+Code lives in `packages/css-grammar` (was `spikes/typelevel`). `css.ts` is 202 lines of types: a lexer and parser for the mdn value-definition syntax, and a recognizer that checks a string literal against the parsed grammar. `mdn.ts` holds grammar strings verbatim from mdn-data (`extract.mjs` copies a property set plus the closure of `<refs>` it uses). No generated types.
 
 ```bash
-cd spikes/typelevel && node extract.mjs padding width border color display && ../../node_modules/.bin/tsc -p tsconfig.json
+cd packages/css-grammar && node scripts/extract.mjs padding width border color display && bunx tsc -p tsconfig.json
 ```
 
 The API this gives:
@@ -302,7 +303,7 @@ arktype 2.2.3, `ark/type/parser`, about 850 lines for the string parser. What tr
 
 **The dual API is one parser written twice, line for line.** Every step exists as a runtime function and as a type with the same name and shape: `parseOperator(s: RuntimeState)` next to `parseOperator<s extends StaticState, $, args>`, `parseUntilFinalizer` next to `parseUntilFinalizer<s, $, args>`, `Scanner.shiftUntil` next to `scanner.shiftUntil`. Both operate on the same state record: `{ root, branches, groups, finalizer, scanned, unscanned }`. The type version is `StaticState`, the runtime version is `RuntimeState`, and the transitions are the same transitions. That is the discipline that keeps the two from drifting: you do not port the runtime to types, you write each transition twice in adjacent lines.
 
-For us this means the grammar parser and the recognizer in `spikes/typelevel/css.ts` get a runtime twin with the same node shapes, and the build-time check through the runner is the twin, not LightningCSS or Effect Schema. One grammar table, one parser design, two executions.
+For us this means the grammar parser and the recognizer in `packages/css-grammar/src/css.ts` get a runtime twin with the same node shapes, and the build-time check through the runner is the twin, not LightningCSS or Effect Schema. One grammar table, one parser design, two executions.
 
 **Parsing is a shift-reduce machine over the raw string, no token array.** `Scanner.shift<lookahead, unscanned>` is the one-character `${infer L}${infer R}` pattern; `shiftUntil` accumulates into a string, not a tuple; state advances by rewriting `unscanned`. This is exactly the change that took our `color()` from 1.19 M to 98 k instantiations, arrived at independently. Operators are dispatched on a single lookahead character with a chain of conditionals, which is cheap.
 
@@ -336,7 +337,7 @@ Only the recognizer is invented.
 
 ## Runtime twin of the recognizer
 
-`spikes/typelevel/twin.ts`, about 290 lines. It is the same lexer, parser, and recognizer as `css.ts`, written as functions with the same names in lower case (`Next`/`next`, `Parse`/`parse`, `Consume`/`consume`, `Valid`/`valid`) and the same node shapes. Two differences: alternatives are a flat list, because the cons list only exists for tsc, and `type` nodes keep their numeric range. `consume` returns the set of possible remainders, like the union in the types.
+`packages/css-grammar/src/twin.ts`, about 290 lines. It is the same lexer, parser, and recognizer as `css.ts`, written as functions with the same names in lower case (`Next`/`next`, `Parse`/`parse`, `Consume`/`consume`, `Valid`/`valid`) and the same node shapes. Two differences: alternatives are a flat list, because the cons list only exists for tsc, and `type` nodes keep their numeric range. `consume` returns the set of possible remainders, like the union in the types.
 
 **Where the twin is stricter than the types.** It checks ranges such as `<length-percentage [0,∞]>` on the consumed number, uses a real CSS number pattern (so `"1 rem"` is rejected for the right reason), checks hex digits, rejects empty idents, and repeats `*`, `#`, and `{m,∞}` to a fixpoint instead of stopping after 8.
 
@@ -355,7 +356,7 @@ Only the recognizer is invented.
 
 **One case table.** `cases.ts` holds `[property, value, expected]` rows. `probe.ts` checks them with the types through a mapped type over the table. On a mismatch, the compile error names the disagreeing `[property, value]` pairs. `check.ts` (`node check.ts`, Node 24 strips types) checks the same rows with the twin, plus the rows that only the runtime rejects and the error texts. Both pass on tsc 5.9 and tsgo.
 
-**Wired into the runner.** `spikes/runner/cssints/macro.mjs` calls `valid(prop, value)` for every declaration in `classesOf`. That covers both `css.*` calls and `cv()` configs. `mdn.ts` is regenerated for all 48 properties the runner emits (57 properties and 143 syntaxes with references). All 7 fixtures pass. The new `fixtures/invalid.ts` fails at build time with the two messages above. `app-react` builds, and every declaration in it passed, including `box-shadow`, `transition`, `font-family` lists, and `border` shorthands. The twin does not reach the client bundle.
+**Wired into the runner.** `packages/cssints/src/macro.mjs` calls `valid(prop, value)` for every declaration in `classesOf`. That covers both `css.*` calls and `cv()` configs. `mdn.ts` is regenerated for all 48 properties the runner emits (57 properties and 143 syntaxes with references). All 7 fixtures pass. The new `fixtures/invalid.ts` fails at build time with the two messages above. `app-react` builds, and every declaration in it passed, including `box-shadow`, `transition`, `font-family` lists, and `border` shorthands. The twin does not reach the client bundle.
 
 **Found on the way.**
 
@@ -373,13 +374,13 @@ Only the recognizer is invented.
 
 ### Instantiation budgets
 
-The type-level cost of the recognizer now has a regression test in the style of arktype's `attest`. `node spikes/typelevel/budget.mjs` compiles every `bench/*.ts` file with tsc 5.9 and tsgo in parallel and reads the `Instantiations` count. It subtracts the `bench/empty.ts` baseline (about 13 k) and compares the result with `budget.json`. The test fails if a file goes over 110% of its budget or has the wrong number of type errors (3 in `err.ts`, 0 in every other file). The counts are the same on every run. The current net budgets for tsc and tsgo:
+The type-level cost of the recognizer now has a regression test in the style of arktype's `attest`. `node packages/css-grammar/bench/budget.mjs` compiles every `bench/*.ts` file with tsc 5.9 and tsgo in parallel and reads the `Instantiations` count. It subtracts the `bench/empty.ts` baseline (about 13 k) and compares the result with `budget.json`. The test fails if a file goes over 110% of its budget or has the wrong number of type errors (3 in `err.ts`, 0 in every other file). The counts are the same on every run. The current net budgets for tsc and tsgo:
 
 - one `padding` call: 1.5 k and 2.8 k
 - one `color` call: 91 k and 93 k
 - 200 calls: 195 k and 197 k
 
-As a check, the `S extends string` guard in `Valid` was removed, and the test failed as it should: one `padding` call went to 4.2 k, and 200 calls went to 277 k. After a deliberate change, run `node budget.mjs --update`.
+As a check, the `S extends string` guard in `Valid` was removed, and the test failed as it should: one `padding` call went to 4.2 k, and 200 calls went to 277 k. After a deliberate change, run `node bench/budget.mjs --update`.
 
 ### Top-level DOM access in the runner
 
@@ -395,7 +396,7 @@ Known limit: dependencies in `node_modules` load through Node's own `import()` a
 
 ## Grammar-driven generator and three judges
 
-`spikes/typelevel/gen.ts` is a third interpretation of the same parse tree. Instead of recognizing values, it generates them. Each node becomes a fast-check Arbitrary:
+`packages/css-grammar/test/gen.ts` is a third interpretation of the same parse tree. Instead of recognizing values, it generates them. Each node becomes a fast-check Arbitrary:
 
 - `||` becomes a shuffled non-empty subset, and `&&` a full permutation.
 - `{m,n}`, `#`, `*` and `+` become bounded arrays.
@@ -436,7 +437,7 @@ Dropped. cssints does not use wyw-in-js, so the drafts and repros were deleted w
 
 A full switch would only move the Chrome disagreements. The twin parses 1384 of webref's 1396 grammars; all 12 failures are quoted delimiters, the same gap as `calc-sum` under mdn-data.
 
-Decision: keep mdn-data verbatim, and copy a range only when webref's grammar with the same name uses that type with that one range. A range on a union type such as `<length-percentage>` also applies to its members. This adds `[0,∞]` to `flex-grow`, `flex-shrink`, `row-gap`, `column-gap`, `line-height` and `<line-width>`. Both packages are pinned and named in the `mdn.ts` header. Agreement with Chrome went from 1863 to 1892 of 1950. The one negative value left is `transition: linear -100s`: both sources put the range only on the `transition-duration` longhand. The budgets did not change. `node extract.mjs` with no arguments regenerates for every property in the runner's `PROPS`.
+Decision: keep mdn-data verbatim, and copy a range only when webref's grammar with the same name uses that type with that one range. A range on a union type such as `<length-percentage>` also applies to its members. This adds `[0,∞]` to `flex-grow`, `flex-shrink`, `row-gap`, `column-gap`, `line-height` and `<line-width>`. Both packages are pinned and named in the `mdn.ts` header. Agreement with Chrome went from 1863 to 1892 of 1950. The one negative value left is `transition: linear -100s`: both sources put the range only on the `transition-duration` longhand. The budgets did not change. `node scripts/extract.mjs` with no arguments regenerates for every property in the runner's `PROPS`.
 
 ## Typed OM values inside CSS strings
 
@@ -444,7 +445,7 @@ A property function takes several parts, each a plain string or a Typed OM style
 
 Tagged templates were checked and rejected. With tsc 5.9 and tsgo alike, the `strings` of a tagged template are plain `TemplateStringsArray`, and a plain template argument widens an object value to `${string}`.
 
-The values (`spikes/typelevel/values.ts`) are small classes in the Typed OM style: `CSSUnitValue`, `CSSColorValue`, and `CSS.px`/`rem`/`em`/`percent`/`number`. They serialize with `toString()`, and their static type records the CSS type.
+The values (`packages/css-grammar/src/values.ts`) are small classes in the Typed OM style: `CSSUnitValue`, `CSSColorValue`, and `CSS.px`/`rem`/`em`/`percent`/`number`. They serialize with `toString()`, and their static type records the CSS type.
 
 - **Types:** each value is one sentinel token, `⟨length⟩` or `⟨color⟩`. The token matches that type's primitive, the primitives that include it, or a named syntax of the same name. This needed two small edits in `css.ts`, and `api-typed.ts` joins the parts.
 - **Build time:** the real text is joined and checked by the twin.
@@ -465,7 +466,7 @@ A bad part names its token, as in `border: unexpected "⟨length⟩" in "1px sol
 
 Some values that Chrome rejects are valid by the grammar, for two reasons.
 
-**Browser support: warnings.** `spikes/typelevel/support.ts` looks up the property, then each keyword and function name of the value, in `@mdn/browser-compat-data` 8.1.3:
+**Browser support: warnings.** `packages/css-grammar/src/support.ts` looks up the property, then each keyword and function name of the value, in `@mdn/browser-compat-data` 8.1.3:
 
 - the property itself as `css.properties.<p>`;
 - a keyword as `css.properties.<p>.<k>`, then `css.types.<T>.<k>`;
@@ -473,7 +474,7 @@ Some values that Chrome rejects are valid by the grammar, for two reasons.
 
 `T` is limited to types the property's grammar can reach; otherwise `overflow: scroll` would hit an unrelated timeline type. Targets come from browserslist `defaults`, or the `BROWSERSLIST` env var. Only the plain form counts (no prefix, alternative name or flag), and missing data never warns. The plugin prints these with `this.warn` and never fails the build.
 
-**Prose rules: errors.** `spikes/typelevel/rules.ts` holds validity rules written in spec text, not in the grammar, and throws like the twin:
+**Prose rules: errors.** `packages/css-grammar/src/rules.ts` holds validity rules written in spec text, not in the grammar, and throws like the twin:
 
 - `transition`: `none` is valid only in a one-item list (css-transitions-1 §2.5).
 - `font-family`: no generic or CSS-wide keyword inside an unquoted family name (css-fonts-4 §2.1.1). This is stricter than Chrome, which checks only the first word.
@@ -529,7 +530,7 @@ Support warnings are quieter:
 
 We had claimed the engine's HMR was correct by construction. It was not.
 
-**The model.** `spikes/runner/spec/runner.qnt` (~200 lines) models the plugin in a dev server. Its state holds:
+**The model.** `packages/cssints/test/spec/runner.qnt` (~200 lines) models the plugin in a dev server. Its state holds:
 - file versions and the ssr module graph;
 - runner fetches in flight and the runner cache;
 - the process-global registry and `depsOf`;
@@ -559,3 +560,20 @@ The cost is that every transform re-evaluates the cssints library. After the fix
 - A token module that only did `new CSSColorValue(...)` had no sites, so it passed through untouched. Its `import { CSSColorValue } from "cssints"` then pulled `macro.mjs`, with the twin and BCD, into the client.
 
 Values used at runtime are strings in the client. `toString()` gives the same text, but `.value` and `.unit` are gone there.
+
+## Repo layout (2026-09-29, cssints-vq75)
+
+The spikes became workspace packages in one bun workspace. The old approaches were deleted; they are in git history before this change.
+
+| Now | Was |
+|---|---|
+| `packages/cssints` (`src/`: plugin and library, `test/`: fixtures, spec, hmr app) | `spikes/runner` |
+| `packages/css-grammar` (`src/`, `test/`, `bench/`, `scripts/extract.mjs`) | `spikes/typelevel` |
+| `apps/demo` | `spikes/runner/app-react` |
+| `packages/variants` | `packages/cssints-variants` |
+| `docs/research/`, `docs/archive/` | `docs/*.md`, `docs/superpowers/` |
+| deleted | `packages/lightningcss-napi`, old `packages/cssints` (Parcel), `apps/demo` (oxc-macro), `apps/tsdown-demo`, `spikes/typegen` |
+
+`@cssints/css-grammar` exports its sources directly (`@cssints/css-grammar/twin` → `src/twin.ts`); `macro.mjs` imports it by name instead of `../../typelevel/`. Budgets and the `mdn.ts` output did not change.
+
+Known gap: `spec/mbt.mjs` fails under bun's isolated linker. `@firfi/itf-trace-parser` has `effect` as an optional peer and gets the hoisted Effect 4 (`Schema.pattern is not a function`) instead of the Effect 3 of `@firfi/quint-connect`. npm nested it correctly.

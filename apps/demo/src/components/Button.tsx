@@ -1,4 +1,4 @@
-import { display, items, justify, p, bg, color, borderRadius, fontWeight, transition, border, cursor, fontSize, height, width } from "cssints" with { type: "macro" };
+import { display, items, justify, p, bg, color, borderRadius, fontWeight, transition, border, cursor, fontSize, height, width } from "cssints";
 import { cx } from "cssints";
 
 const base = [

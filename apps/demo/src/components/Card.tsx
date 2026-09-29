@@ -1,9 +1,9 @@
-import { cv } from "cssints" with { type: "macro" };
+import { cv } from "cssints";
 import { _cv, cx } from "cssints";
 import {
 	display, flexDirection, gap, padding, fontSize, fontWeight,
 	color, lineHeight, justify,
-} from "cssints" with { type: "macro" };
+} from "cssints";
 
 const rootConfig = cv({
 	base: "background-color: white; border-radius: 0.5rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.1)",

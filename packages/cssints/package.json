@@ -1,38 +1,33 @@
 {
 	"name": "cssints",
-	"version": "1.0.0",
-	"description": "Type-safe CSS-in-TS compiler with Parcel macros and LightningCSS",
+	"version": "0.0.0",
+	"private": true,
 	"type": "module",
 	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js"
-		},
-		"./ast": {
-			"types": "./dist/ast/index.d.ts",
-			"import": "./dist/ast/index.js"
-		},
-		"./variants": {
-			"types": "./dist/variants.d.ts",
-			"import": "./dist/variants.js"
-		}
+		".": "./src/index.mjs",
+		"./layers.css": "./src/layers.css",
+		"./vite": "./src/plugin.mjs"
 	},
+	"sideEffects": false,
 	"scripts": {
-		"build": "tsc",
-		"dev": "tsc --watch",
-		"test": "vitest run",
-		"test:watch": "vitest"
+		"test": "cd test && node run.mjs fixtures/risk*.ts fixtures/typed*.ts fixtures/tokens-typed.ts && ! node run.mjs fixtures/invalid.ts > /dev/null && node map-check.mjs && node spec/race.mjs && cd hmr && node hmr.mjs && ORDER=button-first node hmr.mjs",
+		"test:mbt": "cd test && node spec/mbt.mjs"
 	},
 	"dependencies": {
-		"effect": "^4.0.0-beta.30",
-		"lightningcss": "^1.32.0"
-	},
-	"devDependencies": {
-		"@parcel/macros": "^2.12.0",
-		"typescript": "^5.0.0",
-		"vitest": "^3.0.0"
+		"@cssints/css-grammar": "workspace:*",
+		"effect": "4.0.0-beta.107",
+		"happy-dom": "^20.14.5",
+		"magic-string": "^0.30.0",
+		"oxc-parser": "^0.149.0"
 	},
 	"peerDependencies": {
-		"unplugin-parcel-macros": "^0.2.0"
+		"vite": "^8.3.0"
+	},
+	"devDependencies": {
+		"@firfi/quint-connect": "^2.1.0",
+		"@jridgewell/trace-mapping": "^0.3.31",
+		"lightningcss": "^1.32.0",
+		"vite": "^8.3.0",
+		"zod": "^4.6.5"
 	}
 }

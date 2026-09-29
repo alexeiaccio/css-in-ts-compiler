@@ -1,10 +1,9 @@
-import { oxcMacro } from "oxc-macro/vite";
-import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
+import cssints from "cssints/vite";
+
 export default defineConfig({
-	plugins: [
-		oxcMacro() as any,
-		react(),
-	],
+  plugins: [cssints()],
+  css: { transformer: "lightningcss" },
+  build: { cssMinify: "lightningcss", minify: false },
 });

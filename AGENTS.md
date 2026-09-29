@@ -2,48 +2,36 @@
 
 This repository is a CSS-in-TypeScript compiler with hash-based class names, following StyleX and vanilla-extract patterns.
 
+## Layout
+
+```
+packages/cssints       Vite plugin on the Module Runner (src/plugin.mjs) + the cssints library (src/)
+                       test/: fixtures, run.mjs, map-check.mjs, spec/ (Quint model, race, mbt), hmr/ app
+packages/css-grammar   type-level recognizer (src/css.ts) + runtime twin (src/twin.ts) over mdn-data grammars,
+                       Typed OM values, BCD support warnings, prose rules; test/, bench/ (instantiation budgets)
+packages/variants      @cssints/variants runtime (cx, _cv, _scv)
+packages/plugin-icon   icon plugin (not yet ported to the new engine)
+apps/demo              React demo on the plugin
+docs/wayfinder.md      decisions and findings log (start here); docs/API.md target API
+docs/research/         comparisons with other libraries; docs/archive/ outdated plans
+```
+
 ## Commands
 
-### Build & Development
-
 ```bash
-# Build all packages
-bun run build
+bun install
+bun run test                                  # all packages (turbo)
+bun run bench                                 # css-grammar instantiation budgets (tsc + tsgo)
 
-# Development mode
-bun run dev
+cd packages/cssints && bun run test           # fixtures, source maps, HMR races, hmr app
+cd packages/cssints/test && node run.mjs fixtures/risk1.ts   # one fixture: prints code and css
+cd packages/css-grammar && bun run test       # twin + type checks, support/prose rules, tsc
+cd packages/css-grammar && bun run extract    # regenerate src/mdn.ts from mdn-data + @webref/css
+cd packages/css-grammar && node bench/budget.mjs --update    # after a deliberate type-cost change
+cd apps/demo && bun run build
 ```
 
-### lightningcss-napi (Rust NAPI bindings)
-
-```bash
-# Build native module (debug)
-cd packages/lightningcss-napi && npx napi build --platform
-
-# Build native module (release)
-cd packages/lightningcss-napi && npx napi build --platform --release
-
-# Run tests
-cd packages/lightningcss-napi && bunx vitest run
-
-# Generate ast.json (requires --features schema)
-cd packages/lightningcss-napi && cargo run --bin generate-ast --features schema
-```
-
-### Testing
-
-```bash
-# Run all tests
-bun test
-
-# Run single test file
-bun test --run packages/compiler/src/__tests__/compiler.test.ts
-# or with vitest directly
-vitest run packages/compiler/src/__tests__/compiler.test.ts
-
-# Run specific test pattern
-bun test --run -t "should generate hash-based class names"
-```
+Plain `.ts` files run with `node` (type stripping), no build step.
 
 ### Linting & Formatting
 
@@ -419,10 +407,7 @@ export class WriteError extends FileError {}
 
 ### File Structure
 
-- Core compiler code in `packages/compiler/src/`
-- CSS-in-TS utilities in `packages/cssints/src/`
-- Tests co-located in `tests/` or test files alongside source
-- Generated types in separate `.gen.ts` files
+See "Layout" above. Each package has `src/` and `test/`; generated files are written by a script in the package (`scripts/`).
 
 ### OXC Linting Rules
 
@@ -437,8 +422,19 @@ All TypeScript and correctness rules enforced as errors:
 ## Notes
 
 - This is a monorepo using Turborepo
-- Bun is the package manager and test runner
+- Bun is the package manager; tests are plain `node` scripts run through `bun run test`
 - Effect TS 4 Beta is used for functional patterns
 - OXC parser/transformer for AST manipulation
-- Vite plugins: Both AST-based (oxc) and regex-based (legacy)
+- One Vite plugin, `cssints/vite`: oxc finds `css.*` sites, the Vite Module Runner evaluates them
 - API documentation: `docs/API.md` (primary reference)
+
+<!-- BEGIN:turborepo-agent-rules -->
+
+# This is NOT the Turborepo you know
+
+Turborepo configuration, task behavior, and CLI commands can vary between installed versions and may differ from your training data. Resolve the `turbo` package from this file's directory or relevant workspace; in monorepos, it may not be visible from the repository root. For example, run `node -p "require.resolve('turbo/package.json')"` from a workspace that depends on `turbo`.
+
+Read `docs/README.md` inside that installed package first, then read the relevant pages from its `docs/` directory before changing Turborepo configuration or commands. Heed deprecation notices. These bundled docs match the installed package version and are available without network access.
+
+This block is written and re-added by `turbo` before repository-scoped commands when an AI agent is detected. In the Turborepo source repository, its template is defined in `crates/turborepo-cli/src/cli/agent_guidance.rs`. Removing the managed block while updates are enabled means a later qualifying invocation will add it again. Set `"agentGuidance": false` in the root `turbo.json` or `turbo.jsonc` to opt out; this does not remove an existing block. Keep the block committed with your work to avoid an uncommitted change on the next agent invocation.
+<!-- END:turborepo-agent-rules -->

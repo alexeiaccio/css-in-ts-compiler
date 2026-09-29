@@ -13,7 +13,7 @@ import {
 	display, flexDirection, gap, padding, fontSize, fontWeight,
 	color, fontFamily, bg, borderRadius, border, margin, marginTop,
 	marginBottom, maxWidth, flexWrap,
-} from "cssints" with { type: "macro" };
+} from "cssints";
 import { Button } from "./components/Button.js";
 import { Card } from "./components/Card.js";
 

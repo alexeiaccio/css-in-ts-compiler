@@ -16,8 +16,6 @@
 	"ignorePatterns": [
 		"**/node_modules/**",
 		"**/dist/**",
-		"**/.turbo/**",
-		"packages/lightningcss/**",
-		"packages/webref/**"
+		"**/.turbo/**"
 	]
 }
