@@ -3,14 +3,16 @@
 title: 'Typed public surface: property functions for users'
 status: todo
 type: task
+priority: normal
 tags:
     - wayfinder:prototype
 created_at: 2026-09-29T13:28:04Z
-updated_at: 2026-09-29T13:28:04Z
+updated_at: 2026-09-29T15:52:13Z
 parent: cssints-vy0o
 blocked_by:
     - cssints-5dbi
     - cssints-unkt
+    - cssints-lmru
 ---
 
 ## Question

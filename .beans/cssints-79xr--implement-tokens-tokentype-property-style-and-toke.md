@@ -7,11 +7,12 @@ priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-09-29T14:29:55Z
-updated_at: 2026-09-29T14:34:21Z
+updated_at: 2026-09-29T15:52:13Z
 parent: cssints-vy0o
 blocked_by:
     - cssints-vzd9
     - cssints-djzw
+    - cssints-mjgx
 ---
 
 ## Question
