@@ -44,7 +44,7 @@ export function next(s: string): [Tok, string] {
     const [lo, hi = lo] = m[1]!.split(",") as [string, string?];
     return [{ t: "range", lo, hi: hi || "∞" }, s.slice(m[0].length)]; // `{A,}` is open
   }
-  if ((m = /^[[\]()|?*+#!,/]/.exec(s))) return [{ t: "p", v: m[0] }, s.slice(1)];
+  if ((m = /^[[\]()|?*+#!,/;]/.exec(s))) return [{ t: "p", v: m[0] }, s.slice(1)];
   if ((m = /^[^()[\]|&?*+#!,/{}<>' \n\t]+(?=[ \n\t]|$)/.exec(s)))
     return [{ t: "kw", v: m[0] }, s.slice(m[0].length)];
   const w = /^[A-Za-z0-9_-]*/.exec(s)![0];
@@ -131,7 +131,7 @@ function parseTerm(s: string): [Node, string] {
   if (t.t === "type")
     return mult(t.lo === undefined ? ["type", t.v] : ["type", t.v, t.lo, t.hi], r);
   if (t.t === "prop" || t.t === "kw") return mult([t.t, t.v], r);
-  if (t.t === "p" && (t.v === "," || t.v === "/")) return mult(["lit", t.v], r);
+  if (t.t === "p" && (t.v === "," || t.v === "/" || t.v === ";")) return mult(["lit", t.v], r);
   if (t.t === "lit") return mult(["lit", t.v], r);
   throw bad(`grammar: unexpected token at "${s}"`, s, ["a term"]);
 }
@@ -233,16 +233,99 @@ function declarationValue(s: string): number {
   }
   return depth || !s ? -1 : s.length;
 }
+// The grammars want `:` and `/` as tokens of their own (`<mf-plain>` is `<mf-name> : <mf-value>`), while a query
+// writes `(width:40rem)` and `16/9`: space them out first, as `ValidQuery` (query.ts) does.
+export const spaced = (q: string) => q.replace(/[:/]/g, " $& ");
+
+// `s` is what follows an opening bracket: the index of the `)` that closes it (-1 when it never does) and of every
+// top-level `sep` before it. Quotes are skipped, brackets nest.
+function args(s: string, sep: string): { end: number; at: number[] } {
+  const at: number[] = [];
+  let depth = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]!;
+    if (c === '"' || c === "'") {
+      i = s.indexOf(c, i + 1);
+      if (i < 0) break;
+    } else if ("([{".includes(c)) depth++;
+    else if (")]}".includes(c)) {
+      if (!depth) return { end: c === ")" ? i : -1, at };
+      depth--;
+    } else if (c === sep && !depth) at.push(i);
+  }
+  return { end: -1, at };
+}
+
+// `if( [ <if-branch> ; ]* <if-branch> ;? )` (css-values-5 §if): the lexer has no `;` and `:` tokens, so the branches are
+// split there and each condition is matched against <if-condition>. The value of a branch is any <declaration-value>?.
+function ifCall(s: string): number {
+  if (!s.startsWith("if(")) return -1;
+  const body = s.slice(3);
+  const { end, at } = args(body, ";");
+  if (end < 0) return -1;
+  const cuts = [-1, ...at, end];
+  const branches = cuts.slice(1).map((e, i) => body.slice(cuts[i]! + 1, e).trim());
+  if (branches.at(-1) === "") branches.pop();
+  const branch = (b: string) => {
+    const [i] = args(`${b})`, ":").at;
+    if (i === undefined) return false;
+    const cond = trim(spaced(b.slice(0, i)));
+    const value = b.slice(i + 1).trim();
+    const ctx: Ctx = { len: cond.length, far: -1, expected: new Set() };
+    return (
+      consume(parseGrammar(syns["if-condition"]!), cond, ctx).has("") &&
+      (value === "" || declarationValue(value) === value.length)
+    );
+  };
+  return branches.length && branches.every(branch) ? end + 4 : -1;
+}
 const SCAN: Record<string, (s: string) => number> = {
   string: (s) => STRING.exec(s)?.[0].length ?? -1,
   url: (s) => URL_RE.exec(s)?.[0].length ?? -1,
   "declaration-value": declarationValue,
+  "if()": ifCall,
 };
+
+// Relative colour (css-color-5 §4.2 to §4.9, §5.1): `from <color>` is in the grammar, the component keywords are only in
+// the prose of each function, so they are here. A function with a `from` opens a scope (`Ctx.ch`) in which a channel
+// keyword, a var() or a calc() over those stands for a <number>, <percentage> or <angle>. The scope of a colour() is
+// `alpha` plus the keywords of its color space, the first one of these names among its top-level tokens.
+const RGB = ["r", "g", "b", "alpha"],
+  HSL = ["h", "s", "l", "alpha"],
+  LAB = ["l", "a", "b", "alpha"],
+  LCH = ["l", "c", "h", "alpha"];
+const CHANNELS = new Map<string, string[]>([
+  ["rgb", RGB],
+  ["rgba", RGB],
+  ["hsl", HSL],
+  ["hsla", HSL],
+  ["hwb", ["h", "w", "b", "alpha"]],
+  ["lab", LAB],
+  ["oklab", LAB],
+  ["lch", LCH],
+  ["oklch", LCH],
+  ["color", ["alpha"]],
+]);
+const SPACES = new Map<string, readonly string[]>([
+  ...syns["predefined-rgb"]!.split(" | ").map((k) => [k, ["r", "g", "b"]] as const),
+  ...syns["xyz-space"]!.split(" | ").map((k) => [k, ["x", "y", "z"]] as const),
+]);
+function spaceChannels(body: string): readonly string[] {
+  let b = body.slice(0, args(body, "").end);
+  for (let p = ""; p !== b; ) [p, b] = [b, b.replace(/\([^()]*\)/g, "")];
+  return (
+    b
+      .split(/\s+/)
+      .map((k) => SPACES.get(k))
+      .find(Boolean) ?? []
+  );
+}
 
 interface Ctx {
   len: number;
   far: number;
   expected: Set<string>;
+  ch?: readonly string[]; // the channel keywords in scope
 }
 // Furthest failure wins: its position is where the value went wrong, its labels are what was expected there.
 function fail(ctx: Ctx, s: string, what: string) {
@@ -284,9 +367,18 @@ export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<strin
     }
     case "fn": {
       if (!s.startsWith(`${n[1]}(`)) return leaf(false, s, `${n[1]}()`);
-      return flatMap(sub(n[2], trim(s.slice(n[1].length + 1))), (r) =>
+      const body = trim(s.slice(n[1].length + 1));
+      const outer = ctx.ch;
+      if (n[1]) {
+        // a named function is its own scope
+        const ch = /^from[ \n\t]/.test(body) ? CHANNELS.get(n[1]) : undefined;
+        ctx.ch = ch && n[1] === "color" ? [...ch, ...spaceChannels(body)] : ch;
+      }
+      const rs = flatMap(sub(n[2], body), (r) =>
         r.startsWith(")") ? new Set([trim(r.slice(1))]) : (fail(ctx, r, label ?? "')'"), NONE),
       );
+      ctx.ch = outer;
+      return rs;
     }
     case "alt":
       return union(n[1].map((x) => sub(x, s)));
@@ -326,6 +418,87 @@ export const magnitude = (t: string): number =>
       ? -Infinity
       : parseFloat(t) * (SCALE[t.replace(NUM_HEAD, "").trim().toLowerCase()] ?? 1);
 
+// Type of a <calc-sum> (css-values-4 §10.9 "Type Checking"): "number", "length" (percentages count as lengths, they
+// resolve against one wherever calc-size() is allowed), another dimension's unit, or undefined when `+`/`-` mix types
+// or `*` multiplies two dimensions. The grammar already checked the shape. `leaf` types a token first; "any" is the
+// type of a var(), which matches every other.
+export function calcType(s: string, leaf?: (t: string) => string | undefined): string | undefined {
+  const toks = s.match(/[()*/]|[+-](?=\s)|[^\s()*/]+/g) ?? [];
+  let i = 0;
+  const both = (a?: string, b?: string) =>
+    a === undefined || b === undefined ? undefined : a === "any" || b === "any" ? "any" : undefined;
+  const value = (): string | undefined => {
+    const t = toks[i++] ?? "";
+    if (t === "(") return ((x) => (i++, x))(sum());
+    return (
+      leaf?.(t) ??
+      (PRIMITIVE.number!.test(t) || /^-?(e|pi|infinity|nan)$/i.test(t)
+        ? "number"
+        : PRIMITIVE["length-percentage"]!.test(t)
+          ? "length"
+          : t.replace(/^[+-]?[\d.]+/, ""))
+    );
+  };
+  const product = () => {
+    let a = value();
+    while (toks[i] === "*" || toks[i] === "/") {
+      const op = toks[i++],
+        b = value();
+      a =
+        both(a, b) ??
+        (a === undefined || b === undefined
+          ? undefined
+          : op === "/"
+            ? b === "number"
+              ? a
+              : undefined
+            : a === "number"
+              ? b
+              : b === "number"
+                ? a
+                : undefined);
+    }
+    return a;
+  };
+  const sum = () => {
+    let a = product();
+    while (toks[i] === "+" || toks[i] === "-") {
+      i++;
+      const b = product();
+      a = both(a, b) ?? (a !== undefined && b === a ? a : undefined);
+    }
+    return a;
+  };
+  return sum();
+}
+
+// Where a <number>, <percentage> or <angle> is expected inside a relative colour (`Ctx.ch`): a channel keyword (a
+// <number>), a var(), or a calc() whose type is the expected one (min(), max() and clamp() are not checked: the twin rejects them).
+function relative(v: string, s: string, ctx: Ctx): Set<string> {
+  if (v !== "number" && v !== "percentage" && v !== "angle") return NONE;
+  const [t, r] = tok1(s);
+  if (v === "number" && ctx.ch!.includes(t.toLowerCase())) return new Set([trim(r)]);
+  if (s.startsWith("var(")) return consumeType(["type", "var()"], s, ctx);
+  if (!s.startsWith("calc(")) return NONE;
+  const { end } = args(s.slice(5), "");
+  if (end < 0) return NONE;
+  const inner = trim(s.slice(5, 5 + end));
+  const own: Ctx = { len: inner.length, far: -1, expected: new Set(), ch: ctx.ch };
+  if (!consume(parseGrammar(syns["calc-sum"]!), inner, own).has("")) return NONE;
+  const kind = calcType(inner.replace(/var\((?:[^()]|\([^()]*\))*\)/g, "⟨var⟩"), (x) =>
+    x === "⟨var⟩"
+      ? "any"
+      : ctx.ch!.includes(x.toLowerCase())
+        ? "number"
+        : PRIMITIVE.percentage!.test(x)
+          ? "percentage"
+          : PRIMITIVE.angle!.test(x)
+            ? "angle"
+            : undefined,
+  );
+  return kind === v || kind === "any" ? new Set([trim(s.slice(6 + end))]) : NONE;
+}
+
 function consumeType(
   [, v, lo, hi]: ["type", string, string?, string?],
   s: string,
@@ -335,7 +508,7 @@ function consumeType(
   let rs: Set<string>;
   if (PRIMITIVE[v]) {
     const [t, r] = tok1(s);
-    rs = PRIMITIVE[v].test(t) ? new Set([trim(r)]) : NONE;
+    rs = PRIMITIVE[v].test(t) ? new Set([trim(r)]) : ctx.ch ? relative(v, s, ctx) : NONE;
   } else if (SCAN[v]) {
     const n = SCAN[v](s);
     rs = n < 0 ? NONE : new Set([trim(s.slice(n))]);

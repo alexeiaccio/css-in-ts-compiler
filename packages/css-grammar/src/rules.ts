@@ -6,7 +6,7 @@
 import { Effect } from "effect";
 
 import { RuleError } from "./errors.ts";
-import { matches } from "./twin-core.ts";
+import { calcType, matches } from "./twin-core.ts";
 
 // Top-level comma split: commas inside (...) or quotes do not count.
 const splitList = (v: string) =>
@@ -14,49 +14,6 @@ const splitList = (v: string) =>
   [];
 
 const CSS_WIDE = new Set(["inherit", "initial", "unset", "revert", "revert-layer", "revert-rule"]);
-
-// Type of a <calc-sum> (css-values-4 §10.9 "Type Checking"): "number", "length" (percentages count as lengths,
-// they resolve against one wherever calc-size() is allowed), another dimension's unit, or undefined when `+`/`-`
-// mix types or `*` multiplies two dimensions. The grammar already checked the shape.
-function calcType(s: string): string | undefined {
-  const toks = s.match(/[()*/]|[+-](?=\s)|[^\s()*/]+/g) ?? [];
-  let i = 0;
-  const value = (): string | undefined => {
-    const t = toks[i++] ?? "";
-    if (t === "(") return ((x) => (i++, x))(sum());
-    if (matches("<number>", t) || /^-?(e|pi|infinity|nan)$/i.test(t)) return "number";
-    return matches("<length-percentage>", t) ? "length" : t.replace(/^[+-]?[\d.]+/, "");
-  };
-  const product = () => {
-    let a = value();
-    while (toks[i] === "*" || toks[i] === "/") {
-      const op = toks[i++],
-        b = value();
-      a =
-        a === undefined || b === undefined
-          ? undefined
-          : op === "/"
-            ? b === "number"
-              ? a
-              : undefined
-            : a === "number"
-              ? b
-              : b === "number"
-                ? a
-                : undefined;
-    }
-    return a;
-  };
-  const sum = () => {
-    let a = product();
-    while (toks[i] === "+" || toks[i] === "-") {
-      i++;
-      a = product() === a ? a : undefined;
-    }
-    return a;
-  };
-  return sum();
-}
 
 // https://drafts.csswg.org/css-values-5/#calc-size (§11): "For either argument, if a <calc-sum> is given, its
 // type must match <length-percentage>". A keyword or nested calc-size() basis is not a <calc-sum>.

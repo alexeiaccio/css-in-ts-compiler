@@ -7,6 +7,7 @@
 //   - each function f(...): css.properties.<P>.<f>_function, else css.properties.<P>.<f> (BCD names some functions
 //                           without the suffix: counter-reset.reversed), else css.types.<f>, else css.types.<T>.<f>
 //   - a quoted string:      css.properties.<P>.string (text-overflow)
+//   - `from` of a relative colour: css.types.color.<f>.relative_syntax, f the function it opens (a syntax shape in BCD)
 // where P is p, then the properties its grammar reaches as <'q'> (flex-basis: fit-content() is under width), and
 // T ranges over the <type>s the grammar reaches (so `scroll` in `overflow` is not mistaken for
 // css.types.timeline-range-name.scroll). Tokens inside strings are ignored; units are not looked up.
@@ -88,10 +89,11 @@ function supports(s: SupportStatement | undefined, v: string): boolean {
   });
 }
 
-// every <type> name reachable from a grammar, without "()", and every <'property'> as "'property"
+// every <type> name reachable from a grammar, without "()", and every <'property'> as "'property". A <declaration>
+// (style() and supports() conditions, which <color> reaches through if()) is any property: not a place to look for one.
 function reach(syntax: string, seen = new Set<string>()): Set<string> {
   for (const [, q, n] of syntax.matchAll(/<('?)([a-z-]+)(?:\(\))?'?(?: \[[^\]]*\])?>/g)) {
-    if (seen.has(q! + n!)) continue;
+    if (seen.has(q! + n!) || (!q && n === "declaration")) continue;
     seen.add(q! + n!);
     const g = q ? props[n!] : (syns[n!] ?? syns[`${n}()`]);
     if (g) reach(g, seen);
@@ -121,16 +123,19 @@ export function supportOf(p: string, v: string, ts: Target[] = DEFAULT): Warning
   const types = reached.filter((t) => get(`css.types.${t}`));
   const owners = [p, ...reached.filter((q) => q.startsWith("'")).map((q) => q.slice(1))];
   const found: [feature: string, key: string][] = [];
-  for (const [tok, fn] of v
-    .replace(/"[^"]*"|'[^']*'/g, "")
-    .matchAll(/(?<![\w.#-])-?[A-Za-z_][\w-]*(\()?/g)) {
+  const code = v.replace(/"[^"]*"|'[^']*'/g, "");
+  for (const { 0: tok, 1: fn, index } of code.matchAll(/(?<![\w.#-])-?[A-Za-z_][\w-]*(\()?/g)) {
     const k = fn ? tok.slice(0, -1) : tok;
-    const keys = [
-      ...owners.map((q) => `css.properties.${q}.${fn ? `${k}_function` : k}`),
-      ...(fn ? owners.map((q) => `css.properties.${q}.${k}`) : []),
-      ...(fn ? [`css.types.${k}`] : []),
-      ...types.map((t) => `css.types.${t}.${k}`),
-    ];
+    // relative colour: BCD has it as a syntax shape, css.types.color.<fn>.relative_syntax; its token is `from`
+    const rel = tok === "from" ? /([a-z-]+)\(\s*$/.exec(code.slice(0, index))?.[1] : undefined;
+    const keys = rel
+      ? [`css.types.color.${rel}.relative_syntax`]
+      : [
+          ...owners.map((q) => `css.properties.${q}.${fn ? `${k}_function` : k}`),
+          ...(fn ? owners.map((q) => `css.properties.${q}.${k}`) : []),
+          ...(fn ? [`css.types.${k}`] : []),
+          ...types.map((t) => `css.types.${t}.${k}`),
+        ];
     const key = keys.find((x) => get(x)?.__compat);
     if (key) found.push([fn ? `${k}()` : k, key]);
   }

@@ -124,9 +124,12 @@ const rangeOnly = (c: Case) => {
     return ((e as { expected?: string[] }).expected ?? []).some((x) => / \[[^\]]*\]>$/.test(x));
   }
 };
+// Nor do they check what follows `from` in a relative colour, or the conditions of an if(): balanced tokens there.
+const opaqueOnly = (c: Case) =>
+  !c.twin && /\b(rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(\s*from\b|\bif\(/.test(c.v);
 const typeFail = [...out.matchAll(/diff\.gen\.ts\((\d+),/g)]
   .map((m) => sample[Number(m[1]) - 5]!)
-  .filter((c) => !rangeOnly(c));
+  .filter((c) => !rangeOnly(c) && !opaqueOnly(c));
 console.log(`\n# types vs twin (tsgo): ${sample.length - typeFail.length}/${sample.length} agree`);
 typeFail.forEach((c) =>
   console.log(`  ${c.p}: ${JSON.stringify(c.v)} twin=${c.twin} types=${!c.twin}`),
