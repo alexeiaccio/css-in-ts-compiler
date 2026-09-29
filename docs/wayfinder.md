@@ -700,3 +700,17 @@ The frame kernel gives the same radii as Ariakit on a nested tree. Both were che
 Reading the parent is the one thing a compiler cannot do, so both kernels use Ariakit's odd/even `@container style()` trick, which sets the floor above. CSS Values 5 `inherit()` would remove the trick and cut the kernels to 12 and 6 lines. It is off by default in Chrome 154, not signalled in Firefox, and behind a flag in WebKit. A lightness step does not guarantee contrast: 4.61:1 on greys, but 3.71:1 on saturated colours.
 
 Decision: not in 0.1. Later, an opt-in module: `frame()` first, then `surface()`. 0.1 keeps only a seam: a global rule by key in a cascade layer `_.k` below `_.a`. Findings: `docs/research/surfaces-frames.md`.
+
+## Plugins and runtime polyfills (cssints-rq2r)
+
+CSS Parser Extensions is one person's explainer, with no spec draft and no implementation, so we plan on nothing native. cssints does not need it: the compiler knows every class it emits, so a runtime polyfill does not have to parse CSS.
+
+**Prototype.** The runtime for `frame()` and `surface()` on browsers without style queries is 730 B gzip (the container-query polyfill is 9.8 kB). It copies each parent's computed value into a custom property.
+- **Correctness.** It matched the style-query version on 2088 values in Chrome 154, Firefox 155 and WebKit 26.6, across three depths, class toggles, inserts, `:hover` and a media query.
+- **Cost.** About 10× the style-query CSS on 5 000 nested elements (about 120 ms in Chrome), but about 2 ms for a small change, so it ships only when a browserslist target needs it.
+- **Floor.** Frames drop to Chrome 99, Firefox 128 and Safari 16.4. Surfaces gain only Firefox 128–150, because relative colour still sets their floor.
+- **Name clashes.** Two plugins' kernels must not share custom-property names, which should be a build error; the prototype broke every radius that way.
+
+**Contract.** A plugin is a build-time module of members (property, style, chaining context, function) plus kernels emitted once by key into `_.k`. It may declare a runtime as data, chosen by BCD, and delivered through a per-plugin virtual module that is empty when no target needs it. Plugin grammar strings feed the existing type-level recognizer unchanged. Icons fit as one mask kernel plus one class per icon, but they need the engine to accept a plugin value (a function) at an attributed site. The five live WebKit-only properties stay a built-in list: LightningCSS passes them through, and they need no behaviour.
+
+Recommendation: no public plugin API in 0.1, only the internal seams (kernel by key in `_.k`, markers on the style node, a BCD `lacking()` helper) and the WebKit list. In 0.2 comes the public contract, with `frame()` and icons as the first consumers. `surface()` comes later. Findings: `docs/research/plugins.md`, prototype in `docs/research/plugins-proto/`.
