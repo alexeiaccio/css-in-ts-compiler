@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:research
 created_at: 2026-09-29T13:28:04Z
-updated_at: 2026-09-29T13:41:20Z
+updated_at: 2026-09-29T13:41:27Z
 parent: cssints-vy0o
 ---
 
