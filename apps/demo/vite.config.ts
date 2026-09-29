@@ -1,9 +1,10 @@
 import { defineConfig } from "vite";
 
-import cssints from "cssints/vite";
+import cssints, { targets } from "cssints/vite";
 
 export default defineConfig({
   plugins: [cssints()],
-  css: { transformer: "lightningcss" },
-  build: { cssMinify: "lightningcss", minify: false },
+  css: { transformer: "lightningcss", lightningcss: { targets } },
+  // cssMinify takes its targets from cssTarget; false leaves the ones above in charge.
+  build: { cssMinify: "lightningcss", cssTarget: false, minify: false },
 });

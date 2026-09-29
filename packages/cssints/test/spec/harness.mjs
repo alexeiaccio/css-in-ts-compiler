@@ -8,6 +8,10 @@ import { createServer } from "vite";
 import cssints from "../../src/plugin.mjs";
 
 export const CLIENT = ["card", "button"];
+const decode = (rem) => {
+  const n = Math.round(Number(rem) * 4);
+  return { self: Math.floor(n / 100) - 1, tokens: (n % 100) - 1 };
+};
 const pad = (v) => `css.p(${100 * (v + 1)} + space.md)`;
 const SOURCE = {
   tokens: (v) => `export const space = { md: ${v + 1} };\n`,
@@ -37,12 +41,13 @@ export async function start() {
       progress++;
     },
   };
+  const plugin = cssints();
   const server = await createServer({
     root,
     configFile: false,
     logLevel: "silent",
     server: { middlewareMode: true, watch: null, ws: false },
-    plugins: [cssints(), spy],
+    plugins: [plugin, spy],
   });
   const client = server.environments.client;
   const errors = [];
@@ -62,13 +67,15 @@ export async function start() {
     const r = mod?.transformResult ?? (typeof mod?.invalidationState === "object" ? mod.invalidationState : null);
     if (!r) return null;
     const cls = r.code.match(new RegExp(`${c} = "([^"]+)"`))[1].split(" ");
-    const rem = cls.map((k) => globalThis.__cssints.rules.get(k)?.match(/padding:([\d.]+)rem/)?.[1]).find(Boolean);
-    const n = Math.round(Number(rem) * 4);
-    return { src: Number(r.code.match(/src = (\d+)/)[1]), self: Math.floor(n / 100) - 1, tokens: (n % 100) - 1 };
+    const rem = cls.map((k) => globalThis.__cssints.rules.get(k)?.css.match(/padding:([\d.]+)rem/)?.[1]).find(Boolean);
+    return { src: Number(r.code.match(/src = (\d+)/)[1]), ...decode(rem) };
   };
+  // The padding rules in the plugin's sheet, as { self, tokens } (card and button share a rule when they agree).
+  const sheet = () => [...plugin[0].api.sheet().matchAll(/padding:([\d.]+)rem/g)].map((m) => decode(m[1]));
 
   return {
     disk,
+    sheet,
     errors,
     settle,
     served,

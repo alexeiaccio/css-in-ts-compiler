@@ -32,7 +32,8 @@ const classesOf = (decls) => {
       if (!registry.warned.has(k)) registry.warned.add(k), registry.warnings.push(message(d[0], d[1], w));
     }
     if (!out.includes(cls)) out.push(cls);
-    registry.rules.set(cls, `@layer _.a{.${cls}{${d[0]}:${d[1]}}}`);
+    // cond: the condition's sort key (min-width, pseudo-class order), [] until conditions land. plugin.mjs sorts.
+    registry.rules.set(cls, { layer: "_.a", cond: [], prop: d[0], css: `.${cls}{${d[0]}:${d[1]}}` });
   }
   return out.join(" ");
 };

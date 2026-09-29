@@ -1,4 +1,4 @@
-import "cssints/layers.css";
+import "virtual:cssints.css";
 
 import { button } from "./button";
 import { card } from "./card";

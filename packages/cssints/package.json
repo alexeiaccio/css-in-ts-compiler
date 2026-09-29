@@ -5,19 +5,20 @@
 	"type": "module",
 	"exports": {
 		".": "./src/index.mjs",
-		"./layers.css": "./src/layers.css",
 		"./vite": "./src/plugin.mjs"
 	},
 	"sideEffects": false,
 	"scripts": {
-		"test": "cd test && node run.mjs fixtures/risk*.ts fixtures/typed*.ts fixtures/tokens-typed.ts fixtures/helper-use.ts && ! node run.mjs fixtures/invalid.ts > /dev/null && node run.mjs fixtures/no-attribute.ts | grep -q \"without the attribute\" && node run.mjs fixtures/chain-error.ts | grep -q \"has no .padding()\" && node contexts.mjs && node map-check.mjs && node spec/race.mjs && cd hmr && node hmr.mjs && ORDER=button-first node hmr.mjs",
+		"test": "cd test && node run.mjs fixtures/risk*.ts fixtures/typed*.ts fixtures/tokens-typed.ts fixtures/helper-use.ts fixtures/order.ts && ! node run.mjs fixtures/invalid.ts > /dev/null && node run.mjs fixtures/no-attribute.ts | grep -q \"without the attribute\" && node run.mjs fixtures/chain-error.ts | grep -q \"has no .padding()\" && node contexts.mjs && node map-check.mjs && node sheet.mjs && node spec/race.mjs && cd hmr && node hmr.mjs && ORDER=button-first node hmr.mjs",
 		"test:mbt": "cd test && node spec/mbt.mjs"
 	},
 	"dependencies": {
 		"@cssints/css-grammar": "workspace:*",
 		"effect": "4.0.0-beta.107",
 		"happy-dom": "^20.14.5",
+		"lightningcss": "^1.32.0",
 		"magic-string": "^0.30.0",
+		"mdn-data": "2.27.1",
 		"oxc-parser": "^0.149.0"
 	},
 	"peerDependencies": {
@@ -25,7 +26,6 @@
 	},
 	"devDependencies": {
 		"@jridgewell/trace-mapping": "^0.3.31",
-		"lightningcss": "^1.32.0",
 		"vite": "^8.3.0"
 	}
 }

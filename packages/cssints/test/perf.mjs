@@ -59,7 +59,7 @@ export function ${name}({ loud = false }: { loud?: boolean }) {
 }
 `);
   });
-  w("src/main.tsx", `import "cssints/layers.css";\nimport { createRoot } from "react-dom/client";\n${names.map((c) => `import { ${c} } from "./components/${c}";`).join("\n")}\ncreateRoot(document.getElementById("root")!).render(<>${names.map((c) => `<${c} />`).join("")}</>);\n`);
+  w("src/main.tsx", `import "virtual:cssints.css";\nimport { createRoot } from "react-dom/client";\n${names.map((c) => `import { ${c} } from "./components/${c}";`).join("\n")}\ncreateRoot(document.getElementById("root")!).render(<>${names.map((c) => `<${c} />`).join("")}</>);\n`);
   try {
     symlinkSync(join(import.meta.dirname, "../../../apps/demo/node_modules"), join(dir, "node_modules"));
   } catch {}
