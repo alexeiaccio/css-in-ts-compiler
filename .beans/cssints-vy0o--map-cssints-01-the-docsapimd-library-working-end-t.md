@@ -3,10 +3,11 @@
 title: 'Map: cssints 0.1, the docs/API.md library working end to end'
 status: todo
 type: epic
+priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-29T13:28:04Z
-updated_at: 2026-09-29T13:28:04Z
+updated_at: 2026-09-29T13:44:46Z
 ---
 
 ## Destination
@@ -22,6 +23,8 @@ The API in `docs/API.md` works end to end in `apps/demo` on the Module Runner en
 - Parallel work goes in `.worktrees/<branch>`; the coordinator merges.
 
 ## Decisions so far
+
+- [How atomic CSS libraries emit and order CSS in Vite](cssints-wx85): one global sorted sheet (layer, condition, shorthand before longhand, class), filled late in build; per-module CSS cannot order rules inside a layer. Findings: docs/research/css-output.md
 
 ## Not yet specified
 

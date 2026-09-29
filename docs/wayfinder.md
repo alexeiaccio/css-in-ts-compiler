@@ -577,3 +577,17 @@ The spikes became workspace packages in one bun workspace. The old approaches we
 `@cssints/css-grammar` exports its sources directly (`@cssints/css-grammar/twin` → `src/twin.ts`); `macro.mjs` imports it by name instead of `../../typelevel/`. Budgets and the `mdn.ts` output did not change.
 
 The `spec/mbt.mjs` gap under bun's isolated linker is fixed by dropping quint-connect (`cssints-wiqx`).
+
+## CSS output: what atomic libraries do (cssints-wx85)
+
+StyleX, Panda, Tailwind v4 and UnoCSS each ship one global stylesheet and sort every rule in it, so the cascade does not depend on the order modules load. vanilla-extract emits CSS per file, as we do today. It has no duplicates to remove, because each class belongs to one file, and it relies on import order.
+
+In our demo build, LightningCSS minify on the output file already removes rules repeated across modules (85 → 70) and keeps the `@layer` order, as long as `layers.css` comes first. Per-module CSS cannot fix order inside one layer. Two breakpoints in `_.c`, or `p(4)` and `pl(2)` in `_.a`, resolve by the order Vite joins modules.
+
+Recommendation: one global sorted virtual sheet. Sort by:
+1. layer;
+2. condition (min-width ascending, then pseudo order);
+3. shorthand before longhand;
+4. class name.
+
+It stays a Vite CSS module, so LightningCSS and reload-free HMR come from Vite. The build fills it after all modules are transformed: a placeholder filled in `renderChunk`, as UnoCSS does, or evaluating every file in `buildStart`. We lose per-chunk CSS, which none of these libraries keeps by default. Details: `docs/research/css-output.md`. The final decision belongs to the "CSS output pipeline" ticket, together with conditions and layers.

@@ -1,12 +1,13 @@
 ---
 # cssints-5dbi
 title: 'Public API shape for 0.1: imports, names, numbers, composites'
-status: todo
+status: in-progress
 type: task
+priority: normal
 tags:
     - wayfinder:grilling
 created_at: 2026-09-29T13:28:04Z
-updated_at: 2026-09-29T13:28:04Z
+updated_at: 2026-09-29T13:40:09Z
 parent: cssints-vy0o
 ---
 
