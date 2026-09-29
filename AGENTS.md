@@ -5,9 +5,9 @@ This repository is a CSS-in-TypeScript compiler with hash-based class names, fol
 ## Layout
 
 ```
-packages/cssints       Vite plugin on the Module Runner (src/plugin.mjs) + the cssints library (src/)
+packages/cssints       Vite plugin on the Module Runner (src/plugin.ts) + the cssints library (src/), all .ts
                        test/: fixtures, run.mjs, map-check.mjs, spec/ (Quint model, race, mbt), hmr/ app
-packages/css-grammar   type-level recognizer (src/css.ts) + runtime twin (src/twin.ts) over mdn-data grammars,
+packages/css-grammar   type-level recognizer (src/css.ts) + runtime twin (src/twin.ts over twin-core.ts) over mdn-data grammars,
                        Typed OM values, BCD support warnings, prose rules; test/, bench/ (instantiation budgets)
 packages/plugin-icon   icon plugin (not yet ported to the new engine)
 apps/demo              React demo on the plugin
@@ -26,11 +26,16 @@ cd packages/cssints && bun run test           # fixtures, source maps, HMR races
 cd packages/cssints/test && node run.mjs fixtures/risk1.ts   # one fixture: prints code and css
 cd packages/css-grammar && bun run test       # twin + type checks, support/prose rules, tsc
 cd packages/css-grammar && bun run extract    # regenerate src/mdn.ts from mdn-data + @webref/css
+cd packages/cssints && bun run members        # regenerate src/members.ts (the names of "cssints" in user code)
+bun run typecheck                             # per package: tsgo -p tsconfig.json --noEmit + effect-tsgo diagnostics
+cd packages/cssints && bun run build          # vp pack (tsdown) into dist/; same in packages/css-grammar
 cd packages/css-grammar && node bench/budget.mjs --update    # after a deliberate type-cost change
 cd apps/demo && bun run build                # vp build
 ```
 
-Plain `.ts` files run with `node` (type stripping), no build step.
+Plain `.ts` files run with `node` (type stripping), no build step: erasable syntax only (no enums, namespaces or parameter
+properties) and `.ts` import specifiers. `cssints` exports `types` (src/types.ts: what user code sees, class strings),
+`browser` (src/runtime.ts: `cx` and `_cv`, no imports, no Effect) and `default` (src/index.ts: the eval-time library).
 
 `vp <name>` is a Vite+ built-in, `vp run <name>` is a package.json script: `vp test` is vitest (unused here), `vp run test` is ours. Docs ship in `node_modules/vite-plus/docs`.
 
@@ -39,7 +44,7 @@ Plain `.ts` files run with `node` (type stripping), no build step.
 Config lives in the root `vite.config.ts` (`lint` and `fmt` blocks); `vp` is the local `vite-plus` binary.
 
 ```bash
-bun run check        # vp check: format, lint and type-check in one pass
+bun run check        # vp check (format, lint, type-check) then bun run typecheck
 bun run lint         # vp lint (type-aware, with type check)
 bun run lint:fix
 bun run fmt          # vp fmt (writes)
@@ -111,10 +116,40 @@ Other deps:
 - **Private members**: Prefix with underscore (`_internalMethod`)
 - **Classes**: PascalCase with descriptive names
 
+### Typechecking Effect code
+
+Plain `tsc` does not run the Effect language service. Every package with Effect code has a `typecheck` script that runs both:
+
+```bash
+bun run typecheck    # all packages; per package: tsgo -p tsconfig.json --noEmit
+                     #   && effect-tsgo diagnostics --project tsconfig.json --format pretty
+```
+
+`effect-tsgo` (`@effect/tsgo`) needs the native TypeScript 7 package `@typescript/native` patched by `effect-tsgo patch
+--typescript` (root `prepare`, runs on `bun install`). That alias takes over `node_modules/.bin/tsc`, so the places that
+want TypeScript 5.9 call it by path (`node ../../node_modules/typescript/bin/tsc`): css-grammar's `test` and
+`bench/budget.mjs`. `tsc` 5.9 stays green for css-grammar.
+
+Verify Effect APIs against `node_modules/effect` (source, `AGENTS.md`, `ai-docs/`), not memory: this is a beta, and names moved.
+In 4.0.0-beta.107: `Data.TaggedError("Tag")<{ ...fields }>` (there is no `Data.TaggedErrorClass`), `Context.Service` and
+`Context.Reference` (no `ServiceMap`), `Effect.timeoutOrElse`.
+
+### The one exception, and the hot paths
+
+Everything in the engine returns an Effect (`Effect.fn("name")`, tagged errors that carry the file and the offset of the call
+site) except what user code calls in expressions: the `css.*` node builders (`toDecls`, `chainDecl`, `isNode` in lib.ts),
+the Typed OM values (`CSS.rem()`, `new CSSColorValue()`), and the two calls the plugin puts around every site, `__at` and
+`__site`, which run an Effect at that synchronous edge. `cx` and `_cv` (runtime.ts) ship to browsers and stay plain.
+
+The hot paths stay plain code inside an Effect boundary: the twin's lexer and recognizer (`twin-core.ts`), the class hash,
+the AST walk. A traced `Effect.fn` costs ~4 µs a call, so functions called per declaration or per site are
+`Effect.fnUntraced`, and per declaration there is one Effect (`check.ts`), not one per check. The budget is
+`packages/cssints/test/perf.mjs` (per-module cost within 10%); rerun it after touching those paths.
+
 ### Error Handling
 
 - **ALWAYS use Effect TypeScript** for operations with side effects
-- Use `Data.TaggedErrorClass` for custom error types with schema definitions
+- Use `Data.TaggedError` for custom error types (see "Typechecking Effect code"; the examples below say `Data.TaggedErrorClass`, the older name)
 - Use `Effect.gen()` for sequencing async operations
 - Use `Effect.try()` for wrapping potentially failing operations
 - Use `Effect.fn()` for named functions that return Effects
