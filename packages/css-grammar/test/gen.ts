@@ -86,8 +86,13 @@ function primitive(v: string, lo?: string, hi?: string): Arb | null {
         .chain((n) => fc.stringMatching(new RegExp(`^[0-9a-f]{${n}}$`)))
         .map((h) => `#${h}`);
     case "string":
-      return ident.map((s) => `"${s}"`);
+      return fc.oneof(
+        ident.map((s) => `"${s}"`),
+        fc.tuple(ident, ident).map(([a, b]) => `'${a}, (${b})'`),
+      );
     case "custom-ident":
+    case "ident":
+    case "ident-token":
       return ident;
     case "dashed-ident":
       return ident.map((s) => `--${s}`);
@@ -97,6 +102,36 @@ function primitive(v: string, lo?: string, hi?: string): Arb | null {
       return unit(["s", "ms"], lo, hi);
     case "dimension":
       return unit([...LENGTH_UNITS, "deg", "s", "dppx", "fr"], lo, hi);
+    case "resolution":
+      return unit(["dpi", "dpcm", "dppx", "x"], lo, hi);
+    case "flex":
+      return num(lo, hi).map((n) => `${n}fr`);
+    case "zero":
+      return fc.constantFrom("0", "+0", "-0");
+    case "hash-token":
+      return ident.map((s) => `#${s}`);
+    case "intrinsic-size-keyword":
+      return fc.constantFrom("min-content", "max-content", "fit-content", "stretch");
+    case "x":
+    case "y":
+      return num().map(String);
+    case "url":
+      return fc.oneof(
+        ident.map((s) => `url(${s})`),
+        ident.map((s) => `url("${s} b")`),
+      );
+    case "declaration-value":
+      // words, numbers and a balanced function
+      return fc
+        .array(
+          fc.oneof(
+            ident,
+            num().map(String),
+            ident.map((s) => `f(${s}, [1])`),
+          ),
+          { minLength: 1, maxLength: 3 },
+        )
+        .map((xs) => xs.join(" "));
   }
   return null;
 }

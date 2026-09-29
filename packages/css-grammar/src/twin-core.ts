@@ -180,6 +180,8 @@ const NUM = String.raw`[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?`;
 const LENGTH_UNIT =
   "px|em|rem|vw|vh|vmin|vmax|ch|ex|lh|rlh|cm|mm|in|pt|pc|q|svw|svh|lvw|lvh|dvw|dvh|cqw|cqh|cqi|cqb|cqmin|cqmax|ic|cap|rex|rch|ric|rcap";
 const re = (s: string) => new RegExp(`^(?:${s})$`);
+// an ident (escapes ignored)
+const IDENT = String.raw`(?:--|-?[A-Za-z_\u0080-\uffff])[\w\u0080-\uffff-]*`;
 const PRIMITIVE: Record<string, RegExp> = {
   length: re(`${NUM}(?:${LENGTH_UNIT})|0`),
   percentage: re(`${NUM}%`),
@@ -187,14 +189,54 @@ const PRIMITIVE: Record<string, RegExp> = {
   number: re(NUM),
   integer: re(String.raw`[+-]?\d+`),
   "hex-color": /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i,
-  string: /^(?:"[^"]*"|'[^']*')$/,
-  // an ident (escapes ignored), minus the CSS-wide keywords and `default`
-  "custom-ident":
-    /^(?!(?:initial|inherit|unset|revert|revert-layer|default)$)(?:--|-?[A-Za-z_\u0080-\uffff])[\w\u0080-\uffff-]*$/i,
+  // an ident, minus the CSS-wide keywords and `default`
+  "custom-ident": new RegExp(
+    `^(?!(?:initial|inherit|unset|revert|revert-layer|default)$)${IDENT}$`,
+    "i",
+  ),
   "dashed-ident": /^--.+$/,
   angle: re(`${NUM}(?:deg|rad|grad|turn)`),
   time: re(`${NUM}(?:s|ms)`),
   dimension: re(`${NUM}(?:${LENGTH_UNIT}|deg|rad|grad|turn|s|ms|hz|khz|dpi|dpcm|dppx|x|fr)`),
+  resolution: re(`${NUM}(?:dpi|dpcm|dppx|x)`),
+  flex: re(`${NUM}fr`),
+  // a number token with the value zero, in any spelling (`hue-rotate(0.0)`)
+  zero: re(String.raw`[+-]?(?:0+(?:\.0+)?|\.0+)(?:e[+-]?\d+)?`),
+  ident: re(IDENT),
+  "ident-token": re(IDENT),
+  "hash-token": /^#[\w\u0080-\uffff-]+$/,
+  // css-sizing-4 §3.2 and css-values-5 §11: the keywords calc-size() takes as a basis
+  "intrinsic-size-keyword": /^(?:min-content|max-content|fit-content|stretch)$/,
+  // the cursor hotspot (css-ui-4 §6.1.1: "<x> <y>" are numbers)
+  x: re(NUM),
+  y: re(NUM),
+};
+
+// Primitives that are not one token (a string holds spaces, a url parentheses, a declaration value anything):
+// the length of the prefix of s that they match, or -1. Strings and urls ignore escapes.
+const STRING = /^(?:"[^"]*"|'[^']*')/;
+const URL_RE = /^url\(\s*(?:"[^"]*"|'[^']*'|[^\s"'()\\]*)\s*\)/;
+// <declaration-value> (css-syntax-3, "Parsing"): balanced tokens up to the unmatched `)` that ends the function around
+// it, or the end; not empty, and no top-level `;` or `!`.
+function declarationValue(s: string): number {
+  let depth = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]!;
+    if (c === '"' || c === "'") {
+      i = s.indexOf(c, i + 1);
+      if (i < 0) return -1;
+    } else if ("([{".includes(c)) depth++;
+    else if (")]}".includes(c)) {
+      if (depth) depth--;
+      else return c === ")" && i > 0 ? i : -1;
+    } else if (!depth && (c === ";" || c === "!")) return -1;
+  }
+  return depth || !s ? -1 : s.length;
+}
+const SCAN: Record<string, (s: string) => number> = {
+  string: (s) => STRING.exec(s)?.[0].length ?? -1,
+  url: (s) => URL_RE.exec(s)?.[0].length ?? -1,
+  "declaration-value": declarationValue,
 };
 
 interface Ctx {
@@ -294,6 +336,9 @@ function consumeType(
   if (PRIMITIVE[v]) {
     const [t, r] = tok1(s);
     rs = PRIMITIVE[v].test(t) ? new Set([trim(r)]) : NONE;
+  } else if (SCAN[v]) {
+    const n = SCAN[v](s);
+    rs = n < 0 ? NONE : new Set([trim(s.slice(n))]);
   } else if (syns[v]) {
     // `<name()>`: the name must be next before its grammar is even parsed (as in css.ts)
     rs =

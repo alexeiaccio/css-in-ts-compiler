@@ -38,9 +38,10 @@ const addP = (n) => {
   refs(P[n]).forEach(addS);
   prefs(P[n]).forEach(addP);
 };
+// a type mdn-data lacks (<autospace>, <attr-unit>) comes from the spec grammar
 const addS = (n) => {
-  if (S[n] || !syn[n]) return;
-  S[n] = ranged(syn[n].syntax, webS[n]);
+  if (S[n] || !(syn[n] || webS[n])) return;
+  S[n] = ranged(syn[n]?.syntax ?? webS[n], webS[n]);
   refs(S[n]).forEach(addS);
   prefs(S[n]).forEach(addP);
 };
