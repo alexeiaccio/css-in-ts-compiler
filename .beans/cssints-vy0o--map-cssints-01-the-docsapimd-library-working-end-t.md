@@ -7,7 +7,9 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-29T13:28:04Z
-updated_at: 2026-09-29T14:17:14Z
+updated_at: 2026-09-29T14:20:21Z
+blocked_by:
+    - cssints-vzd9
 ---
 
 ## Destination
@@ -28,8 +30,11 @@ The API in `docs/API.md` works end to end in `apps/demo` on the Module Runner en
 - [Engine build cost at scale](cssints-grrd): evaluation is ~90% of plugin time; keeping the cssints library loaded in the runner (clear only app modules) halves it, 500 modules build in 4.7 s instead of 9.7 s. Findings: docs/research/engine-cost.md
 - [Public API shape for 0.1](cssints-5dbi): import attribute `with { type: "cssints" }` marks build-time code; camelCase names + p/m/bg; 0.25rem numbers only for spacing; variadic parts; chaining only on `flex()`/`grid()` with prefix-dropped names. Spec: docs/API.md "Authoring surface"; implementation: [Implement the 0.1 authoring surface in the engine](cssints-7fdc), done: sites by attribute (helpers and other packages too), names from the grammar, flex()/grid() chains with an mdn drift test; demo CSS byte-identical
 - [Conditions and layers](cssints-kpq1): nesting wrappers `media()` (string, tuple or object form), `container()`, `supports()`, pseudo-class wrappers from mdn; queries checked by the mdn grammar; layer = number of conditions, `_.a` to `_.e`. Spec: docs/API.md; implementation: [Implement conditions and layers](cssints-mjgx)
+- [CSS output pipeline](cssints-euf0): one global sorted virtual sheet (layer, condition, shorthand before longhand, class); placeholder filled in `renderChunk`, Vite 8 only; one sheet per app; LightningCSS through Vite with browserslist targets shared with support warnings; longhand beats shorthand by sort order. Implementation: [Implement the global sorted stylesheet](cssints-vzd9)
 
 ## Not yet specified
+
+- Shorthand vs longhand through sublayers instead of sort order: `_.a.a/_.a.b/_.a.c` per condition layer (15 layers), depth from mdn-data `computed` by leaf-set inclusion (max depth 2; `border` → `border-top` → `border-top-color`, which the direct links miss; exclude `all`). Order-independent, but more layers and DevTools noise. Deferred on 2026-09-29; logical vs physical pairs (`margin-inline-start` vs `margin-left`) stay order-dependent either way.
 
 - Themes: `createTokens` / `createGlobalTheme` from design-token JSON (DTCG 2025.10), after the token model is decided.
 - Value helper functions (`css.colorMix(...)`, API.md "Functions"): whether they exist next to typed string parts, and how they are typed.
