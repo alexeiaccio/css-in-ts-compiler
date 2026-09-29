@@ -822,3 +822,25 @@ User code gets the grammar check on every property call. Each of the 536 members
 **Limits.**
 - The error lands on the first argument of a call, not on the bad part.
 - `calc()`, `min()`, `max()` and `clamp()` are not in the recognizer yet: `width("calc(100% - 2rem)")` fails in types and at build time alike.
+
+## Themes and the contrast check (cssints-7qqw)
+
+`createTokens` turns inline DTCG-shaped data into named tokens. `$type` is inherited through groups. `color`, `dimension`, `number`, `duration` and `fontWeight` map to token types, and other DTCG types are rejected with the list of supported ones. Aliases get the flattened literal in `@property` and stay live as `var()` on `:root`, with cycles and type mismatches as build errors.
+
+`createGlobalTheme` re-declares the overridden tokens, and the aliases that depend on them, under:
+- a media condition, on `:root`;
+- a container condition, on `:where(*)`, because `:root` never matches a container query (checked in Chrome);
+- or a selector.
+
+Token and theme rules sit in `_.k`. They set custom properties only, so site classes still win. A module also carries the rules of every token it uses, because attributed imports are stripped from the client and the theme module would otherwise never reach the sheet.
+
+`css.check.contrast` computes WCAG 2.x for the defaults and for each theme that affects the pair, at module evaluation and again at build end.
+- Below `min` is a build error that names the theme and both values.
+- Values it cannot read (`color-mix()`, `currentColor`, translucent colours) are warnings.
+
+The colour maths is `culori/fn` (9.4 kB gzip) and is loaded only at build time; none of it is in the bundle. The demo has a dark theme checked in Chrome with `emulateMedia`. Perf and the Quint invariants are unchanged.
+
+**Open:**
+- `rem` dimensions are rejected, since `@property` needs a computationally independent initial value. A fix would flatten `rem` to `px` in `@property` and keep the live `rem` on `:root`.
+- Themes are checked one at a time, not in combination.
+- Theme selectors are not grammar-checked.
