@@ -59,62 +59,57 @@ Output:
 <div className="_fsdfssdf _jdf78hs _jdfsddfs _swg4thgf">Hello, world!</div>
 ```
 
-### CSS @layer Priority System
+### Conditions and layers (decided 2026-09-29, cssints-kpq1)
 
-CSS layers to control specificity:
-
-```typescript
-// Layers are declared in priority order
-@layer _.a, _.b, _.c, _.d, _.e;
-
-// Each condition increments priority:
-// - default: _.a (priority 0)
-// - :hover: _.b (priority 1)
-// - @media: _.c (priority 1)
-// - nested conditions: _.d, _.e (higher)
-```
+Conditions are wrapper functions. A wrapper takes styles and returns them under its condition. Wrappers nest.
 
 ```ts
-import { cx } from "css-variants";
+import { cx } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 
-const md = media("screen and min-width > 40rem");
-// or
-const [md, lg, xl] = media(
-	"screen and min-width > 40rem",
-	"screen and min-width >60rem",
-	"screen and min-width > 80rem",
+const md = css.media("(width >= 40rem)");
+const [md, lg] = css.media("(width >= 40rem)", "(width >= 60rem)");
+const { md, lg } = css.media({ md: "(width >= 40rem)", lg: "(width >= 60rem)" });
+const dark = css.media("(prefers-color-scheme: dark)");
+const narrow = css.container("sidebar (width < 30rem)");
+const grid = css.supports("(display: grid)");
+
+const styles = cx(
+	css.p(2),
+	md(css.pl("8ch"), css.pt(4)),
+	css.hover(css.bg("#eee")),
+	md(css.hover(css.bg("#ddd"))),
+	prop && lg(css.p(8)),
 );
-
-const styles = cx(css.p(2), md(css.pl("8ch"), prop && css.pt("16px")));  // conditions API: cssints-kpq1
-
-<div className={styles}>Hello, world!</div>;
 ```
+
+- **Pseudo-classes** are ready-made wrappers named after the selector: `hover`, `focus`, `focusVisible`, `active`, `disabled`, and so on. The list comes from mdn-data `selectors.json`.
+- **Query strings are checked** against the mdn-data grammar (`<media-query-list>`, `<container-condition>`, `<supports-condition>`), in types and at build time, like property values. A range needs parentheses: `(width > 40rem)`, not `min-width > 40rem`.
+- **Layer = number of conditions.** A style with no condition goes to `_.a`, one condition to `_.b`, two to `_.c`, and so on up to `_.e`. A fifth condition is a build error. A media query, a container query, `supports` and a pseudo-class each count as one.
+- **Order inside a layer** comes from the sorted stylesheet: min-width ascending, then pseudo-class order. With equal layers, `hover(...)` beats `md(...)` by specificity.
+- **Class names** hash the declaration together with its condition chain.
+- Pseudo-elements (`::before`, `::placeholder`) and parent states (`group-hover`) are not part of 0.1.
 
 Output:
 
-```tsx
-import { cx } from "css-variants";
-
-<div className={cx("_jdf78hs", "_swg4thgf", prop && "_jdfsddfs")}>Hello, world!</div>;
-```
-
 ```css
-._jdf78hs {
-	padding: 0.5rem;
-}
+@layer _.a, _.b, _.c, _.d, _.e;
 @layer _.a {
-	@media (screen and min-width > 40rem) {
-		._jdf78hs {
-			padding-left: 8ch;
-		}
-	}
+	._a1 { padding: 0.5rem; }
 }
 @layer _.b {
-	@media (screen and min-width > 40rem) {
-		._jdf78hs {
-			padding-top: 1rem;
-		}
+	._b1:hover { background-color: #eee; }
+	@media (width >= 40rem) {
+		._b2 { padding-left: 8ch; }
+		._b3 { padding-top: 1rem; }
+	}
+	@media (width >= 60rem) {
+		._b4 { padding: 2rem; }
+	}
+}
+@layer _.c {
+	@media (width >= 40rem) {
+		._c1:hover { background-color: #ddd; }
 	}
 }
 ```
