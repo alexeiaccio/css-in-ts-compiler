@@ -2,20 +2,24 @@
 // Run: node themes.mjs
 import assert from "node:assert/strict";
 
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { stripVTControlCharacters } from "node:util";
 import { setTimeout as sleep } from "node:timers/promises";
 
-import { createServer } from "vite";
+import { build, createLogger, createServer } from "vite";
 
 import cssints from "../src/plugin.ts";
 
 const root = import.meta.dirname;
 const plugins = cssints();
+const warnings = [];
+const customLogger = { ...createLogger("warn"), warn: (m) => warnings.push(m) };
 const server = await createServer({
   root,
   configFile: false,
   logLevel: "warn",
+  customLogger,
   server: { middlewareMode: true, watch: null },
   plugins,
 });
@@ -155,9 +159,115 @@ try {
   css = await edit("#111", false);
   assert.ok(!css.includes("@media (prefers-color-scheme: dark){:root{--hmrt-bg"), css);
   assert.ok(css.includes("@property --hmrt-bg"), css);
+  // the last site of a module goes: its tokens and theme leave the sheet
+  writeFileSync(
+    file,
+    `import * as css from "cssints" with { type: "cssints" };\nexport const y = 1;\n`,
+  );
+  server.watcher.emit("change", file);
+  await sleep(300);
+  await client.transformRequest(`/${tmp.split("/").pop()}/hmr.ts`);
+  assert.ok(!(await served()).includes("--hmrt-bg"), "a module without a site leaves the sheet");
 } finally {
   rmSync(tmp, { recursive: true, force: true });
 }
 
-await server.close();
 console.log("themes: theme rules in layer _.k, aliases declared again, edits reach the sheet");
+
+// css.check.contrast: passes (the theme is declared after the check), and a build error names the theme and both values.
+await client.transformRequest("/fixtures/themes-contrast-pass.ts");
+assert.deepEqual(warnings, []);
+e = await failure("fixtures/themes-contrast-fail.ts");
+assert.equal(
+  e.message,
+  [
+    "cssints: contrast 1.11 is below 4.5: cfail.link #111827 on cfail.bg #222222, in theme @media (prefers-color-scheme: dark)",
+    "cssints: contrast 1.24 is below 4.5: cfail.link #888888 on cfail.bg #999999, in theme .dim",
+  ].join("\n"),
+);
+assert.deepEqual(at(e), {
+  line:
+    readFileSync(`${root}/fixtures/themes-contrast-fail.ts`, "utf8")
+      .split("\n")
+      .findIndex((l) => l.startsWith("css.check.contrast")) + 1,
+  column: 0,
+});
+e = await failure("fixtures/themes-contrast-default.ts");
+assert.equal(
+  e.message,
+  "cssints: contrast 4.47 is below 4.5: cdef.fg #777777 on cdef.bg #ffffff, in the default values",
+);
+
+// A value the check cannot evaluate is a warning that names the token, once.
+await client.transformRequest("/fixtures/themes-contrast-warn.ts");
+assert.deepEqual(
+  warnings.map(
+    (w) =>
+      stripVTControlCharacters(w)
+        .replace(/^.*?cssints:/, "cssints:")
+        .split("\n")[0],
+  ),
+  [
+    'cssints: contrast is not checked for cwarn.mixed in the default values: "color-mix(in oklab, #000, #222 30%)" is not a colour the check can read',
+    'cssints: contrast is not checked for cwarn.glass in the default values: "rgb(0 0 0 / 50%)" is translucent, and has no contrast without a backdrop',
+    'cssints: contrast is not checked for cwarn.plain in theme .x: "currentColor" is not a colour the check can read',
+  ],
+);
+warnings.length = 0;
+await client.transformRequest("/fixtures/themes-contrast-warn.ts");
+assert.deepEqual(warnings, [], "a warning is given once per build");
+
+await server.close();
+
+// A build checks again at its end: a theme of a module that came after the check still counts, and culori stays out of the bundle.
+globalThis.__cssints.checks.clear(); // the fixtures above failed on purpose, in this process
+const tmpb = mkdtempSync(join(root, ".tmp-themes-build-"));
+try {
+  const w = (f, text) => writeFileSync(join(tmpb, f), text);
+  w(
+    "tokens.ts",
+    `import * as css from "cssints" with { type: "cssints" };
+export const t = css.createTokens({ late: { $type: "color", bg: { $value: "#fff" }, fg: { $value: "#000" } } });
+`,
+  );
+  w(
+    "a.ts",
+    `import * as css from "cssints" with { type: "cssints" };
+import { t } from "./tokens.ts" with { type: "cssints" };
+css.check.contrast(t.late.fg, t.late.bg, { min: 4.5 });
+`,
+  );
+  w(
+    "b.ts",
+    `import * as css from "cssints" with { type: "cssints" };
+import { t } from "./tokens.ts" with { type: "cssints" };
+css.createGlobalTheme(t, ".low", { late: { fg: "#aaa" } });
+`,
+  );
+  w("main.ts", `import "./a.ts";\nimport "./b.ts";\nexport const x = 1;\n`);
+  const run = (input) =>
+    build({
+      root: tmpb,
+      configFile: false,
+      logLevel: "silent",
+      plugins: cssints(),
+      build: { write: false, rollupOptions: { input: join(tmpb, input) } },
+    });
+  await assert.rejects(
+    run("main.ts"),
+    /contrast 2\.32 is below 4\.5: late\.fg #aaa on late\.bg #fff, in theme \.low/,
+  );
+  w("b.ts", `import * as css from "cssints" with { type: "cssints" };\nexport const y = 1;\n`);
+  w("main.ts", `import "./a.ts";\nimport "./b.ts";\nexport const x = 1;\n`);
+  const ok = await run("main.ts");
+  const code = [ok]
+    .flat()
+    .flatMap((o) => o.output)
+    .map((f) => String(f.code ?? f.source))
+    .join("\n");
+  assert.ok(!/culori|wcag|rebeccapurple/i.test(code), "the colour library is build only");
+} finally {
+  rmSync(tmpb, { recursive: true, force: true });
+}
+console.log("themes: contrast passes, fails with the theme and values, warns, build only");
+process.exit(0);

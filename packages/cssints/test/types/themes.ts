@@ -128,3 +128,13 @@ css.createGlobalTheme(t, ".x", {
 css.createGlobalTheme(t, 3, { color: { bg: "red" } });
 // @ts-expect-error a group is not a value
 css.createGlobalTheme(t, ".x", { color: "red" });
+
+// Contrast: two colour tokens and a minimum ratio.
+css.check.contrast(t.color.accent, t.color.bg, { min: 4.5 });
+css.check.contrast(t.color.link, css.token.color("#fff"), { min: 3 });
+// @ts-expect-error a length is not a colour
+css.check.contrast(t.space.md, t.color.bg, { min: 4.5 });
+// @ts-expect-error the minimum ratio is needed
+css.check.contrast(t.color.accent, t.color.bg, {});
+// @ts-expect-error a token, not a colour string
+css.check.contrast("#000", t.color.bg, { min: 4.5 });

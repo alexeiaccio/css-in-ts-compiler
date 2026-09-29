@@ -36,7 +36,7 @@ import {
   type Decl,
 } from "./lib.ts";
 import { type At, registry, Registry, type RegistryState, type Rule } from "./registry.ts";
-import { createGlobalTheme, createTokens, isDone, tokensOf } from "./theme.ts";
+import { check, createGlobalTheme, createTokens, isDone, tokensOf } from "./theme.ts";
 import { isStyle, style, token, type StyleNode } from "./token.ts";
 
 export { CSS, CSSColorValue, CSSUnitValue };
@@ -268,6 +268,7 @@ const named: Record<string, unknown> = {
   style,
   createTokens,
   createGlobalTheme,
+  check,
   CSS,
   CSSColorValue,
   CSSUnitValue,

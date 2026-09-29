@@ -181,3 +181,15 @@ export declare const createGlobalTheme: <const X extends object, const O extends
   condition: ((...styles: string[]) => string) | string,
   overrides: O & CheckOverrides<X, O>,
 ) => void;
+
+// ---------- check
+
+/** Build-time checks over tokens. */
+export declare const check: {
+  /** WCAG 2.x contrast of `fg` on `bg`, for the defaults and every theme that affects either; below `min` is a build error. */
+  readonly contrast: (
+    fg: Token<"color", boolean>,
+    bg: Token<"color", boolean>,
+    options: { readonly min: number },
+  ) => void;
+};

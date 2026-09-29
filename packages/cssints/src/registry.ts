@@ -115,3 +115,9 @@ export const registry: RegistryState = (globalThis.__cssints ??= {
 export const Registry = Context.Reference<RegistryState>("cssints/Registry", {
   defaultValue: () => registry,
 });
+
+// What `file` left of its token sets, themes and checks is dropped when it is about to run again, or has no site any more.
+export const forget = (file: string): void => {
+  for (const [k, t] of registry.themed) if (t.file === file) registry.themed.delete(k);
+  for (const [k, c] of registry.checks) if (c.at.file === file) registry.checks.delete(k);
+};

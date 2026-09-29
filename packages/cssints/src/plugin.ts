@@ -19,10 +19,11 @@ import {
 } from "vite";
 import type { ModuleRunner } from "vite/module-runner";
 
+import { verifyChecks } from "./contrast.ts";
 import { evaluate, DomEvaluator } from "./evaluate.ts";
 import { HookError, type PluginError, SiteMissingError } from "./errors.ts";
 import { instrument, RUNTIME, type Instrumented } from "./instrument.ts";
-import { Registry } from "./registry.ts";
+import { forget, Registry } from "./registry.ts";
 import { LAYERS, renderSheet, themedEntries } from "./sheet.ts";
 
 export { instrument } from "./instrument.ts";
@@ -166,7 +167,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     });
     const sites = parsed.sites.length
       ? yield* evaluate(runner!, id, recorded).pipe(Effect.ensuring(flushWarnings(warn)))
-      : yield* recorded(new Map());
+      : yield* Effect.sync(() => forget(id)).pipe(Effect.andThen(recorded(new Map())));
 
     const ms = new MagicString(code);
     for (const [n, s] of parsed.sites.entries()) {
@@ -276,6 +277,14 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     return null;
   });
 
+  // The end of a build: every contrast check again, over the themes of every module (a module that came after the check).
+  const buildEnd = Effect.fn("cssints.buildEnd")(function* (warn: (w: string) => void) {
+    yield* verifyChecks(() => true).pipe(
+      Effect.catch((e: PluginError) => locate(e, "", "")),
+      Effect.ensuring(flushWarnings(warn)),
+    );
+  });
+
   const hotUpdate = Effect.fn("cssints.hotUpdate")(function* (
     env: { name: string; moduleGraph: ViteDevServer["environments"]["client"]["moduleGraph"] },
     file: string,
@@ -318,6 +327,9 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     buildStart() {
       if (inner || server) return;
       return run(startServer());
+    },
+    buildEnd() {
+      if (build && !inner) return run(buildEnd((w) => this.warn(w)));
     },
     closeBundle() {
       return run(stopServer());

@@ -412,3 +412,39 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
       return DONE;
     }),
   );
+
+// ---------- check.contrast
+
+// css.check.contrast(fg, bg, { min }): registers the check, which runs once the module that made it has run (contrast.ts, evaluate.ts):
+// its themes may come after it, or from a module it imports. A build runs them all again at its end (plugin.ts).
+const contrast = (...args: unknown[]): unknown =>
+  edge(
+    Effect.gen(function* () {
+      const [fg, bg, options] = args;
+      const min = (options as { min?: unknown } | null)?.min;
+      const at = registry.at;
+      if (
+        !at ||
+        args.length !== 3 ||
+        !(fg instanceof CSSTokenValue) ||
+        !(bg instanceof CSSTokenValue) ||
+        fg.syntax !== "color" ||
+        bg.syntax !== "color" ||
+        typeof min !== "number" ||
+        !(min >= 1 && min <= 21)
+      )
+        return yield* fail(
+          "cssints: check.contrast(fg, bg, { min }) takes two colour tokens and a minimum ratio from 1 to 21",
+        );
+      registry.checks.set(`${at.file}#${at.site}.${registry.tokens++}`, {
+        at,
+        fg: fg.name,
+        bg: bg.name,
+        min,
+        gen: registry.gen,
+      });
+      return DONE;
+    }),
+  );
+
+export const check = { contrast };
