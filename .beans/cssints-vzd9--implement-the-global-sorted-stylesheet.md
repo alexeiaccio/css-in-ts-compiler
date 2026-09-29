@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-09-29T14:20:21Z
-updated_at: 2026-09-29T14:44:11Z
+updated_at: 2026-09-29T15:07:02Z
 parent: cssints-vy0o
 ---
 
@@ -34,3 +34,5 @@ Implement the output pipeline decided in cssints-euf0.
 - Model: `runner.qnt` gains `rules` (written at `read`, inside the lock), the sheet's cache, and a sheet request that can be in flight. New invariant `sheetFresh` and witness `sheetServed`. mbt also compares the plugin's sheet with the model's `rules` at every step.
 - Item 1 note: the sheet source starts with `@layer _.a, _.b, _.c, _.d, _.e;`. After LightningCSS minify, this is folded into `@layer _.a{…}@layer _.b,_.c,_.d,_.e;`, which gives the same order (it was the same before this change).
 - Known limits: rules of modules deleted during dev stay in the sheet until restart. There is no warning when a build forgets `import "virtual:cssints.css"`. There is no debounce (one sheet update per transform whose rule set changed).
+
+Follow-up from cssints-1xqr: the sheet builder should accept a global rule by key, emitted once, in a cascade layer `_.k` declared below `_.a` (a seam for future kernels such as frame/surface). Tracked in the port or the conditions work, whichever touches the sheet next.

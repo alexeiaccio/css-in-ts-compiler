@@ -685,3 +685,18 @@ Twin and Chrome agree on 84% of values over all properties, against 96.6% for th
 Types: an unused big table costs 0 instantiations, and a call costs about 4.2 k. One outlier, `font-variant: "none"`, costs 4.3 M instantiations and hits TS2589. A one-line `[S] extends [never]` short-circuit in `AnyOrder` brings it to 51 k.
 
 Decision: ship every standard and experimental property at once, with nonstandard ones out, after fixing the blockers above. Findings: `docs/research/grammar-coverage.md`.
+
+## Surfaces and frames, Ariakit-style (cssints-1xqr)
+
+Ariakit's parent-relative colour and concentric radius come down to two small kernels. A compiler can emit each once, and per-site classes then only set custom properties.
+
+| Kernel | Size, minified | Ariakit | Floor (Chrome / Firefox / Safari) |
+|---|---|---|---|
+| Frame: radius, padding, border, margin | 40 lines, 667 bytes | about 4 KB | 111 / 151 / 18 |
+| Surface: lighten, darken, contrast against the parent | 29 lines, 434 bytes | about 12 KB | 122 / 151 / 18 |
+
+The frame kernel gives the same radii as Ariakit on a nested tree. Both were checked in Chrome at three depths.
+
+Reading the parent is the one thing a compiler cannot do, so both kernels use Ariakit's odd/even `@container style()` trick, which sets the floor above. CSS Values 5 `inherit()` would remove the trick and cut the kernels to 12 and 6 lines. It is off by default in Chrome 154, not signalled in Firefox, and behind a flag in WebKit. A lightness step does not guarantee contrast: 4.61:1 on greys, but 3.71:1 on saturated colours.
+
+Decision: not in 0.1. Later, an opt-in module: `frame()` first, then `surface()`. 0.1 keeps only a seam: a global rule by key in a cascade layer `_.k` below `_.a`. Findings: `docs/research/surfaces-frames.md`.
