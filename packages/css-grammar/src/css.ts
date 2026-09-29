@@ -125,16 +125,16 @@ type PrimitiveMap = {
   length: `${number}${LengthUnit}` | "0" | "⟨length⟩";
   percentage: `${number}%` | "⟨percentage⟩";
   "length-percentage": `${number}${LengthUnit}` | "0" | `${number}%` | "⟨length⟩" | "⟨percentage⟩";
-  number: `${number}` | "⟨number⟩";
-  integer: `${bigint}`;
+  number: `${number}` | "⟨number⟩" | "⟨integer⟩"; // an integer is a number
+  integer: `${bigint}` | "⟨integer⟩";
   "hex-color": `#${string}`;
-  "custom-ident": string; // minus NotIdent, see Consume
+  "custom-ident": string; // minus NotIdent, and any sentinel but its own, see Consume
   ident: string; // minus NotIdentStart
   "ident-token": string; // minus NotIdentStart
   "dashed-ident": `--${string}`;
-  angle: `${number}${"deg" | "rad" | "grad" | "turn"}`;
-  time: `${number}${"s" | "ms"}`;
-  resolution: `${number}${"dpi" | "dpcm" | "dppx" | "x"}`;
+  angle: `${number}${"deg" | "rad" | "grad" | "turn"}` | "⟨angle⟩";
+  time: `${number}${"s" | "ms"}` | "⟨time⟩";
+  resolution: `${number}${"dpi" | "dpcm" | "dppx" | "x"}` | "⟨resolution⟩";
   flex: `${number}fr`;
   zero: "0" | "+0" | "-0"; // the twin also takes 0.0 and 0e5
   "hash-token": `#${string}`;
@@ -148,7 +148,7 @@ type PrimitiveMap = {
 // or `default`. The twin checks the same with one regexp.
 type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 type NotIdentChar = "'" | '"' | "#" | "." | "+" | "(" | "!" | "$" | "%" | "&" | "*" | "/" | ":" | ";" | "<" | "=" | ">" | "?" | "@" | "[" | "\\" | "]" | "^" | "`" | "{" | "|" | "}" | "~";
-type NotIdentStart = `${string}${NotIdentChar}${string}` | `${Digit | `-${Digit}`}${string}` | "-";
+type NotIdentStart = `${string}${NotIdentChar}${string}` | `${Digit | `-${Digit}`}${string}` | "-" | `⟨${string}`; // `⟨`: a typed-value sentinel
 type NotIdent = NotIdentStart | "initial" | "inherit" | "unset" | "revert" | "revert-layer" | "default";
 
 export type Consume<N, S extends string> =
@@ -156,7 +156,7 @@ export type Consume<N, S extends string> =
     ? N extends ["kw", infer V extends string] ? (Tok1<S> extends [V, infer R extends string] ? Trim<R> : never)
     : N extends ["lit", infer V extends string] ? (S extends `${V}${infer R}` ? Trim<R> : never)
     : N extends ["type", infer V extends string]
-      ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? (V extends "custom-ident" ? (Lowercase<T> extends NotIdent ? never : Trim<R>) : V extends "ident" | "ident-token" ? (T extends NotIdentStart ? never : Trim<R>) : Trim<R>) : V extends Numeric ? (T extends `${string}(${string}` ? MathCall<S> : never) : never) : never)
+      ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? (V extends "custom-ident" ? (T extends "⟨custom-ident⟩" ? Trim<R> : Lowercase<T> extends NotIdent ? never : Trim<R>) : V extends "ident" | "ident-token" ? (T extends NotIdentStart ? never : Trim<R>) : Trim<R>) : V extends Numeric ? (T extends `${string}(${string}` ? MathCall<S> : never) : never) : never)
       : V extends "string" | "url" | "declaration-value" ? Scanned<V, S>
       : V extends "math-function" ? MathCall<S>
       // <declaration> alternates over every property: types take it as balanced tokens, the twin checks it at build time
@@ -201,7 +201,7 @@ type Scanned<V extends string, S extends string> = V extends "string" ? Quoted<S
 type Quoted<S extends string> =
   S extends `"${string}"${infer R}` ? Trim<R> : S extends `'${string}'${infer R}` ? Trim<R> : never;
 type UrlRest<S extends string> =
-  S extends `url(${infer B})${infer R}` ? (UrlBody<TrimEnd<Trim<B>>> extends true ? Trim<R> : never) : never;
+  S extends `⟨url⟩${infer R}` ? Trim<R> : S extends `url(${infer B})${infer R}` ? (UrlBody<TrimEnd<Trim<B>>> extends true ? Trim<R> : never) : never;
 type UrlBody<B extends string> =
   B extends `"${infer Q}"` ? (Q extends `${string}"${string}` ? false : true)
   : B extends `'${infer Q}'` ? (Q extends `${string}'${string}` ? false : true)

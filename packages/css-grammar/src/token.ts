@@ -9,7 +9,6 @@ import type { CSSStyleValue } from "./values";
  * - `sentinels`: the typed-value types the token stands for in a property value (`⟨length⟩`, api-typed.ts);
  * - `probes`: literals of the type that a build-time check puts in place of the token (one per sentinel), since the
  *   recognizer reads text and a token is `var(--name)`.
- * Not here yet: `resolution` and `url` (no grammar in mdn.ts), `image` (its `<url>` has none, so `url(...)` fails).
  */
 export const TOKEN_TYPES = {
   color: { syntax: "color", sentinels: ["color"], probes: ["red"] },
@@ -25,6 +24,10 @@ export const TOKEN_TYPES = {
   angle: { syntax: "angle", sentinels: ["angle"], probes: ["1deg"] },
   time: { syntax: "time", sentinels: ["time"], probes: ["1s"] },
   customIdent: { syntax: "custom-ident", sentinels: ["custom-ident"], probes: ["x"] },
+  resolution: { syntax: "resolution", sentinels: ["resolution"], probes: ["1dppx"] },
+  url: { syntax: "url", sentinels: ["url"], probes: ["url(x)"] },
+  // a gradient, not `url(x)`: an image token does not fit a `<url>` position at build time either
+  image: { syntax: "image", sentinels: ["image"], probes: ["linear-gradient(red, blue)"] },
   transformList: {
     syntax: "transform-list",
     sentinels: ["transform-list"],
