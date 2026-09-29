@@ -551,7 +551,7 @@ The wyw bug (only the first importer updates) cannot happen here: `depsOfKnown` 
 
 The cost is that every transform re-evaluates the cssints library. After the fix there was no violation in one million traces of 60 steps (Rust backend, 2.5 min). Apalache found the old counterexample at depth 12, but took 14 min, so it was not used further.
 
-**Model-based test.** `spec/mbt.mjs` replays model traces against a real dev server, holding every ssr transform until the trace releases it, and compares what each module serves after every step. It passes on the fixed plugin (10×8 in 6 s) and fails on the old one. The `effect4` tag of `@firfi/quint-connect` failed on an Effect version split, so the test uses `latest` with Zod.
+**Model-based test.** `spec/mbt.mjs` replays model traces against a real dev server, holding every ssr transform until the trace releases it, and compares what each module serves after every step. It passes on the fixed plugin (10×8 in 6 s) and fails on the old one. It first used `@firfi/quint-connect`, but after the move to one bun workspace its Effect 3 peer got linked to Effect 4 depending on install order, so `mbt.mjs` now runs `quint run --mbt --out-itf` itself and replays the ITF traces directly (no quint-connect, no Zod; `QUINT_SEED` reproduces a run).
 
 ### Value constructors are sites
 
@@ -576,4 +576,4 @@ The spikes became workspace packages in one bun workspace. The old approaches we
 
 `@cssints/css-grammar` exports its sources directly (`@cssints/css-grammar/twin` → `src/twin.ts`); `macro.mjs` imports it by name instead of `../../typelevel/`. Budgets and the `mdn.ts` output did not change.
 
-Known gap: `spec/mbt.mjs` fails under bun's isolated linker. `@firfi/itf-trace-parser` has `effect` as an optional peer and gets the hoisted Effect 4 (`Schema.pattern is not a function`) instead of the Effect 3 of `@firfi/quint-connect`. npm nested it correctly.
+The `spec/mbt.mjs` gap under bun's isolated linker is fixed by dropping quint-connect (`cssints-wiqx`).
