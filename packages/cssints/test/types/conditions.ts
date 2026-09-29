@@ -12,6 +12,7 @@ const grid = supports("(display: grid)");
 // Wrappers take styles and return styles, so they nest and mix with cx.
 export const ok: string = cx(
   p(2),
+  md(p(4)),
   md(css.pl("8ch"), hover(css.bg("#eee"))),
   tablet(md(hover(p(1)))),
   wide(p(3)),
@@ -35,3 +36,7 @@ css.media({ md: "(width >= 40rem)", lg: "(width >= )" });
 md(1);
 // @ts-expect-error a wrapper is not a query
 media(md);
+// @ts-expect-error a bad value inside a wrapper is still a bad value
+md(p("nope"));
+// @ts-expect-error a plain string is no style
+md("padding: 1rem");

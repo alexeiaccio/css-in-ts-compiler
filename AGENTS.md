@@ -20,14 +20,16 @@ docs/research/         comparisons with other libraries; docs/archive/ outdated 
 ```bash
 bun install                                   # or: vp install (runs bun)
 bun run test                                  # vp run -r --cache test: all packages, cached where the task allows
-bun run bench                                 # vp run -r bench: css-grammar instantiation budgets (tsc + tsgo), never cached
+bun run bench                                 # vp run -r bench: instantiation budgets (tsc + tsgo), never cached: css-grammar, and
+                                              # cssints (bench/users.ts imports members from "cssints" as user code does)
 
 cd packages/cssints && bun run test           # fixtures, source maps, HMR races, hmr app
 cd packages/cssints/test && node run.mjs fixtures/risk1.ts   # one fixture: prints code and css
 cd packages/css-grammar && bun run test       # twin + type checks, support/prose rules, tsc
 cd packages/css-grammar && bun run extract    # regenerate src/mdn.ts from mdn-data + @webref/css
+cd packages/cssints && node bench/lsp.mjs     # editor latency on the demo's Button.tsx over tsgo's language server
 cd packages/cssints && bun run members        # regenerate src/members.ts (the names of "cssints" in user code)
-bun run typecheck                             # per package: tsgo -p tsconfig.json --noEmit + effect-tsgo diagnostics
+bun run typecheck                             # per package: tsgo -p tsconfig.json --noEmit + effect-tsgo diagnostics; apps/demo: tsgo and tsc 5.9
 cd packages/cssints && bun run build          # vp pack (tsdown) into dist/; same in packages/css-grammar
 cd packages/css-grammar && node bench/budget.mjs --update    # after a deliberate type-cost change
 cd apps/demo && bun run build                # vp build

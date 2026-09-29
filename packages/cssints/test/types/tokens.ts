@@ -1,7 +1,7 @@
 // What user code sees of tokens: `tsgo -p tsconfig.json` checks this file (`bun run typecheck`).
-import { border, color, padding } from "@cssints/css-grammar/api-typed";
+import { cx } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
-import { token } from "cssints" with { type: "cssints" };
+import { border, color, hover, media, padding, token } from "cssints" with { type: "cssints" };
 
 const blue = css.token.color("blue", "color-primary");
 const gap = token.length("16px", { var: "gap", inherit: false });
@@ -18,6 +18,13 @@ border("1px solid", blue);
 color(blue);
 color(muted);
 padding(gap, gap);
+// Tokens compose with conditions and with the other members.
+const md = media("(width >= 40rem)");
+export const inConditions: string = cx(
+  color(blue),
+  md(color(muted), padding(gap, "1rem")),
+  hover(border("1px solid", blue)),
+);
 // @ts-expect-error a length is not a colour
 color(gap);
 // @ts-expect-error a colour is not a length

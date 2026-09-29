@@ -1,0 +1,14 @@
+{
+  "empty.ts": {
+    "tsc": 0,
+    "tsgo": 0
+  },
+  "unused.ts": {
+    "tsc": 25211,
+    "tsgo": 29661
+  },
+  "users.ts": {
+    "tsc": 709717,
+    "tsgo": 717211
+  }
+}
