@@ -1,12 +1,14 @@
 // Instantiation budgets for bench/*.ts, per compiler, minus the bench/empty.ts baseline (attest-style).
-// node bench/budget.mjs          check, exit 1 on regression (> budget * 1.1) or unexpected type errors
-// node bench/budget.mjs --update rewrite budget.json
+// node bench/budget.mjs [dir]          check, exit 1 on regression (> budget * 1.1) or unexpected type errors
+// node bench/budget.mjs [dir] --update rewrite budget.json
+// `dir` holds the bench files, empty.ts and budget.json (default: this directory; cssints has its own).
 import { execFile } from "node:child_process";
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { promisify } from "node:util";
 
-const dir = import.meta.dirname;
-const root = `${dir}/../../../node_modules`;
+const dir = resolve(process.argv.slice(2).find((a) => !a.startsWith("--")) ?? import.meta.dirname);
+const root = `${import.meta.dirname}/../../../node_modules`;
 // tsc is TypeScript 5.9 by path: node_modules/.bin/tsc may be the native TypeScript 7 that effect-tsgo needs
 // (@typescript/native, see the root package.json).
 const compilers = {
@@ -24,6 +26,9 @@ const run = (c, f) =>
       "--strict",
       "--noEmit",
       "--skipLibCheck",
+      "--module",
+      "preserve",
+      "--allowImportingTsExtensions",
       "--extendedDiagnostics",
       f,
     ],

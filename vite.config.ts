@@ -44,7 +44,7 @@ export default defineConfig({
       // Two imports of "cssints", one with `with { type: "cssints" }`, are two modules to the plugin;
       // the rule does not see import attributes.
       {
-        files: ["apps/demo/**", "packages/cssints/test/**"],
+        files: ["apps/demo/**", "packages/cssints/test/**", "packages/cssints/bench/**"],
         rules: { "import/no-duplicates": "off" },
       },
     ],
