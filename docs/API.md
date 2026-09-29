@@ -114,34 +114,25 @@ Output:
 }
 ```
 
-### Tokens
+### Tokens (decided 2026-09-29, cssints-o00x)
 
-[Format JSON Schema](https://www.designtokens.org/schemas/2025.10/format.json)
-[Resolver JSON Schema](https://www.designtokens.org/schemas/2025.10/resolver.json)
-[JSON Schema to TS](https://github.com/ThomasAribart/json-schema-to-ts)
+A token is a Typed OM value whose `toString()` is `var(--name)`. It fits anywhere a value of its type fits: `color(blue)`, `border("1px solid", blue)`.
 
-With style function:
+```ts
+import * as css from "cssints" with { type: "cssints" };
 
-```tsx
-const blue = css.token.color("blue", { var: "color-primary", inherit: true });
-// or
-const blue = css.token.color("blue", "color-primary");
+const blue = css.token.color("blue", "color-primary");                    // --color-primary, can be set
+const gap = css.token.length("1rem", { var: "gap", inherit: false });
+const muted = css.token.color("#6b7280");                                 // --_<hash>, private
 
-<div style={css.style(css.color(blue), css.token.set(blue, "red"))}>Hello, world!</div>;
+<div className={css.cn(css.color(blue), css.gap(gap))} />;
+<div style={css.style(css.color(blue), css.token.set(blue, "red"))} />;   // { "--color-primary": "red", color: "var(--color-primary)" }
+// css.token.set(muted, "red") is a type error: private tokens cannot be set
 ```
 
-Output:
-
-```tsx
-<div
-	style={{
-		"--color-primary": "red",
-		color: "var(--color-primary)",
-	}}
->
-	Hello, world!
-</div>
-```
+- **Types:** `token.<type>` exists for every type that `@property` `syntax` allows: `color`, `length`, `percentage`, `lengthPercentage`, `number`, `integer`, `angle`, `time`, `resolution`, `image`, `url`, `customIdent`, `transformList`. The initial value is checked against that type's grammar, in types and at build time.
+- **Names:** a name (a string, or `{ var, inherit }`) gives `--name`, and the token can be set. Without a name the variable is `--_<hash>` of the file and site, and the token is private. `inherits` defaults to `true`.
+- **Output:** one `@property` per token at the top of the global sheet, outside the layers.
 
 ```css
 @property --color-primary {
@@ -151,32 +142,8 @@ Output:
 }
 ```
 
-With class:
-
-```tsx
-const blue = css.token.color("blue", false);
-
-// css.token.set(blue, "red") -> will show ts error
-
-<div className={css.cn(css.color(blue))}>Hello, world!</div>;
-```
-
-Output:
-
-```tsx
-<div className="_jdf78hs">Hello, world!</div>
-```
-
-```css
-@property --_sdfhgo8f {
-	syntax: "<color>";
-	inherits: false;
-	initial-value: blue;
-}
-._jdf78hs {
-	color: var(--_sdfhgo8f);
-}
-```
+- **`style()` and `token.set()`** are build-time and take static values; the result is a style object. A dynamic value is set with a plain `style={{ "--color-primary": value }}`; a typed runtime setter is not part of 0.1.
+- Design-token constraints and math (DTCG, Ariakit Tailwind) are researched in cssints-kag5.
 
 #### Themes (WIP)
 
