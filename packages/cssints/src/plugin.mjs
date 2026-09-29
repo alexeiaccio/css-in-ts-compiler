@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { fileURLToPath } from "node:url";
 
 import { Data, Effect, Semaphore } from "effect";
 import { Window } from "happy-dom";
@@ -97,14 +98,27 @@ class DomEvaluator extends ESModulesEvaluator {
 
 class MacroEvalError extends Data.TaggedError("MacroEvalError") {}
 
-// One evaluation at a time, each from a cleared runner: no transform joins another's fetch of an older
-// source or reuses exports computed from one, and no other evaluation touches the registry meanwhile.
+// One evaluation at a time, each from a runner cleared of app modules: no transform joins another's fetch of
+// an older source or reuses exports computed from one, and no other evaluation touches the registry meanwhile.
 // Process-global, like the registry. Invariants and interleavings: spec/runner.qnt.
 const evalLock = Semaphore.makeUnsafe(1);
 
+// Drops every app module from the runner; keeps the library (index.mjs and all it imports: css-grammar). The
+// library imports no app module, so its exports never depend on app sources, and the model (runner.qnt) has
+// no library. Re-evaluating it cost ~60% of every evaluation (docs/research/engine-cost.md). A library file
+// the ssr graph invalidates still comes back fresh: the runner's cached fetch returns new code.
+const LIB = fileURLToPath(new URL("./index.mjs", import.meta.url));
+function clearApp({ idToModuleMap, urlToIdModuleMap, fileToModulesMap }) {
+  const lib = new Set();
+  const walk = (m) => m && !lib.has(m) && (lib.add(m), m.imports.forEach((id) => walk(idToModuleMap.get(id))));
+  walk(idToModuleMap.get(LIB));
+  for (const map of [idToModuleMap, urlToIdModuleMap]) for (const [k, m] of map) if (!lib.has(m)) map.delete(k);
+  for (const [k, ms] of fileToModulesMap) for (const m of ms) if (!lib.has(m) && ms.delete(m) && !ms.size) fileToModulesMap.delete(k);
+}
+
 const evaluate = Effect.fn("cssints.evaluate")(function* (runner, id) {
   globalThis.__cssints?.sites.delete(id);
-  runner.evaluatedModules.clear();
+  clearApp(runner.evaluatedModules);
   yield* Effect.tryPromise({
     try: () => runner.import(id),
     catch: (e) => new MacroEvalError({ file: id, message: e instanceof Error ? e.message : String(e) }),
