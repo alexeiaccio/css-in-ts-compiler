@@ -7,10 +7,10 @@ import { relative } from "node:path";
 import { TOKEN_TYPES, type TokenType } from "@cssints/css-grammar/token";
 import { matches } from "@cssints/css-grammar/twin";
 import { CSSStyleValue } from "@cssints/css-grammar/values";
-import { Cause, Effect, Exit } from "effect";
+import { Effect } from "effect";
 
 import { MacroError } from "./errors.ts";
-import { type Decl, fail, isNode } from "./lib.ts";
+import { type Decl, edge, fail, isNode } from "./lib.ts";
 import { registry } from "./registry.ts";
 
 export class CSSTokenValue extends CSSStyleValue {
@@ -29,18 +29,22 @@ export class CSSTokenValue extends CSSStyleValue {
 }
 
 // `text` is a value of the grammar `<syntax>`; `what` names it in the error.
-export function checkSyntax(what: string, syntax: string, text: string): void {
-  const exit = Effect.runSyncExit(matches(`<${syntax}>`, text));
-  if (Exit.isFailure(exit)) {
-    const e = Cause.squash(exit.cause) as Error;
-    throw new MacroError({ message: e.message, cause: e, ...registry.at });
-  }
-  if (!exit.value) throw fail(`cssints: ${what} "${text}" is not a <${syntax}>`);
-}
+export const checkSyntaxFx = Effect.fnUntraced(function* (
+  what: string,
+  syntax: string,
+  text: string,
+): Effect.fn.Return<void, MacroError> {
+  const ok = yield* matches(`<${syntax}>`, text).pipe(
+    Effect.mapError((e) => new MacroError({ message: e.message, cause: e, ...registry.at })),
+  );
+  if (!ok) return yield* fail(`cssints: ${what} "${text}" is not a <${syntax}>`);
+});
+export const checkSyntax = (what: string, syntax: string, text: string): void =>
+  edge(checkSyntaxFx(what, syntax, text));
 
 // A name: "color-primary", "--color-primary" or { var, inherit }; none makes the token private.
 const NAME = /^(?:--)?([A-Za-z_][\w-]*)$/;
-const nameOf = (name: unknown) => {
+export const nameOf = (name: unknown) => {
   const { var: v, inherit = true } =
     typeof name === "string" ? { var: name } : (name as { var?: unknown; inherit?: unknown });
   const m = typeof v === "string" ? NAME.exec(v) : null;
@@ -61,40 +65,58 @@ const privateName = (): string => {
 // Chrome rejects `1rem` and `1em` as an initial-value: relative to a font size, which CSS can change.
 const FONT_RELATIVE = /[\d.](?:r?em|r?ex|r?ch|r?cap|r?ic|r?lh)\b/i;
 
+// Registers the `@property` rule of a token and what it is worth. `text` is a literal of the type, and `what` names it
+// in an error.
+export const declare = Effect.fnUntraced(function* (
+  kind: TokenType,
+  text: string,
+  variable: string,
+  inherit: boolean,
+  settable: boolean,
+  what?: string,
+): Effect.fn.Return<CSSTokenValue, MacroError> {
+  const at = registry.at!;
+  const { syntax, probes } = TOKEN_TYPES[kind];
+  const name = what ?? `token.${kind}() initial value`;
+  yield* checkSyntaxFx(name, syntax, text);
+  if (FONT_RELATIVE.test(text))
+    return yield* fail(
+      `cssints: ${name} "${text}" depends on the font size, and a browser drops an @property rule whose initial-value is not computationally independent; use px or a viewport unit`,
+    );
+  const by = `${at.file}#${at.site}.${registry.tokens++}`;
+  const css = `@property ${variable}{syntax:"<${syntax}>";inherits:${inherit};initial-value:${text}}`;
+  // Another declaration of the name is fine when it is the same rule, this site again (an edit), or this file's
+  // from an earlier evaluation (every evaluation runs its modules again). Otherwise the second one is the error.
+  const prev = registry.properties.get(variable);
+  if (
+    prev &&
+    prev.css !== css &&
+    prev.by !== by &&
+    !(prev.file === at.file && prev.gen !== registry.gen)
+  )
+    return yield* fail(
+      `cssints: ${variable} is already declared with another @property, in ${relative(process.cwd(), prev.file)}: ${prev.css}; here: ${css}`,
+    );
+  registry.properties.set(variable, { css, probes, by, file: at.file, gen: registry.gen });
+  registry.defs.set(variable, { kind, path: variable, value: text });
+  return new CSSTokenValue(variable, syntax, settable);
+});
+
 const make =
   (kind: TokenType) =>
   (...args: unknown[]): CSSTokenValue => {
     const [initial, name] = args;
-    const at = registry.at;
-    if (!at || (typeof initial !== "string" && typeof initial !== "number") || args.length > 2)
+    if (
+      !registry.at ||
+      (typeof initial !== "string" && typeof initial !== "number") ||
+      args.length > 2
+    )
       throw fail(
         `cssints: token.${kind}(initial, name?) takes an initial value (a string) and an optional name`,
       );
-    const { syntax, probes } = TOKEN_TYPES[kind];
-    const text = String(initial).trim();
-    checkSyntax(`token.${kind}() initial value`, syntax, text);
-    if (FONT_RELATIVE.test(text))
-      throw fail(
-        `cssints: token.${kind}() initial value "${text}" depends on the font size, and a browser drops an @property rule whose initial-value is not computationally independent; use px or a viewport unit`,
-      );
     const { name: variable, inherit } =
       name === undefined ? { name: privateName(), inherit: true } : nameOf(name);
-    const by = `${at.file}#${at.site}.${registry.tokens++}`;
-    const css = `@property ${variable}{syntax:"<${syntax}>";inherits:${inherit};initial-value:${text}}`;
-    // Another declaration of the name is fine when it is the same rule, this site again (an edit), or this file's
-    // from an earlier evaluation (every evaluation runs its modules again). Otherwise the second one is the error.
-    const prev = registry.properties.get(variable);
-    if (
-      prev &&
-      prev.css !== css &&
-      prev.by !== by &&
-      !(prev.file === at.file && prev.gen !== registry.gen)
-    )
-      throw fail(
-        `cssints: ${variable} is already declared with another @property, in ${relative(process.cwd(), prev.file)}: ${prev.css}; here: ${css}`,
-      );
-    registry.properties.set(variable, { css, probes, by, file: at.file, gen: registry.gen });
-    return new CSSTokenValue(variable, syntax, name !== undefined);
+    return edge(declare(kind, String(initial).trim(), variable, inherit, name !== undefined));
   };
 
 /**

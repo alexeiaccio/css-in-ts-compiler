@@ -32,7 +32,21 @@ export const TOKEN_TYPES = {
   },
 } as const;
 export type TokenType = keyof typeof TOKEN_TYPES;
-type Syntax<K extends TokenType> = (typeof TOKEN_TYPES)[K]["syntax"];
+
+/**
+ * DTCG `$type` to token type (createTokens, docs/API.md "Themes"). `fontWeight` is a number: its keywords become numbers.
+ * The other DTCG types (`fontFamily`, `cubicBezier`, `strokeStyle`, `border`, `transition`, `shadow`, `gradient`,
+ * `typography`) have no `@property` syntax and are an error.
+ */
+export const DTCG_TYPES = {
+  color: "color",
+  dimension: "length",
+  number: "number",
+  duration: "time",
+  fontWeight: "number",
+} as const satisfies Record<string, TokenType>;
+export type DtcgType = keyof typeof DTCG_TYPES;
+export type Syntax<K extends TokenType> = (typeof TOKEN_TYPES)[K]["syntax"];
 
 type Trim<S extends string> = S extends ` ${infer R}` ? Trim<R> : S;
 /** The value, or a message naming the bad token, like `Valid` for a property. */

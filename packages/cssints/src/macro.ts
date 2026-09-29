@@ -36,6 +36,7 @@ import {
   type Decl,
 } from "./lib.ts";
 import { type At, registry, Registry, type RegistryState, type Rule } from "./registry.ts";
+import { createTokens, tokensOf } from "./theme.ts";
 import { isStyle, style, token, type StyleNode } from "./token.ts";
 
 export { CSS, CSSColorValue, CSSUnitValue };
@@ -264,6 +265,7 @@ const named: Record<string, unknown> = {
   ...conditions,
   token,
   style,
+  createTokens,
   CSS,
   CSSColorValue,
   CSSUnitValue,
@@ -313,6 +315,8 @@ const replacementOf = Effect.fnUntraced(function* (
   if (isNode(value)) return JSON.stringify(yield* classesOf(value.__cssints));
   if (isCv(value)) return yield* cvOf(value.__cv);
   if (isStyle(value)) return yield* inlineOf(value);
+  const tokens = tokensOf(value);
+  if (tokens !== undefined) return tokens;
   // A Typed OM value (CSS.rem(1), new CSSColorValue(...)) ships as its CSS text; the objects are eval-time only.
   // oxlint-disable-next-line typescript/no-base-to-string -- every CSSStyleValue subclass overrides toString
   if (value instanceof CSSStyleValue) return JSON.stringify(String(value));

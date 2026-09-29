@@ -84,6 +84,7 @@ const evaluateModule = Effect.fnUntraced(function* (
 ): Effect.fn.Return<Map<number, string>, MacroError | EvalError> {
   const registry = yield* Registry;
   registry.sites.delete(id);
+  for (const [k, t] of registry.themed) if (t.file === id) registry.themed.delete(k);
   registry.at = undefined;
   registry.gen++;
   clearApp(runner.evaluatedModules);

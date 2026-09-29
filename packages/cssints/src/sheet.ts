@@ -1,10 +1,13 @@
-// The sheet: the @property rules of tokens, then every rule once, sorted by layer, condition, shorthand before
+// The sheet: the @property rules of tokens, then the global rules and the token sets and themes (layer _.k), then every rule once, sorted by layer, condition, shorthand before
 // longhand, class; the rules of one layer under the same at-rules share a block.
 import { createRequire } from "node:module";
 
 import { Effect } from "effect";
 
-import { type Rule, Registry } from "./registry.ts";
+import { type Rule, Registry, type Themed } from "./registry.ts";
+
+// The entries of token sets and themes start with this and a tab: `@theme\t<key>\t<css>`.
+const THEME = "@theme\t";
 
 // _.k is the layer of global rules (addGlobal), below every class layer: _.a (no condition) to _.e (four).
 export const LAYERS = "@layer _.k, _.a, _.b, _.c, _.d, _.e;";
@@ -45,6 +48,10 @@ export const addGlobal = Effect.fn("cssints.addGlobal")(function* (key: string, 
   if (!globals.has(key)) globals.set(key, css);
 });
 
+// What a module records of its token sets and themes: one line each, sorted by `key` when the sheet is rendered.
+export const themedEntries = (themed: Map<string, Themed>, file: string): string[] =>
+  [...themed.values()].filter((t) => t.file === file).map((t) => `${THEME}${t.key}\t${t.css}`);
+
 /** The rules of `entries`: class names, and the text of `@property` rules (once each, whichever module has them). */
 export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
   entries: Iterable<string>,
@@ -52,6 +59,10 @@ export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
   const { rules, globals } = yield* Registry;
   const all = [...new Set(entries)];
   const properties = all.filter((e) => e.startsWith("@property")).sort();
+  const themes = all
+    .filter((e) => e.startsWith(THEME))
+    .map((e) => e.split("\t") as [string, string, string])
+    .sort((a, b) => cmp(a[1], b[1]));
   const sorted = all
     .flatMap((cls) => {
       const rule = rules.get(cls);
@@ -59,8 +70,8 @@ export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
     })
     .sort(byOrder);
   let out = `${LAYERS}\n${properties.map((p) => `${p}\n`).join("")}`;
-  if (globals.size)
-    out += `@layer _.k {\n${[...globals.values()].map((g) => `  ${g}\n`).join("")}}\n`;
+  if (globals.size || themes.length)
+    out += `@layer _.k {\n${[...globals.values(), ...themes.map((t) => t[2])].map((g) => `  ${g}\n`).join("")}}\n`;
   let layer = "";
   let wrap = ""; // the at-rules that are open
   let depth = 0;

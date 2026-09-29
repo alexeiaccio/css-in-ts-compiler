@@ -23,7 +23,7 @@ import { evaluate, DomEvaluator } from "./evaluate.ts";
 import { HookError, type PluginError, SiteMissingError } from "./errors.ts";
 import { instrument, RUNTIME, type Instrumented } from "./instrument.ts";
 import { Registry } from "./registry.ts";
-import { LAYERS, renderSheet } from "./sheet.ts";
+import { LAYERS, renderSheet, themedEntries } from "./sheet.ts";
 
 export { instrument } from "./instrument.ts";
 export { addGlobal, renderSheet } from "./sheet.ts";
@@ -147,7 +147,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
   ) {
     const recorded = Effect.fnUntraced(function* (sites: Map<number, string>) {
       if (parsed.sites.every((_, n) => sites.has(n))) {
-        const { rules, properties } = yield* Registry;
+        const { rules, properties, themed } = yield* Registry;
         const texts = [...sites.values()];
         const classes = texts.flatMap((r) =>
           [...r.matchAll(/"(_[a-z0-9]+(?: _[a-z0-9]+)*)"/g)].flatMap((m) => m[1]!.split(" ")),
@@ -156,7 +156,11 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
         // @property rules are recorded as text, so an edit of an initial value changes what the module recorded.
         const names = new Set(texts.flatMap((r) => r.match(/--[\w-]+/g) ?? []));
         for (const c of classes) rules.get(c)?.tokens?.forEach((n) => names.add(n));
-        yield* record(id, [...classes, ...[...names].flatMap((n) => properties.get(n)?.css ?? [])]);
+        yield* record(id, [
+          ...classes,
+          ...[...names].flatMap((n) => properties.get(n)?.css ?? []),
+          ...themedEntries(themed, id),
+        ]);
       }
       return sites;
     });
