@@ -11,3 +11,4 @@ packages/cssints/test/fixtures
 packages/css-grammar/src/css.ts
 packages/css-grammar/src/mdn.ts
 packages/cssints/src/members.ts
+**/dist

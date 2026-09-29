@@ -714,3 +714,22 @@ CSS Parser Extensions is one person's explainer, with no spec draft and no imple
 **Contract.** A plugin is a build-time module of members (property, style, chaining context, function) plus kernels emitted once by key into `_.k`. It may declare a runtime as data, chosen by BCD, and delivered through a per-plugin virtual module that is empty when no target needs it. Plugin grammar strings feed the existing type-level recognizer unchanged. Icons fit as one mask kernel plus one class per icon, but they need the engine to accept a plugin value (a function) at an attributed site. The five live WebKit-only properties stay a built-in list: LightningCSS passes them through, and they need no behaviour.
 
 Recommendation: no public plugin API in 0.1, only the internal seams (kernel by key in `_.k`, markers on the style node, a BCD `lacking()` helper) and the WebKit list. In 0.2 comes the public contract, with `frame()` and icons as the first consumers. `surface()` comes later. Findings: `docs/research/plugins.md`, prototype in `docs/research/plugins-proto/`.
+
+## The engine in TypeScript and Effect (cssints-djzw)
+
+`packages/cssints/src` and `packages/css-grammar/src` are `.ts` files that Node runs by type stripping. Every exported function returns an Effect with tagged errors (`Data.TaggedError`; beta.107 has no `TaggedErrorClass`).
+
+The exceptions are what user code calls in expressions: the `css.*` builders, the Typed OM values, and `__at`/`__site` around each site, which run one Effect at that synchronous edge. The lexer, recognizer, class hash and AST walk stay plain code inside Effect boundaries.
+
+**Cost.** A traced `Effect.fn` costs about 4 µs, so per-declaration and per-site code is `Effect.fnUntraced`, with one boundary per site. The per-module cost stays within about 10% of before (eval median +4..8%).
+
+**Correctness.** The await points did not move, so the Quint model still holds; it was re-run, and so was mbt.
+
+**Errors.** A failing `css.*` call reaches Vite as a tagged error with `loc`, so the overlay points at the user's call (`fixtures/invalid.ts` line 6, column 17). `cv()` became lazy, so its config is checked at its site.
+
+**Tooling:**
+- User code gets types from `src/types.ts` and the generated `src/members.ts`.
+- `bun run typecheck` runs `tsgo` plus `effect-tsgo diagnostics` in each package. `@effect/tsgo` 0.45 patches native TypeScript 7 in `prepare`, which takes over `.bin/tsc`, so the TypeScript 5.9 checks call it by path.
+- `vp pack` builds both packages.
+- `vp lint` is clean for the repo, and `vp fmt --check` is clean for cssints, css-grammar and the demo.
+- The demo's CSS is byte-identical.
