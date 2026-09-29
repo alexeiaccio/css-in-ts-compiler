@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-09-29T14:17:14Z
-updated_at: 2026-09-29T16:14:19Z
+updated_at: 2026-09-29T16:15:15Z
 parent: cssints-vy0o
 blocked_by:
     - cssints-euf0
@@ -25,4 +25,4 @@ Implement `docs/API.md` "Conditions and layers" (decided in cssints-kpq1). Block
 - [x] Rules emitted under their conditions and layers; fixtures cover nesting, the layer cap, and a bad query
 - [ ] The demo uses at least one media and one hover
 
-- [ ] Seam from cssints-1xqr: reserve the layer `_.k` below `_.a` (`@layer _.k, _.a, …`) and let the sheet builder add a global rule by key, once, into it
+- [x] Seam from cssints-1xqr: reserve the layer `_.k` below `_.a` (`@layer _.k, _.a, …`) and let the sheet builder add a global rule by key, once, into it

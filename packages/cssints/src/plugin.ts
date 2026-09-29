@@ -26,7 +26,7 @@ import { Registry } from "./registry.ts";
 import { LAYERS, renderSheet } from "./sheet.ts";
 
 export { instrument } from "./instrument.ts";
-export { renderSheet } from "./sheet.ts";
+export { addGlobal, renderSheet } from "./sheet.ts";
 
 const FILE_RE = /\.(ts|tsx|js|jsx|mts|mjs)$/;
 const SHEET_IMPORT = "virtual:cssints.css";

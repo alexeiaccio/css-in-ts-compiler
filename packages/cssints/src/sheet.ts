@@ -6,7 +6,8 @@ import { Effect } from "effect";
 
 import { type Rule, Registry } from "./registry.ts";
 
-export const LAYERS = "@layer _.a, _.b, _.c, _.d, _.e;";
+// _.k is the layer of global rules (addGlobal), below every class layer: _.a (no condition) to _.e (four).
+export const LAYERS = "@layer _.k, _.a, _.b, _.c, _.d, _.e;";
 
 interface MdnProperty {
   computed?: string | string[];
@@ -38,10 +39,16 @@ const byOrder = (a: Sortable, b: Sortable) =>
   width(b.prop) - width(a.prop) ||
   cmp(a.cls, b.cls);
 
+/** Adds a global rule (`*{box-sizing:border-box}`) to layer _.k, once per key. No user API yet: for the engine and plugins. */
+export const addGlobal = Effect.fn("cssints.addGlobal")(function* (key: string, css: string) {
+  const { globals } = yield* Registry;
+  if (!globals.has(key)) globals.set(key, css);
+});
+
 export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
   classes: Iterable<string>,
 ): Effect.fn.Return<string> {
-  const { rules } = yield* Registry;
+  const { rules, globals } = yield* Registry;
   const sorted = [...new Set(classes)]
     .flatMap((cls) => {
       const rule = rules.get(cls);
@@ -49,6 +56,8 @@ export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
     })
     .sort(byOrder);
   let out = `${LAYERS}\n`;
+  if (globals.size)
+    out += `@layer _.k {\n${[...globals.values()].map((g) => `  ${g}\n`).join("")}}\n`;
   let layer = "";
   let wrap = ""; // the at-rules that are open
   let depth = 0;

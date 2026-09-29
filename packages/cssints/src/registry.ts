@@ -27,6 +27,8 @@ export interface RegistryState {
   sites: Map<string, Map<number, string>>;
   /** class -> rule; one entry per class across all modules */
   rules: Map<string, Rule>;
+  /** key -> CSS text of a global rule; rendered once each, in layer _.k (sheet.ts `addGlobal`) */
+  globals: Map<string, string>;
   /** support warnings not yet handed to Vite */
   warnings: string[];
   /** `property feature` keys already warned about in this build */
@@ -42,6 +44,7 @@ declare global {
 export const registry: RegistryState = (globalThis.__cssints ??= {
   sites: new Map(),
   rules: new Map(),
+  globals: new Map(),
   warnings: [],
   warned: new Set(),
 });
