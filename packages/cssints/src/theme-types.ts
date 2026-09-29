@@ -96,26 +96,32 @@ export type Tokens<G, Inherited = undefined, Root = G> = {
     : Tokens<G[K], TypeOf<G[K], Inherited>, Root>;
 };
 
-// What is wrong with the value V of a leaf, or V itself. The alias target's existence is checked here; its type at build time.
-type Bad<Why extends string> = `cssints: ${Why}`;
+// What is wrong with the value V of a leaf, or `true`. The alias target's existence is checked here; its type at build time.
+// A message is the type `{ $error: "..." }` that a leaf is intersected with, so it is the text of the error.
+type Bad<Why extends string> = { readonly $error: `cssints: ${Why}` };
+type Fits<V, R> = [R] extends [V] ? true : Bad<R extends string ? R : "not a value of this type">;
 type CheckValue<V, Ty, Root> = V extends `{${infer P}}`
   ? [KindAt<Root, P, Root>] extends [never]
     ? Bad<`no token at ${P}`>
-    : V
+    : true
   : Ty extends DtcgType
     ? V extends string
       ? Ty extends "fontWeight"
         ? V extends FontWeightName
-          ? V
-          : ValidSyntax<"number", V>
-        : ValidSyntax<Syntax<Kind<Ty>>, V>
+          ? true
+          : Fits<V, ValidSyntax<"number", V>>
+        : Fits<V, ValidSyntax<Syntax<Kind<Ty>>, V>>
       : V extends DtcgValue<Ty>
-        ? V
+        ? true
         : Bad<`not a DTCG ${Ty}`>
     : Bad<`$type ${Ty extends string ? `"${Ty}"` : "missing"} has no token type (color, dimension, number, duration, fontWeight)`>;
-type ValidLeaf<L, Ty, Root> = {
-  [P in keyof L]: P extends "$value" ? CheckValue<L[P], Ty, Root> : L[P];
-};
+type ValidLeaf<L, Ty, Root> = L extends { readonly $value: infer V }
+  ? CheckValue<V, Ty, Root> extends infer R
+    ? [R] extends [true]
+      ? L
+      : R
+    : never
+  : never;
 type ValidGroup<G, Inherited, Root> = {
   [K in keyof G]: K extends `$${string}`
     ? G[K]
@@ -133,3 +139,45 @@ export declare const createTokens: <const T extends { readonly [name: string]: u
   tokens: T & ValidGroup<T, undefined, T>,
   name?: (path: readonly string[]) => string | TokenName,
 ) => Tokens<T>;
+type Kinds = { readonly [K in DtcgType]: (typeof DTCG_TYPES)[K] };
+type ObjectValue<K extends TokenType> = K extends Kinds["color"]
+  ? DtcgColor
+  : K extends Kinds["dimension"]
+    ? DtcgUnit<"px" | "rem">
+    : K extends Kinds["duration"]
+      ? DtcgUnit<"ms" | "s">
+      : number;
+
+// ---------- createGlobalTheme
+
+/** The values a theme may set: the paths of the tokens, each a value of the token's type. */
+export type Overrides<X> = {
+  readonly [K in keyof X]?: X[K] extends { readonly "~token": infer Kd extends TokenType }
+    ? string | number | ObjectValue<Kd>
+    : Overrides<X[K]>;
+};
+type CheckOverrides<X, O> = {
+  [K in keyof O]: K extends keyof X
+    ? X[K] extends { readonly "~token": infer Kd extends TokenType }
+      ? O[K] extends string
+        ? O[K] extends FontWeightName
+          ? O[K]
+          : Fits<O[K], ValidSyntax<Syntax<Kd>, O[K]>> extends infer R
+            ? [R] extends [true]
+              ? O[K]
+              : R
+            : never
+        : O[K]
+      : CheckOverrides<X[K], O[K]>
+    : Bad<"no token at this path">;
+};
+
+/**
+ * Re-declares the overridden tokens under a media or container condition (on `:root`), or under a selector, and the
+ * aliases that depend on them. An unknown path and a value that is not of the token's type are type errors.
+ */
+export declare const createGlobalTheme: <const X extends object, const O extends Overrides<X>>(
+  tokens: X,
+  condition: ((...styles: string[]) => string) | string,
+  overrides: O & CheckOverrides<X, O>,
+) => void;

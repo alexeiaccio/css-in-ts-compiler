@@ -36,7 +36,7 @@ import {
   type Decl,
 } from "./lib.ts";
 import { type At, registry, Registry, type RegistryState, type Rule } from "./registry.ts";
-import { createTokens, tokensOf } from "./theme.ts";
+import { createGlobalTheme, createTokens, isDone, tokensOf } from "./theme.ts";
 import { isStyle, style, token, type StyleNode } from "./token.ts";
 
 export { CSS, CSSColorValue, CSSUnitValue };
@@ -67,6 +67,7 @@ export const grid = member("grid");
 interface Wrapper {
   (...styles: unknown[]): CssNode;
   __cond: true;
+  cond: Cond;
 }
 const isWrapper = (v: unknown): v is Wrapper => typeof v === "function" && "__cond" in v;
 
@@ -90,7 +91,7 @@ const wrapper = (cond: Cond): Wrapper =>
         undefined,
       );
     },
-    { __cond: true as const },
+    { __cond: true as const, cond },
   );
 
 // media("(width >= 40rem)"): the query is checked against its grammar, like a property value.
@@ -266,6 +267,7 @@ const named: Record<string, unknown> = {
   token,
   style,
   createTokens,
+  createGlobalTheme,
   CSS,
   CSSColorValue,
   CSSUnitValue,
@@ -317,6 +319,7 @@ const replacementOf = Effect.fnUntraced(function* (
   if (isStyle(value)) return yield* inlineOf(value);
   const tokens = tokensOf(value);
   if (tokens !== undefined) return tokens;
+  if (isDone(value)) return "undefined";
   // A Typed OM value (CSS.rem(1), new CSSColorValue(...)) ships as its CSS text; the objects are eval-time only.
   // oxlint-disable-next-line typescript/no-base-to-string -- every CSSStyleValue subclass overrides toString
   if (value instanceof CSSStyleValue) return JSON.stringify(String(value));

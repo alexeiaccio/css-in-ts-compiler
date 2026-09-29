@@ -83,3 +83,48 @@ css.createTokens({
   // @ts-expect-error there is no color.nope
   color: { $type: "color", a: { $value: "red" }, b: { $value: "{color.nope}" } },
 });
+
+// Themes: a media or container condition, or a selector; the overrides have the shape of the tokens.
+const dark = css.media("(prefers-color-scheme: dark)");
+css.createGlobalTheme(t, dark, { color: { bg: "#0b0b0f", accent: "oklch(70% 0.15 259)" } });
+css.createGlobalTheme(t, css.container("card (width < 30rem)"), { space: { md: "8px" } });
+css.createGlobalTheme(t, ".light", {
+  color: { bg: { colorSpace: "srgb", components: [1, 1, 1] } },
+  space: { sm: { value: 1, unit: "rem" } },
+  motion: { fast: "0.2s" },
+  ratio: { golden: 2 },
+});
+css.createGlobalTheme(t.color, "[data-theme=hc]", { bg: "black" });
+css.createGlobalTheme(t, ".weight", { weight: { bold: "extra-bold" } });
+css.createGlobalTheme(t, ".alias", { color: { link: "red" } });
+
+css.createGlobalTheme(t, ".x", {
+  color: {
+    // @ts-expect-error not a colour
+    bg: "blu",
+  },
+});
+css.createGlobalTheme(t, ".x", {
+  space: {
+    // @ts-expect-error a length needs its unit
+    md: "8",
+  },
+});
+css.createGlobalTheme(t, ".x", {
+  color: {
+    // @ts-expect-error a colour is not a length
+    bg: { value: 1, unit: "px" },
+  },
+});
+css.createGlobalTheme(t, ".x", {
+  // @ts-expect-error there is no color.nope
+  color: { nope: "red" },
+});
+css.createGlobalTheme(t, ".x", {
+  // @ts-expect-error there is no such group
+  nope: { bg: "red" },
+});
+// @ts-expect-error a condition or a selector, not a number
+css.createGlobalTheme(t, 3, { color: { bg: "red" } });
+// @ts-expect-error a group is not a value
+css.createGlobalTheme(t, ".x", { color: "red" });

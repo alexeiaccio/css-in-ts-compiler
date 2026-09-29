@@ -1,13 +1,14 @@
 // createTokens(tree, name?): DTCG-shaped data to tokens (token.ts `declare`). Aliases keep their `@property` literal and
-// stay live as `--a: var(--b)` on :root. Both builders are called in user expressions, so their edge is plain code
-// (`edge`); everything behind it is Effect.
-import { DTCG_TYPES, type DtcgType, type TokenType } from "@cssints/css-grammar/token";
+// stay live as `--a: var(--b)` on :root. createGlobalTheme(tokens, condition | selector, overrides): the tokens a theme
+// sets, and the aliases that depend on them, under a condition or a selector. Both builders are called in user
+// expressions, so their edge is plain code (`edge`); everything behind it is Effect.
+import { DTCG_TYPES, type DtcgType, TOKEN_TYPES, type TokenType } from "@cssints/css-grammar/token";
 import { Effect } from "effect";
 
 import type { MacroError } from "./errors.ts";
 import { edge, fail } from "./lib.ts";
 import { registry } from "./registry.ts";
-import { CSSTokenValue, declare, nameOf } from "./token.ts";
+import { checkSyntaxFx, CSSTokenValue, declare, nameOf } from "./token.ts";
 
 const isObject = (v: unknown): v is Record<string, unknown> =>
   !!v && typeof v === "object" && !Array.isArray(v);
@@ -313,3 +314,101 @@ export const tokensOf = (v: unknown): string | undefined =>
   isObject(v) && sets.has(v)
     ? JSON.stringify(v, (_, x: unknown) => (x instanceof CSSTokenValue ? String(x) : x))
     : undefined;
+
+// ---------- createGlobalTheme
+
+// What a theme call returns: nothing that ships (its site becomes `undefined`).
+export const DONE = Object.freeze({ __done: true });
+export const isDone = (v: unknown): boolean => v === DONE;
+
+interface Condition {
+  cond: { text: string };
+}
+const isCondition = (v: unknown): v is Condition =>
+  typeof v === "function" && "__cond" in v && "cond" in v;
+
+// Custom properties are declared on :root. Under a container query :root matches nothing (it has no container above
+// it), so there every element inside the container gets them; :where() keeps the specificity at zero.
+const SCOPE = { "@media": ":root", "@container": ":where(*)" } as const;
+
+// createGlobalTheme(tokens, condition | selector, overrides): `overrides` has the shape of the tokens. Each value is
+// a DTCG value or a CSS string of the token's type. Aliases that depend on an overridden token are declared again in
+// the block, since `var()` is substituted where it is declared.
+export const createGlobalTheme = (...args: unknown[]): unknown =>
+  edge(
+    Effect.gen(function* () {
+      const [tokens, condition, overrides] = args;
+      const set = isObject(tokens) ? sets.get(tokens) : undefined;
+      const at = registry.at;
+      if (!at || !set || args.length !== 3 || !isObject(overrides))
+        return yield* fail(
+          "cssints: createGlobalTheme(tokens, condition | selector, overrides) takes tokens of createTokens, a media() or container() condition or a selector, and the values to set",
+        );
+      let label: string;
+      let block: (decls: string) => string;
+      if (typeof condition === "string") {
+        label = condition.trim();
+        if (!/^[^{};@]+$/.test(label))
+          return yield* fail(`cssints: createGlobalTheme(): "${condition}" is not a selector`);
+        block = (d) => `${label}{${d}}`;
+      } else if (isCondition(condition)) {
+        label = condition.cond.text;
+        const prelude = /^@(media|container)\b/.exec(label)?.[0] as keyof typeof SCOPE | undefined;
+        if (!prelude)
+          return yield* fail(
+            `cssints: createGlobalTheme(): ${label} is not a theme, use a media() or container() condition, or a selector`,
+          );
+        block = (d) => `${label}{${SCOPE[prelude]}{${d}}}`;
+      } else
+        return yield* fail(
+          `cssints: createGlobalTheme(): the second argument is a media() or container() condition or a selector, got ${JSON.stringify(condition)}`,
+        );
+
+      const changed = new Map<string, string>(); // variable -> the value it gets here
+      const walk = Effect.fnUntraced(function* (
+        node: Record<string, unknown>,
+        values: Record<string, unknown>,
+        path: string[],
+      ): Effect.fn.Return<void, MacroError> {
+        for (const [key, v] of Object.entries(values)) {
+          const child = Object.hasOwn(node, key) ? node[key] : undefined;
+          const dotted = [...path, key].join(".");
+          if (child instanceof CSSTokenValue) {
+            const { syntax } = TOKEN_TYPES[registry.defs.get(child.name)!.kind];
+            const text = yield* cssOf(set.types.get(child.name)!, v, dotted);
+            yield* checkSyntaxFx(`createGlobalTheme(): ${dotted} value`, syntax, text);
+            changed.set(child.name, text);
+          } else if (isObject(child) && isObject(v)) yield* walk(child, v, [...path, key]);
+          else
+            return yield* fail(
+              child === undefined
+                ? `cssints: createGlobalTheme(): there is no token at ${dotted}`
+                : `cssints: createGlobalTheme(): ${dotted} is a group, its values are an object`,
+            );
+        }
+      });
+      yield* walk(tokens as Record<string, unknown>, overrides, []);
+      if (!changed.size)
+        return yield* fail("cssints: createGlobalTheme(): the theme sets no token");
+
+      const stale = new Set(changed.keys());
+      for (let grew = true; grew; )
+        grew = set.aliases.some(
+          (a) => stale.has(a.target) && !stale.has(a.name) && !!stale.add(a.name),
+        );
+      const decls = [
+        ...[...changed].map(([name, text]) => `${name}:${text}`),
+        ...set.aliases
+          .filter((a) => stale.has(a.name) && !changed.has(a.name))
+          .map((a) => `${a.name}:var(${a.target})`),
+      ];
+      const n = registry.tokens++;
+      registry.themed.set(`${at.file}#${at.site}.${n}`, {
+        file: at.file,
+        key: `${typeof condition === "string" ? 2 : 1}:${at.file}#${String(at.site).padStart(6, "0")}.${n}`,
+        css: block(decls.join(";")),
+        theme: { label, values: changed },
+      });
+      return DONE;
+    }),
+  );
