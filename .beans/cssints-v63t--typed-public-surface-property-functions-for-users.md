@@ -7,12 +7,13 @@ priority: normal
 tags:
     - wayfinder:prototype
 created_at: 2026-09-29T13:28:04Z
-updated_at: 2026-09-29T15:52:13Z
+updated_at: 2026-09-29T16:34:28Z
 parent: cssints-vy0o
 blocked_by:
     - cssints-5dbi
     - cssints-unkt
     - cssints-lmru
+    - cssints-79xr
 ---
 
 ## Question
