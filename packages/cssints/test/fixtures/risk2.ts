@@ -1,4 +1,4 @@
-import { css } from "cssints";
+import { css } from "cssints" with { type: "cssints" };
 
 import { brand, space } from "./tokens";
 

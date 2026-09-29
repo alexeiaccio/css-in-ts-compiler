@@ -3,85 +3,22 @@
 import { checkRules } from "@cssints/css-grammar/rules";
 import { message, support } from "@cssints/css-grammar/support";
 import { valid } from "@cssints/css-grammar/twin";
-import { classOf, parseStyles, toDecls } from "./lib.mjs";
+import { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
+import { chainDecl, classOf, CONTEXTS, parseStyles, toDecls } from "./lib.mjs";
 
-import { CSSStyleValue } from "@cssints/css-grammar/values";
-
-export { CSS, CSSColorValue, CSSUnitValue } from "@cssints/css-grammar/values";
+export { CSS, CSSColorValue, CSSUnitValue };
 
 const registry = (globalThis.__cssints ??= { sites: new Map(), rules: new Map(), warnings: [], warned: new Set() });
 
-const node = (decls) =>
-  new Proxy(
-    { __cssints: decls },
-    { get: (t, k) => (k in t ? t[k] : (...args) => node([...decls, ...toDecls(String(k), args)])) },
-  );
+// A style: its declarations, and the layout context (flex / grid) whose container properties it chains.
+const node = (decls, ctx) =>
+  new Proxy({ __cssints: decls }, { get: (t, k) => (k in t || typeof k === "symbol" ? t[k] : (...args) => node([...decls, chainDecl(ctx, k, args)], ctx)) });
 
-// css.p(4) | css.flex(...).items(...) | css.flex.items(...) (bare member = call with no args)
-const member = (k) =>
-  new Proxy((...args) => node(toDecls(k, args)), { get: (_, k2) => (k2 in Function.prototype ? undefined : node(toDecls(k, []))[k2]) });
-
-export const css = new Proxy({}, { get: (_, k) => member(String(k)) });
-export const display = /* @__PURE__ */ member("display");
-export const position = /* @__PURE__ */ member("position");
-export const flex = /* @__PURE__ */ member("flex");
-export const flexDirection = /* @__PURE__ */ member("flexDirection");
-export const flexGrow = /* @__PURE__ */ member("flexGrow");
-export const flexShrink = /* @__PURE__ */ member("flexShrink");
-export const items = /* @__PURE__ */ member("items");
-export const justify = /* @__PURE__ */ member("justify");
-export const gap = /* @__PURE__ */ member("gap");
-export const flexWrap = /* @__PURE__ */ member("flexWrap");
-export const width = /* @__PURE__ */ member("width");
-export const height = /* @__PURE__ */ member("height");
-export const maxWidth = /* @__PURE__ */ member("maxWidth");
-export const maxHeight = /* @__PURE__ */ member("maxHeight");
-export const overflow = /* @__PURE__ */ member("overflow");
-export const padding = /* @__PURE__ */ member("padding");
-export const paddingTop = /* @__PURE__ */ member("paddingTop");
-export const paddingRight = /* @__PURE__ */ member("paddingRight");
-export const paddingBottom = /* @__PURE__ */ member("paddingBottom");
-export const paddingLeft = /* @__PURE__ */ member("paddingLeft");
-export const margin = /* @__PURE__ */ member("margin");
-export const marginTop = /* @__PURE__ */ member("marginTop");
-export const marginRight = /* @__PURE__ */ member("marginRight");
-export const marginBottom = /* @__PURE__ */ member("marginBottom");
-export const marginLeft = /* @__PURE__ */ member("marginLeft");
-export const fontSize = /* @__PURE__ */ member("fontSize");
-export const fontWeight = /* @__PURE__ */ member("fontWeight");
-export const fontFamily = /* @__PURE__ */ member("fontFamily");
-export const lineHeight = /* @__PURE__ */ member("lineHeight");
-export const letterSpacing = /* @__PURE__ */ member("letterSpacing");
-export const textAlign = /* @__PURE__ */ member("textAlign");
-export const textDecoration = /* @__PURE__ */ member("textDecoration");
-export const textTransform = /* @__PURE__ */ member("textTransform");
-export const whiteSpace = /* @__PURE__ */ member("whiteSpace");
-export const color = /* @__PURE__ */ member("color");
-export const bg = /* @__PURE__ */ member("bg");
-export const background = /* @__PURE__ */ member("background");
-export const border = /* @__PURE__ */ member("border");
-export const borderColor = /* @__PURE__ */ member("borderColor");
-export const borderWidth = /* @__PURE__ */ member("borderWidth");
-export const borderStyle = /* @__PURE__ */ member("borderStyle");
-export const borderRadius = /* @__PURE__ */ member("borderRadius");
-export const boxShadow = /* @__PURE__ */ member("boxShadow");
-export const opacity = /* @__PURE__ */ member("opacity");
-export const transition = /* @__PURE__ */ member("transition");
-export const transform = /* @__PURE__ */ member("transform");
-export const cursor = /* @__PURE__ */ member("cursor");
-export const zIndex = /* @__PURE__ */ member("zIndex");
-export const p = /* @__PURE__ */ member("p");
-export const pt = /* @__PURE__ */ member("pt");
-export const pr = /* @__PURE__ */ member("pr");
-export const pb = /* @__PURE__ */ member("pb");
-export const pl = /* @__PURE__ */ member("pl");
-export const m = /* @__PURE__ */ member("m");
-export const mt = /* @__PURE__ */ member("mt");
-export const mr = /* @__PURE__ */ member("mr");
-export const mb = /* @__PURE__ */ member("mb");
-export const ml = /* @__PURE__ */ member("ml");
+const member = (k) => (...args) => node(toDecls(k, args), CONTEXTS[k] ? k : undefined);
 
 export const cn = member("cn");
+export const flex = member("flex");
+export const grid = member("grid");
 
 const classesOf = (decls) => {
   const out = [];
@@ -109,7 +46,11 @@ export const cv = (config) => ({
   },
 });
 
-
+// Any name besides these (css.p, css.alignItems) is a property. Named imports of build-time members come from
+// here too: the plugin rewrites them to destructure `css`, so the property list stays derived from the grammar.
+const named = { cn, flex, grid, cv, CSS, CSSColorValue, CSSUnitValue };
+export const css = new Proxy(named, { get: (t, k) => (Object.hasOwn(t, k) ? t[k] : member(String(k))) });
+named.css = css;
 
 export function __site(file, n, value) {
   // A Typed OM value (CSS.rem(1), new CSSColorValue(...)) ships as its CSS text; the objects are eval-time only.

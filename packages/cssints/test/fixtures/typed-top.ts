@@ -1,4 +1,4 @@
-import { css, CSS } from "cssints";
+import { css, CSS } from "cssints" with { type: "cssints" };
 
 import { accent } from "./tokens-typed";
 

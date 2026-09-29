@@ -1,53 +1,11 @@
 // Shared by the runtime (eval time) and the plugin (build time).
+import { properties } from "@cssints/css-grammar/mdn";
+
+const camel = (p) => p.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+
+// member -> property: every grammar property as camelCase, plus the short set.
 export const PROPS = {
-  display: "display",
-  position: "position",
-  flex: "flex",
-  flexDirection: "flex-direction",
-  flexGrow: "flex-grow",
-  flexShrink: "flex-shrink",
-  items: "align-items",
-  justify: "justify-content",
-  gap: "gap",
-  flexWrap: "flex-wrap",
-  width: "width",
-  height: "height",
-  maxWidth: "max-width",
-  maxHeight: "max-height",
-  overflow: "overflow",
-  padding: "padding",
-  paddingTop: "padding-top",
-  paddingRight: "padding-right",
-  paddingBottom: "padding-bottom",
-  paddingLeft: "padding-left",
-  margin: "margin",
-  marginTop: "margin-top",
-  marginRight: "margin-right",
-  marginBottom: "margin-bottom",
-  marginLeft: "margin-left",
-  fontSize: "font-size",
-  fontWeight: "font-weight",
-  fontFamily: "font-family",
-  lineHeight: "line-height",
-  letterSpacing: "letter-spacing",
-  textAlign: "text-align",
-  textDecoration: "text-decoration",
-  textTransform: "text-transform",
-  whiteSpace: "white-space",
-  color: "color",
-  bg: "background-color",
-  background: "background",
-  border: "border",
-  borderColor: "border-color",
-  borderWidth: "border-width",
-  borderStyle: "border-style",
-  borderRadius: "border-radius",
-  boxShadow: "box-shadow",
-  opacity: "opacity",
-  transition: "transition",
-  transform: "transform",
-  cursor: "cursor",
-  zIndex: "z-index",
+  ...Object.fromEntries(Object.keys(properties).map((p) => [camel(p), p])),
   p: "padding",
   pt: "padding-top",
   pr: "padding-right",
@@ -58,24 +16,51 @@ export const PROPS = {
   mr: "margin-right",
   mb: "margin-bottom",
   ml: "margin-left",
+  bg: "background-color",
 };
-const SPACING = new Set(["padding", "margin", "gap"]);
-const isNode = (v) => !!v && typeof v === "object" && Array.isArray(v.__cssints);
+
+// Layout contexts: flex() / grid() set display and chain only these container properties; the method name
+// drops the context prefix (flex-direction -> direction). test/contexts.mjs checks them against mdn-data.
+export const CONTEXTS = {
+  flex: ["flex-direction", "flex-wrap", "flex-flow", "align-items", "align-content", "justify-content", "place-content", "gap", "row-gap", "column-gap"],
+  grid: [
+    "grid-template-columns", "grid-template-rows", "grid-template-areas", "grid-template", "grid-auto-flow", "grid-auto-columns", "grid-auto-rows",
+    "align-items", "justify-items", "place-items", "align-content", "justify-content", "place-content", "gap", "row-gap", "column-gap",
+  ],
+};
+
+const SPACING = /^(padding|margin|inset|gap|row-gap|column-gap)(-|$)/;
+export const isNode = (v) => !!v && typeof v === "object" && Array.isArray(v.__cssints);
+
+// parts (strings, Typed OM values) are joined by a space; a lone number is the spacing scale in spacing properties
+const decl = (prop, name, args) => {
+  if (!args.length) throw new Error(`cssints: ${name}() expects a value`);
+  if (args.some(isNode)) throw new Error(`cssints: ${name}() takes values, not styles; merge styles with cn(...) or cx(...)`);
+  return [prop, args.length === 1 && typeof args[0] === "number" && SPACING.test(prop) ? `${args[0] * 0.25}rem` : args.join(" ")];
+};
 
 export function toDecls(member, args) {
-  const children = args.filter(isNode).flatMap((n) => n.__cssints);
-  const plain = args.filter((a) => !isNode(a));
-  const composite = { flex: [["display", "flex"]], cn: [] }[member];
-  if (composite) {
-    if (plain.length) throw new Error(`cssints: css.${member} takes css.* values only, got ${JSON.stringify(plain)}`);
-    return [...composite, ...children];
+  if (member === "cn") {
+    if (!args.every(isNode)) throw new Error(`cssints: cn() takes css.* values only, got ${JSON.stringify(args.filter((a) => !isNode(a)))}`);
+    return args.flatMap((n) => n.__cssints);
+  }
+  if (CONTEXTS[member]) {
+    if (args.length) throw new Error(`cssints: ${member}() takes no arguments; chain its container properties: ${member}().${chainNames(member)[0]}(...)`);
+    return [["display", member]];
   }
   const prop = PROPS[member];
   if (!prop) throw new Error(`cssints: unknown css.${member}`);
-  if (!plain.length) throw new Error(`cssints: css.${member} expects a value, got ${JSON.stringify(args)}`);
-  const v = plain[0];
-  // parts (strings, Typed OM values) are joined by a space; a lone number is the spacing scale
-  return [[prop, plain.length === 1 && typeof v === "number" && SPACING.has(prop) ? `${v * 0.25}rem` : plain.join(" ")], ...children];
+  return [decl(prop, member, args)];
+}
+
+const chainNames = (ctx) => CONTEXTS[ctx].map((p) => camel(p.startsWith(`${ctx}-`) ? p.slice(ctx.length + 1) : p));
+
+// .method(...) on a style: only container properties of flex() / grid(); plain styles do not chain.
+export function chainDecl(ctx, method, args) {
+  if (!ctx) throw new Error(`cssints: plain styles do not chain (.${method}); merge them with cn(...) or cx(...)`);
+  const i = chainNames(ctx).indexOf(method);
+  if (i < 0) throw new Error(`cssints: ${ctx}() has no .${method}(); it chains ${chainNames(ctx).join(", ")}`);
+  return decl(CONTEXTS[ctx][i], method, args);
 }
 
 // "a: b; c: d" -> [["a","b"],["c","d"]]  (cv() config strings)

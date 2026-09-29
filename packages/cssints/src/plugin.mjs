@@ -18,18 +18,24 @@ const rootIdent = (n) =>
   n.type === "Identifier" ? n.name : n.type === "MemberExpression" ? rootIdent(n.object) : n.type === "CallExpression" ? rootIdent(n.callee) : null;
 
 const RUNTIME_ONLY = new Set(["cx", "_cv"]);
+const isSiteImport = (s) => s.attributes?.some((a) => (a.key.name ?? a.key.value) === "type" && a.value.value === "cssints");
 
-// Locals bound to compile-time members of "cssints": `css` / `* as css` (any member) and named
-// imports like `display`, `p`, `cv`. Returns null when the file does not import cssints.
-function findCssImport(program) {
-  const locals = new Map(); // local name -> { decl, spec }
+// Every import `with { type: "cssints" }` (cssints, other packages, local helper modules) makes its bindings
+// site roots. "cssints" without the attribute may only give runtime members. Returns null without site imports.
+function findCssImport(program, code, id) {
+  const locals = new Set();
   const decls = [];
   for (const s of program.body) {
-    if (s.type !== "ImportDeclaration" || s.source.value !== RUNTIME) continue;
-    decls.push(s);
-    for (const x of s.specifiers) {
-      const imported = x.type === "ImportNamespaceSpecifier" ? "css" : (x.imported.name ?? x.imported.value);
-      if (!RUNTIME_ONLY.has(imported)) locals.set(x.local.name, { decl: s, spec: x });
+    if (s.type !== "ImportDeclaration") continue;
+    if (isSiteImport(s)) {
+      decls.push(s);
+      s.specifiers.forEach((x) => locals.add(x.local.name));
+    } else if (s.source.value === RUNTIME) {
+      const bad = s.specifiers.filter((x) => x.type !== "ImportSpecifier" || !RUNTIME_ONLY.has(x.imported.name ?? x.imported.value));
+      if (!bad.length) continue;
+      const names = bad.map((x) => code.slice(x.start, x.end));
+      const fix = bad[0].type === "ImportNamespaceSpecifier" ? names[0] : `{ ${names.join(", ")} }`;
+      throw new Error(`cssints: ${id} imports build-time ${names.join(", ")} from "cssints" without the attribute. Import it as: import ${fix} from "cssints" with { type: "cssints" }; (only cx and _cv are runtime)`);
     }
   }
   return locals.size ? { locals, decls } : null;
@@ -58,24 +64,27 @@ function findSites(program, locals) {
 
 export function instrument(code, id) {
   const { program } = parseSync(id, code);
-  const imp = findCssImport(program);
+  const imp = findCssImport(program, code, id);
   if (!imp) return null;
   const sites = findSites(program, imp.locals);
-  if (!sites.length) return null;
   const ms = new MagicString(code);
   const hoisted = [];
   sites.forEach((s, n) => {
     const site = `__site(${JSON.stringify(id)}, ${n}, `;
-    if (s.inFn) {
-      // Sites inside functions never run at module load; hoist them after all top-level statements.
-      hoisted.push(`const __s${n} = ${site}${code.slice(s.start, s.end)});`);
-      ms.overwrite(s.start, s.end, `__s${n}`);
-    } else {
-      ms.prependLeft(s.start, site).appendRight(s.end, ")");
-    }
+    // Sites inside functions never run at module load, and may use locals of a helper that is called with
+    // arguments. The runner calls __cssints_hoisted only on the module it evaluates, after it has loaded.
+    if (s.inFn) hoisted.push(`${site}${code.slice(s.start, s.end)});`);
+    else ms.prependLeft(s.start, site).appendRight(s.end, ")");
+  });
+  // cssints members are properties of `css` (macro.mjs): named imports destructure it.
+  imp.decls.forEach((d, i) => {
+    if (d.source.value !== RUNTIME) return;
+    const ns = d.specifiers.find((x) => x.type === "ImportNamespaceSpecifier");
+    const bind = ns ? ns.local.name : `{ ${d.specifiers.map((x) => `${JSON.stringify(x.imported.name ?? x.imported.value)}: ${x.local.name}`).join(", ")} }`;
+    ms.overwrite(d.start, d.end, `import { css as __css${i} } from ${JSON.stringify(RUNTIME)}; const ${bind} = __css${i};`);
   });
   ms.prepend(`import { __site } from ${JSON.stringify(RUNTIME)};\n`);
-  if (hoisted.length) ms.append(`\n${hoisted.join("\n")}\n`);
+  if (hoisted.length) ms.append(`\nexport function __cssints_hoisted() {\n${hoisted.join("\n")}\n}\n`);
   return { code: ms.toString(), sites, imp };
 }
 
@@ -120,7 +129,7 @@ const evaluate = Effect.fn("cssints.evaluate")(function* (runner, id) {
   globalThis.__cssints?.sites.delete(id);
   clearApp(runner.evaluatedModules);
   yield* Effect.tryPromise({
-    try: () => runner.import(id),
+    try: () => runner.import(id).then((m) => m.__cssints_hoisted?.()),
     catch: (e) => new MacroEvalError({ file: id, message: e instanceof Error ? e.message : String(e) }),
   }).pipe(Effect.timeout("30 seconds"));
   return globalThis.__cssints?.sites.get(id) ?? new Map();
@@ -202,7 +211,7 @@ export default function cssints({ inner = false } = {}) {
   };
 
   async function clientTransform(code, id, parsed, env, warn) {
-    const sites = await Effect.runPromise(evalLock.withPermit(evaluate(runner, id))).finally(() => globalThis.__cssints?.warnings?.splice(0).forEach(warn));
+    const sites = parsed.sites.length ? await Effect.runPromise(evalLock.withPermit(evaluate(runner, id))).finally(() => globalThis.__cssints?.warnings?.splice(0).forEach(warn)) : new Map();
 
     const ms = new MagicString(code);
     parsed.sites.forEach((s, n) => {
@@ -210,12 +219,8 @@ export default function cssints({ inner = false } = {}) {
       if (replacement === undefined) throw new Error(`cssints: site ${n} in ${id} was not evaluated`);
       ms.overwrite(s.start, s.end, replacement);
     });
-    // Drop compiled specifiers; keep cx/_cv. Remove the whole import when nothing is left.
-    for (const decl of parsed.imp.decls) {
-      const keep = decl.specifiers.filter((x) => !parsed.imp.locals.has(x.local.name));
-      if (!keep.length) ms.remove(decl.start, decl.end);
-      else ms.overwrite(decl.start, decl.end, `import { ${keep.map((x) => x.local.name).join(", ")} } from ${JSON.stringify(RUNTIME)};`);
-    }
+    // Build-time imports are gone from the client; runtime ones (cx, _cv) stay.
+    for (const decl of parsed.imp.decls) ms.remove(decl.start, decl.end);
 
     const rules = globalThis.__cssints.rules;
     const used = new Set([...sites.values()].flatMap((r) => [...r.matchAll(/"(_[a-z0-9]+(?: _[a-z0-9]+)*)"/g)].flatMap((m) => m[1].split(" "))));

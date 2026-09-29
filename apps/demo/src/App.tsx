@@ -10,15 +10,15 @@
 
 import { cx } from "cssints";
 import {
-	display, flexDirection, gap, padding, fontSize, fontWeight,
+	flex, grid, padding, fontSize, fontWeight,
 	color, fontFamily, bg, borderRadius, border, margin, marginTop,
-	marginBottom, maxWidth, flexWrap,
-} from "cssints";
+	marginBottom, maxWidth,
+} from "cssints" with { type: "cssints" };
 import { Button } from "./components/Button.js";
 import { Card } from "./components/Card.js";
 
 // Layout styles
-const page = [display("flex"), flexDirection("column"), gap("1rem")];
+const page = [flex().direction("column").gap("1rem")];
 const container = [maxWidth("800px"), margin("0 auto")];
 
 // Typography
@@ -27,8 +27,8 @@ const h2 = [fontSize("1.25rem"), fontWeight("600"), marginBottom("1rem")];
 const subtitle = [color("#6b7280"), marginBottom("2rem"), fontSize("1.125rem")];
 
 // Layout helpers
-const row = [display("flex"), gap("0.5rem"), flexWrap("wrap")];
-const column = [display("flex"), flexDirection("column"), gap("1rem")];
+const row = [flex().gap("0.5rem").wrap("wrap")];
+const column = [flex().direction("column").gap("1rem")];
 
 // Info section
 const infoSection = [
@@ -36,7 +36,7 @@ const infoSection = [
 	borderRadius("0.5rem"), border("1px solid #dbeafe"),
 ];
 const infoH2 = [fontSize("1.25rem"), fontWeight("600"), marginBottom("1rem"), color("#1e40af")];
-const infoList = [display("flex"), flexDirection("column"), gap("0.5rem"), color("#1e40af")];
+const infoList = [flex().direction("column").gap("0.5rem"), color("#1e40af")];
 
 // Feature card
 const featureCard = [
@@ -44,7 +44,7 @@ const featureCard = [
 ];
 const featureTitle = [fontWeight("600"), marginBottom("0.25rem")];
 const featureDesc = [fontSize("0.875rem"), color("#6b7280")];
-const featureGrid = [display("grid"), gap("1rem")];
+const featureGrid = [grid().gap("1rem")];
 
 function App() {
 	return (

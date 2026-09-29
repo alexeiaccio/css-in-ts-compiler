@@ -1,5 +1,5 @@
-import { css } from "cssints";
+import { css } from "cssints" with { type: "cssints" };
 
 export const a = css.p(4);
-export const b = css.flex(css.items("center"));
-export const c = css.flex(css.items("center"), css.justify("space-between"));
+export const b = css.flex().alignItems("center");
+export const c = css.flex().alignItems("center").justifyContent("space-between");
