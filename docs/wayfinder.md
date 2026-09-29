@@ -769,3 +769,20 @@ Types and twin agree on all 4232 sampled rows. Numeric ranges are skipped there,
 **Open:**
 - The reverse direction (Chrome accepts, the twin rejects), mostly stale mdn-data grammars such as `image-orientation: none` and `tab-size: 3.5`; a follow-up could prefer the webref property grammar where mdn-data is stale.
 - `attr(x type(<length>))`.
+
+## Tokens (cssints-79xr)
+
+`css.token.<type>(initial, name?)` gives a Typed OM value whose text is `var(--name)`, so it fits typed parts and single-part properties.
+- **Checking values.** The twin knows no `var()`, so a value that uses a token is checked with each token swapped for a literal of its type.
+- **Names.** A named token can be set. An unnamed one is private, with a `--_<hash of file and site>` variable, and setting it is a type error and a build error.
+- **`@property`.** Each token adds one `@property` rule to the global sheet, after the layer statement and outside the layers, deduplicated across modules. A clash is a build error at the second declaration.
+- **HMR.** A module records the `@property` text of the tokens it reads, so editing an initial value reaches the browser through HMR. The Quint model needed no change.
+- **`style()` and `token.set()`** become an object literal at build time: custom properties first, values checked, no conditions.
+
+**A spec rule that changed the design.** `@property initial-value` must be computationally independent, and Chrome drops the rule when it is `1rem`, `1em` or `1ch`. So a font-relative initial value is a build error, and API.md now writes `16px`.
+
+**Left out for now:**
+- `resolution`, `url` and `image`, whose grammars were missing when the branch started; they landed with cssints-lmru.
+- Typed-part sentinels for `integer`, `angle`, `time` and `custom-ident` in `css.ts`.
+
+In the demo, one token is read by a class and set in a `style` prop, and both were checked in Chrome. Perf and budgets are unchanged apart from the new `tokens.ts` bench.
