@@ -42,7 +42,7 @@ export function next(s: string): [Tok, string] {
   if ((m = /^(\|\||&&)/.exec(s))) return [{ t: "p", v: m[1]! }, s.slice(2)];
   if ((m = /^\{([^}]*)\}/.exec(s))) {
     const [lo, hi = lo] = m[1]!.split(",") as [string, string?];
-    return [{ t: "range", lo, hi }, s.slice(m[0].length)];
+    return [{ t: "range", lo, hi: hi || "∞" }, s.slice(m[0].length)]; // `{A,}` is open
   }
   if ((m = /^[[\]()|?*+#!,/]/.exec(s))) return [{ t: "p", v: m[0] }, s.slice(1)];
   if ((m = /^[^()[\]|&?*+#!,/{}<>' \n\t]+(?=[ \n\t]|$)/.exec(s)))

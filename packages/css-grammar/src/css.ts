@@ -35,7 +35,7 @@ type Next<S extends string> =
   : S extends `<${infer T}>${infer R}` ? [{ t: "type"; v: StripRange<T> }, R]
   : S extends `||${infer R}` ? [{ t: "p"; v: "||" }, R]
   : S extends `&&${infer R}` ? [{ t: "p"; v: "&&" }, R]
-  : S extends `{${infer B}}${infer R}` ? (B extends `${infer Lo},${infer Hi}` ? [{ t: "range"; lo: Lo; hi: Hi }, R] : [{ t: "range"; lo: B; hi: B }, R])
+  : S extends `{${infer B}}${infer R}` ? (B extends `${infer Lo},${infer Hi}` ? [{ t: "range"; lo: Lo; hi: Hi extends "" ? "∞" : Hi }, R] : [{ t: "range"; lo: B; hi: B }, R])
   : S extends `${infer C extends "[" | "]" | ")" | "|" | "?" | "*" | "+" | "#" | "!" | "," | "/"}${infer R}` ? [{ t: "p"; v: C }, R]
   : S extends `${infer W} ${infer R}` ? (IsWord<W> extends true ? [{ t: "kw"; v: W }, R] : NextWord<S>)
   : IsWord<S> extends true ? [{ t: "kw"; v: S }, ""]

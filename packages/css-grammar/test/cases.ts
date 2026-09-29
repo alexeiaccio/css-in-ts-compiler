@@ -46,6 +46,7 @@ export const cases = [
   ["transition-duration", "250ms, 0.5s", true],
   ["font-style", "oblique 1.5rad", true],
   ["font-style", "oblique 90deg", true],
+  ["dynamic-range-limit", "dynamic-range-limit-mix(standard 50%, constrained 50%, no-limit 1%)", true],
 
   ["padding", "1 rem", false],
   ["padding", "1rem 2rem 3rem 4rem 5rem", false],
@@ -83,6 +84,7 @@ export const cases = [
   ["width", "calc-size(any, (1px)", false],
   ["background", "image()", false],
   ["background", "image(ltr)", false],
+  ["dynamic-range-limit", "dynamic-range-limit-mix(standard 50%)", false],
 ] as const;
 
 // Only the runtime rejects these: ranges and hex digits are beyond `${number}` / `#${string}`.
