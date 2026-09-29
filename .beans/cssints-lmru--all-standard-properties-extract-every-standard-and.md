@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-09-29T15:02:52Z
-updated_at: 2026-09-29T15:06:47Z
+updated_at: 2026-09-29T16:19:08Z
 parent: cssints-vy0o
 blocked_by:
     - cssints-djzw
@@ -24,3 +24,5 @@ Act on cssints-unkt (docs/research/grammar-coverage.md). Blocked by the TS + Eff
 - [ ] css.ts: the `[S] extends [never]` short-circuit in `AnyOrder`; `font-variant: "none"` drops from 4.3 M instantiations to about 51 k; no TS2589 on any property
 - [ ] diff-support over all properties: classify the unexplained standard rows (820 in the research) by cause, fix ours, and extend KNOWN and the prose rules; types vs twin agree on every row
 - [ ] Budgets updated and recorded (per-call cost ~4.2 k; the unused table costs 0)
+
+Merge note from cssints-mjgx (already on master): regenerate mdn.ts (the conditions block uses `Object.keys(P)`, so `<declaration>` follows the property list) and members.ts (pseudo wrappers); `css.ts` exports `Stuck`/`Unexpected` and has a changed `NotIdent`; `budget.json` has two new entries (queries, supports), so re-run `--update`. With all properties, `supports.ts` costs about 1.23 M instantiations (about 0.5 M once per program).

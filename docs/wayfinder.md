@@ -733,3 +733,17 @@ The exceptions are what user code calls in expressions: the `css.*` builders, th
 - `vp pack` builds both packages.
 - `vp lint` is clean for the repo, and `vp fmt --check` is clean for cssints, css-grammar and the demo.
 - The demo's CSS is byte-identical.
+
+## Conditions and layers (cssints-mjgx)
+
+Wrappers take styles and return styles, and they nest: `media(q)` (as a string, a tuple or an object), `container(q)`, `supports(q)`, and 49 pseudo-class wrappers from mdn-data selectors (`hover`, `focusVisible`, …).
+
+- **Layers.** A style's layer is its number of conditions, from `_.a` to `_.e`. A fifth condition is a build error located at the call site.
+- **Classes and rules.** The class hash includes the condition chain. The sheet emits one at-rule block per chain per layer, ordered by min-width, then by pseudo-class order. Min-width is read from `(min-width: X)` or `(width >= X)` in px, rem or em.
+- **Bindings.** `const md = media(…)` and its destructured forms are site roots. In the client the binding becomes `null` in the same shape.
+- **Query checks.** Query strings are checked in types (`query.ts`) and at build time against `<media-query-list>`, `<container-condition>` and `<supports-condition>`. The grammars come from webref first, because its `<media-condition>` is linear, with mdn-data filling the gaps. There is no `<general-enclosed>`, so an unknown feature is an error, not "false".
+- **Gaps:** `supports()` accepts only property declarations, and `style()` container queries do not accept custom properties.
+- **Type cost.** With every standard property, a `supports()` call costs about 0.5 M instantiations, paid once per program, because `<declaration>` alternates over all properties.
+- **Seam.** `@layer _.k, _.a … _.e;` and an internal `addGlobal(key, css)`.
+- **HMR model.** Unchanged: wrappers are synchronous builders.
+- **Demo.** A media query on the feature list and `hover` on buttons and cards, checked in Chrome: row layout at 1000 px, hover colour changes. Performance is unchanged.
