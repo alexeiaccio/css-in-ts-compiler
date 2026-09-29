@@ -1,0 +1,39 @@
+---
+# cssints-vy0o
+title: 'Map: cssints 0.1, the docs/API.md library working end to end'
+status: todo
+type: epic
+tags:
+    - wayfinder:map
+created_at: 2026-09-29T13:28:04Z
+updated_at: 2026-09-29T13:28:04Z
+---
+
+## Destination
+
+The API in `docs/API.md` works end to end in `apps/demo` on the Module Runner engine: typed property functions for every mdn property, conditions (`media()`, pseudo-classes) mapped to `@layer _.a.._.e`, tokens emitted as `@property`, `cx`/`cn`, and one optimized stylesheet through LightningCSS. The demo type-checks with tsc and tsgo, and the packages are ready to publish.
+
+## Notes
+
+- Log findings in `docs/wayfinder.md`; the map only indexes them.
+- Tracker is beans. A ticket is a child of this epic with a `wayfinder:<type>` tag. Claim a ticket by setting it `in-progress`. The frontier is `beans list --ready --parent <this map>`.
+- Execution is allowed on this map, as on the previous one (`cssints-tmv8`): a decision ticket may end with an implementation ticket that does the work.
+- Standing preferences: tsgo is the primary type checker, and tsc 5.9 must stay green; grammars come verbatim from mdn-data, with ranges from @webref/css; every type-level change is checked with `bun run bench`; minimal code (ponytail); Effect TS 4 where there are side effects (AGENTS.md).
+- Parallel work goes in `.worktrees/<branch>`; the coordinator merges.
+
+## Decisions so far
+
+## Not yet specified
+
+- Themes: `createTokens` / `createGlobalTheme` from design-token JSON (DTCG 2025.10), after the token model is decided.
+- Value helper functions (`css.colorMix(...)`, API.md "Functions"): whether they exist next to typed string parts, and how they are typed.
+- JSDoc on the generated functions: syntax, BCD support table and MDN link, as in API.md "Browser Compat".
+- Error DX: the type error for a bad typed part lands on the first argument; editor completions inside string literals (arktype `Completion` style); Vite overlay pointing at the call site.
+- Publishing: package names (`cssints`, `@cssints/*`), a build step or source exports, versioning.
+- `cn` conflict resolution ("resolve class order specificity"): what happens with `cn(p(4), pl(2))`.
+
+## Out of scope
+
+- `packages/plugin-icon`: not ported to the new engine for 0.1.
+- Bundlers other than Vite (the engine is built on the Vite Module Runner).
+- A non-compiled runtime mode (styles computed in the browser).
