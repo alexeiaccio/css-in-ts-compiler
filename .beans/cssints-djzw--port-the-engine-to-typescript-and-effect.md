@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-09-29T14:34:21Z
-updated_at: 2026-09-29T14:36:11Z
+updated_at: 2026-09-29T14:51:25Z
 parent: cssints-vy0o
 blocked_by:
     - cssints-vzd9
@@ -25,3 +25,5 @@ Implement the decision of cssints-odi9. Blocked by the global sheet, so the port
 - [ ] tsdown config for publishing `cssints` and `@cssints/css-grammar` (build only; publishing itself is fog)
 - [ ] `vp lint` and `vp fmt --check` clean for packages/cssints, packages/css-grammar and apps/demo
 - [ ] AGENTS.md: the typecheck commands and the one exception
+
+Note from cssints-ny2w: the lint baseline is 1443 errors (1191 rule and 252 type errors, mostly no-unsafe-*) and fmt would change ~60 files. plugin-icon has 3 syntax errors that stop `vp fmt` and `vp check`: fix them, or exclude plugin-icon in `vite.config.ts`, since it is out of scope for 0.1.

@@ -18,36 +18,31 @@ docs/research/         comparisons with other libraries; docs/archive/ outdated 
 ## Commands
 
 ```bash
-bun install
-bun run test                                  # all packages (turbo)
-bun run bench                                 # css-grammar instantiation budgets (tsc + tsgo)
+bun install                                   # or: vp install (runs bun)
+bun run test                                  # vp run -r --cache test: all packages, cached where the task allows
+bun run bench                                 # vp run -r bench: css-grammar instantiation budgets (tsc + tsgo), never cached
 
 cd packages/cssints && bun run test           # fixtures, source maps, HMR races, hmr app
 cd packages/cssints/test && node run.mjs fixtures/risk1.ts   # one fixture: prints code and css
 cd packages/css-grammar && bun run test       # twin + type checks, support/prose rules, tsc
 cd packages/css-grammar && bun run extract    # regenerate src/mdn.ts from mdn-data + @webref/css
 cd packages/css-grammar && node bench/budget.mjs --update    # after a deliberate type-cost change
-cd apps/demo && bun run build
+cd apps/demo && bun run build                # vp build
 ```
 
 Plain `.ts` files run with `node` (type stripping), no build step.
 
+`vp <name>` is a Vite+ built-in, `vp run <name>` is a package.json script: `vp test` is vitest (unused here), `vp run test` is ours. Docs ship in `node_modules/vite-plus/docs`.
+
 ### Linting & Formatting
 
+Config lives in the root `vite.config.ts` (`lint` and `fmt` blocks); `vp` is the local `vite-plus` binary.
+
 ```bash
-# Type-aware linting
-bun run lint
-
-# Auto-fix linting issues
+bun run check        # vp check: format, lint and type-check in one pass
+bun run lint         # vp lint (type-aware, with type check)
 bun run lint:fix
-
-# Type-check only
-bun run lint:check
-
-# Format code
-bun run fmt
-
-# Check formatting
+bun run fmt          # vp fmt (writes)
 bun run fmt:check
 ```
 
@@ -69,7 +64,7 @@ Other deps:
 - [TypeScript Go](https://github.com/microsoft/typescript-go)
 - [OXC lint](https://oxc.rs/blog/2025-12-08-type-aware-alpha)
 - [OXC fmt](https://oxc.rs/docs/guide/usage/formatter)
-- [Turborepo](https://turborepo.dev/)
+- [Vite+](https://viteplus.dev/) (`vp`: task runner, lint, fmt, check, build)
 - [Bun](https://bun.sh)
 - [Knip](https://knip.dev/)
 
@@ -420,20 +415,9 @@ All TypeScript and correctness rules enforced as errors:
 
 ## Notes
 
-- This is a monorepo using Turborepo
+- This is a monorepo run by Vite+ (`vp run -r`)
 - Bun is the package manager; tests are plain `node` scripts run through `bun run test`
 - Effect TS 4 Beta is used for functional patterns
 - OXC parser/transformer for AST manipulation
 - One Vite plugin, `cssints/vite`: oxc finds `css.*` sites, the Vite Module Runner evaluates them
 - API documentation: `docs/API.md` (primary reference)
-
-<!-- BEGIN:turborepo-agent-rules -->
-
-# This is NOT the Turborepo you know
-
-Turborepo configuration, task behavior, and CLI commands can vary between installed versions and may differ from your training data. Resolve the `turbo` package from this file's directory or relevant workspace; in monorepos, it may not be visible from the repository root. For example, run `node -p "require.resolve('turbo/package.json')"` from a workspace that depends on `turbo`.
-
-Read `docs/README.md` inside that installed package first, then read the relevant pages from its `docs/` directory before changing Turborepo configuration or commands. Heed deprecation notices. These bundled docs match the installed package version and are available without network access.
-
-This block is written and re-added by `turbo` before repository-scoped commands when an AI agent is detected. In the Turborepo source repository, its template is defined in `crates/turborepo-cli/src/cli/agent_guidance.rs`. Removing the managed block while updates are enabled means a later qualifying invocation will add it again. Set `"agentGuidance": false` in the root `turbo.json` or `turbo.jsonc` to opt out; this does not remove an existing block. Keep the block committed with your work to avoid an uncommitted change on the next agent invocation.
-<!-- END:turborepo-agent-rules -->

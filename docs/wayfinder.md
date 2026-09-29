@@ -662,3 +662,11 @@ For us:
 - `@property` initial values must be computationally independent, so aliases need a flattened literal plus a live `var()` declaration.
 
 The research recommends typed tokens and themes first, then one build-time check, `css.check.contrast`, per theme. That is for the Themes ticket to decide. Findings: `docs/research/design-tokens.md`.
+
+## Vite+ instead of turbo (cssints-ny2w)
+
+The monorepo runs on Vite+ (`vite-plus` 1.0.0, the `vp` command), and bun stays the package manager. One root `vite.config.ts` holds the lint and format settings. `vp lint`, `vp fmt` and `vp check` replace the standalone oxlint, oxfmt and tsgolint. The root `test`, `bench` and `build` scripts run `vp run -r`.
+
+`test` is cached, and css-grammar's steps hit the cache. cssints' tests never hit it, because they write temp apps under `test/`. Note that `vp test` is Vite+'s built-in Vitest; our script is `vp run test`.
+
+The old `oxlintrc.json` was named without the dot, so oxlint never read it. With the real config, `vp lint` reports 1443 errors (1191 rule errors and 252 type errors), mostly `no-unsafe-*`, and formatting would change about 60 files. plugin-icon has three syntax errors that stop `vp fmt` and `vp check`. The TS + Effect port (cssints-djzw) makes this clean and must fix or drop plugin-icon. The demo CSS did not change.

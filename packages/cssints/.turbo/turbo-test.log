@@ -1,0 +1,121 @@
+$ cd test && node run.mjs fixtures/risk*.ts fixtures/typed*.ts fixtures/tokens-typed.ts && ! node run.mjs fixtures/invalid.ts > /dev/null && node map-check.mjs && node spec/race.mjs && cd hmr && node hmr.mjs && ORDER=button-first node hmr.mjs
+################ fixtures/risk1-chain.ts
+--- code
+const center = "_1ob5z5m";
+export const a = "_lwugp7";
+export const b = "_1s47490 _1ob5z5m _hxdliw";
+export const c = "_1s47490 _1ob5z5m";
+export const d = "_1s47490 _1ob5z5m _1t8gqy5";
+
+--- css
+@layer _.a{._1ob5z5m{align-items:center}}
+@layer _.a{._lwugp7{padding:1rem}}
+@layer _.a{._1s47490{display:flex}}
+@layer _.a{._hxdliw{justify-content:space-between}}
+@layer _.a{._1t8gqy5{padding:0.5rem}}
+################ fixtures/risk1-nested1.ts
+--- code
+export const b = "_1s47490 _1ob5z5m";
+
+--- css
+@layer _.a{._1s47490{display:flex}}
+@layer _.a{._1ob5z5m{align-items:center}}
+################ fixtures/risk1-ns.ts
+--- code
+const center = "_1ob5z5m";
+export const a = "_lwugp7";
+export const b = "_1s47490 _1ob5z5m";
+
+--- css
+@layer _.a{._1ob5z5m{align-items:center}}
+@layer _.a{._lwugp7{padding:1rem}}
+@layer _.a{._1s47490{display:flex}}
+################ fixtures/risk1-vars.ts
+--- code
+const center = "_1ob5z5m";
+const between = "_hxdliw";
+export const b = "_1s47490 _1ob5z5m";
+export const c = "_1s47490 _1ob5z5m _hxdliw";
+
+--- css
+@layer _.a{._1ob5z5m{align-items:center}}
+@layer _.a{._hxdliw{justify-content:space-between}}
+@layer _.a{._1s47490{display:flex}}
+################ fixtures/risk1.ts
+--- code
+export const a = "_lwugp7";
+export const b = "_1s47490 _1ob5z5m";
+export const c = "_1s47490 _1ob5z5m _hxdliw";
+
+--- css
+@layer _.a{._lwugp7{padding:1rem}}
+@layer _.a{._1s47490{display:flex}}
+@layer _.a{._1ob5z5m{align-items:center}}
+@layer _.a{._hxdliw{justify-content:space-between}}
+################ fixtures/risk2.ts
+--- code
+import { brand, space } from "/fixtures/tokens.ts";
+export const a = "_lwugp7";
+export const b = "_1j2ty70";
+export const c = "_1hm6zbo";
+
+--- css
+@layer _.a{._lwugp7{padding:1rem}}
+@layer _.a{._1j2ty70{color:#3b82f6}}
+@layer _.a{._1hm6zbo{margin:3rem}}
+################ fixtures/risk5.ts
+--- code
+import { cx } from "/@fs/Users/a.tukachev/github/css-in-ts-compiler/packages/cssints/src/index.mjs";
+const pad = "_lwugp7";
+const gap = "_g2iyum";
+export const folded = "_lwugp7 _g2iyum";
+export const runtime = (on) => cx("_lwugp7", on && "_1worulw");
+
+--- css
+@layer _.a{._lwugp7{padding:1rem}}
+@layer _.a{._g2iyum{gap:0.5rem}}
+@layer _.a{._1worulw{margin:0.5rem}}
+################ fixtures/risk6.ts
+--- code
+import { title } from "/fixtures/dom-side-effect.ts";
+export const a = "_lwugp7";
+export const t = title;
+
+--- css
+@layer _.a{._lwugp7{padding:1rem}}
+################ fixtures/typed-top.ts
+--- code
+import { accent } from "/fixtures/tokens-typed.ts";
+// Top-level value constructors are sites too: the client gets their CSS text, not the objects.
+const gap = "1rem";
+export const a = "_lwugp7";
+export const b = "_15iiwz3";
+export const g = gap;
+
+--- css
+@layer _.a{._lwugp7{padding:1rem}}
+@layer _.a{._15iiwz3{border:1px solid #3b82f6}}
+################ fixtures/typed.ts
+--- code
+import { accent } from "/fixtures/tokens-typed.ts";
+export const a = "_15iiwz3";
+export const b = "_lhdra9";
+
+--- css
+@layer _.a{._15iiwz3{border:1px solid #3b82f6}}
+@layer _.a{._lhdra9{padding:1rem 2rem}}
+################ fixtures/tokens-typed.ts
+--- code
+export const accent = "#3b82f6";
+
+--- css
+
+generated { line: 6, column: 34 } -> { source: 'risk5.ts', line: 7, column: 43, name: null }
+firstTransform  card   served {"src":0,"self":0,"tokens":1} fresh
+firstTransform  button served {"src":0,"self":0,"tokens":1} fresh
+doubleSave      card   served {"src":0,"self":0,"tokens":2} fresh
+doubleSave      button served {"src":0,"self":0,"tokens":2} fresh
+card   _lwugp7 -> _1tvrk0e  fresh
+button _1s47490 _1ob5z5m _lwugp7 -> _1s47490 _1ob5z5m _1tvrk0e  fresh
+button _1s47490 _1ob5z5m _lwugp7 -> _1s47490 _1ob5z5m _1tvrk0e  fresh
+card   _lwugp7 -> _1tvrk0e  fresh

@@ -9,7 +9,8 @@
 	"ts.tsdk": "node_modules/typescript/lib",
 	"typescript.tsdk": "node_modules/typescript/lib",
 	"typescript.enablePromptUseWorkspaceTsdk": true,
-	"oxc.fmt.configPath": ".oxfmtrc.json",
+	"oxc.disableNestedConfig": true,
+	"oxc.fmt.disableNestedConfig": true,
 	"editor.defaultFormatter": "oxc.oxc-vscode",
 	"editor.formatOnSave": true,
 	"editor.codeActionsOnSave": {
