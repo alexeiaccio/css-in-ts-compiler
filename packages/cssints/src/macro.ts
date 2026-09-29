@@ -5,14 +5,18 @@
 // Everything behind them is Effect: validation, class generation and the recording of a site (`recordSite`).
 // `__at` and `__site` are the two calls the plugin puts around every site; they run inside user modules, so they
 // are the synchronous edge where an Effect is run (`runSite`).
-import { checkDeclaration, type DeclarationError } from "@cssints/css-grammar/check";
-import { message } from "@cssints/css-grammar/support";
+import {
+  checkDeclarationNow,
+  type DeclarationError,
+  isDeclarationError,
+} from "@cssints/css-grammar/check";
+import { messageOf } from "@cssints/css-grammar/support";
 import { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
 import { Cause, Effect, Exit } from "effect";
 
 import { MacroError } from "./errors.ts";
 import { chainDecl, CONTEXTS, hashClass, isNode, toDecls, type CssNode, type Decl } from "./lib.ts";
-import { type At, registry, Registry } from "./registry.ts";
+import { type At, registry, Registry, type RegistryState } from "./registry.ts";
 
 export { CSS, CSSColorValue, CSSUnitValue };
 
@@ -58,19 +62,20 @@ const located = (at: At) => (e: Invalid | MacroError) =>
     ? e
     : new MacroError({ message: e.message, cause: e, ...at });
 
-const classesOf = Effect.fnUntraced(function* (decls: Decl[]): Effect.fn.Return<string, Invalid> {
-  const { rules, warnings, warned } = yield* Registry;
+// The classes of a style's declarations, registered in the sheet. A plain loop over the declarations (hash, twin,
+// prose rules, support), inside the one Effect boundary of `classesOf`: an Effect step per declaration was over
+// the perf budget.
+const classesNow = (decls: Decl[], { rules, warnings, warned }: RegistryState): string => {
   const out: string[] = [];
   for (const d of decls) {
     const cls = hashClass(d);
-    // Fails at the bad token (the build-time twin of the type-level check) or at a prose rule. Support warnings
+    // Throws at the bad token (the build-time twin of the type-level check) or at a prose rule. Support warnings
     // only for a class not seen yet: once per property and BCD feature per build, not once per value.
-    const found = yield* checkDeclaration(d[0], d[1], !rules.has(cls));
-    for (const w of found) {
+    for (const w of checkDeclarationNow(d[0], d[1], !rules.has(cls))) {
       const k = `${d[0]} ${w.key}`;
       if (!warned.has(k)) {
         warned.add(k);
-        warnings.push(yield* message(d[0], d[1], w));
+        warnings.push(messageOf(d[0], d[1], w));
       }
     }
     if (!out.includes(cls)) out.push(cls);
@@ -78,6 +83,17 @@ const classesOf = Effect.fnUntraced(function* (decls: Decl[]): Effect.fn.Return<
     rules.set(cls, { layer: "_.a", cond: [], prop: d[0], css: `.${cls}{${d[0]}:${d[1]}}` });
   }
   return out.join(" ");
+};
+
+const classesOf = Effect.fnUntraced(function* (decls: Decl[]): Effect.fn.Return<string, Invalid> {
+  const registry = yield* Registry;
+  return yield* Effect.try({
+    try: () => classesNow(decls, registry),
+    catch: (e) => {
+      if (isDeclarationError(e)) return e;
+      throw e; // a bug, not a user error: a defect
+    },
+  });
 });
 
 const styleOf = Effect.fnUntraced(function* (

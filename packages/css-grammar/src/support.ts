@@ -171,13 +171,14 @@ export const support = Effect.fnUntraced(function* (
   return yield* Effect.sync(() => supportOf(p, v, ts));
 });
 
+// Plain core, also called by cssints classesOf (see check.ts).
+export const messageOf = (p: string, v: string, w: Warning) =>
+  `${p}: ${w.feature === p ? "the property" : `"${w.feature}"`} in "${v}" is not supported by ${browsers(w.lacking)} (${w.key})`;
+
 export const message = Effect.fn("support.message")(function* (
   p: string,
   v: string,
   w: Warning,
 ): Effect.fn.Return<string> {
-  return yield* Effect.sync(
-    () =>
-      `${p}: ${w.feature === p ? "the property" : `"${w.feature}"`} in "${v}" is not supported by ${browsers(w.lacking)} (${w.key})`,
-  );
+  return yield* Effect.sync(() => messageOf(p, v, w));
 });
