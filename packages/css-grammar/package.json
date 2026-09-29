@@ -6,6 +6,7 @@
 		"./*": "./src/*.ts"
 	},
 	"scripts": {
+		"build": "vp pack",
 		"test": "node test/check.ts && node test/check-typed.ts && node test/check-support.ts && node ../../node_modules/typescript/bin/tsc -p tsconfig.json",
 		"typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
 		"bench": "node bench/budget.mjs",
