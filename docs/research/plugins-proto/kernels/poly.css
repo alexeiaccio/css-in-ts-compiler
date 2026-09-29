@@ -1,0 +1,5 @@
+:root[data-cssints-poly] .w {
+  transition:
+    --_ft 1ms,
+    --_st 1ms;
+}

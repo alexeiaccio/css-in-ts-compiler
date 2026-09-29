@@ -1,0 +1,29 @@
+@property --_se {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: canvas;
+}
+@property --_so {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: canvas;
+}
+.s {
+  --_k: initial;
+  --_d: 0;
+  background-color: var(--_S);
+}
+@container (style(--_cs: e)) or (not style(--_cs)) {
+  .s {
+    --_cs: o;
+    --_S: oklch(from var(--_k, var(--_se)) calc(l + var(--_d)) c h);
+    --_so: var(--_S);
+  }
+}
+@container style(--_cs: o) {
+  .s {
+    --_cs: e;
+    --_S: oklch(from var(--_k, var(--_so)) calc(l + var(--_d)) c h);
+    --_se: var(--_S);
+  }
+}

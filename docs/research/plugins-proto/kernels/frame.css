@@ -1,0 +1,40 @@
+@property --_r {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --_p {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --_b {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --_m {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+.f {
+  padding: var(--_p);
+  margin: var(--_m);
+  border: var(--_b) solid;
+  border-radius: var(--_R);
+}
+@container (style(--_cf: e)) or (not style(--_cf)) {
+  .f {
+    --_cf: o;
+    --_R: max(var(--_fe, calc(var(--_r) + var(--_m))) - var(--_m), 0px);
+    --_fo: max(var(--_R) - var(--_p) - var(--_b), 0px);
+  }
+}
+@container style(--_cf: o) {
+  .f {
+    --_cf: e;
+    --_R: max(var(--_fo, calc(var(--_r) + var(--_m))) - var(--_m), 0px);
+    --_fe: max(var(--_R) - var(--_p) - var(--_b), 0px);
+  }
+}

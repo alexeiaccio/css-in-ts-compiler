@@ -1,0 +1,20 @@
+@property --_su {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: canvas;
+}
+@property --_sc {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: canvas;
+}
+@property --_st {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: canvas;
+}
+:root[data-cssints-poly] .s {
+  --_sc: oklch(from var(--_k, var(--_su)) calc(l + var(--_d)) c h);
+  --_st: var(--_sc);
+  background-color: var(--_sc);
+}
