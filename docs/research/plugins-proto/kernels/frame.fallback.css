@@ -1,0 +1,21 @@
+@property --_fu {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --_fi {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --_ft {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+:root[data-cssints-poly] .f {
+  --_fu: calc(var(--_r) + var(--_m));
+  --_fi: max(max(var(--_fu) - var(--_m), 0px) - var(--_p) - var(--_b), 0px);
+  --_ft: var(--_fi);
+  border-radius: max(var(--_fu) - var(--_m), 0px);
+}
