@@ -4,6 +4,7 @@ import * as css from "cssints" with { type: "cssints" };
 import {
   alignItems,
   animationName,
+  background,
   bg,
   border,
   color,
@@ -20,6 +21,7 @@ import {
   pl,
   transform,
   transition,
+  transitionProperty,
   width,
   zIndex,
 } from "cssints" with { type: "cssints" };
@@ -49,6 +51,9 @@ export const ok: Style[] = [
   transform("translateX(1px) rotate(1deg)"),
   fontFamily("system-ui, sans-serif"),
   animationName("fade"),
+  transitionProperty("opacity, transform"),
+  fontFamily('"Helvetica Neue", Arial, sans-serif'),
+  background("linear-gradient(to right, red, blue)"),
 ];
 
 // The short names are the properties they stand for.
@@ -101,3 +106,9 @@ alignItems(1);
 export const plain: Style = "padding: 1rem";
 // @ts-expect-error a style is not a value
 padding(p(1));
+// @ts-expect-error a keyword list has commas between its items
+transitionProperty("opacity transform");
+// @ts-expect-error a function value needs its arguments right
+transform("translateX(1px) rotate()");
+// @ts-expect-error a colour stop is a colour
+background("linear-gradient(to right, red, 1px)");
