@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-29T13:28:04Z
-updated_at: 2026-09-29T14:34:21Z
+updated_at: 2026-09-29T14:36:11Z
 blocked_by:
     - cssints-vzd9
 ---
@@ -33,7 +33,7 @@ The API in `docs/API.md` works end to end in `apps/demo` on the Module Runner en
 - [CSS output pipeline](cssints-euf0): one global sorted virtual sheet (layer, condition, shorthand before longhand, class); placeholder filled in `renderChunk`, Vite 8 only; one sheet per app; LightningCSS through Vite with browserslist targets shared with support warnings; longhand beats shorthand by sort order. Implementation: [Implement the global sorted stylesheet](cssints-vzd9)
 - [One runtime package](cssints-lo9x): `cssints` is the only runtime (`cx`, `_cv`), `@cssints/variants` deleted; `cx` strings, falsy values and arrays; `cn` build-time only; `cv` takes css.* values. Spec: docs/API.md; implementation: [Implement the single runtime and typed cv](cssints-e2nn), done: variants deleted, cv on css values, demo CSS byte-identical
 - [Token model](cssints-o00x): a token is a Typed OM value `var(--x)`; `token.<type>` for every @property syntax type, with the initial value checked by the grammar; named tokens can be set, unnamed ones are private and hashed; one `@property` per token at the top of the sheet; `style()`/`token.set()` static at build time. Spec: docs/API.md; implementation: [Implement tokens](cssints-79xr); follow-up research: [Design-token constraints and math](cssints-kag5)
-- [Engine language and Effect scope](cssints-odi9): Effect everywhere (typed errors, laziness, spans), except the sync css.* node builders in user code; .ts sources, tsdown for publishing; checks are tsgo + effect-tsgo diagnostics; oxlint/oxfmt clean is a 0.1 gate. Implementation: [Port the engine to TypeScript and Effect](cssints-djzw), before conditions and tokens
+- [Engine language and Effect scope](cssints-odi9): Effect everywhere (typed errors, laziness, spans), except the sync css.* node builders in user code; .ts sources, tsdown for publishing; checks are tsgo + effect-tsgo diagnostics; oxlint/oxfmt clean is a 0.1 gate. Implementation: [Port the engine to TypeScript and Effect](cssints-djzw), before conditions and tokens, after [Move the monorepo from turbo to Vite+](cssints-ny2w)
 
 ## Not yet specified
 

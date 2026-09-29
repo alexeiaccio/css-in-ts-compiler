@@ -3,13 +3,15 @@
 title: Port the engine to TypeScript and Effect
 status: todo
 type: task
+priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-09-29T14:34:21Z
-updated_at: 2026-09-29T14:34:21Z
+updated_at: 2026-09-29T14:36:11Z
 parent: cssints-vy0o
 blocked_by:
     - cssints-vzd9
+    - cssints-ny2w
 ---
 
 ## Question
@@ -21,5 +23,5 @@ Implement the decision of cssints-odi9. Blocked by the global sheet, so the port
 - [ ] Budget: `packages/cssints/test/perf.mjs` per-module cost within 10% of the cssints-grrd numbers; `bun run bench` unchanged
 - [ ] tsconfig per package with the `@effect/language-service` plugin; `typecheck` = `tsgo -p tsconfig.json --noEmit` + `effect-tsgo diagnostics --project tsconfig.json --format pretty`, wired into turbo
 - [ ] tsdown config for publishing `cssints` and `@cssints/css-grammar` (build only; publishing itself is fog)
-- [ ] oxlint and oxfmt clean for packages/cssints, packages/css-grammar and apps/demo
+- [ ] `vp lint` and `vp fmt --check` clean for packages/cssints, packages/css-grammar and apps/demo
 - [ ] AGENTS.md: the typecheck commands and the one exception
