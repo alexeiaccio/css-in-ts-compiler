@@ -4,6 +4,7 @@ import * as fc from "fast-check";
 
 import { properties, syntaxes } from "../src/mdn.ts";
 import { nullable, parse, type Node } from "./sync.ts";
+import { magnitude } from "../src/twin-core.ts";
 
 const props: Record<string, string> = properties;
 const syns: Record<string, string> = syntaxes;
@@ -47,16 +48,20 @@ const LENGTH_UNITS = [
   "rcap",
 ];
 const bound = (b: string | undefined, dflt: number) =>
-  b === undefined || b === "∞" ? dflt : b === "-∞" ? -dflt : Number(b);
-const num = (lo?: string, hi?: string, int = false): fc.Arbitrary<number> => {
-  const min = bound(lo, 1000),
-    max = bound(hi, 1000);
+  b === undefined || b === "∞" ? dflt : b === "-∞" ? -dflt : magnitude(b);
+// A number within [lo,hi]; the bounds may carry a unit (`0s`, `-90deg`), and `u` is the unit the number gets.
+const num = (lo?: string, hi?: string, int = false, u = ""): fc.Arbitrary<number> => {
+  const scale = magnitude(`1${u}`);
+  const min = bound(lo, 1000) / scale,
+    max = bound(hi, 1000) / scale;
   return int
-    ? fc.integer({ min: lo ? min : -100, max })
-    : fc.integer({ min: (lo ? min : -100) * 10, max: max * 10 }).map((x) => x / 10);
+    ? fc.integer({ min: lo ? Math.ceil(min) : -100, max: Math.floor(max) })
+    : fc
+        .integer({ min: Math.ceil((lo ? min : -100) * 10), max: Math.floor(max * 10) })
+        .map((x) => x / 10);
 };
 const unit = (us: string[], lo?: string, hi?: string) =>
-  fc.tuple(num(lo, hi), fc.constantFrom(...us)).map(([n, u]) => `${n}${u}`);
+  fc.constantFrom(...us).chain((u) => num(lo, hi, false, u).map((n) => `${n}${u}`));
 const ident = fc.stringMatching(/^[a-z][a-z0-9-]{0,6}$/).map((s) => `x-${s}`);
 
 function primitive(v: string, lo?: string, hi?: string): Arb | null {

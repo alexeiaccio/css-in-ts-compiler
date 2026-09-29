@@ -273,6 +273,17 @@ export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<strin
   }
 }
 
+// A number or dimension in the canonical unit of its type (deg, s), so that `<angle [-90deg,90deg]>` holds
+// for 1.5rad and not for 100grad. Bounds are read the same way; NaN for anything else (calc(), var()).
+const SCALE: Record<string, number> = { grad: 0.9, rad: 180 / Math.PI, turn: 360, ms: 0.001 };
+const NUM_HEAD = new RegExp(`^${NUM}`, "i");
+export const magnitude = (t: string): number =>
+  t === "∞"
+    ? Infinity
+    : t === "-∞"
+      ? -Infinity
+      : parseFloat(t) * (SCALE[t.replace(NUM_HEAD, "").trim().toLowerCase()] ?? 1);
+
 function consumeType(
   [, v, lo, hi]: ["type", string, string?, string?],
   s: string,
@@ -293,11 +304,10 @@ function consumeType(
   if (rs === NONE) fail(ctx, s, label ?? `<${v}>`);
   if (lo === undefined || hi === undefined) return rs;
   // Ranges: the type level strips them, the twin checks the number that was consumed.
-  const bound = (b: string) => (b === "∞" ? Infinity : b === "-∞" ? -Infinity : Number(b));
   const out = new Set<string>();
   for (const r of rs) {
-    const x = parseFloat(s.slice(0, s.length - r.length));
-    if (Number.isNaN(x) || (x >= bound(lo) && x <= bound(hi))) out.add(r);
+    const x = magnitude(s.slice(0, s.length - r.length));
+    if (Number.isNaN(x) || (x >= magnitude(lo) && x <= magnitude(hi))) out.add(r);
     else fail(ctx, s, `<${v} [${lo},${hi}]>`);
   }
   return out;

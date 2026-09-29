@@ -42,6 +42,10 @@ export const cases = [
   ["width", "calc-size(any, 1px / 2)", true],
   ["background", "image(red)", true],
   ["background", 'image("a.png", red)', true],
+  ["animation-duration", "1s", true],
+  ["transition-duration", "250ms, 0.5s", true],
+  ["font-style", "oblique 1.5rad", true],
+  ["font-style", "oblique 90deg", true],
 
   ["padding", "1 rem", false],
   ["padding", "1rem 2rem 3rem 4rem 5rem", false],
@@ -87,4 +91,7 @@ export const runtimeOnly = [
   ["width", "-10px"],
   ["font-weight", "1001"],
   ["color", "#ggg"],
+  ["animation-duration", "-1s"],
+  ["font-style", "oblique 100deg"],
+  ["font-style", "oblique 2rad"],
 ] as const;
