@@ -160,7 +160,7 @@ const t = css.createTokens({
 		accent: { $value: "oklch(62% 0.19 259)" },
 		link: { $value: "{color.accent}" },
 	},
-	space: { $type: "dimension", md: { $value: "1rem" } },
+	space: { $type: "dimension", md: { $value: "16px" } },
 });
 
 const dark = css.media("(prefers-color-scheme: dark)");
@@ -172,21 +172,25 @@ css.check.contrast(t.color.fg, t.color.bg, { min: 4.5 });
 <div className={css.cn(css.bg(t.color.bg), css.color(t.color.fg), css.p(t.space.md))} />;
 ```
 
-- **Names:** the variable name is the kebab-case path (`--color-bg`). A second argument to `createTokens` can map a path to a name.
-- **Themes:** `createGlobalTheme(tokens, condition | selector, overrides)` re-declares the overridden tokens under a media or container condition (on `:root`), or under a selector. Overrides are checked against the token types, and an unknown path is a type error.
-- **Aliases:** `@property initial-value` must be computationally independent, so it gets the flattened literal. The alias stays live as a `var()` declaration on `:root`. A theme re-declares the tokens that depend on an overridden one.
-- **`css.check.contrast(fg, bg, { min })`** computes the WCAG 2.x contrast ratio for the default values and for every theme at build time. A ratio below `min` is a build error that names the theme and both values. A value the check cannot evaluate (for example `color-mix()`) is a warning that names the token. The colour library is build-only and never ships.
+- **Types:** `$type` is inherited through groups, and a token needs one (it is not guessed from the value). It maps to a token type: `color` to `color`, `dimension` to `length`, `number` to `number`, `duration` to `time`, `fontWeight` to `number` (keywords such as `bold` become 700). `fontFamily`, `cubicBezier`, `strokeStyle` and the composite types have no `@property` syntax and are an error. A value is a CSS string of the type's grammar, or the DTCG form: `{ colorSpace, components, alpha? }`, `{ value, unit }` (`px` or `rem`, `ms` or `s`), a number. The initial value follows the rule of "Tokens": `{ value: 1, unit: "rem" }` is a build error, write `16px`.
+- **Names:** the variable name is the kebab-case path (`--color-bg`). A second argument to `createTokens` maps a path (an array of names) to a name, or to `{ var, inherit }`.
+- **Themes:** `createGlobalTheme(tokens, condition | selector, overrides)` re-declares the overridden tokens under a `media()` condition on `:root`, or under a selector. Under `container()` it declares them on `:where(*)`, since `:root` has no container above it and would never match. Overrides are checked against the token types, and an unknown path is a type error; they take the same values as tokens, and `tokens` may be a group (`t.color`). `supports()` and pseudo-classes are not themes.
+- **Aliases:** `@property initial-value` must be computationally independent, so it gets the flattened literal. The alias stays live as a `var()` declaration on `:root`. A theme re-declares the aliases that depend on an overridden token (all of them, through chains), since `var()` is substituted where it is declared. A `{path}` must name a token of the same `$type`; a cycle is an error.
+- **The sheet:** token sets and themes are rules of layer `_.k`, after the global rules and before the class layers. They set custom properties only, and no class does, so the layer order never decides between them; `_.k` is the lowest layer, so your own unlayered `--color-bg` rule wins over a theme. The `:root` rules of aliases come first, then themes under a condition, then themes under a selector, each in source order, so a selector theme beats a condition theme on the same element. A module has the rules of the tokens it uses, from wherever they were made, and its own; import a theme module (`import "./theme.ts"`) to have all of it.
+- **`css.check.contrast(fg, bg, { min })`** computes the WCAG 2.x contrast ratio (`min` from 1 to 21) for the default values and for every theme that sets either token or one they are aliases of. It reads themes one at a time, not their combinations. A ratio below `min` is a build error that names the theme and both resolved values (the ratio is cut, not rounded: 4.499 is 4.49). A value the check cannot evaluate (`color-mix()`, a relative colour, `light-dark()`, `currentColor`, a system colour) or a translucent one is a warning that names the token. The colour library (culori, `culori/fn`: 27 kB minified, 9 kB gzipped) is build-only and never ships. The check runs when its module has run, and again at the end of a build over the themes of every module.
 
 Output:
 
 ```css
 @property --color-bg { syntax: "<color>"; inherits: true; initial-value: #ffffff; }
 @property --color-link { syntax: "<color>"; inherits: true; initial-value: oklch(62% 0.19 259); }
-:root { --color-link: var(--color-accent); }
-@media (prefers-color-scheme: dark) {
-	:root { --color-bg: #0b0b0f; --color-fg: #f3f4f6; }
+@layer _.k {
+	:root { --color-link: var(--color-accent); }
+	@media (prefers-color-scheme: dark) {
+		:root { --color-bg: #0b0b0f; --color-fg: #f3f4f6; }
+	}
+	.light { --color-bg: #fff; }
 }
-.light { --color-bg: #fff; }
 ```
 
 Derived tokens (`contrastColor()`, `derive()`), JSON input with generated types and slot variants are not part of 0.1.

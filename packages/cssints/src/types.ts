@@ -11,6 +11,7 @@ import type { FlexMethods, GridMethods } from "./members.ts";
 import type { CvRuntimeConfig } from "./runtime.ts";
 
 export * from "./members.ts";
+export * from "./theme-types.ts";
 export { _cv, cx, type ClassValue, type CvRuntimeConfig } from "./runtime.ts";
 
 /** A value part: a string, a Typed OM value, or a lone number (the spacing scale in spacing properties). */

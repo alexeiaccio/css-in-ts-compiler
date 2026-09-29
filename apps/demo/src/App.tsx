@@ -33,6 +33,7 @@ import {
   token,
   transition,
 } from "cssints" with { type: "cssints" };
+import { t } from "./theme.ts" with { type: "cssints" };
 import { Button } from "./components/Button.js";
 import { Card } from "./components/Card.js";
 
@@ -41,9 +42,9 @@ const page = [flex().direction("column").gap("1rem")];
 const container = [maxWidth("800px"), margin("0 auto")];
 
 // Typography
-const h1 = [fontSize("2rem"), fontWeight("700"), marginBottom("0.5rem"), color("#111827")];
-const h2 = [fontSize("1.25rem"), fontWeight("600"), marginBottom("1rem")];
-const subtitle = [color("#6b7280"), marginBottom("2rem"), fontSize("1.125rem")];
+const h1 = [fontSize("2rem"), fontWeight("700"), marginBottom("0.5rem"), color(t.color.text)];
+const h2 = [fontSize("1.25rem"), fontWeight("600"), marginBottom("1rem"), color(t.color.text)];
+const subtitle = [color(t.color.muted), marginBottom("2rem"), fontSize("1.125rem")];
 
 // Layout helpers
 const row = [flex().gap("0.5rem").wrap("wrap")];
@@ -64,15 +65,15 @@ const infoList = [flex().direction("column").gap("0.5rem"), color("#1e40af")];
 const md = media("(width >= 40rem)");
 const featureCard = [
   padding("1rem"),
-  bg("white"),
+  bg(t.color.surface),
   borderRadius("0.375rem"),
   border("1px solid #e5e7eb"),
   transition("box-shadow 0.2s"),
   hover(boxShadow("0 4px 12px rgba(0, 0, 0, 0.12)")),
   md(flexGrow("1"), flexBasis("0")),
 ];
-const featureTitle = [fontWeight("600"), marginBottom("0.25rem")];
-const featureDesc = [fontSize("0.875rem"), color("#6b7280")];
+const featureTitle = [fontWeight("600"), marginBottom("0.25rem"), color(t.color.text)];
+const featureDesc = [fontSize("0.875rem"), color(t.color.muted)];
 // One column on a narrow screen, a row of cards from 40rem up.
 const featureGrid = [flex().direction("column").gap("1rem"), md(flexDirection("row"))];
 
@@ -92,7 +93,7 @@ function App() {
       className={cx(
         ...page,
         padding("2rem"),
-        bg("#f3f4f6"),
+        bg(t.color.page),
         fontFamily("system-ui, -apple-system, sans-serif"),
       )}
     >

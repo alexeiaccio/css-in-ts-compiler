@@ -2,6 +2,7 @@
 // by Node) and the library (loaded by the Vite Module Runner) are separate module graphs that share one process.
 // `Registry` is the handle Effects ask for. Its default is that global object, so the plugin and the library get
 // the same one without a layer; a test can provide another with Effect.provideService.
+import type { TokenType } from "@cssints/css-grammar/token";
 import { Context } from "effect";
 
 export interface Rule {
@@ -35,6 +36,39 @@ export interface Property {
   gen: number;
 }
 
+/** What a token is worth, by variable name: its literal (an alias: the flattened one), and the alias it stays live as. */
+export interface TokenDef {
+  kind: TokenType;
+  /** `color.bg` for a token of createTokens, else the variable. */
+  path: string;
+  value: string;
+  /** The variable of the token this one is an alias of. */
+  alias?: string;
+}
+
+/**
+ * A rule of a token set or a theme, in layer _.k after the globals (sheet.ts). `key` orders them: the kind (0 the
+ * `:root` declarations of aliases, 1 themes under a condition, 2 themes under a selector), then the place in the source.
+ * `names` are the variables it sets or reads: a module that uses one of them has the rule in its sheet too (plugin.ts).
+ * `theme` is what a contrast check reads: the values the theme sets, by variable name.
+ */
+export interface Themed {
+  file: string;
+  key: string;
+  css: string;
+  names: string[];
+  theme?: { label: string; values: Map<string, string> };
+}
+
+/** A `css.check.contrast` call, checked once the module that made it has run, and again at the end of a build. */
+export interface Check {
+  at: At;
+  fg: string;
+  bg: string;
+  min: number;
+  gen: number;
+}
+
 export interface RegistryState {
   /** file -> site index -> replacement expression */
   sites: Map<string, Map<number, string>>;
@@ -44,6 +78,12 @@ export interface RegistryState {
   globals: Map<string, string>;
   /** name -> the `@property` rule of every token declared so far (token.ts) */
   properties: Map<string, Property>;
+  /** name -> what each token is worth (token.ts, theme.ts): the contrast check and the theme rules read it */
+  defs: Map<string, TokenDef>;
+  /** `file#site.n` -> the rules of createTokens and createGlobalTheme calls */
+  themed: Map<string, Themed>;
+  /** `file#site` -> the contrast checks */
+  checks: Map<string, Check>;
   /** the evaluation in progress; tokens of an older one that its file no longer declares are stale */
   gen: number;
   /** tokens created at the site being evaluated: two in one site get different private names */
@@ -65,6 +105,9 @@ export const registry: RegistryState = (globalThis.__cssints ??= {
   rules: new Map(),
   globals: new Map(),
   properties: new Map(),
+  defs: new Map(),
+  themed: new Map(),
+  checks: new Map(),
   gen: 0,
   tokens: 0,
   warnings: [],
@@ -74,3 +117,9 @@ export const registry: RegistryState = (globalThis.__cssints ??= {
 export const Registry = Context.Reference<RegistryState>("cssints/Registry", {
   defaultValue: () => registry,
 });
+
+// What `file` left of its token sets, themes and checks is dropped when it is about to run again, or has no site any more.
+export const forget = (file: string): void => {
+  for (const [k, t] of registry.themed) if (t.file === file) registry.themed.delete(k);
+  for (const [k, c] of registry.checks) if (c.at.file === file) registry.checks.delete(k);
+};

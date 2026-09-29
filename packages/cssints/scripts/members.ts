@@ -17,6 +17,9 @@ const OWN = new Set([
   "supports",
   "token",
   "style",
+  "createTokens",
+  "createGlobalTheme",
+  "check",
 ]);
 const names = Object.keys(PROPS)
   .filter((n) => !OWN.has(n))

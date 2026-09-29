@@ -5,6 +5,8 @@
 import { createRequire } from "node:module";
 
 import { properties } from "@cssints/css-grammar/mdn";
+import { Cause, Effect, Exit } from "effect";
+
 import { MacroError } from "./errors.ts";
 import { type Property, registry } from "./registry.ts";
 
@@ -27,6 +29,13 @@ export const camel = (p: string) => p.replace(/-([a-z])/g, (_, c: string) => c.t
 
 // A builder error names the call site being evaluated (`__at` set it), when there is one.
 export const fail = (message: string) => new MacroError({ message, ...registry.at });
+
+// Runs an Effect at a synchronous edge, a builder that user code calls in an expression: a failure is thrown as the error itself.
+export const edge = <A>(program: Effect.Effect<A, MacroError>): A => {
+  const exit = Effect.runSyncExit(program);
+  if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
+  return exit.value;
+};
 
 // member -> property: every grammar property as camelCase (`--*` is the custom property grammar, not a member),
 // plus the short set.

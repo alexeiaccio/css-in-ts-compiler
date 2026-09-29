@@ -13,8 +13,9 @@ import {
   ssrModuleExportsKey,
 } from "vite/module-runner";
 
+import { verifyChecks } from "./contrast.ts";
 import { EvalError, MacroError } from "./errors.ts";
-import { Registry } from "./registry.ts";
+import { forget, Registry } from "./registry.ts";
 
 // Same as Vite's ESModulesEvaluator, but every happy-dom global that Node lacks (document, window,
 // HTMLElement, ...) is a closure binding around the module body. The real globalThis stays DOM-free,
@@ -84,6 +85,7 @@ const evaluateModule = Effect.fnUntraced(function* (
 ): Effect.fn.Return<Map<number, string>, MacroError | EvalError> {
   const registry = yield* Registry;
   registry.sites.delete(id);
+  forget(id);
   registry.at = undefined;
   registry.gen++;
   clearApp(runner.evaluatedModules);
@@ -105,6 +107,8 @@ const evaluateModule = Effect.fnUntraced(function* (
         ),
     }),
   );
+  // contrast checks, once the module and what it imports have made their themes
+  yield* verifyChecks((c) => c.gen === registry.gen);
   return registry.sites.get(id) ?? new Map();
 });
 
