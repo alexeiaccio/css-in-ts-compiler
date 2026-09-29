@@ -1,4 +1,4 @@
-// token.<type>(initial, name?): a token is a Typed OM value whose text is var(--name). Its `@property` rule goes in the
+// token.<type>(initial, name?), token.set(token, value) and style(...): a token is a Typed OM value whose text is var(--name). Its `@property` rule goes in the
 // registry (`properties`), which the sheet renders; a value that uses it is checked as a literal of its type (lib.ts
 // `probed`). Like the css.* builders these are called in user expressions, so they are plain code that throws a MacroError.
 import { createHash } from "node:crypto";
@@ -10,15 +10,17 @@ import { CSSStyleValue } from "@cssints/css-grammar/values";
 import { Cause, Effect, Exit } from "effect";
 
 import { MacroError } from "./errors.ts";
-import { fail } from "./lib.ts";
+import { type Decl, fail, isNode } from "./lib.ts";
 import { registry } from "./registry.ts";
 
 export class CSSTokenValue extends CSSStyleValue {
   readonly name: string;
+  readonly syntax: string;
   readonly settable: boolean;
-  constructor(name: string, settable: boolean) {
+  constructor(name: string, syntax: string, settable: boolean) {
     super();
     this.name = name;
+    this.syntax = syntax;
     this.settable = settable;
   }
   override toString() {
@@ -85,9 +87,62 @@ const make =
         `cssints: ${variable} is already declared with another @property, in ${relative(process.cwd(), prev.file)}: ${prev.css}; here: ${css}`,
       );
     registry.properties.set(variable, { css, probes, by, file: at.file, gen: registry.gen });
-    return new CSSTokenValue(variable, name !== undefined);
+    return new CSSTokenValue(variable, syntax, name !== undefined);
   };
 
-export const token = Object.fromEntries(
-  (Object.keys(TOKEN_TYPES) as TokenType[]).map((kind) => [kind, make(kind)]),
-);
+/**
+ * What style() and token.set() return: custom properties to set (`sets`, name and value) and declarations, which the
+ * site turns into one object literal for a `style` prop.
+ */
+export interface StyleNode {
+  __style: { sets: [name: string, value: string][]; decls: Decl[] };
+}
+export const isStyle = (v: unknown): v is StyleNode =>
+  !!v && typeof v === "object" && "__style" in v;
+
+const set = (...args: unknown[]): StyleNode => {
+  const [t, value] = args;
+  if (
+    args.length !== 2 ||
+    !(t instanceof CSSTokenValue) ||
+    (typeof value !== "string" && typeof value !== "number")
+  )
+    throw fail("cssints: token.set(token, value) takes a token and a value");
+  if (!t.settable)
+    throw fail(
+      `cssints: ${t.name} is private, only a token with a name can be set: token.<type>(initial, "name")`,
+    );
+  const text = String(value).trim();
+  checkSyntax(`token.set() value of ${t.name}`, t.syntax, text);
+  return { __style: { sets: [[t.name, text]], decls: [] } };
+};
+
+// style(...): css.* values (declarations, no conditions) and token.set() results, as an inline style.
+export const style = (...args: unknown[]): StyleNode => {
+  if (!args.length) throw fail("cssints: style() expects css.* values or token.set(...) results");
+  const sets: [string, string][] = [];
+  const decls: Decl[] = [];
+  for (const a of args) {
+    if (isStyle(a)) {
+      sets.push(...a.__style.sets);
+      decls.push(...a.__style.decls);
+    } else if (isNode(a)) {
+      if (a.__cssints.some(([, , conds]) => conds?.length))
+        throw fail(
+          "cssints: style() takes styles without conditions: an inline style has no media query or :hover",
+        );
+      decls.push(...a.__cssints);
+    } else
+      throw fail(
+        `cssints: style() takes css.* values and token.set(...) results, got ${JSON.stringify(a)}`,
+      );
+  }
+  return { __style: { sets, decls } };
+};
+
+export const token = {
+  ...Object.fromEntries(
+    (Object.keys(TOKEN_TYPES) as TokenType[]).map((kind) => [kind, make(kind)]),
+  ),
+  set,
+};

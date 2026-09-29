@@ -56,6 +56,8 @@ export interface TokenName {
   var: string;
   inherit?: boolean;
 }
+/** An inline style: what `style()` and `token.set()` give, for a `style` prop. */
+export type StyleObject = Record<string, string>;
 /** `token.<type>(initial, name?)`: with a name the token can be set, without one it is private. */
 export type TokenFn<K extends TokenType> = <
   const I extends string,
@@ -64,8 +66,8 @@ export type TokenFn<K extends TokenType> = <
   initial: ValidSyntax<Syntax<K>, I>,
   name?: N,
 ) => Token<K, [N] extends [undefined] ? false : true>;
-/** `token.set(token, value)`: a style object with one custom property. */
+/** `token.set(token, value)`: a style object with one custom property. A private token cannot be set. */
 export type TokenSetFn = <const K extends TokenType, const V extends string>(
   token: Token<K, true>,
   value: ValidSyntax<Syntax<K>, V>,
-) => Record<string, string>;
+) => StyleObject;

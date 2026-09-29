@@ -108,6 +108,39 @@ try {
 } finally {
   rmSync(tmp, { recursive: true, force: true });
 }
-console.log("tokens: @property in the sheet, deduplicated, clashes located, edits reach the sheet");
+// style(...) and token.set(...): an object literal, custom properties first, camelCase keys, values checked.
+const themed = (await client.transformRequest("/fixtures/tokens-style.ts")).code.replace(
+  /\s+/g,
+  " ",
+);
+assert.ok(
+  themed.includes(
+    'export const themed = { "--color-primary": "red", color: "var(--color-primary)" };',
+  ),
+  themed,
+);
+assert.ok(themed.includes('export const only = { "--color-primary": "green" };'), themed);
+assert.ok(
+  themed.includes(
+    'export const box = { paddingLeft: "1rem", backgroundColor: "#eee", padding: "1rem" };',
+  ),
+  themed,
+);
+assert.ok(
+  plugins[0].api.sheet([`${root}/fixtures/tokens-style.ts`]).includes("@property --color-primary"),
+);
+e = await failure("fixtures/token-set-private.ts");
+assert.match(e.message, /^cssints: --_[0-9a-f]{8} is private, only a token with a name can be set/);
+assert.deepEqual({ line: e.loc.line, column: e.loc.column }, { line: 4, column: 19 });
+e = await failure("fixtures/token-set-bad.ts");
+assert.match(e.message, /^cssints: token.set\(\) value of --color-set-bad "1rem" is not a <color>/);
+assert.deepEqual({ line: e.loc.line, column: e.loc.column }, { line: 4, column: 19 });
+e = await failure("fixtures/token-style-cond.ts");
+assert.match(e.message, /^cssints: style\(\) takes styles without conditions/);
+assert.deepEqual({ line: e.loc.line, column: e.loc.column }, { line: 3, column: 19 });
+
+console.log(
+  "tokens: @property in the sheet, deduplicated, clashes located, edits reach the sheet, style and set",
+);
 await server.close();
 process.exit(0);

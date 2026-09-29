@@ -18,6 +18,7 @@ import { Cause, Effect, Exit } from "effect";
 
 import { MacroError } from "./errors.ts";
 import {
+  camel,
   chainDecl,
   CONTEXTS,
   fail,
@@ -35,7 +36,7 @@ import {
   type Decl,
 } from "./lib.ts";
 import { type At, registry, Registry, type RegistryState, type Rule } from "./registry.ts";
-import { token } from "./token.ts";
+import { isStyle, style, token, type StyleNode } from "./token.ts";
 
 export { CSS, CSSColorValue, CSSUnitValue };
 
@@ -262,6 +263,7 @@ const named: Record<string, unknown> = {
   cv,
   ...conditions,
   token,
+  style,
   CSS,
   CSSColorValue,
   CSSUnitValue,
@@ -284,20 +286,40 @@ const inertOf = (v: unknown): string | undefined => {
     : undefined;
 };
 
-// The replacement expression of a site: class strings, the cv() config, or a Typed OM value's CSS text.
+// style(...): `{ "--color-primary": "red", color: "var(--color-primary)" }`, the custom properties first, then the
+// declarations, whose values are checked like a class's.
+const inlineOf = Effect.fnUntraced(function* ({
+  __style: { sets, decls },
+}: StyleNode): Effect.fn.Return<string, Invalid> {
+  const registry = yield* Registry;
+  return yield* Effect.try({
+    try: () => {
+      for (const d of decls) checkNow(d, true, registry);
+      const entries = new Map([...sets, ...decls.map(([p, v]): [string, string] => [camel(p), v])]);
+      return `{ ${[...entries].map(([k, v]) => `${k.startsWith("--") ? JSON.stringify(k) : k}: ${JSON.stringify(v)}`).join(", ")} }`;
+    },
+    catch: (e) => {
+      if (isDeclarationError(e)) return e;
+      throw e; // a bug, not a user error: a defect
+    },
+  });
+});
+
+// The replacement expression of a site: class strings, the cv() config, an inline style, or a Typed OM value's CSS text.
 const replacementOf = Effect.fnUntraced(function* (
   at: At,
   value: unknown,
 ): Effect.fn.Return<string, Invalid | MacroError> {
   if (isNode(value)) return JSON.stringify(yield* classesOf(value.__cssints));
   if (isCv(value)) return yield* cvOf(value.__cv);
+  if (isStyle(value)) return yield* inlineOf(value);
   // A Typed OM value (CSS.rem(1), new CSSColorValue(...)) ships as its CSS text; the objects are eval-time only.
   // oxlint-disable-next-line typescript/no-base-to-string -- every CSSStyleValue subclass overrides toString
   if (value instanceof CSSStyleValue) return JSON.stringify(String(value));
   const inert = inertOf(value);
   if (inert !== undefined) return inert;
   return yield* new MacroError({
-    message: `cssints: site ${at.site} in ${at.file} did not produce a css.*, cv(), condition or Typed OM value`,
+    message: `cssints: site ${at.site} in ${at.file} did not produce a css.*, cv(), style(), condition or Typed OM value`,
   });
 });
 

@@ -2,7 +2,7 @@
 // types they have in user code, where every call is already a class string, because the plugin replaced it.
 // The implementation (macro.ts) builds declaration nodes instead; nothing here runs.
 import type { Condition } from "@cssints/css-grammar/query";
-import type { TokenFn, TokenType } from "@cssints/css-grammar/token";
+import type { StyleObject, TokenFn, TokenSetFn, TokenType } from "@cssints/css-grammar/token";
 import type { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
 
 import type { FlexMethods, GridMethods } from "./members.ts";
@@ -35,7 +35,11 @@ export declare const media: Condition<"media", Wrap>;
 export declare const container: Condition<"container", Wrap>;
 export declare const supports: Condition<"supports", Wrap>;
 /** `token.<type>(initial, name?)`: a Typed OM value of the type, `var(--name)`. With a name it can be set. */
-export declare const token: { readonly [K in TokenType]: TokenFn<K> };
+export declare const token: { readonly [K in TokenType]: TokenFn<K> } & {
+  readonly set: TokenSetFn;
+};
+/** css values (declarations, no conditions) and `token.set()` results, as an inline `style` object. */
+export declare const style: (...styles: (string | StyleObject)[]) => StyleObject;
 export declare const flex: () => Chain<FlexMethods>;
 export declare const grid: () => Chain<GridMethods>;
 /** The plugin replaces the call by the runtime config that `_cv` takes. */
@@ -47,6 +51,7 @@ export declare const css: typeof import("./members.ts") & {
   container: typeof container;
   supports: typeof supports;
   token: typeof token;
+  style: typeof style;
   flex: typeof flex;
   grid: typeof grid;
   cv: typeof cv;

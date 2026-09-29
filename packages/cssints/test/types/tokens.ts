@@ -36,3 +36,19 @@ token.percentage("50px");
 token.color("blue", 3);
 // @ts-expect-error inherit is a boolean
 token.color("blue", { var: "x", inherit: "no" });
+
+// token.set() takes a token with a name and a value of its type; style() takes styles and set() results.
+export const themed: Record<string, string> = css.style(
+  css.color(blue),
+  css.token.set(blue, "red"),
+  token.set(gap, "2rem"),
+  token.set(steps, "4"),
+);
+// @ts-expect-error a private token cannot be set
+css.token.set(muted, "red");
+// @ts-expect-error not a colour
+css.token.set(blue, "1rem");
+// @ts-expect-error not a length
+token.set(gap, "red");
+// @ts-expect-error style takes styles, not numbers
+css.style(1);

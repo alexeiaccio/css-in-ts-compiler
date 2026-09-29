@@ -23,7 +23,7 @@ export interface CssNode {
   __cssints: Decl[];
 }
 
-const camel = (p: string) => p.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+export const camel = (p: string) => p.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
 
 // A builder error names the call site being evaluated (`__at` set it), when there is one.
 export const fail = (message: string) => new MacroError({ message, ...registry.at });
