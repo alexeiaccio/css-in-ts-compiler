@@ -4,7 +4,7 @@ import { checkRules } from "@cssints/css-grammar/rules";
 import { message, support } from "@cssints/css-grammar/support";
 import { valid } from "@cssints/css-grammar/twin";
 import { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
-import { chainDecl, classOf, CONTEXTS, parseStyles, toDecls } from "./lib.mjs";
+import { chainDecl, classOf, CONTEXTS, isNode, toDecls } from "./lib.mjs";
 
 export { CSS, CSSColorValue, CSSUnitValue };
 
@@ -37,11 +37,16 @@ const classesOf = (decls) => {
   return out.join(" ");
 };
 
-// cv(config with css strings) -> CvRuntimeConfig with class strings, consumed by _cv at runtime.
+const styleOf = (s, where) => {
+  if (!isNode(s)) throw new Error(`cssints: cv() ${where} must be a css.* value (cn(...), a flex() chain or one property), got ${JSON.stringify(s)}. CSS strings are gone: write cn(p(4), fontSize("1rem"))`);
+  return classesOf(s.__cssints);
+};
+
+// cv(config with css.* values) -> CvRuntimeConfig with class strings, consumed by _cv at runtime.
 export const cv = (config) => ({
   __cv: {
-    base: classesOf(parseStyles(config.base ?? "")),
-    variants: Object.fromEntries(Object.entries(config.variants ?? {}).map(([k, vs]) => [k, Object.fromEntries(Object.entries(vs).map(([n, s]) => [n, classesOf(parseStyles(s))]))])),
+    base: config.base === undefined ? "" : styleOf(config.base, "base"),
+    variants: Object.fromEntries(Object.entries(config.variants ?? {}).map(([k, vs]) => [k, Object.fromEntries(Object.entries(vs).map(([n, s]) => [n, styleOf(s, `variant ${k}.${n}`)]))])),
     defaultVariants: config.defaultVariants ?? {},
   },
 });

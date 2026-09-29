@@ -9,7 +9,6 @@ packages/cssints       Vite plugin on the Module Runner (src/plugin.mjs) + the c
                        test/: fixtures, run.mjs, map-check.mjs, spec/ (Quint model, race, mbt), hmr/ app
 packages/css-grammar   type-level recognizer (src/css.ts) + runtime twin (src/twin.ts) over mdn-data grammars,
                        Typed OM values, BCD support warnings, prose rules; test/, bench/ (instantiation budgets)
-packages/variants      @cssints/variants runtime (cx, _cv, _scv)
 packages/plugin-icon   icon plugin (not yet ported to the new engine)
 apps/demo              React demo on the plugin
 docs/wayfinder.md      decisions and findings log (start here); docs/API.md target API
