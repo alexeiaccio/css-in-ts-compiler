@@ -71,13 +71,20 @@ const make =
     const { name: variable, inherit } =
       name === undefined ? { name: privateName(), inherit: true } : nameOf(name);
     const by = `${at.file}#${at.site}.${registry.tokens++}`;
-    registry.properties.set(variable, {
-      css: `@property ${variable}{syntax:"<${syntax}>";inherits:${inherit};initial-value:${text}}`,
-      probes,
-      by,
-      file: at.file,
-      gen: registry.gen,
-    });
+    const css = `@property ${variable}{syntax:"<${syntax}>";inherits:${inherit};initial-value:${text}}`;
+    // Another declaration of the name is fine when it is the same rule, this site again (an edit), or this file's
+    // from an earlier evaluation (every evaluation runs its modules again). Otherwise the second one is the error.
+    const prev = registry.properties.get(variable);
+    if (
+      prev &&
+      prev.css !== css &&
+      prev.by !== by &&
+      !(prev.file === at.file && prev.gen !== registry.gen)
+    )
+      throw fail(
+        `cssints: ${variable} is already declared with another @property, in ${relative(process.cwd(), prev.file)}: ${prev.css}; here: ${css}`,
+      );
+    registry.properties.set(variable, { css, probes, by, file: at.file, gen: registry.gen });
     return new CSSTokenValue(variable, name !== undefined);
   };
 
