@@ -3,13 +3,15 @@
 title: Implement conditions and layers
 status: todo
 type: task
+priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-09-29T14:17:14Z
-updated_at: 2026-09-29T14:17:14Z
+updated_at: 2026-09-29T14:23:11Z
 parent: cssints-vy0o
 blocked_by:
     - cssints-euf0
+    - cssints-vzd9
 ---
 
 ## Question
