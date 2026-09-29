@@ -6,13 +6,15 @@ import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { promisify } from "node:util";
 
 const dir = import.meta.dirname;
-const bin = `${dir}/../../../node_modules/.bin`;
-const compilers = { tsc: [], tsgo: ["--ignoreConfig"] };
+const root = `${dir}/../../../node_modules`;
+// tsc is TypeScript 5.9 by path: node_modules/.bin/tsc may be the native TypeScript 7 that effect-tsgo needs
+// (@typescript/native, see the root package.json).
+const compilers = { tsc: [process.execPath, `${root}/typescript/bin/tsc`], tsgo: [`${root}/.bin/tsgo`, "--ignoreConfig"] };
 const expectedErrors = { "err.ts": 3 };
 const files = readdirSync(dir).filter((f) => f.endsWith(".ts"));
 
 const run = (c, f) =>
-  promisify(execFile)(`${bin}/${c}`, [...compilers[c], "--strict", "--noEmit", "--skipLibCheck", "--extendedDiagnostics", f], { cwd: dir })
+  promisify(execFile)(compilers[c][0], [...compilers[c].slice(1), "--strict", "--noEmit", "--skipLibCheck", "--extendedDiagnostics", f], { cwd: dir })
     .catch((e) => e)
     .then(({ stdout }) => ({ inst: +stdout.match(/Instantiations:\s+(\d+)/)[1], errors: stdout.match(/error TS/g)?.length ?? 0 }));
 

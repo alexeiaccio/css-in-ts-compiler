@@ -1,7 +1,7 @@
 // The only code that ships to the browser. No imports: plain, dependency-free, no Effect.
 export type ClassValue = string | false | null | undefined | 0 | ClassValue[];
 
-export const cx = (...a: ClassValue[]): string => a.flat(Infinity).filter(Boolean).join(" ");
+export const cx = (...a: ClassValue[]): string => (a as unknown[]).flat(Infinity).filter(Boolean).join(" ");
 
 export interface CvRuntimeConfig {
   base: string;

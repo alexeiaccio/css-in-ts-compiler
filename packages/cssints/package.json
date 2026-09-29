@@ -13,7 +13,8 @@
 	"sideEffects": false,
 	"scripts": {
 		"test": "cd test && node run.mjs fixtures/risk*.ts fixtures/typed*.ts fixtures/tokens-typed.ts fixtures/helper-use.ts fixtures/cv.ts fixtures/order.ts && ! node run.mjs fixtures/invalid.ts > /dev/null && node run.mjs fixtures/no-attribute.ts | grep -q \"without the attribute\" && node run.mjs fixtures/chain-error.ts | grep -q \"has no .padding()\" && node run.mjs fixtures/cv-string.ts | grep -q \"CSS strings are gone\" && node contexts.mjs && node runtime.mjs && node map-check.mjs && node sheet.mjs && node spec/race.mjs && cd hmr && node hmr.mjs && ORDER=button-first node hmr.mjs",
-		"test:mbt": "cd test && node spec/mbt.mjs"
+		"test:mbt": "cd test && node spec/mbt.mjs",
+		"typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty"
 	},
 	"dependencies": {
 		"@cssints/css-grammar": "workspace:*",

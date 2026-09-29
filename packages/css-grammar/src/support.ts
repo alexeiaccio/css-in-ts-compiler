@@ -68,8 +68,8 @@ function supports(s: SupportStatement | undefined, v: string): boolean {
 // every <type> name reachable from a grammar, without "()", and every <'property'> as "'property"
 function reach(syntax: string, seen = new Set<string>()): Set<string> {
   for (const [, q, n] of syntax.matchAll(/<('?)([a-z-]+)(?:\(\))?'?(?: \[[^\]]*\])?>/g)) {
-    if (seen.has(q + n)) continue;
-    seen.add(q + n);
+    if (seen.has(q! + n!)) continue;
+    seen.add(q! + n!);
     const g = q ? props[n!] : (syns[n!] ?? syns[`${n}()`]);
     if (g) reach(g, seen);
   }

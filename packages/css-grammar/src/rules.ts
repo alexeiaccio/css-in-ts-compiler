@@ -50,7 +50,7 @@ function calcSize(v: string) {
       d += v[j] === "(" ? 1 : v[j] === ")" ? -1 : 0;
       if (!d) break;
       if (d === 1 && v[j] === ",") args.push("");
-      else args[args.length - 1] += v[j];
+      else args[args.length - 1] = args[args.length - 1]! + v[j]!;
     }
     for (const a of args.map((x) => x.trim())) {
       if (/^(calc-size\(|[a-z-]+$)/i.test(a) && !/^-?(e|pi|infinity|nan)$/i.test(a)) continue;

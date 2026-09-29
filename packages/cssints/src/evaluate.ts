@@ -77,8 +77,10 @@ const evaluateModule = Effect.fnUntraced(function* (
     },
     catch: failureOf(id),
   }).pipe(
-    Effect.timeout("30 seconds"),
-    Effect.catchTag("TimeoutError", () => Effect.fail(new EvalError({ file: id, message: `cssints: evaluating ${id} took more than 30 seconds` }))),
+    Effect.timeoutOrElse({
+      duration: "30 seconds",
+      orElse: () => Effect.fail(new EvalError({ file: id, message: `cssints: evaluating ${id} took more than 30 seconds` })),
+    }),
   );
   return registry.sites.get(id) ?? new Map();
 });
