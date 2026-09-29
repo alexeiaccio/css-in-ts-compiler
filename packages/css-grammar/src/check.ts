@@ -9,7 +9,7 @@ import { syntaxes } from "./mdn.ts";
 import { ENTRY, type QueryKind } from "./query.ts";
 import { violation } from "./rules.ts";
 import { supportOf, type Warning } from "./support.ts";
-import { consume, parseGrammar, valid as validCore } from "./twin-core.ts";
+import { consume, parseGrammar, spaced, valid as validCore } from "./twin-core.ts";
 
 export type DeclarationError = TwinError | RuleError;
 
@@ -38,9 +38,6 @@ export const checkDeclaration = Effect.fnUntraced(function* (
     },
   });
 });
-
-// The grammars take `:` and `/` as tokens of their own (query.ts): space them out, as ValidQuery does.
-const spaced = (q: string) => q.replace(/[:/]/g, " $& ");
 
 // Plain core: a query of media(), container() or supports(); throws an InvalidValueError at the furthest point it reached.
 export function checkQueryNow(kind: QueryKind, q: string): void {

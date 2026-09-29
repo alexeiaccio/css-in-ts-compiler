@@ -38,10 +38,40 @@ const addP = (n) => {
   refs(P[n]).forEach(addS);
   prefs(P[n]).forEach(addP);
 };
+// Colour (cssints-gcuz). mdn-data 2.27.1 has no relative colour syntax and no contrast-color(), if() or var() in
+// <color>; @webref/css has the first, in css-color-5. So:
+//  - the colour functions are webref's (`[from <color>]?`, mdn-data's forms plus the origin colour); the rest of
+//    <color-function> stays mdn-data's, which leaves out the HDR-only ictcp(), jzazbz(), jzczhz(), alpha() and color-hdr();
+//  - <color> is mdn-data's plus <contrast-color()>, <if()> and <var()>, the functions that stand for a colour;
+//  - contrast-color( <color> ) is css-color-5 §8; webref only has the css-color-6 draft, with `tbd-fg` and `tbd-bg`
+//    in it (Chrome 154 takes the one-argument form);
+//  - <custom-property-name> has no grammar in either source: it is a <dashed-ident> (css-variables-2);
+//  - <if()>, <if-branch> and <if-test> are webref's. Its <boolean-expr[ <if-test> ]> is a parameterized type: it is
+//    written out with the formal equivalent of css-values-5 §3.6 (the same as the <media-condition> family), without
+//    <general-enclosed> as in the conditions below. <declaration> takes custom properties too (`style(--x: 1)`).
+// The twin checks the channel keywords of a relative colour (`r g b`, `l c h`, `alpha`, ...) and the calc() around
+// them, which the grammar does not carry (css-color-5 §4); types take everything after `from` as balanced tokens.
+// (mdn-data's <xyz-params> also names a <xyz> that it does not define: webref's is <xyz-space>.)
+const WEBREF = [
+  ...["rgb", "rgba", "hsl", "hsla", "hwb", "lab", "lch", "oklab", "oklch", "color"].map(
+    (f) => `${f}()`,
+  ),
+  "xyz-params",
+];
+const COLOR = {
+  color: `${syn.color.syntax} | <contrast-color()> | <if()> | <var()>`,
+  "contrast-color()": "contrast-color( <color> )",
+  "custom-property-name": "<dashed-ident>",
+  "if-condition": webS["if-condition"].replace("<boolean-expr[ <if-test> ]>", "<if-boolean-expr>"),
+  "if-boolean-expr": webS["boolean-expr"].replaceAll("boolean-expr-group", "if-group"),
+  "if-group": "<if-test> | ( <if-boolean-expr> )",
+};
+// the if() family goes through addC below: its conditions are the ones of @media, @container and @supports
+const IF = /^if(-|\(\))/;
 // a type mdn-data lacks (<autospace>, <attr-unit>) comes from the spec grammar
 const addS = (n) => {
-  if (S[n] || !(syn[n] || webS[n])) return;
-  S[n] = ranged(syn[n]?.syntax ?? webS[n], webS[n]);
+  if (S[n] || IF.test(n) || !(COLOR[n] || syn[n] || webS[n])) return;
+  S[n] = COLOR[n] ?? ranged(WEBREF.includes(n) ? webS[n] : (syn[n]?.syntax ?? webS[n]), webS[n]);
   refs(S[n]).forEach(addS);
   prefs(S[n]).forEach(addP);
 };
@@ -57,17 +87,18 @@ const COND = {
   "style-feature": "<declaration>",
   "supports-feature": "<supports-decl>",
   "supports-decl": "( <declaration> )",
-  declaration: Object.keys(P)
-    .map((p) => `${p} : <'${p}'>`)
-    .join(" | "),
+  declaration: [
+    ...Object.keys(P).map((p) => `${p} : <'${p}'>`),
+    "<dashed-ident> : <declaration-value>",
+  ].join(" | "),
 };
 const addC = (n) => {
-  const g = COND[n] ?? webS[n] ?? syn[n]?.syntax;
+  const g = COND[n] ?? COLOR[n] ?? webS[n] ?? syn[n]?.syntax;
   if (S[n] || !g) return;
   S[n] = g.replace(/ \| <general-enclosed>/g, "").replaceAll("<ident>", "<custom-ident>");
   refs(S[n]).forEach(addC);
 };
-["media-query-list", "container-condition", "supports-condition"].forEach(addC);
+["media-query-list", "container-condition", "supports-condition", "if()"].forEach(addC);
 const lit = (o) =>
   JSON.stringify(o, null, 2).replace(/"([^"]+)":/g, (m, k) =>
     /^[a-zA-Z_$][\w$]*$/.test(k) ? `${k}:` : m,

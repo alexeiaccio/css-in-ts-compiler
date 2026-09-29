@@ -160,11 +160,13 @@ export type Consume<N, S extends string> =
       : V extends "string" | "url" | "declaration-value" ? Scanned<V, S>
       // <declaration> alternates over every property: types take it as balanced tokens, the twin checks it at build time
       : V extends "declaration" ? Scanned<"declaration-value", S>
+      // <if()> has `;` between its branches, which no token of the grammar is: balanced tokens too, the twin checks the conditions
+      : V extends "if()" ? (S extends `if(${infer R}` ? Close<Declaration<Trim<R>, Trim<R>, [], true>> : never)
       // `<name()>`: the name must be next before its grammar is even parsed (keeps <color> cheap)
       : V extends keyof Syns ? (V extends `${infer F}()` ? (S extends `${F}(${string}` ? Consume<Parse<Syns[V]>, S> : never) : S extends `⟨${V}⟩${infer R}` ? Trim<R> : Consume<Parse<Syns[V]>, S>) // typed value sentinel (api-typed.ts)
       : never
     : N extends ["prop", infer V extends string] ? (V extends keyof Props ? Consume<Parse<Props[V]>, S> : never)
-    : N extends ["fn", infer F extends string, infer A] ? (S extends `${F}(${infer R}` ? Close<Consume<A, Trim<R>>> : never)
+    : N extends ["fn", infer F extends string, infer A] ? (S extends `${F}(${infer R}` ? (F extends RelativeFn ? (Trim<R> extends `from ${string}` ? Close<Declaration<Trim<R>, Trim<R>, []>> : Close<Consume<A, Trim<R>>>) : Close<Consume<A, Trim<R>>>) : never)
     : N extends ["alt", any, any] ? ConsumeAlt<N, S>
     : N extends ["seq", infer Xs extends Node[]] ? SeqRest<Xs, S, never, never, never>
     : N extends ["opt", infer X] ? S | Consume<X, S>
@@ -177,6 +179,10 @@ export type Consume<N, S extends string> =
     : N extends ["bang", infer X] ? Exclude<Consume<X, S>, S> // `[ ... ]!`: the group must not be empty
     : never
   : never;
+
+// The colour functions that take `from <color>` (relative colour): what follows `from` is the origin colour and channel
+// keywords, `calc()` over them, or anything else a component takes. Types read it as balanced tokens, the twin checks it.
+type RelativeFn = "rgb" | "rgba" | "hsl" | "hsla" | "hwb" | "lab" | "lch" | "oklab" | "oklch" | "color";
 
 // Unconstrained on purpose, like Mult's N: a constraint makes tsc expand the argument when it checks the
 // declaration (~1 k instantiations each, paid by every program).
@@ -195,14 +201,14 @@ type UrlBody<B extends string> =
   : B extends `${string}${Ws | '"' | "'" | "(" | "\\"}${string}` ? false : true;
 type TrimEnd<S extends string> = S extends `${infer R}${Ws}` ? TrimEnd<R> : S;
 // <declaration-value>: characters up to the unmatched `)` (returned with it) or the end, brackets balanced by depth
-// D, strings skipped, no top-level `;` or `!`, not empty. S left-trimmed, so Rest = S means nothing was consumed.
-type Declaration<S extends string, Rest extends string, D extends 0[]> =
+// D, strings skipped, no top-level `;` (unless Semi) or `!`, not empty. S left-trimmed, so Rest = S means nothing was consumed.
+type Declaration<S extends string, Rest extends string, D extends 0[], Semi extends boolean = false> =
   Rest extends `${infer C}${infer R}`
-    ? C extends '"' | "'" ? (R extends `${string}${C}${infer R2}` ? Declaration<S, R2, D> : never)
-    : C extends "(" | "[" | "{" ? Declaration<S, R, [...D, 0]>
-    : C extends ")" | "]" | "}" ? (D extends [0, ...infer D2 extends 0[]] ? Declaration<S, R, D2> : C extends ")" ? (Rest extends S ? never : Rest) : never)
-    : C extends ";" | "!" ? (D extends [] ? never : Declaration<S, R, D>)
-    : Declaration<S, R, D>
+    ? C extends '"' | "'" ? (R extends `${string}${C}${infer R2}` ? Declaration<S, R2, D, Semi> : never)
+    : C extends "(" | "[" | "{" ? Declaration<S, R, [...D, 0], Semi>
+    : C extends ")" | "]" | "}" ? (D extends [0, ...infer D2 extends 0[]] ? Declaration<S, R, D2, Semi> : C extends ")" ? (Rest extends S ? never : Rest) : never)
+    : C extends ";" | "!" ? (D extends [] ? ([C, Semi] extends [";", true] ? Declaration<S, R, D, Semi> : never) : Declaration<S, R, D, Semi>)
+    : Declaration<S, R, D, Semi>
     : D extends [] ? (Rest extends S ? never : "") : never;
 
 // tail-recursive walk of the alt cons list

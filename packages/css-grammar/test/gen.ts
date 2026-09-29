@@ -120,6 +120,10 @@ function primitive(v: string, lo?: string, hi?: string): Arb | null {
         ident.map((s) => `url(${s})`),
         ident.map((s) => `url("${s} b")`),
       );
+    case "declaration":
+      // alternates over every property, and the properties reach <color>, which reaches <if()>, which reaches this:
+      // three stand for it
+      return fc.constantFrom("display : grid", "color : red", "--x : 1");
     case "declaration-value":
       // words, numbers and a balanced function
       return fc
@@ -135,6 +139,33 @@ function primitive(v: string, lo?: string, hi?: string): Arb | null {
   }
   return null;
 }
+
+// Relative colour: the grammar has `from <color>` and numbers, the channel keywords are prose (css-color-5 §4). Each
+// component is a keyword of the function (any, `alpha` included: css-color-5 §4.1 "you can use them in any position"),
+// `none`, a number or a calc() over a keyword. No var(): Chrome takes any value with a var() in it, whatever the grammar says.
+const RELATIVE: [fn: string, space: string, channels: string[]][] = [
+  ...["rgb", "rgba"].map((f) => [f, "", ["r", "g", "b", "alpha"]] as [string, string, string[]]),
+  ...["hsl", "hsla"].map((f) => [f, "", ["h", "s", "l", "alpha"]] as [string, string, string[]]),
+  ["hwb", "", ["h", "w", "b", "alpha"]],
+  ...["lab", "oklab"].map((f) => [f, "", ["l", "a", "b", "alpha"]] as [string, string, string[]]),
+  ...["lch", "oklch"].map((f) => [f, "", ["l", "c", "h", "alpha"]] as [string, string, string[]]),
+  ["color", "display-p3 ", ["r", "g", "b", "alpha"]],
+  ["color", "xyz-d65 ", ["x", "y", "z", "alpha"]],
+];
+const relative = (origin: Arb): Arb =>
+  fc.constantFrom(...RELATIVE).chain(([f, space, ks]) => {
+    const key = fc.constantFrom(...ks);
+    const part = fc.oneof(
+      key,
+      fc.constant("none"),
+      num("0").map(String),
+      key.map((k) => `calc(${k} * 2)`),
+      key.map((k) => `calc(${k} + 1)`),
+    );
+    return fc
+      .tuple(origin, fc.array(part, { minLength: 3, maxLength: 3 }), fc.option(part, { nil: "" }))
+      .map(([o, cs, a]) => `${f}(from ${o} ${space}${cs.join(" ")}${a ? ` / ${a}` : ""})`);
+  });
 
 // null = this node cannot be generated (opaque, unknown type, too deep); alternatives route around it.
 export function arb(n: Node, depth = 0): Arb | null {
@@ -152,7 +183,9 @@ export function arb(n: Node, depth = 0): Arb | null {
       const [, v, lo, hi] = n;
       const p = primitive(v, lo, hi);
       if (p) return p;
-      return syns[v] ? sub(parse(syns[v])) : null;
+      const g = syns[v] ? sub(parse(syns[v])) : null;
+      const origin = v === "color" && depth < 8 ? sub(n) : null;
+      return g && origin ? fc.oneof(g, relative(origin)) : g;
     }
     case "prop":
       return props[n[1]] ? sub(parse(props[n[1]]!)) : null;
