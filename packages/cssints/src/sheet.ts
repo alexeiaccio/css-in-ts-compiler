@@ -13,7 +13,10 @@ interface MdnProperty {
 
 // A is a shorthand of B when every leaf longhand of B is among A's leaves (mdn-data `computed`; the direct lists
 // miss border > border-top). More leaves first is a total order that keeps that relation.
-const MDN = createRequire(import.meta.url)("mdn-data/css/properties.json") as Record<string, MdnProperty | undefined>;
+const MDN = createRequire(import.meta.url)("mdn-data/css/properties.json") as Record<
+  string,
+  MdnProperty | undefined
+>;
 const leaves = (p: string): string[] => {
   const computed = MDN[p]?.computed;
   return p !== "all" && Array.isArray(computed) ? computed.flatMap(leaves) : [p];
@@ -27,9 +30,14 @@ const cmpCond = (a: number[], b: number[]) =>
 
 type Sortable = Rule & { cls: string };
 const byOrder = (a: Sortable, b: Sortable) =>
-  cmp(a.layer, b.layer) || cmpCond(a.cond, b.cond) || width(b.prop) - width(a.prop) || cmp(a.cls, b.cls);
+  cmp(a.layer, b.layer) ||
+  cmpCond(a.cond, b.cond) ||
+  width(b.prop) - width(a.prop) ||
+  cmp(a.cls, b.cls);
 
-export const renderSheet = Effect.fn("cssints.renderSheet")(function* (classes: Iterable<string>): Effect.fn.Return<string> {
+export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
+  classes: Iterable<string>,
+): Effect.fn.Return<string> {
   const { rules } = yield* Registry;
   const sorted = [...new Set(classes)]
     .flatMap((cls) => {

@@ -19,11 +19,23 @@ const warns: [string, string, string | null][] = [
 for (const [p, v, key] of warns) {
   const ws = support(p, v);
   ws.forEach((w) => console.log(`     ${message(p, v, w)}`));
-  verify(key ? ws.some((w) => w.key === key && w.lacking.some((t) => t.startsWith("chrome "))) : ws.length === 0, `${p}: ${v} ${key ? "warns" : "no warning"}`);
+  verify(
+    key
+      ? ws.some((w) => w.key === key && w.lacking.some((t) => t.startsWith("chrome ")))
+      : ws.length === 0,
+    `${p}: ${v} ${key ? "warns" : "no warning"}`,
+  );
 }
 // a target without the property gets the property warning only, not one per value
-const ws = support("white-space-collapse", "preserve-spaces", [["firefox", "120"], ["chrome", "120"]]);
-verify(JSON.stringify(ws.map((w) => [w.feature, w.lacking])) === '[["white-space-collapse",["firefox 120"]],["preserve-spaces",["chrome 120"]]]', `white-space-collapse: preserve-spaces on firefox 120 warns for the property only`);
+const ws = support("white-space-collapse", "preserve-spaces", [
+  ["firefox", "120"],
+  ["chrome", "120"],
+]);
+verify(
+  JSON.stringify(ws.map((w) => [w.feature, w.lacking])) ===
+    '[["white-space-collapse",["firefox 120"]],["preserve-spaces",["chrome 120"]]]',
+  `white-space-collapse: preserve-spaces on firefox 120 warns for the property only`,
+);
 
 const rules: [string, string, boolean][] = [
   ["transition", "none, opacity 1s", false],

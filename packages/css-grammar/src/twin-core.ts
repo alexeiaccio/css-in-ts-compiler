@@ -19,8 +19,14 @@ const syns: Record<string, string> = syntaxes;
 const trim = (s: string) => s.replace(/^[ \n\t]+/, "");
 
 type Tok =
-  | { t: "type"; v: string; lo?: string; hi?: string } | { t: "prop"; v: string } | { t: "kw"; v: string } | { t: "fn"; v: string }
-  | { t: "range"; lo: string; hi: string } | { t: "p"; v: string } | { t: "lit"; v: string } | { t: "eof" };
+  | { t: "type"; v: string; lo?: string; hi?: string }
+  | { t: "prop"; v: string }
+  | { t: "kw"; v: string }
+  | { t: "fn"; v: string }
+  | { t: "range"; lo: string; hi: string }
+  | { t: "p"; v: string }
+  | { t: "lit"; v: string }
+  | { t: "eof" };
 
 export function next(s: string): [Tok, string] {
   s = trim(s);
@@ -39,7 +45,8 @@ export function next(s: string): [Tok, string] {
     return [{ t: "range", lo, hi }, s.slice(m[0].length)];
   }
   if ((m = /^[[\]()|?*+#!,/]/.exec(s))) return [{ t: "p", v: m[0] }, s.slice(1)];
-  if ((m = /^[^()[\]|&?*+#!,/{}<>' \n\t]+(?=[ \n\t]|$)/.exec(s))) return [{ t: "kw", v: m[0] }, s.slice(m[0].length)];
+  if ((m = /^[^()[\]|&?*+#!,/{}<>' \n\t]+(?=[ \n\t]|$)/.exec(s)))
+    return [{ t: "kw", v: m[0] }, s.slice(m[0].length)];
   const w = /^[A-Za-z0-9_-]*/.exec(s)![0];
   const r = s.slice(w.length);
   if (w === "") return [{ t: "eof" }, ""];
@@ -51,9 +58,21 @@ export function next(s: string): [Tok, string] {
 // `type` keeps its numeric range.
 
 export type Node =
-  | ["kw", string] | ["type", string, string?, string?] | ["prop", string] | ["fn", string, Node] | ["lit", string]
-  | ["alt", Node[]] | ["or", Node[]] | ["and", Node[]] | ["seq", Node[]]
-  | ["opt", Node] | ["star", Node] | ["plus", Node] | ["list", Node] | ["rep", Node, string, string] | ["bang", Node];
+  | ["kw", string]
+  | ["type", string, string?, string?]
+  | ["prop", string]
+  | ["fn", string, Node]
+  | ["lit", string]
+  | ["alt", Node[]]
+  | ["or", Node[]]
+  | ["and", Node[]]
+  | ["seq", Node[]]
+  | ["opt", Node]
+  | ["star", Node]
+  | ["plus", Node]
+  | ["list", Node]
+  | ["rep", Node, string, string]
+  | ["bang", Node];
 
 const parsed = new Map<string, Node>();
 // The grammar being parsed, for the position of a ParseError (every remainder is a suffix of it).
@@ -70,16 +89,18 @@ export function parseGrammar(s: string): Node {
   return n;
 }
 
-const infix = (tag: "alt" | "or" | "and", op: string, sub: (s: string) => [Node, string]) => (s: string): [Node, string] => {
-  const xs: Node[] = [];
-  for (;;) {
-    const [n, r] = sub(s);
-    xs.push(n);
-    const [t, r2] = next(r);
-    if (t.t === "p" && t.v === op) s = r2;
-    else return [xs.length === 1 ? xs[0]! : [tag, xs], r];
-  }
-};
+const infix =
+  (tag: "alt" | "or" | "and", op: string, sub: (s: string) => [Node, string]) =>
+  (s: string): [Node, string] => {
+    const xs: Node[] = [];
+    for (;;) {
+      const [n, r] = sub(s);
+      xs.push(n);
+      const [t, r2] = next(r);
+      if (t.t === "p" && t.v === op) s = r2;
+      else return [xs.length === 1 ? xs[0]! : [tag, xs], r];
+    }
+  };
 const parseAnd = infix("and", "&&", parseSeq);
 const parseOr = infix("or", "||", parseAnd);
 const parseAlt = infix("alt", "|", parseOr);
@@ -88,7 +109,8 @@ function parseSeq(s: string): [Node, string] {
   const xs: Node[] = [];
   for (;;) {
     const [t] = next(s);
-    if (t.t === "eof" || (t.t === "p" && ["|", "||", "&&", "]", ")"].includes(t.v))) return [xs.length === 1 ? xs[0]! : ["seq", xs], s];
+    if (t.t === "eof" || (t.t === "p" && ["|", "||", "&&", "]", ")"].includes(t.v)))
+      return [xs.length === 1 ? xs[0]! : ["seq", xs], s];
     const [n, r] = parseTerm(s);
     xs.push(n);
     s = r;
@@ -100,12 +122,14 @@ function parseTerm(s: string): [Node, string] {
   if (t.t === "p" && t.v === "[") {
     const [n, r2] = parseAlt(r);
     const [close, r3] = next(r2);
-    if (close.t !== "p" || close.v !== "]") throw bad(`grammar: expected "]" at "${r2}"`, r2, ['"]"']);
+    if (close.t !== "p" || close.v !== "]")
+      throw bad(`grammar: expected "]" at "${r2}"`, r2, ['"]"']);
     return mult(n, r3);
   }
   if (t.t === "fn") return fnArgs(t.v, r);
   if (t.t === "p" && t.v === "(") return fnArgs("", r);
-  if (t.t === "type") return mult(t.lo === undefined ? ["type", t.v] : ["type", t.v, t.lo, t.hi], r);
+  if (t.t === "type")
+    return mult(t.lo === undefined ? ["type", t.v] : ["type", t.v, t.lo, t.hi], r);
   if (t.t === "prop" || t.t === "kw") return mult([t.t, t.v], r);
   if (t.t === "p" && (t.v === "," || t.v === "/")) return mult(["lit", t.v], r);
   if (t.t === "lit") return mult(["lit", t.v], r);
@@ -122,12 +146,21 @@ function fnArgs(v: string, s: string): [Node, string] {
 // `X#{A,B}` is `X [ , X ]{A-1,B-1}`
 const dec = (b: string) => (b === "∞" ? b : String(Number(b) - 1));
 
-const MULT: Record<string, "opt" | "star" | "plus" | "list"> = { "?": "opt", "*": "star", "+": "plus", "#": "list" };
+const MULT: Record<string, "opt" | "star" | "plus" | "list"> = {
+  "?": "opt",
+  "*": "star",
+  "+": "plus",
+  "#": "list",
+};
 function mult(n: Node, s: string): [Node, string] {
   for (;;) {
     const [t, r] = next(s);
     if (t.t === "p" && MULT[t.v]) n = [MULT[t.v]!, n];
-    else if (t.t === "range") n = n[0] === "list" ? ["seq", [n[1], ["rep", ["seq", [["lit", ","], n[1]]], dec(t.lo), dec(t.hi)]]] : ["rep", n, t.lo, t.hi];
+    else if (t.t === "range")
+      n =
+        n[0] === "list"
+          ? ["seq", [n[1], ["rep", ["seq", [["lit", ","], n[1]]], dec(t.lo), dec(t.hi)]]]
+          : ["rep", n, t.lo, t.hi];
     else if (t.t === "p" && t.v === "!") n = ["bang", n];
     else return [n, s];
     s = r;
@@ -144,7 +177,8 @@ function tok1(s: string): [string, string] {
 }
 
 const NUM = String.raw`[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?`;
-const LENGTH_UNIT = "px|em|rem|vw|vh|vmin|vmax|ch|ex|lh|rlh|cm|mm|in|pt|pc|q|svw|svh|lvw|lvh|dvw|dvh|cqw|cqh|cqi|cqb|cqmin|cqmax|ic|cap|rex|rch|ric|rcap";
+const LENGTH_UNIT =
+  "px|em|rem|vw|vh|vmin|vmax|ch|ex|lh|rlh|cm|mm|in|pt|pc|q|svw|svh|lvw|lvh|dvw|dvh|cqw|cqh|cqi|cqb|cqmin|cqmax|ic|cap|rex|rch|ric|rcap";
 const re = (s: string) => new RegExp(`^(?:${s})$`);
 const PRIMITIVE: Record<string, RegExp> = {
   length: re(`${NUM}(?:${LENGTH_UNIT})|0`),
@@ -155,7 +189,8 @@ const PRIMITIVE: Record<string, RegExp> = {
   "hex-color": /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i,
   string: /^(?:"[^"]*"|'[^']*')$/,
   // an ident (escapes ignored), minus the CSS-wide keywords and `default`
-  "custom-ident": /^(?!(?:initial|inherit|unset|revert|revert-layer|default)$)(?:--|-?[A-Za-z_\u0080-\uffff])[\w\u0080-\uffff-]*$/i,
+  "custom-ident":
+    /^(?!(?:initial|inherit|unset|revert|revert-layer|default)$)(?:--|-?[A-Za-z_\u0080-\uffff])[\w\u0080-\uffff-]*$/i,
   "dashed-ident": /^--.+$/,
   angle: re(`${NUM}(?:deg|rad|grad|turn)`),
   time: re(`${NUM}(?:s|ms)`),
@@ -187,7 +222,8 @@ const flatMap = (rs: Set<string>, f: (r: string) => Set<string>) => union([...rs
 
 // `label` is the outermost named type we are inside, so errors say <color> rather than "aliceblue | ...".
 export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<string> {
-  const leaf = (ok: boolean, rest: string, what: string) => (ok ? new Set([trim(rest)]) : (fail(ctx, s, label ?? what), NONE));
+  const leaf = (ok: boolean, rest: string, what: string) =>
+    ok ? new Set([trim(rest)]) : (fail(ctx, s, label ?? what), NONE);
   const sub = (x: Node, r: string) => consume(x, r, ctx, label);
   switch (n[0]) {
     case "kw": {
@@ -200,11 +236,15 @@ export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<strin
       return consumeType(n, s, ctx, label);
     case "prop": {
       const g = props[n[1]];
-      return g ? consume(parseGrammar(g), s, ctx, label ?? `<'${n[1]}'>`) : leaf(false, s, `<'${n[1]}'>`);
+      return g
+        ? consume(parseGrammar(g), s, ctx, label ?? `<'${n[1]}'>`)
+        : leaf(false, s, `<'${n[1]}'>`);
     }
     case "fn": {
       if (!s.startsWith(`${n[1]}(`)) return leaf(false, s, `${n[1]}()`);
-      return flatMap(sub(n[2], trim(s.slice(n[1].length + 1))), (r) => (r.startsWith(")") ? new Set([trim(r.slice(1))]) : (fail(ctx, r, label ?? "')'"), NONE)));
+      return flatMap(sub(n[2], trim(s.slice(n[1].length + 1))), (r) =>
+        r.startsWith(")") ? new Set([trim(r.slice(1))]) : (fail(ctx, r, label ?? "')'"), NONE),
+      );
     }
     case "alt":
       return union(n[1].map((x) => sub(x, s)));
@@ -233,14 +273,22 @@ export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<strin
   }
 }
 
-function consumeType([, v, lo, hi]: ["type", string, string?, string?], s: string, ctx: Ctx, label?: string): Set<string> {
+function consumeType(
+  [, v, lo, hi]: ["type", string, string?, string?],
+  s: string,
+  ctx: Ctx,
+  label?: string,
+): Set<string> {
   let rs: Set<string>;
   if (PRIMITIVE[v]) {
     const [t, r] = tok1(s);
     rs = PRIMITIVE[v].test(t) ? new Set([trim(r)]) : NONE;
   } else if (syns[v]) {
     // `<name()>`: the name must be next before its grammar is even parsed (as in css.ts)
-    rs = v.endsWith("()") && !s.startsWith(`${v.slice(0, -2)}(`) ? NONE : consume(parseGrammar(syns[v]), s, ctx, label ?? `<${v}>`);
+    rs =
+      v.endsWith("()") && !s.startsWith(`${v.slice(0, -2)}(`)
+        ? NONE
+        : consume(parseGrammar(syns[v]), s, ctx, label ?? `<${v}>`);
   } else rs = NONE;
   if (rs === NONE) fail(ctx, s, label ?? `<${v}>`);
   if (lo === undefined || hi === undefined) return rs;
@@ -259,9 +307,12 @@ function consumeType([, v, lo, hi]: ["type", string, string?, string?], s: strin
 // consumed since the seq start or the previous comma; never before the first term). When every later term is
 // nullable it may also end the seq (`done`), and a consumed comma then needs something after it (`moved` is
 // banned). Like css.ts, `start` and `moved` are sets over all paths, not per path.
-export const nullable = (n: Node) => n[0] === "opt" || n[0] === "star" || (n[0] === "rep" && n[2] === "0");
+export const nullable = (n: Node) =>
+  n[0] === "opt" || n[0] === "star" || (n[0] === "rep" && n[2] === "0");
 function seq(xs: Node[], s: string, sub: (x: Node, r: string) => Set<string>): Set<string> {
-  let rs = new Set([s]), start = NONE, moved = NONE;
+  let rs = new Set([s]),
+    start = NONE,
+    moved = NONE;
   const done = new Set<string>();
   xs.forEach((x, i) => {
     if (x[0] !== "lit" || x[1] !== ",") {
@@ -311,13 +362,24 @@ function rep(s: string, lo: number, hi: number, step: (r: string) => Set<string>
 }
 
 // || (all=false: at least one part) and && (all=true: every part), any order, each part at most once.
-function anyOrder(xs: Node[], s: string, all: boolean, sub: (x: Node, r: string) => Set<string>): Set<string> {
+function anyOrder(
+  xs: Node[],
+  s: string,
+  all: boolean,
+  sub: (x: Node, r: string) => Set<string>,
+): Set<string> {
   if (!xs.length) return new Set([s]);
   const out = new Set<string>();
   xs.forEach((x, i) => {
     for (const r1 of sub(x, s)) {
       if (!all) out.add(r1);
-      for (const r of anyOrder(xs.filter((_, j) => j !== i), r1, all, sub)) out.add(r);
+      for (const r of anyOrder(
+        xs.filter((_, j) => j !== i),
+        r1,
+        all,
+        sub,
+      ))
+        out.add(r);
     }
   });
   return out;
@@ -333,7 +395,8 @@ export function matches(syntax: string, s: string): boolean {
 // Twin of Valid<P, S>: returns the value, or throws with the furthest point reached and what was expected.
 export function valid(p: string, s: string): string {
   const syntax = props[p];
-  if (!syntax) throw new UnknownPropertyError({ message: `${p}: no grammar for this property`, property: p });
+  if (!syntax)
+    throw new UnknownPropertyError({ message: `${p}: no grammar for this property`, property: p });
   const v = trim(s);
   const ctx: Ctx = { len: v.length, far: -1, expected: new Set() };
   const rs = consume(parseGrammar(syntax), v, ctx);

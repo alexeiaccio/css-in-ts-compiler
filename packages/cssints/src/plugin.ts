@@ -58,11 +58,21 @@ const lineCol = (text: string, offset: number) => {
 
 // Gives a failure the `id` and `loc` of its call site. The site may be in another file than the one being
 // transformed (a helper module the evaluation loaded): that one is read from disk. Vite builds the code frame.
-const locate = Effect.fn("cssints.locate")(function* (e: PluginError, code: string, id: string): Effect.fn.Return<never, PluginError> {
+const locate = Effect.fn("cssints.locate")(function* (
+  e: PluginError,
+  code: string,
+  id: string,
+): Effect.fn.Return<never, PluginError> {
   const file = "file" in e && e.file ? e.file : id;
   if ("offset" in e && e.offset !== undefined) {
-    const text = file === id ? code : yield* Effect.tryPromise(() => readFile(file, "utf8")).pipe(Effect.orElseSucceed(() => undefined));
-    if (text !== undefined) Object.assign(e, { id: file, loc: { file, ...lineCol(text, e.offset) } });
+    const text =
+      file === id
+        ? code
+        : yield* Effect.tryPromise(() => readFile(file, "utf8")).pipe(
+            Effect.orElseSucceed(() => undefined),
+          );
+    if (text !== undefined)
+      Object.assign(e, { id: file, loc: { file, ...lineCol(text, e.offset) } });
   }
   return yield* e;
 });
@@ -81,7 +91,9 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
 
   // The helpers below run at most a few times per module: untraced. The hook-level programs (transform,
   // clientTransform, evaluate, renderChunk, ...) are the traced boundaries.
-  const sheet = Effect.fnUntraced(function* (ids: string[] = [...usedBy.keys()]): Effect.fn.Return<string> {
+  const sheet = Effect.fnUntraced(function* (
+    ids: string[] = [...usedBy.keys()],
+  ): Effect.fn.Return<string> {
     return yield* renderSheet(ids.flatMap((id) => usedBy.get(id)?.split(" ") ?? []));
   });
 
@@ -104,7 +116,12 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     yield* reloadSheet();
   });
 
-  const runnerDeps = (env: ViteDevServer["environments"]["ssr"], id: string, out = new Set<string>(), seen = new Set<string>()) => {
+  const runnerDeps = (
+    env: ViteDevServer["environments"]["ssr"],
+    id: string,
+    out = new Set<string>(),
+    seen = new Set<string>(),
+  ) => {
     const mod = env.moduleGraph.getModuleById(id);
     if (!mod || seen.has(id)) return out;
     seen.add(id);
@@ -132,7 +149,9 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
       if (parsed.sites.every((_, n) => sites.has(n)))
         yield* record(
           id,
-          [...sites.values()].flatMap((r) => [...r.matchAll(/"(_[a-z0-9]+(?: _[a-z0-9]+)*)"/g)].flatMap((m) => m[1]!.split(" "))),
+          [...sites.values()].flatMap((r) =>
+            [...r.matchAll(/"(_[a-z0-9]+(?: _[a-z0-9]+)*)"/g)].flatMap((m) => m[1]!.split(" ")),
+          ),
         );
       return sites;
     });
@@ -144,18 +163,32 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     for (const [n, s] of parsed.sites.entries()) {
       const replacement = sites.get(n);
       if (replacement === undefined)
-        return yield* new SiteMissingError({ message: `cssints: site ${n} in ${id} was not evaluated`, file: id, site: n, offset: s.start });
+        return yield* new SiteMissingError({
+          message: `cssints: site ${n} in ${id} was not evaluated`,
+          file: id,
+          site: n,
+          offset: s.start,
+        });
       ms.overwrite(s.start, s.end, replacement);
     }
     // Build-time imports are gone from the client; runtime ones (cx, _cv) stay.
     for (const decl of parsed.imp.decls) ms.remove(decl.start, decl.end);
 
-    for (const dep of runnerDeps(env, id)) (depsOf.get(dep) ?? depsOf.set(dep, new Set()).get(dep)!).add(id);
-    return { code: ms.toString(), map: ms.generateMap({ hires: true, source: id, includeContent: true }) };
+    for (const dep of runnerDeps(env, id))
+      (depsOf.get(dep) ?? depsOf.set(dep, new Set()).get(dep)!).add(id);
+    return {
+      code: ms.toString(),
+      map: ms.generateMap({ hires: true, source: id, includeContent: true }),
+    };
   });
 
-  const transform = Effect.fn("cssints.transform")(function* (ctx: Rollup.TransformPluginContext, code: string, id: string) {
-    if (!FILE_RE.test(id) || id.includes("node_modules") || !code.includes(RUNTIME)) return undefined;
+  const transform = Effect.fn("cssints.transform")(function* (
+    ctx: Rollup.TransformPluginContext,
+    code: string,
+    id: string,
+  ) {
+    if (!FILE_RE.test(id) || id.includes("node_modules") || !code.includes(RUNTIME))
+      return undefined;
     if (ctx.environment.name === "ssr") return (yield* instrument(code, id))?.code;
     if (inner) return undefined;
 
@@ -165,10 +198,15 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     // No runner HMR: its full-reload re-imports would run outside the evaluation lock.
     runner ??= createServerModuleRunner(env, { hmr: false, evaluator: new DomEvaluator() });
     inflight.add(id);
-    return yield* clientTransform(code, id, parsed, env, (w) => ctx.warn(w)).pipe(Effect.ensuring(Effect.sync(() => inflight.delete(id))));
+    return yield* clientTransform(code, id, parsed, env, (w) => ctx.warn(w)).pipe(
+      Effect.ensuring(Effect.sync(() => inflight.delete(id))),
+    );
   });
 
-  const startServer = Effect.fn("cssints.buildStart")(function* (): Effect.fn.Return<void, HookError> {
+  const startServer = Effect.fn("cssints.buildStart")(function* (): Effect.fn.Return<
+    void,
+    HookError
+  > {
     server = yield* Effect.tryPromise({
       try: () =>
         createServer({
@@ -178,23 +216,39 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
           server: { middlewareMode: true, watch: null, hmr: false },
           plugins: [cssints({ inner: true })],
         }),
-      catch: (cause) => new HookError({ hook: "buildStart", message: `cssints: could not start the evaluation server: ${String(cause)}`, cause }),
+      catch: (cause) =>
+        new HookError({
+          hook: "buildStart",
+          message: `cssints: could not start the evaluation server: ${String(cause)}`,
+          cause,
+        }),
     });
     ownServer = true;
   });
 
-  const stopServer = Effect.fn("cssints.closeBundle")(function* (): Effect.fn.Return<void, HookError> {
+  const stopServer = Effect.fn("cssints.closeBundle")(function* (): Effect.fn.Return<
+    void,
+    HookError
+  > {
     if (!ownServer || !server) return;
     const s = server;
     yield* Effect.tryPromise({
       try: () => s.close(),
-      catch: (cause) => new HookError({ hook: "closeBundle", message: `cssints: could not stop the evaluation server: ${String(cause)}`, cause }),
+      catch: (cause) =>
+        new HookError({
+          hook: "closeBundle",
+          message: `cssints: could not stop the evaluation server: ${String(cause)}`,
+          cause,
+        }),
     });
   });
 
   // Before vite:css-post's renderChunk joins the chunk's CSS: run the sheet through vite:css (LightningCSS) and
   // hand it to vite:css-post in place of the placeholder, as UnoCSS does. Its minify runs on the joined CSS.
-  const renderChunk = Effect.fn("cssints.renderChunk")(function* (ctx: Rollup.PluginContext, chunk: Rollup.RenderedChunk): Effect.fn.Return<null, HookError> {
+  const renderChunk = Effect.fn("cssints.renderChunk")(function* (
+    ctx: Rollup.PluginContext,
+    chunk: Rollup.RenderedChunk,
+  ): Effect.fn.Return<null, HookError> {
     if (inner || !(SHEET in chunk.modules)) return null;
     const [css, cssPost] = cssPlugins;
     const text = yield* sheet();
@@ -203,7 +257,12 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
         const r = (await callTransform(css, ctx, text)) as { code?: string } | null | undefined;
         await callTransform(cssPost, ctx, r?.code ?? text);
       },
-      catch: (cause) => new HookError({ hook: "renderChunk", message: `cssints: the sheet failed in Vite's CSS pipeline: ${String(cause)}`, cause }),
+      catch: (cause) =>
+        new HookError({
+          hook: "renderChunk",
+          message: `cssints: the sheet failed in Vite's CSS pipeline: ${String(cause)}`,
+          cause,
+        }),
     });
     return null;
   });
@@ -231,7 +290,9 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     api: { sheet: (ids?: string[]) => Effect.runSync(sheet(ids)) },
     configResolved(config: ResolvedConfig) {
       build = config.command === "build";
-      cssPlugins = ["vite:css", "vite:css-post"].map((n) => config.plugins.find((p) => p.name === n));
+      cssPlugins = ["vite:css", "vite:css-post"].map((n) =>
+        config.plugins.find((p) => p.name === n),
+      );
     },
     configureServer(s) {
       server = s;
@@ -239,7 +300,10 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
       // The browser drops an HMR update of a module that has not run yet: on a cold page load the sheet can be
       // fetched, and updated, while other modules are still in transform. The sheet reports what it got.
       s.environments.client.hot.on("cssints:sheet", (v: string) => {
-        if (!s.environments.client.moduleGraph.getModuleById(SHEET)?.transformResult?.code.includes(v)) Effect.runSync(reloadSheet());
+        if (
+          !s.environments.client.moduleGraph.getModuleById(SHEET)?.transformResult?.code.includes(v)
+        )
+          Effect.runSync(reloadSheet());
       });
     },
     buildStart() {
@@ -260,7 +324,9 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
       return run(renderChunk(this, chunk));
     },
     transform(code, id) {
-      return run(transform(this, code, id).pipe(Effect.catch((e: PluginError) => locate(e, code, id))));
+      return run(
+        transform(this, code, id).pipe(Effect.catch((e: PluginError) => locate(e, code, id))),
+      );
     },
     hotUpdate({ file, modules }) {
       return Effect.runSync(hotUpdate(this.environment, file, modules));
@@ -282,7 +348,11 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
 }
 
 // vite:css and vite:css-post declare `transform` as { handler }; the plugin context of renderChunk stands in.
-const callTransform = (plugin: Plugin | undefined, ctx: Rollup.PluginContext, code: string): Promise<unknown> => {
+const callTransform = (
+  plugin: Plugin | undefined,
+  ctx: Rollup.PluginContext,
+  code: string,
+): Promise<unknown> => {
   const t = plugin?.transform;
   const handler = typeof t === "function" ? t : t?.handler;
   return Promise.resolve(handler?.call(ctx as Rollup.TransformPluginContext, code, SHEET));

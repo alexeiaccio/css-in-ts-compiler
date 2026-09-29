@@ -32,7 +32,10 @@ try {
   await changed.promise;
   await sleep(3000);
   const after = await classes();
-  for (const name of order) console.log(`${name.padEnd(6)} ${before[name]} -> ${after[name]}  ${before[name] === after[name] ? "STALE" : "fresh"}`);
+  for (const name of order)
+    console.log(
+      `${name.padEnd(6)} ${before[name]} -> ${after[name]}  ${before[name] === after[name] ? "STALE" : "fresh"}`,
+    );
 } finally {
   writeFileSync(tokens, original);
   await server.close();

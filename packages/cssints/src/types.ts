@@ -14,7 +14,9 @@ export type Part = string | number | CSSStyleValue;
 /** One property. */
 export type Member = (...parts: Part[]) => string;
 /** A style you can chain container properties on (flex() and grid()), and use as a class string. */
-export type Chain<Methods extends string> = string & { readonly [K in Methods]: (...parts: Part[]) => Chain<Methods> };
+export type Chain<Methods extends string> = string & {
+  readonly [K in Methods]: (...parts: Part[]) => Chain<Methods>;
+};
 
 export interface CvConfig {
   base?: string;

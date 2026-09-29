@@ -28,9 +28,10 @@ export class DomEvaluator extends ESModulesEvaluator {
   override async runInlinedModule(context: ModuleRunnerContext, code: string): Promise<void> {
     const keys = Object.keys(context);
     // oxlint-disable-next-line typescript/no-implied-eval -- the module body is the point: it runs as a function
-    const fn = new Function(...this.names, `return async function (${keys.join(",")}) {"use strict";\n${code}\n}`) as (
-      ...globals: unknown[]
-    ) => (...values: unknown[]) => Promise<void>;
+    const fn = new Function(
+      ...this.names,
+      `return async function (${keys.join(",")}) {"use strict";\n${code}\n}`,
+    ) as (...globals: unknown[]) => (...values: unknown[]) => Promise<void>;
     const globals = this.win as unknown as Record<string, unknown>;
     const values = context as unknown as Record<string, unknown>;
     await fn(...this.names.map((k) => globals[k]))(...keys.map((k) => values[k]));
@@ -56,7 +57,8 @@ const clearApp = ({ idToModuleMap, urlToIdModuleMap, fileToModulesMap }: Evaluat
     m.imports.forEach((id) => walk(idToModuleMap.get(id)));
   };
   walk(idToModuleMap.get(LIB));
-  for (const map of [idToModuleMap, urlToIdModuleMap]) for (const [k, m] of map) if (!lib.has(m)) map.delete(k);
+  for (const map of [idToModuleMap, urlToIdModuleMap])
+    for (const [k, m] of map) if (!lib.has(m)) map.delete(k);
   for (const [k, ms] of fileToModulesMap)
     for (const m of ms) if (!lib.has(m) && ms.delete(m) && !ms.size) fileToModulesMap.delete(k);
 };
@@ -67,7 +69,13 @@ const isMacroError = (e: unknown): e is MacroError => Predicate.isTagged(e, "Mac
 // recognized by its tag and rebuilt here with the same fields; anything else is the module's own failure.
 const failureOf = (id: string) => (e: unknown) =>
   isMacroError(e)
-    ? new MacroError({ message: e.message, file: e.file, site: e.site, offset: e.offset, cause: e.cause })
+    ? new MacroError({
+        message: e.message,
+        file: e.file,
+        site: e.site,
+        offset: e.offset,
+        cause: e.cause,
+      })
     : new EvalError({ file: id, message: e instanceof Error ? e.message : String(e), cause: e });
 
 const evaluateModule = Effect.fnUntraced(function* (
@@ -87,7 +95,13 @@ const evaluateModule = Effect.fnUntraced(function* (
   }).pipe(
     Effect.timeoutOrElse({
       duration: "30 seconds",
-      orElse: () => Effect.fail(new EvalError({ file: id, message: `cssints: evaluating ${id} took more than 30 seconds` })),
+      orElse: () =>
+        Effect.fail(
+          new EvalError({
+            file: id,
+            message: `cssints: evaluating ${id} took more than 30 seconds`,
+          }),
+        ),
     }),
   );
   return registry.sites.get(id) ?? new Map();

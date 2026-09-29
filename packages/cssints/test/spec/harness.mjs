@@ -16,8 +16,10 @@ const decode = (rem) => {
 const pad = (v) => `css.p(${100 * (v + 1)} + space.md)`;
 const SOURCE = {
   tokens: (v) => `export const space = { md: ${v + 1} };\n`,
-  card: (v) => `import { css } from "cssints" with { type: "cssints" };\nimport { space } from "./tokens";\nexport const src = ${v};\nexport const card = ${pad(v)};\n`,
-  button: (v) => `import { css } from "cssints" with { type: "cssints" };\nimport { space } from "./tokens";\nexport const src = ${v};\nexport const button = css.cn(css.flex().alignItems("center"), ${pad(v)});\n`,
+  card: (v) =>
+    `import { css } from "cssints" with { type: "cssints" };\nimport { space } from "./tokens";\nexport const src = ${v};\nexport const card = ${pad(v)};\n`,
+  button: (v) =>
+    `import { css } from "cssints" with { type: "cssints" };\nimport { space } from "./tokens";\nexport const src = ${v};\nexport const button = css.cn(css.flex().alignItems("center"), ${pad(v)});\n`,
 };
 
 export async function start() {
@@ -67,14 +69,19 @@ export async function start() {
   // What the next request of a client module gets: its cached transform result (null: re-transform).
   const served = (c) => {
     const mod = client.moduleGraph.getModuleById(path(c));
-    const r = mod?.transformResult ?? (typeof mod?.invalidationState === "object" ? mod.invalidationState : null);
+    const r =
+      mod?.transformResult ??
+      (typeof mod?.invalidationState === "object" ? mod.invalidationState : null);
     if (!r) return null;
     const cls = r.code.match(new RegExp(`${c} = "([^"]+)"`))[1].split(" ");
-    const rem = cls.map((k) => globalThis.__cssints.rules.get(k)?.css.match(/padding:([\d.]+)rem/)?.[1]).find(Boolean);
+    const rem = cls
+      .map((k) => globalThis.__cssints.rules.get(k)?.css.match(/padding:([\d.]+)rem/)?.[1])
+      .find(Boolean);
     return { src: Number(r.code.match(/src = (\d+)/)[1]), ...decode(rem) };
   };
   // The padding rules in the plugin's sheet, as { self, tokens } (card and button share a rule when they agree).
-  const sheet = () => [...plugin[0].api.sheet().matchAll(/padding:([\d.]+)rem/g)].map((m) => decode(m[1]));
+  const sheet = () =>
+    [...plugin[0].api.sheet().matchAll(/padding:([\d.]+)rem/g)].map((m) => decode(m[1]));
 
   return {
     disk,

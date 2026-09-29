@@ -37,31 +37,69 @@ export const PROPS: Record<string, string> = {
 // Layout contexts: flex() / grid() set display and chain only these container properties; the method name
 // drops the context prefix (flex-direction -> direction). test/contexts.mjs checks them against mdn-data.
 export const CONTEXTS: Record<string, string[]> = {
-  flex: ["flex-direction", "flex-wrap", "flex-flow", "align-items", "align-content", "justify-content", "place-content", "gap", "row-gap", "column-gap"],
+  flex: [
+    "flex-direction",
+    "flex-wrap",
+    "flex-flow",
+    "align-items",
+    "align-content",
+    "justify-content",
+    "place-content",
+    "gap",
+    "row-gap",
+    "column-gap",
+  ],
   grid: [
-    "grid-template-columns", "grid-template-rows", "grid-template-areas", "grid-template", "grid-auto-flow", "grid-auto-columns", "grid-auto-rows",
-    "align-items", "justify-items", "place-items", "align-content", "justify-content", "place-content", "gap", "row-gap", "column-gap",
+    "grid-template-columns",
+    "grid-template-rows",
+    "grid-template-areas",
+    "grid-template",
+    "grid-auto-flow",
+    "grid-auto-columns",
+    "grid-auto-rows",
+    "align-items",
+    "justify-items",
+    "place-items",
+    "align-content",
+    "justify-content",
+    "place-content",
+    "gap",
+    "row-gap",
+    "column-gap",
   ],
 };
 
 const SPACING = /^(padding|margin|inset|gap|row-gap|column-gap)(-|$)/;
-export const isNode = (v: unknown): v is CssNode => !!v && typeof v === "object" && Array.isArray((v as CssNode).__cssints);
+export const isNode = (v: unknown): v is CssNode =>
+  !!v && typeof v === "object" && Array.isArray((v as CssNode).__cssints);
 
 // parts (strings, Typed OM values) are joined by a space; a lone number is the spacing scale in spacing properties
 const decl = (prop: string, name: string, args: unknown[]): Decl => {
   if (!args.length) throw fail(`cssints: ${name}() expects a value`);
-  if (args.some(isNode)) throw fail(`cssints: ${name}() takes values, not styles; merge styles with cn(...) or cx(...)`);
+  if (args.some(isNode))
+    throw fail(`cssints: ${name}() takes values, not styles; merge styles with cn(...) or cx(...)`);
   const [only] = args;
-  return [prop, args.length === 1 && typeof only === "number" && SPACING.test(prop) ? `${only * 0.25}rem` : args.join(" ")];
+  return [
+    prop,
+    args.length === 1 && typeof only === "number" && SPACING.test(prop)
+      ? `${only * 0.25}rem`
+      : args.join(" "),
+  ];
 };
 
 export function toDecls(member: string, args: unknown[]): Decl[] {
   if (member === "cn") {
-    if (!args.every(isNode)) throw fail(`cssints: cn() takes css.* values only, got ${JSON.stringify(args.filter((a) => !isNode(a)))}`);
+    if (!args.every(isNode))
+      throw fail(
+        `cssints: cn() takes css.* values only, got ${JSON.stringify(args.filter((a) => !isNode(a)))}`,
+      );
     return args.flatMap((n) => n.__cssints);
   }
   if (CONTEXTS[member]) {
-    if (args.length) throw fail(`cssints: ${member}() takes no arguments; chain its container properties: ${member}().${chainNames(member)[0]}(...)`);
+    if (args.length)
+      throw fail(
+        `cssints: ${member}() takes no arguments; chain its container properties: ${member}().${chainNames(member)[0]}(...)`,
+      );
     return [["display", member]];
   }
   const prop = PROPS[member];
@@ -69,13 +107,18 @@ export function toDecls(member: string, args: unknown[]): Decl[] {
   return [decl(prop, member, args)];
 }
 
-export const chainNames = (ctx: string) => CONTEXTS[ctx]!.map((p) => camel(p.startsWith(`${ctx}-`) ? p.slice(ctx.length + 1) : p));
+export const chainNames = (ctx: string) =>
+  CONTEXTS[ctx]!.map((p) => camel(p.startsWith(`${ctx}-`) ? p.slice(ctx.length + 1) : p));
 
 // .method(...) on a style: only container properties of flex() / grid(); plain styles do not chain.
 export function chainDecl(ctx: string | undefined, method: string, args: unknown[]): Decl {
-  if (!ctx) throw fail(`cssints: plain styles do not chain (.${method}); merge them with cn(...) or cx(...)`);
+  if (!ctx)
+    throw fail(
+      `cssints: plain styles do not chain (.${method}); merge them with cn(...) or cx(...)`,
+    );
   const i = chainNames(ctx).indexOf(method);
-  if (i < 0) throw fail(`cssints: ${ctx}() has no .${method}(); it chains ${chainNames(ctx).join(", ")}`);
+  if (i < 0)
+    throw fail(`cssints: ${ctx}() has no .${method}(); it chains ${chainNames(ctx).join(", ")}`);
   return decl(CONTEXTS[ctx]![i]!, method, args);
 }
 

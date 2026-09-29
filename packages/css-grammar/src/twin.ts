@@ -6,28 +6,49 @@
 import { Effect } from "effect";
 
 import { isTwinError, ParseError, type TwinError } from "./errors.ts";
-import { matches as matchesCore, parseGrammar, valid as validCore, type Node } from "./twin-core.ts";
+import {
+  matches as matchesCore,
+  parseGrammar,
+  valid as validCore,
+  type Node,
+} from "./twin-core.ts";
 
 export { nullable } from "./twin-core.ts";
 export type { Node };
 
 const grammarError = (grammar: string, e: unknown) =>
-  isTwinError(e) ? e : new ParseError({ message: `grammar: ${String(e)}`, grammar, position: 0, expected: [] });
+  isTwinError(e)
+    ? e
+    : new ParseError({ message: `grammar: ${String(e)}`, grammar, position: 0, expected: [] });
 
 /** The grammar as a tree, memoized by its text. */
-export const parse = Effect.fn("twin.parse")(function* (grammar: string): Effect.fn.Return<Node, ParseError> {
+export const parse = Effect.fn("twin.parse")(function* (
+  grammar: string,
+): Effect.fn.Return<Node, ParseError> {
   return yield* Effect.try({
     try: () => parseGrammar(grammar),
-    catch: (e) => (e instanceof ParseError ? e : new ParseError({ message: `grammar: ${String(e)}`, grammar, position: 0, expected: [] })),
+    catch: (e) =>
+      e instanceof ParseError
+        ? e
+        : new ParseError({ message: `grammar: ${String(e)}`, grammar, position: 0, expected: [] }),
   });
 });
 
 /** Whether `s` is a complete value of the grammar `syntax`. */
-export const matches = Effect.fnUntraced(function* (syntax: string, s: string): Effect.fn.Return<boolean, TwinError> {
-  return yield* Effect.try({ try: () => matchesCore(syntax, s), catch: (e) => grammarError(syntax, e) });
+export const matches = Effect.fnUntraced(function* (
+  syntax: string,
+  s: string,
+): Effect.fn.Return<boolean, TwinError> {
+  return yield* Effect.try({
+    try: () => matchesCore(syntax, s),
+    catch: (e) => grammarError(syntax, e),
+  });
 });
 
 /** Twin of Valid<P, S>: the value, or the furthest point it reached and what the grammar expected there. */
-export const valid = Effect.fnUntraced(function* (p: string, s: string): Effect.fn.Return<string, TwinError> {
+export const valid = Effect.fnUntraced(function* (
+  p: string,
+  s: string,
+): Effect.fn.Return<string, TwinError> {
   return yield* Effect.try({ try: () => validCore(p, s), catch: (e) => grammarError(p, e) });
 });

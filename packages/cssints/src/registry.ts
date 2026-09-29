@@ -43,4 +43,6 @@ export const registry: RegistryState = (globalThis.__cssints ??= {
   warned: new Set(),
 });
 
-export const Registry = Context.Reference<RegistryState>("cssints/Registry", { defaultValue: () => registry });
+export const Registry = Context.Reference<RegistryState>("cssints/Registry", {
+  defaultValue: () => registry,
+});

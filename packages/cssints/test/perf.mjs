@@ -21,17 +21,33 @@ const { default: cssints } = await import(process.env.PLUGIN ?? "../src/plugin.t
 const [cmd, arg, arg2] = process.argv.slice(2);
 
 function gen(n, dir) {
-  const w = (f, s) => (mkdirSync(join(dir, f, ".."), { recursive: true }), writeFileSync(join(dir, f), s));
+  const w = (f, s) => (
+    mkdirSync(join(dir, f, ".."), { recursive: true }), writeFileSync(join(dir, f), s)
+  );
   w("index.html", `<div id="root"></div><script type="module" src="/src/main.tsx"></script>\n`);
-  w("vite.config.ts", `import { defineConfig } from "vite";\nimport cssints from "cssints/vite";\nexport default defineConfig({ plugins: [cssints()], css: { transformer: "lightningcss" }, build: { cssMinify: "lightningcss", minify: false } });\n`);
-  w("src/tokens/colors.ts", `export const colors = { ${[..."01234567"].map((i) => `c${i}: "#${(0x3b82f6 + i * 0x101010).toString(16).slice(-6)}"`).join(", ")}, text: "#111827", muted: "#6b7280", border: "#e5e7eb" };\n`);
-  w("src/tokens/space.ts", `export const space = { xs: 1, sm: 2, md: 4, lg: 6, xl: 8 };\nexport const radius = { sm: "0.25rem", md: "0.5rem", lg: "1rem" };\n`);
-  w("src/tokens/type.ts", `export const size = { sm: "0.875rem", md: "1rem", lg: "1.25rem" };\nexport const weight = { normal: "400", bold: "600" };\n`);
+  w(
+    "vite.config.ts",
+    `import { defineConfig } from "vite";\nimport cssints from "cssints/vite";\nexport default defineConfig({ plugins: [cssints()], css: { transformer: "lightningcss" }, build: { cssMinify: "lightningcss", minify: false } });\n`,
+  );
+  w(
+    "src/tokens/colors.ts",
+    `export const colors = { ${[..."01234567"].map((i) => `c${i}: "#${(0x3b82f6 + i * 0x101010).toString(16).slice(-6)}"`).join(", ")}, text: "#111827", muted: "#6b7280", border: "#e5e7eb" };\n`,
+  );
+  w(
+    "src/tokens/space.ts",
+    `export const space = { xs: 1, sm: 2, md: 4, lg: 6, xl: 8 };\nexport const radius = { sm: "0.25rem", md: "0.5rem", lg: "1rem" };\n`,
+  );
+  w(
+    "src/tokens/type.ts",
+    `export const size = { sm: "0.875rem", md: "1rem", lg: "1.25rem" };\nexport const weight = { normal: "400", bold: "600" };\n`,
+  );
   const names = Array.from({ length: n }, (_, i) => `C${i}`);
   names.forEach((name, i) => {
     const child = i ? names[Math.floor((i - 1) / 4)] : null; // a tree: every module imports its parent-level component
     const sp = ["xs", "sm", "md", "lg", "xl"][i % 5];
-    w(`src/components/${name}.tsx`, `import { _cv, cx } from "cssints";
+    w(
+      `src/components/${name}.tsx`,
+      `import { _cv, cx } from "cssints";
 import { css, cn, cv, CSS, display, alignItems, gap, p, bg, color, borderRadius, fontSize, fontWeight, border } from "cssints" with { type: "cssints" };
 import { colors } from "../tokens/colors";
 import { radius, space } from "../tokens/space";
@@ -58,17 +74,38 @@ export function ${name}({ loud = false }: { loud?: boolean }) {
     </div>
   );
 }
-`);
+`,
+    );
   });
-  w("src/main.tsx", `import "virtual:cssints.css";\nimport { createRoot } from "react-dom/client";\n${names.map((c) => `import { ${c} } from "./components/${c}";`).join("\n")}\ncreateRoot(document.getElementById("root")!).render(<>${names.map((c) => `<${c} />`).join("")}</>);\n`);
+  w(
+    "src/main.tsx",
+    `import "virtual:cssints.css";\nimport { createRoot } from "react-dom/client";\n${names.map((c) => `import { ${c} } from "./components/${c}";`).join("\n")}\ncreateRoot(document.getElementById("root")!).render(<>${names.map((c) => `<${c} />`).join("")}</>);\n`,
+  );
   try {
-    symlinkSync(join(import.meta.dirname, "../../../apps/demo/node_modules"), join(dir, "node_modules"));
+    symlinkSync(
+      join(import.meta.dirname, "../../../apps/demo/node_modules"),
+      join(dir, "node_modules"),
+    );
   } catch {}
 }
 
 // ---- measurement
-const t = { library: 0, user: 0, node: 0, "fetch library": 0, "fetch user": 0, "fetch node": 0, imports: 0, importMs: /** @type {number[]} */ ([]) };
-const kind = (id) => (/node_modules|^(?!\/@fs)[a-z@]/.test(id) ? "node" : /packages\/(cssints|css-grammar)\//.test(id) ? "library" : "user");
+const t = {
+  library: 0,
+  user: 0,
+  node: 0,
+  "fetch library": 0,
+  "fetch user": 0,
+  "fetch node": 0,
+  imports: 0,
+  importMs: /** @type {number[]} */ ([]),
+};
+const kind = (id) =>
+  /node_modules|^(?!\/@fs)[a-z@]/.test(id)
+    ? "node"
+    : /packages\/(cssints|css-grammar)\//.test(id)
+      ? "library"
+      : "user";
 const stack = [];
 const frame = async (bucket, fn) => {
   const t0 = performance.now();
@@ -125,19 +162,41 @@ const report = (label, wall) => {
     return (performance.now() - t0) / 20;
   });
   const n = t.imports || 1;
-  console.log(JSON.stringify({
-    label, plugin: process.env.PLUGIN ?? "current", modules: files.length, wall: ms(wall), evaluations: t.imports,
-    evalTotal: ms(t.importMs.reduce((a, b) => a + b, 0)),
-    perEval: { first: +(t.importMs[0] ?? 0).toFixed(1), median: +median(t.importMs).toFixed(2), mean: +(t.importMs.reduce((a, b) => a + b, 0) / n).toFixed(2), ...Object.fromEntries(Object.entries(t).filter(([k, v]) => typeof v === "number" && k !== "imports").map(([k, v]) => [k, +(v / n).toFixed(2)])) },
-    transform: { median: +median(transforms).toFixed(2) },
-    instrument: +median(ins).toFixed(3),
-  }));
+  console.log(
+    JSON.stringify({
+      label,
+      plugin: process.env.PLUGIN ?? "current",
+      modules: files.length,
+      wall: ms(wall),
+      evaluations: t.imports,
+      evalTotal: ms(t.importMs.reduce((a, b) => a + b, 0)),
+      perEval: {
+        first: +(t.importMs[0] ?? 0).toFixed(1),
+        median: +median(t.importMs).toFixed(2),
+        mean: +(t.importMs.reduce((a, b) => a + b, 0) / n).toFixed(2),
+        ...Object.fromEntries(
+          Object.entries(t)
+            .filter(([k, v]) => typeof v === "number" && k !== "imports")
+            .map(([k, v]) => [k, +(v / n).toFixed(2)]),
+        ),
+      },
+      transform: { median: +median(transforms).toFixed(2) },
+      instrument: +median(ins).toFixed(3),
+    }),
+  );
 };
 
 if (cmd === "gen") gen(Number(arg), arg2);
 else if (cmd === "dev" || cmd === "seq") {
   const t0 = performance.now();
-  const server = await createServer({ root: arg, configFile: false, logLevel: "warn", server: { port: 0, watch: null, preTransformRequests: cmd === "dev" }, css: { transformer: "lightningcss" }, plugins: cssints().map((p) => (p.name === "cssints" ? timed(p) : p)) });
+  const server = await createServer({
+    root: arg,
+    configFile: false,
+    logLevel: "warn",
+    server: { port: 0, watch: null, preTransformRequests: cmd === "dev" },
+    css: { transformer: "lightningcss" },
+    plugins: cssints().map((p) => (p.name === "cssints" ? timed(p) : p)),
+  });
   await server.listen();
   const client = server.environments.client;
   const ids = readdirSync(join(arg, "src/components")).map((f) => `/src/components/${f}`);
@@ -150,7 +209,14 @@ else if (cmd === "dev" || cmd === "seq") {
 } else if (cmd === "build") {
   process.chdir(arg); // the plugin's private server takes process.cwd() as root, like the vite CLI
   const t0 = performance.now();
-  await build({ root: arg, configFile: false, logLevel: "warn", css: { transformer: "lightningcss" }, build: { cssMinify: "lightningcss", minify: false, write: false }, plugins: cssints().map((p) => (p.name === "cssints" ? timed(p) : p)) });
+  await build({
+    root: arg,
+    configFile: false,
+    logLevel: "warn",
+    css: { transformer: "lightningcss" },
+    build: { cssMinify: "lightningcss", minify: false, write: false },
+    plugins: cssints().map((p) => (p.name === "cssints" ? timed(p) : p)),
+  });
   report("build", performance.now() - t0);
   process.exit(0);
 }

@@ -54,7 +54,9 @@ type Invalid = DeclarationError;
 
 // A failure names the call site it happened in, so the plugin can point Vite at it.
 const located = (at: At) => (e: Invalid | MacroError) =>
-  e instanceof MacroError && e.file !== undefined ? e : new MacroError({ message: e.message, cause: e, ...at });
+  e instanceof MacroError && e.file !== undefined
+    ? e
+    : new MacroError({ message: e.message, cause: e, ...at });
 
 const classesOf = Effect.fnUntraced(function* (decls: Decl[]): Effect.fn.Return<string, Invalid> {
   const { rules, warnings, warned } = yield* Registry;
@@ -78,7 +80,10 @@ const classesOf = Effect.fnUntraced(function* (decls: Decl[]): Effect.fn.Return<
   return out.join(" ");
 });
 
-const styleOf = Effect.fnUntraced(function* (s: unknown, where: string): Effect.fn.Return<string, Invalid | MacroError> {
+const styleOf = Effect.fnUntraced(function* (
+  s: unknown,
+  where: string,
+): Effect.fn.Return<string, Invalid | MacroError> {
   if (!isNode(s))
     return yield* new MacroError({
       message: `cssints: cv() ${where} must be a css.* value (cn(...), a flex() chain or one property), got ${JSON.stringify(s)}. CSS strings are gone: write cn(p(4), fontSize("1rem"))`,
@@ -87,7 +92,9 @@ const styleOf = Effect.fnUntraced(function* (s: unknown, where: string): Effect.
 });
 
 // cv(config with css.* values) -> CvRuntimeConfig with class strings, consumed by _cv at runtime.
-const cvOf = Effect.fnUntraced(function* (config: CvConfig): Effect.fn.Return<string, Invalid | MacroError> {
+const cvOf = Effect.fnUntraced(function* (
+  config: CvConfig,
+): Effect.fn.Return<string, Invalid | MacroError> {
   const variants: Record<string, Record<string, string>> = {};
   const base = config.base === undefined ? "" : yield* styleOf(config.base, "base");
   for (const [k, vs] of Object.entries(config.variants ?? {})) {
@@ -103,22 +110,32 @@ export const cv = (config: CvConfig): CvNode => ({ __cv: config });
 // Any name besides these (css.p, css.alignItems) is a property. Named imports of build-time members come from
 // here too: the plugin rewrites them to destructure `css`, so the property list stays derived from the grammar.
 const named: Record<string, unknown> = { cn, flex, grid, cv, CSS, CSSColorValue, CSSUnitValue };
-export const css = new Proxy(named, { get: (t, k) => (Object.hasOwn(t, k) ? t[k as string] : member(String(k))) });
+export const css = new Proxy(named, {
+  get: (t, k) => (Object.hasOwn(t, k) ? t[k as string] : member(String(k))),
+});
 named.css = css;
 
 // The replacement expression of a site: class strings, the cv() config, or a Typed OM value's CSS text.
-const replacementOf = Effect.fnUntraced(function* (at: At, value: unknown): Effect.fn.Return<string, Invalid | MacroError> {
+const replacementOf = Effect.fnUntraced(function* (
+  at: At,
+  value: unknown,
+): Effect.fn.Return<string, Invalid | MacroError> {
   if (isNode(value)) return JSON.stringify(yield* classesOf(value.__cssints));
   if (isCv(value)) return yield* cvOf(value.__cv);
   // A Typed OM value (CSS.rem(1), new CSSColorValue(...)) ships as its CSS text; the objects are eval-time only.
   // oxlint-disable-next-line typescript/no-base-to-string -- every CSSStyleValue subclass overrides toString
   if (value instanceof CSSStyleValue) return JSON.stringify(String(value));
-  return yield* new MacroError({ message: `cssints: site ${at.site} in ${at.file} did not produce a css.*, cv() or Typed OM value` });
+  return yield* new MacroError({
+    message: `cssints: site ${at.site} in ${at.file} did not produce a css.*, cv() or Typed OM value`,
+  });
 });
 
 // Once per site: untraced, since a span here is ~4 µs a site (over the perf budget). The evaluation of the whole
 // module, in evaluate.ts, is the traced boundary.
-const recordSite = Effect.fnUntraced(function* (at: At, value: unknown): Effect.fn.Return<unknown, MacroError> {
+const recordSite = Effect.fnUntraced(function* (
+  at: At,
+  value: unknown,
+): Effect.fn.Return<unknown, MacroError> {
   const { sites } = yield* Registry;
   const replacement = yield* replacementOf(at, value).pipe(Effect.mapError(located(at)));
   if (!sites.has(at.file)) sites.set(at.file, new Map());

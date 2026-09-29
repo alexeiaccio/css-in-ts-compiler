@@ -1,6 +1,12 @@
 // Instrument (ssr environment): wrap every maximal css.* call in __site(__at(file, n, offset), ...), so the
 // evaluation records what each call site produced, and a failure names the call.
-import type { ImportDeclaration, ImportDeclarationSpecifier, ModuleExportName, Node, Program } from "oxc-parser";
+import type {
+  ImportDeclaration,
+  ImportDeclarationSpecifier,
+  ModuleExportName,
+  Node,
+  Program,
+} from "oxc-parser";
 import { parseSync } from "oxc-parser";
 import MagicString from "magic-string";
 import { Effect, Predicate } from "effect";
@@ -21,8 +27,13 @@ const rootIdent = (n: Node): string | null =>
 const RUNTIME_ONLY = new Set(["cx", "_cv"]);
 const nameOf = (m: ModuleExportName) => (m.type === "Identifier" ? m.name : m.value);
 const isSiteImport = (s: ImportDeclaration) =>
-  s.attributes.some((a) => (a.key.type === "Identifier" ? a.key.name : a.key.value) === "type" && a.value.value === "cssints");
-const importedName = (x: ImportDeclarationSpecifier) => (x.type === "ImportSpecifier" ? nameOf(x.imported) : null);
+  s.attributes.some(
+    (a) =>
+      (a.key.type === "Identifier" ? a.key.name : a.key.value) === "type" &&
+      a.value.value === "cssints",
+  );
+const importedName = (x: ImportDeclarationSpecifier) =>
+  x.type === "ImportSpecifier" ? nameOf(x.imported) : null;
 
 interface CssImports {
   locals: Set<string>;
@@ -44,10 +55,13 @@ const findCssImport = Effect.fnUntraced(function* (
       decls.push(s);
       s.specifiers.forEach((x) => locals.add(x.local.name));
     } else if (s.source.value === RUNTIME) {
-      const bad = s.specifiers.filter((x) => x.type !== "ImportSpecifier" || !RUNTIME_ONLY.has(importedName(x) ?? ""));
+      const bad = s.specifiers.filter(
+        (x) => x.type !== "ImportSpecifier" || !RUNTIME_ONLY.has(importedName(x) ?? ""),
+      );
       if (!bad.length) continue;
       const names = bad.map((x) => code.slice(x.start, x.end));
-      const fix = bad[0]!.type === "ImportNamespaceSpecifier" ? names[0] : `{ ${names.join(", ")} }`;
+      const fix =
+        bad[0]!.type === "ImportNamespaceSpecifier" ? names[0] : `{ ${names.join(", ")} }`;
       return yield* new ImportError({
         message: `cssints: ${id} imports build-time ${names.join(", ")} from "cssints" without the attribute. Import it as: import ${fix} from "cssints" with { type: "cssints" }; (only cx and _cv are runtime)`,
         file: id,
@@ -72,7 +86,10 @@ function findSites(program: Program, locals: Set<string>): Site[] {
     if (!Predicate.isObject(node) || typeof node.type !== "string") return;
     const n = node as unknown as Node;
     // `new CSSColorValue(...)` too: value constructors are sites, replaced by their CSS text.
-    if ((n.type === "CallExpression" || n.type === "NewExpression") && locals.has(rootIdent(n.callee) ?? "")) {
+    if (
+      (n.type === "CallExpression" || n.type === "NewExpression") &&
+      locals.has(rootIdent(n.callee) ?? "")
+    ) {
       sites.push({ start: n.start, end: n.end, inFn });
       return; // nested css calls are evaluated as part of this one
     }
@@ -117,9 +134,14 @@ export const instrument = Effect.fn("cssints.instrument")(function* (
     const bind = ns
       ? ns.local.name
       : `{ ${d.specifiers.map((x) => `${JSON.stringify(importedName(x))}: ${x.local.name}`).join(", ")} }`;
-    ms.overwrite(d.start, d.end, `import { css as __css${i} } from ${JSON.stringify(RUNTIME)}; const ${bind} = __css${i};`);
+    ms.overwrite(
+      d.start,
+      d.end,
+      `import { css as __css${i} } from ${JSON.stringify(RUNTIME)}; const ${bind} = __css${i};`,
+    );
   });
   ms.prepend(`import { __at, __site } from ${JSON.stringify(RUNTIME)};\n`);
-  if (hoisted.length) ms.append(`\nexport function __cssints_hoisted() {\n${hoisted.join("\n")}\n}\n`);
+  if (hoisted.length)
+    ms.append(`\nexport function __cssints_hoisted() {\n${hoisted.join("\n")}\n}\n`);
   return { code: ms.toString(), sites, imp };
 });

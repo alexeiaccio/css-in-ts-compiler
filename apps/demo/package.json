@@ -1,21 +1,21 @@
 {
-	"name": "cssints-demo",
-	"private": true,
-	"type": "module",
-	"scripts": {
-		"dev": "vp dev",
-		"build": "vp build",
-		"preview": "vp preview"
-	},
-	"dependencies": {
-		"cssints": "workspace:*",
-		"react": "^18.3.1",
-		"react-dom": "^18.3.1"
-	},
-	"devDependencies": {
-		"@types/react": "^18",
-		"@types/react-dom": "^18",
-		"lightningcss": "^1.32.0",
-		"vite": "catalog:"
-	}
+  "name": "cssints-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vp dev",
+    "build": "vp build",
+    "preview": "vp preview"
+  },
+  "dependencies": {
+    "cssints": "workspace:*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "lightningcss": "^1.32.0",
+    "vite": "catalog:"
+  }
 }

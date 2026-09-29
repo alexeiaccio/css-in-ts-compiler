@@ -38,7 +38,9 @@ for (const [name, run] of Object.entries(scenarios)) {
       const want = { src: s.disk[c], self: s.disk[c], tokens: s.disk.tokens };
       const ok = JSON.stringify(s.served(c)) === JSON.stringify(want);
       failed ||= !ok;
-      console.log(`${name.padEnd(15)} ${c.padEnd(6)} served ${JSON.stringify(s.served(c))} ${ok ? "fresh" : `STALE, sources ${JSON.stringify(want)}`}`);
+      console.log(
+        `${name.padEnd(15)} ${c.padEnd(6)} served ${JSON.stringify(s.served(c))} ${ok ? "fresh" : `STALE, sources ${JSON.stringify(want)}`}`,
+      );
     }
     if (s.errors.length) console.log(`${name.padEnd(15)} errors: ${s.errors.join("; ")}`);
   } finally {

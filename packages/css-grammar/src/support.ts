@@ -19,7 +19,12 @@
 //     (unknown) does not warn. A browser missing from the support block is unknown and does not warn.
 //   - range targets like "ios_saf 18.5-18.7" become their lower bound. Agents BCD does not track (op_mini, kaios,
 //     and_qq, and_uc) are skipped.
-import type { BrowserName, CompatData, Identifier, SupportStatement } from "@mdn/browser-compat-data";
+import type {
+  BrowserName,
+  CompatData,
+  Identifier,
+  SupportStatement,
+} from "@mdn/browser-compat-data";
 import { Effect } from "effect";
 
 import { browsers as listBrowsers } from "./browsers.ts";
@@ -27,28 +32,42 @@ import type { BrowsersError } from "./errors.ts";
 import { properties, syntaxes } from "./mdn.ts";
 
 // require, not import: see browsers.ts.
-const bcd = process
-  .getBuiltinModule("node:module")
-  .createRequire(import.meta.url)("@mdn/browser-compat-data") as CompatData;
+const bcd = process.getBuiltinModule("node:module").createRequire(import.meta.url)(
+  "@mdn/browser-compat-data",
+) as CompatData;
 const props: Record<string, string> = properties;
 const syns: Record<string, string> = syntaxes;
 
 const BCD_NAME: Record<string, BrowserName> = {
-  chrome: "chrome", and_chr: "chrome_android", edge: "edge", firefox: "firefox", and_ff: "firefox_android",
-  safari: "safari", ios_saf: "safari_ios", opera: "opera", op_mob: "opera_android",
-  samsung: "samsunginternet_android", android: "webview_android", ie: "ie",
+  chrome: "chrome",
+  and_chr: "chrome_android",
+  edge: "edge",
+  firefox: "firefox",
+  and_ff: "firefox_android",
+  safari: "safari",
+  ios_saf: "safari_ios",
+  opera: "opera",
+  op_mob: "opera_android",
+  samsung: "samsunginternet_android",
+  android: "webview_android",
+  ie: "ie",
 };
 
 export type Target = [agent: string, version: string];
-export const targets = Effect.fn("support.targets")(function* (query?: string): Effect.fn.Return<Target[], BrowsersError> {
+export const targets = Effect.fn("support.targets")(function* (
+  query?: string,
+): Effect.fn.Return<Target[], BrowsersError> {
   const list = yield* listBrowsers(query);
-  return list.map((t) => [t.split(" ")[0]!, t.split(" ")[1]!.split("-")[0]!] as Target).filter(([a]) => BCD_NAME[a]);
+  return list
+    .map((t) => [t.split(" ")[0]!, t.split(" ")[1]!.split("-")[0]!] as Target)
+    .filter(([a]) => BCD_NAME[a]);
 });
 // Module init is the boundary: the default targets are fixed for the process, like the BCD require above.
 const DEFAULT = Effect.runSync(targets());
 
 const cmp = (a: string, b: string) => {
-  const x = a.replace("≤", "").split("."), y = b.split(".");
+  const x = a.replace("≤", "").split("."),
+    y = b.split(".");
   for (let i = 0; i < Math.max(x.length, y.length); i++) {
     const d = Number(x[i] ?? 0) - Number(y[i] ?? 0);
     if (d) return d;
@@ -78,7 +97,13 @@ function reach(syntax: string, seen = new Set<string>()): Set<string> {
   return seen;
 }
 
-const get = (key: string) => key.split(".").reduce<Identifier | undefined>((n, k) => n?.[k] ?? n?.[k.toLowerCase()], bcd as unknown as Identifier);
+const get = (key: string) =>
+  key
+    .split(".")
+    .reduce<Identifier | undefined>(
+      (n, k) => n?.[k] ?? n?.[k.toLowerCase()],
+      bcd as unknown as Identifier,
+    );
 
 export interface Warning {
   feature: string;
@@ -94,15 +119,24 @@ export function supportOf(p: string, v: string, ts: Target[] = DEFAULT): Warning
   const types = reached.filter((t) => get(`css.types.${t}`));
   const owners = [p, ...reached.filter((q) => q.startsWith("'")).map((q) => q.slice(1))];
   const found: [feature: string, key: string][] = [];
-  for (const [tok, fn] of v.replace(/"[^"]*"|'[^']*'/g, "").matchAll(/(?<![\w.#-])-?[A-Za-z_][\w-]*(\()?/g)) {
+  for (const [tok, fn] of v
+    .replace(/"[^"]*"|'[^']*'/g, "")
+    .matchAll(/(?<![\w.#-])-?[A-Za-z_][\w-]*(\()?/g)) {
     const k = fn ? tok.slice(0, -1) : tok;
-    const keys = [...owners.map((q) => `css.properties.${q}.${fn ? `${k}_function` : k}`), ...(fn ? [`css.types.${k}`] : []), ...types.map((t) => `css.types.${t}.${k}`)];
+    const keys = [
+      ...owners.map((q) => `css.properties.${q}.${fn ? `${k}_function` : k}`),
+      ...(fn ? [`css.types.${k}`] : []),
+      ...types.map((t) => `css.types.${t}.${k}`),
+    ];
     const key = keys.find((x) => get(x)?.__compat);
     if (key) found.push([fn ? `${k}()` : k, key]);
   }
-  const lacks = (c: typeof pc, on: Target[]) => on.filter(([a, ver]) => !supports(c.support[BCD_NAME[a]!], ver)).map((t) => t.join(" "));
+  const lacks = (c: typeof pc, on: Target[]) =>
+    on.filter(([a, ver]) => !supports(c.support[BCD_NAME[a]!], ver)).map((t) => t.join(" "));
   const off = lacks(pc, ts);
-  const out: Warning[] = off.length ? [{ feature: p, key: `css.properties.${p}`, lacking: off }] : [];
+  const out: Warning[] = off.length
+    ? [{ feature: p, key: `css.properties.${p}`, lacking: off }]
+    : [];
   const on = ts.filter((t) => !off.includes(t.join(" ")));
   for (const [feature, key] of found) {
     const c = get(key)?.__compat;
@@ -120,19 +154,30 @@ function browsers(lacking: string[]): string {
     const [a, ver] = t.split(" ") as [string, string];
     by.set(a, [...(by.get(a) ?? []), ver]);
   }
-  return [...by].map(([a, vs]) => {
-    vs.sort(cmp);
-    return vs.length === 1 ? `${a} ${vs[0]}` : `${a} ${vs[0]}-${vs.at(-1)}`;
-  }).join(", ");
+  return [...by]
+    .map(([a, vs]) => {
+      vs.sort(cmp);
+      return vs.length === 1 ? `${a} ${vs[0]}` : `${a} ${vs[0]}-${vs.at(-1)}`;
+    })
+    .join(", ");
 }
 
 // Once per declaration that has not been seen yet: fnUntraced, like `valid` in twin.ts.
-export const support = Effect.fnUntraced(function* (p: string, v: string, ts: Target[] = DEFAULT): Effect.fn.Return<Warning[]> {
+export const support = Effect.fnUntraced(function* (
+  p: string,
+  v: string,
+  ts: Target[] = DEFAULT,
+): Effect.fn.Return<Warning[]> {
   return yield* Effect.sync(() => supportOf(p, v, ts));
 });
 
-export const message = Effect.fn("support.message")(function* (p: string, v: string, w: Warning): Effect.fn.Return<string> {
+export const message = Effect.fn("support.message")(function* (
+  p: string,
+  v: string,
+  w: Warning,
+): Effect.fn.Return<string> {
   return yield* Effect.sync(
-    () => `${p}: ${w.feature === p ? "the property" : `"${w.feature}"`} in "${v}" is not supported by ${browsers(w.lacking)} (${w.key})`,
+    () =>
+      `${p}: ${w.feature === p ? "the property" : `"${w.feature}"`} in "${v}" is not supported by ${browsers(w.lacking)} (${w.key})`,
   );
 });

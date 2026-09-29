@@ -10,7 +10,8 @@ import { valid as validCore } from "./twin-core.ts";
 
 export type DeclarationError = TwinError | RuleError;
 
-const isDeclarationError = (e: unknown): e is DeclarationError => isTwinError(e) || e instanceof RuleError;
+const isDeclarationError = (e: unknown): e is DeclarationError =>
+  isTwinError(e) || e instanceof RuleError;
 
 /** The support warnings of `p: v` (none unless `warnings`), or why the declaration is invalid. */
 export const checkDeclaration = Effect.fnUntraced(function* (

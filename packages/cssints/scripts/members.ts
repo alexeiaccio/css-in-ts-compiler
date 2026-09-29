@@ -7,8 +7,13 @@ import { chainNames, PROPS } from "../src/lib.ts";
 
 // Not properties of `css`: the builders macro.ts defines itself.
 const OWN = new Set(["cn", "flex", "grid", "cv"]);
-const names = Object.keys(PROPS).filter((n) => !OWN.has(n)).sort();
-const union = (ctx: string) => chainNames(ctx).map((n) => JSON.stringify(n)).join(" | ");
+const names = Object.keys(PROPS)
+  .filter((n) => !OWN.has(n))
+  .sort();
+const union = (ctx: string) =>
+  chainNames(ctx)
+    .map((n) => JSON.stringify(n))
+    .join(" | ");
 
 writeFileSync(
   `${import.meta.dirname}/../src/members.ts`,

@@ -1,28 +1,28 @@
 {
-	"name": "@cssints/css-grammar",
-	"private": true,
-	"type": "module",
-	"exports": {
-		"./*": "./src/*.ts"
-	},
-	"scripts": {
-		"build": "vp pack",
-		"test": "node test/check.ts && node test/check-typed.ts && node test/check-support.ts && node ../../node_modules/typescript/bin/tsc -p tsconfig.json",
-		"typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
-		"bench": "node bench/budget.mjs",
-		"extract": "node scripts/extract.mjs",
-		"diff": "node test/diff.ts",
-		"diff:support": "node test/diff-support.ts"
-	},
-	"dependencies": {
-		"@mdn/browser-compat-data": "8.1.3",
-		"browserslist": "4.29.1",
-		"effect": "4.0.0-beta.107"
-	},
-	"devDependencies": {
-		"@webref/css": "8.7.5",
-		"fast-check": "^4.10.2",
-		"mdn-data": "2.27.1",
-		"playwright-core": "^1.63.0"
-	}
+  "name": "@cssints/css-grammar",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "test": "node test/check.ts && node test/check-typed.ts && node test/check-support.ts && node ../../node_modules/typescript/bin/tsc -p tsconfig.json",
+    "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
+    "bench": "node bench/budget.mjs",
+    "extract": "node scripts/extract.mjs",
+    "diff": "node test/diff.ts",
+    "diff:support": "node test/diff-support.ts"
+  },
+  "dependencies": {
+    "@mdn/browser-compat-data": "8.1.3",
+    "browserslist": "4.29.1",
+    "effect": "4.0.0-beta.107"
+  },
+  "devDependencies": {
+    "@webref/css": "8.7.5",
+    "fast-check": "^4.10.2",
+    "mdn-data": "2.27.1",
+    "playwright-core": "^1.63.0"
+  }
 }
