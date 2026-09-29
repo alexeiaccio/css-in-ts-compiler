@@ -22,11 +22,12 @@ const ranged = (mine, spec) => {
       for (const [, u] of syn[t].syntax.matchAll(/<([^>]+)>/g)) if (!r.has(u)) r.set(u, range);
   return mine.replace(/<([^'>\s[]+)>/g, (m, t) => (r.get(t) ? `<${t} ${r.get(t)}>` : m));
 };
-// node scripts/extract.mjs [prop...]  (default: every property the runner maps to)
+// node scripts/extract.mjs [prop...]  (default: every standard and experimental property; the nonstandard ones are
+// prefixed or dead forms that LightningCSS emits from the browserslist targets, and the obsolete ones are gone)
 const want =
   process.argv.length > 2
     ? process.argv.slice(2)
-    : Object.values((await import("../../cssints/src/lib.ts")).PROPS);
+    : Object.keys(props).filter((p) => ["standard", "experimental"].includes(props[p].status));
 const P = {},
   S = {};
 const refs = (s) => [...s.matchAll(/<([^'>\s[]+)(?:\s*\[[^\]]*\])?>/g)].map((m) => m[1]);
