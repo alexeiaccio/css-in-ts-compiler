@@ -803,3 +803,22 @@ In the demo, one token is read by a class and set in a `style` prop, and both we
 **Limits:**
 - `if()` and `var()` exist only in `<color>`. A value-level pending-substitution rule is the general fix.
 - `min()`, `max()`, `clamp()` and nested `calc()` in channel positions are not accepted yet.
+
+## Typed public surface (cssints-v63t)
+
+User code gets the grammar check on every property call. Each of the 536 members is generated as `Prop<"property">`: a variadic function that checks its parts against the mdn grammar through `Valid` and returns a branded class string, `Style`.
+- **Parts:** strings, Typed OM values, and a lone number, which is a spacing step in `padding*`, `margin*`, `gap*` and `inset*` and a `<number>` elsewhere. A `Style` passed as a part is a type error, matching the build-time error.
+- **Chains:** `flex()` and `grid()` chain methods are typed with their properties.
+- **Only `Style` accepted:** `cv` config values, `cn`, `style` and the condition wrappers take only `Style`, so `cv({ base: "padding: 1rem" })` is a type error.
+- **Demo:** it type-checks with tsgo and tsc 5.9 (`bun run typecheck`) and needed no fixes.
+
+**Cost.**
+- The demo check goes from 171 k to 554 k instantiations (tsc), and from 0.22 s to 0.36 s (tsgo).
+- About 100 calls cost 710 k (`packages/cssints/bench/users.ts`, budgeted).
+- An edit to `Button.tsx` gets diagnostics in about 200 ms over tsgo's language server (`bench/lsp.mjs`).
+- A file that only imports `cssints` adds about 1 k.
+- Shipping `.d.ts` instead of `.ts` sources would spare users' `skipLibCheck` builds; that belongs to publishing.
+
+**Limits.**
+- The error lands on the first argument of a call, not on the bad part.
+- `calc()`, `min()`, `max()` and `clamp()` are not in the recognizer yet: `width("calc(100% - 2rem)")` fails in types and at build time alike.
