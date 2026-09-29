@@ -6,7 +6,7 @@ declare const number: TokenFn<"number">;
 declare const set: TokenSetFn;
 const blue = color("blue", "color-primary");
 const muted = color("#6b7280");
-const gap = length("1rem", { var: "gap", inherit: false });
+const gap = length("16px", { var: "gap", inherit: false });
 const steps = number("3", "steps");
 set(blue, "red");
 set(gap, "2rem");

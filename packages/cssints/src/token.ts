@@ -58,6 +58,9 @@ const privateName = (): string => {
   return `--_${createHash("sha1").update(key).digest("hex").slice(0, 8)}`;
 };
 
+// Chrome rejects `1rem` and `1em` as an initial-value: relative to a font size, which CSS can change.
+const FONT_RELATIVE = /[\d.](?:r?em|r?ex|r?ch|r?cap|r?ic|r?lh)\b/i;
+
 const make =
   (kind: TokenType) =>
   (...args: unknown[]): CSSTokenValue => {
@@ -70,6 +73,10 @@ const make =
     const { syntax, probes } = TOKEN_TYPES[kind];
     const text = String(initial).trim();
     checkSyntax(`token.${kind}() initial value`, syntax, text);
+    if (FONT_RELATIVE.test(text))
+      throw fail(
+        `cssints: token.${kind}() initial value "${text}" depends on the font size, and a browser drops an @property rule whose initial-value is not computationally independent; use px or a viewport unit`,
+      );
     const { name: variable, inherit } =
       name === undefined ? { name: privateName(), inherit: true } : nameOf(name);
     const by = `${at.file}#${at.site}.${registry.tokens++}`;

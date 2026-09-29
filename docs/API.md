@@ -122,7 +122,7 @@ A token is a Typed OM value whose `toString()` is `var(--name)`. It fits anywher
 import * as css from "cssints" with { type: "cssints" };
 
 const blue = css.token.color("blue", "color-primary");                    // --color-primary, can be set
-const gap = css.token.length("1rem", { var: "gap", inherit: false });
+const gap = css.token.length("16px", { var: "gap", inherit: false });
 const muted = css.token.color("#6b7280");                                 // --_<hash>, private
 
 <div className={css.cn(css.color(blue), css.gap(gap))} />;
@@ -130,7 +130,7 @@ const muted = css.token.color("#6b7280");                                 // --_
 // css.token.set(muted, "red") is a type error: private tokens cannot be set
 ```
 
-- **Types:** `token.<type>` exists for every type that `@property` `syntax` allows: `color`, `length`, `percentage`, `lengthPercentage`, `number`, `integer`, `angle`, `time`, `resolution`, `image`, `url`, `customIdent`, `transformList`. The initial value is checked against that type's grammar, in types and at build time.
+- **Types:** `token.<type>` exists for the types that `@property` `syntax` allows: `color`, `length`, `percentage`, `lengthPercentage`, `number`, `integer`, `angle`, `time`, `customIdent`, `transformList`. `resolution`, `image` and `url` wait for their grammars. The initial value is checked against that type's grammar, in types and at build time. A browser drops an `@property` rule whose initial value depends on a font size, so `1rem`, `1em` and `1ch` are a build error: write `16px`.
 - **Names:** a name (a string, or `{ var, inherit }`) gives `--name`, and the token can be set. Without a name the variable is `--_<hash>` of the file and site, and the token is private. `inherits` defaults to `true`.
 - **Output:** one `@property` per token at the top of the global sheet, outside the layers.
 

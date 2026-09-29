@@ -42,8 +42,13 @@ assert.match(code, /export const muted = "var\(--_[0-9a-f]{8}\)";/);
 assert.equal(code.match(/export const muted = "var\((--_[0-9a-f]{8})\)"/)[1], "--_aa6d0a79");
 assert.ok(!/\bcss\.|token\./.test(code), "a module of tokens ships strings only");
 
+// A font-relative initial value: a browser would drop the @property rule.
+let e = await failure("fixtures/token-relative.ts");
+assert.match(e.message, /^cssints: token.length\(\) initial value "1rem" depends on the font size/);
+assert.deepEqual({ line: e.loc.line, column: e.loc.column }, { line: 3, column: 19 });
+
 // A bad initial value and a token where another type goes: errors at the call.
-let e = await failure("fixtures/token-bad.ts");
+e = await failure("fixtures/token-bad.ts");
 assert.match(e.message, /^cssints: token.color\(\) initial value "blu" is not a <color>/);
 assert.deepEqual({ line: e.loc.line, column: e.loc.column }, { line: 3, column: 20 });
 e = await failure("fixtures/token-misuse.ts");
@@ -64,7 +69,7 @@ assert.equal(props.length, 3, css); // --color-primary, --gap and the private on
 assert.equal(css.match(/@property --color-primary/g).length, 1, css);
 assert.ok(css.indexOf("@property") < css.indexOf("@layer _.a {"), css);
 assert.ok(
-  css.indexOf('@property --gap{syntax:"<length>";inherits:false;initial-value:1rem}') > 0,
+  css.indexOf('@property --gap{syntax:"<length>";inherits:false;initial-value:16px}') > 0,
   css,
 );
 // a module that only uses a token of another has its @property too

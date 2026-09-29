@@ -4,7 +4,7 @@ import * as css from "cssints" with { type: "cssints" };
 import { token } from "cssints" with { type: "cssints" };
 
 const blue = css.token.color("blue", "color-primary");
-const gap = token.length("1rem", { var: "gap", inherit: false });
+const gap = token.length("16px", { var: "gap", inherit: false });
 const muted = css.token.color("#6b7280");
 const steps = token.number("3", "steps");
 const span = token.lengthPercentage("50%", "span");
