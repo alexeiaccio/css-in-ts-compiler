@@ -31,7 +31,7 @@ function gen(n, dir) {
     const child = i ? names[Math.floor((i - 1) / 4)] : null; // a tree: every module imports its parent-level component
     const sp = ["xs", "sm", "md", "lg", "xl"][i % 5];
     w(`src/components/${name}.tsx`, `import { _cv, cx } from "cssints";
-import { css, cv, CSS, display, alignItems, gap, p, bg, color, borderRadius, fontSize, fontWeight, border } from "cssints" with { type: "cssints" };
+import { css, cn, cv, CSS, display, alignItems, gap, p, bg, color, borderRadius, fontSize, fontWeight, border } from "cssints" with { type: "cssints" };
 import { colors } from "../tokens/colors";
 import { radius, space } from "../tokens/space";
 import { size, weight } from "../tokens/type";
@@ -42,8 +42,8 @@ const body = css.cn(css.flex().alignItems("flex-start").justifyContent("space-be
 const muted = [color(colors.muted), fontSize(size.sm), border("1px solid", colors.border)];
 const inset = css.m(CSS.rem(${(i % 4) + 1}));
 const box = cv({
-  base: "border-radius: ${(i % 3) + 1}px; line-height: 1.5",
-  variants: { tone: { plain: "color: #111827", loud: "color: ${"#" + (0x100000 + i * 997).toString(16).slice(-6)}; font-weight: 700" } },
+  base: cn(borderRadius("${(i % 3) + 1}px"), css.lineHeight("1.5")),
+  variants: { tone: { plain: color("#111827"), loud: cn(color("${"#" + (0x100000 + i * 997).toString(16).slice(-6)}"), fontWeight("700")) } },
   defaultVariants: { tone: "plain" },
 });
 

@@ -1,5 +1,5 @@
 // The only code that ships to the browser.
-export const cx = (...a) => a.filter(Boolean).join(" ");
+export const cx = (...a) => a.flat(Infinity).filter(Boolean).join(" ");
 
 export function _cv(config) {
   return (props = {}) => {

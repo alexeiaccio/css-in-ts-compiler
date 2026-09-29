@@ -10,7 +10,6 @@ Status: research restart. Decisions and findings are in [docs/wayfinder.md](docs
 |---|---|
 | `packages/cssints` | Vite plugin (`cssints/vite`) on the Vite Module Runner, and the `cssints` library |
 | `packages/css-grammar` | Type-level recognizer and its runtime twin over mdn-data grammars, Typed OM values, browser support and prose rules |
-| `packages/variants` | `@cssints/variants` runtime (`cx`, `_cv`, `_scv`) |
 | `packages/plugin-icon` | Icon plugin, not yet ported to the new engine |
 | `apps/demo` | React demo |
 | `docs/research`, `docs/archive` | Comparisons with other libraries; outdated plans |

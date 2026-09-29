@@ -63,10 +63,6 @@ export function chainDecl(ctx, method, args) {
   return decl(CONTEXTS[ctx][i], method, args);
 }
 
-// "a: b; c: d" -> [["a","b"],["c","d"]]  (cv() config strings)
-export const parseStyles = (s) =>
-  s.split(";").map((d) => d.trim()).filter(Boolean).map((d) => { const i = d.indexOf(":"); return [d.slice(0, i).trim(), d.slice(i + 1).trim()]; });
-
 // ponytail: djb2, 32-bit; swap for xxhash if collisions ever show up.
 export function classOf([p, v]) {
   let h = 5381;

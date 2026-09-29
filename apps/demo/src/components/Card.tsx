@@ -1,17 +1,17 @@
 import { _cv, cx } from "cssints";
-import { cv, flex, padding, fontSize, fontWeight, color, lineHeight } from "cssints" with { type: "cssints" };
+import { bg, border, borderColor, borderRadius, boxShadow, cn, cv, flex, padding, fontSize, fontWeight, color, lineHeight, maxWidth } from "cssints" with { type: "cssints" };
 
 const rootConfig = cv({
-	base: "background-color: white; border-radius: 0.5rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.1)",
+	base: cn(bg("white"), borderRadius("0.5rem"), border("1px solid #e5e7eb"), boxShadow("0 1px 3px rgba(0,0,0,0.1)")),
 	variants: {
 		variant: {
-			default: "background-color: white; border-color: #e5e7eb",
-			destructive: "background-color: white; border-color: #fca5a5",
+			default: cn(bg("white"), borderColor("#e5e7eb")),
+			destructive: cn(bg("white"), borderColor("#fca5a5")),
 		},
 		size: {
-			sm: "max-width: 20rem",
-			md: "max-width: 28rem",
-			lg: "max-width: 32rem",
+			sm: maxWidth("20rem"),
+			md: maxWidth("28rem"),
+			lg: maxWidth("32rem"),
 		},
 	},
 	defaultVariants: { variant: "default", size: "md" },

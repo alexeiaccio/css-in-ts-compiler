@@ -73,13 +73,6 @@
         "typescript": "^5.9.3",
       },
     },
-    "packages/variants": {
-      "name": "@cssints/variants",
-      "version": "1.0.0",
-      "devDependencies": {
-        "typescript": "^5.0.0",
-      },
-    },
   },
   "packages": {
     "@antfu/install-pkg": ["@antfu/install-pkg@1.1.0", "", { "dependencies": { "package-manager-detector": "^1.3.0", "tinyexec": "^1.0.1" } }, "sha512-MGQsmw10ZyI+EJo45CdSER4zEb+p31LpDAFp2Z3gkSd1yqVZGi0Ebx++YTEMonJy4oChEMLsxZ64j8FH6sSqtQ=="],
@@ -93,8 +86,6 @@
     "@cssints/css-grammar": ["@cssints/css-grammar@workspace:packages/css-grammar"],
 
     "@cssints/plugin-icon": ["@cssints/plugin-icon@workspace:packages/plugin-icon"],
-
-    "@cssints/variants": ["@cssints/variants@workspace:packages/variants"],
 
     "@effect/language-service": ["@effect/language-service@0.81.0", "", { "bin": { "effect-language-service": "cli.js" } }, "sha512-7MYFsq9w9l2MkUw5/33fiG3YAkgnT6U1mwV0QvhokhnLhPW9cIetwAHNtXwsgr5omPQheLuflTIAFvPaZLQcPw=="],
 
