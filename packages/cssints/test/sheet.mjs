@@ -81,6 +81,7 @@ assert.deepEqual(
   LAYERS,
 );
 assert.ok(demo.includes("{padding:2rem}"), demo);
+assert.ok(demo.includes("{width:calc(100% - 2rem)}"), demo); // a math function survives the build
 console.log(
   `sheet: order, dedupe, dev invalidation ok; demo ${assets[0].fileName} ${demo.length} bytes`,
 );

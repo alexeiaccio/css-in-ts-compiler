@@ -64,7 +64,123 @@ const unit = (us: string[], lo?: string, hi?: string) =>
   fc.constantFrom(...us).chain((u) => num(lo, hi, false, u).map((n) => `${n}${u}`));
 const ident = fc.stringMatching(/^[a-z][a-z0-9-]{0,6}$/).map((s) => `x-${s}`);
 
+// Math functions (css-values-4 §10) in the numeric positions: an expression of the calc type of the primitive, nested to
+// depth 2. `MATH=0` leaves them out of the numeric primitives (the draws before cssints-91im, but for calc-size()).
+type MathType =
+  | "number"
+  | "length"
+  | "percentage"
+  | "length-percentage"
+  | "angle"
+  | "time"
+  | "resolution";
+const MATH_TYPE: Record<string, MathType> = {
+  number: "number",
+  integer: "number",
+  x: "number",
+  y: "number",
+  length: "length",
+  percentage: "percentage",
+  "length-percentage": "length-percentage",
+  angle: "angle",
+  time: "time",
+  resolution: "resolution",
+};
+export const leaf = (t: MathType): Arb => {
+  switch (t) {
+    case "number":
+      return fc.oneof(num().map(String), fc.constantFrom("pi", "e"));
+    case "length":
+      return unit(LENGTH_UNITS);
+    case "percentage":
+      return num().map((n) => `${n}%`);
+    case "length-percentage":
+      return fc.oneof(leaf("length"), leaf("percentage"));
+    case "angle":
+      return unit(["deg", "rad", "grad", "turn"]);
+    case "time":
+      return unit(["s", "ms"]);
+    case "resolution":
+      return unit(["dpi", "dpcm", "dppx", "x"]);
+  }
+};
+const memo = new Map<string, Arb>();
+const operand = (t: MathType, d: number): Arb => (d ? fc.oneof(leaf(t), mathArb(t, d)) : leaf(t));
+export function mathArb(t: MathType, d = 2): Arb {
+  const key = `${t} ${d}`;
+  let a = memo.get(key);
+  if (a) return a;
+  const x = operand(t, d - 1),
+    n = leaf("number"),
+    strategy = fc.constantFrom("nearest", "up", "down", "to-zero");
+  const alts: Arb[] = [
+    fc.tuple(x, fc.constantFrom("+", "-"), x).map(([p, o, q]) => `calc(${p} ${o} ${q})`),
+    fc.tuple(x, x).map(([p, q]) => `min(${p}, ${q})`),
+    fc.tuple(x, x, x).map(([p, q, r]) => `max(${p}, ${q}, ${r})`),
+    fc.tuple(x, x, x).map(([p, q, r]) => `clamp(${p}, ${q}, ${r})`),
+    fc.tuple(x, x).map(([p, q]) => `clamp(none, ${p}, ${q})`),
+    fc.tuple(x, x).map(([p, q]) => `clamp(${p}, ${q}, none)`),
+    x.map((p) => `abs(${p})`),
+    fc.tuple(x, x).map(([p, q]) => `round(${p}, ${q})`),
+    fc.tuple(strategy, x, x).map(([m, p, q]) => `round(${m}, ${p}, ${q})`),
+    fc.tuple(x, x).map(([p, q]) => `mod(${p}, ${q})`),
+    fc.tuple(x, x).map(([p, q]) => `rem(${p}, ${q})`),
+    fc.tuple(x, x).map(([p, q]) => `hypot(${p}, ${q})`),
+    fc.tuple(x, n).map(([p, q]) => `calc(${p} * ${q})`),
+    fc.tuple(n, x).map(([p, q]) => `calc(${p} * ${q})`),
+    fc.tuple(x, n).map(([p, q]) => `calc(${p} / ${q})`),
+    fc.tuple(x, x, n).map(([p, q, r]) => `calc((${p} + ${q}) * ${r})`),
+    x.map((p) => `calc(${p})`),
+  ];
+  const nums = operand("number", d - 1);
+  if (t === "number")
+    alts.push(
+      fc.tuple(strategy, n).map(([m, p]) => `round(${m}, ${p}, 1)`),
+      nums.map((p) => `round(${p})`),
+      nums.map((p) => `sin(${p})`),
+      operand("angle", d - 1).map((p) => `cos(${p})`),
+      nums.map((p) => `tan(${p})`),
+      fc.oneof(x, leaf("length")).map((p) => `sign(${p})`),
+      fc.tuple(nums, nums).map(([p, q]) => `pow(${p}, ${q})`),
+      nums.map((p) => `sqrt(${p})`),
+      nums.map((p) => `exp(${p})`),
+      fc.tuple(nums, nums).map(([p, q]) => `log(${p}, ${q})`),
+      nums.map((p) => `log(${p})`),
+      fc.tuple(leaf("length"), leaf("length")).map(([p, q]) => `calc(${p} / ${q})`),
+    );
+  if (t === "angle")
+    alts.push(
+      nums.map((p) => `asin(${p})`),
+      nums.map((p) => `acos(${p})`),
+      nums.map((p) => `atan(${p})`),
+      fc.tuple(leaf("length"), leaf("length")).map(([p, q]) => `atan2(${p}, ${q})`),
+    );
+  memo.set(key, (a = fc.oneof(...alts)));
+  return a;
+}
+// a <calc-sum>, the argument of calc-size(): a length-percentage expression without the function around it
+const calcSum = fc.oneof(
+  operand("length-percentage", 1),
+  fc
+    .tuple(
+      operand("length-percentage", 1),
+      fc.constantFrom("+", "-"),
+      operand("length-percentage", 1),
+    )
+    .map(([p, o, q]) => `${p} ${o} ${q}`),
+  fc.tuple(operand("length-percentage", 1), leaf("number")).map(([p, q]) => `${p} * ${q}`),
+);
+
 function primitive(v: string, lo?: string, hi?: string): Arb | null {
+  const p = plainPrimitive(v, lo, hi);
+  if (v === "calc-sum") return calcSum;
+  const t = MATH_TYPE[v];
+  return p && t && process.env.MATH !== "0"
+    ? fc.oneof({ weight: 5, arbitrary: p }, { weight: 1, arbitrary: mathArb(t) })
+    : p;
+}
+
+function plainPrimitive(v: string, lo?: string, hi?: string): Arb | null {
   switch (v) {
     case "length":
       return fc.oneof(unit(LENGTH_UNITS, lo, hi), fc.constant("0"));
@@ -142,7 +258,7 @@ function primitive(v: string, lo?: string, hi?: string): Arb | null {
 
 // Relative colour: the grammar has `from <color>` and numbers, the channel keywords are prose (css-color-5 §4). Each
 // component is a keyword of the function (any, `alpha` included: css-color-5 §4.1 "you can use them in any position"),
-// `none`, a number or a calc() over a keyword. No var(): Chrome takes any value with a var() in it, whatever the grammar says.
+// `none`, a number or a math function over a keyword. No var(): Chrome takes any value with a var() in it, whatever the grammar says.
 const RELATIVE: [fn: string, space: string, channels: string[]][] = [
   ...["rgb", "rgba"].map((f) => [f, "", ["r", "g", "b", "alpha"]] as [string, string, string[]]),
   ...["hsl", "hsla"].map((f) => [f, "", ["h", "s", "l", "alpha"]] as [string, string, string[]]),
@@ -161,6 +277,9 @@ const relative = (origin: Arb): Arb =>
       num("0").map(String),
       key.map((k) => `calc(${k} * 2)`),
       key.map((k) => `calc(${k} + 1)`),
+      key.map((k) => `min(${k}, 10)`),
+      key.map((k) => `clamp(0, ${k}, 255)`),
+      key.map((k) => `round(${k}, 1)`),
     );
     return fc
       .tuple(origin, fc.array(part, { minLength: 3, maxLength: 3 }), fc.option(part, { nil: "" }))

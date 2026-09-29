@@ -6,8 +6,8 @@
 // twin.ts (and rules.ts, support.ts, which call `matches` here without the boundary cost).
 //
 // Where the type level has to give up, the twin is stricter: numeric ranges like `[0,∞]`, `${number}`
-// accepting "1 " (so "1 rem"), hex digits, empty idents, more than 8 repetitions. The twin also reports the
-// furthest point the value reached and what the grammar expected there.
+// accepting "1 " (so "1 rem"), hex digits, empty idents, more than 8 repetitions, the type of a math function
+// (`calc(1px + 2s)`). The twin also reports the furthest point the value reached and what the grammar expected there.
 import { InvalidValueError, ParseError, UnknownPropertyError } from "./errors.ts";
 import { properties, syntaxes } from "./mdn.ts";
 
@@ -279,16 +279,27 @@ function ifCall(s: string): number {
   };
   return branches.length && branches.every(branch) ? end + 4 : -1;
 }
-const SCAN: Record<string, (s: string) => number> = {
+// <calc-sum> (calc-size() takes one): css-values-5 §11, "if a <calc-sum> is given, its type must match <length-percentage>".
+function calcSum(s: string, ctx: Ctx): number {
+  const [t, end] = mathScan(s, undefined, true);
+  if (t && fits(t, KIND["length-percentage"]!)) return end;
+  ctx.why = [
+    ctx.len - s.length,
+    t ? `${s.slice(0, end)} is ${typeName(t)}, not <length-percentage>` : why,
+  ];
+  return -1;
+}
+const SCAN: Record<string, (s: string, ctx: Ctx) => number> = {
   string: (s) => STRING.exec(s)?.[0].length ?? -1,
   url: (s) => URL_RE.exec(s)?.[0].length ?? -1,
   "declaration-value": declarationValue,
   "if()": ifCall,
+  "calc-sum": calcSum,
 };
 
 // Relative colour (css-color-5 §4.2 to §4.9, §5.1): `from <color>` is in the grammar, the component keywords are only in
 // the prose of each function, so they are here. A function with a `from` opens a scope (`Ctx.ch`) in which a channel
-// keyword, a var() or a calc() over those stands for a <number>, <percentage> or <angle>. The scope of a colour() is
+// keyword, a var() or a math function over those stands for a <number>, <percentage> or <angle>. The scope of a colour() is
 // `alpha` plus the keywords of its color space, the first one of these names among its top-level tokens.
 const RGB = ["r", "g", "b", "alpha"],
   HSL = ["h", "s", "l", "alpha"],
@@ -326,6 +337,7 @@ interface Ctx {
   far: number;
   expected: Set<string>;
   ch?: readonly string[]; // the channel keywords in scope
+  why?: [at: number, text: string]; // what was wrong with a math function at that position
 }
 // Furthest failure wins: its position is where the value went wrong, its labels are what was expected there.
 function fail(ctx: Ctx, s: string, what: string) {
@@ -418,85 +430,285 @@ export const magnitude = (t: string): number =>
       ? -Infinity
       : parseFloat(t) * (SCALE[t.replace(NUM_HEAD, "").trim().toLowerCase()] ?? 1);
 
-// Type of a <calc-sum> (css-values-4 §10.9 "Type Checking"): "number", "length" (percentages count as lengths, they
-// resolve against one wherever calc-size() is allowed), another dimension's unit, or undefined when `+`/`-` mix types
-// or `*` multiplies two dimensions. The grammar already checked the shape. `leaf` types a token first; "any" is the
-// type of a var(), which matches every other.
-export function calcType(s: string, leaf?: (t: string) => string | undefined): string | undefined {
-  const toks = s.match(/[()*/]|[+-](?=\s)|[^\s()*/]+/g) ?? [];
-  let i = 0;
-  const both = (a?: string, b?: string) =>
-    a === undefined || b === undefined ? undefined : a === "any" || b === "any" ? "any" : undefined;
-  const value = (): string | undefined => {
-    const t = toks[i++] ?? "";
-    if (t === "(") return ((x) => (i++, x))(sum());
-    return (
-      leaf?.(t) ??
-      (PRIMITIVE.number!.test(t) || /^-?(e|pi|infinity|nan)$/i.test(t)
-        ? "number"
-        : PRIMITIVE["length-percentage"]!.test(t)
-          ? "length"
-          : t.replace(/^[+-]?[\d.]+/, ""))
-    );
-  };
-  const product = () => {
-    let a = value();
-    while (toks[i] === "*" || toks[i] === "/") {
-      const op = toks[i++],
-        b = value();
-      a =
-        both(a, b) ??
-        (a === undefined || b === undefined
-          ? undefined
-          : op === "/"
-            ? b === "number"
-              ? a
-              : undefined
-            : a === "number"
-              ? b
-              : b === "number"
-                ? a
-                : undefined);
-    }
-    return a;
-  };
-  const sum = () => {
-    let a = product();
-    while (toks[i] === "+" || toks[i] === "-") {
-      i++;
-      const b = product();
-      a = both(a, b) ?? (a !== undefined && b === a ? a : undefined);
-    }
-    return a;
-  };
-  return sum();
+// Math functions (css-values-4 §10): calc(), min(), max(), clamp(), round(), mod(), rem(), sin() ... sign(). A numeric
+// primitive accepts one whose calc type (§10.7, "Type Checking") is that primitive's: the type is the exponent of each
+// base type (`length`, `angle`, `time`, ... and `percent`), so `1px * 2` is a length, `1px / 1px` a number, `1px * 1px` no
+// primitive at all. Adding a percentage to a dimension gives a type with a percent hint (`mix`): a <length-percentage> or
+// <angle-percentage>, no other position. A var() or env() stands for anything (`any`). Numeric ranges (`[0,∞]`) are not
+// checked on a math function: the result is not known before the values are, and browsers clamp it.
+interface CT {
+  e: Record<string, number>;
+  mix?: boolean;
+  any?: boolean;
+}
+const NUMBER: CT = { e: {} },
+  ANY: CT = { e: {}, any: true };
+const dim = (k: string): CT => ({ e: { [k]: 1 } });
+const bases = (t: CT) => Object.keys(t.e);
+// a base type to the first power: `length`, not `length * length` or a number
+const plain = (t: CT) => bases(t).length === 1 && t.e[bases(t)[0]!] === 1;
+const same = (a: CT, b: CT) =>
+  bases(a).length === bases(b).length && bases(a).every((k) => a.e[k] === b.e[k]);
+const isNumber = (t: CT) => t.any || (!t.mix && !bases(t).length);
+const typeName = (t: CT) =>
+  t.any
+    ? "anything"
+    : `${bases(t)
+        .map((k) => `${k === "percent" ? "percentage" : k}${t.e[k] === 1 ? "" : `^${t.e[k]}`}`)
+        .join(" * ")}${t.mix ? "-percentage" : ""}` || "number";
+
+// `+` and `-`: equal types, or a percentage and a dimension (the percent hint)
+function add(a: CT, b: CT): CT | undefined {
+  if (a.any || b.any) return ANY;
+  if (same(a, b)) return { e: a.e, mix: a.mix || b.mix };
+  const pct = (t: CT) => same(t, dim("percent")) && !t.mix;
+  if (pct(a) && plain(b)) return { e: b.e, mix: true };
+  if (pct(b) && plain(a)) return { e: a.e, mix: true };
+}
+function mul(a: CT, b: CT, sign: 1 | -1): CT {
+  if (a.any || b.any) return ANY;
+  const e = { ...a.e };
+  for (const k in b.e) if (!(e[k] = (e[k] ?? 0) + sign * b.e[k]!)) delete e[k];
+  return { e, mix: a.mix || b.mix };
 }
 
-// Where a <number>, <percentage> or <angle> is expected inside a relative colour (`Ctx.ch`): a channel keyword (a
-// <number>), a var(), or a calc() whose type is the expected one (min(), max() and clamp() are not checked: the twin rejects them).
-function relative(v: string, s: string, ctx: Ctx): Set<string> {
-  if (v !== "number" && v !== "percentage" && v !== "angle") return NONE;
-  const [t, r] = tok1(s);
-  if (v === "number" && ctx.ch!.includes(t.toLowerCase())) return new Set([trim(r)]);
-  if (s.startsWith("var(")) return consumeType(["type", "var()"], s, ctx);
-  if (!s.startsWith("calc(")) return NONE;
-  const { end } = args(s.slice(5), "");
-  if (end < 0) return NONE;
-  const inner = trim(s.slice(5, 5 + end));
-  const own: Ctx = { len: inner.length, far: -1, expected: new Set(), ch: ctx.ch };
-  if (!consume(parseGrammar(syns["calc-sum"]!), inner, own).has("")) return NONE;
-  const kind = calcType(inner.replace(/var\((?:[^()]|\([^()]*\))*\)/g, "⟨var⟩"), (x) =>
-    x === "⟨var⟩"
-      ? "any"
-      : ctx.ch!.includes(x.toLowerCase())
-        ? "number"
-        : PRIMITIVE.percentage!.test(x)
-          ? "percentage"
-          : PRIMITIVE.angle!.test(x)
-            ? "angle"
-            : undefined,
-  );
-  return kind === v || kind === "any" ? new Set([trim(s.slice(6 + end))]) : NONE;
+// [base type, whether the percent hint is allowed] of the primitives that take a math function. Not <flex>: a
+// calc() cannot hold `fr` (Chrome rejects `calc(1fr)`).
+const KIND: Record<string, [string, boolean]> = {
+  number: ["", false],
+  integer: ["", false],
+  x: ["", false],
+  y: ["", false],
+  length: ["length", false],
+  percentage: ["percent", false],
+  "length-percentage": ["length", true],
+  angle: ["angle", false],
+  "angle-percentage": ["angle", true],
+  time: ["time", false],
+  resolution: ["resolution", false],
+};
+const fits = (t: CT, [k, pct]: [string, boolean]) =>
+  t.any ||
+  (t.mix
+    ? pct && plain(t) && t.e[k] === 1
+    : k === ""
+      ? !bases(t).length
+      : plain(t) && (t.e[k] === 1 || (pct && t.e.percent === 1)));
+
+const MATH = new Set(
+  "calc min max clamp round mod rem sin cos tan asin acos atan atan2 pow sqrt hypot log exp abs sign".split(
+    " ",
+  ),
+);
+const MATH_START = new RegExp(`^(?:${[...MATH].join("|")})\\(`);
+const UNITS = new Map<string, string>([
+  ...LENGTH_UNIT.split("|").map((u) => [u, "length"] as [string, string]),
+  ...["deg", "rad", "grad", "turn"].map((u) => [u, "angle"] as [string, string]),
+  ...["s", "ms"].map((u) => [u, "time"] as [string, string]),
+  ...["dpi", "dpcm", "dppx", "x"].map((u) => [u, "resolution"] as [string, string]),
+]);
+const sticky = (r: string) => new RegExp(r, "iy");
+const NUM_TOKEN = sticky(NUM),
+  UNIT_TOKEN = /%|[A-Za-z]+/y,
+  WORD = /-?[A-Za-z][\w-]*/y,
+  WS = /[ \n\t]*/y,
+  ROUND_MODE = /(?:nearest|up|down|to-zero)(?=[ \n\t]*,)/y,
+  NONE_WORD = /none(?![\w-])/y;
+
+// Why the last mathScan failed (its first problem).
+let why = "";
+
+// Parses at the start of `s` (which is not trimmed at the end): a math function call, or with `sumOnly` a <calc-sum>.
+// Its type (undefined when it is malformed or adds unlike types, see `why`) and the index where it ends. `ch` are the
+// channel keywords in scope (numbers).
+function mathScan(
+  s: string,
+  ch: readonly string[] | undefined,
+  sumOnly: boolean,
+): [CT | undefined, number] {
+  let i = 0;
+  const tok = (r: RegExp) => {
+    r.lastIndex = i;
+    const m = r.exec(s);
+    if (m) i = r.lastIndex;
+    return m?.[0];
+  };
+  const ws = () => void tok(WS);
+  const no = (m: string) => ((why ||= m), undefined);
+
+  function sum(): CT | undefined {
+    let a = product();
+    for (;;) {
+      const at = i;
+      ws();
+      const op = s[i];
+      // `1px+2px` and `1px +2px` are not sums: the operator needs a space on both sides
+      if (!a || (op !== "+" && op !== "-") || i === at || !/[ \n\t]/.test(s[i + 1] ?? "")) {
+        i = at;
+        return a;
+      }
+      i++;
+      ws();
+      const b = product();
+      if (!b) return undefined;
+      a =
+        add(a, b) ??
+        no(`cannot ${op === "+" ? "add" : "subtract"} ${typeName(a)} and ${typeName(b)}`);
+    }
+  }
+  function product(): CT | undefined {
+    let a = value();
+    for (;;) {
+      const at = i;
+      ws();
+      const op = s[i];
+      if (!a || (op !== "*" && op !== "/")) {
+        i = at;
+        return a;
+      }
+      i++;
+      ws();
+      const b = value();
+      if (!b) return undefined;
+      a = mul(a, b, op === "*" ? 1 : -1);
+    }
+  }
+  function value(): CT | undefined {
+    if (s[i] === "(") {
+      i++;
+      ws();
+      const t = sum();
+      ws();
+      if (!t) return undefined;
+      if (s[i] !== ")") return no('expected ")"');
+      i++;
+      return t;
+    }
+    if (tok(NUM_TOKEN) !== undefined) {
+      const u = tok(UNIT_TOKEN);
+      if (u === undefined) return NUMBER;
+      const k = u === "%" ? "percent" : UNITS.get(u);
+      return k ? dim(k) : no(`unknown unit "${u}"`);
+    }
+    const w = tok(WORD);
+    if (w === undefined) return no("expected a number, a dimension or a function");
+    if (s[i] === "(") return call(w, i++);
+    return /^(?:-?infinity|e|pi|nan)$/i.test(w) || ch?.includes(w.toLowerCase())
+      ? NUMBER
+      : no(`unknown "${w}"`);
+  }
+  function call(name: string, open: number): CT | undefined {
+    if (name === "var" || name === "env") {
+      const { end } = args(s.slice(i), "");
+      if (end < 0) return no(`${name}() is not closed`);
+      i += end + 1;
+      return name === "env" || matches(syns["var()"]!, s.slice(open - 3, i))
+        ? ANY
+        : no("not a var()");
+    }
+    if (!MATH.has(name)) return no(`${name}() is not a math function`);
+    const ts: (CT | "none")[] = [];
+    for (let mode = name === "round"; ; ) {
+      ws();
+      if (mode && tok(ROUND_MODE) !== undefined)
+        mode = false; // round( <rounding-strategy>? , ...
+      else {
+        mode = false;
+        const t = name === "clamp" && tok(NONE_WORD) !== undefined ? "none" : sum();
+        if (!t) return undefined;
+        ts.push(t);
+      }
+      ws();
+      if (s[i] === ",") i++;
+      else if (s[i] === ")") break;
+      else return no(i >= s.length ? `${name}() is not closed` : 'expected "," or ")"');
+    }
+    i++;
+    const n = ts.length;
+    const cs = ts.filter((t): t is CT => t !== "none");
+    const [a, b] = cs as [CT, CT];
+    const arity = (lo: number, hi = lo) =>
+      n >= lo && n <= hi
+        ? true
+        : (no(`${name}() takes ${lo === hi ? lo : `${lo} to ${hi}`} arguments`), false);
+    // the arguments of min(), clamp(), mod() ... are added: they must have one type
+    const fold = () =>
+      cs.reduce<CT | undefined>(
+        (x, y) => x && (add(x, y) ?? no(`${name}() cannot take ${typeName(x)} and ${typeName(y)}`)),
+        a,
+      );
+    const numbers = (r: CT) =>
+      cs.every(isNumber)
+        ? r
+        : no(`${name}() takes numbers, not ${typeName(cs.find((t) => !isNumber(t))!)}`);
+    switch (name) {
+      case "calc":
+      case "abs":
+        return arity(1) ? a : undefined;
+      case "min":
+      case "max":
+      case "hypot":
+        return arity(1, Infinity) ? fold() : undefined;
+      case "clamp":
+        return arity(3)
+          ? ts[1] === "none"
+            ? no("clamp() needs a value in the middle")
+            : fold()
+          : undefined;
+      case "round":
+        return n === 1 && isNumber(a) ? a : arity(2) ? fold() : undefined; // B is optional for a number
+      case "mod":
+      case "rem":
+        return arity(2) ? fold() : undefined;
+      case "sign":
+        return arity(1) ? NUMBER : undefined;
+      case "sin":
+      case "cos":
+      case "tan":
+        return arity(1)
+          ? isNumber(a) || same(a, dim("angle"))
+            ? NUMBER
+            : no(`${name}() takes a number or an angle, not ${typeName(a)}`)
+          : undefined;
+      case "asin":
+      case "acos":
+      case "atan":
+        return arity(1) ? numbers(dim("angle")) : undefined;
+      case "sqrt":
+      case "exp":
+        return arity(1) ? numbers(NUMBER) : undefined;
+      case "pow":
+        return arity(2) ? numbers(NUMBER) : undefined;
+      case "log":
+        return arity(1, 2) ? numbers(NUMBER) : undefined;
+      default: // atan2: two arguments of one type (no percent hint here)
+        return arity(2)
+          ? a.any || b.any || (same(a, b) && !a.mix && !b.mix)
+            ? dim("angle")
+            : no(`atan2() cannot take ${typeName(a)} and ${typeName(b)}`)
+          : undefined;
+    }
+  }
+
+  why = "";
+  const t = sumOnly ? sum() : value();
+  return [t, i];
+}
+
+// Where a numeric primitive did not match its token: a math function of that type, or (in a relative colour) a
+// channel keyword or a var().
+function mathValue(v: string, s: string, t: string, r: string, ctx: Ctx): Set<string> {
+  const kind = KIND[v];
+  if (!kind) return NONE;
+  if (ctx.ch && (v === "number" || v === "percentage" || v === "angle")) {
+    if (v === "number" && ctx.ch.includes(t.toLowerCase())) return new Set([trim(r)]);
+    if (s.startsWith("var(")) return consumeType(["type", "var()"], s, ctx);
+  }
+  if (!t.includes("(") || !MATH_START.test(t)) return NONE;
+  const [ty, end] = mathScan(s, ctx.ch, false);
+  if (ty && fits(ty, kind)) return new Set([trim(s.slice(end))]);
+  ctx.why = [ctx.len - s.length, ty ? `${s.slice(0, end)} is ${typeName(ty)}, not <${v}>` : why];
+  return NONE;
 }
 
 function consumeType(
@@ -508,9 +720,9 @@ function consumeType(
   let rs: Set<string>;
   if (PRIMITIVE[v]) {
     const [t, r] = tok1(s);
-    rs = PRIMITIVE[v].test(t) ? new Set([trim(r)]) : ctx.ch ? relative(v, s, ctx) : NONE;
+    rs = PRIMITIVE[v].test(t) ? new Set([trim(r)]) : mathValue(v, s, t, r, ctx);
   } else if (SCAN[v]) {
-    const n = SCAN[v](s);
+    const n = SCAN[v](s, ctx);
     rs = n < 0 ? NONE : new Set([trim(s.slice(n))]);
   } else if (syns[v]) {
     // `<name()>`: the name must be next before its grammar is even parsed (as in css.ts)
@@ -518,6 +730,11 @@ function consumeType(
       v.endsWith("()") && !s.startsWith(`${v.slice(0, -2)}(`)
         ? NONE
         : consume(parseGrammar(syns[v]), s, ctx, label ?? `<${v}>`);
+    // <angle> | <percentage> alone would not take `calc(10deg + 5%)`
+    if (v === "angle-percentage") {
+      const m = mathValue(v, s, ...tok1(s), ctx);
+      if (m !== NONE) rs = union([rs, m]);
+    }
   } else rs = NONE;
   if (rs === NONE) fail(ctx, s, label ?? `<${v}>`);
   if (lo === undefined || hi === undefined) return rs;
@@ -634,7 +851,7 @@ export function valid(p: string, s: string): string {
   const what = token ? `unexpected "${token}"` : "unexpected end";
   const expected = [...ctx.expected];
   throw new InvalidValueError({
-    message: `${p}: ${what} in "${s}", expected ${expected.join(" | ")}`,
+    message: `${p}: ${what} in "${s}", expected ${expected.join(" | ")}${ctx.why?.[0] === ctx.far ? ` (${ctx.why[1]})` : ""}`,
     property: p,
     value: s,
     position: ctx.far + (s.length - v.length),

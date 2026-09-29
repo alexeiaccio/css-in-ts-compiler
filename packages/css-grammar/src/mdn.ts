@@ -670,7 +670,7 @@ export const syntaxes = {
   "calc-size-basis": "<intrinsic-size-keyword> | <calc-size()> | any | <calc-sum>",
   "calc-sum": "<calc-product> [ [ '+' | '-' ] <calc-product> ]*",
   "calc-product": "<calc-value> [ '*' <calc-value> | '/' <number> ]*",
-  "calc-value": "<number> | <dimension> | <percentage> | <calc-constant> | ( <calc-sum> )",
+  "calc-value": "<number> | <dimension> | <percentage> | <calc-constant> | ( <calc-sum> ) | <math-function>",
   "calc-constant": "e | pi | infinity | -infinity | NaN",
   "anchor-size()": "anchor-size( [ <anchor-name> || <anchor-size> ]? , <length-percentage>? )",
   "anchor-name": "<dashed-ident>",

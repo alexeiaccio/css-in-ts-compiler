@@ -844,3 +844,19 @@ The colour maths is `culori/fn` (9.4 kB gzip) and is loaded only at build time; 
 - `rem` dimensions are rejected, since `@property` needs a computationally independent initial value. A fix would flatten `rem` to `px` in `@property` and keep the live `rem` on `:root`.
 - Themes are checked one at a time, not in combination.
 - Theme selectors are not grammar-checked.
+
+## Math functions everywhere (cssints-91im)
+
+`calc()`, `min()`, `max()`, `clamp()` and the rest of the CSS Values 4 family (`round`, `mod`, `rem`, trigonometric functions, `pow`, `sqrt`, `hypot`, `log`, `exp`, `abs`, `sign`) are accepted wherever a `<number>`, `<integer>`, `<length>`, `<percentage>`, `<length-percentage>`, `<angle>`, `<time>` or `<resolution>` is.
+
+**Twin.** The twin checks each call with one typed parser (`mathScan`) that follows the §10.7 type rules. It replaces the old `calcType` and serves calc-size() and relative-colour channels as well.
+- `calc(100% - 2rem)` is a length-percentage.
+- `calc(1px + 2s)` and `min(1px, 2%)` for a plain `<length>` are build errors, and the message says why ("cannot add length and time").
+
+**Types.** The types check only the function name and balanced parentheses, which cost 0.04–0.24% on the budgets.
+
+**Exceptions.** Numeric ranges are not checked on a math function, since browsers clamp. `<flex>` is left out, because Chrome rejects `calc(1fr)`.
+
+**Chrome 154.** Generated math values agree 100% in a type-matching position. In whole-grammar values, 24–50 of 6 000–10 000 per seed differ, and Chrome is always the stricter side: parse-time range checks such as `cubic-bezier` x and a grid line that rounds to 0.
+
+The demo uses `width("calc(100% - 2rem)")`, and the sheet test asserts it.

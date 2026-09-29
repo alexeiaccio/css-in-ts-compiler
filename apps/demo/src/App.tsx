@@ -28,6 +28,7 @@ import {
   marginTop,
   marginBottom,
   maxWidth,
+  width,
   boxShadow,
   style,
   token,
@@ -39,7 +40,7 @@ import { Card } from "./components/Card.js";
 
 // Layout styles
 const page = [flex().direction("column").gap("1rem")];
-const container = [maxWidth("800px"), margin("0 auto")];
+const container = [width("calc(100% - 2rem)"), maxWidth("800px"), margin("0 auto")];
 
 // Typography
 const h1 = [fontSize("2rem"), fontWeight("700"), marginBottom("0.5rem"), color(t.color.text)];

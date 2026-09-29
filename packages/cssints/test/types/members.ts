@@ -54,6 +54,12 @@ export const ok: Style[] = [
   transitionProperty("opacity, transform"),
   fontFamily('"Helvetica Neue", Arial, sans-serif'),
   background("linear-gradient(to right, red, blue)"),
+  width("calc(100% - 2rem)"),
+  css.maxWidth("min(100%, 48rem)"),
+  padding("clamp(1rem, 5%, 2rem)", "calc(1rem + 2px)"),
+  zIndex("round(1.4)"),
+  opacity("calc(1 / 3)"),
+  transform("rotate(calc(1turn / 3))"),
 ];
 
 // The short names are the properties they stand for.
@@ -112,3 +118,7 @@ transitionProperty("opacity transform");
 transform("translateX(1px) rotate()");
 // @ts-expect-error a colour stop is a colour
 background("linear-gradient(to right, red, 1px)");
+// @ts-expect-error a math function needs an expression (the build checks its calc type: `calc(1px + 2s)` fails there)
+width("calc()");
+// @ts-expect-error a math function is closed
+width("calc(1px");

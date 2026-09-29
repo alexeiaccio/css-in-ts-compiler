@@ -6,7 +6,7 @@
 import { Effect } from "effect";
 
 import { RuleError } from "./errors.ts";
-import { calcType, matches } from "./twin-core.ts";
+import { matches } from "./twin-core.ts";
 
 // Top-level comma split: commas inside (...) or quotes do not count.
 const splitList = (v: string) =>
@@ -15,30 +15,13 @@ const splitList = (v: string) =>
 
 const CSS_WIDE = new Set(["inherit", "initial", "unset", "revert", "revert-layer", "revert-rule"]);
 
-// https://drafts.csswg.org/css-values-5/#calc-size (§11): "For either argument, if a <calc-sum> is given, its
-// type must match <length-percentage>". A keyword or nested calc-size() basis is not a <calc-sum>.
-function calcSize(v: string) {
-  for (const m of v.matchAll(/calc-size\(/g)) {
-    const args = [""];
-    for (let j = m.index + m[0].length, d = 1; j < v.length; j++) {
-      d += v[j] === "(" ? 1 : v[j] === ")" ? -1 : 0;
-      if (!d) break;
-      if (d === 1 && v[j] === ",") args.push("");
-      else args[args.length - 1] = args[args.length - 1]! + v[j]!;
-    }
-    for (const a of args.map((x) => x.trim())) {
-      if (/^(calc-size\(|[a-z-]+$)/i.test(a) && !/^-?(e|pi|infinity|nan)$/i.test(a)) continue;
-      const t = calcType(a);
-      if (t !== "length")
-        return `the calc-size() argument "${a}" is ${t ? `of type ${t}` : "a type mismatch"}, it must be a <length-percentage> (css-values-5 §11)`;
-    }
-  }
-}
-
 // The bodies of the quoted strings in a value (escapes ignored, like the twin).
 const strings = (v: string) => [...v.matchAll(/"([^"]*)"|'([^']*)'/g)].map((m) => m[1] ?? m[2]!);
-// A top-level negative number or dimension: `-1`, `-0.5px`, `2 -3`; not `calc(-1px)`, not `a-1`.
-const negative = (v: string) => /(^|[\s,])-\.?\d/.test(v);
+// A top-level negative number or dimension: `-1`, `-0.5px`, `2 -3`; not `calc(-1px)`, not `calc(1px - -1px)`, not `a-1`.
+const negative = (v: string) => {
+  for (let p = ""; p !== v; ) [p, v] = [v, v.replace(/\([^()]*\)/g, "")];
+  return /(^|[\s,])-\.?\d/.test(v);
+};
 const words = (v: string) =>
   v
     .toLowerCase()
@@ -313,7 +296,6 @@ const fnRules: ((p: string, v: string) => string | undefined)[] = [
       if (!pathData(d)) return `"${d}" is not SVG path data (css-shapes-1 §3.1, svg2 §9.3.9)`;
     }
   },
-  (_, v) => calcSize(v),
   // https://drafts.csswg.org/css-easing-2/#step-easing-functions (§2.3): "If the <step-position> is jump-none,
   // the <integer> must be at least 2, or the function is invalid. Otherwise, the <integer> must be at least 1".
   (_, v) => {

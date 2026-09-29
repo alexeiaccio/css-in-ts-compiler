@@ -124,9 +124,13 @@ const rangeOnly = (c: Case) => {
     return ((e as { expected?: string[] }).expected ?? []).some((x) => / \[[^\]]*\]>$/.test(x));
   }
 };
-// Nor do they check what follows `from` in a relative colour, or the conditions of an if(): balanced tokens there.
+// Nor do they check what follows `from` in a relative colour, the conditions of an if(), or the inside of a math
+// function (its syntax and calc type): balanced tokens there.
 const opaqueOnly = (c: Case) =>
-  !c.twin && /\b(rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(\s*from\b|\bif\(/.test(c.v);
+  !c.twin &&
+  /\b(rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(\s*from\b|\bif\(|\b(calc|min|max|clamp|round|mod|rem|sin|cos|tan|asin|acos|atan2?|pow|sqrt|hypot|log|exp|abs|sign)\(/.test(
+    c.v,
+  );
 const typeFail = [...out.matchAll(/diff\.gen\.ts\((\d+),/g)]
   .map((m) => sample[Number(m[1]) - 5]!)
   .filter((c) => !rangeOnly(c) && !opaqueOnly(c));
