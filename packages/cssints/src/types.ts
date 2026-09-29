@@ -1,6 +1,8 @@
 // What TypeScript sees of "cssints" (the "types" condition of package.json): the build-time members with the
 // types they have in user code, where every call is already a class string, because the plugin replaced it.
 // The implementation (macro.ts) builds declaration nodes instead; nothing here runs.
+import type { Valid } from "@cssints/css-grammar/css";
+import type { properties } from "@cssints/css-grammar/mdn";
 import type { Condition } from "@cssints/css-grammar/query";
 import type { StyleObject, TokenFn, TokenSetFn, TokenType } from "@cssints/css-grammar/token";
 import type { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
@@ -13,23 +15,63 @@ export { _cv, cx, type ClassValue, type CvRuntimeConfig } from "./runtime.ts";
 
 /** A value part: a string, a Typed OM value, or a lone number (the spacing scale in spacing properties). */
 export type Part = string | number | CSSStyleValue;
-/** One property. */
-export type Member = (...parts: Part[]) => string;
-/** A style you can chain container properties on (flex() and grid()), and use as a class string. */
-export type Chain<Methods extends string> = string & {
-  readonly [K in Methods]: (...parts: Part[]) => Chain<Methods>;
+/** What every member returns: a class string. It is a string (`className`, `cx`), but only members make one. */
+export type Style = string & { readonly __cssints: "style" };
+
+// A part is text for the recognizer; a Typed OM value is the sentinel `⟨type⟩` (css.ts). A lone number is a spacing
+// step (`⟨length⟩`) in the properties lib.ts scales, and a CSS <number> everywhere else. A style is no value.
+type Text<P> = P extends Style
+  ? "⟨style⟩"
+  : P extends string
+    ? P
+    : P extends number
+      ? `${P}`
+      : P extends CSSStyleValue<infer T>
+        ? `⟨${T}⟩`
+        : never;
+type Join<A extends readonly Part[]> = A extends readonly [
+  infer H,
+  ...infer R extends readonly Part[],
+]
+  ? R extends readonly []
+    ? Text<H>
+    : `${Text<H>} ${Join<R>}`
+  : "";
+type Spacing = "padding" | "margin" | "inset" | "gap" | "row-gap" | "column-gap";
+type Value<P, A extends readonly Part[]> = A extends readonly [number]
+  ? P extends Spacing | `${Spacing}-${string}`
+    ? "⟨length⟩"
+    : Join<A>
+  : Join<A>;
+// On failure every part's parameter type becomes the Valid message, so the error lands on the first argument.
+type Check<P extends keyof typeof properties, A extends readonly Part[]> =
+  Valid<P, Value<P, A>> extends infer V
+    ? V extends Value<P, A>
+      ? A
+      : A extends readonly []
+        ? [value: V]
+        : { [K in keyof A]: V }
+    : never;
+
+/** One property: parts are checked against its mdn grammar; `R` is what the call gives (a chain method: the chain). */
+export type Prop<P extends keyof typeof properties, R = Style> = <const A extends readonly Part[]>(
+  ...parts: Check<P, A>
+) => R;
+/** A style you can chain container properties on (flex() and grid()), and use as a class string. `M`: method -> property. */
+export type Chain<M extends Record<string, keyof typeof properties>> = Style & {
+  readonly [K in keyof M]: Prop<M[K], Chain<M>>;
 };
 
 /** A condition: styles in, the same styles under it out (media(), container(), supports(), hover, ...). */
-export type Wrap = (...styles: string[]) => string;
+export type Wrap = (...styles: Style[]) => Style;
 
 export interface CvConfig {
-  base?: string;
-  variants?: Record<string, Record<string, string>>;
+  base?: Style;
+  variants?: Record<string, Record<string, Style>>;
   defaultVariants?: Record<string, string>;
 }
 
-export declare const cn: (...styles: string[]) => string;
+export declare const cn: (...styles: Style[]) => Style;
 /** Query strings are checked against the mdn-data grammar: `media("(width >= 40rem)")`. Several give a tuple, an object an object. */
 export declare const media: Condition<"media", Wrap>;
 export declare const container: Condition<"container", Wrap>;
@@ -39,7 +81,7 @@ export declare const token: { readonly [K in TokenType]: TokenFn<K> } & {
   readonly set: TokenSetFn;
 };
 /** css values (declarations, no conditions) and `token.set()` results, as an inline `style` object. */
-export declare const style: (...styles: (string | StyleObject)[]) => StyleObject;
+export declare const style: (...styles: (Style | StyleObject)[]) => StyleObject;
 export declare const flex: () => Chain<FlexMethods>;
 export declare const grid: () => Chain<GridMethods>;
 /** The plugin replaces the call by the runtime config that `_cv` takes. */
