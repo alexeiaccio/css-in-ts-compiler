@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-29T13:28:04Z
-updated_at: 2026-09-29T14:20:21Z
+updated_at: 2026-09-29T14:25:47Z
 blocked_by:
     - cssints-vzd9
 ---
@@ -31,6 +31,7 @@ The API in `docs/API.md` works end to end in `apps/demo` on the Module Runner en
 - [Public API shape for 0.1](cssints-5dbi): import attribute `with { type: "cssints" }` marks build-time code; camelCase names + p/m/bg; 0.25rem numbers only for spacing; variadic parts; chaining only on `flex()`/`grid()` with prefix-dropped names. Spec: docs/API.md "Authoring surface"; implementation: [Implement the 0.1 authoring surface in the engine](cssints-7fdc), done: sites by attribute (helpers and other packages too), names from the grammar, flex()/grid() chains with an mdn drift test; demo CSS byte-identical
 - [Conditions and layers](cssints-kpq1): nesting wrappers `media()` (string, tuple or object form), `container()`, `supports()`, pseudo-class wrappers from mdn; queries checked by the mdn grammar; layer = number of conditions, `_.a` to `_.e`. Spec: docs/API.md; implementation: [Implement conditions and layers](cssints-mjgx)
 - [CSS output pipeline](cssints-euf0): one global sorted virtual sheet (layer, condition, shorthand before longhand, class); placeholder filled in `renderChunk`, Vite 8 only; one sheet per app; LightningCSS through Vite with browserslist targets shared with support warnings; longhand beats shorthand by sort order. Implementation: [Implement the global sorted stylesheet](cssints-vzd9)
+- [One runtime package](cssints-lo9x): `cssints` is the only runtime (`cx`, `_cv`), `@cssints/variants` deleted; `cx` strings, falsy values and arrays; `cn` build-time only; `cv` takes css.* values. Spec: docs/API.md; implementation: [Implement the single runtime and typed cv](cssints-e2nn)
 
 ## Not yet specified
 

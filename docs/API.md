@@ -251,18 +251,25 @@ import { cx } from "css-variants";
 }
 ```
 
-### Functions (WIP)
+### Runtime: `cx`, `cn`, `cv` (decided 2026-09-29, cssints-lo9x)
 
-#### `cn` — Compile type class Merger
-
-Merges class names from type to string. And resolve class order specificity.
+- **One runtime package: `cssints` itself.** `import { cx, _cv } from "cssints"` has no attribute and is the only code that ships to the browser. `@cssints/variants` is gone.
+- **`cx(...)`** joins strings, skips falsy values and flattens nested arrays: `cx(base, on && p(4), [a, b])`. It takes no clsx-style objects; write `cond && style` instead.
+- **`cn(...)`** runs at build time only. Under the attribute, `cn(p(4), bg("red"))` becomes one class string, and nothing is left at runtime.
+- **`cv(config)`** takes `css.*` values, so types check them:
 
 ```ts
-// branded type for any function
-type CSSintsFn = ((...args: any[]) => string) & { __brand: "cssints" };
+import { cn, cv, fontSize, p } from "cssints" with { type: "cssints" };
 
-declare function cn<T extends CSSintsFn>(...args: T[]): string;
+const button = cv({
+	base: cn(p(2), fontSize("1rem")),
+	variants: { size: { sm: p(1), lg: cn(p(4), fontSize("1.25rem")) } },
+	defaultVariants: { size: "sm" },
+});
+// runtime: button({ size: "lg" }) -> class string, via _cv
 ```
+
+The CSS-string form of `cv` is removed. Slot variants (`scv`) are not part of 0.1.
 
 ## Browser Compat (JUST IDEA)
 
