@@ -85,7 +85,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
   let runner: ModuleRunner | undefined; // private runner with DOM bindings; server.environments.ssr.runner stays untouched
   let build = false;
   let cssPlugins: (Plugin | undefined)[] = []; // vite:css, vite:css-post: in build they take the sheet in renderChunk
-  const usedBy = new Map<string, string>(); // client module id -> its classes, sorted, space-separated
+  const usedBy = new Map<string, string>(); // client module id -> its classes and @property rules, sorted, one a line
   const depsOf = new Map<string, Set<string>>(); // dependency file -> Set<client module id>
   const inflight = new Set<string>(); // client module ids inside transform: their deps are not in depsOf yet
 
@@ -94,7 +94,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
   const sheet = Effect.fnUntraced(function* (
     ids: string[] = [...usedBy.keys()],
   ): Effect.fn.Return<string> {
-    return yield* renderSheet(ids.flatMap((id) => usedBy.get(id)?.split(" ") ?? []));
+    return yield* renderSheet(ids.flatMap((id) => usedBy.get(id)?.split("\n") ?? []));
   });
 
   // Dev: the next request of the sheet loads it again, and the browser gets an HMR update.
@@ -110,7 +110,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
 
   // Called inside the evaluation lock, so the last write for a module comes from its latest evaluation (runner.qnt `rules`).
   const record = Effect.fnUntraced(function* (id: string, classes: string[]) {
-    const s = [...new Set(classes)].sort().join(" ");
+    const s = [...new Set(classes)].sort().join("\n");
     if (usedBy.get(id) === s) return;
     usedBy.set(id, s);
     yield* reloadSheet();
@@ -146,13 +146,18 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     warn: (w: string) => void,
   ) {
     const recorded = Effect.fnUntraced(function* (sites: Map<number, string>) {
-      if (parsed.sites.every((_, n) => sites.has(n)))
-        yield* record(
-          id,
-          [...sites.values()].flatMap((r) =>
-            [...r.matchAll(/"(_[a-z0-9]+(?: _[a-z0-9]+)*)"/g)].flatMap((m) => m[1]!.split(" ")),
-          ),
+      if (parsed.sites.every((_, n) => sites.has(n))) {
+        const { rules, properties } = yield* Registry;
+        const texts = [...sites.values()];
+        const classes = texts.flatMap((r) =>
+          [...r.matchAll(/"(_[a-z0-9]+(?: _[a-z0-9]+)*)"/g)].flatMap((m) => m[1]!.split(" ")),
         );
+        // The tokens of the module: those its classes read, and those a site names (a token, a style). Their
+        // @property rules are recorded as text, so an edit of an initial value changes what the module recorded.
+        const names = new Set(texts.flatMap((r) => r.match(/--[\w-]+/g) ?? []));
+        for (const c of classes) rules.get(c)?.tokens?.forEach((n) => names.add(n));
+        yield* record(id, [...classes, ...[...names].flatMap((n) => properties.get(n)?.css ?? [])]);
+      }
       return sites;
     });
     const sites = parsed.sites.length

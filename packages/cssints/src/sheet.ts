@@ -1,5 +1,5 @@
-// The sheet: every rule once, sorted by layer, condition, shorthand before longhand, class; the rules of one layer
-// under the same at-rules share a block.
+// The sheet: the @property rules of tokens, then every rule once, sorted by layer, condition, shorthand before
+// longhand, class; the rules of one layer under the same at-rules share a block.
 import { createRequire } from "node:module";
 
 import { Effect } from "effect";
@@ -45,17 +45,20 @@ export const addGlobal = Effect.fn("cssints.addGlobal")(function* (key: string, 
   if (!globals.has(key)) globals.set(key, css);
 });
 
+/** The rules of `entries`: class names, and the text of `@property` rules (once each, whichever module has them). */
 export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
-  classes: Iterable<string>,
+  entries: Iterable<string>,
 ): Effect.fn.Return<string> {
   const { rules, globals } = yield* Registry;
-  const sorted = [...new Set(classes)]
+  const all = [...new Set(entries)];
+  const properties = all.filter((e) => e.startsWith("@property")).sort();
+  const sorted = all
     .flatMap((cls) => {
       const rule = rules.get(cls);
       return rule ? [{ cls, ...rule }] : [];
     })
     .sort(byOrder);
-  let out = `${LAYERS}\n`;
+  let out = `${LAYERS}\n${properties.map((p) => `${p}\n`).join("")}`;
   if (globals.size)
     out += `@layer _.k {\n${[...globals.values()].map((g) => `  ${g}\n`).join("")}}\n`;
   let layer = "";

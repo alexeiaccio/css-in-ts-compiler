@@ -13,6 +13,8 @@ export interface Rule {
   prop: string;
   /** The style rule: `.cls:hover{color:red}`. */
   css: string;
+  /** The tokens (`--name`) its value reads. */
+  tokens?: string[];
 }
 
 /** The call site being evaluated, set by `__at` before its expression runs. */
@@ -22,6 +24,17 @@ export interface At {
   offset: number;
 }
 
+/** A token's `@property` rule, by variable name (`--color-primary`). One entry per name across all modules. */
+export interface Property {
+  css: string;
+  /** Literals of its type, put in place of `var(--name)` when a value that uses it is checked (TOKEN_TYPES). */
+  probes: readonly string[];
+  /** Where it was declared: `file#site.n`, `file`, and the evaluation (`gen`) that declared it. */
+  by: string;
+  file: string;
+  gen: number;
+}
+
 export interface RegistryState {
   /** file -> site index -> replacement expression */
   sites: Map<string, Map<number, string>>;
@@ -29,6 +42,12 @@ export interface RegistryState {
   rules: Map<string, Rule>;
   /** key -> CSS text of a global rule; rendered once each, in layer _.k (sheet.ts `addGlobal`) */
   globals: Map<string, string>;
+  /** name -> the `@property` rule of every token declared so far (token.ts) */
+  properties: Map<string, Property>;
+  /** the evaluation in progress; tokens of an older one that its file no longer declares are stale */
+  gen: number;
+  /** tokens created at the site being evaluated: two in one site get different private names */
+  tokens: number;
   /** support warnings not yet handed to Vite */
   warnings: string[];
   /** `property feature` keys already warned about in this build */
@@ -45,6 +64,9 @@ export const registry: RegistryState = (globalThis.__cssints ??= {
   sites: new Map(),
   rules: new Map(),
   globals: new Map(),
+  properties: new Map(),
+  gen: 0,
+  tokens: 0,
   warnings: [],
   warned: new Set(),
 });

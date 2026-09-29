@@ -29,6 +29,8 @@ import {
   marginBottom,
   maxWidth,
   boxShadow,
+  style,
+  token,
   transition,
 } from "cssints" with { type: "cssints" };
 import { Button } from "./components/Button.js";
@@ -73,6 +75,16 @@ const featureTitle = [fontWeight("600"), marginBottom("0.25rem")];
 const featureDesc = [fontSize("0.875rem"), color("#6b7280")];
 // One column on a narrow screen, a row of cards from 40rem up.
 const featureGrid = [flex().direction("column").gap("1rem"), md(flexDirection("row"))];
+
+// Tokens: one named token, read by a class and set in a style prop.
+const accent = token.color("#2563eb", "accent");
+const swatch = [
+  color(accent),
+  fontWeight("600"),
+  padding("0.75rem"),
+  border("1px solid", accent),
+  borderRadius("0.375rem"),
+];
 
 function App() {
   return (
@@ -158,6 +170,20 @@ function App() {
               multiple props
             </li>
           </ul>
+        </div>
+
+        <div className={cx(marginTop("2rem"))}>
+          <h2 className={cx(...h2)}>Tokens</h2>
+          <div className={cx(...row)}>
+            <p data-swatch="default" className={cx(...swatch)}>
+              The accent token
+            </p>
+            <div style={style(token.set(accent, "#dc2626"))}>
+              <p data-swatch="set" className={cx(...swatch)}>
+                The same class, accent set in a style prop
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className={cx(marginTop("2rem"))}>

@@ -85,6 +85,7 @@ const evaluateModule = Effect.fnUntraced(function* (
   const registry = yield* Registry;
   registry.sites.delete(id);
   registry.at = undefined;
+  registry.gen++;
   clearApp(runner.evaluatedModules);
   yield* Effect.tryPromise({
     try: async () => {

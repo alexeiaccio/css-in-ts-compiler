@@ -6,7 +6,7 @@ import { createRequire } from "node:module";
 
 import { properties } from "@cssints/css-grammar/mdn";
 import { MacroError } from "./errors.ts";
-import { registry } from "./registry.ts";
+import { type Property, registry } from "./registry.ts";
 
 /**
  * One condition of a style: an at-rule prelude (`@media (width >= 40rem)`) or a pseudo-class (`:hover`).
@@ -23,7 +23,7 @@ export interface CssNode {
   __cssints: Decl[];
 }
 
-const camel = (p: string) => p.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+export const camel = (p: string) => p.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
 
 // A builder error names the call site being evaluated (`__at` set it), when there is one.
 export const fail = (message: string) => new MacroError({ message, ...registry.at });
@@ -180,6 +180,20 @@ export function chainDecl(ctx: string | undefined, method: string, args: unknown
   if (i < 0)
     throw fail(`cssints: ${ctx}() has no .${method}(); it chains ${chainNames(ctx).join(", ")}`);
   return decl(CONTEXTS[ctx]![i]!, method, args);
+}
+
+// The texts a value is checked as. The recognizer reads text and knows no var(): a token (`var(--name)`, however a
+// string came to hold it) is checked as literals of its type, one text per literal a type has (lengthPercentage: a
+// length and a percentage). A var() of no token stays as it is.
+export const VAR = /var\((--[\w-]+)\)/g;
+export function probed(value: string, properties: Map<string, Property>): string[] {
+  if (!value.includes("var(--")) return [value];
+  const probesOf = (name: string) => properties.get(name)?.probes ?? [];
+  let n = 1;
+  for (const [, name] of value.matchAll(VAR)) n = Math.max(n, probesOf(name!).length);
+  return Array.from({ length: n }, (_, i) =>
+    value.replace(VAR, (m, name: string) => probesOf(name)[i] ?? probesOf(name)[0] ?? m),
+  );
 }
 
 // The class name of a declaration. Plain code: a tight loop over the characters of every declaration, called
