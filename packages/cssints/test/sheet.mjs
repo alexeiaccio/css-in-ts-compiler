@@ -14,7 +14,13 @@ const LAYERS = ["_.a", "_.b", "_.c", "_.d", "_.e"];
 globalThis.__cssints ??= { sites: new Map(), rules: new Map(), warnings: [], warned: new Set() };
 const fake = { _1: "border-top", _2: "border", _3: "padding-left", _4: "padding", _5: "all" };
 for (const [c, prop] of Object.entries(fake))
-  globalThis.__cssints.rules.set(c, { layer: "_.a", cond: [], prop, css: `.${c}{${prop}:x}` });
+  globalThis.__cssints.rules.set(c, {
+    layer: "_.a",
+    cond: [],
+    wrap: [],
+    prop,
+    css: `.${c}{${prop}:x}`,
+  });
 const order = [...Effect.runSync(renderSheet(Object.keys(fake))).matchAll(/\.(_\d)\{/g)].map(
   (m) => fake[m[1]],
 );

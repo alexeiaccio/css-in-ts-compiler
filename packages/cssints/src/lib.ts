@@ -2,12 +2,22 @@
 //
 // The builders here (`toDecls`, `chainDecl`) are the one synchronous part of the engine, with `isNode`: user code
 // calls css.* in expressions and stores the results, so they cannot return Effects. They throw a MacroError.
+import { createRequire } from "node:module";
+
 import { properties } from "@cssints/css-grammar/mdn";
 import { MacroError } from "./errors.ts";
 import { registry } from "./registry.ts";
 
-/** One declaration: property and value. */
-export type Decl = [prop: string, value: string];
+/**
+ * One condition of a style: an at-rule prelude (`@media (width >= 40rem)`) or a pseudo-class (`:hover`).
+ * `rank` orders the rules of a layer: the min-width of a media or container query in px, the place of a pseudo-class.
+ */
+export interface Cond {
+  text: string;
+  rank: number;
+}
+/** One declaration: property and value, under the conditions that wrap it (outermost first). */
+export type Decl = [prop: string, value: string, conds?: Cond[]];
 /** What a css.* builder returns: its declarations. */
 export interface CssNode {
   __cssints: Decl[];
@@ -16,7 +26,7 @@ export interface CssNode {
 const camel = (p: string) => p.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
 
 // A builder error names the call site being evaluated (`__at` set it), when there is one.
-const fail = (message: string) => new MacroError({ message, ...registry.at });
+export const fail = (message: string) => new MacroError({ message, ...registry.at });
 
 // member -> property: every grammar property as camelCase, plus the short set.
 export const PROPS: Record<string, string> = {
@@ -68,6 +78,51 @@ export const CONTEXTS: Record<string, string[]> = {
     "column-gap",
   ],
 };
+
+// Pseudo-class wrappers: every standard pseudo-class of the Selectors module without arguments, camelCased
+// (`focus-visible` -> `focusVisible`); `default` is a reserved word. Pseudo-elements and functional pseudo-classes
+// (`:nth-child()`) are not wrappers. The order of the rules in a layer is this list: the classic link, visited, hover,
+// focus, active first (a later one wins at equal specificity), the rest as mdn-data lists them.
+const SELECTORS = createRequire(import.meta.url)("mdn-data/css/selectors.json") as Record<
+  string,
+  { status: string; groups: string[] } | undefined
+>;
+const FIRST = [
+  "link",
+  "visited",
+  "any-link",
+  "focus-within",
+  "hover",
+  "focus",
+  "focus-visible",
+  "active",
+];
+const pseudoNames = Object.entries(SELECTORS)
+  .filter(
+    ([k, v]) => /^:[a-z-]+$/.test(k) && v?.status === "standard" && v.groups.includes("Selectors"),
+  )
+  .map(([k]) => k.slice(1))
+  .filter((n) => n !== "default");
+export const PSEUDOS: Record<string, Cond> = Object.fromEntries(
+  [...FIRST, ...pseudoNames.filter((n) => !FIRST.includes(n))].map((n, i) => [
+    camel(n),
+    { text: `:${n}`, rank: i },
+  ]),
+);
+
+// A style has at most this many conditions: layers _.a (none) to _.e.
+export const MAX_CONDS = 4;
+export const LAYER = ["_.a", "_.b", "_.c", "_.d", "_.e"];
+
+// The width a media or container query starts at, in px, for ordering its rules (narrow first, so the wider one wins).
+// 0 when we cannot read one (a list, `or`, `not`, other units): those keep the order of their text.
+export function minWidth(q: string): number {
+  if (/,|\b(or|not)\b/.test(q)) return 0;
+  let w = 0;
+  for (const [, n, u] of q.matchAll(/\(\s*(?:min-)?width\s*(?::|>=?)\s*([\d.]+)(px|rem|em)\s*\)/g))
+    w = Math.max(w, Number(n) * (u === "px" ? 1 : 16));
+  return w;
+}
 
 const SPACING = /^(padding|margin|inset|gap|row-gap|column-gap)(-|$)/;
 export const isNode = (v: unknown): v is CssNode =>
@@ -125,8 +180,9 @@ export function chainDecl(ctx: string | undefined, method: string, args: unknown
 // The class name of a declaration. Plain code: a tight loop over the characters of every declaration, called
 // inside the `classesOf` boundary (macro.ts).
 // ponytail: djb2, 32-bit; swap for xxhash if collisions ever show up.
-export function hashClass([p, v]: Decl): string {
+export function hashClass([p, v, conds]: Decl): string {
   let h = 5381;
-  for (const c of `${p}:${v}`) h = ((h << 5) + h + c.charCodeAt(0)) | 0;
+  const text = conds ? `${conds.map((c) => c.text).join(">")}|${p}:${v}` : `${p}:${v}`;
+  for (const c of text) h = ((h << 5) + h + c.charCodeAt(0)) | 0;
   return "_" + (h >>> 0).toString(36);
 }

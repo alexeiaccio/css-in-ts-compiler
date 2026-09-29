@@ -6,9 +6,12 @@ import { Context } from "effect";
 
 export interface Rule {
   layer: string;
-  /** The condition's sort key (min-width, pseudo-class order); [] until conditions land. */
+  /** Sort key within the layer: the min-width of its conditions, then the places of its pseudo-classes. */
   cond: number[];
+  /** The at-rule preludes around `css`, outermost first (`@media (width >= 40rem)`). */
+  wrap: string[];
   prop: string;
+  /** The style rule: `.cls:hover{color:red}`. */
   css: string;
 }
 

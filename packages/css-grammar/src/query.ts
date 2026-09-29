@@ -42,19 +42,19 @@ type First<K extends QueryKind, Q extends readonly string[]> = Q extends readonl
 type Check<K extends QueryKind, Q extends readonly string[]> = [First<K, Q>] extends [never]
   ? Q
   : { [I in keyof Q]: First<K, Q> };
-// One query, or an object of them (a bad one is marked in place).
-type One<K extends QueryKind, A> = A extends string
-  ? ValidQuery<K, A>
-  : A extends Record<string, string>
-    ? { [P in keyof A]: ValidQuery<K, A[P]> }
-    : never;
-
-/** A condition constructor: one query gives `R`, several give a tuple of `R`, an object of queries an object of `R`. */
+/**
+ * A condition constructor: an object of queries gives an object of `R`, several queries a tuple of `R`, one query `R`.
+ * The one-query overload comes last: when nothing fits, TypeScript shows the message of the last overload, and the
+ * bad query of a single string is the common case. A bad query of an object is marked in place.
+ */
 export interface Condition<K extends QueryKind, R> {
-  <const A extends string | Record<string, string>>(
-    query: One<K, A>,
-  ): A extends string ? R : { [P in keyof A]: R };
+  <const O extends Record<string, string>>(queries: { [P in keyof O]: ValidQuery<K, O[P]> }): {
+    [P in keyof O]: R;
+  };
   <const Q extends readonly [string, string, ...string[]]>(
     ...queries: Check<K, Q>
-  ): { [I in keyof Q]: R };
+  ): {
+    [I in keyof Q]: R;
+  };
+  <const Q extends string>(query: ValidQuery<K, Q>): R;
 }

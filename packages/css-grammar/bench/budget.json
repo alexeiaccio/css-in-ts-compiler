@@ -28,12 +28,12 @@
     "tsgo": 2830
   },
   "queries.ts": {
-    "tsc": 167341,
-    "tsgo": 172209
+    "tsc": 167983,
+    "tsgo": 172846
   },
   "supports.ts": {
-    "tsc": 267158,
-    "tsgo": 271782
+    "tsc": 267094,
+    "tsgo": 271778
   },
   "typed.ts": {
     "tsc": 143329,
