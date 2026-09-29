@@ -9,7 +9,7 @@ import { chromium } from "playwright-core";
 
 import { arbFor } from "./gen.ts";
 import { properties } from "../src/mdn.ts";
-import { matches } from "../src/twin.ts";
+import { matches } from "./sync.ts";
 
 const SEED = Number(process.env.SEED ?? 42);
 const N = Number(process.env.N ?? 20);

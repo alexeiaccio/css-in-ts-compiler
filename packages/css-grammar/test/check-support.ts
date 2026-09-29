@@ -1,6 +1,5 @@
 // node check-support.ts — support warnings (defaults targets) and prose rules, both ways.
-import { checkRules } from "../src/rules.ts";
-import { message, support } from "../src/support.ts";
+import { checkRules, message, support } from "./sync.ts";
 
 let failed = false;
 const expect = (ok: boolean, what: string) => {

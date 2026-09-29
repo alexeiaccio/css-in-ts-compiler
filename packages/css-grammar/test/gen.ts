@@ -3,7 +3,7 @@
 import fc from "fast-check";
 
 import { properties, syntaxes } from "../src/mdn.ts";
-import { nullable, parse, type Node } from "../src/twin.ts";
+import { nullable, parse, type Node } from "./sync.ts";
 
 const props: Record<string, string> = properties;
 const syns: Record<string, string> = syntaxes;

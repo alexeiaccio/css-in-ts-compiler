@@ -3,7 +3,7 @@ import { deepStrictEqual, match, throws } from "node:assert/strict";
 
 import { cases, runtimeOnly } from "./cases.ts";
 import { properties } from "../src/mdn.ts";
-import { matches, valid } from "../src/twin.ts";
+import { matches, valid } from "./sync.ts";
 
 const p: Record<string, string> = properties;
 deepStrictEqual(cases.filter(([n, s, e]) => matches(p[n]!, s) !== e), []);

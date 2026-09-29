@@ -20,8 +20,10 @@
 //   - range targets like "ios_saf 18.5-18.7" become their lower bound. Agents BCD does not track (op_mini, kaios,
 //     and_qq, and_uc) are skipped.
 import type { BrowserName, CompatData, Identifier, SupportStatement } from "@mdn/browser-compat-data";
+import { Effect } from "effect";
 
 import { browsers as listBrowsers } from "./browsers.ts";
+import type { BrowsersError } from "./errors.ts";
 import { properties, syntaxes } from "./mdn.ts";
 
 // require, not import: see browsers.ts.
@@ -36,9 +38,12 @@ const BCD_NAME: Record<string, BrowserName> = {
 };
 
 export type Target = [agent: string, version: string];
-export const targets = (query?: string): Target[] =>
-  listBrowsers(query).map((t) => [t.split(" ")[0]!, t.split(" ")[1]!.split("-")[0]!] as Target).filter(([a]) => BCD_NAME[a]);
-const DEFAULT = targets();
+export const targets = Effect.fn("support.targets")(function* (query?: string): Effect.fn.Return<Target[], BrowsersError> {
+  const list = yield* listBrowsers(query);
+  return list.map((t) => [t.split(" ")[0]!, t.split(" ")[1]!.split("-")[0]!] as Target).filter(([a]) => BCD_NAME[a]);
+});
+// Module init is the boundary: the default targets are fixed for the process, like the BCD require above.
+const DEFAULT = Effect.runSync(targets());
 
 const cmp = (a: string, b: string) => {
   const x = a.replace("≤", "").split("."), y = b.split(".");
@@ -79,7 +84,7 @@ export interface Warning {
   lacking: string[];
 }
 
-export function support(p: string, v: string, ts: Target[] = DEFAULT): Warning[] {
+function supportOf(p: string, v: string, ts: Target[]): Warning[] {
   const pc = get(`css.properties.${p}`)?.__compat;
   if (!pc) return [];
   const reached = [...reach(props[p] ?? "")];
@@ -118,5 +123,13 @@ function browsers(lacking: string[]): string {
   }).join(", ");
 }
 
-export const message = (p: string, v: string, w: Warning) =>
-  `${p}: ${w.feature === p ? "the property" : `"${w.feature}"`} in "${v}" is not supported by ${browsers(w.lacking)} (${w.key})`;
+// Once per declaration that has not been seen yet: fnUntraced, like `valid` in twin.ts.
+export const support = Effect.fnUntraced(function* (p: string, v: string, ts: Target[] = DEFAULT): Effect.fn.Return<Warning[]> {
+  return yield* Effect.sync(() => supportOf(p, v, ts));
+});
+
+export const message = Effect.fn("support.message")(function* (p: string, v: string, w: Warning): Effect.fn.Return<string> {
+  return yield* Effect.sync(
+    () => `${p}: ${w.feature === p ? "the property" : `"${w.feature}"`} in "${v}" is not supported by ${browsers(w.lacking)} (${w.key})`,
+  );
+});

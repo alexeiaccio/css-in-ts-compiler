@@ -19,7 +19,7 @@ const ranged = (mine, spec) => {
   return mine.replace(/<([^'>\s\[]+)>/g, (m, t) => (r.get(t) ? `<${t} ${r.get(t)}>` : m));
 };
 // node scripts/extract.mjs [prop...]  (default: every property the runner maps to)
-const want = process.argv.length > 2 ? process.argv.slice(2) : Object.values((await import("../../cssints/src/lib.mjs")).PROPS);
+const want = process.argv.length > 2 ? process.argv.slice(2) : Object.values((await import("../../cssints/src/lib.ts")).PROPS);
 const P = {}, S = {};
 const refs = (s) => [...s.matchAll(/<([^'>\s\[]+)(?:\s*\[[^\]]*\])?>/g)].map((m) => m[1]);
 const prefs = (s) => [...s.matchAll(/<'([^']+)'>/g)].map((m) => m[1]);

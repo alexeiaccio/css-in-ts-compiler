@@ -1,7 +1,12 @@
 // Prose rules: validity rules that the specs state in text, not in the value grammar. One function per
 // property (`rules`) or per CSS function (`fnRules`); it returns why the value is invalid, or undefined.
-// `checkRules` throws like the twin's `valid`.
-import { matches } from "./twin.ts";
+// `checkRules` fails like the twin's `valid`: with a tagged error that names the property and the value.
+//
+// The rules themselves are plain code that calls the twin core directly; `checkRules` is the Effect boundary.
+import { Effect } from "effect";
+
+import { RuleError } from "./errors.ts";
+import { matches } from "./twin-core.ts";
 
 // Top-level comma split: commas inside (...) or quotes do not count.
 const splitList = (v: string) => v.match(/(?:"[^"]*"|'[^']*'|\([^()]*(?:\([^()]*\)[^()]*)*\)|[^,"'()])+/g)?.map((s) => s.trim()) ?? [];
@@ -118,9 +123,10 @@ const fnRules: ((p: string, v: string) => string | undefined)[] = [
   },
 ];
 
-export function checkRules(p: string, v: string): string {
+// Once per declaration: fnUntraced, like `valid` in twin.ts.
+export const checkRules = Effect.fnUntraced(function* (p: string, v: string): Effect.fn.Return<string, RuleError> {
   let why = rules[p]?.(v);
   for (const f of fnRules) why ??= f(p, v);
-  if (why) throw new TypeError(`${p}: in "${v}", ${why}`);
+  if (why) return yield* new RuleError({ message: `${p}: in "${v}", ${why}`, property: p, value: v, reason: why });
   return v;
-}
+});
