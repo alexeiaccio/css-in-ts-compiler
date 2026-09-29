@@ -138,7 +138,7 @@ type PrimitiveMap = {
 // What a <custom-ident> cannot be: not an ident by its first characters, or a CSS-wide keyword / `default`.
 // The twin checks every character; `${number}` and friends cannot say "ident" here.
 type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
-type NotIdent = `${"'" | '"' | "#" | "." | "+" | "(" | Digit | `-${Digit}`}${string}` | "initial" | "inherit" | "unset" | "revert" | "revert-layer" | "default";
+type NotIdent = `${"'" | '"' | "#" | "." | "+" | "(" | "=" | "<" | ">" | ":" | "/" | Digit | `-${Digit}`}${string}` | "initial" | "inherit" | "unset" | "revert" | "revert-layer" | "default";
 
 export type Consume<N, S extends string> =
   S extends string
@@ -224,8 +224,8 @@ type RemoveAt<T extends any[], K extends string, I extends any[] = [], Acc exten
 export type Matches<Syntax extends string, S extends string> = "" extends Consume<Parse<Syntax>, Trim<S>> ? true : false;
 
 // Furthest point the value reached: every remainder is a suffix of S, the shortest one is a suffix of all.
-type Stuck<U extends string, All extends string = U> = U extends string ? ([All] extends [`${string}${U}`] ? U : never) : never;
-type Unexpected<S extends string> = S extends "" ? "unexpected end" : `unexpected "${Tok1<S>[0]}"`;
+export type Stuck<U extends string, All extends string = U> = U extends string ? ([All] extends [`${string}${U}`] ? U : never) : never;
+export type Unexpected<S extends string> = S extends "" ? "unexpected end" : `unexpected "${Tok1<S>[0]}"`;
 // On failure the parameter type becomes a message literal naming the bad token, the property and its grammar
 // (twin.ts `valid` says the same and adds what was expected at that point).
 // `S extends string ?` defers the message while S is still generic; without it tsc runs Consume over the
