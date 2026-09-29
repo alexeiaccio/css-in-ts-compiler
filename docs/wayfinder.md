@@ -786,3 +786,20 @@ Types and twin agree on all 4232 sampled rows. Numeric ranges are skipped there,
 - Typed-part sentinels for `integer`, `angle`, `time` and `custom-ident` in `css.ts`.
 
 In the demo, one token is read by a class and set in a `style` prop, and both were checked in Chrome. Perf and budgets are unchanged apart from the new `tokens.ts` bench.
+
+## `<color>`: relative colour, contrast-color(), if(), var() (cssints-gcuz)
+
+`<color>` accepts relative colour (`oklch(from var(--x) l c h)`), `contrast-color(<color>)`, `if()` and `var()`. The `from` forms and `if()` come verbatim from @webref/css, which has css-color-5 and css-values-5; mdn-data 2.27.1 has neither. The few overrides are documented in `extract.mjs`: `contrast-color( <color> )` from css-color-5, `<custom-property-name>` and `--x : <declaration-value>` in `<declaration>`.
+
+**Twin.** The twin checks what the grammars do not carry:
+- Channel keywords exist only inside the colour function that has a `from`.
+- `calc()` or `var()` may stand for a number there, and `calc()` is type-checked against its position, so `calc(h + 30deg)` is rejected, as in Chrome.
+- `if()` branches go through the same condition grammars as `@media` and `@supports`.
+
+**Types.** Types stay opaque after `from` and inside `if()`: checking them would need calc typing and a channel scope through every `Consume`. The cost is about +1% on the colour benches.
+
+**Chrome and BCD.** Chrome 154 agrees on every generated value (91.4% overall, since mutants with `var()` or `if()` always pass in Chrome). The BCD lookups for `contrast-color`, `if` and `relative_syntax` warn for Firefox and Safari targets.
+
+**Limits:**
+- `if()` and `var()` exist only in `<color>`. A value-level pending-substitution rule is the general fix.
+- `min()`, `max()`, `clamp()` and nested `calc()` in channel positions are not accepted yet.
