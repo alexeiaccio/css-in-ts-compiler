@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:research
 created_at: 2026-09-29T15:06:15Z
-updated_at: 2026-09-29T15:06:47Z
+updated_at: 2026-09-29T15:08:31Z
 parent: cssints-vy0o
 ---
 
@@ -21,3 +21,8 @@ Icons (packages/plugin-icon) and CSS features that browsers lack (for example an
 - What 0.1 needs at minimum for nonstandard properties and icons, and what can wait.
 
 Answer: findings in docs/research/plugins.md, an API sketch in TS, and a recommendation with the scope for 0.1.
+
+## Primary use cases (added 2026-09-29)
+1. **`surface()` and `frame()` as the first plugin** (cssints-1xqr, docs/research/surfaces-frames.md). The build-time half registers the chaining contexts with their grammars, emits the kernel once by key into layer `_.k` and sets only custom properties per site. The runtime half is a polyfill for targets without `@container style()` on custom properties (Firefox < 151, Safari < 18): a small script walks the DOM and writes the parent values into custom properties, with a MutationObserver keeping them fresh. It is included only when a browserslist target needs it (BCD). Moving to `inherit()` later is a plugin update behind `@supports`.
+2. **Icons** (packages/plugin-icon rebuilt on the API).
+3. **The ~5 live WebKit-only properties**: a built-in list or a tiny plugin.

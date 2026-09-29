@@ -40,7 +40,7 @@ The API in `docs/API.md` works end to end in `apps/demo` on the Module Runner en
 
 ## Not yet specified
 
-- `frame()` and `surface()` contexts (Ariakit-style concentric radius and parent-relative colour), after 0.1: frames first, odd/even emission, `inherit()` under `@supports` once two engines ship it (cssints-1xqr).
+- `frame()` and `surface()` contexts (Ariakit-style concentric radius and parent-relative colour) as the first cssints plugin: kernel at build time, and a runtime polyfill for targets without style queries; `inherit()` under `@supports` later (cssints-1xqr, scope decided after cssints-rq2r).
 
 - Shorthand vs longhand through sublayers instead of sort order: `_.a.a/_.a.b/_.a.c` per condition layer (15 layers), depth from mdn-data `computed` by leaf-set inclusion (max depth 2; `border` → `border-top` → `border-top-color`, which the direct links miss; exclude `all`). Order-independent, but more layers and DevTools noise. Deferred on 2026-09-29; logical vs physical pairs (`margin-inline-start` vs `margin-left`) stay order-dependent either way.
 
