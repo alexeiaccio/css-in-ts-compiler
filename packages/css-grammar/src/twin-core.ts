@@ -42,7 +42,7 @@ export function next(s: string): [Tok, string] {
   if ((m = /^(\|\||&&)/.exec(s))) return [{ t: "p", v: m[1]! }, s.slice(2)];
   if ((m = /^\{([^}]*)\}/.exec(s))) {
     const [lo, hi = lo] = m[1]!.split(",") as [string, string?];
-    return [{ t: "range", lo, hi }, s.slice(m[0].length)];
+    return [{ t: "range", lo, hi: hi || "∞" }, s.slice(m[0].length)]; // `{A,}` is open
   }
   if ((m = /^[[\]()|?*+#!,/]/.exec(s))) return [{ t: "p", v: m[0] }, s.slice(1)];
   if ((m = /^[^()[\]|&?*+#!,/{}<>' \n\t]+(?=[ \n\t]|$)/.exec(s)))
@@ -180,6 +180,8 @@ const NUM = String.raw`[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?`;
 const LENGTH_UNIT =
   "px|em|rem|vw|vh|vmin|vmax|ch|ex|lh|rlh|cm|mm|in|pt|pc|q|svw|svh|lvw|lvh|dvw|dvh|cqw|cqh|cqi|cqb|cqmin|cqmax|ic|cap|rex|rch|ric|rcap";
 const re = (s: string) => new RegExp(`^(?:${s})$`);
+// an ident (escapes ignored)
+const IDENT = String.raw`(?:--|-?[A-Za-z_\u0080-\uffff])[\w\u0080-\uffff-]*`;
 const PRIMITIVE: Record<string, RegExp> = {
   length: re(`${NUM}(?:${LENGTH_UNIT})|0`),
   percentage: re(`${NUM}%`),
@@ -187,14 +189,54 @@ const PRIMITIVE: Record<string, RegExp> = {
   number: re(NUM),
   integer: re(String.raw`[+-]?\d+`),
   "hex-color": /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i,
-  string: /^(?:"[^"]*"|'[^']*')$/,
-  // an ident (escapes ignored), minus the CSS-wide keywords and `default`
-  "custom-ident":
-    /^(?!(?:initial|inherit|unset|revert|revert-layer|default)$)(?:--|-?[A-Za-z_\u0080-\uffff])[\w\u0080-\uffff-]*$/i,
+  // an ident, minus the CSS-wide keywords and `default`
+  "custom-ident": new RegExp(
+    `^(?!(?:initial|inherit|unset|revert|revert-layer|default)$)${IDENT}$`,
+    "i",
+  ),
   "dashed-ident": /^--.+$/,
   angle: re(`${NUM}(?:deg|rad|grad|turn)`),
   time: re(`${NUM}(?:s|ms)`),
   dimension: re(`${NUM}(?:${LENGTH_UNIT}|deg|rad|grad|turn|s|ms|hz|khz|dpi|dpcm|dppx|x|fr)`),
+  resolution: re(`${NUM}(?:dpi|dpcm|dppx|x)`),
+  flex: re(`${NUM}fr`),
+  // a number token with the value zero, in any spelling (`hue-rotate(0.0)`)
+  zero: re(String.raw`[+-]?(?:0+(?:\.0+)?|\.0+)(?:e[+-]?\d+)?`),
+  ident: re(IDENT),
+  "ident-token": re(IDENT),
+  "hash-token": /^#[\w\u0080-\uffff-]+$/,
+  // css-sizing-4 §3.2 and css-values-5 §11: the keywords calc-size() takes as a basis
+  "intrinsic-size-keyword": /^(?:min-content|max-content|fit-content|stretch)$/,
+  // the cursor hotspot (css-ui-4 §6.1.1: "<x> <y>" are numbers)
+  x: re(NUM),
+  y: re(NUM),
+};
+
+// Primitives that are not one token (a string holds spaces, a url parentheses, a declaration value anything):
+// the length of the prefix of s that they match, or -1. Strings and urls ignore escapes.
+const STRING = /^(?:"[^"]*"|'[^']*')/;
+const URL_RE = /^url\(\s*(?:"[^"]*"|'[^']*'|[^\s"'()\\]*)\s*\)/;
+// <declaration-value> (css-syntax-3, "Parsing"): balanced tokens up to the unmatched `)` that ends the function around
+// it, or the end; not empty, and no top-level `;` or `!`.
+function declarationValue(s: string): number {
+  let depth = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]!;
+    if (c === '"' || c === "'") {
+      i = s.indexOf(c, i + 1);
+      if (i < 0) return -1;
+    } else if ("([{".includes(c)) depth++;
+    else if (")]}".includes(c)) {
+      if (depth) depth--;
+      else return c === ")" && i > 0 ? i : -1;
+    } else if (!depth && (c === ";" || c === "!")) return -1;
+  }
+  return depth || !s ? -1 : s.length;
+}
+const SCAN: Record<string, (s: string) => number> = {
+  string: (s) => STRING.exec(s)?.[0].length ?? -1,
+  url: (s) => URL_RE.exec(s)?.[0].length ?? -1,
+  "declaration-value": declarationValue,
 };
 
 interface Ctx {
@@ -273,6 +315,17 @@ export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<strin
   }
 }
 
+// A number or dimension in the canonical unit of its type (deg, s), so that `<angle [-90deg,90deg]>` holds
+// for 1.5rad and not for 100grad. Bounds are read the same way; NaN for anything else (calc(), var()).
+const SCALE: Record<string, number> = { grad: 0.9, rad: 180 / Math.PI, turn: 360, ms: 0.001 };
+const NUM_HEAD = new RegExp(`^${NUM}`, "i");
+export const magnitude = (t: string): number =>
+  t === "∞"
+    ? Infinity
+    : t === "-∞"
+      ? -Infinity
+      : parseFloat(t) * (SCALE[t.replace(NUM_HEAD, "").trim().toLowerCase()] ?? 1);
+
 function consumeType(
   [, v, lo, hi]: ["type", string, string?, string?],
   s: string,
@@ -283,6 +336,9 @@ function consumeType(
   if (PRIMITIVE[v]) {
     const [t, r] = tok1(s);
     rs = PRIMITIVE[v].test(t) ? new Set([trim(r)]) : NONE;
+  } else if (SCAN[v]) {
+    const n = SCAN[v](s);
+    rs = n < 0 ? NONE : new Set([trim(s.slice(n))]);
   } else if (syns[v]) {
     // `<name()>`: the name must be next before its grammar is even parsed (as in css.ts)
     rs =
@@ -293,11 +349,10 @@ function consumeType(
   if (rs === NONE) fail(ctx, s, label ?? `<${v}>`);
   if (lo === undefined || hi === undefined) return rs;
   // Ranges: the type level strips them, the twin checks the number that was consumed.
-  const bound = (b: string) => (b === "∞" ? Infinity : b === "-∞" ? -Infinity : Number(b));
   const out = new Set<string>();
   for (const r of rs) {
-    const x = parseFloat(s.slice(0, s.length - r.length));
-    if (Number.isNaN(x) || (x >= bound(lo) && x <= bound(hi))) out.add(r);
+    const x = magnitude(s.slice(0, s.length - r.length));
+    if (Number.isNaN(x) || (x >= magnitude(lo) && x <= magnitude(hi))) out.add(r);
     else fail(ctx, s, `<${v} [${lo},${hi}]>`);
   }
   return out;

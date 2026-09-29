@@ -1,7 +1,7 @@
 // node check-queries.ts — runtime twin of probe-queries.ts, plus the messages.
 import { deepStrictEqual, match } from "node:assert/strict";
 
-import { queryCases } from "./cases-queries.ts";
+import { queryCases, runtimeOnlyQueries } from "./cases-queries.ts";
 import { checkQuery } from "./sync.ts";
 
 const ok = (k: "media" | "container" | "supports", q: string) => {
@@ -14,6 +14,10 @@ const ok = (k: "media" | "container" | "supports", q: string) => {
 };
 deepStrictEqual(
   queryCases.filter(([k, q, e]) => (ok(k, q) === true) !== e).map(([k, q]) => [k, q]),
+  [],
+);
+deepStrictEqual(
+  runtimeOnlyQueries.filter(([k, q]) => ok(k, q) === true),
   [],
 );
 const err = (k: "media" | "container" | "supports", q: string) => String(ok(k, q));

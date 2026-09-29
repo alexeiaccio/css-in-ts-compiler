@@ -9,7 +9,7 @@ import { chromium } from "playwright-core";
 
 import { arbFor } from "./gen.ts";
 import { properties } from "../src/mdn.ts";
-import { matches } from "./sync.ts";
+import { matches, valid } from "./sync.ts";
 
 const SEED = Number(process.env.SEED ?? 42);
 const N = Number(process.env.N ?? 20);
@@ -114,7 +114,19 @@ try {
 } catch (e) {
   out = (e as { stdout: string }).stdout;
 }
-const typeFail = [...out.matchAll(/diff\.gen\.ts\((\d+),/g)].map((m) => sample[Number(m[1]) - 5]!);
+// The types strip numeric ranges by design: a row that only the twin's range check rejects is no disagreement.
+const rangeOnly = (c: Case) => {
+  if (c.twin) return false;
+  try {
+    valid(c.p, c.v);
+    return false;
+  } catch (e) {
+    return ((e as { expected?: string[] }).expected ?? []).some((x) => / \[[^\]]*\]>$/.test(x));
+  }
+};
+const typeFail = [...out.matchAll(/diff\.gen\.ts\((\d+),/g)]
+  .map((m) => sample[Number(m[1]) - 5]!)
+  .filter((c) => !rangeOnly(c));
 console.log(`\n# types vs twin (tsgo): ${sample.length - typeFail.length}/${sample.length} agree`);
 typeFail.forEach((c) =>
   console.log(`  ${c.p}: ${JSON.stringify(c.v)} twin=${c.twin} types=${!c.twin}`),

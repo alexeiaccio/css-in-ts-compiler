@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-29T13:28:04Z
-updated_at: 2026-09-29T16:19:08Z
+updated_at: 2026-09-29T16:34:08Z
 blocked_by:
     - cssints-vzd9
 ---
@@ -26,7 +26,7 @@ The API in `docs/API.md` works end to end in `apps/demo` on the Module Runner en
 
 ## Decisions so far
 
-- [Grammar coverage: all mdn properties](cssints-unkt): all 892 grammars parse; an unused big table costs 0 instantiations, ~4.2 k per call; blockers are unit range bounds, `{A,}`, 15 missing primitives and one TS2589 outlier (font-variant). Decision: every standard and experimental property at once, nonstandard out. Findings: docs/research/grammar-coverage.md; implementation: [All standard properties](cssints-lmru)
+- [Grammar coverage: all mdn properties](cssints-unkt): all 892 grammars parse; an unused big table costs 0 instantiations, ~4.2 k per call; blockers are unit range bounds, `{A,}`, 15 missing primitives and one TS2589 outlier (font-variant). Decision: every standard and experimental property at once, nonstandard out. Findings: docs/research/grammar-coverage.md; implementation: [All standard properties](cssints-lmru) (done: 529 properties, 0 unexplained Chrome rows, font-variant 50 k, <declaration> opaque in types)
 - [Surfaces and frames](cssints-1xqr): Ariakit's parent-relative colour and concentric radius reduce to tiny kernels emitted once (frame 667 B, surface 434 B minified, against ~4 KB and ~12 KB), with per-site custom properties; the odd/even `@container style()` trick sets the floor at Firefox 151 / Safari 18; `inherit()` would remove it but ships nowhere. Recommendation: not 0.1; `frame()` then `surface()` as an opt-in module later; 0.1 keeps a seam (a global rule by key in a layer `_.k` below `_.a`). Findings: docs/research/surfaces-frames.md
 - [Plugin API: registered properties and functions, build-time lowering, runtime polyfills](cssints-rq2r): no native CSS Parser Extensions to rely on; the compiler knows its classes, so a 730 B gzip runtime reproduces style-query results exactly (Chrome, Firefox, WebKit); the contract is members + kernels by key in `_.k` + a runtime declared as data and chosen by BCD; plugin grammars feed the recognizer unchanged. Recommendation: 0.1 ships internal seams only. Findings: docs/research/plugins.md
 - [How atomic CSS libraries emit and order CSS in Vite](cssints-wx85): one global sorted sheet (layer, condition, shorthand before longhand, class), filled late in build; per-module CSS cannot order rules inside a layer. Findings: docs/research/css-output.md

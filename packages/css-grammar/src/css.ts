@@ -35,7 +35,7 @@ type Next<S extends string> =
   : S extends `<${infer T}>${infer R}` ? [{ t: "type"; v: StripRange<T> }, R]
   : S extends `||${infer R}` ? [{ t: "p"; v: "||" }, R]
   : S extends `&&${infer R}` ? [{ t: "p"; v: "&&" }, R]
-  : S extends `{${infer B}}${infer R}` ? (B extends `${infer Lo},${infer Hi}` ? [{ t: "range"; lo: Lo; hi: Hi }, R] : [{ t: "range"; lo: B; hi: B }, R])
+  : S extends `{${infer B}}${infer R}` ? (B extends `${infer Lo},${infer Hi}` ? [{ t: "range"; lo: Lo; hi: Hi extends "" ? "∞" : Hi }, R] : [{ t: "range"; lo: B; hi: B }, R])
   : S extends `${infer C extends "[" | "]" | ")" | "|" | "?" | "*" | "+" | "#" | "!" | "," | "/"}${infer R}` ? [{ t: "p"; v: C }, R]
   : S extends `${infer W} ${infer R}` ? (IsWord<W> extends true ? [{ t: "kw"; v: W }, R] : NextWord<S>)
   : IsWord<S> extends true ? [{ t: "kw"; v: S }, ""]
@@ -128,24 +128,38 @@ type PrimitiveMap = {
   number: `${number}` | "⟨number⟩";
   integer: `${bigint}`;
   "hex-color": `#${string}`;
-  string: `"${string}"` | `'${string}'`;
   "custom-ident": string; // minus NotIdent, see Consume
+  ident: string; // minus NotIdentStart
+  "ident-token": string; // minus NotIdentStart
   "dashed-ident": `--${string}`;
   angle: `${number}${"deg" | "rad" | "grad" | "turn"}`;
   time: `${number}${"s" | "ms"}`;
+  resolution: `${number}${"dpi" | "dpcm" | "dppx" | "x"}`;
+  flex: `${number}fr`;
+  zero: "0" | "+0" | "-0"; // the twin also takes 0.0 and 0e5
+  "hash-token": `#${string}`;
+  "intrinsic-size-keyword": "min-content" | "max-content" | "fit-content" | "stretch";
+  x: `${number}`;
+  y: `${number}`;
   dimension: `${number}${LengthUnit | "deg" | "rad" | "grad" | "turn" | "s" | "ms" | "hz" | "khz" | "dpi" | "dpcm" | "dppx" | "x" | "fr"}`;
 };
-// What a <custom-ident> cannot be: not an ident by its first characters, or a CSS-wide keyword / `default`.
-// The twin checks every character; `${number}` and friends cannot say "ident" here.
+// What an ident cannot be: an ASCII character that is not a letter, digit, `_` or `-` anywhere in it (the twin
+// takes every non-ASCII one), a digit or `-digit` first, or `-` alone. A <custom-ident> is also not a CSS-wide keyword
+// or `default`. The twin checks the same with one regexp.
 type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
-type NotIdent = `${"'" | '"' | "#" | "." | "+" | "(" | "=" | "<" | ">" | ":" | "/" | Digit | `-${Digit}`}${string}` | "initial" | "inherit" | "unset" | "revert" | "revert-layer" | "default";
+type NotIdentChar = "'" | '"' | "#" | "." | "+" | "(" | "!" | "$" | "%" | "&" | "*" | "/" | ":" | ";" | "<" | "=" | ">" | "?" | "@" | "[" | "\\" | "]" | "^" | "`" | "{" | "|" | "}" | "~";
+type NotIdentStart = `${string}${NotIdentChar}${string}` | `${Digit | `-${Digit}`}${string}` | "-";
+type NotIdent = NotIdentStart | "initial" | "inherit" | "unset" | "revert" | "revert-layer" | "default";
 
 export type Consume<N, S extends string> =
   S extends string
     ? N extends ["kw", infer V extends string] ? (Tok1<S> extends [V, infer R extends string] ? Trim<R> : never)
     : N extends ["lit", infer V extends string] ? (S extends `${V}${infer R}` ? Trim<R> : never)
     : N extends ["type", infer V extends string]
-      ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? (V extends "custom-ident" ? (Lowercase<T> extends NotIdent ? never : Trim<R>) : Trim<R>) : never) : never)
+      ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? (V extends "custom-ident" ? (Lowercase<T> extends NotIdent ? never : Trim<R>) : V extends "ident" | "ident-token" ? (T extends NotIdentStart ? never : Trim<R>) : Trim<R>) : never) : never)
+      : V extends "string" | "url" | "declaration-value" ? Scanned<V, S>
+      // <declaration> alternates over every property: types take it as balanced tokens, the twin checks it at build time
+      : V extends "declaration" ? Scanned<"declaration-value", S>
       // `<name()>`: the name must be next before its grammar is even parsed (keeps <color> cheap)
       : V extends keyof Syns ? (V extends `${infer F}()` ? (S extends `${F}(${string}` ? Consume<Parse<Syns[V]>, S> : never) : S extends `⟨${V}⟩${infer R}` ? Trim<R> : Consume<Parse<Syns[V]>, S>) // typed value sentinel (api-typed.ts)
       : never
@@ -167,6 +181,29 @@ export type Consume<N, S extends string> =
 // Unconstrained on purpose, like Mult's N: a constraint makes tsc expand the argument when it checks the
 // declaration (~1 k instantiations each, paid by every program).
 type Close<R> = R extends `)${infer Q}` ? Trim<Q> : never;
+
+// The primitives that are not one token, like `Scan` in twin-core.ts (escapes ignored). A url is `url(`, a quoted
+// string or an unquoted run without spaces, quotes and parentheses, `)`.
+type Scanned<V extends string, S extends string> = V extends "string" ? Quoted<S> : V extends "url" ? UrlRest<S> : Declaration<S, S, []>;
+type Quoted<S extends string> =
+  S extends `"${string}"${infer R}` ? Trim<R> : S extends `'${string}'${infer R}` ? Trim<R> : never;
+type UrlRest<S extends string> =
+  S extends `url(${infer B})${infer R}` ? (UrlBody<TrimEnd<Trim<B>>> extends true ? Trim<R> : never) : never;
+type UrlBody<B extends string> =
+  B extends `"${infer Q}"` ? (Q extends `${string}"${string}` ? false : true)
+  : B extends `'${infer Q}'` ? (Q extends `${string}'${string}` ? false : true)
+  : B extends `${string}${Ws | '"' | "'" | "(" | "\\"}${string}` ? false : true;
+type TrimEnd<S extends string> = S extends `${infer R}${Ws}` ? TrimEnd<R> : S;
+// <declaration-value>: characters up to the unmatched `)` (returned with it) or the end, brackets balanced by depth
+// D, strings skipped, no top-level `;` or `!`, not empty. S left-trimmed, so Rest = S means nothing was consumed.
+type Declaration<S extends string, Rest extends string, D extends 0[]> =
+  Rest extends `${infer C}${infer R}`
+    ? C extends '"' | "'" ? (R extends `${string}${C}${infer R2}` ? Declaration<S, R2, D> : never)
+    : C extends "(" | "[" | "{" ? Declaration<S, R, [...D, 0]>
+    : C extends ")" | "]" | "}" ? (D extends [0, ...infer D2 extends 0[]] ? Declaration<S, R, D2> : C extends ")" ? (Rest extends S ? never : Rest) : never)
+    : C extends ";" | "!" ? (D extends [] ? never : Declaration<S, R, D>)
+    : Declaration<S, R, D>
+    : D extends [] ? (Rest extends S ? never : "") : never;
 
 // tail-recursive walk of the alt cons list
 type ConsumeAlt<N, S extends string, Acc = never> =
@@ -209,7 +246,9 @@ type RepN<X, S extends string, Lo extends any[], Hi extends any[], I extends any
 }[I["length"] extends Hi["length"] ? "done" : "next"];
 
 // || (All=false: at least one part) and && (All=true: every part), any order, each part at most once.
-type AnyOrder<Xs extends Node[], S extends string, All extends boolean> = Xs extends [] ? S : TryEach<Xs, Xs, S, All, []>;
+// `[S] extends [never]`: a part that failed left nothing to continue from. Without this stop, a failed part still
+// recursed through every permutation of the others (font-variant "none": 4.3 M instantiations and TS2589).
+type AnyOrder<Xs extends Node[], S extends string, All extends boolean> = [S] extends [never] ? never : Xs extends [] ? S : TryEach<Xs, Xs, S, All, []>;
 type TryEach<Parts extends Node[], Todo extends Node[], S extends string, All extends boolean, I extends any[]> =
   Todo extends [infer H, ...infer R extends Node[]]
     ? (Consume<H, S> extends infer R1 extends string

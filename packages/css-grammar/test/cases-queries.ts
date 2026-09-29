@@ -37,9 +37,15 @@ export const queryCases = [
   ["supports", "(display: grid) and (gap: 1rem)", true],
   ["supports", "(display: flex) or (display: grid)", true],
   ["supports", "((display: grid) and (gap: 1rem))", true],
-  ["supports", "(display: grdi)", false],
   ["supports", "(display: grid) and", false],
   ["supports", "display: grid", false],
-  ["supports", "(nope: 1)", false],
   ["supports", "(display: grid) or (gap: 1rem) and (color: red)", false],
+] as const;
+
+// Only the runtime rejects these: types take a <declaration> as balanced tokens, since it alternates over every
+// property (a full check cost ~0.5 M instantiations per program). The twin checks the declaration at build time.
+export const runtimeOnlyQueries = [
+  ["supports", "(display: grdi)"],
+  ["supports", "(nope: 1)"],
+  ["container", "style(display: grdi)"],
 ] as const;

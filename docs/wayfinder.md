@@ -747,3 +747,25 @@ Wrappers take styles and return styles, and they nest: `media(q)` (as a string, 
 - **Seam.** `@layer _.k, _.a … _.e;` and an internal `addGlobal(key, css)`.
 - **HMR model.** Unchanged: wrappers are synchronous builders.
 - **Demo.** A media query on the feature list and `hover` on buttons and cards, checked in Chrome: row layout at 1000 px, hover colour changes. Performance is unchanged.
+
+## Every standard property (cssints-lmru)
+
+The grammar holds every standard and experimental mdn-data property, 529 in all, and the cssints members follow it: 536 properties plus 49 pseudo-classes. To get there, the twin, the generator and the types learned:
+- ranges with units;
+- open repetition `{A,}`;
+- the missing primitives (`url`, `zero`, `resolution`, `flex`, `ident`, `hash-token`, `declaration-value`, `intrinsic-size-keyword`);
+- `<string>` scanned as a whole.
+
+`AnyOrder` stops when a part failed. That took `font-variant: "none"` from 4.3 M instantiations and TS2589 to about 50 k. An unused table still costs 0.
+
+**Against Chrome 154.** 16 731 of 18 215 values agree (91.8%). There are 0 unexplained twin-accepts rows, down from 826:
+- 128 became prose rules and 17 support lookups;
+- the rest are in KNOWN with their upstream cause: mdn-data stale or wider than the spec (324), BCD gaps (206), spec grammar as written (73), Chrome differs (71), `linear()` (7).
+
+Types and twin agree on all 4232 sampled rows. Numeric ranges are skipped there, because types strip them by design.
+
+**`<declaration>` in types.** When merged with conditions, `<declaration>` inside `supports()` and container `style()` alternated over all 529 properties: 581 k instantiations for 16 queries and 1.23 M for 7 `supports()` calls. The types now take a `<declaration>` as balanced tokens, and the twin checks the real declaration at build time. That brings them to 100 k and 27 k. `supports("(display: grdi)")` is now a build error, not a type error; `cases-queries.ts` lists it under `runtimeOnlyQueries`.
+
+**Open:**
+- The reverse direction (Chrome accepts, the twin rejects), mostly stale mdn-data grammars such as `image-orientation: none` and `tab-size: 3.5`; a follow-up could prefer the webref property grammar where mdn-data is stale.
+- `attr(x type(<length>))`.

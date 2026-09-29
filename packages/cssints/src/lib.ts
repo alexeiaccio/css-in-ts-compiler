@@ -28,9 +28,14 @@ const camel = (p: string) => p.replace(/-([a-z])/g, (_, c: string) => c.toUpperC
 // A builder error names the call site being evaluated (`__at` set it), when there is one.
 export const fail = (message: string) => new MacroError({ message, ...registry.at });
 
-// member -> property: every grammar property as camelCase, plus the short set.
+// member -> property: every grammar property as camelCase (`--*` is the custom property grammar, not a member),
+// plus the short set.
 export const PROPS: Record<string, string> = {
-  ...Object.fromEntries(Object.keys(properties).map((p) => [camel(p), p])),
+  ...Object.fromEntries(
+    Object.keys(properties)
+      .filter((p) => p !== "--*")
+      .map((p) => [camel(p), p]),
+  ),
   p: "padding",
   pt: "padding-top",
   pr: "padding-right",

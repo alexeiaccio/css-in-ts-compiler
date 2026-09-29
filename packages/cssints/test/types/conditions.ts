@@ -25,8 +25,8 @@ export const ok: string = cx(
 media("screen and min-width > 40rem");
 // @ts-expect-error a range needs its value
 css.media("(width >= )");
-// @ts-expect-error no such value
-supports("(display: grdi)");
+// @ts-expect-error a declaration needs its parentheses
+supports("display: grid");
 // @ts-expect-error one bad query of a tuple
 css.media("(width >= 40rem)", "(width >= )");
 // @ts-expect-error one bad query of an object
