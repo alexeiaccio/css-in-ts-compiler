@@ -860,3 +860,15 @@ The colour maths is `culori/fn` (9.4 kB gzip) and is loaded only at build time; 
 **Chrome 154.** Generated math values agree 100% in a type-matching position. In whole-grammar values, 24–50 of 6 000–10 000 per seed differ, and Chrome is always the stricter side: parse-time range checks such as `cubic-bezier` x and a grid line that rounds to 0.
 
 The demo uses `width("calc(100% - 2rem)")`, and the sheet test asserts it.
+
+## Token types and typed-part sentinels (cssints-7rot)
+
+Token types now cover every `@property` syntax type we support, `resolution`, `url` and `image` included. Chrome accepts a sample `initial-value` for each, through `CSS.registerProperty` and in a real stylesheet.
+
+Every token fits the typed parts of its own type and no others. Two exceptions are deliberate:
+- `⟨integer⟩` also fits `<number>`;
+- `⟨url⟩` also fits `<image>`.
+
+An image token does not fit a `<url>`-only position such as `marker-start`, at the type level or at build time; the build-time probe for an image is a gradient.
+
+One bug went away: a length or colour token used to fit `<custom-ident>` positions such as `animation-name`. A relative `url()` in a `<url>` token resolves against the page, not the stylesheet (noted in API.md). The sentinels cost about +15 instantiations unused, and at most +180 on the widest bench.
