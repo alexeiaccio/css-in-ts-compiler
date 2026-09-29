@@ -1,11 +1,11 @@
-// A dev server with plugin.mjs on a temp copy of a card/button/tokens app. The watcher is manual and every
+// A dev server with plugin.ts on a temp copy of a card/button/tokens app. The watcher is manual and every
 // ssr transform of an app file can be held at a gate after its source was read, so tests pick the interleaving.
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 
 import { createServer } from "vite";
 
-import cssints from "../../src/plugin.mjs";
+import cssints from "../../src/plugin.ts";
 
 export const CLIENT = ["card", "button"];
 const decode = (rem) => {

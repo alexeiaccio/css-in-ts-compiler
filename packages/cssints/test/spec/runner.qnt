@@ -1,6 +1,6 @@
-// plugin.mjs in a Vite dev server: client modules card and button both import tokens. Every step is one stretch
+// plugin.ts in a Vite dev server: client modules card and button both import tokens. Every step is one stretch
 // of synchronous JS between two awaits, so requests that Vite serves concurrently interleave.
-// FIX = true is plugin.mjs as it is; FIX = false is the version before cssints-hdui. Run (in packages/cssints/test):
+// FIX = true is plugin.ts as it is; FIX = false is the version before cssints-hdui. Run (in packages/cssints/test):
 //   npx @informalsystems/quint run spec/runner.qnt --main fixed --invariants servedFresh readsOwnSites depsOfKnown \
 //     sheetFresh --witnesses settledAfterEdits sheetServed --max-steps 60 --max-samples 100000
 //   --main original --invariant servedFresh --max-steps 14 --max-samples 2000000 --mbt --out-itf x.itf.json

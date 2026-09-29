@@ -123,10 +123,16 @@ const fnRules: ((p: string, v: string) => string | undefined)[] = [
   },
 ];
 
-// Once per declaration: fnUntraced, like `valid` in twin.ts.
-export const checkRules = Effect.fnUntraced(function* (p: string, v: string): Effect.fn.Return<string, RuleError> {
+// Why the value is invalid by prose, or undefined. Plain core, also called by check.ts (one boundary per declaration).
+export function violation(p: string, v: string): RuleError | undefined {
   let why = rules[p]?.(v);
   for (const f of fnRules) why ??= f(p, v);
-  if (why) return yield* new RuleError({ message: `${p}: in "${v}", ${why}`, property: p, value: v, reason: why });
+  return why ? new RuleError({ message: `${p}: in "${v}", ${why}`, property: p, value: v, reason: why }) : undefined;
+}
+
+// Once per declaration: fnUntraced, like `valid` in twin.ts.
+export const checkRules = Effect.fnUntraced(function* (p: string, v: string): Effect.fn.Return<string, RuleError> {
+  const error = violation(p, v);
+  if (error) return yield* error;
   return v;
 });

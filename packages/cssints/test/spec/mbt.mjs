@@ -1,4 +1,4 @@
-// Model-based test: replays mbtStep traces of runner.qnt (module fixed) against a real dev server with plugin.mjs
+// Model-based test: replays mbtStep traces of runner.qnt (module fixed) against a real dev server with plugin.ts
 // and compares what each client module serves after every step. Run: node spec/mbt.mjs [nTraces] [maxSteps]
 // Traces come straight from `quint run --mbt`; @firfi/quint-connect is not used because its itf-trace-parser
 // resolves its optional `effect` peer to whatever Effect bun links (the hoisted Effect 4 on a fresh resolve).

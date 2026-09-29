@@ -9,13 +9,14 @@
 import { mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { Effect } from "effect";
 import { build, createServer } from "vite";
 import { ModuleRunner } from "vite/module-runner";
 
-import { instrument } from "../src/plugin.mjs";
+import { instrument } from "../src/plugin.ts";
 
-// PLUGIN=../src/other.mjs compares another version of the plugin (A/B in one session)
-const { default: cssints } = await import(process.env.PLUGIN ?? "../src/plugin.mjs");
+// PLUGIN=../src/other.ts compares another version of the plugin (A/B in one session)
+const { default: cssints } = await import(process.env.PLUGIN ?? "../src/plugin.ts");
 
 const [cmd, arg, arg2] = process.argv.slice(2);
 
@@ -119,7 +120,7 @@ const report = (label, wall) => {
   const ins = files.map((f) => {
     const code = readFileSync(f, "utf8");
     const t0 = performance.now();
-    for (let k = 0; k < 20; k++) instrument(code, f);
+    for (let k = 0; k < 20; k++) Effect.runSync(instrument(code, f));
     return (performance.now() - t0) / 20;
   });
   const n = t.imports || 1;
@@ -135,7 +136,7 @@ const report = (label, wall) => {
 if (cmd === "gen") gen(Number(arg), arg2);
 else if (cmd === "dev" || cmd === "seq") {
   const t0 = performance.now();
-  const server = await createServer({ root: arg, configFile: false, logLevel: "warn", server: { port: 0, watch: null, preTransformRequests: cmd === "dev" }, css: { transformer: "lightningcss" }, plugins: [timed(cssints())] });
+  const server = await createServer({ root: arg, configFile: false, logLevel: "warn", server: { port: 0, watch: null, preTransformRequests: cmd === "dev" }, css: { transformer: "lightningcss" }, plugins: cssints().map((p) => (p.name === "cssints" ? timed(p) : p)) });
   await server.listen();
   const client = server.environments.client;
   const ids = readdirSync(join(arg, "src/components")).map((f) => `/src/components/${f}`);
@@ -148,7 +149,7 @@ else if (cmd === "dev" || cmd === "seq") {
 } else if (cmd === "build") {
   process.chdir(arg); // the plugin's private server takes process.cwd() as root, like the vite CLI
   const t0 = performance.now();
-  await build({ root: arg, configFile: false, logLevel: "warn", css: { transformer: "lightningcss" }, build: { cssMinify: "lightningcss", minify: false, write: false }, plugins: [timed(cssints())] });
+  await build({ root: arg, configFile: false, logLevel: "warn", css: { transformer: "lightningcss" }, build: { cssMinify: "lightningcss", minify: false, write: false }, plugins: cssints().map((p) => (p.name === "cssints" ? timed(p) : p)) });
   report("build", performance.now() - t0);
   process.exit(0);
 }

@@ -5,10 +5,10 @@
 	"type": "module",
 	"exports": {
 		".": {
-			"browser": "./src/runtime.mjs",
-			"default": "./src/index.mjs"
+			"browser": "./src/runtime.ts",
+			"default": "./src/index.ts"
 		},
-		"./vite": "./src/plugin.mjs"
+		"./vite": "./src/plugin.ts"
 	},
 	"sideEffects": false,
 	"scripts": {

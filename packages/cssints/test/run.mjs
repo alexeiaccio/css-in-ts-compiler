@@ -1,6 +1,6 @@
 import { createServer } from "vite";
 
-import cssints from "../src/plugin.mjs";
+import cssints from "../src/plugin.ts";
 
 const root = import.meta.dirname;
 const plugins = cssints();

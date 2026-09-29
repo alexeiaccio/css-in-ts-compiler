@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 
-import cssints from "../../src/plugin.mjs";
+import cssints from "../../src/plugin.ts";
 
 export default defineConfig({
   plugins: [cssints()],

@@ -84,7 +84,8 @@ export interface Warning {
   lacking: string[];
 }
 
-function supportOf(p: string, v: string, ts: Target[]): Warning[] {
+// Plain core, also called by check.ts (one boundary per declaration).
+export function supportOf(p: string, v: string, ts: Target[] = DEFAULT): Warning[] {
   const pc = get(`css.properties.${p}`)?.__compat;
   if (!pc) return [];
   const reached = [...reach(props[p] ?? "")];
