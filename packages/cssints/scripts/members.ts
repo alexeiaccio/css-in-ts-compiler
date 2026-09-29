@@ -7,7 +7,17 @@ import { writeFileSync } from "node:fs";
 import { chainNames, PROPS, PSEUDOS } from "../src/lib.ts";
 
 // Not properties of `css`: the builders macro.ts defines itself.
-const OWN = new Set(["cn", "flex", "grid", "cv", "media", "container", "supports"]);
+const OWN = new Set([
+  "cn",
+  "flex",
+  "grid",
+  "cv",
+  "media",
+  "container",
+  "supports",
+  "token",
+  "style",
+]);
 const names = Object.keys(PROPS)
   .filter((n) => !OWN.has(n))
   .sort();

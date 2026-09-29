@@ -26,13 +26,16 @@ import {
   LAYER,
   MAX_CONDS,
   minWidth,
+  probed,
   PSEUDOS,
   toDecls,
+  VAR,
   type Cond,
   type CssNode,
   type Decl,
 } from "./lib.ts";
 import { type At, registry, Registry, type RegistryState, type Rule } from "./registry.ts";
+import { token } from "./token.ts";
 
 export { CSS, CSSColorValue, CSSUnitValue };
 
@@ -156,32 +159,56 @@ const ruleOf = (cls: string, [prop, value, conds = []]: Decl): Rule => {
       wrap.push(c.text);
       width = Math.max(width, c.rank);
     }
+  const tokens = value.includes("var(--") ? [...value.matchAll(VAR)].map((m) => m[1]!) : undefined;
   return {
     layer: LAYER[conds.length]!,
     cond: conds.length ? [width, ...ranks] : [],
     wrap,
     prop,
     css: `.${cls}${pseudo}{${prop}:${value}}`,
+    tokens,
   };
+};
+
+// One declaration against the grammar, the prose rules and, once per class, browser support. Throws at the bad token (the
+// build-time twin of the type-level check) or at a prose rule. Support warnings are recorded once per property and BCD
+// feature per build, not once per value. A token in the value is checked as the literals of its type (`probed`).
+const checkNow = (
+  [prop, value]: Decl,
+  fresh: boolean,
+  { warnings, warned, properties }: RegistryState,
+) => {
+  for (const v of probed(value, properties)) {
+    let found;
+    try {
+      found = checkDeclarationNow(prop, v, fresh);
+    } catch (e) {
+      if (v !== value && isDeclarationError(e))
+        Object.assign(e, {
+          message: `${e.message} ("${value}" is checked as "${v}": a token stands for a value of its type)`,
+        });
+      throw e;
+    }
+    for (const w of found) {
+      const k = `${prop} ${w.key}`;
+      if (!warned.has(k)) {
+        warned.add(k);
+        warnings.push(messageOf(prop, value, w));
+      }
+    }
+  }
 };
 
 // The classes of a style's declarations, registered in the sheet. A plain loop over the declarations (hash, twin,
 // prose rules, support), inside the one Effect boundary of `classesOf`: an Effect step per declaration was over
 // the perf budget.
-const classesNow = (decls: Decl[], { rules, warnings, warned }: RegistryState): string => {
+const classesNow = (decls: Decl[], registry: RegistryState): string => {
+  const { rules } = registry;
   const out: string[] = [];
   for (const d of decls) {
     const cls = hashClass(d);
     const fresh = !rules.has(cls);
-    // Throws at the bad token (the build-time twin of the type-level check) or at a prose rule. Support warnings
-    // only for a class not seen yet: once per property and BCD feature per build, not once per value.
-    for (const w of checkDeclarationNow(d[0], d[1], fresh)) {
-      const k = `${d[0]} ${w.key}`;
-      if (!warned.has(k)) {
-        warned.add(k);
-        warnings.push(messageOf(d[0], d[1], w));
-      }
-    }
+    checkNow(d, fresh, registry);
     if (!out.includes(cls)) out.push(cls);
     if (fresh) rules.set(cls, ruleOf(cls, d));
   }
@@ -234,6 +261,7 @@ const named: Record<string, unknown> = {
   grid,
   cv,
   ...conditions,
+  token,
   CSS,
   CSSColorValue,
   CSSUnitValue,
@@ -288,6 +316,7 @@ const recordSite = Effect.fnUntraced(function* (
 
 // The call site the plugin is about to evaluate: builders that fail name it.
 export function __at(file: string, site: number, offset: number): At {
+  registry.tokens = 0;
   return (registry.at = { file, site, offset });
 }
 
