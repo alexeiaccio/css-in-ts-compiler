@@ -3,13 +3,16 @@
 title: 'Token types: resolution, url, image; typed-part sentinels for integer, angle, time, custom-ident'
 status: todo
 type: task
+priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-09-29T16:45:34Z
-updated_at: 2026-09-29T16:45:34Z
+updated_at: 2026-09-29T17:02:10Z
 parent: cssints-vy0o
 blocked_by:
     - cssints-gcuz
+    - cssints-91im
+    - cssints-7qqw
 ---
 
 ## Question
