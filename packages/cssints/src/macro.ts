@@ -7,16 +7,32 @@
 // are the synchronous edge where an Effect is run (`runSite`).
 import {
   checkDeclarationNow,
+  checkQuery,
   type DeclarationError,
   isDeclarationError,
 } from "@cssints/css-grammar/check";
+import type { QueryKind } from "@cssints/css-grammar/query";
 import { messageOf } from "@cssints/css-grammar/support";
 import { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
 import { Cause, Effect, Exit } from "effect";
 
 import { MacroError } from "./errors.ts";
-import { chainDecl, CONTEXTS, hashClass, isNode, toDecls, type CssNode, type Decl } from "./lib.ts";
-import { type At, registry, Registry, type RegistryState } from "./registry.ts";
+import {
+  chainDecl,
+  CONTEXTS,
+  fail,
+  hashClass,
+  isNode,
+  LAYER,
+  MAX_CONDS,
+  minWidth,
+  PSEUDOS,
+  toDecls,
+  type Cond,
+  type CssNode,
+  type Decl,
+} from "./lib.ts";
+import { type At, registry, Registry, type RegistryState, type Rule } from "./registry.ts";
 
 export { CSS, CSSColorValue, CSSUnitValue };
 
@@ -41,6 +57,69 @@ export const cn = member("cn");
 export const flex = member("flex");
 export const grid = member("grid");
 
+// A condition: styles in, the same styles under it out. Made by media(), container(), supports() and the pseudo-class
+// wrappers; `__cond` marks it, so a site that holds one records nothing but a placeholder (`inertOf`).
+interface Wrapper {
+  (...styles: unknown[]): CssNode;
+  __cond: true;
+}
+const isWrapper = (v: unknown): v is Wrapper => typeof v === "function" && "__cond" in v;
+
+const wrapper = (cond: Cond): Wrapper =>
+  Object.assign(
+    (...styles: unknown[]) => {
+      if (!styles.length || !styles.every(isNode))
+        throw fail(
+          `cssints: ${cond.text} wraps css.* styles, got ${JSON.stringify(styles.filter((s) => !isNode(s)))}`,
+        );
+      return node(
+        styles.flatMap((n) =>
+          n.__cssints.map(([p, v, inner = []]): Decl => {
+            if (inner.length >= MAX_CONDS)
+              throw fail(
+                `cssints: a style takes at most ${MAX_CONDS} conditions (layers ${LAYER[0]} to ${LAYER[MAX_CONDS]}); this one has ${inner.length + 1}: ${[cond, ...inner].map((c) => c.text).join(" > ")}`,
+              );
+            return [p, v, [cond, ...inner]];
+          }),
+        ),
+        undefined,
+      );
+    },
+    { __cond: true as const },
+  );
+
+// media("(width >= 40rem)"): the query is checked against its grammar, like a property value.
+const query = (kind: QueryKind, q: unknown): Wrapper => {
+  if (typeof q !== "string")
+    throw fail(`cssints: ${kind}() takes a query string, got ${JSON.stringify(q)}`);
+  const exit = Effect.runSyncExit(checkQuery(kind, q));
+  if (Exit.isFailure(exit)) {
+    const e = Cause.squash(exit.cause) as Error;
+    throw new MacroError({ message: e.message, cause: e, ...registry.at });
+  }
+  const text = q.trim();
+  return wrapper({ text: `@${kind} ${text}`, rank: kind === "supports" ? 0 : minWidth(text) });
+};
+
+// One query gives a wrapper, several a tuple of them, an object of queries an object of them.
+const condition =
+  (kind: QueryKind) =>
+  (...args: unknown[]) => {
+    const [only] = args;
+    if (!args.length) throw fail(`cssints: ${kind}() expects a query string`);
+    if (args.length > 1) return args.map((q) => query(kind, q));
+    if (typeof only === "object" && only !== null && !Array.isArray(only))
+      return Object.fromEntries(Object.entries(only).map(([k, q]) => [k, query(kind, q)]));
+    return query(kind, only);
+  };
+
+const conditions = {
+  media: condition("media"),
+  container: condition("container"),
+  supports: condition("supports"),
+  ...Object.fromEntries(Object.entries(PSEUDOS).map(([n, c]) => [n, wrapper(c)])),
+};
+
 type Styles = Record<string, Record<string, unknown>>;
 interface CvConfig {
   base?: unknown;
@@ -62,6 +141,30 @@ const located = (at: At) => (e: Invalid | MacroError) =>
     ? e
     : new MacroError({ message: e.message, cause: e, ...at });
 
+// The rule of one declaration: its layer is the number of its conditions; pseudo-classes join the selector, the
+// others wrap the rule; `cond` orders the rules of a layer (min-width, then pseudo-class places).
+const ruleOf = (cls: string, [prop, value, conds = []]: Decl): Rule => {
+  const wrap: string[] = [];
+  const ranks: number[] = [];
+  let pseudo = "";
+  let width = 0;
+  for (const c of conds)
+    if (c.text.startsWith(":")) {
+      pseudo += c.text;
+      ranks.push(c.rank);
+    } else {
+      wrap.push(c.text);
+      width = Math.max(width, c.rank);
+    }
+  return {
+    layer: LAYER[conds.length]!,
+    cond: conds.length ? [width, ...ranks] : [],
+    wrap,
+    prop,
+    css: `.${cls}${pseudo}{${prop}:${value}}`,
+  };
+};
+
 // The classes of a style's declarations, registered in the sheet. A plain loop over the declarations (hash, twin,
 // prose rules, support), inside the one Effect boundary of `classesOf`: an Effect step per declaration was over
 // the perf budget.
@@ -69,9 +172,10 @@ const classesNow = (decls: Decl[], { rules, warnings, warned }: RegistryState): 
   const out: string[] = [];
   for (const d of decls) {
     const cls = hashClass(d);
+    const fresh = !rules.has(cls);
     // Throws at the bad token (the build-time twin of the type-level check) or at a prose rule. Support warnings
     // only for a class not seen yet: once per property and BCD feature per build, not once per value.
-    for (const w of checkDeclarationNow(d[0], d[1], !rules.has(cls))) {
+    for (const w of checkDeclarationNow(d[0], d[1], fresh)) {
       const k = `${d[0]} ${w.key}`;
       if (!warned.has(k)) {
         warned.add(k);
@@ -79,8 +183,7 @@ const classesNow = (decls: Decl[], { rules, warnings, warned }: RegistryState): 
       }
     }
     if (!out.includes(cls)) out.push(cls);
-    // cond: the condition's sort key (min-width, pseudo-class order), [] until conditions land. plugin sorts.
-    rules.set(cls, { layer: "_.a", cond: [], prop: d[0], css: `.${cls}{${d[0]}:${d[1]}}` });
+    if (fresh) rules.set(cls, ruleOf(cls, d));
   }
   return out.join(" ");
 };
@@ -125,11 +228,33 @@ export const cv = (config: CvConfig): CvNode => ({ __cv: config });
 
 // Any name besides these (css.p, css.alignItems) is a property. Named imports of build-time members come from
 // here too: the plugin rewrites them to destructure `css`, so the property list stays derived from the grammar.
-const named: Record<string, unknown> = { cn, flex, grid, cv, CSS, CSSColorValue, CSSUnitValue };
+const named: Record<string, unknown> = {
+  cn,
+  flex,
+  grid,
+  cv,
+  ...conditions,
+  CSS,
+  CSSColorValue,
+  CSSUnitValue,
+};
 export const css = new Proxy(named, {
   get: (t, k) => (Object.hasOwn(t, k) ? t[k as string] : member(String(k))),
 });
 named.css = css;
+
+// A condition, or a tuple or an object of them, held in a variable (`const [md, lg] = css.media(a, b)`): nothing of it
+// ships. Every call of it is a site of its own (instrument.ts), so the client keeps a placeholder of the same shape.
+const inertOf = (v: unknown): string | undefined => {
+  if (isWrapper(v)) return "null";
+  if (Array.isArray(v) && v.length && v.every(isWrapper))
+    return `[${v.map(() => "null").join(",")}]`;
+  if (typeof v !== "object" || v === null) return undefined;
+  const entries = Object.entries(v);
+  return entries.length && entries.every(([, w]) => isWrapper(w))
+    ? `{${entries.map(([k]) => `${JSON.stringify(k)}:null`).join(",")}}`
+    : undefined;
+};
 
 // The replacement expression of a site: class strings, the cv() config, or a Typed OM value's CSS text.
 const replacementOf = Effect.fnUntraced(function* (
@@ -141,8 +266,10 @@ const replacementOf = Effect.fnUntraced(function* (
   // A Typed OM value (CSS.rem(1), new CSSColorValue(...)) ships as its CSS text; the objects are eval-time only.
   // oxlint-disable-next-line typescript/no-base-to-string -- every CSSStyleValue subclass overrides toString
   if (value instanceof CSSStyleValue) return JSON.stringify(String(value));
+  const inert = inertOf(value);
+  if (inert !== undefined) return inert;
   return yield* new MacroError({
-    message: `cssints: site ${at.site} in ${at.file} did not produce a css.*, cv() or Typed OM value`,
+    message: `cssints: site ${at.site} in ${at.file} did not produce a css.*, cv(), condition or Typed OM value`,
   });
 });
 

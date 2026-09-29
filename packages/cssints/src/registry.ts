@@ -6,9 +6,12 @@ import { Context } from "effect";
 
 export interface Rule {
   layer: string;
-  /** The condition's sort key (min-width, pseudo-class order); [] until conditions land. */
+  /** Sort key within the layer: the min-width of its conditions, then the places of its pseudo-classes. */
   cond: number[];
+  /** The at-rule preludes around `css`, outermost first (`@media (width >= 40rem)`). */
+  wrap: string[];
   prop: string;
+  /** The style rule: `.cls:hover{color:red}`. */
   css: string;
 }
 
@@ -24,6 +27,8 @@ export interface RegistryState {
   sites: Map<string, Map<number, string>>;
   /** class -> rule; one entry per class across all modules */
   rules: Map<string, Rule>;
+  /** key -> CSS text of a global rule; rendered once each, in layer _.k (sheet.ts `addGlobal`) */
+  globals: Map<string, string>;
   /** support warnings not yet handed to Vite */
   warnings: string[];
   /** `property feature` keys already warned about in this build */
@@ -39,6 +44,7 @@ declare global {
 export const registry: RegistryState = (globalThis.__cssints ??= {
   sites: new Map(),
   rules: new Map(),
+  globals: new Map(),
   warnings: [],
   warned: new Set(),
 });

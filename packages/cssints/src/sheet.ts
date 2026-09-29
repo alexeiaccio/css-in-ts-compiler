@@ -1,11 +1,13 @@
-// The sheet: every rule once, sorted by layer, condition, shorthand before longhand, class.
+// The sheet: every rule once, sorted by layer, condition, shorthand before longhand, class; the rules of one layer
+// under the same at-rules share a block.
 import { createRequire } from "node:module";
 
 import { Effect } from "effect";
 
 import { type Rule, Registry } from "./registry.ts";
 
-export const LAYERS = "@layer _.a, _.b, _.c, _.d, _.e;";
+// _.k is the layer of global rules (addGlobal), below every class layer: _.a (no condition) to _.e (four).
+export const LAYERS = "@layer _.k, _.a, _.b, _.c, _.d, _.e;";
 
 interface MdnProperty {
   computed?: string | string[];
@@ -29,16 +31,24 @@ const cmpCond = (a: number[], b: number[]) =>
   a.reduce((d, x, i) => d || (i < b.length ? x - b[i]! : 0), 0) || a.length - b.length;
 
 type Sortable = Rule & { cls: string };
+const wrapKey = (r: Rule) => r.wrap.join("{");
 const byOrder = (a: Sortable, b: Sortable) =>
   cmp(a.layer, b.layer) ||
   cmpCond(a.cond, b.cond) ||
+  cmp(wrapKey(a), wrapKey(b)) ||
   width(b.prop) - width(a.prop) ||
   cmp(a.cls, b.cls);
+
+/** Adds a global rule (`*{box-sizing:border-box}`) to layer _.k, once per key. No user API yet: for the engine and plugins. */
+export const addGlobal = Effect.fn("cssints.addGlobal")(function* (key: string, css: string) {
+  const { globals } = yield* Registry;
+  if (!globals.has(key)) globals.set(key, css);
+});
 
 export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
   classes: Iterable<string>,
 ): Effect.fn.Return<string> {
-  const { rules } = yield* Registry;
+  const { rules, globals } = yield* Registry;
   const sorted = [...new Set(classes)]
     .flatMap((cls) => {
       const rule = rules.get(cls);
@@ -46,9 +56,29 @@ export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
     })
     .sort(byOrder);
   let out = `${LAYERS}\n`;
-  sorted.forEach((r, i) => {
-    if (r.layer !== sorted[i - 1]?.layer) out += `${i ? "}\n" : ""}@layer ${r.layer} {\n`;
-    out += `  ${r.css}\n`;
-  });
-  return sorted.length ? `${out}}\n` : out;
+  if (globals.size)
+    out += `@layer _.k {\n${[...globals.values()].map((g) => `  ${g}\n`).join("")}}\n`;
+  let layer = "";
+  let wrap = ""; // the at-rules that are open
+  let depth = 0;
+  const closeWrap = () => (out += depth ? `  ${"}".repeat(depth)}\n` : "");
+  for (const r of sorted) {
+    const key = wrapKey(r);
+    if (r.layer !== layer) {
+      closeWrap();
+      out += `${layer ? "}\n" : ""}@layer ${r.layer} {\n`;
+      layer = r.layer;
+      wrap = "";
+      depth = 0;
+    }
+    if (key !== wrap) {
+      closeWrap();
+      wrap = key;
+      depth = r.wrap.length;
+      if (depth) out += `  ${r.wrap.map((w) => `${w} {`).join(" ")}\n`;
+    }
+    out += `${depth ? "    " : "  "}${r.css}\n`;
+  }
+  closeWrap();
+  return layer ? `${out}}\n` : out;
 });

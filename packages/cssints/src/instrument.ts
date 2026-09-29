@@ -72,6 +72,55 @@ const findCssImport = Effect.fnUntraced(function* (
   return locals.size ? { locals, decls } : null;
 });
 
+// Conditions in a variable are site roots too: `const md = css.media(q)`, `const [md, lg] = css.media(a, b)`,
+// `const { md } = css.media({ md: q })`, so `md(css.p(4))` is a site of its own (a call of a wrapper the client does
+// not have). Returns the names those declarations bind.
+const CONDITIONS = new Set(["media", "container", "supports"]);
+const boundNames = (id: Node | null, out: Set<string>) => {
+  if (!id) return;
+  if (id.type === "Identifier") out.add(id.name);
+  else if (id.type === "ArrayPattern") id.elements.forEach((e) => boundNames(e, out));
+  else if (id.type === "ObjectPattern")
+    id.properties.forEach((p) => boundNames(p.type === "Property" ? p.value : p.argument, out));
+  else if (id.type === "AssignmentPattern") boundNames(id.left, out);
+};
+function withConditions(
+  program: Program,
+  code: string,
+  { locals, decls }: CssImports,
+): Set<string> {
+  if (!/\b(?:media|container|supports)\b/.test(code)) return locals; // most modules: no walk
+  const ctors = new Set<string>(); // local names of media, container, supports imported by name
+  for (const d of decls)
+    for (const x of d.specifiers)
+      if (x.type === "ImportSpecifier" && CONDITIONS.has(nameOf(x.imported)))
+        ctors.add(x.local.name);
+  const all = new Set(locals);
+  const walk = (node: unknown) => {
+    if (!Predicate.isObject(node) || typeof node.type !== "string") return;
+    const n = node as unknown as Node;
+    if (n.type === "VariableDeclarator" && n.init?.type === "CallExpression") {
+      const c = n.init.callee;
+      if (
+        (c.type === "Identifier" && ctors.has(c.name)) ||
+        (c.type === "MemberExpression" &&
+          !c.computed &&
+          c.property.type === "Identifier" &&
+          CONDITIONS.has(c.property.name) &&
+          locals.has(rootIdent(c.object) ?? ""))
+      )
+        boundNames(n.id, all);
+    }
+    for (const k in node) {
+      const v = node[k];
+      if (Array.isArray(v)) v.forEach(walk);
+      else if (Predicate.isObject(v) && "type" in v) walk(v);
+    }
+  };
+  walk(program);
+  return all;
+}
+
 export interface Site {
   start: number;
   end: number;
@@ -117,7 +166,7 @@ export const instrument = Effect.fn("cssints.instrument")(function* (
   const { program } = parseSync(id, code);
   const imp = yield* findCssImport(program, code, id);
   if (!imp) return null;
-  const sites = findSites(program, imp.locals);
+  const sites = findSites(program, withConditions(program, code, imp));
   const ms = new MagicString(code);
   const hoisted: string[] = [];
   sites.forEach((s, n) => {

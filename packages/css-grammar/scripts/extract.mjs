@@ -44,6 +44,28 @@ const addS = (n) => {
   prefs(S[n]).forEach(addP);
 };
 want.forEach(addP);
+// Conditions (cssints-mjgx): <media-query-list>, <container-condition>, <supports-condition> with their closures, in
+// `syntaxes`. @webref/css first (its <media-condition> is linear, mdn-data's retries every alternative), mdn-data where
+// webref has none. Deviations: no <general-enclosed> (an unknown feature is an error, not "false"), <ident> is
+// <custom-ident>, the spec's <size-feature> (mdn-data says <media-query-list>), and supports() takes declarations of
+// the properties above, without selector(), font-tech() and friends.
+const COND = {
+  "size-feature": "<mf-plain> | <mf-boolean> | <mf-range>",
+  "scroll-state-feature": "<mf-plain> | <mf-boolean>",
+  "style-feature": "<declaration>",
+  "supports-feature": "<supports-decl>",
+  "supports-decl": "( <declaration> )",
+  declaration: Object.keys(P)
+    .map((p) => `${p} : <'${p}'>`)
+    .join(" | "),
+};
+const addC = (n) => {
+  const g = COND[n] ?? webS[n] ?? syn[n]?.syntax;
+  if (S[n] || !g) return;
+  S[n] = g.replace(/ \| <general-enclosed>/g, "").replaceAll("<ident>", "<custom-ident>");
+  refs(S[n]).forEach(addC);
+};
+["media-query-list", "container-condition", "supports-condition"].forEach(addC);
 const lit = (o) =>
   JSON.stringify(o, null, 2).replace(/"([^"]+)":/g, (m, k) =>
     /^[a-zA-Z_$][\w$]*$/.test(k) ? `${k}:` : m,

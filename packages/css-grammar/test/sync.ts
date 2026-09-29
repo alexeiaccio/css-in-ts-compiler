@@ -2,6 +2,7 @@
 // (so `e.message` is the user-facing text). Only for tests, which are not Effect programs.
 import { Cause, Effect, Exit } from "effect";
 
+import { checkQuery as checkQueryFx } from "../src/check.ts";
 import { checkRules as checkRulesFx } from "../src/rules.ts";
 import { message as messageFx, support as supportFx, type Target } from "../src/support.ts";
 import { matches as matchesFx, parse as parseFx, valid as validFx } from "../src/twin.ts";
@@ -20,3 +21,4 @@ export const parse = (grammar: string) => run(parseFx(grammar));
 export const checkRules = (p: string, v: string) => run(checkRulesFx(p, v));
 export const support = (p: string, v: string, ts?: Target[]) => run(supportFx(p, v, ts));
 export const message = (...args: Parameters<typeof messageFx>) => run(messageFx(...args));
+export const checkQuery = (...args: Parameters<typeof checkQueryFx>) => run(checkQueryFx(...args));
