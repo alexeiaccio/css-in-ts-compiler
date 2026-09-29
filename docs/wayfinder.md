@@ -603,3 +603,19 @@ The plugin now clears only app modules and keeps the library's import closure (`
 `runner.qnt` did not change: the model contains only app files, and the library imports none of them. The fixtures, race.mjs, the HMR tests and mbt still pass.
 
 Keeping unchanged app modules too would remove most of the remaining cost, but it reopens the race surface of cssints-hdui. We leave it until 9 ms per module is too slow. Details: `docs/research/engine-cost.md`.
+
+## The 0.1 authoring surface in the engine (cssints-7fdc)
+
+The plugin finds build-time code by the import attribute, not by package name. Any import `with { type: "cssints" }` marks its names as build-time, whether it comes from cssints, another package or a local helper module. Calls to helper functions run in the Module Runner like `css.*` calls, and they must return a css value, a `cv` config or a Typed OM value.
+
+Importing a build-time member of cssints without the attribute is a build error. The error names the file and gives the fixed import. Only `cx` and `_cv` are runtime.
+
+Property names come from the grammar's property list (camelCase) plus `p/pt/pr/pb/pl`, `m/mt/mr/mb/ml` and `bg`. There are no static exports per property. In the build-time code the plugin rewrites a named import to read from the `css` Proxy, so named imports work only through the plugin.
+
+A bare number is a 0.25rem step only in padding, margin, inset and gap properties.
+
+`flex()` and `grid()` set `display` and chain only their container properties, from short lists in `lib.mjs`. `test/contexts.mjs` fails when mdn-data adds a container property that is not listed. Plain styles do not chain.
+
+Calls inside functions now go into an exported `__cssints_hoisted()`, which runs only for the file being compiled. That lets helper modules whose calls use their own parameters load normally as dependencies.
+
+The demo's CSS is byte-identical after the migration. `grid().templateColumns(...)` and the other grid template methods still fail with "no grammar for this property" until the grammar covers every property (cssints-unkt).
