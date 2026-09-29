@@ -670,3 +670,18 @@ The monorepo runs on Vite+ (`vite-plus` 1.0.0, the `vp` command), and bun stays 
 `test` is cached, and css-grammar's steps hit the cache. cssints' tests never hit it, because they write temp apps under `test/`. Note that `vp test` is Vite+'s built-in Vitest; our script is `vp run test`.
 
 The old `oxlintrc.json` was named without the dot, so oxlint never read it. With the real config, `vp lint` reports 1443 errors (1191 rule errors and 252 type errors), mostly `no-unsafe-*`, and formatting would change about 60 files. plugin-icon has three syntax errors that stop `vp fmt` and `vp check`. The TS + Effect port (cssints-djzw) makes this clean and must fix or drop plugin-icon. The demo CSS did not change.
+
+## Grammar coverage: every mdn property (cssints-unkt)
+
+With every non-obsolete mdn property the grammar has 636 properties and 256 syntaxes: 66.5 KB, 15.5 KB gzip. All 892 grammars parse.
+
+What breaks today:
+- Unit range bounds (`<time [0s,∞]>`) make the twin reject every `animation-duration`, `transition-duration` and `font-style oblique` value.
+- The open repetition `#{2,}` breaks the types and the generator.
+- 15 referenced types have no syntax and no primitive (`url`, `zero`, `resolution`, `flex`, …). 88 properties reach one of them, so `url(a.png)` and `1fr` fail.
+
+Twin and Chrome agree on 84% of values over all properties, against 96.6% for the 57. Of the 2516 unexplained rows, 1696 come from nonstandard `-ms-`/`-moz-` properties.
+
+Types: an unused big table costs 0 instantiations, and a call costs about 4.2 k. One outlier, `font-variant: "none"`, costs 4.3 M instantiations and hits TS2589. A one-line `[S] extends [never]` short-circuit in `AnyOrder` brings it to 51 k.
+
+Decision: ship every standard and experimental property at once, with nonstandard ones out, after fixing the blockers above. Findings: `docs/research/grammar-coverage.md`.
