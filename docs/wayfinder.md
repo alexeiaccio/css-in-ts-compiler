@@ -591,3 +591,15 @@ Recommendation: one global sorted virtual sheet. Sort by:
 4. class name.
 
 It stays a Vite CSS module, so LightningCSS and reload-free HMR come from Vite. The build fills it after all modules are transformed: a placeholder filled in `renderChunk`, as UnoCSS does, or evaluating every file in `buildStart`. We lose per-chunk CSS, which none of these libraries keeps by default. Details: `docs/research/css-output.md`. The final decision belongs to the "CSS output pipeline" ticket, together with conditions and layers.
+
+## Engine cost at scale (cssints-grrd)
+
+The benchmark uses generated React apps with 50, 200 and 500 modules (`packages/cssints/test/perf.mjs`). Evaluation is about 90% of the plugin's time. It grows linearly, because modules are evaluated one at a time since cssints-hdui.
+
+About 60% of each evaluation re-ran the cssints library. Every runner clear threw away css-grammar's module bodies and twin.ts's grammar cache, so grammars were parsed again in cold code. BCD and browserslist were never the cost: Node's `require` loads them once per process.
+
+The plugin now clears only app modules and keeps the library's import closure (`clearApp`). The cost per module halves, from about 18 ms to 9 ms. A 500-module `vite build` drops from 9.7 s to 4.7 s, and the output is byte-identical.
+
+`runner.qnt` did not change: the model contains only app files, and the library imports none of them. The fixtures, race.mjs, the HMR tests and mbt still pass.
+
+Keeping unchanged app modules too would remove most of the remaining cost, but it reopens the race surface of cssints-hdui. We leave it until 9 ms per module is too slow. Details: `docs/research/engine-cost.md`.

@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:grilling
 created_at: 2026-09-29T13:28:04Z
-updated_at: 2026-09-29T13:40:09Z
+updated_at: 2026-09-29T13:50:46Z
 parent: cssints-vy0o
 ---
 
@@ -22,3 +22,11 @@ Pin down the authoring surface before types are generated for it.
 - Composites: `css.flex(...children)` sets `display:flex` plus its children. Are there other composites, and are they worth it?
 
 Output: a short API spec section in `docs/API.md` that replaces the outdated parts.
+
+## Decided so far (grilling)
+- Names: full camelCase for every mdn property plus a fixed short set (p/pt/pr/pb/pl, m/mt/mr/mb/ml, bg, items, justify); both named exports and `css.*`.
+- Numbers: a bare number means 0.25rem steps, only in padding*, margin*, gap*, inset* (p(4) = 1rem). Elsewhere a number is CSS `<number>`. A configurable step is fog.
+- Parts: variadic parts (`border("1px solid", accent)`); one string is the special case.
+- Import: `with { type: "cssints" }` is THE marker of compile-time code, for cssints itself, plugin-icon and local helper modules alike. The plugin finds sites by the attribute, not by the package name. Runtime helpers (`cx`, `_cv`) are imported without it; using a compile-time member without the attribute is a build error with a clear message. Checked: tsc 5.9 and tsgo accept it with module preserve/esnext (nodenext only in ESM files), oxc-parser exposes `attributes`, the Module Runner fixture and the apps/demo build pass, and the attribute does not reach the bundle.
+- Composites: chaining only on layout contexts. `flex()` and `grid()` set display and expose only their own container properties; plain styles do not chain and merge with `cn(...)`. Lists are short and hand-written, and a test compares them with mdn-data `appliesto`, since mdn misses align-items/justify-items/place-items (`allElements`) and adds overflow/dominant-baseline/reading-*. `justify-items` is on grid, not flex. Item properties (flexGrow, alignSelf, gridColumn, order) stay plain functions; an `item()` context is fog.
+- Open: method names inside a chain, short (`flex().direction("column").align("center")`) or full (`flex().flexDirection("column")`).
