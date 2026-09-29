@@ -4,7 +4,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 
-import fc from "fast-check";
+import * as fc from "fast-check";
 import { chromium } from "playwright-core";
 
 import { arbFor } from "./gen.ts";

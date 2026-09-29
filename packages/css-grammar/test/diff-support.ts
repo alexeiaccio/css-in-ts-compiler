@@ -2,7 +2,7 @@
 // what explains them now: a known upstream issue (KNOWN), a support warning that names the Chrome version under
 // test, a prose rule, or nothing.
 // Also lists the reverse: warnings or rule errors on values Chrome accepts.
-import fc from "fast-check";
+import * as fc from "fast-check";
 import { chromium } from "playwright-core";
 
 import { arbFor } from "./gen.ts";

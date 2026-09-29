@@ -1,6 +1,6 @@
 // Third interpretation of the same grammar tree: generate values instead of recognising them.
 // arbFor(prop) is a fast-check Arbitrary of values the grammar says are valid.
-import fc from "fast-check";
+import * as fc from "fast-check";
 
 import { properties, syntaxes } from "../src/mdn.ts";
 import { nullable, parse, type Node } from "./sync.ts";
@@ -118,4 +118,4 @@ function commas(xs: Node[], ps: string[]): string[] {
 
 const join = (xs: string[]) => xs.filter(Boolean).join(" ").replace(/ ,/g, ",");
 
-export const arbFor = (prop: string): Arb | null => (props[prop] ? arb(parse(props[prop]!)) : null);
+export const arbFor = (prop: string): Arb | null => (props[prop] ? arb(parse(props[prop])) : null);

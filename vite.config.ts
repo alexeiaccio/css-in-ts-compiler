@@ -1,7 +1,25 @@
 import { defineConfig } from "vite-plus";
 
+// Out of scope for 0.1: plugin-icon is not ported to the new engine (it has syntax errors), docs/archive is old.
+const outOfScope = ["packages/plugin-icon/**", "docs/archive/**"];
+
+// Not linted: inputs of the plugin tests (import build-time members that only exist after the plugin rewrote the
+// import, and some are invalid on purpose), and the bench file whose 3 type errors budget.mjs expects.
+const inputs = ["packages/cssints/test/fixtures/**", "packages/css-grammar/bench/err.ts"];
+
+// The type-aware no-unsafe-* family: on untyped `.mjs` scripts every import and JSON value is `any`, so it flags all
+// of it and nothing that typing would fix.
+const noUnsafe = [
+	"typescript/no-unsafe-argument",
+	"typescript/no-unsafe-assignment",
+	"typescript/no-unsafe-call",
+	"typescript/no-unsafe-member-access",
+	"typescript/no-unsafe-return",
+];
+
 export default defineConfig({
 	lint: {
+		ignorePatterns: [...outOfScope, ...inputs],
 		options: {
 			typeAware: true,
 			typeCheck: true,
@@ -11,6 +29,17 @@ export default defineConfig({
 		categories: {
 			correctness: "off",
 		},
+		overrides: [
+			{ files: ["**/*.mjs"], rules: Object.fromEntries(noUnsafe.map((r) => [r, "off"])) },
+			// The type-level recognizer: `any` in conditional types is the idiom (unchanged by the port).
+			{
+				files: ["packages/css-grammar/src/css.ts", "packages/css-grammar/test/probe-typed.ts"],
+				rules: { "typescript/no-explicit-any": "off" },
+			},
+			// Two imports of "cssints", one with `with { type: "cssints" }`, are two modules to the plugin;
+			// the rule does not see import attributes.
+			{ files: ["apps/demo/**", "packages/cssints/test/**"], rules: { "import/no-duplicates": "off" } },
+		],
 		rules: {
 			"eslint/constructor-super": "error",
 			"eslint/for-direction": "error",
@@ -189,7 +218,7 @@ export default defineConfig({
 		},
 	},
 	fmt: {
-		ignorePatterns: ["**/node_modules/**", "**/dist/**", ".beans/**"],
+		ignorePatterns: ["**/node_modules/**", "**/dist/**", ".beans/**", ...outOfScope],
 		printWidth: 120,
 		tabWidth: 2,
 		useTabs: true,

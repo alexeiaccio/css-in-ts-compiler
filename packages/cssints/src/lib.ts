@@ -69,7 +69,7 @@ export function toDecls(member: string, args: unknown[]): Decl[] {
   return [decl(prop, member, args)];
 }
 
-const chainNames = (ctx: string) => CONTEXTS[ctx]!.map((p) => camel(p.startsWith(`${ctx}-`) ? p.slice(ctx.length + 1) : p));
+export const chainNames = (ctx: string) => CONTEXTS[ctx]!.map((p) => camel(p.startsWith(`${ctx}-`) ? p.slice(ctx.length + 1) : p));
 
 // .method(...) on a style: only container properties of flex() / grid(); plain styles do not chain.
 export function chainDecl(ctx: string | undefined, method: string, args: unknown[]): Decl {

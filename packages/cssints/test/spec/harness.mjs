@@ -2,6 +2,7 @@
 // ssr transform of an app file can be held at a gate after its source was read, so tests pick the interleaving.
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 
 import { createServer } from "vite";
 
@@ -34,7 +35,9 @@ export async function start() {
       progress++;
       const f = basename(id, ".ts");
       if (this.environment.name !== "ssr" || !(f in disk) || !gated.has(f)) return;
-      await new Promise((r) => waiting.set(f, [...(waiting.get(f) ?? []), r]));
+      const gate = Promise.withResolvers();
+      waiting.set(f, [...(waiting.get(f) ?? []), gate.resolve]);
+      await gate.promise;
       progress++;
     },
     hotUpdate() {
@@ -55,7 +58,7 @@ export async function start() {
   // Let the server run until nothing moves: every transform is done or held at a gate.
   const settle = async () => {
     for (let last = -1, quiet = 0; quiet < 3; ) {
-      await new Promise((r) => setTimeout(r, 15));
+      await sleep(15);
       quiet = progress === last ? quiet + 1 : 0;
       last = progress;
     }
@@ -90,7 +93,10 @@ export async function start() {
       await settle();
     },
     async request(c) {
-      client.transformRequest(`/${c}.ts`).then(() => progress++, (e) => (progress++, errors.push(`${c}: ${String(e?.message ?? e).split("\n")[0]}`)));
+      client
+        .transformRequest(`/${c}.ts`)
+        .then(() => progress++)
+        .catch((e) => (progress++, errors.push(`${c}: ${String(e?.message ?? e).split("\n")[0]}`)));
       await settle();
     },
     async release(f) {

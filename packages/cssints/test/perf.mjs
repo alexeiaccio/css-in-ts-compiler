@@ -67,7 +67,7 @@ export function ${name}({ loud = false }: { loud?: boolean }) {
 }
 
 // ---- measurement
-const t = { library: 0, user: 0, node: 0, "fetch library": 0, "fetch user": 0, "fetch node": 0, imports: 0, importMs: [] };
+const t = { library: 0, user: 0, node: 0, "fetch library": 0, "fetch user": 0, "fetch node": 0, imports: 0, importMs: /** @type {number[]} */ ([]) };
 const kind = (id) => (/node_modules|^(?!\/@fs)[a-z@]/.test(id) ? "node" : /packages\/(cssints|css-grammar)\//.test(id) ? "library" : "user");
 const stack = [];
 const frame = async (bucket, fn) => {
@@ -82,6 +82,7 @@ const frame = async (bucket, fn) => {
   }
 };
 const P = ModuleRunner.prototype;
+// oxlint-disable-next-line typescript/unbound-method -- patched back onto the prototype with .call(this)
 const { directRequest, getModuleInformation, import: imp } = P;
 P.directRequest = function (url, mod, cs) {
   return frame(kind(mod.id), () => directRequest.call(this, url, mod, cs));

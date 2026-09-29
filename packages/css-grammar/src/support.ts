@@ -27,7 +27,9 @@ import type { BrowsersError } from "./errors.ts";
 import { properties, syntaxes } from "./mdn.ts";
 
 // require, not import: see browsers.ts.
-const bcd: CompatData = process.getBuiltinModule("node:module").createRequire(import.meta.url)("@mdn/browser-compat-data");
+const bcd = process
+  .getBuiltinModule("node:module")
+  .createRequire(import.meta.url)("@mdn/browser-compat-data") as CompatData;
 const props: Record<string, string> = properties;
 const syns: Record<string, string> = syntaxes;
 

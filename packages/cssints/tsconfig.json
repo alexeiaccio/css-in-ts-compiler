@@ -16,5 +16,5 @@
 		"types": ["node"],
 		"plugins": [{ "name": "@effect/language-service" }]
 	},
-	"include": ["src/*.ts"]
+	"include": ["src/*.ts", "scripts/*.ts"]
 }

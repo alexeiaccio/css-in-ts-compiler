@@ -8,12 +8,12 @@ import type browserslistT from "browserslist";
 // Node's require, not import: imported through the Vite Module Runner, browserslist left the runner's
 // server.close() pending (run.mjs exited 13 on risk5 + risk6). Cause not found; require sidesteps it.
 // getBuiltinModule, not `import "node:module"`: the client build scans macro.ts and warns on node: imports.
-const browserslist: typeof browserslistT = process
+const browserslist = process
   .getBuiltinModule("node:module")
-  .createRequire(import.meta.url)("browserslist");
+  .createRequire(import.meta.url)("browserslist") as typeof browserslistT;
 
 export const browsers = Effect.fn("browsers")(function* (
-  query = process.env.BROWSERSLIST ?? "defaults",
+  query: string = process.env.BROWSERSLIST ?? "defaults",
 ): Effect.fn.Return<string[], BrowsersError> {
   return yield* Effect.try({
     try: () => browserslist(query),

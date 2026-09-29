@@ -170,7 +170,10 @@ interface Ctx {
 // Furthest failure wins: its position is where the value went wrong, its labels are what was expected there.
 function fail(ctx: Ctx, s: string, what: string) {
   const at = ctx.len - s.length;
-  if (at > ctx.far) (ctx.far = at), (ctx.expected = new Set());
+  if (at > ctx.far) {
+    ctx.far = at;
+    ctx.expected = new Set();
+  }
   if (at === ctx.far) ctx.expected.add(what);
 }
 
@@ -268,7 +271,10 @@ function seq(xs: Node[], s: string, sub: (x: Node, r: string) => Set<string>): S
     const go = new Set([...rs].filter((r) => !start.has(r)));
     const after = flatMap(go, (r) => sub(x, r));
     const rest = xs.slice(i + 1);
-    if (rest.length && rest.every(nullable)) go.forEach((r) => done.add(r)), (moved = after);
+    if (rest.length && rest.every(nullable)) {
+      go.forEach((r) => done.add(r));
+      moved = after;
+    }
     rs = start = new Set([...rs].filter((r) => start.has(r)).concat(...after));
   });
   return new Set([...rs].filter((r) => !moved.has(r)).concat(...done));
@@ -279,7 +285,12 @@ function closure(rs: Set<string>, step: (r: string) => Set<string>): Set<string>
   const all = new Set(rs);
   for (let todo = [...rs]; todo.length; ) {
     const fresh: string[] = [];
-    for (const r of todo) for (const q of step(r)) if (!all.has(q)) all.add(q), fresh.push(q);
+    for (const r of todo)
+      for (const q of step(r))
+        if (!all.has(q)) {
+          all.add(q);
+          fresh.push(q);
+        }
     todo = fresh;
   }
   return all;

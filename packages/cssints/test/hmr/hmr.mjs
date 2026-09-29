@@ -1,6 +1,7 @@
 // Risk 4 on the Module Runner prototype: edit tokens.ts, both card.ts and button.ts must pick it up.
 // ORDER=button-first flips which file is re-requested first after the edit.
 import { readFileSync, writeFileSync } from "node:fs";
+import { setTimeout as sleep } from "node:timers/promises";
 
 import { createServer } from "vite";
 
@@ -25,10 +26,11 @@ const classes = async () => {
 
 try {
   const before = await classes();
-  const changed = new Promise((r) => server.watcher.once("change", r));
+  const changed = Promise.withResolvers();
+  server.watcher.once("change", changed.resolve);
   writeFileSync(tokens, original.replace("md: 4", "md: 6"));
-  await changed;
-  await new Promise((r) => setTimeout(r, 3000));
+  await changed.promise;
+  await sleep(3000);
   const after = await classes();
   for (const name of order) console.log(`${name.padEnd(6)} ${before[name]} -> ${after[name]}  ${before[name] === after[name] ? "STALE" : "fresh"}`);
 } finally {

@@ -23,7 +23,7 @@ const node = (decls: Decl[], ctx: string | undefined): CssNode =>
     {
       get: (t, k) =>
         k in t || typeof k === "symbol"
-          ? Reflect.get(t, k)
+          ? (t as unknown as Record<string | symbol, unknown>)[k]
           : (...args: unknown[]) => node([...decls, chainDecl(ctx, k, args)], ctx),
     },
   );
@@ -111,6 +111,7 @@ const replacementOf = Effect.fnUntraced(function* (at: At, value: unknown): Effe
   if (isNode(value)) return JSON.stringify(yield* classesOf(value.__cssints));
   if (isCv(value)) return yield* cvOf(value.__cv);
   // A Typed OM value (CSS.rem(1), new CSSColorValue(...)) ships as its CSS text; the objects are eval-time only.
+  // oxlint-disable-next-line typescript/no-base-to-string -- every CSSStyleValue subclass overrides toString
   if (value instanceof CSSStyleValue) return JSON.stringify(String(value));
   return yield* new MacroError({ message: `cssints: site ${at.site} in ${at.file} did not produce a css.*, cv() or Typed OM value` });
 });
@@ -125,12 +126,12 @@ const recordSite = Effect.fnUntraced(function* (at: At, value: unknown): Effect.
   return value;
 });
 
-/** The call site the plugin is about to evaluate: builders that fail name it. */
+// The call site the plugin is about to evaluate: builders that fail name it.
 export function __at(file: string, site: number, offset: number): At {
   return (registry.at = { file, site, offset });
 }
 
-/** Ends a site: its value is recorded, or the failure is thrown into the module that is being evaluated. */
+// Ends a site: its value is recorded, or the failure is thrown into the module that is being evaluated.
 export function __site(at: At, value: unknown): unknown {
   registry.at = undefined;
   const exit = Effect.runSyncExit(recordSite(at, value));

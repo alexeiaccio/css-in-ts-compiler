@@ -4,8 +4,14 @@ import { fileURLToPath } from "node:url";
 
 import { Effect, Predicate, Semaphore } from "effect";
 import { Window } from "happy-dom";
-import type { ModuleRunner } from "vite/module-runner";
-import { ESModulesEvaluator, type EvaluatedModuleNode, type EvaluatedModules, ssrModuleExportsKey, type ModuleRunnerContext } from "vite/module-runner";
+import {
+  ESModulesEvaluator,
+  type EvaluatedModuleNode,
+  type EvaluatedModules,
+  type ModuleRunner,
+  type ModuleRunnerContext,
+  ssrModuleExportsKey,
+} from "vite/module-runner";
 
 import { EvalError, MacroError } from "./errors.ts";
 import { Registry } from "./registry.ts";
@@ -18,14 +24,16 @@ import { Registry } from "./registry.ts";
 // A class because Vite asks for one (`evaluator`): the runner calls it, not a program of ours.
 export class DomEvaluator extends ESModulesEvaluator {
   win = new Window();
-  names = Object.getOwnPropertyNames(this.win).filter((k) => !(k in globalThis));
+  names: string[] = Object.getOwnPropertyNames(this.win).filter((k) => !(k in globalThis));
   override async runInlinedModule(context: ModuleRunnerContext, code: string): Promise<void> {
     const keys = Object.keys(context);
     // oxlint-disable-next-line typescript/no-implied-eval -- the module body is the point: it runs as a function
-    const fn = new Function(...this.names, `return async function (${keys}) {"use strict";\n${code}\n}`) as (
+    const fn = new Function(...this.names, `return async function (${keys.join(",")}) {"use strict";\n${code}\n}`) as (
       ...globals: unknown[]
     ) => (...values: unknown[]) => Promise<void>;
-    await fn(...this.names.map((k) => Reflect.get(this.win, k)))(...keys.map((k) => Reflect.get(context, k)));
+    const globals = this.win as unknown as Record<string, unknown>;
+    const values = context as unknown as Record<string, unknown>;
+    await fn(...this.names.map((k) => globals[k]))(...keys.map((k) => values[k]));
     Object.seal(context[ssrModuleExportsKey]);
   }
 }

@@ -20,7 +20,7 @@ import {
 import type { ModuleRunner } from "vite/module-runner";
 
 import { evaluate, DomEvaluator } from "./evaluate.ts";
-import { EvalError, HookError, type PluginError, SiteMissingError } from "./errors.ts";
+import { HookError, type PluginError, SiteMissingError } from "./errors.ts";
 import { instrument, RUNTIME, type Instrumented } from "./instrument.ts";
 import { Registry } from "./registry.ts";
 import { LAYERS, renderSheet } from "./sheet.ts";

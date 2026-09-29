@@ -13,15 +13,15 @@ for (const t of [...web.types, ...web.functions]) if (t.syntax) webS[t.name] ??=
 const ranged = (mine, spec) => {
   if (!spec) return mine;
   const r = new Map();
-  for (const [, t, range] of spec.matchAll(/<([^'>\s\[]+)(?: (\[[^\]]*\]))?>/g)) r.set(t, r.has(t) && r.get(t) !== range ? undefined : range);
+  for (const [, t, range] of spec.matchAll(/<([^'>\s[]+)(?: (\[[^\]]*\]))?>/g)) r.set(t, r.has(t) && r.get(t) !== range ? undefined : range);
   for (const [t, range] of r)
     if (range && /^<[^>]+>( \| <[^>]+>)*$/.test(syn[t]?.syntax ?? "")) for (const [, u] of syn[t].syntax.matchAll(/<([^>]+)>/g)) if (!r.has(u)) r.set(u, range);
-  return mine.replace(/<([^'>\s\[]+)>/g, (m, t) => (r.get(t) ? `<${t} ${r.get(t)}>` : m));
+  return mine.replace(/<([^'>\s[]+)>/g, (m, t) => (r.get(t) ? `<${t} ${r.get(t)}>` : m));
 };
 // node scripts/extract.mjs [prop...]  (default: every property the runner maps to)
 const want = process.argv.length > 2 ? process.argv.slice(2) : Object.values((await import("../../cssints/src/lib.ts")).PROPS);
 const P = {}, S = {};
-const refs = (s) => [...s.matchAll(/<([^'>\s\[]+)(?:\s*\[[^\]]*\])?>/g)].map((m) => m[1]);
+const refs = (s) => [...s.matchAll(/<([^'>\s[]+)(?:\s*\[[^\]]*\])?>/g)].map((m) => m[1]);
 const prefs = (s) => [...s.matchAll(/<'([^']+)'>/g)].map((m) => m[1]);
 const addP = (n) => { if (P[n] || !props[n]) return; P[n] = ranged(props[n].syntax, webP[n]); refs(P[n]).forEach(addS); prefs(P[n]).forEach(addP); };
 const addS = (n) => { if (S[n] || !syn[n]) return; S[n] = ranged(syn[n].syntax, webS[n]); refs(S[n]).forEach(addS); prefs(S[n]).forEach(addP); };

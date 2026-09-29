@@ -35,7 +35,10 @@ function calcType(s: string): string | undefined {
   };
   const sum = () => {
     let a = product();
-    while (toks[i] === "+" || toks[i] === "-") i++, a = product() === a ? a : undefined;
+    while (toks[i] === "+" || toks[i] === "-") {
+      i++;
+      a = product() === a ? a : undefined;
+    }
     return a;
   };
   return sum();
