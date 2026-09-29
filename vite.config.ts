@@ -218,7 +218,8 @@ export default defineConfig({
 		},
 	},
 	fmt: {
-		ignorePatterns: ["**/node_modules/**", "**/dist/**", ".beans/**", ...outOfScope],
+		// What the formatter skips is in .prettierignore: `vp fmt` reads that file, not this list.
+		ignorePatterns: ["**/node_modules/**", "**/dist/**", ".beans/**"],
 		printWidth: 120,
 		tabWidth: 2,
 		useTabs: true,
