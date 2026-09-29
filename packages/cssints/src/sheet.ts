@@ -48,9 +48,16 @@ export const addGlobal = Effect.fn("cssints.addGlobal")(function* (key: string, 
   if (!globals.has(key)) globals.set(key, css);
 });
 
-// What a module records of its token sets and themes: one line each, sorted by `key` when the sheet is rendered.
-export const themedEntries = (themed: Map<string, Themed>, file: string): string[] =>
-  [...themed.values()].filter((t) => t.file === file).map((t) => `${THEME}${t.key}\t${t.css}`);
+// What a module records of token sets and themes: those it made, and those that set or read a variable it uses (`names`).
+// One line each, sorted by `key` when the sheet is rendered.
+export const themedEntries = (
+  themed: Map<string, Themed>,
+  file: string,
+  names: Set<string>,
+): string[] =>
+  [...themed.values()]
+    .filter((t) => t.file === file || t.names.some((n) => names.has(n)))
+    .map((t) => `${THEME}${t.key}\t${t.css}`);
 
 /** The rules of `entries`: class names, and the text of `@property` rules (once each, whichever module has them). */
 export const renderSheet = Effect.fn("cssints.renderSheet")(function* (

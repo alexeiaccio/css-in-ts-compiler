@@ -160,7 +160,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
         yield* record(id, [
           ...classes,
           ...[...names].flatMap((n) => properties.get(n)?.css ?? []),
-          ...themedEntries(themed, id),
+          ...themedEntries(themed, id, names),
         ]);
       }
       return sites;

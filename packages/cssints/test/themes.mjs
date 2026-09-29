@@ -118,6 +118,13 @@ assert.ok(css.lastIndexOf("@property") < css.indexOf("@layer _.k {"), css);
 // themes are the rules of the module that calls createGlobalTheme
 assert.ok(!sheet("themes-mapper.ts").includes("@media"), "a theme belongs to its own module");
 
+// a module that only uses tokens has the rules that set them, from the module that made those
+await client.transformRequest("/fixtures/themes-use.ts");
+css = sheet("themes-use.ts");
+assert.ok(css.includes("@media (prefers-color-scheme: dark){:root{--th-bg:#0b0b0f"), css);
+assert.ok(css.includes("[data-tight]{--gap-md:4px}"), css);
+assert.ok(!css.includes(".light{"), "a theme that sets no token it uses stays out");
+
 // Errors, located at the call: an unknown path, a value of another type, a condition that is not a theme
 for (const [f, message, column] of [
   ["bad-path", /^cssints: createGlobalTheme\(\): there is no token at badpath\.nope$/, 0],

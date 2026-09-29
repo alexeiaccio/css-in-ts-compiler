@@ -49,12 +49,14 @@ export interface TokenDef {
 /**
  * A rule of a token set or a theme, in layer _.k after the globals (sheet.ts). `key` orders them: the kind (0 the
  * `:root` declarations of aliases, 1 themes under a condition, 2 themes under a selector), then the place in the source.
+ * `names` are the variables it sets or reads: a module that uses one of them has the rule in its sheet too (plugin.ts).
  * `theme` is what a contrast check reads: the values the theme sets, by variable name.
  */
 export interface Themed {
   file: string;
   key: string;
   css: string;
+  names: string[];
   theme?: { label: string; values: Map<string, string> };
 }
 

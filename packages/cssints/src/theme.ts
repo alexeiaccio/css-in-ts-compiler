@@ -303,6 +303,7 @@ export const createTokens = (...args: unknown[]): unknown =>
           file,
           key: `0:${file}#${String(site).padStart(6, "0")}.${n}`,
           css: `:root{${live.join(";")}}`,
+          names: set.aliases.flatMap((a) => [a.name, a.target]),
         });
       }
       return root;
@@ -407,6 +408,7 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
         file: at.file,
         key: `${typeof condition === "string" ? 2 : 1}:${at.file}#${String(at.site).padStart(6, "0")}.${n}`,
         css: block(decls.join(";")),
+        names: decls.map((d) => d.slice(0, d.indexOf(":"))),
         theme: { label, values: changed },
       });
       return DONE;
