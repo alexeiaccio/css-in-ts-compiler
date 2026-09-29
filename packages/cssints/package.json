@@ -1,34 +1,38 @@
 {
-	"name": "cssints",
-	"version": "0.0.0",
-	"private": true,
-	"type": "module",
-	"exports": {
-		".": {
-			"browser": "./src/runtime.mjs",
-			"default": "./src/index.mjs"
-		},
-		"./vite": "./src/plugin.mjs"
-	},
-	"sideEffects": false,
-	"scripts": {
-		"test": "cd test && node run.mjs fixtures/risk*.ts fixtures/typed*.ts fixtures/tokens-typed.ts fixtures/helper-use.ts fixtures/cv.ts fixtures/order.ts && ! node run.mjs fixtures/invalid.ts > /dev/null && node run.mjs fixtures/no-attribute.ts | grep -q \"without the attribute\" && node run.mjs fixtures/chain-error.ts | grep -q \"has no .padding()\" && node run.mjs fixtures/cv-string.ts | grep -q \"CSS strings are gone\" && node contexts.mjs && node runtime.mjs && node map-check.mjs && node sheet.mjs && node spec/race.mjs && cd hmr && node hmr.mjs && ORDER=button-first node hmr.mjs",
-		"test:mbt": "cd test && node spec/mbt.mjs"
-	},
-	"dependencies": {
-		"@cssints/css-grammar": "workspace:*",
-		"effect": "4.0.0-beta.107",
-		"happy-dom": "^20.14.5",
-		"lightningcss": "^1.32.0",
-		"magic-string": "^0.30.0",
-		"mdn-data": "2.27.1",
-		"oxc-parser": "^0.149.0"
-	},
-	"peerDependencies": {
-		"vite": "^8.3.0"
-	},
-	"devDependencies": {
-		"@jridgewell/trace-mapping": "^0.3.31",
-		"vite": "^8.3.0"
-	}
+  "name": "cssints",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/types.ts",
+      "browser": "./src/runtime.ts",
+      "default": "./src/index.ts"
+    },
+    "./vite": "./src/plugin.ts"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "members": "node scripts/members.ts",
+    "test": "cd test && node run.mjs fixtures/risk*.ts fixtures/typed*.ts fixtures/tokens-typed.ts fixtures/helper-use.ts fixtures/cv.ts fixtures/order.ts && ! node run.mjs fixtures/invalid.ts > /dev/null && node run.mjs fixtures/no-attribute.ts | grep -q \"without the attribute\" && node run.mjs fixtures/chain-error.ts | grep -q \"has no .padding()\" && node run.mjs fixtures/cv-string.ts | grep -q \"CSS strings are gone\" && node contexts.mjs && node runtime.mjs && node map-check.mjs && node sheet.mjs && node spec/race.mjs && cd hmr && node hmr.mjs && ORDER=button-first node hmr.mjs",
+    "test:mbt": "cd test && node spec/mbt.mjs",
+    "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty"
+  },
+  "dependencies": {
+    "@cssints/css-grammar": "workspace:*",
+    "effect": "4.0.0-beta.107",
+    "happy-dom": "^20.14.5",
+    "lightningcss": "^1.32.0",
+    "magic-string": "^0.30.0",
+    "mdn-data": "2.27.1",
+    "oxc-parser": "^0.149.0"
+  },
+  "devDependencies": {
+    "@jridgewell/trace-mapping": "^0.3.31",
+    "vite": "^8.3.0"
+  },
+  "peerDependencies": {
+    "vite": "^8.3.0"
+  }
 }

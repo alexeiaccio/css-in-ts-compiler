@@ -1,1 +1,19 @@
-{ "compilerOptions": { "strict": true, "noEmit": true, "target": "ES2022", "module": "ESNext", "moduleResolution": "bundler", "skipLibCheck": true, "allowImportingTsExtensions": true, "types": ["node"] }, "include": ["src/*.ts", "test/*.ts"] }
+{
+  "$schema": "../../node_modules/@effect/tsgo/schema.json",
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "types": ["node"],
+    "plugins": [{ "name": "@effect/language-service" }]
+  },
+  "include": ["src/*.ts", "test/*.ts"]
+}

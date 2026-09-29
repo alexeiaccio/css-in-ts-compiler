@@ -29,7 +29,10 @@ export class CSSColorValue extends CSSStyleValue<"color"> {
   }
 }
 
-const unit = <T extends string>(u: string) => (v: number) => new CSSUnitValue<T>(v, u);
+const unit =
+  <T extends string>(u: string) =>
+  (v: number) =>
+    new CSSUnitValue<T>(v, u);
 export const CSS = {
   px: unit<"length">("px"),
   rem: unit<"length">("rem"),

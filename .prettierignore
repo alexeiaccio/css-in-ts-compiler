@@ -1,0 +1,13 @@
+# Read by `vp fmt` (oxfmt) with .gitignore; the fmt.ignorePatterns of vite.config.ts is not applied by `vp fmt`.
+# Out of scope for 0.1.
+packages/plugin-icon
+docs/archive
+.beans
+
+# Inputs of the plugin tests: import build-time members, some are invalid on purpose, positions matter.
+packages/cssints/test/fixtures
+
+# Generated (bun run extract, bun run members) and the type-level recognizer, whose layout stays as it is.
+packages/css-grammar/src/css.ts
+packages/css-grammar/src/mdn.ts
+packages/cssints/src/members.ts

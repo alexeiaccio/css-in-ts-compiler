@@ -5,7 +5,17 @@ import type { Matches } from "../src/css";
 import type { properties } from "../src/mdn";
 import { CSS, CSSColorValue } from "../src/values";
 type P = typeof properties;
-type Check<C> = { [K in keyof C]: C[K] extends readonly [infer N extends keyof P, infer A extends readonly any[], infer E] ? (Matches<P[N], Join<A>> extends E ? true : [N, Join<A>]) : never };
+type Check<C> = {
+  [K in keyof C]: C[K] extends readonly [
+    infer N extends keyof P,
+    infer A extends readonly any[],
+    infer E,
+  ]
+    ? Matches<P[N], Join<A>> extends E
+      ? true
+      : [N, Join<A>]
+    : never;
+};
 type Failed = Exclude<Check<typeof typedCases>[number], true>;
 export const probeTyped: [Failed] extends [never] ? true : Failed = true;
 

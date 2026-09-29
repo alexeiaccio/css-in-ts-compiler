@@ -1,10 +1,16 @@
 import { createServer } from "vite";
 
-import cssints from "../src/plugin.mjs";
+import cssints from "../src/plugin.ts";
 
 const root = import.meta.dirname;
 const plugins = cssints();
-const server = await createServer({ root, configFile: false, logLevel: "warn", server: { middlewareMode: true, watch: null }, plugins });
+const server = await createServer({
+  root,
+  configFile: false,
+  logLevel: "warn",
+  server: { middlewareMode: true, watch: null },
+  plugins,
+});
 const client = server.environments.client;
 let failed = false;
 for (const f of process.argv.slice(2)) {
