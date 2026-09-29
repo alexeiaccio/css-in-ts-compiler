@@ -88,6 +88,31 @@ for (const f of ["b", "c"]) {
   assert.deepEqual({ line: e.loc.line, column: e.loc.column }, { line: 4, column: 17 });
 }
 
+// resolution, url, image and the integer, angle, time and custom-ident types: used where they go, one @property each.
+await client.transformRequest("/fixtures/tokens-types.ts");
+const types = plugins[0].api.sheet([`${root}/fixtures/tokens-types.ts`]);
+for (const [name, syntax, initial] of [
+  ["level", "integer", "3"],
+  ["spin", "angle", "0.25turn"],
+  ["dur", "time", "200ms"],
+  ["name", "custom-ident", "slide"],
+  ["dpr", "resolution", "2dppx"],
+  ["src", "url", "url(/a.png)"],
+  ["img", "image", "linear-gradient(red, blue)"],
+  ["pic", "image", "url(/a.png)"],
+])
+  assert.ok(
+    types.includes(
+      `@property --types-${name}{syntax:"<${syntax}>";inherits:true;initial-value:${initial}}`,
+    ),
+    types,
+  );
+assert.ok(types.includes("._1x3rr0t{background-image:var(--types-src)}"), types);
+// an image is not a <url>: it is checked as a gradient there
+e = await failure("fixtures/token-image-as-url.ts");
+assert.match(e.message, /^marker-start: unexpected "linear-gradient\(red" in/);
+assert.deepEqual({ line: e.loc.line, column: e.loc.column }, { line: 5, column: 19 });
+
 // Dev: a changed initial value updates the sheet.
 const tmp = mkdtempSync(join(root, ".tmp-tokens-"));
 const file = join(tmp, "hmr.ts");
