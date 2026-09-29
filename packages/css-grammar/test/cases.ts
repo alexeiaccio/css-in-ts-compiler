@@ -45,6 +45,9 @@ export const cases = [
   ["animation-duration", "1s", true],
   ["transition-duration", "250ms, 0.5s", true],
   ["font-style", "oblique 1.5rad", true],
+  ["font-variant", "none", true],
+  ["font-variant", "common-ligatures small-caps character-variant(x-c1)", true],
+  ["animation", "auto, 578.7s", true],
   ["font-style", "oblique 90deg", true],
   ["dynamic-range-limit", "dynamic-range-limit-mix(standard 50%, constrained 50%, no-limit 1%)", true],
 

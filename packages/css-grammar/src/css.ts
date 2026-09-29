@@ -209,7 +209,9 @@ type RepN<X, S extends string, Lo extends any[], Hi extends any[], I extends any
 }[I["length"] extends Hi["length"] ? "done" : "next"];
 
 // || (All=false: at least one part) and && (All=true: every part), any order, each part at most once.
-type AnyOrder<Xs extends Node[], S extends string, All extends boolean> = Xs extends [] ? S : TryEach<Xs, Xs, S, All, []>;
+// `[S] extends [never]`: a part that failed left nothing to continue from. Without this stop, a failed part still
+// recursed through every permutation of the others (font-variant "none": 4.3 M instantiations and TS2589).
+type AnyOrder<Xs extends Node[], S extends string, All extends boolean> = [S] extends [never] ? never : Xs extends [] ? S : TryEach<Xs, Xs, S, All, []>;
 type TryEach<Parts extends Node[], Todo extends Node[], S extends string, All extends boolean, I extends any[]> =
   Todo extends [infer H, ...infer R extends Node[]]
     ? (Consume<H, S> extends infer R1 extends string

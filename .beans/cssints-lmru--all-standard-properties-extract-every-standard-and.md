@@ -21,6 +21,6 @@ Act on cssints-unkt (docs/research/grammar-coverage.md). Blocked by the TS + Eff
 - [x] Twin and gen.ts: range bounds with units (`<time [0s,∞]>`, `<angle [-90deg,90deg]>`), since today every value of animation-duration, transition-duration and font-style fails
 - [x] Open repetition `{A,}` / `#{A,}` in both twins and gen.ts
 - [ ] The missing primitives: `url`, `zero`, `resolution`, `flex`, `number-token`, `hash-token`, `ident`, `declaration-value`, `intrinsic-size-keyword` (in both twins and the generator)
-- [ ] css.ts: the `[S] extends [never]` short-circuit in `AnyOrder`; `font-variant: "none"` drops from 4.3 M instantiations to about 51 k; no TS2589 on any property
+- [x] css.ts: the `[S] extends [never]` short-circuit in `AnyOrder`; `font-variant: "none"` drops from 4.3 M instantiations to about 51 k; no TS2589 on any property
 - [ ] diff-support over all properties: classify the unexplained standard rows (820 in the research) by cause, fix ours, and extend KNOWN and the prose rules; types vs twin agree on every row
 - [ ] Budgets updated and recorded (per-call cost ~4.2 k; the unused table costs 0)
