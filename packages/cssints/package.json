@@ -4,7 +4,10 @@
 	"private": true,
 	"type": "module",
 	"exports": {
-		".": "./src/index.mjs",
+		".": {
+			"browser": "./src/runtime.mjs",
+			"default": "./src/index.mjs"
+		},
 		"./vite": "./src/plugin.mjs"
 	},
 	"sideEffects": false,
