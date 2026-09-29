@@ -11,12 +11,16 @@ import { CLIENT, start } from "./harness.mjs";
 
 const v = (x) => (x?.["#bigint"] ? Number(x["#bigint"]) : x?.["#map"] ? Object.fromEntries(x["#map"].map(([k, y]) => [v(k), v(y)])) : x?.["#set"] ? x["#set"].map(v) : x && typeof x === "object" ? Object.fromEntries(Object.entries(x).map(([k, y]) => [k, v(y)])) : x);
 
+const key = (os) => [...new Set(os.map((o) => `${o.self}/${o.tokens}`))].sort();
 const spec = (st) => {
   const s = v(Object.entries(st).find(([k]) => k.endsWith("::s"))[1]);
-  return Object.fromEntries(CLIENT.map((c) => {
-    const o = s.cached[c];
-    return [c, o.src < 0 ? null : { src: o.src, self: o.self, tokens: o.tokens }];
-  }));
+  return {
+    ...Object.fromEntries(CLIENT.map((c) => {
+      const o = s.cached[c];
+      return [c, o.src < 0 ? null : { src: o.src, self: o.self, tokens: o.tokens }];
+    })),
+    sheet: key(CLIENT.map((c) => s.rules[c]).filter((o) => o.self >= 0)),
+  };
 };
 
 const [nTraces = 10, maxSteps = 8] = process.argv.slice(2).map(Number);
@@ -52,7 +56,7 @@ try {
       const picks = Object.fromEntries(Object.entries(v(st["mbt::nondetPicks"])).filter(([, p]) => p.tag === "Some").map(([k, p]) => [k, p.value]));
       await actions[action](picks);
       const want = spec(st);
-      const got = Object.fromEntries(CLIENT.map((c) => [c, s.served(c)]));
+      const got = { ...Object.fromEntries(CLIENT.map((c) => [c, s.served(c)])), sheet: key(s.sheet()) };
       if (JSON.stringify(got) !== JSON.stringify(want)) {
         throw new Error(`${file} state ${i} ${action} ${JSON.stringify(picks)}: served ${JSON.stringify(got)}, model ${JSON.stringify(want)} (QUINT_SEED=${seed})`);
       }

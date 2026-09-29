@@ -49,12 +49,13 @@
         "@cssints/css-grammar": "workspace:*",
         "effect": "4.0.0-beta.107",
         "happy-dom": "^20.14.5",
+        "lightningcss": "^1.32.0",
         "magic-string": "^0.30.0",
+        "mdn-data": "2.27.1",
         "oxc-parser": "^0.149.0",
       },
       "devDependencies": {
         "@jridgewell/trace-mapping": "^0.3.31",
-        "lightningcss": "^1.32.0",
         "vite": "^8.3.0",
       },
       "peerDependencies": {

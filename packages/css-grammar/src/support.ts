@@ -20,16 +20,12 @@
 //   - range targets like "ios_saf 18.5-18.7" become their lower bound. Agents BCD does not track (op_mini, kaios,
 //     and_qq, and_uc) are skipped.
 import type { BrowserName, CompatData, Identifier, SupportStatement } from "@mdn/browser-compat-data";
-import type browserslistT from "browserslist";
 
+import { browsers as listBrowsers } from "./browsers.ts";
 import { properties, syntaxes } from "./mdn.ts";
 
-// Node's require, not import: imported through the Vite Module Runner, browserslist left the runner's
-// server.close() pending (run.mjs exited 13 on risk5 + risk6). Cause not found; require sidesteps it.
-// getBuiltinModule, not `import "node:module"`: the client build scans macro.mjs and warns on node: imports.
-const req = process.getBuiltinModule("node:module").createRequire(import.meta.url);
-const bcd: CompatData = req("@mdn/browser-compat-data");
-const browserslist: typeof browserslistT = req("browserslist");
+// require, not import: see browsers.ts.
+const bcd: CompatData = process.getBuiltinModule("node:module").createRequire(import.meta.url)("@mdn/browser-compat-data");
 const props: Record<string, string> = properties;
 const syns: Record<string, string> = syntaxes;
 
@@ -40,8 +36,8 @@ const BCD_NAME: Record<string, BrowserName> = {
 };
 
 export type Target = [agent: string, version: string];
-export const targets = (query = process.env.BROWSERSLIST ?? "defaults"): Target[] =>
-  browserslist(query).map((t) => [t.split(" ")[0]!, t.split(" ")[1]!.split("-")[0]!] as Target).filter(([a]) => BCD_NAME[a]);
+export const targets = (query?: string): Target[] =>
+  listBrowsers(query).map((t) => [t.split(" ")[0]!, t.split(" ")[1]!.split("-")[0]!] as Target).filter(([a]) => BCD_NAME[a]);
 const DEFAULT = targets();
 
 const cmp = (a: string, b: string) => {

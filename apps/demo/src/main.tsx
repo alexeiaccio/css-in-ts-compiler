@@ -1,4 +1,4 @@
-import "cssints/layers.css";
+import "virtual:cssints.css";
 import React from "react";
 import ReactDOM from "react-dom/client";
 

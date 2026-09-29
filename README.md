@@ -18,9 +18,14 @@ Status: research restart. Decisions and findings are in [docs/wayfinder.md](docs
 
 ```ts
 // vite.config.ts
-import cssints from "cssints/vite";
+import cssints, { targets } from "cssints/vite";
 
-export default { plugins: [cssints()], css: { transformer: "lightningcss" } };
+export default { plugins: [cssints()], css: { transformer: "lightningcss", lightningcss: { targets } } };
+```
+
+```ts
+// the entry, once
+import "virtual:cssints.css";
 ```
 
 ```ts
@@ -30,13 +35,18 @@ export const pad = css.p(4); // → "_lwugp7"
 export const row = css.flex().alignItems("center"); // → "_1s47490 _1ob5z5m"
 ```
 
+`virtual:cssints.css` is one sheet with every rule once, sorted by layer, then condition, then shorthand before longhand, then class name:
+
 ```css
-@layer _.a{._lwugp7{padding:1rem}}
-@layer _.a{._1s47490{display:flex}}
-@layer _.a{._1ob5z5m{align-items:center}}
+@layer _.a, _.b, _.c, _.d, _.e;
+@layer _.a {
+  ._lwugp7{padding:1rem}
+  ._1ob5z5m{align-items:center}
+  ._1s47490{display:flex}
+}
 ```
 
-Import `cssints/layers.css` once in the entry to declare the layer order.
+`targets` comes from the browserslist query of the support warnings (`BROWSERSLIST`, default `defaults`).
 
 ## Development
 

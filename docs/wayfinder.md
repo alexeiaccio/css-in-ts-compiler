@@ -627,3 +627,25 @@ The demo's CSS is byte-identical after the migration. `grid().templateColumns(..
 `cn` is build-time only, and no `cn` or eval-time code reaches the demo bundle.
 
 `cv` takes css values for `base` and for every variant: one property, `cn(...)` or a `flex()` chain. The old CSS-string form is a build error that shows the new form. The demo's `Card` was migrated, and its CSS is byte-identical.
+
+## One global sorted stylesheet (cssints-vzd9)
+
+The CSS output is one stylesheet, `virtual:cssints.css`, imported once from the app entry. It replaces `layers.css` and the per-module CSS modules. The plugin records each module's classes, and the sheet is their union, so every rule appears once.
+
+Rules are sorted by:
+1. layer;
+2. condition, a slot that stays empty until conditions land;
+3. shorthand before longhand, by the number of leaf longhands in mdn-data `computed`, so `border` comes before `border-top`;
+4. class name.
+
+So a longhand wins whatever the order of arguments to `cx`.
+
+- **Dev.** A change to a module's rules invalidates the sheet, and Vite updates it without a reload. The browser drops an HMR update for a module that has not run yet, which left a cold page load with 0 of 70 rules. So the sheet now reports its version to the server, which re-sends it when stale.
+- **Build.** The sheet is a placeholder until `renderChunk`. There the final sorted CSS goes through Vite's own CSS plugins, as UnoCSS does it, so LightningCSS and minify still come from Vite.
+- **Targets.** The LightningCSS targets come from the same browserslist query as the support warnings (`css-grammar/src/browsers.ts`). The demo also sets `build.cssTarget: false`, because Vite otherwise replaces the targets.
+- **Model.** The Quint model covers the sheet. The new invariant `sheetFresh` says that once nothing is in flight, the rules of every module being served are in the sheet. A model with the stale-marking removed violates it. mbt compares the real sheet with the model at every step.
+- **Demo.** The same 70 rules as before, now in one sorted file.
+- **Known gaps:**
+  - rules of a module deleted in dev stay until the server restarts;
+  - forgetting `import "virtual:cssints.css"` gives no CSS and no warning;
+  - sheet updates are not debounced.

@@ -2,7 +2,7 @@
 // of synchronous JS between two awaits, so requests that Vite serves concurrently interleave.
 // FIX = true is plugin.mjs as it is; FIX = false is the version before cssints-hdui. Run (in packages/cssints/test):
 //   npx @informalsystems/quint run spec/runner.qnt --main fixed --invariants servedFresh readsOwnSites depsOfKnown \
-//     --witnesses settledAfterEdits --max-steps 60 --max-samples 100000
+//     sheetFresh --witnesses settledAfterEdits sheetServed --max-steps 60 --max-samples 100000
 //   --main original --invariant servedFresh --max-steps 14 --max-samples 2000000 --mbt --out-itf x.itf.json
 //   finds the 13-step counterexample; node spec/trace.mjs x.itf.json prints it.
 module runner {
@@ -27,6 +27,9 @@ module runner {
     sites: str -> Out, // globalThis.__cssints.sites (src unused)
     depsOf: Set[str], // depsOf.get("tokens.ts")
     cached: str -> Out, // client transformResult: what the next request of the module serves
+    rules: str -> Out, // usedBy: the rules each module's latest evaluation gave (src unused)
+    sheet: { ok: bool, rules: str -> Out }, // the sheet's client transformResult (ok false: loads rules again)
+    sheetTx: { busy: bool, stale: bool, rules: str -> Out }, // a sheet request in flight, from the rules it loaded
     clientImports: Set[str], // client graph knows c imports tokens (importAnalysis ran)
     watch: Set[str], // edited, watcher event pending
     hot: Set[str], // module graphs invalidated, hotUpdate hooks pending
@@ -48,7 +51,8 @@ module runner {
   pure val init0: S = {
     disk: FILES.mapBy(_ => 0), ssr: FILES.mapBy(_ => -1), fetching: FILES.mapBy(_ => -1), fetchStale: Set(),
     code: FILES.mapBy(_ => -1), evaluated: FILES.mapBy(_ => -1), sites: C.mapBy(_ => NONE), depsOf: Set(),
-    cached: C.mapBy(_ => NONE), clientImports: Set(), watch: Set(), hot: Set(), reloads: 0, seen: Set(),
+    cached: C.mapBy(_ => NONE), rules: C.mapBy(_ => NONE), sheet: { ok: false, rules: C.mapBy(_ => NONE) },
+    sheetTx: { busy: false, stale: false, rules: C.mapBy(_ => NONE) }, clientImports: Set(), watch: Set(), hot: Set(), reloads: 0, seen: Set(),
     txs: SLOTS.mapBy(_ => FREE), tickets: 0,
   }
 
@@ -137,7 +141,8 @@ module runner {
     else if (t.pc == "read") // runner.import resolved: read the sites, record depsOf, return the code
       if (hmr) setTx(s, i, if (t.c == "card" and s.seen.contains("button")) { ...FREE, c: "button", pc: "self" } else FREE)
       else if (s.sites.get(t.c).self < 0) setTx(s, i, FREE) // "site n was not evaluated": an error, nothing cached
-      else setTx({ ...s, depsOf: s.depsOf.union(Set(t.c)) }, i, { ...t, pc: "cache", self: s.sites.get(t.c).self, tokens: s.sites.get(t.c).tokens })
+      else setTx(record({ ...s, depsOf: s.depsOf.union(Set(t.c)) }, t.c, s.sites.get(t.c)), i,
+        { ...t, pc: "cache", self: s.sites.get(t.c).self, tokens: s.sites.get(t.c).tokens })
     else // "cache": the rest of Vite's pipeline, then transformRequest caches unless invalidated meanwhile
       setTx({ ...s, clientImports: s.clientImports.union(Set(t.c)),
         cached: if (t.stale) s.cached else s.cached.set(t.c, { src: t.src, self: t.self, tokens: t.tokens }) }, i, FREE)
@@ -151,11 +156,21 @@ module runner {
     if (s.seen == Set()) s1 else setTx(s1, 2, { ...FREE, c: first, pc: "self" })
   }
 
+  // record(): a changed rule set invalidates the sheet, softly, so a sheet request in flight is not cached either.
+  pure def record(s: S, c: str, r: Out): S =
+    if (s.rules.get(c) == r) s
+    else { ...s, rules: s.rules.set(c, r), sheet: { ...s.sheet, ok: false }, sheetTx: { ...s.sheetTx, stale: true } }
+
+  // A sheet request: load() reads the rules at once, the rest of Vite's pipeline caches it unless invalidated.
+  pure def doSheetLoad(s: S): S = { ...s, sheetTx: { busy: true, stale: false, rules: s.rules } }
+  pure def doSheetCache(s: S): S =
+    { ...s, sheetTx: { ...s.sheetTx, busy: false }, sheet: if (s.sheetTx.stale) s.sheet else { ok: true, rules: s.sheetTx.rules } }
+
   // ---- invariants
 
   pure def quiescent(s: S): bool = and {
     SLOTS.forall(i => s.txs.get(i).pc == "free"), s.watch == Set(), s.hot == Set(),
-    FILES.forall(f => s.fetching.get(f) < 0),
+    FILES.forall(f => s.fetching.get(f) < 0), not(s.sheetTx.busy),
   }
   // Main: once nothing is in flight, every module serves what its sources say (a module that is not cached
   // is transformed again on its next request).
@@ -167,12 +182,22 @@ module runner {
   // wyw's bug: every module that serves a result is known to hotUpdate as an importer of tokens.
   pure def depsKnown(s: S): bool = C.forall(c => s.cached.get(c) != NONE implies s.depsOf.contains(c))
 
+  // The sheet: once nothing is in flight, every module that serves a result has its rules in the sheet (a sheet
+  // that is not cached loads the rules on its next request).
+  pure def sheetOk(s: S): bool = quiescent(s) implies C.forall(c => s.cached.get(c) != NONE implies and {
+    s.rules.get(c).self == s.cached.get(c).self, s.rules.get(c).tokens == s.cached.get(c).tokens,
+    s.sheet.ok implies s.sheet.rules.get(c) == s.rules.get(c),
+  })
+
   var s: S
   val servedFresh = fresh(s)
   val readsOwnSites = ownSites(s)
   val depsOfKnown = depsKnown(s)
+  val sheetFresh = sheetOk(s)
   // witness: servedFresh is not vacuous
   val settledAfterEdits = quiescent(s) and s.disk.get("tokens") > 0 and C.forall(c => s.cached.get(c) != NONE)
+  // witness: sheetFresh is not vacuous
+  val sheetServed = settledAfterEdits and s.sheet.ok
 
   action init = s' = init0
 
@@ -184,7 +209,9 @@ module runner {
   action fetchDone = { nondet f = FILES.oneOf() all { s.fetching.get(f) >= 0, s' = doFetchDone(s, f) } }
   action transform = { nondet i = SLOTS.oneOf() all { txEnabled(s, i), s' = txStep(s, i) } }
   action runnerReload = all { reloadEnabled(s), s' = doReload(s) }
-  action step = any { editFile, fileChange, hotUpdate, request, fetchDone, transform, runnerReload }
+  action sheetLoad = all { not(s.sheet.ok), not(s.sheetTx.busy), s' = doSheetLoad(s) }
+  action sheetCache = all { s.sheetTx.busy, s' = doSheetCache(s) }
+  action step = any { editFile, fileChange, hotUpdate, request, fetchDone, transform, runnerReload, sheetLoad, sheetCache }
 
   // ---- model-based test (spec/mbt.mjs): the driver controls edits, watcher events, requests and when an ssr
   // transform finishes; in between the server runs until everything waits for one of those.

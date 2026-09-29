@@ -1,8 +1,11 @@
 import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
+import { browsers } from "@cssints/css-grammar/browsers";
 import { Data, Effect, Semaphore } from "effect";
 import { Window } from "happy-dom";
+import { browserslistToTargets } from "lightningcss";
 import MagicString from "magic-string";
 import { parseSync } from "oxc-parser";
 import { createServer, createServerModuleRunner } from "vite";
@@ -10,7 +13,37 @@ import { ESModulesEvaluator, ssrModuleExportsKey } from "vite/module-runner";
 
 const RUNTIME = "cssints";
 const FILE_RE = /\.(ts|tsx|js|jsx|mts|mjs)$/;
-const CSS_ID = "\0cssints.css";
+const SHEET_IMPORT = "virtual:cssints.css";
+const SHEET = `\0${SHEET_IMPORT}`;
+const LAYERS = "@layer _.a, _.b, _.c, _.d, _.e;";
+const hash = (s) => createHash("sha1").update(s).digest("hex").slice(0, 8);
+
+/** LightningCSS targets (css.lightningcss.targets) from the browserslist query of the support warnings. */
+export const targets = browserslistToTargets(browsers());
+
+// ---------- the sheet: every rule once, sorted by layer, condition, shorthand before longhand, class
+
+// A is a shorthand of B when every leaf longhand of B is among A's leaves (mdn-data `computed`; the direct lists
+// miss border > border-top). More leaves first is a total order that keeps that relation.
+const MDN = createRequire(import.meta.url)("mdn-data/css/properties.json");
+const leaves = (p) => (p !== "all" && Array.isArray(MDN[p]?.computed) ? MDN[p].computed.flatMap(leaves) : [p]);
+const WIDTH = new Map();
+const width = (p) => WIDTH.get(p) ?? WIDTH.set(p, new Set(leaves(p)).size).get(p);
+
+const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+const cmpCond = (a, b) => a.reduce((d, x, i) => d || (i < b.length ? x - b[i] : 0), 0) || a.length - b.length;
+const byOrder = (a, b) => cmp(a.layer, b.layer) || cmpCond(a.cond, b.cond) || width(b.prop) - width(a.prop) || cmp(a.cls, b.cls);
+
+export function renderSheet(classes) {
+  const rules = globalThis.__cssints?.rules ?? new Map();
+  const sorted = [...new Set(classes)].filter((c) => rules.has(c)).map((c) => ({ cls: c, ...rules.get(c) })).sort(byOrder);
+  let out = `${LAYERS}\n`;
+  sorted.forEach((r, i) => {
+    if (r.layer !== sorted[i - 1]?.layer) out += `${i ? "}\n" : ""}@layer ${r.layer} {\n`;
+    out += `  ${r.css}\n`;
+  });
+  return sorted.length ? `${out}}\n` : out;
+}
 
 // ---------- 1. instrument (ssr env): wrap every maximal css.* call in __site(file, n, ...)
 
@@ -141,9 +174,30 @@ export default function cssints({ inner = false } = {}) {
   let server; // dev server (dev) or a private one (build)
   let ownServer = false;
   let runner; // private runner with DOM bindings; server.environments.ssr.runner stays untouched
-  const cssById = new Map(); // virtual css id -> text
+  let build = false;
+  let cssPlugins = []; // vite:css, vite:css-post: in build they take the sheet in renderChunk
+  const usedBy = new Map(); // client module id -> its classes, sorted, space-separated
   const depsOf = new Map(); // dependency file -> Set<client module id>
   const inflight = new Set(); // client module ids inside transform: their deps are not in depsOf yet
+
+  const sheet = (ids = [...usedBy.keys()]) => renderSheet(ids.flatMap((id) => usedBy.get(id)?.split(" ") ?? []));
+
+  // Dev: the next request of the sheet loads it again, and the browser gets an HMR update.
+  const reloadSheet = () => {
+    const env = server?.environments.client;
+    const mod = env?.moduleGraph.getModuleById(SHEET);
+    if (!mod) return;
+    env.moduleGraph.invalidateModule(mod); // as in hotUpdate: a sheet transform in flight is not cached
+    env.reloadModule(mod);
+  };
+
+  // Called inside evalLock, so the last write for a module comes from its latest evaluation (runner.qnt `rules`).
+  const record = (id, classes) => {
+    const s = [...new Set(classes)].sort().join(" ");
+    if (usedBy.get(id) === s) return;
+    usedBy.set(id, s);
+    reloadSheet();
+  };
 
   const runnerDeps = (env, id, out = new Set(), seen = new Set()) => {
     const mod = env.moduleGraph.getModuleById(id);
@@ -157,11 +211,22 @@ export default function cssints({ inner = false } = {}) {
     return out;
   };
 
-  return {
+  const main = {
     name: "cssints",
     enforce: "pre",
+    api: { sheet }, // the sheet of all (or the given) client modules transformed so far: test/run.mjs
+    configResolved(config) {
+      build = config.command === "build";
+      cssPlugins = ["vite:css", "vite:css-post"].map((n) => config.plugins.find((p) => p.name === n));
+    },
     configureServer(s) {
       server = s;
+      if (inner) return;
+      // The browser drops an HMR update of a module that has not run yet: on a cold page load the sheet can be
+      // fetched, and updated, while other modules are still in transform. The sheet reports what it got.
+      s.environments.client.hot.on("cssints:sheet", (v) => {
+        if (!s.environments.client.moduleGraph.getModuleById(SHEET)?.transformResult?.code.includes(v)) reloadSheet();
+      });
     },
     async buildStart() {
       if (inner || server) return;
@@ -178,10 +243,20 @@ export default function cssints({ inner = false } = {}) {
       if (ownServer) await server.close();
     },
     resolveId(id) {
-      if (id.startsWith(CSS_ID)) return id;
+      if (id === SHEET_IMPORT) return SHEET;
     },
+    // Build: the rules are known only once every module is transformed, so a placeholder until renderChunk.
     load(id) {
-      if (id.startsWith(CSS_ID)) return cssById.get(id) ?? "";
+      if (id === SHEET) return build ? LAYERS : sheet();
+    },
+    // Before vite:css-post's renderChunk joins the chunk's CSS: run the sheet through vite:css (LightningCSS) and
+    // hand it to vite:css-post in place of the placeholder, as UnoCSS does. Its minify runs on the joined CSS.
+    async renderChunk(_, chunk) {
+      if (inner || !(SHEET in chunk.modules)) return null;
+      const [css, cssPost] = cssPlugins;
+      const r = await css.transform.handler.call(this, sheet(), SHEET);
+      await cssPost.transform.handler.call(this, r?.code ?? sheet(), SHEET);
+      return null;
     },
     async transform(code, id) {
       if (!FILE_RE.test(id) || id.includes("node_modules") || !code.includes(RUNTIME)) return;
@@ -209,9 +284,27 @@ export default function cssints({ inner = false } = {}) {
       return [...modules, ...affected];
     },
   };
+  // After import analysis: the sheet module tells the server which version it runs (see configureServer).
+  const version = {
+    name: "cssints:sheet-version",
+    apply: "serve",
+    transform: {
+      order: "post",
+      handler(code, id) {
+        if (id === SHEET && this.environment.name === "client") return `${code}\nimport.meta.hot.send("cssints:sheet", ${JSON.stringify(hash(code))});`;
+      },
+    },
+  };
+  return [main, version];
 
   async function clientTransform(code, id, parsed, env, warn) {
-    const sites = parsed.sites.length ? await Effect.runPromise(evalLock.withPermit(evaluate(runner, id))).finally(() => globalThis.__cssints?.warnings?.splice(0).forEach(warn)) : new Map();
+    const recorded = (sites) => {
+      if (parsed.sites.every((_, n) => sites.has(n))) record(id, [...sites.values()].flatMap((r) => [...r.matchAll(/"(_[a-z0-9]+(?: _[a-z0-9]+)*)"/g)].flatMap((m) => m[1].split(" "))));
+      return sites;
+    };
+    const sites = parsed.sites.length
+      ? await Effect.runPromise(evalLock.withPermit(Effect.map(evaluate(runner, id), recorded))).finally(() => globalThis.__cssints?.warnings?.splice(0).forEach(warn))
+      : recorded(new Map());
 
     const ms = new MagicString(code);
     parsed.sites.forEach((s, n) => {
@@ -221,13 +314,6 @@ export default function cssints({ inner = false } = {}) {
     });
     // Build-time imports are gone from the client; runtime ones (cx, _cv) stay.
     for (const decl of parsed.imp.decls) ms.remove(decl.start, decl.end);
-
-    const rules = globalThis.__cssints.rules;
-    const used = new Set([...sites.values()].flatMap((r) => [...r.matchAll(/"(_[a-z0-9]+(?: _[a-z0-9]+)*)"/g)].flatMap((m) => m[1].split(" "))));
-    const css = [...used].map((c) => rules.get(c)).filter(Boolean).join("\n");
-    const cssId = `${CSS_ID}?file=${id}&v=${createHash("sha1").update(css).digest("hex").slice(0, 8)}`;
-    cssById.set(cssId, css);
-    ms.prepend(`import ${JSON.stringify(cssId)};\n`);
 
     for (const dep of runnerDeps(env, id)) (depsOf.get(dep) ?? depsOf.set(dep, new Set()).get(dep)).add(id);
     return { code: ms.toString(), map: ms.generateMap({ hires: true, source: id, includeContent: true }) };
