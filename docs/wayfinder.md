@@ -872,3 +872,9 @@ Every token fits the typed parts of its own type and no others. Two exceptions a
 An image token does not fit a `<url>`-only position such as `marker-start`, at the type level or at build time; the build-time probe for an image is a gradient.
 
 One bug went away: a length or colour token used to fit `<custom-ident>` positions such as `animation-name`. A relative `url()` in a `<url>` token resolves against the page, not the stylesheet (noted in API.md). The sentinels cost about +15 instantiations unused, and at most +180 on the widest bench.
+
+## Built-in WebKit-only properties (cssints-6fay)
+
+`extract.mjs` has a `LIVE_NONSTANDARD` list next to the standard and experimental selection. It holds `-webkit-tap-highlight-color`, `-webkit-touch-callout`, `-webkit-box-reflect` and `-webkit-user-modify`, with grammars verbatim from mdn-data. They become members and are checked by both twins.
+
+All four are live in Chrome or Safari per BCD. `-webkit-overflow-scrolling` was dropped: it has no BCD entry, and Chrome 154, WebKit 26.6 and Firefox 155 reject it. `-webkit-user-modify` does not warn, because BCD files it under `user-modify` with a prefix, which the support lookup does not follow. Other prefixed properties come with the plugin API in 0.2.
