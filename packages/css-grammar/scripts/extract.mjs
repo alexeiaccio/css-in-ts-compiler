@@ -1,7 +1,7 @@
 // Emit the mdn-data syntax strings (verbatim) for a set of properties plus the closure of <refs> they use.
 // The one exception: numeric ranges mdn-data leaves out are copied from @webref/css (the spec grammars).
 import { createRequire } from "node:module";
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 const require = createRequire(import.meta.url);
 const props = require("mdn-data/css/properties.json"),
   syn = require("mdn-data/css/syntaxes.json");
@@ -45,10 +45,20 @@ const P = {},
   S = {};
 const refs = (s) => [...s.matchAll(/<([^'>\s[]+)(?:\s*\[[^\]]*\])?>/g)].map((m) => m[1]);
 const prefs = (s) => [...s.matchAll(/<'([^']+)'>/g)].map((m) => m[1]);
+// Research switch (cssints-h6qk), default off: WEBREF=all takes the webref grammar of every property that has one,
+// WEBREF=@list.json of the properties in that JSON array; a type that a webref grammar reaches is webref's too, under the
+// name `<type~w>` when it differs from mdn-data's (so the mdn-data properties keep theirs). EXTRACT_OUT redirects the output.
+const MODE = process.env.WEBREF ?? "";
+const OUT = process.env.EXTRACT_OUT ?? `${import.meta.dirname}/../src/mdn.ts`;
+const webList = MODE.startsWith("@")
+  ? new Set(JSON.parse(readFileSync(MODE.slice(1), "utf8")))
+  : null;
+const useWeb = (n) => !!webP[n] && (MODE === "all" || !!webList?.has(n));
 const addP = (n) => {
-  if (P[n] || !props[n]) return;
-  P[n] = ranged(props[n].syntax, webP[n]);
-  refs(P[n]).forEach(addS);
+  const web = useWeb(n) || (!!MODE && !props[n]);
+  if (P[n] || !(props[n] || (web && webP[n]))) return;
+  P[n] = web ? renamed(webP[n], true) : ranged(props[n].syntax, webP[n]);
+  refs(web ? webP[n] : P[n]).forEach((t) => addS(t, web));
   prefs(P[n]).forEach(addP);
 };
 // Colour (cssints-gcuz). mdn-data 2.27.1 has no relative colour syntax and no contrast-color(), if() or var() in
@@ -85,14 +95,29 @@ const COLOR = {
 };
 // the if() family goes through addC below: its conditions are the ones of @media, @container and @supports
 const IF = /^if(-|\(\))/;
+// names the twin reads as primitives or scans, which webref also defines (as `<number-token>`, `<url()> | <src()>`, ...)
+const NATIVE = new Set(["length-percentage", "integer", "url", "calc-sum"]);
 // a type mdn-data lacks (<autospace>, <attr-unit>) comes from the spec grammar
-const addS = (n) => {
-  if (S[n] || IF.test(n) || !(COLOR[n] || syn[n] || webS[n])) return;
-  S[n] = COLOR[n] ?? ranged(WEBREF.includes(n) ? webS[n] : (syn[n]?.syntax ?? webS[n]), webS[n]);
-  refs(S[n]).forEach(addS);
-  prefs(S[n]).forEach(addP);
+const typeText = (n, web) =>
+  COLOR[n] ??
+  (web && webS[n] && !NATIVE.has(n) && (MODE === "all" || !(n.endsWith("()") && syn[n]))
+    ? webS[n]
+    : ranged(WEBREF.includes(n) ? webS[n] : (syn[n]?.syntax ?? webS[n]), webS[n]));
+// a `<name()>` type cannot be renamed (the twin tests for `name(`): in a list, mdn-data's stays
+const tkey = (n, web) =>
+  web && syn[n] && !n.endsWith("()") && typeText(n, true) !== typeText(n, false) ? `${n}~w` : n;
+const renamed = (text, web) =>
+  web ? text.replace(/<([^'>\s[]+)(?=[\s\]>])/g, (m, t) => `<${tkey(t, true)}`) : text;
+const addS = (n, web = false) => {
+  const k = tkey(n, web);
+  if (S[k] || IF.test(n) || !(COLOR[n] || syn[n] || webS[n])) return;
+  S[k] = renamed(typeText(n, web), web);
+  refs(typeText(n, web)).forEach((t) => addS(t, web));
+  prefs(typeText(n, web)).forEach(addP);
 };
 want.forEach(addP);
+// twin-core.ts reads these two by name, for the channel keywords of color()
+if (MODE) ["predefined-rgb", "xyz-space"].forEach((n) => addS(n));
 // Conditions (cssints-mjgx): <media-query-list>, <container-condition>, <supports-condition> with their closures, in
 // `syntaxes`. @webref/css first (its <media-condition> is linear, mdn-data's retries every alternative), mdn-data where
 // webref has none. Deviations: no <general-enclosed> (an unknown feature is an error, not "false"), <ident> is
@@ -122,7 +147,7 @@ const lit = (o) =>
   );
 const v = (p) => require(`${p}/package.json`).version;
 writeFileSync(
-  `${import.meta.dirname}/../src/mdn.ts`,
+  OUT,
   `// verbatim from mdn-data ${v("mdn-data")}, plus the numeric ranges it omits, from @webref/css ${v("@webref/css")} (extract.mjs)\nexport const properties = ${lit(P)} as const;\nexport const syntaxes = ${lit(S)} as const;\n`,
 );
 console.log(
