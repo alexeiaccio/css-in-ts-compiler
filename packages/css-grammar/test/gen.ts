@@ -286,6 +286,16 @@ const relative = (origin: Arb): Arb =>
       .map(([o, cs, a]) => `${f}(from ${o} ${space}${cs.join(" ")}${a ? ` / ${a}` : ""})`);
   });
 
+// Pending substitution: now and then a keyword or a primitive is a `var(--x)`, which stands for any value there, so the
+// value stays valid. Chrome takes every value with a var() in it, whatever the grammar says, so it cannot judge these (its
+// verdicts on them are in the catalogue as "chrome accepts"); the twin and the types must. `VAR=0` leaves them out.
+// Not inside the arguments of var() and if(): the twin checks those calls (the name, the conditions).
+let inCall = 0;
+const holed = (a: Arb): Arb =>
+  inCall || process.env.VAR === "0"
+    ? a
+    : fc.oneof({ weight: 12, arbitrary: a }, { weight: 1, arbitrary: fc.constant("var(--x)") });
+
 // null = this node cannot be generated (opaque, unknown type, too deep); alternatives route around it.
 export function arb(n: Node, depth = 0): Arb | null {
   if (depth > 12) return null;
@@ -296,13 +306,17 @@ export function arb(n: Node, depth = 0): Arb | null {
   };
   switch (n[0]) {
     case "kw":
+      return holed(fc.constant(n[1]));
     case "lit":
       return fc.constant(n[1]);
     case "type": {
       const [, v, lo, hi] = n;
       const p = primitive(v, lo, hi);
-      if (p) return p;
+      if (p) return holed(p);
+      const call = v === "if()" || v === "var()";
+      if (call) inCall++;
       const g = syns[v] ? sub(parse(syns[v])) : null;
+      if (call) inCall--;
       const origin = v === "color" && depth < 8 ? sub(n) : null;
       return g && origin ? fc.oneof(g, relative(origin)) : g;
     }

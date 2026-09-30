@@ -332,10 +332,65 @@ function spaceChannels(body: string): readonly string[] {
   );
 }
 
+// Pending substitution (css-values-5, arbitrary substitution functions).
+//
+// THE RULE. A var(), env() or if() anywhere in a property value is a placeholder for zero or more component values,
+// commas included (what it becomes is known only at computed-value time, so the parser must accept it). The value is
+// valid when some choice of what each placeholder stands for makes the whole value match the grammar; everything that
+// is not a placeholder is checked as usual, which is stricter than Chrome (it takes any value that has a placeholder).
+// `padding: var(--a) 2px` and `margin: var(--a)` pass; `padding: var(--a) red` and `border: 1px var(--x) solud` fail
+// on `red` and `solud`. `var(--a)` alone passes for every property (the grammars are all non-empty).
+//
+// HOW. The recognizer reads forward and returns the set of remainders. A call at the head of the text is tried by every
+// leaf (keyword, literal, function, primitive) that fails there: the call stands for that leaf and ends (the text after
+// the call), stands for it and stays at the head for the next leaf (the text itself), or is empty (the leaf tries the
+// text after it). So it can take the place of any number of leaves, and it never swallows text after it. Around that:
+// - a function closes, and a value ends, after trailing placeholders (`skipPending`, `complete`);
+// - in a `#` list a placeholder may hold the comma;
+// - in `||` and `&&` a placeholder at the head may stand for any of the parts, whole, and for the head of one more, so
+//   no part is required there (`anyOrder`); without a placeholder at the head `&&` still takes every part.
+// The flag is `Ctx.pend`, set only for a value that has `var(`, `env(` or `if(` in it, so any other value pays nothing
+// beyond that one test per declaration.
+//
+// WHICH CALLS. `var(--name[, fallback])` by <var()>, `if()` by `ifCall` (its conditions go through <if-condition>, its
+// branch values are any <declaration-value>), and `env()`, which is the same kind of arbitrary-substitution function
+// (css-env-1: it may stand wherever a var() may, and `mathScan` already took it for anything), by the shape
+// `env(<ident> ...)`. Not `attr()`: its use outside `content` is typed, not arbitrary.
+//
+// LIMITS. A call is checked by shape only: the fallback, the branch values and the name of an env() variable are not
+// checked against the position, nor is the range of a number the call stands for. A call stands for whole component
+// values only: it cannot be glued to a token (`1var(--u)`) or end one. The stay state is not tracked per path, so the
+// comma omission of a seq sees a placeholder as nothing consumed. The types follow the same rule with the arguments as
+// balanced tokens (and only `var(--` for a var()); tokens are not touched: they are checked by literals of their type.
+const PENDING = /(?:var|env|if)\(/;
+const ENV = /^env\([ \n\t]*[A-Za-z_-][\w-]*/;
+// The length of the var(), env() or if() at the start of s, or -1.
+function pendingEnd(s: string): number {
+  if (!/^(?:var|env|if)\(/.test(s)) return -1;
+  if (s[0] === "i") return ifCall(s);
+  const { end } = args(s.slice(4), "");
+  if (end < 0) return -1;
+  const call = s.slice(0, end + 5);
+  return (s[0] === "v" ? matches(syns["var()"]!, call) : ENV.test(call)) ? end + 5 : -1;
+}
+function skipPending(s: string): string {
+  for (let e; (e = pendingEnd(s)) >= 0; ) s = trim(s.slice(e));
+  return s;
+}
+function pend(n: Node, s: string, ctx: Ctx, label?: string): Set<string> {
+  const e = pendingEnd(s);
+  if (e < 0) return NONE;
+  const rest = trim(s.slice(e));
+  return new Set([s, rest, ...consume(n, rest, ctx, label)]);
+}
+const complete = (rs: Set<string>, ctx: Ctx) =>
+  ctx.pend ? [...rs].some((r) => skipPending(r) === "") : rs.has("");
+
 interface Ctx {
   len: number;
   far: number;
   expected: Set<string>;
+  pend?: boolean; // the value has a var(), env() or if(): see "Pending substitution"
   ch?: readonly string[]; // the channel keywords in scope
   why?: [at: number, text: string]; // what was wrong with a math function at that position
 }
@@ -360,7 +415,9 @@ const flatMap = (rs: Set<string>, f: (r: string) => Set<string>) => union([...rs
 // `label` is the outermost named type we are inside, so errors say <color> rather than "aliceblue | ...".
 export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<string> {
   const leaf = (ok: boolean, rest: string, what: string) =>
-    ok ? new Set([trim(rest)]) : (fail(ctx, s, label ?? what), NONE);
+    ok
+      ? new Set([trim(rest)])
+      : (fail(ctx, s, label ?? what), ctx.pend ? pend(n, s, ctx, label) : NONE);
   const sub = (x: Node, r: string) => consume(x, r, ctx, label);
   switch (n[0]) {
     case "kw": {
@@ -386,9 +443,12 @@ export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<strin
         const ch = /^from[ \n\t]/.test(body) ? CHANNELS.get(n[1]) : undefined;
         ctx.ch = ch && n[1] === "color" ? [...ch, ...spaceChannels(body)] : ch;
       }
-      const rs = flatMap(sub(n[2], body), (r) =>
-        r.startsWith(")") ? new Set([trim(r.slice(1))]) : (fail(ctx, r, label ?? "')'"), NONE),
-      );
+      const rs = flatMap(sub(n[2], body), (r0) => {
+        const r = ctx.pend ? skipPending(r0) : r0;
+        return r.startsWith(")")
+          ? new Set([trim(r.slice(1))])
+          : (fail(ctx, r0, label ?? "')'"), NONE);
+      });
       ctx.ch = outer;
       return rs;
     }
@@ -403,7 +463,11 @@ export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<strin
     case "plus":
       return closure(sub(n[1], s), (r) => sub(n[1], r));
     case "list":
-      return closure(sub(n[1], s), (r) => (r.startsWith(",") ? sub(n[1], trim(r.slice(1))) : NONE));
+      return closure(sub(n[1], s), (r) => {
+        if (r.startsWith(",")) return sub(n[1], trim(r.slice(1)));
+        const e = ctx.pend ? pendingEnd(r) : -1; // a placeholder may hold the comma
+        return e < 0 ? NONE : union([sub(n[1], r), sub(n[1], trim(r.slice(e)))]);
+      });
     case "rep":
       return rep(s, Number(n[2]), n[3] === "∞" ? Infinity : Number(n[3]), (r) => sub(n[1], r));
     case "bang": {
@@ -413,9 +477,9 @@ export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<strin
       return rs;
     }
     case "or":
-      return anyOrder(n[1], s, false, sub);
+      return anyOrder(n[1], s, false, sub, ctx.pend);
     case "and":
-      return anyOrder(n[1], s, true, sub);
+      return anyOrder(n[1], s, true, sub, ctx.pend);
   }
 }
 
@@ -736,7 +800,11 @@ function consumeType(
       if (m !== NONE) rs = union([rs, m]);
     }
   } else rs = NONE;
-  if (rs === NONE) fail(ctx, s, label ?? `<${v}>`);
+  if (rs === NONE) {
+    fail(ctx, s, label ?? `<${v}>`);
+    if (ctx.pend && (PRIMITIVE[v] || SCAN[v] || v.endsWith("()")))
+      return pend(["type", v, lo, hi], s, ctx, label);
+  }
   if (lo === undefined || hi === undefined) return rs;
   // Ranges: the type level strips them, the twin checks the number that was consumed.
   const out = new Set<string>();
@@ -806,23 +874,32 @@ function rep(s: string, lo: number, hi: number, step: (r: string) => Set<string>
   }
 }
 
-// || (all=false: at least one part) and && (all=true: every part), any order, each part at most once.
+// || (all=false: at least one part) and && (all=true: every part), any order, each part at most once. A placeholder at the
+// head may stand for any of the parts, whole, and for the head of one more: so what follows it is any of the parts, or the
+// rest of the one it began, and no part is required (`all` is off). Without that the states that stay at the placeholder
+// would go through every order of the parts. Where no placeholder is at the head, `&&` still takes every part.
 function anyOrder(
   xs: Node[],
   s: string,
   all: boolean,
   sub: (x: Node, r: string) => Set<string>,
+  pend = false,
 ): Set<string> {
   if (!xs.length) return new Set([s]);
-  const out = new Set<string>();
+  const e = pend ? pendingEnd(s) : -1;
+  const q = e < 0 ? s : trim(s.slice(e)); // the text after the placeholder
+  const out =
+    e < 0 ? new Set<string>() : union([new Set([s, q]), anyOrder(xs, q, false, sub, pend)]);
   xs.forEach((x, i) => {
     for (const r1 of sub(x, s)) {
-      if (!all) out.add(r1);
+      if (e >= 0 && (r1 === s || r1 === q)) continue; // covered above
+      if (!all || e >= 0) out.add(r1);
       for (const r of anyOrder(
         xs.filter((_, j) => j !== i),
         r1,
-        all,
+        all && e < 0,
         sub,
+        pend,
       ))
         out.add(r);
     }
@@ -832,9 +909,16 @@ function anyOrder(
 
 // ---------------------------------------------------------------- public
 
-export function matches(syntax: string, s: string): boolean {
+// `pending`: `s` is a property value, where a var(), env() or if() is a placeholder (see "Pending substitution").
+export function matches(syntax: string, s: string, pending = false): boolean {
   const v = trim(s);
-  return consume(parseGrammar(syntax), v, { len: v.length, far: -1, expected: new Set() }).has("");
+  const ctx: Ctx = {
+    len: v.length,
+    far: -1,
+    expected: new Set(),
+    pend: pending && PENDING.test(v),
+  };
+  return complete(consume(parseGrammar(syntax), v, ctx), ctx);
 }
 
 // Twin of Valid<P, S>: returns the value, or throws with the furthest point reached and what was expected.
@@ -843,9 +927,9 @@ export function valid(p: string, s: string): string {
   if (!syntax)
     throw new UnknownPropertyError({ message: `${p}: no grammar for this property`, property: p });
   const v = trim(s);
-  const ctx: Ctx = { len: v.length, far: -1, expected: new Set() };
+  const ctx: Ctx = { len: v.length, far: -1, expected: new Set(), pend: PENDING.test(v) };
   const rs = consume(parseGrammar(syntax), v, ctx);
-  if (rs.has("")) return s;
+  if (complete(rs, ctx)) return s;
   for (const r of rs) fail(ctx, r, "end of value");
   const [token] = tok1(v.slice(ctx.far));
   const what = token ? `unexpected "${token}"` : "unexpected end";

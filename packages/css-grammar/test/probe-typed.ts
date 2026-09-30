@@ -1,7 +1,7 @@
 import { border, padding } from "../src/api-typed";
 import type { Join } from "../src/api-typed";
 import type { typedCases } from "./cases-typed";
-import type { Matches } from "../src/css";
+import type { MatchesValue } from "../src/css";
 import type { properties } from "../src/mdn";
 import { CSS, CSSColorValue } from "../src/values";
 type P = typeof properties;
@@ -11,7 +11,7 @@ type Check<C> = {
     infer A extends readonly any[],
     infer E,
   ]
-    ? Matches<P[N], Join<A>> extends E
+    ? MatchesValue<P[N], Join<A>> extends E
       ? true
       : [N, Join<A>]
     : never;

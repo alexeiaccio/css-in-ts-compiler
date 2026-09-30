@@ -165,6 +165,7 @@ css.token.set(muted, "red"); // error: private tokens cannot be set
 
 - **`style()` and `token.set()`** are build-time and take static values; the result is a style object, custom properties first. A dynamic value is set with a plain `style={{ "--color-primary": value }}`; a typed runtime setter is not part of 0.1.
 - **A token of the wrong type** is an error that names the token: `color: unexpected "1px" in "1px", expected <color> ("var(--gap)" is checked as "1px": a token stands for a value of its type)`.
+- **A raw `var()`, `env()` or `if()`** in a string part (`padding("var(--a)", "2px")`, `margin("env(safe-area-inset-top)")`) stands for any run of values, commas included, in any property, and the rest of the value is still checked: `padding("var(--a)", "red")` is an error, unlike in Chrome. Only the call's shape is checked (`var(--name)`, the conditions of an `if()`).
 - Design-token constraints and math (DTCG, Ariakit Tailwind) are researched in `docs/research/design-tokens.md`.
 
 #### Themes (decided 2026-09-29, cssints-exof)

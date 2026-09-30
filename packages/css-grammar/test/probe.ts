@@ -1,10 +1,10 @@
 import type { cases } from "./cases";
-import type { Matches } from "../src/css";
+import type { MatchesValue } from "../src/css";
 import type { properties } from "../src/mdn";
 type P = typeof properties;
 type Check<C> = {
   [K in keyof C]: C[K] extends readonly [infer N extends keyof P, infer S extends string, infer E]
-    ? Matches<P[N], S> extends E
+    ? MatchesValue<P[N], S> extends E
       ? true
       : [N, S]
     : never;

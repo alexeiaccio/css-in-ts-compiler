@@ -15,7 +15,8 @@ const run = <A, E>(effect: Effect.Effect<A, E>): A => {
   throw Cause.squash(exit.cause);
 };
 
-export const matches = (syntax: string, s: string) => run(matchesFx(syntax, s));
+// a value of a property: a var(), env() or if() in it stands for any value
+export const matches = (syntax: string, s: string) => run(matchesFx(syntax, s, true));
 export const valid = (p: string, s: string) => run(validFx(p, s));
 export const parse = (grammar: string) => run(parseFx(grammar));
 export const checkRules = (p: string, v: string) => run(checkRulesFx(p, v));
