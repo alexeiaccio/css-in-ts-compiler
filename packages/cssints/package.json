@@ -37,7 +37,8 @@
     "test:mbt": "cd test && node spec/mbt.mjs",
     "bench": "node ../css-grammar/bench/budget.mjs bench",
     "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
-    "pack:tgz": "node ../../scripts/pack.mjs"
+    "pack:tgz": "node ../../scripts/pack.mjs",
+    "test:smoke": "node test/smoke/smoke.mjs"
   },
   "dependencies": {
     "@cssints/css-grammar": "workspace:*",
