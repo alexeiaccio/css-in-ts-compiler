@@ -8,7 +8,7 @@ import { properties } from "@cssints/css-grammar/mdn";
 import { Cause, Effect, Exit } from "effect";
 
 import { MacroError } from "./errors.ts";
-import { type Property, registry } from "./registry.ts";
+import { type Kernel, type Property, registry } from "./registry.ts";
 
 /**
  * One condition of a style: an at-rule prelude (`@media (width >= 40rem)`) or a pseudo-class (`:hover`).
@@ -20,9 +20,14 @@ export interface Cond {
 }
 /** One declaration: property and value, under the conditions that wrap it (outermost first). */
 export type Decl = [prop: string, value: string, conds?: Cond[]];
-/** What a css.* builder returns: its declarations. */
+/**
+ * What a css.* builder returns: its declarations, and next to them the fixed classes it prints (`markers`, each with
+ * the key of the kernel it belongs to) and the kernels it needs. `cn()` merges both.
+ */
 export interface CssNode {
   __cssints: Decl[];
+  markers?: [marker: string, kernel: string][];
+  kernels?: Kernel[];
 }
 
 export const camel = (p: string) => p.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
@@ -155,6 +160,25 @@ const decl = (prop: string, name: string, args: unknown[]): Decl => {
       : args.join(" "),
   ];
 };
+
+// The markers and kernels of several nodes, each once (a kernel by identity: members share one by pointing at it; the
+// same key with another css is caught when the sheet registers it). Plain code: cn() and every condition call it.
+export function carried(nodes: CssNode[]): Pick<CssNode, "markers" | "kernels"> {
+  const out: Pick<CssNode, "markers" | "kernels"> = {};
+  for (const n of nodes) {
+    if (n.markers)
+      for (const m of n.markers) {
+        const all = (out.markers ??= []);
+        if (!all.some((x) => x[0] === m[0] && x[1] === m[1])) all.push(m);
+      }
+    if (n.kernels)
+      for (const k of n.kernels) {
+        const all = (out.kernels ??= []);
+        if (!all.includes(k)) all.push(k);
+      }
+  }
+  return out;
+}
 
 export function toDecls(member: string, args: unknown[]): Decl[] {
   if (member === "cn") {

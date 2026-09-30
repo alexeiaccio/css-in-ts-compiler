@@ -156,6 +156,10 @@ export const style = (...args: unknown[]): StyleNode => {
       sets.push(...a.__style.sets);
       decls.push(...a.__style.decls);
     } else if (isNode(a)) {
+      if (a.markers || a.kernels)
+        throw fail(
+          "cssints: style() takes plain declarations: an inline style has no marker class",
+        );
       if (a.__cssints.some(([, , conds]) => conds?.length))
         throw fail(
           "cssints: style() takes styles without conditions: an inline style has no media query or :hover",

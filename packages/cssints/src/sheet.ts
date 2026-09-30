@@ -4,12 +4,13 @@ import { createRequire } from "node:module";
 
 import { Effect } from "effect";
 
-import { type Rule, Registry, type Themed } from "./registry.ts";
+import { KERNEL } from "./kernel.ts";
+import { type Kernel, type Rule, Registry, type Themed } from "./registry.ts";
 
 // The entries of token sets and themes start with this and a tab: `@theme\t<key>\t<css>`.
 const THEME = "@theme\t";
 
-// _.k is the layer of global rules (addGlobal), below every class layer: _.a (no condition) to _.e (four).
+// _.k is the layer of global rules (addGlobal, kernels), below every class layer: _.a (no condition) to _.e (four).
 export const LAYERS = "@layer _.k, _.a, _.b, _.c, _.d, _.e;";
 
 interface MdnProperty {
@@ -70,15 +71,19 @@ export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
     .filter((e) => e.startsWith(THEME))
     .map((e) => e.split("\t") as [string, string, string])
     .sort((a, b) => cmp(a[1], b[1]));
+  const used = all
+    .filter((e) => e.startsWith(KERNEL))
+    .map((e) => JSON.parse(e.slice(KERNEL.length)) as Kernel)
+    .sort((a, b) => cmp(a.key, b.key));
   const sorted = all
     .flatMap((cls) => {
       const rule = rules.get(cls);
       return rule ? [{ cls, ...rule }] : [];
     })
     .sort(byOrder);
-  let out = `${LAYERS}\n${properties.map((p) => `${p}\n`).join("")}`;
-  if (globals.size || themes.length)
-    out += `@layer _.k {\n${[...globals.values(), ...themes.map((t) => t[2])].map((g) => `  ${g}\n`).join("")}}\n`;
+  let out = `${LAYERS}\n${[...properties, ...used.flatMap((k) => k.atProperty ?? [])].map((p) => `${p}\n`).join("")}`;
+  if (globals.size || used.length || themes.length)
+    out += `@layer _.k {\n${[...globals.values(), ...used.map((k) => k.css), ...themes.map((t) => t[2])].map((g) => `  ${g}\n`).join("")}}\n`;
   let layer = "";
   let wrap = ""; // the at-rules that are open
   let depth = 0;

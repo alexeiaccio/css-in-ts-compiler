@@ -23,6 +23,7 @@ import { verifyChecks } from "./contrast.ts";
 import { evaluate, DomEvaluator } from "./evaluate.ts";
 import { HookError, type PluginError, SiteMissingError } from "./errors.ts";
 import { instrument, RUNTIME, type Instrumented } from "./instrument.ts";
+import { kernelEntries } from "./kernel.ts";
 import { forget, Registry } from "./registry.ts";
 import { LAYERS, renderSheet, themedEntries } from "./sheet.ts";
 
@@ -148,7 +149,8 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
   ) {
     const recorded = Effect.fnUntraced(function* (sites: Map<number, string>) {
       if (parsed.sites.every((_, n) => sites.has(n))) {
-        const { rules, properties, themed } = yield* Registry;
+        const registry = yield* Registry;
+        const { rules, properties, themed } = registry;
         const texts = [...sites.values()];
         const classes = texts.flatMap((r) =>
           [...r.matchAll(/"(_[a-z0-9]+(?: _[a-z0-9]+)*)"/g)].flatMap((m) => m[1]!.split(" ")),
@@ -161,6 +163,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
           ...classes,
           ...[...names].flatMap((n) => properties.get(n)?.css ?? []),
           ...themedEntries(themed, id, names),
+          ...kernelEntries(registry, id),
         ]);
       }
       return sites;

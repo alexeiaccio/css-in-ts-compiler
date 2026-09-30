@@ -18,6 +18,25 @@ export interface Rule {
   tokens?: string[];
 }
 
+/**
+ * Global rules a style needs, registered with the sheet by `key` (`name@version`) on first use, in layer _.k.
+ * `atProperty` goes at the top of the sheet next to the tokens' `@property` rules; `requires` (BCD keys) gives a
+ * support warning when a target lacks one.
+ */
+export interface Kernel {
+  key: string;
+  css: string;
+  atProperty?: string;
+  requires?: string[];
+}
+/** A registered kernel: the custom properties it declares, the markers printed for it, the files that use it. */
+export interface KernelEntry {
+  kernel: Kernel;
+  vars: string[];
+  markers: Set<string>;
+  users: Set<string>;
+}
+
 /** The call site being evaluated, set by `__at` before its expression runs. */
 export interface At {
   file: string;
@@ -76,6 +95,8 @@ export interface RegistryState {
   rules: Map<string, Rule>;
   /** key -> CSS text of a global rule; rendered once each, in layer _.k (sheet.ts `addGlobal`) */
   globals: Map<string, string>;
+  /** key -> the kernels of the styles evaluated so far (sheet.ts `addKernel`): for collisions; the sheet reads the entries of a module */
+  kernels: Map<string, KernelEntry>;
   /** name -> the `@property` rule of every token declared so far (token.ts) */
   properties: Map<string, Property>;
   /** name -> what each token is worth (token.ts, theme.ts): the contrast check and the theme rules read it */
@@ -104,6 +125,7 @@ export const registry: RegistryState = (globalThis.__cssints ??= {
   sites: new Map(),
   rules: new Map(),
   globals: new Map(),
+  kernels: new Map(),
   properties: new Map(),
   defs: new Map(),
   themed: new Map(),
@@ -118,8 +140,10 @@ export const Registry = Context.Reference<RegistryState>("cssints/Registry", {
   defaultValue: () => registry,
 });
 
-// What `file` left of its token sets, themes and checks is dropped when it is about to run again, or has no site any more.
+// What `file` left of its kernels, token sets, themes and checks is dropped when it is about to run again, or has no site any more.
 export const forget = (file: string): void => {
+  for (const [k, e] of registry.kernels)
+    if (e.users.delete(file) && !e.users.size) registry.kernels.delete(k);
   for (const [k, t] of registry.themed) if (t.file === file) registry.themed.delete(k);
   for (const [k, c] of registry.checks) if (c.at.file === file) registry.checks.delete(k);
 };
