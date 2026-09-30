@@ -226,20 +226,18 @@ export default defineConfig({
     },
   },
   fmt: {
-    // What the formatter skips is in .prettierignore: `vp fmt` reads that file, not this list.
+    // What `vp fmt` applies today. vite-plus 1.0.0 does not read this block (checked on a bare project: `useTabs: true`
+    // here changes nothing, the same key in .oxfmtrc.json does), so oxfmt runs with its defaults; the values below are
+    // those defaults, written out so the config tells the truth. Tabs, 120 columns and import sorting were the old intent;
+    // switching to them is a mass reformat, to be done in a commit of its own if wanted (cssints-uhu6).
+    // What the formatter skips is in .prettierignore, which `vp fmt` reads.
     ignorePatterns: ["**/node_modules/**", "**/dist/**", ".beans/**"],
-    printWidth: 120,
+    printWidth: 100,
     tabWidth: 2,
-    useTabs: true,
+    useTabs: false,
     singleQuote: false,
     semi: true,
     trailingComma: "all",
     arrowParens: "always",
-    bracketSpacing: true,
-    bracketSameLine: false,
-    quoteProps: "as-needed",
-    sortImports: {
-      newlinesBetween: true,
-    },
   },
 });

@@ -82,14 +82,10 @@ Other deps:
 
 ### Formatting (oxfmt)
 
-- **What counts is `vp fmt --check`**: today it gives 2 spaces and about 100 columns, although the `fmt` block of the root `vite.config.ts` says tabs and 120. The code blocks in docs/API.md use tabs and are not formatted.
-- **Skipped by the formatter** (`.prettierignore`): the generated `members.ts` and `mdn.ts`, `css.ts`, the test fixtures, plugin-icon, docs/archive
-- **Line width**: 120 characters in the config
-- **Quotes**: Double quotes
-- **Semicolons**: Required
-- **Trailing commas**: Always
-- **Arrow function parens**: Always required
-- **Import sorting**: Enabled with newlines between groups
+- **What counts is `vp fmt --check`**: 2 spaces, 100 columns, double quotes, semicolons, trailing commas, parens on arrow functions (oxfmt defaults)
+- The `fmt` block of the root `vite.config.ts` states exactly these values. vite-plus 1.0.0 does not read that block; if a later version does, nothing changes. Import sorting is not applied.
+- **Skipped by the formatter** (`.prettierignore`): the generated `members.ts` and `mdn.ts`, `css.ts`, the test fixtures, plugin-icon, docs/archive, `.beans`
+- The code blocks in docs/API.md use tabs and are not formatted
 
 ### TypeScript Configuration
 

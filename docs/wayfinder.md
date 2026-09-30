@@ -1005,3 +1005,9 @@ Ten obsolete KNOWN entries were removed. Budgets moved by at most 0.4%, and the 
 `flex("1")`, `flex(1)`, `flex("1 1 0")` and `grid("auto / 1fr 1fr")` are the `flex` and `grid` shorthand properties, checked by the grammar. `flex()` and `grid()` with no argument stay the layout contexts. The two forms differ by argument count at build time and by overload in the types. The spacing-number rule does not apply to them, so `flex(1)` is `flex: 1`. `container` stays the condition, and its property is written `containerName`/`containerType`.
 
 Cost finding: overloads written inline in the generated `members.ts` added about 17% to `unused.ts`, because every consumer checks that file as source. A generic `Layout<P, M>` in `types.ts` costs under 1%. A member with a special call shape should be declared through a generic type, not inline in the generated file.
+
+## vp fmt and the fmt block (cssints-uhu6)
+
+vite-plus 1.0.0 does not read the `fmt` block of `vite.config.ts`. On a bare project `useTabs: true` there changes nothing, in `.ts` or `.mjs`, while the same key in `.oxfmtrc.json` applies. So oxfmt has always run with its defaults: 2 spaces, 100 columns, no import sorting.
+
+The block now states exactly those defaults, so the config tells the truth, and nothing changes if a later vite-plus starts reading it. No reformat was needed. Tabs, 120 columns and import sorting were the old intent; switching to them would be a mass reformat in a commit of its own.
