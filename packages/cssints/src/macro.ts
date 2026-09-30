@@ -36,6 +36,7 @@ import {
   type Decl,
 } from "./lib.ts";
 import { type At, registry, Registry, type RegistryState, type Rule } from "./registry.ts";
+import { _cv as runtimeCv, type CvRuntimeConfig } from "./runtime.ts";
 import { check, createGlobalTheme, createTokens, isDone, tokensOf } from "./theme.ts";
 import { isStyle, style, token, type StyleNode } from "./token.ts";
 
@@ -255,6 +256,16 @@ const cvOf = Effect.fnUntraced(function* (
 });
 
 export const cv = (config: CvConfig): CvNode => ({ __cv: config });
+
+// `_cv` during evaluation (index.ts exports this one, the browser gets runtime.ts): cv() is a node here, not the
+// config of class strings the plugin puts in its place, so a module that calls `_cv(cv(...))` at its top level
+// gets the same function it will have in the browser.
+export const _cv = (config: CvNode | CvRuntimeConfig) => {
+  if (!isCv(config)) return runtimeCv(config);
+  const exit = Effect.runSyncExit(cvOf(config.__cv));
+  if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
+  return runtimeCv(JSON.parse(exit.value) as CvRuntimeConfig);
+};
 
 // Any name besides these (css.p, css.alignItems) is a property. Named imports of build-time members come from
 // here too: the plugin rewrites them to destructure `css`, so the property list stays derived from the grammar.

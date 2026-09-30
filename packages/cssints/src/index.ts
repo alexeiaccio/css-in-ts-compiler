@@ -1,2 +1,2 @@
 export * from "./macro.ts";
-export * from "./runtime.ts";
+export { cx } from "./runtime.ts";
