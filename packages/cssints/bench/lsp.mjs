@@ -48,7 +48,9 @@ const t0 = performance.now();
 await request("initialize", {
   processId: process.pid,
   rootUri: pathToFileURL(demo).href,
-  capabilities: { textDocument: { diagnostic: {} } },
+  capabilities: {
+    textDocument: { diagnostic: {}, hover: { contentFormat: ["markdown", "plaintext"] } },
+  },
   workspaceFolders: [{ uri: pathToFileURL(demo).href, name: "demo" }],
 });
 notify("initialized", {});
@@ -89,9 +91,23 @@ const edit = async (label, from, to) => {
   });
   await diagnostics();
 };
-for (let i = 0; i < 3; i++) {
+for (let i = 0; i < (process.argv.length > 3 ? 0 : 3); i++) {
   await edit("valid edit", 'fontSize("0.875rem")', 'fontSize("0.9rem")');
   await edit("invalid edit", 'fontWeight("500")', 'fontWeight("bald")');
+}
+// Hover on the first call of each word (node bench/lsp.mjs src/App.tsx direction gap): the JSDoc of members.ts.
+const words = process.argv.length > 3 ? process.argv.slice(3) : ["fontSize", "hover"];
+for (const w of words) {
+  const at = text.indexOf(`${w}(`);
+  if (at < 0) throw new Error(`no ${w}( in ${file}`);
+  const pos = text.slice(0, at + 1).split("\n");
+  const t = performance.now();
+  const r = await request("textDocument/hover", {
+    textDocument: { uri },
+    position: { line: pos.length - 1, character: pos.at(-1).length },
+  });
+  const c = r.result?.contents;
+  console.log(`hover ${w} ${(performance.now() - t).toFixed(0)} ms\n${JSON.stringify(c)}\n`);
 }
 await request("shutdown", null);
 notify("exit", null);
