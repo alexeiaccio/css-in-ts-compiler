@@ -887,3 +887,16 @@ Every generated member carries a one-line JSDoc, so the editor hover explains th
 - an MDN link.
 
 Pseudo-class wrappers get the support row and the link. tsgo's hover does not show JSDoc on `flex()`/`grid()` chain methods yet, though tsc does. Instantiations did not change. `members.ts` grew from 35 KB to 142 KB. `node bench/lsp.mjs <file> <word>` prints a hover.
+
+## Ship 0.1 (cssints-808j)
+
+`bun run build` followed by `bun run pack:tgz`, in `packages/cssints` and in `packages/css-grammar`, produces two tarballs with only `dist/` (`.mjs` and `.d.mts`): cssints is 32 kB and css-grammar is 61 kB. The workspace still runs from sources: the top-level `exports` point at `src/*.ts`, and the published `exports` live in `publishConfig`. npm ignores that field, so `scripts/pack.mjs` stages `dist` with a merged manifest (`workspace:*` becomes `^0.1.0`) and runs `npm pack` on it.
+
+`bun run test:smoke` is the release check. It installs the tarballs with npm into a fresh Vite 8 and React app, builds it with plain `vite`, and asserts:
+- the CSS is right;
+- the only library code in the client bundle is the browser runtime;
+- tsgo and tsc 5.9 type-check the app, with `color("blu")` still an error.
+
+With `skipLibCheck`, an unused import of cssints now costs 0 instantiations instead of about 27 k, and a real file costs 3–4% less.
+
+Both npm names were unclaimed on 2026-09-30, but the `@cssints` scope must be created before publishing. Recommendation: publish 0.1.0 of both together, as tarballs, with no changesets yet. Neither package has a LICENSE or README yet.

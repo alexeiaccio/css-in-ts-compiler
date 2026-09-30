@@ -274,10 +274,12 @@ for (const marker of [
   ok(!source.includes(marker), `client bundle does not contain "${marker}"`);
 
 // 5. types: tsgo and tsc 5.9, skipLibCheck like a user's; then the dist declarations themselves
-for (const [name, cmd, noConfig] of [
+/** @type {[name: string, cmd: string[], noConfig: string[]][]} */
+const checkers = [
   ["tsgo", [tsgo], ["--ignoreConfig"]],
   ["tsc 5.9", [process.execPath, tsc59], []],
-]) {
+];
+for (const [name, cmd, noConfig] of checkers) {
   const [bin, ...pre] = cmd;
   const good = run(bin, [...pre, "-p", "tsconfig.json"], app, true);
   ok(good.code === 0, `${name}: the app type-checks against dist`, good.out);
