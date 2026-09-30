@@ -1,0 +1,330 @@
+// Fresh-app smoke test: what a user gets from the two tarballs, with none of the repo around it.
+//   node test/smoke/smoke.mjs        (bun run test:smoke; not part of `bun run test`: it builds, packs and runs npm install)
+// 1. build and npm-pack css-grammar and cssints; 2. write a new Vite 8 + React app in a temp dir ($SMOKE_TMP or the OS
+// temp dir); 3. npm install the tarballs; 4. plain `vite build` (not vite-plus): the CSS is there and the eval-time
+// code is not in the client bundle; 5. type-check with tsgo and tsc 5.9, and a wrong value must fail; 6. the type
+// benches of the repo against the installed dist (skipLibCheck) next to their budgets from the sources.
+// The compilers are the repo's (the app needs none to build); everything else comes from npm like a user's install.
+import { execFileSync } from "node:child_process";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+
+const here = import.meta.dirname;
+const repo = resolve(here, "../../../..");
+const pkgs = {
+  grammar: join(repo, "packages/css-grammar"),
+  cssints: join(repo, "packages/cssints"),
+};
+const tsgo = join(repo, "node_modules/.bin/tsgo");
+const tsc59 = join(repo, "node_modules/typescript/bin/tsc");
+
+let failed = 0;
+const ok = (cond, what, detail = "") => {
+  console.log(`${cond ? "ok  " : "FAIL"} ${what}${!cond && detail ? `\n${detail}` : ""}`);
+  if (!cond) failed++;
+};
+const run = (cmd, args, cwd, allowFail = false) => {
+  try {
+    return {
+      code: 0,
+      out: execFileSync(cmd, args, { cwd, encoding: "utf8", stdio: "pipe", maxBuffer: 1 << 26 }),
+    };
+  } catch (e) {
+    if (!allowFail)
+      throw new Error(`${cmd} ${args.join(" ")} failed in ${cwd}\n${e.stdout}\n${e.stderr}`);
+    return { code: e.status, out: `${e.stdout}${e.stderr}` };
+  }
+};
+const files = (dir, base = dir) =>
+  readdirSync(dir, { withFileTypes: true }).flatMap((d) =>
+    d.isDirectory() ? files(join(dir, d.name), base) : [join(dir, d.name).slice(base.length + 1)],
+  );
+
+// 1. tarballs
+for (const dir of Object.values(pkgs)) {
+  run("bun", ["run", "build"], dir);
+  for (const f of readdirSync(dir).filter((f) => f.endsWith(".tgz")))
+    run("rm", [join(dir, f)], dir);
+  run("bun", ["run", "pack:tgz"], dir);
+}
+const tgz = (dir) =>
+  join(
+    dir,
+    readdirSync(dir).find((f) => f.endsWith(".tgz")),
+  );
+const tarballs = { grammar: tgz(pkgs.grammar), cssints: tgz(pkgs.cssints) };
+console.log("tarballs");
+for (const t of Object.values(tarballs)) {
+  const list = run("tar", ["tzf", t], repo)
+    .out.trim()
+    .split("\n")
+    .map((f) => f.replace(/^package\//, ""));
+  console.log(
+    `  ${t.split("/").pop()}  ${statSync(t).size} bytes, ${list.length} files: ${list.join(" ")}`,
+  );
+  ok(
+    list.every((f) => f === "package.json" || f.startsWith("dist/")),
+    `${t.split("/").pop()} ships dist/ only`,
+  );
+  ok(
+    !list.some((f) => /\.tsx?$/.test(f) && !f.endsWith(".d.ts")),
+    `${t.split("/").pop()} has no .ts sources`,
+  );
+}
+
+// 2. the app
+const app = mkdtempSync(join(process.env.SMOKE_TMP ?? tmpdir(), "cssints-smoke-"));
+console.log(`app: ${app}`);
+const put = (name, text) => {
+  mkdirSync(join(app, name, ".."), { recursive: true });
+  writeFileSync(join(app, name), text);
+};
+mkdirSync(join(app, "tarballs"));
+for (const t of Object.values(tarballs)) cpSync(t, join(app, "tarballs", t.split("/").pop()));
+put(
+  "package.json",
+  JSON.stringify(
+    {
+      name: "smoke-app",
+      private: true,
+      type: "module",
+      scripts: { build: "vite build" },
+      dependencies: { react: "^18.3.1", "react-dom": "^18.3.1" },
+      devDependencies: {
+        "@types/react": "^18",
+        "@types/react-dom": "^18",
+        lightningcss: "^1.32.0",
+        vite: "^8.3.0",
+      },
+      // Not on the registry yet: the dependency of cssints on css-grammar resolves to the tarball.
+      overrides: { "@cssints/css-grammar": "file:./tarballs/cssints-css-grammar-0.1.0.tgz" },
+    },
+    null,
+    2,
+  ),
+);
+put(
+  "index.html",
+  `<!doctype html><html><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>\n`,
+);
+put(
+  "vite.config.ts",
+  `import cssints, { targets } from "cssints/vite";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [cssints()],
+  css: { transformer: "lightningcss", lightningcss: { targets } },
+  build: { cssMinify: "lightningcss", cssTarget: false, minify: false, sourcemap: true },
+});
+`,
+);
+put(
+  "tsconfig.json",
+  JSON.stringify(
+    {
+      compilerOptions: {
+        target: "ES2022",
+        lib: ["ES2023", "DOM", "DOM.Iterable"],
+        module: "preserve",
+        moduleResolution: "bundler",
+        jsx: "react-jsx",
+        strict: true,
+        noEmit: true,
+        skipLibCheck: true,
+        verbatimModuleSyntax: true,
+        allowImportingTsExtensions: true,
+        types: ["vite/client"],
+      },
+      include: ["src", "vite.config.ts"],
+      exclude: ["src/bad.ts"],
+    },
+    null,
+    2,
+  ),
+);
+put(
+  "src/tokens.ts",
+  `import { createTokens } from "cssints" with { type: "cssints" };
+
+export const t = createTokens({ color: { $type: "color", brand: { $value: "#3b82f6" } } });
+`,
+);
+put(
+  "src/Button.tsx",
+  `import { _cv, cx } from "cssints";
+import { bg, cn, color, cv, hover, media, p } from "cssints" with { type: "cssints" };
+
+import { t } from "./tokens.ts" with { type: "cssints" };
+
+const wide = media("(width >= 40rem)");
+
+const button = _cv(
+  cv({
+    base: cn(p(2), bg(t.color.brand), color("white"), hover(bg("#2563eb"))),
+    variants: { size: { lg: wide(p(4)) } },
+    defaultVariants: { size: "lg" },
+  }),
+);
+
+export function Button({ busy }: { busy?: boolean }) {
+  return <button className={cx(button(), busy && p(9))}>smoke</button>;
+}
+`,
+);
+put(
+  "src/main.tsx",
+  `import "virtual:cssints.css";
+import { createRoot } from "react-dom/client";
+
+import { Button } from "./Button.tsx";
+
+createRoot(document.getElementById("root")!).render(<Button />);
+`,
+);
+put(
+  "src/bad.ts",
+  `import { color } from "cssints" with { type: "cssints" };
+
+export const wrong = color("blu");
+`,
+);
+
+// 3. install like a user: from the tarballs, npm
+const install = run(
+  "npm",
+  ["install", "--no-audit", "--no-fund", `./tarballs/${tarballs.cssints.split("/").pop()}`],
+  app,
+);
+ok(
+  existsSync(join(app, "node_modules/cssints/dist/index.mjs")),
+  "npm install: cssints from the tarball",
+);
+ok(!existsSync(join(app, "node_modules/cssints/src")), "installed cssints has no src/");
+ok(
+  !/ERESOLVE|peer dep/i.test(install.out),
+  "npm install: no peer dependency warnings",
+  install.out,
+);
+const installed = JSON.parse(readFileSync(join(app, "node_modules/cssints/package.json"), "utf8"));
+ok(
+  !installed.private && installed.exports["."].default === "./dist/index.mjs",
+  "installed manifest points at dist",
+);
+
+// 4. plain vite build
+const build = run(join(app, "node_modules/.bin/vite"), ["build"], app);
+const assets = files(join(app, "dist/assets"));
+const css = assets
+  .filter((f) => f.endsWith(".css"))
+  .map((f) => readFileSync(join(app, "dist/assets", f), "utf8"))
+  .join("\n");
+const js = assets.filter((f) => f.endsWith(".js"));
+const source = js.map((f) => readFileSync(join(app, "dist/assets", f), "utf8")).join("\n");
+console.log(build.out.trim().split("\n").slice(-8).join("\n"));
+ok(/:hover/.test(css) && /#2563eb/i.test(css), "css: the hover rule");
+ok(/(min-width:\s*40rem|width\s*>=\s*40rem)/.test(css), "css: the media condition", css);
+ok(
+  /@property\s+--/.test(css) && /#3b82f6/i.test(css),
+  "css: the token (@property and its value)",
+  css,
+);
+ok(/padding/.test(css), "css: padding from p()");
+
+// the eval-time code must not reach the client bundle: by module (the source maps) and by content
+const maps = js
+  .filter((f) => existsSync(join(app, "dist/assets", `${f}.map`)))
+  .flatMap((f) => JSON.parse(readFileSync(join(app, "dist/assets", `${f}.map`), "utf8")).sources);
+const bundled = maps.filter((s) =>
+  /node_modules\/(cssints|@cssints|effect|culori|lightningcss|oxc-|magic-string|happy-dom|@mdn|browserslist|mdn-data)/.test(
+    s,
+  ),
+);
+console.log(`  bundled from node_modules: ${[...new Set(bundled)].join(", ")}`);
+ok(maps.length > 0, "client bundle has source maps to inspect");
+ok(
+  bundled.every((s) => s.endsWith("cssints/dist/runtime.mjs")),
+  "only cssints/dist/runtime.mjs is bundled from the library",
+  bundled.join("\n"),
+);
+ok(bundled.length === 1, "the browser runtime is in the bundle (cx and _cv)");
+for (const marker of [
+  "MacroError",
+  "InvalidValueError",
+  "parseGrammar",
+  "browserslist",
+  "culori",
+  "oxc-parser",
+  "happy-dom",
+  "lightningcss",
+  "browser-compat-data",
+  "TaggedError",
+  "__cssints",
+])
+  ok(!source.includes(marker), `client bundle does not contain "${marker}"`);
+
+// 5. types: tsgo and tsc 5.9, skipLibCheck like a user's; then the dist declarations themselves
+for (const [name, cmd, noConfig] of [
+  ["tsgo", [tsgo], ["--ignoreConfig"]],
+  ["tsc 5.9", [process.execPath, tsc59], []],
+]) {
+  const [bin, ...pre] = cmd;
+  const good = run(bin, [...pre, "-p", "tsconfig.json"], app, true);
+  ok(good.code === 0, `${name}: the app type-checks against dist`, good.out);
+  const wrong = run(
+    bin,
+    [
+      ...pre,
+      ...noConfig,
+      "--noEmit",
+      "--strict",
+      "--module",
+      "preserve",
+      "--skipLibCheck",
+      "src/bad.ts",
+    ],
+    app,
+    true,
+  );
+  ok(wrong.code !== 0 && /blu/.test(wrong.out), `${name}: color("blu") is a type error`, wrong.out);
+  const lib = run(bin, [...pre, "-p", "tsconfig.json", "--skipLibCheck", "false"], app, true);
+  // effect's own declarations (a beta) do not check without skipLibCheck; ours must
+  const ours = lib.out.split("\n").filter((l) => /node_modules\/(cssints|@cssints)\//.test(l));
+  ok(
+    ours.length === 0,
+    `${name}: the dist declarations of cssints and css-grammar check without skipLibCheck`,
+    ours.join("\n"),
+  );
+}
+
+// 6. the benches of the repo (users.ts, unused.ts: imports of "cssints" as user code writes them), on dist
+const bench = join(app, "bench-types");
+mkdirSync(bench);
+for (const f of ["empty.ts", "unused.ts", "users.ts"])
+  cpSync(join(pkgs.cssints, "bench", f), join(bench, f));
+cpSync(join(pkgs.cssints, "bench/budget.json"), join(bench, "budget.json"));
+const sources = JSON.parse(readFileSync(join(bench, "budget.json"), "utf8"));
+run(process.execPath, [join(pkgs.grammar, "bench/budget.mjs"), bench, "--update"], app);
+const dist = JSON.parse(readFileSync(join(bench, "budget.json"), "utf8"));
+console.log("type cost, skipLibCheck, instantiations net of empty.ts (sources -> dist)");
+for (const f of ["unused.ts", "users.ts"])
+  for (const c of ["tsc", "tsgo"]) {
+    const gain = (1 - dist[f][c] / sources[f][c]) * 100;
+    console.log(
+      `  ${f.padEnd(10)} ${c.padEnd(5)} ${String(sources[f][c]).padStart(7)} -> ${String(dist[f][c]).padStart(7)}  (${gain.toFixed(1)}% less)`,
+    );
+    ok(dist[f][c] <= sources[f][c] * 1.1, `${f} ${c}: dist costs no more than the sources`);
+  }
+
+console.log(failed ? `\n${failed} check(s) failed (app kept in ${app})` : "\nsmoke test passed");
+process.exit(failed ? 1 : 0);
