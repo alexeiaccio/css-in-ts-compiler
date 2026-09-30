@@ -350,6 +350,10 @@ export function __at(file: string, site: number, offset: number): At {
   return (registry.at = { file, site, offset });
 }
 
+// True while the load has not recorded the site: the hoisted pass evaluates it then.
+export const __unseen = (file: string, site: number): boolean =>
+  !registry.sites.get(file)?.has(site);
+
 // Ends a site: its value is recorded, or the failure is thrown into the module that is being evaluated.
 export function __site(at: At, value: unknown): unknown {
   registry.at = undefined;
