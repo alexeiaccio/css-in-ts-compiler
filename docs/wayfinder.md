@@ -1025,3 +1025,21 @@ Decided with the user. A plugin reaches user code by an import with the attribut
 That leaves nothing for a `definePlugin` to do, so there is none. A plugin is a module that exports members built with `context()`, `style()` and `property()` from `cssints/plugin`. Each member carries its own kernel, runtime and conflicts.
 
 `frame` and `surface` are subpaths of `cssints`, written on the public helpers. Icons are a separate package, `@cssints/icons`, because of the iconify dependencies. Authors pick short custom-property names and markers. When two kernel keys declare the same name, the build fails and names both plugins.
+
+## Error DX: the bad argument and completions in strings (cssints-kotg)
+
+Both parts ship. Findings, numbers and the shapes that were tried and dropped are in docs/research/error-dx.md.
+
+**The error lands on the bad argument.** `padding("2px", "red")` now marks `"red"`, with the same message, in tsgo and tsc 5.9. A mapped tuple in `Check` gives the message only to the bad position, and `Furthest` in css.ts finds that position from how far the recogniser got. `media("a", "b")` had the same problem and is fixed too.
+
+**Completions inside strings, with limits.** The editor offers the keywords that start with the word under the cursor: `display("fl…")` offers `flex`, `flow` and `flow-root`. This works in later parts and in empty parts too. The keywords come from a generated table (`src/keywords.ts`, written by `bun run extract`), bucketed by first letter, so the recogniser budget is untouched.
+
+Limits:
+- it offers keywords from the whole grammar, not only those that fit at that point;
+- it stops once the string is valid;
+- it looks only at the last word;
+- it does not offer functions.
+
+An empty part is now a type error.
+
+**Cost:** `users.ts` is +5.6% over the old budget (+4.2% for the error position, +1.3% for completions). That is over the +5% line, but it is accepted: the cost is a flat 0.2–0.7 k per call, and editor latency is unchanged within noise.
