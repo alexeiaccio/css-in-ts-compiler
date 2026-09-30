@@ -100,55 +100,6 @@ const KNOWN: [p: string | (string | RegExp)[], test: (v: string) => boolean, why
   ],
   // ---- mdn-data grammar that is wider than the spec or than what ships
   [
-    "column-rule-width",
-    (v) => !matches("<line-width>", v),
-    "mdn-data: <'border-width'> takes one to four values, css-gap-decorations <line-width> one (Chrome 154 has no lists)",
-  ],
-  [
-    "column-rule-style",
-    (v) => !matches("<line-style>", v),
-    "mdn-data: <'border-style'> takes one to four values, css-gap-decorations <line-style> one",
-  ],
-  [
-    "column-rule",
-    (v) => !matches("<line-width> || <line-style> || <color>", v),
-    "mdn-data: the longhands' <'border-width'> and <'border-style'> take one to four values, the spec one",
-  ],
-  [
-    "zoom",
-    (v) => !matches("normal | reset | <number [0,∞]> | <percentage [0,∞]>", v),
-    "mdn-data: `<number> || <percentage>`, css-viewport (webref) `<number> | <percentage>`",
-  ],
-  [
-    "transform-origin",
-    (v) =>
-      !matches(
-        "[ left | center | right | top | bottom | <length-percentage> ] | [ left | center | right | <length-percentage> ] [ top | center | bottom | <length-percentage> ] <length>? | [ [ center | left | right ] && [ center | top | bottom ] ] <length>?",
-        v,
-      ),
-    "mdn-data: the `&&` form takes a horizontal or vertical part in either place, css-transforms-1 (webref) fixes the order",
-  ],
-  [
-    "outline-color",
-    (v) => !matches("<color>", v),
-    "mdn-data: outline-color still lists `auto`, which css-ui-4 removed (webref: <'border-top-color'>) and no engine ships",
-  ],
-  [
-    "outline",
-    (v) => !matches("<'outline-width'> || <'outline-style'> || <color>", v),
-    "mdn-data: outline-color still lists `auto`, which css-ui-4 removed (webref: <'border-top-color'>) and no engine ships",
-  ],
-  [
-    "image-orientation",
-    (v) => !matches("from-image | none", v),
-    "mdn-data has the css-images-3 grammar (<angle>, flip) that Chrome never shipped; css-images-4: from-image | none",
-  ],
-  [
-    "tab-size",
-    negative,
-    "mdn-data: <integer> | <length>, css-text-4 (webref): <number [0,∞]> | <length [0,∞]>",
-  ],
-  [
     ["-webkit-text-stroke", "-webkit-text-stroke-width"],
     negative,
     "mdn-data: <'border-width'> / <length> without the range, compat (webref): <line-width> with [0,∞]",
@@ -157,11 +108,6 @@ const KNOWN: [p: string | (string | RegExp)[], test: (v: string) => boolean, why
     "mask",
     (v) => v.includes("margin-box"),
     "mdn-data: <geometry-box> takes margin-box, css-masking-1 <coord-box> does not (BCD mask-clip has no margin-box)",
-  ],
-  [
-    ["position-try", "position-try-fallbacks"],
-    (v) => v.includes(",") && /(^|,)\s*(?:\S+\s+)?none\s*(?=,|$)/.test(v),
-    "mdn-data: <'position-area'> is the property, which takes none; the spec type <position-area> does not",
   ],
   [
     ["animation-trigger"],

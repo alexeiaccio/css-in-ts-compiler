@@ -61,6 +61,8 @@ const useWeb = (n) => !!webP[n] && (MODE === "all" || !!webList?.has(n));
 // webref-rule.mjs re-runs the check on every bump and fails when Chrome disagrees. Only in list mode, and these
 // properties never go in the list. Each is a grammar over mdn-data's types.
 const LW = "[ <line-width> | repeat( <integer [1,∞]> , [ <line-width> ]# ) ]";
+const GR =
+  "[ [ <line-width> || <line-style> || <color> ] | repeat( <integer [1,∞]> , [ <line-width> || <line-style> || <color> ]# ) ]";
 const PROP = {
   // webref: `from-image | none | [ <angle> || flip ]`, mdn-data: the css-images-3 `from-image | <angle> | [ <angle>? flip ]`.
   // Chrome takes `none` (css-images-4) and rejects every angle and `flip`.
@@ -68,6 +70,9 @@ const PROP = {
   // css-gap-decorations lists of <line-width>, with repeat() and repeat(auto, …). webref's <line-width> has the `hairline` of
   // css-borders-4, which Chrome rejects; mdn-data's `<'border-width'>` takes one to four values, Chrome a comma list.
   "column-rule-width": `${LW}# | ${LW}#? , repeat( auto , [ <line-width> ]# ) , ${LW}#?`,
+  // the shorthand of the three: a list of rules, each `<line-width> || <line-style> || <color>`, or repeat() of such a list
+  // (css-gap-decorations <gap-rule-list>). mdn-data's is the three longhands side by side, each a list of its own.
+  "column-rule": `${GR}# | ${GR}#? , repeat( auto , [ <line-width> || <line-style> || <color> ]# ) , ${GR}#?`,
   // mdn-data: `<number> || <percentage>`, webref: `<number [0,∞]> | <percentage [0,∞]>`. Chrome takes `normal`, rejects
   // `reset` (mdn-data) and `2 50%`.
   zoom: "normal | <number [0,∞]> | <percentage [0,∞]>",
