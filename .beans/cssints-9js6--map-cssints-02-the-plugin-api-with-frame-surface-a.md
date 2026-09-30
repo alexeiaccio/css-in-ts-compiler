@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-30T11:57:32Z
-updated_at: 2026-09-30T12:29:31Z
+updated_at: 2026-09-30T13:54:35Z
 ---
 
 ## Destination
@@ -28,6 +28,8 @@ A public plugin API (`definePlugin` with `property`, `context` and `style` membe
 - [Plugin contract: registration, naming and types](cssints-zho2): an attributed import, no registration and no `definePlugin`; `context/style/property` in `cssints/plugin` carry kernel, runtime and conflicts; `cssints/frame`, `cssints/surface`, `@cssints/icons`; name collisions are build errors.
 
 - [Error DX: the type error on the bad argument, completions inside strings](cssints-kotg): both ship; the error marks the bad part (mapped tuple + Furthest), keyword completions from a generated table; users.ts +5.6%.
+
+- [Engine seams for plugins: node fields, lacking(), definition sites, generic Valid](cssints-vcop): markers and kernels on the node, kernels by key per module in _.k, collision errors, lacking(), definition sites; demo byte-identical.
 
 ## Not yet specified
 

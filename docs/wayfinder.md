@@ -1043,3 +1043,15 @@ Limits:
 An empty part is now a type error.
 
 **Cost:** `users.ts` is +5.6% over the old budget (+4.2% for the error position, +1.3% for completions). That is over the +5% line, but it is accepted: the cost is a flat 0.2–0.7 k per call, and editor latency is unchanged within noise.
+
+## Engine seams for plugins (cssints-vcop)
+
+The seams plugins will stand on are in, with no public API yet.
+
+- **Style node.** A style carries its markers (fixed classes, each tied to the kernel that owns it) and its kernels next to its declarations. `cn()` and the conditions merge both; the class string starts with the markers.
+- **Kernels.** A kernel is registered by key on first use. Each module records the kernels it uses, like its themes, so a sheet holds only the kernels of its modules, and `forget(file)` drops them on re-evaluation. Kernel CSS goes in layer `_.k`; its `@property` block goes at the top, beside the tokens'. A sheet with no kernel is unchanged, and the demo build is byte-identical. `addGlobal` stays for rules that go into every sheet.
+- **Collisions** are build errors at the call site: the same key with different CSS, two keys declaring one custom property, two keys printing one marker.
+- **`lacking(bcdKey, targets)`** sits next to `support()`; a kernel's `requires` gives a support warning once per build, never an error.
+- **Definition sites.** A build-time module may hold a plugin value (a function or a configured object) from an attributed call. It has no replacement; a client module that calls it still gets a normal replaced site.
+
+Known limits: a kernel used through a helper module can linger in the registry until restart, giving a false collision in dev after its source is edited. Declarations of custom properties (`["--_r", v]`) are still rejected by the grammar check; the plugin API ticket must let them through.
