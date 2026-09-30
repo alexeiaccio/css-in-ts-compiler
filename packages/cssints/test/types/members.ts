@@ -60,6 +60,11 @@ export const ok: Style[] = [
   zIndex("round(1.4)"),
   opacity("calc(1 / 3)"),
   transform("rotate(calc(1turn / 3))"),
+  padding("var(--a)", "2px"),
+  margin("var(--user-thing)"),
+  width("if(style(--x: 1): 1px; else: 2px)"),
+  border("1px", "var(--x)", "solid"),
+  transition("opacity", "var(--duration)"),
 ];
 
 // The short names are the properties they stand for.
@@ -120,5 +125,11 @@ transform("translateX(1px) rotate()");
 background("linear-gradient(to right, red, 1px)");
 // @ts-expect-error a math function needs an expression (the build checks its calc type: `calc(1px + 2s)` fails there)
 width("calc()");
+// @ts-expect-error a var() stands for any value, the rest is still checked: red is not a length
+padding("var(--a)", "red");
+// @ts-expect-error solud is neither a line style nor a colour, var() or not
+border("1px", "var(--x)", "solud");
+// @ts-expect-error a var() takes a custom property name
+padding("var(x)");
 // @ts-expect-error a math function is closed
 width("calc(1px");
