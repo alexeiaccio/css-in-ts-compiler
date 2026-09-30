@@ -3,10 +3,11 @@
 title: 'Map: cssints 0.2, the plugin API with frame(), surface() and icons'
 status: todo
 type: epic
+priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-30T11:57:32Z
-updated_at: 2026-09-30T11:57:32Z
+updated_at: 2026-09-30T12:23:00Z
 ---
 
 ## Destination
@@ -23,6 +24,8 @@ A public plugin API (`definePlugin` with `property`, `context` and `style` membe
 - After a harness crash, never reuse or move a worktree: give the retry a new branch in a new directory.
 
 ## Decisions so far
+
+- [Plugin contract: registration, naming and types](cssints-zho2): an attributed import, no registration and no `definePlugin`; `context/style/property` in `cssints/plugin` carry kernel, runtime and conflicts; `cssints/frame`, `cssints/surface`, `@cssints/icons`; name collisions are build errors.
 
 ## Not yet specified
 

@@ -1,13 +1,13 @@
 ---
 # cssints-fxz3
 title: Run the style-query polyfill on Firefox < 151 and Safari < 18
-status: todo
+status: in-progress
 type: task
 priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-09-30T11:57:32Z
-updated_at: 2026-09-30T11:57:41Z
+updated_at: 2026-09-30T12:16:42Z
 parent: cssints-9js6
 ---
 

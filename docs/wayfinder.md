@@ -1017,3 +1017,11 @@ The block now states exactly those defaults, so the config tells the truth, and 
 The 0.1 map (cssints-vy0o) is closed: its destination was reached at d04771c. The 0.2 map is cssints-9js6. Its destination: a public plugin API with `frame()`, `surface()` and icons as consumers, working in apps/demo, still unpublished.
 
 The 0.1 fog comes along in scope: error DX, derived tokens, value helpers and sublayers. Error DX is a ticket now; the rest stays fog until the plugins sharpen it. The first tickets follow the research recommendation in plugins.md §8: engine seams and the contract first, then the API, `frame()` with the runtime, icons, and `surface()` last.
+
+## Plugin contract (cssints-zho2)
+
+Decided with the user. A plugin reaches user code by an import with the attribute (`import { frame } from "cssints/frame" with { type: "cssints" }`), with no registration in `vite.config` and no type augmentation. The engine already finds sites by the attribute, and it learns kernels and runtimes from the style node while it evaluates.
+
+That leaves nothing for a `definePlugin` to do, so there is none. A plugin is a module that exports members built with `context()`, `style()` and `property()` from `cssints/plugin`. Each member carries its own kernel, runtime and conflicts.
+
+`frame` and `surface` are subpaths of `cssints`, written on the public helpers. Icons are a separate package, `@cssints/icons`, because of the iconify dependencies. Authors pick short custom-property names and markers. When two kernel keys declare the same name, the build fails and names both plugins.
