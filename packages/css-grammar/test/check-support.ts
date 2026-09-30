@@ -1,5 +1,5 @@
 // node check-support.ts — support warnings (defaults targets) and prose rules, both ways.
-import { checkRules, message, support } from "./sync.ts";
+import { checkRules, lacking, message, support } from "./sync.ts";
 
 let failed = false;
 const verify = (ok: boolean, what: string) => {
@@ -77,6 +77,26 @@ for (const [p, v, chrome] of [
     `${p}: ${v} warns on firefox, ${chrome} on chrome`,
   );
 }
+
+// lacking(bcdKey, targets): the targets without the feature, by the rules of the warnings (no prefix, no flags)
+verify(
+  JSON.stringify(
+    lacking("css.at-rules.property", [
+      ["chrome", "50"],
+      ["chrome", "120"],
+      ["firefox", "130"],
+      ["firefox", "100"],
+    ]),
+  ) === '[["chrome","50"],["firefox","100"]]',
+  "lacking: @property is missing on chrome 50 and firefox 100",
+);
+verify(
+  lacking("css.properties.-webkit-box-reflect", [
+    ["firefox", "120"],
+    ["chrome", "120"],
+  ]).length === 1 && lacking("css.nonsense.key", [["chrome", "1"]]).length === 0,
+  "lacking: a WebKit-only property lacks on firefox; an unknown key lacks nothing",
+);
 
 const rules: [string, string, boolean][] = [
   ["transition", "none, opacity 1s", false],

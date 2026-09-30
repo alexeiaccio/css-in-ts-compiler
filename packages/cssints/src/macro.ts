@@ -19,6 +19,7 @@ import { Cause, Effect, Exit } from "effect";
 import { MacroError } from "./errors.ts";
 import {
   camel,
+  carried,
   chainDecl,
   CONTEXTS,
   fail,
@@ -35,6 +36,7 @@ import {
   type CssNode,
   type Decl,
 } from "./lib.ts";
+import { addKernel } from "./kernel.ts";
 import { type At, registry, Registry, type RegistryState, type Rule } from "./registry.ts";
 import { _cv as runtimeCv, type CvRuntimeConfig } from "./runtime.ts";
 import { check, createGlobalTheme, createTokens, isDone, tokensOf } from "./theme.ts";
@@ -42,15 +44,20 @@ import { isStyle, style, token, type StyleNode } from "./token.ts";
 
 export { CSS, CSSColorValue, CSSUnitValue };
 
-// A style: its declarations, and the layout context (flex / grid) whose container properties it chains.
-const node = (decls: Decl[], ctx: string | undefined): CssNode =>
+// A style: its declarations, the layout context (flex / grid) whose container properties it chains, and its markers
+// and kernels. The target always has the two keys (undefined when empty): a missing one would read as a chain method.
+const node = (
+  decls: Decl[],
+  ctx: string | undefined,
+  { markers, kernels }: Pick<CssNode, "markers" | "kernels"> = {},
+): CssNode =>
   new Proxy<CssNode>(
-    { __cssints: decls },
+    { __cssints: decls, markers, kernels },
     {
       get: (t, k) =>
         k in t || typeof k === "symbol"
           ? (t as unknown as Record<string | symbol, unknown>)[k]
-          : (...args: unknown[]) => node([...decls, chainDecl(ctx, k, args)], ctx),
+          : (...args: unknown[]) => node([...decls, chainDecl(ctx, k, args)], ctx, t),
     },
   );
 
@@ -59,7 +66,10 @@ const member =
   (...args: unknown[]) =>
     node(toDecls(k, args), CONTEXTS[k] && !args.length ? k : undefined);
 
-export const cn = member("cn");
+export const cn = (...args: unknown[]) => {
+  const decls = toDecls("cn", args);
+  return node(decls, undefined, carried(args as CssNode[]));
+};
 export const flex = member("flex");
 export const grid = member("grid");
 
@@ -90,6 +100,7 @@ const wrapper = (cond: Cond): Wrapper =>
           }),
         ),
         undefined,
+        carried(styles),
       );
     },
     { __cond: true as const, cond },
@@ -203,12 +214,16 @@ const checkNow = (
   }
 };
 
-// The classes of a style's declarations, registered in the sheet. A plain loop over the declarations (hash, twin,
+// The classes of a style: its markers, then its declarations, registered in the sheet. A plain loop over the declarations (hash, twin,
 // prose rules, support), inside the one Effect boundary of `classesOf`: an Effect step per declaration was over
 // the perf budget.
-const classesNow = (decls: Decl[], registry: RegistryState): string => {
+const classesNow = (
+  decls: Decl[],
+  registry: RegistryState,
+  markers: CssNode["markers"],
+): string => {
   const { rules } = registry;
-  const out: string[] = [];
+  const out: string[] = markers ? [...new Set(markers.map((m) => m[0]))] : [];
   for (const d of decls) {
     const cls = hashClass(d);
     const fresh = !rules.has(cls);
@@ -219,10 +234,14 @@ const classesNow = (decls: Decl[], registry: RegistryState): string => {
   return out.join(" ");
 };
 
-const classesOf = Effect.fnUntraced(function* (decls: Decl[]): Effect.fn.Return<string, Invalid> {
+const classesOf = Effect.fnUntraced(function* (
+  { __cssints: decls, markers, kernels }: CssNode,
+  at?: At,
+): Effect.fn.Return<string, Invalid | MacroError> {
   const registry = yield* Registry;
+  if (kernels) for (const k of kernels) yield* addKernel(k, markers ?? [], at);
   return yield* Effect.try({
-    try: () => classesNow(decls, registry),
+    try: () => classesNow(decls, registry, markers),
     catch: (e) => {
       if (isDeclarationError(e)) return e;
       throw e; // a bug, not a user error: a defect
@@ -233,23 +252,26 @@ const classesOf = Effect.fnUntraced(function* (decls: Decl[]): Effect.fn.Return<
 const styleOf = Effect.fnUntraced(function* (
   s: unknown,
   where: string,
+  at?: At,
 ): Effect.fn.Return<string, Invalid | MacroError> {
   if (!isNode(s))
     return yield* new MacroError({
       message: `cssints: cv() ${where} must be a css.* value (cn(...), a flex() chain or one property), got ${JSON.stringify(s)}. CSS strings are gone: write cn(p(4), fontSize("1rem"))`,
     });
-  return yield* classesOf(s.__cssints);
+  return yield* classesOf(s, at);
 });
 
 // cv(config with css.* values) -> CvRuntimeConfig with class strings, consumed by _cv at runtime.
 const cvOf = Effect.fnUntraced(function* (
   config: CvConfig,
+  at?: At,
 ): Effect.fn.Return<string, Invalid | MacroError> {
   const variants: Record<string, Record<string, string>> = {};
-  const base = config.base === undefined ? "" : yield* styleOf(config.base, "base");
+  const base = config.base === undefined ? "" : yield* styleOf(config.base, "base", at);
   for (const [k, vs] of Object.entries(config.variants ?? {})) {
     const classes: Record<string, string> = {};
-    for (const [n, s] of Object.entries(vs)) classes[n] = yield* styleOf(s, `variant ${k}.${n}`);
+    for (const [n, s] of Object.entries(vs))
+      classes[n] = yield* styleOf(s, `variant ${k}.${n}`, at);
     variants[k] = classes;
   }
   return JSON.stringify({ base, variants, defaultVariants: config.defaultVariants ?? {} });
@@ -321,13 +343,19 @@ const inlineOf = Effect.fnUntraced(function* ({
   });
 });
 
-// The replacement expression of a site: class strings, the cv() config, an inline style, or a Typed OM value's CSS text.
+// A definition site: `export const mdi = icons({...})` in a build-time module holds a plugin value, a function or a
+// configured object. It has no replacement (nothing of it ships: its module is not in the client graph), and a client
+// module that calls it (`mdi("home")`) has a site of its own.
+const isPluginValue = (v: unknown): boolean =>
+  typeof v === "function" || (typeof v === "object" && v !== null);
+
+// The replacement expression of a site, undefined for a definition site: class strings, the cv() config, an inline style, or a Typed OM value's CSS text.
 const replacementOf = Effect.fnUntraced(function* (
   at: At,
   value: unknown,
-): Effect.fn.Return<string, Invalid | MacroError> {
-  if (isNode(value)) return JSON.stringify(yield* classesOf(value.__cssints));
-  if (isCv(value)) return yield* cvOf(value.__cv);
+): Effect.fn.Return<string | undefined, Invalid | MacroError> {
+  if (isNode(value)) return JSON.stringify(yield* classesOf(value, at));
+  if (isCv(value)) return yield* cvOf(value.__cv, at);
   if (isStyle(value)) return yield* inlineOf(value);
   const tokens = tokensOf(value);
   if (tokens !== undefined) return tokens;
@@ -337,6 +365,7 @@ const replacementOf = Effect.fnUntraced(function* (
   if (value instanceof CSSStyleValue) return JSON.stringify(String(value));
   const inert = inertOf(value);
   if (inert !== undefined) return inert;
+  if (isPluginValue(value)) return undefined;
   return yield* new MacroError({
     message: `cssints: site ${at.site} in ${at.file} did not produce a css.*, cv(), style(), condition or Typed OM value`,
   });
@@ -350,6 +379,7 @@ const recordSite = Effect.fnUntraced(function* (
 ): Effect.fn.Return<unknown, MacroError> {
   const { sites } = yield* Registry;
   const replacement = yield* replacementOf(at, value).pipe(Effect.mapError(located(at)));
+  if (replacement === undefined) return value;
   if (!sites.has(at.file)) sites.set(at.file, new Map());
   sites.get(at.file)!.set(at.site, replacement);
   return value;

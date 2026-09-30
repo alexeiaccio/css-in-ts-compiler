@@ -4,7 +4,12 @@ import { Cause, Effect, Exit } from "effect";
 
 import { checkQuery as checkQueryFx } from "../src/check.ts";
 import { checkRules as checkRulesFx } from "../src/rules.ts";
-import { message as messageFx, support as supportFx, type Target } from "../src/support.ts";
+import {
+  lacking as lackingFx,
+  message as messageFx,
+  support as supportFx,
+  type Target,
+} from "../src/support.ts";
 import { matches as matchesFx, parse as parseFx, valid as validFx } from "../src/twin.ts";
 
 export { nullable, type Node } from "../src/twin.ts";
@@ -21,5 +26,6 @@ export const valid = (p: string, s: string) => run(validFx(p, s));
 export const parse = (grammar: string) => run(parseFx(grammar));
 export const checkRules = (p: string, v: string) => run(checkRulesFx(p, v));
 export const support = (p: string, v: string, ts?: Target[]) => run(supportFx(p, v, ts));
+export const lacking = (key: string, ts?: Target[]) => run(lackingFx(key, ts));
 export const message = (...args: Parameters<typeof messageFx>) => run(messageFx(...args));
 export const checkQuery = (...args: Parameters<typeof checkQueryFx>) => run(checkQueryFx(...args));
