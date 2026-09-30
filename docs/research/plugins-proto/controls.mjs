@@ -22,23 +22,25 @@ const mk = async (mode, js) => {
 const ref = await mk("sq");
 const noJs = await mk("poly", () => document.documentElement.setAttribute("data-cssints-poly", ""));
 const noEvents = await mk("poly");
-await noEvents.addScriptTag({
-  content: engine
-    .replace('d.addEventListener("transitionrun"', 'void (0 && d.addEventListener("transitionrun"')
-    .replace("update([root]);\n};", "update([root]);\n};")
-    .replace("update([e.target]));", "update([e.target])));"),
-});
+await noEvents.addScriptTag({ content: engine.replace('"transitionrun"', '"no-such-event"') });
 await noEvents.evaluate((f) => window.__poly(f, true), FEATS);
 await settle(noEvents);
 console.log("initial     sq       :", await get(ref));
 console.log("initial     no JS    :", await get(noJs));
 console.log("initial     no events:", await get(noEvents));
-for (const p of [ref, noEvents]) await p.hover("#d0");
-await Promise.all([ref, noEvents].map(settle));
-console.log("hover       sq       :", await get(ref));
+// one page at a time, read right away: older Firefox drops :hover on a page when another page is hovered, and applies it 60-150 ms late
+const hover = async (p) => {
+  await p.hover("#d0");
+  await p.waitForFunction(
+    () => getComputedStyle(document.getElementById("d0")).paddingTop === "20px",
+  );
+  await settle(p);
+  return get(p);
+};
+console.log("hover       sq       :", await hover(ref));
 console.log(
   "hover       no events:",
-  await get(noEvents),
+  await hover(noEvents),
   "  <- stale without the transition sentinel",
 );
 await b.close();

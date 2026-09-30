@@ -1,5 +1,13 @@
 /* oxlint-disable */
+import { readFileSync, writeFileSync } from "node:fs";
 import { BROWSER, launch, load, settle } from "./lib.mjs";
+
+// DUMP=file: also write the style-query page's values per step (run it on a browser WITH style queries).
+// REF=file: no style-query page (this browser has none): compare with values dumped elsewhere, and expect the probe to switch the runtime on.
+const refFile = process.env.REF && JSON.parse(readFileSync(process.env.REF, "utf8"));
+const dump = {};
+// lengths must agree to 1e-3; colours too, unless the reference came from another engine (oklch hue differs by ~0.01 between engines): TOL=0.02
+const TOL = +(process.env.TOL ?? 1e-3);
 
 const frameHtml = `
 <div id=f1 class="f r24 p8 b2"><div id=f2 class="f p6 b1 m3"><div><div id=f3 class="f p4 r40"><div id=f4 class="f"></div></div></div></div></div>
@@ -51,6 +59,13 @@ const read = (page) =>
   );
 
 const nums = (s) => (s.match(/-?[\d.]+(?:e-?\d+)?/g) ?? []).map(Number);
+// Older WebKit serialises computed oklch() lightness above 1 unclamped (1.04 where newer says 1) and keeps the hue of a chroma-0 colour (90 where newer says 0);
+// both paint the same, so both sides are normalised before comparing.
+const norm = (s) =>
+  s.replace(
+    /oklch\(([\d.e-]+) ([\d.e-]+) ([\d.e-]+)\)/,
+    (_, l, c, h) => `oklch(${Math.min(Math.max(+l, 0), 1)} ${+c} ${+c < 1e-4 ? 0 : +h})`,
+  );
 let bad = 0,
   worst = 0,
   cmpCount = 0;
@@ -58,15 +73,15 @@ function compare(label, ref, got) {
   for (const id of IDS)
     for (const k of ["r", "p", "bg"]) {
       cmpCount++;
-      const a = ref[id][k],
-        b = got[id][k];
+      const a = norm(ref[id][k]),
+        b = norm(got[id][k]);
       if (a === b) continue;
       const na = nums(a),
         nb = nums(b);
       const d =
         na.length === nb.length ? Math.max(...na.map((x, i) => Math.abs(x - nb[i]))) : Infinity;
       worst = Math.max(worst, d);
-      if (d > 1e-3) {
+      if (d > (k === "bg" ? TOL : 1e-3)) {
         bad++;
         console.log(`  MISMATCH ${label} ${id}.${k}: ref ${a} got ${b}`);
       } else
@@ -76,10 +91,11 @@ function compare(label, ref, got) {
 
 const b = await launch();
 console.log(BROWSER, b.version());
-const ref = await load(b, "sq", HTML);
+const ref = refFile ? null : await load(b, "sq", HTML);
 const pol = await load(b, "poly", HTML);
 const both = await load(b, "both", HTML);
 const bothOff = await load(b, "both", HTML, { run: false });
+const pages = [ref, pol, both, bothOff].filter(Boolean);
 
 const steps = {
   initial: async () => {},
@@ -110,11 +126,18 @@ const steps = {
     p.evaluate(() => {
       document.getElementById("f3").style.setProperty("--_p", "1px");
     }),
+  // Playwright's hover returns before older Firefox applies :hover (60-150 ms), so wait for the page to see it
   ":hover on d0": async (p) => {
     await p.hover("#d0");
+    await p.waitForFunction(
+      () => getComputedStyle(document.getElementById("d0")).paddingTop === "20px",
+    );
   },
   "hover away": async (p) => {
     await p.mouse.move(999, 790);
+    await p.waitForFunction(
+      () => getComputedStyle(document.getElementById("d0")).paddingTop !== "20px",
+    );
   },
   "viewport < 500px (media query)": (p) => p.setViewportSize({ width: 400, height: 800 }),
   "viewport back": (p) => p.setViewportSize({ width: 1000, height: 800 }),
@@ -122,9 +145,7 @@ const steps = {
 };
 IDS.push("new1", "new2");
 for (const [name, fn] of Object.entries(steps)) {
-  for (const p of [ref, pol, both, bothOff]) await fn(p);
-  await Promise.all([ref, pol, both, bothOff].map(settle));
-  const ids = IDS.filter((id) => true);
+  const ids = IDS.slice();
   const safe = (page) =>
     page.evaluate(
       (ids) =>
@@ -138,7 +159,16 @@ for (const [name, fn] of Object.entries(steps)) {
         ),
       ids,
     );
-  const [R, P, B, O] = await Promise.all([ref, pol, both, bothOff].map(safe));
+  // one page at a time, read before the next page gets the mouse: older Firefox drops :hover on a page when another page is hovered
+  const got = new Map();
+  for (const p of pages) {
+    await fn(p);
+    await settle(p);
+    got.set(p, await safe(p));
+  }
+  const [P, B, O] = [pol, both, bothOff].map((p) => got.get(p));
+  const R = refFile ? refFile[name] : got.get(ref);
+  dump[name] = R;
   const live = IDS.filter((id) => R[id]);
   const strip = (o) =>
     Object.fromEntries(live.map((id) => [id, o[id] ?? { r: "missing", p: "", bg: "" }]));
@@ -148,7 +178,7 @@ for (const [name, fn] of Object.entries(steps)) {
   IDS.push(...live);
   compare(`[poly] ${name}`, strip(R), strip(P));
   compare(`[both] ${name}`, strip(R), strip(B));
-  compare(`[both-off] ${name}`, strip(R), strip(O));
+  if (!refFile) compare(`[both-off] ${name}`, strip(R), strip(O));
   IDS.length = 0;
   IDS.push(...saved);
   console.log(`${bad === before ? "ok  " : "FAIL"} ${name}`);
@@ -171,8 +201,14 @@ console.log(
   `compared ${cmpCount} values, mismatches ${bad}, worst numeric delta ${worst.toExponential(2)}`,
 );
 console.log(
-  "poly attribute on both (engine probe should leave it off):",
+  `poly attribute on both (engine probe should leave it ${refFile ? "on" : "off"}):`,
   await both.evaluate(() => document.documentElement.hasAttribute("data-cssints-poly")),
 );
+const on = await both.evaluate(() => document.documentElement.hasAttribute("data-cssints-poly"));
+if (refFile && !on) {
+  bad++;
+  console.log("FAIL the probe did not switch the runtime on");
+}
+if (process.env.DUMP) writeFileSync(process.env.DUMP, JSON.stringify(dump));
 await b.close();
 process.exit(bad ? 1 : 0);

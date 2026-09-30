@@ -137,3 +137,275 @@ initial (parse+style+layout)                   199.0          31.0          48.0
 class toggle on root (whole tree)                8.0          16.0          15.0
 class toggle on a depth-3 node                   4.0          16.0          10.0
 insert a 1 000-element subtree                   3.0          20.0          21.0
+## old browsers (cssints-fxz3): probe, equivalence against same-engine and Chrome references, regression
+#### probe
+firefox 128.0 @container style(...) -> {"ok":"","ms":1}
+firefox 128.0 @container nostyle(...) -> {"ok":"","ms":0}
+firefox 150.0.2 @container style(...) -> {"ok":"","ms":1}
+firefox 150.0.2 @container nostyle(...) -> {"ok":"","ms":0}
+webkit 17.4 @container style(...) -> {"ok":"","ms":0}
+webkit 17.4 @container nostyle(...) -> {"ok":"","ms":0}
+webkit 17.0 @container style(...) -> {"ok":"","ms":1}
+webkit 17.0 @container nostyle(...) -> {"ok":"","ms":0}
+webkit 16.4 @container style(...) -> {"ok":"","ms":1}
+webkit 16.4 @container nostyle(...) -> {"ok":"","ms":0}
+webkit 17.4 @container style(...) -> {"ok":"1","ms":1}
+webkit 17.4 @container nostyle(...) -> {"ok":"","ms":0}
+#### old, same-engine reference
+## test firefox pw1.46.1 ref=ref-firefox155
+firefox 128.0
+compared 1392 values, mismatches 0, worst numeric delta 0.00e+0
+poly attribute on both (engine probe should leave it on): true
+## test firefox pw1.60.0 ref=ref-firefox155
+firefox 150.0.2
+compared 1392 values, mismatches 0, worst numeric delta 0.00e+0
+poly attribute on both (engine probe should leave it on): true
+## test webkit pw1.40.1 ref=ref-webkit26
+webkit 17.4
+compared 1392 values, mismatches 0, worst numeric delta 3.50e-5
+poly attribute on both (engine probe should leave it on): true
+## test webkit pw1.36.2 ref=ref-webkit26
+webkit 17.0
+  MISMATCH [poly] class toggle f1 p8->p12, s0 base->lightbase s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585092 260.72253)
+  MISMATCH [poly] class toggle f1 p8->p12, s0 base->lightbase s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585092 260.72253)
+  MISMATCH [both] class toggle f1 p8->p12, s0 base->lightbase s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585092 260.72253)
+  MISMATCH [both] class toggle f1 p8->p12, s0 base->lightbase s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585092 260.72253)
+FAIL class toggle f1 p8->p12, s0 base->lightbase
+  MISMATCH [poly] insert wrapper + new nested frame/surface s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585092 260.72253)
+  MISMATCH [poly] insert wrapper + new nested frame/surface s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585092 260.72253)
+  MISMATCH [both] insert wrapper + new nested frame/surface s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585092 260.72253)
+  MISMATCH [both] insert wrapper + new nested frame/surface s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585092 260.72253)
+FAIL insert wrapper + new nested frame/surface
+  MISMATCH [poly] wrap existing subtree in a new frame s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585092 260.72253)
+  MISMATCH [poly] wrap existing subtree in a new frame s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585092 260.72253)
+  MISMATCH [both] wrap existing subtree in a new frame s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585092 260.72253)
+  MISMATCH [both] wrap existing subtree in a new frame s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585092 260.72253)
+FAIL wrap existing subtree in a new frame
+  MISMATCH [poly] inline style --_p on f3 s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585092 260.72253)
+  MISMATCH [poly] inline style --_p on f3 s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585092 260.72253)
+  MISMATCH [both] inline style --_p on f3 s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585092 260.72253)
+  MISMATCH [both] inline style --_p on f3 s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585092 260.72253)
+FAIL inline style --_p on f3
+  MISMATCH [poly] :hover on d0 s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585092 260.72253)
+  MISMATCH [poly] :hover on d0 s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585092 260.72253)
+  MISMATCH [both] :hover on d0 s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585092 260.72253)
+  MISMATCH [both] :hover on d0 s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585092 260.72253)
+FAIL :hover on d0
+  MISMATCH [poly] hover away s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585092 260.72253)
+  MISMATCH [poly] hover away s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585092 260.72253)
+  MISMATCH [both] hover away s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585092 260.72253)
+  MISMATCH [both] hover away s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585092 260.72253)
+FAIL hover away
+  MISMATCH [poly] viewport < 500px (media query) s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585092 260.72253)
+  MISMATCH [poly] viewport < 500px (media query) s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585092 260.72253)
+  MISMATCH [both] viewport < 500px (media query) s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585092 260.72253)
+  MISMATCH [both] viewport < 500px (media query) s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585092 260.72253)
+FAIL viewport < 500px (media query)
+  MISMATCH [poly] viewport back s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585092 260.72253)
+  MISMATCH [poly] viewport back s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585092 260.72253)
+  MISMATCH [both] viewport back s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585092 260.72253)
+  MISMATCH [both] viewport back s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585092 260.72253)
+FAIL viewport back
+  MISMATCH [poly] remove f1 wrapper's child f2 s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585092 260.72253)
+  MISMATCH [poly] remove f1 wrapper's child f2 s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585092 260.72253)
+  MISMATCH [both] remove f1 wrapper's child f2 s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585092 260.72253)
+  MISMATCH [both] remove f1 wrapper's child f2 s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585092 260.72253)
+FAIL remove f1 wrapper's child f2
+compared 1392 values, mismatches 36, worst numeric delta 4.26e-2
+poly attribute on both (engine probe should leave it on): true
+## test webkit pw1.33.0 ref=ref-webkit26
+webkit 16.4
+  MISMATCH [poly] class toggle f1 p8->p12, s0 base->lightbase s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585114 260.72272)
+  MISMATCH [poly] class toggle f1 p8->p12, s0 base->lightbase s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585114 260.72272)
+  MISMATCH [both] class toggle f1 p8->p12, s0 base->lightbase s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585114 260.72272)
+  MISMATCH [both] class toggle f1 p8->p12, s0 base->lightbase s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585114 260.72272)
+FAIL class toggle f1 p8->p12, s0 base->lightbase
+  MISMATCH [poly] insert wrapper + new nested frame/surface s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585114 260.72272)
+  MISMATCH [poly] insert wrapper + new nested frame/surface s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585114 260.72272)
+  MISMATCH [both] insert wrapper + new nested frame/surface s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585114 260.72272)
+  MISMATCH [both] insert wrapper + new nested frame/surface s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585114 260.72272)
+FAIL insert wrapper + new nested frame/surface
+  MISMATCH [poly] wrap existing subtree in a new frame s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585114 260.72272)
+  MISMATCH [poly] wrap existing subtree in a new frame s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585114 260.72272)
+  MISMATCH [both] wrap existing subtree in a new frame s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585114 260.72272)
+  MISMATCH [both] wrap existing subtree in a new frame s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585114 260.72272)
+FAIL wrap existing subtree in a new frame
+  MISMATCH [poly] inline style --_p on f3 s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585114 260.72272)
+  MISMATCH [poly] inline style --_p on f3 s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585114 260.72272)
+  MISMATCH [both] inline style --_p on f3 s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585114 260.72272)
+  MISMATCH [both] inline style --_p on f3 s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585114 260.72272)
+FAIL inline style --_p on f3
+  MISMATCH [poly] :hover on d0 s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585114 260.72272)
+  MISMATCH [poly] :hover on d0 s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585114 260.72272)
+  MISMATCH [both] :hover on d0 s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585114 260.72272)
+  MISMATCH [both] :hover on d0 s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585114 260.72272)
+FAIL :hover on d0
+  MISMATCH [poly] hover away s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585114 260.72272)
+  MISMATCH [poly] hover away s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585114 260.72272)
+  MISMATCH [both] hover away s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585114 260.72272)
+  MISMATCH [both] hover away s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585114 260.72272)
+FAIL hover away
+  MISMATCH [poly] viewport < 500px (media query) s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585114 260.72272)
+  MISMATCH [poly] viewport < 500px (media query) s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585114 260.72272)
+  MISMATCH [both] viewport < 500px (media query) s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585114 260.72272)
+  MISMATCH [both] viewport < 500px (media query) s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585114 260.72272)
+FAIL viewport < 500px (media query)
+  MISMATCH [poly] viewport back s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585114 260.72272)
+  MISMATCH [poly] viewport back s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585114 260.72272)
+  MISMATCH [both] viewport back s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585114 260.72272)
+  MISMATCH [both] viewport back s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585114 260.72272)
+FAIL viewport back
+  MISMATCH [poly] remove f1 wrapper's child f2 s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585114 260.72272)
+  MISMATCH [poly] remove f1 wrapper's child f2 s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585114 260.72272)
+  MISMATCH [both] remove f1 wrapper's child f2 s3.bg: ref oklch(0.9 0.022585 260.722565) got oklch(0.94259393 0.022585114 260.72272)
+  MISMATCH [both] remove f1 wrapper's child f2 s4.bg: ref oklch(0.75 0.022585 260.722565) got oklch(0.79259396 0.022585114 260.72272)
+FAIL remove f1 wrapper's child f2
+compared 1392 values, mismatches 36, worst numeric delta 4.26e-2
+poly attribute on both (engine probe should leave it on): true
+#### old, Chrome reference (TOL 0.1)
+## test firefox pw1.46.1 ref=chrome
+firefox 128.0
+compared 1392 values, mismatches 0, worst numeric delta 9.60e-2
+poly attribute on both (engine probe should leave it on): true
+## test firefox pw1.60.0 ref=chrome
+firefox 150.0.2
+compared 1392 values, mismatches 0, worst numeric delta 9.60e-2
+poly attribute on both (engine probe should leave it on): true
+## test webkit pw1.40.1 ref=chrome
+webkit 17.4
+compared 1392 values, mismatches 0, worst numeric delta 9.65e-2
+poly attribute on both (engine probe should leave it on): true
+## test webkit pw1.36.2 ref=chrome
+webkit 17.0
+compared 1392 values, mismatches 0, worst numeric delta 9.65e-2
+poly attribute on both (engine probe should leave it on): true
+## test webkit pw1.33.0 ref=chrome
+webkit 16.4
+compared 1392 values, mismatches 0, worst numeric delta 9.63e-2
+poly attribute on both (engine probe should leave it on): true
+#### regression, new browsers
+chrome 154.0.8037.58
+compared 2088 values, mismatches 0, worst numeric delta 0.00e+0
+poly attribute on both (engine probe should leave it off): false
+firefox 155.0
+compared 2088 values, mismatches 0, worst numeric delta 0.00e+0
+poly attribute on both (engine probe should leave it off): false
+webkit 26.6
+compared 2088 values, mismatches 0, worst numeric delta 0.00e+0
+poly attribute on both (engine probe should leave it off): false
+## old browsers: bench (the sq column is an unstyled page there, ignore it)
+## bench: firefox 1.46.1
+firefox 128.0 | median of 9 | ms
+
+5 461 nested (fan-out 4, depth 6)
+operation                                         sq       runtime   runtime + w
+initial (parse+style+layout)                    11.0         190.0         644.0
+class toggle on root (whole tree)                6.0         251.0         718.0
+class toggle on a depth-3 node                   0.0           2.0           2.0
+insert a 1 000-element subtree                   1.0          10.0          23.0
+
+19 531 nested (fan-out 5, depth 6)
+operation                                         sq       runtime   runtime + w
+initial (parse+style+layout)                    30.0         557.0        2339.0
+class toggle on root (whole tree)               20.0         707.0        2357.0
+class toggle on a depth-3 node                   1.0           3.0           3.0
+insert a 1 000-element subtree                   3.0          10.0          29.0
+
+chain, depth 300
+operation                                         sq       runtime   runtime + w
+initial (parse+style+layout)                     6.0          40.0          77.0
+class toggle on root (whole tree)                4.0          13.0          16.0
+class toggle on a depth-3 node                   4.0           9.0          10.0
+insert a 1 000-element subtree                   1.0           8.0          22.0
+## bench: firefox 1.60.0
+firefox 150.0.2 | median of 9 | ms
+
+5 461 nested (fan-out 4, depth 6)
+operation                                         sq       runtime   runtime + w
+initial (parse+style+layout)                    12.0         210.0         521.0
+class toggle on root (whole tree)                8.0         115.0         619.0
+class toggle on a depth-3 node                   0.0           0.0           1.0
+insert a 1 000-element subtree                   1.0          12.0          20.0
+
+19 531 nested (fan-out 5, depth 6)
+operation                                         sq       runtime   runtime + w
+initial (parse+style+layout)                    38.0         570.0        1580.0
+class toggle on root (whole tree)               22.0         383.0        2332.0
+class toggle on a depth-3 node                   1.0           1.0           2.0
+insert a 1 000-element subtree                   3.0           9.0          23.0
+
+chain, depth 300
+operation                                         sq       runtime   runtime + w
+initial (parse+style+layout)                     9.0          46.0          88.0
+class toggle on root (whole tree)                5.0          11.0          15.0
+class toggle on a depth-3 node                   4.0           8.0          10.0
+insert a 1 000-element subtree                   1.0           7.0          21.0
+## bench: webkit 1.40.1
+webkit 17.4 | median of 9 | ms
+
+5 461 nested (fan-out 4, depth 6)
+operation                                         sq       runtime   runtime + w
+initial (parse+style+layout)                    16.0         280.0         573.0
+class toggle on root (whole tree)               19.0         250.0         532.0
+class toggle on a depth-3 node                   0.0           2.0           2.0
+insert a 1 000-element subtree                   1.0           8.0          15.0
+
+19 531 nested (fan-out 5, depth 6)
+operation                                         sq       runtime   runtime + w
+initial (parse+style+layout)                    54.0        1003.0        1800.0
+class toggle on root (whole tree)               62.0         841.0        1908.0
+class toggle on a depth-3 node                   1.0           3.0           4.0
+insert a 1 000-element subtree                   5.0          10.0          14.0
+
+chain, depth 300
+operation                                         sq       runtime   runtime + w
+initial (parse+style+layout)                     3.0          31.0          46.0
+class toggle on root (whole tree)                5.0          11.0          14.0
+class toggle on a depth-3 node                   2.0           7.0           8.0
+insert a 1 000-element subtree                   1.0           8.0          15.0
+## bench: webkit 1.36.2
+webkit 17.0 | median of 9 | ms
+
+5 461 nested (fan-out 4, depth 6)
+operation                                         sq       runtime   runtime + w
+initial (parse+style+layout)                    30.0         500.0         890.0
+class toggle on root (whole tree)               31.0         417.0         852.0
+class toggle on a depth-3 node                   1.0           4.0           4.0
+insert a 1 000-element subtree                   7.0          20.0          34.0
+
+19 531 nested (fan-out 5, depth 6)
+operation                                         sq       runtime   runtime + w
+initial (parse+style+layout)                   100.0        1900.0        3492.0
+class toggle on root (whole tree)              109.0        1416.0        3068.0
+class toggle on a depth-3 node                   0.0           8.0           6.0
+insert a 1 000-element subtree                   2.0          19.0          31.0
+
+chain, depth 300
+operation                                         sq       runtime   runtime + w
+initial (parse+style+layout)                     6.0          43.0          66.0
+class toggle on root (whole tree)                8.0          29.0          52.0
+class toggle on a depth-3 node                   6.0          10.0          11.0
+insert a 1 000-element subtree                   2.0          18.0          30.0
+## bench: webkit 1.33.0
+webkit 16.4 | median of 9 | ms
+
+5 461 nested (fan-out 4, depth 6)
+operation                                         sq       runtime   runtime + w
+initial (parse+style+layout)                    30.0         520.0         899.0
+class toggle on root (whole tree)               32.0         399.0         802.0
+class toggle on a depth-3 node                   0.0           3.0           5.0
+insert a 1 000-element subtree                   2.0          18.0          29.0
+
+19 531 nested (fan-out 5, depth 6)
+operation                                         sq       runtime   runtime + w
+initial (parse+style+layout)                    91.0        1748.0        3061.0
+class toggle on root (whole tree)               98.0        1321.0        3029.0
+class toggle on a depth-3 node                   2.0          10.0           6.0
+insert a 1 000-element subtree                   6.0          22.0          32.0
+
+chain, depth 300
+operation                                         sq       runtime   runtime + w
+initial (parse+style+layout)                     6.0          47.0          68.0
+class toggle on root (whole tree)                8.0          32.0          51.0
+class toggle on a depth-3 node                   5.0          11.0          13.0
+insert a 1 000-element subtree                   7.0          19.0          31.0
