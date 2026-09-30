@@ -1,11 +1,10 @@
 /**
  * CSS-in-TS Demo App
  *
- * Demonstrates oxc-macro-based CSS-in-TS with:
- * - CSS property functions (display, p, bg, color, etc.)
- * - cv() for class variants (Button)
- * - cx() for class name merging
- * - Atomic CSS generation at build time
+ * The 0.1 features, one place each:
+ * - property functions and short names, flex() chains, cx(), media() and hover() (this file);
+ * - cv() variants and createTokens() tokens (Card, Button, theme.ts);
+ * - grid(), container(), supports(), pseudo-class wrappers, cn(), typed parts, math, selector themes (Showcase).
  */
 
 import { cx } from "cssints";
@@ -37,6 +36,7 @@ import {
 import { t } from "./theme.ts" with { type: "cssints" };
 import { Button } from "./components/Button.js";
 import { Card } from "./components/Card.js";
+import { Showcase } from "./components/Showcase.js";
 
 // Layout styles
 const page = [flex().direction("column").gap("1rem")];
@@ -91,6 +91,7 @@ const swatch = [
 function App() {
   return (
     <div
+      data-demo="page"
       className={cx(
         ...page,
         padding("2rem"),
@@ -100,11 +101,11 @@ function App() {
     >
       <div className={cx(...container)}>
         <h1 className={cx(...h1)}>CSS-in-TS Demo</h1>
-        <p className={cx(...subtitle)}>Type-safe CSS with macro-based atomic class generation</p>
+        <p className={cx(...subtitle)}>Type-safe CSS with build-time atomic class generation</p>
 
         <Card
           title="Button Variants"
-          description="Demonstrates cv() macro with multiple variants"
+          description="Demonstrates cv() with multiple variants"
           footer={
             <>
               <Button variant="outline" size="sm">
@@ -160,7 +161,7 @@ function App() {
               <code>display()</code>, <code>p()</code>, <code>bg()</code>
             </li>
             <li>
-              <strong>2. Build-Time Generation:</strong> oxc-macro evaluates functions, generates
+              <strong>2. Build-Time Generation:</strong> the Vite plugin runs the calls, generates
               atomic CSS classes
             </li>
             <li>
@@ -189,13 +190,18 @@ function App() {
         </div>
 
         <div className={cx(marginTop("2rem"))}>
+          <h2 className={cx(...h2)}>Feature tour</h2>
+          <Showcase />
+        </div>
+
+        <div className={cx(marginTop("2rem"))}>
           <h2 className={cx(...h2)}>Key Features</h2>
           <div className={cx(...featureGrid)}>
             {[
               { title: "Zero Runtime", desc: "CSS generated at build time" },
               { title: "Type Safety", desc: "Full TypeScript inference" },
               { title: "Atomic CSS", desc: "Minimal bundle, maximum reuse" },
-              { title: "Macro-Based", desc: "oxc-macro evaluates at build time" },
+              { title: "Build-Time", desc: "The plugin evaluates the calls at build time" },
             ].map((feature) => (
               <div key={feature.title} className={cx(...featureCard)}>
                 <h3 className={cx(...featureTitle)}>{feature.title}</h3>
