@@ -65,6 +65,8 @@ export type Chain<M extends Record<string, keyof typeof properties>> = Style & {
 
 /** A condition: styles in, the same styles under it out (media(), container(), supports(), hover, ...). */
 export type Wrap = (...styles: Style[]) => Style;
+/** What media() and container() give: a condition that createGlobalTheme takes (a pseudo-class wrapper is not one). */
+export type QueryWrap = Wrap & { readonly __query: true };
 
 export interface CvConfig {
   base?: Style;
@@ -74,8 +76,8 @@ export interface CvConfig {
 
 export declare const cn: (...styles: Style[]) => Style;
 /** Query strings are checked against the mdn-data grammar: `media("(width >= 40rem)")`. Several give a tuple, an object an object. */
-export declare const media: Condition<"media", Wrap>;
-export declare const container: Condition<"container", Wrap>;
+export declare const media: Condition<"media", QueryWrap>;
+export declare const container: Condition<"container", QueryWrap>;
 export declare const supports: Condition<"supports", Wrap>;
 /** `token.<type>(initial, name?)`: a Typed OM value of the type, `var(--name)`. With a name it can be set. */
 export declare const token: { readonly [K in TokenType]: TokenFn<K> } & {

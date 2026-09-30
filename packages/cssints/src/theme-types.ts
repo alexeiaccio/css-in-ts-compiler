@@ -10,7 +10,7 @@ import type {
   ValidSyntax,
 } from "@cssints/css-grammar/token";
 
-import type { Wrap } from "./types.ts";
+import type { QueryWrap } from "./types.ts";
 
 type Component = number | "none";
 type FontWeightName =
@@ -180,7 +180,7 @@ type CheckOverrides<X, O> = {
  */
 export declare const createGlobalTheme: <const X extends object, const O extends Overrides<X>>(
   tokens: X,
-  condition: Wrap | string,
+  condition: QueryWrap | string,
   overrides: O & CheckOverrides<X, O>,
 ) => void;
 
