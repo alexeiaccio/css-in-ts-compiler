@@ -173,8 +173,14 @@ export const instrument = Effect.fn("cssints.instrument")(function* (
     const site = `__site(__at(${JSON.stringify(id)}, ${n}, ${s.start}), `;
     // Sites inside functions never run at module load, and may use locals of a helper that is called with
     // arguments. The runner calls __cssints_hoisted only on the module it evaluates, after it has loaded.
-    if (s.inFn) hoisted.push(`${site}${code.slice(s.start, s.end)});`);
-    else ms.prependLeft(s.start, site).appendRight(s.end, ")");
+    // A top-level site the load did not reach (`false && p(4)`, a branch not taken) goes there too, for the
+    // module bindings; `__unseen` skips the ones that ran.
+    const expr = code.slice(s.start, s.end);
+    if (s.inFn) hoisted.push(`${site}${expr});`);
+    else {
+      ms.prependLeft(s.start, site).appendRight(s.end, ")");
+      hoisted.push(`__unseen(${JSON.stringify(id)}, ${n}) && ${site}${expr});`);
+    }
   });
   // cssints members are properties of `css` (macro.ts): named imports destructure it.
   imp.decls.forEach((d, i) => {
@@ -189,7 +195,7 @@ export const instrument = Effect.fn("cssints.instrument")(function* (
       `import { css as __css${i} } from ${JSON.stringify(RUNTIME)}; const ${bind} = __css${i};`,
     );
   });
-  ms.prepend(`import { __at, __site } from ${JSON.stringify(RUNTIME)};\n`);
+  ms.prepend(`import { __at, __site, __unseen } from ${JSON.stringify(RUNTIME)};\n`);
   if (hoisted.length)
     ms.append(`\nexport function __cssints_hoisted() {\n${hoisted.join("\n")}\n}\n`);
   return { code: ms.toString(), sites, imp };

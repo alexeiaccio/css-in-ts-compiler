@@ -124,6 +124,10 @@ css.createGlobalTheme(t, ".x", {
   // @ts-expect-error there is no such group
   nope: { bg: "red" },
 });
+// @ts-expect-error a pseudo-class wrapper is not a theme condition
+css.createGlobalTheme(t, css.hover, { color: { bg: "red" } });
+// @ts-expect-error nor is supports()
+css.createGlobalTheme(t, css.supports("(display: grid)"), { color: { bg: "red" } });
 // @ts-expect-error a condition or a selector, not a number
 css.createGlobalTheme(t, 3, { color: { bg: "red" } });
 // @ts-expect-error a group is not a value
