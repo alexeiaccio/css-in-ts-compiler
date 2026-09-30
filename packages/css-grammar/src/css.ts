@@ -279,7 +279,25 @@ type RepN<X, S extends string, Lo extends any[], Hi extends any[], I extends any
 // || (All=false: at least one part) and && (All=true: every part), any order, each part at most once.
 // `[S] extends [never]`: a part that failed left nothing to continue from. Without this stop, a failed part still
 // recursed through every permutation of the others (font-variant "none": 4.3 M instantiations and TS2589).
-type AnyOrder<Xs extends Node[], S extends string, All extends boolean, P extends boolean> = [S] extends [never] ? never : Xs extends [] ? S : TryEach<Xs, Xs, S, All, [], P>;
+type AnyOrder<Xs extends Node[], S extends string, All extends boolean, P extends boolean> = [S] extends [never] ? never : Xs extends [] ? S : P extends true ? AnyOrderPend<Xs, S, All> : TryEach<Xs, Xs, S, All, [], P>;
+// A call at the head of S may stand for any of the parts, whole, and for the head of one more, so no part is required
+// and what follows it is any of the parts, or what is left of the one it began (twin-core.ts `anyOrder`). The states that
+// stay at the call (S) would go through every order of the parts (TS2589 on `animation`).
+type AnyOrderPend<Xs extends Node[], S extends string, All extends boolean> =
+  PendHead<S> extends infer Q extends string
+    ? ([Q] extends [never] ? TryEach<Xs, Xs, S, All, [], true> : S | Q | AnyOrder<Xs, Q, false, true> | TryHead<Xs, Xs, [], S | Q, S>)
+    : never;
+// The text after the call at the head of S, or never.
+type PendHead<S extends string> =
+  S extends `var(--${string}` | `env(${string}` | `if(${string}`
+    ? (S extends `${string}(${infer X}` ? Close<Declaration<Trim<X>, Trim<X>, [], true>> : never)
+    : never;
+type TryHead<Parts extends Node[], Todo extends Node[], I extends any[], Skip extends string, S extends string> =
+  Todo extends [infer H, ...infer R extends Node[]]
+    ? (Exclude<Consume<H, S, true>, Skip> extends infer R1 extends string
+        ? R1 | AnyOrder<RemoveAt<Parts, `${I["length"]}`>, R1, false, true>
+        : never) | TryHead<Parts, R, [...I, 0], Skip, S>
+    : never;
 type TryEach<Parts extends Node[], Todo extends Node[], S extends string, All extends boolean, I extends any[], P extends boolean> =
   Todo extends [infer H, ...infer R extends Node[]]
     ? (Consume<H, S, P> extends infer R1 extends string
@@ -305,5 +323,5 @@ export type Unexpected<S extends string> = S extends "" ? "unexpected end" : `un
 // generic S once per property (+21 k instantiations each, measured; with it +5 k, and nothing per call).
 export type Valid<P extends keyof Props, S extends string> = MatchesValue<Props[P], S> extends true ? S : S extends string ? Message<P, S> : never;
 type Message<P extends keyof Props, S extends string> =
-  `${P}: ${Unexpected<Stuck<Trim<S> | Consume<Parse<Props[P]>, Trim<S>, HasPending<S>>>>} in "${S}", grammar ${Props[P]}`;
+  `${P}: ${Unexpected<Stuck<Trim<S> | (HasPending<S> extends true ? Consume<Parse<Props[P]>, Trim<S>, true> : Consume<Parse<Props[P]>, Trim<S>>)>>} in "${S}", grammar ${Props[P]}`;
 export type PropertyFn<P extends keyof Props> = <const S extends string>(value: Valid<P, S>) => string;
