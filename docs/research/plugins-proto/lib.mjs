@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs";
 
 // PW=<dir of another playwright-core>/index.mjs drives an older browser build (with PLAYWRIGHT_BROWSERS_PATH), see README
 const { chromium, firefox, webkit } = await import(
-  process.env.PW ?? "/Users/a.tukachev/github/css-in-ts-compiler/node_modules/.bun/node_modules/playwright-core/index.mjs"
+  process.env.PW ??
+    "/Users/a.tukachev/github/css-in-ts-compiler/node_modules/.bun/node_modules/playwright-core/index.mjs"
 );
 
 const here = (p) => new URL(p, import.meta.url);

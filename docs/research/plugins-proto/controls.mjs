@@ -31,7 +31,9 @@ console.log("initial     no events:", await get(noEvents));
 // one page at a time, read right away: older Firefox drops :hover on a page when another page is hovered, and applies it 60-150 ms late
 const hover = async (p) => {
   await p.hover("#d0");
-  await p.waitForFunction(() => getComputedStyle(document.getElementById("d0")).paddingTop === "20px");
+  await p.waitForFunction(
+    () => getComputedStyle(document.getElementById("d0")).paddingTop === "20px",
+  );
   await settle(p);
   return get(p);
 };

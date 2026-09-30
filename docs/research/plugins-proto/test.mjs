@@ -62,8 +62,9 @@ const nums = (s) => (s.match(/-?[\d.]+(?:e-?\d+)?/g) ?? []).map(Number);
 // Older WebKit serialises computed oklch() lightness above 1 unclamped (1.04 where newer says 1) and keeps the hue of a chroma-0 colour (90 where newer says 0);
 // both paint the same, so both sides are normalised before comparing.
 const norm = (s) =>
-  s.replace(/oklch\(([\d.e-]+) ([\d.e-]+) ([\d.e-]+)\)/, (_, l, c, h) =>
-    `oklch(${Math.min(Math.max(+l, 0), 1)} ${+c} ${+c < 1e-4 ? 0 : +h})`,
+  s.replace(
+    /oklch\(([\d.e-]+) ([\d.e-]+) ([\d.e-]+)\)/,
+    (_, l, c, h) => `oklch(${Math.min(Math.max(+l, 0), 1)} ${+c} ${+c < 1e-4 ? 0 : +h})`,
   );
 let bad = 0,
   worst = 0,
@@ -128,11 +129,15 @@ const steps = {
   // Playwright's hover returns before older Firefox applies :hover (60-150 ms), so wait for the page to see it
   ":hover on d0": async (p) => {
     await p.hover("#d0");
-    await p.waitForFunction(() => getComputedStyle(document.getElementById("d0")).paddingTop === "20px");
+    await p.waitForFunction(
+      () => getComputedStyle(document.getElementById("d0")).paddingTop === "20px",
+    );
   },
   "hover away": async (p) => {
     await p.mouse.move(999, 790);
-    await p.waitForFunction(() => getComputedStyle(document.getElementById("d0")).paddingTop !== "20px");
+    await p.waitForFunction(
+      () => getComputedStyle(document.getElementById("d0")).paddingTop !== "20px",
+    );
   },
   "viewport < 500px (media query)": (p) => p.setViewportSize({ width: 400, height: 800 }),
   "viewport back": (p) => p.setViewportSize({ width: 1000, height: 800 }),

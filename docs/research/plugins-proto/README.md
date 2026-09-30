@@ -11,13 +11,14 @@ Throwaway proof for `docs/research/plugins.md` (cssints-rq2r): the runtime polyf
 | `controls.mjs`, `probe.mjs`          | negative controls; probe shapes                                                                       |
 | `bench.mjs`, `size.mjs`              | cost on nested trees; min + gzip + brotli                                                             |
 | `types/`                             | the plugin types over `packages/css-grammar/src/css.ts` (`tsgo -p types/tsconfig.json`)               |
-| `results.txt`                        | output of all of the above, Chrome 154, Firefox 155, WebKit 26.6                                      |
+| `results.txt`                        | output of all of the above, Chrome 154, Firefox 155, WebKit 26.6, and the old builds                                     |
 
 ## Old browsers (cssints-fxz3, plugins.md §3.6)
 
 Playwright's Firefox and WebKit builds are pinned to a Playwright release, so each old build is driven by the `playwright-core` of its own release. Scratch install outside the repo (nothing is added to package.json):
 
 ```sh
+# bash; run the DUMP lines WITHOUT PLAYWRIGHT_BROWSERS_PATH (they use the normal Playwright install)
 S=/tmp/old; mkdir -p $S/browsers; export PLAYWRIGHT_BROWSERS_PATH=$S/browsers
 for v in 1.46.1 1.60.0 1.40.1 1.36.2 1.33.0; do (mkdir -p $S/pw-$v && cd $S/pw-$v && npm init -y >/dev/null && npm i playwright-core@$v); done
 # Firefox 128.0 (ESR, Playwright 1.46.1, build 1458) and 150.0.2 (the newest below 151, Playwright 1.60.0, build 1522)
@@ -31,9 +32,9 @@ for x in "1944 mac-13-arm64" "1869 mac-13-arm64" "1837 mac-12-arm64"; do set -- 
 # NOT old enough: webkit 2003 (Playwright 1.44.1, "17.4", April 2024) already has style queries, the probe says so
 
 # a reference from a browser that HAS style queries (once per engine), then the same test on the old one:
-DUMP=/tmp/old/ref-chrome.json node test.mjs
-DUMP=/tmp/old/ref-firefox155.json BROWSER=firefox node test.mjs        # Playwright's own Firefox 155 (main checkout install)
-DUMP=/tmp/old/ref-webkit26.json BROWSER=webkit node test.mjs
+DUMP=$S/ref-chrome.json node test.mjs
+DUMP=$S/ref-firefox155.json BROWSER=firefox node test.mjs        # Playwright's own Firefox 155 (main checkout install)
+DUMP=$S/ref-webkit26.json BROWSER=webkit node test.mjs
 PW=$S/pw-1.46.1/node_modules/playwright-core/index.mjs BROWSER=firefox REF=$S/ref-firefox155.json node test.mjs
 PW=$S/pw-1.40.1/node_modules/playwright-core/index.mjs BROWSER=webkit  REF=$S/ref-webkit26.json  node test.mjs
 # probe / controls / bench take the same PW and BROWSER; REF against the Chrome dump from another engine needs TOL=0.1 (oklch hue differs by up to 0.1 at chroma 0.02)
