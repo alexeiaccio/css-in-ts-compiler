@@ -1,12 +1,13 @@
 ---
 # cssints-h6qk
 title: Prefer webref property grammars where mdn-data is stale
-status: draft
+status: todo
 type: task
+priority: normal
 tags:
     - wayfinder:research
 created_at: 2026-09-29T16:34:08Z
-updated_at: 2026-09-29T16:34:08Z
+updated_at: 2026-09-30T08:13:21Z
 parent: cssints-vy0o
 ---
 

@@ -29,6 +29,7 @@ The API in `docs/API.md` works end to end in `apps/demo` on the Module Runner en
 - [Grammar coverage: all mdn properties](cssints-unkt): all 892 grammars parse; an unused big table costs 0 instantiations, ~4.2 k per call; blockers are unit range bounds, `{A,}`, 15 missing primitives and one TS2589 outlier (font-variant). Decision: every standard and experimental property at once, nonstandard out. Findings: docs/research/grammar-coverage.md; implementation: [All standard properties](cssints-lmru) (done: 529 properties, 0 unexplained Chrome rows, font-variant 50 k, <declaration> opaque in types)
 - [Surfaces and frames](cssints-1xqr): Ariakit's parent-relative colour and concentric radius reduce to tiny kernels emitted once (frame 667 B, surface 434 B minified, against ~4 KB and ~12 KB), with per-site custom properties; the odd/even `@container style()` trick sets the floor at Firefox 151 / Safari 18; `inherit()` would remove it but ships nowhere. Recommendation: not 0.1; `frame()` then `surface()` as an opt-in module later; 0.1 keeps a seam (a global rule by key in a layer `_.k` below `_.a`). Findings: docs/research/surfaces-frames.md
 - [Plugin API: registered properties and functions, build-time lowering, runtime polyfills](cssints-rq2r): no native CSS Parser Extensions to rely on; the compiler knows its classes, so a 730 B gzip runtime reproduces style-query results exactly (Chrome, Firefox, WebKit); the contract is members + kernels by key in `_.k` + a runtime declared as data and chosen by BCD; plugin grammars feed the recognizer unchanged. Recommendation: 0.1 ships internal seams only. Findings: docs/research/plugins.md
+- Plugin scope (after [Plugin API research](cssints-rq2r)): 0.1 has no public plugin API, only the internal seams already in (`addGlobal` by key into `_.k`) and the five WebKit-only properties as a built-in list ([Built-in WebKit-only properties](cssints-6fay)). The public contract, `frame()` and icons are 0.2.
 - [How atomic CSS libraries emit and order CSS in Vite](cssints-wx85): one global sorted sheet (layer, condition, shorthand before longhand, class), filled late in build; per-module CSS cannot order rules inside a layer. Findings: docs/research/css-output.md
 - [Engine build cost at scale](cssints-grrd): evaluation is ~90% of plugin time; keeping the cssints library loaded in the runner (clear only app modules) halves it, 500 modules build in 4.7 s instead of 9.7 s. Findings: docs/research/engine-cost.md
 - [Public API shape for 0.1](cssints-5dbi): import attribute `with { type: "cssints" }` marks build-time code; camelCase names + p/m/bg; 0.25rem numbers only for spacing; variadic parts; chaining only on `flex()`/`grid()` with prefix-dropped names. Spec: docs/API.md "Authoring surface"; implementation: [Implement the 0.1 authoring surface in the engine](cssints-7fdc), done: sites by attribute (helpers and other packages too), names from the grammar, flex()/grid() chains with an mdn drift test; demo CSS byte-identical
@@ -41,18 +42,17 @@ The API in `docs/API.md` works end to end in `apps/demo` on the Module Runner en
 
 ## Not yet specified
 
-- `frame()` and `surface()` contexts (Ariakit-style concentric radius and parent-relative colour) as the first cssints plugin: kernel at build time, and a runtime polyfill for targets without style queries; `inherit()` under `@supports` later (cssints-1xqr, scope decided after cssints-rq2r).
 
 - Shorthand vs longhand through sublayers instead of sort order: `_.a.a/_.a.b/_.a.c` per condition layer (15 layers), depth from mdn-data `computed` by leaf-set inclusion (max depth 2; `border` → `border-top` → `border-top-color`, which the direct links miss; exclude `all`). Order-independent, but more layers and DevTools noise. Deferred on 2026-09-29; logical vs physical pairs (`margin-inline-start` vs `margin-left`) stay order-dependent either way.
 
 - Derived tokens (`contrastColor()` in CSS, `derive()` at build time) and JSON token input with generated types (cssints-exof).
 - Value helper functions (`css.colorMix(...)`, API.md "Functions"): whether they exist next to typed string parts, and how they are typed.
-- JSDoc on the generated functions: syntax, BCD support table and MDN link, as in API.md "Browser Compat".
 - Error DX: the type error for a bad typed part lands on the first argument; editor completions inside string literals (arktype `Completion` style); Vite overlay pointing at the call site.
-- Publishing: package names (`cssints`, `@cssints/*`), a build step or source exports, versioning.
 - `cn` conflict resolution ("resolve class order specificity"): what happens with `cn(p(4), pl(2))`.
 
 ## Out of scope
+
+- Public plugin API, `frame()`, `surface()` and icons on it: 0.2 (cssints-rq2r, cssints-1xqr).
 
 - `packages/plugin-icon`: not ported to the new engine for 0.1.
 - Bundlers other than Vite (the engine is built on the Vite Module Runner).
