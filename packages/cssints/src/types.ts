@@ -44,7 +44,7 @@ type Value<P, A extends readonly Part[]> = A extends readonly [number]
     : Join<A>
   : Join<A>;
 // On failure every part's parameter type becomes the Valid message, so the error lands on the first argument.
-export type Check<P extends keyof typeof properties, A extends readonly Part[]> =
+type Check<P extends keyof typeof properties, A extends readonly Part[]> =
   Valid<P, Value<P, A>> extends infer V
     ? V extends Value<P, A>
       ? A
@@ -57,6 +57,16 @@ export type Check<P extends keyof typeof properties, A extends readonly Part[]> 
 export type Prop<P extends keyof typeof properties, R = Style> = <const A extends readonly Part[]>(
   ...parts: Check<P, A>
 ) => R;
+/** `flex` and `grid`: no argument is the layout context (`display`, chaining `M`), parts are the property of that name. */
+export interface Layout<
+  P extends "flex" | "grid",
+  M extends Record<string, keyof typeof properties>,
+> {
+  /** The layout context: sets `display` and chains its container properties. */
+  (): Chain<M>;
+  /** The shorthand property of this name: parts are checked against its mdn grammar. A plain style, it does not chain. */
+  <const A extends readonly Part[]>(...parts: Check<P, A>): Style;
+}
 /** A style you can chain container properties on (flex() and grid()), and use as a class string. `M`: method -> property. */
 export type Chain<M extends Record<string, keyof typeof properties>> = Style & {
   readonly [K in keyof M]: Prop<M[K], Chain<M>>;
