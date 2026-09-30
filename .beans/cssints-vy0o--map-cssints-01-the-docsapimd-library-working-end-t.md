@@ -1,13 +1,13 @@
 ---
 # cssints-vy0o
 title: 'Map: cssints 0.1, the docs/API.md library working end to end'
-status: todo
+status: completed
 type: epic
 priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-29T13:28:04Z
-updated_at: 2026-09-30T10:58:35Z
+updated_at: 2026-09-30T11:54:33Z
 blocked_by:
     - cssints-vzd9
 ---
@@ -66,3 +66,7 @@ The API in `docs/API.md` works end to end in `apps/demo` on the Module Runner en
 - `packages/plugin-icon`: not ported to the new engine for 0.1.
 - Bundlers other than Vite (the engine is built on the Vite Module Runner).
 - A non-compiled runtime mode (styles computed in the browser).
+
+## Summary of Changes
+
+Destination reached on 2026-09-30 (master d04771c): the docs/API.md API works end to end in apps/demo on the Module Runner engine, the demo type-checks with tsc 5.9 and tsgo, and both packages are packable (bun run test:smoke), unpublished by decision. All tests, mbt, typecheck, lint, fmt, budgets and the demo build are green. The remaining fog (sublayers, derived and JSON tokens, value helpers, error DX) and the out-of-scope plugin work carry over to the 0.2 map.
