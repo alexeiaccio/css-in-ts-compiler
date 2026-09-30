@@ -73,8 +73,8 @@ for (const t of Object.values(tarballs)) {
     `  ${t.split("/").pop()}  ${statSync(t).size} bytes, ${list.length} files: ${list.join(" ")}`,
   );
   ok(
-    list.every((f) => f === "package.json" || f.startsWith("dist/")),
-    `${t.split("/").pop()} ships dist/ only`,
+    list.every((f) => ["package.json", "LICENSE", "README.md"].includes(f) || f.startsWith("dist/")),
+    `${t.split("/").pop()} ships dist/ only (plus package.json, LICENSE, README)`,
   );
   ok(
     !list.some((f) => /\.tsx?$/.test(f) && !f.endsWith(".d.ts")),
