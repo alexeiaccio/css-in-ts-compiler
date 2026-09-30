@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-09-30T08:13:21Z
-updated_at: 2026-09-30T08:27:06Z
+updated_at: 2026-09-30T08:27:21Z
 parent: cssints-vy0o
 ---
 
@@ -15,8 +15,8 @@ parent: cssints-vy0o
 
 API.md's old "Browser Compat" idea: each generated member carries JSDoc with the property's grammar, a support table from BCD for the default browserslist targets, and an MDN link, so the editor hover explains the value.
 
-- [ ] scripts/members.ts emits JSDoc per member: the mdn syntax (verbatim), first-supported versions for Chrome/Firefox/Safari/Edge from BCD, the MDN URL from mdn-data or BCD
-- [ ] Same for pseudo-class wrappers and flex()/grid() chain methods where cheap
+- [x] scripts/members.ts emits JSDoc per member: the mdn syntax (css-grammar's mdn.ts: mdn-data verbatim plus the ranges the types enforce), first-supported versions for Chrome/Edge/Firefox/Safari/iOS/Chrome Android from BCD, the MDN URL from mdn-data or BCD
+- [x] Same for pseudo-class wrappers and flex()/grid() chain methods where cheap (chain methods are documented in FlexMethods/GridMethods, but tsgo does not show it on the chain call: see summary)
 - [x] Check the hover in tsgo's LSP (bench/lsp.mjs can be extended: request hover on a member) and that the budget does not move (JSDoc is free for instantiations; verify)
 
 ## Summary of Changes
