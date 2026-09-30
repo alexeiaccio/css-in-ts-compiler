@@ -1,7 +1,7 @@
 // What TypeScript sees of "cssints" (the "types" condition of package.json): the build-time members with the
 // types they have in user code, where every call is already a class string, because the plugin replaced it.
 // The implementation (macro.ts) builds declaration nodes instead; nothing here runs.
-import type { Furthest, Valid } from "@cssints/css-grammar/css";
+import type { Furthest, Hint, Valid } from "@cssints/css-grammar/css";
 import type { properties } from "@cssints/css-grammar/mdn";
 import type { Condition } from "@cssints/css-grammar/query";
 import type { StyleObject, TokenFn, TokenSetFn, TokenType } from "@cssints/css-grammar/token";
@@ -23,7 +23,9 @@ export type Style = string & { readonly __cssints: "style" };
 type Text<P> = P extends Style
   ? "⟨style⟩"
   : P extends string
-    ? P
+    ? P extends ""
+      ? "⟨empty⟩"
+      : P
     : P extends number
       ? `${P}`
       : P extends CSSStyleValue<infer T>
@@ -68,7 +70,11 @@ type Check<P extends keyof typeof properties, A extends readonly Part[]> =
 type Locate<P extends keyof typeof properties, A extends readonly Part[], V, S extends string> =
   Furthest<P, S> extends infer F extends string
     ? S extends `${infer Pre}${F}`
-      ? { [K in keyof A]: K extends Bad<A, Pre> ? V : A[K] }
+      ? {
+          [K in keyof A]: K extends Bad<A, Pre>
+            ? V | Hint<P, A[K] extends string ? A[K] : never>
+            : A[K];
+        }
       : { [K in keyof A]: V }
     : never;
 

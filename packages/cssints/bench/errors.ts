@@ -1,4 +1,12 @@
-import { border, boxShadow, margin, padding, transition } from "cssints" with { type: "cssints" };
+import {
+  border,
+  boxShadow,
+  color,
+  display,
+  margin,
+  padding,
+  transition,
+} from "cssints" with { type: "cssints" };
 import { CSS } from "cssints" with { type: "cssints" };
 
 padding("2px", "red");
@@ -9,3 +17,8 @@ margin(CSS.px(1), "red");
 transition("opacity", "0.2s", "ease", "bad");
 boxShadow("0 0 1px", "red", "bad");
 margin("auto", "1rem", "bad", "2rem");
+// a word that keywords begin: the editor is offered them
+display("fl");
+color("re");
+border("1px", "so");
+border("1px", "");

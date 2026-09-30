@@ -1,5 +1,6 @@
 // Completions inside string literals over tsgo's language server: node bench/complete.mjs 'display("|")' ...
 // Each argument is a snippet of user code with `|` for the cursor; it is appended to a scratch file in apps/demo/src.
+// `--check` runs the cases below and fails when an item is missing or one is there that must not be.
 import { spawn } from "node:child_process";
 import { writeFileSync, unlinkSync } from "node:fs";
 import { pathToFileURL } from "node:url";
@@ -47,13 +48,31 @@ await request("initialize", {
   workspaceFolders: [{ uri: pathToFileURL(demo).href, name: "demo" }],
 });
 notify("initialized", {});
-notify("textDocument/didOpen", { textDocument: { uri, languageId: "typescriptreact", version: 1, text: head } });
+notify("textDocument/didOpen", {
+  textDocument: { uri, languageId: "typescriptreact", version: 1, text: head },
+});
+const cases = {
+  'display("fl|")': { has: ["flex", "flow", "flow-root"], not: ["grid", "block"] },
+  'display("|")': { has: ["flex", "grid", "block"] },
+  'color("re|")': { has: ["rebeccapurple", "red"], not: ["blue"] },
+  'color("ACC|")': { has: ["AccentColor", "AccentColorText"], not: ["red"] },
+  'border("1px", "so|")': { has: ["solid"], not: ["dashed"] },
+  'border("1px so|")': { has: ["1px solid"], not: ["solid"] },
+  'border("1px", "|")': { has: ["thin", "solid", "red"] },
+  'border("|", "solid")': { has: ["thin", "dashed"] },
+  'padding("|")': { not: ["auto", "flex"] },
+};
+const check = process.argv[2] === "--check";
+let failed = 0;
 let version = 1;
-for (const snippet of process.argv.slice(2)) {
+for (const snippet of check ? Object.keys(cases) : process.argv.slice(2)) {
   const at = snippet.indexOf("|");
   const code = snippet.replace("|", "");
   const text = `${head}${code};\n`;
-  notify("textDocument/didChange", { textDocument: { uri, version: ++version }, contentChanges: [{ text }] });
+  notify("textDocument/didChange", {
+    textDocument: { uri, version: ++version },
+    contentChanges: [{ text }],
+  });
   const pre = `${head}${code.slice(0, at)}`.split("\n");
   const t = performance.now();
   const r = await request("textDocument/completion", {
@@ -63,10 +82,22 @@ for (const snippet of process.argv.slice(2)) {
   const ms = performance.now() - t;
   const items = Array.isArray(r.result) ? r.result : (r.result?.items ?? []);
   const labels = items.map((i) => i.label);
-  console.log(`${snippet}  ${ms.toFixed(0)} ms, ${labels.length} items: ${labels.slice(0, 12).join(" ")}${labels.length > 12 ? " …" : ""}`);
+  console.log(
+    `${snippet}  ${ms.toFixed(0)} ms, ${labels.length} items: ${labels.slice(0, 12).join(" ")}${labels.length > 12 ? " …" : ""}`,
+  );
   if (r.error) console.log(JSON.stringify(r.error));
+  const want = cases[snippet];
+  if (check && want) {
+    const missing = (want.has ?? []).filter((x) => !labels.includes(x));
+    const extra = (want.not ?? []).filter((x) => labels.includes(x));
+    if (missing.length || extra.length) {
+      failed++;
+      console.log(`  FAIL ${snippet}: missing ${missing.join(" ")} unexpected ${extra.join(" ")}`);
+    }
+  }
 }
 await request("shutdown", null);
 notify("exit", null);
 server.kill();
 unlinkSync(file);
+if (failed) process.exit(1);

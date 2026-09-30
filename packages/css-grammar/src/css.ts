@@ -4,6 +4,7 @@
 // Two rules keep tsc happy: (1) no token arrays and no `[...Acc, x]` spreads over long lists, the parser
 // reads the grammar string directly and builds cons lists; (2) every recursive alias is either
 // tail-recursive or guarded by the indexed-object trick so TS defers it.
+import type { Keywords } from "./keywords";
 import type { properties, syntaxes } from "./mdn";
 
 type Props = typeof properties;
@@ -322,6 +323,15 @@ export type Unexpected<S extends string> = S extends "" ? "unexpected end" : `un
 // `S extends string ?` defers the message while S is still generic; without it tsc runs Consume over the
 // generic S once per property (+21 k instantiations each, measured; with it +5 k, and nothing per call).
 export type Valid<P extends keyof Props, S extends string> = MatchesValue<Props[P], S> extends true ? S : S extends string ? Message<P, S> : never;
+// The keywords of the property that the word being typed (the last of T) begins, each with the words of T before it:
+// the strings an editor offers inside a string that is not a value yet. Keywords.ts has them by first letter, so that
+// while an argument is still generic the lookup is one deferred index and not a test per keyword (a colour has 190).
+export type Hint<P extends string, T extends string> = Offer<P, LastWord<T>>;
+type LastWord<T extends string, Head extends string = ""> = T extends `${infer W} ${infer R}` ? LastWord<R, `${Head}${W} `> : [Head, T];
+type Offer<P extends string, L> = L extends [infer H extends string, infer W extends string] ? (Keywords extends { [K in P]: infer O } ? OfferWord<Bucket<O, Lowercase<W>>, H, W> : never) : never;
+type Bucket<O, W extends string> = O extends unknown ? (W extends `${infer C}${string}` ? (C extends keyof O ? O[C] : never) : O[keyof O]) : never;
+// The word itself is not offered: a call that is invalid must stay invalid.
+type OfferWord<K, H extends string, W extends string> = K extends string ? (Lowercase<K> extends `${Lowercase<W>}${string}` ? (K extends W ? never : `${H}${K}`) : never) : never;
 // The text from the furthest point the value reached (what `Message` names the first token of).
 export type Furthest<P extends keyof Props, S extends string> = Stuck<Trim<S> | Consume<Parse<Props[P]>, Trim<S>, HasPending<S>>>;
 type Message<P extends keyof Props, S extends string> =
