@@ -1,0 +1,14 @@
+import { margin, width } from "../src/api";
+import type { PropertyFn } from "../src/css";
+declare const padding: PropertyFn<"padding">;
+declare const border: PropertyFn<"border">;
+declare const transition: PropertyFn<"transition">;
+declare const animation: PropertyFn<"animation">;
+declare const background: PropertyFn<"background">;
+padding("var(--a) 2px");
+margin("var(--a)");
+border("1px var(--x) solid");
+width("if(style(--x: 1): 1px; else: 2px)");
+transition("opacity var(--duration)");
+animation("var(--a) 1s ease");
+background("url(a.png) var(--pos) no-repeat red");
