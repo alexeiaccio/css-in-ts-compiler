@@ -950,3 +950,12 @@ The flake seen under load (`firstTransform button served null STALE`) was a harn
 It failed in about 1 of 100 runs with no load and 3 of 50 under load. `settle()` now also waits while a request is unresolved and nothing is held at a gate, and 200 runs under load pass. The plugin and `runner.qnt` did not change.
 
 Lesson for harnesses: wait on the request's own promise or a gate, never on a quiet period alone.
+
+## Build-time evaluation edge cases (cssints-wigi)
+
+- **Unreached sites.** A top-level call the module run does not reach (`false && p(4)`, an untaken branch, a ternary arm) now gets its class string. The instrumenter also puts each top-level site in the hoisted pass, guarded by `__unseen`. The arguments of such a site may use module bindings, but not locals of the untaken block.
+- **Top-level `_cv(cv(...))`** works: the eval-time `cssints` exports a tolerant `_cv`. The browser `runtime.ts` is unchanged.
+- **Runtime values.** A runtime value in a css call (`p(n)` with `n` a parameter) fails with "css arguments must be known at build time: n is not defined where the call is evaluated", located at the call. A type-level ban on non-literal arguments cost +0.4% and also rejected parameterized helper modules, so it was dropped; the build error is the check.
+- **`createGlobalTheme`** takes only `media()` and `container()` conditions or a selector. A `QueryWrap` brand makes `hover` and `supports()` type errors.
+
+The intermittent mbt failure (the tokens-fetch mismatch) did not survive the `race` harness fix: 6 of 6 runs pass.
