@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "CSS in TypeScript: typed css.* calls compiled to atomic CSS at build time (a Vite plugin)",
+  "license": "MIT",
   "files": [
     "dist"
   ],

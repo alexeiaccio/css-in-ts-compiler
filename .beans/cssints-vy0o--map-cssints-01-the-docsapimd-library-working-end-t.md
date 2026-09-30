@@ -56,6 +56,8 @@ The API in `docs/API.md` works end to end in `apps/demo` on the Module Runner en
 
 ## Out of scope
 
+- Publishing to npm in this effort (decided 2026-09-30): 0.1 stays packable (`bun run test:smoke`) but unpublished. License is MIT.
+
 - Public plugin API, `frame()`, `surface()` and icons on it: 0.2 (cssints-rq2r, cssints-1xqr).
 
 - `packages/plugin-icon`: not ported to the new engine for 0.1.
