@@ -42,7 +42,7 @@ The API in `docs/API.md` works end to end in `apps/demo` on the Module Runner en
 
 - [Built-in WebKit-only properties](cssints-6fay), [JSDoc on generated members](cssints-7pv1), [Ship 0.1](cssints-808j): done. Tarballs install into a fresh Vite 8 app (`bun run test:smoke`); npm names free; publish 0.1.0 of both together; LICENSE and README still missing.
 
-- [0.1 docs and demo pass](cssints-gcho): API.md rewritten against the code with a doc test for every code block, README, a demo tour of every feature checked in Chrome. Findings: [Build-time evaluation edge cases](), [race.mjs flake](null), [flex/grid/container shorthands](), [vp fmt config](null)
+- [0.1 docs and demo pass](cssints-gcho): API.md rewritten against the code with a doc test for every code block, README, a demo tour of every feature checked in Chrome. Findings: [Build-time evaluation edge cases](cssints-wigi), [race.mjs flake](cssints-jwdw), [flex/grid/container shorthands](cssints-cmgv), [vp fmt config](cssints-uhu6)
 
 ## Not yet specified
 
