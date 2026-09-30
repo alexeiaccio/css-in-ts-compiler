@@ -332,10 +332,45 @@ function spaceChannels(body: string): readonly string[] {
   );
 }
 
+// Pending substitution (css-values-5, arbitrary substitution functions): a var(), env() or if() in a property value
+// stands for any run of component values, empty included, commas included, known only at computed-value time; what
+// surrounds it is still checked. The recognizer reads forward, so a call at the head of the text is a placeholder that
+// any leaf (keyword, literal, function, primitive) may use: it stands for that leaf and ends (the text after the call),
+// stands for it and stays at the head for the next leaf (the text itself), or is empty (the leaf tries the text after
+// it). It cannot swallow text after it: `padding: var(--a) red` fails on `red`. A remainder that is only placeholders
+// is complete (they stand for nothing). Every other leaf is checked, in the same way on both sides of a placeholder.
+// Limits: a call is checked by shape only (`var(` takes a `--name`, the conditions of an if() go through <if-condition>);
+// what it holds, and the range of a number it stands for, are not checked against the position; and the stay state is
+// not tracked per path, so the comma omission of a seq sees a placeholder as nothing consumed.
+const PENDING = /(?:var|env|if)\(/;
+const ENV = /^env\([ \n\t]*[A-Za-z_-][\w-]*/;
+// The length of the var(), env() or if() at the start of s, or -1.
+function pendingEnd(s: string): number {
+  if (!/^(?:var|env|if)\(/.test(s)) return -1;
+  if (s[0] === "i") return ifCall(s);
+  const { end } = args(s.slice(4), "");
+  if (end < 0) return -1;
+  const call = s.slice(0, end + 5);
+  return (s[0] === "v" ? matches(syns["var()"]!, call) : ENV.test(call)) ? end + 5 : -1;
+}
+function skipPending(s: string): string {
+  for (let e; (e = pendingEnd(s)) >= 0; ) s = trim(s.slice(e));
+  return s;
+}
+function pend(n: Node, s: string, ctx: Ctx, label?: string): Set<string> {
+  const e = pendingEnd(s);
+  if (e < 0) return NONE;
+  const rest = trim(s.slice(e));
+  return new Set([s, rest, ...consume(n, rest, ctx, label)]);
+}
+const complete = (rs: Set<string>, ctx: Ctx) =>
+  ctx.pend ? [...rs].some((r) => skipPending(r) === "") : rs.has("");
+
 interface Ctx {
   len: number;
   far: number;
   expected: Set<string>;
+  pend?: boolean; // the value has a var(), env() or if(): see "Pending substitution"
   ch?: readonly string[]; // the channel keywords in scope
   why?: [at: number, text: string]; // what was wrong with a math function at that position
 }
@@ -360,7 +395,9 @@ const flatMap = (rs: Set<string>, f: (r: string) => Set<string>) => union([...rs
 // `label` is the outermost named type we are inside, so errors say <color> rather than "aliceblue | ...".
 export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<string> {
   const leaf = (ok: boolean, rest: string, what: string) =>
-    ok ? new Set([trim(rest)]) : (fail(ctx, s, label ?? what), NONE);
+    ok
+      ? new Set([trim(rest)])
+      : (fail(ctx, s, label ?? what), ctx.pend ? pend(n, s, ctx, label) : NONE);
   const sub = (x: Node, r: string) => consume(x, r, ctx, label);
   switch (n[0]) {
     case "kw": {
@@ -386,9 +423,10 @@ export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<strin
         const ch = /^from[ \n\t]/.test(body) ? CHANNELS.get(n[1]) : undefined;
         ctx.ch = ch && n[1] === "color" ? [...ch, ...spaceChannels(body)] : ch;
       }
-      const rs = flatMap(sub(n[2], body), (r) =>
-        r.startsWith(")") ? new Set([trim(r.slice(1))]) : (fail(ctx, r, label ?? "')'"), NONE),
-      );
+      const rs = flatMap(sub(n[2], body), (r0) => {
+        const r = ctx.pend ? skipPending(r0) : r0;
+        return r.startsWith(")") ? new Set([trim(r.slice(1))]) : (fail(ctx, r0, label ?? "')'"), NONE);
+      });
       ctx.ch = outer;
       return rs;
     }
@@ -403,7 +441,11 @@ export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<strin
     case "plus":
       return closure(sub(n[1], s), (r) => sub(n[1], r));
     case "list":
-      return closure(sub(n[1], s), (r) => (r.startsWith(",") ? sub(n[1], trim(r.slice(1))) : NONE));
+      return closure(sub(n[1], s), (r) => {
+        if (r.startsWith(",")) return sub(n[1], trim(r.slice(1)));
+        const e = ctx.pend ? pendingEnd(r) : -1; // a placeholder may hold the comma
+        return e < 0 ? NONE : union([sub(n[1], r), sub(n[1], trim(r.slice(e)))]);
+      });
     case "rep":
       return rep(s, Number(n[2]), n[3] === "∞" ? Infinity : Number(n[3]), (r) => sub(n[1], r));
     case "bang": {
@@ -413,9 +455,9 @@ export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<strin
       return rs;
     }
     case "or":
-      return anyOrder(n[1], s, false, sub);
+      return anyOrder(n[1], s, false, sub, ctx.pend ? new Map() : undefined);
     case "and":
-      return anyOrder(n[1], s, true, sub);
+      return anyOrder(n[1], s, true, sub, ctx.pend ? new Map() : undefined);
   }
 }
 
@@ -736,7 +778,10 @@ function consumeType(
       if (m !== NONE) rs = union([rs, m]);
     }
   } else rs = NONE;
-  if (rs === NONE) fail(ctx, s, label ?? `<${v}>`);
+  if (rs === NONE) {
+    fail(ctx, s, label ?? `<${v}>`);
+    if (ctx.pend && (PRIMITIVE[v] || SCAN[v] || v.endsWith("()"))) return pend(["type", v, lo, hi], s, ctx, label);
+  }
   if (lo === undefined || hi === undefined) return rs;
   // Ranges: the type level strips them, the twin checks the number that was consumed.
   const out = new Set<string>();
@@ -806,35 +851,40 @@ function rep(s: string, lo: number, hi: number, step: (r: string) => Set<string>
   }
 }
 
-// || (all=false: at least one part) and && (all=true: every part), any order, each part at most once.
+// || (all=false: at least one part) and && (all=true: every part), any order, each part at most once. `used` is the
+// bit set of the parts taken; with a placeholder the states repeat, so `memo` (parts taken, state) keeps the orders
+// from multiplying.
 function anyOrder(
   xs: Node[],
   s: string,
   all: boolean,
   sub: (x: Node, r: string) => Set<string>,
+  memo?: Map<string, Set<string>>,
+  used = 0,
 ): Set<string> {
-  if (!xs.length) return new Set([s]);
+  if (used === (1 << xs.length) - 1) return new Set([s]);
+  const key = memo && `${used} ${s.length}`;
+  const hit = key === undefined ? undefined : memo!.get(key);
+  if (hit) return hit;
   const out = new Set<string>();
   xs.forEach((x, i) => {
+    if (used & (1 << i)) return;
     for (const r1 of sub(x, s)) {
       if (!all) out.add(r1);
-      for (const r of anyOrder(
-        xs.filter((_, j) => j !== i),
-        r1,
-        all,
-        sub,
-      ))
-        out.add(r);
+      for (const r of anyOrder(xs, r1, all, sub, memo, used | (1 << i))) out.add(r);
     }
   });
+  if (key !== undefined) memo!.set(key, out);
   return out;
 }
 
 // ---------------------------------------------------------------- public
 
-export function matches(syntax: string, s: string): boolean {
+// `pending`: `s` is a property value, where a var(), env() or if() is a placeholder (see "Pending substitution").
+export function matches(syntax: string, s: string, pending = false): boolean {
   const v = trim(s);
-  return consume(parseGrammar(syntax), v, { len: v.length, far: -1, expected: new Set() }).has("");
+  const ctx: Ctx = { len: v.length, far: -1, expected: new Set(), pend: pending && PENDING.test(v) };
+  return complete(consume(parseGrammar(syntax), v, ctx), ctx);
 }
 
 // Twin of Valid<P, S>: returns the value, or throws with the furthest point reached and what was expected.
@@ -843,9 +893,9 @@ export function valid(p: string, s: string): string {
   if (!syntax)
     throw new UnknownPropertyError({ message: `${p}: no grammar for this property`, property: p });
   const v = trim(s);
-  const ctx: Ctx = { len: v.length, far: -1, expected: new Set() };
+  const ctx: Ctx = { len: v.length, far: -1, expected: new Set(), pend: PENDING.test(v) };
   const rs = consume(parseGrammar(syntax), v, ctx);
-  if (rs.has("")) return s;
+  if (complete(rs, ctx)) return s;
   for (const r of rs) fail(ctx, r, "end of value");
   const [token] = tok1(v.slice(ctx.far));
   const what = token ? `unexpected "${token}"` : "unexpected end";

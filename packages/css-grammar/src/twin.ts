@@ -34,13 +34,14 @@ export const parse = Effect.fn("twin.parse")(function* (
   });
 });
 
-/** Whether `s` is a complete value of the grammar `syntax`. */
+/** Whether `s` is a complete value of the grammar `syntax`; `pending`: a var(), env() or if() in it stands for any value. */
 export const matches = Effect.fnUntraced(function* (
   syntax: string,
   s: string,
+  pending = false,
 ): Effect.fn.Return<boolean, TwinError> {
   return yield* Effect.try({
-    try: () => matchesCore(syntax, s),
+    try: () => matchesCore(syntax, s, pending),
     catch: (e) => grammarError(syntax, e),
   });
 });

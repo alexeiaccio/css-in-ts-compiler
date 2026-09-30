@@ -151,33 +151,34 @@ type NotIdentChar = "'" | '"' | "#" | "." | "+" | "(" | "!" | "$" | "%" | "&" | 
 type NotIdentStart = `${string}${NotIdentChar}${string}` | `${Digit | `-${Digit}`}${string}` | "-" | `⟨${string}`; // `⟨`: a typed-value sentinel
 type NotIdent = NotIdentStart | "initial" | "inherit" | "unset" | "revert" | "revert-layer" | "default";
 
-export type Consume<N, S extends string> =
+export type Consume<N, S extends string, P extends boolean = false> =
   S extends string
-    ? N extends ["kw", infer V extends string] ? (Tok1<S> extends [V, infer R extends string] ? Trim<R> : never)
-    : N extends ["lit", infer V extends string] ? (S extends `${V}${infer R}` ? Trim<R> : never)
+    ? N extends ["kw", infer V extends string] ? (Tok1<S> extends [V, infer R extends string] ? Trim<R> : P extends true ? Pend<N, S> : never)
+    : N extends ["lit", infer V extends string] ? (S extends `${V}${infer R}` ? Trim<R> : P extends true ? Pend<N, S> : never)
     : N extends ["type", infer V extends string]
-      ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? (V extends "custom-ident" ? (T extends "⟨custom-ident⟩" ? Trim<R> : Lowercase<T> extends NotIdent ? never : Trim<R>) : V extends "ident" | "ident-token" ? (T extends NotIdentStart ? never : Trim<R>) : Trim<R>) : V extends Numeric ? (T extends `${string}(${string}` ? MathCall<S> : never) : never) : never)
-      : V extends "string" | "url" | "declaration-value" ? Scanned<V, S>
+      ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? (V extends "custom-ident" ? (T extends "⟨custom-ident⟩" ? Trim<R> : Lowercase<T> extends NotIdent ? P extends true ? Pend<N, S> : never : Trim<R>) : V extends "ident" | "ident-token" ? (T extends NotIdentStart ? P extends true ? Pend<N, S> : never : Trim<R>) : Trim<R>) : V extends Numeric ? (T extends `${string}(${string}` ? MathCall<S> | (P extends true ? Pend<N, S> : never) : P extends true ? Pend<N, S> : never) : P extends true ? Pend<N, S> : never) : never)
+      : V extends "string" | "url" ? Scanned<V, S> | (P extends true ? Pend<N, S> : never)
+      : V extends "declaration-value" ? Scanned<V, S>
       : V extends "math-function" ? MathCall<S>
       // <declaration> alternates over every property: types take it as balanced tokens, the twin checks it at build time
       : V extends "declaration" ? Scanned<"declaration-value", S>
       // <if()> has `;` between its branches, which no token of the grammar is: balanced tokens too, the twin checks the conditions
       : V extends "if()" ? (S extends `if(${infer R}` ? Close<Declaration<Trim<R>, Trim<R>, [], true>> : never)
       // `<name()>`: the name must be next before its grammar is even parsed (keeps <color> cheap)
-      : V extends keyof Syns ? (V extends `${infer F}()` ? (S extends `${F}(${string}` ? Consume<Parse<Syns[V]>, S> : never) : S extends `⟨${V}⟩${infer R}` ? Trim<R> : Consume<Parse<Syns[V]>, S>) // typed value sentinel (api-typed.ts)
+      : V extends keyof Syns ? (V extends `${infer F}()` ? (S extends `${F}(${string}` ? Consume<Parse<Syns[V]>, S, P> : P extends true ? Pend<N, S> : never) : S extends `⟨${V}⟩${infer R}` ? Trim<R> : Consume<Parse<Syns[V]>, S, P>) // typed value sentinel (api-typed.ts)
       : never
-    : N extends ["prop", infer V extends string] ? (V extends keyof Props ? Consume<Parse<Props[V]>, S> : never)
-    : N extends ["fn", infer F extends string, infer A] ? (S extends `${F}(${infer R}` ? (F extends RelativeFn ? (Trim<R> extends `from ${string}` ? Close<Declaration<Trim<R>, Trim<R>, []>> : Close<Consume<A, Trim<R>>>) : Close<Consume<A, Trim<R>>>) : never)
-    : N extends ["alt", any, any] ? ConsumeAlt<N, S>
-    : N extends ["seq", infer Xs extends Node[]] ? SeqRest<Xs, S, never, never, never>
-    : N extends ["opt", infer X] ? S | Consume<X, S>
-    : N extends ["star", infer X] ? Star<X, S>
-    : N extends ["plus", infer X] ? Star<X, Consume<X, S>>
-    : N extends ["list", infer X] ? ListRest<X, Consume<X, S>>
-    : N extends ["rep", infer X, infer Lo extends string, infer Hi extends string] ? Rep<X, S, Lo, Hi>
-    : N extends ["or", infer Xs extends Node[]] ? AnyOrder<Xs, S, false>
-    : N extends ["and", infer Xs extends Node[]] ? AnyOrder<Xs, S, true>
-    : N extends ["bang", infer X] ? Exclude<Consume<X, S>, S> // `[ ... ]!`: the group must not be empty
+    : N extends ["prop", infer V extends string] ? (V extends keyof Props ? Consume<Parse<Props[V]>, S, P> : never)
+    : N extends ["fn", infer F extends string, infer A] ? (S extends `${F}(${infer R}` ? (F extends RelativeFn ? (Trim<R> extends `from ${string}` ? Close<Declaration<Trim<R>, Trim<R>, []>> : Close<PendSkip<Consume<A, Trim<R>, P>, P>>) : Close<PendSkip<Consume<A, Trim<R>, P>, P>>) : P extends true ? Pend<N, S> : never)
+    : N extends ["alt", any, any] ? ConsumeAlt<N, S, P>
+    : N extends ["seq", infer Xs extends Node[]] ? SeqRest<Xs, S, never, never, never, P>
+    : N extends ["opt", infer X] ? S | Consume<X, S, P>
+    : N extends ["star", infer X] ? Star<X, S, P>
+    : N extends ["plus", infer X] ? Star<X, Consume<X, S, P>, P>
+    : N extends ["list", infer X] ? ListRest<X, Consume<X, S, P>, P>
+    : N extends ["rep", infer X, infer Lo extends string, infer Hi extends string] ? Rep<X, S, Lo, Hi, P>
+    : N extends ["or", infer Xs extends Node[]] ? AnyOrder<Xs, S, false, P>
+    : N extends ["and", infer Xs extends Node[]] ? AnyOrder<Xs, S, true, P>
+    : N extends ["bang", infer X] ? Exclude<Consume<X, S, P>, S> // `[ ... ]!`: the group must not be empty
     : never
   : never;
 
@@ -190,6 +191,29 @@ type MathCall<S extends string> = S extends `${MathFn}(${infer R}` ? Close<Decla
 // The colour functions that take `from <color>` (relative colour): what follows `from` is the origin colour and channel
 // keywords, `calc()` over them, or anything else a component takes. Types read it as balanced tokens, the twin checks it.
 type RelativeFn = "rgb" | "rgba" | "hsl" | "hsla" | "hwb" | "lab" | "lch" | "oklab" | "oklch" | "color";
+
+// Pending substitution (css-values-5): a var(), env() or if() in a property value stands for any run of component values,
+// empty included, commas included, and the rest of the value is still checked (twin-core.ts, "Pending substitution").
+// `P` is true only for such a value (`MatchesValue`), so any other value pays one resolved conditional per failing leaf:
+// where a leaf fails on a call at the head of S, the call may stand for that leaf and end (Q, the text after the call),
+// stay for the next leaf (S), or be empty (the leaf tries Q). The arguments are balanced tokens, and `var(` takes a
+// `--name`; the twin checks the calls further. A remainder that is only calls is complete.
+type HasPending<S extends string> = S extends `${string}${"var(--" | "env(" | "if("}${string}` ? true : false;
+type Pend<N, S extends string> =
+  S extends `var(--${string}` | `env(${string}` | `if(${string}`
+    ? (S extends `${string}(${infer X}` ? (Close<Declaration<Trim<X>, Trim<X>, [], true>> extends infer Q extends string ? S | Q | Consume<N, Q, true> : never) : never)
+    : never;
+// R without the calls at its head: a function closes, and a value ends, after trailing calls.
+type PendSkip<R extends string, P extends boolean> =
+  P extends true
+    ? (R extends `var(--${string}` | `env(${string}` | `if(${string}`
+        ? (R extends `${string}(${infer X}` ? (Close<Declaration<Trim<X>, Trim<X>, [], true>> extends infer Q extends string ? PendSkip<Q, true> : never) : never)
+        : R)
+    : R;
+type PendDone<R extends string> =
+  R extends `var(--${string}` | `env(${string}` | `if(${string}`
+    ? (R extends `${string}(${infer X}` ? (Close<Declaration<Trim<X>, Trim<X>, [], true>> extends infer Q extends string ? (Q extends "" ? true : PendDone<Q>) : never) : never)
+    : never;
 
 // Unconstrained on purpose, like Mult's N: a constraint makes tsc expand the argument when it checks the
 // declaration (~1 k instantiations each, paid by every program).
@@ -219,54 +243,54 @@ type Declaration<S extends string, Rest extends string, D extends 0[], Semi exte
     : D extends [] ? (Rest extends S ? never : "") : never;
 
 // tail-recursive walk of the alt cons list
-type ConsumeAlt<N, S extends string, Acc = never> =
-  N extends ["alt", infer H, infer T] ? ConsumeAlt<T, S, Acc | Consume<H, S>> : Acc;
+type ConsumeAlt<N, S extends string, P extends boolean, Acc = never> =
+  N extends ["alt", infer H, infer T] ? ConsumeAlt<T, S, P, Acc | Consume<H, S, P>> : Acc;
 // Seq with comma omission (CSS Values 4 §2.6.1), same as twin.ts `seq`: a `,` is skipped for the remainders in
 // Start (nothing consumed since the seq start or the previous comma; never before the first term). When every
 // later term is nullable it may also end the seq (Done), and a consumed comma then needs something after it
 // (Moved is banned). One Consume reference only: each generic one costs ~1.3 k instantiations at declaration.
 type Nullable = ["opt", any] | ["star", any] | ["rep", any, "0", string];
-type SeqRest<Xs extends Node[], S extends string, Start extends string, Moved extends string, Done extends string> =
+type SeqRest<Xs extends Node[], S extends string, Start extends string, Moved extends string, Done extends string, P extends boolean> =
   Xs extends [infer H, ...infer R extends Node[]]
     ? H extends ["lit", ","]
       ? (AfterComma<Exclude<S, Start>> extends infer After extends string
           ? R extends [Nullable, ...Nullable[]]
-            ? SeqRest<R, Extract<S, Start> | After, Extract<S, Start> | After, After, Done | Exclude<S, Start>>
-            : SeqRest<R, Extract<S, Start> | After, Extract<S, Start> | After, Moved, Done>
+            ? SeqRest<R, Extract<S, Start> | After, Extract<S, Start> | After, After, Done | Exclude<S, Start>, P>
+            : SeqRest<R, Extract<S, Start> | After, Extract<S, Start> | After, Moved, Done, P>
           : never)
-      : SeqRest<R, Consume<H, S>, [Start] extends [never] ? S : Start, Moved, Done>
+      : SeqRest<R, Consume<H, S, P>, [Start] extends [never] ? S : Start, Moved, Done, P>
     : Exclude<S, Moved> | Done;
 type AfterComma<S extends string> = S extends `,${infer Q}` ? Trim<Q> : never;
 
 // Recursive helpers use the indexed-object trick, and compare the depth tuple by pattern (`D extends Full`),
 // never `D["length"] extends 8`: that one resolves eagerly to the recursive arm because its constraint is number.
 type Full = [0, 0, 0, 0, 0, 0, 0, 0, ...0[]];
-type Star<X, S extends string, D extends any[] = []> = {
+type Star<X, S extends string, P extends boolean, D extends any[] = []> = {
   done: S;
-  next: S | Star<X, Consume<X, S>, [...D, 0]>;
+  next: S | Star<X, Consume<X, S, P>, P, [...D, 0]>;
 }[D extends Full ? "done" : "next"];
 
-type ListRest<X, R extends string, D extends any[] = []> = {
+type ListRest<X, R extends string, P extends boolean, D extends any[] = []> = {
   done: R;
-  next: R | (R extends `,${infer Q}` ? ListRest<X, Consume<X, Trim<Q>>, [...D, 0]> : never);
+  next: R | (R extends `,${infer Q}` ? ListRest<X, Consume<X, Trim<Q>, P>, P, [...D, 0]> : never);
 }[D extends Full ? "done" : "next"];
 
 type Digits = { "0": []; "1": [0]; "2": [0, 0]; "3": [0, 0, 0]; "4": [0, 0, 0, 0]; "5": [0, 0, 0, 0, 0]; "6": [0, 0, 0, 0, 0, 0]; "15": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; "∞": [0, 0, 0, 0, 0, 0, 0, 0] };
-type Rep<X, S extends string, Lo extends string, Hi extends string> = RepN<X, S, Digits[Lo & keyof Digits], Digits[Hi & keyof Digits], []>;
-type RepN<X, S extends string, Lo extends any[], Hi extends any[], I extends any[]> = {
+type Rep<X, S extends string, Lo extends string, Hi extends string, P extends boolean> = RepN<X, S, Digits[Lo & keyof Digits], Digits[Hi & keyof Digits], [], P>;
+type RepN<X, S extends string, Lo extends any[], Hi extends any[], I extends any[], P extends boolean> = {
   done: S;
-  next: (I extends [...Lo, ...any] ? S : never) | RepN<X, Consume<X, S>, Lo, Hi, [...I, 0]>;
+  next: (I extends [...Lo, ...any] ? S : never) | RepN<X, Consume<X, S, P>, Lo, Hi, [...I, 0], P>;
 }[I["length"] extends Hi["length"] ? "done" : "next"];
 
 // || (All=false: at least one part) and && (All=true: every part), any order, each part at most once.
 // `[S] extends [never]`: a part that failed left nothing to continue from. Without this stop, a failed part still
 // recursed through every permutation of the others (font-variant "none": 4.3 M instantiations and TS2589).
-type AnyOrder<Xs extends Node[], S extends string, All extends boolean> = [S] extends [never] ? never : Xs extends [] ? S : TryEach<Xs, Xs, S, All, []>;
-type TryEach<Parts extends Node[], Todo extends Node[], S extends string, All extends boolean, I extends any[]> =
+type AnyOrder<Xs extends Node[], S extends string, All extends boolean, P extends boolean> = [S] extends [never] ? never : Xs extends [] ? S : TryEach<Xs, Xs, S, All, [], P>;
+type TryEach<Parts extends Node[], Todo extends Node[], S extends string, All extends boolean, I extends any[], P extends boolean> =
   Todo extends [infer H, ...infer R extends Node[]]
-    ? (Consume<H, S> extends infer R1 extends string
-        ? (All extends true ? never : R1) | AnyOrder<RemoveAt<Parts, `${I["length"]}`>, R1, All>
-        : never) | TryEach<Parts, R, S, All, [...I, 0]>
+    ? (Consume<H, S, P> extends infer R1 extends string
+        ? (All extends true ? never : R1) | AnyOrder<RemoveAt<Parts, `${I["length"]}`>, R1, All, P>
+        : never) | TryEach<Parts, R, S, All, [...I, 0], P>
     : never;
 type RemoveAt<T extends any[], K extends string, I extends any[] = [], Acc extends any[] = []> =
   T extends [infer H, ...infer R] ? (`${I["length"]}` extends K ? [...Acc, ...R] : RemoveAt<R, K, [...I, 0], [...Acc, H]>) : Acc;
@@ -274,6 +298,11 @@ type RemoveAt<T extends any[], K extends string, I extends any[] = [], Acc exten
 // ---------------------------------------------------------------- public
 
 export type Matches<Syntax extends string, S extends string> = "" extends Consume<Parse<Syntax>, Trim<S>> ? true : false;
+// Matches for the value of a property: a var(), env() or if() in it is a placeholder.
+export type MatchesValue<Syntax extends string, S extends string> =
+  HasPending<S> extends true
+    ? Consume<Parse<Syntax>, Trim<S>, true> extends infer R extends string ? ("" extends R ? true : true extends PendDone<R> ? true : false) : never
+    : Matches<Syntax, S>;
 
 // Furthest point the value reached: every remainder is a suffix of S, the shortest one is a suffix of all.
 export type Stuck<U extends string, All extends string = U> = U extends string ? ([All] extends [`${string}${U}`] ? U : never) : never;
@@ -282,7 +311,7 @@ export type Unexpected<S extends string> = S extends "" ? "unexpected end" : `un
 // (twin.ts `valid` says the same and adds what was expected at that point).
 // `S extends string ?` defers the message while S is still generic; without it tsc runs Consume over the
 // generic S once per property (+21 k instantiations each, measured; with it +5 k, and nothing per call).
-export type Valid<P extends keyof Props, S extends string> = Matches<Props[P], S> extends true ? S : S extends string ? Message<P, S> : never;
+export type Valid<P extends keyof Props, S extends string> = MatchesValue<Props[P], S> extends true ? S : S extends string ? Message<P, S> : never;
 type Message<P extends keyof Props, S extends string> =
-  `${P}: ${Unexpected<Stuck<Trim<S> | Consume<Parse<Props[P]>, Trim<S>>>>} in "${S}", grammar ${Props[P]}`;
+  `${P}: ${Unexpected<Stuck<Trim<S> | (HasPending<S> extends true ? Consume<Parse<Props[P]>, Trim<S>, true> : Consume<Parse<Props[P]>, Trim<S>>)>>} in "${S}", grammar ${Props[P]}`;
 export type PropertyFn<P extends keyof Props> = <const S extends string>(value: Valid<P, S>) => string;
