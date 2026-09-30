@@ -332,16 +332,36 @@ function spaceChannels(body: string): readonly string[] {
   );
 }
 
-// Pending substitution (css-values-5, arbitrary substitution functions): a var(), env() or if() in a property value
-// stands for any run of component values, empty included, commas included, known only at computed-value time; what
-// surrounds it is still checked. The recognizer reads forward, so a call at the head of the text is a placeholder that
-// any leaf (keyword, literal, function, primitive) may use: it stands for that leaf and ends (the text after the call),
-// stands for it and stays at the head for the next leaf (the text itself), or is empty (the leaf tries the text after
-// it). It cannot swallow text after it: `padding: var(--a) red` fails on `red`. A remainder that is only placeholders
-// is complete (they stand for nothing). Every other leaf is checked, in the same way on both sides of a placeholder.
-// Limits: a call is checked by shape only (`var(` takes a `--name`, the conditions of an if() go through <if-condition>);
-// what it holds, and the range of a number it stands for, are not checked against the position; and the stay state is
-// not tracked per path, so the comma omission of a seq sees a placeholder as nothing consumed.
+// Pending substitution (css-values-5, arbitrary substitution functions).
+//
+// THE RULE. A var(), env() or if() anywhere in a property value is a placeholder for zero or more component values,
+// commas included (what it becomes is known only at computed-value time, so the parser must accept it). The value is
+// valid when some choice of what each placeholder stands for makes the whole value match the grammar; everything that
+// is not a placeholder is checked as usual, which is stricter than Chrome (it takes any value that has a placeholder).
+// `padding: var(--a) 2px` and `margin: var(--a)` pass; `padding: var(--a) red` and `border: 1px var(--x) solud` fail
+// on `red` and `solud`. `var(--a)` alone passes for every property (the grammars are all non-empty).
+//
+// HOW. The recognizer reads forward and returns the set of remainders. A call at the head of the text is tried by every
+// leaf (keyword, literal, function, primitive) that fails there: the call stands for that leaf and ends (the text after
+// the call), stands for it and stays at the head for the next leaf (the text itself), or is empty (the leaf tries the
+// text after it). So it can take the place of any number of leaves, and it never swallows text after it. Around that:
+// - a function closes, and a value ends, after trailing placeholders (`skipPending`, `complete`);
+// - in a `#` list a placeholder may hold the comma;
+// - in `||` and `&&` a placeholder at the head may stand for any of the parts, whole, and for the head of one more, so
+//   no part is required there (`anyOrder`); without a placeholder at the head `&&` still takes every part.
+// The flag is `Ctx.pend`, set only for a value that has `var(`, `env(` or `if(` in it, so any other value pays nothing
+// beyond that one test per declaration.
+//
+// WHICH CALLS. `var(--name[, fallback])` by <var()>, `if()` by `ifCall` (its conditions go through <if-condition>, its
+// branch values are any <declaration-value>), and `env()`, which is the same kind of arbitrary-substitution function
+// (css-env-1: it may stand wherever a var() may, and `mathScan` already took it for anything), by the shape
+// `env(<ident> ...)`. Not `attr()`: its use outside `content` is typed, not arbitrary.
+//
+// LIMITS. A call is checked by shape only: the fallback, the branch values and the name of an env() variable are not
+// checked against the position, nor is the range of a number the call stands for. A call stands for whole component
+// values only: it cannot be glued to a token (`1var(--u)`) or end one. The stay state is not tracked per path, so the
+// comma omission of a seq sees a placeholder as nothing consumed. The types follow the same rule with the arguments as
+// balanced tokens (and only `var(--` for a var()); tokens are not touched: they are checked by literals of their type.
 const PENDING = /(?:var|env|if)\(/;
 const ENV = /^env\([ \n\t]*[A-Za-z_-][\w-]*/;
 // The length of the var(), env() or if() at the start of s, or -1.
