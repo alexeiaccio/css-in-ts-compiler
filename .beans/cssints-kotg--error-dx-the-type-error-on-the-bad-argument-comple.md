@@ -1,13 +1,13 @@
 ---
 # cssints-kotg
 title: 'Error DX: the type error on the bad argument, completions inside strings'
-status: todo
+status: in-progress
 type: task
 priority: normal
 tags:
     - wayfinder:research
 created_at: 2026-09-30T11:57:32Z
-updated_at: 2026-09-30T11:57:41Z
+updated_at: 2026-09-30T11:58:19Z
 parent: cssints-9js6
 ---
 

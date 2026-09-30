@@ -30,18 +30,10 @@ type Message<
   S extends string,
 > = `@${K}: ${Unexpected<Stuck<Trim<Sp<S>> | Consume<Parse<`<${E}>`>, Trim<Sp<S>>>>>} in "${S}", grammar <${E}>`;
 
-// On failure every part becomes the first message, so the error lands on the first argument (as api-typed.ts).
-type First<K extends QueryKind, Q extends readonly string[]> = Q extends readonly [
-  infer H extends string,
-  ...infer R extends readonly string[],
-]
-  ? ValidQuery<K, H> extends H
-    ? First<K, R>
-    : ValidQuery<K, H>
-  : never;
-type Check<K extends QueryKind, Q extends readonly string[]> = [First<K, Q>] extends [never]
-  ? Q
-  : { [I in keyof Q]: First<K, Q> };
+// Each query is checked alone, so the error lands on the bad one.
+type Check<K extends QueryKind, Q extends readonly string[]> = {
+  [I in keyof Q]: ValidQuery<K, Q[I]>;
+};
 /**
  * A condition constructor: an object of queries gives an object of `R`, several queries a tuple of `R`, one query `R`.
  * The one-query overload comes last: when nothing fits, TypeScript shows the message of the last overload, and the
