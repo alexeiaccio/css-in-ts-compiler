@@ -455,9 +455,9 @@ export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<strin
       return rs;
     }
     case "or":
-      return anyOrder(n[1], s, false, sub, ctx.pend ? new Map() : undefined);
+      return anyOrder(n[1], s, false, sub, ctx.pend);
     case "and":
-      return anyOrder(n[1], s, true, sub, ctx.pend ? new Map() : undefined);
+      return anyOrder(n[1], s, true, sub, ctx.pend);
   }
 }
 
@@ -851,30 +851,35 @@ function rep(s: string, lo: number, hi: number, step: (r: string) => Set<string>
   }
 }
 
-// || (all=false: at least one part) and && (all=true: every part), any order, each part at most once. `used` is the
-// bit set of the parts taken; with a placeholder the states repeat, so `memo` (parts taken, state) keeps the orders
-// from multiplying.
+// || (all=false: at least one part) and && (all=true: every part), any order, each part at most once. A placeholder at the
+// head may stand for any of the parts, whole, and for the head of one more: so what follows it is any of the parts, or the
+// rest of the one it began, and no part is required (`all` is off). Without that the states that stay at the placeholder
+// would go through every order of the parts. Where no placeholder is at the head, `&&` still takes every part.
 function anyOrder(
   xs: Node[],
   s: string,
   all: boolean,
   sub: (x: Node, r: string) => Set<string>,
-  memo?: Map<string, Set<string>>,
-  used = 0,
+  pend = false,
 ): Set<string> {
-  if (used === (1 << xs.length) - 1) return new Set([s]);
-  const key = memo && `${used} ${s.length}`;
-  const hit = key === undefined ? undefined : memo!.get(key);
-  if (hit) return hit;
-  const out = new Set<string>();
+  if (!xs.length) return new Set([s]);
+  const e = pend ? pendingEnd(s) : -1;
+  const q = e < 0 ? s : trim(s.slice(e)); // the text after the placeholder
+  const out = e < 0 ? new Set<string>() : union([new Set([s, q]), anyOrder(xs, q, false, sub, pend)]);
   xs.forEach((x, i) => {
-    if (used & (1 << i)) return;
     for (const r1 of sub(x, s)) {
-      if (!all) out.add(r1);
-      for (const r of anyOrder(xs, r1, all, sub, memo, used | (1 << i))) out.add(r);
+      if (e >= 0 && (r1 === s || r1 === q)) continue; // covered above
+      if (!all || e >= 0) out.add(r1);
+      for (const r of anyOrder(
+        xs.filter((_, j) => j !== i),
+        r1,
+        all && e < 0,
+        sub,
+        pend,
+      ))
+        out.add(r);
     }
   });
-  if (key !== undefined) memo!.set(key, out);
   return out;
 }
 
