@@ -1011,3 +1011,9 @@ Cost finding: overloads written inline in the generated `members.ts` added about
 vite-plus 1.0.0 does not read the `fmt` block of `vite.config.ts`. On a bare project `useTabs: true` there changes nothing, in `.ts` or `.mjs`, while the same key in `.oxfmtrc.json` applies. So oxfmt has always run with its defaults: 2 spaces, 100 columns, no import sorting.
 
 The block now states exactly those defaults, so the config tells the truth, and nothing changes if a later vite-plus starts reading it. No reformat was needed. Tabs, 120 columns and import sorting were the old intent; switching to them would be a mass reformat in a commit of its own.
+
+## 0.1 closed, 0.2 charted (2026-09-30)
+
+The 0.1 map (cssints-vy0o) is closed: its destination was reached at d04771c. The 0.2 map is cssints-9js6. Its destination: a public plugin API with `frame()`, `surface()` and icons as consumers, working in apps/demo, still unpublished.
+
+The 0.1 fog comes along in scope: error DX, derived tokens, value helpers and sublayers. Error DX is a ticket now; the rest stays fog until the plugins sharpen it. The first tickets follow the research recommendation in plugins.md §8: engine seams and the contract first, then the API, `frame()` with the runtime, icons, and `surface()` last.
