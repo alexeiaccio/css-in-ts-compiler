@@ -115,6 +115,25 @@ export interface Warning {
   lacking: string[];
 }
 
+type Compat = NonNullable<Identifier["__compat"]>;
+const lacks = (c: Compat, on: Target[]) =>
+  on.filter(([a, ver]) => !supports(c.support[BCD_NAME[a]!], ver));
+
+// The targets that lack a BCD feature (`css.at-rules.property`), by the same rules as the warnings: no prefix, no
+// flags, `partial_implementation` counts. A key BCD does not know lacks nothing.
+export const lackingOf = (key: string, ts: Target[] = DEFAULT): Target[] => {
+  const c = get(key)?.__compat;
+  return c ? lacks(c, ts) : [];
+};
+
+// Next to `support`: for a plugin's `requires`.
+export const lacking = Effect.fnUntraced(function* (
+  key: string,
+  ts: Target[] = DEFAULT,
+): Effect.fn.Return<Target[]> {
+  return yield* Effect.sync(() => lackingOf(key, ts));
+});
+
 // Plain core, also called by check.ts (one boundary per declaration).
 export function supportOf(p: string, v: string, ts: Target[] = DEFAULT): Warning[] {
   const pc = get(`css.properties.${p}`)?.__compat;
@@ -143,9 +162,7 @@ export function supportOf(p: string, v: string, ts: Target[] = DEFAULT): Warning
     const key = owners.map((q) => `css.properties.${q}.string`).find((x) => get(x)?.__compat);
     if (key) found.push(["string", key]);
   }
-  const lacks = (c: typeof pc, on: Target[]) =>
-    on.filter(([a, ver]) => !supports(c.support[BCD_NAME[a]!], ver)).map((t) => t.join(" "));
-  const off = lacks(pc, ts);
+  const off = lacks(pc, ts).map((t) => t.join(" "));
   const out: Warning[] = off.length
     ? [{ feature: p, key: `css.properties.${p}`, lacking: off }]
     : [];
@@ -153,14 +170,14 @@ export function supportOf(p: string, v: string, ts: Target[] = DEFAULT): Warning
   for (const [feature, key] of found) {
     const c = get(key)?.__compat;
     if (!c || out.some((w) => w.key === key)) continue;
-    const lacking = lacks(c, on);
+    const lacking = lacks(c, on).map((t) => t.join(" "));
     if (lacking.length) out.push({ feature, key, lacking });
   }
   return out;
 }
 
 // "chrome 154, chrome 153, edge 152" -> "chrome 153-154, edge 152"
-function browsers(lacking: string[]): string {
+export function browsers(lacking: string[]): string {
   const by = new Map<string, string[]>();
   for (const t of lacking) {
     const [a, ver] = t.split(" ") as [string, string];
