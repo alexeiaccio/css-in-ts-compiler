@@ -271,13 +271,13 @@ export declare const columnFill: Prop<"column-fill">;
 export declare const columnGap: Prop<"column-gap">;
 /** `auto | <length [0,∞]>`. Chrome 145, Edge 145, Firefox no, Safari no, iOS no, Android 145. [MDN](https://developer.mozilla.org/docs/Web/CSS/column-height) */
 export declare const columnHeight: Prop<"column-height">;
-/** `<'column-rule-width'> || <'column-rule-style'> || <'column-rule-color'>`. Chrome 50, Edge 12, Firefox 52, Safari 9, iOS 9, Android 50. [MDN](https://developer.mozilla.org/docs/Web/CSS/column-rule) */
+/** `<gap-rule-list> | <gap-auto-rule-list>`. Chrome 50, Edge 12, Firefox 52, Safari 9, iOS 9, Android 50. [MDN](https://developer.mozilla.org/docs/Web/CSS/column-rule) */
 export declare const columnRule: Prop<"column-rule">;
-/** `<color>`. Chrome 50, Edge 12, Firefox 52, Safari 9, iOS 9, Android 50. [MDN](https://developer.mozilla.org/docs/Web/CSS/column-rule-color) */
+/** `<line-color-list> | <auto-line-color-list>`. Chrome 50, Edge 12, Firefox 52, Safari 9, iOS 9, Android 50. [MDN](https://developer.mozilla.org/docs/Web/CSS/column-rule-color) */
 export declare const columnRuleColor: Prop<"column-rule-color">;
-/** `<'border-style'>`. Chrome 50, Edge 12, Firefox 52, Safari 9, iOS 9, Android 50. [MDN](https://developer.mozilla.org/docs/Web/CSS/column-rule-style) */
+/** `<line-style-list> | <auto-line-style-list>`. Chrome 50, Edge 12, Firefox 52, Safari 9, iOS 9, Android 50. [MDN](https://developer.mozilla.org/docs/Web/CSS/column-rule-style) */
 export declare const columnRuleStyle: Prop<"column-rule-style">;
-/** `<'border-width'>`. Chrome 50, Edge 12, Firefox 52, Safari 9, iOS 9, Android 50. [MDN](https://developer.mozilla.org/docs/Web/CSS/column-rule-width) */
+/** `<line-width-list> | <auto-line-width-list>`. Chrome 50, Edge 12, Firefox 52, Safari 9, iOS 9, Android 50. [MDN](https://developer.mozilla.org/docs/Web/CSS/column-rule-width) */
 export declare const columnRuleWidth: Prop<"column-rule-width">;
 /** `none | all`. Chrome 50, Edge 12, Firefox 71, Safari 9, iOS 9, Android 50. [MDN](https://developer.mozilla.org/docs/Web/CSS/column-span) */
 export declare const columnSpan: Prop<"column-span">;
@@ -287,7 +287,7 @@ export declare const columnWidth: Prop<"column-width">;
 export declare const columnWrap: Prop<"column-wrap">;
 /** `[ <'column-width'> || <'column-count'> ] [ / <'column-height'> ]?`. Chrome 50, Edge 12, Firefox 52, Safari 9, iOS 9, Android 50. [MDN](https://developer.mozilla.org/docs/Web/CSS/columns) */
 export declare const columns: Prop<"columns">;
-/** `none | strict | content | [ [ size || inline-size ] || layout || style || paint ]`. Chrome 52, Edge 79, Firefox 69, Safari 15.4, iOS 15.4, Android 52. [MDN](https://developer.mozilla.org/docs/Web/CSS/contain) */
+/** `none | strict | content | [ [size | inline-size] || layout || style || paint ]`. Chrome 52, Edge 79, Firefox 69, Safari 15.4, iOS 15.4, Android 52. [MDN](https://developer.mozilla.org/docs/Web/CSS/contain) */
 export declare const contain: Prop<"contain">;
 /** `auto? [ none | <length [0,∞]> ]`. Chrome 95, Edge 95, Firefox 107, Safari 17, iOS 17, Android 95. [MDN](https://developer.mozilla.org/docs/Web/CSS/contain-intrinsic-block-size) */
 export declare const containIntrinsicBlockSize: Prop<"contain-intrinsic-block-size">;
@@ -349,9 +349,9 @@ export declare const counterReset: Prop<"counter-reset">;
 export declare const counterSet: Prop<"counter-set">;
 /** `[ [ <url> [ <x> <y> ]? , ]* <cursor-predefined> ]`. Chrome 1, Edge 12, Firefox 1, Safari 1.2, iOS 13.4, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/cursor) */
 export declare const cursor: Prop<"cursor">;
-/** `<length> | <percentage>`. Chrome 43, Edge 79, Firefox 69, Safari 9, iOS 9, Android 43. [MDN](https://developer.mozilla.org/docs/Web/CSS/cx) */
+/** `<length-percentage>`. Chrome 43, Edge 79, Firefox 69, Safari 9, iOS 9, Android 43. [MDN](https://developer.mozilla.org/docs/Web/CSS/cx) */
 export declare const cx: Prop<"cx">;
-/** `<length> | <percentage>`. Chrome 43, Edge 79, Firefox 69, Safari 9, iOS 9, Android 43. [MDN](https://developer.mozilla.org/docs/Web/CSS/cy) */
+/** `<length-percentage>`. Chrome 43, Edge 79, Firefox 69, Safari 9, iOS 9, Android 43. [MDN](https://developer.mozilla.org/docs/Web/CSS/cy) */
 export declare const cy: Prop<"cy">;
 /** `none | path(<string>)`. Chrome 52, Edge 79, Firefox 97, Safari no, iOS no, Android 52. [MDN](https://developer.mozilla.org/docs/Web/CSS/d) */
 export declare const d: Prop<"d">;
@@ -385,7 +385,7 @@ export declare const flexFlow: Prop<"flex-flow">;
 export declare const flexGrow: Prop<"flex-grow">;
 /** `<number [0,∞]>`. Chrome 29, Edge 12, Firefox 20, Safari 9, iOS 9, Android 29. [MDN](https://developer.mozilla.org/docs/Web/CSS/flex-shrink) */
 export declare const flexShrink: Prop<"flex-shrink">;
-/** `nowrap | wrap | wrap-reverse`. Chrome 29, Edge 12, Firefox 28, Safari 9, iOS 9, Android 29. [MDN](https://developer.mozilla.org/docs/Web/CSS/flex-wrap) */
+/** `nowrap | [ wrap | wrap-reverse ] || balance`. Chrome 29, Edge 12, Firefox 28, Safari 9, iOS 9, Android 29. [MDN](https://developer.mozilla.org/docs/Web/CSS/flex-wrap) */
 export declare const flexWrap: Prop<"flex-wrap">;
 /** `left | right | none | inline-start | inline-end`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/float) */
 export declare const float: Prop<"float">;
@@ -487,13 +487,13 @@ export declare const hyphenateCharacter: Prop<"hyphenate-character">;
 export declare const hyphenateLimitChars: Prop<"hyphenate-limit-chars">;
 /** `none | manual | auto`. Chrome 55, Edge 79, Firefox 43, Safari 17, iOS 17, Android 55. [MDN](https://developer.mozilla.org/docs/Web/CSS/hyphens) */
 export declare const hyphens: Prop<"hyphens">;
-/** `from-image | <angle> | [ <angle>? flip ]`. Chrome 81, Edge 81, Firefox 26, Safari 13.1, iOS 13.4, Android 81. [MDN](https://developer.mozilla.org/docs/Web/CSS/image-orientation) */
+/** `from-image | none`. Chrome 81, Edge 81, Firefox 26, Safari 13.1, iOS 13.4, Android 81. [MDN](https://developer.mozilla.org/docs/Web/CSS/image-orientation) */
 export declare const imageOrientation: Prop<"image-orientation">;
 /** `auto | crisp-edges | pixelated | smooth`. Chrome 13, Edge 79, Firefox 3.6, Safari 6, iOS 6, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/image-rendering) */
 export declare const imageRendering: Prop<"image-rendering">;
 /** `[ from-image || <resolution> ] && snap?`. [MDN](https://developer.mozilla.org/docs/Web/CSS/image-resolution) */
 export declare const imageResolution: Prop<"image-resolution">;
-/** `normal | [ <number [1,∞]> <integer [1,∞]>? ]`. Chrome 110, Edge 110, Firefox no, Safari no, iOS no, Android 110. [MDN](https://developer.mozilla.org/docs/Web/CSS/initial-letter) */
+/** `normal | <number [1,∞]> <integer [1,∞]> | <number [1,∞]> && [ drop | raise ]?`. Chrome 110, Edge 110, Firefox no, Safari no, iOS no, Android 110. [MDN](https://developer.mozilla.org/docs/Web/CSS/initial-letter) */
 export declare const initialLetter: Prop<"initial-letter">;
 /** `[ auto | alphabetic | hanging | ideographic ]` */
 export declare const initialLetterAlign: Prop<"initial-letter-align">;
@@ -533,7 +533,7 @@ export declare const justifyItems: Prop<"justify-items">;
 export declare const justifySelf: Prop<"justify-self">;
 /** `auto | <length-percentage> | <anchor()> | <anchor-size()>`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/left) */
 export declare const left: Prop<"left">;
-/** `normal | <length>`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/letter-spacing) */
+/** `normal | <length-percentage>`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/letter-spacing) */
 export declare const letterSpacing: Prop<"letter-spacing">;
 /** `<color>`. Chrome 5, Edge 12, Firefox 3, Safari 6, iOS 6, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/lighting-color) */
 export declare const lightingColor: Prop<"lighting-color">;
@@ -541,7 +541,7 @@ export declare const lightingColor: Prop<"lighting-color">;
 export declare const lineBreak: Prop<"line-break">;
 /** `none | <integer [1,∞]>`. Chrome no, Edge no, Firefox no, Safari no, iOS no, Android no. [MDN](https://developer.mozilla.org/docs/Web/CSS/line-clamp) */
 export declare const lineClamp: Prop<"line-clamp">;
-/** `normal | <number [0,∞]> | <length [0,∞]> | <percentage [0,∞]>`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/line-height) */
+/** `normal | <number [0,∞]> | <length-percentage [0,∞]>`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/line-height) */
 export declare const lineHeight: Prop<"line-height">;
 /** `<length [0,∞]>`. [MDN](https://developer.mozilla.org/docs/Web/CSS/line-height-step) */
 export declare const lineHeightStep: Prop<"line-height-step">;
@@ -593,7 +593,7 @@ export declare const mask: Prop<"mask">;
 export declare const maskBorder: Prop<"mask-border">;
 /** `luminance | alpha`. [MDN](https://developer.mozilla.org/docs/Web/CSS/mask-border-mode) */
 export declare const maskBorderMode: Prop<"mask-border-mode">;
-/** `[ <length> | <number> ]{1,4}`. Chrome no, Edge no, Firefox no, Safari 17.2, iOS 17.2, Android no. [MDN](https://developer.mozilla.org/docs/Web/CSS/mask-border-outset) */
+/** `<'border-image-outset'>`. Chrome no, Edge no, Firefox no, Safari 17.2, iOS 17.2, Android no. [MDN](https://developer.mozilla.org/docs/Web/CSS/mask-border-outset) */
 export declare const maskBorderOutset: Prop<"mask-border-outset">;
 /** `[ stretch | repeat | round | space ]{1,2}`. Chrome no, Edge no, Firefox no, Safari 17.2, iOS 17.2, Android no. [MDN](https://developer.mozilla.org/docs/Web/CSS/mask-border-repeat) */
 export declare const maskBorderRepeat: Prop<"mask-border-repeat">;
@@ -601,7 +601,7 @@ export declare const maskBorderRepeat: Prop<"mask-border-repeat">;
 export declare const maskBorderSlice: Prop<"mask-border-slice">;
 /** `none | <image>`. Chrome no, Edge no, Firefox no, Safari 17.2, iOS 17.2, Android no. [MDN](https://developer.mozilla.org/docs/Web/CSS/mask-border-source) */
 export declare const maskBorderSource: Prop<"mask-border-source">;
-/** `[ <length-percentage> | <number> | auto ]{1,4}`. Chrome no, Edge no, Firefox no, Safari 17.2, iOS 17.2, Android no. [MDN](https://developer.mozilla.org/docs/Web/CSS/mask-border-width) */
+/** `<'border-image-width'>`. Chrome no, Edge no, Firefox no, Safari 17.2, iOS 17.2, Android no. [MDN](https://developer.mozilla.org/docs/Web/CSS/mask-border-width) */
 export declare const maskBorderWidth: Prop<"mask-border-width">;
 /** `[ <coord-box> | no-clip ]#`. Chrome 120, Edge 120, Firefox 53, Safari 15.4, iOS 15.4, Android 120. [MDN](https://developer.mozilla.org/docs/Web/CSS/mask-clip) */
 export declare const maskClip: Prop<"mask-clip">;
@@ -647,7 +647,7 @@ export declare const minHeight: Prop<"min-height">;
 export declare const minInlineSize: Prop<"min-inline-size">;
 /** `auto | <length-percentage [0,∞]> | min-content | max-content | fit-content | fit-content(<length-percentage [0,∞]>) | <calc-size()> | <anchor-size()>`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/min-width) */
 export declare const minWidth: Prop<"min-width">;
-/** `<blend-mode> | plus-darker | plus-lighter`. Chrome 41, Edge 79, Firefox 32, Safari 8, iOS 8, Android 41. [MDN](https://developer.mozilla.org/docs/Web/CSS/mix-blend-mode) */
+/** `<blend-mode> | plus-lighter`. Chrome 41, Edge 79, Firefox 32, Safari 8, iOS 8, Android 41. [MDN](https://developer.mozilla.org/docs/Web/CSS/mix-blend-mode) */
 export declare const mixBlendMode: Prop<"mix-blend-mode">;
 /** `<length-percentage> | auto | <anchor-size()>`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/margin-left) */
 export declare const ml: Prop<"margin-left">;
@@ -681,7 +681,7 @@ export declare const order: Prop<"order">;
 export declare const orphans: Prop<"orphans">;
 /** `<'outline-width'> || <'outline-style'> || <'outline-color'>`. Chrome 94, Edge 94, Firefox 88, Safari 16.4, iOS 16.4, Android 94. [MDN](https://developer.mozilla.org/docs/Web/CSS/outline) */
 export declare const outline: Prop<"outline">;
-/** `auto | <color>`. Chrome 1, Edge 12, Firefox 1.5, Safari 1.2, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/outline-color) */
+/** `<color>`. Chrome 1, Edge 12, Firefox 1.5, Safari 1.2, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/outline-color) */
 export declare const outlineColor: Prop<"outline-color">;
 /** `<length>`. Chrome 1, Edge 15, Firefox 1.5, Safari 1.2, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/outline-offset) */
 export declare const outlineOffset: Prop<"outline-offset">;
@@ -695,7 +695,7 @@ export declare const overflow: Prop<"overflow">;
 export declare const overflowAnchor: Prop<"overflow-anchor">;
 /** `visible | hidden | clip | scroll | auto`. Chrome 135, Edge 135, Firefox 69, Safari 26, iOS 26, Android 135. [MDN](https://developer.mozilla.org/docs/Web/CSS/overflow-block) */
 export declare const overflowBlock: Prop<"overflow-block">;
-/** `<visual-box> || <length [0,∞]>`. Chrome 90, Edge 90, Firefox 102, Safari no, iOS no, Android 90. [MDN](https://developer.mozilla.org/docs/Web/CSS/overflow-clip-margin) */
+/** `<visual-box> || <length>`. Chrome 90, Edge 90, Firefox 102, Safari no, iOS no, Android 90. [MDN](https://developer.mozilla.org/docs/Web/CSS/overflow-clip-margin) */
 export declare const overflowClipMargin: Prop<"overflow-clip-margin">;
 /** `visible | hidden | clip | scroll | auto`. Chrome 135, Edge 135, Firefox 69, Safari 26, iOS 26, Android 135. [MDN](https://developer.mozilla.org/docs/Web/CSS/overflow-inline) */
 export declare const overflowInline: Prop<"overflow-inline">;
@@ -707,15 +707,15 @@ export declare const overflowX: Prop<"overflow-x">;
 export declare const overflowY: Prop<"overflow-y">;
 /** `none | auto`. Chrome 117, Edge 117, Firefox no, Safari no, iOS no, Android 117. [MDN](https://developer.mozilla.org/docs/Web/CSS/overlay) */
 export declare const overlay: Prop<"overlay">;
-/** `[ contain | none | auto ]{1,2}`. Chrome 144, Edge 18, Firefox 150, Safari 16, iOS 16, Android 144. [MDN](https://developer.mozilla.org/docs/Web/CSS/overscroll-behavior) */
+/** `[ contain | none | auto | chain ]{1,2}`. Chrome 144, Edge 18, Firefox 150, Safari 16, iOS 16, Android 144. [MDN](https://developer.mozilla.org/docs/Web/CSS/overscroll-behavior) */
 export declare const overscrollBehavior: Prop<"overscroll-behavior">;
-/** `contain | none | auto`. Chrome 144, Edge 144, Firefox 150, Safari 16, iOS 16, Android 144. [MDN](https://developer.mozilla.org/docs/Web/CSS/overscroll-behavior-block) */
+/** `contain | none | auto | chain`. Chrome 144, Edge 144, Firefox 150, Safari 16, iOS 16, Android 144. [MDN](https://developer.mozilla.org/docs/Web/CSS/overscroll-behavior-block) */
 export declare const overscrollBehaviorBlock: Prop<"overscroll-behavior-block">;
-/** `contain | none | auto`. Chrome 144, Edge 144, Firefox 150, Safari 16, iOS 16, Android 144. [MDN](https://developer.mozilla.org/docs/Web/CSS/overscroll-behavior-inline) */
+/** `contain | none | auto | chain`. Chrome 144, Edge 144, Firefox 150, Safari 16, iOS 16, Android 144. [MDN](https://developer.mozilla.org/docs/Web/CSS/overscroll-behavior-inline) */
 export declare const overscrollBehaviorInline: Prop<"overscroll-behavior-inline">;
-/** `contain | none | auto`. Chrome 144, Edge 18, Firefox 150, Safari 16, iOS 16, Android 144. [MDN](https://developer.mozilla.org/docs/Web/CSS/overscroll-behavior-x) */
+/** `contain | none | auto | chain`. Chrome 144, Edge 18, Firefox 150, Safari 16, iOS 16, Android 144. [MDN](https://developer.mozilla.org/docs/Web/CSS/overscroll-behavior-x) */
 export declare const overscrollBehaviorX: Prop<"overscroll-behavior-x">;
-/** `contain | none | auto`. Chrome 144, Edge 18, Firefox 150, Safari 16, iOS 16, Android 144. [MDN](https://developer.mozilla.org/docs/Web/CSS/overscroll-behavior-y) */
+/** `contain | none | auto | chain`. Chrome 144, Edge 18, Firefox 150, Safari 16, iOS 16, Android 144. [MDN](https://developer.mozilla.org/docs/Web/CSS/overscroll-behavior-y) */
 export declare const overscrollBehaviorY: Prop<"overscroll-behavior-y">;
 /** `<'padding-top'>{1,4}`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/padding) */
 export declare const p: Prop<"padding">;
@@ -759,7 +759,7 @@ export declare const placeContent: Prop<"place-content">;
 export declare const placeItems: Prop<"place-items">;
 /** `<'align-self'> <'justify-self'>?`. Chrome 59, Edge 79, Firefox 45, Safari 11, iOS 11, Android 59. [MDN](https://developer.mozilla.org/docs/Web/CSS/place-self) */
 export declare const placeSelf: Prop<"place-self">;
-/** `auto | none | visiblePainted | visibleFill | visibleStroke | visible | painted | fill | stroke | all | inherit`. Chrome 1, Edge 12, Firefox 1.5, Safari 4, iOS 3.2, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/pointer-events) */
+/** `auto | bounding-box | visiblePainted | visibleFill | visibleStroke | visible | painted | fill | stroke | all | none`. Chrome 1, Edge 12, Firefox 1.5, Safari 4, iOS 3.2, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/pointer-events) */
 export declare const pointerEvents: Prop<"pointer-events">;
 /** `static | relative | absolute | sticky | fixed`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/position) */
 export declare const position: Prop<"position">;
@@ -769,7 +769,7 @@ export declare const positionAnchor: Prop<"position-anchor">;
 export declare const positionArea: Prop<"position-area">;
 /** `<'position-try-order'>? <'position-try-fallbacks'>`. Chrome 125, Edge 125, Firefox 147, Safari 26, iOS 26, Android 125. [MDN](https://developer.mozilla.org/docs/Web/CSS/position-try) */
 export declare const positionTry: Prop<"position-try">;
-/** `none | [ [<dashed-ident> || <try-tactic>] | <'position-area'> ]#`. Chrome 128, Edge 128, Firefox 147, Safari 26, iOS 26, Android 128. [MDN](https://developer.mozilla.org/docs/Web/CSS/position-try-fallbacks) */
+/** `none | [ [<dashed-ident> || <try-tactic>] | <position-area> ]#`. Chrome 128, Edge 128, Firefox 147, Safari 26, iOS 26, Android 128. [MDN](https://developer.mozilla.org/docs/Web/CSS/position-try-fallbacks) */
 export declare const positionTryFallbacks: Prop<"position-try-fallbacks">;
 /** `normal | <try-size>`. Chrome 125, Edge 125, Firefox 148, Safari 26, iOS 26, Android 125. [MDN](https://developer.mozilla.org/docs/Web/CSS/position-try-order) */
 export declare const positionTryOrder: Prop<"position-try-order">;
@@ -783,7 +783,7 @@ export declare const printColorAdjust: Prop<"print-color-adjust">;
 export declare const pt: Prop<"padding-top">;
 /** `none | auto | [ <string> <string> ]+`. Chrome 11, Edge 12, Firefox 1.5, Safari 9, iOS 9, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/quotes) */
 export declare const quotes: Prop<"quotes">;
-/** `<length> | <percentage>`. Chrome 43, Edge 79, Firefox 69, Safari 9, iOS 9, Android 43. [MDN](https://developer.mozilla.org/docs/Web/CSS/r) */
+/** `<length-percentage>`. Chrome 43, Edge 79, Firefox 69, Safari 9, iOS 9, Android 43. [MDN](https://developer.mozilla.org/docs/Web/CSS/r) */
 export declare const r: Prop<"r">;
 /** `normal | source-order | flex-visual | flex-flow | grid-rows | grid-columns | grid-order`. Chrome 137, Edge 137, Firefox no, Safari no, iOS no, Android 137. [MDN](https://developer.mozilla.org/docs/Web/CSS/reading-flow) */
 export declare const readingFlow: Prop<"reading-flow">;
@@ -805,9 +805,9 @@ export declare const rubyMerge: Prop<"ruby-merge">;
 export declare const rubyOverhang: Prop<"ruby-overhang">;
 /** `[ alternate || [ over | under ] ] | inter-character`. Chrome 84, Edge 84, Firefox 38, Safari 18.2, iOS 18.2, Android 84. [MDN](https://developer.mozilla.org/docs/Web/CSS/ruby-position) */
 export declare const rubyPosition: Prop<"ruby-position">;
-/** `<length> | <percentage>`. Chrome 43, Edge 79, Firefox 69, Safari 17.4, iOS 17.4, Android 43. [MDN](https://developer.mozilla.org/docs/Web/CSS/rx) */
+/** `<length-percentage> | auto`. Chrome 43, Edge 79, Firefox 69, Safari 17.4, iOS 17.4, Android 43. [MDN](https://developer.mozilla.org/docs/Web/CSS/rx) */
 export declare const rx: Prop<"rx">;
-/** `<length> | <percentage>`. Chrome 43, Edge 79, Firefox 69, Safari 17.4, iOS 17.4, Android 43. [MDN](https://developer.mozilla.org/docs/Web/CSS/ry) */
+/** `<length-percentage> | auto`. Chrome 43, Edge 79, Firefox 69, Safari 17.4, iOS 17.4, Android 43. [MDN](https://developer.mozilla.org/docs/Web/CSS/ry) */
 export declare const ry: Prop<"ry">;
 /** `none | [ <number> | <percentage> ]{1,3}`. Chrome 104, Edge 104, Firefox 72, Safari 14.1, iOS 14.5, Android 104. [MDN](https://developer.mozilla.org/docs/Web/CSS/scale) */
 export declare const scale: Prop<"scale">;
@@ -913,7 +913,7 @@ export declare const strokeMiterlimit: Prop<"stroke-miterlimit">;
 export declare const strokeOpacity: Prop<"stroke-opacity">;
 /** `<length-percentage> | <number>`. Chrome 1, Edge ≤15, Firefox 1.5, Safari 4, iOS 3.2, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/stroke-width) */
 export declare const strokeWidth: Prop<"stroke-width">;
-/** `<integer> | <length [0,∞]>`. Chrome 21, Edge 79, Firefox 91, Safari 7, iOS 7, Android 25. [MDN](https://developer.mozilla.org/docs/Web/CSS/tab-size) */
+/** `<number [0,∞]> | <length [0,∞]>`. Chrome 21, Edge 79, Firefox 91, Safari 7, iOS 7, Android 25. [MDN](https://developer.mozilla.org/docs/Web/CSS/tab-size) */
 export declare const tabSize: Prop<"tab-size">;
 /** `auto | fixed`. Chrome 14, Edge 12, Firefox 1, Safari 1, iOS 3, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/table-layout) */
 export declare const tableLayout: Prop<"table-layout">;
@@ -953,7 +953,7 @@ export declare const textDecorationThickness: Prop<"text-decoration-thickness">;
 export declare const textEmphasis: Prop<"text-emphasis">;
 /** `<color>`. Chrome 99, Edge 99, Firefox 46, Safari 7, iOS 7, Android 99. [MDN](https://developer.mozilla.org/docs/Web/CSS/text-emphasis-color) */
 export declare const textEmphasisColor: Prop<"text-emphasis-color">;
-/** `auto | [ over | under ] && [ right | left ]?`. Chrome 99, Edge 99, Firefox 46, Safari 7, iOS 7, Android 99. [MDN](https://developer.mozilla.org/docs/Web/CSS/text-emphasis-position) */
+/** `[ over | under ] && [ right | left ]?`. Chrome 99, Edge 99, Firefox 46, Safari 7, iOS 7, Android 99. [MDN](https://developer.mozilla.org/docs/Web/CSS/text-emphasis-position) */
 export declare const textEmphasisPosition: Prop<"text-emphasis-position">;
 /** `none | [ [ filled | open ] || [ dot | circle | double-circle | triangle | sesame ] ] | <string>`. Chrome 99, Edge 99, Firefox 46, Safari 7, iOS 7, Android 99. [MDN](https://developer.mozilla.org/docs/Web/CSS/text-emphasis-style) */
 export declare const textEmphasisStyle: Prop<"text-emphasis-style">;
@@ -975,9 +975,9 @@ export declare const textSizeAdjust: Prop<"text-size-adjust">;
 export declare const textSpacingTrim: Prop<"text-spacing-trim">;
 /** `none | [ capitalize | uppercase | lowercase ] || full-width || full-size-kana | math-auto`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/text-transform) */
 export declare const textTransform: Prop<"text-transform">;
-/** `auto | <length> | <percentage>`. Chrome 87, Edge 87, Firefox 70, Safari 12.1, iOS 12.2, Android 87. [MDN](https://developer.mozilla.org/docs/Web/CSS/text-underline-offset) */
+/** `auto | <length-percentage>`. Chrome 87, Edge 87, Firefox 70, Safari 12.1, iOS 12.2, Android 87. [MDN](https://developer.mozilla.org/docs/Web/CSS/text-underline-offset) */
 export declare const textUnderlineOffset: Prop<"text-underline-offset">;
-/** `auto | from-font | [ under || [ left | right ] ]`. Chrome 33, Edge 12, Firefox 74, Safari 12.1, iOS 12.2, Android 33. [MDN](https://developer.mozilla.org/docs/Web/CSS/text-underline-position) */
+/** `auto | [ from-font | under ] || [ left | right ]`. Chrome 33, Edge 12, Firefox 74, Safari 12.1, iOS 12.2, Android 33. [MDN](https://developer.mozilla.org/docs/Web/CSS/text-underline-position) */
 export declare const textUnderlinePosition: Prop<"text-underline-position">;
 /** `<'text-wrap-mode'> || <'text-wrap-style'>`. Chrome 114, Edge 114, Firefox 121, Safari 17.4, iOS 17.4, Android 114. [MDN](https://developer.mozilla.org/docs/Web/CSS/text-wrap) */
 export declare const textWrap: Prop<"text-wrap">;
@@ -1013,7 +1013,7 @@ export declare const touchAction: Prop<"touch-action">;
 export declare const transform: Prop<"transform">;
 /** `content-box | border-box | fill-box | stroke-box | view-box`. Chrome 64, Edge 79, Firefox 55, Safari 11, iOS 11, Android 64. [MDN](https://developer.mozilla.org/docs/Web/CSS/transform-box) */
 export declare const transformBox: Prop<"transform-box">;
-/** `[ <length-percentage> | left | center | right | top | bottom ] | [ [ <length-percentage> | left | center | right ] && [ <length-percentage> | top | center | bottom ] ] <length>?`. Chrome 36, Edge 12, Firefox 16, Safari 9, iOS 9, Android 36. [MDN](https://developer.mozilla.org/docs/Web/CSS/transform-origin) */
+/** `[ left | center | right | top | bottom | <length-percentage> ] | [ left | center | right | <length-percentage> ] [ top | center | bottom | <length-percentage> ] <length>? | [ [ center | left | right ] && [ center | top | bottom ] ] <length>?`. Chrome 36, Edge 12, Firefox 16, Safari 9, iOS 9, Android 36. [MDN](https://developer.mozilla.org/docs/Web/CSS/transform-origin) */
 export declare const transformOrigin: Prop<"transform-origin">;
 /** `flat | preserve-3d`. Chrome 36, Edge 12, Firefox 16, Safari 9, iOS 9, Android 36. [MDN](https://developer.mozilla.org/docs/Web/CSS/transform-style) */
 export declare const transformStyle: Prop<"transform-style">;
@@ -1067,19 +1067,19 @@ export declare const width: Prop<"width">;
 export declare const willChange: Prop<"will-change">;
 /** `normal | break-all | keep-all | break-word | auto-phrase`. Chrome 1, Edge 12, Firefox 15, Safari 3, iOS 2, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/word-break) */
 export declare const wordBreak: Prop<"word-break">;
-/** `normal | <length>`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/word-spacing) */
+/** `normal | <length-percentage>`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/word-spacing) */
 export declare const wordSpacing: Prop<"word-spacing">;
-/** `normal | break-word`. [MDN](https://developer.mozilla.org/docs/Web/CSS/overflow-wrap) */
+/** `normal | break-word | anywhere`. [MDN](https://developer.mozilla.org/docs/Web/CSS/overflow-wrap) */
 export declare const wordWrap: Prop<"word-wrap">;
 /** `horizontal-tb | vertical-rl | vertical-lr | sideways-rl | sideways-lr`. Chrome 48, Edge 12, Firefox 41, Safari 10.1, iOS 10.3, Android 48. [MDN](https://developer.mozilla.org/docs/Web/CSS/writing-mode) */
 export declare const writingMode: Prop<"writing-mode">;
-/** `<length> | <percentage>`. Chrome 42, Edge 79, Firefox 69, Safari 9, iOS 9, Android 42. [MDN](https://developer.mozilla.org/docs/Web/CSS/x) */
+/** `<length-percentage>`. Chrome 42, Edge 79, Firefox 69, Safari 9, iOS 9, Android 42. [MDN](https://developer.mozilla.org/docs/Web/CSS/x) */
 export declare const x: Prop<"x">;
-/** `<length> | <percentage>`. Chrome 42, Edge 79, Firefox 69, Safari 9, iOS 9, Android 42. [MDN](https://developer.mozilla.org/docs/Web/CSS/y) */
+/** `<length-percentage>`. Chrome 42, Edge 79, Firefox 69, Safari 9, iOS 9, Android 42. [MDN](https://developer.mozilla.org/docs/Web/CSS/y) */
 export declare const y: Prop<"y">;
 /** `auto | <integer>`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/z-index) */
 export declare const zIndex: Prop<"z-index">;
-/** `normal | reset | <number [0,∞]> || <percentage [0,∞]>`. Chrome 1, Edge 12, Firefox 126, Safari 3.1, iOS 3, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/zoom) */
+/** `normal | <number [0,∞]> | <percentage [0,∞]>`. Chrome 1, Edge 12, Firefox 126, Safari 3.1, iOS 3, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/zoom) */
 export declare const zoom: Prop<"zoom">;
 
 /** Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/:active) */
@@ -1184,7 +1184,7 @@ export declare const volumeLocked: Wrap;
 export type FlexMethods = {
   /** `row | row-reverse | column | column-reverse`. Chrome 29, Edge 12, Firefox 22, Safari 9, iOS 9, Android 29. [MDN](https://developer.mozilla.org/docs/Web/CSS/flex-direction) */
   direction: "flex-direction";
-  /** `nowrap | wrap | wrap-reverse`. Chrome 29, Edge 12, Firefox 28, Safari 9, iOS 9, Android 29. [MDN](https://developer.mozilla.org/docs/Web/CSS/flex-wrap) */
+  /** `nowrap | [ wrap | wrap-reverse ] || balance`. Chrome 29, Edge 12, Firefox 28, Safari 9, iOS 9, Android 29. [MDN](https://developer.mozilla.org/docs/Web/CSS/flex-wrap) */
   wrap: "flex-wrap";
   /** `<'flex-direction'> || <'flex-wrap'>`. Chrome 29, Edge 12, Firefox 28, Safari 9, iOS 9, Android 29. [MDN](https://developer.mozilla.org/docs/Web/CSS/flex-flow) */
   flow: "flex-flow";

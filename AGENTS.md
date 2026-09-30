@@ -28,7 +28,9 @@ cd packages/cssints && bun run test           # fixtures, source maps, HMR races
 cd packages/cssints/test && node docs.mjs     # type-check the ts blocks of docs/API.md and README.md (a line ending in `// error` must fail; fence `ts skip` to skip)
 cd packages/cssints/test && node run.mjs fixtures/risk1.ts   # one fixture: prints code and css
 cd packages/css-grammar && bun run test       # twin + type checks, support/prose rules, tsc
-cd packages/css-grammar && bun run extract    # regenerate src/mdn.ts from mdn-data + @webref/css
+cd packages/css-grammar && bun run extract    # regenerate src/mdn.ts from mdn-data + @webref/css (+ scripts/webref-properties.json)
+cd packages/css-grammar && bun run webref     # rewrite scripts/webref-properties.json with Chrome as the judge; run it, then extract, after a
+                                              # Chrome, @webref/css, mdn-data or twin bump (needs an installed Chrome; ~1 minute)
 cd packages/cssints && node bench/lsp.mjs     # editor latency on the demo's Button.tsx over tsgo's language server
 cd packages/cssints && bun run members        # regenerate src/members.ts (the names of "cssints" in user code)
 bun run typecheck                             # per package: tsgo -p tsconfig.json --noEmit + effect-tsgo diagnostics; apps/demo: tsgo and tsc 5.9

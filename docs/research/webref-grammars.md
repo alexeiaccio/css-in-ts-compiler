@@ -302,3 +302,23 @@ copy's `test/diff-support.ts` read `syns["single-animation~w"] ?? syns["single-a
   `CSS.supports(p, v)` in Chrome, and compare per property.
 - The text and type comparison: parse both grammars with `parseGrammar`, flatten groups, strip ranges, compare trees.
 - `@webref/css` parse test: `parseGrammar` over every `syntax` in `css.json` (properties, types, functions).
+
+## Shipped (cssints-pctg)
+
+The switch is in: `packages/css-grammar/scripts/webref-properties.json` is read by `extract.mjs` by default (`WEBREF=none` is
+mdn-data alone, byte-identical to the old `mdn.ts`), and `bun run webref` (`scripts/webref-rule.mjs`) applies the rule with
+Chrome and rewrites the list. Re-measured with the twin after pending substitution and the math functions, it selects **45**
+properties, not the 47 of section 4 and not exactly its 45:
+
+- out, as predicted: `all` and `z-index` (the CSS-wide keywords are exempt from D, so nothing differs);
+- out: `flex`. Its grammar text is the same in both sources, `flex-basis` and `width` stay on mdn-data (webref's `width`
+  reaches the prose-only `<size-keyword>`), and no drawn value separates the two twins any more;
+- in: `pointer-events`. It differed by `inherit` (exempt now) and by webref's `bounding-box`, which Chrome takes;
+- `word-wrap` stays in: webref has it as a legacy alias of `overflow-wrap` but with a grammar of its own, and the rule does
+  not exclude it (a webref alias without a grammar cannot be a candidate).
+
+Two details of the rule that the script makes explicit: step 2 (closure) is judged on a table of the property alone, because
+`<declaration>` lists every property, so in a table of all candidates each property reaching a `<color>` inherits the failure
+of `cursor` or `width`; and values with `var()`, `env()` or `if()` are left out of D, because Chrome accepts any value with one.
+The small hand overrides (`PROP` in `extract.mjs`) go through the same check against the final table and must pass:
+`image-orientation`, `column-rule-width`, `column-rule`, `zoom`, `outline-color`.
