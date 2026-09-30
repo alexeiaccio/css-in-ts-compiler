@@ -919,3 +919,26 @@ Both npm names were unclaimed on 2026-09-30, but the `@cssints` scope must be cr
 - `createGlobalTheme(t, hover, …)` type-checks.
 - `vp fmt` does not apply the `fmt` block of `vite.config.ts`.
 - `race.mjs` failed once under load (`firstTransform … STALE`).
+
+## webref against stale mdn-data grammars (cssints-h6qk)
+
+We compared each of the 529 properties by behaviour against Chrome 154. webref and mdn-data behave the same on 302. webref is right where they differ on 40: it is narrower (9), wider because mdn-data is stale (26), or differs both ways (5). mdn-data is right on 3. webref describes syntax newer than Chrome on 86, and 90 are mixed.
+
+The twin parses 1401 of 1403 webref grammars; the two failures are typos in webref.
+
+| Variant | Agreement with Chrome | Chrome accepts, twin rejects | Budget |
+|---|---|---|---|
+| mdn-data (today) | 88.6% | 2300 | as is |
+| webref for 47 properties | 90.0% | 1499 | +0.5% |
+| webref everywhere | 84.6% | 1508 | +11 to +14% |
+
+Switching everything would add draft syntax that Chrome rejects (171 properties), break curated cases and blow the budget.
+
+**Recommendation: switch per property.** Take webref's grammar for a property when all of these hold:
+1. both sources have it;
+2. its closure parses and resolves;
+3. the two grammars differ on a sample;
+4. Chrome rejects every value that only mdn-data accepts, and accepts every value that only webref accepts;
+5. the rule still holds when re-run on the assembled table.
+
+Today that selects 47 properties. It ships as a committed list read by `extract.mjs`, plus a Chrome-backed script to re-run on every Chrome, webref or mdn-data bump. Findings: `docs/research/webref-grammars.md`. `extract.mjs` has a default-off `WEBREF=all|@list.json` switch.
