@@ -57,9 +57,14 @@ export async function start() {
   const client = server.environments.client;
   const errors = [];
 
-  // Let the server run until nothing moves: every transform is done or held at a gate.
+  // Let the server run until nothing moves: every transform is done or held at a gate. "Nothing moves" is
+  // not enough: a transform between its last counted step and its end (evaluating, import analysis) moves
+  // nothing we count, and on a loaded machine that gap outlasts the quiet period. So a request that has not
+  // resolved also has to be waiting at a gate (or not exist) for the server to count as settled.
+  let open = 0; // requests whose transformRequest has not resolved
+  const held = (f) => waiting.get(f)?.length ?? 0;
   const settle = async () => {
-    for (let last = -1, quiet = 0; quiet < 3; ) {
+    for (let last = -1, quiet = 0; quiet < 3 || (open > 0 && ![...waiting.keys()].some(held)); ) {
       await sleep(15);
       quiet = progress === last ? quiet + 1 : 0;
       last = progress;
@@ -91,7 +96,7 @@ export async function start() {
     served,
     gate: (...fs) => fs.forEach((f) => gated.add(f)),
     ungate: () => gated.clear(),
-    held: (f) => waiting.get(f)?.length ?? 0,
+    held,
     edit(f) {
       writeFileSync(path(f), SOURCE[f](++disk[f]));
     },
@@ -100,10 +105,11 @@ export async function start() {
       await settle();
     },
     async request(c) {
+      open++;
       client
         .transformRequest(`/${c}.ts`)
-        .then(() => progress++)
-        .catch((e) => (progress++, errors.push(`${c}: ${String(e?.message ?? e).split("\n")[0]}`)));
+        .finally(() => (open--, progress++))
+        .catch((e) => errors.push(`${c}: ${String(e?.message ?? e).split("\n")[0]}`));
       await settle();
     },
     async release(f) {
