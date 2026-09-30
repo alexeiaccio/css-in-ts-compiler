@@ -7,7 +7,6 @@ import type { Condition } from "@cssints/css-grammar/query";
 import type { StyleObject, TokenFn, TokenSetFn, TokenType } from "@cssints/css-grammar/token";
 import type { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
 
-import type { FlexMethods, GridMethods } from "./members.ts";
 import type { CvRuntimeConfig } from "./runtime.ts";
 
 export * from "./members.ts";
@@ -58,6 +57,16 @@ type Check<P extends keyof typeof properties, A extends readonly Part[]> =
 export type Prop<P extends keyof typeof properties, R = Style> = <const A extends readonly Part[]>(
   ...parts: Check<P, A>
 ) => R;
+/** `flex` and `grid`: no argument is the layout context (`display`, chaining `M`), parts are the property of that name. */
+export interface Layout<
+  P extends "flex" | "grid",
+  M extends Record<string, keyof typeof properties>,
+> {
+  /** The layout context: sets `display` and chains its container properties. */
+  (): Chain<M>;
+  /** The shorthand property of this name: parts are checked against its mdn grammar. A plain style, it does not chain. */
+  <const A extends readonly Part[]>(...parts: Check<P, A>): Style;
+}
 /** A style you can chain container properties on (flex() and grid()), and use as a class string. `M`: method -> property. */
 export type Chain<M extends Record<string, keyof typeof properties>> = Style & {
   readonly [K in keyof M]: Prop<M[K], Chain<M>>;
@@ -85,8 +94,6 @@ export declare const token: { readonly [K in TokenType]: TokenFn<K> } & {
 };
 /** css values (declarations, no conditions) and `token.set()` results, as an inline `style` object. */
 export declare const style: (...styles: (Style | StyleObject)[]) => StyleObject;
-export declare const flex: () => Chain<FlexMethods>;
-export declare const grid: () => Chain<GridMethods>;
 /** The plugin replaces the call by the runtime config that `_cv` takes. */
 export declare const cv: (config: CvConfig) => CvRuntimeConfig;
 
@@ -97,8 +104,6 @@ export declare const css: typeof import("./members.ts") & {
   supports: typeof supports;
   token: typeof token;
   style: typeof style;
-  flex: typeof flex;
-  grid: typeof grid;
   cv: typeof cv;
   CSS: typeof CSS;
   CSSColorValue: typeof CSSColorValue;

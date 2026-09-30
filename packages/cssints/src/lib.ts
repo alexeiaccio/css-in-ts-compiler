@@ -164,13 +164,8 @@ export function toDecls(member: string, args: unknown[]): Decl[] {
       );
     return args.flatMap((n) => n.__cssints);
   }
-  if (CONTEXTS[member]) {
-    if (args.length)
-      throw fail(
-        `cssints: ${member}() takes no arguments; chain its container properties: ${member}().${chainNames(member)[0]}(...)`,
-      );
-    return [["display", member]];
-  }
+  // flex(...parts) is the `flex` property, flex() the context. SPACING does not match `flex` or `grid`: a number is a <number>.
+  if (CONTEXTS[member]) return [args.length ? decl(member, member, args) : ["display", member]];
   const prop = PROPS[member];
   if (!prop) throw fail(`cssints: unknown css.${member}`);
   return [decl(prop, member, args)];
