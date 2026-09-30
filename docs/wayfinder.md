@@ -980,3 +980,22 @@ Chrome accepts all of these, so we are stricter on purpose.
 Chrome 154 agreement is 91.4%, as before.
 
 **Process note.** An earlier session of this ticket was reported crashed by the harness but kept running. It followed its directory through a `git worktree move` and committed to its branch. The work was finished on a fresh branch from the last clean commit, and the zombie's `anyOrder` idea was taken by hand after measuring. Lesson: after a harness crash, never reuse or move the worktree; give the retry a new branch in a new directory.
+
+## Per-property webref grammars (cssints-pctg)
+
+`extract.mjs` reads `packages/css-grammar/scripts/webref-properties.json` by default and takes webref's grammar for the 45 properties listed there. `WEBREF=none` gives mdn-data alone, byte for byte as before. `bun run webref` applies the rule, with Chrome as the judge, and rewrites the list in about a minute. Run it, then `bun run extract`, after a bump of Chrome, @webref/css, mdn-data or the twin.
+
+Re-measured on the current twin, the list is 45, not 47:
+- `all` and `z-index` left, because CSS-wide keywords are exempt;
+- `flex` left, because its grammar text is the same in both sources;
+- `pointer-events` joined.
+
+Five small hand overrides live in `extract.mjs` (`image-orientation`, `column-rule-width`, `column-rule`, `zoom`, `outline-color`), and the script re-checks them against Chrome on every run.
+
+| | Before | After |
+|---|---|---|
+| Chrome agreement | 91.4% | 92.2% |
+| diff-support rows | 1317 | 1155 |
+| KNOWN rows | 588 | 477 |
+
+Ten obsolete KNOWN entries were removed. Budgets moved by at most 0.4%, and the demo build is byte-identical.

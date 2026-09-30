@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-29T13:28:04Z
-updated_at: 2026-09-30T10:20:15Z
+updated_at: 2026-09-30T10:44:53Z
 blocked_by:
     - cssints-vzd9
 ---
@@ -44,7 +44,7 @@ The API in `docs/API.md` works end to end in `apps/demo` on the Module Runner en
 
 - [0.1 docs and demo pass](cssints-gcho): API.md rewritten against the code with a doc test for every code block, README, a demo tour of every feature checked in Chrome. Findings: [Build-time evaluation edge cases](cssints-wigi) (done: unreached sites hoisted, eval-time _cv, located runtime-value error, QueryWrap), [race.mjs flake](cssints-jwdw) (done: harness settle() fix, plugin and model unchanged), [flex/grid/container shorthands](cssints-cmgv), [vp fmt config](cssints-uhu6)
 
-- [Prefer webref property grammars where mdn-data is stale](cssints-h6qk): switch per property by a Chrome-backed rule (47 today: agreement 88.6% to 90.0%, reverse rows 2300 to 1499, budget +0.5%); switching everything would add draft syntax and cost 11-14%. Implementation: [Per-property webref grammars](cssints-pctg)
+- [Prefer webref property grammars where mdn-data is stale](cssints-h6qk): switch per property by a Chrome-backed rule (47 today: agreement 88.6% to 90.0%, reverse rows 2300 to 1499, budget +0.5%); switching everything would add draft syntax and cost 11-14%. Implementation: [Per-property webref grammars](cssints-pctg) (done: 45 properties, bun run webref, agreement 92.2%)
 
 - [Pending substitution: var() and if() in any property value](cssints-xrzv): var(), env() and if() stand for any run of component values anywhere, and the rest is still checked (stricter than Chrome); +2-3% type budget.
 
