@@ -55,8 +55,7 @@ The API in `docs/API.md` works end to end in `apps/demo` on the Module Runner en
 
 - Derived tokens (`contrastColor()` in CSS, `derive()` at build time) and JSON token input with generated types (cssints-exof).
 - Value helper functions (`css.colorMix(...)`, API.md "Functions"): whether they exist next to typed string parts, and how they are typed.
-- Error DX: the type error for a bad typed part lands on the first argument; editor completions inside string literals (arktype `Completion` style); Vite overlay pointing at the call site.
-- `cn` conflict resolution ("resolve class order specificity"): what happens with `cn(p(4), pl(2))`.
+- Error DX: the type error for a bad typed part lands on the first argument; editor completions inside string literals (arktype `Completion` style). (The Vite overlay pointing at the call site is done, cssints-djzw.)
 
 ## Out of scope
 
