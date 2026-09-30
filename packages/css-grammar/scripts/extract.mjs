@@ -22,12 +22,25 @@ const ranged = (mine, spec) => {
       for (const [, u] of syn[t].syntax.matchAll(/<([^>]+)>/g)) if (!r.has(u)) r.set(u, range);
   return mine.replace(/<([^'>\s[]+)>/g, (m, t) => (r.get(t) ? `<${t} ${r.get(t)}>` : m));
 };
-// node scripts/extract.mjs [prop...]  (default: every standard and experimental property; the nonstandard ones are
-// prefixed or dead forms that LightningCSS emits from the browserslist targets, and the obsolete ones are gone)
+// node scripts/extract.mjs [prop...]  (default: every standard and experimental property, plus LIVE_NONSTANDARD; the other
+// nonstandard ones are prefixed or dead forms that LightningCSS emits from the browserslist targets, and the obsolete
+// ones are gone)
+// WebKit-only properties with no standard form to prefix from, which LightningCSS passes through. Live per BCD: no removal in
+// Chrome or Safari (user-modify is listed as `user-modify` with a -webkit- prefix; touch-callout is iOS Safari only). Left out:
+// -webkit-overflow-scrolling (no BCD entry; Chrome 154, WebKit 26.6 and Firefox 155 all reject it in CSS.supports).
+const LIVE_NONSTANDARD = [
+  "-webkit-tap-highlight-color",
+  "-webkit-touch-callout",
+  "-webkit-box-reflect",
+  "-webkit-user-modify",
+];
 const want =
   process.argv.length > 2
     ? process.argv.slice(2)
-    : Object.keys(props).filter((p) => ["standard", "experimental"].includes(props[p].status));
+    : Object.keys(props).filter(
+        (p) =>
+          ["standard", "experimental"].includes(props[p].status) || LIVE_NONSTANDARD.includes(p),
+      );
 const P = {},
   S = {};
 const refs = (s) => [...s.matchAll(/<([^'>\s[]+)(?:\s*\[[^\]]*\])?>/g)].map((m) => m[1]);

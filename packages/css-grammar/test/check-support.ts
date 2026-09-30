@@ -65,6 +65,18 @@ verify(
     '[["white-space-collapse",["firefox 120"]],["preserve-spaces",["chrome 120"]]]',
   `white-space-collapse: preserve-spaces on firefox 120 warns for the property only`,
 );
+// the WebKit-only properties warn on a Firefox target; Chrome has two of them (touch-callout is iOS only)
+for (const [p, v, chrome] of [
+  ["-webkit-tap-highlight-color", "red", 0],
+  ["-webkit-touch-callout", "none", 1],
+  ["-webkit-box-reflect", "below", 0],
+] as const) {
+  verify(
+    support(p, v, [["firefox", "120"]]).some((w) => w.key === `css.properties.${p}`) &&
+      support(p, v, [["chrome", "120"]]).length === chrome,
+    `${p}: ${v} warns on firefox, ${chrome} on chrome`,
+  );
+}
 
 const rules: [string, string, boolean][] = [
   ["transition", "none, opacity 1s", false],
