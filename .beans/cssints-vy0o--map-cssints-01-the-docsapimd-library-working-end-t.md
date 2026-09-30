@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-29T13:28:04Z
-updated_at: 2026-09-30T09:01:24Z
+updated_at: 2026-09-30T09:18:11Z
 blocked_by:
     - cssints-vzd9
 ---
@@ -42,7 +42,7 @@ The API in `docs/API.md` works end to end in `apps/demo` on the Module Runner en
 
 - [Built-in WebKit-only properties](cssints-6fay), [JSDoc on generated members](cssints-7pv1), [Ship 0.1](cssints-808j): done. Tarballs install into a fresh Vite 8 app (`bun run test:smoke`); npm names free; publish 0.1.0 of both together; LICENSE and README still missing.
 
-- [0.1 docs and demo pass](cssints-gcho): API.md rewritten against the code with a doc test for every code block, README, a demo tour of every feature checked in Chrome. Findings: [Build-time evaluation edge cases](cssints-wigi), [race.mjs flake](cssints-jwdw), [flex/grid/container shorthands](cssints-cmgv), [vp fmt config](cssints-uhu6)
+- [0.1 docs and demo pass](cssints-gcho): API.md rewritten against the code with a doc test for every code block, README, a demo tour of every feature checked in Chrome. Findings: [Build-time evaluation edge cases](cssints-wigi), [race.mjs flake](cssints-jwdw) (done: harness settle() fix, plugin and model unchanged), [flex/grid/container shorthands](cssints-cmgv), [vp fmt config](cssints-uhu6)
 
 - [Prefer webref property grammars where mdn-data is stale](cssints-h6qk): switch per property by a Chrome-backed rule (47 today: agreement 88.6% to 90.0%, reverse rows 2300 to 1499, budget +0.5%); switching everything would add draft syntax and cost 11-14%. Implementation: [Per-property webref grammars](cssints-pctg)
 

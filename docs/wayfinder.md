@@ -942,3 +942,11 @@ Switching everything would add draft syntax that Chrome rejects (171 properties)
 5. the rule still holds when re-run on the assembled table.
 
 Today that selects 47 properties. It ships as a committed list read by `extract.mjs`, plus a Chrome-backed script to re-run on every Chrome, webref or mdn-data bump. Findings: `docs/research/webref-grammars.md`. `extract.mjs` has a default-off `WEBREF=all|@list.json` switch.
+
+## race.mjs flake: the harness, not the plugin (cssints-jwdw)
+
+The flake seen under load (`firstTransform button served null STALE`) was a harness timing bug. `settle()` decided the dev server was idle after about 45 ms without a counted step. The last stretch of a transform counts no step: running the module in the runner, then import analysis. So under load `request()` returned before Vite had cached the transform, and the check read a module with nothing cached. That is exactly what `servedFresh` allows for a transform in flight.
+
+It failed in about 1 of 100 runs with no load and 3 of 50 under load. `settle()` now also waits while a request is unresolved and nothing is held at a gate, and 200 runs under load pass. The plugin and `runner.qnt` did not change.
+
+Lesson for harnesses: wait on the request's own promise or a gate, never on a quiet period alone.
