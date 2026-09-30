@@ -45,20 +45,42 @@ const P = {},
   S = {};
 const refs = (s) => [...s.matchAll(/<([^'>\s[]+)(?:\s*\[[^\]]*\])?>/g)].map((m) => m[1]);
 const prefs = (s) => [...s.matchAll(/<'([^']+)'>/g)].map((m) => m[1]);
-// Research switch (cssints-h6qk), default off: WEBREF=all takes the webref grammar of every property that has one,
-// WEBREF=@list.json of the properties in that JSON array; a type that a webref grammar reaches is webref's too, under the
-// name `<type~w>` when it differs from mdn-data's (so the mdn-data properties keep theirs). EXTRACT_OUT redirects the output.
-const MODE = process.env.WEBREF ?? "";
+// Where a property's grammar comes from (cssints-h6qk, cssints-pctg). mdn-data is stale for some properties (`tab-size:
+// 3.5`, `letter-spacing: 10%`) and @webref/css is newer than Chrome for others, so the choice is per property:
+// `webref-properties.json` lists the properties that take webref's grammar, and `bun run webref` (scripts/webref-rule.mjs)
+// rewrites it with Chrome as the judge (docs/research/webref-grammars.md, section 4). A type that such a grammar reaches
+// is webref's too, under the name `<type~w>` when it differs from mdn-data's (so the mdn-data properties keep theirs).
+// WEBREF=none is mdn-data alone (the baseline of the rule), WEBREF=all every property that has a webref grammar,
+// WEBREF=@file.json the properties of another list. EXTRACT_OUT redirects the output.
+const SPEC = process.env.WEBREF ?? `@${import.meta.dirname}/webref-properties.json`;
+const MODE = SPEC === "none" ? "" : SPEC === "all" ? "all" : "list";
 const OUT = process.env.EXTRACT_OUT ?? `${import.meta.dirname}/../src/mdn.ts`;
-const webList = MODE.startsWith("@")
-  ? new Set(JSON.parse(readFileSync(MODE.slice(1), "utf8")))
-  : null;
+const webList = MODE === "list" ? new Set(JSON.parse(readFileSync(SPEC.slice(1), "utf8"))) : null;
 const useWeb = (n) => !!webP[n] && (MODE === "all" || !!webList?.has(n));
+// Hand overrides for properties where neither source is right, each confirmed against Chrome 154 (`CSS.supports`):
+// webref-rule.mjs re-runs the check on every bump and fails when Chrome disagrees. Only in list mode, and these
+// properties never go in the list. Each is a grammar over mdn-data's types.
+const LW = "[ <line-width> | repeat( <integer [1,∞]> , [ <line-width> ]# ) ]";
+const PROP = {
+  // webref: `from-image | none | [ <angle> || flip ]`, mdn-data: the css-images-3 `from-image | <angle> | [ <angle>? flip ]`.
+  // Chrome takes `none` (css-images-4) and rejects every angle and `flip`.
+  "image-orientation": "from-image | none",
+  // css-gap-decorations lists of <line-width>, with repeat() and repeat(auto, …). webref's <line-width> has the `hairline` of
+  // css-borders-4, which Chrome rejects; mdn-data's `<'border-width'>` takes one to four values, Chrome a comma list.
+  "column-rule-width": `${LW}# | ${LW}#? , repeat( auto , [ <line-width> ]# ) , ${LW}#?`,
+  // mdn-data: `<number> || <percentage>`, webref: `<number [0,∞]> | <percentage [0,∞]>`. Chrome takes `normal`, rejects
+  // `reset` (mdn-data) and `2 50%`.
+  zoom: "normal | <number [0,∞]> | <percentage [0,∞]>",
+  // mdn-data still lists `auto` (css-ui-4 removed it), webref is <'border-top-color'> with `stripes()`: Chrome rejects all
+  // three and takes `<color>`. `outline` reaches it by name.
+  "outline-color": "<color>",
+};
 const addP = (n) => {
   const web = useWeb(n) || (!!MODE && !props[n]);
   if (P[n] || !(props[n] || (web && webP[n]))) return;
-  P[n] = web ? renamed(webP[n], true) : ranged(props[n].syntax, webP[n]);
-  refs(web ? webP[n] : P[n]).forEach((t) => addS(t, web));
+  const own = webList && PROP[n];
+  P[n] = own ?? (web ? renamed(webP[n], true) : ranged(props[n].syntax, webP[n]));
+  refs(own ?? (web ? webP[n] : P[n])).forEach((t) => addS(t, web && !own));
   prefs(P[n]).forEach(addP);
 };
 // Colour (cssints-gcuz). mdn-data 2.27.1 has no relative colour syntax and no contrast-color(), if() or var() in
@@ -146,10 +168,15 @@ const lit = (o) =>
     /^[a-zA-Z_$][\w$]*$/.test(k) ? `${k}:` : m,
   );
 const v = (p) => require(`${p}/package.json`).version;
+const ownGrammar = Object.keys(P).filter((p) => PROP[p]).length;
+const fromWebref = webList
+  ? `; ${Object.keys(P).filter((p) => useWeb(p) && !PROP[p]).length} properties take the @webref/css grammar (webref-properties.json), ${ownGrammar} a hand override`
+  : "";
 writeFileSync(
   OUT,
-  `// verbatim from mdn-data ${v("mdn-data")}, plus the numeric ranges it omits, from @webref/css ${v("@webref/css")} (extract.mjs)\nexport const properties = ${lit(P)} as const;\nexport const syntaxes = ${lit(S)} as const;\n`,
+  `// verbatim from mdn-data ${v("mdn-data")}, plus the numeric ranges it omits, from @webref/css ${v("@webref/css")}${fromWebref} (extract.mjs)\nexport const properties = ${lit(P)} as const;\nexport const syntaxes = ${lit(S)} as const;\n`,
 );
+console.log("overrides:", webList ? Object.keys(PROP).join(" ") : "");
 console.log(
   "properties",
   Object.keys(P).length,
