@@ -1055,3 +1055,11 @@ The seams plugins will stand on are in, with no public API yet.
 - **Definition sites.** A build-time module may hold a plugin value (a function or a configured object) from an attributed call. It has no replacement; a client module that calls it still gets a normal replaced site.
 
 Known limits: a kernel used through a helper module can linger in the registry until restart, giving a false collision in dev after its source is edited. Declarations of custom properties (`["--_r", v]`) are still rejected by the grammar check; the plugin API ticket must let them through.
+
+## The style-query polyfill on old Firefox and WebKit (cssints-fxz3)
+
+The polyfill has now run on browsers that lack style queries on custom properties: Firefox 128 and 150, and WebKit builds 16.4, 17.0 and 17.4. The runtime probe switched the script on in every one. Against the values the same test gave in a newer build of each engine, Firefox 128, Firefox 150 and WebKit 17.4 match exactly (1 392 of 1 392). WebKit 17.0 and 16.4 differ in two colours only because they do not clamp oklch lightness above 1; the script copied the parent's value faithfully.
+
+The engine needs no change. `@property` (Firefox 128, Safari 16.4) is the floor, below which the runtime stays off. A first pass costs about twice what it costs in newer browsers: 190 ms in Firefox 128 for 5 461 elements. Two bugs in the test scripts were fixed (a dead negative control and a hover race in old Firefox). The download URLs and commands are in plugins-proto/README.md.
+
+Still open: Playwright's WebKit builds are trunk snapshots with features Safari shipped later (relative colour in "16.4"), so real Safari 17 is a hand check for the `frame()` ticket.

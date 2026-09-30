@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-30T11:57:32Z
-updated_at: 2026-09-30T13:54:35Z
+updated_at: 2026-09-30T14:02:19Z
 ---
 
 ## Destination
@@ -30,6 +30,8 @@ A public plugin API (`definePlugin` with `property`, `context` and `style` membe
 - [Error DX: the type error on the bad argument, completions inside strings](cssints-kotg): both ship; the error marks the bad part (mapped tuple + Furthest), keyword completions from a generated table; users.ts +5.6%.
 
 - [Engine seams for plugins: node fields, lacking(), definition sites, generic Valid](cssints-vcop): markers and kernels on the node, kernels by key per module in _.k, collision errors, lacking(), definition sites; demo byte-identical.
+
+- [Run the style-query polyfill on Firefox < 151 and Safari < 18](cssints-fxz3): passes on Firefox 128/150 and WebKit 16.4–17.4 with no engine change; @property is the floor; real Safari 17 is a hand check for frame().
 
 ## Not yet specified
 
