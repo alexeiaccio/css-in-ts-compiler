@@ -78,7 +78,7 @@ const edit = async (label, from, to) => {
   });
   const d = await diagnostics();
   console.log(
-    `${label.padEnd(17)} ${(performance.now() - t).toFixed(0)} ms, ${d.items.length} diagnostics${d.items[0] ? `: ${d.items[0].message.slice(0, 90)}` : ""}`,
+    `${label.padEnd(17)} ${(performance.now() - t).toFixed(0)} ms, ${d.items.length} diagnostics${d.items[0] ? ` at ${d.items[0].range.start.character}: ${d.items[0].message.slice(0, 90)}` : ""}`,
   );
   notify("textDocument/didChange", {
     textDocument: { uri, version: ++version },
@@ -94,6 +94,7 @@ const edit = async (label, from, to) => {
 for (let i = 0; i < (process.argv.length > 3 ? 0 : 3); i++) {
   await edit("valid edit", 'fontSize("0.875rem")', 'fontSize("0.9rem")');
   await edit("invalid edit", 'fontWeight("500")', 'fontWeight("bald")');
+  await edit("bad 2nd part", 'border("none")', 'border("1px", "nope")');
 }
 // Hover on the first call of each word (node bench/lsp.mjs src/App.tsx direction gap): the JSDoc of members.ts.
 const words = process.argv.length > 3 ? process.argv.slice(3) : ["fontSize", "hover"];
