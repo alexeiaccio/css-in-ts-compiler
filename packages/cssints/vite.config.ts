@@ -1,6 +1,7 @@
 import { defineConfig } from "vite-plus";
 
-// Build only (publishing is not decided yet): `vp pack` writes dist/. The package still runs from src/ in the repo.
+// `vp pack` writes dist/, which `bun run pack:tgz` stages into a tarball (see publishConfig in package.json).
+// In the repo the package runs from src/; dist/ is what a published install resolves.
 export default defineConfig({
   pack: [
     // The build-time side: the macro library (index) and the Vite plugin (vite), run by Node.
@@ -21,6 +22,16 @@ export default defineConfig({
       target: "es2022",
       fixedExtension: true,
       dts: true,
+      clean: false,
+    },
+    // What user code sees (the "types" condition): members, theme types, and the css-grammar types they reach.
+    // Declarations only: types.ts has no code of its own.
+    {
+      entry: { types: "src/types.ts" },
+      platform: "neutral",
+      format: "esm",
+      fixedExtension: true,
+      dts: { emitDtsOnly: true },
       clean: false,
     },
   ],
