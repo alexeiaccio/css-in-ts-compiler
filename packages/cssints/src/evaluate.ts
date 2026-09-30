@@ -15,7 +15,7 @@ import {
 
 import { verifyChecks } from "./contrast.ts";
 import { EvalError, MacroError } from "./errors.ts";
-import { forget, Registry } from "./registry.ts";
+import { forget, Registry, type RegistryState } from "./registry.ts";
 
 // Same as Vite's ESModulesEvaluator, but every happy-dom global that Node lacks (document, window,
 // HTMLElement, ...) is a closure binding around the module body. The real globalThis stays DOM-free,
@@ -68,16 +68,28 @@ const isMacroError = (e: unknown): e is MacroError => Predicate.isTagged(e, "Mac
 
 // What came out of runner.import. The runner has its own copy of errors.ts, so a MacroError from the library is
 // recognized by its tag and rebuilt here with the same fields; anything else is the module's own failure.
-const failureOf = (id: string) => (e: unknown) =>
-  isMacroError(e)
+// A ReferenceError while a site's arguments run (`__at` set, `__site` not reached yet) is a value that exists only at
+// runtime: a parameter, a prop, a block-scoped variable.
+const failureOf = (id: string, registry: RegistryState) => (e: unknown) => {
+  if (isMacroError(e))
+    return new MacroError({
+      message: e.message,
+      file: e.file,
+      site: e.site,
+      offset: e.offset,
+      cause: e.cause,
+    });
+  const at = registry.at;
+  const name =
+    at && e instanceof ReferenceError ? /^(\S+) is not defined$/.exec(e.message)?.[1] : undefined;
+  return name
     ? new MacroError({
-        message: e.message,
-        file: e.file,
-        site: e.site,
-        offset: e.offset,
-        cause: e.cause,
+        message: `cssints: css arguments must be known at build time: \`${name}\` is not defined where the call is evaluated (a parameter, a prop or state). Use cx(on && p(4)), a cv variant, or a token in a style prop`,
+        cause: e,
+        ...at,
       })
     : new EvalError({ file: id, message: e instanceof Error ? e.message : String(e), cause: e });
+};
 
 const evaluateModule = Effect.fnUntraced(function* (
   runner: ModuleRunner,
@@ -94,7 +106,7 @@ const evaluateModule = Effect.fnUntraced(function* (
       const m = await runner.import<{ __cssints_hoisted?: () => void }>(id);
       m.__cssints_hoisted?.();
     },
-    catch: failureOf(id),
+    catch: failureOf(id, registry),
   }).pipe(
     Effect.timeoutOrElse({
       duration: "30 seconds",
