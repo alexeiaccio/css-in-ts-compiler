@@ -999,3 +999,9 @@ Five small hand overrides live in `extract.mjs` (`image-orientation`, `column-ru
 | KNOWN rows | 588 | 477 |
 
 Ten obsolete KNOWN entries were removed. Budgets moved by at most 0.4%, and the demo build is byte-identical.
+
+## flex("1") and grid("...") shorthands (cssints-okos)
+
+`flex("1")`, `flex(1)`, `flex("1 1 0")` and `grid("auto / 1fr 1fr")` are the `flex` and `grid` shorthand properties, checked by the grammar. `flex()` and `grid()` with no argument stay the layout contexts. The two forms differ by argument count at build time and by overload in the types. The spacing-number rule does not apply to them, so `flex(1)` is `flex: 1`. `container` stays the condition, and its property is written `containerName`/`containerType`.
+
+Cost finding: overloads written inline in the generated `members.ts` added about 17% to `unused.ts`, because every consumer checks that file as source. A generic `Layout<P, M>` in `types.ts` costs under 1%. A member with a special call shape should be declared through a generic type, not inline in the generated file.
