@@ -445,7 +445,9 @@ export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<strin
       }
       const rs = flatMap(sub(n[2], body), (r0) => {
         const r = ctx.pend ? skipPending(r0) : r0;
-        return r.startsWith(")") ? new Set([trim(r.slice(1))]) : (fail(ctx, r0, label ?? "')'"), NONE);
+        return r.startsWith(")")
+          ? new Set([trim(r.slice(1))])
+          : (fail(ctx, r0, label ?? "')'"), NONE);
       });
       ctx.ch = outer;
       return rs;
@@ -800,7 +802,8 @@ function consumeType(
   } else rs = NONE;
   if (rs === NONE) {
     fail(ctx, s, label ?? `<${v}>`);
-    if (ctx.pend && (PRIMITIVE[v] || SCAN[v] || v.endsWith("()"))) return pend(["type", v, lo, hi], s, ctx, label);
+    if (ctx.pend && (PRIMITIVE[v] || SCAN[v] || v.endsWith("()")))
+      return pend(["type", v, lo, hi], s, ctx, label);
   }
   if (lo === undefined || hi === undefined) return rs;
   // Ranges: the type level strips them, the twin checks the number that was consumed.
@@ -885,7 +888,8 @@ function anyOrder(
   if (!xs.length) return new Set([s]);
   const e = pend ? pendingEnd(s) : -1;
   const q = e < 0 ? s : trim(s.slice(e)); // the text after the placeholder
-  const out = e < 0 ? new Set<string>() : union([new Set([s, q]), anyOrder(xs, q, false, sub, pend)]);
+  const out =
+    e < 0 ? new Set<string>() : union([new Set([s, q]), anyOrder(xs, q, false, sub, pend)]);
   xs.forEach((x, i) => {
     for (const r1 of sub(x, s)) {
       if (e >= 0 && (r1 === s || r1 === q)) continue; // covered above
@@ -908,7 +912,12 @@ function anyOrder(
 // `pending`: `s` is a property value, where a var(), env() or if() is a placeholder (see "Pending substitution").
 export function matches(syntax: string, s: string, pending = false): boolean {
   const v = trim(s);
-  const ctx: Ctx = { len: v.length, far: -1, expected: new Set(), pend: pending && PENDING.test(v) };
+  const ctx: Ctx = {
+    len: v.length,
+    far: -1,
+    expected: new Set(),
+    pend: pending && PENDING.test(v),
+  };
   return complete(consume(parseGrammar(syntax), v, ctx), ctx);
 }
 

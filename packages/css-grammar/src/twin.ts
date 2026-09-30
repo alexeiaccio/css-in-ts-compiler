@@ -38,7 +38,7 @@ export const parse = Effect.fn("twin.parse")(function* (
 export const matches = Effect.fnUntraced(function* (
   syntax: string,
   s: string,
-  pending = false,
+  pending?: boolean,
 ): Effect.fn.Return<boolean, TwinError> {
   return yield* Effect.try({
     try: () => matchesCore(syntax, s, pending),
