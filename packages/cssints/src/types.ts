@@ -1,7 +1,7 @@
 // What TypeScript sees of "cssints" (the "types" condition of package.json): the build-time members with the
 // types they have in user code, where every call is already a class string, because the plugin replaced it.
 // The implementation (macro.ts) builds declaration nodes instead; nothing here runs.
-import type { Valid } from "@cssints/css-grammar/css";
+import type { Furthest, Hint, Valid } from "@cssints/css-grammar/css";
 import type { properties } from "@cssints/css-grammar/mdn";
 import type { Condition } from "@cssints/css-grammar/query";
 import type { StyleObject, TokenFn, TokenSetFn, TokenType } from "@cssints/css-grammar/token";
@@ -23,7 +23,9 @@ export type Style = string & { readonly __cssints: "style" };
 type Text<P> = P extends Style
   ? "⟨style⟩"
   : P extends string
-    ? P
+    ? P extends ""
+      ? "⟨empty⟩"
+      : P
     : P extends number
       ? `${P}`
       : P extends CSSStyleValue<infer T>
@@ -43,14 +45,37 @@ type Value<P, A extends readonly Part[]> = A extends readonly [number]
     ? "⟨length⟩"
     : Join<A>
   : Join<A>;
-// On failure every part's parameter type becomes the Valid message, so the error lands on the first argument.
+// On failure the bad part's parameter type becomes the Valid message, so the error lands on that argument: the
+// first part whose end is at or past the furthest point the grammar reached (`Furthest`, the start of the bad token).
+type Bad<
+  A extends readonly Part[],
+  Pre extends string,
+  Seen extends string = "",
+  I extends 0[] = [],
+> = A extends readonly [infer H, ...infer R extends readonly Part[]]
+  ? (Seen extends "" ? Text<H> : `${Seen} ${Text<H>}`) extends infer J extends string
+    ? J extends `${Pre}${string}`
+      ? `${I["length"]}`
+      : Bad<R, Pre, J, [...I, 0]>
+    : never
+  : "0";
 type Check<P extends keyof typeof properties, A extends readonly Part[]> =
   Valid<P, Value<P, A>> extends infer V
     ? V extends Value<P, A>
       ? A
       : A extends readonly []
         ? [value: V]
-        : { [K in keyof A]: V }
+        : Locate<P, A, V, Value<P, A>>
+    : never;
+type Locate<P extends keyof typeof properties, A extends readonly Part[], V, S extends string> =
+  Furthest<P, S> extends infer F extends string
+    ? S extends `${infer Pre}${F}`
+      ? {
+          [K in keyof A]: K extends Bad<A, Pre>
+            ? V | Hint<P, A[K] extends string ? A[K] : never>
+            : A[K];
+        }
+      : { [K in keyof A]: V }
     : never;
 
 /** One property: parts are checked against its mdn grammar; `R` is what the call gives (a chain method: the chain). */

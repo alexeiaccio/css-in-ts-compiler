@@ -10,5 +10,6 @@ packages/cssints/test/fixtures
 # Generated (bun run extract, bun run members) and the type-level recognizer, whose layout stays as it is.
 packages/css-grammar/src/css.ts
 packages/css-grammar/src/mdn.ts
+packages/css-grammar/src/keywords.ts
 packages/cssints/src/members.ts
 **/dist

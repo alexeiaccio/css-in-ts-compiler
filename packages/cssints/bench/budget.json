@@ -3,12 +3,16 @@
     "tsc": 0,
     "tsgo": 0
   },
+  "errors.ts": {
+    "tsc": 298076,
+    "tsgo": 303488
+  },
   "unused.ts": {
-    "tsc": 34140,
-    "tsgo": 38630
+    "tsc": 37126,
+    "tsgo": 41781
   },
   "users.ts": {
-    "tsc": 752897,
-    "tsgo": 759073
+    "tsc": 795192,
+    "tsgo": 801820
   }
 }

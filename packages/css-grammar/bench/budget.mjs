@@ -15,7 +15,7 @@ const compilers = {
   tsc: [process.execPath, `${root}/typescript/bin/tsc`],
   tsgo: [`${root}/.bin/tsgo`, "--ignoreConfig"],
 };
-const expectedErrors = { "err.ts": 3 };
+const expectedErrors = { "err.ts": 3, "errors.ts": 12 };
 const files = readdirSync(dir).filter((f) => f.endsWith(".ts"));
 
 const run = (c, f) =>

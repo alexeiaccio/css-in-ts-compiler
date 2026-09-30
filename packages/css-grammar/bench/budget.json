@@ -1,51 +1,51 @@
 {
   "b100.ts": {
     "tsc": 195256,
-    "tsgo": 197543
+    "tsgo": 197669
   },
   "b200.ts": {
     "tsc": 211566,
-    "tsgo": 213853
+    "tsgo": 213979
   },
   "empty.ts": {
-    "tsc": 21751,
-    "tsgo": 21971
+    "tsc": 24040,
+    "tsgo": 24261
   },
   "err.ts": {
     "tsc": 133837,
-    "tsgo": 135707
+    "tsgo": 135833
   },
   "math.ts": {
     "tsc": 19118,
-    "tsgo": 21293
+    "tsgo": 21419
   },
   "nocolor.ts": {
     "tsc": 64455,
-    "tsgo": 66735
+    "tsgo": 66861
   },
   "onlycolor.ts": {
     "tsc": 98885,
-    "tsgo": 100266
+    "tsgo": 100392
   },
   "onlypadding.ts": {
     "tsc": 1565,
-    "tsgo": 2985
+    "tsgo": 3111
   },
   "pending.ts": {
     "tsc": 314443,
-    "tsgo": 317677
+    "tsgo": 317803
   },
   "queries.ts": {
-    "tsc": 104348,
-    "tsgo": 108353
+    "tsc": 104675,
+    "tsgo": 108564
   },
   "relative.ts": {
     "tsc": 188787,
-    "tsgo": 191154
+    "tsgo": 191280
   },
   "supports.ts": {
-    "tsc": 28747,
-    "tsgo": 32492
+    "tsc": 28813,
+    "tsgo": 32436
   },
   "tokens.ts": {
     "tsc": 146632,
@@ -57,6 +57,6 @@
   },
   "wide.ts": {
     "tsc": 901507,
-    "tsgo": 905159
+    "tsgo": 905285
   }
 }
