@@ -57,7 +57,7 @@ const node = (decls: Decl[], ctx: string | undefined): CssNode =>
 const member =
   (k: string) =>
   (...args: unknown[]) =>
-    node(toDecls(k, args), CONTEXTS[k] ? k : undefined);
+    node(toDecls(k, args), CONTEXTS[k] && !args.length ? k : undefined);
 
 export const cn = member("cn");
 export const flex = member("flex");

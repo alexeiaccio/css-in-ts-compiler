@@ -7,7 +7,6 @@ import type { Condition } from "@cssints/css-grammar/query";
 import type { StyleObject, TokenFn, TokenSetFn, TokenType } from "@cssints/css-grammar/token";
 import type { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
 
-import type { FlexMethods, GridMethods } from "./members.ts";
 import type { CvRuntimeConfig } from "./runtime.ts";
 
 export * from "./members.ts";
@@ -45,7 +44,7 @@ type Value<P, A extends readonly Part[]> = A extends readonly [number]
     : Join<A>
   : Join<A>;
 // On failure every part's parameter type becomes the Valid message, so the error lands on the first argument.
-type Check<P extends keyof typeof properties, A extends readonly Part[]> =
+export type Check<P extends keyof typeof properties, A extends readonly Part[]> =
   Valid<P, Value<P, A>> extends infer V
     ? V extends Value<P, A>
       ? A
@@ -85,8 +84,6 @@ export declare const token: { readonly [K in TokenType]: TokenFn<K> } & {
 };
 /** css values (declarations, no conditions) and `token.set()` results, as an inline `style` object. */
 export declare const style: (...styles: (Style | StyleObject)[]) => StyleObject;
-export declare const flex: () => Chain<FlexMethods>;
-export declare const grid: () => Chain<GridMethods>;
 /** The plugin replaces the call by the runtime config that `_cv` takes. */
 export declare const cv: (config: CvConfig) => CvRuntimeConfig;
 
@@ -97,8 +94,6 @@ export declare const css: typeof import("./members.ts") & {
   supports: typeof supports;
   token: typeof token;
   style: typeof style;
-  flex: typeof flex;
-  grid: typeof grid;
   cv: typeof cv;
   CSS: typeof CSS;
   CSSColorValue: typeof CSSColorValue;

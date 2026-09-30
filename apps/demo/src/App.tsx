@@ -10,9 +10,7 @@
 import { cx } from "cssints";
 import {
   flex,
-  flexBasis,
   flexDirection,
-  flexGrow,
   hover,
   media,
   padding,
@@ -71,7 +69,7 @@ const featureCard = [
   border("1px solid #e5e7eb"),
   transition("box-shadow 0.2s"),
   hover(boxShadow("0 4px 12px rgba(0, 0, 0, 0.12)")),
-  md(flexGrow("1"), flexBasis("0")),
+  md(flex("1")),
 ];
 const featureTitle = [fontWeight("600"), marginBottom("0.25rem"), color(t.color.text)];
 const featureDesc = [fontSize("0.875rem"), color(t.color.muted)];

@@ -1,12 +1,13 @@
 ---
 # cssints-okos
 title: flex("1") and grid("...") as the shorthand properties
-status: todo
+status: in-progress
 type: task
+priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-09-30T08:55:18Z
-updated_at: 2026-09-30T08:55:18Z
+updated_at: 2026-09-30T10:45:37Z
 parent: cssints-vy0o
 blocked_by:
     - cssints-wigi

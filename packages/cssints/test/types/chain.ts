@@ -40,8 +40,21 @@ grid().direction("row");
 p(1).gap(2);
 // @ts-expect-error a method takes a value
 grid().gap();
-// @ts-expect-error flex() takes no arguments
-flex("column");
+
+// With parts, flex() and grid() are the shorthand properties: a plain style, checked by the grammar.
+export const item: Style = flex("1");
+export const item2: Style = css.flex(1);
+export const item3: Style = flex("1 1 0");
+export const template: Style = grid("auto / 1fr 1fr");
+export const both: Style = cn(flex("none"), flex().gap(2));
+// @ts-expect-error flex() with parts is a plain style: it does not chain
+flex("1").gap(2);
+// @ts-expect-error not a flex value
+flex("sideways");
+// @ts-expect-error a number is a <number>, not a length
+flex("1 1 2");
+// @ts-expect-error not a grid value
+grid("sideways");
 
 // cv takes styles, not CSS strings.
 export const button = cv({
