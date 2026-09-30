@@ -6,12 +6,13 @@ This repository is a CSS-in-TypeScript compiler with hash-based class names, fol
 
 ```
 packages/cssints       Vite plugin on the Module Runner (src/plugin.ts) + the cssints library (src/), all .ts
-                       test/: fixtures, run.mjs, map-check.mjs, spec/ (Quint model, race, mbt), hmr/ app
+                       test/: fixtures, run.mjs, map-check.mjs, docs.mjs, spec/ (Quint model, race, mbt), hmr/ app
 packages/css-grammar   type-level recognizer (src/css.ts) + runtime twin (src/twin.ts over twin-core.ts) over mdn-data grammars,
                        Typed OM values, BCD support warnings, prose rules; test/, bench/ (instantiation budgets)
 packages/plugin-icon   icon plugin (not yet ported to the new engine)
-apps/demo              React demo on the plugin
-docs/wayfinder.md      decisions and findings log (start here); docs/API.md target API
+apps/demo              React demo on the plugin: every 0.1 feature (App.tsx, components/Showcase.tsx, theme.ts)
+README.md              what cssints is, setup, a short example
+docs/wayfinder.md      decisions and findings log (start here); docs/API.md the API reference
 docs/research/         comparisons with other libraries; docs/archive/ outdated plans
 ```
 
@@ -23,7 +24,8 @@ bun run test                                  # vp run -r --cache test: all pack
 bun run bench                                 # vp run -r bench: instantiation budgets (tsc + tsgo), never cached: css-grammar, and
                                               # cssints (bench/users.ts imports members from "cssints" as user code does)
 
-cd packages/cssints && bun run test           # fixtures, source maps, HMR races, hmr app
+cd packages/cssints && bun run test           # fixtures, source maps, HMR races, hmr app, the code blocks of the docs
+cd packages/cssints/test && node docs.mjs     # type-check the ts blocks of docs/API.md and README.md (a line ending in `// error` must fail; fence `ts skip` to skip)
 cd packages/cssints/test && node run.mjs fixtures/risk1.ts   # one fixture: prints code and css
 cd packages/css-grammar && bun run test       # twin + type checks, support/prose rules, tsc
 cd packages/css-grammar && bun run extract    # regenerate src/mdn.ts from mdn-data + @webref/css
@@ -67,20 +69,20 @@ Other deps:
 - [Lighting CSS](https://lightningcss.dev)
 - [tsdown](https://tsdown.dev/)
 - [Vite 8](https://main.vite.dev/)
-- [Vitest](https://main.vitest.dev/)
+- [Vitest](https://main.vitest.dev/) (part of Vite+, unused: our tests are plain node scripts)
 - [TypeScript Go](https://github.com/microsoft/typescript-go)
 - [OXC lint](https://oxc.rs/blog/2025-12-08-type-aware-alpha)
 - [OXC fmt](https://oxc.rs/docs/guide/usage/formatter)
 - [Vite+](https://viteplus.dev/) (`vp`: task runner, lint, fmt, check, build)
 - [Bun](https://bun.sh)
-- [Knip](https://knip.dev/)
 
 ## Code Style Guidelines
 
 ### Formatting (oxfmt)
 
-- **Indentation**: 2 spaces (configured as tabs in config)
-- **Line width**: 120 characters
+- **What counts is `vp fmt --check`**: today it gives 2 spaces and about 100 columns, although the `fmt` block of the root `vite.config.ts` says tabs and 120. The code blocks in docs/API.md use tabs and are not formatted.
+- **Skipped by the formatter** (`.prettierignore`): the generated `members.ts` and `mdn.ts`, `css.ts`, the test fixtures, plugin-icon, docs/archive
+- **Line width**: 120 characters in the config
 - **Quotes**: Double quotes
 - **Semicolons**: Required
 - **Trailing commas**: Always
@@ -94,14 +96,14 @@ Other deps:
 - **Module**: Preserve (for bundlers)
 - **No unchecked indexed access**: Enabled
 - **No implicit override**: Enabled
-- **Verbatim module syntax**: Enabled (no `import type`)
+- **Verbatim module syntax**: Enabled, so a type-only import is written `import type`
 
 ### Import Style
 
 - Use ES module imports (no CommonJS)
 - Keep imports at the top of files
-- Use explicit type imports where appropriate: `import type { … }`
-- Avoid namespace imports when named imports available
+- Type-only imports are `import type { … }`
+- Avoid namespace imports when named imports are available (user code in tests and the demo uses `import * as css from "cssints" with { type: "cssints" }` on purpose)
 
 ### Type Definitions
 
@@ -132,7 +134,7 @@ bun run typecheck    # all packages; per package: tsgo -p tsconfig.json --noEmit
 want TypeScript 5.9 call it by path (`node ../../node_modules/typescript/bin/tsc`): css-grammar's `test` and
 `bench/budget.mjs`. `tsc` 5.9 stays green for css-grammar.
 
-Verify Effect APIs against `node_modules/effect` (source, `AGENTS.md`, `ai-docs/`), not memory: this is a beta, and names moved.
+Verify Effect APIs against `packages/cssints/node_modules/effect` (source, `AGENTS.md`, `ai-docs/`), not memory: this is a beta, and names moved.
 In 4.0.0-beta.107: `Data.TaggedError("Tag")<{ ...fields }>` (there is no `Data.TaggedErrorClass`), `Context.Service` and
 `Context.Reference` (no `ServiceMap`), `Effect.timeoutOrElse`.
 
@@ -151,7 +153,7 @@ the AST walk. A traced `Effect.fn` costs ~4 µs a call, so functions called per 
 ### Error Handling
 
 - **ALWAYS use Effect TypeScript** for operations with side effects
-- Use `Data.TaggedError` for custom error types (see "Typechecking Effect code"; the examples below say `Data.TaggedErrorClass`, the older name)
+- Use `Data.TaggedError("Tag")<{ ...fields }>` for custom error types (see "Typechecking Effect code"; there is no `Data.TaggedErrorClass`)
 - Use `Effect.gen()` for sequencing async operations
 - Use `Effect.try()` for wrapping potentially failing operations
 - Use `Effect.fn()` for named functions that return Effects
@@ -162,11 +164,11 @@ the AST walk. A traced `Effect.fn` costs ~4 µs a call, so functions called per 
 Example:
 
 ```typescript
-export class FileError extends Data.TaggedErrorClass<FileError>()("FileError", {
-	path: Schema.String,
-	operation: Schema.Literal("read" | "write" | "delete"),
-	reason: Schema.String,
-}) {}
+export class FileError extends Data.TaggedError("FileError")<{
+	readonly path: string;
+	readonly operation: "read" | "write" | "delete";
+	readonly message: string;
+}> {}
 
 const program = Effect.gen(function* () {
 	return yield* Effect.try({
@@ -175,11 +177,13 @@ const program = Effect.gen(function* () {
 			new FileError({
 				path: "file.txt",
 				operation: "write",
-				reason: error.message,
+				message: error instanceof Error ? error.message : String(error),
 			}),
 	});
 });
 ```
+
+See `packages/cssints/src/errors.ts` for the real ones: they carry the file and the offset of the call site.
 
 ### Effect TypeScript Usage
 
@@ -269,32 +273,23 @@ export const readFile = function* (path: string): Effect.Effect<string, ReadErro
 - Automatic span annotations
 - Don't use `.pipe` with Effect.fn
 
-#### Pattern: Data.TaggedErrorClass for Typed Errors
+#### Pattern: Data.TaggedError for Typed Errors
 
 ```typescript
-import { Data, Schema } from "effect";
+import { Data } from "effect";
 
-// ✅ DO - Use TaggedErrorClass
-export class ReadError extends Data.TaggedErrorClass<ReadError>()("ReadError", {
-	path: Schema.String,
-	reason: Schema.String,
-}) {}
+// ✅ DO - Data.TaggedError("Tag")<{ fields }>; `message` is what the user sees
+export class ReadError extends Data.TaggedError("ReadError")<{
+	readonly path: string;
+	readonly message: string;
+}> {}
 
-export class ParseError extends Data.TaggedErrorClass<ParseError>()("ParseError", {
-	input: Schema.String,
-	message: Schema.String,
-}) {}
+export class ParseError extends Data.TaggedError("ParseError")<{
+	readonly input: string;
+	readonly message: string;
+}> {}
 
-export class WriteError extends Data.TaggedErrorClass<WriteError>()("WriteError", {
-	path: Schema.String,
-	reason: Schema.String,
-}) {}
-
-// ❌ DON'T - Use plain TaggedError factory
-export const ReadError = Data.TaggedError("ReadError", {
-	path: Schema.String,
-	reason: Schema.String,
-});
+// ❌ DON'T - Data.TaggedErrorClass (it does not exist in this beta) or Schema fields
 ```
 
 #### Pattern: Console Logging
@@ -313,66 +308,54 @@ Effect.gen(function* () {
 #### Pattern: Effect.try() for Safe Operations
 
 ```typescript
-import { Effect, Data } from "effect";
+import { Effect } from "effect";
 
-const parseJson = Effect.try({
-	try: (content: string) => JSON.parse(content),
-	catch: (error) =>
-		new ParseError({
-			input: content.slice(0, 100),
-			reason: error instanceof Error ? error.message : "Parse failed",
-		}),
-});
+const parseJson = (content: string) =>
+	Effect.try({
+		try: () => JSON.parse(content) as unknown,
+		catch: (error) =>
+			new ParseError({
+				input: content.slice(0, 100),
+				message: error instanceof Error ? error.message : "Parse failed",
+			}),
+	});
 ```
 
 #### Pattern: Effect.catchTag() for Error Recovery
 
 ```typescript
-import { Effect, Data } from "effect";
+import { Effect } from "effect";
 
-const program = Effect.gen(function* () {
-	return yield* riskyOperation();
-}).pipe(
-	Effect.catchTag("ParseError", (_) => Effect.succeed(defaultValue)),
+const program = riskyOperation().pipe(
+	Effect.catchTag("ParseError", () => Effect.succeed(defaultValue)),
 	Effect.catch((error) => Effect.logError(`Unexpected error: ${error}`)),
 );
 ```
 
 #### Pattern: Services (for complex modules)
 
-For complex modules requiring dependency injection, use `ServiceMap.Service`:
+For complex modules requiring dependency injection, use `Context.Service` (a value with a default: `Context.Reference`, as `Registry` in `packages/cssints/src/registry.ts`):
 
 ```typescript
-import { Effect, Layer, Schema, ServiceMap } from "effect";
+import { Context, Effect, Layer } from "effect";
 
-export class FileService extends ServiceMap.Service<
+export class FileService extends Context.Service<
 	FileService,
 	{
 		read: (path: string) => Effect.Effect<string, ReadError>;
-		write: (path: string, content: string) => Effect.Effect<void, WriteError>;
 	}
 >()("cssints/file-service") {
 	static readonly layer = Layer.effect(
 		FileService,
 		Effect.gen(function* () {
-			const readFile = Effect.fn("readFile")(function* (path: string) {
+			const read = Effect.fn("FileService.read")(function* (path: string) {
 				return yield* Effect.try({
 					try: () => readFileSync(path, "utf-8"),
-					catch: (error) => new ReadError({ path, reason: error.message }),
+					catch: (error) => new ReadError({ path, message: error instanceof Error ? error.message : String(error) }),
 				});
 			});
 
-			const writeFile = Effect.fn("writeFile")(function* (path: string, content: string) {
-				yield* Effect.try({
-					try: () => {
-						mkdirSync(dirname(path), { recursive: true });
-						writeFileSync(path, content, "utf-8");
-					},
-					catch: (error) => new WriteError({ path, reason: error.message }),
-				});
-			});
-
-			return FileService.of({ readFile, writeFile });
+			return FileService.of({ read });
 		}),
 	);
 }
@@ -397,44 +380,21 @@ export function run(): Effect.Effect<void, Error> {
 
 #### What About Simple Operations?
 
-Even pure functions should return Effects for consistency:
+An exported engine function returns an Effect, even a small one. What user code calls in expressions and the hot paths stay plain (see "The one exception, and the hot paths"):
 
 ```typescript
-// ✅ DO - Return Effect from simple functions
+// ✅ DO - an Effect at the boundary
 function toUpperCase(str: string): Effect.Effect<string> {
 	return Effect.sync(() => str.toUpperCase());
 }
 
-// ❌ DON'T - Return plain values
-function toUpperCase(str: string): string {
-	return str.toUpperCase();
-}
+// ✅ DO - plain code inside a hot path or a sync builder (hashClass, camel, the twin's lexer)
+const camel = (p: string) => p.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
 ```
 
-#### Error Type Inheritance
+### Testing
 
-```typescript
-// Base error class with Schema
-import { Data, Schema } from "effect";
-
-export class FileError extends Data.TaggedErrorClass<FileError>()("FileError", {
-	path: Schema.String,
-	operation: Schema.Literal("read" | "write" | "delete"),
-	reason: Schema.String,
-}) {}
-
-// Specific errors extend base
-export class ReadError extends FileError {}
-export class WriteError extends FileError {}
-```
-
-### Testing (Vitest)
-
-- Use `describe` blocks for grouping related tests
-- Use `beforeEach`/`afterEach` for setup/teardown
-- Prefer `expect().toBe()` over `===` for assertions
-- Use `toMatch()` for regex patterns
-- Use `import.meta.vitest` for test-only imports
+Tests are plain `node` scripts with `node:assert`, run through `bun run test` (`vp run -r test`); there is no test runner. A fixture in `packages/cssints/test/fixtures` is a module the plugin transforms (`node run.mjs fixtures/x.ts` prints its code and css). A type test is a file that `tsgo` checks, with `@ts-expect-error` for what must fail (`packages/cssints/test/types/`, `packages/css-grammar/test/`). The doc test is `packages/cssints/test/docs.mjs`.
 
 ### File Structure
 

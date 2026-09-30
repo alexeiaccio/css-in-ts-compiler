@@ -1,20 +1,16 @@
 # CSS-in-TS
 
-Compile-time CSS-in-TypeScript: composable utility calls (`css.flex().alignItems("center")`) become atomic, content-hashed classes in `@layer`s. CSS values are checked against the spec grammars (mdn-data) both in the types and at build time. LightningCSS optimizes the output.
+cssints is compile-time CSS-in-TypeScript. You write calls such as `css.flex().alignItems("center")`. A Vite plugin runs them at build time and replaces each one with atomic, content-hashed class names in `@layer`s. Nothing of the styling code ships to the browser except `cx` and `_cv`, which join class names.
 
-Status: research restart. Decisions and findings are in [docs/wayfinder.md](docs/wayfinder.md), the target API is in [docs/API.md](docs/API.md).
+- Values are checked against the spec grammars (mdn-data) in the types and again at build time. A typo is an error in the editor and in the build.
+- Conditions (`media`, `container`, `supports`, `hover`), variants (`cv`), design tokens and themes (`createTokens`, `createGlobalTheme`, `check.contrast`) are all build-time, and all typed.
+- LightningCSS optimizes the output. Browser support (`@mdn/browser-compat-data` against your browserslist) is reported as warnings.
 
-## Layout
+Status: 0.1 is not published yet. Decisions and findings are in [docs/wayfinder.md](docs/wayfinder.md); the API reference is [docs/API.md](docs/API.md).
 
-| Path | What |
-|---|---|
-| `packages/cssints` | Vite plugin (`cssints/vite`) on the Vite Module Runner, and the `cssints` library |
-| `packages/css-grammar` | Type-level recognizer and its runtime twin over mdn-data grammars, Typed OM values, browser support and prose rules |
-| `packages/plugin-icon` | Icon plugin, not yet ported to the new engine |
-| `apps/demo` | React demo |
-| `docs/research`, `docs/archive` | Comparisons with other libraries; outdated plans |
+## Install
 
-## Usage
+Not on npm yet. In this repo `cssints` is a workspace package (`apps/demo` depends on `"cssints": "workspace:*"`). It needs Vite 8 (Vite+ works too) and, for the plugin, Node with type stripping (22.18 or later).
 
 ```ts
 // vite.config.ts
@@ -28,35 +24,76 @@ export default { plugins: [cssints()], css: { transformer: "lightningcss", light
 import "virtual:cssints.css";
 ```
 
-```ts
-import * as css from "cssints" with { type: "cssints" };
+`targets` comes from the browserslist query of the support warnings (`BROWSERSLIST`, default `defaults`). Add `"types": ["vite/client"]` to `tsconfig.json` for the `virtual:` import.
 
-export const pad = css.p(4); // → "_lwugp7"
-export const row = css.flex().alignItems("center"); // → "_1s47490 _1ob5z5m"
+## Example
+
+```tsx
+import { _cv, cx } from "cssints";
+import { bg, color, cn, cv, flex, hover, media, p, style, token } from "cssints" with { type: "cssints" };
+
+const md = media("(width >= 40rem)");
+const accent = token.color("#2563eb", "accent");
+
+const button = _cv(
+	cv({
+		base: cn(p(2), color("white"), bg(accent), hover(bg("#1d4ed8"))),
+		variants: { wide: { yes: md(p(4)) } },
+	}),
+);
+
+export const Row = ({ wide, on }: { wide?: "yes"; on?: boolean }) => (
+	<div className={cx(flex().alignItems("center").gap(2), on && p(1))} style={style(token.set(accent, "#dc2626"))}>
+		<button className={button({ wide })}>Save</button>
+	</div>
+);
 ```
 
-`virtual:cssints.css` is one sheet with every rule once, sorted by layer, then condition, then shorthand before longhand, then class name:
+`with { type: "cssints" }` marks what runs at build time. The plugin replaces each call with a class string, so the browser gets `cx("_1s47490 _1ob5z5m _g2iyum", on && "_lqk467")` and `_cv({ base: "_1t8gqy5 ...", ... })`, and never sees `flex()`. `virtual:cssints.css` is one sheet with every rule once, sorted by layer, then condition, then shorthand before longhand, then class name:
 
 ```css
-@layer _.a, _.b, _.c, _.d, _.e;
+@layer _.k, _.a, _.b, _.c, _.d, _.e;
+@property --accent{syntax:"<color>";inherits:true;initial-value:#2563eb}
 @layer _.a {
-  ._lwugp7{padding:1rem}
+  ._1t8gqy5{padding:0.5rem}
+  ._lqk467{padding:0.25rem}
+  ._g2iyum{gap:0.5rem}
+  ._17xzvrh{background-color:var(--accent)}
+  ._1binn6n{color:white}
   ._1ob5z5m{align-items:center}
   ._1s47490{display:flex}
 }
+@layer _.b {
+  ._1tsjws2:hover{background-color:#1d4ed8}
+  @media (width >= 40rem) {
+    ._tdcza3{padding:1rem}
+  }
+}
 ```
 
-`targets` comes from the browserslist query of the support warnings (`BROWSERSLIST`, default `defaults`).
+More in [docs/API.md](docs/API.md): property names and short names, `flex()` and `grid()` chains, conditions and layers, tokens and themes, `cx`, `cn` and `cv`, and the errors you can get.
+
+## Layout
+
+| Path | What |
+|---|---|
+| `packages/cssints` | Vite plugin (`cssints/vite`) on the Vite Module Runner, and the `cssints` library |
+| `packages/css-grammar` | Type-level recognizer and its runtime twin over mdn-data grammars, Typed OM values, browser support and prose rules |
+| `packages/plugin-icon` | Icon plugin, not yet ported to the new engine |
+| `apps/demo` | React demo of every 0.1 feature |
+| `docs/research`, `docs/archive` | Comparisons with other libraries; outdated plans |
 
 ## Development
 
 ```bash
 bun install
-bun run test    # all packages (vp run -r test, cached where possible)
+bun run test    # all packages (vp run -r test, cached where possible); includes the type-check of the code in docs/API.md and this file
 bun run bench   # type instantiation budgets (tsc and tsgo)
 bun run check   # format, lint, type-check (vp check)
 cd apps/demo && bun run dev
 ```
+
+See [AGENTS.md](AGENTS.md) for the layout, commands and code style.
 
 ## License
 
