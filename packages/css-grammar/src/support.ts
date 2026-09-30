@@ -101,7 +101,7 @@ function reach(syntax: string, seen = new Set<string>()): Set<string> {
   return seen;
 }
 
-const get = (key: string) =>
+export const get = (key: string) =>
   key
     .split(".")
     .reduce<Identifier | undefined>(

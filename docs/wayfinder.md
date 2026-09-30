@@ -878,3 +878,12 @@ One bug went away: a length or colour token used to fit `<custom-ident>` positio
 `extract.mjs` has a `LIVE_NONSTANDARD` list next to the standard and experimental selection. It holds `-webkit-tap-highlight-color`, `-webkit-touch-callout`, `-webkit-box-reflect` and `-webkit-user-modify`, with grammars verbatim from mdn-data. They become members and are checked by both twins.
 
 All four are live in Chrome or Safari per BCD. `-webkit-overflow-scrolling` was dropped: it has no BCD entry, and Chrome 154, WebKit 26.6 and Firefox 155 reject it. `-webkit-user-modify` does not warn, because BCD files it under `user-modify` with a prefix, which the support lookup does not follow. Other prefixed properties come with the plugin API in 0.2.
+
+## JSDoc on generated members (cssints-7pv1)
+
+Every generated member carries a one-line JSDoc, so the editor hover explains the value. It holds:
+- the property's grammar (from `mdn.ts`, so the enforced ranges show);
+- the first version of Chrome, Edge, Firefox, Safari, iOS Safari and Chrome Android that supports it without a prefix or flag (BCD, through the lookup in `support.ts`);
+- an MDN link.
+
+Pseudo-class wrappers get the support row and the link. tsgo's hover does not show JSDoc on `flex()`/`grid()` chain methods yet, though tsc does. Instantiations did not change. `members.ts` grew from 35 KB to 142 KB. `node bench/lsp.mjs <file> <word>` prints a hover.
