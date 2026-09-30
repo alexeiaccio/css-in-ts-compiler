@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-29T13:28:04Z
-updated_at: 2026-09-30T08:39:10Z
+updated_at: 2026-09-30T08:49:04Z
 blocked_by:
     - cssints-vzd9
 ---
@@ -41,6 +41,8 @@ The API in `docs/API.md` works end to end in `apps/demo` on the Module Runner en
 - [Engine language and Effect scope](cssints-odi9): Effect everywhere (typed errors, laziness, spans), except the sync css.* node builders in user code; .ts sources, tsdown for publishing; checks are tsgo + effect-tsgo diagnostics; oxlint/oxfmt clean is a 0.1 gate. Implementation: [Port the engine to TypeScript and Effect](cssints-djzw) (done: .ts + Effect with call-site errors, perf within ~10%, tsgo + effect-tsgo clean, vp pack, lint/fmt clean), before conditions and tokens, after [Move the monorepo from turbo to Vite+](cssints-ny2w) (done: vp run/lint/fmt/check, bun kept, test cached where possible; lint baseline 1443 errors, fmt ~60 files, plugin-icon has 3 syntax errors)
 
 - [Built-in WebKit-only properties](cssints-6fay), [JSDoc on generated members](cssints-7pv1), [Ship 0.1](cssints-808j): done. Tarballs install into a fresh Vite 8 app (`bun run test:smoke`); npm names free; publish 0.1.0 of both together; LICENSE and README still missing.
+
+- [0.1 docs and demo pass](cssints-gcho): API.md rewritten against the code with a doc test for every code block, README, a demo tour of every feature checked in Chrome. Findings: [Build-time evaluation edge cases](), [race.mjs flake](null), [flex/grid/container shorthands](), [vp fmt config](null)
 
 ## Not yet specified
 

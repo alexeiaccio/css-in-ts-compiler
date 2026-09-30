@@ -900,3 +900,22 @@ Pseudo-class wrappers get the support row and the link. tsgo's hover does not sh
 With `skipLibCheck`, an unused import of cssints now costs 0 instantiations instead of about 27 k, and a real file costs 3–4% less.
 
 Both npm names were unclaimed on 2026-09-30, but the `@cssints` scope must be created before publishing. Recommendation: publish 0.1.0 of both together, as tarballs, with no changesets yet. Neither package has a LICENSE or README yet.
+
+## 0.1 docs and demo pass (cssints-gcho)
+
+`docs/API.md` was rewritten against the code and the fixtures: real class names and sheet output, `cv` shown as `_cv(cv(...))`, and new sections on build-time arguments, helper modules, typed parts and math, and errors. The Browser Compat idea became a short note on what 0.1 has and lacks.
+
+`packages/cssints/test/docs.mjs` type-checks every `ts`/`tsx` block of API.md and README.md against the workspace types. A trailing `// error` marks a line that must fail. On the old API.md it found 25 problems.
+
+- **README:** setup and a 20-line example.
+- **AGENTS.md:** corrected (Effect beta names, formatter and test notes).
+- **Demo:** a feature tour covering every 0.1 feature, checked in Chrome with 51 checks at 500, 800 and 1200 px, in dark mode, with hover, active, focus-visible and a token set in `style`.
+
+**Engine limits found, now documented and ticketed:**
+- An unreached top-level `css` call fails: `false && p(4)` gives "site N was not evaluated".
+- A top-level `_cv(...)` call fails at build time.
+- A runtime value in a `css` call fails with "n is not defined", while the types accept it.
+- The `flex`, `grid` and `container` shorthand properties have no member, since those names are the contexts and the condition.
+- `createGlobalTheme(t, hover, …)` type-checks.
+- `vp fmt` does not apply the `fmt` block of `vite.config.ts`.
+- `race.mjs` failed once under load (`firstTransform … STALE`).
