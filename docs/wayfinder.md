@@ -959,3 +959,24 @@ Lesson for harnesses: wait on the request's own promise or a gate, never on a qu
 - **`createGlobalTheme`** takes only `media()` and `container()` conditions or a selector. A `QueryWrap` brand makes `hover` and `supports()` type errors.
 
 The intermittent mbt failure (the tokens-fetch mismatch) did not survive the `race` harness fix: 6 of 6 runs pass.
+
+## Pending substitution: var(), env(), if() in any property value (cssints-xrzv)
+
+A `var()`, `env()` or `if()` may stand anywhere in any property value. This removes the "only in `<color>`" limit of cssints-gcuz. Each call stands for zero or more component values, commas included, and the rest of the value is still checked:
+- `padding: var(--a) 2px` and `margin: var(--a)` pass;
+- `padding: var(--a) red` and `border: 1px var(--x) solud` are errors.
+
+Chrome accepts all of these, so we are stricter on purpose.
+
+**How the twin handles a call.** When a leaf fails at a call, the call may stand for that leaf, stay for the next one, or be empty. A call can also close a function or a value, and can hold the comma of a `#` list. In `||` and `&&`, a call at the head stands for any of the parts. That needed its own rule: it is 10–100× faster than a memoised version, and it is the only form the types can take without TS2589 on `animation`.
+
+**Scope.** `env()` is included, because it is the same kind of substitution function. `attr()` is not: outside `content` it is typed. A call is checked by shape only; its fallback, its `if()` branch values and the `env()` name are not checked against the position. Tokens are unchanged, and the types follow the same rule.
+
+**Cost:**
+- +2–3% on the instantiation budgets;
+- +6 k fixed when the sources are checked, and 0 from the published `.d.mts` with `skipLibCheck`;
+- +16% on values made of calls.
+
+Chrome 154 agreement is 91.4%, as before.
+
+**Process note.** An earlier session of this ticket was reported crashed by the harness but kept running. It followed its directory through a `git worktree move` and committed to its branch. The work was finished on a fresh branch from the last clean commit, and the zombie's `anyOrder` idea was taken by hand after measuring. Lesson: after a harness crash, never reuse or move the worktree; give the retry a new branch in a new directory.
