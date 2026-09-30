@@ -65,7 +65,7 @@ const doc = (head: string, key: string, url = "") => {
 };
 const propDoc = (p: string) =>
   doc(
-    `\`${properties[p as keyof typeof properties]}\``,
+    `\`${properties[p as keyof typeof properties].replaceAll("~w", "")}\``, // `<grid-line~w>` is the webref twin of mdn-data's type
     `css.properties.${p}`,
     propPages[p]?.mdn_url,
   );

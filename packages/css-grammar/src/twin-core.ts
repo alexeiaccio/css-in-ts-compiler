@@ -296,6 +296,8 @@ const SCAN: Record<string, (s: string, ctx: Ctx) => number> = {
   "if()": ifCall,
   "calc-sum": calcSum,
 };
+// Whether the twin reads `<name>` itself (a primitive or a scan), with no entry in `syntaxes`: scripts/webref-rule.mjs.
+export const isNative = (name: string) => !!(PRIMITIVE[name] || SCAN[name]);
 
 // Relative colour (css-color-5 §4.2 to §4.9, §5.1): `from <color>` is in the grammar, the component keywords are only in
 // the prose of each function, so they are here. A function with a `from` opens a scope (`Ctx.ch`) in which a channel
