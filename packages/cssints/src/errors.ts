@@ -14,10 +14,11 @@ export class MacroError extends Data.TaggedError("MacroError")<{
   readonly cause?: unknown;
 }> {}
 
-/** A plugin member was called wrongly, or its styles conflict. `plugin` is the member's name; the call site as in MacroError. */
+/** A plugin member was called wrongly, or its styles conflict. `pluginName` is the member's name; the call site as in MacroError. */
 export class MemberError extends Data.TaggedError("MemberError")<{
   readonly message: string;
-  readonly plugin: string;
+  /** The plugin member's name (`plugin` is taken: Vite sets it to the name of the Vite plugin that threw). */
+  readonly pluginName: string;
   readonly file?: string;
   readonly site?: number;
   readonly offset?: number;

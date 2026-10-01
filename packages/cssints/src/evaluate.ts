@@ -83,7 +83,7 @@ const failureOf = (id: string, registry: RegistryState) => (e: unknown) => {
   if (isMemberError(e))
     return new MemberError({
       message: e.message,
-      plugin: e.plugin,
+      pluginName: e.pluginName,
       file: e.file,
       site: e.site,
       offset: e.offset,

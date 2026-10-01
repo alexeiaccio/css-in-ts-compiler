@@ -16,7 +16,10 @@
       "default": "./src/index.ts"
     },
     "./vite": "./src/plugin.ts",
-    "./plugin": "./src/author.ts",
+    "./plugin": {
+      "types": "./src/author-types.ts",
+      "default": "./src/author.ts"
+    },
     "./parent-vars": "./src/parent-vars.ts"
   },
   "publishConfig": {
@@ -32,7 +35,7 @@
         "default": "./dist/vite.mjs"
       },
       "./plugin": {
-        "types": "./dist/plugin.d.mts",
+        "types": "./dist/plugin-types.d.mts",
         "default": "./dist/plugin.mjs"
       },
       "./parent-vars": {
@@ -44,7 +47,7 @@
   "scripts": {
     "build": "vp pack",
     "members": "node scripts/members.ts",
-    "test": "cd test && node run.mjs fixtures/risk*.ts fixtures/typed*.ts fixtures/tokens-typed.ts fixtures/tokens-named.ts fixtures/tokens-use.ts fixtures/tokens-style.ts fixtures/helper-use.ts fixtures/cv.ts fixtures/order.ts fixtures/conditions.ts fixtures/cond-use.ts fixtures/math.ts fixtures/pending.ts fixtures/unreached.ts fixtures/cv-top.ts fixtures/shorthand.ts && node run.mjs fixtures/unreached.ts | grep -q 'off = false && \"_' && node run.mjs fixtures/unreached.ts | grep -q 'gap > 9 ? \"_' && node run.mjs fixtures/runtime-arg.ts | grep -q 'must be known at build time: .n. is not defined' && ! node run.mjs fixtures/invalid.ts > /dev/null && node run.mjs fixtures/no-attribute.ts | grep -q \"without the attribute\" && node run.mjs fixtures/chain-error.ts | grep -q \"has no .padding()\" && node run.mjs fixtures/shorthand-bad.ts | grep -q \"flex: unexpected .sideways.\" && node run.mjs fixtures/shorthand-chain.ts | grep -q \"plain styles do not chain\" && node run.mjs fixtures/cv-string.ts | grep -q \"CSS strings are gone\" && node run.mjs fixtures/cond-cap.ts | grep -q \"at most 4 conditions\" && node run.mjs fixtures/cond-query.ts | grep -q \"@media: unexpected\" && node run.mjs fixtures/math-bad.ts | grep -q \"cannot add length and time\" && node run.mjs fixtures/pending-bad.ts | grep -q \"padding: unexpected .red.\" && node run.mjs fixtures/token-relative.ts | grep -q \"depends on the font size\" && node run.mjs fixtures/token-bad.ts | grep -q \"initial value \\\"blu\\\" is not a <color>\" && node run.mjs fixtures/token-misuse.ts | grep -q \"is checked as \" && node contexts.mjs && node conditions.mjs && node tokens.mjs && node themes.mjs && node runtime.mjs && node map-check.mjs && node sheet.mjs && node seams.mjs && node docs.mjs && node spec/race.mjs && cd hmr && node hmr.mjs && ORDER=button-first node hmr.mjs",
+    "test": "cd test && node run.mjs fixtures/risk*.ts fixtures/typed*.ts fixtures/tokens-typed.ts fixtures/tokens-named.ts fixtures/tokens-use.ts fixtures/tokens-style.ts fixtures/helper-use.ts fixtures/cv.ts fixtures/order.ts fixtures/conditions.ts fixtures/cond-use.ts fixtures/math.ts fixtures/pending.ts fixtures/unreached.ts fixtures/cv-top.ts fixtures/shorthand.ts && node run.mjs fixtures/unreached.ts | grep -q 'off = false && \"_' && node run.mjs fixtures/unreached.ts | grep -q 'gap > 9 ? \"_' && node run.mjs fixtures/runtime-arg.ts | grep -q 'must be known at build time: .n. is not defined' && ! node run.mjs fixtures/invalid.ts > /dev/null && node run.mjs fixtures/no-attribute.ts | grep -q \"without the attribute\" && node run.mjs fixtures/chain-error.ts | grep -q \"has no .padding()\" && node run.mjs fixtures/shorthand-bad.ts | grep -q \"flex: unexpected .sideways.\" && node run.mjs fixtures/shorthand-chain.ts | grep -q \"plain styles do not chain\" && node run.mjs fixtures/cv-string.ts | grep -q \"CSS strings are gone\" && node run.mjs fixtures/cond-cap.ts | grep -q \"at most 4 conditions\" && node run.mjs fixtures/cond-query.ts | grep -q \"@media: unexpected\" && node run.mjs fixtures/math-bad.ts | grep -q \"cannot add length and time\" && node run.mjs fixtures/pending-bad.ts | grep -q \"padding: unexpected .red.\" && node run.mjs fixtures/token-relative.ts | grep -q \"depends on the font size\" && node run.mjs fixtures/token-bad.ts | grep -q \"initial value \\\"blu\\\" is not a <color>\" && node run.mjs fixtures/token-misuse.ts | grep -q \"is checked as \" && node contexts.mjs && node conditions.mjs && node tokens.mjs && node themes.mjs && node runtime.mjs && node map-check.mjs && node sheet.mjs && node seams.mjs && node plugins.mjs && node docs.mjs && node spec/race.mjs && cd hmr && node hmr.mjs && ORDER=button-first node hmr.mjs",
     "test:mbt": "cd test && node spec/mbt.mjs",
     "bench": "node ../css-grammar/bench/budget.mjs bench",
     "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",

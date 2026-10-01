@@ -60,7 +60,7 @@ export const camel = (p: string) => p.replace(/-([a-z])/g, (_, c: string) => c.t
 export const fail = (message: string) => new MacroError({ message, ...registry.at });
 // The same for what a plugin member does wrong.
 export const failIn = (plugin: string, message: string) =>
-  new MemberError({ message, plugin, ...registry.at });
+  new MemberError({ message, pluginName: plugin, ...registry.at });
 
 // Runs an Effect at a synchronous edge, a builder that user code calls in an expression: a failure is thrown as the error itself.
 export const edge = <A>(program: Effect.Effect<A, MacroError>): A => {

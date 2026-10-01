@@ -155,8 +155,8 @@ type Invalid = DeclarationError;
 const located = (at: At) => (e: Invalid | MacroError | MemberError) =>
   "file" in e && e.file !== undefined
     ? e
-    : e instanceof MemberError
-      ? new MemberError({ message: e.message, plugin: e.plugin, cause: e, ...at })
+    : "pluginName" in e
+      ? new MemberError({ message: e.message, pluginName: e.pluginName, cause: e, ...at })
       : new MacroError({ message: e.message, cause: e, ...at });
 
 // The rule of one declaration: its layer is the number of its conditions; pseudo-classes join the selector, the
@@ -243,7 +243,7 @@ const conflictOf = ({ name, conflicts }: Plug, decls: Decl[], at?: At): MemberEr
   return hit
     ? new MemberError({
         message: `cssints: ${name}: ${conflicts.message} (this style also sets ${hit[0]})`,
-        plugin: name,
+        pluginName: name,
         ...at,
       })
     : undefined;

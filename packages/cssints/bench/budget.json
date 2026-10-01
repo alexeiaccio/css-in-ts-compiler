@@ -7,6 +7,10 @@
     "tsc": 298076,
     "tsgo": 303488
   },
+  "plugins.ts": {
+    "tsc": 41055,
+    "tsgo": 43777
+  },
   "unused.ts": {
     "tsc": 37126,
     "tsgo": 41781

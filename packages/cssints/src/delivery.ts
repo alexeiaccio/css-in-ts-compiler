@@ -25,7 +25,7 @@ export const addRuntime = Effect.fnUntraced(function* (
   )
     return yield* new MemberError({
       message: `cssints: ${name}: its runtime is registered twice with a different definition`,
-      plugin: name,
+      pluginName: name,
       ...at,
     });
   const e = entry ?? { runtime: runtime!, users: new Set<string>() };

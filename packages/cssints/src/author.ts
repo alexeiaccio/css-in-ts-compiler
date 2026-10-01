@@ -7,60 +7,9 @@ import { properties } from "@cssints/css-grammar/mdn";
 
 import { MemberError } from "./errors.ts";
 import { failIn, isNode, node, probed, type CssNode } from "./lib.ts";
-import type { CheckIn, Part, Style } from "./parts.ts";
+import type * as Types from "./author-types.ts";
+import type { Built, Decl, Kernel, Method, Runtime, Conflict } from "./author-types.ts";
 import { registry } from "./registry.ts";
-import type { Conflict, Kernel, ParentVar } from "./registry.ts";
-
-export type { Part, Style };
-/** A declaration a member emits: property and value (a custom property, `--_r`, is allowed). */
-export type Decl = readonly [prop: string, value: string];
-/** A feature of `@mdn/browser-compat-data`: `css.at-rules.container.style_queries_for_custom_properties`. */
-export type BcdKey = `css.${string}`;
-/**
- * Global rules, registered once by `key` (`name@version`) in layer `_.k`; `atProperty` goes at the top of the sheet.
- * A target lacking a `requires` feature gets a support warning (never an error).
- */
-export interface KernelDef extends Kernel {
-  requires?: BcdKey[];
-}
-/**
- * The runtime half of a member. It is delivered (the client module imports `virtual:cssints/runtime/<name>`) and its
- * `css` is added to the sheet only when a browserslist target lacks a feature in `polyfills`; the target must have
- * `@property`, which the runtime stands on. `parentVars` copies the nearest marked ancestor's computed `read` into `write`.
- */
-export interface RuntimeDef {
-  polyfills: BcdKey[];
-  parentVars?: ParentVar[];
-  css?: string;
-}
-/** A build error when one `cn()` holds the member's marker and a property listed here (a name, or a pattern). */
-export type ConflictDef = Conflict;
-
-/** One method of a context: the grammar of its value, and the declarations it emits. */
-export interface Method<G extends string = string, Sp extends boolean = boolean> {
-  readonly grammar: G;
-  /** A lone number is a step of the spacing scale (0.25rem), as in `padding`. */
-  readonly spacing?: Sp;
-  readonly emit: (value: string) => Decl[];
-}
-/** What `style()`'s `build` returns: declarations, and the fixed classes and kernels they need. */
-export interface Built {
-  decls: Decl[];
-  markers?: string[];
-  kernels?: KernelDef[];
-}
-
-/**
- * The chain a context gives: each method takes parts checked against its grammar (the message calls it `name.method`)
- * and leaves the chain without itself, so a method is used once.
- */
-export type Chain<N extends string, M> = Style & {
-  readonly [K in keyof M & string]: M[K] extends Method<infer G, infer Sp>
-    ? <const A extends readonly Part[]>(
-        ...parts: CheckIn<`${N}.${K}`, G, Sp, A>
-      ) => Chain<N, Omit<M, K>>
-    : never;
-};
 
 // The text of a call's parts: a lone number is a spacing step where `spacing`; anything else is joined by a space.
 const valueOf = (plugin: string, label: string, args: unknown[], spacing = false): string => {
@@ -90,29 +39,21 @@ const check = (plugin: string, label: string, grammar: string, value: string): v
 
 const decls = (emitted: Decl[]) => emitted.map(([p, v]): [string, string] => [p, v]);
 
-/**
- * A method of a context: the grammar its value is checked against, whether a lone number is a spacing step, and the
- * declarations it emits (custom properties allowed; the engine checks the others like any property).
- */
-export const method = <const G extends string, const Sp extends boolean = false>(def: {
-  grammar: G;
-  spacing?: Sp;
-  emit: (value: string) => Decl[];
-}): Method<G, Sp> => def;
+/** See author-types.ts. */
+export const method: typeof Types.method = (def) => def;
 
-/**
- * A chaining context like `flex()`: calling it gives the marker and the kernel, each method emits its declarations,
- * checked against its grammar, and is used once. A `runtime` is delivered when a target lacks its features; `conflicts`
- * is a build error when the style also sets a listed property.
- */
-export function context<const N extends string, const M extends Record<string, Method>>(def: {
+/** See author-types.ts. */
+export const context: typeof Types.context = <
+  N extends string,
+  M extends Record<string, Method>,
+>(def: {
   name: N;
   marker: string;
-  kernel: KernelDef;
-  runtime?: RuntimeDef;
-  conflicts?: ConflictDef;
+  kernel: Kernel;
+  runtime?: Runtime;
+  conflicts?: Conflict;
   methods: M;
-}): () => Chain<N, M> {
+}) => {
   const { name, marker, kernel, runtime, conflicts, methods } = def;
   const plugs = runtime || conflicts ? [{ name, marker, conflicts, runtime }] : undefined;
   const next =
@@ -141,17 +82,11 @@ export function context<const N extends string, const M extends Record<string, M
       { markers: [[marker, kernel.key]], kernels: [kernel], plugs },
       next(new Set()),
     ) as never;
-}
+};
 
-/**
- * A function of grammar-typed parts that returns a style (what icon packages are): `build` gets the parts joined by a
- * space and gives declarations, with the markers (fixed classes, owned by the first kernel) and kernels they need.
- */
-export function style<const G extends string>(
-  grammar: G,
-  build: (value: string) => Built,
-): <const A extends readonly Part[]>(...parts: CheckIn<"style", G, false, A>) => Style {
-  return ((...args: unknown[]) => {
+/** See author-types.ts. */
+export const style: typeof Types.style = (grammar: string, build: (value: string) => Built) =>
+  ((...args: unknown[]) => {
     const value = valueOf("style", "style", args);
     check("style", "style", grammar, value);
     const { decls: d, markers, kernels } = build(value);
@@ -160,22 +95,17 @@ export function style<const G extends string>(
       kernels,
     });
   }) as never;
-}
 
-/**
- * A user-defined typed property: `property("-webkit-font-smoothing", "auto | none | antialiased | subpixel-antialiased")`.
- * Its value is checked against `grammar`; `emit` (default: the property itself) gives the declarations. No support
- * warning: the engine knows nothing of it.
- */
-export function property<const N extends string, const G extends string>(
-  name: N,
-  grammar: G,
+/** See author-types.ts. */
+export const property: typeof Types.property = (
+  name: string,
+  grammar: string,
   emit?: (value: string) => Decl[],
-): <const A extends readonly Part[]>(...parts: CheckIn<N, G, false, A>) => Style {
+) => {
   if (Object.hasOwn(properties, name))
     throw new MemberError({
       message: `cssints: property(${JSON.stringify(name)}): ${name} is a CSS property already, with its own grammar`,
-      plugin: name,
+      pluginName: name,
     });
   return ((...args: unknown[]) => {
     const value = valueOf(name, name, args);
@@ -183,4 +113,4 @@ export function property<const N extends string, const G extends string>(
     registry.userProps.add(name);
     return node(decls(emit ? emit(value) : [[name, value]]));
   }) as never;
-}
+};

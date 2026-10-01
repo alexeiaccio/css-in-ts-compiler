@@ -167,13 +167,14 @@ put(
   `import { _cv, cx } from "cssints";
 import { bg, cn, color, cv, hover, media, p } from "cssints" with { type: "cssints" };
 
+import { ring } from "./ring.ts" with { type: "cssints" };
 import { t } from "./tokens.ts" with { type: "cssints" };
 
 const wide = media("(width >= 40rem)");
 
 const button = _cv(
   cv({
-    base: cn(p(2), bg(t.color.brand), color("white"), hover(bg("#2563eb"))),
+    base: cn(p(2), bg(t.color.brand), color("white"), hover(bg("#2563eb")), ring().width("2px")),
     variants: { size: { lg: wide(p(4)) } },
     defaultVariants: { size: "lg" },
   }),
@@ -182,6 +183,24 @@ const button = _cv(
 export function Button({ busy }: { busy?: boolean }) {
   return <button className={cx(button(), busy && p(9))}>smoke</button>;
 }
+`,
+);
+// a plugin on cssints/plugin: a context with a runtime for a feature the targets of the build lack
+put(
+  "src/ring.ts",
+  `import { context, method } from "cssints/plugin";
+
+export const ring = context({
+  name: "ring",
+  marker: "_rg",
+  kernel: { key: "ring@1", css: "._rg{outline:var(--rg-w) solid}" },
+  runtime: {
+    polyfills: ["css.at-rules.container.style_queries_for_custom_properties"],
+    parentVars: [{ marker: "_rg", read: "--rg-i", write: "--rg-u" }],
+    css: ":root[data-cssints-poly] ._rg{--rg-u:0px}",
+  },
+  methods: { width: method({ grammar: "<length>", emit: (v) => [["--rg-w", v]] }) },
+});
 `,
 );
 put(
@@ -224,8 +243,10 @@ ok(
   "installed manifest points at dist",
 );
 
-// 4. plain vite build
+// 4. plain vite build; the targets are set, so that the runtime of the plugin is needed (Firefox 128 has no style queries)
+process.env.BROWSERSLIST = "chrome 120, firefox 128";
 const build = run(join(app, "node_modules/.bin/vite"), ["build"], app);
+delete process.env.BROWSERSLIST;
 const assets = files(join(app, "dist/assets"));
 const css = assets
   .filter((f) => f.endsWith(".css"))
@@ -242,6 +263,15 @@ ok(
   css,
 );
 ok(/padding/.test(css), "css: padding from p()");
+ok(
+  /--rg-w:\s*2px/.test(css) && /\._rg\s*\{/.test(css),
+  "css: the kernel and the method of the plugin",
+  css,
+);
+ok(
+  css.includes("data-cssints-poly"),
+  "css: the fallback of the plugin's runtime (a target lacks the feature)",
+);
 
 // the eval-time code must not reach the client bundle: by module (the source maps) and by content
 const maps = js
@@ -255,11 +285,19 @@ const bundled = maps.filter((s) =>
 console.log(`  bundled from node_modules: ${[...new Set(bundled)].join(", ")}`);
 ok(maps.length > 0, "client bundle has source maps to inspect");
 ok(
-  bundled.every((s) => s.endsWith("cssints/dist/runtime.mjs")),
-  "only cssints/dist/runtime.mjs is bundled from the library",
+  bundled.every((s) => /cssints\/dist\/(runtime|parent-vars)\.mjs$/.test(s)),
+  "only cssints/dist/runtime.mjs and parent-vars.mjs are bundled from the library",
   bundled.join("\n"),
 );
-ok(bundled.length === 1, "the browser runtime is in the bundle (cx and _cv)");
+ok(
+  bundled.some((s) => s.endsWith("cssints/dist/runtime.mjs")),
+  "the browser runtime is in the bundle (cx and _cv)",
+);
+ok(
+  bundled.some((s) => s.endsWith("cssints/dist/parent-vars.mjs")) &&
+    source.includes("transitionrun"),
+  "the plugin's runtime is in the bundle (the shared parent-vars engine)",
+);
 for (const marker of [
   "MacroError",
   "InvalidValueError",
@@ -314,14 +352,14 @@ for (const [name, cmd, noConfig] of checkers) {
 // 6. the benches of the repo (users.ts, unused.ts: imports of "cssints" as user code writes them), on dist
 const bench = join(app, "bench-types");
 mkdirSync(bench);
-for (const f of ["empty.ts", "unused.ts", "users.ts"])
+for (const f of ["empty.ts", "unused.ts", "users.ts", "plugins.ts"])
   cpSync(join(pkgs.cssints, "bench", f), join(bench, f));
 cpSync(join(pkgs.cssints, "bench/budget.json"), join(bench, "budget.json"));
 const sources = JSON.parse(readFileSync(join(bench, "budget.json"), "utf8"));
 run(process.execPath, [join(pkgs.grammar, "bench/budget.mjs"), bench, "--update"], app);
 const dist = JSON.parse(readFileSync(join(bench, "budget.json"), "utf8"));
 console.log("type cost, skipLibCheck, instantiations net of empty.ts (sources -> dist)");
-for (const f of ["unused.ts", "users.ts"])
+for (const f of ["unused.ts", "users.ts", "plugins.ts"])
   for (const c of ["tsc", "tsgo"]) {
     const gain = (1 - dist[f][c] / sources[f][c]) * 100;
     console.log(

@@ -5,6 +5,10 @@
 import type { TokenType } from "@cssints/css-grammar/token";
 import { Context } from "effect";
 
+import type { Conflict, Kernel, Runtime } from "./author-types.ts";
+
+export type { Conflict, Kernel, ParentVar, Runtime } from "./author-types.ts";
+
 export interface Rule {
   layer: string;
   /** Sort key within the layer: the min-width of its conditions, then the places of its pseudo-classes. */
@@ -18,38 +22,6 @@ export interface Rule {
   tokens?: string[];
 }
 
-/**
- * Global rules a style needs, registered with the sheet by `key` (`name@version`) on first use, in layer _.k.
- * `atProperty` goes at the top of the sheet next to the tokens' `@property` rules; `requires` (BCD keys) gives a
- * support warning when a target lacks one.
- */
-export interface Kernel {
-  key: string;
-  css: string;
-  atProperty?: string;
-  requires?: string[];
-}
-/** One element family of a plugin's runtime: the parent's computed `read` is copied into `write` (see parent-vars.ts). */
-export interface ParentVar {
-  marker: string;
-  read: string;
-  write: string;
-  watch?: string;
-}
-/**
- * The runtime half of a plugin member, delivered only when a target lacks a feature: `polyfills` are BCD keys,
- * `parentVars` configure the shared engine (`cssints/parent-vars`), `css` is the fallback appended to the sheet.
- */
-export interface Runtime {
-  polyfills: string[];
-  parentVars?: ParentVar[];
-  css?: string;
-}
-/** A style that holds the marker of a member and a property listed here is a build error with `message`. */
-export interface Conflict {
-  props: (string | RegExp)[];
-  message: string;
-}
 /** What a plugin member leaves on a style node besides declarations: its name, and the runtime and conflicts it has. */
 export interface Plug {
   name: string;
