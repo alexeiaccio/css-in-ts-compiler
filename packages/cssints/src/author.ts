@@ -39,10 +39,10 @@ const check = (plugin: string, label: string, grammar: string, value: string): v
 
 const decls = (emitted: Decl[]) => emitted.map(([p, v]): [string, string] => [p, v]);
 
-/** See author-types.ts. */
+// See author-types.ts.
 export const method: typeof Types.method = (def) => def;
 
-/** See author-types.ts. */
+// See author-types.ts.
 export const context: typeof Types.context = <
   N extends string,
   M extends Record<string, Method>,
@@ -84,7 +84,7 @@ export const context: typeof Types.context = <
     ) as never;
 };
 
-/** See author-types.ts. */
+// See author-types.ts.
 export const style: typeof Types.style = (grammar: string, build: (value: string) => Built) =>
   ((...args: unknown[]) => {
     const value = valueOf("style", "style", args);
@@ -96,7 +96,7 @@ export const style: typeof Types.style = (grammar: string, build: (value: string
     });
   }) as never;
 
-/** See author-types.ts. */
+// See author-types.ts.
 export const property: typeof Types.property = (
   name: string,
   grammar: string,

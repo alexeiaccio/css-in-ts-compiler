@@ -88,7 +88,7 @@ const start = (): void => {
   );
 };
 
-/** Adds families to the shared engine and runs it; the first call starts it (and does nothing in a browser that needs no help). */
+// Adds families to the shared engine and runs it; the first call starts it (and does nothing in a browser that needs no help).
 export default (add: Family[]): void => {
   if (typeof document === "undefined") return;
   families.push(...add);

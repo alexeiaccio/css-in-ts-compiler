@@ -33,11 +33,9 @@ export interface CssNode {
 }
 type Carry = Pick<CssNode, "markers" | "kernels" | "plugs">;
 
-/**
- * A style node. Chaining a method on it calls `chain(name, args, self)`, which makes the next node (flex() and grid(),
- * a plugin's context). The target always has the three carried keys (undefined when empty): a missing one would read
- * as a chain method.
- */
+// A style node. Chaining a method on it calls `chain(name, args, self)`, which makes the next node (flex() and grid(),
+// a plugin's context). The target always has the three carried keys (undefined when empty): a missing one would read
+// as a chain method.
 export const node = (
   decls: Decl[],
   { markers, kernels, plugs }: Carry = {},

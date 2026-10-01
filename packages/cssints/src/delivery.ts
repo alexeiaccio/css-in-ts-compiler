@@ -47,7 +47,7 @@ export const needed = Effect.fnUntraced(function* (
   return false;
 });
 
-/** The plugins whose runtime the styles of `file` use. */
+// The plugins whose runtime the styles of `file` use.
 export const runtimeNames = ({ runtimes }: RegistryState, file: string): string[] =>
   [...runtimes].filter(([, e]) => e.users.has(file)).map(([name]) => name);
 
