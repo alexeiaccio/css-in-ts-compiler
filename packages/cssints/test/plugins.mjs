@@ -1,6 +1,7 @@
 // The public plugin API (cssints/plugin) end to end: typed properties, contexts with kernels, conflicts, errors that
 // name the plugin and the call site, and runtime delivery for targets that lack a feature. Run: node plugins.mjs
 import assert from "node:assert/strict";
+import { rmSync, writeFileSync } from "node:fs";
 
 import { Effect } from "effect";
 import { build, createLogger, createServer } from "vite";
@@ -100,6 +101,27 @@ await fails(
   "frame",
 );
 
+// a kernel used through a helper module that is edited does not collide with its own old self
+const fx = `${import.meta.dirname}/fixtures`;
+const kit = (css) => `import { context, method } from "cssints/plugin";
+export const k = context({ name: "tmp", marker: "_t", kernel: { key: "tmp@1", css: "${css}" },
+  methods: { w: method({ grammar: "<length>", emit: (v) => [["--tmp-w", v]] }) } });\n`;
+writeFileSync(`${fx}/tmp-kit.ts`, kit("._t{--tmp-a:1}"));
+writeFileSync(
+  `${fx}/tmp-helper.ts`,
+  `import { k } from "./tmp-kit" with { type: "cssints" };\nexport const base = k().w("1px");\n`,
+);
+writeFileSync(
+  `${fx}/tmp-use.ts`,
+  `import { cn } from "cssints" with { type: "cssints" };\nimport { base } from "./tmp-helper" with { type: "cssints" };\nexport const a = cn(base);\n`,
+);
+await code("tmp-use.ts");
+assert.ok(sheet("tmp-use.ts").includes("--tmp-a:1"));
+writeFileSync(`${fx}/tmp-kit.ts`, kit("._t{--tmp-b:1}"));
+for (const env of Object.values(server.environments)) env.moduleGraph.invalidateAll();
+await code("tmp-use.ts");
+assert.ok(sheet("tmp-use.ts").includes("--tmp-b:1"), "the edited kernel replaces the old one, no false collision");
+for (const f of ["kit", "helper", "use"]) rmSync(`${fx}/tmp-${f}.ts`);
 await server.close();
 
 // the build: a runtime for a feature a target lacks is in the output, one nobody lacks is not
