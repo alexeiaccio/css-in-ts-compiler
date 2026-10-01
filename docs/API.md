@@ -64,7 +64,7 @@ export const A = () => <div className={cx("_1s47490", "_1ob5z5m", "_cn8dee", pro
 - **The class names** are a hash of the declaration (and its conditions), so the same declaration gives the same class in every file.
 - **One sheet.** All rules are in `virtual:cssints.css`, each once, sorted by layer, then condition, then shorthand before longhand (`border` before `border-top`), then class name. A longhand wins whatever the order of the arguments.
 - **A layout context** gives one string: `flex().alignItems("center")` is `"_1s47490 _1ob5z5m"`.
-- **Also exported:** `css` (the namespace as a value) and `cn`, `cv`, `media`, `container`, `supports`, `token`, `style`, `createTokens`, `createGlobalTheme`, `check`. `cx` and `_cv` are the only runtime exports.
+- **Also exported:** `css` (the namespace as a value) and `cn`, `cv`, `firstThatWorks`, `media`, `container`, `supports`, `token`, `style`, `createTokens`, `createGlobalTheme`, `check`. `cx` and `_cv` are the only runtime exports.
 
 ### Without runtime
 
@@ -228,6 +228,28 @@ Output (the `@property` rules of `space-md` and `color-fg` are not shown):
 ```
 
 Derived tokens (`contrastColor()`, `derive()`), JSON input with generated types and slot variants are not part of 0.1.
+
+### Fallbacks: `firstThatWorks` (decided 2026-10-01, cssints-bogz)
+
+`firstThatWorks(wanted, ...fallbacks)` is a part of any property: the value you want comes first, then what to use where it fails.
+
+```ts
+import { border, color, firstThatWorks, minHeight, token } from "cssints" with { type: "cssints" };
+
+const brand = token.color("#0057b8", "brand");
+
+export const a = minHeight(firstThatWorks("100dvh", "100vh"));
+export const b = color(firstThatWorks("oklch(55% 0.18 250)", brand));
+export const c = border("1px", firstThatWorks("solid", "dashed"), "red");
+export const d = minHeight(firstThatWorks("100dvh", "100vhh")); // error: the fallback is not a min-height
+```
+
+- **One class.** `a` is one class, `.x { min-height: 100vh; min-height: 100dvh }`: the declarations in CSS order, the wanted value last, so `cn()` and the sheet treat it as one rule. With three values the last is printed first.
+- **Checked per value.** Every value is checked for the property, in types and at build time, as the whole declaration with that value in its place. The type error is on the `firstThatWorks(...)` part and the message names the bad value.
+- **Values** are strings and Typed OM values (tokens); `var()` is fine. A number is not (`p(4)` has no fallback), nor is a style.
+- **In several parts** the whole declaration is repeated with each value (`c`: `border: 1px dashed red; border: 1px solid red`). One `firstThatWorks` per declaration; two are an error.
+- **Support warnings.** A target that lacks the wanted value gets no warning if it supports a fallback. The warning stays, for the targets that lack every value, and says so: `color: "oklch()" in "oklch(55% 0.18 250)" is not supported by chrome 100 (css.types.color.oklch), and no fallback of its firstThatWorks covers them`.
+- **Limits.** It is not a Typed OM value: a typed position (`token.length(firstThatWorks(...))`) rejects it, and so does `style()` (an inline style holds one value per property). `const f = firstThatWorks(...)` is build-time only, like a condition: the client has `null`. The fallback is for values a browser drops; `@supports` is for styles that are not one declaration.
 
 ### Runtime: `cx`, `cn`, `cv` (decided 2026-09-29, cssints-lo9x)
 

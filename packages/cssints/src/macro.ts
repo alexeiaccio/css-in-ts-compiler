@@ -12,7 +12,7 @@ import {
   isDeclarationError,
 } from "@cssints/css-grammar/check";
 import type { QueryKind } from "@cssints/css-grammar/query";
-import { messageOf } from "@cssints/css-grammar/support";
+import { messageOf, type Warning } from "@cssints/css-grammar/support";
 import { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
 import { Cause, Effect, Exit } from "effect";
 
@@ -24,6 +24,7 @@ import {
   CONTEXTS,
   fail,
   hashClass,
+  isFallback,
   isNode,
   LAYER,
   MAX_CONDS,
@@ -35,6 +36,7 @@ import {
   type Cond,
   type CssNode,
   type Decl,
+  type Fallback,
 } from "./lib.ts";
 import { addKernel } from "./kernel.ts";
 import { type At, registry, Registry, type RegistryState, type Rule } from "./registry.ts";
@@ -66,6 +68,22 @@ const member =
   (...args: unknown[]) =>
     node(toDecls(k, args), CONTEXTS[k] && !args.length ? k : undefined);
 
+// firstThatWorks(wanted, ...fallbacks): one part of a property that is several values; the build prints them all in one
+// class. Typed OM values (tokens) become their text.
+export const firstThatWorks = (...values: unknown[]): Fallback => {
+  if (values.length < 2)
+    throw fail(
+      "cssints: firstThatWorks() takes at least two values: the one you want, then what to use where it fails",
+    );
+  for (const v of values)
+    if ((typeof v !== "string" || !v.trim()) && !(v instanceof CSSStyleValue))
+      throw fail(
+        `cssints: firstThatWorks() takes non-empty strings and Typed OM values (tokens), got ${JSON.stringify(v)}`,
+      );
+  // oxlint-disable-next-line typescript/no-base-to-string -- strings and CSSStyleValues, which override toString
+  return { __fallback: values.map((v) => String(v).trim()) };
+};
+
 export const cn = (...args: unknown[]) => {
   const decls = toDecls("cn", args);
   return node(decls, undefined, carried(args as CssNode[]));
@@ -91,12 +109,12 @@ const wrapper = (cond: Cond): Wrapper =>
         );
       return node(
         styles.flatMap((n) =>
-          n.__cssints.map(([p, v, inner = []]): Decl => {
+          n.__cssints.map(([p, v, inner = [], fallbacks]): Decl => {
             if (inner.length >= MAX_CONDS)
               throw fail(
                 `cssints: a style takes at most ${MAX_CONDS} conditions (layers ${LAYER[0]} to ${LAYER[MAX_CONDS]}); this one has ${inner.length + 1}: ${[cond, ...inner].map((c) => c.text).join(" > ")}`,
               );
-            return [p, v, [cond, ...inner]];
+            return [p, v, [cond, ...inner], fallbacks];
           }),
         ),
         undefined,
@@ -161,7 +179,8 @@ const located = (at: At) => (e: Invalid | MacroError) =>
 
 // The rule of one declaration: its layer is the number of its conditions; pseudo-classes join the selector, the
 // others wrap the rule; `cond` orders the rules of a layer (min-width, then pseudo-class places).
-const ruleOf = (cls: string, [prop, value, conds = []]: Decl): Rule => {
+// A `firstThatWorks` prints its values in CSS order: the last fallback first, the wanted value last.
+const ruleOf = (cls: string, [prop, value, conds = [], fallbacks]: Decl): Rule => {
   const wrap: string[] = [];
   const ranks: number[] = [];
   let pseudo = "";
@@ -174,13 +193,15 @@ const ruleOf = (cls: string, [prop, value, conds = []]: Decl): Rule => {
       wrap.push(c.text);
       width = Math.max(width, c.rank);
     }
-  const tokens = value.includes("var(--") ? [...value.matchAll(VAR)].map((m) => m[1]!) : undefined;
+  const values = fallbacks ? [...fallbacks.toReversed(), value] : [value];
+  const all = values.join(";");
+  const tokens = all.includes("var(--") ? [...all.matchAll(VAR)].map((m) => m[1]!) : undefined;
   return {
     layer: LAYER[conds.length]!,
     cond: conds.length ? [width, ...ranks] : [],
     wrap,
     prop,
-    css: `.${cls}${pseudo}{${prop}:${value}}`,
+    css: `.${cls}${pseudo}{${values.map((v) => `${prop}:${v}`).join(";")}}`,
     tokens,
   };
 };
@@ -188,15 +209,16 @@ const ruleOf = (cls: string, [prop, value, conds = []]: Decl): Rule => {
 // One declaration against the grammar, the prose rules and, once per class, browser support. Throws at the bad token (the
 // build-time twin of the type-level check) or at a prose rule. Support warnings are recorded once per property and BCD
 // feature per build, not once per value. A token in the value is checked as the literals of its type (`probed`).
-const checkNow = (
-  [prop, value]: Decl,
+const checkValue = (
+  prop: string,
+  value: string,
   fresh: boolean,
-  { warnings, warned, properties }: RegistryState,
+  properties: RegistryState["properties"],
 ) => {
+  const out: Warning[] = [];
   for (const v of probed(value, properties)) {
-    let found;
     try {
-      found = checkDeclarationNow(prop, v, fresh);
+      out.push(...checkDeclarationNow(prop, v, fresh));
     } catch (e) {
       if (v !== value && isDeclarationError(e))
         Object.assign(e, {
@@ -204,12 +226,35 @@ const checkNow = (
         });
       throw e;
     }
-    for (const w of found) {
-      const k = `${prop} ${w.key}`;
-      if (!warned.has(k)) {
-        warned.add(k);
-        warnings.push(messageOf(prop, value, w));
-      }
+  }
+  return out;
+};
+
+// The wanted value warns for the targets that lack it; with fallbacks, only for those that lack every value too, and the
+// key of the warning holds them, so a plain declaration of the same feature still warns for all of its targets.
+const checkNow = (
+  [prop, value, , fallbacks]: Decl,
+  fresh: boolean,
+  { warnings, warned, properties }: RegistryState,
+) => {
+  let found = checkValue(prop, value, fresh, properties);
+  if (fallbacks) {
+    const lacking = [value, ...fallbacks].map(
+      (v, i) =>
+        new Set((i ? checkValue(prop, v, fresh, properties) : found).flatMap((w) => w.lacking)),
+    );
+    found = found
+      .map((w) => ({ ...w, lacking: w.lacking.filter((t) => lacking.every((s) => s.has(t))) }))
+      .filter((w) => w.lacking.length);
+  }
+  for (const w of found) {
+    const k = `${prop} ${w.key}${fallbacks ? ` ${w.lacking.join()}` : ""}`;
+    if (!warned.has(k)) {
+      warned.add(k);
+      warnings.push(
+        messageOf(prop, value, w) +
+          (fallbacks ? ", and no fallback of its firstThatWorks covers them" : ""),
+      );
     }
   }
 };
@@ -293,6 +338,7 @@ export const _cv = (config: CvNode | CvRuntimeConfig) => {
 // here too: the plugin rewrites them to destructure `css`, so the property list stays derived from the grammar.
 const named: Record<string, unknown> = {
   cn,
+  firstThatWorks,
   flex,
   grid,
   cv,
@@ -314,7 +360,7 @@ named.css = css;
 // A condition, or a tuple or an object of them, held in a variable (`const [md, lg] = css.media(a, b)`): nothing of it
 // ships. Every call of it is a site of its own (instrument.ts), so the client keeps a placeholder of the same shape.
 const inertOf = (v: unknown): string | undefined => {
-  if (isWrapper(v)) return "null";
+  if (isWrapper(v) || isFallback(v)) return "null";
   if (Array.isArray(v) && v.length && v.every(isWrapper))
     return `[${v.map(() => "null").join(",")}]`;
   if (typeof v !== "object" || v === null) return undefined;

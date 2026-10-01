@@ -13,8 +13,14 @@ export * from "./members.ts";
 export * from "./theme-types.ts";
 export { _cv, cx, type ClassValue, type CvRuntimeConfig } from "./runtime.ts";
 
-/** A value part: a string, a Typed OM value, or a lone number (the spacing scale in spacing properties). */
-export type Part = string | number | CSSStyleValue;
+/** One value of a `firstThatWorks`: a string or a Typed OM value (a token). */
+type Alt = string | CSSStyleValue;
+/** What firstThatWorks() gives: its values, the wanted one first. A part of a property, not a Typed OM value. */
+export interface Fallback<V extends readonly Alt[] = readonly Alt[]> {
+  readonly __fallback: V;
+}
+/** A value part: a string, a Typed OM value, a `firstThatWorks`, or a lone number (the spacing scale in spacing properties). */
+export type Part = string | number | CSSStyleValue | Fallback;
 /** What every member returns: a class string. It is a string (`className`, `cx`), but only members make one. */
 export type Style = string & { readonly __cssints: "style" };
 
@@ -30,7 +36,9 @@ type Text<P> = P extends Style
       ? `${P}`
       : P extends CSSStyleValue<infer T>
         ? `⟨${T}⟩`
-        : never;
+        : P extends Fallback<infer V>
+          ? Text<V[0]>
+          : never;
 type Join<A extends readonly Part[]> = A extends readonly [
   infer H,
   ...infer R extends readonly Part[],
@@ -59,10 +67,49 @@ type Bad<
       : Bad<R, Pre, J, [...I, 0]>
     : never
   : "0";
+// A firstThatWorks is checked as the wanted value (its Text), and each other value is checked in the same declaration:
+// the text before it, the value, the text after it. A bad one puts the message on that part. One per declaration.
+type Others<
+  P extends keyof typeof properties,
+  Vs extends readonly Part[],
+  Pre extends string,
+  Suf extends string,
+> = Vs extends readonly [infer H, ...infer T extends readonly Part[]]
+  ? `${Pre}${Text<H>}${Suf}` extends infer S extends string
+    ? Valid<P, S> extends infer V
+      ? V extends S
+        ? Others<P, T, Pre, Suf>
+        : V
+      : never
+    : never
+  : true;
+type Alts<
+  P extends keyof typeof properties,
+  A extends readonly Part[],
+  Rest extends readonly Part[] = A,
+  Pre extends string = "",
+  I extends 0[] = [],
+> = Rest extends readonly [infer H, ...infer R extends readonly Part[]]
+  ? H extends Fallback<infer Vs extends readonly [Alt, ...Alt[]]>
+    ? [Extract<R[number], Fallback>] extends [never]
+      ? Vs extends readonly [unknown, ...infer O extends readonly Part[]]
+        ? Others<P, O, Pre, R extends readonly [] ? "" : ` ${Join<R>}`> extends infer M
+          ? M extends true
+            ? A
+            : { [K in keyof A]: K extends `${I["length"]}` ? M : A[K] }
+          : never
+        : A
+      : {
+          [K in keyof A]: K extends `${I["length"]}` ? "firstThatWorks: one per declaration" : A[K];
+        }
+    : Alts<P, A, R, `${Pre}${Text<H>} `, [...I, 0]>
+  : A;
 type Check<P extends keyof typeof properties, A extends readonly Part[]> =
   Valid<P, Value<P, A>> extends infer V
     ? V extends Value<P, A>
-      ? A
+      ? A[number] extends string | number | CSSStyleValue
+        ? A
+        : Alts<P, A>
       : A extends readonly []
         ? [value: V]
         : Locate<P, A, V, Value<P, A>>
@@ -109,6 +156,13 @@ export interface CvConfig {
 }
 
 export declare const cn: (...styles: Style[]) => Style;
+/**
+ * `minHeight(firstThatWorks("100dvh", "100vh"))`: the value you want, then what to use where it fails. A part of any
+ * property; the build emits one class with all the declarations, the wanted one last. Each value is checked for the property.
+ */
+export declare const firstThatWorks: <const V extends readonly [Alt, Alt, ...Alt[]]>(
+  ...values: V
+) => Fallback<V>;
 /** Query strings are checked against the mdn-data grammar: `media("(width >= 40rem)")`. Several give a tuple, an object an object. */
 export declare const media: Condition<"media", QueryWrap>;
 export declare const container: Condition<"container", QueryWrap>;
@@ -124,6 +178,7 @@ export declare const cv: (config: CvConfig) => CvRuntimeConfig;
 
 export declare const css: typeof import("./members.ts") & {
   cn: typeof cn;
+  firstThatWorks: typeof firstThatWorks;
   media: typeof media;
   container: typeof container;
   supports: typeof supports;

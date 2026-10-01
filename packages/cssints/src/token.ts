@@ -164,6 +164,10 @@ export const style = (...args: unknown[]): StyleNode => {
         throw fail(
           "cssints: style() takes styles without conditions: an inline style has no media query or :hover",
         );
+      if (a.__cssints.some((d) => d[3]))
+        throw fail(
+          "cssints: style() takes one value per property: an inline style cannot hold a firstThatWorks(...) fallback",
+        );
       decls.push(...a.__cssints);
     } else
       throw fail(

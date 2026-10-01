@@ -18,8 +18,17 @@ export interface Cond {
   text: string;
   rank: number;
 }
-/** One declaration: property and value, under the conditions that wrap it (outermost first). */
-export type Decl = [prop: string, value: string, conds?: Cond[]];
+/**
+ * One declaration: property and value, under the conditions that wrap it (outermost first). `fallbacks` are the other
+ * values of a `firstThatWorks(...)`, best first: the rule prints them before `value`, which is the one wanted.
+ */
+export type Decl = [prop: string, value: string, conds?: Cond[], fallbacks?: string[]];
+/** What firstThatWorks() builds: its values as text, the wanted one first. */
+export interface Fallback {
+  __fallback: string[];
+}
+export const isFallback = (v: unknown): v is Fallback =>
+  !!v && typeof v === "object" && "__fallback" in v;
 /**
  * What a css.* builder returns: its declarations, and next to them the fixed classes it prints (`markers`, each with
  * the key of the kernel it belongs to) and the kernels it needs. `cn()` merges both.
@@ -152,6 +161,14 @@ const decl = (prop: string, name: string, args: unknown[]): Decl => {
   if (!args.length) throw fail(`cssints: ${name}() expects a value`);
   if (args.some(isNode))
     throw fail(`cssints: ${name}() takes values, not styles; merge styles with cn(...) or cx(...)`);
+  // A fallback inside several parts repeats the whole declaration with each of its values: one per declaration.
+  const [fb, extra] = args.filter(isFallback);
+  if (extra) throw fail(`cssints: ${name}() takes one firstThatWorks(...) per declaration`);
+  if (fb) {
+    const text = (v: string) => args.map((a) => (a === fb ? v : a)).join(" ");
+    const [wanted, ...rest] = fb.__fallback;
+    return [prop, text(wanted!), undefined, rest.map(text)];
+  }
   const [only] = args;
   return [
     prop,
@@ -227,9 +244,10 @@ export function probed(value: string, properties: Map<string, Property>): string
 // The class name of a declaration. Plain code: a tight loop over the characters of every declaration, called
 // inside the `classesOf` boundary (macro.ts).
 // ponytail: djb2, 32-bit; swap for xxhash if collisions ever show up.
-export function hashClass([p, v, conds]: Decl): string {
+export function hashClass([p, v, conds, fallbacks]: Decl): string {
   let h = 5381;
-  const text = conds ? `${conds.map((c) => c.text).join(">")}|${p}:${v}` : `${p}:${v}`;
+  let text = conds ? `${conds.map((c) => c.text).join(">")}|${p}:${v}` : `${p}:${v}`;
+  if (fallbacks) text += `|${fallbacks.join("|")}`;
   for (const c of text) h = ((h << 5) + h + c.charCodeAt(0)) | 0;
   return "_" + (h >>> 0).toString(36);
 }
