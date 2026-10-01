@@ -15,7 +15,9 @@
       "browser": "./src/runtime.ts",
       "default": "./src/index.ts"
     },
-    "./vite": "./src/plugin.ts"
+    "./vite": "./src/plugin.ts",
+    "./plugin": "./src/author.ts",
+    "./parent-vars": "./src/parent-vars.ts"
   },
   "publishConfig": {
     "access": "public",
@@ -28,6 +30,14 @@
       "./vite": {
         "types": "./dist/vite.d.mts",
         "default": "./dist/vite.mjs"
+      },
+      "./plugin": {
+        "types": "./dist/plugin.d.mts",
+        "default": "./dist/plugin.mjs"
+      },
+      "./parent-vars": {
+        "types": "./dist/parent-vars.d.mts",
+        "default": "./dist/parent-vars.mjs"
       }
     }
   },

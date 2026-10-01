@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 
 import { Effect } from "effect";
 
+import { FALLBACK } from "./delivery.ts";
 import { KERNEL } from "./kernel.ts";
 import { type Kernel, type Rule, Registry, type Themed } from "./registry.ts";
 
@@ -75,6 +76,10 @@ export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
     .filter((e) => e.startsWith(KERNEL))
     .map((e) => JSON.parse(e.slice(KERNEL.length)) as Kernel)
     .sort((a, b) => cmp(a.key, b.key));
+  const fallbacks = all
+    .filter((e) => e.startsWith(FALLBACK))
+    .map((e) => JSON.parse(e.slice(FALLBACK.length)) as string)
+    .sort();
   const sorted = all
     .flatMap((cls) => {
       const rule = rules.get(cls);
@@ -82,8 +87,8 @@ export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
     })
     .sort(byOrder);
   let out = `${LAYERS}\n${[...properties, ...used.flatMap((k) => k.atProperty ?? [])].map((p) => `${p}\n`).join("")}`;
-  if (globals.size || used.length || themes.length)
-    out += `@layer _.k {\n${[...globals.values(), ...used.map((k) => k.css), ...themes.map((t) => t[2])].map((g) => `  ${g}\n`).join("")}}\n`;
+  if (globals.size || used.length || fallbacks.length || themes.length)
+    out += `@layer _.k {\n${[...globals.values(), ...used.map((k) => k.css), ...fallbacks, ...themes.map((t) => t[2])].map((g) => `  ${g}\n`).join("")}}\n`;
   let layer = "";
   let wrap = ""; // the at-rules that are open
   let depth = 0;
