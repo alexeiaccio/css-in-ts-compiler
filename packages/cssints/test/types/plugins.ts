@@ -41,6 +41,19 @@ type Bad = CheckIn<"frame.radius", typeof len, false, ["red"]>;
 export const message: Bad extends [infer M] ? M : never =
   'frame.radius: unexpected "red" in "red", grammar <length [0,∞]>';
 
+// a grammar in a plain const (not `as const`) keeps its literal type, inline in the context too
+const plain = "<length [0,∞]>";
+const box = context({
+  name: "box",
+  marker: "_b",
+  kernel: { key: "box@1", css: "" },
+  methods: { size: method({ grammar: plain, emit: (v) => [["--s", v]] }) },
+});
+box().size(
+  // @ts-expect-error not a length
+  "red",
+);
+
 // property(): the grammar of the name; the label is the property
 const smoothing = property(
   "-webkit-font-smoothing",

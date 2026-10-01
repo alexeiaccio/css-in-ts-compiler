@@ -120,7 +120,10 @@ assert.ok(sheet("tmp-use.ts").includes("--tmp-a:1"));
 writeFileSync(`${fx}/tmp-kit.ts`, kit("._t{--tmp-b:1}"));
 for (const env of Object.values(server.environments)) env.moduleGraph.invalidateAll();
 await code("tmp-use.ts");
-assert.ok(sheet("tmp-use.ts").includes("--tmp-b:1"), "the edited kernel replaces the old one, no false collision");
+assert.ok(
+  sheet("tmp-use.ts").includes("--tmp-b:1"),
+  "the edited kernel replaces the old one, no false collision",
+);
 for (const f of ["kit", "helper", "use"]) rmSync(`${fx}/tmp-${f}.ts`);
 await server.close();
 

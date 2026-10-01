@@ -67,9 +67,11 @@ export interface Built {
  */
 export type Chain<N extends string, M> = Style & {
   readonly [K in keyof M & string]: M[K] extends Method<infer G, infer Sp>
-    ? <const A extends readonly Part[]>(
-        ...parts: CheckIn<`${N}.${K}`, G, boolean extends Sp ? false : Sp, A>
-      ) => Chain<N, Omit<M, K>>
+    ? string extends G
+      ? (...parts: [`${N}.${K}: the grammar is not a literal type: write it as const`]) => never
+      : <const A extends readonly Part[]>(
+          ...parts: CheckIn<`${N}.${K}`, G, boolean extends Sp ? false : Sp, A>
+        ) => Chain<N, Omit<M, K>>
     : never;
 };
 
@@ -88,9 +90,11 @@ export declare const method: <const G extends string, const Sp extends boolean =
  * checked against its grammar, and is used once. A `runtime` is delivered when a target lacks its features; `conflicts`
  * is a build error when the style also sets a listed property.
  */
+// `Method<any, any>`: with `Method` the grammar of `grammar: g` (`const g = "<length>"`) would widen to `string`.
 export declare function context<
   const N extends string,
-  const M extends Record<string, Method>,
+  // oxlint-disable-next-line typescript/no-explicit-any -- see above
+  const M extends Record<string, Method<any, any>>,
 >(def: {
   name: N;
   marker: string;

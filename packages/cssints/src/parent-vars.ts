@@ -1,4 +1,5 @@
 /// <reference lib="dom" />
+/// <reference lib="dom.iterable" />
 // The browser half of a parent-relative plugin (frame(), surface()) for targets without `@container style()`: copies
 // the nearest marked ancestor's computed `read` custom property into `write` on each marked element. The plugin's CSS
 // computes `read` from `write`. Imported only through `virtual:cssints/runtime/<name>`, never by the build; no imports,

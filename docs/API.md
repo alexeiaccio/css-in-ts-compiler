@@ -287,8 +287,52 @@ css.token.length("1rem"); // token.length() initial value "1rem" depends on the 
 - A value that a browser in your browserslist (`BROWSERSLIST`, default `defaults`) does not support is a warning, not an error: `cursor: pointer` warns for iOS Safari.
 - Validity rules written only in prose are errors too (`transition: none, opacity 1s`, an unquoted `font-family` with a generic keyword inside a name).
 
+### Plugins (decided 2026-09-30, cssints-zho2)
+
+A plugin is a module that exports members built with four helpers from `cssints/plugin`. User code imports it with the attribute, like `cssints` itself: `import { ring } from "./ring.ts" with { type: "cssints" }`. There is no registration in `vite.config` and no type augmentation; the engine finds the sites by the attribute, and learns kernels, runtimes and conflicts from the style each member returns. In user code a member returns a class string, so it goes into `cn()`, `cx()` and the conditions like any `css.*` value.
+
+```ts
+import { cn, p } from "cssints" with { type: "cssints" };
+import { context, method, property, style } from "cssints/plugin";
+
+// A property of your own, typed by its grammar (it is not in mdn-data). No support warning: the engine knows nothing of it.
+export const smoothing = property("-webkit-font-smoothing", "auto | none | antialiased | subpixel-antialiased");
+
+// A chaining context like flex(): the call gives the marker class and the kernel, each method emits custom properties.
+const length = "<length [0,∞]>";
+export const ring = context({
+	name: "ring",
+	marker: "_rg",
+	kernel: { key: "ring@1", css: "._rg { outline: var(--rg-w) solid var(--rg-c); }" },
+	conflicts: { props: ["outline", /^outline-/], message: "ring() sets the outline" },
+	methods: {
+		width: method({ grammar: length, emit: (v) => [["--rg-w", v]] }),
+		color: method({ grammar: "<color>", emit: (v) => [["--rg-c", v]] }),
+	},
+});
+
+// A function of grammar-typed parts that returns a style: `build` gets the parts joined by a space.
+export const dot = style("small | large", (size) => ({
+	decls: [["--dot-size", size === "small" ? "4px" : "8px"]],
+}));
+
+export const card = cn(p(2), ring().width("2px").color("red"), smoothing("antialiased"), dot("small"));
+export const twice = ring().width("1px").width("2px"); // error: a method is used once
+export const wrong = ring().width("red"); // error: not a length
+export const bad = smoothing("bold"); // error: not in the grammar
+```
+
+- **`context({ name, marker, kernel, runtime?, conflicts?, methods })`** gives `() => chain`. The call is the marker and the kernel; `method({ grammar, spacing?, emit })` makes each method: its parts are checked against `grammar` in the types (the error is on the bad argument and says `ring.width: unexpected "red" ...`) and again at build time. `spacing` makes a lone number a step of the spacing scale, as in `padding`. `emit` returns declarations; a custom property (`--*`) is allowed and its value is not checked, any other property is checked like a `css.*` one. A method is used once: the chain leaves it out. A grammar must be a literal type (a `const` variable is fine; if TypeScript has widened it to `string`, the method says so and takes no value: write `as const`).
+- **`style(grammar, build)`** is a function of grammar-typed parts. `build(value)` returns `{ decls, markers?, kernels? }`: `markers` are fixed classes printed once (they belong to the first kernel), `kernels` are the kernels they need. Icons are this shape.
+- **`property(name, grammar, emit?)`** is a typed passthrough: the value is checked against `grammar` and emitted as `name: value`; `emit(value)` can return other declarations. A name that is a CSS property already is an error (use `css.<name>`).
+- **Kernels** are global CSS, registered by `key` (`name@version`) on first use: the CSS goes once into layer `_.k`, below every class layer, and `atProperty` (the `@property` rules of its custom properties) goes at the top of the sheet. Two members share a kernel by pointing at the same object. Build errors, at the call site: the same key with other CSS (a kernel that changes needs a new key), two keys that declare one custom property, two keys that print one marker. Pick short custom-property names and markers (`--rg-w`, `_rg`). A kernel's `requires` (BCD keys) is a build warning for a target that lacks one, never an error.
+- **`conflicts: { props, message }`**: one `cn()` that holds the marker and one of the listed properties (a name, or a RegExp) is a build error with the plugin's message and the call site: `cssints: ring: ring() sets the outline (this style also sets outline)`. Conditions count: `hover(outline("none"))` is the same conflict.
+- **`runtime: { polyfills, parentVars?, css? }`** is the part for browsers that lack a feature. `polyfills` are BCD keys. A client module that holds a site with the member imports `virtual:cssints/runtime/<name>`, and the module is empty (`export {};`, nothing ships) unless a browserslist target lacks one of the keys and has `@property`, which the runtime stands on; a target without it gets nothing from a polyfill. When it is needed, `parentVars` (`{ marker, read, write, watch? }`, a family of elements that read the nearest marked ancestor's computed custom property) configure `cssints/parent-vars`, one shared script and one `MutationObserver` for all plugins, which does nothing without a `document`; and `css` (the fallback rules) is added to the sheet in layer `_.k`, only then. There is no switch to turn a runtime off.
+- **Errors** are `MemberError` values (`Data.TaggedError`) with `pluginName` and the file, site and offset of the call, so the Vite overlay points at it.
+- **Not in 0.2:** `fn()` and `keyword` members, completions of keywords inside plugin grammar strings (the message still names the grammar), local syntax names in grammars, and a plugin that is a package of members you install (`cssints/frame`, `cssints/surface` and `@cssints/icons` come next, on these helpers).
+
 ### Browser support and what 0.1 does not have
 
 - **Types and checks for every property** are generated from [mdn-data](https://github.com/mdn/data) and @webref/css by `packages/css-grammar` (`bun run extract`), not written by hand, so a new property or function needs no change here. 536 members: 525 properties (every standard and experimental one, except the three shorthands above) and the 11 short names.
 - **Browser support** comes from [`@mdn/browser-compat-data`](https://github.com/mdn/browser-compat-data) against browserslist, as build warnings (see above). There is no per-property table in the types.
-- **Not in 0.1:** pseudo-elements and parent states, derived tokens, slot variants, a typed runtime token setter, a public plugin API (icons, `frame()`, `surface()`), polyfills for missing browser features. The map and the reasons are in [wayfinder.md](wayfinder.md).
+- **Not in 0.1:** pseudo-elements and parent states, derived tokens, slot variants, a typed runtime token setter, `frame()`, `surface()` and icons (the plugin API they will be written on is above), polyfills of its own for missing browser features. The map and the reasons are in [wayfinder.md](wayfinder.md).
