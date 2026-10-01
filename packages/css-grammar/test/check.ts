@@ -2,6 +2,7 @@
 import { deepStrictEqual, match, throws } from "node:assert/strict";
 
 import { cases, runtimeOnly } from "./cases.ts";
+import { checkDeclarationNow, checkValueNow } from "../src/check.ts";
 import { properties } from "../src/mdn.ts";
 import { matches, valid } from "./sync.ts";
 
@@ -31,6 +32,13 @@ match(err("padding", "1rem 2rem 3rem 4rem 5rem"), /unexpected "5rem" .* expected
 match(err("padding", "-1rem"), /expected .*<length-percentage \[0,∞\]>/);
 match(err("border-radius", "1rem /"), /unexpected end/);
 throws(() => valid("nope", "1px"), /no grammar/);
+// a plugin's grammar: the label is what the message calls it; a custom property has any value
+throws(
+  () => checkValueNow("frame.radius", "<length [0,∞]>", "red"),
+  /frame\.radius: unexpected "red" in "red", expected <length>$/,
+);
+checkValueNow("frame.radius", "<length [0,∞]>", "4px");
+deepStrictEqual(checkDeclarationNow("--_r", "anything at all", true), []);
 for (const [n, s] of [
   ["border", "1px solud"],
   ["padding", "1rem 2rem 3rem 4rem 5rem"],

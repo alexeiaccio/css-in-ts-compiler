@@ -322,7 +322,9 @@ export type Unexpected<S extends string> = S extends "" ? "unexpected end" : `un
 // (twin.ts `valid` says the same and adds what was expected at that point).
 // `S extends string ?` defers the message while S is still generic; without it tsc runs Consume over the
 // generic S once per property (+21 k instantiations each, measured; with it +5 k, and nothing per call).
-export type Valid<P extends keyof Props, S extends string> = MatchesValue<Props[P], S> extends true ? S : S extends string ? Message<P, S> : never;
+export type Valid<P extends keyof Props, S extends string> = ValidIn<P, Props[P], S>;
+// Valid for any grammar: `Label` is what the message calls it (a property name, or a plugin's member), `G` the grammar.
+export type ValidIn<Label extends string, G extends string, S extends string> = MatchesValue<G, S> extends true ? S : S extends string ? Message<Label, G, S> : never;
 // The keywords of the property that the word being typed (the last of T) begins, each with the words of T before it:
 // the strings an editor offers inside a string that is not a value yet. Keywords.ts has them by first letter, so that
 // while an argument is still generic the lookup is one deferred index and not a test per keyword (a colour has 190).
@@ -333,7 +335,8 @@ type Bucket<O, W extends string> = O extends unknown ? (W extends `${infer C}${s
 // The word itself is not offered: a call that is invalid must stay invalid.
 type OfferWord<K, H extends string, W extends string> = K extends string ? (Lowercase<K> extends `${Lowercase<W>}${string}` ? (K extends W ? never : `${H}${K}`) : never) : never;
 // The text from the furthest point the value reached (what `Message` names the first token of).
-export type Furthest<P extends keyof Props, S extends string> = Stuck<Trim<S> | Consume<Parse<Props[P]>, Trim<S>, HasPending<S>>>;
-type Message<P extends keyof Props, S extends string> =
-  `${P}: ${Unexpected<Furthest<P, S>>} in "${S}", grammar ${Props[P]}`;
+export type Furthest<P extends keyof Props, S extends string> = FurthestIn<Props[P], S>;
+export type FurthestIn<G extends string, S extends string> = Stuck<Trim<S> | Consume<Parse<G>, Trim<S>, HasPending<S>>>;
+type Message<Label extends string, G extends string, S extends string> =
+  `${Label}: ${Unexpected<FurthestIn<G, S>>} in "${S}", grammar ${G}`;
 export type PropertyFn<P extends keyof Props> = <const S extends string>(value: Valid<P, S>) => string;
