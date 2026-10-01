@@ -1,12 +1,13 @@
 // firstThatWorks: every value is checked for the property, and a bad one puts the error on that part (the
 // firstThatWorks call), with the message of the declaration that has it. Each call is split over lines so
 // `@ts-expect-error` (the next line only) proves the place.
-import * as css from "cssints" with { type: "cssints" };
 import {
   border,
   color,
   firstThatWorks,
+  flex,
   minHeight,
+  p,
   padding,
   token,
   transition,
@@ -26,8 +27,7 @@ export const ok = [
   padding(firstThatWorks("1px 2px", gap), "3px"),
   border("1px", firstThatWorks("solid", "dashed"), "red"),
   transition("opacity", firstThatWorks("0.2s", "1s")),
-  css.minHeight(firstThatWorks("100dvh", "100vh")),
-  css.flex().gap(firstThatWorks("1dvh", "1vh")),
+  flex().gap(firstThatWorks("1dvh", "1vh")),
 ];
 export const held = firstThatWorks("100dvh", "100vh");
 export const viaVariable = minHeight(held);
@@ -73,6 +73,6 @@ firstThatWorks("100dvh");
 // @ts-expect-error a number is no value of a fallback
 firstThatWorks("100dvh", 1);
 // @ts-expect-error a fallback is not a Typed OM value: it fits no typed position
-css.token.length(firstThatWorks("1px", "2px"));
+token.length(firstThatWorks("1px", "2px"));
 // @ts-expect-error a style is no value
-minHeight(firstThatWorks("100dvh", css.p(1)));
+minHeight(firstThatWorks("100dvh", p(1)));

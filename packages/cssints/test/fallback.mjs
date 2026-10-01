@@ -1,6 +1,7 @@
 // firstThatWorks: one class with the declarations in CSS order, grammar errors, and the support warnings that its
 // fallbacks silence or narrow (fixtures/fallback*.ts). Run: node fallback.mjs
 import assert from "node:assert/strict";
+import { stripVTControlCharacters } from "node:util";
 
 // The targets are read when the grammar package loads: set them first, so the imports come after.
 process.env.BROWSERSLIST = "chrome 100, safari 15.2, firefox 120";
@@ -43,7 +44,9 @@ assert.ok(css.includes("@property --brand"), "the token of a fallback is in the 
 
 // Warnings: h is silenced (every target that lacks oklch() has #0057b8), i names the target that still lacks it, and
 // the plain j keeps all of its targets.
-const lines = warnings.map((w) => w.split("\n")[0].replace(/^.*warning: /, ""));
+const lines = warnings.map((w) =>
+  stripVTControlCharacters(w.split("\n")[0]).replace(/^.*warning: /, ""),
+);
 assert.deepEqual(lines, [
   'color: "oklch()" in "oklch(55% 0.18 250)" is not supported by chrome 100 (css.types.color.oklch), and no fallback of its firstThatWorks covers them',
   'color: "oklch()" in "oklch(55% 0.18 250)" is not supported by chrome 100, safari 15.2 (css.types.color.oklch)',

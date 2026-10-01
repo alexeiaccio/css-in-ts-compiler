@@ -249,6 +249,7 @@ export const d = minHeight(firstThatWorks("100dvh", "100vhh")); // error: the fa
 - **Values** are strings and Typed OM values (tokens); `var()` is fine. A number is not (`p(4)` has no fallback), nor is a style.
 - **In several parts** the whole declaration is repeated with each value (`c`: `border: 1px dashed red; border: 1px solid red`). One `firstThatWorks` per declaration; two are an error.
 - **Support warnings.** A target that lacks the wanted value gets no warning if it supports a fallback. The warning stays, for the targets that lack every value, and says so: `color: "oklch()" in "oklch(55% 0.18 250)" is not supported by chrome 100 (css.types.color.oklch), and no fallback of its firstThatWorks covers them`.
+- **Minify.** Vite's CSS minify decides which of the declarations LightningCSS may drop, from `build.cssTarget` (set it to `cssTarget` of `cssints/vite`, see the README), not from `css.lightningcss.targets`. With the targets it keeps `min-height: 100vh; min-height: 100dvh` where a target lacks `dvh` and merges them where none does; with `cssTarget: false` it always merges.
 - **Limits.** It is not a Typed OM value: a typed position (`token.length(firstThatWorks(...))`) rejects it, and so does `style()` (an inline style holds one value per property). `const f = firstThatWorks(...)` is build-time only, like a condition: the client has `null`. The fallback is for values a browser drops; `@supports` is for styles that are not one declaration.
 
 ### Runtime: `cx`, `cn`, `cv` (decided 2026-09-29, cssints-lo9x)

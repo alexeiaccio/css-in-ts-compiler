@@ -38,6 +38,23 @@ const hash = (s: string) => createHash("sha1").update(s).digest("hex").slice(0, 
 /** LightningCSS targets (css.lightningcss.targets) from the browserslist query of the support warnings. */
 export const targets = browserslistToTargets(Effect.runSync(browsers()));
 
+// The same query as esbuild-style names for Vite's `build.cssTarget`: Vite's CSS minify takes its targets from there, not
+// from `css.lightningcss.targets`, and without them LightningCSS merges `min-height: 100vh; min-height: 100dvh` into one.
+const ESBUILD: Record<string, string> = {
+  ios_saf: "ios",
+  ie: "ie",
+  opera: "opera",
+  edge: "edge",
+  chrome: "chrome",
+  firefox: "firefox",
+  safari: "safari",
+};
+/** `build: { cssTarget }`, the browserslist query of the support warnings, so a minified build keeps `firstThatWorks` fallbacks. */
+export const cssTarget = Effect.runSync(browsers()).flatMap((t) => {
+  const [agent, version] = t.split(" ") as [string, string];
+  return ESBUILD[agent] && /^\d/.test(version) ? [`${ESBUILD[agent]}${version.split("-")[0]}`] : [];
+});
+
 // ---------- the hook boundary
 
 // Runs a hook's program; a failure is thrown as the error itself.

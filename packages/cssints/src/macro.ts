@@ -193,15 +193,14 @@ const ruleOf = (cls: string, [prop, value, conds = [], fallbacks]: Decl): Rule =
       wrap.push(c.text);
       width = Math.max(width, c.rank);
     }
-  const values = fallbacks ? [...fallbacks.toReversed(), value] : [value];
-  const all = values.join(";");
+  const all = fallbacks ? `${value};${fallbacks.join(";")}` : value;
   const tokens = all.includes("var(--") ? [...all.matchAll(VAR)].map((m) => m[1]!) : undefined;
   return {
     layer: LAYER[conds.length]!,
     cond: conds.length ? [width, ...ranks] : [],
     wrap,
     prop,
-    css: `.${cls}${pseudo}{${values.map((v) => `${prop}:${v}`).join(";")}}`,
+    css: `.${cls}${pseudo}{${fallbacks ? [...fallbacks.toReversed(), value].map((v) => `${prop}:${v}`).join(";") : `${prop}:${value}`}}`,
     tokens,
   };
 };
@@ -215,10 +214,11 @@ const checkValue = (
   fresh: boolean,
   properties: RegistryState["properties"],
 ) => {
-  const out: Warning[] = [];
+  let out: Warning[] = [];
   for (const v of probed(value, properties)) {
     try {
-      out.push(...checkDeclarationNow(prop, v, fresh));
+      const found = checkDeclarationNow(prop, v, fresh);
+      out = out.length ? out.concat(found) : found;
     } catch (e) {
       if (v !== value && isDeclarationError(e))
         Object.assign(e, {
