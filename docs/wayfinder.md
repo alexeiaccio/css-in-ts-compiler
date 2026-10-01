@@ -1063,3 +1063,9 @@ The polyfill has now run on browsers that lack style queries on custom propertie
 The engine needs no change. `@property` (Firefox 128, Safari 16.4) is the floor, below which the runtime stays off. A first pass costs about twice what it costs in newer browsers: 190 ms in Firefox 128 for 5 461 elements. Two bugs in the test scripts were fixed (a dead negative control and a hover race in old Firefox). The download URLs and commands are in plugins-proto/README.md.
 
 Still open: Playwright's WebKit builds are trunk snapshots with features Safari shipped later (relative colour in "16.4"), so real Safari 17 is a hand check for the `frame()` ticket.
+
+## Panda CSS 2.0, read on 2026-10-01
+
+Panda rewrote its compiler in Rust on Oxc. It confirms our choices: one Oxc parse, layered output with shorthands below longhands, variables through `@property`, modern media syntax. Its "99% fewer type instantiations" (2 600 to 20) comes from having no grammars: native properties share one value type and only tokens are checked, while we run every value through the mdn grammar (about 750 k on `users.ts`). A deliberate trade.
+
+Three ideas joined the 0.2 fog: local at-rules (`keyframes()`, `positionTry()`) on the kernel seam, ordered value fallbacks (`firstThatWorks`) tied to the BCD warnings, and published packages written on cssints.

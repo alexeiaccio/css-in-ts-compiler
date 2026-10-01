@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-30T11:57:32Z
-updated_at: 2026-09-30T14:02:19Z
+updated_at: 2026-10-01T07:22:44Z
 ---
 
 ## Destination
@@ -38,6 +38,10 @@ A public plugin API (`definePlugin` with `property`, `context` and `style` membe
 - Derived tokens (`contrastColor()` in CSS, `derive()` at build time) and JSON token input with generated types (cssints-exof). May sharpen once `surface()` shows what a derived colour needs.
 - Value helper functions (`css.colorMix(...)`, API.md "Functions"): whether they exist next to typed string parts, and how they are typed. Tied to the plugin `fn()` member, which the research put after "Functions" is specified.
 - Shorthand vs longhand through sublayers instead of sort order (`_.a.a/_.a.b/_.a.c`, depth from mdn-data `computed`, max depth 2). Deferred on 2026-09-29; revisit only if the sort order shows a real case it gets wrong, or rule it out.
+
+- Local at-rules on the kernel seam (from Panda 2.0, 2026-10-01): `keyframes()` and `positionTry()` as per-module kernels in `_.k`, emitted only where used; names returned as typed values for `animation`/`positionTryFallbacks`. Sharpens once the plugin API ships (same mechanism).
+- Ordered value fallbacks (from Panda 2.0): a typed `firstThatWorks("100dvh", "100vh")` that emits both declarations and silences the BCD support warning when the fallback covers the lacking target.
+- Published packages on cssints (from Panda 2.0 "design systems"): what happens when a dependency written on cssints is consumed by an app: evaluated in the app's Module Runner (cssints-grrd keeps the library in the runner) or shipped pre-compiled with its sheet; types across the boundary.
 
 ## Out of scope
 
