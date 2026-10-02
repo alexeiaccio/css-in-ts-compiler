@@ -11,6 +11,10 @@
     "tsc": 182977,
     "tsgo": 191030
   },
+  "functions.ts": {
+    "tsc": 327999,
+    "tsgo": 339633
+  },
   "plugins.ts": {
     "tsc": 50799,
     "tsgo": 53784

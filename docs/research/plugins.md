@@ -298,7 +298,7 @@ Effect scope follows cssints-odi9: the sync builders in user code stay plain; pl
 | `property(name, grammar)` | typed passthrough | `-webkit-font-smoothing: auto \| none \| antialiased \| subpixel-antialiased` (widely used, absent from mdn-data) | yes |
 | `context` | chain + marker + kernel | `frame()`, `surface()` | yes |
 | `style` | function of grammar-typed parts returning a style | `icon("home")` | yes |
-| `fn` | value function, `computeTo(args) → value` at build time | a Typed OM helper; `light-dark()` cannot be one (see §2) | later (API.md "Functions" is unspecified) |
+| `fn` | value function, `computeTo(args) → value` at build time | a Typed OM helper; `light-dark()` cannot be one (see §2) | yes: API.md "Functions", with `colorMix`, `min`, `max`, `clamp` on it (cssints-obd3) |
 | `keyword` | (CPE has it) | `random` | no, no use case |
 | local syntax names | (CPE `registerSyntax`) | `<position-arg>` | compose strings in TS (`${arg}`); threading a local table through `Consume` costs instantiations, measure before doing it |
 

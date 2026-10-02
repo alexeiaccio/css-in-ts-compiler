@@ -1,8 +1,9 @@
 // What a plugin author and user see of cssints/plugin: `tsgo -p tsconfig.json` checks this file (`bun run typecheck`).
 // Members are class strings; a value is checked against the grammar of the method (or property) it is passed to, the
 // error lands on the bad argument, a method is used once.
-import type { Style } from "cssints";
-import { context, method, property, style } from "cssints/plugin";
+import { CSSColorValue } from "@cssints/css-grammar/values";
+import { color, width, type Style } from "cssints";
+import { context, fn, method, property, style } from "cssints/plugin";
 
 import type { CheckIn } from "../../src/parts.ts";
 
@@ -74,3 +75,25 @@ icon(
   // @ts-expect-error not in the grammar
   "moon",
 );
+
+// fn(): the parts are checked against the grammar; a Typed OM result keeps its type, a string is opaque
+const mix = fn(
+  "<color> <color>",
+  ([a, b]) => new CSSColorValue(`color-mix(in oklab, ${a}, ${b})`),
+  "mix",
+);
+const quad = fn("<number>", ([n]) => `${Number(n) * 4}px`, "quad");
+export const m: Style = color(mix("red", "blue"));
+export const q: Style = width(quad(2));
+// @ts-expect-error not a color
+mix("red", "solid");
+// @ts-expect-error not a number
+quad("red");
+// @ts-expect-error a CSSColorValue is a <color>, not a <length>
+width(mix("red", "blue"));
+export const typed: CSSColorValue = mix("red", "blue");
+export const opaque: string = quad(1);
+// the label of the message is the name
+type BadFn = CheckIn<"mix", "<color> <color>", false, ["red", "solid"]>;
+export const fnMessage: BadFn extends [infer M, unknown] ? M : never =
+  'mix: unexpected "red" in "red solid", grammar <color> <color>';

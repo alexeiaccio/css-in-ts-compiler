@@ -42,6 +42,7 @@ import {
   type Fallback,
 } from "./lib.ts";
 import { addRuntime } from "./delivery.ts";
+import { clamp, colorMix, max, min } from "./functions.ts";
 import { addKernel } from "./kernel.ts";
 import {
   type At,
@@ -470,6 +471,10 @@ export const _cv = (config: CvNode | CvRuntimeConfig) => {
 const named: Record<string, unknown> = {
   cn,
   firstThatWorks,
+  colorMix,
+  min,
+  max,
+  clamp,
   keyframes,
   positionTry,
   flex,
@@ -542,6 +547,7 @@ const replacementOf = Effect.fnUntraced(function* (
   // A Typed OM value (CSS.rem(1), new CSSColorValue(...)) ships as its CSS text; the objects are eval-time only.
   // oxlint-disable-next-line typescript/no-base-to-string -- every CSSStyleValue subclass overrides toString
   if (value instanceof CSSStyleValue) return JSON.stringify(String(value));
+  if (typeof value === "string") return JSON.stringify(value); // an fn() that computes text
   const inert = inertOf(value);
   if (inert !== undefined) return inert;
   if (isPluginValue(value)) return undefined;

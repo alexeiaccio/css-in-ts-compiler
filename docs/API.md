@@ -367,7 +367,7 @@ css.token.length("1rem"); // token.length() initial value "1rem" depends on the 
 
 ### Plugins (decided 2026-09-30, cssints-zho2)
 
-A plugin is a module that exports members built with four helpers from `cssints/plugin`. User code imports it with the attribute, like `cssints` itself: `import { ring } from "./ring.ts" with { type: "cssints" }`. There is no registration in `vite.config` and no type augmentation; the engine finds the sites by the attribute, and learns kernels, runtimes and conflicts from the style each member returns. In user code a member returns a class string, so it goes into `cn()`, `cx()` and the conditions like any `css.*` value.
+A plugin is a module that exports members built with five helpers from `cssints/plugin`. User code imports it with the attribute, like `cssints` itself: `import { ring } from "./ring.ts" with { type: "cssints" }`. There is no registration in `vite.config` and no type augmentation; the engine finds the sites by the attribute, and learns kernels, runtimes and conflicts from the style each member returns. In user code a member returns a class string, so it goes into `cn()`, `cx()` and the conditions like any `css.*` value.
 
 ```ts
 import { cn, p } from "cssints" with { type: "cssints" };
@@ -407,7 +407,53 @@ export const bad = smoothing("bold"); // error: not in the grammar
 - **`conflicts: { props, message }`**: one `cn()` that holds the marker and one of the listed properties (a name, or a RegExp) is a build error with the plugin's message and the call site: `cssints: ring: ring() sets the outline (this style also sets outline)`. Conditions count: `hover(outline("none"))` is the same conflict.
 - **`runtime: { polyfills, parentVars?, css? }`** is the part for browsers that lack a feature. `polyfills` are BCD keys. A client module that holds a site with the member imports `virtual:cssints/runtime/<name>`, and the module is empty (`export {};`, nothing ships) unless a browserslist target lacks one of the keys and has `@property`, which the runtime stands on; a target without it gets nothing from a polyfill. When it is needed, `parentVars` (`{ marker, read, write, watch? }`, a family of elements that read the nearest marked ancestor's computed custom property) configure `cssints/parent-vars`, one shared script and one `MutationObserver` for all plugins, which does nothing without a `document`; and `css` (the fallback rules) is added to the sheet in layer `_.k`, only then. There is no switch to turn a runtime off.
 - **Errors** are `MemberError` values (`Data.TaggedError`) with `pluginName` and the file, site and offset of the call, so the Vite overlay points at it.
-- **Not in 0.2:** `fn()` and `keyword` members, completions of keywords inside plugin grammar strings (the message still names the grammar), local syntax names in grammars, and a plugin that is a package of members you install (`@cssints/icons` is the first, see Icons; `cssints/frame` and `cssints/surface` are written on these helpers).
+- **`fn(grammar, computeTo, name?)`** is a function of grammar-typed parts that returns a value, not a style (see "Functions").
+- **Not in 0.2:** `keyword` members, completions of keywords inside plugin grammar strings (the message still names the grammar), local syntax names in grammars, and a plugin that is a package of members you install (`@cssints/icons` is the first, see Icons; `cssints/frame` and `cssints/surface` are written on these helpers).
+
+### Functions: `colorMix`, `min`, `max`, `clamp` and `fn()` (decided 2026-10-02, cssints-obd3)
+
+A value function is a part of any property that is computed at build time and inlined where it is called: nothing of it ships. It exists because a token cannot go into a template string (`` `color-mix(in oklab, ${accent}, black)` `` is a `${string}` to the types, and the types reject it), and a call can take one.
+
+```ts
+import * as css from "cssints" with { type: "cssints" };
+
+const t = css.createTokens({
+	color: { $type: "color", accent: { $value: "oklch(62% 0.19 259)" } },
+	space: { $type: "dimension", md: { $value: "16px" } },
+});
+
+export const a = css.color(css.colorMix("oklab", t.color.accent, "black 15%")); // color: color-mix(in oklab, var(--color-accent), black 15%)
+export const b = css.padding(css.clamp(t.space.md, "2vw", "2rem")); // padding: clamp(var(--space-md), 2vw, 2rem)
+export const c = css.maxWidth(css.min("48rem", "100%"));
+export const d = css.opacity(css.clamp<"number">(0, 0.5, 1));
+export const e = css.color(css.colorMix("rgb", "red", "blue")); // error: not a colour space
+export const f = css.color(css.colorMix("oklab", t.space.md, "red")); // error: a length is not a colour
+export const g = css.width(css.colorMix("oklab", "red", "blue")); // error: a colour is not a length
+```
+
+- **`colorMix(space, a, b)`** is a `<color>`: the colour space (`"oklch longer hue"` for a polar one), then two colours, each a token or a string with an optional share (`"black 15%"`). It is checked in the types and at build time (a share over 100% is the build's), and takes exactly three arguments. A bare `css.color("color-mix(in oklab, red, blue)")` is valid already; the helper is for the token argument.
+- **`min`, `max` and `clamp(low, value, high)`** take tokens, strings and numbers, and give a Typed OM value of type `T`: a length, unless the first typed argument is of another type (`clamp(t.fraction, ...)` is a number) or you say so, `clamp<"number">(0, x, 1)`. The arguments are not checked one by one: the declaration that takes the result is, at build time, with the usual message (`width: unexpected "min(1rem" in "min(1rem, 2s)" ... (min() cannot take length and time)`).
+- **Only these four.** `calc()` stays a string (`"calc(100% - 2rem)"` is checked as before), like every other CSS function; a token argument in one is `fn()` or a raw `var(--name)`.
+
+`fn(grammar, computeTo, name?)` from `cssints/plugin` makes the same kind of function:
+
+```ts
+import { CSSColorValue } from "cssints";
+import { fn } from "cssints/plugin";
+
+// The parts are checked against the grammar, joined by a space: `computeTo` gets each one as text, a token as its var(--name).
+export const tint = fn("<color> <percentage>", ([color, share]) => new CSSColorValue(`color-mix(in oklab, ${color}, white ${share})`), "tint");
+export const step = fn("<number>", ([n]) => `${Number(n) * 4}px`, "step");
+
+tint("red", "20%");
+tint("red", "solid"); // error: not a percentage
+step(2);
+```
+
+- **Typed or opaque.** What `computeTo` returns is what the call returns. A Typed OM value (`CSSColorValue`, `CSS.rem(1)`) keeps its type: `tint(...)` is a `<color>` in the types and goes only where a colour goes. A string is opaque to the types, which accept it anywhere, and it is checked at build time in the declaration it lands in, as any value is. Return a Typed OM value when you know the type.
+- **Build time only.** `computeTo` runs in the Module Runner, once per call, and the call is replaced by its CSS text (`"_1hjzi3b"` for a class, `"color-mix(...)"` for a call of its own); the function and its module do not reach the client. `name` (default `fn`) is the label of its errors, as the property name is for `property()`.
+- **Errors** are `MemberError` values with the file, site and offset of the call, and `pluginName` is the `name`: `tint: unexpected "solid" in "red solid", expected <percentage>` for the parts; a `computeTo` that throws (`cssints: boom: no luck`, any `Error`) or returns something else than a string or a Typed OM value (`cssints: tint() computeTo must return a string or a Typed OM value`). A result that does not fit the property is that property's error, at the same site (`width: unexpected "color-mix(in" in "color-mix(in oklab, red, blue)"`): the engine cannot know the property a function is used for.
+- **Limits.** The parts are joined with a space, so a grammar cannot tell the arguments apart (`<color> <color>` takes `"red", "blue"` and `"red blue"`; check `args.length` in `computeTo` as `colorMix` does). A token is checked as the values of its type, so a wrong one is named by its value: `unexpected "1px" in "oklab 1px red"`. `light-dark()` cannot be a function: its result is a browser's choice at the element, not a value.
 
 ### `frame()`: concentric radius (`cssints/frame`, cssints-q2vh)
 

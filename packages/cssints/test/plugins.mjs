@@ -101,6 +101,84 @@ await fails(
   "frame",
 );
 
+// fn(): the result is inlined where the call is (a Typed OM value or a string), nothing ships
+const fnUse = await code("plug-fn.ts");
+assert.match(
+  fnUse,
+  /export const c = "color-mix\(in oklab, red, white\)";/,
+  "a call of its own is its text",
+);
+assert.ok(!/quad|import|[^-]mix\(/.test(fnUse), "...and no call or import is left");
+const fnCss = sheet("plug-fn.ts");
+assert.match(fnCss, /\{color:color-mix\(in oklab, red, blue\)\}/);
+assert.match(fnCss, /\{width:8px\}/, "a string result");
+await fails(
+  "plug-fn-bad-part.ts",
+  /^mix: unexpected "solid" in "red solid", expected <color>$/,
+  3,
+  "mix",
+);
+await fails("plug-fn-throws.ts", /^cssints: boom: no luck$/, 3, "boom");
+await fails(
+  "plug-fn-nothing.ts",
+  /^cssints: nothing\(\) computeTo must return a string or a Typed OM value$/,
+  3,
+  "nothing",
+);
+// a result that does not fit the property is that property's error, at the same site
+await assert.rejects(code("plug-fn-bad-result.ts"), (e) => {
+  assert.match(e.message.split("\n")[0], /^width: unexpected "color-mix\(in" in /);
+  assert.equal(e.loc?.line, 5);
+  return true;
+});
+
+// the built-ins of cssints on fn(): colorMix, min, max, clamp, with tokens as arguments
+const bi = await code("fn-builtins.ts");
+assert.ok(!bi.includes("colorMix") && !bi.includes("clamp"), "nothing of them ships");
+const biCss = sheet("fn-builtins.ts");
+for (const rule of [
+  "color:color-mix(in oklab, var(--color-accent), black 15%)",
+  "color:color-mix(in oklch longer hue, red 30%, var(--color-accent))",
+  "max-width:min(48rem, 100%)",
+  "padding:clamp(var(--space-md), 2vw, 2rem)",
+  "opacity:clamp(0, 0.5, 1)",
+  "width:max(var(--space-md), 10vw)",
+])
+  assert.ok(biCss.includes(`{${rule}}`), `${rule}\n${biCss}`);
+await fails(
+  "fn-builtins-bad-colors.ts",
+  /^colorMix: unexpected end in "oklab red", expected /,
+  5,
+  "colorMix",
+);
+await fails(
+  "fn-builtins-bad-token.ts",
+  /^colorMix: unexpected "1px" in "oklab 1px red", expected /,
+  5,
+  "colorMix",
+);
+await fails(
+  "fn-builtins-bad-share.ts",
+  /^colorMix: unexpected "120%" in "oklab red 120% blue", expected /,
+  3,
+  "colorMix",
+);
+await fails(
+  "fn-builtins-bad-arity.ts",
+  /^cssints: colorMix\(\) takes a colour space and two colours$/,
+  5,
+  "colorMix",
+);
+await assert.rejects(code("fn-builtins-bad-math.ts"), (e) => {
+  assert.match(
+    e.message.split("\n")[0],
+    /^width: unexpected "min\(1rem" .*min\(\) cannot take length and time\)$/,
+  );
+  assert.equal(e.loc?.line, 5);
+  return true;
+});
+await assert.rejects(code("fn-builtins-bad-clamp.ts"), /clamp\(\) takes 3 arguments/);
+
 // a kernel used through a helper module that is edited does not collide with its own old self
 const fx = `${import.meta.dirname}/fixtures`;
 const kit = (css) => `import { context, method } from "cssints/plugin";
