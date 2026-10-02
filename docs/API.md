@@ -352,7 +352,41 @@ export const bad = smoothing("bold"); // error: not in the grammar
 - **`conflicts: { props, message }`**: one `cn()` that holds the marker and one of the listed properties (a name, or a RegExp) is a build error with the plugin's message and the call site: `cssints: ring: ring() sets the outline (this style also sets outline)`. Conditions count: `hover(outline("none"))` is the same conflict.
 - **`runtime: { polyfills, parentVars?, css? }`** is the part for browsers that lack a feature. `polyfills` are BCD keys. A client module that holds a site with the member imports `virtual:cssints/runtime/<name>`, and the module is empty (`export {};`, nothing ships) unless a browserslist target lacks one of the keys and has `@property`, which the runtime stands on; a target without it gets nothing from a polyfill. When it is needed, `parentVars` (`{ marker, read, write, watch? }`, a family of elements that read the nearest marked ancestor's computed custom property) configure `cssints/parent-vars`, one shared script and one `MutationObserver` for all plugins, which does nothing without a `document`; and `css` (the fallback rules) is added to the sheet in layer `_.k`, only then. There is no switch to turn a runtime off.
 - **Errors** are `MemberError` values (`Data.TaggedError`) with `pluginName` and the file, site and offset of the call, so the Vite overlay points at it.
-- **Not in 0.2:** `fn()` and `keyword` members, completions of keywords inside plugin grammar strings (the message still names the grammar), local syntax names in grammars, and a plugin that is a package of members you install (`cssints/frame`, `cssints/surface` and `@cssints/icons` come next, on these helpers).
+- **Not in 0.2:** `fn()` and `keyword` members, completions of keywords inside plugin grammar strings (the message still names the grammar), local syntax names in grammars, and a plugin that is a package of members you install (`@cssints/icons` is the first, see Icons; `cssints/frame` and `cssints/surface` come next, on these helpers).
+
+### Icons: `@cssints/icons` (decided 2026-10-02, cssints-1x1o)
+
+An icon is a style written on `style()`: a marker class, a mask kernel and one atomic class per icon that holds the SVG as a data URL. There is no runtime. Install `@cssints/icons` and a collection (`@iconify-json/mdi`), or point it at a folder of `.svg` files.
+
+```ts
+import { cn, color, width } from "cssints" with { type: "cssints" };
+import { icons } from "@cssints/icons" with { type: "cssints" };
+
+// icons.ts: a build-time module (it runs while the build runs, and never reaches the browser)
+export const mdi = icons<typeof import("@iconify-json/mdi/icons.json")>({
+	provider: "iconify-json",
+	collection: "mdi",
+});
+export const brand = icons({ provider: "fs", dir: "src/icons" });
+
+// a component imports them from there: import { mdi, brand } from "./icons.ts" with { type: "cssints" }
+export const close = cn(mdi("close"), color("crimson"), width("1.5em"));
+export const logo = brand("logo");
+export const typo = mdi("clos"); // error: not an icon of mdi
+```
+
+```css
+/* kernel icon-mask@1, layer _.k; LightningCSS adds -webkit-mask for your targets */
+._i { display: inline-block; width: 1em; height: 1em; background-color: currentColor; mask: var(--_svg) no-repeat center / 100% 100%; }
+/* the only per-icon rule */
+._x1 { --_svg: url("data:image/svg+xml,%3Csvg …"); }
+```
+
+- **`icons({ provider: "iconify-json", collection })`** reads `@iconify-json/<collection>/icons.json` from the `node_modules` of the working directory, while the module runs. **`icons({ provider: "fs", dir })`** reads `<dir>/<name>.svg` (`dir` is relative to the working directory; the SVG needs a `viewBox`). The result is a function of the icon name: `mdi("home")` is a style that goes into `cn()`, `cx()` and the conditions like any member. Call `icons()` in a module of its own, imported with the attribute, as above.
+- **Names.** TypeScript cannot read a module type from a string, so the names of a collection come from the type argument: `icons<typeof import("@iconify-json/mdi/icons.json")>(…)` types `mdi(name)` as the icons and aliases of that collection, and a typo is an error in the editor. Without the type argument, and for `fs`, a name is any string. In every case a name that does not exist is a build error at the call, with the nearest name when it is close: `cssints: icons: no icon "hom" in iconify-json mdi, did you mean home?`.
+- **Mask or image.** An icon that paints with `currentColor` (every one-colour icon of a collection) gets the marker `_i` and takes the text `color`. Any other (a logo with its own colours) gets `_ic`, a background image. This is iconify's own rule. A non-square icon is centred on a square view box, so `width` and `height` set its size (`1em` by default).
+- **Cost.** The kernel is printed once. Each icon adds one class, and the same icon is the same class everywhere. The kernel `requires` `css.properties.mask-image`: a target that has only `-webkit-mask-image` gets the support warning, though LightningCSS adds that prefix when `css.lightningcss.targets` is set.
+- **Not yet:** the iconify HTTP API (it would need a lockfile), names generated for `fs`, a name transform, and watching the SVG files in dev (a changed file needs a restart).
 
 ### Browser support and what 0.1 does not have
 
