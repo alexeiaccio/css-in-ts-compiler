@@ -26,6 +26,7 @@ export const valid = (p: string, s: string) => run(validFx(p, s));
 export const parse = (grammar: string) => run(parseFx(grammar));
 export const checkRules = (p: string, v: string) => run(checkRulesFx(p, v));
 export const support = (p: string, v: string, ts?: Target[]) => run(supportFx(p, v, ts));
-export const lacking = (key: string, ts?: Target[]) => run(lackingFx(key, ts));
+export const lacking = (key: string, ts?: Target[], exact?: boolean) =>
+  run(lackingFx(key, ts, exact));
 export const message = (...args: Parameters<typeof messageFx>) => run(messageFx(...args));
 export const checkQuery = (...args: Parameters<typeof checkQueryFx>) => run(checkQueryFx(...args));

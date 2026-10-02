@@ -12,14 +12,15 @@ export type BcdKey = `css.${string}`;
 /**
  * Global rules, registered once by `key` (`name@version`) in layer `_.k`; `atProperty` (the `@property` rules of its
  * custom properties) goes at the top of the sheet. A target lacking a `requires` feature gets a support warning, never an
- * error. Two members share a kernel by pointing at the same object; the same key with other CSS is a build error, as is
+ * error; `{ key, exact: true }` also counts a partial implementation as lacking (relative colour, whose channel scales
+ * differ in Chrome 119-121 and Safari 16.4-17.6). Two members share a kernel by pointing at the same object; the same key with other CSS is a build error, as is
  * a custom property or a marker that two keys share.
  */
 export interface Kernel {
   key: string;
   css: string;
   atProperty?: string;
-  requires?: BcdKey[];
+  requires?: (BcdKey | { key: BcdKey; exact: true })[];
 }
 /** One element family of a runtime: the nearest `marker` ancestor's computed `read` is copied into `write`. */
 export interface ParentVar {

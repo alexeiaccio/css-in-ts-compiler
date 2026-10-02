@@ -98,6 +98,24 @@ verify(
   "lacking: a WebKit-only property lacks on firefox; an unknown key lacks nothing",
 );
 
+// exact: a partial implementation counts as lacking (relative colour: Chrome 119-121 and Safari 16.4-17.6 are partial)
+const rel = "css.types.color.oklch.relative_syntax";
+const both = [
+  ["chrome", "120"],
+  ["chrome", "122"],
+  ["safari", "17.4"],
+  ["safari", "18"],
+] as [string, string][];
+verify(
+  JSON.stringify(lacking(rel, both)) === "[]" &&
+    JSON.stringify(lacking(rel, both, true)) === '[["chrome","120"],["safari","17.4"]]',
+  "lacking: partial counts as support, and as lacking when exact",
+);
+verify(
+  support("color", "oklch(from red calc(l + 0.1) c h)", [["chrome", "120"]]).length === 0,
+  "warnings: partial is still support",
+);
+
 const rules: [string, string, boolean][] = [
   ["transition", "none, opacity 1s", false],
   ["transition", "opacity 1s, none", false],
