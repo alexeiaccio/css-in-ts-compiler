@@ -14,6 +14,7 @@ import { chainNames, CONTEXTS, PROPS, PSEUDOS } from "../src/lib.ts";
 const OWN = new Set([
   "cn",
   "firstThatWorks",
+  "keyframes",
   "flex",
   "grid",
   "cv",

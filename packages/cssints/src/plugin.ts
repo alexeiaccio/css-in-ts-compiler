@@ -176,13 +176,14 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
         );
         // The tokens of the module: those its classes read, and those a site names (a token, a style). Their
         // @property rules are recorded as text, so an edit of an initial value changes what the module recorded.
-        const names = new Set(texts.flatMap((r) => r.match(/--[\w-]+/g) ?? []));
+        const kernels = kernelEntries(registry, id);
+        const names = new Set([...texts, ...kernels].flatMap((r) => r.match(/--[\w-]+/g) ?? []));
         for (const c of classes) rules.get(c)?.tokens?.forEach((n) => names.add(n));
         yield* record(id, [
           ...classes,
           ...[...names].flatMap((n) => properties.get(n)?.css ?? []),
           ...themedEntries(themed, id, names),
-          ...kernelEntries(registry, id),
+          ...kernels,
           ...(yield* fallbackEntries(registry, id)),
         ]);
         runtimes = runtimeNames(registry, id);
