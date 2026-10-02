@@ -24,6 +24,7 @@ const repo = resolve(here, "../../../..");
 const pkgs = {
   grammar: join(repo, "packages/css-grammar"),
   cssints: join(repo, "packages/cssints"),
+  icons: join(repo, "packages/icons"),
 };
 const tsgo = join(repo, "node_modules/.bin/tsgo");
 const tsc59 = join(repo, "node_modules/typescript/bin/tsc");
@@ -62,7 +63,11 @@ const tgz = (dir) =>
     dir,
     readdirSync(dir).find((f) => f.endsWith(".tgz")),
   );
-const tarballs = { grammar: tgz(pkgs.grammar), cssints: tgz(pkgs.cssints) };
+const tarballs = {
+  grammar: tgz(pkgs.grammar),
+  cssints: tgz(pkgs.cssints),
+  icons: tgz(pkgs.icons),
+};
 console.log("tarballs");
 for (const t of Object.values(tarballs)) {
   const list = run("tar", ["tzf", t], repo)
@@ -105,6 +110,7 @@ put(
       devDependencies: {
         "@types/react": "^18",
         "@types/react-dom": "^18",
+        "@iconify-json/mdi": "^1.2.0",
         lightningcss: "^1.32.0",
         vite: "^8.3.0",
       },
@@ -167,6 +173,7 @@ put(
   `import { _cv, cx } from "cssints";
 import { bg, cn, color, cv, hover, media, p } from "cssints" with { type: "cssints" };
 
+import { mdi } from "./icons.ts" with { type: "cssints" };
 import { ring } from "./ring.ts" with { type: "cssints" };
 import { t } from "./tokens.ts" with { type: "cssints" };
 
@@ -174,7 +181,7 @@ const wide = media("(width >= 40rem)");
 
 const button = _cv(
   cv({
-    base: cn(p(2), bg(t.color.brand), color("white"), hover(bg("#2563eb")), ring().width("2px")),
+    base: cn(p(2), bg(t.color.brand), color("white"), hover(bg("#2563eb")), ring().width("2px"), mdi("home")),
     variants: { size: { lg: wide(p(4)) } },
     defaultVariants: { size: "lg" },
   }),
@@ -203,6 +210,17 @@ export const ring = context({
 });
 `,
 );
+// icons: a build-time module on @cssints/icons, which reads @iconify-json/mdi from the app's node_modules
+put(
+  "src/icons.ts",
+  `import { icons } from "@cssints/icons" with { type: "cssints" };
+
+export const mdi = icons<typeof import("@iconify-json/mdi/icons.json")>({
+  provider: "iconify-json",
+  collection: "mdi",
+});
+`,
+);
 put(
   "src/main.tsx",
   `import "virtual:cssints.css";
@@ -217,14 +235,22 @@ put(
   "src/bad.ts",
   `import { color } from "cssints" with { type: "cssints" };
 
+import { mdi } from "./icons.ts" with { type: "cssints" };
+
 export const wrong = color("blu");
+export const typo = mdi("hom");
 `,
 );
 
 // 3. install like a user: from the tarballs, npm
 const install = run(
   "npm",
-  ["install", "--no-audit", "--no-fund", `./tarballs/${tarballs.cssints.split("/").pop()}`],
+  [
+    "install",
+    "--no-audit",
+    "--no-fund",
+    ...[tarballs.cssints, tarballs.icons].map((t) => `./tarballs/${t.split("/").pop()}`),
+  ],
   app,
 );
 ok(
@@ -232,6 +258,10 @@ ok(
   "npm install: cssints from the tarball",
 );
 ok(!existsSync(join(app, "node_modules/cssints/src")), "installed cssints has no src/");
+ok(
+  existsSync(join(app, "node_modules/@cssints/icons/dist/index.mjs")),
+  "npm install: @cssints/icons from the tarball",
+);
 ok(
   !/ERESOLVE|peer dep/i.test(install.out),
   "npm install: no peer dependency warnings",
@@ -268,6 +298,8 @@ ok(
   "css: the kernel and the method of the plugin",
   css,
 );
+ok(/\._i\s*\{[^}]*mask:\s*var\(--_svg\)/.test(css), "css: the icon kernel (a mask)", css);
+ok(/--_svg:\s*url\("data:image\/svg\+xml,/.test(css), "css: the icon as one custom property");
 ok(
   css.includes("data-cssints-poly"),
   "css: the fallback of the plugin's runtime (a target lacks the feature)",
@@ -278,7 +310,7 @@ const maps = js
   .filter((f) => existsSync(join(app, "dist/assets", `${f}.map`)))
   .flatMap((f) => JSON.parse(readFileSync(join(app, "dist/assets", `${f}.map`), "utf8")).sources);
 const bundled = maps.filter((s) =>
-  /node_modules\/(cssints|@cssints|effect|culori|lightningcss|oxc-|magic-string|happy-dom|@mdn|browserslist|mdn-data)/.test(
+  /node_modules\/(cssints|@cssints|@iconify|@iconify-json|effect|culori|lightningcss|oxc-|magic-string|happy-dom|@mdn|browserslist|mdn-data)/.test(
     s,
   ),
 );
@@ -310,6 +342,7 @@ for (const marker of [
   "browser-compat-data",
   "TaggedError",
   "__cssints",
+  "iconify",
 ])
   ok(!source.includes(marker), `client bundle does not contain "${marker}"`);
 
@@ -333,12 +366,14 @@ for (const [name, cmd, noConfig] of checkers) {
       "--module",
       "preserve",
       "--skipLibCheck",
+      "--allowImportingTsExtensions",
       "src/bad.ts",
     ],
     app,
     true,
   );
   ok(wrong.code !== 0 && /blu/.test(wrong.out), `${name}: color("blu") is a type error`, wrong.out);
+  ok(/hom/.test(wrong.out), `${name}: mdi("hom") is a type error`, wrong.out);
   const lib = run(bin, [...pre, "-p", "tsconfig.json", "--skipLibCheck", "false"], app, true);
   // effect's own declarations (a beta) do not check without skipLibCheck; ours must
   const ours = lib.out.split("\n").filter((l) => /node_modules\/(cssints|@cssints)\//.test(l));
