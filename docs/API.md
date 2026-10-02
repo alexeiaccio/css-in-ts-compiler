@@ -221,6 +221,21 @@ export const t = css.createTokens({
 css.createGlobalTheme(t, ".brand", { color: { accent: "#db2777" } }); // hover follows
 ```
 
+- **References in overrides** (cssints-q6l0): an override takes `{path}` too, as the whole value (`"{radius.sm}"`) or inside a CSS value (`"oklch(0.7 0.1 {hue.accent})"`). The theme declares `var(--target)`, so the value is live; tokens derived from the overridden token are declared again as above. Order does not matter: the declarations of one rule belong to one element, and a `var()` reads that element's own value of the target, so a theme that sets `hue.accent` and a colour made of it needs no particular order. A reference to no token, a whole-value reference to a token of another type, a value that is not of the token's type with each reference replaced by its target's value (a literal at build time, a value of the target's type in the editor), and a cycle through the base tokens and the theme are errors. Paths are from the root of the tokens, so give the root (`t`) to a theme that refers to another group; the editor rejects a reference outside the group it is given.
+
+```ts
+import * as css from "cssints" with { type: "cssints" };
+
+export const t = css.createTokens({
+	hue: { $type: "number", accent: { $value: 345 } },
+	radius: { $type: "dimension", sm: { $value: "4px" }, md: { $value: "8px" } },
+	color: { $type: "color", accent: { $value: "oklch(0.6 0.2 {hue.accent})" } },
+});
+css.createGlobalTheme(t, ".square", { radius: { md: "{radius.sm}" } });
+css.createGlobalTheme(t, ".dim", { hue: { accent: 12 }, color: { accent: "oklch(0.7 0.1 {hue.accent})" } });
+css.createGlobalTheme(t, ".x", { radius: { md: "{hue.accent}" } }); // error: a number, not a length
+```
+
 - **JSON input:** `createTokens` takes a DTCG file imported as JSON, `import tokens from "./tokens.json" with { type: "json" }`. The editor knows the tree (`t.color.bg`, and a wrong path is a type error) but not the types, since a JSON import widens `$type` to `string`: each token is a token of any type there, and its values, references and use in a property are checked at build time.
 - **The sheet:** token sets and themes are rules of layer `_.k`, after the global rules and before the class layers. They set custom properties only, and no class does, so the layer order never decides between them; `_.k` is the lowest layer, so your own unlayered `--color-bg` rule wins over a theme. The `:root` rules of aliases come first, then themes under a condition, then themes under a selector, each in source order, so a selector theme beats a condition theme on the same element. A module has the rules of the tokens it uses, from wherever they were made, and its own; import a theme module (`import "./theme.ts"`) to have all of it.
 - **`css.check.contrast(fg, bg, { min })`** computes the WCAG 2.x contrast ratio (`min` from 1 to 21) for the default values and for every theme that sets either token or one they are aliases of. It reads themes one at a time, not their combinations. A ratio below `min` is a build error that names the theme and both resolved values (the ratio is cut, not rounded: 4.499 is 4.49). A value the check cannot evaluate (`color-mix()`, a relative colour, so also a derived token, `light-dark()`, `currentColor`, a system colour) or a translucent one is a warning that names the token. The colour library (culori, `culori/fn`: 27 kB minified, 9 kB gzipped) is build-only and never ships. The check runs when its module has run, and again at the end of a build over the themes of every module.
