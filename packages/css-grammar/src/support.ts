@@ -82,7 +82,8 @@ const cmp = (a: string, b: string) => {
 function supports(s: SupportStatement | undefined, v: string, exact = false): boolean {
   if (!s) return true;
   return [s].flat().some((x) => {
-    if (x.prefix || x.alternative_name || x.flags || (exact && x.partial_implementation)) return false;
+    if (x.prefix || x.alternative_name || x.flags || (exact && x.partial_implementation))
+      return false;
     const added = x.version_added;
     if (typeof added !== "string") return added !== false;
     if (added === "preview" || cmp(added, v) > 0) return false;
@@ -131,7 +132,7 @@ export const lackingOf = (key: string, ts: Target[] = DEFAULT, exact = false): T
 export const lacking = Effect.fnUntraced(function* (
   key: string,
   ts: Target[] = DEFAULT,
-  exact = false,
+  exact: boolean = false,
 ): Effect.fn.Return<Target[]> {
   return yield* Effect.sync(() => lackingOf(key, ts, exact));
 });
