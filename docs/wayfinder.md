@@ -1114,3 +1114,14 @@ Findings: `position-try` is already a property, so `positionTry` is the rule wit
 Names are typed by a type argument, `icons<typeof import("@iconify-json/mdi/icons.json")>(…)`, because TypeScript cannot read a module type from a string; it costs about nothing per call and 0.1 s (tsgo) to load mdi's JSON. Without it, and for `fs`, a name is a `string`. An unknown name is always a build error at the call with the nearest name ("did you mean home?").
 
 Very little of plugin-icon survived: the provider idea and the iconify JSON handling, now through `@iconify/utils`, the one runtime dependency. Engine changes: `style()` turns whatever `build` throws into a MemberError at the call site, and the inner build server skips Vite's dep scan, which followed attributed imports into build-time code (demo build 1.2 s to 0.4 s). The mask kernel has no `requires`: LightningCSS adds `-webkit-mask`, so a `mask-image` key only gave a false warning. Still open: the iconify HTTP API with a lockfile, generated `fs` types, watching SVG files in dev.
+
+## Packages written on cssints from node_modules (cssints-2kci)
+
+A package ships the JS tsdown built, with `with { type: "cssints" }` kept (no option needed), plus its `.d.ts`. The app's engine evaluates it like its own code: one sheet, the app's targets and themes, and the app can theme a package token.
+
+- The transform skips a dependency file unless it contains `type: "cssints"`, so cssints' own dist is never parsed.
+- At startup `cssints/vite` reads the app's `package.json` and each direct dependency's; a dependency that lists `cssints` goes into `optimizeDeps.exclude` and `ssr.noExternal`. Both are needed (negative controls): the optimizer strips the attributes, and the runner loads the package as native Node. Entry files are not scanned, because tsdown can keep the marker in a shared chunk. A package that is only a dependency of another package is not found; the app must list it directly.
+- Found on the way: Vite appends `?v=<hash>` to a dependency's URL in dev (now stripped); tsdown merges `import { _cv } from "cssints"` into the attributed import, so `cx` and `_cv` are runtime wherever they are imported; the build's evaluation server uses the config root, not `process.cwd()`.
+- Package modules are cleared on each evaluation like app modules and never watched (Vite does not watch node_modules); `runner.qnt` is unchanged.
+
+Tests: `test/packages.mjs` (dev over HTTP and build) and the smoke test with a library tarball, including a type error on a wrong token path across the boundary. Pre-compiled output for apps without cssints waits for a first user.
