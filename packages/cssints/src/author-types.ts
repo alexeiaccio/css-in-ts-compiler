@@ -47,10 +47,17 @@ export interface Conflict {
 }
 
 /** One method of a context: the grammar of its value (mdn syntax), and the declarations it emits. */
-export interface Method<G extends string = string, Sp extends boolean = boolean> {
+export interface Method<
+  G extends string = string,
+  Sp extends boolean = boolean,
+  X extends string = string,
+> {
+  /** An empty grammar is a method that takes no value: `ink()`. */
   readonly grammar: G;
   /** A lone number is a step of the spacing scale (0.25rem), as in `padding`. */
   readonly spacing?: Sp;
+  /** Methods that cannot be chained with this one: the chain leaves them out after it. */
+  readonly excludes?: readonly X[];
   readonly emit: (value: string) => Decl[];
 }
 /** What `style()`'s `build` returns: declarations, and the fixed classes and kernels they need (markers belong to the first kernel). */
@@ -60,18 +67,22 @@ export interface Built {
   kernels?: Kernel[];
 }
 
+// A method that says nothing of `excludes` is inferred with `any` from the constraint of `context`, as `Sp` is.
+type Excluded<X extends string> = string extends X ? never : X;
 // `boolean extends Sp`: a method that says nothing of `spacing` is inferred as `boolean` from the constraint of `context`.
 /**
  * The chain a context gives: each method takes parts checked against its grammar (the message calls it `name.method`)
  * and leaves the chain without itself, so a method is used once.
  */
 export type Chain<N extends string, M> = Style & {
-  readonly [K in keyof M & string]: M[K] extends Method<infer G, infer Sp>
+  readonly [K in keyof M & string]: M[K] extends Method<infer G, infer Sp, infer X>
     ? string extends G
       ? (...parts: [`${N}.${K}: the grammar is not a literal type: write it as const`]) => never
-      : <const A extends readonly Part[]>(
-          ...parts: CheckIn<`${N}.${K}`, G, boolean extends Sp ? false : Sp, A>
-        ) => Chain<N, Omit<M, K>>
+      : G extends ""
+        ? () => Chain<N, Omit<M, K | Excluded<X>>>
+        : <const A extends readonly Part[]>(
+            ...parts: CheckIn<`${N}.${K}`, G, boolean extends Sp ? false : Sp, A>
+          ) => Chain<N, Omit<M, K | Excluded<X>>>
     : never;
 };
 
@@ -79,22 +90,27 @@ export type Chain<N extends string, M> = Style & {
  * A method of a context: the grammar its value is checked against, whether a lone number is a spacing step, and the
  * declarations it emits (custom properties allowed; the engine checks the others like any property).
  */
-export declare const method: <const G extends string, const Sp extends boolean = false>(def: {
+export declare const method: <
+  const G extends string,
+  const Sp extends boolean = false,
+  const X extends string = never,
+>(def: {
   grammar: G;
   spacing?: Sp;
+  excludes?: readonly X[];
   emit: (value: string) => Decl[];
-}) => Method<G, Sp>;
+}) => Method<G, Sp, X>;
 
 /**
  * A chaining context like `flex()`: calling it gives the marker and the kernel, each method emits its declarations,
  * checked against its grammar, and is used once. A `runtime` is delivered when a target lacks its features; `conflicts`
  * is a build error when the style also sets a listed property.
  */
-// `Method<any, any>`: with `Method` the grammar of `grammar: g` (`const g = "<length>"`) would widen to `string`.
+// `Method<any, any, any>`: with `Method` the grammar of `grammar: g` (`const g = "<length>"`) would widen to `string`.
 export declare function context<
   const N extends string,
   // oxlint-disable-next-line typescript/no-explicit-any -- see above
-  const M extends Record<string, Method<any, any>>,
+  const M extends Record<string, Method<any, any, any>>,
 >(def: {
   name: N;
   marker: string;

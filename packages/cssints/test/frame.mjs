@@ -1,5 +1,5 @@
 // cssints/frame at build time: its class strings and CSS, a token as a value, the errors of a bad value and of a style that
-// mixes frame() with what it sets, and the support warning of its kernel. The browsers are frame-browsers.mjs.
+// mixes frame() with what it sets, and the support warning of its kernel. The browsers are browsers.mjs.
 // Run: node frame.mjs
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";

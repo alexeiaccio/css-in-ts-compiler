@@ -34,7 +34,7 @@ cd packages/css-grammar && bun run webref     # rewrite scripts/webref-propertie
 cd packages/cssints && node bench/lsp.mjs     # editor latency on the demo's Button.tsx over tsgo's language server
 cd packages/cssints && bun run members        # regenerate src/members.ts (the names of "cssints" in user code)
 bun run typecheck                             # per package: tsgo -p tsconfig.json --noEmit + effect-tsgo diagnostics; apps/demo: tsgo and tsc 5.9
-cd packages/cssints && bun run test:browsers   # cssints/frame in Chrome, Firefox and WebKit through playwright-core (not in `test`: needs the browsers installed)
+cd packages/cssints && bun run test:browsers   # cssints/frame and cssints/surface in Chrome, Firefox and WebKit through playwright-core (not in `test`: needs the browsers installed)
 cd packages/cssints && bun run build          # vp pack (tsdown) into dist/; same in packages/css-grammar
 cd packages/css-grammar && node bench/budget.mjs --update    # after a deliberate type-cost change
 cd apps/demo && bun run build                # vp build

@@ -1,5 +1,5 @@
 // A client app on cssints/frame: a three-deep tree (frame, frame, plain div, frame, frame), a lone frame, an `em` padding
-// read by a child of another font size, and a frame whose padding follows a media query. test/frame-browsers.mjs builds it
+// read by a child of another font size, and a frame whose padding follows a media query. test/browsers.mjs builds it
 // and reads the computed radii in browsers.
 import "virtual:cssints.css";
 import { cn, media } from "cssints" with { type: "cssints" };
