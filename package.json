@@ -11,7 +11,7 @@
 		"dev": "vp run -r --parallel dev",
 		"test": "vp run -r --cache test",
 		"bench": "vp run -r bench",
-		"typecheck": "vp run --filter \"./packages/*\" --filter ./apps/demo typecheck",
+		"typecheck": "vp run --filter \"./packages/*\" --filter ./apps/demo --filter ./apps/sky typecheck",
 		"check": "vp check && bun run typecheck",
 		"lint": "vp lint",
 		"lint:fix": "vp lint --fix",

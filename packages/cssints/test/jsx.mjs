@@ -13,7 +13,10 @@ import cssints from "../src/plugin.ts";
 const root = join(import.meta.dirname, ".tmp-jsx");
 rmSync(root, { recursive: true, force: true });
 mkdirSync(join(root, "src"), { recursive: true });
-writeFileSync(join(root, "tsconfig.json"), JSON.stringify({ compilerOptions: { jsx: "preserve" } }));
+writeFileSync(
+  join(root, "tsconfig.json"),
+  JSON.stringify({ compilerOptions: { jsx: "preserve" } }),
+);
 writeFileSync(
   join(root, "src/main.tsx"),
   `import { p } from "cssints" with { type: "cssints" };
@@ -29,7 +32,9 @@ const fakeFramework = () => ({
   transform(code, id) {
     if (!id.endsWith(".tsx") || this.environment.name !== "client") return;
     seen = code;
-    return transformWithOxc(code, id, { jsx: { runtime: "classic", pragma: "h", pragmaFrag: "h" } });
+    return transformWithOxc(code, id, {
+      jsx: { runtime: "classic", pragma: "h", pragmaFrag: "h" },
+    });
   },
 });
 const check = (code) => {
@@ -61,7 +66,10 @@ const out = await build({
   },
   plugins: [fakeFramework(), ...cssints()],
 });
-const js = [out].flat().flatMap((o) => o.output).find((f) => f.fileName.endsWith(".js"));
+const js = [out]
+  .flat()
+  .flatMap((o) => o.output)
+  .find((f) => f.fileName.endsWith(".js"));
 check(js.code);
 rmSync(root, { recursive: true, force: true });
 console.log("jsx: preserve and a framework before cssints(): dev and build ok");

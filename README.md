@@ -30,7 +30,23 @@ import "virtual:cssints.css";
 
 `targets` and `cssTarget` come from the browserslist query of the support warnings (`BROWSERSLIST`, default `defaults`). Vite's CSS minify reads `cssTarget`, not `targets`: without it the minifier merges the declarations of a `firstThatWorks` into the last one. Add `"types": ["vite/client"]` to `tsconfig.json` for the `virtual:` import.
 
-## Example
+### Frameworks
+
+Any framework that builds JSX through a Vite plugin works; the engine evaluates your modules itself, so it does not care what the plugin makes of JSX, nor in which order the plugins are listed. `apps/sky` is the Solid 2 skeleton (`solid-js@next`, `@solidjs/web@next`, `@solidjs/vite-plugin`):
+
+```ts skip
+// vite.config.ts
+import solid from "@solidjs/vite-plugin";
+import cssints, { cssTarget, targets } from "cssints/vite";
+
+export default {
+	plugins: [cssints(), solid()],
+	css: { transformer: "lightningcss", lightningcss: { targets } },
+	build: { cssMinify: "lightningcss", cssTarget },
+};
+```
+
+`tsconfig.json` is Solid's: `"jsx": "preserve"`, `"jsxImportSource": "@solidjs/web"`, `"types": ["vite/client"]`. Solid's `class` takes a string, an object or an array, so `cx` is not needed: `class={[card, on() && p(4)]}` and `class={badge({ tone: tone() })}` (with `_cv` from `"cssints"`) work as in React. A site's arguments are still build-time values, so a signal goes in the condition or in a `cv` variant, not in `p(n())`. Under `vite dev` an edit of a component replaces it and resets its state below it (Solid's refresh); an edit of a style changes the class strings and the sheet with no reload.
 
 ```tsx
 import { _cv, cx } from "cssints";
