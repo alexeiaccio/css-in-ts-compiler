@@ -1069,3 +1069,32 @@ Still open: Playwright's WebKit builds are trunk snapshots with features Safari 
 Panda rewrote its compiler in Rust on Oxc. It confirms our choices: one Oxc parse, layered output with shorthands below longhands, variables through `@property`, modern media syntax. Its "99% fewer type instantiations" (2 600 to 20) comes from having no grammars: native properties share one value type and only tokens are checked, while we run every value through the mdn grammar (about 750 k on `users.ts`). A deliberate trade.
 
 Three ideas joined the 0.2 fog: local at-rules (`keyframes()`, `positionTry()`) on the kernel seam, ordered value fallbacks (`firstThatWorks`) tied to the BCD warnings, and published packages written on cssints.
+
+## The public plugin API (cssints-su6o)
+
+`cssints/plugin` ships four helpers: `context()` with `method()` for chaining contexts, `style()` for functions of typed parts, and `property()` for user-defined typed properties (first proof: `-webkit-font-smoothing`). Each member returns a style node that carries its kernel, runtime and conflicts; the engine reads them at evaluation, so nothing is registered.
+
+- A plugin's marker and a listed property in one `cn()` is a build error with the plugin's message and the call site.
+- A plugin grammar gets a readable message labelled `plugin.method`; the error still lands on the bad argument. Custom properties (`--*`) pass the grammar check.
+- **Runtime delivery** follows plugins.md §5. A client module whose site holds a member with a `runtime` imports `virtual:cssints/runtime/<name>`. The module is empty unless a browserslist target lacks a polyfill key and has `@property`. Only then does it configure the shared `cssints/parent-vars` engine and add the fallback CSS to `_.k`.
+- Errors are `MemberError` with `pluginName` (Vite overwrites `plugin`) and the call site.
+- **Cost:** existing benches within about 1%; 30 plugin calls cost about 41 k.
+- **Fixed on the way:** the dev-only false collision of an edited kernel; css-grammar's dist had lost `Hint` and `Furthest`; a grammar kept in a plain `const` widened to `string` and accepted anything (now a message; tsc 5.9 still widens, the guard covers it).
+
+Left out: `fn()`, keyword completions inside plugin grammars, conflicts across `cn()` calls that only `cx()` joins, and a switch to turn a runtime off.
+
+## firstThatWorks(): ordered value fallbacks (cssints-bogz)
+
+`firstThatWorks(wanted, ...fallbacks)` is a part of any property, the wanted value first. The build emits one atomic class with all declarations in CSS order, the wanted value last, so `cn()` and the sorted sheet treat it as one rule. Every value is checked against the property's grammar, at the type level and at build time; inside a multi-part value the whole declaration is repeated with each value; one per declaration. It is not a Typed OM value, and `style()` rejects it.
+
+The support warning for the wanted value drops every target that supports a fallback; what remains names only targets that lack every value.
+
+**Finding:** Vite's CSS minify takes its targets from `build.cssTarget`, not from `css.lightningcss.targets`, so with `cssTarget: false` LightningCSS merged `100vh; 100dvh` into `100dvh` even for targets without `dvh`. `cssints/vite` now exports `cssTarget` from the same browserslist query; the demo and README use it.
+
+**Cost:** +2.1% on `users.ts` for the types, about 13 k per fallback use; +13% on `plugins.ts` after the merge (about 180 per call), accepted.
+
+Still open: LightningCSS drops `color: red` before `color: var(--x)` when it merges, which is wrong if `--x` is undefined.
+
+## Published packages written on cssints (cssints-0l3f)
+
+Decided with the user: a package written on cssints ships its source with the attribute kept (tsdown keeps it), and the consuming app evaluates it in its own Module Runner. One sheet, one set of targets and themes, and tokens, kernels and `@property` dedupe for free because each module is evaluated once. The engine recognises such a package by the same marker as app code (`with { type: "cssints" }` in the file), with nothing to declare, and keeps it out of `optimizeDeps` so esbuild does not strip the attributes. Today the transform skips everything under `node_modules`, so a dependency on cssints builds no classes. A pre-compiled format (classes plus a sheet fragment, for apps without cssints) waits for its first user.

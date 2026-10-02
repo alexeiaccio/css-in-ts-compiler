@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-30T11:57:32Z
-updated_at: 2026-10-01T07:23:29Z
+updated_at: 2026-10-02T07:52:36Z
 ---
 
 ## Destination
@@ -32,6 +32,10 @@ A public plugin API (`definePlugin` with `property`, `context` and `style` membe
 - [Engine seams for plugins: node fields, lacking(), definition sites, generic Valid](cssints-vcop): markers and kernels on the node, kernels by key per module in _.k, collision errors, lacking(), definition sites; demo byte-identical.
 
 - [Run the style-query polyfill on Firefox < 151 and Safari < 18](cssints-fxz3): passes on Firefox 128/150 and WebKit 16.4–17.4 with no engine change; @property is the floor; real Safari 17 is a hand check for frame().
+
+- [Implement the public plugin API](cssints-su6o): `cssints/plugin` with context/method/style/property; runtime via virtual:cssints/runtime/<name>, only when a target lacks the feature and has @property; MemberError.
+- [firstThatWorks(): ordered value fallbacks tied to the BCD warnings](cssints-bogz): one class, fallbacks first; warning narrowed to targets no value covers; cssTarget export so minify keeps fallbacks.
+- [Published packages written on cssints](cssints-0l3f): source with the attribute, evaluated in the consumer's runner, recognised by the marker; pre-compiled waits for a user.
 
 ## Not yet specified
 

@@ -1,13 +1,13 @@
 ---
 # cssints-1x1o
 title: Icons on the plugin API, replacing packages/plugin-icon
-status: todo
+status: in-progress
 type: feature
 priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-09-30T11:57:32Z
-updated_at: 2026-09-30T11:57:41Z
+updated_at: 2026-10-02T07:52:36Z
 parent: cssints-9js6
 blocked_by:
     - cssints-su6o

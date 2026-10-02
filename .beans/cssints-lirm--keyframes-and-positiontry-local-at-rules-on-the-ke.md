@@ -1,13 +1,13 @@
 ---
 # cssints-lirm
 title: 'keyframes() and positionTry(): local at-rules on the kernel seam'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-10-01T07:23:13Z
-updated_at: 2026-10-01T07:23:29Z
+updated_at: 2026-10-02T07:52:36Z
 parent: cssints-9js6
 blocked_by:
     - cssints-su6o

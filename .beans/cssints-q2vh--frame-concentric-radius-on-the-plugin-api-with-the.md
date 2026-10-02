@@ -1,13 +1,13 @@
 ---
 # cssints-q2vh
 title: 'frame(): concentric radius on the plugin API, with the parent-vars runtime'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-09-30T11:57:32Z
-updated_at: 2026-09-30T14:02:19Z
+updated_at: 2026-10-02T07:52:36Z
 parent: cssints-9js6
 blocked_by:
     - cssints-su6o
