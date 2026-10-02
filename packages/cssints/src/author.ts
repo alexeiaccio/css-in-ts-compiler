@@ -40,7 +40,7 @@ const check = (plugin: string, label: string, grammar: string, value: string): v
 const decls = (emitted: Decl[]) => emitted.map(([p, v]): [string, string] => [p, v]);
 
 // See author-types.ts.
-export const method: typeof Types.method = (def) => def;
+export const method: typeof Types.method = (def) => def as never;
 
 // See author-types.ts.
 export const context: typeof Types.context = <
@@ -56,8 +56,9 @@ export const context: typeof Types.context = <
 }) => {
   const { name, marker, kernel, runtime, conflicts, methods } = def;
   const plugs = runtime || conflicts ? [{ name, marker, conflicts, runtime }] : undefined;
+  // `used`: the methods taken out of the chain, each with the one that took it out (itself, or what excludes it)
   const next =
-    (used: ReadonlySet<string>) =>
+    (used: ReadonlyMap<string, string>) =>
     (m: string, args: unknown[], self: CssNode): CssNode => {
       const meth = Object.hasOwn(methods, m) ? methods[m] : undefined;
       if (!meth)
@@ -67,20 +68,25 @@ export const context: typeof Types.context = <
             .filter((k) => !used.has(k))
             .join(", ")}`,
         );
-      if (used.has(m)) throw failIn(name, `cssints: ${name}().${m}() is used twice`);
-      const value = valueOf(name, `${name}.${m}`, args, meth.spacing);
-      check(name, `${name}.${m}`, meth.grammar, value);
-      return node(
-        [...self.__cssints, ...decls(meth.emit(value))],
-        self,
-        next(new Set(used).add(m)),
-      );
+      const by = used.get(m);
+      if (by === m) throw failIn(name, `cssints: ${name}().${m}() is used twice`);
+      if (by) throw failIn(name, `cssints: ${name}().${m}() cannot go with .${by}()`);
+      let value = "";
+      if (meth.grammar === "") {
+        if (args.length) throw failIn(name, `cssints: ${name}().${m}() takes no value`);
+      } else {
+        value = valueOf(name, `${name}.${m}`, args, meth.spacing);
+        check(name, `${name}.${m}`, meth.grammar, value);
+      }
+      const taken = new Map(used).set(m, m);
+      for (const x of meth.excludes ?? []) taken.set(x, m);
+      return node([...self.__cssints, ...decls(meth.emit(value))], self, next(taken));
     };
   return () =>
     node(
       [],
       { markers: [[marker, kernel.key]], kernels: [kernel], plugs },
-      next(new Set()),
+      next(new Map()),
     ) as never;
 };
 

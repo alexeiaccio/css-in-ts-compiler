@@ -24,6 +24,10 @@
       "types": "./src/frame.ts",
       "default": "./src/frame.ts"
     },
+    "./surface": {
+      "types": "./src/surface.ts",
+      "default": "./src/surface.ts"
+    },
     "./parent-vars": "./src/parent-vars.ts"
   },
   "publishConfig": {
@@ -45,6 +49,10 @@
       "./frame": {
         "types": "./dist/frame.d.mts",
         "default": "./dist/frame.mjs"
+      },
+      "./surface": {
+        "types": "./dist/surface.d.mts",
+        "default": "./dist/surface.mjs"
       },
       "./parent-vars": {
         "types": "./dist/parent-vars.d.mts",
