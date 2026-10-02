@@ -167,6 +167,8 @@ put(
   `import { _cv, cx } from "cssints";
 import { bg, cn, color, cv, hover, media, p } from "cssints" with { type: "cssints" };
 
+import { frame } from "cssints/frame" with { type: "cssints" };
+
 import { ring } from "./ring.ts" with { type: "cssints" };
 import { t } from "./tokens.ts" with { type: "cssints" };
 
@@ -181,7 +183,11 @@ const button = _cv(
 );
 
 export function Button({ busy }: { busy?: boolean }) {
-  return <button className={cx(button(), busy && p(9))}>smoke</button>;
+  return (
+    <button className={cx(button(), busy && p(9))}>
+      <span className={frame().radius("4px").padding(1)}>smoke</span>
+    </button>
+  );
 }
 `,
 );
@@ -271,6 +277,11 @@ ok(
 ok(
   css.includes("data-cssints-poly"),
   "css: the fallback of the plugin's runtime (a target lacks the feature)",
+);
+ok(
+  /--fr-r:\s*4px/.test(css) && /@container/.test(css) && /@property\s+--fr-p/.test(css),
+  "css: cssints/frame from the installed package (kernel, registrations, method)",
+  css,
 );
 
 // the eval-time code must not reach the client bundle: by module (the source maps) and by content
