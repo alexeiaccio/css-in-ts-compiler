@@ -1,5 +1,6 @@
 import { createRouter, defineRoute } from "@solidjs/router";
 
+import DevPosts from "./screens/DevPosts.tsx";
 import Home from "./screens/Home.tsx";
 import NotFound from "./screens/NotFound.tsx";
 import Profile from "./screens/Profile.tsx";
@@ -17,6 +18,8 @@ export const Router = createRouter({
       path: "/profile/:handle/post/:rkey",
       component: (props) => <Thread handle={props.params.handle} rkey={props.params.rkey} />,
     }),
+    // every embed kind from recorded posts; the dev server only
+    ...(import.meta.env.DEV ? [{ path: "/dev/posts", component: DevPosts }] : []),
     { path: "*404", component: NotFound },
   ],
 });
