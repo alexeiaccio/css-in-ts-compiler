@@ -142,3 +142,43 @@ css.check.contrast(t.space.md, t.color.bg, { min: 4.5 });
 css.check.contrast(t.color.accent, t.color.bg, {});
 // @ts-expect-error a token, not a colour string
 css.check.contrast("#000", t.color.bg, { min: 4.5 });
+
+// Derived tokens: a reference inside a CSS value is checked as a value of its target's type.
+const d = css.createTokens({
+  color: {
+    $type: "color",
+    accent: { $value: "#2563eb" },
+    hover: { $value: "color-mix(in oklab, {color.accent}, black 15%)" },
+  },
+  space: { $type: "dimension", md: { $value: "16px" }, lg: { $value: "calc({space.md} * 2)" } },
+});
+css.bg(d.color.hover);
+css.padding(d.space.lg);
+css.createTokens({
+  color: {
+    $type: "color",
+    a: { $value: "#fff" },
+    // @ts-expect-error a derived colour that is no colour
+    b: { $value: "color-mix(in oklab, {color.a}, nope)" },
+  },
+});
+css.createTokens({
+  color: {
+    $type: "color",
+    // @ts-expect-error a reference to no token
+    b: { $value: "color-mix(in oklab, {color.zzz}, black 15%)" },
+  },
+});
+
+// JSON: the tree is typed, the values are checked at build time.
+declare const json: {
+  color: {
+    $type: string;
+    bg: { $value: string };
+    accent: { $value: { colorSpace: string; components: number[] } };
+  };
+};
+const j = css.createTokens(json);
+css.bg(j.color.bg);
+// @ts-expect-error no token at this path
+css.bg(j.color.nope);

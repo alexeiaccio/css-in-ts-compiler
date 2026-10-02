@@ -117,12 +117,15 @@ interface Leaf {
 export interface TokenSet {
   tokens: Map<string, CSSTokenValue>;
   types: Map<string, DtcgType>;
-  aliases: { name: string; target: string }[];
+  /** the tokens that stay live on others: `css` is the value with `var(--target)` for each reference */
+  aliases: { name: string; targets: string[]; css: string }[];
 }
 // every group of every token set, by object: a subtree is a token set too
 export const sets = new WeakMap<object, TokenSet>();
 
 const ALIAS = /^\{([^{}]+)\}$/;
+// a reference inside a CSS value: `color-mix(in oklab, {color.accent}, black 15%)`
+const REF = /\{([^{}]+)\}/g;
 const IGNORED = new Set(["$description", "$extensions", "$deprecated"]);
 const kebab = (s: string) => s.replace(/([a-z\d])([A-Z])/g, "$1-$2").toLowerCase();
 
@@ -176,6 +179,8 @@ interface Resolved {
   text: string;
   /** the dotted path of the token it is an alias of */
   alias?: string;
+  /** a derived token: the dotted paths it references inside its value */
+  refs?: string[];
 }
 
 // createTokens(tree, name?): every leaf `{ $value }` is a token, reached by the path it has in `tree`. `$type` is
@@ -250,6 +255,30 @@ export const createTokens = (...args: unknown[]): unknown =>
               `cssints: createTokens(): ${leaf.dotted} is a ${own}, and its alias {${ref}} is a ${t.dtcg}`,
             );
           r = { dtcg: t.dtcg, text: t.text, alias: target.dotted };
+        } else if (typeof leaf.value === "string" && leaf.value.includes("{")) {
+          // derived: references inside a CSS value. The initial value takes the targets' literals (an @property
+          // initial value cannot hold var()); the live value keeps var(), so a theme of a target reaches it.
+          if (own === undefined)
+            return yield* fail(
+              `cssints: createTokens(): ${leaf.dotted} is derived from other tokens and has no $type: give it one, or its group`,
+            );
+          const refs: string[] = [];
+          for (const [, ref] of leaf.value.matchAll(REF)) {
+            const target = byPath.get(ref!);
+            if (!target)
+              return yield* fail(
+                `cssints: createTokens(): ${leaf.dotted} refers to {${ref}}, and there is no token at ${ref}`,
+              );
+            const chain = [...stack, leaf.dotted];
+            if (chain.includes(target.dotted))
+              return yield* fail(
+                `cssints: createTokens(): aliases go round in a circle: ${[...chain.slice(chain.indexOf(target.dotted)), target.dotted].join(" -> ")}`,
+              );
+            yield* resolve(target, chain);
+            refs.push(target.dotted);
+          }
+          const text = leaf.value.replace(REF, (_, ref: string) => resolved.get(ref)!.text);
+          r = { dtcg: own, text, refs };
         } else {
           if (own === undefined)
             return yield* fail(
@@ -280,8 +309,19 @@ export const createTokens = (...args: unknown[]): unknown =>
         if (r.alias !== undefined) {
           const target = variable.get(r.alias)!;
           registry.defs.get(name)!.alias = target;
-          set.aliases.push({ name, target });
+          set.aliases.push({ name, targets: [target], css: `var(${target})` });
           live.push(`${name}:var(${target})`);
+        } else if (r.refs) {
+          const css = (l.value as string).replace(
+            REF,
+            (_, ref: string) => `var(${variable.get(ref)})`,
+          );
+          set.aliases.push({
+            name,
+            targets: [...new Set(r.refs.map((d) => variable.get(d)!))],
+            css,
+          });
+          live.push(`${name}:${css}`);
         }
         set.tokens.set(l.dotted, token);
         set.types.set(name, r.dtcg);
@@ -303,7 +343,7 @@ export const createTokens = (...args: unknown[]): unknown =>
           file,
           key: `0:${file}#${String(site).padStart(6, "0")}.${n}`,
           css: `:root{${live.join(";")}}`,
-          names: set.aliases.flatMap((a) => [a.name, a.target]),
+          names: set.aliases.flatMap((a) => [a.name, ...a.targets]),
         });
       }
       return root;
@@ -395,13 +435,13 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
       const stale = new Set(changed.keys());
       for (let grew = true; grew; )
         grew = set.aliases.some(
-          (a) => stale.has(a.target) && !stale.has(a.name) && !!stale.add(a.name),
+          (a) => a.targets.some((t) => stale.has(t)) && !stale.has(a.name) && !!stale.add(a.name),
         );
       const decls = [
         ...[...changed].map(([name, text]) => `${name}:${text}`),
         ...set.aliases
           .filter((a) => stale.has(a.name) && !changed.has(a.name))
-          .map((a) => `${a.name}:var(${a.target})`),
+          .map((a) => `${a.name}:${a.css}`),
       ];
       const n = registry.tokens++;
       registry.themed.set(`${at.file}#${at.site}.${n}`, {
