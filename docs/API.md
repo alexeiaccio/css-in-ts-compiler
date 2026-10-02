@@ -354,6 +354,38 @@ export const bad = smoothing("bold"); // error: not in the grammar
 - **Errors** are `MemberError` values (`Data.TaggedError`) with `pluginName` and the file, site and offset of the call, so the Vite overlay points at it.
 - **Not in 0.2:** `fn()` and `keyword` members, completions of keywords inside plugin grammar strings (the message still names the grammar), local syntax names in grammars, and a plugin that is a package of members you install (`cssints/frame`, `cssints/surface` and `@cssints/icons` come next, on these helpers).
 
+### Publishing a library (decided 2026-10-02, cssints-0l3f)
+
+A package written on cssints ships JavaScript that still has the attribute, and its `.d.ts`. The app that installs it evaluates the package with its own engine: one sheet, the app's browserslist and themes, and a token, a kernel or an `@property` of the package is made once however many modules use it. Nothing is declared: the engine recognises a file by `with { type: "cssints" }`, the same marker as in app code.
+
+```ts skip
+// src/index.ts of the library
+import { _cv } from "cssints";
+import { bg, cn, cv, hover, p } from "cssints" with { type: "cssints" };
+
+import { t } from "./tokens.ts" with { type: "cssints" };
+
+export { t };
+export const card = cn(p(4), bg(t.color.brand));
+export const button = _cv(cv({ base: cn(p(2), hover(bg("#1d4ed8"))) }));
+```
+
+```ts skip
+// in the app: the style is a class string, the token is imported with the attribute to be used or themed
+import { createGlobalTheme } from "cssints" with { type: "cssints" };
+import { button, card } from "my-ui";
+import { t } from "my-ui" with { type: "cssints" };
+
+createGlobalTheme(t, ".dark", { color: { brand: "#ef4444" } });
+```
+
+- **Build with tsdown** (`vp pack`), with `cssints` external and `dts: true`. tsdown keeps the import attributes, so there is no option to set. It also merges `import { _cv } from "cssints"` into the attributed import of the same module; the engine reads `cx` and `_cv` as runtime wherever they are written, so that is fine. Do not minify, bundle or transform the JS further with a tool that drops import attributes, and do not bundle `cssints` into it.
+- **Keep in the package:** `cssints` in `peerDependencies` (the app needs it to build; a library that imports it must list it), the JS with the attributes, the `.d.ts` (it types `cssints` members as class strings and tokens as tokens, so the app is checked across the boundary), and no `.css` file: the library has no sheet of its own.
+- **The app needs cssints and its plugin.** The package has no classes until the app's `cssints()` plugin has evaluated it, so an app without cssints cannot use it. Pre-compiled output (class strings plus a sheet fragment for apps without cssints) is not supported yet; it waits for a first user.
+- **The package must be a direct dependency of the app.** `cssints/vite` reads the `package.json` of the app and of each of its dependencies, and for a dependency that lists `cssints` it adds the package to `optimizeDeps.exclude` (the dev optimizer would pre-bundle it with esbuild and drop the attributes) and to `ssr.noExternal` (the engine's runner would otherwise load it as native Node, which does not know the attribute). This is a few file reads at startup, one per dependency, and nothing else. A package that is only a dependency of another package is not found; add it to the app's own dependencies (or to those two options).
+- **Dev and HMR.** The package's files go through the engine like app files, one evaluation per module, and are served as `/node_modules/…/index.js` with the classes replaced. They are never watched, so a package does not change during `vite dev`: restart the server after reinstalling it.
+- A file of a package that does not carry the attribute is never parsed by the engine.
+
 ### Browser support and what 0.1 does not have
 
 - **Types and checks for every property** are generated from [mdn-data](https://github.com/mdn/data) and @webref/css by `packages/css-grammar` (`bun run extract`), not written by hand, so a new property or function needs no change here. 536 members: 525 properties (every standard and experimental one, except the three shorthands above) and the 11 short names.

@@ -2,7 +2,8 @@
 //   node test/smoke/smoke.mjs        (bun run test:smoke; not part of `bun run test`: it builds, packs and runs npm install)
 // 1. build and npm-pack css-grammar and cssints; 2. write a new Vite 8 + React app in a temp dir ($SMOKE_TMP or the OS
 // temp dir); 3. npm install the tarballs; 4. plain `vite build` (not vite-plus): the CSS is there and the eval-time
-// code is not in the client bundle; 5. type-check with tsgo and tsc 5.9, and a wrong value must fail; 6. the type
+// code is not in the client bundle (and a library written on cssints, built by tsdown and installed from its own
+// tarball, is evaluated by the app's engine); 5. type-check with tsgo and tsc 5.9, and a wrong value must fail; 6. the type
 // benches of the repo against the installed dist (skipLibCheck) next to their budgets from the sources.
 // The compilers are the repo's (the app needs none to build); everything else comes from npm like a user's install.
 import { execFileSync } from "node:child_process";
@@ -14,6 +15,7 @@ import {
   readdirSync,
   readFileSync,
   statSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -26,6 +28,7 @@ const pkgs = {
   cssints: join(repo, "packages/cssints"),
 };
 const tsgo = join(repo, "node_modules/.bin/tsgo");
+const vp = join(repo, "node_modules/.bin/vp");
 const tsc59 = join(repo, "node_modules/typescript/bin/tsc");
 
 let failed = 0;
@@ -149,7 +152,7 @@ put(
         types: ["vite/client"],
       },
       include: ["src", "vite.config.ts"],
-      exclude: ["src/bad.ts"],
+      exclude: ["src/bad.ts", "src/bad-lib.ts"],
     },
     null,
     2,
@@ -203,14 +206,33 @@ export const ring = context({
 });
 `,
 );
+// the library's style, cv and token, and a theme of the token
+put(
+  "src/Lib.tsx",
+  `import { bg, cn, createGlobalTheme } from "cssints" with { type: "cssints" };
+import { button, card } from "cssints-fixture-ui";
+import { t } from "cssints-fixture-ui" with { type: "cssints" };
+
+createGlobalTheme(t, ".dark", { color: { brand: "#ef4444" } });
+const banner = cn(bg(t.color.brand));
+
+export const Lib = () => <div className={\`\${card} \${banner} \${button({ size: "lg" })}\`}>lib</div>;
+`,
+);
 put(
   "src/main.tsx",
   `import "virtual:cssints.css";
 import { createRoot } from "react-dom/client";
 
 import { Button } from "./Button.tsx";
+import { Lib } from "./Lib.tsx";
 
-createRoot(document.getElementById("root")!).render(<Button />);
+createRoot(document.getElementById("root")!).render(
+  <>
+    <Button />
+    <Lib />
+  </>,
+);
 `,
 );
 put(
@@ -218,6 +240,14 @@ put(
   `import { color } from "cssints" with { type: "cssints" };
 
 export const wrong = color("blu");
+`,
+);
+put(
+  "src/bad-lib.ts",
+  `import { createGlobalTheme } from "cssints" with { type: "cssints" };
+import { t } from "cssints-fixture-ui" with { type: "cssints" };
+
+createGlobalTheme(t, ".dark", { color: { nope: "red" } });
 `,
 );
 
@@ -241,6 +271,28 @@ const installed = JSON.parse(readFileSync(join(app, "node_modules/cssints/packag
 ok(
   !installed.private && installed.exports["."].default === "./dist/index.mjs",
   "installed manifest points at dist",
+);
+
+// 3b. a library written on cssints: built by tsdown against the installed cssints, packed, installed from its tarball
+const libDir = `${app}-ui`;
+cpSync(join(here, "../pkg/ui"), libDir, { recursive: true });
+mkdirSync(join(libDir, "node_modules"), { recursive: true });
+symlinkSync(join(app, "node_modules/cssints"), join(libDir, "node_modules/cssints"));
+run(vp, ["pack", "--no-config", "src/index.ts", "--dts", "--platform", "neutral"], libDir);
+run("npm", ["pack", "--pack-destination", join(app, "tarballs")], libDir);
+const uiTgz = join(app, "tarballs/cssints-fixture-ui-0.0.0.tgz");
+const uiFiles = run("tar", ["tzf", uiTgz], app).out.trim().split("\n");
+ok(
+  uiFiles.includes("package/dist/index.js") && uiFiles.includes("package/dist/index.d.ts"),
+  "the library tarball has its code and its .d.ts",
+  uiFiles.join("\n"),
+);
+run("npm", ["install", "--no-audit", "--no-fund", uiTgz], app);
+ok(
+  /from "cssints" with \{ type: "cssints" \}/.test(
+    readFileSync(join(app, "node_modules/cssints-fixture-ui/dist/index.js"), "utf8"),
+  ),
+  "tsdown kept the attributes in the library's JS",
 );
 
 // 4. plain vite build; the targets are set, so that the runtime of the plugin is needed (Firefox 128 has no style queries)
@@ -269,6 +321,16 @@ ok(
   css,
 );
 ok(
+  /#1d4ed8/i.test(css) && css.match(/@property --color-brand/g)?.length === 1,
+  "css: the library's cv and its token, once",
+  css,
+);
+ok(
+  /\.dark\s*\{[^}]*--color-brand:\s*#ef4444/.test(css),
+  "css: the app's theme of the library's token",
+  css,
+);
+ok(
   css.includes("data-cssints-poly"),
   "css: the fallback of the plugin's runtime (a target lacks the feature)",
 );
@@ -278,7 +340,7 @@ const maps = js
   .filter((f) => existsSync(join(app, "dist/assets", `${f}.map`)))
   .flatMap((f) => JSON.parse(readFileSync(join(app, "dist/assets", `${f}.map`), "utf8")).sources);
 const bundled = maps.filter((s) =>
-  /node_modules\/(cssints|@cssints|effect|culori|lightningcss|oxc-|magic-string|happy-dom|@mdn|browserslist|mdn-data)/.test(
+  /node_modules\/(cssints|@cssints|effect|culori|lightningcss|oxc-|magic-string|happy-dom|@mdn|browserslist|mdn-data)\//.test(
     s,
   ),
 );
@@ -297,6 +359,11 @@ ok(
   bundled.some((s) => s.endsWith("cssints/dist/parent-vars.mjs")) &&
     source.includes("transitionrun"),
   "the plugin's runtime is in the bundle (the shared parent-vars engine)",
+);
+ok(
+  maps.some((s) => s.includes("cssints-fixture-ui/dist/index.js")) &&
+    !source.includes("createTokens"),
+  "the library's module is in the bundle, compiled (no build-time call left)",
 );
 for (const marker of [
   "MacroError",
@@ -339,6 +406,26 @@ for (const [name, cmd, noConfig] of checkers) {
     true,
   );
   ok(wrong.code !== 0 && /blu/.test(wrong.out), `${name}: color("blu") is a type error`, wrong.out);
+  const across = run(
+    bin,
+    [
+      ...pre,
+      ...noConfig,
+      "--noEmit",
+      "--strict",
+      "--module",
+      "preserve",
+      "--skipLibCheck",
+      "src/bad-lib.ts",
+    ],
+    app,
+    true,
+  );
+  ok(
+    across.code !== 0 && /nope/.test(across.out),
+    `${name}: a wrong token path of the library's token is a type error`,
+    across.out,
+  );
   const lib = run(bin, [...pre, "-p", "tsconfig.json", "--skipLibCheck", "false"], app, true);
   // effect's own declarations (a beta) do not check without skipLibCheck; ours must
   const ours = lib.out.split("\n").filter((l) => /node_modules\/(cssints|@cssints)\//.test(l));

@@ -28,13 +28,17 @@ rmSync(tmp, { recursive: true, force: true });
 mkdirSync(join(lib, "node_modules"), { recursive: true });
 cpSync(join(here, "pkg/ui"), lib, { recursive: true });
 symlinkSync(join(here, ".."), join(lib, "node_modules/cssints"));
-execFileSync(join(here, "../../../node_modules/.bin/vp"), ["pack"], { cwd: lib, stdio: "pipe" });
+execFileSync(
+  join(here, "../../../node_modules/.bin/vp"),
+  ["pack", "--no-config", "src/index.ts", "--dts", "--platform", "neutral"],
+  { cwd: lib, stdio: "pipe" },
+);
 
 // What tsdown emitted: the attributes kept, `cssints` external, the declarations next to the code.
-const dist = readFileSync(join(lib, "dist/index.mjs"), "utf8");
+const dist = readFileSync(join(lib, "dist/index.js"), "utf8");
 assert.match(dist, /from "cssints" with \{ type: "cssints" \}/, dist);
 assert.ok(!dist.includes("node_modules"), "cssints is not bundled");
-assert.ok(existsSync(join(lib, "dist/index.d.mts")), "the .d.ts is emitted");
+assert.ok(existsSync(join(lib, "dist/index.d.ts")), "the .d.ts is emitted");
 
 // An app that installs it, uses its style, its cv and its token, and themes the token.
 const put = (file, text) => {
@@ -94,7 +98,7 @@ await server.listen();
 const base = server.resolvedUrls.local[0];
 const get = async (path) => (await fetch(new URL(path, base))).text();
 const main = await get("/main.ts");
-const ui = await get(`/node_modules/${pkgName}/dist/index.mjs`);
+const ui = await get(`/node_modules/${pkgName}/dist/index.js`);
 assert.ok(!/createTokens|\bcv\(|type: "cssints"/.test(ui), `the package is compiled:\n${ui}`);
 const classes = [...classesIn(ui), ...classesIn(main)];
 assert.ok(classes.length >= 4, ui);

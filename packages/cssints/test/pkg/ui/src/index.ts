@@ -9,7 +9,7 @@ export const card = cn(p(4), bg(t.color.brand), color(t.color.ink));
 
 export const button = _cv(
   cv({
-    base: cn(p(2), hover(bg("#2563eb"))),
+    base: cn(p(2), hover(bg("#1d4ed8"))),
     variants: { size: { lg: p(6) } },
     defaultVariants: { size: "lg" },
   }),
