@@ -1,0 +1,72 @@
+s1  later   engine:ab--   min:ab--      mdn:ab--      truth:ab--    where:ab--    sublayers:ab--color twice
+s2  later   engine:--ba   min:--ba      mdn:--ba      truth:--ba    where:--ba    sublayers:--bahover color twice
+s3  later   engine:ab--   min:ab--      mdn:ab--      truth:ab--    where:ab--    sublayers:ab--color twice, two modules
+b1  later   engine:ab--   min:ab--      mdn:ab--      truth:ab--    where:ab--    sublayers:ab--border / border-inline
+b2  later   engine:ab--   min:ab--      mdn:ab--      truth:--ba    where:--ba    sublayers:--baborder-color / border-inline
+b3  later   engine:ab--   min:ab--      mdn:ab--      truth:ab--    where:ab--    sublayers:ab--border-color / border-inline-start-color
+b4  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbaborder-inline / border-inline-start-color
+b5  contain engine:----   min:----      mdn:----      truth:abba    where:abba    sublayers:----border-inline / border-inline-start
+b6  contain engine:----   min:----      mdn:----      truth:abba    where:abba    sublayers:----border-inline-color / border-inline-start-color
+b7  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbaborder / border-color
+b8  later   engine:ab--   min:ab--      mdn:ab--      truth:ab--    where:ab--    sublayers:ab--border / border-inline-start-color
+b9  contain engine:----   min:----      mdn:----      truth:abba    where:abba    sublayers:----border-block / border-block-start
+b10 contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbaborder-block / border-block-end
+b11 later   engine:----   min:----      mdn:----      truth:ab--    where:ab--    sublayers:ab--border, border-inline, border-color, border-inline-start-color
+b12 later   engine:--ba   min:--ba      mdn:--ba      truth:--ba    where:--ba    sublayers:ab--border-top / border-color
+w1  later   engine:--ba   min:--ba      mdn:--ba      truth:--ba    where:--ba    sublayers:--bawhite-space / text-wrap
+i1  later   engine:ab--   min:ab--      mdn:ab--      truth:ab--    where:ab--    sublayers:--bainset / inset-block
+i2  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbainset / top
+i3  later   engine:ab--   min:ab--      mdn:ab--      truth:ab--    where:ab--    sublayers:ab--inset-block / top
+i4  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbainset-block / inset-block-start
+i5  later   engine:ab--   min:ab--      mdn:ab--      truth:ab--    where:ab--    sublayers:--bainset, inset-block, top
+m1  later   engine:ab--   min:ab--      mdn:ab--      truth:ab--    where:ab--    sublayers:--bamargin / margin-inline
+m2  later   engine:ab--   min:ab--      mdn:ab--      truth:ab--    where:ab--    sublayers:ab--margin-inline / margin-left
+m3  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbamargin / margin-left
+m4  later   engine:ab--   min:ab--      mdn:ab--      truth:ab--    where:ab--    sublayers:ab--margin / margin-inline-start
+m5  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbamargin-inline / margin-inline-start
+m6  later   engine:ab--   min:ab--      mdn:ab--      truth:ab--    where:ab--    sublayers:ab--margin-left / margin-inline-start
+m7  later   engine:ab--   min:ab--      mdn:ab--      truth:ab--    where:ab--    sublayers:--bamargin, margin-inline, margin-left
+g1  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbagrid-area / grid-row
+g2  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbagrid-row / grid-row-start
+g3  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbagrid-area / grid-row-start
+g4  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbagrid-area, grid-row, grid-row-start
+g5  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbagrid / grid-template
+f1  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbafont / font-variant
+f2  contain engine:----   min:----      mdn:----      truth:abba    where:abba    sublayers:----font-variant / font-variant-caps
+f3  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbafont / font-variant-caps
+f4  contain engine:----   min:----      mdn:----      truth:abba    where:abba    sublayers:----font, font-variant, font-variant-caps
+k1  later   engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbamask / mask-border
+k2  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbamask / mask-image
+t1  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbatext-decoration / text-decoration-line
+t2  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbatext-decoration / -line / -color
+p1  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbaplace-items / align-items
+p2  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbaplace-items / justify-items
+o1  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbaoverflow / overflow-x
+o2  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbaoverflow / overflow-y
+a1  contain engine:----   min:----      mdn:----      truth:abba    where:abba    sublayers:abbaall / padding
+a2  contain engine:----   min:----      mdn:----      truth:abba    where:abba    sublayers:abbaall / color
+a3  contain engine:----   min:----      mdn:----      truth:abba    where:abba    sublayers:abbaall / border
+a4  contain engine:----   min:----      mdn:----      truth:abba    where:abba    sublayers:abbaall / border-top-width
+a5  contain engine:----   min:----      mdn:----      truth:abba    where:abba    sublayers:abbaall / font-size
+c1  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbacontainer-type / container-name (no shorthand)
+h1  layer   engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbahover(p) / pl
+h2  layer   engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbahover(pl) / p
+h3  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbahover(p) / hover(pl)
+h4  cond    engine:abba   min:abba      mdn:abba      truth:abba    where:----    sublayers:abbamd(p) / hover(pl)
+            engine:----   min:----      mdn:----      truth:----    where:abba    sublayers:----(by condition order)
+h5  cond    engine:----   min:----      mdn:----      truth:----    where:abba    sublayers:abbahover(p) / md(pl)
+h8  cond    engine:----   min:----      mdn:----      truth:----    where:----    sublayers:abbafocus(p) / hover(pl)
+            engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:----(by condition order)
+h9  cond    engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbahover(p) / focus(pl)
+h6  layer   engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbamd(hover(p)) / md(pl)
+h7  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbamd(p) / md(pl)
+h10 cond    engine:ab--   min:ab--      mdn:ab--      truth:ab--    where:--ba    sublayers:ab--md(color) / hover(color)
+            engine:----   min:----      mdn:----      truth:----    where:abba    sublayers:----(by condition order)
+h11 cond    engine:----   min:----      mdn:----      truth:----    where:----    sublayers:abbamd(pl) / lg(p)
+            engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:----(by condition order)
+h12 cond    engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbalg(pl) / md(p)
+x1  contain engine:abba   min:abba      mdn:abba      truth:abba    where:abba    sublayers:abbap in one module, pl in another
+x2  contain engine:----   min:----      mdn:----      truth:abba    where:abba    sublayers:----border-inline in one module, border-inline-start in another
+x3  contain engine:----   min:----      mdn:----      truth:abba    where:abba    sublayers:abbaall in one module, color in another
+
+sheet independent of module order: true; container shorthand: not a property: @container: unexpected "/" in "inline-size / side", expected <container-query> | end of query

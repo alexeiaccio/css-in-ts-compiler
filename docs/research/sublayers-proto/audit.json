@@ -7,6 +7,7 @@
   "sortWrong": 79,
   "sortTieHashDecides": 454,
   "tieOutcomeRightShare": 0.493,
+  "webrefCountWrongOrTie": 2,
   "depthSublayersWrongOrTie": 41,
   "partialOverlapPairs": 34
  },
@@ -2146,6 +2147,16 @@
    "white-space-collapse"
   ]
  ],
+ "webrefBad": [
+  [
+   "text-box",
+   "text-box-edge"
+  ],
+  [
+   "text-box",
+   "text-box-trim"
+  ]
+ ],
  "depthTie": [
   [
    "animation",
@@ -2392,6 +2403,144 @@
    "white-space-collapse",
    0,
    0
+  ]
+ ],
+ "partialList": [
+  [
+   "border-block-color",
+   "border-block-end"
+  ],
+  [
+   "border-block-color",
+   "border-block-start"
+  ],
+  [
+   "border-block-end",
+   "border-block-style"
+  ],
+  [
+   "border-block-end",
+   "border-block-width"
+  ],
+  [
+   "border-block-start",
+   "border-block-style"
+  ],
+  [
+   "border-block-start",
+   "border-block-width"
+  ],
+  [
+   "border-bottom",
+   "border-color"
+  ],
+  [
+   "border-bottom",
+   "border-style"
+  ],
+  [
+   "border-bottom",
+   "border-width"
+  ],
+  [
+   "border-color",
+   "border-left"
+  ],
+  [
+   "border-color",
+   "border-right"
+  ],
+  [
+   "border-color",
+   "border-top"
+  ],
+  [
+   "border-inline-color",
+   "border-inline-end"
+  ],
+  [
+   "border-inline-color",
+   "border-inline-start"
+  ],
+  [
+   "border-inline-end",
+   "border-inline-style"
+  ],
+  [
+   "border-inline-end",
+   "border-inline-width"
+  ],
+  [
+   "border-inline-start",
+   "border-inline-style"
+  ],
+  [
+   "border-inline-start",
+   "border-inline-width"
+  ],
+  [
+   "border-left",
+   "border-style"
+  ],
+  [
+   "border-left",
+   "border-width"
+  ],
+  [
+   "border-right",
+   "border-style"
+  ],
+  [
+   "border-right",
+   "border-width"
+  ],
+  [
+   "border-style",
+   "border-top"
+  ],
+  [
+   "border-top",
+   "border-width"
+  ],
+  [
+   "corner-block-end-shape",
+   "corner-inline-end-shape"
+  ],
+  [
+   "corner-block-end-shape",
+   "corner-inline-start-shape"
+  ],
+  [
+   "corner-block-start-shape",
+   "corner-inline-end-shape"
+  ],
+  [
+   "corner-block-start-shape",
+   "corner-inline-start-shape"
+  ],
+  [
+   "corner-bottom-shape",
+   "corner-left-shape"
+  ],
+  [
+   "corner-bottom-shape",
+   "corner-right-shape"
+  ],
+  [
+   "corner-left-shape",
+   "corner-top-shape"
+  ],
+  [
+   "corner-right-shape",
+   "corner-top-shape"
+  ],
+  [
+   "overflow-wrap",
+   "word-wrap"
+  ],
+  [
+   "text-wrap",
+   "white-space"
   ]
  ],
  "unsupported": [

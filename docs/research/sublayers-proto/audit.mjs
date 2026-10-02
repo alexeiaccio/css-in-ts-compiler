@@ -8,7 +8,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { ALL_DEPTH, depth, here, launch, pkg, truthOf } from "./lib.mjs";
+import { ALL_DEPTH, depth, here, launch, pkg, truthOf, webrefLeaves } from "./lib.mjs";
 
 const { hashClass, PROPS } = await import(pathToFileURL(join(pkg, "src/lib.ts")).href);
 const { renderSheet } = await import(pathToFileURL(join(pkg, "src/plugin.ts")).href);
@@ -52,8 +52,12 @@ const contains = (a, b) => {
 const wrong = [];
 const tie = [];
 const depthTie = [];
+const webrefBad = [];
+// the comparator on the leaves of the spec data instead of mdn-data's `computed`
+const webrefWidth = (p) => (p === "all" ? truth.all.length : new Set(webrefLeaves(p)).size);
 let pairs = 0;
 let partial = 0;
+const partialList = [];
 for (const a of known)
   for (const b of known) {
     if (a === b) continue;
@@ -63,12 +67,16 @@ for (const a of known)
       const ok2 = desc.get(a) < desc.get(b);
       if (!ok1 && !ok2) wrong.push([a, b]);
       else if (ok1 !== ok2) tie.push([a, b]);
+      if (webrefWidth(a) <= webrefWidth(b)) webrefBad.push([a, b]);
       const da = a === "all" ? ALL_DEPTH : depth(a);
       const db = b === "all" ? ALL_DEPTH : depth(b);
       if (da <= db) depthTie.push([a, b, da, db]);
     } else if (a < b) {
       const A = new Set(truth[a]);
-      if (truth[b].some((l) => A.has(l)) && !contains(b, a)) partial++;
+      if (truth[b].some((l) => A.has(l)) && !contains(b, a)) {
+        partial++;
+        partialList.push([a, b]);
+      }
     }
   }
 
@@ -99,6 +107,7 @@ const summary = {
   sortWrong: wrong.length,
   sortTieHashDecides: tie.length,
   tieOutcomeRightShare: tiedTotal ? +(tiedRight / tiedTotal).toFixed(3) : null,
+  webrefCountWrongOrTie: webrefBad.length,
   depthSublayersWrongOrTie: depthTie.length,
   partialOverlapPairs: partial,
 };
@@ -109,10 +118,12 @@ console.log(
 console.log(group(wrong).join("\n") || "(none)");
 console.log("\nTies decided by the class hash:");
 console.log(group(tie).join("\n") || "(none)");
+console.log("\nCount of the spec leaves (@webref/css) would still get wrong or tie:");
+console.log(group(webrefBad).join("\n") || "(none)");
 console.log("\nDepth sublayers: container not strictly above the contained (depth tie):");
 console.log(group(depthTie.map(([a, b]) => [a, b])).join("\n") || "(none)");
 writeFileSync(
   join(here, "audit.json"),
-  `${JSON.stringify({ summary, wrong, tie, depthTie, unsupported }, null, 1)}\n`,
+  `${JSON.stringify({ summary, wrong, tie, webrefBad, depthTie, partialList, unsupported }, null, 1)}\n`,
 );
 process.exit(0);

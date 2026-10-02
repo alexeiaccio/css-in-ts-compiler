@@ -9,7 +9,8 @@
 //            so the order that puts the other one last must fail unless the sheet knows the argument order
 //   layer    a condition is involved: conditional rules outrank unconditional ones (the layer is the number of
 //            conditions); inside that, as above
-//   cond     two different conditions in one layer: the intent is the containment rule, the sheet orders by condition first
+//   cond     two different conditions in one layer: oracle A says the containment rule, oracle B the order the sheet gives
+//            conditions (narrow breakpoint first, then pseudo-classes by rank); both are checked, see run.mjs
 export const cases = [
   // Control: the same property twice.
   {
@@ -141,6 +142,25 @@ export const cases = [
       { m: "borderInline", v: "3px dashed blue" },
       { m: "borderColor", v: "green" },
       { m: "borderInlineStartColor", v: "orange" },
+    ],
+  },
+
+  {
+    id: "b12",
+    kind: "later",
+    title: "border-top / border-color",
+    items: [
+      { m: "borderTop", v: "3px dashed blue" },
+      { m: "borderColor", v: "green" },
+    ],
+  },
+  {
+    id: "w1",
+    kind: "later",
+    title: "white-space / text-wrap",
+    items: [
+      { m: "whiteSpace", v: "pre" },
+      { m: "textWrap", v: "balance" },
     ],
   },
 
@@ -563,6 +583,34 @@ export const cases = [
     items: [
       { m: "p", v: "1rem", w: ["md"] },
       { m: "pl", v: "2rem", w: ["md"] },
+    ],
+  },
+
+  {
+    id: "h10",
+    kind: "cond",
+    title: "md(color) / hover(color)",
+    items: [
+      { m: "color", v: "red", w: ["md"] },
+      { m: "color", v: "blue", w: ["hover"] },
+    ],
+  },
+  {
+    id: "h11",
+    kind: "cond",
+    title: "md(pl) / lg(p)",
+    items: [
+      { m: "pl", v: "0.5rem", w: ["md"] },
+      { m: "p", v: "1rem", w: ["lg"] },
+    ],
+  },
+  {
+    id: "h12",
+    kind: "cond",
+    title: "lg(pl) / md(p)",
+    items: [
+      { m: "pl", v: "0.5rem", w: ["lg"] },
+      { m: "p", v: "1rem", w: ["md"] },
     ],
   },
 

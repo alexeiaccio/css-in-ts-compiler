@@ -1,0 +1,14 @@
+{
+  demoRules: 138,
+  demoBuildBytes: 8204,
+  maxDepth: 2,
+  sublayersDeclaredPerConditionLayer: 4,
+  layersDeclaredWithSublayers: 21,
+  layersDeclaredToday: 6,
+  populatedSublayers: 6,
+  populated: [ '_.a.d0', '_.a.d1', '_.a.d2', '_.b.d0', '_.b.d1', '_.c.d0' ],
+  bytesSorted: 4889,
+  bytesSublayers: 5110,
+  layerBlocksSorted: 3,
+  layerBlocksSublayers: 6
+}

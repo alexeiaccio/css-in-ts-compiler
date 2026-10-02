@@ -40,6 +40,18 @@ export const truthOf = async (page, props) => {
   return out;
 };
 
+// The same from the spec data (@webref/css: `longhands`, and `resetLonghands` for what a shorthand resets without setting).
+const WEB = new Map(
+  createRequire(join(repo, "packages/css-grammar/package.json"))(
+    "@webref/css/css.json",
+  ).properties.map((p) => [p.name, p]),
+);
+export const webrefLeaves = (p) => {
+  const e = WEB.get(p);
+  const kids = [...(e?.longhands ?? []), ...(e?.resetLonghands ?? [])];
+  return kids.length ? kids.flatMap(webrefLeaves) : [p];
+};
+
 // The leaves and the nesting depth of a property by mdn-data `computed`: what sheet.ts counts (leaves) and what a
 // sublayer scheme would use (depth: a longhand 0, a shorthand 1 + its deepest member, `all` above everything).
 export const leaves = (p) => {
@@ -56,6 +68,7 @@ export const ALL_DEPTH = 1 + Math.max(...Object.keys(MDN).map(depth));
 // rendered here, one block per rule, which is the same cascade as the merged blocks of sheet.ts.
 //   mdn         sheet.ts's comparator rebuilt here (a check that this renderer agrees with the real one)
 //   truth       count of the leaves Chrome expands a property to (`all` included)
+//   where       truth, and pseudo-classes inside :where(), so every class rule has the specificity of one class
 //   sublayers   no shorthand order inside a layer; each layer L splits into L.d<depth>, deepest shorthand first
 export const sheetOf = (rules, how, truth) => {
   const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -65,6 +78,7 @@ export const sheetOf = (rules, how, truth) => {
   const width = {
     mdn: (p) => new Set(leaves(p)).size,
     truth: (p) => truth[p]?.length ?? 1,
+    where: (p) => truth[p]?.length ?? 1,
     sublayers: () => 0,
   }[how];
   const all = [...rules].map(([cls, r]) => ({ cls, ...r }));
@@ -90,7 +104,8 @@ export const sheetOf = (rules, how, truth) => {
   const body = all
     .map((r) => {
       const open = r.wrap.map((w) => `${w}{`).join("");
-      return `@layer ${layerOf(r)}{${open}${r.css}${"}".repeat(r.wrap.length)}}`;
+      const css = how === "where" ? r.css.replace(/^(\.[\w-]+)(:[^{]+)\{/, "$1:where($2){") : r.css;
+      return `@layer ${layerOf(r)}{${open}${css}${"}".repeat(r.wrap.length)}}`;
     })
     .join("\n");
   return `@layer ${statement.join(", ")};\n${body}\n`;

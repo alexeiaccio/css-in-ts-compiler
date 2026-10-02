@@ -1,0 +1,54 @@
+{
+  chrome: '154.0.8037.93',
+  properties: 532,
+  unsupportedInChrome: 29,
+  containingPairs: 823,
+  sortWrong: 79,
+  sortTieHashDecides: 454,
+  tieOutcomeRightShare: 0.493,
+  webrefCountWrongOrTie: 2,
+  depthSublayersWrongOrTie: 41,
+  partialOverlapPairs: 34
+}
+
+sort puts the contained property after the container's... wrong in both class orders:
+all > -webkit-text-stroke, animation, animation-range, background, background-position, border, … (76)
+border-block > border-block-start
+border-inline > border-inline-end, border-inline-start
+
+Ties decided by the class hash:
+all > -webkit-box-reflect, -webkit-line-clamp, -webkit-tap-highlight-color, -webkit-text-fill-color, -webkit-text-stroke-color, -webkit-text-stroke-width, … (424)
+border-block > border-block-end
+border-block-color > border-block-end-color, border-block-start-color
+border-block-style > border-block-end-style, border-block-start-style
+border-block-width > border-block-end-width, border-block-start-width
+border-inline-color > border-inline-end-color, border-inline-start-color
+border-inline-style > border-inline-end-style, border-inline-start-style
+border-inline-width > border-inline-end-width, border-inline-start-width
+font-synthesis > font-synthesis-small-caps, font-synthesis-style, font-synthesis-weight
+font-variant > font-variant-alternates, font-variant-caps, font-variant-east-asian, font-variant-emoji, font-variant-ligatures, font-variant-numeric, … (7)
+marker > marker-end, marker-mid, marker-start
+text-box > text-box-edge, text-box-trim
+white-space > text-wrap-mode, white-space-collapse
+
+Count of the spec leaves (@webref/css) would still get wrong or tie:
+text-box > text-box-edge, text-box-trim
+
+Depth sublayers: container not strictly above the contained (depth tie):
+animation > animation-range
+border-block > border-block-end, border-block-start
+border-block-color > border-block-end-color, border-block-start-color
+border-block-style > border-block-end-style, border-block-start-style
+border-block-width > border-block-end-width, border-block-start-width
+border-inline > border-inline-end, border-inline-start
+border-inline-color > border-inline-end-color, border-inline-start-color
+border-inline-style > border-inline-end-style, border-inline-start-style
+border-inline-width > border-inline-end-width, border-inline-start-width
+corner-shape > corner-bottom-shape, corner-left-shape, corner-right-shape, corner-top-shape
+font-synthesis > font-synthesis-small-caps, font-synthesis-style, font-synthesis-weight
+font-variant > font-variant-alternates, font-variant-caps, font-variant-east-asian, font-variant-emoji, font-variant-ligatures, font-variant-numeric, … (7)
+grid > grid-template
+grid-area > grid-column, grid-row
+marker > marker-end, marker-mid, marker-start
+text-box > text-box-edge, text-box-trim
+white-space > text-wrap-mode, white-space-collapse
