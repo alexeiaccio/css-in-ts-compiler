@@ -61,14 +61,15 @@ export interface Property {
   gen: number;
 }
 
-/** What a token is worth, by variable name: its literal (an alias: the flattened one), and the alias it stays live as. */
+/** What a token is worth, by variable name: its literal (an alias or a derived token: the flattened one), and what it stays live as. */
 export interface TokenDef {
   kind: TokenType;
   /** `color.bg` for a token of createTokens, else the variable. */
   path: string;
   value: string;
-  /** The variable of the token this one is an alias of. */
-  alias?: string;
+  /** An alias or a derived token: its value with `var(--target)` for each reference, and the variables it refers to. */
+  template?: string;
+  refs?: string[];
 }
 
 /**
