@@ -206,6 +206,53 @@ The sheet of the shell has 62 `@property` rules (the tokens its classes use and 
 later use more). `--color-accent-hover` is `oklch(0.58 0.182 var(--hue-accent))`
 on `:root` and `oklch(0.697 0.177 var(--hue-accent))` in `.dim`, `.dark` and the dark media query.
 
+## Appearance settings (cssints-1kob)
+
+`/settings` (a nav item with a gear, not the right rail: the rail is hidden under 1100 px and the panel needs a phone) holds
+four controls over `src/settings.ts`: the hue slider (an integer from -180 to 180, the shift from 345; `--hue-accent` =
+`(345 + shift + 360) % 360`) with four swatches (`accent`, `hover`, `strong`, `soft`, drawn from the tokens), the mode
+(`system`, `light`, `dim`, `dark`) and Witchsky's two flags, square buttons and square avatars. They default to round, as
+Mu is (Witchsky defaults to square). The store is one JSON value under `sky.settings`; a field that is missing or invalid
+(a hue of 181 or 1.5, an unknown mode, a flag that is not `true`) takes its default and keeps the others, and a blocked
+storage means defaults. `apply()` writes the mode and the flags as classes on `<html>` and the hue as its custom property.
+
+- **Before the first paint**: `index.html` has a 10-line inline script, the same rules as `parse()` and `apply()`, in `<head>`
+  before the app's module. `base.css` gives `html` `background: var(--color-bg)`, so the first frame has the page colour
+  before Solid draws anything. `test/settings.mjs` runs that script in `node:vm` against 26 stored values and compares it with
+  `apply()`; `test/browser.mjs` reads `<html>` at the first animation frames while the app's script is held back for 600 ms
+  (with the inline script cut out, the first frame is white and pink: the check can fail).
+- **Radii**: `radius.button`, `radius.avatar` and `radius.avatarSmall` are 999 px; `.square-buttons` sets `button` to
+  `{radius.sm}` (8) and `.square-avatars` sets `avatar` to `{radius.sm}` and `avatarSmall` to 3 px. The side navigation reads
+  `radius.button`; the screens that draw avatars read `radius.avatar` (over 32 px) and `radius.avatarSmall`. The preview on
+  the settings page is a `frame().radius(t.radius.button).padding(1)` with a `frame().padding(3)` inside: the inner radius is the
+  outer one less 4 px, so it goes 995 → 4 px as the flag turns on (read in Chrome).
+- **Contrast coverage.** `check.contrast` reads the default values and every theme that sets a token a check depends on. The
+  slider is a run-time value, so no theme holds it and the build checks the accent pairs at the default hue only (`theme.ts`,
+  in light, dim, dark and the dark media query): text, `textMedium` on the three backgrounds, `textHigh` on `bgMuted`, `accent` and
+  `link` on `bg` at 3, `onAccent` on `accent` at 3, `accentStrong` on `accentSoft` at 4.5. The square flags set radii only, so
+  they have no colour to check. Putting a theme per hue into the build does not work: a check applies to every theme that
+  touches its tokens, so a theme at hue 190 would be held to the thresholds of the default hue, and the sheet would carry the
+  themes. `test/contrast.mjs` therefore reads the pairs at all 361 slider positions in each mode with the engine's own maths
+  (`color.ts`) and holds the worst case to a floor, both ways (it fails under the floor and when the floor is more than 0.1 under
+  the worst). The worst hue is inside the range, not at its ends (slider -155 for light, -114 for the soft pair in dark), so
+  checking the two extremes as themes would miss it.
+
+| Pair (worst over the slider)   | light             | dim               | dark              |
+| ------------------------------ | ----------------- | ----------------- | ----------------- |
+| `accent` on `bg`               | 2.76 (at -155)    | 4.59 (at 4)       | 5.54 (at 4)       |
+| `link` on `bg`                 | 2.76 (at -155)    | 5.90 (at 6)       | 7.12 (at 6)       |
+| `onAccent` on `accent`         | 2.76 (at -155)    | 2.76 (at -155)    | 2.76 (at -155)    |
+| `accentStrong` on `accentSoft` | 3.69 (at -154)    | 4.90 (at -114)    | 4.90 (at -114)    |
+
+Body text is in `text`, which has no hue, so the floors concern the accent only: pink holds 3.79 on white, and a cyan-green hue
+(about 190) is the worst case at 2.76, below WCAG's 3 for large text and icons; `accentStrong` on `accentSoft`, the note in the
+rail, is 3.69 there, below the 4.5 of small text. Mu's lightness steps are fixed for pink; keeping 3 and 4.5 at every hue would
+take a lightness that depends on the hue (a second token set per hue range), which is not in this version. What the check cannot
+cover: the number is Chrome's own to within 0.01 (a canvas pixel of `oklch(0.637 0.203 190)` gives 2.76 as the engine does) on
+an sRGB screen, but a colour outside sRGB is clipped by the check, and a wide-gamut display shows it more saturated, so the real
+ratio there is not the one measured; and a value of `--hue-accent` that is not an integer from the slider (set by hand) is not
+covered.
+
 ## Not covered
 
 - Gradients, shadows (a `boxShadow` composite is not a token type; `color.shadow` holds the colour), the 13-step ramps as

@@ -21,7 +21,7 @@ export const defaults: Settings = {
   squareAvatars: false,
 };
 
-/** Reads stored JSON; each field that is missing or invalid takes its default, the others are kept. */
+// Reads stored JSON; each field that is missing or invalid takes its default, the others are kept.
 export function parse(raw: string | null): Settings {
   let o: Partial<Record<keyof Settings, unknown>> = {};
   try {
@@ -41,7 +41,7 @@ export function parse(raw: string | null): Settings {
   };
 }
 
-/** The stored settings, or the defaults (also where storage is blocked). */
+// The stored settings, or the defaults (also where storage is blocked).
 export function load(): Settings {
   try {
     return parse(localStorage.getItem(KEY));
@@ -50,7 +50,7 @@ export function load(): Settings {
   }
 }
 
-/** Stores the settings; a blocked storage keeps them for the session only. */
+// Stores the settings; a blocked storage keeps them for the session only.
 export function save(s: Settings): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(s));
@@ -59,10 +59,10 @@ export function save(s: Settings): void {
   }
 }
 
-/** The CSS hue of a slider position. */
+// The CSS hue of a slider position.
 export const hueOf = (shift: number): number => (BASE_HUE + shift + 360) % 360;
 
-/** Puts the settings on <html>: theme classes and the one custom property the accent colours derive from. */
+// Puts the settings on <html>: theme classes and the one custom property the accent colours derive from.
 export function apply(
   s: Settings,
   root: Pick<HTMLElement, "classList" | "style"> = document.documentElement,

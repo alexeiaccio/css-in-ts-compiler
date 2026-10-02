@@ -36,18 +36,18 @@ const lum = (text) => {
   return r.lum;
 };
 
-// [foreground, background, floor per mode]: the lowest ratio over the slider, cut to 0.1. A floor that is lower than
+// foreground, background and the floor per mode: the lowest ratio over the slider, cut to 0.1. A floor that is lower than
 // what a mode reaches is a change nobody meant: the test holds both sides (the ratio never goes under it, and the worst
 // hue is within 0.1 above it).
 const pairs = [
-  ["accent", "bg", { light: 2.7, dim: 4.5, dark: 5.5 }],
-  ["link", "bg", { light: 2.7, dim: 5.8, dark: 7.1 }],
-  ["onAccent", "accent", { light: 2.7, dim: 2.7, dark: 2.7 }],
-  ["accentStrong", "accentSoft", { light: 3.6, dim: 4.8, dark: 4.8 }],
+  { fg: "accent", bg: "bg", floors: { light: 2.7, dim: 4.5, dark: 5.5 } },
+  { fg: "link", bg: "bg", floors: { light: 2.7, dim: 5.8, dark: 7.1 } },
+  { fg: "onAccent", bg: "accent", floors: { light: 2.7, dim: 2.7, dark: 2.7 } },
+  { fg: "accentStrong", bg: "accentSoft", floors: { light: 3.6, dim: 4.8, dark: 4.8 } },
 ];
 const modes = { light, dim, dark };
 const rows = [];
-for (const [fg, bg, floors] of pairs)
+for (const { fg, bg, floors } of pairs)
   for (const [mode, over] of Object.entries(modes)) {
     let worst = { r: Infinity, shift: 0 };
     for (let shift = -180; shift <= 180; shift++) {

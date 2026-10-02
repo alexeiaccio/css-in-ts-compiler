@@ -1,4 +1,22 @@
-import * as css from "cssints" with { type: "cssints" };
+import {
+  accentColor,
+  bg,
+  border,
+  borderBottom,
+  borderRadius,
+  cn,
+  color,
+  display,
+  flex,
+  flexGrow,
+  fontSize,
+  fontWeight,
+  height,
+  margin,
+  marginBottom,
+  padding,
+  width,
+} from "cssints" with { type: "cssints" };
 import { frame } from "cssints/frame" with { type: "cssints" };
 import { createSignal } from "solid-js";
 
@@ -6,69 +24,61 @@ import { Header } from "../Shell.tsx";
 import { apply, load, MODES, save, type Settings } from "../settings.ts";
 import { t } from "../theme.ts" with { type: "cssints" };
 
-const section = css.cn(
-  css.flex().direction("column").gap(3),
-  css.padding(t.gutter.base),
-  css.borderBottom(t.border.width, "solid", t.color.border),
-  css.margin("0"),
+const section = cn(
+  flex().direction("column").gap(3),
+  padding(t.gutter.base),
+  borderBottom(t.border.width, "solid", t.color.border),
+  margin("0"),
 );
-const heading = css.cn(
-  css.fontSize(t.fontSize.lg),
-  css.fontWeight(t.fontWeight.bold),
-  css.margin("0"),
-);
-const hint = css.cn(css.margin("0"), css.color(t.color.textMedium), css.fontSize(t.fontSize.sm));
-const row = css.cn(css.flex().alignItems("center").gap(3));
-const option = css.cn(css.flex().alignItems("center").gap(2));
-const control = css.cn(css.accentColor(t.color.accent), css.margin("0"));
-const slider = css.cn(control, css.flexGrow(1));
+const heading = cn(fontSize(t.fontSize.lg), fontWeight(t.fontWeight.bold), margin("0"));
+const legend = cn(heading, padding("0"), marginBottom(t.space.md));
+const hint = cn(margin("0"), color(t.color.textMedium), fontSize(t.fontSize.sm));
+const row = cn(flex().alignItems("center").gap(3));
+const option = cn(flex().alignItems("center").gap(2));
+const control = cn(accentColor(t.color.accent), margin("0"));
+const slider = cn(control, flexGrow(1));
 
 // The derived accent colours, drawn from the tokens: they follow the slider and the mode.
-const swatch = css.cn(
-  css.flex().direction("column").alignItems("center").gap(1),
-  css.fontSize(t.fontSize.xs),
-  css.color(t.color.textMedium),
+const swatch = cn(
+  flex().direction("column").alignItems("center").gap(1),
+  fontSize(t.fontSize.xs),
+  color(t.color.textMedium),
 );
-const chip = css.cn(
-  css.width(t.avatar.feed),
-  css.height(t.avatar.feed),
-  css.borderRadius(t.radius.sm),
-  css.border(t.border.width, "solid", t.color.border),
+const chip = cn(
+  width(t.avatar.feed),
+  height(t.avatar.feed),
+  borderRadius(t.radius.sm),
+  border(t.border.width, "solid", t.color.border),
 );
 const swatches = [
-  ["accent", css.cn(chip, css.bg(t.color.accent))],
-  ["hover", css.cn(chip, css.bg(t.color.accentHover))],
-  ["strong", css.cn(chip, css.bg(t.color.accentStrong))],
-  ["soft", css.cn(chip, css.bg(t.color.accentSoft))],
+  ["accent", cn(chip, bg(t.color.accent))],
+  ["hover", cn(chip, bg(t.color.accentHover))],
+  ["strong", cn(chip, bg(t.color.accentStrong))],
+  ["soft", cn(chip, bg(t.color.accentSoft))],
 ] as const;
 
 // The two square flags: a button made of two frames (the inner radius follows the outer one) and the two avatar sizes.
-const button = css.cn(
+const button = cn(
   frame().radius(t.radius.button).padding(1),
-  css.bg(t.color.accent),
-  css.display("inline-flex"),
+  bg(t.color.accent),
+  display("inline-flex"),
 );
-const buttonLabel = css.cn(
+const buttonLabel = cn(
   frame().padding(3),
-  css.bg(t.color.accentHover),
-  css.color(t.color.onAccent),
-  css.fontWeight(t.fontWeight.semiBold),
+  bg(t.color.accentHover),
+  color(t.color.onAccent),
+  fontWeight(t.fontWeight.semiBold),
 );
-const avatar = css.cn(css.bg(t.color.accent), css.display("block"));
-const avatarBig = css.cn(
+const avatar = cn(bg(t.color.accent), display("block"));
+const avatarBig = cn(
   avatar,
-  css.width(t.avatar.feed),
-  css.height(t.avatar.feed),
-  css.borderRadius(t.radius.avatar),
+  width(t.avatar.feed),
+  height(t.avatar.feed),
+  borderRadius(t.radius.avatar),
 );
-const avatarSmall = css.cn(
-  avatar,
-  css.width("24px"),
-  css.height("24px"),
-  css.borderRadius(t.radius.avatarSmall),
-);
+const avatarSmall = cn(avatar, width("24px"), height("24px"), borderRadius(t.radius.avatarSmall));
 
-const fieldset = css.cn(css.border("0"), css.padding("0"), css.margin("0"), section);
+const fieldset = cn(border("0"), padding("0"), margin("0"), section);
 
 export default function SettingsScreen() {
   const [s, setS] = createSignal(load());
@@ -107,7 +117,7 @@ export default function SettingsScreen() {
         <p class={hint}>0 is the default pink. Every accent colour is derived from this one hue.</p>
       </section>
       <fieldset class={fieldset}>
-        <legend class={heading}>Theme</legend>
+        <legend class={legend}>Theme</legend>
         {MODES.map((m) => (
           <label class={option}>
             <input
