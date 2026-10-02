@@ -324,7 +324,9 @@ export type Unexpected<S extends string> = S extends "" ? "unexpected end" : `un
 // generic S once per property (+21 k instantiations each, measured; with it +5 k, and nothing per call).
 export type Valid<P extends keyof Props, S extends string> = ValidIn<P, Props[P], S>;
 // Valid for any grammar: `Label` is what the message calls it (a property name, or a plugin's member), `G` the grammar.
-export type ValidIn<Label extends string, G extends string, S extends string> = MatchesValue<G, S> extends true ? S : S extends string ? Message<Label, G, S> : never;
+// A CSS-wide keyword is a value of every property (css-cascade-5 §7.3), whatever its grammar; in its canonical case only.
+export type ValidIn<Label extends string, G extends string, S extends string> = MatchesValue<G, S> extends true ? S : S extends CssWide ? S : S extends string ? Message<Label, G, S> : never;
+type CssWide = "inherit" | "initial" | "unset" | "revert" | "revert-layer";
 // The keywords of the property that the word being typed (the last of T) begins, each with the words of T before it:
 // the strings an editor offers inside a string that is not a value yet. Keywords.ts has them by first letter, so that
 // while an argument is still generic the lookup is one deferred index and not a test per keyword (a colour has 190).

@@ -15,7 +15,7 @@ const sheet = String(css[0].source);
 assert.ok(sheet.startsWith("@layer "), sheet);
 assert.match(
   sheet,
-  /@container column \(width ?< ?500px\)\{\._\w+\{padding-inline:var\(--gutter-compact\)/,
+  /@container column \(width ?< ?500px\)\{[^@]*\._\w+\{padding-inline:var\(--gutter-compact\)/,
 ); // container()
 assert.match(
   sheet,
@@ -54,6 +54,15 @@ assert.match(sheet, /\._\w+\{transition:transform \.25s ease-out\}/); // the ind
 assert.match(sheet, /\._\w+\{top:var\(--layout-header-height\)\}/); // under the header
 assert.match(sheet, /\._\w+:hover\{--sf-d:calc\(\.03 \* -1\)\}/); // a tab a step darker on hover (surface().darken)
 assert.equal(sheet.match(/@keyframes kf-/g).length, 1, "one rule, however many skeletons use it");
+
+// the profile header (src/profile/Header.tsx): its layout is the column's container, not the window's: the avatar beside the name
+// and 96 px by default, stacked and 72 px under 500 px of column; the avatar's radius is the token the square flag moves
+assert.match(sheet, /@container column \(width ?< ?500px\)\{[^@]*\._\w+\{flex-direction:column\}/);
+assert.match(sheet, /@container column \(width ?< ?500px\)\{[^@]*\._\w+\{width:72px\}/);
+assert.match(sheet, /\._\w+\{width:96px\}/);
+assert.match(sheet, /\._\w+\{border-radius:var\(--radius-avatar\)\}/);
+assert.match(sheet, /\._\w+\{aspect-ratio:3\}/); // the banner, 3:1
+assert.match(sheet, /\._\w+\{font-family:inherit\}/); // a CSS-wide keyword is a value of every property
 
 // the themes: the system's dark is the media query, a class beats it; the accent steps keep the hue (a reference in an override)
 assert.match(sheet, /@media \(prefers-color-scheme: ?dark\)\{:root\{--color-bg:#000/);

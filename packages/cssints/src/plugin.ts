@@ -285,7 +285,13 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
   ) {
     // Vite serves a dependency's file as `…/index.mjs?v=<hash>`; the engine knows it by its file.
     const id = url.replace(VERSION, "");
-    if (!FILE_RE.test(id) || !marked(code, id)) return undefined;
+    if (!FILE_RE.test(id)) return undefined;
+    if (!marked(code, id)) {
+      // The runner follows the imports of a module with sites, into components that have none: their JSX is inert as well.
+      return ctx.environment.name === "ssr" && /[jt]sx$/.test(id) && !id.includes("node_modules")
+        ? yield* inertJsx(code, id)
+        : undefined;
+    }
     if (ctx.environment.name === "ssr") {
       const out = yield* instrument(code, id);
       return out && /x$/.test(id) ? yield* inertJsx(out.code, id) : out?.code;
