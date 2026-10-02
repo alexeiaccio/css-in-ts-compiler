@@ -52,10 +52,9 @@ A public plugin API (`definePlugin` with `property`, `context` and `style` membe
 
 - [Sublayers vs sort order: find a case the sort gets wrong](cssints-z03v): the sort is right, its leaf-count data is wrong (all, logical border sides, font-variant); fix the data in webref, keep the sort; sublayers rejected.
 
-- [Leaf counts for the sheet from Chrome's expansion of each shorthand](cssints-null): fix the sort's data, keep the sort.
-- [cn(): the later argument wins; overlap without containment is an error](null): the intent was never implemented.
+- [Leaf counts for the sheet from Chrome's expansion of each shorthand](cssints-s12e): done; bun run longhands, all/logical sides/font-variant fixed, demo identical.
 
-- [cn(): the later argument wins for the same property; overlap without containment is an error](cssints-33ah): decided (last wins; overlap is a build error); implementation pending.
+- [cn(): the later argument wins for the same property; overlap without containment is an error](cssints-33ah): done; logical/physical sides meet, a full-side shorthand contains (border contains border-inline).
 
 - [fn() and a few built-in value helpers](cssints-obd3): decided (fn() plus colorMix/clamp/min/max); implementation pending.
 
