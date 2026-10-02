@@ -25,6 +25,7 @@ import {
 } from "cssints" with { type: "cssints" };
 
 import { frame } from "cssints/frame" with { type: "cssints" };
+import { surface } from "cssints/surface" with { type: "cssints" };
 
 import { pulse, stack } from "../helpers.ts" with { type: "cssints" };
 import { t } from "../theme.ts" with { type: "cssints" };
@@ -116,9 +117,12 @@ const typed = cn(
 
 // frame(): the field's radius is the card's less the card's padding and border (24 - 16 - 1 = 7px), with no wiring. The
 // colours of the border are plain styles; padding, margin and border-radius would be a build error beside frame().
+// surface(): the card's background is the surface token, a tonal step lighter on hover (visible in the dark theme; bg()
+// beside it would be a build error).
 const framed = cn(
   frame().radius("1.5rem").padding(4).border("1px"),
-  bg(t.color.surface),
+  surface().color(t.color.surface),
+  hover(surface().lighten(0.04)),
   css.borderColor("#9ca3af"),
 );
 const framedField = cn(
