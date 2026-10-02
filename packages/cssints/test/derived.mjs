@@ -46,6 +46,33 @@ await assert.rejects(code("derived-missing.ts"), (e) => {
   return true;
 });
 
+// theme overrides that refer to tokens: live var(), dependents declared again, the target set in the same theme
+await code("theme-refs.ts");
+const refs = await sheet("theme-refs.ts");
+const rule = (sel) => new RegExp(`${sel.replace(".", "\\.")}\\{([^}]*)\\}`).exec(refs)?.[1] ?? "";
+const square = rule(".square");
+assert.match(square, /--refs-radius-md:var\(--refs-radius-sm\)/, refs);
+assert.match(square, /--refs-radius-lg:calc\(var\(--refs-radius-md\) \* 2\)/, refs); // derived from md
+assert.ok(!square.includes("--refs-radius-sm:"), square); // the target is read, not set
+const dim = rule(".dim");
+assert.match(dim, /--refs-hue-accent:12/, refs);
+assert.match(dim, /--refs-color-accent:oklch\(0\.7 0\.1 var\(--refs-hue-accent\)\)/, refs);
+assert.match(dim, /--refs-color-soft:var\(--refs-color-accent\)/, refs);
+assert.match(dim, /--refs-color-hover:color-mix\(in oklab, var\(--refs-color-accent\)/, refs); // derived from accent
+
+const refError = (f, re) =>
+  assert.rejects(code(f), (e) => {
+    assert.match(e.message, re);
+    return true;
+  });
+await refError("theme-ref-missing.ts", /color\.bg refers to \{color\.nope\}, and there is no token at color\.nope/);
+await refError("theme-ref-type.ts", /color\.bg is a color, and its reference \{radius\.sm\} is a length/);
+await refError("theme-ref-bad.ts", /color\.bg value "oklch\(0\.5 #000 nope\)" is not a <color>/);
+await refError(
+  "theme-ref-circle.ts",
+  /references go round in a circle: color\.bg -> color\.alias -> color\.bg/,
+);
+
 // JSON: the tree of the import, the DTCG object forms, a derived value
 const json = await code("json-use.ts");
 assert.match(json, /"hover": "var\(--brand-hover\)"/);

@@ -133,6 +133,34 @@ css.createGlobalTheme(t, 3, { color: { bg: "red" } });
 // @ts-expect-error a group is not a value
 css.createGlobalTheme(t, ".x", { color: "red" });
 
+// An override may refer to tokens: the whole value, or inside a CSS value checked with each reference as its target's type.
+css.createGlobalTheme(t, ".ref", { space: { md: "{space.sm}" }, color: { bg: "{color.accent}" } });
+css.createGlobalTheme(t, ".ref", {
+  color: { bg: "color-mix(in oklab, {color.accent}, black 15%)" },
+  space: { md: "calc({space.sm} * 2)" },
+  motion: { fast: "calc({motion.fast} * {ratio.golden})" },
+});
+css.createGlobalTheme(t, ".x", {
+  // @ts-expect-error a reference to no token
+  color: { bg: "{color.nope}" },
+});
+css.createGlobalTheme(t, ".x", {
+  // @ts-expect-error a reference to a token of another type
+  color: { bg: "{space.md}" },
+});
+css.createGlobalTheme(t, ".x", {
+  // @ts-expect-error a reference inside a value to no token
+  color: { bg: "color-mix(in oklab, {color.nope}, black 15%)" },
+});
+css.createGlobalTheme(t, ".x", {
+  // @ts-expect-error a value that is no colour once the reference is in place
+  color: { bg: "color-mix(in oklab, {color.accent}, nope)" },
+});
+css.createGlobalTheme(t, ".x", {
+  // @ts-expect-error a length where a colour goes
+  color: { bg: "calc({space.md} * 2)" },
+});
+
 // Contrast: two colour tokens and a minimum ratio.
 css.check.contrast(t.color.accent, t.color.bg, { min: 4.5 });
 css.check.contrast(t.color.link, css.token.color("#fff"), { min: 3 });

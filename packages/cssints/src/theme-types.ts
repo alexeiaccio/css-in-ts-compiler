@@ -178,19 +178,51 @@ export type Overrides<X> = {
     ? string | number | ObjectValue<Kd>
     : Overrides<X[K]>;
 };
-type CheckOverrides<X, O> = {
+// The token type at the dotted path P of the tokens X, or never.
+type KindIn<X, P extends string> = P extends `${infer H}.${infer R}`
+  ? H extends keyof X
+    ? KindIn<X[H], R>
+    : never
+  : P extends keyof X
+    ? X[P] extends { readonly "~token": infer Kd extends TokenType }
+      ? Kd
+      : never
+    : never;
+type SubstIn<V extends string, X> = V extends `${infer A}{${infer P}}${infer B}`
+  ? [KindIn<X, P>] extends [never]
+    ? never
+    : `${A}${Sentinel<KindIn<X, P>>}${SubstIn<B, X>}`
+  : V;
+// A value with references: a whole-value one is a token of the same type, else the value is the type's grammar with each
+// reference in place as a value of its target's type (as Subst does for createTokens). References are paths of `tokens`.
+type CheckRefs<V extends string, Kd extends TokenType, X> = V extends `{${infer P}}`
+  ? [KindIn<X, P>] extends [never]
+    ? Bad<`a reference {${P}} has no token`>
+    : [KindIn<X, P>] extends [Kd]
+      ? V
+      : Bad<`{${P}} is a ${KindIn<X, P>}, not a ${Kd}`>
+  : [SubstIn<V, X>] extends [never]
+    ? Bad<"a reference {…} has no token">
+    : Fits<SubstIn<V, X>, ValidSyntax<Syntax<Kd>, SubstIn<V, X>>> extends infer R
+      ? [R] extends [true]
+        ? V
+        : R
+      : never;
+type CheckOverrides<X, O, Root = X> = {
   [K in keyof O]: K extends keyof X
     ? X[K] extends { readonly "~token": infer Kd extends TokenType }
       ? O[K] extends string
         ? O[K] extends FontWeightName
           ? O[K]
-          : Fits<O[K], ValidSyntax<Syntax<Kd>, O[K]>> extends infer R
-            ? [R] extends [true]
-              ? O[K]
-              : R
-            : never
+          : O[K] extends `${string}{${string}}${string}`
+            ? CheckRefs<O[K], Kd, Root>
+            : Fits<O[K], ValidSyntax<Syntax<Kd>, O[K]>> extends infer R
+              ? [R] extends [true]
+                ? O[K]
+                : R
+              : never
         : O[K]
-      : CheckOverrides<X[K], O[K]>
+      : CheckOverrides<X[K], O[K], Root>
     : Bad<"no token at this path">;
 };
 
