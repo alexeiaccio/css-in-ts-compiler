@@ -28,6 +28,7 @@
     "bench": "node bench/budget.mjs",
     "extract": "node scripts/extract.mjs && node scripts/keywords.ts",
     "webref": "node scripts/webref-rule.mjs",
+    "longhands": "node scripts/longhands.mjs",
     "diff": "node test/diff.ts",
     "diff:support": "node test/diff-support.ts",
     "pack:tgz": "node ../../scripts/pack.mjs"

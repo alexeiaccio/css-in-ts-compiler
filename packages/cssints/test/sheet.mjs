@@ -10,7 +10,8 @@ import cssints, { addGlobal, renderSheet } from "../src/plugin.ts";
 const SHEET = "\0virtual:cssints.css";
 const LAYERS = ["_.k", "_.a", "_.b", "_.c", "_.d", "_.e"];
 
-// Shorthand first by leaf inclusion: border reaches border-top's leaves only through border-width/-style/-color.
+// Shorthand first by leaf count, from Chrome's expansion (css-grammar longhands.ts): all sets every longhand, so it is
+// first; border reaches border-top's leaves only through border-width/-style/-color.
 const fake = { _1: "border-top", _2: "border", _3: "padding-left", _4: "padding", _5: "all" };
 for (const [c, prop] of Object.entries(fake))
   globalThis.__cssints.rules.set(c, {
@@ -23,7 +24,7 @@ for (const [c, prop] of Object.entries(fake))
 const order = [...Effect.runSync(renderSheet(Object.keys(fake))).matchAll(/\.(_\d)\{/g)].map(
   (m) => fake[m[1]],
 );
-assert.deepEqual(order, ["border", "padding", "border-top", "padding-left", "all"]);
+assert.deepEqual(order, ["all", "border", "padding", "border-top", "padding-left"]);
 assert.ok(
   !Effect.runSync(renderSheet(Object.keys(fake))).includes("_.k {"),
   "no globals, no _.k block",

@@ -29,6 +29,8 @@ cd packages/cssints/test && node docs.mjs     # type-check the ts blocks of docs
 cd packages/cssints/test && node run.mjs fixtures/risk1.ts   # one fixture: prints code and css
 cd packages/css-grammar && bun run test       # twin + type checks, support/prose rules, tsc
 cd packages/css-grammar && bun run extract    # regenerate src/mdn.ts from mdn-data + @webref/css (+ scripts/webref-properties.json), then src/keywords.ts
+cd packages/css-grammar && bun run longhands  # rewrite src/longhands.ts (the longhands of each shorthand, as Chrome expands it; the sheet order and cn()
+                                              # read it) after a Chrome or mdn-data bump (needs an installed Chrome)
 cd packages/css-grammar && bun run webref     # rewrite scripts/webref-properties.json with Chrome as the judge; run it, then extract, after a
                                               # Chrome, @webref/css, mdn-data or twin bump (needs an installed Chrome; ~1 minute)
 cd packages/cssints && node bench/lsp.mjs     # editor latency on the demo's Button.tsx over tsgo's language server
@@ -85,7 +87,7 @@ Other deps:
 
 - **What counts is `vp fmt --check`**: 2 spaces, 100 columns, double quotes, semicolons, trailing commas, parens on arrow functions (oxfmt defaults)
 - The `fmt` block of the root `vite.config.ts` states exactly these values. vite-plus 1.0.0 does not read that block; if a later version does, nothing changes. Import sorting is not applied.
-- **Skipped by the formatter** (`.prettierignore`): the generated `members.ts`, `mdn.ts` and `keywords.ts`, `css.ts`, the test fixtures, docs/archive, `.beans`
+- **Skipped by the formatter** (`.prettierignore`): the generated `members.ts`, `mdn.ts`, `keywords.ts` and `longhands.ts`, `css.ts`, the test fixtures, docs/archive, `.beans`
 - The code blocks in docs/API.md use tabs and are not formatted
 
 ### TypeScript Configuration
