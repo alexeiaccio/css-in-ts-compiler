@@ -3,10 +3,11 @@
 title: 'Map: cssints 0.3, a read-only atproto client on Solid 2'
 status: todo
 type: epic
+priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-10-02T14:20:14Z
-updated_at: 2026-10-02T14:20:14Z
+updated_at: 2026-10-02T14:39:28Z
 ---
 
 ## Destination
@@ -23,6 +24,8 @@ updated_at: 2026-10-02T14:20:14Z
 - Standing preferences: tsgo primary, tsc 5.9 green; `bun run bench` for type-level changes; minimal code (ponytail); Effect where the engine has side effects, the app itself is plain Solid.
 
 ## Decisions so far
+
+- [Solid 2 and cssints in one Vite app](cssints-yfxf): works; one engine fix (JSX becomes a no-op in the runner, transform order pre); apps/sky skeleton with build and HMR checks.
 
 ## Not yet specified
 
