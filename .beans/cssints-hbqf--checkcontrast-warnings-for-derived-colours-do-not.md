@@ -1,10 +1,11 @@
 ---
 # cssints-hbqf
 title: check.contrast warnings for derived colours do not show in dev
-status: todo
+status: in-progress
 type: bug
+priority: normal
 created_at: 2026-10-02T14:44:23Z
-updated_at: 2026-10-02T14:44:23Z
+updated_at: 2026-10-02T14:44:56Z
 parent: cssints-co8y
 ---
 

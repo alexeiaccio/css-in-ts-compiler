@@ -1,10 +1,11 @@
 ---
 # cssints-q6l0
 title: Theme overrides may refer to tokens
-status: todo
+status: in-progress
 type: feature
+priority: normal
 created_at: 2026-10-02T14:44:23Z
-updated_at: 2026-10-02T14:44:23Z
+updated_at: 2026-10-02T14:44:56Z
 parent: cssints-co8y
 ---
 
