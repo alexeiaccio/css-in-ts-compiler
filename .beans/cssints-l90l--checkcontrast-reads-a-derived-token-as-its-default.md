@@ -1,11 +1,11 @@
 ---
 # cssints-l90l
 title: check.contrast reads a derived token as its default value under every theme
-status: todo
+status: in-progress
 type: bug
 priority: normal
 created_at: 2026-10-02T14:51:08Z
-updated_at: 2026-10-02T15:00:10Z
+updated_at: 2026-10-02T15:00:22Z
 parent: cssints-co8y
 ---
 
