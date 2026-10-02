@@ -5,7 +5,7 @@ import type { properties } from "@cssints/css-grammar/mdn";
 import type { CSSStyleValue } from "@cssints/css-grammar/values";
 
 /** One value of a `firstThatWorks`: a string or a Typed OM value (a token). */
-type Alt = string | CSSStyleValue;
+export type Alt = string | CSSStyleValue;
 /** What firstThatWorks() gives: its values, the wanted one first. A part of a property, not a Typed OM value. */
 export interface Fallback<V extends readonly Alt[] = readonly Alt[]> {
   readonly __fallback: V;

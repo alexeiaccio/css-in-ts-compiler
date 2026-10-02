@@ -6,7 +6,7 @@ import type { Condition } from "@cssints/css-grammar/query";
 import type { StyleObject, TokenFn, TokenSetFn, TokenType } from "@cssints/css-grammar/token";
 import type { CSS, CSSColorValue, CSSUnitValue } from "@cssints/css-grammar/values";
 
-import type { Check, Fallback, Part, Style } from "./parts.ts";
+import type { Alt, Check, Fallback, Part, Style } from "./parts.ts";
 import type { CvRuntimeConfig } from "./runtime.ts";
 
 export * from "./members.ts";
