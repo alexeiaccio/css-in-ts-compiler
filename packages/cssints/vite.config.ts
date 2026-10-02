@@ -5,9 +5,14 @@ import { defineConfig } from "vite-plus";
 export default defineConfig({
   pack: [
     // The build-time side: the macro library (index), the Vite plugin (vite) and the helpers of plugin authors (plugin),
-    // run by Node.
+    // run by Node; and frame(), a plugin written on those helpers.
     {
-      entry: { index: "src/index.ts", vite: "src/plugin.ts", plugin: "src/author.ts" },
+      entry: {
+        index: "src/index.ts",
+        vite: "src/plugin.ts",
+        plugin: "src/author.ts",
+        frame: "src/frame.ts",
+      },
       platform: "node",
       format: "esm",
       target: "node22",
