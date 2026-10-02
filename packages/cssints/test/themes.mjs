@@ -205,6 +205,24 @@ assert.equal(
   "cssints: contrast 4.47 is below 4.5: cdef.fg #777777 on cdef.bg #ffffff, in the default values",
 );
 
+// A derived colour is read per theme: the theme's values go into its template, through a chain of derived tokens too.
+e = await failure("fixtures/themes-contrast-derived-fail.ts");
+assert.equal(
+  e.message,
+  [
+    "cssints: contrast 1.10 is below 4.5: cdf.fg oklch(0.95 0 0) on cdf.bg #ffffff, in theme .x",
+    "cssints: contrast 1.29 is below 4.5: cdf.fg oklch(0.9 0 0) on cdf.bg #ffffff, in theme .y",
+  ].join("\n"),
+);
+warnings.length = 0;
+await client.transformRequest("/fixtures/themes-contrast-derived-pass.ts");
+assert.deepEqual(warnings, [], "a derived colour that stays readable passes");
+e = await failure("fixtures/themes-contrast-derived-chain.ts");
+assert.equal(
+  e.message,
+  "cssints: contrast 1.29 is below 4.5: cdc.fg oklch(0.9 0 0) on cdc.bg #ffffff, in theme .x",
+);
+
 // A value the check cannot evaluate is a warning that names the token, once.
 await client.transformRequest("/fixtures/themes-contrast-warn.ts");
 assert.deepEqual(
