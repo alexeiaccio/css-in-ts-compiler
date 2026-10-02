@@ -373,7 +373,8 @@ const isCondition = (v: unknown): v is Condition =>
 const SCOPE = { "@media": ":root", "@container": ":where(*)" } as const;
 
 // createGlobalTheme(tokens, condition | selector, overrides): `overrides` has the shape of the tokens. Each value is
-// a DTCG value or a CSS string of the token's type. Aliases that depend on an overridden token are declared again in
+// a DTCG value or a CSS string of the token's type, which may refer to tokens with `{path}` (declared as var(--target),
+// so live). Aliases that depend on an overridden token are declared again in
 // the block, since `var()` is substituted where it is declared.
 export const createGlobalTheme = (...args: unknown[]): unknown =>
   edge(
@@ -406,6 +407,7 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
         );
 
       const changed = new Map<string, string>(); // variable -> the value it gets here
+      const refs = new Map<string, string[]>(); // variable -> the variables its value here refers to
       const walk = Effect.fnUntraced(function* (
         node: Record<string, unknown>,
         values: Record<string, unknown>,
@@ -415,10 +417,42 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
           const child = Object.hasOwn(node, key) ? node[key] : undefined;
           const dotted = [...path, key].join(".");
           if (child instanceof CSSTokenValue) {
-            const { syntax } = TOKEN_TYPES[registry.defs.get(child.name)!.kind];
+            const kind = registry.defs.get(child.name)!.kind;
             const text = yield* cssOf(set.types.get(child.name)!, v, dotted);
-            yield* checkSyntaxFx(`createGlobalTheme(): ${dotted} value`, syntax, text);
-            changed.set(child.name, text);
+            // a reference stays live as var(--target); the grammar check reads the targets' literals
+            const targets = new Map<string, CSSTokenValue>();
+            for (const [, ref] of text.matchAll(REF)) {
+              const target = set.tokens.get(ref!);
+              if (!target)
+                return yield* fail(
+                  `cssints: createGlobalTheme(): ${dotted} refers to {${ref}}, and there is no token at ${ref}`,
+                );
+              targets.set(ref!, target);
+            }
+            const whole = ALIAS.exec(text)?.[1];
+            const other = whole && registry.defs.get(targets.get(whole)!.name)!.kind;
+            if (other && other !== kind)
+              return yield* fail(
+                `cssints: createGlobalTheme(): ${dotted} is a ${kind}, and its reference {${whole}} is a ${other}`,
+              );
+            const literal = text.replace(
+              REF,
+              (_, r: string) => registry.defs.get(targets.get(r)!.name)!.value,
+            );
+            yield* checkSyntaxFx(
+              `createGlobalTheme(): ${dotted} value`,
+              TOKEN_TYPES[kind].syntax,
+              literal,
+            );
+            changed.set(
+              child.name,
+              text.replace(REF, (_, r: string) => `var(${targets.get(r)!.name})`),
+            );
+            if (targets.size)
+              refs.set(
+                child.name,
+                [...targets.values()].map((t) => t.name),
+              );
           } else if (isObject(child) && isObject(v)) yield* walk(child, v, [...path, key]);
           else
             return yield* fail(
@@ -431,6 +465,29 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
       yield* walk(tokens as Record<string, unknown>, overrides, []);
       if (!changed.size)
         return yield* fail("cssints: createGlobalTheme(): the theme sets no token");
+
+      // a reference in a theme joins the base references: a circle is an error. Order does not matter otherwise: the
+      // declarations of one rule are one element's, and var() reads that element's own values, however they are ordered.
+      const deps = (n: string) =>
+        refs.get(n) ?? set.aliases.find((a) => a.name === n)?.targets ?? [];
+      const done = new Set<string>();
+      const visit = (n: string, stack: string[]): string[] | undefined => {
+        if (stack.includes(n)) return [...stack.slice(stack.indexOf(n)), n];
+        if (done.has(n)) return undefined;
+        for (const d of deps(n)) {
+          const circle = visit(d, [...stack, n]);
+          if (circle) return circle;
+        }
+        done.add(n);
+        return undefined;
+      };
+      for (const n of refs.keys()) {
+        const circle = visit(n, []);
+        if (circle)
+          return yield* fail(
+            `cssints: createGlobalTheme(): references go round in a circle: ${circle.map((c) => registry.defs.get(c)!.path).join(" -> ")}`,
+          );
+      }
 
       const stale = new Set(changed.keys());
       for (let grew = true; grew; )
