@@ -1,0 +1,96 @@
+{
+  "thread": {
+    "post": {
+      "uri": "at://did:plc:7ihvojd435lxcyvx5c5r6dip/app.bsky.feed.post/3mvuydtlcnk2f",
+      "cid": "bafyreiasyncwar42l5m74k5dwz6l3hpcxcjmaebw5mwxghhnduvt2w5ezi",
+      "author": {
+        "did": "did:plc:7ihvojd435lxcyvx5c5r6dip",
+        "handle": "strategywoman.bsky.social",
+        "displayName": "Yaroslava",
+        "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:7ihvojd435lxcyvx5c5r6dip/bafkreicfgk2rn2z3bbjemojda7ql7v64a2oseo5vgwmbr6rpkmdmxy5gvy",
+        "associated": {
+          "chat": { "allowIncoming": "following" },
+          "activitySubscription": { "allowSubscriptions": "followers" }
+        },
+        "labels": [],
+        "createdAt": "2023-09-23T19:49:39.148Z"
+      },
+      "record": {
+        "$type": "app.bsky.feed.post",
+        "createdAt": "2026-09-19T15:21:52.615Z",
+        "langs": ["en"],
+        "reply": {
+          "parent": {
+            "cid": "bafyreia36vnuwj4zm7qahvbcp4yzf2nljkn2tqsskzjfzx7q4j4pbnuehq",
+            "uri": "at://did:plc:bfqvrumfg5qclpfddyoyzjqz/app.bsky.feed.post/3mvuybsfkj22n"
+          },
+          "root": {
+            "cid": "bafyreiggcvbvu7nwrywyfdiifho6znyuvpuxja37hnytezezmk7oikamua",
+            "uri": "at://did:plc:7ihvojd435lxcyvx5c5r6dip/app.bsky.feed.post/3mvuy45mpbk2f"
+          }
+        },
+        "text": "I sincerely don’t like such comments."
+      },
+      "bookmarkCount": 0,
+      "replyCount": 1,
+      "repostCount": 0,
+      "likeCount": 1,
+      "quoteCount": 0,
+      "indexedAt": "2026-09-19T15:21:53.362Z",
+      "labels": []
+    },
+    "parent": {
+      "uri": "at://did:plc:bfqvrumfg5qclpfddyoyzjqz/app.bsky.feed.post/3mvuybsfkj22n",
+      "notFound": true,
+      "$type": "app.bsky.feed.defs#notFoundPost"
+    },
+    "replies": [
+      {
+        "post": {
+          "uri": "at://did:plc:bfqvrumfg5qclpfddyoyzjqz/app.bsky.feed.post/3mvuz6kknoc2n",
+          "cid": "bafyreihoo7zlbfsiv5imw7ifb2s6n4xr4jqe4nk2q4pauixc4doewrd6cu",
+          "author": {
+            "did": "did:plc:bfqvrumfg5qclpfddyoyzjqz",
+            "handle": "sortoll.bsky.social",
+            "displayName": "Servando Ortoll",
+            "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:bfqvrumfg5qclpfddyoyzjqz/bafkreib7bqw2bwrwr4vbxfnqdf3k2elu5n4ht6coiyneyplok2i2datjni",
+            "associated": {
+              "chat": { "allowIncoming": "none" },
+              "activitySubscription": { "allowSubscriptions": "followers" }
+            },
+            "labels": [],
+            "createdAt": "2024-11-11T19:17:40.804Z"
+          },
+          "record": {
+            "$type": "app.bsky.feed.post",
+            "createdAt": "2026-09-19T15:36:49.126Z",
+            "langs": ["pt"],
+            "reply": {
+              "parent": {
+                "cid": "bafyreiasyncwar42l5m74k5dwz6l3hpcxcjmaebw5mwxghhnduvt2w5ezi",
+                "uri": "at://did:plc:7ihvojd435lxcyvx5c5r6dip/app.bsky.feed.post/3mvuydtlcnk2f"
+              },
+              "root": {
+                "cid": "bafyreiggcvbvu7nwrywyfdiifho6znyuvpuxja37hnytezezmk7oikamua",
+                "uri": "at://did:plc:7ihvojd435lxcyvx5c5r6dip/app.bsky.feed.post/3mvuy45mpbk2f"
+              }
+            },
+            "text": "My apologies."
+          },
+          "bookmarkCount": 0,
+          "replyCount": 0,
+          "repostCount": 0,
+          "likeCount": 0,
+          "quoteCount": 0,
+          "indexedAt": "2026-09-19T15:36:49.761Z",
+          "labels": []
+        },
+        "replies": [],
+        "threadContext": {},
+        "$type": "app.bsky.feed.defs#threadViewPost"
+      }
+    ],
+    "threadContext": {},
+    "$type": "app.bsky.feed.defs#threadViewPost"
+  }
+}

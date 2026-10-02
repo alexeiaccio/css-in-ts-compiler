@@ -108,6 +108,23 @@ const all = files
   .join("");
 assert.match(all, /class="_f _s _\w+( _\w+)*"/, "the card's classes are in Solid's template");
 assert.ok(!all.includes("quoteDetached"), "the dev page and its recorded posts are not in a build");
+// the thread screen: the focused post is a cv() variant of the card (class strings in the config, its font size in the sheet), and
+// the connector lines are placed from the avatar's centre, narrow and (inside the card's own container) wide
+assert.match(
+  all,
+  /"variants": \{ "look": \{ "focus": "_\w+" \} \}/,
+  "the focused card is a cv() variant",
+);
+assert.match(sheet, /\._\w+\{font-size:var\(--font-size-xl\)\}/);
+assert.match(
+  sheet,
+  /\._\w+\{margin-left:calc\(var\(--border-width\) ?\+ ?\.5rem ?\+ ?var\(--avatar-feed\) ?\/ ?2 ?- ?1px\)\}/,
+);
+assert.match(
+  sheet,
+  /@container post \(width ?>= ?28rem\)\{[^@]*margin-left:calc\(var\(--border-width\) ?\+ ?\.75rem ?\+ ?var\(--avatar-feed\) ?\/ ?2 ?- ?1px\)/,
+);
+assert.ok(all.includes("Show ") && all.includes("more "), "the collapsed branch has its button");
 console.log(
   `sky build: ${css[0].fileName} ${sheet.length} bytes, ${js.fileName} ${js.code.length} bytes`,
 );

@@ -181,10 +181,7 @@ type ThreadItem = NonNullable<AppBskyFeedDefs.ThreadViewPost["replies"]>[number]
 function node(t: ThreadItem): ThreadNode {
   if (t.$type === "app.bsky.feed.defs#threadViewPost") {
     if (postVerdict(t.post) === "hide") return { kind: "gone", why: "hidden", uri: t.post.uri };
-    const replies = (t.replies ?? []).map(node);
-    // the API does not sort replies: most liked first
-    replies.sort((a, b) => likes(b) - likes(a));
-    return { kind: "post", post: t.post, replies };
+    return { kind: "post", post: t.post, replies: (t.replies ?? []).map(node).sort(topFirst) };
   }
   const gone = t as { $type: string; uri?: string };
   return {
@@ -193,16 +190,37 @@ function node(t: ThreadItem): ThreadNode {
     uri: gone.uri ?? "",
   };
 }
-const likes = (n: ThreadNode) => (n.kind === "post" ? (n.post.likeCount ?? 0) : -1);
 
+// The API does not sort replies: most liked first, then the earlier one; a tombstone goes last.
+const likes = (n: ThreadNode) => (n.kind === "post" ? (n.post.likeCount ?? 0) : -1);
+const when = (n: ThreadNode) =>
+  n.kind === "post"
+    ? Date.parse((n.post.record as { createdAt?: string }).createdAt ?? n.post.indexedAt)
+    : 0;
+export const topFirst = (a: ThreadNode, b: ThreadNode) => likes(b) - likes(a) || when(a) - when(b);
+
+const getThread = async (uri: ResourceUri) =>
+  (
+    await ok(
+      rpc.get("app.bsky.feed.getPostThread", { params: { uri, depth: 6, parentHeight: 20 } }),
+    )
+  ).thread;
+
+// parentHeight 20 is the longest chain of parents the screen shows; depth 6 (the API's default) is what the replies get.
 export async function threadScreen(actor: string, rkey: string) {
   // a handle is fine in the at-uri: the AppView resolves it
   const uri = `at://${cleanActor(actor)}/app.bsky.feed.post/${rkey}` as const;
-  const { thread } = await ok(
-    rpc.get("app.bsky.feed.getPostThread", { params: { uri, depth: 2, parentHeight: 20 } }),
-  );
+  let thread: Awaited<ReturnType<typeof getThread>>;
+  try {
+    thread = await getThread(uri);
+  } catch (e) {
+    // a missing post is HTTP 400 NotFound, not a notFoundPost: it is a state of the screen, not a failure
+    if (e instanceof ClientResponseError && e.error === "NotFound")
+      return { parents: [], root: { kind: "gone", why: "notFound", uri } satisfies ThreadNode };
+    throw e;
+  }
   if (thread.$type !== "app.bsky.feed.defs#threadViewPost") {
-    return { parents: [], root: node(thread) }; // blockedPost; a missing post is HTTP 400 NotFound, thrown by ok()
+    return { parents: [], root: node(thread) }; // blockedPost
   }
   const parents: ThreadNode[] = [];
   for (

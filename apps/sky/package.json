@@ -6,11 +6,12 @@
     "dev": "vp dev",
     "build": "vp build",
     "typecheck": "tsgo -p tsconfig.json --noEmit && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
-    "test": "node --conditions=browser test/api.mjs && node --conditions=browser test/post.mjs && node --conditions=browser test/home.mjs && node --conditions=browser test/profile.mjs && node test/settings.mjs && node test/contrast.mjs && node test/build.mjs && node test/dev.mjs",
+    "test": "node --conditions=browser test/api.mjs && node --conditions=browser test/post.mjs && node --conditions=browser test/home.mjs && node --conditions=browser test/profile.mjs && node --conditions=browser test/thread.mjs && node test/settings.mjs && node test/contrast.mjs && node test/build.mjs && node test/dev.mjs",
     "test:browser": "node test/browser.mjs",
     "test:posts": "node test/posts-browser.mjs",
     "test:home": "node test/home-browser.mjs",
     "test:profile": "node test/profile-browser.mjs",
+    "test:thread": "node test/thread-browser.mjs",
     "preview": "vp preview"
   },
   "dependencies": {

@@ -154,6 +154,27 @@ export function ago(iso: string | undefined, now = Date.now()) {
   });
 }
 
+// The focused post's timestamp: "October 2, 2026 at 7:14 PM".
+export const fullTime = (iso: string | undefined) => {
+  const t = Date.parse(iso ?? "");
+  return Number.isNaN(t)
+    ? ""
+    : new Date(t).toLocaleString("en", { dateStyle: "long", timeStyle: "short" });
+};
+
+// The focused post's counts row: only the counters that are not zero, in full ("1,204 likes").
+export function stats(p: PostView): { n: string; label: string }[] {
+  const all = [
+    [p.replyCount, "reply", "replies"],
+    [p.repostCount, "repost", "reposts"],
+    [p.quoteCount, "quote", "quotes"],
+    [p.likeCount, "like", "likes"],
+  ] as const;
+  return all.flatMap(([n, one, many]) =>
+    n ? [{ n: n.toLocaleString("en"), label: n === 1 ? one : many }] : [],
+  );
+}
+
 // The app's route for a post (the thread screen); the same path on bsky.app is where a video plays.
 export const postHref = (p: { uri: string; author: { handle: string } }) =>
   `/profile/${p.author.handle}/post/${p.uri.slice(p.uri.lastIndexOf("/") + 1)}`;
