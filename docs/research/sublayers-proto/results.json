@@ -1,0 +1,3103 @@
+{
+ "chrome": "154.0.8037.93",
+ "sheetsAgree": true,
+ "containerProperty": "not a property: @container: unexpected \"/\" in \"inline-size / side\", expected <container-query> | end of query",
+ "results": {
+  "s1": {
+   "kind": "later",
+   "title": "color twice",
+   "items": [
+    {
+     "m": "color",
+     "v": "red"
+    },
+    {
+     "m": "color",
+     "v": "blue"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": {
+     "diff": [
+      "color: got rgb(0, 0, 255), want rgb(255, 0, 0)"
+     ],
+     "n": 1
+    },
+    "min.ab": "ok",
+    "min.ba": {
+     "diff": [
+      "color: got rgb(0, 0, 255), want rgb(255, 0, 0)"
+     ],
+     "n": 1
+    },
+    "mdn.ab": "ok",
+    "mdn.ba": {
+     "diff": [
+      "color: got rgb(0, 0, 255), want rgb(255, 0, 0)"
+     ],
+     "n": 1
+    },
+    "truth.ab": "ok",
+    "truth.ba": {
+     "diff": [
+      "color: got rgb(0, 0, 255), want rgb(255, 0, 0)"
+     ],
+     "n": 1
+    },
+    "sublayers.ab": "ok",
+    "sublayers.ba": {
+     "diff": [
+      "color: got rgb(0, 0, 255), want rgb(255, 0, 0)"
+     ],
+     "n": 1
+    }
+   },
+   "engineOrder": [
+    "_.a color",
+    "_.a color"
+   ]
+  },
+  "s2": {
+   "kind": "later",
+   "title": "hover color twice",
+   "items": [
+    {
+     "m": "color",
+     "v": "red",
+     "w": [
+      "hover"
+     ]
+    },
+    {
+     "m": "color",
+     "v": "blue",
+     "w": [
+      "hover"
+     ]
+    }
+   ],
+   "run": {
+    "engine.ab": {
+     "diff": [
+      "color: got rgb(255, 0, 0), want rgb(0, 0, 255)"
+     ],
+     "n": 1
+    },
+    "engine.ba": "ok",
+    "min.ab": {
+     "diff": [
+      "color: got rgb(255, 0, 0), want rgb(0, 0, 255)"
+     ],
+     "n": 1
+    },
+    "min.ba": "ok",
+    "mdn.ab": {
+     "diff": [
+      "color: got rgb(255, 0, 0), want rgb(0, 0, 255)"
+     ],
+     "n": 1
+    },
+    "mdn.ba": "ok",
+    "truth.ab": {
+     "diff": [
+      "color: got rgb(255, 0, 0), want rgb(0, 0, 255)"
+     ],
+     "n": 1
+    },
+    "truth.ba": "ok",
+    "sublayers.ab": {
+     "diff": [
+      "color: got rgb(255, 0, 0), want rgb(0, 0, 255)"
+     ],
+     "n": 1
+    },
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.b[0,4] color",
+    "_.b[0,4] color"
+   ]
+  },
+  "s3": {
+   "kind": "later",
+   "title": "color twice, two modules",
+   "items": [
+    {
+     "m": "color",
+     "v": "red"
+    },
+    {
+     "m": "color",
+     "v": "blue"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": {
+     "diff": [
+      "color: got rgb(0, 0, 255), want rgb(255, 0, 0)"
+     ],
+     "n": 1
+    },
+    "min.ab": "ok",
+    "min.ba": {
+     "diff": [
+      "color: got rgb(0, 0, 255), want rgb(255, 0, 0)"
+     ],
+     "n": 1
+    },
+    "mdn.ab": "ok",
+    "mdn.ba": {
+     "diff": [
+      "color: got rgb(0, 0, 255), want rgb(255, 0, 0)"
+     ],
+     "n": 1
+    },
+    "truth.ab": "ok",
+    "truth.ba": {
+     "diff": [
+      "color: got rgb(0, 0, 255), want rgb(255, 0, 0)"
+     ],
+     "n": 1
+    },
+    "sublayers.ab": "ok",
+    "sublayers.ba": {
+     "diff": [
+      "color: got rgb(0, 0, 255), want rgb(255, 0, 0)"
+     ],
+     "n": 1
+    }
+   },
+   "engineOrder": [
+    "_.a color",
+    "_.a color"
+   ]
+  },
+  "b1": {
+   "kind": "later",
+   "title": "border / border-inline",
+   "items": [
+    {
+     "m": "border",
+     "v": "1px solid red"
+    },
+    {
+     "m": "borderInline",
+     "v": "3px dashed blue"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": {
+     "diff": [
+      "border-inline-end-color: got rgb(0, 0, 255), want rgb(255, 0, 0)",
+      "border-inline-end-style: got dashed, want solid",
+      "border-inline-end-width: got 3px, want 1px",
+      "border-inline-start-color: got rgb(0, 0, 255), want rgb(255, 0, 0)"
+     ],
+     "n": 12
+    },
+    "min.ab": "ok",
+    "min.ba": {
+     "diff": [
+      "border-inline-end-color: got rgb(0, 0, 255), want rgb(255, 0, 0)",
+      "border-inline-end-style: got dashed, want solid",
+      "border-inline-end-width: got 3px, want 1px",
+      "border-inline-start-color: got rgb(0, 0, 255), want rgb(255, 0, 0)"
+     ],
+     "n": 12
+    },
+    "mdn.ab": "ok",
+    "mdn.ba": {
+     "diff": [
+      "border-inline-end-color: got rgb(0, 0, 255), want rgb(255, 0, 0)",
+      "border-inline-end-style: got dashed, want solid",
+      "border-inline-end-width: got 3px, want 1px",
+      "border-inline-start-color: got rgb(0, 0, 255), want rgb(255, 0, 0)"
+     ],
+     "n": 12
+    },
+    "truth.ab": "ok",
+    "truth.ba": {
+     "diff": [
+      "border-inline-end-color: got rgb(0, 0, 255), want rgb(255, 0, 0)",
+      "border-inline-end-style: got dashed, want solid",
+      "border-inline-end-width: got 3px, want 1px",
+      "border-inline-start-color: got rgb(0, 0, 255), want rgb(255, 0, 0)"
+     ],
+     "n": 12
+    },
+    "sublayers.ab": "ok",
+    "sublayers.ba": {
+     "diff": [
+      "border-inline-end-color: got rgb(0, 0, 255), want rgb(255, 0, 0)",
+      "border-inline-end-style: got dashed, want solid",
+      "border-inline-end-width: got 3px, want 1px",
+      "border-inline-start-color: got rgb(0, 0, 255), want rgb(255, 0, 0)"
+     ],
+     "n": 12
+    }
+   },
+   "engineOrder": [
+    "_.a border",
+    "_.a border-inline"
+   ]
+  },
+  "b2": {
+   "kind": "later",
+   "title": "border-color / border-inline",
+   "items": [
+    {
+     "m": "borderColor",
+     "v": "green"
+    },
+    {
+     "m": "borderInline",
+     "v": "3px dashed blue"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": {
+     "diff": [
+      "border-inline-end-color: got rgb(0, 0, 255), want rgb(0, 128, 0)",
+      "border-inline-start-color: got rgb(0, 0, 255), want rgb(0, 128, 0)",
+      "border-left-color: got rgb(0, 0, 255), want rgb(0, 128, 0)",
+      "border-right-color: got rgb(0, 0, 255), want rgb(0, 128, 0)"
+     ],
+     "n": 4
+    },
+    "min.ab": "ok",
+    "min.ba": {
+     "diff": [
+      "border-inline-end-color: got rgb(0, 0, 255), want rgb(0, 128, 0)",
+      "border-inline-start-color: got rgb(0, 0, 255), want rgb(0, 128, 0)",
+      "border-left-color: got rgb(0, 0, 255), want rgb(0, 128, 0)",
+      "border-right-color: got rgb(0, 0, 255), want rgb(0, 128, 0)"
+     ],
+     "n": 4
+    },
+    "mdn.ab": "ok",
+    "mdn.ba": {
+     "diff": [
+      "border-inline-end-color: got rgb(0, 0, 255), want rgb(0, 128, 0)",
+      "border-inline-start-color: got rgb(0, 0, 255), want rgb(0, 128, 0)",
+      "border-left-color: got rgb(0, 0, 255), want rgb(0, 128, 0)",
+      "border-right-color: got rgb(0, 0, 255), want rgb(0, 128, 0)"
+     ],
+     "n": 4
+    },
+    "truth.ab": {
+     "diff": [
+      "border-inline-end-color: got rgb(0, 128, 0), want rgb(0, 0, 255)",
+      "border-inline-start-color: got rgb(0, 128, 0), want rgb(0, 0, 255)",
+      "border-left-color: got rgb(0, 128, 0), want rgb(0, 0, 255)",
+      "border-right-color: got rgb(0, 128, 0), want rgb(0, 0, 255)"
+     ],
+     "n": 4
+    },
+    "truth.ba": "ok",
+    "sublayers.ab": {
+     "diff": [
+      "border-inline-end-color: got rgb(0, 128, 0), want rgb(0, 0, 255)",
+      "border-inline-start-color: got rgb(0, 128, 0), want rgb(0, 0, 255)",
+      "border-left-color: got rgb(0, 128, 0), want rgb(0, 0, 255)",
+      "border-right-color: got rgb(0, 128, 0), want rgb(0, 0, 255)"
+     ],
+     "n": 4
+    },
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a border-color",
+    "_.a border-inline"
+   ]
+  },
+  "b3": {
+   "kind": "later",
+   "title": "border-color / border-inline-start-color",
+   "items": [
+    {
+     "m": "borderColor",
+     "v": "green"
+    },
+    {
+     "m": "borderInlineStartColor",
+     "v": "orange"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 165, 0), want rgb(0, 128, 0)",
+      "border-left-color: got rgb(255, 165, 0), want rgb(0, 128, 0)"
+     ],
+     "n": 2
+    },
+    "min.ab": "ok",
+    "min.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 165, 0), want rgb(0, 128, 0)",
+      "border-left-color: got rgb(255, 165, 0), want rgb(0, 128, 0)"
+     ],
+     "n": 2
+    },
+    "mdn.ab": "ok",
+    "mdn.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 165, 0), want rgb(0, 128, 0)",
+      "border-left-color: got rgb(255, 165, 0), want rgb(0, 128, 0)"
+     ],
+     "n": 2
+    },
+    "truth.ab": "ok",
+    "truth.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 165, 0), want rgb(0, 128, 0)",
+      "border-left-color: got rgb(255, 165, 0), want rgb(0, 128, 0)"
+     ],
+     "n": 2
+    },
+    "sublayers.ab": "ok",
+    "sublayers.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 165, 0), want rgb(0, 128, 0)",
+      "border-left-color: got rgb(255, 165, 0), want rgb(0, 128, 0)"
+     ],
+     "n": 2
+    }
+   },
+   "engineOrder": [
+    "_.a border-color",
+    "_.a border-inline-start-color"
+   ]
+  },
+  "b4": {
+   "kind": "contain",
+   "title": "border-inline / border-inline-start-color",
+   "items": [
+    {
+     "m": "borderInline",
+     "v": "3px dashed blue"
+    },
+    {
+     "m": "borderInlineStartColor",
+     "v": "orange"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a border-inline",
+    "_.a border-inline-start-color"
+   ]
+  },
+  "b5": {
+   "kind": "contain",
+   "title": "border-inline / border-inline-start",
+   "items": [
+    {
+     "m": "borderInline",
+     "v": "1px solid red"
+    },
+    {
+     "m": "borderInlineStart",
+     "v": "3px dashed blue"
+    }
+   ],
+   "run": {
+    "engine.ab": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-inline-start-style: got solid, want dashed",
+      "border-inline-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "engine.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-inline-start-style: got solid, want dashed",
+      "border-inline-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "min.ab": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-inline-start-style: got solid, want dashed",
+      "border-inline-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "min.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-inline-start-style: got solid, want dashed",
+      "border-inline-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "mdn.ab": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-inline-start-style: got solid, want dashed",
+      "border-inline-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "mdn.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-inline-start-style: got solid, want dashed",
+      "border-inline-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-inline-start-style: got solid, want dashed",
+      "border-inline-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "sublayers.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-inline-start-style: got solid, want dashed",
+      "border-inline-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    }
+   },
+   "engineOrder": [
+    "_.a border-inline-start",
+    "_.a border-inline"
+   ]
+  },
+  "b6": {
+   "kind": "contain",
+   "title": "border-inline-color / border-inline-start-color",
+   "items": [
+    {
+     "m": "borderInlineColor",
+     "v": "green"
+    },
+    {
+     "m": "borderInlineStartColor",
+     "v": "orange"
+    }
+   ],
+   "run": {
+    "engine.ab": {
+     "diff": [
+      "border-inline-start-color: got rgb(0, 128, 0), want rgb(255, 165, 0)"
+     ],
+     "n": 1
+    },
+    "engine.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(0, 128, 0), want rgb(255, 165, 0)"
+     ],
+     "n": 1
+    },
+    "min.ab": {
+     "diff": [
+      "border-inline-start-color: got rgb(0, 128, 0), want rgb(255, 165, 0)"
+     ],
+     "n": 1
+    },
+    "min.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(0, 128, 0), want rgb(255, 165, 0)"
+     ],
+     "n": 1
+    },
+    "mdn.ab": {
+     "diff": [
+      "border-inline-start-color: got rgb(0, 128, 0), want rgb(255, 165, 0)"
+     ],
+     "n": 1
+    },
+    "mdn.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(0, 128, 0), want rgb(255, 165, 0)"
+     ],
+     "n": 1
+    },
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": {
+     "diff": [
+      "border-inline-start-color: got rgb(0, 128, 0), want rgb(255, 165, 0)"
+     ],
+     "n": 1
+    },
+    "sublayers.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(0, 128, 0), want rgb(255, 165, 0)"
+     ],
+     "n": 1
+    }
+   },
+   "engineOrder": [
+    "_.a border-inline-start-color",
+    "_.a border-inline-color"
+   ]
+  },
+  "b7": {
+   "kind": "contain",
+   "title": "border / border-color",
+   "items": [
+    {
+     "m": "border",
+     "v": "1px solid red"
+    },
+    {
+     "m": "borderColor",
+     "v": "green"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a border",
+    "_.a border-color"
+   ]
+  },
+  "b8": {
+   "kind": "later",
+   "title": "border / border-inline-start-color",
+   "items": [
+    {
+     "m": "border",
+     "v": "1px solid red"
+    },
+    {
+     "m": "borderInlineStartColor",
+     "v": "orange"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 165, 0), want rgb(255, 0, 0)",
+      "border-left-color: got rgb(255, 165, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 2
+    },
+    "min.ab": "ok",
+    "min.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 165, 0), want rgb(255, 0, 0)",
+      "border-left-color: got rgb(255, 165, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 2
+    },
+    "mdn.ab": "ok",
+    "mdn.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 165, 0), want rgb(255, 0, 0)",
+      "border-left-color: got rgb(255, 165, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 2
+    },
+    "truth.ab": "ok",
+    "truth.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 165, 0), want rgb(255, 0, 0)",
+      "border-left-color: got rgb(255, 165, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 2
+    },
+    "sublayers.ab": "ok",
+    "sublayers.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 165, 0), want rgb(255, 0, 0)",
+      "border-left-color: got rgb(255, 165, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 2
+    }
+   },
+   "engineOrder": [
+    "_.a border",
+    "_.a border-inline-start-color"
+   ]
+  },
+  "b9": {
+   "kind": "contain",
+   "title": "border-block / border-block-start",
+   "items": [
+    {
+     "m": "borderBlock",
+     "v": "1px solid red"
+    },
+    {
+     "m": "borderBlockStart",
+     "v": "3px dashed blue"
+    }
+   ],
+   "run": {
+    "engine.ab": {
+     "diff": [
+      "border-block-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-block-start-style: got solid, want dashed",
+      "border-block-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "engine.ba": {
+     "diff": [
+      "border-block-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-block-start-style: got solid, want dashed",
+      "border-block-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "min.ab": {
+     "diff": [
+      "border-block-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-block-start-style: got solid, want dashed",
+      "border-block-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "min.ba": {
+     "diff": [
+      "border-block-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-block-start-style: got solid, want dashed",
+      "border-block-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "mdn.ab": {
+     "diff": [
+      "border-block-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-block-start-style: got solid, want dashed",
+      "border-block-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "mdn.ba": {
+     "diff": [
+      "border-block-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-block-start-style: got solid, want dashed",
+      "border-block-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": {
+     "diff": [
+      "border-block-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-block-start-style: got solid, want dashed",
+      "border-block-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "sublayers.ba": {
+     "diff": [
+      "border-block-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-block-start-style: got solid, want dashed",
+      "border-block-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    }
+   },
+   "engineOrder": [
+    "_.a border-block-start",
+    "_.a border-block"
+   ]
+  },
+  "b10": {
+   "kind": "contain",
+   "title": "border-block / border-block-end",
+   "items": [
+    {
+     "m": "borderBlock",
+     "v": "1px solid red"
+    },
+    {
+     "m": "borderBlockEnd",
+     "v": "3px dashed blue"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a border-block",
+    "_.a border-block-end"
+   ]
+  },
+  "b11": {
+   "kind": "later",
+   "title": "border, border-inline, border-color, border-inline-start-color",
+   "items": [
+    {
+     "m": "border",
+     "v": "1px solid red"
+    },
+    {
+     "m": "borderInline",
+     "v": "3px dashed blue"
+    },
+    {
+     "m": "borderColor",
+     "v": "green"
+    },
+    {
+     "m": "borderInlineStartColor",
+     "v": "orange"
+    }
+   ],
+   "run": {
+    "engine.ab": {
+     "diff": [
+      "border-inline-end-color: got rgb(0, 0, 255), want rgb(0, 128, 0)",
+      "border-right-color: got rgb(0, 0, 255), want rgb(0, 128, 0)"
+     ],
+     "n": 2
+    },
+    "engine.ba": {
+     "diff": [
+      "border-inline-end-color: got rgb(0, 0, 255), want rgb(0, 128, 0)",
+      "border-inline-end-style: got dashed, want solid",
+      "border-inline-end-width: got 3px, want 1px",
+      "border-inline-start-color: got rgb(255, 165, 0), want rgb(0, 128, 0)"
+     ],
+     "n": 12
+    },
+    "min.ab": {
+     "diff": [
+      "border-inline-end-color: got rgb(0, 0, 255), want rgb(0, 128, 0)",
+      "border-right-color: got rgb(0, 0, 255), want rgb(0, 128, 0)"
+     ],
+     "n": 2
+    },
+    "min.ba": {
+     "diff": [
+      "border-inline-end-color: got rgb(0, 0, 255), want rgb(0, 128, 0)",
+      "border-inline-end-style: got dashed, want solid",
+      "border-inline-end-width: got 3px, want 1px",
+      "border-inline-start-color: got rgb(255, 165, 0), want rgb(0, 128, 0)"
+     ],
+     "n": 12
+    },
+    "mdn.ab": {
+     "diff": [
+      "border-inline-end-color: got rgb(0, 0, 255), want rgb(0, 128, 0)",
+      "border-right-color: got rgb(0, 0, 255), want rgb(0, 128, 0)"
+     ],
+     "n": 2
+    },
+    "mdn.ba": {
+     "diff": [
+      "border-inline-end-color: got rgb(0, 0, 255), want rgb(0, 128, 0)",
+      "border-inline-end-style: got dashed, want solid",
+      "border-inline-end-width: got 3px, want 1px",
+      "border-inline-start-color: got rgb(255, 165, 0), want rgb(0, 128, 0)"
+     ],
+     "n": 12
+    },
+    "truth.ab": "ok",
+    "truth.ba": {
+     "diff": [
+      "border-inline-end-style: got dashed, want solid",
+      "border-inline-end-width: got 3px, want 1px",
+      "border-inline-start-color: got rgb(255, 165, 0), want rgb(0, 128, 0)",
+      "border-inline-start-style: got dashed, want solid"
+     ],
+     "n": 10
+    },
+    "sublayers.ab": "ok",
+    "sublayers.ba": {
+     "diff": [
+      "border-inline-end-style: got dashed, want solid",
+      "border-inline-end-width: got 3px, want 1px",
+      "border-inline-start-color: got rgb(255, 165, 0), want rgb(0, 128, 0)",
+      "border-inline-start-style: got dashed, want solid"
+     ],
+     "n": 10
+    }
+   },
+   "engineOrder": [
+    "_.a border",
+    "_.a border-color",
+    "_.a border-inline",
+    "_.a border-inline-start-color"
+   ]
+  },
+  "i1": {
+   "kind": "later",
+   "title": "inset / inset-block",
+   "items": [
+    {
+     "m": "inset",
+     "v": "1px"
+    },
+    {
+     "m": "insetBlock",
+     "v": "2px"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": {
+     "diff": [
+      "bottom: got 2px, want 1px",
+      "inset-block-end: got 2px, want 1px",
+      "inset-block-start: got 2px, want 1px",
+      "top: got 2px, want 1px"
+     ],
+     "n": 4
+    },
+    "min.ab": "ok",
+    "min.ba": {
+     "diff": [
+      "bottom: got 2px, want 1px",
+      "inset-block-end: got 2px, want 1px",
+      "inset-block-start: got 2px, want 1px",
+      "top: got 2px, want 1px"
+     ],
+     "n": 4
+    },
+    "mdn.ab": "ok",
+    "mdn.ba": {
+     "diff": [
+      "bottom: got 2px, want 1px",
+      "inset-block-end: got 2px, want 1px",
+      "inset-block-start: got 2px, want 1px",
+      "top: got 2px, want 1px"
+     ],
+     "n": 4
+    },
+    "truth.ab": "ok",
+    "truth.ba": {
+     "diff": [
+      "bottom: got 2px, want 1px",
+      "inset-block-end: got 2px, want 1px",
+      "inset-block-start: got 2px, want 1px",
+      "top: got 2px, want 1px"
+     ],
+     "n": 4
+    },
+    "sublayers.ab": {
+     "diff": [
+      "bottom: got 1px, want 2px",
+      "inset-block-end: got 1px, want 2px",
+      "inset-block-start: got 1px, want 2px",
+      "top: got 1px, want 2px"
+     ],
+     "n": 4
+    },
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a inset",
+    "_.a inset-block"
+   ]
+  },
+  "i2": {
+   "kind": "contain",
+   "title": "inset / top",
+   "items": [
+    {
+     "m": "inset",
+     "v": "1px"
+    },
+    {
+     "m": "top",
+     "v": "5px"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a inset",
+    "_.a top"
+   ]
+  },
+  "i3": {
+   "kind": "later",
+   "title": "inset-block / top",
+   "items": [
+    {
+     "m": "insetBlock",
+     "v": "2px"
+    },
+    {
+     "m": "top",
+     "v": "5px"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": {
+     "diff": [
+      "inset-block-start: got 5px, want 2px",
+      "top: got 5px, want 2px"
+     ],
+     "n": 2
+    },
+    "min.ab": "ok",
+    "min.ba": {
+     "diff": [
+      "inset-block-start: got 5px, want 2px",
+      "top: got 5px, want 2px"
+     ],
+     "n": 2
+    },
+    "mdn.ab": "ok",
+    "mdn.ba": {
+     "diff": [
+      "inset-block-start: got 5px, want 2px",
+      "top: got 5px, want 2px"
+     ],
+     "n": 2
+    },
+    "truth.ab": "ok",
+    "truth.ba": {
+     "diff": [
+      "inset-block-start: got 5px, want 2px",
+      "top: got 5px, want 2px"
+     ],
+     "n": 2
+    },
+    "sublayers.ab": "ok",
+    "sublayers.ba": {
+     "diff": [
+      "inset-block-start: got 5px, want 2px",
+      "top: got 5px, want 2px"
+     ],
+     "n": 2
+    }
+   },
+   "engineOrder": [
+    "_.a inset-block",
+    "_.a top"
+   ]
+  },
+  "i4": {
+   "kind": "contain",
+   "title": "inset-block / inset-block-start",
+   "items": [
+    {
+     "m": "insetBlock",
+     "v": "2px"
+    },
+    {
+     "m": "insetBlockStart",
+     "v": "7px"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a inset-block",
+    "_.a inset-block-start"
+   ]
+  },
+  "i5": {
+   "kind": "later",
+   "title": "inset, inset-block, top",
+   "items": [
+    {
+     "m": "inset",
+     "v": "1px"
+    },
+    {
+     "m": "insetBlock",
+     "v": "2px"
+    },
+    {
+     "m": "top",
+     "v": "5px"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": {
+     "diff": [
+      "bottom: got 2px, want 1px",
+      "inset-block-end: got 2px, want 1px"
+     ],
+     "n": 2
+    },
+    "min.ab": "ok",
+    "min.ba": {
+     "diff": [
+      "bottom: got 2px, want 1px",
+      "inset-block-end: got 2px, want 1px"
+     ],
+     "n": 2
+    },
+    "mdn.ab": "ok",
+    "mdn.ba": {
+     "diff": [
+      "bottom: got 2px, want 1px",
+      "inset-block-end: got 2px, want 1px"
+     ],
+     "n": 2
+    },
+    "truth.ab": "ok",
+    "truth.ba": {
+     "diff": [
+      "bottom: got 2px, want 1px",
+      "inset-block-end: got 2px, want 1px"
+     ],
+     "n": 2
+    },
+    "sublayers.ab": {
+     "diff": [
+      "bottom: got 1px, want 2px",
+      "inset-block-end: got 1px, want 2px"
+     ],
+     "n": 2
+    },
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a inset",
+    "_.a inset-block",
+    "_.a top"
+   ]
+  },
+  "m1": {
+   "kind": "later",
+   "title": "margin / margin-inline",
+   "items": [
+    {
+     "m": "m",
+     "v": "1px"
+    },
+    {
+     "m": "marginInline",
+     "v": "2px"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": {
+     "diff": [
+      "margin-inline-end: got 2px, want 1px",
+      "margin-inline-start: got 2px, want 1px",
+      "margin-left: got 2px, want 1px",
+      "margin-right: got 2px, want 1px"
+     ],
+     "n": 4
+    },
+    "min.ab": "ok",
+    "min.ba": {
+     "diff": [
+      "margin-inline-end: got 2px, want 1px",
+      "margin-inline-start: got 2px, want 1px",
+      "margin-left: got 2px, want 1px",
+      "margin-right: got 2px, want 1px"
+     ],
+     "n": 4
+    },
+    "mdn.ab": "ok",
+    "mdn.ba": {
+     "diff": [
+      "margin-inline-end: got 2px, want 1px",
+      "margin-inline-start: got 2px, want 1px",
+      "margin-left: got 2px, want 1px",
+      "margin-right: got 2px, want 1px"
+     ],
+     "n": 4
+    },
+    "truth.ab": "ok",
+    "truth.ba": {
+     "diff": [
+      "margin-inline-end: got 2px, want 1px",
+      "margin-inline-start: got 2px, want 1px",
+      "margin-left: got 2px, want 1px",
+      "margin-right: got 2px, want 1px"
+     ],
+     "n": 4
+    },
+    "sublayers.ab": {
+     "diff": [
+      "margin-inline-end: got 1px, want 2px",
+      "margin-inline-start: got 1px, want 2px",
+      "margin-left: got 1px, want 2px",
+      "margin-right: got 1px, want 2px"
+     ],
+     "n": 4
+    },
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a margin",
+    "_.a margin-inline"
+   ]
+  },
+  "m2": {
+   "kind": "later",
+   "title": "margin-inline / margin-left",
+   "items": [
+    {
+     "m": "marginInline",
+     "v": "2px"
+    },
+    {
+     "m": "ml",
+     "v": "3px"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": {
+     "diff": [
+      "margin-inline-start: got 3px, want 2px",
+      "margin-left: got 3px, want 2px"
+     ],
+     "n": 2
+    },
+    "min.ab": "ok",
+    "min.ba": {
+     "diff": [
+      "margin-inline-start: got 3px, want 2px",
+      "margin-left: got 3px, want 2px"
+     ],
+     "n": 2
+    },
+    "mdn.ab": "ok",
+    "mdn.ba": {
+     "diff": [
+      "margin-inline-start: got 3px, want 2px",
+      "margin-left: got 3px, want 2px"
+     ],
+     "n": 2
+    },
+    "truth.ab": "ok",
+    "truth.ba": {
+     "diff": [
+      "margin-inline-start: got 3px, want 2px",
+      "margin-left: got 3px, want 2px"
+     ],
+     "n": 2
+    },
+    "sublayers.ab": "ok",
+    "sublayers.ba": {
+     "diff": [
+      "margin-inline-start: got 3px, want 2px",
+      "margin-left: got 3px, want 2px"
+     ],
+     "n": 2
+    }
+   },
+   "engineOrder": [
+    "_.a margin-inline",
+    "_.a margin-left"
+   ]
+  },
+  "m3": {
+   "kind": "contain",
+   "title": "margin / margin-left",
+   "items": [
+    {
+     "m": "m",
+     "v": "1px"
+    },
+    {
+     "m": "ml",
+     "v": "3px"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a margin",
+    "_.a margin-left"
+   ]
+  },
+  "m4": {
+   "kind": "later",
+   "title": "margin / margin-inline-start",
+   "items": [
+    {
+     "m": "m",
+     "v": "1px"
+    },
+    {
+     "m": "marginInlineStart",
+     "v": "4px"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": {
+     "diff": [
+      "margin-inline-start: got 4px, want 1px",
+      "margin-left: got 4px, want 1px"
+     ],
+     "n": 2
+    },
+    "min.ab": "ok",
+    "min.ba": {
+     "diff": [
+      "margin-inline-start: got 4px, want 1px",
+      "margin-left: got 4px, want 1px"
+     ],
+     "n": 2
+    },
+    "mdn.ab": "ok",
+    "mdn.ba": {
+     "diff": [
+      "margin-inline-start: got 4px, want 1px",
+      "margin-left: got 4px, want 1px"
+     ],
+     "n": 2
+    },
+    "truth.ab": "ok",
+    "truth.ba": {
+     "diff": [
+      "margin-inline-start: got 4px, want 1px",
+      "margin-left: got 4px, want 1px"
+     ],
+     "n": 2
+    },
+    "sublayers.ab": "ok",
+    "sublayers.ba": {
+     "diff": [
+      "margin-inline-start: got 4px, want 1px",
+      "margin-left: got 4px, want 1px"
+     ],
+     "n": 2
+    }
+   },
+   "engineOrder": [
+    "_.a margin",
+    "_.a margin-inline-start"
+   ]
+  },
+  "m5": {
+   "kind": "contain",
+   "title": "margin-inline / margin-inline-start",
+   "items": [
+    {
+     "m": "marginInline",
+     "v": "2px"
+    },
+    {
+     "m": "marginInlineStart",
+     "v": "4px"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a margin-inline",
+    "_.a margin-inline-start"
+   ]
+  },
+  "m6": {
+   "kind": "later",
+   "title": "margin-left / margin-inline-start",
+   "items": [
+    {
+     "m": "ml",
+     "v": "3px"
+    },
+    {
+     "m": "marginInlineStart",
+     "v": "4px"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": {
+     "diff": [
+      "margin-inline-start: got 4px, want 3px",
+      "margin-left: got 4px, want 3px"
+     ],
+     "n": 2
+    },
+    "min.ab": "ok",
+    "min.ba": {
+     "diff": [
+      "margin-inline-start: got 4px, want 3px",
+      "margin-left: got 4px, want 3px"
+     ],
+     "n": 2
+    },
+    "mdn.ab": "ok",
+    "mdn.ba": {
+     "diff": [
+      "margin-inline-start: got 4px, want 3px",
+      "margin-left: got 4px, want 3px"
+     ],
+     "n": 2
+    },
+    "truth.ab": "ok",
+    "truth.ba": {
+     "diff": [
+      "margin-inline-start: got 4px, want 3px",
+      "margin-left: got 4px, want 3px"
+     ],
+     "n": 2
+    },
+    "sublayers.ab": "ok",
+    "sublayers.ba": {
+     "diff": [
+      "margin-inline-start: got 4px, want 3px",
+      "margin-left: got 4px, want 3px"
+     ],
+     "n": 2
+    }
+   },
+   "engineOrder": [
+    "_.a margin-left",
+    "_.a margin-inline-start"
+   ]
+  },
+  "m7": {
+   "kind": "later",
+   "title": "margin, margin-inline, margin-left",
+   "items": [
+    {
+     "m": "m",
+     "v": "1px"
+    },
+    {
+     "m": "marginInline",
+     "v": "2px"
+    },
+    {
+     "m": "ml",
+     "v": "3px"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": {
+     "diff": [
+      "margin-inline-end: got 2px, want 1px",
+      "margin-right: got 2px, want 1px"
+     ],
+     "n": 2
+    },
+    "min.ab": "ok",
+    "min.ba": {
+     "diff": [
+      "margin-inline-end: got 2px, want 1px",
+      "margin-right: got 2px, want 1px"
+     ],
+     "n": 2
+    },
+    "mdn.ab": "ok",
+    "mdn.ba": {
+     "diff": [
+      "margin-inline-end: got 2px, want 1px",
+      "margin-right: got 2px, want 1px"
+     ],
+     "n": 2
+    },
+    "truth.ab": "ok",
+    "truth.ba": {
+     "diff": [
+      "margin-inline-end: got 2px, want 1px",
+      "margin-right: got 2px, want 1px"
+     ],
+     "n": 2
+    },
+    "sublayers.ab": {
+     "diff": [
+      "margin-inline-end: got 1px, want 2px",
+      "margin-right: got 1px, want 2px"
+     ],
+     "n": 2
+    },
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a margin",
+    "_.a margin-inline",
+    "_.a margin-left"
+   ]
+  },
+  "g1": {
+   "kind": "contain",
+   "title": "grid-area / grid-row",
+   "items": [
+    {
+     "m": "gridArea",
+     "v": "1 / 2 / 3 / 4"
+    },
+    {
+     "m": "gridRow",
+     "v": "5 / 6"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a grid-area",
+    "_.a grid-row"
+   ]
+  },
+  "g2": {
+   "kind": "contain",
+   "title": "grid-row / grid-row-start",
+   "items": [
+    {
+     "m": "gridRow",
+     "v": "5 / 6"
+    },
+    {
+     "m": "gridRowStart",
+     "v": "7"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a grid-row",
+    "_.a grid-row-start"
+   ]
+  },
+  "g3": {
+   "kind": "contain",
+   "title": "grid-area / grid-row-start",
+   "items": [
+    {
+     "m": "gridArea",
+     "v": "1 / 2 / 3 / 4"
+    },
+    {
+     "m": "gridRowStart",
+     "v": "7"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a grid-area",
+    "_.a grid-row-start"
+   ]
+  },
+  "g4": {
+   "kind": "contain",
+   "title": "grid-area, grid-row, grid-row-start",
+   "items": [
+    {
+     "m": "gridArea",
+     "v": "1 / 2 / 3 / 4"
+    },
+    {
+     "m": "gridRow",
+     "v": "5 / 6"
+    },
+    {
+     "m": "gridRowStart",
+     "v": "7"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a grid-area",
+    "_.a grid-row",
+    "_.a grid-row-start"
+   ]
+  },
+  "g5": {
+   "kind": "contain",
+   "title": "grid / grid-template",
+   "items": [
+    {
+     "m": "grid",
+     "v": "auto-flow / 100px 200px"
+    },
+    {
+     "m": "gridTemplate",
+     "v": "none / 10px 20px"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a grid",
+    "_.a grid-template"
+   ]
+  },
+  "f1": {
+   "kind": "contain",
+   "title": "font / font-variant",
+   "items": [
+    {
+     "m": "font",
+     "v": "italic 700 16px serif"
+    },
+    {
+     "m": "fontVariant",
+     "v": "small-caps"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a font",
+    "_.a font-variant"
+   ]
+  },
+  "f2": {
+   "kind": "contain",
+   "title": "font-variant / font-variant-caps",
+   "items": [
+    {
+     "m": "fontVariant",
+     "v": "small-caps"
+    },
+    {
+     "m": "fontVariantCaps",
+     "v": "all-small-caps"
+    }
+   ],
+   "run": {
+    "engine.ab": {
+     "diff": [
+      "font-variant-caps: got small-caps, want all-small-caps"
+     ],
+     "n": 1
+    },
+    "engine.ba": {
+     "diff": [
+      "font-variant-caps: got small-caps, want all-small-caps"
+     ],
+     "n": 1
+    },
+    "min.ab": {
+     "diff": [
+      "font-variant-caps: got small-caps, want all-small-caps"
+     ],
+     "n": 1
+    },
+    "min.ba": {
+     "diff": [
+      "font-variant-caps: got small-caps, want all-small-caps"
+     ],
+     "n": 1
+    },
+    "mdn.ab": {
+     "diff": [
+      "font-variant-caps: got small-caps, want all-small-caps"
+     ],
+     "n": 1
+    },
+    "mdn.ba": {
+     "diff": [
+      "font-variant-caps: got small-caps, want all-small-caps"
+     ],
+     "n": 1
+    },
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": {
+     "diff": [
+      "font-variant-caps: got small-caps, want all-small-caps"
+     ],
+     "n": 1
+    },
+    "sublayers.ba": {
+     "diff": [
+      "font-variant-caps: got small-caps, want all-small-caps"
+     ],
+     "n": 1
+    }
+   },
+   "engineOrder": [
+    "_.a font-variant-caps",
+    "_.a font-variant"
+   ]
+  },
+  "f3": {
+   "kind": "contain",
+   "title": "font / font-variant-caps",
+   "items": [
+    {
+     "m": "font",
+     "v": "italic 700 16px serif"
+    },
+    {
+     "m": "fontVariantCaps",
+     "v": "all-small-caps"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a font",
+    "_.a font-variant-caps"
+   ]
+  },
+  "f4": {
+   "kind": "contain",
+   "title": "font, font-variant, font-variant-caps",
+   "items": [
+    {
+     "m": "font",
+     "v": "italic 700 16px serif"
+    },
+    {
+     "m": "fontVariant",
+     "v": "small-caps"
+    },
+    {
+     "m": "fontVariantCaps",
+     "v": "all-small-caps"
+    }
+   ],
+   "run": {
+    "engine.ab": {
+     "diff": [
+      "font-variant-caps: got small-caps, want all-small-caps"
+     ],
+     "n": 1
+    },
+    "engine.ba": {
+     "diff": [
+      "font-variant-caps: got small-caps, want all-small-caps"
+     ],
+     "n": 1
+    },
+    "min.ab": {
+     "diff": [
+      "font-variant-caps: got small-caps, want all-small-caps"
+     ],
+     "n": 1
+    },
+    "min.ba": {
+     "diff": [
+      "font-variant-caps: got small-caps, want all-small-caps"
+     ],
+     "n": 1
+    },
+    "mdn.ab": {
+     "diff": [
+      "font-variant-caps: got small-caps, want all-small-caps"
+     ],
+     "n": 1
+    },
+    "mdn.ba": {
+     "diff": [
+      "font-variant-caps: got small-caps, want all-small-caps"
+     ],
+     "n": 1
+    },
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": {
+     "diff": [
+      "font-variant-caps: got small-caps, want all-small-caps"
+     ],
+     "n": 1
+    },
+    "sublayers.ba": {
+     "diff": [
+      "font-variant-caps: got small-caps, want all-small-caps"
+     ],
+     "n": 1
+    }
+   },
+   "engineOrder": [
+    "_.a font",
+    "_.a font-variant-caps",
+    "_.a font-variant"
+   ]
+  },
+  "k1": {
+   "kind": "later",
+   "title": "mask / mask-border",
+   "items": [
+    {
+     "m": "mask",
+     "v": "linear-gradient(red, blue) no-repeat"
+    },
+    {
+     "m": "maskBorder",
+     "v": "linear-gradient(red, blue) 30 / 10px"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a mask",
+    "_.a mask-border"
+   ]
+  },
+  "k2": {
+   "kind": "contain",
+   "title": "mask / mask-image",
+   "items": [
+    {
+     "m": "mask",
+     "v": "linear-gradient(red, blue) no-repeat"
+    },
+    {
+     "m": "maskImage",
+     "v": "linear-gradient(green, blue)"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a mask",
+    "_.a mask-image"
+   ]
+  },
+  "t1": {
+   "kind": "contain",
+   "title": "text-decoration / text-decoration-line",
+   "items": [
+    {
+     "m": "textDecoration",
+     "v": "underline dotted red"
+    },
+    {
+     "m": "textDecorationLine",
+     "v": "line-through"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a text-decoration",
+    "_.a text-decoration-line"
+   ]
+  },
+  "t2": {
+   "kind": "contain",
+   "title": "text-decoration / -line / -color",
+   "items": [
+    {
+     "m": "textDecoration",
+     "v": "underline dotted red"
+    },
+    {
+     "m": "textDecorationLine",
+     "v": "line-through"
+    },
+    {
+     "m": "textDecorationColor",
+     "v": "blue"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a text-decoration",
+    "_.a text-decoration-color",
+    "_.a text-decoration-line"
+   ]
+  },
+  "p1": {
+   "kind": "contain",
+   "title": "place-items / align-items",
+   "items": [
+    {
+     "m": "placeItems",
+     "v": "start end"
+    },
+    {
+     "m": "alignItems",
+     "v": "center"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a place-items",
+    "_.a align-items"
+   ]
+  },
+  "p2": {
+   "kind": "contain",
+   "title": "place-items / justify-items",
+   "items": [
+    {
+     "m": "placeItems",
+     "v": "start end"
+    },
+    {
+     "m": "justifyItems",
+     "v": "center"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a place-items",
+    "_.a justify-items"
+   ]
+  },
+  "o1": {
+   "kind": "contain",
+   "title": "overflow / overflow-x",
+   "items": [
+    {
+     "m": "overflow",
+     "v": "hidden"
+    },
+    {
+     "m": "overflowX",
+     "v": "scroll"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a overflow",
+    "_.a overflow-x"
+   ]
+  },
+  "o2": {
+   "kind": "contain",
+   "title": "overflow / overflow-y",
+   "items": [
+    {
+     "m": "overflow",
+     "v": "hidden"
+    },
+    {
+     "m": "overflowY",
+     "v": "scroll"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a overflow",
+    "_.a overflow-y"
+   ]
+  },
+  "a1": {
+   "kind": "contain",
+   "title": "all / padding",
+   "items": [
+    {
+     "m": "all",
+     "v": "initial"
+    },
+    {
+     "m": "p",
+     "v": "1rem"
+    }
+   ],
+   "run": {
+    "engine.ab": {
+     "diff": [
+      "padding-block-end: got 0px, want 16px",
+      "padding-block-start: got 0px, want 16px",
+      "padding-bottom: got 0px, want 16px",
+      "padding-inline-end: got 0px, want 16px"
+     ],
+     "n": 8
+    },
+    "engine.ba": {
+     "diff": [
+      "padding-block-end: got 0px, want 16px",
+      "padding-block-start: got 0px, want 16px",
+      "padding-bottom: got 0px, want 16px",
+      "padding-inline-end: got 0px, want 16px"
+     ],
+     "n": 8
+    },
+    "min.ab": {
+     "diff": [
+      "padding-block-end: got 0px, want 16px",
+      "padding-block-start: got 0px, want 16px",
+      "padding-bottom: got 0px, want 16px",
+      "padding-inline-end: got 0px, want 16px"
+     ],
+     "n": 8
+    },
+    "min.ba": {
+     "diff": [
+      "padding-block-end: got 0px, want 16px",
+      "padding-block-start: got 0px, want 16px",
+      "padding-bottom: got 0px, want 16px",
+      "padding-inline-end: got 0px, want 16px"
+     ],
+     "n": 8
+    },
+    "mdn.ab": {
+     "diff": [
+      "padding-block-end: got 0px, want 16px",
+      "padding-block-start: got 0px, want 16px",
+      "padding-bottom: got 0px, want 16px",
+      "padding-inline-end: got 0px, want 16px"
+     ],
+     "n": 8
+    },
+    "mdn.ba": {
+     "diff": [
+      "padding-block-end: got 0px, want 16px",
+      "padding-block-start: got 0px, want 16px",
+      "padding-bottom: got 0px, want 16px",
+      "padding-inline-end: got 0px, want 16px"
+     ],
+     "n": 8
+    },
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a padding",
+    "_.a all"
+   ]
+  },
+  "a2": {
+   "kind": "contain",
+   "title": "all / color",
+   "items": [
+    {
+     "m": "all",
+     "v": "initial"
+    },
+    {
+     "m": "color",
+     "v": "red"
+    }
+   ],
+   "run": {
+    "engine.ab": {
+     "diff": [
+      "-webkit-text-fill-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "-webkit-text-stroke-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-end-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-start-color: got rgb(0, 0, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 16
+    },
+    "engine.ba": {
+     "diff": [
+      "-webkit-text-fill-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "-webkit-text-stroke-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-end-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-start-color: got rgb(0, 0, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 16
+    },
+    "min.ab": {
+     "diff": [
+      "-webkit-text-fill-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "-webkit-text-stroke-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-end-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-start-color: got rgb(0, 0, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 16
+    },
+    "min.ba": {
+     "diff": [
+      "-webkit-text-fill-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "-webkit-text-stroke-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-end-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-start-color: got rgb(0, 0, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 16
+    },
+    "mdn.ab": {
+     "diff": [
+      "-webkit-text-fill-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "-webkit-text-stroke-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-end-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-start-color: got rgb(0, 0, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 16
+    },
+    "mdn.ba": {
+     "diff": [
+      "-webkit-text-fill-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "-webkit-text-stroke-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-end-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-start-color: got rgb(0, 0, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 16
+    },
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a color",
+    "_.a all"
+   ]
+  },
+  "a3": {
+   "kind": "contain",
+   "title": "all / border",
+   "items": [
+    {
+     "m": "all",
+     "v": "initial"
+    },
+    {
+     "m": "border",
+     "v": "1px solid red"
+    }
+   ],
+   "run": {
+    "engine.ab": {
+     "diff": [
+      "border-block-end-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-end-style: got none, want solid",
+      "border-block-end-width: got 0px, want 1px",
+      "border-block-start-color: got rgb(0, 0, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 24
+    },
+    "engine.ba": {
+     "diff": [
+      "border-block-end-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-end-style: got none, want solid",
+      "border-block-end-width: got 0px, want 1px",
+      "border-block-start-color: got rgb(0, 0, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 24
+    },
+    "min.ab": {
+     "diff": [
+      "border-block-end-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-end-style: got none, want solid",
+      "border-block-end-width: got 0px, want 1px",
+      "border-block-start-color: got rgb(0, 0, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 24
+    },
+    "min.ba": {
+     "diff": [
+      "border-block-end-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-end-style: got none, want solid",
+      "border-block-end-width: got 0px, want 1px",
+      "border-block-start-color: got rgb(0, 0, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 24
+    },
+    "mdn.ab": {
+     "diff": [
+      "border-block-end-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-end-style: got none, want solid",
+      "border-block-end-width: got 0px, want 1px",
+      "border-block-start-color: got rgb(0, 0, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 24
+    },
+    "mdn.ba": {
+     "diff": [
+      "border-block-end-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-end-style: got none, want solid",
+      "border-block-end-width: got 0px, want 1px",
+      "border-block-start-color: got rgb(0, 0, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 24
+    },
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a border",
+    "_.a all"
+   ]
+  },
+  "a4": {
+   "kind": "contain",
+   "title": "all / border-top-width",
+   "items": [
+    {
+     "m": "all",
+     "v": "initial"
+    },
+    {
+     "m": "borderTopWidth",
+     "v": "3px"
+    },
+    {
+     "m": "borderTopStyle",
+     "v": "solid"
+    }
+   ],
+   "run": {
+    "engine.ab": {
+     "diff": [
+      "border-block-start-style: got none, want solid",
+      "border-block-start-width: got 0px, want 3px",
+      "border-top-style: got none, want solid",
+      "border-top-width: got 0px, want 3px"
+     ],
+     "n": 4
+    },
+    "engine.ba": {
+     "diff": [
+      "border-block-start-style: got none, want solid",
+      "border-block-start-width: got 0px, want 3px",
+      "border-top-style: got none, want solid",
+      "border-top-width: got 0px, want 3px"
+     ],
+     "n": 4
+    },
+    "min.ab": {
+     "diff": [
+      "border-block-start-style: got none, want solid",
+      "border-block-start-width: got 0px, want 3px",
+      "border-top-style: got none, want solid",
+      "border-top-width: got 0px, want 3px"
+     ],
+     "n": 4
+    },
+    "min.ba": {
+     "diff": [
+      "border-block-start-style: got none, want solid",
+      "border-block-start-width: got 0px, want 3px",
+      "border-top-style: got none, want solid",
+      "border-top-width: got 0px, want 3px"
+     ],
+     "n": 4
+    },
+    "mdn.ab": {
+     "diff": [
+      "border-block-start-style: got none, want solid",
+      "border-block-start-width: got 0px, want 3px",
+      "border-top-style: got none, want solid",
+      "border-top-width: got 0px, want 3px"
+     ],
+     "n": 4
+    },
+    "mdn.ba": {
+     "diff": [
+      "border-block-start-style: got none, want solid",
+      "border-block-start-width: got 0px, want 3px",
+      "border-top-style: got none, want solid",
+      "border-top-width: got 0px, want 3px"
+     ],
+     "n": 4
+    },
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a border-top-style",
+    "_.a border-top-width",
+    "_.a all"
+   ]
+  },
+  "a5": {
+   "kind": "contain",
+   "title": "all / font-size",
+   "items": [
+    {
+     "m": "all",
+     "v": "initial"
+    },
+    {
+     "m": "fontSize",
+     "v": "20px"
+    }
+   ],
+   "run": {
+    "engine.ab": {
+     "diff": [
+      "font-size: got 16px, want 20px"
+     ],
+     "n": 1
+    },
+    "engine.ba": {
+     "diff": [
+      "font-size: got 16px, want 20px"
+     ],
+     "n": 1
+    },
+    "min.ab": {
+     "diff": [
+      "font-size: got 16px, want 20px"
+     ],
+     "n": 1
+    },
+    "min.ba": {
+     "diff": [
+      "font-size: got 16px, want 20px"
+     ],
+     "n": 1
+    },
+    "mdn.ab": {
+     "diff": [
+      "font-size: got 16px, want 20px"
+     ],
+     "n": 1
+    },
+    "mdn.ba": {
+     "diff": [
+      "font-size: got 16px, want 20px"
+     ],
+     "n": 1
+    },
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a font-size",
+    "_.a all"
+   ]
+  },
+  "c1": {
+   "kind": "contain",
+   "title": "container-type / container-name (no shorthand)",
+   "items": [
+    {
+     "m": "containerType",
+     "v": "inline-size"
+    },
+    {
+     "m": "containerName",
+     "v": "side"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a container-type",
+    "_.a container-name"
+   ]
+  },
+  "h1": {
+   "kind": "layer",
+   "title": "hover(p) / pl",
+   "items": [
+    {
+     "m": "p",
+     "v": "1rem",
+     "w": [
+      "hover"
+     ]
+    },
+    {
+     "m": "pl",
+     "v": "0.5rem"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a padding-left",
+    "_.b[0,4] padding"
+   ]
+  },
+  "h2": {
+   "kind": "layer",
+   "title": "hover(pl) / p",
+   "items": [
+    {
+     "m": "pl",
+     "v": "1rem",
+     "w": [
+      "hover"
+     ]
+    },
+    {
+     "m": "p",
+     "v": "0.5rem"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a padding",
+    "_.b[0,4] padding-left"
+   ]
+  },
+  "h3": {
+   "kind": "contain",
+   "title": "hover(p) / hover(pl)",
+   "items": [
+    {
+     "m": "p",
+     "v": "1rem",
+     "w": [
+      "hover"
+     ]
+    },
+    {
+     "m": "pl",
+     "v": "0.5rem",
+     "w": [
+      "hover"
+     ]
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.b[0,4] padding",
+    "_.b[0,4] padding-left"
+   ]
+  },
+  "h4": {
+   "kind": "cond",
+   "title": "md(p) / hover(pl)",
+   "items": [
+    {
+     "m": "p",
+     "v": "1rem",
+     "w": [
+      "md"
+     ]
+    },
+    {
+     "m": "pl",
+     "v": "2rem",
+     "w": [
+      "hover"
+     ]
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.b[0,4] padding-left",
+    "_.b[640] padding"
+   ]
+  },
+  "h5": {
+   "kind": "cond",
+   "title": "hover(p) / md(pl)",
+   "items": [
+    {
+     "m": "p",
+     "v": "1rem",
+     "w": [
+      "hover"
+     ]
+    },
+    {
+     "m": "pl",
+     "v": "2rem",
+     "w": [
+      "md"
+     ]
+    }
+   ],
+   "run": {
+    "engine.ab": {
+     "diff": [
+      "padding-left: got 16px, want 32px"
+     ],
+     "n": 1
+    },
+    "engine.ba": {
+     "diff": [
+      "padding-left: got 16px, want 32px"
+     ],
+     "n": 1
+    },
+    "min.ab": {
+     "diff": [
+      "padding-left: got 16px, want 32px"
+     ],
+     "n": 1
+    },
+    "min.ba": {
+     "diff": [
+      "padding-left: got 16px, want 32px"
+     ],
+     "n": 1
+    },
+    "mdn.ab": {
+     "diff": [
+      "padding-left: got 16px, want 32px"
+     ],
+     "n": 1
+    },
+    "mdn.ba": {
+     "diff": [
+      "padding-left: got 16px, want 32px"
+     ],
+     "n": 1
+    },
+    "truth.ab": {
+     "diff": [
+      "padding-left: got 16px, want 32px"
+     ],
+     "n": 1
+    },
+    "truth.ba": {
+     "diff": [
+      "padding-left: got 16px, want 32px"
+     ],
+     "n": 1
+    },
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.b[0,4] padding",
+    "_.b[640] padding-left"
+   ]
+  },
+  "h8": {
+   "kind": "cond",
+   "title": "focus(p) / hover(pl)",
+   "items": [
+    {
+     "m": "p",
+     "v": "1rem",
+     "w": [
+      "focus"
+     ]
+    },
+    {
+     "m": "pl",
+     "v": "2rem",
+     "w": [
+      "hover"
+     ]
+    }
+   ],
+   "run": {
+    "engine.ab": {
+     "diff": [
+      "padding-left: got 16px, want 32px"
+     ],
+     "n": 1
+    },
+    "engine.ba": {
+     "diff": [
+      "padding-left: got 16px, want 32px"
+     ],
+     "n": 1
+    },
+    "min.ab": {
+     "diff": [
+      "padding-left: got 16px, want 32px"
+     ],
+     "n": 1
+    },
+    "min.ba": {
+     "diff": [
+      "padding-left: got 16px, want 32px"
+     ],
+     "n": 1
+    },
+    "mdn.ab": {
+     "diff": [
+      "padding-left: got 16px, want 32px"
+     ],
+     "n": 1
+    },
+    "mdn.ba": {
+     "diff": [
+      "padding-left: got 16px, want 32px"
+     ],
+     "n": 1
+    },
+    "truth.ab": {
+     "diff": [
+      "padding-left: got 16px, want 32px"
+     ],
+     "n": 1
+    },
+    "truth.ba": {
+     "diff": [
+      "padding-left: got 16px, want 32px"
+     ],
+     "n": 1
+    },
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.b[0,4] padding-left",
+    "_.b[0,5] padding"
+   ]
+  },
+  "h9": {
+   "kind": "cond",
+   "title": "hover(p) / focus(pl)",
+   "items": [
+    {
+     "m": "p",
+     "v": "1rem",
+     "w": [
+      "hover"
+     ]
+    },
+    {
+     "m": "pl",
+     "v": "2rem",
+     "w": [
+      "focus"
+     ]
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.b[0,4] padding",
+    "_.b[0,5] padding-left"
+   ]
+  },
+  "h6": {
+   "kind": "layer",
+   "title": "md(hover(p)) / md(pl)",
+   "items": [
+    {
+     "m": "p",
+     "v": "1rem",
+     "w": [
+      "md",
+      "hover"
+     ]
+    },
+    {
+     "m": "pl",
+     "v": "2rem",
+     "w": [
+      "md"
+     ]
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.b[640] padding-left",
+    "_.c[640,4] padding"
+   ]
+  },
+  "h7": {
+   "kind": "contain",
+   "title": "md(p) / md(pl)",
+   "items": [
+    {
+     "m": "p",
+     "v": "1rem",
+     "w": [
+      "md"
+     ]
+    },
+    {
+     "m": "pl",
+     "v": "2rem",
+     "w": [
+      "md"
+     ]
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.b[640] padding",
+    "_.b[640] padding-left"
+   ]
+  },
+  "x1": {
+   "kind": "contain",
+   "title": "p in one module, pl in another",
+   "items": [
+    {
+     "m": "p",
+     "v": "1rem"
+    },
+    {
+     "m": "pl",
+     "v": "0.5rem"
+    }
+   ],
+   "run": {
+    "engine.ab": "ok",
+    "engine.ba": "ok",
+    "min.ab": "ok",
+    "min.ba": "ok",
+    "mdn.ab": "ok",
+    "mdn.ba": "ok",
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a padding",
+    "_.a padding-left"
+   ]
+  },
+  "x2": {
+   "kind": "contain",
+   "title": "border-inline in one module, border-inline-start in another",
+   "items": [
+    {
+     "m": "borderInline",
+     "v": "1px solid red"
+    },
+    {
+     "m": "borderInlineStart",
+     "v": "3px dashed blue"
+    }
+   ],
+   "run": {
+    "engine.ab": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-inline-start-style: got solid, want dashed",
+      "border-inline-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "engine.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-inline-start-style: got solid, want dashed",
+      "border-inline-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "min.ab": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-inline-start-style: got solid, want dashed",
+      "border-inline-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "min.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-inline-start-style: got solid, want dashed",
+      "border-inline-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "mdn.ab": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-inline-start-style: got solid, want dashed",
+      "border-inline-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "mdn.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-inline-start-style: got solid, want dashed",
+      "border-inline-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-inline-start-style: got solid, want dashed",
+      "border-inline-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    },
+    "sublayers.ba": {
+     "diff": [
+      "border-inline-start-color: got rgb(255, 0, 0), want rgb(0, 0, 255)",
+      "border-inline-start-style: got solid, want dashed",
+      "border-inline-start-width: got 1px, want 3px"
+     ],
+     "n": 3
+    }
+   },
+   "engineOrder": [
+    "_.a border-inline-start",
+    "_.a border-inline"
+   ]
+  },
+  "x3": {
+   "kind": "contain",
+   "title": "all in one module, color in another",
+   "items": [
+    {
+     "m": "all",
+     "v": "initial"
+    },
+    {
+     "m": "color",
+     "v": "red"
+    }
+   ],
+   "run": {
+    "engine.ab": {
+     "diff": [
+      "-webkit-text-fill-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "-webkit-text-stroke-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-end-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-start-color: got rgb(0, 0, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 16
+    },
+    "engine.ba": {
+     "diff": [
+      "-webkit-text-fill-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "-webkit-text-stroke-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-end-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-start-color: got rgb(0, 0, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 16
+    },
+    "min.ab": {
+     "diff": [
+      "-webkit-text-fill-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "-webkit-text-stroke-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-end-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-start-color: got rgb(0, 0, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 16
+    },
+    "min.ba": {
+     "diff": [
+      "-webkit-text-fill-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "-webkit-text-stroke-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-end-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-start-color: got rgb(0, 0, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 16
+    },
+    "mdn.ab": {
+     "diff": [
+      "-webkit-text-fill-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "-webkit-text-stroke-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-end-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-start-color: got rgb(0, 0, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 16
+    },
+    "mdn.ba": {
+     "diff": [
+      "-webkit-text-fill-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "-webkit-text-stroke-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-end-color: got rgb(0, 0, 0), want rgb(255, 0, 0)",
+      "border-block-start-color: got rgb(0, 0, 0), want rgb(255, 0, 0)"
+     ],
+     "n": 16
+    },
+    "truth.ab": "ok",
+    "truth.ba": "ok",
+    "sublayers.ab": "ok",
+    "sublayers.ba": "ok"
+   },
+   "engineOrder": [
+    "_.a color",
+    "_.a all"
+   ]
+  }
+ }
+}
