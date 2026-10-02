@@ -24,7 +24,7 @@ import { forget, Registry, type RegistryState } from "./registry.ts";
 //
 // A class because Vite asks for one (`evaluator`): the runner calls it, not a program of ours.
 export class DomEvaluator extends ESModulesEvaluator {
-  win = new Window();
+  win = Object.assign(new Window(), { __jsx: () => null });
   names: string[] = Object.getOwnPropertyNames(this.win).filter((k) => !(k in globalThis));
   override async runInlinedModule(context: ModuleRunnerContext, code: string): Promise<void> {
     const keys = Object.keys(context);

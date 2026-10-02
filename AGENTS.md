@@ -11,6 +11,7 @@ packages/css-grammar   type-level recognizer (src/css.ts) + runtime twin (src/tw
                        Typed OM values, BCD support warnings, prose rules; test/, bench/ (instantiation budgets)
 packages/icons         @cssints/icons: icons() on the cssints/plugin style() helper (iconify-json and fs providers); test/: fixtures, icons.mjs, types/
 apps/demo              React demo on the plugin: every 0.1 feature (App.tsx, components/Showcase.tsx, theme.ts)
+apps/sky               Solid 2 skeleton on the plugin (solid-js@next, @solidjs/vite-plugin): one component, test/build.mjs and test/dev.mjs (build, HMR)
 README.md              what cssints is, setup, a short example
 docs/wayfinder.md      decisions and findings log (start here); docs/API.md the API reference
 docs/research/         comparisons with other libraries; docs/archive/ outdated plans
@@ -35,11 +36,12 @@ cd packages/css-grammar && bun run webref     # rewrite scripts/webref-propertie
                                               # Chrome, @webref/css, mdn-data or twin bump (needs an installed Chrome; ~1 minute)
 cd packages/cssints && node bench/lsp.mjs     # editor latency on the demo's Button.tsx over tsgo's language server
 cd packages/cssints && bun run members        # regenerate src/members.ts (the names of "cssints" in user code)
-bun run typecheck                             # per package: tsgo -p tsconfig.json --noEmit + effect-tsgo diagnostics; apps/demo: tsgo and tsc 5.9
+bun run typecheck                             # per package: tsgo -p tsconfig.json --noEmit + effect-tsgo diagnostics; apps/demo and apps/sky: tsgo and tsc 5.9
 cd packages/cssints && bun run test:browsers   # cssints/frame and cssints/surface in Chrome, Firefox and WebKit through playwright-core (not in `test`: needs the browsers installed)
 cd packages/cssints && bun run build          # vp pack (tsdown) into dist/; same in packages/css-grammar
 cd packages/css-grammar && node bench/budget.mjs --update    # after a deliberate type-cost change
 cd apps/demo && bun run build                # vp build
+cd apps/sky && bun run test                  # the Solid app: build check, then HMR on a style and on a component edit
 ```
 
 Plain `.ts` files run with `node` (type stripping), no build step: erasable syntax only (no enums, namespaces or parameter
