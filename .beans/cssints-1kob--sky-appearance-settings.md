@@ -1,13 +1,13 @@
 ---
 # cssints-1kob
 title: 'sky: appearance settings'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-10-02T15:09:09Z
-updated_at: 2026-10-02T15:09:10Z
+updated_at: 2026-10-02T15:34:14Z
 parent: cssints-co8y
 blocked_by:
     - cssints-dqw8

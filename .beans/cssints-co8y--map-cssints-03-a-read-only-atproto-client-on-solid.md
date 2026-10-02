@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-10-02T14:20:14Z
-updated_at: 2026-10-02T15:09:09Z
+updated_at: 2026-10-02T15:34:14Z
 ---
 
 ## Destination
@@ -36,6 +36,8 @@ updated_at: 2026-10-02T15:09:09Z
 - [Read-only atproto data with atcute](cssints-t5g6): client + bluesky types + segmenter; all three screens work unauthenticated; search out (public host blocks it); app-side moderation rule, cursor paging, two Solid 2 rc traps.
 
 - [check.contrast reads a derived token as its default](cssints-l90l): TokenDef keeps template + refs; contrast computes per theme through chains; the hue slider's colours are now really checked.
+
+- [sky: app shell, routes, data layer and themes](cssints-dqw8): Mu layout checked in Chrome, Router 2, api.ts on recorded fixtures, four theme modes with references; two engine bugs fixed (referred-only tokens had no @property; contrast vs JSON tokens); global/attribute selectors ticketed (cssints-635k).
 
 ## Not yet specified
 
