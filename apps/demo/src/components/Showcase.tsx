@@ -67,16 +67,17 @@ const columns = cn(
 const wide = md(css.gridColumn("span 2"));
 const cell = cn(p(2), bg(t.color.surface), css.borderRadius(radius), css.color(t.color.text));
 
-// Pseudo-class wrappers, and one inside a breakpoint (two conditions).
+// Pseudo-class wrappers, and one inside a breakpoint (two conditions). colorMix() takes the accent token, which a
+// template string cannot: the hover is the accent darkened in oklab.
 const action = cn(
   p(2),
   css.cursor("pointer"),
   css.color("white"),
-  bg("#1d4ed8"),
+  bg(t.color.accent),
   css.border("none"),
   css.borderRadius(radius),
-  hover(bg("#2563eb")),
-  lg(hover(bg("#1e40af"))),
+  hover(bg(css.colorMix("oklab", t.color.accent, "black 15%"))),
+  lg(hover(bg(css.colorMix("oklab", t.color.accent, "black 30%")))),
   focusVisible(css.outline("2px solid", t.color.accent), css.outlineOffset("2px")),
   active(css.transform("scale(0.97)")),
   disabled(css.opacity(0.5)),
@@ -104,14 +105,14 @@ const pulsing = cn(
 // supports(): bold where CSS grid exists.
 const feature = cn(css.color(t.color.text), css.fontWeight("400"), hasGrid(css.fontWeight("700")));
 
-// Typed parts and math: Typed OM values as parts, and calc(), min(), clamp() where a length goes.
+// Typed parts and math: Typed OM values as parts, and calc() as a string, min() and clamp() as calls.
 const typed = cn(
   css.color(t.color.text),
   css.padding(CSS.rem(0.5), CSS.rem(1.5)),
   css.borderRadius(CSS.percent(10)),
   css.border("2px solid", new CSSColorValue("#2563eb")),
-  css.width("min(100%, 24rem)"),
-  css.fontSize("clamp(1rem, 2.5vw, 1.5rem)"),
+  css.width(css.min("100%", "24rem")),
+  css.fontSize(css.clamp("1rem", "2.5vw", "1.5rem")),
   css.marginInline("calc(1rem + 2%)"),
 );
 
