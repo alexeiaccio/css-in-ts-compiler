@@ -41,6 +41,7 @@ import {
   type Fallback,
 } from "./lib.ts";
 import { addRuntime } from "./delivery.ts";
+import { clamp, colorMix, max, min } from "./functions.ts";
 import { addKernel } from "./kernel.ts";
 import {
   type At,
@@ -467,6 +468,10 @@ export const _cv = (config: CvNode | CvRuntimeConfig) => {
 const named: Record<string, unknown> = {
   cn,
   firstThatWorks,
+  colorMix,
+  min,
+  max,
+  clamp,
   keyframes,
   positionTry,
   flex,
