@@ -226,6 +226,60 @@ assert.deepEqual(warnings, [], "a warning is given once per build");
 
 await server.close();
 
+// A derived colour (color-mix over another token) cannot be read: the warning reaches the logger once for each evaluation
+// of the module, so an edit in dev shows it again, and a build says it once however many modules import the check.
+const derived = `import * as css from "cssints" with { type: "cssints" };
+export const t = css.createTokens({
+  cder: {
+    $type: "color",
+    bg: { $value: "#ffffff" },
+    base: { $value: "#1d4ed8" },
+    mix: { $value: "color-mix(in oklab, {cder.base}, black 15%)" },
+  },
+});
+css.check.contrast(t.cder.mix, t.cder.bg, { min: 4.5 });
+css.check.contrast(t.cder.mix, t.cder.base, { min: 1 });
+`;
+const derivedWarning = [
+  'cssints: contrast is not checked for cder.mix in the default values: "color-mix(in oklab, #1d4ed8, black 15%)" is not a colour the check can read',
+];
+const first = (w) =>
+  stripVTControlCharacters(w)
+    .replace(/^.*?cssints:/, "cssints:")
+    .split("\n")[0];
+const tmpd = mkdtempSync(join(root, ".tmp-themes-dev-"));
+globalThis.__cssints.checks.clear();
+try {
+  writeFileSync(join(tmpd, "tokens.ts"), derived);
+  warnings.length = 0;
+  const dev = await createServer({
+    root: tmpd,
+    configFile: false,
+    logLevel: "warn",
+    customLogger,
+    server: { middlewareMode: true, hmr: { port: 24999 } },
+    plugins: cssints(),
+  });
+  const devClient = dev.environments.client;
+  await devClient.transformRequest("/tokens.ts");
+  assert.deepEqual(warnings.map(first), derivedWarning, "dev: a derived colour warns once");
+  const edited = Promise.withResolvers();
+  dev.watcher.once("change", edited.resolve);
+  writeFileSync(join(tmpd, "tokens.ts"), `${derived}// edited\n`);
+  await edited.promise;
+  await sleep(500);
+  warnings.length = 0;
+  await devClient.transformRequest("/tokens.ts");
+  assert.deepEqual(
+    warnings.map(first),
+    derivedWarning,
+    "dev: the warning shows again after an edit",
+  );
+  await dev.close();
+} finally {
+  rmSync(tmpd, { recursive: true, force: true });
+}
+
 // A build checks again at its end: a theme of a module that came after the check still counts, and culori stays out of the bundle.
 globalThis.__cssints.checks.clear(); // the fixtures above failed on purpose, in this process
 const tmpb = mkdtempSync(join(root, ".tmp-themes-build-"));
@@ -273,6 +327,23 @@ css.createGlobalTheme(t, ".low", { late: { fg: "#aaa" } });
     .map((f) => String(f.code ?? f.source))
     .join("\n");
   assert.ok(!/culori|wcag|rebeccapurple/i.test(code), "the colour library is build only");
+
+  // The same derived colour checked in a module that two others import: one warning for the build, not one per pass or module.
+  globalThis.__cssints.warned.clear(); // the dev server above warned in this process
+  w("tokens.ts", derived);
+  w("a.ts", `import "./tokens.ts" with { type: "cssints" };\nexport const a = 1;\n`);
+  w("b.ts", `import "./tokens.ts" with { type: "cssints" };\nexport const b = 1;\n`);
+  w("main.ts", `import "./a.ts";\nimport "./b.ts";\nexport const x = 1;\n`);
+  warnings.length = 0;
+  await build({
+    root: tmpb,
+    configFile: false,
+    logLevel: "warn",
+    customLogger,
+    plugins: cssints(),
+    build: { write: false, rollupOptions: { input: join(tmpb, "main.ts") } },
+  });
+  assert.deepEqual(warnings.map(first), derivedWarning, "build: a derived colour warns once");
 } finally {
   rmSync(tmpb, { recursive: true, force: true });
 }
