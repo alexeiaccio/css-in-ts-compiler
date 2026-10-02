@@ -101,6 +101,37 @@ await fails(
   "frame",
 );
 
+// fn(): the result is inlined where the call is (a Typed OM value or a string), nothing ships
+const fnUse = await code("plug-fn.ts");
+assert.match(
+  fnUse,
+  /export const c = "color-mix\(in oklab, red, white\)";/,
+  "a call of its own is its text",
+);
+assert.ok(!/quad|import|[^-]mix\(/.test(fnUse), "...and no call or import is left");
+const fnCss = sheet("plug-fn.ts");
+assert.match(fnCss, /\{color:color-mix\(in oklab, red, blue\)\}/);
+assert.match(fnCss, /\{width:8px\}/, "a string result");
+await fails(
+  "plug-fn-bad-part.ts",
+  /^mix: unexpected "solid" in "red solid", expected <color>$/,
+  3,
+  "mix",
+);
+await fails("plug-fn-throws.ts", /^cssints: boom: no luck$/, 3, "boom");
+await fails(
+  "plug-fn-nothing.ts",
+  /^cssints: nothing\(\) computeTo must return a string or a Typed OM value$/,
+  3,
+  "nothing",
+);
+// a result that does not fit the property is that property's error, at the same site
+await assert.rejects(code("plug-fn-bad-result.ts"), (e) => {
+  assert.match(e.message.split("\n")[0], /^width: unexpected "color-mix\(in" in /);
+  assert.equal(e.loc?.line, 5);
+  return true;
+});
+
 // a kernel used through a helper module that is edited does not collide with its own old self
 const fx = `${import.meta.dirname}/fixtures`;
 const kit = (css) => `import { context, method } from "cssints/plugin";

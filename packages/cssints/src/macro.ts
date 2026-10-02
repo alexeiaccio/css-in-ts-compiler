@@ -539,6 +539,7 @@ const replacementOf = Effect.fnUntraced(function* (
   // A Typed OM value (CSS.rem(1), new CSSColorValue(...)) ships as its CSS text; the objects are eval-time only.
   // oxlint-disable-next-line typescript/no-base-to-string -- every CSSStyleValue subclass overrides toString
   if (value instanceof CSSStyleValue) return JSON.stringify(String(value));
+  if (typeof value === "string") return JSON.stringify(value); // an fn() that computes text
   const inert = inertOf(value);
   if (inert !== undefined) return inert;
   if (isPluginValue(value)) return undefined;

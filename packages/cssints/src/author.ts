@@ -4,6 +4,7 @@
 // Build time only (Node, the Module Runner): the types say a member returns a class string, as `cssints` does.
 import { checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { properties } from "@cssints/css-grammar/mdn";
+import { CSSStyleValue } from "@cssints/css-grammar/values";
 
 import { MemberError } from "./errors.ts";
 import { failIn, isNode, node, probed, type CssNode } from "./lib.ts";
@@ -90,14 +91,12 @@ export const context: typeof Types.context = <
     ) as never;
 };
 
-// What `build` throws is a failure at the call site, as a grammar error is.
-const built = (build: (value: string) => Built, value: string): Built => {
+// What a plugin's callback (`build`, `computeTo`) throws is a failure at the call site, as a grammar error is.
+const ran = <T>(plugin: string, run: () => T): T => {
   try {
-    return build(value);
+    return run();
   } catch (e) {
-    throw e instanceof MemberError
-      ? e
-      : failIn("style", e instanceof Error ? e.message : String(e));
+    throw e instanceof MemberError ? e : failIn(plugin, e instanceof Error ? e.message : String(e));
   }
 };
 
@@ -106,11 +105,26 @@ export const style: typeof Types.style = (grammar: string, build: (value: string
   ((...args: unknown[]) => {
     const value = valueOf("style", "style", args);
     check("style", "style", grammar, value);
-    const { decls: d, markers, kernels } = built(build, value);
+    const { decls: d, markers, kernels } = ran("style", () => build(value));
     return node(decls(d), {
       markers: markers?.map((m) => [m, kernels?.[0]?.key ?? ""]),
       kernels,
     });
+  }) as never;
+
+// See author-types.ts. The parts are checked against the grammar, `computeTo` gets each one as text (a token as its
+// `var(--name)`), and what it returns is the value: a part of any property, where the declaration is checked as usual.
+export const fn: typeof Types.fn = (
+  grammar: string,
+  computeTo: (args: string[]) => string | CSSStyleValue,
+  name: string = "fn",
+) =>
+  ((...args: unknown[]) => {
+    check(name, name, grammar, valueOf(name, name, args));
+    const out = ran(name, () => computeTo(args.map(String)));
+    if (typeof out !== "string" && !(out instanceof CSSStyleValue))
+      throw failIn(name, `cssints: ${name}() computeTo must return a string or a Typed OM value`);
+    return out;
   }) as never;
 
 // See author-types.ts.

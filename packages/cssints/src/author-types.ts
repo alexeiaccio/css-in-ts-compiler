@@ -1,6 +1,8 @@
 // What TypeScript sees of "cssints/plugin" (the "types" condition of package.json): the helpers of a plugin author with
 // the types user code gets, where every member returns a class string. The implementation (author.ts) builds style
 // nodes; nothing here runs.
+import type { CSSStyleValue } from "@cssints/css-grammar/values";
+
 import type { CheckIn, Part, Style } from "./parts.ts";
 
 export type { Part, Style };
@@ -129,6 +131,23 @@ export declare function style<const G extends string>(
   grammar: G,
   build: (value: string) => Built,
 ): <const A extends readonly Part[]>(...parts: CheckIn<"style", G, false, A>) => Style;
+
+/**
+ * A value function, a part of any property: `fn("<color-space> <color>", ([space, c]) => new CSSColorValue(...))`. The
+ * parts are checked against `grammar` (joined by a space; a token is a part), `computeTo` gets each as text and runs at
+ * build time only, and what it returns is inlined where the call is. A Typed OM result keeps its type (a
+ * `CSSColorValue` is checked as a `<color>` in the types); a string is opaque to the types and checked in the
+ * declaration it lands in at build time. `name` (default `fn`) labels the errors.
+ */
+export declare function fn<
+  const G extends string,
+  R extends string | CSSStyleValue,
+  const N extends string = "fn",
+>(
+  grammar: G,
+  computeTo: (args: string[]) => R,
+  name?: N,
+): <const A extends readonly Part[]>(...parts: CheckIn<N, G, false, A>) => R;
 
 /**
  * A user-defined typed property: `property("-webkit-font-smoothing", "auto | none | antialiased | subpixel-antialiased")`.

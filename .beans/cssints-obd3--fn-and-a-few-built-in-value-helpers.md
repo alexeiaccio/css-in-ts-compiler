@@ -1,10 +1,11 @@
 ---
 # cssints-obd3
 title: fn() and a few built-in value helpers
-status: todo
+status: in-progress
 type: feature
+priority: normal
 created_at: 2026-10-02T10:14:48Z
-updated_at: 2026-10-02T10:14:48Z
+updated_at: 2026-10-02T12:06:16Z
 parent: cssints-9js6
 ---
 
