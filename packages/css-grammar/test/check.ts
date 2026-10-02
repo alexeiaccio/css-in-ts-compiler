@@ -32,7 +32,10 @@ match(err("padding", "1rem 2rem 3rem 4rem 5rem"), /unexpected "5rem" .* expected
 match(err("padding", "-1rem"), /expected .*<length-percentage \[0,∞\]>/);
 match(err("border-radius", "1rem /"), /unexpected end/);
 // keywords and function names are canonical case only; the message says the spelling
-match(err("color", "RED"), /^color: unexpected "RED" in "RED" \("RED" is red in CSS; write "red"\), expected/);
+match(
+  err("color", "RED"),
+  /^color: unexpected "RED" in "RED" \("RED" is red in CSS; write "red"\), expected/,
+);
 match(err("color", "accentcolor"), /write "AccentColor"\)/);
 match(err("border", "1px SOLID red"), /\("SOLID" is solid in CSS; write "solid"\)/);
 match(err("color", "RGB(1 2 3)"), /\("RGB\(\)" is rgb\(\) in CSS; write "rgb\(\)"\)/);

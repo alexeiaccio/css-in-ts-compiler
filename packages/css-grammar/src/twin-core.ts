@@ -948,7 +948,10 @@ export function valid(p: string, s: string, syntax: string | undefined = props[p
   const [token] = tok1(v.slice(ctx.far));
   const what = token ? `unexpected "${token}"` : "unexpected end";
   const expected = [...ctx.expected];
-  const fix = ctx.fix?.[0] === ctx.far ? ` ("${ctx.fix[1]}" is ${ctx.fix[2]} in CSS; write "${ctx.fix[2]}")` : "";
+  const fix =
+    ctx.fix?.[0] === ctx.far
+      ? ` ("${ctx.fix[1]}" is ${ctx.fix[2]} in CSS; write "${ctx.fix[2]}")`
+      : "";
   throw new InvalidValueError({
     message: `${p}: ${what} in "${s}"${fix}, expected ${expected.join(" | ")}${ctx.why?.[0] === ctx.far ? ` (${ctx.why[1]})` : ""}`,
     property: p,
