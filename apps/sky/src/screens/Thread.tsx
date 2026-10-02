@@ -85,7 +85,10 @@ const vline = _cv(
     variants: {
       end: {
         through: bottom("0"),
-        card: cn(height(`calc(var(--space-sm) + ${centre} + 2px)`)),
+        card: cn(
+          height(`calc(var(--space-sm) + ${centre} + 2px)`),
+          wide(height(`calc(var(--space-sm) + ${centreWide} + 2px)`)),
+        ),
         mid: height("calc(var(--space-sm) + 50% + 1px)"),
       },
     },
@@ -133,7 +136,7 @@ function Row(props: {
   children?: JSX.Element;
 }) {
   return (
-    <div class={row} ref={props.ref}>
+    <div class={row} ref={props.ref} data-row data-focus={props.focus ? "" : undefined}>
       <Show when={props.tie}>{(tie) => <Tie last={tie().last} />}</Show>
       <Show
         when={props.node.kind === "post" ? props.node.post : undefined}

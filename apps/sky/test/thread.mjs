@@ -11,14 +11,13 @@ const fixture = (name) =>
 /** @type {(params: Record<string, string>) => { status?: number, body: unknown }} */
 let answer = () => assert.fail("unexpected request");
 const requests = [];
-globalThis.fetch = async (url) => {
+globalThis.fetch = (url) => {
   const u = new URL(url);
   requests.push(Object.fromEntries(u.searchParams));
   const { status = 200, body } = answer(requests.at(-1));
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
+  return Promise.resolve(
+    new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } }),
+  );
 };
 
 const api = await import("../src/api.ts");

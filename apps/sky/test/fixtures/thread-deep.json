@@ -1,1 +1,706 @@
-{"thread":{"post":{"uri":"at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvdf3lza222","cid":"bafyreifccngszcsed5qzalewxpojaeuj2rlrxbjms6vfpugxtwidlt65mq","author":{"did":"did:plc:7tqeczmppbudmdnewcpu7ghe","handle":"rocktoamna.bsky.social","displayName":"Philipp Greifenstein","avatar":"https://cdn.bsky.app/img/avatar/plain/did:plc:7tqeczmppbudmdnewcpu7ghe/bafkreidugdqezutxned5rsx2dz5ctvpznjqxxlnycjv35byhnypos5sqae","associated":{"chat":{"allowIncoming":"all"},"activitySubscription":{"allowSubscriptions":"followers"}},"labels":[],"createdAt":"2023-09-20T19:26:17.225Z"},"record":{"$type":"app.bsky.feed.post","createdAt":"2026-10-02T12:04:37.369Z","langs":["de"],"reply":{"parent":{"cid":"bafyreidhx3ws435qi6exbdidirrcnqowqxmjo56yvcay4a56typx6mblgu","uri":"at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvdd6hdx222"},"root":{"cid":"bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"}},"text":"So ganz verstehe ich nicht, warum man 2026, nach zehn Jahren radikalen Äußerungen, Steimle immer wieder neu entdeckt."},"bookmarkCount":1,"replyCount":2,"repostCount":0,"likeCount":20,"quoteCount":0,"indexedAt":"2026-10-02T12:04:38.058Z","labels":[]},"parent":{"post":{"uri":"at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvdd6hdx222","cid":"bafyreidhx3ws435qi6exbdidirrcnqowqxmjo56yvcay4a56typx6mblgu","author":{"did":"did:plc:7tqeczmppbudmdnewcpu7ghe","handle":"rocktoamna.bsky.social","displayName":"Philipp Greifenstein","avatar":"https://cdn.bsky.app/img/avatar/plain/did:plc:7tqeczmppbudmdnewcpu7ghe/bafkreidugdqezutxned5rsx2dz5ctvpznjqxxlnycjv35byhnypos5sqae","associated":{"chat":{"allowIncoming":"all"},"activitySubscription":{"allowSubscriptions":"followers"}},"labels":[],"createdAt":"2023-09-20T19:26:17.225Z"},"record":{"$type":"app.bsky.feed.post","createdAt":"2026-10-02T12:03:33.253Z","embed":{"$type":"app.bsky.embed.external","external":{"description":"Der Kabarettist Uwe Steimle bezeichnet Deutschland schon lange als Besatzungsgebiet der USA und öffentlich-rechtliche Moderatoren als Marionetten. Sein Haussender, der Mitteldeutsche Rundfunk, stört s...","thumb":{"$type":"blob","ref":{"$link":"bafkreiflu5urnnelbpcit7l623lht2wfeiiyqrpsxjzztyd5ptbiz6ydr4"},"mimeType":"image/jpeg","size":172726},"title":"Uwe Steimle und das verspätete Ende der Akzeptanz beim MDR | Übermedien","uri":"https://uebermedien.de/29437/uwe-steimle-und-das-verspaetete-ende-der-akzeptanz-des-mdr/"}},"langs":["de"],"reply":{"parent":{"cid":"bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"},"root":{"cid":"bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"}},"text":"„Auffällig auch sein werbliches Auftreten für das Querfront-Magazin „Compact“ und die „Medienkritik“, die fester Bestandteil seiner Programme und Interviews ist. So verunglimpft er bereits seit 2016 Marietta Slomka als „Marionetta Slomka“ (zuerst in der Sendung „SchleichFernsehen“ im BR).“"},"embed":{"external":{"uri":"https://uebermedien.de/29437/uwe-steimle-und-das-verspaetete-ende-der-akzeptanz-des-mdr/","title":"Uwe Steimle und das verspätete Ende der Akzeptanz beim MDR | Übermedien","description":"Der Kabarettist Uwe Steimle bezeichnet Deutschland schon lange als Besatzungsgebiet der USA und öffentlich-rechtliche Moderatoren als Marionetten. Sein Haussender, der Mitteldeutsche Rundfunk, stört s...","thumb":"https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:7tqeczmppbudmdnewcpu7ghe/bafkreiflu5urnnelbpcit7l623lht2wfeiiyqrpsxjzztyd5ptbiz6ydr4"},"$type":"app.bsky.embed.external#view"},"bookmarkCount":3,"replyCount":1,"repostCount":2,"likeCount":38,"quoteCount":1,"indexedAt":"2026-10-02T12:03:34.765Z","labels":[]},"parent":{"post":{"uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h","cid":"bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey","author":{"did":"did:plc:xjw5wikjhxxf3hlpv7cvjbhp","handle":"annerabe.bsky.social","displayName":"Anne Rabe","avatar":"https://cdn.bsky.app/img/avatar/plain/did:plc:xjw5wikjhxxf3hlpv7cvjbhp/bafkreia4awk3qjq5yqfhh2kxura2qhbi5jsim6c3mfm3ycntqk6xf6qjka","associated":{"activitySubscription":{"allowSubscriptions":"followers"}},"labels":[],"createdAt":"2023-08-09T21:49:43.932Z"},"record":{"$type":"app.bsky.feed.post","createdAt":"2026-10-02T11:30:38.686Z","embed":{"$type":"app.bsky.embed.external","external":{"description":"DDR-Hymne und Gewaltfantasien gegen eine ZDF-Moderatorin: Nach 36 Jahren kann die deutsche Einheit auch aussehen wie in Uwe Steimles Kabarett in Sachsen-Anhalt.","thumb":{"$type":"blob","ref":{"$link":"bafkreifdcf2tmjbzhvgzed7lrz3bwf46env2uhulj42kespkzob63eymuu"},"mimeType":"image/jpeg","size":275838},"title":"Uwe Steimle: Und dann entfesselt Uwe Steimle die Wut","uri":"https://www.zeit.de/feuilleton/2026-10/uwe-steimle-kabarett-ddr-hymne-zdf-sachsen-anhalt?freebie=5698d92d"}},"langs":["de"],"text":"Ich war bei Uwe Steimles erstem Auftritt in Sachsen-Anhalt nach der Landtagswahl. Dort bin ich eingetaucht in eine erschreckende Parallelgesellschaft, deren Brutalität und Kälte mir Angst macht.\n(🎁-Link)"},"embed":{"external":{"uri":"https://www.zeit.de/feuilleton/2026-10/uwe-steimle-kabarett-ddr-hymne-zdf-sachsen-anhalt?freebie=5698d92d","title":"Uwe Steimle: Und dann entfesselt Uwe Steimle die Wut","description":"DDR-Hymne und Gewaltfantasien gegen eine ZDF-Moderatorin: Nach 36 Jahren kann die deutsche Einheit auch aussehen wie in Uwe Steimles Kabarett in Sachsen-Anhalt.","thumb":"https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:xjw5wikjhxxf3hlpv7cvjbhp/bafkreifdcf2tmjbzhvgzed7lrz3bwf46env2uhulj42kespkzob63eymuu"},"$type":"app.bsky.embed.external#view"},"bookmarkCount":96,"replyCount":177,"repostCount":515,"likeCount":1132,"quoteCount":74,"indexedAt":"2026-10-02T11:30:40.763Z","labels":[]},"threadContext":{},"$type":"app.bsky.feed.defs#threadViewPost"},"threadContext":{"rootAuthorLike":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.like/3mwvevmksiw24"},"$type":"app.bsky.feed.defs#threadViewPost"},"replies":[{"post":{"uri":"at://did:plc:ek5rw77eyuv4xyzdfaszxdgj/app.bsky.feed.post/3mwvf6tbwjk2n","cid":"bafyreihjmufofqa5bucul76kzvyqb42qewabppeugsjv6vxw2lehbnxbku","author":{"did":"did:plc:ek5rw77eyuv4xyzdfaszxdgj","handle":"derdod.bsky.social","displayName":"Dod","avatar":"https://cdn.bsky.app/img/avatar/plain/did:plc:ek5rw77eyuv4xyzdfaszxdgj/bafkreierau237qw3umx4u5j5louksbshqjf5bii3y4znw7oorwac6rwaei","associated":{"chat":{"allowIncoming":"all"},"activitySubscription":{"allowSubscriptions":"followers"}},"labels":[{"src":"did:plc:ek5rw77eyuv4xyzdfaszxdgj","uri":"at://did:plc:ek5rw77eyuv4xyzdfaszxdgj/app.bsky.actor.profile/self","cid":"bafyreiaef2okyqfn3gtyd34ghel4iyrww65wiam4akaj3femanxovalrom","val":"!no-unauthenticated","cts":"1970-01-01T00:00:00.000Z"}],"createdAt":"2023-09-02T13:39:51.407Z"},"record":{"$type":"app.bsky.feed.post","createdAt":"2026-10-02T12:36:54.807Z","langs":["de"],"reply":{"parent":{"cid":"bafyreifccngszcsed5qzalewxpojaeuj2rlrxbjms6vfpugxtwidlt65mq","uri":"at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvdf3lza222"},"root":{"cid":"bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"}},"text":"Tja, jetzt können die Leute, die sich immer geärgert haben, dass ihre Meinung negative Konsequenzen in der Bevölkerung hat, endlich wieder konsequenzlos hetzen und ihre Lieblings\"künstler\" promoten."},"bookmarkCount":0,"replyCount":0,"repostCount":0,"likeCount":1,"quoteCount":0,"indexedAt":"2026-10-02T12:36:55.664Z","labels":[]},"replies":[],"threadContext":{},"$type":"app.bsky.feed.defs#threadViewPost"},{"post":{"uri":"at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvdhndkik22","cid":"bafyreiersk75lzgugysoxlhztsbhj6gz4zfxrft73yafeddnrrrgyskaje","author":{"did":"did:plc:7tqeczmppbudmdnewcpu7ghe","handle":"rocktoamna.bsky.social","displayName":"Philipp Greifenstein","avatar":"https://cdn.bsky.app/img/avatar/plain/did:plc:7tqeczmppbudmdnewcpu7ghe/bafkreidugdqezutxned5rsx2dz5ctvpznjqxxlnycjv35byhnypos5sqae","associated":{"chat":{"allowIncoming":"all"},"activitySubscription":{"allowSubscriptions":"followers"}},"labels":[],"createdAt":"2023-09-20T19:26:17.225Z"},"record":{"$type":"app.bsky.feed.post","createdAt":"2026-10-02T12:06:03.075Z","langs":["de"],"reply":{"parent":{"cid":"bafyreifccngszcsed5qzalewxpojaeuj2rlrxbjms6vfpugxtwidlt65mq","uri":"at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvdf3lza222"},"root":{"cid":"bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"}},"text":"Bissl Lust am Gruseln ist schon auch dabei für jene, die der Gewaltatmosphäre eben nicht ausgesetzt sind."},"bookmarkCount":0,"replyCount":1,"repostCount":0,"likeCount":13,"quoteCount":0,"indexedAt":"2026-10-02T12:06:04.766Z","labels":[]},"replies":[{"post":{"uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvfdhzo2c2h","cid":"bafyreiemlzwzmpvcir6e7lfhweqqdj5ufqfdqofrduihefqvghus6dymtm","author":{"did":"did:plc:xjw5wikjhxxf3hlpv7cvjbhp","handle":"annerabe.bsky.social","displayName":"Anne Rabe","avatar":"https://cdn.bsky.app/img/avatar/plain/did:plc:xjw5wikjhxxf3hlpv7cvjbhp/bafkreia4awk3qjq5yqfhh2kxura2qhbi5jsim6c3mfm3ycntqk6xf6qjka","associated":{"activitySubscription":{"allowSubscriptions":"followers"}},"labels":[],"createdAt":"2023-08-09T21:49:43.932Z"},"record":{"$type":"app.bsky.feed.post","createdAt":"2026-10-02T12:39:30.774Z","langs":["de"],"reply":{"parent":{"cid":"bafyreiersk75lzgugysoxlhztsbhj6gz4zfxrft73yafeddnrrrgyskaje","uri":"at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvdhndkik22"},"root":{"cid":"bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"}},"text":"Ich habe tatsächlich auch darüber nachgedacht, ob man das öffentlich machen sollte, aber da er 200k Abonnenten auf YouTube hat und tausende in diese Vorstellungen gehen, glaube ich, dass es wichtig ist, darüber zu schreiben."},"bookmarkCount":0,"replyCount":5,"repostCount":1,"likeCount":56,"quoteCount":0,"indexedAt":"2026-10-02T12:39:31.164Z","labels":[]},"replies":[{"post":{"uri":"at://did:plc:yys2oewp4ds4qlod5rrkngqf/app.bsky.feed.post/3mwvmmgoz5k2m","cid":"bafyreigrvpdjznxqh33rscavrlc6fwd72jc2qgapndsun62sw43vyvswgm","author":{"did":"did:plc:yys2oewp4ds4qlod5rrkngqf","handle":"conocojoe3000.bsky.social","displayName":"ConocoJoe3000🇪🇺🇺🇦","avatar":"https://cdn.bsky.app/img/avatar/plain/did:plc:yys2oewp4ds4qlod5rrkngqf/bafkreiho5rivzxx6wt6a2fevglzjvlyot5ddr5ralk5ifufsl453uk7vju","associated":{"chat":{"allowIncoming":"following"},"activitySubscription":{"allowSubscriptions":"followers"}},"labels":[],"createdAt":"2023-10-13T11:20:22.099Z"},"record":{"$type":"app.bsky.feed.post","createdAt":"2026-10-02T14:49:47.559Z","langs":["de"],"reply":{"parent":{"cid":"bafyreiemlzwzmpvcir6e7lfhweqqdj5ufqfdqofrduihefqvghus6dymtm","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvfdhzo2c2h"},"root":{"cid":"bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"}},"text":"Man könnte ja mal recherchieren wieviele von den 200k Abos denn bots sind die nur größe simulieren sollen um ihn im algorithmus nach vorne zu puschen.\nWeil SO viele abos sind das auf YT jetzt auch nicht unbedingt.\nSeine views per video sind dafür ausserordentlich hoch, da passt was nicht zusammen."},"bookmarkCount":0,"replyCount":1,"repostCount":0,"likeCount":0,"quoteCount":0,"indexedAt":"2026-10-02T14:49:49.057Z","labels":[]},"replies":[{"post":{"uri":"at://did:plc:yys2oewp4ds4qlod5rrkngqf/app.bsky.feed.post/3mwvmmh5rsk2m","cid":"bafyreigdsefefun2hyfhyuhzyizy6gtngeqfaik72picbxnt4pfq56ctwm","author":{"did":"did:plc:yys2oewp4ds4qlod5rrkngqf","handle":"conocojoe3000.bsky.social","displayName":"ConocoJoe3000🇪🇺🇺🇦","avatar":"https://cdn.bsky.app/img/avatar/plain/did:plc:yys2oewp4ds4qlod5rrkngqf/bafkreiho5rivzxx6wt6a2fevglzjvlyot5ddr5ralk5ifufsl453uk7vju","associated":{"chat":{"allowIncoming":"following"},"activitySubscription":{"allowSubscriptions":"followers"}},"labels":[],"createdAt":"2023-10-13T11:20:22.099Z"},"record":{"$type":"app.bsky.feed.post","createdAt":"2026-10-02T14:49:47.560Z","langs":["de"],"reply":{"parent":{"cid":"bafyreigrvpdjznxqh33rscavrlc6fwd72jc2qgapndsun62sw43vyvswgm","uri":"at://did:plc:yys2oewp4ds4qlod5rrkngqf/app.bsky.feed.post/3mwvmmgoz5k2m"},"root":{"cid":"bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"}},"text":"Im hinblick darauf dass wahlkampfhilfe für die AfD gerne mal immateriell geleistet wird, wäre es wirklich zu wissen was die statistiker an auffälligkeiten da finden."},"bookmarkCount":0,"replyCount":0,"repostCount":0,"likeCount":0,"quoteCount":0,"indexedAt":"2026-10-02T14:49:49.089Z","labels":[]},"replies":[],"threadContext":{},"$type":"app.bsky.feed.defs#threadViewPost"}],"threadContext":{},"$type":"app.bsky.feed.defs#threadViewPost"},{"post":{"uri":"at://did:plc:tvaookqsfoy3tf4sfetfordw/app.bsky.feed.post/3mwvlvrpt4s2r","cid":"bafyreihshkg5ubl6umetetgsculwkmmylzppudjajpznr3q5y4jddzmnny","author":{"did":"did:plc:tvaookqsfoy3tf4sfetfordw","handle":"prospertura.bsky.social","displayName":"Prospertura","avatar":"https://cdn.bsky.app/img/avatar/plain/did:plc:tvaookqsfoy3tf4sfetfordw/bafkreie2447kpxifbgaljwfmfzwrdpg6kshcqerauol6hj3ng2jri2bihi","associated":{"chat":{"allowIncoming":"all","allowGroupInvites":"all"},"activitySubscription":{"allowSubscriptions":"none"}},"labels":[],"createdAt":"2026-03-14T09:23:42.946Z"},"record":{"$type":"app.bsky.feed.post","createdAt":"2026-10-02T14:37:07.368Z","langs":["de"],"reply":{"parent":{"cid":"bafyreiemlzwzmpvcir6e7lfhweqqdj5ufqfdqofrduihefqvghus6dymtm","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvfdhzo2c2h"},"root":{"cid":"bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"}},"text":"Gibt es einen Lösungsansatz?"},"bookmarkCount":0,"replyCount":0,"repostCount":0,"likeCount":0,"quoteCount":0,"indexedAt":"2026-10-02T14:37:07.861Z","labels":[]},"replies":[],"threadContext":{},"$type":"app.bsky.feed.defs#threadViewPost"},{"post":{"uri":"at://did:plc:feffqeflfqegqvxps5mwfqjt/app.bsky.feed.post/3mwvjhlyfos2m","cid":"bafyreigkahzekpmzrfbykcip2v5dqbkgvij5nvrwjfqpuh4w6pnyihtquq","author":{"did":"did:plc:feffqeflfqegqvxps5mwfqjt","handle":"arnienym.bsky.social","displayName":"Arnie","avatar":"https://cdn.bsky.app/img/avatar/plain/did:plc:feffqeflfqegqvxps5mwfqjt/bafkreihgmshsim2apd77itudxhaakkl3mokqmdtxv5g2vhsecpauht265u","associated":{"activitySubscription":{"allowSubscriptions":"followers"}},"labels":[],"createdAt":"2023-12-07T10:11:17.252Z"},"record":{"$type":"app.bsky.feed.post","createdAt":"2026-10-02T13:53:24.111Z","langs":["de"],"reply":{"parent":{"cid":"bafyreiemlzwzmpvcir6e7lfhweqqdj5ufqfdqofrduihefqvghus6dymtm","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvfdhzo2c2h"},"root":{"cid":"bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"}},"text":"Mir hilft Deine exzellente Darstellung sehr. Hatte Steimle und dessen Community überhaupt nicht auf dem Schirm und finde gerade deshalb Deinen direkten Erfahrungsbericht mit diesen unglaublichen Abgründen sehr erhellend. Danke!"},"bookmarkCount":0,"replyCount":0,"repostCount":0,"likeCount":3,"quoteCount":0,"indexedAt":"2026-10-02T13:53:24.665Z","labels":[]},"replies":[],"threadContext":{"rootAuthorLike":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.like/3mwvjiwuyj72l"},"$type":"app.bsky.feed.defs#threadViewPost"},{"post":{"uri":"at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvgnedcsc2i","cid":"bafyreiehecapa43nueu5mgqoen4rr6iwfvq4pibb2mrkxbufn2bncqanay","author":{"did":"did:plc:7tqeczmppbudmdnewcpu7ghe","handle":"rocktoamna.bsky.social","displayName":"Philipp Greifenstein","avatar":"https://cdn.bsky.app/img/avatar/plain/did:plc:7tqeczmppbudmdnewcpu7ghe/bafkreidugdqezutxned5rsx2dz5ctvpznjqxxlnycjv35byhnypos5sqae","associated":{"chat":{"allowIncoming":"all"},"activitySubscription":{"allowSubscriptions":"followers"}},"labels":[],"createdAt":"2023-09-20T19:26:17.225Z"},"record":{"$type":"app.bsky.feed.post","createdAt":"2026-10-02T13:02:56.182Z","langs":["de"],"reply":{"parent":{"cid":"bafyreiemlzwzmpvcir6e7lfhweqqdj5ufqfdqofrduihefqvghus6dymtm","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvfdhzo2c2h"},"root":{"cid":"bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"}},"text":"Ich hab da auch keine finale Antwort drauf, bin aber sicher das ist unser atomisierten Medienlandschaft und angesichts disparater Plattformmetriken Follower:innenzahlen allein kein gutes Argument sind. Wenn man es macht, ist natürlich umso wichtiger, *wie* man es macht."},"bookmarkCount":0,"replyCount":1,"repostCount":0,"likeCount":3,"quoteCount":0,"indexedAt":"2026-10-02T13:02:56.363Z","labels":[]},"replies":[{"post":{"uri":"at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvgslemm22i","cid":"bafyreiazgnah4uivezpksooizacwj4lhz5tnb7clixrnswub7lsmucbuha","author":{"did":"did:plc:7tqeczmppbudmdnewcpu7ghe","handle":"rocktoamna.bsky.social","displayName":"Philipp Greifenstein","avatar":"https://cdn.bsky.app/img/avatar/plain/did:plc:7tqeczmppbudmdnewcpu7ghe/bafkreidugdqezutxned5rsx2dz5ctvpznjqxxlnycjv35byhnypos5sqae","associated":{"chat":{"allowIncoming":"all"},"activitySubscription":{"allowSubscriptions":"followers"}},"labels":[],"createdAt":"2023-09-20T19:26:17.225Z"},"record":{"$type":"app.bsky.feed.post","createdAt":"2026-10-02T13:05:51.336Z","langs":["de"],"reply":{"parent":{"cid":"bafyreiehecapa43nueu5mgqoen4rr6iwfvq4pibb2mrkxbufn2bncqanay","uri":"at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvgnedcsc2i"},"root":{"cid":"bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"}},"text":"Die Medienberichterstattung damals hatte zum Effekt, dass Steimle sich für den ÖRR und viele andere Medien als Partner erledigt hatte. Er hat nun schon seit einigen Jahren dahingehend nichts mehr zu verlieren."},"bookmarkCount":0,"replyCount":1,"repostCount":0,"likeCount":3,"quoteCount":0,"indexedAt":"2026-10-02T13:05:51.568Z","labels":[]},"replies":[{"post":{"uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvh3mbrdc2h","cid":"bafyreie6ornkdbcynjaazoip24ad2jsbt73rrazyaprobh7f7gvjcczgba","author":{"did":"did:plc:xjw5wikjhxxf3hlpv7cvjbhp","handle":"annerabe.bsky.social","displayName":"Anne Rabe","avatar":"https://cdn.bsky.app/img/avatar/plain/did:plc:xjw5wikjhxxf3hlpv7cvjbhp/bafkreia4awk3qjq5yqfhh2kxura2qhbi5jsim6c3mfm3ycntqk6xf6qjka","associated":{"activitySubscription":{"allowSubscriptions":"followers"}},"labels":[],"createdAt":"2023-08-09T21:49:43.932Z"},"record":{"$type":"app.bsky.feed.post","createdAt":"2026-10-02T13:10:54.282Z","langs":["de"],"reply":{"parent":{"cid":"bafyreiazgnah4uivezpksooizacwj4lhz5tnb7clixrnswub7lsmucbuha","uri":"at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvgslemm22i"},"root":{"cid":"bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"}},"text":"Hier geht’s nicht ums verlieren, Steimle gewinnt gerade und wenn die AfD über Förderung von Kultur spricht, die das Nationalgefühl heben soll, dann könnte Steimle einer dieser ,neuen‘ Staatskünstler sein."},"bookmarkCount":0,"replyCount":1,"repostCount":0,"likeCount":14,"quoteCount":0,"indexedAt":"2026-10-02T13:10:55.064Z","labels":[]},"replies":[{"post":{"uri":"at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvh7eeg6c2i","cid":"bafyreihmy6bmfhqjtebalc7y7umrywz7sfqklc7dmbse6dstpfuzpxknhy","author":{"did":"did:plc:7tqeczmppbudmdnewcpu7ghe","handle":"rocktoamna.bsky.social","displayName":"Philipp Greifenstein","avatar":"https://cdn.bsky.app/img/avatar/plain/did:plc:7tqeczmppbudmdnewcpu7ghe/bafkreidugdqezutxned5rsx2dz5ctvpznjqxxlnycjv35byhnypos5sqae","associated":{"chat":{"allowIncoming":"all"},"activitySubscription":{"allowSubscriptions":"followers"}},"labels":[],"createdAt":"2023-09-20T19:26:17.225Z"},"record":{"$type":"app.bsky.feed.post","createdAt":"2026-10-02T13:13:00.197Z","langs":["de"],"reply":{"parent":{"cid":"bafyreie6ornkdbcynjaazoip24ad2jsbt73rrazyaprobh7f7gvjcczgba","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvh3mbrdc2h"},"root":{"cid":"bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"}},"text":"Das könnte sein. Defintiv haben ihm die AfD-Wahlkampfauftritte genützt, wenn es um das Erreichen von Aufmerksamkeit jenseits seiner treuen Fans geht. (btw find ich das weitgehende Schweigen seiner (ehem.) Kollegen aka \"Weggefährten\" immer noch bemerkenswert)"},"bookmarkCount":0,"replyCount":1,"repostCount":0,"likeCount":6,"quoteCount":0,"indexedAt":"2026-10-02T13:13:00.655Z","labels":[]},"threadContext":{"rootAuthorLike":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.like/3mwvhfoelmd24"},"$type":"app.bsky.feed.defs#threadViewPost"}],"threadContext":{},"$type":"app.bsky.feed.defs#threadViewPost"}],"threadContext":{},"$type":"app.bsky.feed.defs#threadViewPost"}],"threadContext":{},"$type":"app.bsky.feed.defs#threadViewPost"},{"post":{"uri":"at://did:plc:6zssltktcjm5mtxtvwxrx6mz/app.bsky.feed.post/3mwvgc5zaqc2x","cid":"bafyreicjkihydlppm376k24swew2tlbj5osyth7vvb7qcyypnvmafqzf5u","author":{"did":"did:plc:6zssltktcjm5mtxtvwxrx6mz","handle":"kannsci.eurosky.social","displayName":"Kannsci","avatar":"https://cdn.bsky.app/img/avatar/plain/did:plc:6zssltktcjm5mtxtvwxrx6mz/bafkreidx6i5kwwjj2s7z3zcwoj7ejmdz5g2z5c5spi4sqfirkavh43rvjq","associated":{"chat":{"allowIncoming":"following"},"activitySubscription":{"allowSubscriptions":"followers"}},"labels":[],"createdAt":"2023-11-23T15:01:40.463Z"},"record":{"$type":"app.bsky.feed.post","createdAt":"2026-10-02T12:56:40.460Z","langs":["de"],"reply":{"parent":{"cid":"bafyreiemlzwzmpvcir6e7lfhweqqdj5ufqfdqofrduihefqvghus6dymtm","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvfdhzo2c2h"},"root":{"cid":"bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey","uri":"at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"}},"text":"Ich habe durch den Artikel viel gelernt. Was ich an ihm gut fand, war nicht der Gruselfaktor angesichts Steimles Tabubrüchen, sondern dass ich neu verstanden habe, was den Zusammenhalt im Publikum ausmacht. Musste viel an \"Eine Möglichkeit von Glück\" denken, es war aber eine neue Ebene."},"bookmarkCount":0,"replyCount":0,"repostCount":0,"likeCount":1,"quoteCount":0,"indexedAt":"2026-10-02T12:56:41.158Z","labels":[]},"replies":[],"threadContext":{},"$type":"app.bsky.feed.defs#threadViewPost"}],"threadContext":{},"$type":"app.bsky.feed.defs#threadViewPost"}],"threadContext":{},"$type":"app.bsky.feed.defs#threadViewPost"}],"threadContext":{},"$type":"app.bsky.feed.defs#threadViewPost"}}
+{
+  "thread": {
+    "post": {
+      "uri": "at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvdf3lza222",
+      "cid": "bafyreifccngszcsed5qzalewxpojaeuj2rlrxbjms6vfpugxtwidlt65mq",
+      "author": {
+        "did": "did:plc:7tqeczmppbudmdnewcpu7ghe",
+        "handle": "rocktoamna.bsky.social",
+        "displayName": "Philipp Greifenstein",
+        "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:7tqeczmppbudmdnewcpu7ghe/bafkreidugdqezutxned5rsx2dz5ctvpznjqxxlnycjv35byhnypos5sqae",
+        "associated": {
+          "chat": { "allowIncoming": "all" },
+          "activitySubscription": { "allowSubscriptions": "followers" }
+        },
+        "labels": [],
+        "createdAt": "2023-09-20T19:26:17.225Z"
+      },
+      "record": {
+        "$type": "app.bsky.feed.post",
+        "createdAt": "2026-10-02T12:04:37.369Z",
+        "langs": ["de"],
+        "reply": {
+          "parent": {
+            "cid": "bafyreidhx3ws435qi6exbdidirrcnqowqxmjo56yvcay4a56typx6mblgu",
+            "uri": "at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvdd6hdx222"
+          },
+          "root": {
+            "cid": "bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey",
+            "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"
+          }
+        },
+        "text": "So ganz verstehe ich nicht, warum man 2026, nach zehn Jahren radikalen Äußerungen, Steimle immer wieder neu entdeckt."
+      },
+      "bookmarkCount": 1,
+      "replyCount": 2,
+      "repostCount": 0,
+      "likeCount": 20,
+      "quoteCount": 0,
+      "indexedAt": "2026-10-02T12:04:38.058Z",
+      "labels": []
+    },
+    "parent": {
+      "post": {
+        "uri": "at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvdd6hdx222",
+        "cid": "bafyreidhx3ws435qi6exbdidirrcnqowqxmjo56yvcay4a56typx6mblgu",
+        "author": {
+          "did": "did:plc:7tqeczmppbudmdnewcpu7ghe",
+          "handle": "rocktoamna.bsky.social",
+          "displayName": "Philipp Greifenstein",
+          "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:7tqeczmppbudmdnewcpu7ghe/bafkreidugdqezutxned5rsx2dz5ctvpznjqxxlnycjv35byhnypos5sqae",
+          "associated": {
+            "chat": { "allowIncoming": "all" },
+            "activitySubscription": { "allowSubscriptions": "followers" }
+          },
+          "labels": [],
+          "createdAt": "2023-09-20T19:26:17.225Z"
+        },
+        "record": {
+          "$type": "app.bsky.feed.post",
+          "createdAt": "2026-10-02T12:03:33.253Z",
+          "embed": {
+            "$type": "app.bsky.embed.external",
+            "external": {
+              "description": "Der Kabarettist Uwe Steimle bezeichnet Deutschland schon lange als Besatzungsgebiet der USA und öffentlich-rechtliche Moderatoren als Marionetten. Sein Haussender, der Mitteldeutsche Rundfunk, stört s...",
+              "thumb": {
+                "$type": "blob",
+                "ref": { "$link": "bafkreiflu5urnnelbpcit7l623lht2wfeiiyqrpsxjzztyd5ptbiz6ydr4" },
+                "mimeType": "image/jpeg",
+                "size": 172726
+              },
+              "title": "Uwe Steimle und das verspätete Ende der Akzeptanz beim MDR | Übermedien",
+              "uri": "https://uebermedien.de/29437/uwe-steimle-und-das-verspaetete-ende-der-akzeptanz-des-mdr/"
+            }
+          },
+          "langs": ["de"],
+          "reply": {
+            "parent": {
+              "cid": "bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey",
+              "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"
+            },
+            "root": {
+              "cid": "bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey",
+              "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"
+            }
+          },
+          "text": "„Auffällig auch sein werbliches Auftreten für das Querfront-Magazin „Compact“ und die „Medienkritik“, die fester Bestandteil seiner Programme und Interviews ist. So verunglimpft er bereits seit 2016 Marietta Slomka als „Marionetta Slomka“ (zuerst in der Sendung „SchleichFernsehen“ im BR).“"
+        },
+        "embed": {
+          "external": {
+            "uri": "https://uebermedien.de/29437/uwe-steimle-und-das-verspaetete-ende-der-akzeptanz-des-mdr/",
+            "title": "Uwe Steimle und das verspätete Ende der Akzeptanz beim MDR | Übermedien",
+            "description": "Der Kabarettist Uwe Steimle bezeichnet Deutschland schon lange als Besatzungsgebiet der USA und öffentlich-rechtliche Moderatoren als Marionetten. Sein Haussender, der Mitteldeutsche Rundfunk, stört s...",
+            "thumb": "https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:7tqeczmppbudmdnewcpu7ghe/bafkreiflu5urnnelbpcit7l623lht2wfeiiyqrpsxjzztyd5ptbiz6ydr4"
+          },
+          "$type": "app.bsky.embed.external#view"
+        },
+        "bookmarkCount": 3,
+        "replyCount": 1,
+        "repostCount": 2,
+        "likeCount": 38,
+        "quoteCount": 1,
+        "indexedAt": "2026-10-02T12:03:34.765Z",
+        "labels": []
+      },
+      "parent": {
+        "post": {
+          "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h",
+          "cid": "bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey",
+          "author": {
+            "did": "did:plc:xjw5wikjhxxf3hlpv7cvjbhp",
+            "handle": "annerabe.bsky.social",
+            "displayName": "Anne Rabe",
+            "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:xjw5wikjhxxf3hlpv7cvjbhp/bafkreia4awk3qjq5yqfhh2kxura2qhbi5jsim6c3mfm3ycntqk6xf6qjka",
+            "associated": { "activitySubscription": { "allowSubscriptions": "followers" } },
+            "labels": [],
+            "createdAt": "2023-08-09T21:49:43.932Z"
+          },
+          "record": {
+            "$type": "app.bsky.feed.post",
+            "createdAt": "2026-10-02T11:30:38.686Z",
+            "embed": {
+              "$type": "app.bsky.embed.external",
+              "external": {
+                "description": "DDR-Hymne und Gewaltfantasien gegen eine ZDF-Moderatorin: Nach 36 Jahren kann die deutsche Einheit auch aussehen wie in Uwe Steimles Kabarett in Sachsen-Anhalt.",
+                "thumb": {
+                  "$type": "blob",
+                  "ref": { "$link": "bafkreifdcf2tmjbzhvgzed7lrz3bwf46env2uhulj42kespkzob63eymuu" },
+                  "mimeType": "image/jpeg",
+                  "size": 275838
+                },
+                "title": "Uwe Steimle: Und dann entfesselt Uwe Steimle die Wut",
+                "uri": "https://www.zeit.de/feuilleton/2026-10/uwe-steimle-kabarett-ddr-hymne-zdf-sachsen-anhalt?freebie=5698d92d"
+              }
+            },
+            "langs": ["de"],
+            "text": "Ich war bei Uwe Steimles erstem Auftritt in Sachsen-Anhalt nach der Landtagswahl. Dort bin ich eingetaucht in eine erschreckende Parallelgesellschaft, deren Brutalität und Kälte mir Angst macht.\n(🎁-Link)"
+          },
+          "embed": {
+            "external": {
+              "uri": "https://www.zeit.de/feuilleton/2026-10/uwe-steimle-kabarett-ddr-hymne-zdf-sachsen-anhalt?freebie=5698d92d",
+              "title": "Uwe Steimle: Und dann entfesselt Uwe Steimle die Wut",
+              "description": "DDR-Hymne und Gewaltfantasien gegen eine ZDF-Moderatorin: Nach 36 Jahren kann die deutsche Einheit auch aussehen wie in Uwe Steimles Kabarett in Sachsen-Anhalt.",
+              "thumb": "https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:xjw5wikjhxxf3hlpv7cvjbhp/bafkreifdcf2tmjbzhvgzed7lrz3bwf46env2uhulj42kespkzob63eymuu"
+            },
+            "$type": "app.bsky.embed.external#view"
+          },
+          "bookmarkCount": 96,
+          "replyCount": 177,
+          "repostCount": 515,
+          "likeCount": 1132,
+          "quoteCount": 74,
+          "indexedAt": "2026-10-02T11:30:40.763Z",
+          "labels": []
+        },
+        "threadContext": {},
+        "$type": "app.bsky.feed.defs#threadViewPost"
+      },
+      "threadContext": {
+        "rootAuthorLike": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.like/3mwvevmksiw24"
+      },
+      "$type": "app.bsky.feed.defs#threadViewPost"
+    },
+    "replies": [
+      {
+        "post": {
+          "uri": "at://did:plc:ek5rw77eyuv4xyzdfaszxdgj/app.bsky.feed.post/3mwvf6tbwjk2n",
+          "cid": "bafyreihjmufofqa5bucul76kzvyqb42qewabppeugsjv6vxw2lehbnxbku",
+          "author": {
+            "did": "did:plc:ek5rw77eyuv4xyzdfaszxdgj",
+            "handle": "derdod.bsky.social",
+            "displayName": "Dod",
+            "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:ek5rw77eyuv4xyzdfaszxdgj/bafkreierau237qw3umx4u5j5louksbshqjf5bii3y4znw7oorwac6rwaei",
+            "associated": {
+              "chat": { "allowIncoming": "all" },
+              "activitySubscription": { "allowSubscriptions": "followers" }
+            },
+            "labels": [
+              {
+                "src": "did:plc:ek5rw77eyuv4xyzdfaszxdgj",
+                "uri": "at://did:plc:ek5rw77eyuv4xyzdfaszxdgj/app.bsky.actor.profile/self",
+                "cid": "bafyreiaef2okyqfn3gtyd34ghel4iyrww65wiam4akaj3femanxovalrom",
+                "val": "!no-unauthenticated",
+                "cts": "1970-01-01T00:00:00.000Z"
+              }
+            ],
+            "createdAt": "2023-09-02T13:39:51.407Z"
+          },
+          "record": {
+            "$type": "app.bsky.feed.post",
+            "createdAt": "2026-10-02T12:36:54.807Z",
+            "langs": ["de"],
+            "reply": {
+              "parent": {
+                "cid": "bafyreifccngszcsed5qzalewxpojaeuj2rlrxbjms6vfpugxtwidlt65mq",
+                "uri": "at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvdf3lza222"
+              },
+              "root": {
+                "cid": "bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey",
+                "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"
+              }
+            },
+            "text": "Tja, jetzt können die Leute, die sich immer geärgert haben, dass ihre Meinung negative Konsequenzen in der Bevölkerung hat, endlich wieder konsequenzlos hetzen und ihre Lieblings\"künstler\" promoten."
+          },
+          "bookmarkCount": 0,
+          "replyCount": 0,
+          "repostCount": 0,
+          "likeCount": 1,
+          "quoteCount": 0,
+          "indexedAt": "2026-10-02T12:36:55.664Z",
+          "labels": []
+        },
+        "replies": [],
+        "threadContext": {},
+        "$type": "app.bsky.feed.defs#threadViewPost"
+      },
+      {
+        "post": {
+          "uri": "at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvdhndkik22",
+          "cid": "bafyreiersk75lzgugysoxlhztsbhj6gz4zfxrft73yafeddnrrrgyskaje",
+          "author": {
+            "did": "did:plc:7tqeczmppbudmdnewcpu7ghe",
+            "handle": "rocktoamna.bsky.social",
+            "displayName": "Philipp Greifenstein",
+            "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:7tqeczmppbudmdnewcpu7ghe/bafkreidugdqezutxned5rsx2dz5ctvpznjqxxlnycjv35byhnypos5sqae",
+            "associated": {
+              "chat": { "allowIncoming": "all" },
+              "activitySubscription": { "allowSubscriptions": "followers" }
+            },
+            "labels": [],
+            "createdAt": "2023-09-20T19:26:17.225Z"
+          },
+          "record": {
+            "$type": "app.bsky.feed.post",
+            "createdAt": "2026-10-02T12:06:03.075Z",
+            "langs": ["de"],
+            "reply": {
+              "parent": {
+                "cid": "bafyreifccngszcsed5qzalewxpojaeuj2rlrxbjms6vfpugxtwidlt65mq",
+                "uri": "at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvdf3lza222"
+              },
+              "root": {
+                "cid": "bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey",
+                "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"
+              }
+            },
+            "text": "Bissl Lust am Gruseln ist schon auch dabei für jene, die der Gewaltatmosphäre eben nicht ausgesetzt sind."
+          },
+          "bookmarkCount": 0,
+          "replyCount": 1,
+          "repostCount": 0,
+          "likeCount": 13,
+          "quoteCount": 0,
+          "indexedAt": "2026-10-02T12:06:04.766Z",
+          "labels": []
+        },
+        "replies": [
+          {
+            "post": {
+              "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvfdhzo2c2h",
+              "cid": "bafyreiemlzwzmpvcir6e7lfhweqqdj5ufqfdqofrduihefqvghus6dymtm",
+              "author": {
+                "did": "did:plc:xjw5wikjhxxf3hlpv7cvjbhp",
+                "handle": "annerabe.bsky.social",
+                "displayName": "Anne Rabe",
+                "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:xjw5wikjhxxf3hlpv7cvjbhp/bafkreia4awk3qjq5yqfhh2kxura2qhbi5jsim6c3mfm3ycntqk6xf6qjka",
+                "associated": { "activitySubscription": { "allowSubscriptions": "followers" } },
+                "labels": [],
+                "createdAt": "2023-08-09T21:49:43.932Z"
+              },
+              "record": {
+                "$type": "app.bsky.feed.post",
+                "createdAt": "2026-10-02T12:39:30.774Z",
+                "langs": ["de"],
+                "reply": {
+                  "parent": {
+                    "cid": "bafyreiersk75lzgugysoxlhztsbhj6gz4zfxrft73yafeddnrrrgyskaje",
+                    "uri": "at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvdhndkik22"
+                  },
+                  "root": {
+                    "cid": "bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey",
+                    "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"
+                  }
+                },
+                "text": "Ich habe tatsächlich auch darüber nachgedacht, ob man das öffentlich machen sollte, aber da er 200k Abonnenten auf YouTube hat und tausende in diese Vorstellungen gehen, glaube ich, dass es wichtig ist, darüber zu schreiben."
+              },
+              "bookmarkCount": 0,
+              "replyCount": 5,
+              "repostCount": 1,
+              "likeCount": 56,
+              "quoteCount": 0,
+              "indexedAt": "2026-10-02T12:39:31.164Z",
+              "labels": []
+            },
+            "replies": [
+              {
+                "post": {
+                  "uri": "at://did:plc:yys2oewp4ds4qlod5rrkngqf/app.bsky.feed.post/3mwvmmgoz5k2m",
+                  "cid": "bafyreigrvpdjznxqh33rscavrlc6fwd72jc2qgapndsun62sw43vyvswgm",
+                  "author": {
+                    "did": "did:plc:yys2oewp4ds4qlod5rrkngqf",
+                    "handle": "conocojoe3000.bsky.social",
+                    "displayName": "ConocoJoe3000🇪🇺🇺🇦",
+                    "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:yys2oewp4ds4qlod5rrkngqf/bafkreiho5rivzxx6wt6a2fevglzjvlyot5ddr5ralk5ifufsl453uk7vju",
+                    "associated": {
+                      "chat": { "allowIncoming": "following" },
+                      "activitySubscription": { "allowSubscriptions": "followers" }
+                    },
+                    "labels": [],
+                    "createdAt": "2023-10-13T11:20:22.099Z"
+                  },
+                  "record": {
+                    "$type": "app.bsky.feed.post",
+                    "createdAt": "2026-10-02T14:49:47.559Z",
+                    "langs": ["de"],
+                    "reply": {
+                      "parent": {
+                        "cid": "bafyreiemlzwzmpvcir6e7lfhweqqdj5ufqfdqofrduihefqvghus6dymtm",
+                        "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvfdhzo2c2h"
+                      },
+                      "root": {
+                        "cid": "bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey",
+                        "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"
+                      }
+                    },
+                    "text": "Man könnte ja mal recherchieren wieviele von den 200k Abos denn bots sind die nur größe simulieren sollen um ihn im algorithmus nach vorne zu puschen.\nWeil SO viele abos sind das auf YT jetzt auch nicht unbedingt.\nSeine views per video sind dafür ausserordentlich hoch, da passt was nicht zusammen."
+                  },
+                  "bookmarkCount": 0,
+                  "replyCount": 1,
+                  "repostCount": 0,
+                  "likeCount": 0,
+                  "quoteCount": 0,
+                  "indexedAt": "2026-10-02T14:49:49.057Z",
+                  "labels": []
+                },
+                "replies": [
+                  {
+                    "post": {
+                      "uri": "at://did:plc:yys2oewp4ds4qlod5rrkngqf/app.bsky.feed.post/3mwvmmh5rsk2m",
+                      "cid": "bafyreigdsefefun2hyfhyuhzyizy6gtngeqfaik72picbxnt4pfq56ctwm",
+                      "author": {
+                        "did": "did:plc:yys2oewp4ds4qlod5rrkngqf",
+                        "handle": "conocojoe3000.bsky.social",
+                        "displayName": "ConocoJoe3000🇪🇺🇺🇦",
+                        "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:yys2oewp4ds4qlod5rrkngqf/bafkreiho5rivzxx6wt6a2fevglzjvlyot5ddr5ralk5ifufsl453uk7vju",
+                        "associated": {
+                          "chat": { "allowIncoming": "following" },
+                          "activitySubscription": { "allowSubscriptions": "followers" }
+                        },
+                        "labels": [],
+                        "createdAt": "2023-10-13T11:20:22.099Z"
+                      },
+                      "record": {
+                        "$type": "app.bsky.feed.post",
+                        "createdAt": "2026-10-02T14:49:47.560Z",
+                        "langs": ["de"],
+                        "reply": {
+                          "parent": {
+                            "cid": "bafyreigrvpdjznxqh33rscavrlc6fwd72jc2qgapndsun62sw43vyvswgm",
+                            "uri": "at://did:plc:yys2oewp4ds4qlod5rrkngqf/app.bsky.feed.post/3mwvmmgoz5k2m"
+                          },
+                          "root": {
+                            "cid": "bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey",
+                            "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"
+                          }
+                        },
+                        "text": "Im hinblick darauf dass wahlkampfhilfe für die AfD gerne mal immateriell geleistet wird, wäre es wirklich zu wissen was die statistiker an auffälligkeiten da finden."
+                      },
+                      "bookmarkCount": 0,
+                      "replyCount": 0,
+                      "repostCount": 0,
+                      "likeCount": 0,
+                      "quoteCount": 0,
+                      "indexedAt": "2026-10-02T14:49:49.089Z",
+                      "labels": []
+                    },
+                    "replies": [],
+                    "threadContext": {},
+                    "$type": "app.bsky.feed.defs#threadViewPost"
+                  }
+                ],
+                "threadContext": {},
+                "$type": "app.bsky.feed.defs#threadViewPost"
+              },
+              {
+                "post": {
+                  "uri": "at://did:plc:tvaookqsfoy3tf4sfetfordw/app.bsky.feed.post/3mwvlvrpt4s2r",
+                  "cid": "bafyreihshkg5ubl6umetetgsculwkmmylzppudjajpznr3q5y4jddzmnny",
+                  "author": {
+                    "did": "did:plc:tvaookqsfoy3tf4sfetfordw",
+                    "handle": "prospertura.bsky.social",
+                    "displayName": "Prospertura",
+                    "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:tvaookqsfoy3tf4sfetfordw/bafkreie2447kpxifbgaljwfmfzwrdpg6kshcqerauol6hj3ng2jri2bihi",
+                    "associated": {
+                      "chat": { "allowIncoming": "all", "allowGroupInvites": "all" },
+                      "activitySubscription": { "allowSubscriptions": "none" }
+                    },
+                    "labels": [],
+                    "createdAt": "2026-03-14T09:23:42.946Z"
+                  },
+                  "record": {
+                    "$type": "app.bsky.feed.post",
+                    "createdAt": "2026-10-02T14:37:07.368Z",
+                    "langs": ["de"],
+                    "reply": {
+                      "parent": {
+                        "cid": "bafyreiemlzwzmpvcir6e7lfhweqqdj5ufqfdqofrduihefqvghus6dymtm",
+                        "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvfdhzo2c2h"
+                      },
+                      "root": {
+                        "cid": "bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey",
+                        "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"
+                      }
+                    },
+                    "text": "Gibt es einen Lösungsansatz?"
+                  },
+                  "bookmarkCount": 0,
+                  "replyCount": 0,
+                  "repostCount": 0,
+                  "likeCount": 0,
+                  "quoteCount": 0,
+                  "indexedAt": "2026-10-02T14:37:07.861Z",
+                  "labels": []
+                },
+                "replies": [],
+                "threadContext": {},
+                "$type": "app.bsky.feed.defs#threadViewPost"
+              },
+              {
+                "post": {
+                  "uri": "at://did:plc:feffqeflfqegqvxps5mwfqjt/app.bsky.feed.post/3mwvjhlyfos2m",
+                  "cid": "bafyreigkahzekpmzrfbykcip2v5dqbkgvij5nvrwjfqpuh4w6pnyihtquq",
+                  "author": {
+                    "did": "did:plc:feffqeflfqegqvxps5mwfqjt",
+                    "handle": "arnienym.bsky.social",
+                    "displayName": "Arnie",
+                    "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:feffqeflfqegqvxps5mwfqjt/bafkreihgmshsim2apd77itudxhaakkl3mokqmdtxv5g2vhsecpauht265u",
+                    "associated": { "activitySubscription": { "allowSubscriptions": "followers" } },
+                    "labels": [],
+                    "createdAt": "2023-12-07T10:11:17.252Z"
+                  },
+                  "record": {
+                    "$type": "app.bsky.feed.post",
+                    "createdAt": "2026-10-02T13:53:24.111Z",
+                    "langs": ["de"],
+                    "reply": {
+                      "parent": {
+                        "cid": "bafyreiemlzwzmpvcir6e7lfhweqqdj5ufqfdqofrduihefqvghus6dymtm",
+                        "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvfdhzo2c2h"
+                      },
+                      "root": {
+                        "cid": "bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey",
+                        "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"
+                      }
+                    },
+                    "text": "Mir hilft Deine exzellente Darstellung sehr. Hatte Steimle und dessen Community überhaupt nicht auf dem Schirm und finde gerade deshalb Deinen direkten Erfahrungsbericht mit diesen unglaublichen Abgründen sehr erhellend. Danke!"
+                  },
+                  "bookmarkCount": 0,
+                  "replyCount": 0,
+                  "repostCount": 0,
+                  "likeCount": 3,
+                  "quoteCount": 0,
+                  "indexedAt": "2026-10-02T13:53:24.665Z",
+                  "labels": []
+                },
+                "replies": [],
+                "threadContext": {
+                  "rootAuthorLike": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.like/3mwvjiwuyj72l"
+                },
+                "$type": "app.bsky.feed.defs#threadViewPost"
+              },
+              {
+                "post": {
+                  "uri": "at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvgnedcsc2i",
+                  "cid": "bafyreiehecapa43nueu5mgqoen4rr6iwfvq4pibb2mrkxbufn2bncqanay",
+                  "author": {
+                    "did": "did:plc:7tqeczmppbudmdnewcpu7ghe",
+                    "handle": "rocktoamna.bsky.social",
+                    "displayName": "Philipp Greifenstein",
+                    "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:7tqeczmppbudmdnewcpu7ghe/bafkreidugdqezutxned5rsx2dz5ctvpznjqxxlnycjv35byhnypos5sqae",
+                    "associated": {
+                      "chat": { "allowIncoming": "all" },
+                      "activitySubscription": { "allowSubscriptions": "followers" }
+                    },
+                    "labels": [],
+                    "createdAt": "2023-09-20T19:26:17.225Z"
+                  },
+                  "record": {
+                    "$type": "app.bsky.feed.post",
+                    "createdAt": "2026-10-02T13:02:56.182Z",
+                    "langs": ["de"],
+                    "reply": {
+                      "parent": {
+                        "cid": "bafyreiemlzwzmpvcir6e7lfhweqqdj5ufqfdqofrduihefqvghus6dymtm",
+                        "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvfdhzo2c2h"
+                      },
+                      "root": {
+                        "cid": "bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey",
+                        "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"
+                      }
+                    },
+                    "text": "Ich hab da auch keine finale Antwort drauf, bin aber sicher das ist unser atomisierten Medienlandschaft und angesichts disparater Plattformmetriken Follower:innenzahlen allein kein gutes Argument sind. Wenn man es macht, ist natürlich umso wichtiger, *wie* man es macht."
+                  },
+                  "bookmarkCount": 0,
+                  "replyCount": 1,
+                  "repostCount": 0,
+                  "likeCount": 3,
+                  "quoteCount": 0,
+                  "indexedAt": "2026-10-02T13:02:56.363Z",
+                  "labels": []
+                },
+                "replies": [
+                  {
+                    "post": {
+                      "uri": "at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvgslemm22i",
+                      "cid": "bafyreiazgnah4uivezpksooizacwj4lhz5tnb7clixrnswub7lsmucbuha",
+                      "author": {
+                        "did": "did:plc:7tqeczmppbudmdnewcpu7ghe",
+                        "handle": "rocktoamna.bsky.social",
+                        "displayName": "Philipp Greifenstein",
+                        "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:7tqeczmppbudmdnewcpu7ghe/bafkreidugdqezutxned5rsx2dz5ctvpznjqxxlnycjv35byhnypos5sqae",
+                        "associated": {
+                          "chat": { "allowIncoming": "all" },
+                          "activitySubscription": { "allowSubscriptions": "followers" }
+                        },
+                        "labels": [],
+                        "createdAt": "2023-09-20T19:26:17.225Z"
+                      },
+                      "record": {
+                        "$type": "app.bsky.feed.post",
+                        "createdAt": "2026-10-02T13:05:51.336Z",
+                        "langs": ["de"],
+                        "reply": {
+                          "parent": {
+                            "cid": "bafyreiehecapa43nueu5mgqoen4rr6iwfvq4pibb2mrkxbufn2bncqanay",
+                            "uri": "at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvgnedcsc2i"
+                          },
+                          "root": {
+                            "cid": "bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey",
+                            "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"
+                          }
+                        },
+                        "text": "Die Medienberichterstattung damals hatte zum Effekt, dass Steimle sich für den ÖRR und viele andere Medien als Partner erledigt hatte. Er hat nun schon seit einigen Jahren dahingehend nichts mehr zu verlieren."
+                      },
+                      "bookmarkCount": 0,
+                      "replyCount": 1,
+                      "repostCount": 0,
+                      "likeCount": 3,
+                      "quoteCount": 0,
+                      "indexedAt": "2026-10-02T13:05:51.568Z",
+                      "labels": []
+                    },
+                    "replies": [
+                      {
+                        "post": {
+                          "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvh3mbrdc2h",
+                          "cid": "bafyreie6ornkdbcynjaazoip24ad2jsbt73rrazyaprobh7f7gvjcczgba",
+                          "author": {
+                            "did": "did:plc:xjw5wikjhxxf3hlpv7cvjbhp",
+                            "handle": "annerabe.bsky.social",
+                            "displayName": "Anne Rabe",
+                            "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:xjw5wikjhxxf3hlpv7cvjbhp/bafkreia4awk3qjq5yqfhh2kxura2qhbi5jsim6c3mfm3ycntqk6xf6qjka",
+                            "associated": {
+                              "activitySubscription": { "allowSubscriptions": "followers" }
+                            },
+                            "labels": [],
+                            "createdAt": "2023-08-09T21:49:43.932Z"
+                          },
+                          "record": {
+                            "$type": "app.bsky.feed.post",
+                            "createdAt": "2026-10-02T13:10:54.282Z",
+                            "langs": ["de"],
+                            "reply": {
+                              "parent": {
+                                "cid": "bafyreiazgnah4uivezpksooizacwj4lhz5tnb7clixrnswub7lsmucbuha",
+                                "uri": "at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvgslemm22i"
+                              },
+                              "root": {
+                                "cid": "bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey",
+                                "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"
+                              }
+                            },
+                            "text": "Hier geht’s nicht ums verlieren, Steimle gewinnt gerade und wenn die AfD über Förderung von Kultur spricht, die das Nationalgefühl heben soll, dann könnte Steimle einer dieser ,neuen‘ Staatskünstler sein."
+                          },
+                          "bookmarkCount": 0,
+                          "replyCount": 1,
+                          "repostCount": 0,
+                          "likeCount": 14,
+                          "quoteCount": 0,
+                          "indexedAt": "2026-10-02T13:10:55.064Z",
+                          "labels": []
+                        },
+                        "replies": [
+                          {
+                            "post": {
+                              "uri": "at://did:plc:7tqeczmppbudmdnewcpu7ghe/app.bsky.feed.post/3mwvh7eeg6c2i",
+                              "cid": "bafyreihmy6bmfhqjtebalc7y7umrywz7sfqklc7dmbse6dstpfuzpxknhy",
+                              "author": {
+                                "did": "did:plc:7tqeczmppbudmdnewcpu7ghe",
+                                "handle": "rocktoamna.bsky.social",
+                                "displayName": "Philipp Greifenstein",
+                                "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:7tqeczmppbudmdnewcpu7ghe/bafkreidugdqezutxned5rsx2dz5ctvpznjqxxlnycjv35byhnypos5sqae",
+                                "associated": {
+                                  "chat": { "allowIncoming": "all" },
+                                  "activitySubscription": { "allowSubscriptions": "followers" }
+                                },
+                                "labels": [],
+                                "createdAt": "2023-09-20T19:26:17.225Z"
+                              },
+                              "record": {
+                                "$type": "app.bsky.feed.post",
+                                "createdAt": "2026-10-02T13:13:00.197Z",
+                                "langs": ["de"],
+                                "reply": {
+                                  "parent": {
+                                    "cid": "bafyreie6ornkdbcynjaazoip24ad2jsbt73rrazyaprobh7f7gvjcczgba",
+                                    "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvh3mbrdc2h"
+                                  },
+                                  "root": {
+                                    "cid": "bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey",
+                                    "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"
+                                  }
+                                },
+                                "text": "Das könnte sein. Defintiv haben ihm die AfD-Wahlkampfauftritte genützt, wenn es um das Erreichen von Aufmerksamkeit jenseits seiner treuen Fans geht. (btw find ich das weitgehende Schweigen seiner (ehem.) Kollegen aka \"Weggefährten\" immer noch bemerkenswert)"
+                              },
+                              "bookmarkCount": 0,
+                              "replyCount": 1,
+                              "repostCount": 0,
+                              "likeCount": 6,
+                              "quoteCount": 0,
+                              "indexedAt": "2026-10-02T13:13:00.655Z",
+                              "labels": []
+                            },
+                            "threadContext": {
+                              "rootAuthorLike": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.like/3mwvhfoelmd24"
+                            },
+                            "$type": "app.bsky.feed.defs#threadViewPost"
+                          }
+                        ],
+                        "threadContext": {},
+                        "$type": "app.bsky.feed.defs#threadViewPost"
+                      }
+                    ],
+                    "threadContext": {},
+                    "$type": "app.bsky.feed.defs#threadViewPost"
+                  }
+                ],
+                "threadContext": {},
+                "$type": "app.bsky.feed.defs#threadViewPost"
+              },
+              {
+                "post": {
+                  "uri": "at://did:plc:6zssltktcjm5mtxtvwxrx6mz/app.bsky.feed.post/3mwvgc5zaqc2x",
+                  "cid": "bafyreicjkihydlppm376k24swew2tlbj5osyth7vvb7qcyypnvmafqzf5u",
+                  "author": {
+                    "did": "did:plc:6zssltktcjm5mtxtvwxrx6mz",
+                    "handle": "kannsci.eurosky.social",
+                    "displayName": "Kannsci",
+                    "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:6zssltktcjm5mtxtvwxrx6mz/bafkreidx6i5kwwjj2s7z3zcwoj7ejmdz5g2z5c5spi4sqfirkavh43rvjq",
+                    "associated": {
+                      "chat": { "allowIncoming": "following" },
+                      "activitySubscription": { "allowSubscriptions": "followers" }
+                    },
+                    "labels": [],
+                    "createdAt": "2023-11-23T15:01:40.463Z"
+                  },
+                  "record": {
+                    "$type": "app.bsky.feed.post",
+                    "createdAt": "2026-10-02T12:56:40.460Z",
+                    "langs": ["de"],
+                    "reply": {
+                      "parent": {
+                        "cid": "bafyreiemlzwzmpvcir6e7lfhweqqdj5ufqfdqofrduihefqvghus6dymtm",
+                        "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvfdhzo2c2h"
+                      },
+                      "root": {
+                        "cid": "bafyreiebng65cdhz2tznbaylwxvox2rqxm3xjjt6k5eexqy4effmktlpey",
+                        "uri": "at://did:plc:xjw5wikjhxxf3hlpv7cvjbhp/app.bsky.feed.post/3mwvbideiqk2h"
+                      }
+                    },
+                    "text": "Ich habe durch den Artikel viel gelernt. Was ich an ihm gut fand, war nicht der Gruselfaktor angesichts Steimles Tabubrüchen, sondern dass ich neu verstanden habe, was den Zusammenhalt im Publikum ausmacht. Musste viel an \"Eine Möglichkeit von Glück\" denken, es war aber eine neue Ebene."
+                  },
+                  "bookmarkCount": 0,
+                  "replyCount": 0,
+                  "repostCount": 0,
+                  "likeCount": 1,
+                  "quoteCount": 0,
+                  "indexedAt": "2026-10-02T12:56:41.158Z",
+                  "labels": []
+                },
+                "replies": [],
+                "threadContext": {},
+                "$type": "app.bsky.feed.defs#threadViewPost"
+              }
+            ],
+            "threadContext": {},
+            "$type": "app.bsky.feed.defs#threadViewPost"
+          }
+        ],
+        "threadContext": {},
+        "$type": "app.bsky.feed.defs#threadViewPost"
+      }
+    ],
+    "threadContext": {},
+    "$type": "app.bsky.feed.defs#threadViewPost"
+  }
+}
