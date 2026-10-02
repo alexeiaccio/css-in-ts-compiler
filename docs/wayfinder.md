@@ -1185,3 +1185,12 @@ Decided with the user: a derived token is a reference inside a CSS value, and `c
 - **JSON:** a JSON import widens `$type` to `string`, so the editor knows the tree (a wrong path is a type error) and the build checks the values. No runtime change was needed.
 - `check.contrast` still warns on a derived colour (culori does not parse `color-mix()`); a small evaluator is an option.
 - The engine's own rules caught two fixture mistakes on the way: two modules declaring one variable differently, and `rem` in an initial value.
+
+## fn() and the built-in value helpers (cssints-obd3)
+
+Decided with the user: `fn()` in `cssints/plugin` plus a few built-ins.
+
+- **`fn(grammar, computeTo, name?)`** makes a build-time function whose call is a part of any property. The parts are checked against the grammar in the types and at build time; `computeTo` gets them as text (a token as its `var(--name)`), and its result is inlined where the call is, so nothing ships. A Typed OM result keeps its type and goes only where that type goes (a `CSSColorValue` in `width()` is a type error); a string is opaque to the types and checked in the declaration it lands in. Errors are `MemberError`s naming the function and the call site; a result that does not fit its property is that property's error.
+- **Built-ins:** `colorMix(space, a, b)` (on `fn`), and `min`, `max`, `clamp` (typed by their first typed argument, or explicitly: `clamp<"number">(…)`). They exist because a token cannot go into a template string without losing its type: `` `color-mix(in oklab, ${t.color.accent}, black)` `` is a `${string}` hole the recogniser rejects. `calc()` and other functions stay strings.
+- **Cost:** about 17 k instantiations per `colorMix` (two `<color>` checks), under 2 k per `min`/`max`/`clamp`; new bench row `functions.ts`. After merging with the cascade and derived-token work, `unused.ts` rose 11% in fixed declaration cost and its budget was updated.
+- The demo's button hover is now `colorMix("oklab", t.color.accent, "black 15%")`.

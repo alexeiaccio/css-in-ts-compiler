@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-30T11:57:32Z
-updated_at: 2026-10-02T12:06:00Z
+updated_at: 2026-10-02T12:20:22Z
 ---
 
 ## Destination
@@ -56,7 +56,7 @@ A public plugin API (`definePlugin` with `property`, `context` and `style` membe
 
 - [cn(): the later argument wins for the same property; overlap without containment is an error](cssints-33ah): done; logical/physical sides meet, a full-side shorthand contains (border contains border-inline).
 
-- [fn() and a few built-in value helpers](cssints-obd3): decided (fn() plus colorMix/clamp/min/max); implementation pending.
+- [fn() and a few built-in value helpers](cssints-obd3): done; fn(grammar, computeTo, name?) in cssints/plugin; colorMix, min, max, clamp take tokens; results inlined at build time.
 
 - [Derived tokens and JSON token input](cssints-5y5a): references inside a CSS value stay live (initial value flattened, :root keeps var(), themes re-declare dependents); JSON import typed by tree, checked at build.
 
