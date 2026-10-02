@@ -5,6 +5,7 @@ import {
   CSS,
   CSSColorValue,
   active,
+  animation,
   bg,
   cn,
   color,
@@ -23,7 +24,7 @@ import {
   token,
 } from "cssints" with { type: "cssints" };
 
-import { stack } from "../helpers.ts" with { type: "cssints" };
+import { pulse, stack } from "../helpers.ts" with { type: "cssints" };
 import { t } from "../theme.ts" with { type: "cssints" };
 
 // Conditions: a tuple and an object of media queries, a container query, a supports query.
@@ -89,6 +90,9 @@ const cardBody = cn(
   css.color("#1e3a8a"),
   narrow(bg("#fee2e2"), css.color("#7f1d1d")),
 );
+
+// keyframes() from a helper module: the name goes where animation wants one, the rule comes with it.
+const pulsing = cn(css.color(t.color.text), animation(pulse, "1.5s", "ease-in-out", "infinite"), reduced(animation("none")));
 
 // supports(): bold where CSS grid exists.
 const feature = cn(css.color(t.color.text), css.fontWeight("400"), hasGrid(css.fontWeight("700")));
@@ -159,6 +163,10 @@ export function Showcase() {
           <p className={cardBody}>container query, 32rem</p>
         </div>
       </div>
+
+      <p data-demo="keyframes" className={pulsing}>
+        keyframes() in a helper module, off under prefers-reduced-motion
+      </p>
 
       <p data-demo="supports" className={feature}>
         supports(display: grid)

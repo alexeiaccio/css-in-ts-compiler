@@ -252,6 +252,43 @@ export const d = minHeight(firstThatWorks("100dvh", "100vhh")); // error: the fa
 - **Minify.** Vite's CSS minify decides which of the declarations LightningCSS may drop, from `build.cssTarget` (set it to `cssTarget` of `cssints/vite`, see the README), not from `css.lightningcss.targets`. With the targets it keeps `min-height: 100vh; min-height: 100dvh` where a target lacks `dvh` and merges them where none does; with `cssTarget: false` it always merges.
 - **Limits.** It is not a Typed OM value: a typed position (`token.length(firstThatWorks(...))`) rejects it, and so does `style()` (an inline style holds one value per property). `const f = firstThatWorks(...)` is build-time only, like a condition: the client has `null`. The fallback is for values a browser drops; `@supports` is for styles that are not one declaration.
 
+### Local at-rules: `keyframes` and `positionTry` (decided 2026-10-02, cssints-lirm)
+
+`keyframes()` and `positionTry()` define an at-rule next to the styles that use it and return its name, a typed value that fits where the grammar wants a name.
+
+```ts
+import { animation, cn, hover, keyframes, margin, opacity, positionTry, positionTryFallbacks, top, transform } from "cssints" with { type: "cssints" };
+
+export const fade = keyframes({ from: opacity(0), to: opacity(1) });
+export const wiggle = keyframes({ from: transform("rotate(0deg)"), "50%": cn(transform("rotate(8deg)"), opacity(0.5)), to: transform("rotate(0deg)") });
+export const above = positionTry(cn(top("anchor(bottom)"), margin(2)));
+
+export const a = animation(fade, "200ms", "ease-out");
+export const b = hover(animation(wiggle, "1s", "infinite"));
+export const c = positionTryFallbacks(above, "flip-inline");
+export const d = keyframes({ from: opacity("lots") }); // error: opacity: unexpected "lots"
+export const e = keyframes({ halfway: opacity(0) }); // error: a step is from, to or a percentage
+export const f = positionTryFallbacks(fade); // error: a keyframes name is not a dashed ident
+```
+
+- **Steps are styles.** A step of `keyframes()` and the argument of `positionTry()` are made of member calls (`opacity(0)`, `cn(...)`), as `cn()` and `cv()` take them: they are checked by the grammar of each property, at the member call in the types and at the call of `keyframes()` at build time, with the support warnings of a class. A step is `from`, `to` or one percentage (`"50%"`, 0 to 100); a list (`"0%, 100%"`) is not supported. A condition, a `firstThatWorks()` or a member with a marker class (a plugin's) inside a step is a build error, since an at-rule step has none.
+- **`positionTry()` takes what `@position-try` takes:** inset, margin and sizing properties, `align-self`, `justify-self`, `place-self`, `position-anchor` and `position-area` (CSS Anchor Positioning §6.4). Any other property (`positionTry(cn(padding(2)))`) is a build error at the call; the types cannot see which property a style holds. `position-try` is a property as well, so with value parts `positionTry("flip-block")` is still that shorthand; one style is the rule.
+- **The name** is a hash of the rule's content: `kf-1a2b3c4d` for keyframes, `--pt-1a2b3c4d` for `@position-try`, so two blocks with the same steps are one name and one rule, from any module. It is a Typed OM value: `CSSStyleValue<"custom-ident">` for keyframes (`animation`, `animationName`), `<dashed-ident>` for `positionTry()` (`positionTryFallbacks`); it fits nowhere else. A `keyframes()` in a client module ships as its name string.
+- **Where the rule goes.** The name carries its rule; a style that holds the name (`animation(fade, ...)`, inside `cn()`, a condition or a `cv()`) puts the rule in the sheet of its module, once however many use it. A rule that nothing uses is in no sheet, so there is nothing to shake: a module that imports a helper but does not use a name has no rule. It is a kernel (see "Plugins"), keyed by the content, in layer `_.k`, with `requires` set to `css.at-rules.keyframes` or `css.at-rules.position-try`: a target that lacks it gets a support warning, never an error.
+- **The layer.** A name is global and a rule of a layer wins over another of the same name by layer order (css-cascade-5, css-anchor-position-1 §6.4: the same cascade as `@keyframes`). Names are hashes of the content, so no two rules of different content share one and the order never decides; the rules go in `_.k`, below every class layer, and the layer statement stays as it is.
+- **In a helper module.** `export const fade = keyframes(...)` in a module imported with the attribute (like a token) is a definition site: it ships nothing, and the components that import it and use it carry the rule.
+- **Limits.** The name is not a part of `firstThatWorks()` or `style()` (an inline style has no sheet): both reject it with a message. A value of `custom-ident` kind is accepted by the grammar as a keyframes name whichever way it was made, so a typo in a hand-written `animationName("fadee")` is not caught.
+
+```css
+@layer _.k {
+	@keyframes kf-0e6af964{from{opacity:0}to{opacity:1}}
+	@position-try --pt-23965b44{top:anchor(bottom);margin:0.5rem}
+}
+@layer _.a {
+	._44ecsn{animation:kf-0e6af964 200ms ease-out}
+}
+```
+
 ### Runtime: `cx`, `cn`, `cv` (decided 2026-09-29, cssints-lo9x)
 
 - **One runtime package: `cssints` itself.** `import { cx, _cv } from "cssints"` has no attribute and is the only code that ships to the browser. `@cssints/variants` is gone.
