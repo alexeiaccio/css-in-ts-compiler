@@ -84,25 +84,23 @@ export const context: typeof Types.context = <
     ) as never;
 };
 
+// What `build` throws is a failure at the call site, as a grammar error is.
+const built = (build: (value: string) => Built, value: string): Built => {
+  try {
+    return build(value);
+  } catch (e) {
+    throw e instanceof MemberError
+      ? e
+      : failIn("style", e instanceof Error ? e.message : String(e));
+  }
+};
+
 // See author-types.ts.
 export const style: typeof Types.style = (grammar: string, build: (value: string) => Built) =>
   ((...args: unknown[]) => {
     const value = valueOf("style", "style", args);
     check("style", "style", grammar, value);
-    // Whatever `build` throws is a failure at the call site, as a grammar error is.
-    const {
-      decls: d,
-      markers,
-      kernels,
-    } = (() => {
-      try {
-        return build(value);
-      } catch (e) {
-        throw e instanceof MemberError
-          ? e
-          : failIn("style", e instanceof Error ? e.message : String(e));
-      }
-    })();
+    const { decls: d, markers, kernels } = built(build, value);
     return node(decls(d), {
       markers: markers?.map((m) => [m, kernels?.[0]?.key ?? ""]),
       kernels,
