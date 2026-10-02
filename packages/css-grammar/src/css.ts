@@ -132,7 +132,7 @@ type PrimitiveMap = {
   "custom-ident": string; // minus NotIdent, and any sentinel but its own, see Consume
   ident: string; // minus NotIdentStart
   "ident-token": string; // minus NotIdentStart
-  "dashed-ident": `--${string}`;
+  "dashed-ident": `--${string}` | "⟨dashed-ident⟩";
   angle: `${number}${"deg" | "rad" | "grad" | "turn"}` | "⟨angle⟩";
   time: `${number}${"s" | "ms"}` | "⟨time⟩";
   resolution: `${number}${"dpi" | "dpcm" | "dppx" | "x"}` | "⟨resolution⟩";

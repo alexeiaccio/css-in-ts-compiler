@@ -4,7 +4,7 @@
 import type { properties } from "@cssints/css-grammar/mdn";
 import type { Condition } from "@cssints/css-grammar/query";
 import type { StyleObject, TokenFn, TokenSetFn, TokenType } from "@cssints/css-grammar/token";
-import type { CSS, CSSColorValue, CSSUnitValue } from "@cssints/css-grammar/values";
+import type { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
 
 import type { Alt, Check, Fallback, Part, Style } from "./parts.ts";
 import type { CvRuntimeConfig } from "./runtime.ts";
@@ -45,6 +45,31 @@ export interface CvConfig {
 }
 
 export declare const cn: (...styles: Style[]) => Style;
+/** The name of a `keyframes()` rule: a `<custom-ident>` for `animation` and `animationName`. */
+export interface Keyframes extends CSSStyleValue<"custom-ident"> {
+  readonly "~keyframes": true;
+}
+/** The name of a `positionTry()` rule: a `<dashed-ident>` for `positionTryFallbacks`. */
+export interface PositionTry extends CSSStyleValue<"dashed-ident"> {
+  readonly "~positionTry": true;
+}
+/** The steps of a `@keyframes` rule: `from`, `to` and percentages, each a style of declarations. */
+export interface Steps {
+  from?: Style;
+  to?: Style;
+  [percent: `${number}%`]: Style;
+}
+/**
+ * `keyframes({ from: opacity(0), to: opacity(1) })`: a `@keyframes` rule named by a hash of its content, in the sheet of
+ * the modules that use the name. Each step is checked like a class; no conditions.
+ */
+export declare const keyframes: (steps: Steps) => Keyframes;
+/**
+ * `positionTry(cn(top("anchor(bottom)"), margin(2)))`: a `@position-try` rule, in the sheet of the modules that use its
+ * name. Only inset, margin, sizing, self-alignment, `position-anchor` and `position-area` are allowed (a build error).
+ * `position-try` is also a property: with value parts (`positionTry("flip-block")`) it is that shorthand, as before.
+ */
+export declare const positionTry: ((style: Style) => PositionTry) & Prop<"position-try">;
 /**
  * `minHeight(firstThatWorks("100dvh", "100vh"))`: the value you want, then what to use where it fails. A part of any
  * property; the build emits one class with all the declarations, the wanted one last. Each value is checked for the property.
@@ -68,6 +93,8 @@ export declare const cv: (config: CvConfig) => CvRuntimeConfig;
 export declare const css: typeof import("./members.ts") & {
   cn: typeof cn;
   firstThatWorks: typeof firstThatWorks;
+  keyframes: typeof keyframes;
+  positionTry: typeof positionTry;
   media: typeof media;
   container: typeof container;
   supports: typeof supports;

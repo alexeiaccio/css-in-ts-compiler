@@ -34,9 +34,11 @@ export const addKernel = Effect.fnUntraced(function* (
         `kernel ${key} is registered twice with different CSS: a kernel that changes needs a new key (name@version)`,
       );
   } else {
-    const vars = [...`${kernel.css}\n${kernel.atProperty ?? ""}`.matchAll(VARS)].map(
-      (m) => m[1] ?? m[2]!,
-    );
+    // A key that starts with `@` is an at-rule of local names (keyframes(), positionTry()): a custom property in its
+    // steps is a use, not a declaration.
+    const vars = key.startsWith("@")
+      ? []
+      : [...`${kernel.css}\n${kernel.atProperty ?? ""}`.matchAll(VARS)].map((m) => m[1] ?? m[2]!);
     for (const [other, e] of kernels) {
       const v = vars.find((x) => e.vars.includes(x));
       if (v)

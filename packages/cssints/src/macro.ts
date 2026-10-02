@@ -15,6 +15,7 @@ import type { QueryKind } from "@cssints/css-grammar/query";
 import { messageOf, type Warning } from "@cssints/css-grammar/support";
 import { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
 import { Cause, Effect, Exit } from "effect";
+import { createHash } from "node:crypto";
 
 import { MacroError, MemberError } from "./errors.ts";
 import {
@@ -44,6 +45,7 @@ import { addKernel } from "./kernel.ts";
 import {
   type At,
   forgetKernels,
+  type Kernel,
   registry,
   Registry,
   type RegistryState,
@@ -65,7 +67,9 @@ const flexChain =
 const member =
   (k: string) =>
   (...args: unknown[]) =>
-    CONTEXTS[k] && !args.length ? node(toDecls(k, args), {}, flexChain(k)) : node(toDecls(k, args));
+    CONTEXTS[k] && !args.length
+      ? node(toDecls(k, args), {}, flexChain(k))
+      : node(toDecls(k, args), { kernels: kernelsOf(args) });
 
 // firstThatWorks(wanted, ...fallbacks): one part of a property that is several values; the build prints them all in one
 // class. Typed OM values (tokens) become their text.
@@ -74,14 +78,117 @@ export const firstThatWorks = (...values: unknown[]): Fallback => {
     throw fail(
       "cssints: firstThatWorks() takes at least two values: the one you want, then what to use where it fails",
     );
-  for (const v of values)
+  for (const v of values) {
+    if (v instanceof CSSAtRuleValue)
+      throw fail(
+        `cssints: firstThatWorks() cannot hold ${v.name}: a keyframes() or positionTry() name carries its at-rule, which a fallback would drop`,
+      );
     if ((typeof v !== "string" || !v.trim()) && !(v instanceof CSSStyleValue))
       throw fail(
         `cssints: firstThatWorks() takes non-empty strings and Typed OM values (tokens), got ${JSON.stringify(v)}`,
       );
+  }
   // oxlint-disable-next-line typescript/no-base-to-string -- strings and CSSStyleValues, which override toString
   return { __fallback: values.map((v) => String(v).trim()) };
 };
+
+// A local at-rule (keyframes(), positionTry()): the name that goes where the grammar wants one, and the kernel that
+// defines it. A style that holds the value carries the kernel (`member`), so the rule is in the sheet of the modules
+// that use it and nowhere else.
+export class CSSAtRuleValue extends CSSStyleValue {
+  readonly kernel: Kernel;
+  readonly name: string;
+  constructor(name: string, kernel: Kernel) {
+    super();
+    this.name = name;
+    this.kernel = kernel;
+  }
+  override toString() {
+    return this.name;
+  }
+}
+
+const kernelsOf = (args: unknown[]): CssNode["kernels"] => {
+  let out: Kernel[] | undefined;
+  for (const a of args) if (a instanceof CSSAtRuleValue) (out ??= []).push(a.kernel);
+  return out;
+};
+
+// What @position-try accepts (css-anchor-position-1 §6.4): inset, margin and sizing properties, self-alignment,
+// position-anchor and position-area.
+const POSITION_TRY =
+  /^(?:top|right|bottom|left|inset(?:-(?:block|inline)(?:-(?:start|end))?)?|margin(?:-(?:top|right|bottom|left|block|inline)(?:-(?:start|end))?)?|(?:min-|max-)?(?:width|height|block-size|inline-size)|align-self|justify-self|place-self|position-anchor|position-area)$/;
+const STEP = /^(?:from|to|\d+(?:\.\d+)?%)$/;
+
+// The declarations of a block, checked like a class's (grammar, prose rules, support), as `prop:value;...`. A block is
+// a style of member calls, plain declarations only.
+const blockOf = (what: string, style: unknown, allowed?: RegExp): string => {
+  if (!isNode(style) || !style.__cssints.length)
+    throw fail(
+      `cssints: ${what} takes css.* declarations (a member call or cn(...)), got ${JSON.stringify(style)}`,
+    );
+  if (style.markers || style.kernels || style.plugs)
+    throw fail(`cssints: ${what} takes plain declarations: no marker class or kernel of a member`);
+  return style.__cssints
+    .map((d) => {
+      const [prop, value, conds, fallbacks] = d;
+      if (conds?.length || fallbacks)
+        throw fail(
+          `cssints: ${what} takes declarations without conditions or firstThatWorks(...), got ${prop}`,
+        );
+      if (allowed && !allowed.test(prop))
+        throw fail(
+          `cssints: ${what}: ${prop} is not allowed in @position-try, which takes inset, margin, sizing and self-alignment properties, position-anchor and position-area`,
+        );
+      try {
+        checkNow(d, true, registry);
+      } catch (e) {
+        if (isDeclarationError(e))
+          throw new MacroError({
+            message: `cssints: ${what}: ${e.message}`,
+            cause: e,
+            ...registry.at,
+          });
+        throw e;
+      }
+      return `${prop}:${value}`;
+    })
+    .join(";");
+};
+
+// The name is a short hash of the content, so identical blocks are one name and one kernel. A kernel key that starts
+// with `@` is an at-rule of local names: a custom property in its steps is a use, not a declaration (kernel.ts).
+const atRule = (rule: string, prefix: string, body: string) => {
+  const name = `${prefix}${createHash("sha1").update(body).digest("hex").slice(0, 8)}`;
+  return new CSSAtRuleValue(name, {
+    key: `@${rule} ${name}`,
+    css: `@${rule} ${name}{${body}}`,
+    requires: [`css.at-rules.${rule}`],
+  });
+};
+
+// keyframes({ from: opacity(0), "50%": ..., to: ... }): the name of a `@keyframes` rule, for animation and animationName.
+export const keyframes = (steps: unknown): CSSAtRuleValue => {
+  const entries = typeof steps === "object" && steps !== null ? Object.entries(steps) : [];
+  if (!entries.length)
+    throw fail("cssints: keyframes() takes { from: style, to: style }: the steps are css.* styles");
+  const body = entries.map(([step, style]) => {
+    if (!STEP.test(step) || parseFloat(step) > 100)
+      throw fail(
+        `cssints: keyframes() step "${step}" is not from, to or a percentage from 0% to 100%`,
+      );
+    return `${step}{${blockOf(`keyframes() "${step}"`, style)}}`;
+  });
+  return atRule("keyframes", "kf-", body.join(""));
+};
+
+// `position-try` is a property too: value parts are that shorthand, one style is the rule (a style is no value of a property).
+const positionTryProp = member("positionTry");
+// positionTry(style): the dashed name of a `@position-try` rule, for positionTryFallbacks.
+export const positionTry = (...args: unknown[]) =>
+  args.length === 1 && isNode(args[0])
+    ? atRule("position-try", "--pt-", blockOf("positionTry()", args[0], POSITION_TRY))
+    : positionTryProp(...args);
 
 export const cn = (...args: unknown[]) => {
   const decls = toDecls("cn", args);
@@ -360,6 +467,8 @@ export const _cv = (config: CvNode | CvRuntimeConfig) => {
 const named: Record<string, unknown> = {
   cn,
   firstThatWorks,
+  keyframes,
+  positionTry,
   flex,
   grid,
   cv,

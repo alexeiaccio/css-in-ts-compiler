@@ -28,6 +28,7 @@ import {
   height,
   hover,
   inset,
+  keyframes,
   justifyContent,
   letterSpacing,
   lineHeight,
@@ -46,12 +47,15 @@ import {
   pb,
   pl,
   position,
+  positionTry,
+  positionTryFallbacks,
   pr,
   pt,
   supports,
   textAlign,
   textDecoration,
   token,
+  top,
   transform,
   transition,
   width,
@@ -66,6 +70,13 @@ const md = media("(width >= 40rem)");
 const lg = media("(width >= 64rem)");
 const narrow = container("sidebar (width < 30rem)");
 const grid2 = supports("(display: grid)");
+
+const fade = keyframes({
+  from: opacity(0),
+  "50%": cn(opacity(0.5), transform("scale(1.02)")),
+  to: opacity(1),
+});
+const below = positionTry(cn(top("anchor(bottom)"), margin("0.5rem")));
 
 export const base = [
   display("inline-flex"),
@@ -101,6 +112,8 @@ export const base = [
   transition("all 0.2s ease-in-out"),
   transform("translateX(4px) rotate(2deg)"),
   animation("fade 1s ease-in 2"),
+  animation(fade, "1s", "ease-in", "2"),
+  positionTryFallbacks(below, "flip-block"),
   opacity(0.5),
   zIndex(10),
   flexGrow(1),
