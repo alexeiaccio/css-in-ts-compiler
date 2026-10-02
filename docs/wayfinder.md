@@ -1226,3 +1226,14 @@ A `createGlobalTheme` override can be a whole-value reference (`"{radius.sm}"`) 
 ## Contrast warnings in dev (cssints-hbqf)
 
 The warnings were never lost in the logger: a derived `color-mix()` colour warned on its first evaluation. The `warned` set, which keeps contrast and support warnings to one per build, was never cleared, and a dev server has no end of build, so a warning came once per process and never after an edit. The client `hotUpdate` hook now clears it; a build still warns once (test in `test/themes.mjs`, failing before the fix). Separate problem, ticketed as cssints-l90l: `check.contrast` follows `alias` only and reads a derived token as its default literal, so a theme that changes a token it refers to is not checked (a probe passed at a real ratio of about 1.1).
+
+## Read-only atproto data with atcute (cssints-t5g6)
+
+The data layer is small: `@atcute/client` 5.1, `@atcute/bluesky` 4.0 and the richtext segmenter, no login and no identity resolver (`getProfile`, `getAuthorFeed`, `getPostThread` take a handle from the URL). Everything the three screens need works without auth on `public.api.bsky.app`: a feed generator such as Discover, author feeds with five filters, threads, profiles. `searchPosts` is blocked there by a CDN 403 (it works on `api.bsky.app`), so search stays out of the first version. Details, the endpoint table and a type-checked data-layer sketch are in `docs/research/atproto-data.md`.
+
+Three things need app code:
+- **Moderation:** about 17% of Discover posts come from accounts that asked not to be shown logged out, and adult posts arrive labelled, not removed. A rule of about 25 lines (trust only the Bluesky mod service and the author; hide adult labels) agrees with `@atcute/bluesky-moderation` on 10 822 posts.
+- **Paging:** Discover's cursor grows until a 414 after about 21 pages, and moderation shortens pages, so keep loading while a cursor exists.
+- **Solid 2 (rc.13):** an async `createStore(fn)` is the first page under `<Loading>`, a plain `loadMore()` appends; a store write in the same tick as a source change drops the re-run, and signal writes are invisible until the flush. The helper in the doc avoids both.
+
+The embed union has a new `gallery` member (`thumbnail`, not `thumb`). Image preset sizes and the video thumbnail were not verified (CDN unreachable from the researcher's network).

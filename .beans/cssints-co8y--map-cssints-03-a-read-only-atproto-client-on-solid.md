@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-10-02T14:20:14Z
-updated_at: 2026-10-02T15:00:10Z
+updated_at: 2026-10-02T15:01:30Z
 ---
 
 ## Destination
@@ -31,6 +31,8 @@ updated_at: 2026-10-02T15:00:10Z
 
 - [Theme overrides may refer to tokens](cssints-q6l0): whole-value and inside-value references in createGlobalTheme, live var(), errors in editor and build.
 - [check.contrast warnings for derived colours do not show in dev](cssints-hbqf): the warned set was never cleared in dev; hotUpdate clears it. Derived tokens under themes ticketed (cssints-l90l).
+
+- [Read-only atproto data with atcute](cssints-t5g6): client + bluesky types + segmenter; all three screens work unauthenticated; search out (public host blocks it); app-side moderation rule, cursor paging, two Solid 2 rc traps.
 
 ## Not yet specified
 
