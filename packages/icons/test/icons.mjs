@@ -52,12 +52,8 @@ assert.ok(logo.includes("viewBox='0 -8 32 32'") && logo.includes("fill='%23e44'"
 assert.ok(svg(a).test(css) && svg(e).test(css), "iconify-json icons, aliases resolved by iconify");
 // the icon and a width of the user's: two classes
 assert.ok(css.includes(`.${b2}{width:2em}`), css);
-// requires: one support warning for the mask kernel, naming it
-const needs = warnings.filter((w) =>
-  w.includes("kernel icon-mask@1 needs css.properties.mask-image"),
-);
-assert.equal(needs.length, 1, warnings.join("\n"));
-assert.ok(!warnings.some((w) => w.includes("icon-image")), "the image kernel needs nothing");
+// no kernel warning: LightningCSS prefixes mask for targets with only -webkit-mask
+assert.ok(!warnings.some((w) => w.includes("kernel icon-")), warnings.join("\n"));
 
 // the errors are build errors at the call site, with the nearest name when there is one
 const fails = async (f, text, loc = { line: 3, column: 17 }) =>

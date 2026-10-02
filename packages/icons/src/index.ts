@@ -27,12 +27,12 @@ interface Source {
 }
 
 // One-colour icons (they paint with currentColor, iconify's own rule) are masks and take the text colour; the rest are
-// images. LightningCSS adds -webkit-mask for the browserslist targets.
+// images. LightningCSS adds -webkit-mask for the browserslist targets, so the mask kernel requires nothing: a
+// `requires` key would warn for targets that have only the prefixed form, which LightningCSS covers.
 const box = "display:inline-block;width:1em;height:1em";
 const MASK: Kernel = {
   key: "icon-mask@1",
   css: `._i{${box};background-color:currentColor;mask:var(--_svg) no-repeat center/100% 100%}`,
-  requires: ["css.properties.mask-image"],
 };
 const IMAGE: Kernel = {
   key: "icon-image@1",
