@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-30T11:57:32Z
-updated_at: 2026-10-02T09:22:28Z
+updated_at: 2026-10-02T10:10:20Z
 ---
 
 ## Destination
@@ -49,6 +49,11 @@ A public plugin API (`definePlugin` with `property`, `context` and `style` membe
 
 - [Keyword in the wrong case: say the canonical spelling](cssints-317k): canonical case only, the error names the right spelling (twin: keywords and functions; types: keywords); +0.46% users.ts.
 - [Partial support counts as lacking for kernels that need exact behaviour](cssints-5q6j): `{ key, exact: true }` in a kernel's requires; surface uses it for relative colour; other warnings unchanged (measured).
+
+- [Sublayers vs sort order: find a case the sort gets wrong](cssints-z03v): the sort is right, its leaf-count data is wrong (all, logical border sides, font-variant); fix the data in webref, keep the sort; sublayers rejected.
+
+- [Leaf counts for the sheet from Chrome's expansion of each shorthand](cssints-null): fix the sort's data, keep the sort.
+- [cn(): the later argument wins; overlap without containment is an error](null): the intent was never implemented.
 
 ## Not yet specified
 

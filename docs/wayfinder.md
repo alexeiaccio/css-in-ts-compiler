@@ -1151,3 +1151,17 @@ Decided with the user: keywords and function names stay canonical-case only, so 
 ## Partial support and relative colour (cssints-5q6j)
 
 BCD `partial_implementation` still counts as support in every warning. Measured with a scratch switch: partial-as-lacking added no warning to the demo or the 104 fixtures, but about nine mostly false ones on 132 common declarations (`accent-color`, `overscroll-behavior`, `paint-order`, …). So a kernel marks the requirements that need the whole feature with `{ key, exact: true }`, and only there does partial count as lacking. `surface()` uses it for relative colour, partial in Chrome 119–121 (`l` runs 0–100) and Safari 16.4–17.6 (`h` needs units); those targets now get the warning, ending in "(a partial implementation counts as lacking)". The runtime choice is unchanged: Safari 17 lacks style queries and already gets it; Chrome 120 does not, and the script could not repair the steps anyway. Open: whether Safari's partial support really breaks lightness steps (BCD's note is about `h`), a hand check in real Safari.
+
+## Sublayers vs sort order (cssints-z03v)
+
+Kept the sort; the fix is in its data, not its comparator. 66 cases were run in Chrome through the real plugin, plus an audit of all 532 properties. The sort is wrong only where mdn-data's `computed` gives a wrong leaf count:
+
+- `all` has width 1, so it sorts after and beats every shorthand it contains (`all` + `padding`, `color`, `border`, …);
+- `border-inline`/`border-block` beat their `-start` sides, because mdn-data lists physical shorthands inside the logical ones (the side has 9 leaves against 3);
+- `font-variant` and `font-variant-caps` tie (no leaves in mdn-data), and then the class hash decides, about half the time wrongly.
+
+Of 823 containment pairs, 79 are wrong and 454 depend on the hash. A leaf count taken from Chrome's own expansion of each shorthand fixes all of them (it goes into `bun run webref`); the 12 failing cases become a test. The audit found 2 ties even with webref lists (`text-box`).
+
+**"The later argument of `cn()` wins" was never implemented, and no sort can do it:** `cn(a, b)` and `cn(b, a)` produce the same sheet. For the same property twice, and for overlap without containment (`border` with `border-inline`, `color` twice, `inset` with `inset-block`), exactly one order is right, so this belongs in `cn()` at build time.
+
+**Sublayers rejected:** they use the same bad data (six containment cases still fail), tie on depth for 41 pairs including `grid-area`/`grid-row` where the count works, and putting depth outside the condition lets `md(pl)` beat `lg(p)`, inverting the breakpoint ladder. On the demo the declared layers rise from 6 to 21, 6 sublayers have rules, and minified bytes grow 4.5%. (Inside a layer a pseudo-class beats a media query by specificity; left as is, `:where()` would change it.)
