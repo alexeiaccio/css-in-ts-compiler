@@ -1,12 +1,13 @@
 ---
 # cssints-uifu
 title: Mu's design tokens and layout
-status: todo
+status: in-progress
 type: task
+priority: normal
 tags:
     - wayfinder:research
 created_at: 2026-10-02T14:20:14Z
-updated_at: 2026-10-02T14:20:14Z
+updated_at: 2026-10-02T14:20:29Z
 parent: cssints-co8y
 ---
 

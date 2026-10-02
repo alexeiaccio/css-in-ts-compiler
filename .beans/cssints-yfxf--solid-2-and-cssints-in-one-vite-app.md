@@ -1,12 +1,13 @@
 ---
 # cssints-yfxf
 title: Solid 2 and cssints in one Vite app
-status: todo
+status: in-progress
 type: task
+priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-10-02T14:20:14Z
-updated_at: 2026-10-02T14:20:14Z
+updated_at: 2026-10-02T14:20:29Z
 parent: cssints-co8y
 ---
 
