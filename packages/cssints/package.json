@@ -69,7 +69,7 @@
     "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
     "pack:tgz": "node ../../scripts/pack.mjs",
     "test:smoke": "node test/smoke/smoke.mjs",
-    "test:browsers": "node test/frame-browsers.mjs"
+    "test:browsers": "node test/browsers.mjs"
   },
   "dependencies": {
     "@cssints/css-grammar": "workspace:*",

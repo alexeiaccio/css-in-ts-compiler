@@ -1,6 +1,6 @@
 // cssints/surface at build time: its class strings and CSS, a token and a relative colour as the base, the errors of a bad
 // value and of a chain that mixes the steps, and a style that mixes surface() with a background. The browsers are
-// frame-browsers.mjs. Run: node surface.mjs
+// browsers.mjs. Run: node surface.mjs
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { rmSync, writeFileSync } from "node:fs";
