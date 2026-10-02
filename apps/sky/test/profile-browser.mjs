@@ -251,6 +251,37 @@ try {
     await close();
   }
 
+  // ---- from one profile to another and back: the screen starts again on Posts ------------------------
+  {
+    const { page, close } = await open("profile/bsky.app", { errors });
+    await page.locator("article").first().waitFor();
+    await page.getByRole("tab", { name: "Media" }).click();
+    await page.waitForFunction(
+      (n) => document.querySelectorAll("article").length === n,
+      tabs.posts_with_media.feed.length,
+    );
+    await page.evaluate(() => {
+      const a = Object.assign(document.createElement("a"), {
+        href: "/profile/gone.test",
+        id: "go",
+        textContent: "go",
+      });
+      document.querySelector("main").append(a);
+    });
+    await page.locator("#go").click();
+    await page.locator("[data-state=notFound]").waitFor();
+    assert.equal(
+      await page.locator("article").count(),
+      0,
+      "the other profile's state, not the old feed",
+    );
+    await page.goBack();
+    await page.locator("article").first().waitFor();
+    out.tabAfterBack = await page.getByRole("tab", { selected: true }).innerText();
+    assert.equal(out.tabAfterBack, "Posts");
+    await close();
+  }
+
   // ---- states --------------------------------------------------------------------------------
   const states = {
     "gone.test": ["notFound", "Profile not found", "There is no account named @gone.test."],

@@ -208,7 +208,10 @@ function Body(props: { handle: string }) {
   return (
     <Show when={head().verdict !== "hide"} fallback={<State kind="hidden" handle={props.handle} />}>
       <ProfileHeader profile={head().profile} hidden={head().mediaHidden} />
-      <Posts handle={props.handle} />
+      {/* keyed: another profile is a new Posts, back on the first tab (the router keeps this screen across :handle) */}
+      <Show when={props.handle} keyed>
+        {(handle) => <Posts handle={handle} />}
+      </Show>
     </Show>
   );
 }
