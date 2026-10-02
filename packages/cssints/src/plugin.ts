@@ -382,6 +382,9 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     modules: EnvironmentModuleNode[],
   ) {
     if (env.name !== "client") return undefined;
+    // `warned` dedupes a build, which has an end; a dev server has none, so an edit starts the next round of warnings.
+    const { warned } = yield* Registry;
+    yield* Effect.sync(() => warned.clear());
     const graph = env.moduleGraph;
     const affected = [...new Set([...(depsOf.get(file) ?? []), ...inflight])]
       .map((id) => graph.getModuleById(id))
