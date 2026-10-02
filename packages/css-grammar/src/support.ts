@@ -16,7 +16,8 @@
 //
 // Support, per target browser version (browserslist agent mapped to a BCD browser):
 //   - some statement counts: no `prefix`, no `alternative_name`, no `flags` (we emit the plain standard form);
-//     `partial_implementation` counts as supported.
+//     `partial_implementation` counts as supported, unless the caller asks for `exact` (`lacking()`, for a kernel that
+//     needs the whole feature: relative colour in Chrome 119-121 and Safari 16.4-17.6 has other channel scales).
 //   - version_added "N" or "≤N" <= target, and version_removed absent or > target. "preview" is not released.
 //   - `false` is unsupported. BCD 8 has no `true`/`null` any more; if they appear, `true` counts and `null`
 //     (unknown) does not warn. A browser missing from the support block is unknown and does not warn.
@@ -78,10 +79,10 @@ const cmp = (a: string, b: string) => {
   return 0;
 };
 
-function supports(s: SupportStatement | undefined, v: string): boolean {
+function supports(s: SupportStatement | undefined, v: string, exact = false): boolean {
   if (!s) return true;
   return [s].flat().some((x) => {
-    if (x.prefix || x.alternative_name || x.flags) return false;
+    if (x.prefix || x.alternative_name || x.flags || (exact && x.partial_implementation)) return false;
     const added = x.version_added;
     if (typeof added !== "string") return added !== false;
     if (added === "preview" || cmp(added, v) > 0) return false;
@@ -116,22 +117,23 @@ export interface Warning {
 }
 
 type Compat = NonNullable<Identifier["__compat"]>;
-const lacks = (c: Compat, on: Target[]) =>
-  on.filter(([a, ver]) => !supports(c.support[BCD_NAME[a]!], ver));
+const lacks = (c: Compat, on: Target[], exact = false) =>
+  on.filter(([a, ver]) => !supports(c.support[BCD_NAME[a]!], ver, exact));
 
 // The targets that lack a BCD feature (`css.at-rules.property`), by the same rules as the warnings: no prefix, no
-// flags, `partial_implementation` counts. A key BCD does not know lacks nothing.
-export const lackingOf = (key: string, ts: Target[] = DEFAULT): Target[] => {
+// flags, `partial_implementation` counts unless `exact`. A key BCD does not know lacks nothing.
+export const lackingOf = (key: string, ts: Target[] = DEFAULT, exact = false): Target[] => {
   const c = get(key)?.__compat;
-  return c ? lacks(c, ts) : [];
+  return c ? lacks(c, ts, exact) : [];
 };
 
 // Next to `support`: for a plugin's `requires`.
 export const lacking = Effect.fnUntraced(function* (
   key: string,
   ts: Target[] = DEFAULT,
+  exact = false,
 ): Effect.fn.Return<Target[]> {
-  return yield* Effect.sync(() => lackingOf(key, ts));
+  return yield* Effect.sync(() => lackingOf(key, ts, exact));
 });
 
 // Plain core, also called by check.ts (one boundary per declaration).

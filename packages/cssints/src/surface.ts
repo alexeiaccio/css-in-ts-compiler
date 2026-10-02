@@ -68,7 +68,10 @@ export const surface = context({
     key: "surface@1",
     css,
     atProperty: [registered(["e", "o"], true), registered(["u", "v", "t"], false)].join("\n"),
-    requires: ["css.at-rules.property", "css.types.color.oklch.relative_syntax"],
+    requires: [
+      "css.at-rules.property",
+      { key: "css.types.color.oklch.relative_syntax", exact: true },
+    ],
   },
   runtime: {
     polyfills: ["css.at-rules.container.style_queries_for_custom_properties"],

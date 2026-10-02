@@ -47,13 +47,14 @@ export const addKernel = Effect.fnUntraced(function* (
         );
     }
     kernels.set(key, (entry = { kernel, vars, markers: new Set(), users: new Set() }));
-    for (const feature of kernel.requires ?? []) {
-      const off = yield* lacking(feature);
+    for (const r of kernel.requires ?? []) {
+      const { key: feature, exact } = typeof r === "string" ? { key: r, exact: false } : r;
+      const off = yield* lacking(feature, undefined, exact);
       const w = `${key} ${feature}`;
       if (off.length && !warned.has(w)) {
         warned.add(w);
         warnings.push(
-          `kernel ${key} needs ${feature}, not supported by ${browsers(off.map((t) => t.join(" ")))}`,
+          `kernel ${key} needs ${feature}, not supported by ${browsers(off.map((t) => t.join(" ")))}${exact ? " (a partial implementation counts as lacking)" : ""}`,
         );
       }
     }

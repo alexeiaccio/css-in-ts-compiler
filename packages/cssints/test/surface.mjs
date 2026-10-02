@@ -88,6 +88,29 @@ assert.match(
   /kernel surface@1 needs css\.types\.color\.oklch\.relative_syntax, not supported by firefox 127, safari 15/,
 );
 
+// relative colour is partial in Chrome 119-121 and Safari 16.4-17.6 (other channel scales): the kernel asks for the whole
+// feature, so those targets warn, and Chrome 122, Safari 18 and Firefox 128 stay quiet
+const partial = (browserslist) =>
+  spawnSync("node", ["run.mjs", "fixtures/surface-use.ts"], {
+    cwd: import.meta.dirname,
+    encoding: "utf8",
+    env: { ...process.env, BROWSERSLIST: browserslist },
+  });
+const p17 = partial("chrome 120, safari 17.4, safari 18, firefox 128");
+assert.match(
+  p17.stdout + p17.stderr,
+  /kernel surface@1 needs css\.types\.color\.oklch\.relative_syntax, not supported by chrome 120, safari 17\.4 \(a partial implementation counts as lacking\)/,
+);
+const p18 = partial("chrome 122, safari 18, firefox 128");
+assert.doesNotMatch(p18.stdout + p18.stderr, /kernel surface@1 needs/);
+// the runtime follows style queries, not relative colour: Safari 17 ships it (no style queries), Chrome 120 does not
+// (it has them, and the script could not repair the steps anyway)
+const { needed } = await import("../src/delivery.ts");
+const { Effect } = await import("effect");
+const runtime = { polyfills: ["css.at-rules.container.style_queries_for_custom_properties"] };
+assert.equal(Effect.runSync(needed(runtime, [["safari", "17.4"]])), true);
+assert.equal(Effect.runSync(needed(runtime, [["chrome", "120"]])), false);
+
 // a token (a registered custom property) is the base; the kernel sees its computed colour
 write(
   "surface-token.ts",
