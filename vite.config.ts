@@ -5,7 +5,12 @@ const outOfScope = ["packages/plugin-icon/**", "docs/archive/**"];
 
 // Not linted: inputs of the plugin tests (import build-time members that only exist after the plugin rewrote the
 // import, and some are invalid on purpose), and the bench files whose type errors budget.mjs expects.
-const inputs = ["packages/cssints/test/fixtures/**", "packages/css-grammar/bench/err.ts", "packages/cssints/bench/errors.ts"];
+const inputs = [
+  "packages/cssints/test/fixtures/**",
+  "packages/cssints/test/pkg/**",
+  "packages/css-grammar/bench/err.ts",
+  "packages/cssints/bench/errors.ts",
+];
 
 // The type-aware no-unsafe-* family: on untyped `.mjs` scripts every import and JSON value is `any`, so it flags all
 // of it and nothing that typing would fix.

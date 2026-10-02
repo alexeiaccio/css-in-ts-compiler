@@ -42,7 +42,7 @@ const isRuntime = (d: ImportDeclaration, x: ImportDeclarationSpecifier) =>
   x.type === "ImportSpecifier" &&
   RUNTIME_ONLY.has(nameOf(x.imported));
 
-/** The runtime part of an attributed import, as an import of its own (`import { _cv } from "cssints";`), or "". */
+// The runtime part of an attributed import, as an import of its own (`import { _cv } from "cssints";`), or "".
 export const keptImport = (d: ImportDeclaration, code: string) => {
   const names = d.specifiers.filter((x) => isRuntime(d, x)).map((x) => code.slice(x.start, x.end));
   return names.length ? `import { ${names.join(", ")} } from ${JSON.stringify(RUNTIME)};` : "";
