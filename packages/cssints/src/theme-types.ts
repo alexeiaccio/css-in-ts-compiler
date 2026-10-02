@@ -3,6 +3,7 @@
 import type {
   DTCG_TYPES,
   DtcgType,
+  TOKEN_TYPES,
   Syntax,
   Token,
   TokenName,
@@ -102,21 +103,40 @@ export type Tokens<G, Inherited = undefined, Root = G> = {
 // A message is the type `{ $error: "..." }` that a leaf is intersected with, so it is the text of the error.
 type Bad<Why extends string> = { readonly $error: `cssints: ${Why}` };
 type Fits<V, R> = [R] extends [V] ? true : Bad<R extends string ? R : "not a value of this type">;
-type CheckValue<V, Ty, Root> = V extends `{${infer P}}`
+// A derived value is checked as the type's grammar with each reference in place as a value of the target's type.
+type Sentinel<K> = K extends TokenType ? `⟨${(typeof TOKEN_TYPES)[K]["sentinels"][0]}⟩` : never;
+type Subst<V extends string, Root> = V extends `${infer A}{${infer P}}${infer B}`
   ? [KindAt<Root, P, Root>] extends [never]
-    ? Bad<`no token at ${P}`>
-    : true
-  : Ty extends DtcgType
-    ? V extends string
-      ? Ty extends "fontWeight"
-        ? V extends FontWeightName
+    ? never
+    : `${A}${Sentinel<KindAt<Root, P, Root>>}${Subst<B, Root>}`
+  : V;
+type CheckString<
+  V extends string,
+  Ty extends DtcgType,
+  Root,
+> = V extends `${string}{${string}}${string}`
+  ? [Subst<V, Root>] extends [never]
+    ? Bad<"a reference {…} has no token">
+    : Fits<Subst<V, Root>, ValidSyntax<Syntax<Kind<Ty>>, Subst<V, Root>>>
+  : Ty extends "fontWeight"
+    ? V extends FontWeightName
+      ? true
+      : Fits<V, ValidSyntax<"number", V>>
+    : Fits<V, ValidSyntax<Syntax<Kind<Ty>>, V>>;
+// A JSON import (`with { type: "json" }`) widens $type to string: its tree is typed, its values are checked at build time.
+type CheckValue<V, Ty, Root> = string extends Ty
+  ? true
+  : V extends `{${infer P}}`
+    ? [KindAt<Root, P, Root>] extends [never]
+      ? Bad<`no token at ${P}`>
+      : true
+    : Ty extends DtcgType
+      ? V extends string
+        ? CheckString<V, Ty, Root>
+        : V extends DtcgValue<Ty>
           ? true
-          : Fits<V, ValidSyntax<"number", V>>
-        : Fits<V, ValidSyntax<Syntax<Kind<Ty>>, V>>
-      : V extends DtcgValue<Ty>
-        ? true
-        : Bad<`not a DTCG ${Ty}`>
-    : Bad<`$type ${Ty extends string ? `"${Ty}"` : "missing"} has no token type (color, dimension, number, duration, fontWeight)`>;
+          : Bad<`not a DTCG ${Ty}`>
+      : Bad<`$type ${Ty extends string ? `"${Ty}"` : "missing"} has no token type (color, dimension, number, duration, fontWeight)`>;
 type ValidLeaf<L, Ty, Root> = L extends { readonly $value: infer V }
   ? CheckValue<V, Ty, Root> extends infer R
     ? [R] extends [true]
