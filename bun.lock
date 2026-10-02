@@ -36,6 +36,7 @@
       "name": "cssints-sky",
       "dependencies": {
         "@atcute/bluesky": "^4.0.22",
+        "@atcute/bluesky-richtext-segmenter": "3.0.2",
         "@atcute/client": "^5.1.2",
         "@atcute/lexicons": "^2.1.1",
         "@cssints/icons": "workspace:*",
@@ -119,6 +120,8 @@
     "@atcute/atproto": ["@atcute/atproto@4.0.4", "", { "dependencies": { "@atcute/lexicons": "^2.0.3" } }, "sha512-aEp5wQVPVbZcFJUwoi54tyT+ehRI/xtPe9T0zIvcryHAVXF/zxHtNboM+htbZLOAGsDFsqzgCyxph0Bafw7L8w=="],
 
     "@atcute/bluesky": ["@atcute/bluesky@4.0.22", "", { "dependencies": { "@atcute/atproto": "^4.0.4", "@atcute/lexicons": "^2.1.1" } }, "sha512-GU2ApjUgfEcoQ96DrOOjUaDfvNw1lFKryhFRhavefEEYuN3R5VxYIifmj6OCmH48aLMf5gYEfLpVGdEjgACwTQ=="],
+
+    "@atcute/bluesky-richtext-segmenter": ["@atcute/bluesky-richtext-segmenter@3.0.2", "", {}, "sha512-LXsUuElLQ/gQe2g04SzgTeEbSwhcnmswioGdneve8e3vE+FU353EjuEVIsnA/H5rnGeLswLdrua7Io1twezynA=="],
 
     "@atcute/client": ["@atcute/client@5.1.2", "", { "dependencies": { "@atcute/identity": "^2.0.2", "@atcute/lexicons": "^2.1.0" } }, "sha512-V3MOJudmmbuiFfrmLR3/ZGA+PKcI4E4ZNEDGKMX/YrvFrHyElD1/gb8NxLesrlIcHefiulqfX9dAl6hOkIt7CA=="],
 
