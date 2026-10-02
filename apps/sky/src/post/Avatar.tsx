@@ -1,25 +1,26 @@
 import { _cv } from "cssints";
-import * as css from "cssints" with { type: "cssints" };
+import {
+  bg,
+  borderRadius,
+  cn,
+  cv,
+  display,
+  flexShrink,
+  height,
+  objectFit,
+  width,
+} from "cssints" with { type: "cssints" };
 import { Show } from "solid-js";
 
 import { t } from "../theme.ts" with { type: "cssints" };
 
 const avatar = _cv(
-  css.cv({
-    base: css.cn(
-      css.display("block"),
-      css.flexShrink(0),
-      css.objectFit("cover"),
-      css.bg(t.color.bgMuted),
-    ),
+  cv({
+    base: cn(display("block"), flexShrink(0), objectFit("cover"), bg(t.color.bgMuted)),
     variants: {
       size: {
-        lg: css.cn(
-          css.width(t.avatar.feed),
-          css.height(t.avatar.feed),
-          css.borderRadius(t.radius.avatar),
-        ),
-        sm: css.cn(css.width("20px"), css.height("20px"), css.borderRadius(t.radius.avatarSmall)),
+        lg: cn(width(t.avatar.feed), height(t.avatar.feed), borderRadius(t.radius.avatar)),
+        sm: cn(width("20px"), height("20px"), borderRadius(t.radius.avatarSmall)),
       },
     },
     defaultVariants: { size: "lg" },

@@ -35,7 +35,7 @@ function samples(r: Record<string, PostView>) {
   } as Record<string, PostView>;
 }
 
-// ?w=360 (or 600) fixes the card width, to see the layout follow it.
+// ?w=360 (or 600) fixes the card width (the feed padding comes on top), to see the layout follow it.
 export default function DevPosts() {
   const w = new URLSearchParams(location.search).get("w");
   const posts = createMemo(async () =>
@@ -44,7 +44,7 @@ export default function DevPosts() {
   return (
     <>
       <Header title="Dev: posts" />
-      <div style={w ? { width: `${w}px` } : undefined}>
+      <div style={w ? { width: `calc(${w}px + 2 * var(--gutter-compact))` } : undefined}>
         <Loading fallback={<p>Loading…</p>}>
           <Feed>
             <For each={Object.entries(posts())}>

@@ -1,5 +1,37 @@
 import { cx } from "cssints";
-import * as css from "cssints" with { type: "cssints" };
+import {
+  alignSelf,
+  bg,
+  border,
+  borderColor,
+  borderRadius,
+  cn,
+  color,
+  containerName,
+  containerType,
+  filter,
+  flex,
+  flexShrink,
+  fontSize,
+  fontWeight,
+  grid,
+  gridColumn,
+  gridRow,
+  hover,
+  left,
+  marginTop,
+  maxHeight,
+  minWidth,
+  overflow,
+  padding,
+  pointerEvents,
+  position,
+  textDecoration,
+  textOverflow,
+  top,
+  transform,
+  whiteSpace,
+} from "cssints" with { type: "cssints" };
 import { frame } from "cssints/frame" with { type: "cssints" };
 import { surface } from "cssints/surface" with { type: "cssints" };
 import { createMemo, createSignal, Show } from "solid-js";
@@ -16,98 +48,93 @@ import { RichText } from "./RichText.tsx";
 
 // The cell is the container the card's width is read from. The card is a frame (rounded, padded, bordered) on a surface
 // one tonal step above the feed's; the quote and the media inside it are concentric with it and a step from it.
-const cell = css.cn(css.containerType("inline-size"), css.containerName("post"));
-const card = css.cn(
+const cell = cn(containerType("inline-size"), containerName("post"));
+const card = cn(
   frame().radius(t.radius.xl).padding(2).border(t.border.width),
   wide(frame().padding(3)),
   surface().lighten(0.04),
-  css.borderColor(t.color.border),
-  css.grid().templateColumns("auto minmax(0, 1fr)").columnGap(t.space.sm).rowGap(t.space.xs),
+  borderColor(t.color.border),
+  grid().templateColumns("auto minmax(0, 1fr)").columnGap(t.space.sm).rowGap(t.space.xs),
 );
-const tombCard = css.cn(
+const tombCard = cn(
   frame().radius(t.radius.xl).padding(3).border(t.border.width),
   surface().lighten(0.04),
-  css.borderColor(t.color.border),
-  css.color(t.color.textMedium),
-  css.fontSize(t.fontSize.sm),
+  borderColor(t.color.border),
+  color(t.color.textMedium),
+  fontSize(t.fontSize.sm),
 );
 
 // Narrow: the avatar sits in a row with the name, the text runs full width under it. Wide: the avatar is a column beside
 // the name and the text.
-const avatarSlot = css.cn(
-  css.gridColumn("1"),
-  css.gridRow("1"),
-  css.alignSelf("start"),
-  wide(css.gridRow("1 / span 2")),
+const avatarSlot = cn(
+  gridColumn("1"),
+  gridRow("1"),
+  alignSelf("start"),
+  wide(gridRow("1 / span 2")),
 );
-const head = css.cn(
-  css.gridColumn("2"),
-  css.gridRow("1"),
-  css.flex().alignItems("baseline").gap(t.space.xs),
-  css.minWidth("0"),
-  css.alignSelf("center"),
-  wide(css.alignSelf("start")),
+const head = cn(
+  gridColumn("2"),
+  gridRow("1"),
+  flex().alignItems("baseline").gap(t.space.xs),
+  minWidth("0"),
+  alignSelf("center"),
+  wide(alignSelf("start")),
 );
-const body = css.cn(
-  css.gridColumn("1 / -1"),
-  css.gridRow("2"),
-  css.minWidth("0"),
-  wide(css.gridColumn("2")),
+const body = cn(gridColumn("1 / -1"), gridRow("2"), minWidth("0"), wide(gridColumn("2")));
+const name = cn(
+  fontWeight(t.fontWeight.bold),
+  color(t.color.text),
+  textDecoration("none"),
+  overflow("hidden"),
+  textOverflow("ellipsis"),
+  whiteSpace("nowrap"),
+  flexShrink(1),
 );
-const name = css.cn(
-  css.fontWeight(t.fontWeight.bold),
-  css.color(t.color.text),
-  css.textDecoration("none"),
-  css.overflow("hidden"),
-  css.textOverflow("ellipsis"),
-  css.whiteSpace("nowrap"),
-  css.flexShrink(1),
+const meta = cn(
+  color(t.color.textMedium),
+  fontSize(t.fontSize.sm),
+  textDecoration("none"),
+  whiteSpace("nowrap"),
+  overflow("hidden"),
+  textOverflow("ellipsis"),
+  hover(textDecoration("underline")),
 );
-const meta = css.cn(
-  css.color(t.color.textMedium),
-  css.fontSize(t.fontSize.sm),
-  css.textDecoration("none"),
-  css.whiteSpace("nowrap"),
-  css.overflow("hidden"),
-  css.textOverflow("ellipsis"),
-  css.hover(css.textDecoration("underline")),
-);
-const time = css.cn(meta, css.flexShrink(0));
+const time = cn(meta, flexShrink(0));
 
-const guard = css.position("relative");
-const content = css.flex().direction("column").gap(t.space.sm);
-const blurred = css.cn(
-  css.filter("blur(14px)"),
-  css.pointerEvents("none"),
-  css.overflow("hidden"),
-  css.maxHeight("16rem"),
+const guard = position("relative");
+const content = flex().direction("column").gap(t.space.sm);
+const blurred = cn(
+  filter("blur(14px)"),
+  pointerEvents("none"),
+  overflow("hidden"),
+  maxHeight("16rem"),
 );
-const reveal = css.cn(
-  css.position("absolute"),
-  css.top("50%"),
-  css.left("50%"),
-  css.transform("translate(-50%, -50%)"),
-  css.padding(t.space.sm, t.space.lg),
-  css.borderRadius(t.radius.button),
-  css.border(t.border.width, "solid", t.color.borderStrong),
-  css.bg(t.color.bg),
-  css.color(t.color.text),
-  css.fontWeight(t.fontWeight.semiBold),
+const reveal = cn(
+  position("absolute"),
+  top("50%"),
+  left("50%"),
+  transform("translate(-50%, -50%)"),
+  padding(t.space.sm, t.space.lg),
+  borderRadius(t.radius.button),
+  border(t.border.width, "solid", t.color.borderStrong),
+  bg(t.color.bg),
+  color(t.color.text),
+  fontWeight(t.fontWeight.semiBold),
 );
 
-const actions = css.cn(
-  css.flex().alignItems("center").gap(t.space["3xl"]),
-  css.color(t.color.textMedium),
-  css.fontSize(t.fontSize.sm),
-  css.marginTop(t.space.sm),
+const actions = cn(
+  flex().alignItems("center").gap(t.space["3xl"]),
+  color(t.color.textMedium),
+  fontSize(t.fontSize.sm),
+  marginTop(t.space.sm),
 );
-const action = css.cn(css.flex().alignItems("center").gap(t.space.xs), css.minWidth("3rem"));
-const actionIcon = css.fontSize(t.fontSize.xl);
-const reply = css.cn(ph("chat-circle"), actionIcon);
-const repost = css.cn(ph("repeat"), actionIcon);
-const like = css.cn(ph("heart"), actionIcon);
+const action = cn(flex().alignItems("center").gap(t.space.xs), minWidth("3rem"));
+const actionIcon = fontSize(t.fontSize.xl);
+const reply = cn(ph("chat-circle"), actionIcon);
+const repost = cn(ph("repeat"), actionIcon);
+const like = cn(ph("heart"), actionIcon);
 
-/** A post as a card: author, text, embed, counts. A moderated post is hidden or blurred behind a reveal button. */
+// A post as a card: author, text, embed, counts. A moderated post is hidden or blurred behind a reveal button.
 export function Post(props: { post: AppBskyFeedDefs.PostView }) {
   const verdict = createMemo(() => postVerdict(props.post));
   const [revealed, setRevealed] = createSignal(false);

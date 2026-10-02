@@ -1,5 +1,38 @@
 import { _cv, cx } from "cssints";
-import * as css from "cssints" with { type: "cssints" };
+import {
+  aspectRatio,
+  bg,
+  borderColor,
+  borderRadius,
+  cn,
+  color,
+  cv,
+  display,
+  flex,
+  fontSize,
+  fontWeight,
+  gap,
+  gridColumn,
+  gridTemplateColumns,
+  height,
+  inset,
+  left,
+  margin,
+  maxHeight,
+  minWidth,
+  objectFit,
+  overflow,
+  overflowWrap,
+  padding,
+  position,
+  textDecoration,
+  textOverflow,
+  top,
+  transform,
+  whiteSpace,
+  width,
+  zIndex,
+} from "cssints" with { type: "cssints" };
 import { frame } from "cssints/frame" with { type: "cssints" };
 import { surface } from "cssints/surface" with { type: "cssints" };
 import { createMemo, For, Match, Show, Switch } from "solid-js";
@@ -10,31 +43,40 @@ import { ph } from "../icons.ts" with { type: "cssints" };
 import { t } from "../theme.ts" with { type: "cssints" };
 import { Avatar } from "./Avatar.tsx";
 import { wide } from "./layout.ts" with { type: "cssints" };
-import { ago, embedParts, gridOf, hostOf, postHref, quoteMedia, recordOf, safeHref } from "./model.ts";
+import {
+  ago,
+  embedParts,
+  gridOf,
+  hostOf,
+  postHref,
+  quoteMedia,
+  recordOf,
+  safeHref,
+} from "./model.ts";
 import type { Media, Tile } from "./model.ts";
 import { RichText } from "./RichText.tsx";
 
 // Every media box is a frame with no padding of its own: inside the card its radius is the card's inner radius, inside
 // the quote it is the quote's, so the three corners stay concentric without a radius written here.
-const box = css.cn(frame(), css.position("relative"), css.overflow("hidden"));
-const block = css.display("block");
+const box = cn(frame(), position("relative"), overflow("hidden"));
+const block = display("block");
 
 // The columns come from the card's width ("post" container), the variant from how many images there are.
 const grid = _cv(
-  css.cv({
-    base: css.cn(css.display("grid"), css.gap(t.space["2xs"])),
+  cv({
+    base: cn(display("grid"), gap(t.space["2xs"])),
     variants: {
       n: {
-        "1": css.gridTemplateColumns("minmax(0, 1fr)"),
-        "2": css.gridTemplateColumns("repeat(2, minmax(0, 1fr))"),
-        "3": css.cn(
-          css.gridTemplateColumns("repeat(2, minmax(0, 1fr))"),
-          wide(css.gridTemplateColumns("repeat(3, minmax(0, 1fr))")),
+        "1": gridTemplateColumns("minmax(0, 1fr)"),
+        "2": gridTemplateColumns("repeat(2, minmax(0, 1fr))"),
+        "3": cn(
+          gridTemplateColumns("repeat(2, minmax(0, 1fr))"),
+          wide(gridTemplateColumns("repeat(3, minmax(0, 1fr))")),
         ),
-        "4": css.gridTemplateColumns("repeat(2, minmax(0, 1fr))"),
-        gallery: css.cn(
-          css.gridTemplateColumns("repeat(2, minmax(0, 1fr))"),
-          wide(css.gridTemplateColumns("repeat(4, minmax(0, 1fr))")),
+        "4": gridTemplateColumns("repeat(2, minmax(0, 1fr))"),
+        gallery: cn(
+          gridTemplateColumns("repeat(2, minmax(0, 1fr))"),
+          wide(gridTemplateColumns("repeat(4, minmax(0, 1fr))")),
         ),
       },
     },
@@ -43,39 +85,37 @@ const grid = _cv(
 );
 // With three images the first is a banner across a narrow card and one of three columns in a wide one.
 const cell = _cv(
-  css.cv({
-    base: css.cn(css.display("block"), css.position("relative"), css.minWidth("0")),
+  cv({
+    base: cn(display("block"), position("relative"), minWidth("0")),
     variants: {
-      banner: { yes: css.cn(css.gridColumn("1 / -1"), wide(css.gridColumn("auto"))), no: css.zIndex(0) },
+      banner: {
+        yes: cn(gridColumn("1 / -1"), wide(gridColumn("auto"))),
+        no: zIndex(0),
+      },
     },
     defaultVariants: { banner: "no" },
   }),
 );
 const pic = _cv(
-  css.cv({
-    base: css.cn(
-      css.display("block"),
-      css.width("100%"),
-      css.objectFit("cover"),
-      css.bg(t.color.bgMuted),
-    ),
+  cv({
+    base: cn(display("block"), width("100%"), objectFit("cover"), bg(t.color.bgMuted)),
     variants: {
       shape: {
-        single: css.maxHeight("34rem"), // the ratio is inline (data); a tall image is cropped
-        tile: css.aspectRatio("4 / 3"),
-        banner: css.cn(css.aspectRatio("16 / 9"), wide(css.aspectRatio("4 / 3"))),
+        single: maxHeight("34rem"), // the ratio is inline (data); a tall image is cropped
+        tile: aspectRatio("4 / 3"),
+        banner: cn(aspectRatio("16 / 9"), wide(aspectRatio("4 / 3"))),
       },
     },
   }),
 );
-const more = css.cn(
-  css.position("absolute"),
-  css.inset("0"),
-  css.flex().alignItems("center").justifyContent("center"),
-  css.bg("rgb(0 0 0 / 0.5)"),
-  css.color("#ffffff"),
-  css.fontSize(t.fontSize.xl),
-  css.fontWeight(t.fontWeight.bold),
+const more = cn(
+  position("absolute"),
+  inset("0"),
+  flex().alignItems("center").justifyContent("center"),
+  bg("rgb(0 0 0 / 0.5)"),
+  color("#ffffff"),
+  fontSize(t.fontSize.xl),
+  fontWeight(t.fontWeight.bold),
 );
 
 function Tiles(props: { media: Media & { tiles: Tile[] } }) {
@@ -91,7 +131,9 @@ function Tiles(props: { media: Media & { tiles: Tile[] } }) {
             rel="noopener noreferrer"
           >
             <img
-              class={pic({ shape: n() === "1" ? "single" : n() === "3" && i() === 0 ? "banner" : "tile" })}
+              class={pic({
+                shape: n() === "1" ? "single" : n() === "3" && i() === 0 ? "banner" : "tile",
+              })}
               style={n() === "1" ? { "aspect-ratio": String(tile.ratio) } : undefined}
               src={tile.thumb}
               alt={tile.alt}
@@ -107,24 +149,30 @@ function Tiles(props: { media: Media & { tiles: Tile[] } }) {
   );
 }
 
-const ext = css.cn(
+const ext = cn(
   frame().border(t.border.width),
-  surface().contrast(0.04),
-  css.borderColor(t.color.border),
-  css.display("block"),
-  css.overflow("hidden"),
-  css.textDecoration("none"),
-  css.color(t.color.text),
+  surface().contrast(0.03),
+  borderColor(t.color.border),
+  display("block"),
+  overflow("hidden"),
+  textDecoration("none"),
+  color(t.color.text),
 );
-const extBody = css.cn(
-  css.flex().direction("column").gap(t.space["2xs"]),
-  css.padding(t.space.md),
-  css.minWidth("0"),
+const extBody = cn(
+  flex().direction("column").gap(t.space["2xs"]),
+  padding(t.space.md),
+  minWidth("0"),
 );
-const muted = css.cn(css.color(t.color.textMedium), css.fontSize(t.fontSize.sm));
-const extHost = css.cn(muted, css.overflow("hidden"), css.textOverflow("ellipsis"), css.whiteSpace("nowrap"));
-const extTitle = css.cn(css.fontWeight(t.fontWeight.semiBold), css.overflowWrap("anywhere"));
-const extDesc = css.cn(muted, css.margin("0"), css.maxHeight("2.6em"), css.overflow("hidden"), css.overflowWrap("anywhere"));
+const muted = cn(color(t.color.textMedium), fontSize(t.fontSize.sm));
+const extHost = cn(muted, overflow("hidden"), textOverflow("ellipsis"), whiteSpace("nowrap"));
+const extTitle = cn(fontWeight(t.fontWeight.semiBold), overflowWrap("anywhere"));
+const extDesc = cn(
+  muted,
+  margin("0"),
+  maxHeight("3em"),
+  overflow("hidden"),
+  overflowWrap("anywhere"),
+);
 
 function External(props: { media: Media & { kind: "external" } }) {
   return (
@@ -156,18 +204,18 @@ function External(props: { media: Media & { kind: "external" } }) {
   );
 }
 
-const play = css.cn(
-  css.position("absolute"),
-  css.top("50%"),
-  css.left("50%"),
-  css.transform("translate(-50%, -50%)"),
-  css.flex().alignItems("center").justifyContent("center"),
-  css.width("3.5rem"),
-  css.height("3.5rem"),
-  css.borderRadius(t.radius.full),
-  css.bg("rgb(0 0 0 / 0.6)"),
-  css.color("#ffffff"),
-  css.fontSize("1.75rem"),
+const play = cn(
+  position("absolute"),
+  top("50%"),
+  left("50%"),
+  transform("translate(-50%, -50%)"),
+  flex().alignItems("center").justifyContent("center"),
+  width("3.5rem"),
+  height("3.5rem"),
+  borderRadius(t.radius.full),
+  bg("rgb(0 0 0 / 0.6)"),
+  color("#ffffff"),
+  fontSize("1.75rem"),
 );
 
 // No HLS player: the poster with a play mark, linking to the post on bsky.app. A gif has no mark.
@@ -189,14 +237,14 @@ function Video(props: { media: Media & { kind: "video" }; href: string }) {
       />
       <Show when={!props.media.gif}>
         <span class={play}>
-          <span class={css.cn(ph("play-fill"))} />
+          <span class={cn(ph("play-fill"))} />
         </span>
       </Show>
     </a>
   );
 }
 
-/** One media embed; `href` is where a video plays (on bsky.app). */
+// One media embed; `href` is where a video plays (on bsky.app).
 export function MediaView(props: { media: Media; href: string }) {
   return (
     <Switch>
@@ -215,32 +263,32 @@ export function MediaView(props: { media: Media; href: string }) {
 
 // ---- the quote -------------------------------------------------------------------------------
 // A tonal step from the card (surface().contrast: darker on a light card, lighter on a dark one) and concentric with it.
-const quote = css.cn(
+const quote = cn(
   frame().padding(1).border(t.border.width),
-  surface().contrast(0.04),
-  css.borderColor(t.color.border),
-  css.flex().direction("column").gap(t.space.xs),
+  surface().contrast(0.03),
+  borderColor(t.color.border),
+  flex().direction("column").gap(t.space.xs),
 );
-const quoteBody = css.cn(
-  css.flex().direction("column").gap(t.space.xs),
-  css.padding(t.space.sm),
-  css.minWidth("0"),
+const quoteBody = cn(
+  flex().direction("column").gap(t.space.xs),
+  padding(t.space.sm),
+  minWidth("0"),
 );
-const quoteHead = css.cn(
-  css.flex().alignItems("center").gap(t.space.xs),
-  css.color(t.color.textMedium),
-  css.fontSize(t.fontSize.sm),
-  css.textDecoration("none"),
-  css.minWidth("0"),
+const quoteHead = cn(
+  flex().alignItems("center").gap(t.space.xs),
+  color(t.color.textMedium),
+  fontSize(t.fontSize.sm),
+  textDecoration("none"),
+  minWidth("0"),
 );
-const quoteName = css.cn(
-  css.color(t.color.text),
-  css.fontWeight(t.fontWeight.semiBold),
-  css.overflow("hidden"),
-  css.textOverflow("ellipsis"),
-  css.whiteSpace("nowrap"),
+const quoteName = cn(
+  color(t.color.text),
+  fontWeight(t.fontWeight.semiBold),
+  overflow("hidden"),
+  textOverflow("ellipsis"),
+  whiteSpace("nowrap"),
 );
-const tomb = css.cn(css.padding(t.space.sm), css.color(t.color.textMedium), css.fontSize(t.fontSize.sm));
+const tomb = cn(padding(t.space.sm), color(t.color.textMedium), fontSize(t.fontSize.sm));
 
 const gone = {
   hidden: "Post hidden",
@@ -292,7 +340,7 @@ function QuoteCard(props: { quote: Quote }) {
   );
 }
 
-/** The embed of a post: its media first, then the quote (a post can have both: recordWithMedia). */
+// The embed of a post: its media first, then the quote (a post can have both: recordWithMedia).
 export function Embed(props: { post: AppBskyFeedDefs.PostView }) {
   const parts = createMemo(() => embedParts(props.post));
   return (

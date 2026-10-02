@@ -2,6 +2,7 @@
 // many grid columns, which text) are pure functions that test/post.mjs runs on recorded posts. No cssints, no Solid here.
 import { unwrapEmbed } from "@atcute/bluesky";
 import type { AppBskyEmbedRecord, AppBskyFeedDefs } from "@atcute/bluesky";
+import { segmentize } from "@atcute/bluesky-richtext-segmenter";
 import type { Facet } from "@atcute/bluesky-richtext-segmenter";
 
 import { quoteOf } from "../api.ts";
@@ -70,12 +71,12 @@ export function mediaOf(e: MediaEmbed | { $type: string } | undefined): Media | 
   }
 }
 
-/** The media of a post (also in recordWithMedia) and its quote, if any. */
+// The media of a post (also in recordWithMedia) and its quote, if any.
 export function embedParts(p: PostView): { media?: Media; quote?: Quote } {
   return { media: mediaOf(unwrapEmbed(p.embed).media), quote: quoteOf(p) };
 }
 
-/** The first media of a quoted post, as one small tile (the quote card shows one image, not a grid). */
+// The first media of a quoted post, as one small tile (the quote card shows one image, not a grid).
 export function quoteMedia(q: AppBskyEmbedRecord.ViewRecord): Media | undefined {
   const first = q.embeds?.[0];
   const m = mediaOf(first && "media" in first ? first.media : first);
@@ -84,7 +85,7 @@ export function quoteMedia(q: AppBskyEmbedRecord.ViewRecord): Media | undefined 
     : m;
 }
 
-/** Which grid an images or gallery embed gets: the class variant the card picks (the columns come from the card's width). */
+// Which grid an images or gallery embed gets: the class variant the card picks (the columns come from the card's width).
 export const gridOf = (m: Media & { tiles: Tile[] }) =>
   m.kind === "gallery" ? "gallery" : (String(m.tiles.length) as "1" | "2" | "3" | "4");
 
@@ -99,7 +100,22 @@ interface PostRecord {
 export const recordOf = (p: PostView | AppBskyEmbedRecord.ViewRecord): PostRecord =>
   ((p as PostView).record ?? (p as AppBskyEmbedRecord.ViewRecord).value ?? {}) as PostRecord;
 
-/** A link feature's uri is the href, never the visible text; only http(s) is a link. */
+export interface Part {
+  text: string; // what is shown
+  link?: string; // an http(s) feature.uri: the href, which is not the text (often shortened)
+  mention?: string; // a did: /profile/<did>
+  tag?: boolean; // no search without a login: only coloured
+}
+// The text cut at its facets (UTF-8 byte offsets, which segmentize handles) into the parts the card draws.
+export const parts = (text: string, facets?: Facet<Feature>[]): Part[] =>
+  segmentize(text, facets).map(({ text, features }) => {
+    const f = features?.[0];
+    if (f?.$type === "app.bsky.richtext.facet#link") return { text, link: safeHref(f.uri ?? "") };
+    if (f?.$type === "app.bsky.richtext.facet#mention") return { text, mention: f.did };
+    return { text, tag: f?.$type === "app.bsky.richtext.facet#tag" };
+  });
+
+// A link feature's uri is the href, never the visible text; only http(s) is a link.
 export function safeHref(uri: string) {
   try {
     return /^https?:$/.test(new URL(uri).protocol) ? uri : undefined;
@@ -118,10 +134,10 @@ export const hostOf = (uri: string) => {
 
 // ---- numbers and places ----------------------------------------------------------------------
 const compact = new Intl.NumberFormat("en", { notation: "compact" });
-/** 1200 is "1.2K"; 0 is "" (no number beside the icon). */
+// 1200 is "1.2K"; 0 is "" (no number beside the icon).
 export const count = (n: number | undefined) => (n ? compact.format(n) : "");
 
-/** "now", "5m", "3h", "2d", then "Oct 2" (with the year when it is not this one). */
+// "now", "5m", "3h", "2d", then "Oct 2" (with the year when it is not this one).
 export function ago(iso: string | undefined, now = Date.now()) {
   const t = Date.parse(iso ?? "");
   if (Number.isNaN(t)) return "";
@@ -138,6 +154,6 @@ export function ago(iso: string | undefined, now = Date.now()) {
   });
 }
 
-/** The app's route for a post (the thread screen); the same path on bsky.app is where a video plays. */
+// The app's route for a post (the thread screen); the same path on bsky.app is where a video plays.
 export const postHref = (p: { uri: string; author: { handle: string } }) =>
   `/profile/${p.author.handle}/post/${p.uri.slice(p.uri.lastIndexOf("/") + 1)}`;
