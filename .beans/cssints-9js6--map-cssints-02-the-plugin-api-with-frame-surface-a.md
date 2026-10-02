@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-30T11:57:32Z
-updated_at: 2026-10-02T08:51:17Z
+updated_at: 2026-10-02T09:22:28Z
 ---
 
 ## Destination
@@ -46,6 +46,9 @@ A public plugin API (`definePlugin` with `property`, `context` and `style` membe
 - [frame(): concentric radius on the plugin API, with the parent-vars runtime](cssints-q2vh): cssints/frame, registered 40-line kernel, conflicts leave border colours free, runtime proven in 3 browsers + Firefox 128/WebKit 17.4; Safari 17 hand check open.
 
 - [surface(): parent-relative colour on the plugin API](cssints-vsc9): cssints/surface on frame's runtime, one observer for both; method() gained excludes and empty grammars; browsers proven; partial relative colour and keyword case opened as tickets.
+
+- [Keyword in the wrong case: say the canonical spelling](cssints-317k): canonical case only, the error names the right spelling (twin: keywords and functions; types: keywords); +0.46% users.ts.
+- [Partial support counts as lacking for kernels that need exact behaviour](cssints-5q6j): `{ key, exact: true }` in a kernel's requires; surface uses it for relative colour; other warnings unchanged (measured).
 
 ## Not yet specified
 
