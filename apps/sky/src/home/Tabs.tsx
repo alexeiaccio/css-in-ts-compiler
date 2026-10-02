@@ -10,6 +10,7 @@ import {
   cursor,
   cv,
   flex,
+  flexBasis,
   flexGrow,
   focusVisible,
   fontSize,
@@ -46,6 +47,7 @@ const tab = _cv(
   cv({
     base: cn(
       flexGrow(1),
+      flexBasis("0"),
       cursor("pointer"),
       border("0"),
       fontSize(t.fontSize.md),
