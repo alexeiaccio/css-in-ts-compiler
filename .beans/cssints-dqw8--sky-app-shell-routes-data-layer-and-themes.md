@@ -1,12 +1,13 @@
 ---
 # cssints-dqw8
 title: 'sky: app shell, routes, data layer and themes'
-status: todo
+status: in-progress
 type: feature
+priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-10-02T15:09:09Z
-updated_at: 2026-10-02T15:09:09Z
+updated_at: 2026-10-02T15:09:18Z
 parent: cssints-co8y
 ---
 
