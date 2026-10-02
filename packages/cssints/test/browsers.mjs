@@ -191,8 +191,10 @@ const differs = (got, want) =>
       const same =
         k === "l"
           ? typeof g === "number" && Math.abs(g - v) < 0.01
-          : g === (k === "r" ? `${v}px` : v);
-      return same ? [] : [`${id}.${k} ${typeof g === "number" ? g.toFixed(4) : g}, wanted ${v}`];
+          : g === (k === "r" ? `${String(v)}px` : v);
+      return same
+        ? []
+        : [`${id}.${k} ${typeof g === "number" ? g.toFixed(4) : String(g)}, wanted ${String(v)}`];
     }),
   );
 // a new element of the app's `added` style, under a plain div, as the first child of `id`
