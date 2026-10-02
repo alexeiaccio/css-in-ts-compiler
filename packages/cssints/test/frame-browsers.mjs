@@ -21,9 +21,13 @@ import { build } from "vite";
 const here = import.meta.dirname;
 const modules = join(here, "../../../node_modules/.bun");
 const pw = readdirSync(modules).find((d) => d.startsWith("playwright-core@"));
+// PW=<an older playwright-core's index.mjs> with PLAYWRIGHT_BROWSERS_PATH drives an older browser (plugins-proto/README.md,
+// "Old browsers"); OLD=1 then says the browser has no style queries: only the builds that ship the runtime are run, and the
+// probe must switch it on by itself.
 const { chromium, firefox, webkit } = await import(
-  pathToFileURL(join(modules, pw, "node_modules/playwright-core/index.mjs")).href
+  process.env.PW ?? pathToFileURL(join(modules, pw, "node_modules/playwright-core/index.mjs")).href
 );
+const old = !!process.env.OLD;
 const launchers = {
   chrome: () => chromium.launch({ channel: "chrome" }),
   firefox: () => firefox.launch(),
@@ -33,16 +37,20 @@ const launchers = {
 // The targets of a build are read once per process (css-grammar's support.ts), so each build is a child of this script:
 // `node frame-browsers.mjs --build` prints the bundle for $BROWSERSLIST as JSON.
 if (process.argv[2] === "--build") {
-  const { default: cssints } = await import("../src/plugin.ts");
+  const { default: cssints, cssTarget, targets } = await import("../src/plugin.ts");
   const out = await build({
     root: join(here, "fixtures"),
     configFile: false,
     logLevel: "silent",
     plugins: cssints(),
+    // as the demo's vite.config: LightningCSS for the targets, so `0px` in an `initial-value` comes out as `0`
+    css: { transformer: "lightningcss", lightningcss: { targets } },
     build: {
       write: false,
       minify: false,
-      lib: { entry: "frame-app.ts", formats: ["es"], fileName: "app" },
+      cssMinify: "lightningcss",
+      cssTarget,
+      rollupOptions: { input: join(here, "fixtures/frame-app.ts") },
     },
   });
   const files = [out].flat().flatMap((o) => o.output);
@@ -51,7 +59,8 @@ if (process.argv[2] === "--build") {
       .filter((f) => f.fileName.endsWith(ext))
       .map((f) => String(f.code ?? f.source))
       .join("\n");
-  process.stdout.write(JSON.stringify({ js: text(".js"), css: text(".css") }));
+  // a line of its own: Vite may print to stdout too (a busy HMR port)
+  process.stdout.write(`\nBUNDLE ${JSON.stringify({ js: text(".js"), css: text(".css") })}\n`);
   process.exit(0);
 }
 const bundle = (browserslist) =>
@@ -60,7 +69,10 @@ const bundle = (browserslist) =>
       env: { ...process.env, BROWSERSLIST: browserslist },
       encoding: "utf8",
       maxBuffer: 1 << 26,
-    }),
+    })
+      .split("\n")
+      .find((l) => l.startsWith("BUNDLE "))
+      .slice(7),
   );
 const builds = {
   "style queries": bundle("chrome 120"),
@@ -181,7 +193,7 @@ for (const name of names) {
   const browser = await launchers[name]();
   console.log(`${name} ${browser.version()}`);
   for (const [mode, b, opts] of [
-    ["style queries", builds["style queries"], {}],
+    ...(old ? [] : [["style queries", builds["style queries"], {}]]),
     ["probe", builds.probe, {}],
     ["runtime", builds.runtime, { probeFails: true }],
   ]) {
@@ -206,7 +218,7 @@ for (const name of names) {
     }
     if (mode === "runtime")
       assert.equal(await padding(page, "f1"), "8px", "padding is not the runtime's");
-    const wantPoly = mode === "runtime";
+    const wantPoly = mode === "runtime" || old;
     if (poly !== wantPoly) {
       failed++;
       row.push(`FAIL data-cssints-poly is ${poly}, wanted ${wantPoly}`);
