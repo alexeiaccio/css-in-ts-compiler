@@ -143,7 +143,14 @@ export async function loadAuthorFeed(
 ): Promise<Page<AppBskyFeedDefs.FeedViewPost>> {
   const r = await ok(
     rpc.get("app.bsky.feed.getAuthorFeed", {
-      params: { actor: cleanActor(actor), filter, limit: 30, cursor, includePins: !cursor },
+      // the server pins the post on every filter; only the Posts tab shows it
+      params: {
+        actor: cleanActor(actor),
+        filter,
+        limit: 30,
+        cursor,
+        includePins: !cursor && filter === "posts_no_replies",
+      },
     }),
   );
   return { items: visible(r.feed), cursor: next(r.cursor) };

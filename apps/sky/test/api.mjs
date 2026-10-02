@@ -98,6 +98,8 @@ answer = () => authorFeed;
 const posts = await api.loadAuthorFeed("@BSKY.app", "posts_with_replies");
 assert.equal(posts.items.length, authorFeed.feed.length);
 assert.equal(requests.at(-1).params.actor, "bsky.app", "@ stripped, lower-cased");
+assert.equal(requests.at(-1).params.includePins, "false", "pins are for the Posts tab");
+await api.loadAuthorFeed("bsky.app", "posts_no_replies");
 assert.equal(requests.at(-1).params.includePins, "true", "pins on the first page");
 await api.loadAuthorFeed("bsky.app", "posts_no_replies", "c1");
 assert.equal(requests.at(-1).params.cursor, "c1");
