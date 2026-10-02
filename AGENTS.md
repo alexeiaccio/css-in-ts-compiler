@@ -9,7 +9,7 @@ packages/cssints       Vite plugin on the Module Runner (src/plugin.ts) + the cs
                        test/: fixtures, run.mjs, map-check.mjs, docs.mjs, spec/ (Quint model, race, mbt), hmr/ app
 packages/css-grammar   type-level recognizer (src/css.ts) + runtime twin (src/twin.ts over twin-core.ts) over mdn-data grammars,
                        Typed OM values, BCD support warnings, prose rules; test/, bench/ (instantiation budgets)
-packages/plugin-icon   icon plugin (not yet ported to the new engine)
+packages/icons         @cssints/icons: icons() on the cssints/plugin style() helper (iconify-json and fs providers); test/: fixtures, icons.mjs, types/
 apps/demo              React demo on the plugin: every 0.1 feature (App.tsx, components/Showcase.tsx, theme.ts)
 README.md              what cssints is, setup, a short example
 docs/wayfinder.md      decisions and findings log (start here); docs/API.md the API reference
@@ -84,7 +84,7 @@ Other deps:
 
 - **What counts is `vp fmt --check`**: 2 spaces, 100 columns, double quotes, semicolons, trailing commas, parens on arrow functions (oxfmt defaults)
 - The `fmt` block of the root `vite.config.ts` states exactly these values. vite-plus 1.0.0 does not read that block; if a later version does, nothing changes. Import sorting is not applied.
-- **Skipped by the formatter** (`.prettierignore`): the generated `members.ts`, `mdn.ts` and `keywords.ts`, `css.ts`, the test fixtures, plugin-icon, docs/archive, `.beans`
+- **Skipped by the formatter** (`.prettierignore`): the generated `members.ts`, `mdn.ts` and `keywords.ts`, `css.ts`, the test fixtures, docs/archive, `.beans`
 - The code blocks in docs/API.md use tabs and are not formatted
 
 ### TypeScript Configuration

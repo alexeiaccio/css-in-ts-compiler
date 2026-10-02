@@ -4,6 +4,7 @@
  * The 0.1 features, one place each:
  * - property functions and short names, flex() chains, cx(), media() and hover(), firstThatWorks() (this file);
  * - cv() variants and createTokens() tokens (Card, Button, theme.ts);
+ * - icons from a collection: mdi("close") (icons.ts, @cssints/icons);
  * - grid(), container(), supports(), pseudo-class wrappers, cn(), typed parts, math, selector themes (Showcase).
  */
 
@@ -26,6 +27,7 @@ import {
   margin,
   marginTop,
   marginBottom,
+  marginRight,
   maxWidth,
   width,
   boxShadow,
@@ -33,6 +35,7 @@ import {
   token,
   transition,
 } from "cssints" with { type: "cssints" };
+import { mdi } from "./icons.ts" with { type: "cssints" };
 import { t } from "./theme.ts" with { type: "cssints" };
 import { Button } from "./components/Button.js";
 import { Card } from "./components/Card.js";
@@ -110,9 +113,11 @@ function App() {
           footer={
             <>
               <Button variant="outline" size="sm">
+                <span className={cx(mdi("close"), marginRight("0.25rem"))} />
                 Cancel
               </Button>
               <Button variant="primary" size="sm">
+                <span className={cx(mdi("content-save"), marginRight("0.25rem"))} />
                 Save
               </Button>
             </>

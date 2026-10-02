@@ -83,7 +83,7 @@ More in [docs/API.md](docs/API.md): property names and short names, `flex()` and
 |---|---|
 | `packages/cssints` | Vite plugin (`cssints/vite`) on the Vite Module Runner, and the `cssints` library |
 | `packages/css-grammar` | Type-level recognizer and its runtime twin over mdn-data grammars, Typed OM values, browser support and prose rules |
-| `packages/plugin-icon` | Icon plugin, not yet ported to the new engine |
+| `packages/icons` | `@cssints/icons`: icons from iconify JSON collections or SVG folders, a mask style with no runtime |
 | `apps/demo` | React demo of every 0.1 feature |
 | `docs/research`, `docs/archive` | Comparisons with other libraries; outdated plans |
 

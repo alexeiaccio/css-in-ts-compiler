@@ -1,0 +1,47 @@
+{
+  "name": "@cssints/icons",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Icons for cssints: iconify JSON collections and SVG folders as a mask style, no runtime",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/types.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/types.d.mts",
+        "default": "./dist/index.mjs"
+      }
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "test": "node test/icons.mjs",
+    "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
+    "pack:tgz": "node ../../scripts/pack.mjs"
+  },
+  "dependencies": {
+    "@iconify/utils": "^3.0.0"
+  },
+  "devDependencies": {
+    "@iconify-json/mdi": "^1.2.0",
+    "cssints": "workspace:*",
+    "vite": "catalog:"
+  },
+  "peerDependencies": {
+    "cssints": "^0.1.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

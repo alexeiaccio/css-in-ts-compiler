@@ -251,7 +251,9 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
           configFile: false,
           root: process.cwd(),
           logLevel: "warn",
+          // The scan would follow every import, attributed ones too, into build-time code (node:fs, plugin helpers).
           server: { middlewareMode: true, watch: null, hmr: false },
+          optimizeDeps: { noDiscovery: true },
           plugins: [cssints({ inner: true })],
         }),
       catch: (cause) =>

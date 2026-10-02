@@ -39,7 +39,17 @@ writeFileSync(
   join(tmp, "tsconfig.json"),
   JSON.stringify({
     extends: "../../tsconfig.json",
-    compilerOptions: { jsx: "preserve", noEmit: true, types: [], lib: ["ES2023", "DOM"] },
+    compilerOptions: {
+      jsx: "preserve",
+      noEmit: true,
+      types: [],
+      lib: ["ES2023", "DOM"],
+      // the icons package and its collection: not dependencies of cssints, so found by path
+      paths: {
+        "@cssints/icons": ["../../../icons/src/types.ts"],
+        "@iconify-json/*": ["../../../icons/node_modules/@iconify-json/*"],
+      },
+    },
     include: ["*.ts", "*.tsx"],
   }),
 );
