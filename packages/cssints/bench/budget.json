@@ -4,31 +4,31 @@
     "tsgo": 0
   },
   "errors.ts": {
-    "tsc": 305895,
-    "tsgo": 312540
+    "tsc": 310613,
+    "tsgo": 318725
   },
   "frame.ts": {
-    "tsc": 182977,
-    "tsgo": 191030
+    "tsc": 188027,
+    "tsgo": 196154
   },
   "functions.ts": {
-    "tsc": 327999,
-    "tsgo": 339633
+    "tsc": 329582,
+    "tsgo": 341252
   },
   "plugins.ts": {
-    "tsc": 50799,
-    "tsgo": 53784
+    "tsc": 51124,
+    "tsgo": 55394
   },
   "surface.ts": {
-    "tsc": 332460,
-    "tsgo": 340537
+    "tsc": 337346,
+    "tsgo": 345387
   },
   "unused.ts": {
-    "tsc": 42254,
-    "tsgo": 46145
+    "tsc": 47015,
+    "tsgo": 51842
   },
   "users.ts": {
-    "tsc": 915346,
-    "tsgo": 923376
+    "tsc": 919954,
+    "tsgo": 930897
   }
 }
