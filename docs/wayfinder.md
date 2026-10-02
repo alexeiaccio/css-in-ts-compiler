@@ -1098,3 +1098,11 @@ Still open: LightningCSS drops `color: red` before `color: var(--x)` when it mer
 ## Published packages written on cssints (cssints-0l3f)
 
 Decided with the user: a package written on cssints ships its source with the attribute kept (tsdown keeps it), and the consuming app evaluates it in its own Module Runner. One sheet, one set of targets and themes, and tokens, kernels and `@property` dedupe for free because each module is evaluated once. The engine recognises such a package by the same marker as app code (`with { type: "cssints" }` in the file), with nothing to declare, and keeps it out of `optimizeDeps` so esbuild does not strip the attributes. Today the transform skips everything under `node_modules`, so a dependency on cssints builds no classes. A pre-compiled format (classes plus a sheet fragment, for apps without cssints) waits for its first user.
+
+## keyframes() and positionTry(): local at-rules (cssints-lirm)
+
+`keyframes({ from, "50%", to })` and `positionTry(style)` define an at-rule next to the code that uses it and return its name as a typed value: a `<custom-ident>` for `animation`/`animationName`, a `<dashed-ident>` for `positionTryFallbacks`, each refused in the other's place. A step is a style of member calls, as `cn()` and `cv()` take them, so every declaration gets the grammar check, prose rules and support warnings; a bad one is a build error at the call. `positionTry` accepts only the properties `@position-try` allows (build error; the types cannot see them).
+
+The name is a hash of the content (`kf-…`, `--pt-…`), so identical blocks are one name and one rule. The name carries its rule as a kernel keyed by the at-rule, so the rule lands only in the sheets of modules that use the name, through `cn`, conditions and `cv` too. Both go in `_.k`: names are global, hashed names never collide, so layer order never decides.
+
+Findings: `position-try` is already a property, so `positionTry` is the rule with one style and the shorthand with value parts; the recogniser needed a `⟨dashed-ident⟩` sentinel; kernels keyed by an at-rule are exempt from the custom-property collision check (custom properties in a step are uses); a module's kernels now pull in the `@property` of the tokens they read. Cost: +6.8% on `users.ts` (one use of each). Not done: step lists (`"0%, 100%"`).

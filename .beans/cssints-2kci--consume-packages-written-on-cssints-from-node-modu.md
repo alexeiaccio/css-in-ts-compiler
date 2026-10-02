@@ -1,12 +1,13 @@
 ---
 # cssints-2kci
 title: Consume packages written on cssints from node_modules
-status: todo
+status: in-progress
 type: feature
+priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-10-02T07:52:36Z
-updated_at: 2026-10-02T07:52:36Z
+updated_at: 2026-10-02T07:53:06Z
 parent: cssints-9js6
 ---
 

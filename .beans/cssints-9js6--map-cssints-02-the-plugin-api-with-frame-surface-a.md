@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-30T11:57:32Z
-updated_at: 2026-10-02T07:52:36Z
+updated_at: 2026-10-02T08:14:13Z
 ---
 
 ## Destination
@@ -36,6 +36,8 @@ A public plugin API (`definePlugin` with `property`, `context` and `style` membe
 - [Implement the public plugin API](cssints-su6o): `cssints/plugin` with context/method/style/property; runtime via virtual:cssints/runtime/<name>, only when a target lacks the feature and has @property; MemberError.
 - [firstThatWorks(): ordered value fallbacks tied to the BCD warnings](cssints-bogz): one class, fallbacks first; warning narrowed to targets no value covers; cssTarget export so minify keeps fallbacks.
 - [Published packages written on cssints](cssints-0l3f): source with the attribute, evaluated in the consumer's runner, recognised by the marker; pre-compiled waits for a user.
+
+- [keyframes() and positionTry(): local at-rules on the kernel seam](cssints-lirm): typed hashed names, the at-rule as a kernel in _.k of the using modules; member-call steps; users.ts +6.8%.
 
 ## Not yet specified
 
