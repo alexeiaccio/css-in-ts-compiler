@@ -8,6 +8,7 @@ import { properties } from "@cssints/css-grammar/mdn";
 import { Cause, Effect, Exit } from "effect";
 
 import { MacroError, MemberError } from "./errors.ts";
+import { relation } from "./leaves.ts";
 import { type Kernel, type Plug, type Property, registry } from "./registry.ts";
 
 /**
@@ -227,13 +228,36 @@ export function carried(nodes: CssNode[]): Carry {
   return out;
 }
 
+// The declarations of one class string, as the author meant them: under one condition, a property set again replaces the
+// earlier one (cn(p(4), p(2)) is p(2)), and two properties that overlap without one containing the other are an error,
+// since the sheet cannot order them by the arguments. A longhand inside a shorthand is fine: the sheet puts it after.
+export function merged(decls: Decl[]): Decl[] {
+  const out: Decl[] = [];
+  const at = (d: Decl) => (d[2] ?? []).map((c) => c.text).join(" > ");
+  for (const d of decls) {
+    const where = at(d);
+    for (let i = out.length - 1; i >= 0; i--) {
+      const o = out[i]!;
+      if (at(o) !== where) continue;
+      const r = relation(o[0], d[0]);
+      if (r === "same") out.splice(i, 1);
+      else if (r === "overlap")
+        throw fail(
+          `cssints: ${o[0]} and ${d[0]} overlap without one containing the other${where ? ` (under ${where})` : ""}, so the sheet cannot order them by the arguments: set one of them, or the longhands`,
+        );
+    }
+    out.push(d);
+  }
+  return out;
+}
+
 export function toDecls(member: string, args: unknown[]): Decl[] {
   if (member === "cn") {
     if (!args.every(isNode))
       throw fail(
         `cssints: cn() takes css.* values only, got ${JSON.stringify(args.filter((a) => !isNode(a)))}`,
       );
-    return args.flatMap((n) => n.__cssints);
+    return merged(args.flatMap((n) => n.__cssints));
   }
   // flex(...parts) is the `flex` property, flex() the context. SPACING does not match `flex` or `grid`: a number is a <number>.
   if (CONTEXTS[member]) return [args.length ? decl(member, member, args) : ["display", member]];

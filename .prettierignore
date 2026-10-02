@@ -15,5 +15,6 @@ docs/research/sublayers-proto/*.json
 packages/css-grammar/src/css.ts
 packages/css-grammar/src/mdn.ts
 packages/css-grammar/src/keywords.ts
+packages/css-grammar/src/longhands.ts
 packages/cssints/src/members.ts
 **/dist

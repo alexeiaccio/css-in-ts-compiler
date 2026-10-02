@@ -1,11 +1,11 @@
 // The sheet: the @property rules of tokens, then the global rules and the token sets and themes (layer _.k), then every rule once, sorted by layer, condition, shorthand before
 // longhand, class; the rules of one layer under the same at-rules share a block.
-import { createRequire } from "node:module";
 
 import { Effect } from "effect";
 
 import { FALLBACK } from "./delivery.ts";
 import { KERNEL } from "./kernel.ts";
+import { width } from "./leaves.ts";
 import { type Kernel, type Rule, Registry, type Themed } from "./registry.ts";
 
 // The entries of token sets and themes start with this and a tab: `@theme\t<key>\t<css>`.
@@ -13,23 +13,6 @@ const THEME = "@theme\t";
 
 // _.k is the layer of global rules (addGlobal, kernels), below every class layer: _.a (no condition) to _.e (four).
 export const LAYERS = "@layer _.k, _.a, _.b, _.c, _.d, _.e;";
-
-interface MdnProperty {
-  computed?: string | string[];
-}
-
-// A is a shorthand of B when every leaf longhand of B is among A's leaves (mdn-data `computed`; the direct lists
-// miss border > border-top). More leaves first is a total order that keeps that relation.
-const MDN = createRequire(import.meta.url)("mdn-data/css/properties.json") as Record<
-  string,
-  MdnProperty | undefined
->;
-const leaves = (p: string): string[] => {
-  const computed = MDN[p]?.computed;
-  return p !== "all" && Array.isArray(computed) ? computed.flatMap(leaves) : [p];
-};
-const WIDTH = new Map<string, number>();
-const width = (p: string): number => WIDTH.get(p) ?? WIDTH.set(p, new Set(leaves(p)).size).get(p)!;
 
 const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 const cmpCond = (a: number[], b: number[]) =>
