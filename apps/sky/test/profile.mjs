@@ -16,16 +16,18 @@ const pages = {
 /** @type {(method: string, params: Record<string, string>) => { status?: number, body: unknown }} */
 let answer = () => assert.fail("unexpected request");
 const requests = [];
-globalThis.fetch = async (url) => {
+globalThis.fetch = (url) => {
   const u = new URL(url);
   const method = u.pathname.replace("/xrpc/", "");
   const params = Object.fromEntries(u.searchParams);
   requests.push({ method, params });
   const { status = 200, body } = answer(method, params);
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
+  return Promise.resolve(
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { "content-type": "application/json" },
+    }),
+  );
 };
 const api = await import("../src/api.ts");
 const m = await import("../src/profile/model.ts");
@@ -65,7 +67,10 @@ for (const tab of m.TABS) {
 }
 // the Media tab holds posts with images, video or a gallery; the Replies tab has replies
 const mediaKinds = loaded.media.items.map((i) => i.post.embed?.$type?.split("#")[0]);
-assert.ok(mediaKinds.every((k) => /images|video|gallery|recordWithMedia/.test(k)), mediaKinds.join());
+assert.ok(
+  mediaKinds.every((k) => /images|video|gallery|recordWithMedia/.test(k)),
+  mediaKinds.join(),
+);
 assert.ok(loaded.replies.items.some((i) => i.reply));
 assert.ok(!loaded.posts.items.some((i) => i.reply), "no replies on the Posts tab");
 
@@ -91,10 +96,7 @@ const repost = posts.find((i) => i.reason?.$type === "app.bsky.feed.defs#reasonR
 assert.match(m.reason(repost), /^Reposted by .+/);
 const reply = loaded.replies.items.find((i) => i.reply && !i.reason);
 assert.match(m.reason(reply), /^Replying to @[\w.-]+$/);
-assert.equal(
-  m.reason(posts.find((i) => !i.reason)),
-  undefined,
-);
+assert.equal(m.reason(posts.find((i) => !i.reason)), undefined);
 
 // ---- the bio: links, handles and tags, at UTF-8 byte offsets --------------------------------------
 const { parts } = await import("../src/post/model.ts");
@@ -135,13 +137,23 @@ assert.equal(m.failure(new TypeError("fetch failed")), "failed", "a network erro
 
 // a profile that asked not to be shown, and one whose avatar is labelled
 answer = () => ({
-  body: { ...head, labels: [{ src: head.did, uri: head.did, val: "!no-unauthenticated", cts: "" }] },
+  body: {
+    ...head,
+    labels: [{ src: head.did, uri: head.did, val: "!no-unauthenticated", cts: "" }],
+  },
 });
 assert.equal((await api.loadProfile("bsky.app")).verdict, "hide");
 answer = () => ({
   body: {
     ...head,
-    labels: [{ src: api.BSKY_MOD, uri: `at://${head.did}/app.bsky.actor.profile/self`, val: "porn", cts: "" }],
+    labels: [
+      {
+        src: api.BSKY_MOD,
+        uri: `at://${head.did}/app.bsky.actor.profile/self`,
+        val: "porn",
+        cts: "",
+      },
+    ],
   },
 });
 const labelled = await api.loadProfile("bsky.app");

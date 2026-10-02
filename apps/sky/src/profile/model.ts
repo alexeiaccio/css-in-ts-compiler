@@ -39,14 +39,17 @@ export function reason(i: Item): string | undefined {
     return `Reposted by ${by.displayName || by.handle}`;
   }
   const parent = i.reply?.parent;
-  return parent && "author" in parent ? `Replying to @${parent.author.handle}` : undefined;
+  return parent && "author" in parent && "handle" in parent.author
+    ? `Replying to @${parent.author.handle}`
+    : undefined;
 }
 
 // getProfile does not return facets for the bio, so find links, @handles and #tags here (bsky.app does the same on the client).
 // A mention's feature carries the handle where the lexicon has a DID: the route takes both.
 const enc = new TextEncoder();
 const bytes = (s: string) => enc.encode(s).length;
-const TOKEN = /(?<=^|[\s(])(?:(https?:\/\/\S*[^\s.,;:!?)])|@((?:[a-z0-9-]+\.)+[a-z]{2,})|#([^\s#.,;:!?)]+))/gi;
+const TOKEN =
+  /(?<=^|[\s(])(?:(https?:\/\/\S*[^\s.,;:!?)])|@((?:[a-z0-9-]+\.)+[a-z]{2,})|#([^\s#.,;:!?)]+))/gi;
 export function bioFacets(text: string): Facet<Feature>[] {
   return [...text.matchAll(TOKEN)].map((m) => {
     const byteStart = bytes(text.slice(0, m.index));

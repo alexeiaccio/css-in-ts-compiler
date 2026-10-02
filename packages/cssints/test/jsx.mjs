@@ -20,10 +20,15 @@ writeFileSync(
 writeFileSync(
   join(root, "src/main.tsx"),
   `import { p } from "cssints" with { type: "cssints" };
+import { Plain } from "./plain.tsx";
+export const plain = Plain;
 export const el = <div class={p(4)} />;
 export const Item = () => <span class={p(2)} />;
 `,
 );
+
+// A component with JSX and no cssints of its own, that a module with sites imports: the runner loads it too.
+writeFileSync(join(root, "src/plain.tsx"), "export const Plain = () => <i />;\n");
 
 let seen = "";
 const fakeFramework = () => ({

@@ -935,12 +935,15 @@ export function matches(syntax: string, s: string, pending = false): boolean {
   return complete(consume(parseGrammar(syntax), v, ctx), ctx);
 }
 
+const CSS_WIDE_VALUES = new Set(["inherit", "initial", "unset", "revert", "revert-layer"]);
+
 // Twin of Valid<P, S> (ValidIn<Label, G, S> with `syntax`): returns the value, or throws with the furthest point
 // reached and what was expected. `p` is the property, or what a message calls a plugin's grammar.
 export function valid(p: string, s: string, syntax: string | undefined = props[p]): string {
   if (!syntax)
     throw new UnknownPropertyError({ message: `${p}: no grammar for this property`, property: p });
   const v = trim(s);
+  if (CSS_WIDE_VALUES.has(v)) return s; // a value of every property (css-cascade-5 §7.3)
   const ctx: Ctx = { len: v.length, far: -1, expected: new Set(), pend: PENDING.test(v) };
   const rs = consume(parseGrammar(syntax), v, ctx);
   if (complete(rs, ctx)) return s;

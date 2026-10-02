@@ -50,6 +50,16 @@ throws(
 );
 checkValueNow("frame.radius", "<length [0,∞]>", "4px");
 deepStrictEqual(checkDeclarationNow("--_r", "anything at all", true), []);
+// a CSS-wide keyword is a value of every property, in its canonical case
+for (const [n, v] of [
+  ["color", "inherit"],
+  ["font-family", "unset"],
+  ["margin", "initial"],
+  ["display", "revert-layer"],
+] as const)
+  deepStrictEqual(checkDeclarationNow(n, v, true), []);
+throws(() => checkDeclarationNow("color", "INHERIT", true), /color: unexpected "INHERIT"/);
+checkValueNow("frame.radius", "<length [0,∞]>", "inherit");
 for (const [n, s] of [
   ["border", "1px solud"],
   ["padding", "1rem 2rem 3rem 4rem 5rem"],
