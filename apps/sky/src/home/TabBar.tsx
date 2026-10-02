@@ -29,6 +29,7 @@ import {
 } from "cssints" with { type: "cssints" };
 import { surface } from "cssints/surface" with { type: "cssints" };
 import { For } from "solid-js";
+import type { JSX } from "@solidjs/web";
 
 import { reduced } from "../layout.ts" with { type: "cssints" };
 import { t } from "../theme.ts" with { type: "cssints" };
@@ -80,11 +81,11 @@ const indicator = cn(
   reduced(transition("none")),
 );
 
-export function Tabs(props: {
+export function TabBar(props: {
   names: readonly string[];
   active: number;
   onSelect: (i: number) => void;
-}) {
+}): JSX.Element {
   return (
     <div class={bar} role="tablist">
       <For each={props.names}>

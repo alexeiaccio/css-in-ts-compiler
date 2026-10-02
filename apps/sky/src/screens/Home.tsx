@@ -12,7 +12,7 @@ import type { ResourceUri } from "@atcute/lexicons";
 
 import { homeScreen } from "../api.ts";
 import { Skeletons, SkeletonPost } from "../home/Skeleton.tsx";
-import { Tabs } from "../home/Tabs.tsx";
+import { TabBar } from "../home/TabBar.tsx";
 import { createTabs, FEEDS } from "../home/tabs.ts";
 import { createPaged } from "../paged.ts";
 import { Feed } from "../post/Feed.tsx";
@@ -34,19 +34,19 @@ const note = cn(
 function Sentinel(props: { onVisible: () => Promise<boolean> }) {
   let el!: HTMLDivElement;
   onSettled(() => {
-    const io = new IntersectionObserver(
-      async ([entry]) => {
-        if (entry?.isIntersecting && (await props.onVisible()) && el.isConnected) {
-          io.unobserve(el);
-          io.observe(el);
-        }
-      },
-      { rootMargin: "800px" },
-    );
+    async function look() {
+      if ((await props.onVisible()) && el.isConnected) {
+        io.unobserve(el);
+        io.observe(el);
+      }
+    }
+    const io = new IntersectionObserver(([entry]) => entry?.isIntersecting && void look(), {
+      rootMargin: "800px",
+    });
     io.observe(el);
     return () => io.disconnect();
   });
-  return <div ref={el} aria-hidden="true" />;
+  return <div ref={(e) => (el = e)} aria-hidden="true" />;
 }
 
 // One tab. It is made when the tab is first opened and kept, hidden, so its pages stay where they were.
@@ -113,7 +113,7 @@ export default function Home() {
   return (
     <>
       <Header title="Home" />
-      <Tabs names={FEEDS.map((f) => f.name)} active={tabs.active()} onSelect={select} />
+      <TabBar names={FEEDS.map((f) => f.name)} active={tabs.active()} onSelect={select} />
       <For each={FEEDS}>
         {(f, i) => (
           <Show when={tabs.opened().includes(i())}>

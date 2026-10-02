@@ -37,7 +37,10 @@ async function open(context, held = Promise.resolve()) {
   const requests = []; // [feed, cursor] in the order the app asked
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e)));
-  page.on("console", (m) => m.type() === "error" && !/status of 414/.test(m.text()) && errors.push(m.text()));
+  page.on(
+    "console",
+    (m) => m.type() === "error" && !/status of 414/.test(m.text()) && errors.push(m.text()),
+  );
   await page.route(/cdn\.bsky\.app|video\.bsky\.app/, (route) =>
     route.fulfill({
       contentType: "image/svg+xml",
@@ -51,7 +54,8 @@ async function open(context, held = Promise.resolve()) {
     requests.push([feed, cursor]);
     await held;
     const headers = { "access-control-allow-origin": "*" };
-    const json = (name) => route.fulfill({ contentType: "application/json", headers, body: fixture(name) });
+    const json = (name) =>
+      route.fulfill({ contentType: "application/json", headers, body: fixture(name) });
     if (feed === "whats-hot" && !cursor) return json("home-discover-1");
     if (feed === "whats-hot" && cursor === discover1.cursor) return json("home-discover-2");
     if (feed === "for-science" && !cursor) return json("home-science-1");
@@ -62,14 +66,18 @@ async function open(context, held = Promise.resolve()) {
 }
 
 const asked = (requests, feed) => requests.filter(([f]) => f === feed).length;
-const toBottom = (page) =>
-  page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+const toBottom = (page) => page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
 const panel = (page, name) => page.locator(`[role=tabpanel][aria-label=${name}]`);
 const count = (page, name) => panel(page, name).locator("article").count();
-const sample = (page, testid) =>
-  page.getByTestId(testid).first().evaluate((el) => {
-    const bar = el.querySelectorAll("span")[1]; // a text line of the skeleton card
-    const s = getComputedStyle(bar);
+const ready = (page, name) =>
+  page.waitForFunction(
+    (n) => document.querySelector(`[role=tabpanel][aria-label=${n}] article`),
+    name,
+  );
+const sample = (page) =>
+  page.evaluate(() => {
+    // the first text line of the first skeleton card
+    const s = getComputedStyle(document.querySelector("[data-testid=skeleton] > div > span"));
     return { name: s.animationName, pos: s.backgroundPositionX };
   });
 
@@ -80,40 +88,53 @@ try {
       viewport: { width: 1280, height: 900 },
       colorScheme: "light",
     });
-    let release;
-    const { page, requests, errors } = await open(context, new Promise((r) => (release = r)));
+    const held = Promise.withResolvers();
+    const { page, requests, errors } = await open(context, held.promise);
     await page.goto(base);
 
-    await page.getByTestId("skeleton").first().waitFor();
-    assert.equal(await page.getByTestId("skeleton").count(), 3, "three skeletons for the first page");
-    const shot = (name) => process.env.SHOTS && page.screenshot({ path: join(process.env.SHOTS, `${name}.png`) });
+    await page.waitForFunction(() => document.querySelector("[data-testid=skeleton]"));
+    assert.equal(
+      await page.getByTestId("skeleton").count(),
+      3,
+      "three skeletons for the first page",
+    );
+    const shot = (name) =>
+      process.env.SHOTS && page.screenshot({ path: join(process.env.SHOTS, `${name}.png`) });
     await shot("home-skeleton");
-    const a = await sample(page, "skeleton");
+    const a = await sample(page);
     assert.match(a.name, /^kf-/, "the shimmer is the keyframes() rule");
     await sleep(300);
-    const b = await sample(page, "skeleton");
+    const b = await sample(page);
     assert.notEqual(a.pos, b.pos, "the band moves");
 
-    release();
-    await panel(page, "Discover").locator("article").first().waitFor();
+    held.resolve();
+    await ready(page, "Discover");
     assert.equal(await page.getByTestId("skeleton").count(), 0, "the skeletons are gone");
     await shot("home-feed");
     const first = await count(page, "Discover");
     assert.ok(first >= 15, `the first page is posts (${first})`);
     await sleep(400);
-    assert.equal(asked(requests, "whats-hot"), 1, "the next page waits until the list's end is near");
+    assert.equal(
+      asked(requests, "whats-hot"),
+      1,
+      "the next page waits until the list's end is near",
+    );
 
     // the tab bar: sticky under the 52 px header, indicator under the first tab
     const geometry = () =>
       page.evaluate(() => {
-        const tabs = [...document.querySelectorAll("[role=tab]")].map((t) => t.getBoundingClientRect());
+        const tabs = [...document.querySelectorAll("[role=tab]")].map((t) =>
+          t.getBoundingClientRect(),
+        );
         const bar = document.querySelector("[role=tablist]").getBoundingClientRect();
         const ind = document.querySelector("[data-testid=indicator]").getBoundingClientRect();
         return { tabs, bar, ind, y: scrollY };
       });
     let g = await geometry();
     assert.equal(g.tabs.length, 3);
-    assert.ok(Math.abs(g.ind.left - g.tabs[0].left) < 1 && Math.abs(g.ind.width - g.tabs[0].width) < 1);
+    assert.ok(
+      Math.abs(g.ind.left - g.tabs[0].left) < 1 && Math.abs(g.ind.width - g.tabs[0].width) < 1,
+    );
     assert.equal(
       await page.getByTestId("indicator").evaluate((e) => getComputedStyle(e).transitionDuration),
       "0.25s",
@@ -125,7 +146,10 @@ try {
       (n) => document.querySelectorAll("[aria-label=Discover] article").length > n,
       first,
     );
-    assert.deepEqual(requests.filter(([f]) => f === "whats-hot")[1], ["whats-hot", discover1.cursor]);
+    assert.deepEqual(requests.filter(([f]) => f === "whats-hot")[1], [
+      "whats-hot",
+      discover1.cursor,
+    ]);
     assert.equal(asked(requests, "whats-hot"), 2);
     const second = await count(page, "Discover");
     assert.ok(second > first);
@@ -141,12 +165,15 @@ try {
     await page.getByRole("tab", { name: "Science" }).click();
     await sleep(100);
     g = await geometry();
-    assert.ok(g.ind.left > g.tabs[0].left + 1 && g.ind.left < g.tabs[1].left - 1, "the indicator is on its way");
+    assert.ok(
+      g.ind.left > g.tabs[0].left + 1 && g.ind.left < g.tabs[1].left - 1,
+      "the indicator is on its way",
+    );
     await sleep(350);
     g = await geometry();
     assert.ok(Math.abs(g.ind.left - g.tabs[1].left) < 1, "and arrives under the second tab");
     assert.equal(await panel(page, "Discover").isVisible(), false);
-    await panel(page, "Science").locator("article").first().waitFor();
+    await ready(page, "Science");
     assert.equal(g.y, 0, "a tab opened for the first time starts at the top");
     await page.evaluate(() => scrollTo(0, 1500));
     await sleep(100);
@@ -188,17 +215,17 @@ try {
       colorScheme: "light",
       reducedMotion: "reduce",
     });
-    let release;
-    const { page, errors } = await open(context, new Promise((r) => (release = r)));
+    const held = Promise.withResolvers();
+    const { page, errors } = await open(context, held.promise);
     await page.goto(base);
-    await page.getByTestId("skeleton").first().waitFor();
-    const a = await sample(page, "skeleton");
+    await page.waitForFunction(() => document.querySelector("[data-testid=skeleton]"));
+    const a = await sample(page);
     await sleep(300);
-    const b = await sample(page, "skeleton");
+    const b = await sample(page);
     assert.equal(a.name, "none", "no shimmer");
     assert.deepEqual(a, b, "the bars stand still");
-    release();
-    await panel(page, "Discover").locator("article").first().waitFor();
+    held.resolve();
+    await ready(page, "Discover");
     assert.equal(
       await page.getByTestId("indicator").evaluate((e) => getComputedStyle(e).transitionDuration),
       "0s",
@@ -213,7 +240,9 @@ try {
     assert.deepEqual(errors, []);
     await context.close();
   }
-  console.log("sky home in Chrome: skeletons, paging, tabs, scroll, 414 note and reduced motion ok");
+  console.log(
+    "sky home in Chrome: skeletons, paging, tabs, scroll, 414 note and reduced motion ok",
+  );
 } finally {
   await browser.close();
   await server.close();

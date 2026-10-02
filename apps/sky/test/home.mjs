@@ -15,7 +15,7 @@ const science1 = fixture("home-science-1");
 // what the server does, by feed and cursor
 const requests = [];
 let scienceNext = () => new Response("URI Too Long", { status: 414 });
-globalThis.fetch = async (url) => {
+const respond = (url) => {
   const u = new URL(url);
   const { feed, cursor } = Object.fromEntries(u.searchParams);
   requests.push({ feed, cursor });
@@ -29,6 +29,7 @@ globalThis.fetch = async (url) => {
   if (feed.endsWith("/for-science")) return cursor ? scienceNext(cursor) : json(science1);
   return assert.fail(`unexpected feed ${feed}`);
 };
+globalThis.fetch = (url) => Promise.resolve(respond(url));
 
 const api = await import("../src/api.ts");
 const { createPaged } = await import("../src/paged.ts");
@@ -46,7 +47,7 @@ assert.ok(
 );
 
 // ---- the tabs: which is open, which were opened, where each was scrolled to --------------------
-await createRoot(async (dispose) => {
+createRoot((dispose) => {
   const tabs = createTabs(3);
   assert.equal(tabs.active(), 0);
   assert.deepEqual(tabs.opened(), [0]);
