@@ -1,4 +1,4 @@
-import { cx } from "cssints";
+import { _cv, cx } from "cssints";
 import {
   alignSelf,
   bg,
@@ -9,6 +9,7 @@ import {
   color,
   containerName,
   containerType,
+  cv,
   filter,
   flex,
   flexShrink,
@@ -34,7 +35,7 @@ import {
 } from "cssints" with { type: "cssints" };
 import { frame } from "cssints/frame" with { type: "cssints" };
 import { surface } from "cssints/surface" with { type: "cssints" };
-import { createMemo, createSignal, Show } from "solid-js";
+import { createMemo, createSignal, For, Show } from "solid-js";
 import type { AppBskyFeedDefs } from "@atcute/bluesky";
 
 import { mediaHidden, postVerdict } from "../api.ts";
@@ -43,18 +44,24 @@ import { t } from "../theme.ts" with { type: "cssints" };
 import { Avatar } from "./Avatar.tsx";
 import { Embed } from "./Embed.tsx";
 import { wide } from "./layout.ts" with { type: "cssints" };
-import { ago, count, postHref, recordOf } from "./model.ts";
+import { ago, count, fullTime, postHref, recordOf, stats } from "./model.ts";
 import { RichText } from "./RichText.tsx";
 
 // The cell is the container the card's width is read from. The card is a frame (rounded, padded, bordered) on a surface
 // one tonal step above the feed's; the quote and the media inside it are concentric with it and a step from it.
 const cell = cn(containerType("inline-size"), containerName("post"));
-const card = cn(
-  frame().radius(t.radius.xl).padding(2).border(t.border.width),
-  wide(frame().padding(3)),
-  surface().lighten(0.04),
-  borderColor(t.color.border),
-  grid().templateColumns("auto minmax(0, 1fr)").columnGap(t.space.sm).rowGap(t.space.xs),
+// The focused post of a thread is the same card with bigger text; its timestamp and counts come in a row of their own.
+const card = _cv(
+  cv({
+    base: cn(
+      frame().radius(t.radius.xl).padding(2).border(t.border.width),
+      wide(frame().padding(3)),
+      surface().lighten(0.04),
+      borderColor(t.color.border),
+      grid().templateColumns("auto minmax(0, 1fr)").columnGap(t.space.sm).rowGap(t.space.xs),
+    ),
+    variants: { look: { focus: fontSize(t.fontSize.xl) } },
+  }),
 );
 const tombCard = cn(
   frame().radius(t.radius.xl).padding(3).border(t.border.width),
@@ -122,6 +129,15 @@ const reveal = cn(
   fontWeight(t.fontWeight.semiBold),
 );
 
+const stamp = cn(color(t.color.textMedium), fontSize(t.fontSize.sm), marginTop(t.space.sm));
+const counts = cn(
+  flex().wrap("wrap").gap(t.space.lg),
+  fontSize(t.fontSize.sm),
+  color(t.color.textMedium),
+  marginTop(t.space.sm),
+);
+const num = cn(fontWeight(t.fontWeight.bold), color(t.color.text));
+
 const actions = cn(
   flex().alignItems("center").gap(t.space["3xl"]),
   color(t.color.textMedium),
@@ -134,15 +150,20 @@ const reply = cn(ph("chat-circle"), actionIcon);
 const repost = cn(ph("repeat"), actionIcon);
 const like = cn(ph("heart"), actionIcon);
 
+// A tombstone: a post that is hidden, blocked or gone, in the card's frame.
+export function Tomb(props: { children: string }) {
+  return <div class={tombCard}>{props.children}</div>;
+}
+
 // A post as a card: author, text, embed, counts. A moderated post is hidden or blurred behind a reveal button.
-export function Post(props: { post: AppBskyFeedDefs.PostView }) {
+export function Post(props: { post: AppBskyFeedDefs.PostView; focus?: boolean }) {
   const verdict = createMemo(() => postVerdict(props.post));
   const [revealed, setRevealed] = createSignal(false);
   const covered = () => verdict() === "warn" && !revealed();
   return (
     <article class={cell}>
-      <Show when={verdict() !== "hide"} fallback={<div class={tombCard}>Post hidden</div>}>
-        <div class={card}>
+      <Show when={verdict() !== "hide"} fallback={<Tomb>Post hidden</Tomb>}>
+        <div class={card({ look: props.focus ? "focus" : undefined })}>
           <div class={avatarSlot}>
             <Avatar
               src={
@@ -157,9 +178,11 @@ export function Post(props: { post: AppBskyFeedDefs.PostView }) {
               {props.post.author.displayName || props.post.author.handle}
             </a>
             <span class={meta}>@{props.post.author.handle}</span>
-            <a class={time} href={postHref(props.post)}>
-              · {ago(recordOf(props.post).createdAt ?? props.post.indexedAt)}
-            </a>
+            <Show when={!props.focus}>
+              <a class={time} href={postHref(props.post)}>
+                · {ago(recordOf(props.post).createdAt ?? props.post.indexedAt)}
+              </a>
+            </Show>
           </div>
           <div class={body}>
             <div class={guard}>
@@ -175,6 +198,20 @@ export function Post(props: { post: AppBskyFeedDefs.PostView }) {
                 </button>
               </Show>
             </div>
+            <Show when={props.focus}>
+              <div class={stamp}>
+                {fullTime(recordOf(props.post).createdAt ?? props.post.indexedAt)}
+              </div>
+              <div class={counts}>
+                <For each={stats(props.post)}>
+                  {(s) => (
+                    <span>
+                      <span class={num}>{s.n}</span> {s.label}
+                    </span>
+                  )}
+                </For>
+              </div>
+            </Show>
             <div class={actions}>
               <span class={action} aria-label={`${props.post.replyCount ?? 0} replies`}>
                 <span class={reply} />
