@@ -177,6 +177,7 @@ put(
 import { bg, cn, color, cv, hover, media, p } from "cssints" with { type: "cssints" };
 
 import { frame } from "cssints/frame" with { type: "cssints" };
+import { surface } from "cssints/surface" with { type: "cssints" };
 
 import { mdi } from "./icons.ts" with { type: "cssints" };
 import { ring } from "./ring.ts" with { type: "cssints" };
@@ -195,7 +196,7 @@ const button = _cv(
 export function Button({ busy }: { busy?: boolean }) {
   return (
     <button className={cx(button(), busy && p(9))}>
-      <span className={frame().radius("4px").padding(1)}>smoke</span>
+      <span className={cn(frame().radius("4px").padding(1), surface().lighten(0.06).ink())}>smoke</span>
     </button>
   );
 }
@@ -375,6 +376,14 @@ ok(
 ok(
   /--fr-r:\s*4px/.test(css) && /@container/.test(css) && /@property\s+--fr-p/.test(css),
   "css: cssints/frame from the installed package (kernel, registrations, method)",
+  css,
+);
+
+ok(
+  /--sf-d:\s*0?\.06/.test(css) &&
+    /oklch\(from var\(--sf-k/.test(css) &&
+    /@property\s+--sf-e/.test(css),
+  "css: cssints/surface from the installed package (kernel with the relative colour, registrations, method)",
   css,
 );
 
