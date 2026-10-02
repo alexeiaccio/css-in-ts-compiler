@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-30T11:57:32Z
-updated_at: 2026-10-02T08:14:13Z
+updated_at: 2026-10-02T08:18:10Z
 ---
 
 ## Destination
@@ -38,6 +38,8 @@ A public plugin API (`definePlugin` with `property`, `context` and `style` membe
 - [Published packages written on cssints](cssints-0l3f): source with the attribute, evaluated in the consumer's runner, recognised by the marker; pre-compiled waits for a user.
 
 - [keyframes() and positionTry(): local at-rules on the kernel seam](cssints-lirm): typed hashed names, the at-rule as a kernel in _.k of the using modules; member-call steps; users.ts +6.8%.
+
+- [Icons on the plugin API, replacing packages/plugin-icon](cssints-1x1o): @cssints/icons on style(); iconify-json and fs; names typed by a type argument; did-you-mean build errors; no runtime.
 
 ## Not yet specified
 
