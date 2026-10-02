@@ -1,6 +1,7 @@
 // Records the API fixtures of test/fixtures once (node scripts/record-fixtures.mjs). It calls the live API, so it is not part of
 // `bun run test`: the test reads the saved files.
 import { writeFileSync } from "node:fs";
+import { setTimeout as sleep } from "node:timers/promises";
 
 const HOST = "https://public.api.bsky.app/xrpc/";
 const DISCOVER = "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot";
@@ -15,7 +16,7 @@ const get = async (method, params) => {
       return await r.json();
     } catch (e) {
       if (i >= 4) throw e;
-      await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
+      await sleep(1000 * (i + 1));
     }
   }
 };

@@ -6,17 +6,21 @@
     "dev": "vp dev",
     "build": "vp build",
     "typecheck": "tsgo -p tsconfig.json --noEmit && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
-    "test": "node test/build.mjs && node test/dev.mjs",
+    "test": "node --conditions=browser test/api.mjs && node test/build.mjs && node test/dev.mjs",
     "preview": "vp preview"
   },
   "dependencies": {
+    "@atcute/bluesky": "^4.0.22",
+    "@atcute/client": "^5.1.2",
+    "@atcute/lexicons": "^2.1.1",
     "@cssints/icons": "workspace:*",
+    "@solidjs/router": "^2.0.0-next.34",
     "@solidjs/web": "next",
     "cssints": "workspace:*",
     "solid-js": "next"
   },
   "devDependencies": {
-    "@iconify-json/mdi": "^1.2.0",
+    "@iconify-json/ph": "^1.2.2",
     "@solidjs/vite-plugin": "3.0.0-next.47",
     "lightningcss": "^1.32.0",
     "vite": "catalog:"

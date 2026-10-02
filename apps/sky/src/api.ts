@@ -24,7 +24,8 @@ const handler: FetchHandler = async (path, init) => {
       return await base(path, init);
     } catch (e) {
       if (attempt >= 2 || init.signal?.aborted) throw e;
-      await new Promise((r) => setTimeout(r, 400 * 2 ** attempt));
+      // oxlint-disable-next-line promise/avoid-new, promise/param-names -- the browser has no promise form of setTimeout
+      await new Promise((done) => setTimeout(done, 400 * 2 ** attempt));
     }
   }
 };
@@ -65,7 +66,7 @@ function one(l: Label, did: string): Verdict {
   }
 }
 
-/** `labels` of the post (or quoted record) plus the labels of its author; other labelers and custom values are ignored. */
+// `labels` of the post (or quoted record) plus the labels of its author; other labelers and custom values are ignored.
 export function verdict(did: string, ...lists: (readonly Label[] | undefined)[]): Verdict {
   return lists
     .flatMap((x) => x ?? [])
@@ -73,7 +74,7 @@ export function verdict(did: string, ...lists: (readonly Label[] | undefined)[])
     .reduce<Verdict>((a, b) => (RANK[b] > RANK[a] ? b : a), "show");
 }
 
-/** An author whose profile is labeled adult: draw a placeholder instead of the avatar and banner. */
+// An author whose profile is labeled adult: draw a placeholder instead of the avatar and banner.
 export const mediaHidden = (did: string, authorLabels: readonly Label[] | undefined) =>
   (authorLabels ?? []).some(
     (l) => onProfile(l) && ADULT.has(l.val) && (l.src === BSKY_MOD || l.src === did),
@@ -87,7 +88,7 @@ export type Quote =
   | { kind: "hidden" } // moderated
   | { kind: "gone"; why: "blocked" | "detached" | "notFound" };
 
-/** The quote card of a post (also inside recordWithMedia), or undefined when there is none. */
+// The quote card of a post (also inside recordWithMedia), or undefined when there is none.
 export function quoteOf(p: AppBskyFeedDefs.PostView): Quote | undefined {
   const q = unwrapQuoteEmbed(unwrapEmbed(p.embed).record);
   if (!q) return undefined;

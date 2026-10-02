@@ -44,10 +44,8 @@ export const themedEntries = (
     .filter((t) => t.file === file || t.names.some((n) => names.has(n)))
     .map((t) => `${THEME}${t.key}\t${t.css}`);
 
-/**
- * Adds to `names` the tokens that those are made of: a derived token is `oklch(0.6 0.2 var(--hue-accent))`, no colour
- * unless `--hue-accent` has its @property rule, and so is a theme value that refers to a token. Through chains.
- */
+// Adds to `names` the tokens that those are made of: a derived token is `oklch(0.6 0.2 var(--hue-accent))`, no colour
+// unless `--hue-accent` has its @property rule, and so is a theme value that refers to a token. Through chains.
 export const closeNames = (
   names: Set<string>,
   defs: Map<string, { refs?: string[] }>,

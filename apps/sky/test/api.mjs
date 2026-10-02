@@ -3,6 +3,7 @@
 // takes it then), so nothing here reaches the network. Run with --conditions=browser: Solid's client build.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { setTimeout as sleep } from "node:timers/promises";
 
 const fixture = (name) =>
   JSON.parse(readFileSync(`${import.meta.dirname}/fixtures/${name}.json`, "utf8"));
@@ -12,6 +13,7 @@ const profile = fixture("profile");
 const thread = fixture("thread");
 
 // What the server will answer: a function of the request, set by each test.
+/** @type {(method: string, params: Record<string, string>) => unknown} */
 let answer = () => assert.fail("unexpected request");
 const requests = [];
 globalThis.fetch = async (url) => {
@@ -158,7 +160,6 @@ const served = () => (_, p) => {
   const n = Number(p.cursor ?? 0);
   return { feed: pages[n], cursor: n + 1 < pages.length ? String(n + 1) : undefined };
 };
-const tick = () => new Promise((r) => setTimeout(r, 5));
 
 answer = served();
 requests.length = 0;
@@ -183,7 +184,7 @@ await createRoot(async (dispose) => {
   );
   flush();
   await Promise.all(calls);
-  await tick();
+  await sleep(5);
   assert.equal(
     requests.length,
     3,

@@ -8,18 +8,14 @@ export interface Paged<T> {
   cursor: string | undefined; // undefined = no more pages
 }
 
-/**
- * First page: an async derived store. `source()` is read synchronously, so a new actor or tab re-runs it, and
- * reading `feed.items` under <Loading> shows the fallback until the first page lands.
- * Next pages: `loadMore()`, called by a sentinel at the end of the list.
- *
- * The in-flight flag is a separate signal on purpose: in solid-js 2.0.0-rc.13 a write to the derived store in
- * the same tick as a change of `source()` makes the store skip the re-run and keep showing the old source.
- * The store is only written after an `await`.
- *
- * The guard against a double call is a plain variable: a signal write is not visible to reads until the next
- * flush, so two calls in the same tick would both see `loadingMore() === false`.
- */
+// First page: an async derived store. `source()` is read synchronously, so a new actor or tab re-runs it, and
+// reading `feed.items` under <Loading> shows the fallback until the first page lands.
+// Next pages: `loadMore()`, called by a sentinel at the end of the list.
+// The in-flight flag is a separate signal on purpose: in solid-js 2.0.0-rc.13 a write to the derived store in
+// the same tick as a change of `source()` makes the store skip the re-run and keep showing the old source.
+// The store is only written after an `await`.
+// The guard against a double call is a plain variable: a signal write is not visible to reads until the next
+// flush, so two calls in the same tick would both see `loadingMore() === false`.
 export function createPaged<S, T>(
   source: () => S,
   load: (s: S, cursor?: string) => Promise<Page<T>>,
