@@ -2,7 +2,10 @@
 // edge stays plain. A failure surfaces as the tagged error itself, with `loc` set to the user's call (line and
 // column of the css.* call, or of the bad import), which is what Vite's overlay and build errors show.
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 
 import { browsers } from "@cssints/css-grammar/browsers";
 import { Cause, Effect, Exit } from "effect";
@@ -22,7 +25,7 @@ import type { ModuleRunner } from "vite/module-runner";
 import { verifyChecks } from "./contrast.ts";
 import { evaluate, DomEvaluator } from "./evaluate.ts";
 import { HookError, type PluginError, SiteMissingError } from "./errors.ts";
-import { instrument, RUNTIME, type Instrumented } from "./instrument.ts";
+import { instrument, keptImport, RUNTIME, type Instrumented } from "./instrument.ts";
 import { fallbackEntries, RUNTIME_ID, runtimeModule, runtimeNames } from "./delivery.ts";
 import { kernelEntries } from "./kernel.ts";
 import { forget, Registry } from "./registry.ts";
@@ -32,8 +35,41 @@ export { instrument } from "./instrument.ts";
 export { addGlobal, renderSheet } from "./sheet.ts";
 
 const FILE_RE = /\.(ts|tsx|js|jsx|mts|mjs)$/;
+const VERSION = /[?&]v=\w+$/;
 const SHEET_IMPORT = "virtual:cssints.css";
 const SHEET = `\0${SHEET_IMPORT}`;
+// A dependency's file is a site module only when it carries the attribute (cssints' own dist and most of node_modules
+// mention "cssints" without it): a package written on cssints, published with its attributes kept.
+const ATTRIBUTE = /type\s*:\s*["']cssints["']/;
+const marked = (code: string, id: string) =>
+  code.includes(RUNTIME) && (!id.includes("node_modules") || ATTRIBUTE.test(code));
+
+interface Manifest {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
+}
+
+// The direct dependencies of the app that depend on cssints (a package whose files carry the attribute imports
+// "cssints", so it lists it). The optimizer and the ssr externalization would strip or never run the attributes of
+// these, so they are excluded from both. A transitive one is not found: list it in the app's dependencies.
+const packagesOnCssints = (root: string) =>
+  Effect.sync(() => {
+    const read = (file: string) => {
+      try {
+        return JSON.parse(readFileSync(file, "utf8")) as Manifest;
+      } catch {
+        return undefined;
+      }
+    };
+    const app = read(join(root, "package.json"));
+    const lookup = createRequire(join(root, "package.json")).resolve.paths(RUNTIME) ?? [];
+    return Object.keys({ ...app?.dependencies, ...app?.devDependencies }).filter((name) => {
+      const m = lookup.map((dir) => read(join(dir, name, "package.json"))).find(Boolean);
+      return !!m && RUNTIME in { ...m.dependencies, ...m.peerDependencies };
+    });
+  });
+
 const hash = (s: string) => createHash("sha1").update(s).digest("hex").slice(0, 8);
 
 /** LightningCSS targets (css.lightningcss.targets) from the browserslist query of the support warnings. */
@@ -104,6 +140,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
   let ownServer = false;
   let runner: ModuleRunner | undefined; // private runner with DOM bindings; server.environments.ssr.runner stays untouched
   let build = false;
+  let root = process.cwd();
   let cssPlugins: (Plugin | undefined)[] = []; // vite:css, vite:css-post: in build they take the sheet in renderChunk
   const usedBy = new Map<string, string>(); // client module id -> its classes and @property rules, sorted, one a line
   const depsOf = new Map<string, Set<string>>(); // dependency file -> Set<client module id>
@@ -210,7 +247,11 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
       ms.overwrite(s.start, s.end, replacement);
     }
     // Build-time imports are gone from the client; runtime ones (cx, _cv) stay.
-    for (const decl of parsed.imp.decls) ms.remove(decl.start, decl.end);
+    for (const decl of parsed.imp.decls) {
+      const kept = keptImport(decl, code);
+      if (kept) ms.overwrite(decl.start, decl.end, kept);
+      else ms.remove(decl.start, decl.end);
+    }
 
     for (const dep of runnerDeps(env, id))
       (depsOf.get(dep) ?? depsOf.set(dep, new Set()).get(dep)!).add(id);
@@ -223,10 +264,11 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
   const transform = Effect.fn("cssints.transform")(function* (
     ctx: Rollup.TransformPluginContext,
     code: string,
-    id: string,
+    url: string,
   ) {
-    if (!FILE_RE.test(id) || id.includes("node_modules") || !code.includes(RUNTIME))
-      return undefined;
+    // Vite serves a dependency's file as `…/index.mjs?v=<hash>`; the engine knows it by its file.
+    const id = url.replace(VERSION, "");
+    if (!FILE_RE.test(id) || !marked(code, id)) return undefined;
     if (ctx.environment.name === "ssr") return (yield* instrument(code, id))?.code;
     if (inner) return undefined;
 
@@ -249,7 +291,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
       try: () =>
         createServer({
           configFile: false,
-          root: process.cwd(),
+          root,
           logLevel: "warn",
           // The scan would follow every import, attributed ones too, into build-time code (node:fs, plugin helpers).
           server: { middlewareMode: true, watch: null, hmr: false },
@@ -333,11 +375,16 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
   const main: Plugin = {
     name: "cssints",
     enforce: "pre",
+    config(user) {
+      const names = Effect.runSync(packagesOnCssints(resolve(user.root ?? process.cwd())));
+      return { optimizeDeps: { exclude: names }, ssr: { noExternal: names } };
+    },
     // The sheet of all (or the given) client modules transformed so far: test/run.mjs. A plain value for callers
     // that are not Effect programs (other plugins, tests).
     api: { sheet: (ids?: string[]) => Effect.runSync(sheet(ids)) },
     configResolved(config: ResolvedConfig) {
       build = config.command === "build";
+      root = config.root;
       cssPlugins = ["vite:css", "vite:css-post"].map((n) =>
         config.plugins.find((p) => p.name === n),
       );

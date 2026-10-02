@@ -8,6 +8,7 @@ const outOfScope = ["docs/archive/**"];
 const inputs = [
   "packages/cssints/test/fixtures/**",
   "packages/icons/test/fixtures/**",
+  "packages/cssints/test/pkg/**",
   "packages/css-grammar/bench/err.ts",
   "packages/cssints/bench/errors.ts",
 ];

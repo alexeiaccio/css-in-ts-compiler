@@ -35,6 +35,19 @@ const isSiteImport = (s: ImportDeclaration) =>
 const importedName = (x: ImportDeclarationSpecifier) =>
   x.type === "ImportSpecifier" ? nameOf(x.imported) : null;
 
+// A bundler (tsdown) merges `import { _cv } from "cssints"` into the attributed import of the same module: cx and _cv
+// stay runtime wherever they are written.
+const isRuntime = (d: ImportDeclaration, x: ImportDeclarationSpecifier) =>
+  d.source.value === RUNTIME &&
+  x.type === "ImportSpecifier" &&
+  RUNTIME_ONLY.has(nameOf(x.imported));
+
+// The runtime part of an attributed import, as an import of its own (`import { _cv } from "cssints";`), or "".
+export const keptImport = (d: ImportDeclaration, code: string) => {
+  const names = d.specifiers.filter((x) => isRuntime(d, x)).map((x) => code.slice(x.start, x.end));
+  return names.length ? `import { ${names.join(", ")} } from ${JSON.stringify(RUNTIME)};` : "";
+};
+
 interface CssImports {
   locals: Set<string>;
   decls: ImportDeclaration[];
@@ -53,7 +66,7 @@ const findCssImport = Effect.fnUntraced(function* (
     if (s.type !== "ImportDeclaration") continue;
     if (isSiteImport(s)) {
       decls.push(s);
-      s.specifiers.forEach((x) => locals.add(x.local.name));
+      s.specifiers.forEach((x) => isRuntime(s, x) || locals.add(x.local.name));
     } else if (s.source.value === RUNTIME) {
       const bad = s.specifiers.filter(
         (x) => x.type !== "ImportSpecifier" || !RUNTIME_ONLY.has(importedName(x) ?? ""),
@@ -186,13 +199,14 @@ export const instrument = Effect.fn("cssints.instrument")(function* (
   imp.decls.forEach((d, i) => {
     if (d.source.value !== RUNTIME) return;
     const ns = d.specifiers.find((x) => x.type === "ImportNamespaceSpecifier");
+    const named = d.specifiers.filter((x) => !isRuntime(d, x));
     const bind = ns
       ? ns.local.name
-      : `{ ${d.specifiers.map((x) => `${JSON.stringify(importedName(x))}: ${x.local.name}`).join(", ")} }`;
+      : `{ ${named.map((x) => `${JSON.stringify(importedName(x))}: ${x.local.name}`).join(", ")} }`;
     ms.overwrite(
       d.start,
       d.end,
-      `import { css as __css${i} } from ${JSON.stringify(RUNTIME)}; const ${bind} = __css${i};`,
+      `import { css as __css${i} } from ${JSON.stringify(RUNTIME)}; const ${bind} = __css${i};${keptImport(d, code)}`,
     );
   });
   ms.prepend(`import { __at, __site, __unseen } from ${JSON.stringify(RUNTIME)};\n`);
