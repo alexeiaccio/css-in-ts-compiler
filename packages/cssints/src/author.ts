@@ -89,7 +89,20 @@ export const style: typeof Types.style = (grammar: string, build: (value: string
   ((...args: unknown[]) => {
     const value = valueOf("style", "style", args);
     check("style", "style", grammar, value);
-    const { decls: d, markers, kernels } = build(value);
+    // Whatever `build` throws is a failure at the call site, as a grammar error is.
+    const {
+      decls: d,
+      markers,
+      kernels,
+    } = (() => {
+      try {
+        return build(value);
+      } catch (e) {
+        throw e instanceof MemberError
+          ? e
+          : failIn("style", e instanceof Error ? e.message : String(e));
+      }
+    })();
     return node(decls(d), {
       markers: markers?.map((m) => [m, kernels?.[0]?.key ?? ""]),
       kernels,
