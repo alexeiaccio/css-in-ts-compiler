@@ -11,7 +11,8 @@ packages/css-grammar   type-level recognizer (src/css.ts) + runtime twin (src/tw
                        Typed OM values, BCD support warnings, prose rules; test/, bench/ (instantiation budgets)
 packages/icons         @cssints/icons: icons() on the cssints/plugin style() helper (iconify-json and fs providers); test/: fixtures, icons.mjs, types/
 apps/demo              React demo on the plugin: every 0.1 feature (App.tsx, components/Showcase.tsx, theme.ts)
-apps/sky               Solid 2 skeleton on the plugin (solid-js@next, @solidjs/vite-plugin): one component, test/build.mjs and test/dev.mjs (build, HMR)
+apps/sky               Solid 2 app on the plugin (solid-js@next, @solidjs/router 2, atcute): Mu's shell (nav, 600 px column, rail, bottom bar), routes, themes,
+                       src/api.ts (public AppView) and paged.ts; test/api.mjs (recorded fixtures), build.mjs, dev.mjs (build, HMR)
 README.md              what cssints is, setup, a short example
 docs/wayfinder.md      decisions and findings log (start here); docs/API.md the API reference
 docs/research/         comparisons with other libraries; docs/archive/ outdated plans
@@ -41,7 +42,7 @@ cd packages/cssints && bun run test:browsers   # cssints/frame and cssints/surfa
 cd packages/cssints && bun run build          # vp pack (tsdown) into dist/; same in packages/css-grammar
 cd packages/css-grammar && node bench/budget.mjs --update    # after a deliberate type-cost change
 cd apps/demo && bun run build                # vp build
-cd apps/sky && bun run test                  # the Solid app: build check, then HMR on a style and on a component edit
+cd apps/sky && bun run test                  # the Solid app: api.ts against recorded fixtures, build check, then HMR on a style and on a component edit
 ```
 
 Plain `.ts` files run with `node` (type stripping), no build step: erasable syntax only (no enums, namespaces or parameter

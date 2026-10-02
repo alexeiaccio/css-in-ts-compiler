@@ -44,6 +44,21 @@ export const themedEntries = (
     .filter((t) => t.file === file || t.names.some((n) => names.has(n)))
     .map((t) => `${THEME}${t.key}\t${t.css}`);
 
+// Adds to `names` the tokens that those are made of: a derived token is `oklch(0.6 0.2 var(--hue-accent))`, no colour
+// unless `--hue-accent` has its @property rule, and so is a theme value that refers to a token. Through chains.
+export const closeNames = (
+  names: Set<string>,
+  defs: Map<string, { refs?: string[] }>,
+  themed: Map<string, Themed>,
+): void => {
+  for (let size = -1; size !== names.size; ) {
+    size = names.size;
+    for (const n of [...names]) defs.get(n)?.refs?.forEach((r) => names.add(r));
+    for (const t of themed.values())
+      if (t.names.some((n) => names.has(n))) t.css.match(/--[\w-]+/g)?.forEach((n) => names.add(n));
+  }
+};
+
 /** The rules of `entries`: class names, and the text of `@property` rules (once each, whichever module has them). */
 export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
   entries: Iterable<string>,

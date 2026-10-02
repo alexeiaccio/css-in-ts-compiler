@@ -38,6 +38,21 @@ assert.match(brand, /--color-hover:color-mix\(in oklab, var\(--color-accent\), b
 assert.match(brand, /--color-ring:oklch\(from var\(--color-hover\)/, css);
 assert.ok(!brand.includes("--space-lg"), "space does not depend on accent");
 
+// a token that others are made of has its @property rule though no class uses it, or `oklch(0.9 0.05 var(--root-hue-accent))`
+// is invalid at computed-value time and the registered initial value wins in every theme
+await code("derived-root.ts");
+const hueSheet = await sheet("derived-root.ts");
+assert.match(
+  hueSheet,
+  /@property --root-hue-accent\{[^}]*syntax:"<number>"[^}]*initial-value:345\}/,
+  hueSheet,
+);
+assert.match(
+  hueSheet,
+  /\.dim\{[^}]*--root-color-hover:oklch\(0\.7 0\.18 var\(--root-hue-accent\)\)/,
+  hueSheet,
+);
+
 await assert.rejects(code("derived-missing.ts"), (e) => {
   assert.match(
     e.message,

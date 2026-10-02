@@ -240,10 +240,14 @@ export declare const createGlobalTheme: <const X extends object, const O extends
 
 /** Build-time checks over tokens. */
 export declare const check: {
-  /** WCAG 2.x contrast of `fg` on `bg`, for the defaults and every theme that affects either; below `min` is a build error. */
-  readonly contrast: (
-    fg: Token<"color", boolean>,
-    bg: Token<"color", boolean>,
+  /**
+   * WCAG 2.x contrast of `fg` on `bg`, for the defaults and every theme that affects either; below `min` is a build error.
+   * A token from a JSON import has every type to the editor, so it fits; the build checks it is a colour.
+   */
+  readonly contrast: <F extends TokenType, B extends TokenType>(
+    fg: Token<F, boolean> & ColourOrAny<F>,
+    bg: Token<B, boolean> & ColourOrAny<B>,
     options: { readonly min: number },
   ) => void;
 };
+type ColourOrAny<K extends TokenType> = "color" extends K ? unknown : never;

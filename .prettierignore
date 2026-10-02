@@ -7,6 +7,9 @@ docs/archive
 packages/cssints/test/fixtures
 packages/icons/test/fixtures
 
+# Recorded API responses (apps/sky/scripts/record-fixtures.mjs), kept compact.
+apps/sky/test/fixtures
+
 # Written by docs/research/sublayers-proto (node run.mjs, node audit.mjs).
 docs/research/sublayers-proto/fixtures
 docs/research/sublayers-proto/*.json

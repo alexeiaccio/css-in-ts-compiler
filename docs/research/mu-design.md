@@ -151,21 +151,20 @@ rounded to 345). A Witchsky shift of `s` degrees is `hue.accent = 345 + s`. The 
 - `positive`, `negative` and `like` are fixed, as in Witchsky.
 
 Dark and dim read the ramp backwards, so the accent steps that change between themes (`hover`, `strong`, `soft`, `link`)
-differ there. Found while validating: **a theme override took plain values, not `{path}` references**
-(`createGlobalTheme(t, ".dim", { color: { accentHover: "oklch(0.7 0.18 {hue.accent})" } })` failed with "is not a <color>";
-so did `"{radius.sm}"` for a length). The tokens then took L and C from number tokens (`accentTone.*`), and the themes set
-those numbers. Since cssints-q6l0 an override takes references, so a theme writes the colour itself (see "Themes") and the
-`accentTone` group of `apps/sky/src/tokens.json` can go when the app takes the themes. `accent` itself (`primary_500`) is the
-same in every theme.
+differ there. Found while validating: **a theme override took plain values, not `{path}` references**, so the tokens took L
+and C from number tokens (`accentTone.*`) and the themes set those numbers. Since cssints-q6l0 an override takes references:
+a theme writes the colour itself (`accentHover: "oklch(0.697 0.177 {hue.accent})"`, see "Themes"), and the `accentTone` group
+of `apps/sky/src/tokens.json` is gone. `accent` itself (`primary_500`) is the same in every theme. Building the app showed
+that a token only referred to (`hue.accent`, which no class reads) got no `@property` rule, so every derived colour stayed at
+its initial value in every theme and the hue slider did nothing; the engine now adds the tokens a used token is made of.
 
 Mu's other accents as hue only: blue is h 231, orange 38, green 154, purple 306. Their L and C differ from pink (blue is
 L 0.605, C 0.115), so a hue move on the pink ramp is not the same as Mu's blue family.
 
 ## Themes (validated)
 
-Light is `tokens.json`. Dim and dark are not separate files, to keep `apps/sky/src` to one added file. They are
-`createGlobalTheme` overrides, and only the neutrals and four accent colours (written with `{hue.accent}`) change. This ran through the plugin without
-errors:
+Light is `tokens.json`. Dim and dark are not separate files: `apps/sky/src/theme.ts` holds them as `createGlobalTheme`
+overrides, and only the neutrals and four accent colours (written with `{hue.accent}`) change:
 
 ```ts
 import * as css from "cssints" with { type: "cssints" };
@@ -176,55 +175,36 @@ export const t = css.createTokens(tokens);
 css.createGlobalTheme(t, css.media("(width >= 800px)"), {
   gutter: { compact: "12px", base: "20px", wide: "28px" },
 });
-css.createGlobalTheme(t, ".square", {
-  radius: { button: "8px", avatar: "8px", avatarSmall: "3px" },
-});
 
-const dim = {
-  color: {
-    bg: "#1a1a1a",
-    bgSubtle: "#1c1c1c",
-    bgMuted: "#1f1f1f",
-    border: "#242424",
-    borderStrong: "#353535",
-    borderStronger: "#4b4a49",
-    textLow: "#62615f",
-    textMedium: "#abaaa6",
-    textHigh: "#e0ded9",
-    text: "#ffffff",
-    positiveSoft: "#032a17",
-    negativeSoft: "#430413",
-    shadow: "oklch(0 0 0 / 0.4)",
-    accentHover: "oklch(0.697 0.177 {hue.accent})",
-    accentStrong: "oklch(0.755 0.152 {hue.accent})",
-    accentSoft: "oklch(0.357 0.104 {hue.accent})",
-    link: "oklch(0.697 0.177 {hue.accent})",
-  },
-};
+const dim = { color: { bg: "#1a1a1a", /* neutrals ... */ accentHover: "oklch(0.697 0.177 {hue.accent})", link: "oklch(0.697 0.177 {hue.accent})" } };
+const dark = { color: { ...dim.color, bg: "#000000", bgSubtle: "#141414", bgMuted: "#212121", border: "#2a2a2a" } };
+const light = { color: /* the values of tokens.json for the keys of dim.color */ };
+
+css.createGlobalTheme(t, css.media("(prefers-color-scheme: dark)"), dark); // system
+css.createGlobalTheme(t, ".light", light); // light on a dark system
 css.createGlobalTheme(t, ".dim", dim);
-css.createGlobalTheme(t, ".dark", {
-  ...dim,
-  color: {
-    ...dim.color,
-    bg: "#000000",
-    bgSubtle: "#141414",
-    bgMuted: "#212121",
-    border: "#2a2a2a",
-  },
-});
+css.createGlobalTheme(t, ".dark", dark);
 
 css.check.contrast(t.color.text, t.color.bg, { min: 7 });
-css.check.contrast(t.color.textMedium, t.color.bg, { min: 4.5 });
+css.check.contrast(t.color.accentStrong, t.color.accentSoft, { min: 4.5 });
 ```
 
-Use `.dim` and `.dark` on `<html>`. Dim differs from dark only in the four neutral backgrounds. Mu's subdued positive and
+The mode is a class on `<html>`: `light`, `dim`, `dark`, or none for the system, which is dark under
+`prefers-color-scheme: dark`. A selector theme beats a condition theme on the same element, so a class always wins (checked
+in Chrome: `.light` under a dark system is white, no class is black, `.dim` is `#1a1a1a`). The system's dark is Mu's dark, not
+dim. Dim differs from dark only in the four neutral backgrounds. `--hue-accent` set on `<html>` moves the accent in every
+mode (`style.setProperty("--hue-accent", "230")` turned the whole palette blue in Chrome). Mu's subdued positive and
 negative ramps differ a little from the default ones; the tokens ignore that.
 
-Contrast: `text` on `bg` is 21 (light) and `textMedium` on `bg` is 8.84 (light), 7.48 (dim), 9.03 (dark). `textLow`
-(`contrast_400`, `#92918E`) on white is 3.15, so Mu's own low text is below AA: do not check it at 4.5.
+Contrast, from `check.contrast` (the derived colours are computed per theme): `text` on `bg` is 21 (light) and `textMedium`
+on `bg` is 8.84 (light), 7.48 (dim), 9.03 (dark). `textLow` (`contrast_400`, `#92918E`) on white is 3.15, so Mu's own low text
+is below AA: do not check it at 4.5. Mu's pink `accent` on white, and white on `accent`, is 3.79 (culori): fine for large text, icons and bold labels, not for
+body text, so the app checks those pairs at 3 and sets body text in `text`. `accentStrong` on `accentSoft` is 4.60 in light and
+4.95 in dim (checked at 4.5, so a hue that breaks it is a build error).
 
-The sheet has 89 `@property` rules. `--color-accent-hover` is
-`oklch(var(--accent-tone-hover-l) var(--accent-tone-hover-c) var(--hue-accent))` on `:root` (until the app drops `accentTone`), and `oklch(0.697 0.177 var(--hue-accent))` in `.dim` and `.dark`.
+The sheet of the shell has 62 `@property` rules (the tokens its classes use and what those are made of; the screens that come
+later use more). `--color-accent-hover` is `oklch(0.58 0.182 var(--hue-accent))`
+on `:root` and `oklch(0.697 0.177 var(--hue-accent))` in `.dim`, `.dark` and the dark media query.
 
 ## Not covered
 

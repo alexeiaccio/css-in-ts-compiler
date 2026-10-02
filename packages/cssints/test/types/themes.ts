@@ -210,3 +210,8 @@ const j = css.createTokens(json);
 css.bg(j.color.bg);
 // @ts-expect-error no token at this path
 css.bg(j.color.nope);
+// a JSON token has every type to the editor, so the contrast check takes it (the build says if it is no colour)
+css.check.contrast(j.color.bg, j.color.accent, { min: 3 });
+css.check.contrast(j.color.bg, css.token.color("#fff"), { min: 3 });
+// @ts-expect-error a typed length is still not a colour
+css.check.contrast(j.color.bg, css.token.length("1px"), { min: 3 });

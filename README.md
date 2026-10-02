@@ -32,7 +32,7 @@ import "virtual:cssints.css";
 
 ### Frameworks
 
-Any framework that builds JSX through a Vite plugin works; the engine evaluates your modules itself, so it does not care what the plugin makes of JSX, nor in which order the plugins are listed. `apps/sky` is the Solid 2 skeleton (`solid-js@next`, `@solidjs/web@next`, `@solidjs/vite-plugin`):
+Any framework that builds JSX through a Vite plugin works; the engine evaluates your modules itself, so it does not care what the plugin makes of JSX, nor in which order the plugins are listed. `apps/sky` is the Solid 2 app (`solid-js@next`, `@solidjs/web@next`, `@solidjs/vite-plugin`):
 
 ```ts skip
 // vite.config.ts
