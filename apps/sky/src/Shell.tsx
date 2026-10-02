@@ -87,7 +87,7 @@ const navItem = _cv(
         side: css.cn(
           css.minHeight(t.layout.navItem),
           css.paddingInline(t.space.md),
-          css.borderRadius(t.radius.full),
+          css.borderRadius(t.radius.button),
         ),
         bar: css.cn(
           css.flex().direction("column").justifyContent("center").gap(1),
@@ -161,6 +161,7 @@ const cardText = css.cn(
 const items = [
   { href: "/", label: "Home", icon: css.cn(ph("house"), icon) },
   { href: "/profile/bsky.app", label: "bsky.app", icon: css.cn(ph("user-circle"), icon) },
+  { href: "/settings", label: "Settings", icon: css.cn(ph("gear"), icon) },
 ];
 
 function NavItem(props: { href: string; label: string; icon: string; place: "side" | "bar" }) {

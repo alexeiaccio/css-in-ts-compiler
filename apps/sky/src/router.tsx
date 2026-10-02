@@ -3,6 +3,7 @@ import { createRouter, defineRoute } from "@solidjs/router";
 import Home from "./screens/Home.tsx";
 import NotFound from "./screens/NotFound.tsx";
 import Profile from "./screens/Profile.tsx";
+import Settings from "./screens/Settings.tsx";
 import Thread from "./screens/Thread.tsx";
 
 // the URLs of bsky.app
@@ -17,6 +18,7 @@ export const Router = createRouter({
       path: "/profile/:handle/post/:rkey",
       component: (props) => <Thread handle={props.params.handle} rkey={props.params.rkey} />,
     }),
+    { path: "/settings", component: Settings },
     { path: "*404", component: NotFound },
   ],
 });

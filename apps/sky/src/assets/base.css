@@ -3,6 +3,10 @@
 *::after {
   box-sizing: border-box;
 }
+html {
+  /* the page colour from the first frame, before any component is drawn */
+  background: var(--color-bg);
+}
 body {
   margin: 0;
 }
