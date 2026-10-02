@@ -150,11 +150,13 @@ rounded to 345). A Witchsky shift of `s` degrees is `hue.accent = 345 + s`. The 
   `check.contrast` exact. The accent colours are derived, so `check.contrast` can only warn for them.
 - `positive`, `negative` and `like` are fixed, as in Witchsky.
 
-Dark and dim read the ramp backwards, so the accent steps that change between themes (`hover`, `strong`, `soft`, `link`) take
-their L and C from number tokens (`accentTone.*`). Reason, found while validating: **a theme override takes plain values,
-not `{path}` references** (`createGlobalTheme(t, ".dim", { color: { accentHover: "oklch(0.7 0.18 {hue.accent})" } })` fails
-with "is not a <color>"; neither does `"{radius.sm}"` for a length). So the theme sets the numbers and the derived colours
-are declared again through the chain, which already works. `accent` itself (`primary_500`) is the same in every theme.
+Dark and dim read the ramp backwards, so the accent steps that change between themes (`hover`, `strong`, `soft`, `link`)
+differ there. Found while validating: **a theme override took plain values, not `{path}` references**
+(`createGlobalTheme(t, ".dim", { color: { accentHover: "oklch(0.7 0.18 {hue.accent})" } })` failed with "is not a <color>";
+so did `"{radius.sm}"` for a length). The tokens then took L and C from number tokens (`accentTone.*`), and the themes set
+those numbers. Since cssints-q6l0 an override takes references, so a theme writes the colour itself (see "Themes") and the
+`accentTone` group of `apps/sky/src/tokens.json` can go when the app takes the themes. `accent` itself (`primary_500`) is the
+same in every theme.
 
 Mu's other accents as hue only: blue is h 231, orange 38, green 154, purple 306. Their L and C differ from pink (blue is
 L 0.605, C 0.115), so a hue move on the pink ramp is not the same as Mu's blue family.
@@ -162,7 +164,7 @@ L 0.605, C 0.115), so a hue move on the pink ramp is not the same as Mu's blue f
 ## Themes (validated)
 
 Light is `tokens.json`. Dim and dark are not separate files, to keep `apps/sky/src` to one added file. They are
-`createGlobalTheme` overrides, and only the neutrals and four accent numbers change. This ran through the plugin without
+`createGlobalTheme` overrides, and only the neutrals and four accent colours (written with `{hue.accent}`) change. This ran through the plugin without
 errors:
 
 ```ts
@@ -193,16 +195,10 @@ const dim = {
     positiveSoft: "#032a17",
     negativeSoft: "#430413",
     shadow: "oklch(0 0 0 / 0.4)",
-  },
-  accentTone: {
-    hoverL: 0.697,
-    hoverC: 0.177,
-    strongL: 0.755,
-    strongC: 0.152,
-    softL: 0.357,
-    softC: 0.104,
-    linkL: 0.697,
-    linkC: 0.177,
+    accentHover: "oklch(0.697 0.177 {hue.accent})",
+    accentStrong: "oklch(0.755 0.152 {hue.accent})",
+    accentSoft: "oklch(0.357 0.104 {hue.accent})",
+    link: "oklch(0.697 0.177 {hue.accent})",
   },
 };
 css.createGlobalTheme(t, ".dim", dim);
@@ -228,7 +224,7 @@ Contrast: `text` on `bg` is 21 (light) and `textMedium` on `bg` is 8.84 (light),
 (`contrast_400`, `#92918E`) on white is 3.15, so Mu's own low text is below AA: do not check it at 4.5.
 
 The sheet has 89 `@property` rules. `--color-accent-hover` is
-`oklch(var(--accent-tone-hover-l) var(--accent-tone-hover-c) var(--hue-accent))` on `:root`, and again in `.dim` and `.dark`.
+`oklch(var(--accent-tone-hover-l) var(--accent-tone-hover-c) var(--hue-accent))` on `:root` (until the app drops `accentTone`), and `oklch(0.697 0.177 var(--hue-accent))` in `.dim` and `.dark`.
 
 ## Not covered
 
