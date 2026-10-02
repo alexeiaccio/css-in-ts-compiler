@@ -5,6 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>sky</title>
     <link rel="icon" href="data:," />
+    <!-- The stored appearance, before the first paint (src/settings.ts apply(), 345 is its BASE_HUE). -->
+    <script>
+      (function () {
+        var s = {},
+          h = document.documentElement;
+        try {
+          s = JSON.parse(localStorage.getItem("sky.settings")) || {};
+        } catch (e) {}
+        if (["light", "dim", "dark"].indexOf(s.mode) >= 0) h.classList.add(s.mode);
+        h.classList.toggle("square-buttons", s.squareButtons === true);
+        h.classList.toggle("square-avatars", s.squareAvatars === true);
+        if (Number.isInteger(s.hue) && Math.abs(s.hue) <= 180)
+          h.style.setProperty("--hue-accent", (345 + s.hue + 360) % 360);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

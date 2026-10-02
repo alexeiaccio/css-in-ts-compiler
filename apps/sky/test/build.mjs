@@ -32,6 +32,27 @@ assert.match(sheet, /\.dim\{[^}]*--color-accent-hover:oklch\(\.697 \.177 var\(--
 assert.ok(!sheet.includes("accent-tone"), "no accentTone workaround");
 assert.match(sheet, /@media \(width ?>= ?800px\)\{:root\{--gutter-compact:12px;--gutter-base:20px/);
 
+// Witchsky's square flags are theme classes that point the radius tokens at smaller ones; the shell reads them, and so does
+// a frame() (its radius is the token)
+assert.match(
+  sheet,
+  /:root\{[^}]*--radius-button:var\(--radius-full\);--radius-avatar:var\(--radius-full\)/,
+);
+assert.match(sheet, /\.square-buttons\{--radius-button:var\(--radius-sm\)\}/);
+assert.match(
+  sheet,
+  /\.square-avatars\{--radius-avatar:var\(--radius-sm\);--radius-avatar-small:3px\}/,
+);
+assert.match(sheet, /\._\w+\{border-radius:var\(--radius-button\)\}/); // the nav items
+assert.match(sheet, /\._\w+\{--fr-r:var\(--radius-button\)\}/); // a frame on the token
+assert.match(sheet, /\._\w+\{border-radius:var\(--radius-avatar-small\)\}/);
+assert.match(
+  sheet,
+  /@property --radius-button\{syntax:"<length>";inherits:true;initial-value:999px\}/,
+);
+// the page colour is set on <html>, so the first frame has it before a component is drawn
+assert.match(sheet, /html\{background:var\(--color-bg\)\}/);
+
 // Inter, self-hosted, with its licence
 assert.match(sheet, /font-family:"?Inter Variable"?/);
 assert.ok(existsSync("public/fonts/inter/OFL.txt"));
