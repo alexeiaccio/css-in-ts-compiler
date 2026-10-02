@@ -1218,3 +1218,11 @@ Mu is Bluesky's design system with the colours replaced: spacing, radii, type sc
 Licence: the token values and Inter (OFL 1.1) and Phosphor icons (MIT) are usable; Bluesky and Mu marks, logos, images, commissioned art and a Font Awesome Pro avatar are not. The app ships under its own name.
 
 Two cssints findings: a `createGlobalTheme` override takes plain values only, not `{path}` references, so the dim and dark themes set lightness and chroma numbers that the derived colours read; and `check.contrast` warnings for derived colours did not show up in a dev run.
+
+## Theme overrides may refer to tokens (cssints-q6l0)
+
+A `createGlobalTheme` override can be a whole-value reference (`"{radius.sm}"`) or a CSS value with references inside (`"oklch(0.7 0.1 {hue.accent})"`), as tokens can since cssints-5y5a. The theme declares `var(--target)`, so it stays live, and tokens derived from an overridden token are declared again in the same rule. Order does not matter: one rule is one element, and `var()` reads that element's own value of the target. A reference to no token, a whole-value reference of another type, a value not of the token's type after substitution, and a cycle through base tokens and the theme are errors in the editor and at build time. Paths are from the root, so a theme that refers to another group needs the root `t`. Cost: about 800 instantiations per file. Mu's dim and dark themes no longer need the number-token workaround. (The agent wrote the API.md bullet into the main checkout instead of its worktree; it was committed separately.)
+
+## Contrast warnings in dev (cssints-hbqf)
+
+The warnings were never lost in the logger: a derived `color-mix()` colour warned on its first evaluation. The `warned` set, which keeps contrast and support warnings to one per build, was never cleared, and a dev server has no end of build, so a warning came once per process and never after an edit. The client `hotUpdate` hook now clears it; a build still warns once (test in `test/themes.mjs`, failing before the fix). Separate problem, ticketed as cssints-l90l: `check.contrast` follows `alias` only and reads a derived token as its default literal, so a theme that changes a token it refers to is not checked (a probe passed at a real ratio of about 1.1).

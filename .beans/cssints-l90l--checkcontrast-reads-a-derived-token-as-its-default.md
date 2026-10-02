@@ -5,7 +5,7 @@ status: todo
 type: bug
 priority: normal
 created_at: 2026-10-02T14:51:08Z
-updated_at: 2026-10-02T14:51:08Z
+updated_at: 2026-10-02T15:00:10Z
 parent: cssints-co8y
 ---
 
