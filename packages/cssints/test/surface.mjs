@@ -38,7 +38,11 @@ const write = (name, body) => {
 const use = await code("surface-use.ts");
 assert.match(use, /export const a = "_s _\w+ _\w+ _\w+";/, use);
 assert.match(use, /export const b = "_s _\w+";/);
-assert.match(use, /export const d = "_s _\w+ _\w+";/, "cn(): one marker, the hover step is a class");
+assert.match(
+  use,
+  /export const d = "_s _\w+ _\w+";/,
+  "cn(): one marker, the hover step is a class",
+);
 assert.ok(
   use.includes("virtual:cssints/runtime/surface"),
   "a client module that uses surface() imports its runtime",
@@ -170,7 +174,10 @@ await conflict("surface-c-bgcolor.ts", `css.backgroundColor("white")`, "backgrou
 await conflict("surface-c-background.ts", `css.background("red")`, "background");
 await conflict("surface-c-hover.ts", `css.hover(css.bg("white"))`, "background-color");
 for (const [name, call] of [
-  ["surface-ok-image.ts", `css.backgroundImage("linear-gradient(red, blue)"), css.backgroundSize("cover")`],
+  [
+    "surface-ok-image.ts",
+    `css.backgroundImage("linear-gradient(red, blue)"), css.backgroundSize("cover")`,
+  ],
   ["surface-ok-other.ts", `css.color("red"), css.borderColor("blue"), css.gap(2)`],
 ]) {
   await code(write(name, `export const a = css.cn(surface().lighten(0.1), ${call});\n`));
