@@ -6,7 +6,13 @@ import type {
   AppBskyFeedDefs,
   AppBskyFeedGetAuthorFeed,
 } from "@atcute/bluesky";
-import { Client, ok, retryFetchHandler, simpleFetchHandler } from "@atcute/client";
+import {
+  Client,
+  ClientResponseError,
+  ok,
+  retryFetchHandler,
+  simpleFetchHandler,
+} from "@atcute/client";
 import type { FetchHandler } from "@atcute/client";
 import type { ActorIdentifier, ResourceUri } from "@atcute/lexicons";
 
@@ -114,8 +120,16 @@ export async function homeScreen(
   cursor?: string,
   feed: ResourceUri = DISCOVER,
 ): Promise<Page<AppBskyFeedDefs.FeedViewPost>> {
-  const r = await ok(rpc.get("app.bsky.feed.getFeed", { params: { feed, limit: 30, cursor } }));
-  return { items: visible(r.feed), cursor: next(r.cursor) };
+  try {
+    const r = await ok(rpc.get("app.bsky.feed.getFeed", { params: { feed, limit: 30, cursor } }));
+    return { items: visible(r.feed), cursor: next(r.cursor) };
+  } catch (e) {
+    // the cursor outgrew the URL (the cap above usually stops it first): that is the end of the feed, not an error
+    if (cursor && e instanceof ClientResponseError && e.status === 414) {
+      return { items: [], cursor: undefined };
+    }
+    throw e;
+  }
 }
 
 // ---- profile: the actor is a handle or a DID, straight from the URL --------------------------

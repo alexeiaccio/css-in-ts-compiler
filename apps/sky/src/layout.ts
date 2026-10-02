@@ -10,3 +10,6 @@ export const [gtPhone, gtMobile, gtRail, gtTablet] = media(
 
 // The centre column is a container named "column": its parts react to its width, not the window's.
 export const narrow = container("column (width < 500px)");
+
+// Motion that has to stop for people who asked for less (the shimmer, the tab indicator).
+export const { reduced } = media({ reduced: "(prefers-reduced-motion: reduce)" });
