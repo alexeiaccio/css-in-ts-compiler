@@ -923,9 +923,9 @@ export function matches(syntax: string, s: string, pending = false): boolean {
   return complete(consume(parseGrammar(syntax), v, ctx), ctx);
 }
 
-// Twin of Valid<P, S>: returns the value, or throws with the furthest point reached and what was expected.
-export function valid(p: string, s: string): string {
-  const syntax = props[p];
+// Twin of Valid<P, S> (ValidIn<Label, G, S> with `syntax`): returns the value, or throws with the furthest point
+// reached and what was expected. `p` is the property, or what a message calls a plugin's grammar.
+export function valid(p: string, s: string, syntax: string | undefined = props[p]): string {
   if (!syntax)
     throw new UnknownPropertyError({ message: `${p}: no grammar for this property`, property: p });
   const v = trim(s);

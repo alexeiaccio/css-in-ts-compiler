@@ -7,8 +7,8 @@ import { createRequire } from "node:module";
 import { properties } from "@cssints/css-grammar/mdn";
 import { Cause, Effect, Exit } from "effect";
 
-import { MacroError } from "./errors.ts";
-import { type Kernel, type Property, registry } from "./registry.ts";
+import { MacroError, MemberError } from "./errors.ts";
+import { type Kernel, type Plug, type Property, registry } from "./registry.ts";
 
 /**
  * One condition of a style: an at-rule prelude (`@media (width >= 40rem)`) or a pseudo-class (`:hover`).
@@ -22,18 +22,43 @@ export interface Cond {
 export type Decl = [prop: string, value: string, conds?: Cond[]];
 /**
  * What a css.* builder returns: its declarations, and next to them the fixed classes it prints (`markers`, each with
- * the key of the kernel it belongs to) and the kernels it needs. `cn()` merges both.
+ * the key of the kernel it belongs to), the kernels it needs, and the plugin members whose runtime and conflicts apply
+ * (`plugs`). `cn()` merges all three.
  */
 export interface CssNode {
   __cssints: Decl[];
   markers?: [marker: string, kernel: string][];
   kernels?: Kernel[];
+  plugs?: Plug[];
 }
+type Carry = Pick<CssNode, "markers" | "kernels" | "plugs">;
+
+// A style node. Chaining a method on it calls `chain(name, args, self)`, which makes the next node (flex() and grid(),
+// a plugin's context). The target always has the three carried keys (undefined when empty): a missing one would read
+// as a chain method.
+export const node = (
+  decls: Decl[],
+  { markers, kernels, plugs }: Carry = {},
+  chain: (name: string, args: unknown[], self: CssNode) => CssNode = (name, args) =>
+    node([chainDecl(undefined, name, args)]),
+): CssNode =>
+  new Proxy<CssNode>(
+    { __cssints: decls, markers, kernels, plugs },
+    {
+      get: (t, k) =>
+        k in t || typeof k === "symbol"
+          ? (t as unknown as Record<string | symbol, unknown>)[k]
+          : (...args: unknown[]) => chain(k, args, t),
+    },
+  );
 
 export const camel = (p: string) => p.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
 
 // A builder error names the call site being evaluated (`__at` set it), when there is one.
 export const fail = (message: string) => new MacroError({ message, ...registry.at });
+// The same for what a plugin member does wrong.
+export const failIn = (plugin: string, message: string) =>
+  new MemberError({ message, pluginName: plugin, ...registry.at });
 
 // Runs an Effect at a synchronous edge, a builder that user code calls in an expression: a failure is thrown as the error itself.
 export const edge = <A>(program: Effect.Effect<A, MacroError>): A => {
@@ -163,8 +188,8 @@ const decl = (prop: string, name: string, args: unknown[]): Decl => {
 
 // The markers and kernels of several nodes, each once (a kernel by identity: members share one by pointing at it; the
 // same key with another css is caught when the sheet registers it). Plain code: cn() and every condition call it.
-export function carried(nodes: CssNode[]): Pick<CssNode, "markers" | "kernels"> {
-  const out: Pick<CssNode, "markers" | "kernels"> = {};
+export function carried(nodes: CssNode[]): Carry {
+  const out: Carry = {};
   for (const n of nodes) {
     if (n.markers)
       for (const m of n.markers) {
@@ -175,6 +200,11 @@ export function carried(nodes: CssNode[]): Pick<CssNode, "markers" | "kernels"> 
       for (const k of n.kernels) {
         const all = (out.kernels ??= []);
         if (!all.includes(k)) all.push(k);
+      }
+    if (n.plugs)
+      for (const p of n.plugs) {
+        const all = (out.plugs ??= []);
+        if (!all.includes(p)) all.push(p);
       }
   }
   return out;

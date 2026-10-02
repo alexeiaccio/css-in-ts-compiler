@@ -14,7 +14,7 @@ import {
 } from "vite/module-runner";
 
 import { verifyChecks } from "./contrast.ts";
-import { EvalError, MacroError } from "./errors.ts";
+import { EvalError, MacroError, MemberError } from "./errors.ts";
 import { forget, Registry, type RegistryState } from "./registry.ts";
 
 // Same as Vite's ESModulesEvaluator, but every happy-dom global that Node lacks (document, window,
@@ -65,6 +65,7 @@ const clearApp = ({ idToModuleMap, urlToIdModuleMap, fileToModulesMap }: Evaluat
 };
 
 const isMacroError = (e: unknown): e is MacroError => Predicate.isTagged(e, "MacroError");
+const isMemberError = (e: unknown): e is MemberError => Predicate.isTagged(e, "MemberError");
 
 // What came out of runner.import. The runner has its own copy of errors.ts, so a MacroError from the library is
 // recognized by its tag and rebuilt here with the same fields; anything else is the module's own failure.
@@ -74,6 +75,15 @@ const failureOf = (id: string, registry: RegistryState) => (e: unknown) => {
   if (isMacroError(e))
     return new MacroError({
       message: e.message,
+      file: e.file,
+      site: e.site,
+      offset: e.offset,
+      cause: e.cause,
+    });
+  if (isMemberError(e))
+    return new MemberError({
+      message: e.message,
+      pluginName: e.pluginName,
       file: e.file,
       site: e.site,
       offset: e.offset,
@@ -94,7 +104,7 @@ const failureOf = (id: string, registry: RegistryState) => (e: unknown) => {
 const evaluateModule = Effect.fnUntraced(function* (
   runner: ModuleRunner,
   id: string,
-): Effect.fn.Return<Map<number, string>, MacroError | EvalError> {
+): Effect.fn.Return<Map<number, string>, MacroError | MemberError | EvalError> {
   const registry = yield* Registry;
   registry.sites.delete(id);
   forget(id);
@@ -129,6 +139,6 @@ export const evaluate = Effect.fn("cssints.evaluate")(function* <A, E>(
   runner: ModuleRunner,
   id: string,
   whileLocked: (sites: Map<number, string>) => Effect.Effect<A, E>,
-): Effect.fn.Return<A, E | MacroError | EvalError> {
+): Effect.fn.Return<A, E | MacroError | MemberError | EvalError> {
   return yield* evalLock.withPermit(evaluateModule(runner, id).pipe(Effect.flatMap(whileLocked)));
 });

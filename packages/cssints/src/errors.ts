@@ -14,6 +14,17 @@ export class MacroError extends Data.TaggedError("MacroError")<{
   readonly cause?: unknown;
 }> {}
 
+/** A plugin member was called wrongly, or its styles conflict. `pluginName` is the member's name; the call site as in MacroError. */
+export class MemberError extends Data.TaggedError("MemberError")<{
+  readonly message: string;
+  /** The plugin member's name (`plugin` is taken: Vite sets it to the name of the Vite plugin that threw). */
+  readonly pluginName: string;
+  readonly file?: string;
+  readonly site?: number;
+  readonly offset?: number;
+  readonly cause?: unknown;
+}> {}
+
 /** `import ... from "cssints"` without the attribute names something that only exists at build time. */
 export class ImportError extends Data.TaggedError("ImportError")<{
   readonly message: string;
@@ -43,4 +54,10 @@ export class HookError extends Data.TaggedError("HookError")<{
   readonly cause?: unknown;
 }> {}
 
-export type PluginError = MacroError | ImportError | EvalError | SiteMissingError | HookError;
+export type PluginError =
+  | MacroError
+  | MemberError
+  | ImportError
+  | EvalError
+  | SiteMissingError
+  | HookError;

@@ -23,6 +23,7 @@ import { verifyChecks } from "./contrast.ts";
 import { evaluate, DomEvaluator } from "./evaluate.ts";
 import { HookError, type PluginError, SiteMissingError } from "./errors.ts";
 import { instrument, RUNTIME, type Instrumented } from "./instrument.ts";
+import { fallbackEntries, RUNTIME_ID, runtimeModule, runtimeNames } from "./delivery.ts";
 import { kernelEntries } from "./kernel.ts";
 import { forget, Registry } from "./registry.ts";
 import { LAYERS, renderSheet, themedEntries } from "./sheet.ts";
@@ -148,6 +149,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     warn: (w: string) => void,
   ) {
     const recorded = Effect.fnUntraced(function* (sites: Map<number, string>) {
+      let runtimes: string[] = [];
       if (parsed.sites.every((_, n) => sites.has(n))) {
         const registry = yield* Registry;
         const { rules, properties, themed } = registry;
@@ -164,15 +166,20 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
           ...[...names].flatMap((n) => properties.get(n)?.css ?? []),
           ...themedEntries(themed, id, names),
           ...kernelEntries(registry, id),
+          ...(yield* fallbackEntries(registry, id)),
         ]);
+        runtimes = runtimeNames(registry, id);
       }
-      return sites;
+      return { sites, runtimes };
     });
-    const sites = parsed.sites.length
+    const { sites, runtimes } = parsed.sites.length
       ? yield* evaluate(runner!, id, recorded).pipe(Effect.ensuring(flushWarnings(warn)))
       : yield* Effect.sync(() => forget(id)).pipe(Effect.andThen(recorded(new Map())));
 
     const ms = new MagicString(code);
+    // The runtime of every plugin member a site holds: a module that decides at load what it contains.
+    if (runtimes.length)
+      ms.prepend(runtimes.map((n) => `import ${JSON.stringify(RUNTIME_ID + n)};\n`).join(""));
     for (const [n, s] of parsed.sites.entries()) {
       const replacement = sites.get(n);
       if (replacement === undefined)
@@ -339,10 +346,13 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     },
     resolveId(id) {
       if (id === SHEET_IMPORT) return SHEET;
+      if (id.startsWith(RUNTIME_ID)) return `\0${id}`;
     },
     // Build: the rules are known only once every module is transformed, so a placeholder until renderChunk.
     load(id) {
       if (id === SHEET) return build ? LAYERS : Effect.runSync(sheet());
+      if (id.startsWith(`\0${RUNTIME_ID}`))
+        return Effect.runSync(runtimeModule(id.slice(RUNTIME_ID.length + 1)));
     },
     renderChunk(_, chunk) {
       return run(renderChunk(this, chunk));

@@ -1,82 +1,18 @@
 // What TypeScript sees of "cssints" (the "types" condition of package.json): the build-time members with the
 // types they have in user code, where every call is already a class string, because the plugin replaced it.
 // The implementation (macro.ts) builds declaration nodes instead; nothing here runs.
-import type { Furthest, Hint, Valid } from "@cssints/css-grammar/css";
 import type { properties } from "@cssints/css-grammar/mdn";
 import type { Condition } from "@cssints/css-grammar/query";
 import type { StyleObject, TokenFn, TokenSetFn, TokenType } from "@cssints/css-grammar/token";
-import type { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
+import type { CSS, CSSColorValue, CSSUnitValue } from "@cssints/css-grammar/values";
 
+import type { Check, Part, Style } from "./parts.ts";
 import type { CvRuntimeConfig } from "./runtime.ts";
 
 export * from "./members.ts";
 export * from "./theme-types.ts";
 export { _cv, cx, type ClassValue, type CvRuntimeConfig } from "./runtime.ts";
-
-/** A value part: a string, a Typed OM value, or a lone number (the spacing scale in spacing properties). */
-export type Part = string | number | CSSStyleValue;
-/** What every member returns: a class string. It is a string (`className`, `cx`), but only members make one. */
-export type Style = string & { readonly __cssints: "style" };
-
-// A part is text for the recognizer; a Typed OM value is the sentinel `⟨type⟩` (css.ts). A lone number is a spacing
-// step (`⟨length⟩`) in the properties lib.ts scales, and a CSS <number> everywhere else. A style is no value.
-type Text<P> = P extends Style
-  ? "⟨style⟩"
-  : P extends string
-    ? P extends ""
-      ? "⟨empty⟩"
-      : P
-    : P extends number
-      ? `${P}`
-      : P extends CSSStyleValue<infer T>
-        ? `⟨${T}⟩`
-        : never;
-type Join<A extends readonly Part[]> = A extends readonly [
-  infer H,
-  ...infer R extends readonly Part[],
-]
-  ? R extends readonly []
-    ? Text<H>
-    : `${Text<H>} ${Join<R>}`
-  : "";
-type Spacing = "padding" | "margin" | "inset" | "gap" | "row-gap" | "column-gap";
-type Value<P, A extends readonly Part[]> = A extends readonly [number]
-  ? P extends Spacing | `${Spacing}-${string}`
-    ? "⟨length⟩"
-    : Join<A>
-  : Join<A>;
-// On failure the bad part's parameter type becomes the Valid message, so the error lands on that argument: the
-// first part whose end is at or past the furthest point the grammar reached (`Furthest`, the start of the bad token).
-type Bad<
-  A extends readonly Part[],
-  Pre extends string,
-  Seen extends string = "",
-  I extends 0[] = [],
-> = A extends readonly [infer H, ...infer R extends readonly Part[]]
-  ? (Seen extends "" ? Text<H> : `${Seen} ${Text<H>}`) extends infer J extends string
-    ? J extends `${Pre}${string}`
-      ? `${I["length"]}`
-      : Bad<R, Pre, J, [...I, 0]>
-    : never
-  : "0";
-type Check<P extends keyof typeof properties, A extends readonly Part[]> =
-  Valid<P, Value<P, A>> extends infer V
-    ? V extends Value<P, A>
-      ? A
-      : A extends readonly []
-        ? [value: V]
-        : Locate<P, A, V, Value<P, A>>
-    : never;
-type Locate<P extends keyof typeof properties, A extends readonly Part[], V, S extends string> =
-  Furthest<P, S> extends infer F extends string
-    ? S extends `${infer Pre}${F}`
-      ? {
-          [K in keyof A]: K extends Bad<A, Pre>
-            ? V | Hint<P, A[K] extends string ? A[K] : never>
-            : A[K];
-        }
-      : { [K in keyof A]: V }
-    : never;
+export type { Part, Style };
 
 /** One property: parts are checked against its mdn grammar; `R` is what the call gives (a chain method: the chain). */
 export type Prop<P extends keyof typeof properties, R = Style> = <const A extends readonly Part[]>(

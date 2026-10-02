@@ -4,7 +4,7 @@ import { defineConfig } from "vite-plus";
 // `./*` subpath exports of the package keep their shape. The package still runs from src/ in the repo.
 export default defineConfig({
   pack: {
-    entry: ["src/*.ts", "!src/css.ts", "!src/mdn.ts"],
+    entry: ["src/*.ts", "!src/mdn.ts"],
     unbundle: true,
     platform: "node",
     format: "esm",

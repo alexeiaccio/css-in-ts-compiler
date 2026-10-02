@@ -16,7 +16,7 @@ import { messageOf } from "@cssints/css-grammar/support";
 import { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
 import { Cause, Effect, Exit } from "effect";
 
-import { MacroError } from "./errors.ts";
+import { MacroError, MemberError } from "./errors.ts";
 import {
   camel,
   carried,
@@ -28,6 +28,7 @@ import {
   LAYER,
   MAX_CONDS,
   minWidth,
+  node,
   probed,
   PSEUDOS,
   toDecls,
@@ -36,39 +37,37 @@ import {
   type CssNode,
   type Decl,
 } from "./lib.ts";
+import { addRuntime } from "./delivery.ts";
 import { addKernel } from "./kernel.ts";
-import { type At, registry, Registry, type RegistryState, type Rule } from "./registry.ts";
+import {
+  type At,
+  forgetKernels,
+  registry,
+  Registry,
+  type RegistryState,
+  type Plug,
+  type Rule,
+} from "./registry.ts";
 import { _cv as runtimeCv, type CvRuntimeConfig } from "./runtime.ts";
 import { check, createGlobalTheme, createTokens, isDone, tokensOf } from "./theme.ts";
 import { isStyle, style, token, type StyleNode } from "./token.ts";
 
 export { CSS, CSSColorValue, CSSUnitValue };
 
-// A style: its declarations, the layout context (flex / grid) whose container properties it chains, and its markers
-// and kernels. The target always has the two keys (undefined when empty): a missing one would read as a chain method.
-const node = (
-  decls: Decl[],
-  ctx: string | undefined,
-  { markers, kernels }: Pick<CssNode, "markers" | "kernels"> = {},
-): CssNode =>
-  new Proxy<CssNode>(
-    { __cssints: decls, markers, kernels },
-    {
-      get: (t, k) =>
-        k in t || typeof k === "symbol"
-          ? (t as unknown as Record<string | symbol, unknown>)[k]
-          : (...args: unknown[]) => node([...decls, chainDecl(ctx, k, args)], ctx, t),
-    },
-  );
+// A style's chain: flex() and grid() chain the container properties of their context.
+const flexChain =
+  (ctx: string) =>
+  (name: string, args: unknown[], self: CssNode): CssNode =>
+    node([...self.__cssints, chainDecl(ctx, name, args)], self, flexChain(ctx));
 
 const member =
   (k: string) =>
   (...args: unknown[]) =>
-    node(toDecls(k, args), CONTEXTS[k] && !args.length ? k : undefined);
+    CONTEXTS[k] && !args.length ? node(toDecls(k, args), {}, flexChain(k)) : node(toDecls(k, args));
 
 export const cn = (...args: unknown[]) => {
   const decls = toDecls("cn", args);
-  return node(decls, undefined, carried(args as CssNode[]));
+  return node(decls, carried(args as CssNode[]));
 };
 export const flex = member("flex");
 export const grid = member("grid");
@@ -99,7 +98,6 @@ const wrapper = (cond: Cond): Wrapper =>
             return [p, v, [cond, ...inner]];
           }),
         ),
-        undefined,
         carried(styles),
       );
     },
@@ -154,10 +152,12 @@ const isCv = (v: unknown): v is CvNode => !!v && typeof v === "object" && "__cv"
 type Invalid = DeclarationError;
 
 // A failure names the call site it happened in, so the plugin can point Vite at it.
-const located = (at: At) => (e: Invalid | MacroError) =>
-  e instanceof MacroError && e.file !== undefined
+const located = (at: At) => (e: Invalid | MacroError | MemberError) =>
+  "file" in e && e.file !== undefined
     ? e
-    : new MacroError({ message: e.message, cause: e, ...at });
+    : "pluginName" in e
+      ? new MemberError({ message: e.message, pluginName: e.pluginName, cause: e, ...at })
+      : new MacroError({ message: e.message, cause: e, ...at });
 
 // The rule of one declaration: its layer is the number of its conditions; pseudo-classes join the selector, the
 // others wrap the rule; `cond` orders the rules of a layer (min-width, then pseudo-class places).
@@ -191,8 +191,9 @@ const ruleOf = (cls: string, [prop, value, conds = []]: Decl): Rule => {
 const checkNow = (
   [prop, value]: Decl,
   fresh: boolean,
-  { warnings, warned, properties }: RegistryState,
+  { warnings, warned, properties, userProps }: RegistryState,
 ) => {
+  if (userProps.has(prop)) return; // a property() member checked its value against its own grammar
   for (const v of probed(value, properties)) {
     let found;
     try {
@@ -234,12 +235,32 @@ const classesNow = (
   return out.join(" ");
 };
 
+// A plugin's conflicts: its marker with one of the listed properties in one style.
+const conflictOf = ({ name, conflicts }: Plug, decls: Decl[], at?: At): MemberError | undefined => {
+  const hit =
+    conflicts &&
+    decls.find(([p]) => conflicts.props.some((c) => (typeof c === "string" ? c === p : c.test(p))));
+  return hit
+    ? new MemberError({
+        message: `cssints: ${name}: ${conflicts.message} (this style also sets ${hit[0]})`,
+        pluginName: name,
+        ...at,
+      })
+    : undefined;
+};
+
 const classesOf = Effect.fnUntraced(function* (
-  { __cssints: decls, markers, kernels }: CssNode,
+  { __cssints: decls, markers, kernels, plugs }: CssNode,
   at?: At,
-): Effect.fn.Return<string, Invalid | MacroError> {
+): Effect.fn.Return<string, Invalid | MacroError | MemberError> {
   const registry = yield* Registry;
   if (kernels) for (const k of kernels) yield* addKernel(k, markers ?? [], at);
+  if (plugs)
+    for (const plug of plugs) {
+      const conflict = conflictOf(plug, decls, at);
+      if (conflict) return yield* conflict;
+      if (plug.runtime) yield* addRuntime(plug, at);
+    }
   return yield* Effect.try({
     try: () => classesNow(decls, registry, markers),
     catch: (e) => {
@@ -253,7 +274,7 @@ const styleOf = Effect.fnUntraced(function* (
   s: unknown,
   where: string,
   at?: At,
-): Effect.fn.Return<string, Invalid | MacroError> {
+): Effect.fn.Return<string, Invalid | MacroError | MemberError> {
   if (!isNode(s))
     return yield* new MacroError({
       message: `cssints: cv() ${where} must be a css.* value (cn(...), a flex() chain or one property), got ${JSON.stringify(s)}. CSS strings are gone: write cn(p(4), fontSize("1rem"))`,
@@ -265,7 +286,7 @@ const styleOf = Effect.fnUntraced(function* (
 const cvOf = Effect.fnUntraced(function* (
   config: CvConfig,
   at?: At,
-): Effect.fn.Return<string, Invalid | MacroError> {
+): Effect.fn.Return<string, Invalid | MacroError | MemberError> {
   const variants: Record<string, Record<string, string>> = {};
   const base = config.base === undefined ? "" : yield* styleOf(config.base, "base", at);
   for (const [k, vs] of Object.entries(config.variants ?? {})) {
@@ -353,7 +374,7 @@ const isPluginValue = (v: unknown): boolean =>
 const replacementOf = Effect.fnUntraced(function* (
   at: At,
   value: unknown,
-): Effect.fn.Return<string | undefined, Invalid | MacroError> {
+): Effect.fn.Return<string | undefined, Invalid | MacroError | MemberError> {
   if (isNode(value)) return JSON.stringify(yield* classesOf(value, at));
   if (isCv(value)) return yield* cvOf(value.__cv, at);
   if (isStyle(value)) return yield* inlineOf(value);
@@ -376,7 +397,7 @@ const replacementOf = Effect.fnUntraced(function* (
 const recordSite = Effect.fnUntraced(function* (
   at: At,
   value: unknown,
-): Effect.fn.Return<unknown, MacroError> {
+): Effect.fn.Return<unknown, MacroError | MemberError> {
   const { sites } = yield* Registry;
   const replacement = yield* replacementOf(at, value).pipe(Effect.mapError(located(at)));
   if (replacement === undefined) return value;
@@ -388,6 +409,12 @@ const recordSite = Effect.fnUntraced(function* (
 // The call site the plugin is about to evaluate: builders that fail name it.
 export function __at(file: string, site: number, offset: number): At {
   registry.tokens = 0;
+  // The first site of a module in this evaluation: what it registered in an earlier one is stale (a helper module that
+  // an edit changed would otherwise collide with its own old kernel).
+  if (registry.seen.get(file) !== registry.gen) {
+    registry.seen.set(file, registry.gen);
+    forgetKernels(file);
+  }
   return (registry.at = { file, site, offset });
 }
 
