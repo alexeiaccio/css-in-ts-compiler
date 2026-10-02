@@ -1,10 +1,11 @@
 ---
 # cssints-5q6j
 title: Partial support counts as lacking for kernels that need exact behaviour
-status: todo
+status: in-progress
 type: task
+priority: normal
 created_at: 2026-10-02T08:51:17Z
-updated_at: 2026-10-02T08:51:17Z
+updated_at: 2026-10-02T09:06:46Z
 parent: cssints-9js6
 ---
 

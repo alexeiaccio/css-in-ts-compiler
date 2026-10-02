@@ -49,10 +49,7 @@ A public plugin API (`definePlugin` with `property`, `context` and `style` membe
 
 ## Not yet specified
 
-- Derived tokens (`contrastColor()` in CSS, `derive()` at build time) and JSON token input with generated types (cssints-exof). May sharpen once `surface()` shows what a derived colour needs.
-- Value helper functions (`css.colorMix(...)`, API.md "Functions"): whether they exist next to typed string parts, and how they are typed. Tied to the plugin `fn()` member, which the research put after "Functions" is specified.
-- Shorthand vs longhand through sublayers instead of sort order (`_.a.a/_.a.b/_.a.c`, depth from mdn-data `computed`, max depth 2). Deferred on 2026-09-29; revisit only if the sort order shows a real case it gets wrong, or rule it out.
-
+(The 0.1 fog graduated into tickets on 2026-10-02: derived tokens and JSON input, value helpers and fn(), sublayers.)
 
 ## Out of scope
 
