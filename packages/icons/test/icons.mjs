@@ -1,10 +1,11 @@
 // @cssints/icons through the engine: both providers, the output (a marker, a kernel, one custom property per icon) and
-// the errors. The working directory is the package: the collection is read from its node_modules. Run: node test/icons.mjs
+// the errors. The working directory is the package (set below): the collection is read from its node_modules. Run: node test/icons.mjs
 import assert from "node:assert/strict";
 
 import cssints from "cssints/vite";
 import { createLogger, createServer } from "vite";
 
+process.chdir(`${import.meta.dirname}/..`);
 const root = `${import.meta.dirname}/fixtures`;
 const warnings = [];
 const plugins = cssints();
@@ -50,7 +51,7 @@ const logo = svg(d).exec(css)?.[1];
 assert.ok(logo.includes("viewBox='0 -8 32 32'") && logo.includes("fill='%23e44'"), logo);
 assert.ok(svg(a).test(css) && svg(e).test(css), "iconify-json icons, aliases resolved by iconify");
 // the icon and a width of the user's: two classes
-assert.match(css, /\{width:2em\}/);
+assert.ok(css.includes(`.${b2}{width:2em}`), css);
 // requires: one support warning for the mask kernel, naming it
 const needs = warnings.filter((w) =>
   w.includes("kernel icon-mask@1 needs css.properties.mask-image"),

@@ -70,7 +70,9 @@ const iconify = (collection: string): Source => {
   const pkg = `@iconify-json/${collection}/icons.json`;
   let json: Json;
   try {
-    json = JSON.parse(readFileSync(createRequire(join(process.cwd(), "_")).resolve(pkg), "utf8"));
+    json = JSON.parse(
+      readFileSync(createRequire(join(process.cwd(), "_")).resolve(pkg), "utf8"),
+    ) as Json;
   } catch (e) {
     throw new Error(
       `cssints: icons: cannot read ${pkg} from ${process.cwd()}: install @iconify-json/${collection}`,

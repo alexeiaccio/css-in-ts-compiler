@@ -63,11 +63,15 @@ assert.ok(css.indexOf("padding:1rem") < css.indexOf("padding-left:"), css);
 await server.close();
 
 // Build: the demo emits one CSS file, the layer order first, the placeholder filled.
+// The working directory is the project, as in a user's build: icons() reads @iconify-json/* from it.
+const cwd = process.cwd();
+process.chdir(`${import.meta.dirname}/../../../apps/demo`);
 const out = await build({
-  root: `${import.meta.dirname}/../../../apps/demo`,
+  root: process.cwd(),
   logLevel: "warn",
   build: { write: false },
 });
+process.chdir(cwd);
 const assets = [out]
   .flat()
   .flatMap((o) => o.output)
