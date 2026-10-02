@@ -1,13 +1,13 @@
 ---
 # cssints-9js6
 title: 'Map: cssints 0.2, the plugin API with frame(), surface() and icons'
-status: todo
+status: completed
 type: epic
 priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-30T11:57:32Z
-updated_at: 2026-10-02T12:20:22Z
+updated_at: 2026-10-02T13:55:02Z
 ---
 
 ## Destination
@@ -68,3 +68,7 @@ A public plugin API (`definePlugin` with `property`, `context` and `style` membe
 - Bundlers other than Vite; a non-compiled runtime mode.
 - The `inherit()` emission of the kernels: a plugin update behind `@supports` once two engines ship it.
 - The plugin `fn()` and `keyword` members (see the value-helper fog for `fn()`).
+
+## Summary of Changes
+
+Destination reached on 2026-10-02 (master bf23710): the public plugin API (cssints/plugin: context, method, style, property, fn; kernels by key in _.k; runtime delivered only where a target lacks the feature and has @property) with frame(), surface() and @cssints/icons on it, working in apps/demo, checked in Chrome, Firefox and WebKit (plus Firefox 128 and a WebKit 17.4 snapshot), still unpublished. The 0.1 fog is shipped (error DX, derived tokens and JSON, value helpers) or ruled out (sublayers, in favour of Chrome-derived leaf counts). Beyond the map: firstThatWorks(), keyframes()/positionTry(), packages from node_modules, keyword-case hints, exact requires, cn() merge and overlap errors. Left for later: a hand check in real Safari 17/18, check.contrast for color-mix(), a bench row for derived tokens.

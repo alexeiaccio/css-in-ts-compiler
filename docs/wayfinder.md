@@ -1194,3 +1194,7 @@ Decided with the user: `fn()` in `cssints/plugin` plus a few built-ins.
 - **Built-ins:** `colorMix(space, a, b)` (on `fn`), and `min`, `max`, `clamp` (typed by their first typed argument, or explicitly: `clamp<"number">(…)`). They exist because a token cannot go into a template string without losing its type: `` `color-mix(in oklab, ${t.color.accent}, black)` `` is a `${string}` hole the recogniser rejects. `calc()` and other functions stay strings.
 - **Cost:** about 17 k instantiations per `colorMix` (two `<color>` checks), under 2 k per `min`/`max`/`clamp`; new bench row `functions.ts`. After merging with the cascade and derived-token work, `unused.ts` rose 11% in fixed declaration cost and its budget was updated.
 - The demo's button hover is now `colorMix("oklab", t.color.accent, "black 15%")`.
+
+## 0.2 closed (2026-10-02)
+
+The 0.2 map (cssints-9js6) is closed at bf23710: the plugin API with `frame()`, `surface()` and icons works end to end in the demo, the 0.1 fog is shipped or ruled out, and every check is green. Left for later: a hand check in real Safari 17/18, `check.contrast` for `color-mix()`, a bench row for derived tokens.
