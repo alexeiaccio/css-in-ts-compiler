@@ -13,6 +13,7 @@ import { chainNames, CONTEXTS, PROPS, PSEUDOS } from "../src/lib.ts";
 // Not properties of `css`: the builders macro.ts defines itself.
 const OWN = new Set([
   "cn",
+  "firstThatWorks",
   "flex",
   "grid",
   "cv",

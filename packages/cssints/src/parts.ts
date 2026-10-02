@@ -4,8 +4,14 @@ import type { FurthestIn, Hint, ValidIn } from "@cssints/css-grammar/css";
 import type { properties } from "@cssints/css-grammar/mdn";
 import type { CSSStyleValue } from "@cssints/css-grammar/values";
 
-/** A value part: a string, a Typed OM value, or a lone number (the spacing scale in spacing properties). */
-export type Part = string | number | CSSStyleValue;
+/** One value of a `firstThatWorks`: a string or a Typed OM value (a token). */
+type Alt = string | CSSStyleValue;
+/** What firstThatWorks() gives: its values, the wanted one first. A part of a property, not a Typed OM value. */
+export interface Fallback<V extends readonly Alt[] = readonly Alt[]> {
+  readonly __fallback: V;
+}
+/** A value part: a string, a Typed OM value, a `firstThatWorks`, or a lone number (the spacing scale in spacing properties). */
+export type Part = string | number | CSSStyleValue | Fallback;
 /** What every member returns: a class string. It is a string (`className`, `cx`), but only members make one. */
 export type Style = string & { readonly __cssints: "style" };
 
@@ -21,7 +27,9 @@ type Text<P> = P extends Style
       ? `${P}`
       : P extends CSSStyleValue<infer T>
         ? `⟨${T}⟩`
-        : never;
+        : P extends Fallback<infer V>
+          ? Text<V[0]>
+          : never;
 type Join<A extends readonly Part[]> = A extends readonly [
   infer H,
   ...infer R extends readonly Part[],
@@ -52,6 +60,45 @@ type Bad<
       : Bad<R, Pre, J, [...I, 0]>
     : never
   : "0";
+// A firstThatWorks is checked as the wanted value (its Text), and each other value is checked in the same declaration:
+// the text before it, the value, the text after it. A bad one puts the message on that part. One per declaration.
+type Others<
+  Label extends string,
+  G extends string,
+  Vs extends readonly Part[],
+  Pre extends string,
+  Suf extends string,
+> = Vs extends readonly [infer H, ...infer T extends readonly Part[]]
+  ? `${Pre}${Text<H>}${Suf}` extends infer S extends string
+    ? ValidIn<Label, G, S> extends infer V
+      ? V extends S
+        ? Others<Label, G, T, Pre, Suf>
+        : V
+      : never
+    : never
+  : true;
+type Alts<
+  Label extends string,
+  G extends string,
+  A extends readonly Part[],
+  Rest extends readonly Part[] = A,
+  Pre extends string = "",
+  I extends 0[] = [],
+> = Rest extends readonly [infer H, ...infer R extends readonly Part[]]
+  ? H extends Fallback<infer Vs extends readonly [Alt, ...Alt[]]>
+    ? [Extract<R[number], Fallback>] extends [never]
+      ? Vs extends readonly [unknown, ...infer O extends readonly Part[]]
+        ? Others<Label, G, O, Pre, R extends readonly [] ? "" : ` ${Join<R>}`> extends infer M
+          ? M extends true
+            ? A
+            : { [K in keyof A]: K extends `${I["length"]}` ? M : A[K] }
+          : never
+        : A
+      : {
+          [K in keyof A]: K extends `${I["length"]}` ? "firstThatWorks: one per declaration" : A[K];
+        }
+    : Alts<Label, G, A, R, `${Pre}${Text<H>} `, [...I, 0]>
+  : A;
 /**
  * The parameters of a call with parts `A`, checked against grammar `G` (called `Label` in the message; `Sp`: a lone
  * number is the spacing scale). `A` itself when valid, else the message on the bad argument.
@@ -64,7 +111,9 @@ export type CheckIn<
 > =
   ValidIn<Label, G, Value<Sp, A>> extends infer V
     ? V extends Value<Sp, A>
-      ? A
+      ? A[number] extends string | number | CSSStyleValue
+        ? A
+        : Alts<Label, G, A>
       : A extends readonly []
         ? [value: V]
         : Locate<Label, G, A, V, Value<Sp, A>>

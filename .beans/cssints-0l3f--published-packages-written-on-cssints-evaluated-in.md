@@ -1,12 +1,13 @@
 ---
 # cssints-0l3f
 title: 'Published packages written on cssints: evaluated in the app or pre-compiled?'
-status: todo
+status: in-progress
 type: task
+priority: normal
 tags:
     - wayfinder:grilling
 created_at: 2026-10-01T07:23:13Z
-updated_at: 2026-10-01T07:23:13Z
+updated_at: 2026-10-01T07:28:59Z
 parent: cssints-9js6
 ---
 

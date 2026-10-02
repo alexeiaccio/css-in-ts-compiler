@@ -6,13 +6,13 @@ import type { Condition } from "@cssints/css-grammar/query";
 import type { StyleObject, TokenFn, TokenSetFn, TokenType } from "@cssints/css-grammar/token";
 import type { CSS, CSSColorValue, CSSUnitValue } from "@cssints/css-grammar/values";
 
-import type { Check, Part, Style } from "./parts.ts";
+import type { Check, Fallback, Part, Style } from "./parts.ts";
 import type { CvRuntimeConfig } from "./runtime.ts";
 
 export * from "./members.ts";
 export * from "./theme-types.ts";
 export { _cv, cx, type ClassValue, type CvRuntimeConfig } from "./runtime.ts";
-export type { Part, Style };
+export type { Fallback, Part, Style };
 
 /** One property: parts are checked against its mdn grammar; `R` is what the call gives (a chain method: the chain). */
 export type Prop<P extends keyof typeof properties, R = Style> = <const A extends readonly Part[]>(
@@ -45,6 +45,13 @@ export interface CvConfig {
 }
 
 export declare const cn: (...styles: Style[]) => Style;
+/**
+ * `minHeight(firstThatWorks("100dvh", "100vh"))`: the value you want, then what to use where it fails. A part of any
+ * property; the build emits one class with all the declarations, the wanted one last. Each value is checked for the property.
+ */
+export declare const firstThatWorks: <const V extends readonly [Alt, Alt, ...Alt[]]>(
+  ...values: V
+) => Fallback<V>;
 /** Query strings are checked against the mdn-data grammar: `media("(width >= 40rem)")`. Several give a tuple, an object an object. */
 export declare const media: Condition<"media", QueryWrap>;
 export declare const container: Condition<"container", QueryWrap>;
@@ -60,6 +67,7 @@ export declare const cv: (config: CvConfig) => CvRuntimeConfig;
 
 export declare const css: typeof import("./members.ts") & {
   cn: typeof cn;
+  firstThatWorks: typeof firstThatWorks;
   media: typeof media;
   container: typeof container;
   supports: typeof supports;

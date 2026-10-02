@@ -14,9 +14,13 @@ Not on npm yet. In this repo `cssints` is a workspace package (`apps/demo` depen
 
 ```ts
 // vite.config.ts
-import cssints, { targets } from "cssints/vite";
+import cssints, { cssTarget, targets } from "cssints/vite";
 
-export default { plugins: [cssints()], css: { transformer: "lightningcss", lightningcss: { targets } } };
+export default {
+	plugins: [cssints()],
+	css: { transformer: "lightningcss", lightningcss: { targets } },
+	build: { cssMinify: "lightningcss", cssTarget },
+};
 ```
 
 ```ts
@@ -24,7 +28,7 @@ export default { plugins: [cssints()], css: { transformer: "lightningcss", light
 import "virtual:cssints.css";
 ```
 
-`targets` comes from the browserslist query of the support warnings (`BROWSERSLIST`, default `defaults`). Add `"types": ["vite/client"]` to `tsconfig.json` for the `virtual:` import.
+`targets` and `cssTarget` come from the browserslist query of the support warnings (`BROWSERSLIST`, default `defaults`). Vite's CSS minify reads `cssTarget`, not `targets`: without it the minifier merges the declarations of a `firstThatWorks` into the last one. Add `"types": ["vite/client"]` to `tsconfig.json` for the `virtual:` import.
 
 ## Example
 

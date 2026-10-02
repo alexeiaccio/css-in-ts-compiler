@@ -2,15 +2,17 @@
  * CSS-in-TS Demo App
  *
  * The 0.1 features, one place each:
- * - property functions and short names, flex() chains, cx(), media() and hover() (this file);
+ * - property functions and short names, flex() chains, cx(), media() and hover(), firstThatWorks() (this file);
  * - cv() variants and createTokens() tokens (Card, Button, theme.ts);
  * - grid(), container(), supports(), pseudo-class wrappers, cn(), typed parts, math, selector themes (Showcase).
  */
 
 import { cx } from "cssints";
 import {
+  firstThatWorks,
   flex,
   flexDirection,
+  minHeight,
   hover,
   media,
   padding,
@@ -93,6 +95,7 @@ function App() {
       className={cx(
         ...page,
         padding("2rem"),
+        minHeight(firstThatWorks("100dvh", "100vh")),
         bg(t.color.page),
         fontFamily("system-ui, -apple-system, sans-serif"),
       )}
