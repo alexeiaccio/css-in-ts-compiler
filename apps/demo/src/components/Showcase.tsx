@@ -24,6 +24,8 @@ import {
   token,
 } from "cssints" with { type: "cssints" };
 
+import { frame } from "cssints/frame" with { type: "cssints" };
+
 import { pulse, stack } from "../helpers.ts" with { type: "cssints" };
 import { t } from "../theme.ts" with { type: "cssints" };
 
@@ -112,6 +114,20 @@ const typed = cn(
   css.marginInline("calc(1rem + 2%)"),
 );
 
+// frame(): the field's radius is the card's less the card's padding and border (24 - 16 - 1 = 7px), with no wiring. The
+// colours of the border are plain styles; padding, margin and border-radius would be a build error beside frame().
+const framed = cn(
+  frame().radius("1.5rem").padding(4).border("1px"),
+  bg(t.color.surface),
+  css.borderColor("#9ca3af"),
+);
+const framedField = cn(
+  frame().padding(2).border("1px"),
+  bg(t.color.page),
+  css.borderColor("#9ca3af"),
+  css.color(t.color.text),
+);
+
 // A theme for a selector: `.compact` makes --space-md 8px. The token fits padding like a length.
 const themed = cn(css.padding(t.space.md), bg(t.color.page), css.color(t.color.link));
 
@@ -185,6 +201,12 @@ export function Showcase() {
           Toggle .compact
         </button>{" "}
         padding is a token; the theme sets it for .compact, and the link colour is an alias
+      </div>
+
+      <div data-demo="frame" className={framed}>
+        <div data-field className={framedField}>
+          frame(): the radius of this field is concentric with the card around it
+        </div>
       </div>
 
       <div data-demo="badges" className={chips}>

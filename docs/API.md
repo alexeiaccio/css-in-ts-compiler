@@ -391,6 +391,34 @@ export const bad = smoothing("bold"); // error: not in the grammar
 - **Errors** are `MemberError` values (`Data.TaggedError`) with `pluginName` and the file, site and offset of the call, so the Vite overlay points at it.
 - **Not in 0.2:** `fn()` and `keyword` members, completions of keywords inside plugin grammar strings (the message still names the grammar), local syntax names in grammars, and a plugin that is a package of members you install (`@cssints/icons` is the first, see Icons; `cssints/frame` and `cssints/surface` come next, on these helpers).
 
+### `frame()`: concentric radius (`cssints/frame`, cssints-q2vh)
+
+The first plugin, written only on the helpers above. A frame passes its inner radius down the tree; a nested frame's radius is the parent's inner radius less its own margin, so a rounded field in a rounded card stays concentric with no wiring, however many plain wrappers sit between them.
+
+```ts
+import * as css from "cssints" with { type: "cssints" };
+import { frame } from "cssints/frame" with { type: "cssints" };
+
+const radius = css.token.length("12px", "radius-lg");
+
+// radius 24px, padding 16px, border 1px: the field inside gets 24 - 16 - 1 = 7px
+export const card = css.cn(frame().radius("1.5rem").padding(4).border("1px"), css.bg("white"), css.borderColor("#9ca3af"));
+export const field = css.cn(frame().padding(2).border("1px"), css.borderColor("#9ca3af"));
+// a token is a length; a condition just sets the custom property, and the whole subtree follows
+export const panel = css.cn(frame().radius(radius).padding(2), css.media("(width >= 40rem)")(frame().padding(6)));
+
+export const noNumber = frame().radius(4); // error: a bare number is a spacing step in padding and margin only
+export const noPercent = frame().padding("5%"); // error: a length, not a percentage
+export const once = frame().radius("1px").radius("2px"); // error: a method is used once
+export const own = frame().color("red"); // error: a frame chains its own methods only
+```
+
+- **Methods**, each once and in any order: `radius(<length>)`, `padding(<length> | step)`, `border(<length>)` (a width; the style is `solid`), `margin(<length> | step)`. `radius` is the radius of the outermost frame; inside a frame it is ignored (the radius is computed). A lone number in `padding` and `margin` is a step of the spacing scale (0.25rem). Tokens go anywhere a length does.
+- **Build errors** (at the call site): a negative radius, padding or border, a percentage, and a `cn()` that holds `frame()` and a property it sets: `padding*`, `margin*`, `border-radius` and its corners, `border`, `border-width`, `border-style` and the border sides (`cssints: frame: frame() sets padding, margin, border-radius and the border: use its methods (this style also sets padding)`). Border colours (`borderColor`, `borderTopColor`) are plain styles and do not conflict. Conflicts across `cx()` are not seen, as for any plugin.
+- **What it emits:** the class `_f` and one class per method (`._x{--fr-p:0.5rem}`, in `_.a`, or `_.b` inside a condition). The kernel `frame@1` (about 1.2 kB minified with its registrations and fallback, once, in `_.k`) is two `@container style(--fr-c: ...)` rules that alternate two names, because a property cannot read itself; the `@property` rules of its custom properties (`--fr-*`) are at the top of the sheet. The inputs are registered lengths, so `em`, `calc()` and tokens reach the child as exact lengths (an `em` padding is the parent's `em`, not the child's). The 24-line kernel for px and rem only was not chosen: `@property` is the floor of the runtime anyway, and the registered one costs about 0.2 kB more.
+- **Browsers.** The kernel needs `@container style()` on custom properties (Chrome 111, Safari 18, Firefox 151) and `@property` (Chrome 85, Safari 16.4, Firefox 128). For a target that has `@property` and lacks style queries the build ships the fallback instead: `polyfills: ["css.at-rules.container.style_queries_for_custom_properties"]` and `cssints/parent-vars` (about 1 kB gzip, shared with other plugins), which copies each frame's inner radius to its frame children, and the fallback CSS. The script probes the browser and stays off where style queries work. Below `@property` (Firefox 127, Safari 16.3) the kernel is a build warning and nothing is shipped: a frame keeps no concentric radius there.
+- **Limits of the runtime.** It costs about two or three times the style-query kernel on a first pass (190 ms for 5 500 nested frames in Firefox 128); a `transition` of your own on a frame replaces the sentinel that lets `:hover`, media and container conditions reach the script (the script still follows class and style changes); shadow roots are not crossed; a first paint before the script runs shows declared radii.
+
 ### Icons: `@cssints/icons` (decided 2026-10-02, cssints-1x1o)
 
 An icon is a style written on `style()`: a marker class, a mask kernel and one atomic class per icon that holds the SVG as a data URL. There is no runtime. Install `@cssints/icons` and a collection (`@iconify-json/mdi`), or point it at a folder of `.svg` files.
@@ -461,4 +489,4 @@ createGlobalTheme(t, ".dark", { color: { brand: "#ef4444" } });
 
 - **Types and checks for every property** are generated from [mdn-data](https://github.com/mdn/data) and @webref/css by `packages/css-grammar` (`bun run extract`), not written by hand, so a new property or function needs no change here. 536 members: 525 properties (every standard and experimental one, except the three shorthands above) and the 11 short names.
 - **Browser support** comes from [`@mdn/browser-compat-data`](https://github.com/mdn/browser-compat-data) against browserslist, as build warnings (see above). There is no per-property table in the types.
-- **Not in 0.1:** pseudo-elements and parent states, derived tokens, slot variants, a typed runtime token setter, `frame()`, `surface()` and icons (the plugin API they will be written on is above), polyfills of its own for missing browser features. The map and the reasons are in [wayfinder.md](wayfinder.md).
+- **Not in 0.1:** pseudo-elements and parent states, derived tokens, slot variants, a typed runtime token setter, `surface()` and icons (the plugin API they will be written on is above; `frame()` is in `cssints/frame`), polyfills of its own for missing browser features. The map and the reasons are in [wayfinder.md](wayfinder.md).

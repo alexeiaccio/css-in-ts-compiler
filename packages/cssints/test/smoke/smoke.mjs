@@ -176,6 +176,8 @@ put(
   `import { _cv, cx } from "cssints";
 import { bg, cn, color, cv, hover, media, p } from "cssints" with { type: "cssints" };
 
+import { frame } from "cssints/frame" with { type: "cssints" };
+
 import { mdi } from "./icons.ts" with { type: "cssints" };
 import { ring } from "./ring.ts" with { type: "cssints" };
 import { t } from "./tokens.ts" with { type: "cssints" };
@@ -191,7 +193,11 @@ const button = _cv(
 );
 
 export function Button({ busy }: { busy?: boolean }) {
-  return <button className={cx(button(), busy && p(9))}>smoke</button>;
+  return (
+    <button className={cx(button(), busy && p(9))}>
+      <span className={frame().radius("4px").padding(1)}>smoke</span>
+    </button>
+  );
 }
 `,
 );
@@ -366,6 +372,11 @@ ok(
   css.includes("data-cssints-poly"),
   "css: the fallback of the plugin's runtime (a target lacks the feature)",
 );
+ok(
+  /--fr-r:\s*4px/.test(css) && /@container/.test(css) && /@property\s+--fr-p/.test(css),
+  "css: cssints/frame from the installed package (kernel, registrations, method)",
+  css,
+);
 
 // the eval-time code must not reach the client bundle: by module (the source maps) and by content
 const maps = js
@@ -474,14 +485,14 @@ for (const [name, cmd, noConfig] of checkers) {
 // 6. the benches of the repo (users.ts, unused.ts: imports of "cssints" as user code writes them), on dist
 const bench = join(app, "bench-types");
 mkdirSync(bench);
-for (const f of ["empty.ts", "unused.ts", "users.ts", "plugins.ts"])
+for (const f of ["empty.ts", "unused.ts", "users.ts", "plugins.ts", "frame.ts"])
   cpSync(join(pkgs.cssints, "bench", f), join(bench, f));
 cpSync(join(pkgs.cssints, "bench/budget.json"), join(bench, "budget.json"));
 const sources = JSON.parse(readFileSync(join(bench, "budget.json"), "utf8"));
 run(process.execPath, [join(pkgs.grammar, "bench/budget.mjs"), bench, "--update"], app);
 const dist = JSON.parse(readFileSync(join(bench, "budget.json"), "utf8"));
 console.log("type cost, skipLibCheck, instantiations net of empty.ts (sources -> dist)");
-for (const f of ["unused.ts", "users.ts", "plugins.ts"])
+for (const f of ["unused.ts", "users.ts", "plugins.ts", "frame.ts"])
   for (const c of ["tsc", "tsgo"]) {
     const gain = (1 - dist[f][c] / sources[f][c]) * 100;
     console.log(

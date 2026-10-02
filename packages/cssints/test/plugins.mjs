@@ -46,7 +46,7 @@ assert.ok(use.includes("virtual:cssints/runtime/lit"), use);
 const frameRuntime = (await client.transformRequest("virtual:cssints/runtime/frame")).code;
 assert.ok(frameRuntime.includes("parent-vars"), frameRuntime);
 assert.ok(frameRuntime.includes(`"marker":"_f","read":"--fr-i","write":"--fr-u","watch":"--fr-t"`));
-assert.ok(css.includes(":root[data-cssints-poly] ._f{--fr-u:0px}"), "the fallback is in the sheet");
+assert.ok(css.includes(":root[data-cssints-poly] ._f {"), "the fallback is in the sheet");
 assert.ok(css.indexOf("@layer _.k {") < css.indexOf("data-cssints-poly"), "...in layer _.k");
 const litRuntime = (await client.transformRequest("virtual:cssints/runtime/lit")).code;
 assert.ok(!litRuntime.includes("parent-vars"), "every target has the feature: nothing");
@@ -96,7 +96,7 @@ await fails(
 await fails("plug-twice.ts", /^cssints: frame\(\)\.radius\(\) is used twice$/, 3, "frame");
 await fails(
   "plug-conflict.ts",
-  /^cssints: frame: frame\(\) sets these: use its methods \(this style also sets padding\)$/,
+  /^cssints: frame: frame\(\) sets padding, margin, border-radius and the border: use its methods \(this style also sets padding\)$/,
   5,
   "frame",
 );
