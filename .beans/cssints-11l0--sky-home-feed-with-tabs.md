@@ -1,13 +1,13 @@
 ---
 # cssints-11l0
 title: 'sky: home feed with tabs'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-10-02T15:09:09Z
-updated_at: 2026-10-02T15:09:10Z
+updated_at: 2026-10-02T16:04:44Z
 parent: cssints-co8y
 blocked_by:
     - cssints-n3xy

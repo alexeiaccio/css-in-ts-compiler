@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-10-02T14:20:14Z
-updated_at: 2026-10-02T15:56:51Z
+updated_at: 2026-10-02T16:04:44Z
 ---
 
 ## Destination
@@ -40,6 +40,8 @@ updated_at: 2026-10-02T15:56:51Z
 - [sky: app shell, routes, data layer and themes](cssints-dqw8): Mu layout checked in Chrome, Router 2, api.ts on recorded fixtures, four theme modes with references; two engine bugs fixed (referred-only tokens had no @property; contrast vs JSON tokens); global/attribute selectors ticketed (cssints-635k).
 
 - [sky: appearance settings](cssints-1kob): /settings, localStorage, pre-paint script with no flash; hue slider, four modes, square flags via radius tokens; contrast swept over the slider: cyan-green fails, ticketed (cssints-bzal).
+
+- [sky: post card and embeds](cssints-n3xy): every embed and moderation state; frame/surface/container measured in Chrome (20/11/6 px, lightness steps, layout by width); gaps ticketed (line clamp cssints-l54z, token colour warnings cssints-tuyw).
 
 ## Not yet specified
 
