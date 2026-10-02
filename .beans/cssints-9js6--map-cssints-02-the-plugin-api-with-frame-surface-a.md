@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-30T11:57:32Z
-updated_at: 2026-10-02T08:21:06Z
+updated_at: 2026-10-02T08:24:23Z
 ---
 
 ## Destination
@@ -42,6 +42,8 @@ A public plugin API (`definePlugin` with `property`, `context` and `style` membe
 - [Icons on the plugin API, replacing packages/plugin-icon](cssints-1x1o): @cssints/icons on style(); iconify-json and fs; names typed by a type argument; did-you-mean build errors; no runtime.
 
 - [Consume packages written on cssints from node_modules](cssints-2kci): marker-gated transform in node_modules; deps listing cssints go to optimizeDeps.exclude + ssr.noExternal; dev and build proven, smoke with a library tarball.
+
+- [frame(): concentric radius on the plugin API, with the parent-vars runtime](cssints-q2vh): cssints/frame, registered 40-line kernel, conflicts leave border colours free, runtime proven in 3 browsers + Firefox 128/WebKit 17.4; Safari 17 hand check open.
 
 ## Not yet specified
 

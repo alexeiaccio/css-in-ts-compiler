@@ -1,13 +1,13 @@
 ---
 # cssints-vsc9
 title: 'surface(): parent-relative colour on the plugin API'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 tags:
     - wayfinder:task
 created_at: 2026-09-30T11:57:32Z
-updated_at: 2026-09-30T11:57:41Z
+updated_at: 2026-10-02T08:24:23Z
 parent: cssints-9js6
 blocked_by:
     - cssints-q2vh

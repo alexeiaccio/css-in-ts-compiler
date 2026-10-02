@@ -1125,3 +1125,13 @@ A package ships the JS tsdown built, with `with { type: "cssints" }` kept (no op
 - Package modules are cleared on each evaluation like app modules and never watched (Vite does not watch node_modules); `runner.qnt` is unchanged.
 
 Tests: `test/packages.mjs` (dev over HTTP and build) and the smoke test with a library tarball, including a type error on a wrong token path across the boundary. Pre-compiled output for apps without cssints waits for a first user.
+
+## frame(): concentric radius on the plugin API (cssints-q2vh)
+
+`cssints/frame` is the first package written on `cssints/plugin`. A frame passes its inner radius down the tree; a nested frame's radius is the parent's inner radius less its own margin, so a rounded field inside a rounded card is concentric with no wiring, through any number of plain wrappers. Methods `radius`, `padding` (spacing step), `border`, `margin` (spacing step, negative allowed), each once.
+
+- **Kernel:** the registered 40-line one, not the 24-line px/rem one: `@property` is the runtime's floor anyway, and registration makes `em`, `calc()` and tokens reach the child as exact lengths (a test reads an `em` padding from a child of another font size). About 0.2 kB more.
+- **Conflicts:** `frame()` with `padding*`, `margin*`, `border-radius*` or the border widths and styles in one `cn()` is a build error; border colours stay free.
+- **Runtime:** the shared `parent-vars` script with a transition sentinel for hover and media, plus fallback CSS, only for targets that have `@property` and lack style queries.
+- **Browsers:** `bun run test:browsers` builds one app three ways and reads `getComputedStyle` on a three-deep tree in Chrome 154, Firefox 155 and WebKit 26.6 (style queries; probe leaves the runtime off; runtime forced on), with a blinded-script control. It also passed on Firefox 128 and a WebKit 17.4 snapshot, where the probe switched the runtime on by itself. Real Safari 17 is still a hand check.
+- **Cost:** 30 chains in `bench/frame.ts` cost 179 k (tsc). The demo has a card at 24px with a field at 7px.
