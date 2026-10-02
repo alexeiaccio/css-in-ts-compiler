@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-10-02T14:20:14Z
-updated_at: 2026-10-02T16:04:44Z
+updated_at: 2026-10-02T16:29:21Z
 ---
 
 ## Destination
@@ -42,6 +42,8 @@ updated_at: 2026-10-02T16:04:44Z
 - [sky: appearance settings](cssints-1kob): /settings, localStorage, pre-paint script with no flash; hue slider, four modes, square flags via radius tokens; contrast swept over the slider: cyan-green fails, ticketed (cssints-bzal).
 
 - [sky: post card and embeds](cssints-n3xy): every embed and moderation state; frame/surface/container measured in Chrome (20/11/6 px, lightness steps, layout by width); gaps ticketed (line clamp cssints-l54z, token colour warnings cssints-tuyw).
+
+- [sky: home feed with tabs](cssints-11l0): Discover/Science/News tabs keep pages and scroll; infinite scroll to 414; keyframes shimmer off under reduced motion; CSS-wide keywords bug ticketed (cssints-fejg).
 
 ## Not yet specified
 
