@@ -1175,3 +1175,13 @@ Done in the coordinator session while subagents were down; one change, because b
 - **Containment is semantic, not only by longhand sets.** Chrome expands `border` to physical longhands and `border-inline` to logical ones, so the sets are disjoint, yet they meet in the cascade (css-logical-1 §4: a logical and a physical side of one group are one value, and the order decides). So a logical and a physical side of a group meet, and a property that sets every side of a group covers whatever a sibling sets there. `border` contains `border-inline` (the research listed it as an overlap by sets; `borderInline` wins, like `pl` against `p`), while `border-color`/`border-inline`, `border-top`/`border-color`, `margin-left`/`margin-inline` and `width`/`inline-size` are errors.
 - **Tests:** `test/cascade.mjs` (the relation table, the 10 research cases in the sheet order with a negative control on the old counts, the merge, the error). `test/sheet.mjs` had pinned `all` last, the wrong order.
 - Found on the way: `docs/research/sublayers-proto` had been merged without a lint run and turned `vp lint` red on master; it is now ignored like other throwaway prototypes.
+
+## Derived tokens and JSON token input (cssints-5y5a)
+
+Decided with the user: a derived token is a reference inside a CSS value, and `createTokens` takes an imported DTCG JSON.
+
+- **Derived:** `"color-mix(in oklab, {color.accent}, black 15%)"`, `"calc({space.md} * 2)"`. The `@property` initial value takes the targets' flattened literals (an initial value cannot hold `var()`, and `color-mix()` of literal colours is computationally independent); the `:root` rule keeps `var()`, so it stays live. Aliases became `{ name, targets, css }`, so a theme of any target declares every token derived from it again, through chains (`ring` from `hover` from `accent`). A derived token needs a `$type`; a missing reference or a cycle is a build error.
+- **Types:** each `{path}` becomes the sentinel of its target's type (`⟨color⟩`) and the string is checked by the type's grammar; a missing path is a type error (tsgo and tsc 5.9).
+- **JSON:** a JSON import widens `$type` to `string`, so the editor knows the tree (a wrong path is a type error) and the build checks the values. No runtime change was needed.
+- `check.contrast` still warns on a derived colour (culori does not parse `color-mix()`); a small evaluator is an option.
+- The engine's own rules caught two fixture mistakes on the way: two modules declaring one variable differently, and `rem` in an initial value.
