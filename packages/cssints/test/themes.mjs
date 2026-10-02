@@ -210,8 +210,8 @@ e = await failure("fixtures/themes-contrast-derived-fail.ts");
 assert.equal(
   e.message,
   [
-    "cssints: contrast 1.10 is below 4.5: cdf.fg oklch(0.95 0 0) on cdf.bg #ffffff, in theme .x",
-    "cssints: contrast 1.29 is below 4.5: cdf.fg oklch(0.9 0 0) on cdf.bg #ffffff, in theme .y",
+    "cssints: contrast 1.15 is below 4.5: cdf.fg oklch(0.95 0 0) on cdf.bg #ffffff, in theme .x",
+    "cssints: contrast 1.34 is below 4.5: cdf.fg oklch(0.9 0 0) on cdf.bg #ffffff, in theme .y",
   ].join("\n"),
 );
 warnings.length = 0;
@@ -220,7 +220,7 @@ assert.deepEqual(warnings, [], "a derived colour that stays readable passes");
 e = await failure("fixtures/themes-contrast-derived-chain.ts");
 assert.equal(
   e.message,
-  "cssints: contrast 1.29 is below 4.5: cdc.fg oklch(0.9 0 0) on cdc.bg #ffffff, in theme .x",
+  "cssints: contrast 1.34 is below 4.5: cdc.fg oklch(0.9 0 0) on cdc.bg #ffffff, in theme .x",
 );
 
 // A value the check cannot evaluate is a warning that names the token, once.

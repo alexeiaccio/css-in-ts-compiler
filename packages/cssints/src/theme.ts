@@ -306,22 +306,16 @@ export const createTokens = (...args: unknown[]): unknown =>
           `createTokens(): ${l.dotted} value`,
         );
         registry.defs.get(name)!.path = l.dotted;
-        if (r.alias !== undefined) {
-          const target = variable.get(r.alias)!;
-          registry.defs.get(name)!.alias = target;
-          set.aliases.push({ name, targets: [target], css: `var(${target})` });
-          live.push(`${name}:var(${target})`);
-        } else if (r.refs) {
-          const css = (l.value as string).replace(
+        const refs = r.alias === undefined ? r.refs : [r.alias];
+        if (refs) {
+          const css = (r.alias === undefined ? (l.value as string) : `{${r.alias}}`).replace(
             REF,
             (_, ref: string) => `var(${variable.get(ref)})`,
           );
-          set.aliases.push({
-            name,
-            targets: [...new Set(r.refs.map((d) => variable.get(d)!))],
-            css,
-          });
+          const targets = [...new Set(refs.map((d) => variable.get(d)!))];
+          set.aliases.push({ name, targets, css });
           live.push(`${name}:${css}`);
+          Object.assign(registry.defs.get(name)!, { template: css, refs: targets });
         }
         set.tokens.set(l.dotted, token);
         set.types.set(name, r.dtcg);
