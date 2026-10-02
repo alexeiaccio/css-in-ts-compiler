@@ -395,6 +395,13 @@ interface Ctx {
   pend?: boolean; // the value has a var(), env() or if(): see "Pending substitution"
   ch?: readonly string[]; // the channel keywords in scope
   why?: [at: number, text: string]; // what was wrong with a math function at that position
+  fix?: [at: number, written: string, canonical: string]; // a keyword or function name in the wrong case
+}
+// Keywords and function names are written in their canonical case only; a failure that is the same word in another
+// case says so. Only a failed token pays for this, and a length check comes before the lower-casing.
+function wrongCase(ctx: Ctx, s: string, t: string, name: string, call = "") {
+  if (t.length === name.length && t !== name && t.toLowerCase() === name.toLowerCase())
+    ctx.fix = [ctx.len - s.length, t + call, name + call];
 }
 // Furthest failure wins: its position is where the value went wrong, its labels are what was expected there.
 function fail(ctx: Ctx, s: string, what: string) {
@@ -424,6 +431,7 @@ export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<strin
   switch (n[0]) {
     case "kw": {
       const [t, r] = tok1(s);
+      if (t !== n[1]) wrongCase(ctx, s, t, n[1]);
       return leaf(t === n[1], r, n[1]);
     }
     case "lit":
@@ -437,7 +445,10 @@ export function consume(n: Node, s: string, ctx: Ctx, label?: string): Set<strin
         : leaf(false, s, `<'${n[1]}'>`);
     }
     case "fn": {
-      if (!s.startsWith(`${n[1]}(`)) return leaf(false, s, `${n[1]}()`);
+      if (!s.startsWith(`${n[1]}(`)) {
+        if (n[1] && s[n[1].length] === "(") wrongCase(ctx, s, s.slice(0, n[1].length), n[1], "()");
+        return leaf(false, s, `${n[1]}()`);
+      }
       const body = trim(s.slice(n[1].length + 1));
       const outer = ctx.ch;
       if (n[1]) {
@@ -792,10 +803,11 @@ function consumeType(
     rs = n < 0 ? NONE : new Set([trim(s.slice(n))]);
   } else if (syns[v]) {
     // `<name()>`: the name must be next before its grammar is even parsed (as in css.ts)
-    rs =
-      v.endsWith("()") && !s.startsWith(`${v.slice(0, -2)}(`)
-        ? NONE
-        : consume(parseGrammar(syns[v]), s, ctx, label ?? `<${v}>`);
+    const f = v.endsWith("()") ? v.slice(0, -2) : undefined;
+    if (f !== undefined && !s.startsWith(`${f}(`)) {
+      if (s[f.length] === "(") wrongCase(ctx, s, s.slice(0, f.length), f, "()");
+      rs = NONE;
+    } else rs = consume(parseGrammar(syns[v]), s, ctx, label ?? `<${v}>`);
     // <angle> | <percentage> alone would not take `calc(10deg + 5%)`
     if (v === "angle-percentage") {
       const m = mathValue(v, s, ...tok1(s), ctx);
@@ -936,8 +948,9 @@ export function valid(p: string, s: string, syntax: string | undefined = props[p
   const [token] = tok1(v.slice(ctx.far));
   const what = token ? `unexpected "${token}"` : "unexpected end";
   const expected = [...ctx.expected];
+  const fix = ctx.fix?.[0] === ctx.far ? ` ("${ctx.fix[1]}" is ${ctx.fix[2]} in CSS; write "${ctx.fix[2]}")` : "";
   throw new InvalidValueError({
-    message: `${p}: ${what} in "${s}", expected ${expected.join(" | ")}${ctx.why?.[0] === ctx.far ? ` (${ctx.why[1]})` : ""}`,
+    message: `${p}: ${what} in "${s}"${fix}, expected ${expected.join(" | ")}${ctx.why?.[0] === ctx.far ? ` (${ctx.why[1]})` : ""}`,
     property: p,
     value: s,
     position: ctx.far + (s.length - v.length),

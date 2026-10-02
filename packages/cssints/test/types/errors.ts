@@ -13,6 +13,7 @@ import {
   padding,
   transition,
 } from "cssints" with { type: "cssints" };
+import type { Valid } from "@cssints/css-grammar/css";
 import { CSS, CSSColorValue } from "@cssints/css-grammar/values";
 
 const accent = new CSSColorValue("#3b82f6");
@@ -119,3 +120,18 @@ css.media(
   "(width >= )",
   "(width >= 40rem)",
 );
+
+// A keyword in the wrong case stays an error, and the message says the canonical spelling.
+type Said<V, K extends string> = V extends `${string}${K}${string}` ? true : false;
+export const caseRed: Said<Valid<"color", "RED">, '("RED" is red in CSS; write "red")'> = true;
+export const caseSystem: Said<
+  Valid<"color", "accentcolor">,
+  '("accentcolor" is AccentColor in CSS; write "AccentColor")'
+> = true;
+export const caseLater: Said<
+  Valid<"border", "1px SOLID red">,
+  '("SOLID" is solid in CSS; write "solid")'
+> = true;
+// a word that is no keyword of the property gets no such line
+export const caseNone: Said<Valid<"border", "1px solud">, "in CSS; write"> = false;
+export const caseValid: Valid<"color", "red"> = "red";

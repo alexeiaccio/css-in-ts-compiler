@@ -346,6 +346,7 @@ css.token.length("1rem"); // token.length() initial value "1rem" depends on the 
 
 - A value that a browser in your browserslist (`BROWSERSLIST`, default `defaults`) does not support is a warning, not an error: `cursor: pointer` warns for iOS Safari.
 - Validity rules written only in prose are errors too (`transition: none, opacity 1s`, an unquoted `font-family` with a generic keyword inside a name).
+- Keywords and function names are written in their canonical case, on purpose: `color("RED")` and `rgb(` as `RGB(` are errors, so each value has one spelling (completions and class names stay the same). The message says the spelling: `color: unexpected "RED" in "RED" ("RED" is red in CSS; write "red"), expected <color>`. The types say it for keywords (`color("RED")`); the build says it for function names too.
 
 ### Plugins (decided 2026-09-30, cssints-zho2)
 

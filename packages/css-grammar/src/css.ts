@@ -338,5 +338,12 @@ type OfferWord<K, H extends string, W extends string> = K extends string ? (Lowe
 export type Furthest<P extends keyof Props, S extends string> = FurthestIn<Props[P], S>;
 export type FurthestIn<G extends string, S extends string> = Stuck<Trim<S> | Consume<Parse<G>, Trim<S>, HasPending<S>>>;
 type Message<Label extends string, G extends string, S extends string> =
-  `${Label}: ${Unexpected<FurthestIn<G, S>>} in "${S}", grammar ${G}`;
+  FurthestIn<G, S> extends infer F extends string ? `${Label}: ${Unexpected<F>} in "${S}"${CaseFix<Label, F>}, grammar ${G}` : never;
+// A keyword is written in its canonical case only; a failed word that is one of the property's keywords in another case
+// says so (as the twin does; function names are not in Keywords.ts). Only a message pays for it.
+type CaseFix<Label extends string, F extends string> =
+  Tok1<F>[0] extends infer W extends string
+    ? ([W] extends [""] ? "" : Keywords extends { [K in Label]: infer O } ? FixWord<Bucket<O, Lowercase<W>>, W> extends infer K extends string ? ([K] extends [never] ? "" : ` ("${W}" is ${K} in CSS; write "${K}")`) : "" : "")
+    : "";
+type FixWord<K, W extends string> = K extends string ? (Lowercase<K> extends Lowercase<W> ? (K extends W ? never : K) : never) : never;
 export type PropertyFn<P extends keyof Props> = <const S extends string>(value: Valid<P, S>) => string;
