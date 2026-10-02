@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-10-02T14:20:14Z
-updated_at: 2026-10-02T16:38:32Z
+updated_at: 2026-10-02T16:45:13Z
 ---
 
 ## Destination
@@ -46,6 +46,8 @@ updated_at: 2026-10-02T16:38:32Z
 - [sky: home feed with tabs](cssints-11l0): Discover/Science/News tabs keep pages and scroll; infinite scroll to 414; keyframes shimmer off under reduced motion; CSS-wide keywords bug ticketed (cssints-fejg).
 
 - [sky: profile screen](cssints-5d42): banner, avatar on radius.avatar, bio facets found client-side, header by container(); tabs as getAuthorFeed filters; two engine bugs fixed (CSS-wide keywords; inert JSX in imported .tsx); cv() base/variant overlap ticketed (cssints-mbky).
+
+- [sky: thread screen](cssints-dwty): parents, focused cv() variant, sorted reply tree with connector lines measured to 1 px, collapse in place, states; all five Chrome checks pass on the merged app.
 
 ## Not yet specified
 
