@@ -1237,3 +1237,7 @@ Three things need app code:
 - **Solid 2 (rc.13):** an async `createStore(fn)` is the first page under `<Loading>`, a plain `loadMore()` appends; a store write in the same tick as a source change drops the re-run, and signal writes are invisible until the flush. The helper in the doc avoids both.
 
 The embed union has a new `gallery` member (`thumbnail`, not `thumb`). Image preset sizes and the video thumbnail were not verified (CDN unreachable from the researcher's network).
+
+## check.contrast follows derived tokens through themes (cssints-l90l)
+
+`check.contrast` read a derived token as its default literal, so a theme that changed a token it refers to was never checked (a probe `oklch({tone.l} 0 0)` with `tone.l` 0.95 in a theme passed at a real ratio of about 1.1). `TokenDef` now keeps one form for aliases and derived tokens: a `template` (the value with `var(--target)` per reference) and its `refs`. The check computes each colour per theme by putting the theme's values, or the base's, into the template recursively, so chains work and a theme value with references is read the same way. A theme is checked whenever it sets any token a checked colour depends on. An unreadable result (`color-mix()`, `light-dark()`) stays a warning and names the theme. Tests: a failing probe first, then a passing derived colour and a chain.

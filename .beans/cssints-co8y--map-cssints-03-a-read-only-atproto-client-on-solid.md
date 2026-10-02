@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-10-02T14:20:14Z
-updated_at: 2026-10-02T15:01:30Z
+updated_at: 2026-10-02T15:09:09Z
 ---
 
 ## Destination
@@ -25,6 +25,7 @@ updated_at: 2026-10-02T15:01:30Z
 
 ## Decisions so far
 
+- [Screens, routes and appearance settings](cssints-gg2p): home/profile/thread with bsky URLs; feeds as tabs; Solid Router 2.0; all embeds, video as poster; hue, theme mode, square buttons/avatars; name sky.
 - [Solid 2 and cssints in one Vite app](cssints-yfxf): works; one engine fix (JSX becomes a no-op in the runner, transform order pre); apps/sky skeleton with build and HMR checks.
 
 - [Mu's design tokens and layout](cssints-uifu): Mu = Bluesky alf with Mu's palette; 600/240/300 layout; tokens.json with one hue token driving accents; licence: values, Inter, Phosphor yes, logos and art no; two cssints gaps ticketed.
@@ -34,10 +35,12 @@ updated_at: 2026-10-02T15:01:30Z
 
 - [Read-only atproto data with atcute](cssints-t5g6): client + bluesky types + segmenter; all three screens work unauthenticated; search out (public host blocks it); app-side moderation rule, cursor paging, two Solid 2 rc traps.
 
+- [check.contrast reads a derived token as its default](cssints-l90l): TokenDef keeps template + refs; contrast computes per theme through chains; the hue slider's colours are now really checked.
+
 ## Not yet specified
 
-- The implementation slices, once the spike, the tokens and the data layer are known: the app shell and themes (light, dim, dark; tokens from JSON), the post card with its embeds (quote, images, external link, record with media, video poster) as the frame/surface/container showcase, the profile screen, the thread screen, the appearance settings, loading and empty states (keyframes), icons.
 - cssints gaps the app will expose (Solid specifics, missing properties or helpers, performance on a real component tree): each becomes a ticket when found.
+- Hidden metrics (Witchsky's per-counter switches): out of the first version, may come back.
 
 ## Out of scope
 
