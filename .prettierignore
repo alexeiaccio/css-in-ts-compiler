@@ -7,6 +7,10 @@ docs/archive
 packages/cssints/test/fixtures
 packages/icons/test/fixtures
 
+# Written by docs/research/sublayers-proto (node run.mjs, node audit.mjs).
+docs/research/sublayers-proto/fixtures
+docs/research/sublayers-proto/*.json
+
 # Generated (bun run extract, bun run members) and the type-level recognizer, whose layout stays as it is.
 packages/css-grammar/src/css.ts
 packages/css-grammar/src/mdn.ts
