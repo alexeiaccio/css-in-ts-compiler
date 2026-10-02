@@ -65,8 +65,14 @@ const refError = (f, re) =>
     assert.match(e.message, re);
     return true;
   });
-await refError("theme-ref-missing.ts", /color\.bg refers to \{color\.nope\}, and there is no token at color\.nope/);
-await refError("theme-ref-type.ts", /color\.bg is a color, and its reference \{radius\.sm\} is a length/);
+await refError(
+  "theme-ref-missing.ts",
+  /color\.bg refers to \{color\.nope\}, and there is no token at color\.nope/,
+);
+await refError(
+  "theme-ref-type.ts",
+  /color\.bg is a color, and its reference \{radius\.sm\} is a length/,
+);
 await refError("theme-ref-bad.ts", /color\.bg value "oklch\(0\.5 #000 nope\)" is not a <color>/);
 await refError(
   "theme-ref-circle.ts",

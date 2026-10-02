@@ -448,7 +448,11 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
               child.name,
               text.replace(REF, (_, r: string) => `var(${targets.get(r)!.name})`),
             );
-            if (targets.size) refs.set(child.name, [...targets.values()].map((t) => t.name));
+            if (targets.size)
+              refs.set(
+                child.name,
+                [...targets.values()].map((t) => t.name),
+              );
           } else if (isObject(child) && isObject(v)) yield* walk(child, v, [...path, key]);
           else
             return yield* fail(
