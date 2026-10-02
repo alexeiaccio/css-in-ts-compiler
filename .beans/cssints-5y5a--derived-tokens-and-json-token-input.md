@@ -1,12 +1,13 @@
 ---
 # cssints-5y5a
 title: Derived tokens and JSON token input
-status: todo
+status: in-progress
 type: task
+priority: normal
 tags:
     - wayfinder:grilling
 created_at: 2026-10-02T09:06:46Z
-updated_at: 2026-10-02T09:06:46Z
+updated_at: 2026-10-02T10:10:44Z
 parent: cssints-9js6
 ---
 

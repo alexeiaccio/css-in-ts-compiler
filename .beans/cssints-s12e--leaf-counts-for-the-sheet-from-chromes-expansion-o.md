@@ -1,11 +1,11 @@
 ---
 # cssints-s12e
 title: Leaf counts for the sheet from Chrome's expansion of each shorthand
-status: todo
+status: in-progress
 type: bug
 priority: high
 created_at: 2026-10-02T10:10:19Z
-updated_at: 2026-10-02T10:10:19Z
+updated_at: 2026-10-02T10:10:44Z
 parent: cssints-9js6
 ---
 

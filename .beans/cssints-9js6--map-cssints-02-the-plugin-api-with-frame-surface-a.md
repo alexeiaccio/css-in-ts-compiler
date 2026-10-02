@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-09-30T11:57:32Z
-updated_at: 2026-10-02T10:10:20Z
+updated_at: 2026-10-02T10:14:48Z
 ---
 
 ## Destination
@@ -55,9 +55,11 @@ A public plugin API (`definePlugin` with `property`, `context` and `style` membe
 - [Leaf counts for the sheet from Chrome's expansion of each shorthand](cssints-null): fix the sort's data, keep the sort.
 - [cn(): the later argument wins; overlap without containment is an error](null): the intent was never implemented.
 
-## Not yet specified
+- [cn(): the later argument wins for the same property; overlap without containment is an error](cssints-33ah): decided (last wins; overlap is a build error); implementation pending.
 
-(The 0.1 fog graduated into tickets on 2026-10-02: derived tokens and JSON input, value helpers and fn(), sublayers.)
+- [fn() and a few built-in value helpers](cssints-obd3): decided (fn() plus colorMix/clamp/min/max); implementation pending.
+
+## Not yet specified
 
 ## Out of scope
 
