@@ -1198,3 +1198,7 @@ Decided with the user: `fn()` in `cssints/plugin` plus a few built-ins.
 ## 0.2 closed (2026-10-02)
 
 The 0.2 map (cssints-9js6) is closed at bf23710: the plugin API with `frame()`, `surface()` and icons works end to end in the demo, the 0.1 fog is shipped or ruled out, and every check is green. Left for later: a hand check in real Safari 17/18, `check.contrast` for `color-mix()`, a bench row for derived tokens.
+
+## 0.3 charted: a read-only atproto client (2026-10-02)
+
+The next map is a real app instead of more features: `apps/sky`, a minimal read-only atproto client on Solid 2 RC and atcute, with Mu's tokens and layout (mu.social, a Bluesky fork by Eurosky) and Witchsky-style appearance settings (hue slider, colour schemes, square-ish UI, hidden metrics). It is the cssints showcase (frames in post embeds, surfaces, container queries, icons, keyframes, derived tokens, themes, tokens from JSON) and the first time cssints runs outside React. The riskiest question goes first: whether Solid's Oxc JSX compiler and our Module Runner evaluation work together.
