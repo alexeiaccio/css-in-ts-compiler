@@ -24,11 +24,11 @@ const valueOf = (
     : text.replace(VAR, (m, n: string) => (state.defs.has(n) ? valueOf(state, n, values)! : m));
 };
 // The token and every token it refers to, through aliases and derived tokens.
-const affectedBy = ({ defs }: RegistryState, names: string[], out = new Set<string>()) => {
+const affectedBy = (defs: RegistryState["defs"], names: string[], out = new Set<string>()) => {
   for (const n of names)
     if (!out.has(n)) {
       out.add(n);
-      affectedBy({ defs }, defs.get(n)?.refs ?? [], out);
+      affectedBy(defs, defs.get(n)?.refs ?? [], out);
     }
   return out;
 };
@@ -42,7 +42,7 @@ const shown = (r: number) => (Math.floor(r * 100) / 100).toFixed(2);
 const verify = (check: Check, state: RegistryState, { luminance, ratio }: Colours): string[] => {
   const { fg, bg, min } = check;
   const path = (n: string) => state.defs.get(n)?.path ?? n;
-  const affecting = affectedBy(state, [fg, bg]);
+  const affecting = affectedBy(state.defs, [fg, bg]);
   const subjects: { label: string; values?: Map<string, string> }[] = [
     { label: "the default values" },
   ];
