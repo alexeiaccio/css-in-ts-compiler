@@ -1,10 +1,10 @@
 // The cost of cssints/frame as user code writes it: 30 chains over its four methods, with spacing steps, lengths and tokens.
 // Checked next to plugins.ts by `bun run bench`.
-import * as css from "cssints" with { type: "cssints" };
+import { cn, color, hover, media, token } from "cssints" with { type: "cssints" };
 import { frame } from "cssints/frame" with { type: "cssints" };
 
-const radius = css.token.length("12px", { var: "radius-lg", inherit: false });
-const space = css.token.length("8px", { var: "space-md", inherit: false });
+const radius = token.length("12px", { var: "radius-lg", inherit: false });
+const space = token.length("8px", { var: "space-md", inherit: false });
 
 export const calls = [
   frame().radius("8px"),
@@ -27,9 +27,9 @@ export const calls = [
   frame().margin(4).border("1px"),
   frame().radius("8px").padding(4),
   frame().radius("1rem").padding(4).border("1px").margin(2),
-  css.cn(frame().radius(radius).padding(4), css.color("red")),
-  css.cn(frame().radius("4px"), css.hover(frame().radius("2px"))),
-  css.cn(frame().padding(2), css.media("(width >= 40rem)")(frame().padding(6))),
+  cn(frame().radius(radius).padding(4), color("red")),
+  cn(frame().radius("4px"), hover(frame().radius("2px"))),
+  cn(frame().padding(2), media("(width >= 40rem)")(frame().padding(6))),
   frame().radius("12px").padding(3),
   frame().radius("16px").padding(5),
   frame().radius("2rem").padding(6),

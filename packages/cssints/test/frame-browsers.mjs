@@ -125,15 +125,16 @@ const serve = async (browser, { css, js }, { probeFails = false, blind = false }
     });
   });
   await page.goto("http://app.test/");
-  await page.waitForSelector("#f4", { state: "attached" });
+  await page.locator("#f4").waitFor({ state: "attached" });
   return page;
 };
 const settle = (page) =>
   page.evaluate(
     () =>
-      new Promise((r) =>
+      // oxlint-disable-next-line promise/avoid-new -- a frame or two, in the page
+      new Promise((resolve) =>
         setTimeout(
-          () => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 20))),
+          () => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 20))),
           0,
         ),
       ),
@@ -153,6 +154,7 @@ const radii = (page, ids) =>
 
 // f1 (radius 24, padding 8, border 2) > f2 (padding 6, border 1, margin 3) > div > f3 (padding 4, a radius of 40 that
 // is ignored) > f4; a lone frame; em1 (padding 1em of 20px) > em2 (10px): the radius is 24 - 20, not 24 - 10
+/** @type {[name: string, act: (page: any) => unknown, radii: Record<string, number>][]} */
 const steps = [
   ["initial", async () => {}, { f1: 24, f2: 11, f3: 4, f4: 0, iso: 24, em1: 24, em2: 4 }],
   [
@@ -211,7 +213,7 @@ for (const name of names) {
       try {
         assert.deepEqual(got, expected, step);
         row.push(`ok ${step}`);
-      } catch (e) {
+      } catch {
         failed++;
         row.push(`FAIL ${step}: ${JSON.stringify(got)} wanted ${JSON.stringify(expected)}`);
       }

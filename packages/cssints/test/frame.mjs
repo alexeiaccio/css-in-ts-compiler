@@ -26,6 +26,7 @@ const code = async (f) => (await client.transformRequest(`/fixtures/${f}`)).code
 const head = `import * as css from "cssints" with { type: "cssints" };
 import { frame } from "cssints/frame" with { type: "cssints" };
 `;
+/** @type {Set<string>} */
 const tmp = new Set();
 const write = (name, body) => {
   tmp.add(name);
