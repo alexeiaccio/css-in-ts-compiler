@@ -22,3 +22,7 @@ body {
     color-scheme: dark;
   }
 }
+/* a button takes the page's font family (the cssints grammar rejects `inherit`, so the sheet cannot say it); size and weight are the component's */
+button {
+  font-family: inherit;
+}

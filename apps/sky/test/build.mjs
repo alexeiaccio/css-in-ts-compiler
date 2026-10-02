@@ -41,6 +41,20 @@ assert.ok(
 );
 assert.equal(embeds.match(/borderRadius\(/g).length, 1, "only the play mark's disc");
 
+// the home screen: the skeleton's shimmer is a keyframes() rule used by one class, and prefers-reduced-motion switches it
+// (and the tab indicator's slide) off; the tab bar sticks under the 52 px header and slides its indicator with a transition
+assert.match(
+  sheet,
+  /@keyframes kf-\w+\{0%\{background-position:200% 0\}to\{background-position:-200% 0\}\}/,
+);
+assert.match(sheet, /\._\w+\{animation:1\.4s linear infinite kf-\w+\}/);
+assert.match(sheet, /@media \(prefers-reduced-motion: ?reduce\)\{[^@]*\._\w+\{animation:none\}/);
+assert.match(sheet, /@media \(prefers-reduced-motion: ?reduce\)\{[^@]*\._\w+\{transition:none\}/);
+assert.match(sheet, /\._\w+\{transition:transform \.25s ease-out\}/); // the indicator
+assert.match(sheet, /\._\w+\{top:var\(--layout-header-height\)\}/); // under the header
+assert.match(sheet, /\._\w+:hover\{--sf-d:calc\(\.03 \* -1\)\}/); // a tab a step darker on hover (surface().darken)
+assert.equal(sheet.match(/@keyframes kf-/g).length, 1, "one rule, however many skeletons use it");
+
 // the themes: the system's dark is the media query, a class beats it; the accent steps keep the hue (a reference in an override)
 assert.match(sheet, /@media \(prefers-color-scheme: ?dark\)\{:root\{--color-bg:#000/);
 for (const mode of [".light", ".dim", ".dark"])
