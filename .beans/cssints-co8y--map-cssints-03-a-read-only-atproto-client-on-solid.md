@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-10-02T14:20:14Z
-updated_at: 2026-10-02T15:34:14Z
+updated_at: 2026-10-02T15:56:51Z
 ---
 
 ## Destination
@@ -38,6 +38,8 @@ updated_at: 2026-10-02T15:34:14Z
 - [check.contrast reads a derived token as its default](cssints-l90l): TokenDef keeps template + refs; contrast computes per theme through chains; the hue slider's colours are now really checked.
 
 - [sky: app shell, routes, data layer and themes](cssints-dqw8): Mu layout checked in Chrome, Router 2, api.ts on recorded fixtures, four theme modes with references; two engine bugs fixed (referred-only tokens had no @property; contrast vs JSON tokens); global/attribute selectors ticketed (cssints-635k).
+
+- [sky: appearance settings](cssints-1kob): /settings, localStorage, pre-paint script with no flash; hue slider, four modes, square flags via radius tokens; contrast swept over the slider: cyan-green fails, ticketed (cssints-bzal).
 
 ## Not yet specified
 
