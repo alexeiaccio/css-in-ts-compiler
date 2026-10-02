@@ -18,6 +18,7 @@ import {
   type Plugin,
   type ResolvedConfig,
   type Rollup,
+  transformWithOxc,
   type ViteDevServer,
 } from "vite";
 import type { ModuleRunner } from "vite/module-runner";
@@ -261,6 +262,21 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     };
   });
 
+  // The runner needs the module's top level to run, not its elements: JSX becomes calls of a no-op (`__jsx`, a binding of
+  // DomEvaluator), whatever the framework plugin or `jsx` in tsconfig would make of it. Solid's DOM output would call
+  // `template()` of its server runtime here, and `jsx: "preserve"` leaves syntax that Vite cannot analyse.
+  const inertJsx = Effect.fn("cssints.inertJsx")(function* (
+    code: string,
+    id: string,
+  ): Effect.fn.Return<string, HookError> {
+    const jsx = { runtime: "classic", pragma: "__jsx", pragmaFrag: "__jsx" } as const;
+    return yield* Effect.tryPromise({
+      try: async () => (await transformWithOxc(code, id, { jsx })).code,
+      catch: (cause) =>
+        new HookError({ hook: "transform", message: `cssints: ${String(cause)}`, cause }),
+    });
+  });
+
   const transform = Effect.fn("cssints.transform")(function* (
     ctx: Rollup.TransformPluginContext,
     code: string,
@@ -269,7 +285,10 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     // Vite serves a dependency's file as `…/index.mjs?v=<hash>`; the engine knows it by its file.
     const id = url.replace(VERSION, "");
     if (!FILE_RE.test(id) || !marked(code, id)) return undefined;
-    if (ctx.environment.name === "ssr") return (yield* instrument(code, id))?.code;
+    if (ctx.environment.name === "ssr") {
+      const out = yield* instrument(code, id);
+      return out && /x$/.test(id) ? yield* inertJsx(out.code, id) : out?.code;
+    }
     if (inner) return undefined;
 
     const parsed = yield* instrument(code, id);
@@ -424,10 +443,14 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     renderChunk(_, chunk) {
       return run(renderChunk(this, chunk));
     },
-    transform(code, id) {
-      return run(
-        transform(this, code, id).pipe(Effect.catch((e: PluginError) => locate(e, code, id))),
-      );
+    // Before every plugin that compiles JSX (Solid's, a Babel one), wherever the user lists them.
+    transform: {
+      order: "pre",
+      handler(code, id) {
+        return run(
+          transform(this, code, id).pipe(Effect.catch((e: PluginError) => locate(e, code, id))),
+        );
+      },
     },
     hotUpdate({ file, modules }) {
       return Effect.runSync(hotUpdate(this.environment, file, modules));
