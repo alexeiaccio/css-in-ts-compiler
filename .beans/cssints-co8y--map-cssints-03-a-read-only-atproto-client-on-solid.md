@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-10-02T14:20:14Z
-updated_at: 2026-10-02T14:39:28Z
+updated_at: 2026-10-02T14:44:23Z
 ---
 
 ## Destination
@@ -26,6 +26,8 @@ updated_at: 2026-10-02T14:39:28Z
 ## Decisions so far
 
 - [Solid 2 and cssints in one Vite app](cssints-yfxf): works; one engine fix (JSX becomes a no-op in the runner, transform order pre); apps/sky skeleton with build and HMR checks.
+
+- [Mu's design tokens and layout](cssints-uifu): Mu = Bluesky alf with Mu's palette; 600/240/300 layout; tokens.json with one hue token driving accents; licence: values, Inter, Phosphor yes, logos and art no; two cssints gaps ticketed.
 
 ## Not yet specified
 
