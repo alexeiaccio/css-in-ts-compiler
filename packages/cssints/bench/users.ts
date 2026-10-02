@@ -71,7 +71,11 @@ const lg = media("(width >= 64rem)");
 const narrow = container("sidebar (width < 30rem)");
 const grid2 = supports("(display: grid)");
 
-const fade = keyframes({ from: opacity(0), "50%": cn(opacity(0.5), transform("scale(1.02)")), to: opacity(1) });
+const fade = keyframes({
+  from: opacity(0),
+  "50%": cn(opacity(0.5), transform("scale(1.02)")),
+  to: opacity(1),
+});
 const below = positionTry(cn(top("anchor(bottom)"), margin("0.5rem")));
 
 export const base = [

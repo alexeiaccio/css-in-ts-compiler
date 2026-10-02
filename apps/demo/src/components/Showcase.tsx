@@ -92,7 +92,11 @@ const cardBody = cn(
 );
 
 // keyframes() from a helper module: the name goes where animation wants one, the rule comes with it.
-const pulsing = cn(css.color(t.color.text), animation(pulse, "1.5s", "ease-in-out", "infinite"), reduced(animation("none")));
+const pulsing = cn(
+  css.color(t.color.text),
+  animation(pulse, "1.5s", "ease-in-out", "infinite"),
+  reduced(animation("none")),
+);
 
 // supports(): bold where CSS grid exists.
 const feature = cn(css.color(t.color.text), css.fontWeight("400"), hasGrid(css.fontWeight("700")));

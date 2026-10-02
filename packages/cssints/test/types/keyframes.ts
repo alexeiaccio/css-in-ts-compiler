@@ -16,7 +16,11 @@ import {
 } from "cssints" with { type: "cssints" };
 
 const fade = keyframes({ from: opacity(0), to: opacity(1) });
-const spin = keyframes({ from: transform("rotate(0deg)"), "50%": cn(opacity(0.5)), "99.5%": opacity(1) });
+const spin = keyframes({
+  from: transform("rotate(0deg)"),
+  "50%": cn(opacity(0.5)),
+  "99.5%": opacity(1),
+});
 const above = positionTry(cn(top("anchor(bottom)"), margin(2)));
 const ident = token.customIdent("x", "an-ident");
 
@@ -50,4 +54,4 @@ keyframes({ from: opacity("lots") });
 // @ts-expect-error a bad value of the shorthand is still an error
 positionTry("sideways");
 // @ts-expect-error not a string
-const bad: string = fade;
+export const bad: string = fade;

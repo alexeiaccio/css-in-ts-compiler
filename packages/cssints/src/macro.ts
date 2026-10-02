@@ -124,14 +124,18 @@ const STEP = /^(?:from|to|\d+(?:\.\d+)?%)$/;
 // a style of member calls, plain declarations only.
 const blockOf = (what: string, style: unknown, allowed?: RegExp): string => {
   if (!isNode(style) || !style.__cssints.length)
-    throw fail(`cssints: ${what} takes css.* declarations (a member call or cn(...)), got ${JSON.stringify(style)}`);
+    throw fail(
+      `cssints: ${what} takes css.* declarations (a member call or cn(...)), got ${JSON.stringify(style)}`,
+    );
   if (style.markers || style.kernels || style.plugs)
     throw fail(`cssints: ${what} takes plain declarations: no marker class or kernel of a member`);
   return style.__cssints
     .map((d) => {
       const [prop, value, conds, fallbacks] = d;
       if (conds?.length || fallbacks)
-        throw fail(`cssints: ${what} takes declarations without conditions or firstThatWorks(...), got ${prop}`);
+        throw fail(
+          `cssints: ${what} takes declarations without conditions or firstThatWorks(...), got ${prop}`,
+        );
       if (allowed && !allowed.test(prop))
         throw fail(
           `cssints: ${what}: ${prop} is not allowed in @position-try, which takes inset, margin, sizing and self-alignment properties, position-anchor and position-area`,
@@ -139,7 +143,12 @@ const blockOf = (what: string, style: unknown, allowed?: RegExp): string => {
       try {
         checkNow(d, true, registry);
       } catch (e) {
-        if (isDeclarationError(e)) throw new MacroError({ message: `cssints: ${what}: ${e.message}`, cause: e, ...registry.at });
+        if (isDeclarationError(e))
+          throw new MacroError({
+            message: `cssints: ${what}: ${e.message}`,
+            cause: e,
+            ...registry.at,
+          });
         throw e;
       }
       return `${prop}:${value}`;
@@ -158,14 +167,16 @@ const atRule = (rule: string, prefix: string, body: string) => {
   });
 };
 
-/** keyframes({ from: opacity(0), "50%": ..., to: ... }): the name of a `@keyframes` rule, for animation and animationName. */
+// keyframes({ from: opacity(0), "50%": ..., to: ... }): the name of a `@keyframes` rule, for animation and animationName.
 export const keyframes = (steps: unknown): CSSAtRuleValue => {
   const entries = typeof steps === "object" && steps !== null ? Object.entries(steps) : [];
   if (!entries.length)
     throw fail("cssints: keyframes() takes { from: style, to: style }: the steps are css.* styles");
   const body = entries.map(([step, style]) => {
     if (!STEP.test(step) || parseFloat(step) > 100)
-      throw fail(`cssints: keyframes() step "${step}" is not from, to or a percentage from 0% to 100%`);
+      throw fail(
+        `cssints: keyframes() step "${step}" is not from, to or a percentage from 0% to 100%`,
+      );
     return `${step}{${blockOf(`keyframes() "${step}"`, style)}}`;
   });
   return atRule("keyframes", "kf-", body.join(""));
@@ -173,7 +184,7 @@ export const keyframes = (steps: unknown): CSSAtRuleValue => {
 
 // `position-try` is a property too: value parts are that shorthand, one style is the rule (a style is no value of a property).
 const positionTryProp = member("positionTry");
-/** positionTry(style): the dashed name of a `@position-try` rule, for positionTryFallbacks. */
+// positionTry(style): the dashed name of a `@position-try` rule, for positionTryFallbacks.
 export const positionTry = (...args: unknown[]) =>
   args.length === 1 && isNode(args[0])
     ? atRule("position-try", "--pt-", blockOf("positionTry()", args[0], POSITION_TRY))
