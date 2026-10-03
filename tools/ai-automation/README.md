@@ -1,8 +1,8 @@
 # ai-automation
 
 Agent-executable verification tooling, adopted from
-[typeonce-dev/ai-automation](https://github.com/typeonce-dev/ai-automation) as an
-Effect-relevant subset. The reference repo is a pattern source, not a template:
+[typeonce-dev/ai-automation](https://github.com/typeonce-dev/ai-automation) (through
+effects-of-atmosphere) as an Effect-relevant subset. The reference repo is a pattern source, not a template:
 React, Next.js, Tailwind, and XState rules were intentionally not adopted.
 
 ## Contents
@@ -53,19 +53,24 @@ violations roll out as warnings; the rest are errors.
 
 ## Wiring
 
-- Custom rules run through `pnpm run lint` (vite-plus loads the plugin via
-  `lint.jsPlugins` in `vite.config.ts`). The config spreads
-  `profiles.effect`, `profiles.core`, and `profiles['anti-slop']`, and enables
-  the native `oxc/no-accumulating-spread` rule alongside
-  `no-reduce-accumulator-copy`.
+- Custom rules run through `bun run lint` (vite-plus loads the plugin via
+  `lint.jsPlugins` in the root `vite.config.ts`, beside eslint-plugin-playwright).
+  The config spreads `profiles.effect` and names the anti-slop rules it enables;
+  the table below says which rule is on, and why the others are off. The native
+  `oxc/no-accumulating-spread` is on with them.
+- Tests: `bun run test` (here, `vp test run`: Vite+ ships vitest, imported from
+  `vite-plus/test`). Typecheck: `bun run typecheck` (tsgo).
 - `tools/ai-automation/vendor/**` is excluded from lint and fmt; vendored code
   keeps its upstream style. The vendored rules import `@oxlint/plugins`, which
   is hoisted from the Vite+ toolchain; see `vendor/anti-slop/UPSTREAM.md` for
   the version-bridge details.
-- Added-lines review check: `node --import tsx
-tools/ai-automation/scripts/diff-check/src/main.ts --config
-tools/ai-automation/scripts/diff-check/diff-check.config.json --base
-origin/main` (also available as `pnpm run diff:check`).
+- Added-lines review check: `bun run diff:check` at the root (node type
+  stripping, base `master`; `--base <ref>` overrides it). Its config,
+  `scripts/diff-check/diff-check.config.json`, excludes the plain code of the
+  root lint (apps, tests, browser runtimes, hot paths, generated files) and warns
+  on a change of `bun.lock`, `vite.config.ts`, `tsconfig.effect.json` and the
+  Chrome-judged `webref-properties.json`. A warning exits 1: the key-file ones
+  are for a human to read.
 
   vite-plus replaces the `oxlint` binary with an LSP-only wrapper, so the
   diff-check drives the full CLI engine directly via
@@ -76,10 +81,42 @@ origin/main` (also available as `pnpm run diff:check`).
   its own rules; `scripts/diff-check/test/config-sync.test.ts` keeps the
   enabled list in sync with `src/profiles.ts`.
 
-- Severity rollout: rules with pre-existing violations are enabled as
-  `warn` (see `src/catalog.ts`). Promote a rule to `error` in `catalog.ts`
-  once its violations are fixed, and mirror it in the root `vite.config.ts`
-  (the root config spreads `profiles.effect` and `profiles.core`).
+- Severity: `src/catalog.ts` gives every effect and anti-slop rule `error` (the
+  core ones `warn`, they are not enabled). The root config decides what is on.
+  To roll out a rule with violations, turn it on as `warn` in `vite.config.ts`
+  and promote it once they are fixed.
+- Plain code by design is exempt through `overrides` in the root config (the
+  `plainCode` list, with a reason each): browser runtimes, the Typed OM values,
+  the twin's recognizer, `@cssints/icons`, the apps, tests and `.mjs` scripts.
+  Violations in `macro.ts`, `lib.ts`, `registry.ts`, `author.ts` and
+  `author-types.ts` are warnings until cssints-6nqy.
+
+## Rules in this repository
+
+Counts are violations before the cleanup, over packages (src, scripts, tests),
+apps and this tool. "Effect code" is what is left once plain code and the five
+files are set aside; the effect-code violations were fixed.
+
+| Rule                                                                                                                                                 | Profile   | All | Effect code | Five files | State | Why                                                                                                 |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | --: | ----------: | ---------: | ----- | --------------------------------------------------------------------------------------------------- |
+| no-global-json                                                                                                                                       | effect    | 183 |          25 |         18 | error | `JSON.stringify` became `Formatter.formatJson`, `JSON.parse` a `Schema.fromJsonString` decoder      |
+| no-in-operator                                                                                                                                       | effect    |  58 |          16 |          6 | error | `Predicate.hasProperty`, `Object.hasOwn`, `Reflect.has`; the AST walk of instrument.ts is plain     |
+| no-try-catch                                                                                                                                         | effect    |  61 |           3 |          5 | error | `Result.try`                                                                                        |
+| no-typeof-object                                                                                                                                     | effect    |  34 |           2 |          7 | error | `Predicate.isObject`, `Predicate.hasProperty`                                                       |
+| prefer-effect-match                                                                                                                                  | effect    |  12 |           1 |          0 | error | the one in effect code is `rootIdent` of the AST walk (plain)                                       |
+| the other nine of the effect profile                                                                                                                 | effect    |   0 |           0 |          0 | error | no violation                                                                                        |
+| no-manual-tag-comparison, no-manual-tagged-construction                                                                                              | anti-slop |   4 |           0 |          0 | error | only in this tool (exempt)                                                                          |
+| no-manual-effect-error-tag, no-service-constructor-imports                                                                                           | anti-slop |   0 |           0 |          0 | error | no violation                                                                                        |
+| no-array-filter-map                                                                                                                                  | anti-slop |  19 |           9 |          0 | error | `flatMap`; `supportOf` runs per declaration (plain)                                                 |
+| no-module-mocking, no-object-parameters, no-reduce-accumulator-copy, no-reflect-apply, no-reflect-get, no-unknown-type-aliases, no-widen-then-assert | anti-slop |   0 |           0 |          0 | error | no violation                                                                                        |
+| no-banned-type-assertions                                                                                                                            | core      |  14 |           5 |          6 | off   | the casts type the Vite evaluator, the oxc AST and the mdn-data JSON; the rule has no way to say so |
+| no-multiple-function-params                                                                                                                          | core      | 261 |          46 |         28 | off   | positional parameters are this code base's style                                                    |
+| no-optional-function-parameters                                                                                                                      | core      |  40 |          10 |         10 | off   | defaults and `?` are used on purpose                                                                |
+| no-type-assertion                                                                                                                                    | core      | 119 |          39 |         15 | off   | the same casts at the boundaries; nothing in AGENTS.md bans them                                    |
+| no-known-value-widening                                                                                                                              | anti-slop |  31 |          13 |          5 | off   | `unknown` is the honest type of what user code hands the macros                                     |
+| no-unknown-parameters, no-unknown-returns                                                                                                            | anti-slop |  47 |          15 |         16 | off   | same: the trust boundary is the macro, not a schema                                                 |
+| no-unsafe-dictionary-type                                                                                                                            | anti-slop |  23 |           9 |          3 | off   | same                                                                                                |
+| oxc/no-accumulating-spread                                                                                                                           | oxc       |   0 |           0 |          0 | error | no violation                                                                                        |
 
 ## Adding a rule
 

@@ -45,7 +45,9 @@ const isRuntime = (d: ImportDeclaration, x: ImportDeclarationSpecifier) =>
 // The runtime part of an attributed import, as an import of its own (`import { _cv } from "cssints";`), or "".
 export const keptImport = (d: ImportDeclaration, code: string) => {
   const names = d.specifiers.filter((x) => isRuntime(d, x)).map((x) => code.slice(x.start, x.end));
-  return names.length ? `import { ${names.join(", ")} } from ${Formatter.formatJson(RUNTIME)};` : "";
+  return names.length
+    ? `import { ${names.join(", ")} } from ${Formatter.formatJson(RUNTIME)};`
+    : "";
 };
 
 interface CssImports {

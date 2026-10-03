@@ -1,14 +1,29 @@
 {
-  "baseRef": "HEAD",
+  "baseRef": "master",
   "oxlintConfigPath": "./diff-check.oxlintrc.json",
   "sourceExtensions": [".ts", ".tsx"],
   "excludePathPrefixes": [
-    "dist/",
-    "coverage/",
-    "node_modules/",
-    "repos/",
-    "vendor/",
-    "tools/ai-automation/"
+    "tools/ai-automation/",
+    "apps/",
+    "docs/",
+    "packages/cssints/test/",
+    "packages/cssints/bench/",
+    "packages/css-grammar/test/",
+    "packages/css-grammar/bench/",
+    "packages/icons/test/",
+    "packages/cssints/src/runtime.ts",
+    "packages/cssints/src/parent-vars.ts",
+    "packages/cssints/src/frame.ts",
+    "packages/cssints/src/surface.ts",
+    "packages/cssints/src/derived.ts",
+    "packages/cssints/src/members.ts",
+    "packages/css-grammar/src/values.ts",
+    "packages/css-grammar/src/twin-core.ts",
+    "packages/css-grammar/src/css.ts",
+    "packages/css-grammar/src/mdn.ts",
+    "packages/css-grammar/src/keywords.ts",
+    "packages/css-grammar/src/longhands.ts",
+    "packages/icons/src/"
   ],
   "changedFileRules": [
     {
@@ -17,13 +32,23 @@
       "matchers": [
         {
           "_tag": "File",
-          "path": "pnpm-lock.yaml",
+          "path": "bun.lock",
           "message": "The dependency lockfile changed. Verify no unintended dependency upgrades."
         },
         {
-          "_tag": "Directory",
-          "path": "repos/effect/",
-          "message": "The vendored Effect subtree changed."
+          "_tag": "File",
+          "path": "vite.config.ts",
+          "message": "The lint or fmt configuration changed."
+        },
+        {
+          "_tag": "File",
+          "path": "tsconfig.effect.json",
+          "message": "The Effect language service diagnostics changed."
+        },
+        {
+          "_tag": "File",
+          "path": "packages/css-grammar/scripts/webref-properties.json",
+          "message": "The Chrome-judged property data changed: run bun run extract after bun run webref."
         }
       ]
     }

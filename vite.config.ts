@@ -240,6 +240,7 @@ export default defineConfig({
       "oxc/double-comparisons": "error",
       "oxc/erasing-op": "error",
       "oxc/missing-throw": "error",
+      "oxc/no-accumulating-spread": "error",
       "oxc/number-arg-out-of-range": "error",
       "oxc/only-used-in-recursion": "error",
       "oxc/uninvoked-array-callback": "error",

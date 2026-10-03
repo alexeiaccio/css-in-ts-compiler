@@ -97,7 +97,7 @@ export const cssTarget = Effect.runSync(browsers()).flatMap((t) => {
 // ---------- the hook boundary
 
 // Runs a hook's program; a failure is thrown as the error itself.
-const run = <A>(program: Effect.Effect<A, PluginError>): Promise<A> =>
+const run = <A>(program: Effect.Effect<A, PluginError>) =>
   Effect.runPromiseExit(program).then((exit) => {
     if (Exit.isSuccess(exit)) return exit.value;
     throw Cause.squash(exit.cause);
@@ -397,8 +397,9 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     const { warned } = yield* Registry;
     yield* Effect.sync(() => warned.clear());
     const graph = env.moduleGraph;
-    const affected = [...new Set([...(depsOf.get(file) ?? []), ...inflight])]
-      .flatMap((id) => graph.getModuleById(id) ?? []);
+    const affected = [...new Set([...(depsOf.get(file) ?? []), ...inflight])].flatMap(
+      (id) => graph.getModuleById(id) ?? [],
+    );
     // HMR invalidation alone would still let Vite cache (and reuse) a result that is being computed now.
     yield* Effect.sync(() => affected.forEach((m) => graph.invalidateModule(m)));
     return [...modules, ...affected];

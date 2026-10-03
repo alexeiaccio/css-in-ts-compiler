@@ -3,7 +3,7 @@
 // sets, and the aliases that depend on them, under a condition or a selector. Both builders are called in user
 // expressions, so their edge is plain code (`edge`); everything behind it is Effect.
 import { DTCG_TYPES, type DtcgType, TOKEN_TYPES, type TokenType } from "@cssints/css-grammar/token";
-import { Effect, Formatter, Predicate, Schema } from "effect";
+import { Effect, Formatter, Predicate } from "effect";
 
 import type { MacroError } from "./errors.ts";
 import { standIn } from "./derived-data.ts";
@@ -67,7 +67,9 @@ const cssOf = Effect.fnUntraced(function* (
 ): Effect.fn.Return<string, MacroError> {
   if (typeof value === "string") {
     const key = value.trim().toLowerCase();
-    return type === "fontWeight" && Object.hasOwn(FONT_WEIGHTS, key) ? String(FONT_WEIGHTS[key]) : value.trim();
+    return type === "fontWeight" && Object.hasOwn(FONT_WEIGHTS, key)
+      ? String(FONT_WEIGHTS[key])
+      : value.trim();
   }
   if (isNumber(value) && (type === "number" || type === "fontWeight")) return String(value);
   if (Predicate.isObject(value) && type === "color") {
@@ -100,7 +102,9 @@ const cssOf = Effect.fnUntraced(function* (
       );
     return `${n}${unit}`;
   }
-  return yield* fail(`cssints: ${what} is not a DTCG ${type} value: ${Formatter.formatJson(value)}`);
+  return yield* fail(
+    `cssints: ${what} is not a DTCG ${type} value: ${Formatter.formatJson(value)}`,
+  );
 });
 
 // A value that is only `var(--target)` needs no feature of its own, so it stays live.
@@ -359,14 +363,8 @@ export const createTokens = (...args: unknown[]): unknown =>
   );
 
 // The text a site of createTokens leaves on the client: the tokens by path, as `var(--name)` strings.
-// @effect-diagnostics-next-line schemaSync:off -- tokensOf is called by the sync site builders
-const tokensJson = Schema.encodeSync(
-  Schema.fromJsonString(Schema.Unknown, {
-    replacer: (_, x: unknown) => (x instanceof CSSTokenValue ? String(x) : x),
-  }),
-);
 export const tokensOf = (v: unknown): string | undefined =>
-  Predicate.isObject(v) && sets.has(v) ? tokensJson(v) : undefined;
+  Predicate.isObject(v) && sets.has(v) ? Formatter.formatJson(v) : undefined;
 
 // ---------- createGlobalTheme
 
@@ -484,7 +482,8 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
                 child.name,
                 [...targets.values()].map((t) => t.name),
               );
-          } else if (Predicate.isObject(child) && Predicate.isObject(v)) yield* walk(child, v, [...path, key]);
+          } else if (Predicate.isObject(child) && Predicate.isObject(v))
+            yield* walk(child, v, [...path, key]);
           else
             return yield* fail(
               child === undefined

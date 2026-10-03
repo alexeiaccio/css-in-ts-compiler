@@ -28,6 +28,9 @@ export class CSSTokenValue extends CSSStyleValue {
   override toString() {
     return `var(${this.name})`;
   }
+  toJSON() {
+    return this.toString();
+  }
 }
 
 // A property that takes each syntax, so a token value gets the support check of a property value (a syntax with none,
@@ -190,8 +193,7 @@ const make =
 export interface StyleNode {
   __style: { sets: [name: string, value: string][]; decls: Decl[] };
 }
-export const isStyle = (v: unknown): v is StyleNode =>
-  Predicate.hasProperty(v, "__style");
+export const isStyle = (v: unknown): v is StyleNode => Predicate.hasProperty(v, "__style");
 
 const set = (...args: unknown[]): StyleNode => {
   const [t, value] = args;

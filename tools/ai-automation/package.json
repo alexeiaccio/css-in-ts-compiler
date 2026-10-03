@@ -7,8 +7,7 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsgo -p tsconfig.json --noEmit",
-    "test": "vp test run",
-    "diff:check": "node scripts/diff-check/src/main.ts --config scripts/diff-check/diff-check.config.json"
+    "test": "vp test run"
   },
   "devDependencies": {
     "@oxlint/plugins": "1.79.0",

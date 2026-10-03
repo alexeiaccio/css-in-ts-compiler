@@ -20,7 +20,8 @@ as migrations, public contracts, security policy, runtime configuration, or
 dependency state. The goal is not another full review of every changed file.
 
 ```sh
-node --import tsx src/main.ts --config diff-check.config.json --base origin/main
+bun run diff:check   # at the root; base master, set in diff-check.config.json
+node tools/ai-automation/scripts/diff-check/src/main.ts --config <path> --base <ref>
 ```
 
 Configuration controls the base reference, OXLint config path, source

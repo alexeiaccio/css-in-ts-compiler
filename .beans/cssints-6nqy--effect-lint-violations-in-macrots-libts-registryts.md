@@ -3,8 +3,9 @@
 title: Effect lint violations in macro.ts, lib.ts, registry.ts, author.ts, author-types.ts
 status: todo
 type: task
+priority: normal
 created_at: 2026-10-03T13:11:49Z
-updated_at: 2026-10-03T13:11:49Z
+updated_at: 2026-10-03T13:17:21Z
 ---
 
 cssints-fuyb turned the automation Effect rules on as errors (root vite.config.ts) and fixed every violation except those in the five files another session was editing (macro.ts, lib.ts, registry.ts, author.ts, author-types.ts). For exactly those files the root vite.config.ts sets the rules to "warn" (the `inFlight` override, comment names this bean). Fix them, then delete the `inFlight` override and its `automationWarn` constant: the rules are errors again.
@@ -55,3 +56,7 @@ Replacements used for the rest (see git log of cssints-fuyb):
 - [ ] registry.ts, author-types.ts: no violation today; the Effect language service diagnostics at full strength (tsconfig of packages/cssints) may report some, see below
 
 Line numbers are those of master at 2026-10-03 (fc0dbc2); re-run `npx vp lint` to see the current ones (they are the warnings).
+
+## Effect language service
+
+tsconfig.effect.json (shared by packages/cssints, css-grammar, icons) sets every diagnostic to error. For exactly the five files its `overrides` entry makes `preferSchemaOverJson` a warning: macro.ts:548, 584, 678, 686, 687 (the same JSON.stringify calls as the lint's no-global-json). Fix them with the lint ones, then delete that override entry (and the "cssints-6nqy" comment).

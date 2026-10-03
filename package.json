@@ -13,7 +13,7 @@
 		"test": "vp run -r --cache test",
 		"bench": "vp run -r bench",
 		"typecheck": "vp run --filter \"./packages/*\" --filter \"./tools/*\" --filter ./apps/demo --filter ./apps/sky typecheck",
-		"diff:check": "bun run --cwd tools/ai-automation diff:check",
+		"diff:check": "node tools/ai-automation/scripts/diff-check/src/main.ts --config tools/ai-automation/scripts/diff-check/diff-check.config.json",
 		"check": "vp check && bun run typecheck",
 		"lint": "vp lint",
 		"lint:fix": "vp lint --fix",
