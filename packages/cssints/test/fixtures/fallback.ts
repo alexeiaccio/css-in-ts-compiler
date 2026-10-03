@@ -24,9 +24,13 @@ export const e = border("1px", firstThatWorks("solid", "dashed"), "red");
 export const f = cn(padding(firstThatWorks("1dvh", "1vh")), hover(padding(firstThatWorks("2dvh", "2vh"))));
 // the same value twice gives the same class
 export const g = minHeight(firstThatWorks("100dvh", "100vh"));
-// the wanted value oklch() is lacking in the targets of the test; its fallback is supported by all of them
-export const h = color(firstThatWorks("oklch(55% 0.18 250)", "#0057b8"));
+// the wanted value color-mix() is lacking in some targets of the test (LightningCSS cannot lower it with a var() inside, so
+// the warning stands); its fallback is supported by all of them
+export const h = color(firstThatWorks(`color-mix(in srgb, ${brand}, blue)`, "#0057b8"));
 // ... by only some of them: the warning names the others
-export const i = color(firstThatWorks("oklch(55% 0.18 250)", "lab(40% 20 -50)"));
+export const i = color(firstThatWorks(`color-mix(in srgb, ${brand}, blue)`, "lab(40% 20 -50)"));
 // the plain value still warns for all of its targets
-export const j = color("oklch(55% 0.18 250)");
+export const j = color(`color-mix(in srgb, ${brand}, blue)`);
+// a literal oklch() is lowered by LightningCSS for the targets: no warning, with a fallback or without
+export const k = color(firstThatWorks("oklch(55% 0.18 250)", "#0057b8"));
+export const l = color("oklch(55% 0.18 250)");

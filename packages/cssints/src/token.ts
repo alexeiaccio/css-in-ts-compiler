@@ -12,6 +12,7 @@ import { Effect } from "effect";
 
 import { MacroError } from "./errors.ts";
 import { type Decl, edge, fail, isNode } from "./lib.ts";
+import { loweredOf } from "./lowered.ts";
 import { registry } from "./registry.ts";
 
 export class CSSTokenValue extends CSSStyleValue {
@@ -46,12 +47,16 @@ const SUPPORT_PROPERTY: Record<string, string> = {
 };
 
 // `text` is a value of the grammar `<syntax>`; `what` names it in the error, and `who` (default `what`) in a support
-// warning, once per `who` and BCD feature per build, in the `warned` set of the properties.
+// warning, once per `who` and BCD feature per build, in the `warned` set of the properties. `live` is the custom
+// property declaration of the sheet that holds the value, `[name, value]` with its `var()` references (a theme
+// override): LightningCSS lowers it, so there is no warning for what it lowers for the targets. An `@property`
+// initial value or an inline `token.set()` value is not lowered, and keeps its warning.
 export const checkSyntaxFx = Effect.fnUntraced(function* (
   what: string,
   syntax: string,
   text: string,
   who: string = what,
+  live?: [name: string, value: string],
 ): Effect.fn.Return<void, MacroError> {
   const ok = yield* matches(`<${syntax}>`, text).pipe(
     Effect.mapError((e) => new MacroError({ message: e.message, cause: e, ...registry.at })),
@@ -62,7 +67,7 @@ export const checkSyntaxFx = Effect.fnUntraced(function* (
   const { warned, warnings } = registry;
   for (const w of supportOf(prop, text)) {
     const k = `${who} ${w.key}`;
-    if (w.feature === prop || warned.has(k)) continue;
+    if (w.feature === prop || warned.has(k) || (live && loweredOf(live[0], live[1], w))) continue;
     warned.add(k);
     warnings.push(
       `${who}: "${w.feature}" in "${text}" is not supported by ${browsers(w.lacking)} (${w.key})`,

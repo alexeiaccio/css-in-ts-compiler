@@ -45,6 +45,7 @@ import {
 import { addRuntime } from "./delivery.ts";
 import { clamp, colorMix, max, min } from "./functions.ts";
 import { addKernel } from "./kernel.ts";
+import { loweredOf } from "./lowered.ts";
 import {
   type At,
   forgetKernels,
@@ -344,10 +345,12 @@ const checkValue = (
 
 // The wanted value warns for the targets that lack it; with fallbacks, only for those that lack every value too, and the
 // key of the warning holds them, so a plain declaration of the same feature still warns for all of its targets.
+// No warning for what LightningCSS lowers for those targets (lowered.ts), except in an inline style, which it never sees.
 const checkNow = (
   [prop, value, , fallbacks]: Decl,
   fresh: boolean,
   { warnings, warned, properties, userProps }: RegistryState,
+  sheet = true,
 ) => {
   if (userProps.has(prop)) return; // a property() member checked its value against its own grammar
   let found = checkValue(prop, value, fresh, properties);
@@ -362,7 +365,7 @@ const checkNow = (
   }
   for (const w of found) {
     const k = `${prop} ${w.key}${fallbacks ? ` ${w.lacking.join()}` : ""}`;
-    if (!warned.has(k)) {
+    if (!warned.has(k) && !(sheet && loweredOf(prop, value, w))) {
       warned.add(k);
       warnings.push(
         messageOf(prop, value, w) +
@@ -540,7 +543,7 @@ const inlineOf = Effect.fnUntraced(function* ({
   const registry = yield* Registry;
   return yield* Effect.try({
     try: () => {
-      for (const d of decls) checkNow(d, true, registry);
+      for (const d of decls) checkNow(d, true, registry, false);
       const entries = new Map([...sets, ...decls.map(([p, v]): [string, string] => [camel(p), v])]);
       return `{ ${[...entries].map(([k, v]) => `${k.startsWith("--") ? JSON.stringify(k) : k}: ${JSON.stringify(v)}`).join(", ")} }`;
     },

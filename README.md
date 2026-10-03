@@ -4,7 +4,7 @@ cssints is compile-time CSS-in-TypeScript. You write calls such as `css.flex().a
 
 - Values are checked against the spec grammars (mdn-data) in the types and again at build time. A typo is an error in the editor and in the build.
 - Conditions (`media`, `container`, `supports`, `hover`), variants (`cv`), design tokens and themes (`createTokens`, `createGlobalTheme`, `check.contrast`) are all build-time, and all typed.
-- LightningCSS optimizes the output. Browser support (`@mdn/browser-compat-data` against your browserslist) is reported as warnings.
+- LightningCSS optimizes the output. Browser support (`@mdn/browser-compat-data` against your browserslist) is reported as warnings, except for what LightningCSS lowers for those targets.
 
 Status: 0.1 is not published yet. Decisions and findings are in [docs/wayfinder.md](docs/wayfinder.md); the API reference is [docs/API.md](docs/API.md).
 
@@ -28,7 +28,7 @@ export default {
 import "virtual:cssints.css";
 ```
 
-`targets` and `cssTarget` come from the browserslist query of the support warnings (`BROWSERSLIST`, default `defaults`). Vite's CSS minify reads `cssTarget`, not `targets`: without it the minifier merges the declarations of a `firstThatWorks` into the last one. Add `"types": ["vite/client"]` to `tsconfig.json` for the `virtual:` import.
+`targets` and `cssTarget` come from the browserslist query of the support warnings: the `BROWSERSLIST` variable, else the standard config (`"browserslist"` in `package.json` or `.browserslistrc`, with the `BROWSERSLIST_ENV`, `NODE_ENV` or `production` section), else `defaults`. The config is looked up from `process.cwd()` and upward, once per process: the exports are computed when `vite.config.ts` is imported, before Vite's root is known, and the warnings read the same place. Run Vite from the app's directory (`vite <dir>` from elsewhere reads the config of the working directory). Vite's CSS minify reads `cssTarget`, not `targets`: without it the minifier merges the declarations of a `firstThatWorks` into the last one. Add `"types": ["vite/client"]` to `tsconfig.json` for the `virtual:` import.
 
 ### Frameworks
 

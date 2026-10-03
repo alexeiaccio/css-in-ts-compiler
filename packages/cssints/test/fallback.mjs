@@ -38,18 +38,18 @@ rule(cls.c, "{color:var(--brand);color:oklch(55% 0.18 250)}");
 rule(cls.d, "{color:red;color:var(--x)}");
 rule(cls.e, "{border:1px dashed red;border:1px solid red}");
 rule(cls.f.split(" ")[1], ":hover{padding:2vh;padding:2dvh}");
-rule(cls.h, "{color:#0057b8;color:oklch(55% 0.18 250)}");
+rule(cls.h, "{color:#0057b8;color:color-mix(in srgb, var(--brand), blue)}");
 assert.equal(css.match(new RegExp(`\\.${cls.a}\\{`, "g")).length, 1, "once in the sheet");
 assert.ok(css.includes("@property --brand"), "the token of a fallback is in the sheet");
 
-// Warnings: h is silenced (every target that lacks oklch() has #0057b8), i names the target that still lacks it, and
-// the plain j keeps all of its targets.
+// Warnings: h is silenced (every target that lacks color-mix() has #0057b8), i names the target that still lacks it, and
+// the plain j keeps all of its targets; k and l are lowered by LightningCSS, which the warning leaves alone.
 const lines = warnings.map((w) =>
   stripVTControlCharacters(w.split("\n")[0]).replace(/^.*warning: /, ""),
 );
 assert.deepEqual(lines, [
-  'color: "oklch()" in "oklch(55% 0.18 250)" is not supported by chrome 100 (css.types.color.oklch), and no fallback of its firstThatWorks covers them',
-  'color: "oklch()" in "oklch(55% 0.18 250)" is not supported by chrome 100, safari 15.2 (css.types.color.oklch)',
+  'color: "color-mix()" in "color-mix(in srgb, var(--brand), blue)" is not supported by chrome 100 (css.types.color.color-mix), and no fallback of its firstThatWorks covers them',
+  'color: "color-mix()" in "color-mix(in srgb, var(--brand), blue)" is not supported by chrome 100, safari 15.2 (css.types.color.color-mix)',
 ]);
 
 // Build errors, at the call site.

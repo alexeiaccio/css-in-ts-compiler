@@ -37,7 +37,8 @@ export class RuleError extends Data.TaggedError("RuleError")<{
 /** browserslist rejected the query. */
 export class BrowsersError extends Data.TaggedError("BrowsersError")<{
   readonly message: string;
-  readonly query: string;
+  /** undefined: the config found from the working directory */
+  readonly query: string | undefined;
 }> {}
 
 export type TwinError = ParseError | UnknownPropertyError | InvalidValueError;
