@@ -180,6 +180,28 @@ All steps pass in all five builds: initial, class toggle, insert, wrap, inline s
 
 **Not covered:** real Safari (no release before 18 runs here; Playwright's builds stand in, see 4), Chrome below 111 (none obtainable; it has `@property` from 85, so the same floor reasoning applies), BrowserStack, Firefox 115 ESR and below (no `@property`), React hydration.
 
+### 3.7 Safari 17 and 18 (cssints-7gq2)
+
+Playwright's WebKit of the 17.x and 18.x lines, each driven by the `playwright-core` of its release (macOS 15.7, arm64; every build still downloads from `cdn.playwright.dev` through the installer and launches; set `PLAYWRIGHT_SKIP_BROWSER_GC=1` when installing several, or each install deletes the others' browsers). `test:browsers` finds by itself whether a browser has style queries; `apps/sky/test/safari.mjs` (`bun run test:safari`) reads the built app (default targets, the dev page compiled in) in each build and in Chrome, and compares.
+
+| playwright-core | WebKit | build | style queries | `test:browsers` (frame, surface, both; probe, runtime, control) | sky: decisions, settings at 3 modes x 2 hues, post card |
+| --- | --- | ---: | :-: | :-: | --- |
+| 1.36.2 | 17.0 | 1869 | no | ok | runtime on, derived runtime writes; card radii wrong, see below (cssints-z7lt) |
+| 1.40.1 | 17.4 | 1944 | no | ok | runtime on, derived runtime writes; equal to Chrome |
+| 1.45.3 | 17.4 | 2035 | yes | ok | runtime off, derived idle; equal to Chrome |
+| 1.46.1 | 18.0 | 2051 | yes | ok | same |
+| 1.49.1 | 18.2 | 2104 | yes | ok | same |
+| 1.53.2 | 18.5 | 2182 | yes | ok | same |
+| this repo's | 26.6 | 2359 | yes | ok | same |
+
+Release notes label 1.39 to 1.45 as "17.4", and two of those builds differ in the feature that matters here (1944 has no style queries, 2035 has them), as §3.6 found for 2003. The frame/surface runtime is on exactly where the browser has no style queries (all three apps, both builds), and the derived-token runtime writes exactly where one of the 8 probe literals does not parse: both agree in every engine. The settings page (accent steps, label and page background as painted, at the slider's 0 and 90 in light, dim and dark: within 3/255 of Chrome), the post card (frame radii and padding, surface lightness within 0.01, the largest image of each of the 19 samples, line clamp, grid columns) and the preview button's radii are equal to Chrome's in every build but 1869. The screenshots of the same elements differ from Chrome's in 2 to 6 % of the pixels (text positions, 1 to 3 px; the card is 4 to 9 px shorter in 17.x and 18.x than in Chrome and WebKit 26: font metrics, the largest image does not change); the masks are in `node_modules/.safari-shots`.
+
+**WebKit 17.0 (build 1869): stale radii.** The first style pass computes `padding(3)` (0.75rem) of the post card as 0.75px, the next frame corrects it to 12px without any transition event, and the runtime keeps the first reading: the quote and media frames inside keep 18.25px for 7px (17px for 2px). Builds 1944 and later are right. Whether Safari 17.0 to 17.3 releases do this is open (a trunk snapshot is not a release); it is cssints-z7lt.
+
+**What the build decides for Safari** (`needed()` over the BCD): the frame/surface and derived runtimes are needed for Safari 16.4 to 17.x (no style queries) and not from 18.0; below 16.4 there is no `@property` and nothing is shipped. `lacking(relative_syntax, exact)` lists Safari 16.4 to 17.x too (BCD marks relative colour partial there): `surface()` warns at build for such a target (`test/surface.mjs`), and a Playwright build cannot tell if a real Safari 17 draws the surface, because every build above, 1869 included, parses relative colour. The default targets of apps/sky have Safari 26.5 and iOS Safari 18.5 as their oldest, so they ship the runtime for Chrome 109 and Firefox, not for Safari.
+
+**Real Safari 26.3.1** through `safaridriver`: not run, `Allow remote automation` is off (the driver answers "session not created"). The client in `safari.mjs` (W3C WebDriver over HTTP, no dependency) is written but has not talked to a session yet.
+
 ## 4. The plugin contract
 
 ### 4.1 Shape

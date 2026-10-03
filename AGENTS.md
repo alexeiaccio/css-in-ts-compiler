@@ -38,11 +38,12 @@ cd packages/css-grammar && bun run webref     # rewrite scripts/webref-propertie
 cd packages/cssints && node bench/lsp.mjs     # editor latency on the demo's Button.tsx over tsgo's language server
 cd packages/cssints && bun run members        # regenerate src/members.ts (the names of "cssints" in user code)
 bun run typecheck                             # per package: tsgo -p tsconfig.json --noEmit + effect-tsgo diagnostics; apps/demo and apps/sky: tsgo and tsc 5.9
-cd packages/cssints && bun run test:browsers   # cssints/frame and cssints/surface in Chrome, Firefox and WebKit through playwright-core (not in `test`: needs the browsers installed)
+cd packages/cssints && bun run test:browsers   # cssints/frame and cssints/surface in Chrome, Firefox and WebKit through playwright-core (not in `test`: needs the browsers installed; a browser without style queries is detected, so an older playwright-core's WebKit runs with `PW=` and `PLAYWRIGHT_BROWSERS_PATH=`)
 cd packages/cssints && bun run build          # vp pack (tsdown) into dist/; same in packages/css-grammar
 cd packages/css-grammar && node bench/budget.mjs --update    # after a deliberate type-cost change
 cd apps/demo && bun run build                # vp build
-cd apps/sky && bun run test                  # the Solid app: api.ts against recorded fixtures, build check, then HMR on a style and on a component edit; bun run test:browser, test:posts, test:home, test:profile and test:thread: the settings, the post card and each screen in Chrome
+cd apps/sky && bun run test                  # the Solid app: api.ts against recorded fixtures, build check, then HMR on a style and on a component edit; bun run test:browser, test:posts, test:home, test:profile and test:thread: the settings, the post card and each screen in Chrome;
+                                              # test:safari: the built app in Chrome, the WebKit builds of Safari 17/18 and real Safari (header of test/safari.mjs)
 ```
 
 Plain `.ts` files run with `node` (type stripping), no build step: erasable syntax only (no enums, namespaces or parameter

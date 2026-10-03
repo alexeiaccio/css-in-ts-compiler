@@ -9,6 +9,7 @@
     "test": "node --conditions=browser test/api.mjs && node --conditions=browser test/post.mjs && node --conditions=browser test/home.mjs && node --conditions=browser test/profile.mjs && node --conditions=browser test/thread.mjs && node test/settings.mjs && node test/contrast.mjs && node test/build.mjs && node test/dev.mjs",
     "test:browser": "node test/browser.mjs",
     "test:old-browser": "node test/old-browser.mjs",
+    "test:safari": "node test/safari.mjs",
     "test:posts": "node test/posts-browser.mjs",
     "test:home": "node test/home-browser.mjs",
     "test:profile": "node test/profile-browser.mjs",
