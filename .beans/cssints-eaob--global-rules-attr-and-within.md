@@ -1,11 +1,11 @@
 ---
 # cssints-eaob
 title: Global rules, attr() and within()
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-03T10:34:14Z
-updated_at: 2026-10-03T10:34:14Z
+updated_at: 2026-10-03T10:58:22Z
 parent: cssints-co8y
 blocked_by:
     - cssints-mbky
