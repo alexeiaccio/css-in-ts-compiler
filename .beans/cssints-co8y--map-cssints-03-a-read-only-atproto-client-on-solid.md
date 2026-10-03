@@ -59,6 +59,8 @@ updated_at: 2026-10-03T11:31:22Z
 
 - Fallbacks for older targets (decided with the user 2026-10-03: in the engine, sky stays on defaults): [Support warnings read the browserslist config and ask LightningCSS](cssints-fxzg) done (sky 32 → 28 warnings); [cssints-33pa](token fallbacks).
 
+- [Global rules, attr() and within()](cssints-eaob): css.global in _.k with a selector recogniser; attr(); group()/within() at flat specificity; sky's reset, nav and card hover use them; hyphenated-marker bug fixed.
+
 ## Not yet specified
 
 - cssints gaps the app will expose (Solid specifics, missing properties or helpers, performance on a real component tree): each becomes a ticket when found.

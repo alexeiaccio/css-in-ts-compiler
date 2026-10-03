@@ -1,11 +1,11 @@
 ---
 # cssints-33pa
 title: 'Token fallbacks: @property and dynamic tokens for older targets'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-03T11:05:54Z
-updated_at: 2026-10-03T11:05:54Z
+updated_at: 2026-10-03T11:37:36Z
 parent: cssints-co8y
 blocked_by:
     - cssints-fxzg
