@@ -21,10 +21,10 @@
     "@atcute/client": "^5.1.2",
     "@atcute/lexicons": "^2.1.1",
     "@cssints/icons": "workspace:*",
-    "@solidjs/router": "^2.0.0-next.34",
-    "@solidjs/web": "next",
+    "@solidjs/router": "2.0.0-next.35",
+    "@solidjs/web": "2.0.0-rc.13",
     "cssints": "workspace:*",
-    "solid-js": "next"
+    "solid-js": "2.0.0-rc.13"
   },
   "devDependencies": {
     "@iconify-json/ph": "^1.2.2",
