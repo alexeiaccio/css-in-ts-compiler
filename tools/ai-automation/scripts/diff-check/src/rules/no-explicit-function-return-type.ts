@@ -21,6 +21,10 @@ const rule: Rule = {
       if (node.returnType === null || node.returnType === undefined) {
         return;
       }
+      // A type predicate has no inferred form.
+      if (node.returnType.typeAnnotation.type === "TSTypePredicate") {
+        return;
+      }
 
       context.report({
         node: node.returnType,

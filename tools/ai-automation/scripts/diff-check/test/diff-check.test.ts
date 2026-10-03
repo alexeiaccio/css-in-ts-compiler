@@ -38,6 +38,7 @@ tester.run("diff-check/no-explicit-function-return-type", noExplicitFunctionRetu
     "function value() { return 1; }",
     "const value = () => 1;",
     "const object = { value() { return 1; } };",
+    "const isText = (value: unknown): value is string => typeof value === 'string';",
   ],
   invalid: [
     {
