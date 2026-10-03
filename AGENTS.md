@@ -11,7 +11,7 @@ packages/css-grammar   type-level recognizer (src/css.ts) + runtime twin (src/tw
                        Typed OM values, BCD support warnings, prose rules; test/, bench/ (instantiation budgets)
 packages/icons         @cssints/icons: icons() on the cssints/plugin style() helper (iconify-json and fs providers); test/: fixtures, icons.mjs, types/
 apps/demo              React demo on the plugin: every 0.1 feature (App.tsx, components/Showcase.tsx, theme.ts)
-apps/sky               Solid 2 app on the plugin (solid-js@next, @solidjs/router 2, atcute): Mu's shell (nav, 600 px column, rail, bottom bar), routes, themes, appearance settings (/settings), the post card and embeds (src/post/, /dev/posts in dev), the home feed with tabs (src/home/), the profile (src/profile/), the thread (src/thread/),
+apps/sky               Solid 2 app on the plugin (solid-js 2.0.0-rc.13, @solidjs/router 2.0.0-next.35, atcute): Mu's shell (nav, 600 px column, rail, bottom bar), routes, themes, appearance settings (/settings), the post card and embeds (src/post/, /dev/posts in dev), the home feed with tabs (src/home/), the profile (src/profile/), the thread (src/thread/),
                        src/api.ts (public AppView) and paged.ts; test/api.mjs (recorded fixtures), post.mjs (post model), home.mjs (tabs, paging), profile.mjs, thread.mjs, settings.mjs, contrast.mjs (the hue slider's range), build.mjs, dev.mjs (build, HMR), browser.mjs, posts-browser.mjs, home-browser.mjs, profile-browser.mjs and thread-browser.mjs (Chrome)
 README.md              what cssints is, setup, a short example
 docs/wayfinder.md      decisions and findings log (start here); docs/API.md the API reference
