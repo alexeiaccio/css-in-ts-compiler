@@ -8,7 +8,7 @@ import { properties } from "@cssints/css-grammar/mdn";
 import { Cause, Effect, Exit } from "effect";
 
 import { MacroError, MemberError } from "./errors.ts";
-import { relation } from "./leaves.ts";
+import { covers, relation } from "./leaves.ts";
 import { type Kernel, type Plug, type Property, registry } from "./registry.ts";
 
 /**
@@ -248,6 +248,57 @@ export function merged(decls: Decl[]): Decl[] {
     }
     out.push(d);
   }
+  return out;
+}
+
+// What cv() joins at runtime: the base and the values of each variant that are active. Under one condition, a
+// variant's declaration that covers a base declaration (the same property, an alias, or a shorthand over it) replaces
+// it: the base class is dropped while that value is active, so the variant wins whatever the sheet order. The result is
+// the classes to drop, by variant and value. Two properties that overlap without containment, between the base and a
+// variant or between variants of different keys (both can be active), are an error as in cn(); so is the same property
+// in two keys, where nothing says which one wins. A longhand inside a shorthand is fine: the sheet puts it after.
+export function settled(
+  base: Decl[],
+  variants: Record<string, Record<string, Decl[]>>,
+): Record<string, Record<string, string>> {
+  const at = (d: Decl) => (d[2] ?? []).map((c) => c.text).join(" > ");
+  const under = (d: Decl) => (at(d) ? ` (under ${at(d)})` : "");
+  const meet = (o: Decl, d: Decl, who: string) => {
+    if (at(o) !== at(d)) return "apart";
+    const r = relation(o[0], d[0]);
+    if (r === "overlap")
+      throw fail(
+        `cssints: cv() ${who} ${o[0]} and ${d[0]} overlap without one containing the other${under(d)}, so the sheet cannot order them: set one of them, or the longhands`,
+      );
+    return r;
+  };
+  const out: Record<string, Record<string, string>> = {};
+  const keys = Object.entries(variants);
+  keys.forEach(([k, vs], i) => {
+    for (const [n, decls] of Object.entries(vs)) {
+      const gone: string[] = [];
+      for (const d of decls) {
+        for (const o of base) {
+          const cls = hashClass(o);
+          if (
+            meet(o, d, `base and variant ${k}.${n}:`) !== "apart" &&
+            covers(d[0], o[0]) &&
+            cls !== hashClass(d) &&
+            !gone.includes(cls)
+          )
+            gone.push(cls);
+        }
+        for (const [k2, vs2] of keys.slice(i + 1))
+          for (const [n2, decls2] of Object.entries(vs2))
+            for (const o of decls2)
+              if (meet(d, o, `variants ${k}.${n} and ${k2}.${n2}:`) === "same")
+                throw fail(
+                  `cssints: cv() variants ${k}.${n} and ${k2}.${n2} both set ${o[0]}${under(d)} and can be active together, so nothing says which wins: set it in one of them, or in the base`,
+                );
+      }
+      if (gone.length) (out[k] ??= {})[n] = gone.join(" ");
+    }
+  });
   return out;
 }
 

@@ -8,6 +8,8 @@ export interface CvRuntimeConfig {
   base: string;
   variants: Record<string, Record<string, string>>;
   defaultVariants: Record<string, string>;
+  /** The base classes a variant value replaces (it sets the same property): dropped while that value is active. */
+  drops?: Record<string, Record<string, string>>;
 }
 
 export function _cv(
@@ -15,12 +17,22 @@ export function _cv(
 ): (props?: Record<string, string | undefined>) => string {
   return (props = {}) => {
     const classes = [config.base];
-    for (const [name, value] of Object.entries(props)) {
-      const v = value || config.defaultVariants?.[name];
-      if (v && config.variants[name]?.[v]) classes.push(config.variants[name][v]);
-    }
+    const gone: string[] = [];
+    const use = (name: string, v: string | undefined) => {
+      if (!v || !config.variants[name]?.[v]) return;
+      classes.push(config.variants[name][v]);
+      const d = config.drops?.[name]?.[v];
+      if (d) gone.push(...d.split(" "));
+    };
+    for (const [name, value] of Object.entries(props))
+      use(name, value || config.defaultVariants?.[name]);
     for (const [name, v] of Object.entries(config.defaultVariants ?? {}))
-      if (!props[name] && config.variants[name]?.[v]) classes.push(config.variants[name][v]);
+      if (!props[name]) use(name, v);
+    if (gone.length)
+      classes[0] = config.base
+        .split(" ")
+        .filter((c) => !gone.includes(c))
+        .join(" ");
     return classes.filter(Boolean).join(" ");
   };
 }
