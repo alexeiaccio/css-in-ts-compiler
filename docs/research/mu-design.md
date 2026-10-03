@@ -262,7 +262,7 @@ white give the same ratio (4.58), so whatever the accent, the pick holds 4.4 or 
 not the OKLCH `l` that `surface().ink()` reads, because the accent's `l` is the same 0.637 at every hue (the pick would not move with the slider), and an `l`
 threshold has a gap (0.51 to 0.59 at chroma 0.2) where neither colour holds 4.5 at every hue. A theme that sets `color.accent` gets its own pick, since the token is
 derived. At the slider's accent (L 0.637) the luminance is 0.227 to 0.330 over the 361 hues, always over 0.179: **black at every position**, 5.54 at the worst (hue 345, the
-default pink: Mu's white label would be 3.79). The pick flips for another accent lightness (Chrome, chroma 0.203): white under about L 0.55 to 0.60 at hue 345 and 265, 0.54 at 190 and 120.
+default pink: Mu's white label would be 3.79). The pick flips for another accent lightness (Chrome, chroma 0.203, steps of 0.05): white up to L 0.55 at hues 345, 265 and 30, up to 0.50 at 190 and 120.
 `test/contrast.mjs` models the token (it reads T from tokens.json) and `test/browser.mjs` holds the model against Chrome at the 361 hues and 65 other accents. `check.contrast`
 cannot read a relative colour: a build says `contrast is not checked for color.onAccent in the default values: "lab(from color(from oklch(0.637 0.203 345) …" is not a colour the check can read`
 once, so `theme.ts` has no check on it.
