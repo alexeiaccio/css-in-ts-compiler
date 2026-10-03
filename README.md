@@ -93,6 +93,10 @@ export const Row = ({ wide, on }: { wide?: "yes"; on?: boolean }) => (
 
 More in [docs/API.md](docs/API.md): property names and short names, `flex()` and `grid()` chains, conditions and layers, tokens and themes, `cx`, `cn` and `cv`, and the errors you can get.
 
+## Debugging
+
+`CSSINTS_TRACE=otlp bun run build` (or `dev`) sends a trace of every Vite hook, with the file of each module, to a local OpenTelemetry backend; unset, it costs nothing. How to start the backend in one `docker run`, and the spans: [docs/API.md](docs/API.md#debugging-traces-of-the-engine-cssints_trace-cssints-r2qq).
+
 ## Layout
 
 | Path | What |

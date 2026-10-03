@@ -675,6 +675,27 @@ createGlobalTheme(t, ".dark", { color: { brand: "#ef4444" } });
 - **Dev and HMR.** The package's files go through the engine like app files, one evaluation per module, and are served as `/node_modules/…/index.js` with the classes replaced. They are never watched, so a package does not change during `vite dev`: restart the server after reinstalling it.
 - A file of a package that does not carry the attribute is never parsed by the engine.
 
+### Debugging: traces of the engine (`CSSINTS_TRACE`, cssints-r2qq)
+
+Opt-in. Set `CSSINTS_TRACE=otlp` (or `otlp:http://host:port`; the default is `http://localhost:4318`) before `vite dev` or `vite build`, and the plugin sends one trace per Vite hook to an OpenTelemetry backend over OTLP/HTTP (JSON). Unset, nothing is loaded and nothing runs: the hooks use Effect's own `runSync` and `runPromiseExit`, no tracer, no exporter, no HTTP client. The variable is read once, when the plugin loads.
+
+```bash
+docker run -d --rm --name cssints-jaeger -p 16686:16686 -p 4318:4318 jaegertracing/all-in-one:latest
+CSSINTS_TRACE=otlp bun run build        # or: CSSINTS_TRACE=otlp bun run dev, then edit a file
+open http://localhost:16686             # service "cssints"; docker stop cssints-jaeger when done
+```
+
+Jaeger takes traces only, which is all there is: a warning or an error is an event on the span of its hook, not a log. Another OTLP backend (Grafana Tempo, `grafana/otel-lgtm`, any collector) works the same way through `CSSINTS_TRACE=otlp:<its OTLP/HTTP base URL>`.
+
+- **One root span per hook**, with the file as the `file` attribute (and `environment` for `vite.transform`): `vite.transform` (a module; the `ssr` ones are the Module Runner loading helpers and the library), `vite.hotUpdate`, `vite.load` (the sheet in dev), `vite.renderChunk`, `vite.buildStart`, `vite.buildEnd`, `vite.closeBundle`.
+- **Under it**, the engine's own spans: `cssints.instrument` (the parse), `cssints.clientTransform`, `cssints.evaluate` (waiting for the evaluation lock, then the run) with `cssints.runner.import` (the module running in the Vite Module Runner: its time is the app's code and the engine's work per site), `cssints.renderSheet`, `cssints.lightningcss` and `cssints.cssPost` (Vite's CSS pipeline on the sheet: LightningCSS, then minify), `cssints.locate`.
+- **Events:** `cssints.warning` (message, file; a support warning has no offset) and `cssints.error` (message, file, offset). An error that reaches Vite has `traceId` and `spanId`, and ends its message with `(trace <id>)`: search for that id in the backend.
+- **Not traced:** the work per site and per declaration (`__at`, `__site`, the twin, the hash): at a few µs each, a span per call would be the cost it is meant to find. Read the `cssints.runner.import` span for their total.
+
+The process must end the exporter or Node stays alive: `vite build` and `server.close()` do it (the `closeBundle` hook flushes and stops it); a script that exits by itself calls `closeTrace()` from `cssints/src/trace.ts` first. A backend that is not there costs a retry of up to three seconds at the end and loses the trace, nothing else.
+
+`packages/cssints/test/trace.mjs` (in `bun run test`) checks the spans, the file attribute and the error's trace id against an in-process collector. `node packages/cssints/test/trace-live.mjs` builds apps/sky and runs its HMR test traced, then reads both traces back through Jaeger's API (`GET /api/traces?service=cssints`) and prints span counts and the slowest hooks; it skips when no backend answers. Effect's DevTools (the VS Code extension, `effect/unstable/devtools`) is not wired: it needs the editor's extension listening, so neither a script nor an agent can read it.
+
 ### Browser support and what 0.1 does not have
 
 - **Types and checks for every property** are generated from [mdn-data](https://github.com/mdn/data) and @webref/css by `packages/css-grammar` (`bun run extract`), not written by hand, so a new property or function needs no change here. 536 members: 525 properties (every standard and experimental one, except the three shorthands above) and the 11 short names.

@@ -45,7 +45,7 @@ const note = (e: ErrorLike) =>
     }),
   ).pipe(Effect.ignore);
 
-/** `program` as the root span `name` of `file`; `program` itself when tracing is off. */
+// `program` as the root span `name` of `file`; `program` itself when tracing is off. */
 export const hook: <A, E, R>(
   name: string,
   file: string,
@@ -62,15 +62,15 @@ export const hook: <A, E, R>(
       )
   : (_name, _file, program) => program;
 
-/** The support warnings handed to Vite, as events on the current span. */
-export const warned: (warnings: string[]) => Effect.Effect<void> = otlp
-  ? (ws) =>
+// The support warnings handed to Vite, as events on the current span.
+export const warned: (warnings: string[], file?: string) => Effect.Effect<void> = otlp
+  ? (ws, file) =>
       Effect.flatMap(Effect.currentSpan, (span) =>
         Effect.sync(() =>
           ws.forEach((message) =>
             span.event("cssints.warning", BigInt(Date.now()) * 1_000_000n, {
               message,
-              file: span.attributes.get("file"),
+              file,
             }),
           ),
         ),

@@ -2,6 +2,7 @@
 // the spans of one fixture, the file as attribute, the id of the trace on the error that reaches Vite, and the span event
 // of that error (file and offset). With CSSINTS_TRACE unset, test/trace-live.mjs and the docs ("Debugging") do the rest.
 import assert from "node:assert/strict";
+import { once } from "node:events";
 import { createServer as httpServer } from "node:http";
 
 const spans = [];
@@ -14,7 +15,7 @@ const collector = httpServer((req, res) => {
     res.end("{}");
   });
 });
-await new Promise((r) => collector.listen(0, "127.0.0.1", r));
+await once(collector.listen(0, "127.0.0.1"), "listening");
 process.env.CSSINTS_TRACE = `otlp:http://127.0.0.1:${collector.address().port}`;
 
 const { createServer } = await import("vite");
@@ -32,6 +33,7 @@ const server = await createServer({
 });
 const client = server.environments.client;
 await client.transformRequest("/fixtures/risk1.ts");
+await client.transformRequest("/fixtures/line-clamp-std.ts"); // a support warning
 const error = await client.transformRequest("/fixtures/invalid.ts").then(
   () => undefined,
   (e) => e,
@@ -40,7 +42,7 @@ const main = plugins[0];
 main.hotUpdate.call({ environment: client }, { file: `${root}/fixtures/risk1.ts`, modules: [] });
 await server.close(); // closeBundle: the exporter's last flush
 await closeTrace();
-await new Promise((r) => collector.close(r));
+await once(collector.close(), "close");
 
 const attr = (s, key) => s.attributes?.find((a) => a.key === key)?.value.stringValue;
 const named = (name, file) =>
@@ -72,4 +74,7 @@ assert.ok(event, "the failed hook has an error event");
 const kv = Object.fromEntries(event.attributes.map((a) => [a.key, a.value]));
 assert.ok(kv.file.stringValue.endsWith("fixtures/invalid.ts"), "the event names the file");
 assert.ok(Number(kv.offset.intValue ?? kv.offset.doubleValue) > 0, "and the offset");
+const warning = spans.flatMap((s) => s.events ?? []).find((e) => e.name === "cssints.warning");
+assert.ok(warning, "a support warning is an event");
+assert.ok(attr(warning, "file").endsWith("fixtures/line-clamp-std.ts"), "naming its file");
 console.log(`trace: ${spans.length} spans, ${new Set(spans.map((s) => s.name)).size} names`);

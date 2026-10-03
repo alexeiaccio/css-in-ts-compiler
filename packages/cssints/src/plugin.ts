@@ -193,11 +193,11 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     return out;
   };
 
-  const flushWarnings = Effect.fnUntraced(function* (warn: (w: string) => void) {
+  const flushWarnings = Effect.fnUntraced(function* (warn: (w: string) => void, file?: string) {
     const { warnings } = yield* Registry;
     const ws = warnings.splice(0);
     yield* Effect.sync(() => ws.forEach(warn));
-    yield* warned(ws);
+    yield* warned(ws, file);
   });
 
   const clientTransform = Effect.fn("cssints.clientTransform")(function* (
@@ -237,7 +237,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
       return { sites, runtimes };
     });
     const { sites, runtimes } = parsed.sites.length
-      ? yield* evaluate(runner!, id, recorded).pipe(Effect.ensuring(flushWarnings(warn)))
+      ? yield* evaluate(runner!, id, recorded).pipe(Effect.ensuring(flushWarnings(warn, id)))
       : yield* Effect.sync(() => forget(id)).pipe(Effect.andThen(recorded(new Map())));
 
     const ms = new MagicString(code);
