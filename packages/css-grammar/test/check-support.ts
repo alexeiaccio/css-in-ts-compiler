@@ -77,6 +77,24 @@ for (const [p, v, chrome] of [
     `${p}: ${v} warns on firefox, ${chrome} on chrome`,
   );
 }
+// a clamp is quiet everywhere (BCD files -webkit-line-clamp and -webkit-box-orient under prefixed standard names, which
+// the lookup does not follow); the standard line-clamp warns, no engine ships it unprefixed
+for (const [p, v] of [
+  ["-webkit-line-clamp", "3"],
+  ["-webkit-box-orient", "vertical"],
+  ["display", "-webkit-box"],
+] as const)
+  verify(
+    support(p, v, [
+      ["firefox", "120"],
+      ["safari", "17"],
+    ]).length === 0,
+    `${p}: ${v} is quiet`,
+  );
+verify(
+  support("line-clamp", "3", [["chrome", "154"]]).length === 1,
+  "line-clamp: 3 warns on chrome 154",
+);
 
 // lacking(bcdKey, targets): the targets without the feature, by the rules of the warnings (no prefix, no flags)
 verify(

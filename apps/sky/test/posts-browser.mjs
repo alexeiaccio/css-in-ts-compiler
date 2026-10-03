@@ -45,7 +45,7 @@ try {
     );
     await page.goto(`${base}dev/posts?w=${w}`);
     await page.locator("[data-sample=quoteImages] article").waitFor();
-    await page.waitForFunction(() => document.querySelectorAll("[data-sample]").length === 18);
+    await page.waitForFunction(() => document.querySelectorAll("[data-sample]").length === 19);
     const r = await page.evaluate(() => {
       // a surface's computed colour is oklch(L C h): the lightness is the first number
       const L = (c) => +c.match(/oklch\(([\d.]+)/)[1];
@@ -61,7 +61,18 @@ try {
       const feed = sample("quoteImages").parentElement;
       const mediaBox = (name) =>
         sample(name).querySelector("article a[target=_blank] > img").closest("a").parentElement;
+      // the link card's description: two lines, however long the text (-webkit-line-clamp), against its own full height
+      const desc = sample("externalLong").querySelector("article a[href^=http] p");
+      const lineHeight = parseFloat(cs(desc, "line-height"));
+      const clamped = desc.getBoundingClientRect().height;
+      desc.style.setProperty("-webkit-line-clamp", "none");
+      const full = desc.getBoundingClientRect().height;
+      desc.style.removeProperty("-webkit-line-clamp");
       return {
+        clamp: {
+          lines: Math.round(clamped / lineHeight),
+          fullLines: Math.round(full / lineHeight),
+        },
         width: Math.round(q.getBoundingClientRect().width),
         radius: {
           card: cs(q, "border-radius"),
@@ -142,7 +153,12 @@ for (const [w, scheme] of runs) {
     `console errors at ${key}`,
   );
   assert.equal(r.width, w, "the card is as wide as asked");
-  assert.equal(r.samples.length, 18);
+  assert.equal(r.clamp.lines, 2, `the description is clamped to two lines at ${key}`);
+  assert.ok(
+    r.clamp.fullLines > 2,
+    `the text is longer than two lines at ${key}: ${r.clamp.fullLines}`,
+  );
+  assert.equal(r.samples.length, 19);
   assert.equal(r.hidden.trim(), "Post hidden");
   assert.ok(r.notFound && r.detached && r.blocked);
   assert.deepEqual(r.playMarks, [true, false, true], "a play mark on video, none on a gif");

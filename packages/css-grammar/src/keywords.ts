@@ -32,7 +32,7 @@ type K_discretionary_lig_values = { "d": "discretionary-ligatures"; "n": "no-dis
 type K_display_box = { "c": "contents"; "n": "none" };
 type K_display_inside = { "f": "flex" | "flow" | "flow-root"; "g": "grid"; "r": "ruby"; "t": "table" };
 type K_display_internal = { "r": "ruby-base" | "ruby-base-container" | "ruby-text" | "ruby-text-container"; "t": "table-caption" | "table-cell" | "table-column" | "table-column-group" | "table-footer-group" | "table-header-group" | "table-row" | "table-row-group" };
-type K_display_legacy = { "i": "inline-block" | "inline-flex" | "inline-grid" | "inline-list-item" | "inline-table" };
+type K_display_legacy = { "-": "-webkit-box" | "-webkit-inline-box"; "i": "inline-block" | "inline-flex" | "inline-grid" | "inline-list-item" | "inline-table" };
 type K_display_listitem = { "b": "block"; "f": "flow" | "flow-root"; "i": "inline"; "l": "list-item"; "r": "run-in" };
 type K_display_outside = { "b": "block"; "i": "inline"; "r": "run-in" };
 type K_easing_function = { "e": "ease" | "ease-in" | "ease-in-out" | "ease-out"; "l": "linear"; "s": "step-end" | "step-start" };
@@ -561,4 +561,5 @@ export interface Keywords {
   "writing-mode": { "h": "horizontal-tb"; "s": "sideways-lr" | "sideways-rl"; "v": "vertical-lr" | "vertical-rl" };
   "z-index": { "a": "auto" };
   "zoom": { "n": "normal" };
+  "-webkit-box-orient": { "b": "block-axis"; "h": "horizontal"; "i": "inline-axis"; "v": "vertical" };
 }

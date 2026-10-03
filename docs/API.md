@@ -381,6 +381,19 @@ css.token.length("1rem"); // token.length() initial value "1rem" depends on the 
 ```
 
 - A value that a browser in your browserslist (`BROWSERSLIST`, default `defaults`) does not support is a warning, not an error: `cursor: pointer` warns for iOS Safari. A token or theme value is checked the same way (see Tokens).
+- Clamping text to N lines is the WebKit box, in every engine today: `display("-webkit-box")` (the `display` grammar takes `-webkit-box` and `-webkit-inline-box`), `WebkitBoxOrient("vertical")` and `WebkitLineClamp(N)`, with `overflow("hidden")`. The three are quiet: BCD files them under prefixed standard names, which the support lookup does not follow. LightningCSS passes them through and adds nothing. The standard `lineClamp(N)` (css-overflow-4) is a member too, and warns for the default targets: no engine ships it unprefixed (Chrome 154 rejects it) and LightningCSS does not prefix it.
+
+```ts
+import { cn, display, overflow, WebkitBoxOrient, WebkitLineClamp } from "cssints" with { type: "cssints" };
+
+export const clamp2 = cn(
+	display("-webkit-box"),
+	WebkitBoxOrient("vertical"),
+	WebkitLineClamp(2),
+	overflow("hidden"),
+);
+```
+
 - Validity rules written only in prose are errors too (`transition: none, opacity 1s`, an unquoted `font-family` with a generic keyword inside a name).
 - Keywords and function names are written in their canonical case, on purpose: `color("RED")` and `rgb(` as `RGB(` are errors, so each value has one spelling (completions and class names stay the same). The message says the spelling: `color: unexpected "RED" in "RED" ("RED" is red in CSS; write "red"), expected <color>`. The types say it for keywords (`color("RED")`); the build says it for function names too. The CSS-wide keywords `inherit`, `initial`, `unset`, `revert` and `revert-layer` are a value of every property, whatever its grammar: `fontFamily("inherit")` is fine.
 
