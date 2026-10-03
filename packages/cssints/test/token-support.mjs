@@ -21,31 +21,15 @@ await server.environments.client.transformRequest("/fixtures/token-support.ts");
 const lines = warnings.map((w) =>
   stripVTControlCharacters(w.split("\n")[0]).replace(/^.*warning: /, ""),
 );
-const lacking = (feature, value, key) =>
-  `"${feature}" in "${value}" is not supported by chrome 100, safari 15.2 (${key})`;
-const oklch = (value) => lacking("oklch()", value, "css.types.color.oklch");
-// An @property initial value (token.color(), createTokens()) and an inline token.set() value are not lowered by
-// LightningCSS, so they warn. A theme override is a custom property of the sheet: LightningCSS lowers a literal oklch()
-// and light-dark() for these targets, so .brand and .mix give nothing; .rel has a var() inside, which it leaves alone.
-assert.equal(lines.length, 6, lines.join("\n"));
-assert.equal(
-  lines[0],
-  `token.color() initial value of --ts-named: ${oklch("oklch(0.62 0.19 259)")}`,
-);
-assert.equal(
-  lines[1].replace(/--_[0-9a-f]{8}/, "--_private"),
-  `token.color() initial value of --_private: ${oklch("oklch(0.5 0.1 20)")}`,
-);
-assert.equal(lines[2], `createTokens(): ts.accent value: ${oklch("oklch(0.62 0.19 259)")}`);
-const rel = "oklch(from #2563eb l c h)";
-assert.equal(lines[3], `createGlobalTheme(): ts.twice value in .rel: ${oklch(rel)}`);
-assert.equal(
-  lines[4],
-  `createGlobalTheme(): ts.twice value in .rel: ${lacking("from", rel, "css.types.color.oklch.relative_syntax")}`,
-);
-assert.equal(lines[5], `token.set() value of --ts-named: ${oklch("oklch(0.7 0.1 30)")}`);
+const oklch = (value) =>
+  `"oklch()" in "${value}" is not supported by chrome 100, safari 15.2 (css.types.color.oklch)`;
+// LightningCSS lowers a literal oklch() in a custom property of the sheet, and token.ts gives an @property initial value
+// the lowered form (token-fallback.mjs), so a token, a createTokens() value and every theme override are handled, a
+// reference (.rel) too: its literal is lowered and the live value goes under @supports. Only an inline token.set() value
+// never goes through LightningCSS, and warns.
+assert.deepEqual(lines, [`token.set() value of --ts-named: ${oklch("oklch(0.7 0.1 30)")}`]);
 
 console.log(
-  "token-support: token and theme values warn like property values, once per feature, unless LightningCSS lowers them",
+  "token-support: a token.set() value warns like a property value; the sheet's token and theme values are lowered instead",
 );
 await server.close();

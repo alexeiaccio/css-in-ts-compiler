@@ -134,6 +134,16 @@ assert.match(
   /@container post \(width ?>= ?28rem\)\{[^@]*margin-left:calc\(var\(--border-width\) ?\+ ?\.75rem ?\+ ?var\(--avatar-feed\) ?\/ ?2 ?- ?1px\)/,
 );
 assert.ok(all.includes("Show ") && all.includes("more "), "the collapsed branch has its button");
+
+// the token fallbacks (cssints-33pa; the default targets hold chrome 109, which has no oklch()): the initial value is a
+// hex colour and the :root value is the default, the live colour of the hue comes under @supports of the literal
+assert.match(sheet, /@property --color-accent\{[^}]*initial-value:#[0-9a-f]{6}\}/);
+assert.match(sheet, /@property --color-shadow\{[^}]*initial-value:#[0-9a-f]{6,8}\}/);
+assert.match(sheet, /:root\{[^}]*--color-accent:#[0-9a-f]{6}[;}]/);
+assert.match(
+  sheet,
+  /@supports \(color: ?oklch\(0\.637 0\.203 345\)\)\{:root\{--color-accent:oklch\(\.637 \.203 var\(--hue-accent\)\)\}\}/,
+);
 console.log(
   `sky build: ${css[0].fileName} ${sheet.length} bytes, ${js.fileName} ${js.code.length} bytes`,
 );

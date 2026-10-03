@@ -12,7 +12,7 @@ import { Effect } from "effect";
 
 import { MacroError } from "./errors.ts";
 import { type Decl, edge, fail, isNode } from "./lib.ts";
-import { loweredOf } from "./lowered.ts";
+import { fallbackOf } from "./lowered.ts";
 import { registry } from "./registry.ts";
 
 export class CSSTokenValue extends CSSStyleValue {
@@ -46,18 +46,24 @@ const SUPPORT_PROPERTY: Record<string, string> = {
   "transform-list": "transform",
 };
 
+// The condition of an `@supports` rule for a value of `syntax`: the browsers that parse `text` are the ones that can
+// have the live value of a derived token or a theme value (its `var()` replaced by the literal the token starts with).
+export const supportTest = (syntax: string, text: string): string =>
+  `(${SUPPORT_PROPERTY[syntax]}:${text})`;
+
 // `text` is a value of the grammar `<syntax>`; `what` names it in the error, and `who` (default `what`) in a support
-// warning, once per `who` and BCD feature per build, in the `warned` set of the properties. `live` is the custom
-// property declaration of the sheet that holds the value, `[name, value]` with its `var()` references (a theme
-// override): LightningCSS lowers it, so there is no warning for what it lowers for the targets. An `@property`
-// initial value or an inline `token.set()` value is not lowered, and keeps its warning.
+// warning, once per `who` and BCD feature per build, in the `warned` set of the properties. `variable` is the custom
+// property of the sheet that holds the value (a token, or a theme override), which LightningCSS lowers for the
+// targets: when it lowers every feature that warns, there is no warning and the result is the lowered value (the
+// first declaration it writes), which the caller uses where LightningCSS does not reach (the `@property` initial value)
+// or as the default of a value that holds `var()`. An inline `token.set()` value has no `variable`: it keeps its warning.
 export const checkSyntaxFx = Effect.fnUntraced(function* (
   what: string,
   syntax: string,
   text: string,
   who: string = what,
-  live?: [name: string, value: string],
-): Effect.fn.Return<void, MacroError> {
+  variable?: string,
+): Effect.fn.Return<string | undefined, MacroError> {
   const ok = yield* matches(`<${syntax}>`, text).pipe(
     Effect.mapError((e) => new MacroError({ message: e.message, cause: e, ...registry.at })),
   );
@@ -65,17 +71,23 @@ export const checkSyntaxFx = Effect.fnUntraced(function* (
   const prop = SUPPORT_PROPERTY[syntax];
   if (!prop) return;
   const { warned, warnings } = registry;
-  for (const w of supportOf(prop, text)) {
+  const ws = supportOf(prop, text).filter((w) => w.feature !== prop);
+  const lacking = [...new Set(ws.flatMap((w) => w.lacking))];
+  const lowered = ws.map((w) => variable && fallbackOf(variable, text, { ...w, lacking }));
+  if (ws.length && lowered.every(Boolean)) return lowered[0] || undefined;
+  for (const [i, w] of ws.entries()) {
     const k = `${who} ${w.key}`;
-    if (w.feature === prop || warned.has(k) || (live && loweredOf(live[0], live[1], w))) continue;
+    if (warned.has(k) || lowered[i]) continue;
     warned.add(k);
     warnings.push(
       `${who}: "${w.feature}" in "${text}" is not supported by ${browsers(w.lacking)} (${w.key})`,
     );
   }
+  return undefined;
 });
-export const checkSyntax = (what: string, syntax: string, text: string): void =>
+export const checkSyntax = (what: string, syntax: string, text: string): void => {
   edge(checkSyntaxFx(what, syntax, text));
+};
 
 // A name: "color-primary", "--color-primary" or { var, inherit }; none makes the token private.
 const NAME = /^(?:--)?([A-Za-z_][\w-]*)$/;
@@ -101,7 +113,9 @@ const privateName = (): string => {
 const FONT_RELATIVE = /[\d.](?:r?em|r?ex|r?ch|r?cap|r?ic|r?lh)\b/i;
 
 // Registers the `@property` rule of a token and what it is worth. `text` is a literal of the type, and `what` names it
-// in an error.
+// in an error. A target that cannot parse `text` would drop the rule and leave the token with no value: the initial value
+// is what LightningCSS lowers `text` to, and `:root` gets `text` itself, which LightningCSS lowers too and adds the wide
+// value under `@supports`. `live`: the caller declares the `:root` value (an alias, a derived token, see theme.ts).
 export const declare = Effect.fnUntraced(function* (
   kind: TokenType,
   text: string,
@@ -109,17 +123,25 @@ export const declare = Effect.fnUntraced(function* (
   inherit: boolean,
   settable: boolean,
   what?: string,
+  live = false,
 ): Effect.fn.Return<CSSTokenValue, MacroError> {
   const at = registry.at!;
   const { syntax, probes } = TOKEN_TYPES[kind];
   const name = what ?? `token.${kind}() initial value`;
-  yield* checkSyntaxFx(name, syntax, text, what ?? `${name} of ${variable}`);
+  const fallback = yield* checkSyntaxFx(
+    name,
+    syntax,
+    text,
+    what ?? `${name} of ${variable}`,
+    variable,
+  );
   if (FONT_RELATIVE.test(text))
     return yield* fail(
       `cssints: ${name} "${text}" depends on the font size, and a browser drops an @property rule whose initial-value is not computationally independent; use px or a viewport unit`,
     );
-  const by = `${at.file}#${at.site}.${registry.tokens++}`;
-  const css = `@property ${variable}{syntax:"<${syntax}>";inherits:${inherit};initial-value:${text}}`;
+  const n = registry.tokens++;
+  const by = `${at.file}#${at.site}.${n}`;
+  const css = `@property ${variable}{syntax:"<${syntax}>";inherits:${inherit};initial-value:${fallback ?? text}}`;
   // Another declaration of the name is fine when it is the same rule, this site again (an edit), or this file's
   // from an earlier evaluation (every evaluation runs its modules again). Otherwise the second one is the error.
   const prev = registry.properties.get(variable);
@@ -133,7 +155,14 @@ export const declare = Effect.fnUntraced(function* (
       `cssints: ${variable} is already declared with another @property, in ${relative(process.cwd(), prev.file)}: ${prev.css}; here: ${css}`,
     );
   registry.properties.set(variable, { css, probes, by, file: at.file, gen: registry.gen });
-  registry.defs.set(variable, { kind, path: variable, value: text });
+  registry.defs.set(variable, { kind, path: variable, value: text, fallback });
+  if (fallback && !live)
+    registry.themed.set(by, {
+      file: at.file,
+      key: `0:${at.file}#${String(at.site).padStart(6, "0")}.${n}`,
+      css: `${inherit ? ":root" : ":where(*)"}{${variable}:${text}}`,
+      names: [variable],
+    });
   return new CSSTokenValue(variable, syntax, settable);
 });
 

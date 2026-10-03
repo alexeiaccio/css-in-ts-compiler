@@ -8,7 +8,7 @@ import { Effect } from "effect";
 import type { MacroError } from "./errors.ts";
 import { edge, fail } from "./lib.ts";
 import { registry } from "./registry.ts";
-import { checkSyntaxFx, CSSTokenValue, declare, nameOf } from "./token.ts";
+import { checkSyntaxFx, CSSTokenValue, declare, nameOf, supportTest } from "./token.ts";
 
 const isObject = (v: unknown): v is Record<string, unknown> =>
   !!v && typeof v === "object" && !Array.isArray(v);
@@ -103,6 +103,9 @@ const cssOf = Effect.fnUntraced(function* (
   }
   return yield* fail(`cssints: ${what} is not a DTCG ${type} value: ${JSON.stringify(value)}`);
 });
+
+// A value that is only `var(--target)` needs no feature of its own, so it stays live.
+const PURE = /^var\(--[\w-]+\)$/;
 
 // ---------- createTokens
 
@@ -293,6 +296,7 @@ export const createTokens = (...args: unknown[]): unknown =>
       const root: Record<string, unknown> = {};
       const set: TokenSet = { tokens: new Map(), types: new Map(), aliases: [] };
       const live: string[] = [];
+      const guarded: string[] = [];
       for (const l of leaves) {
         const r = yield* resolve(l, []);
         const name = variable.get(l.dotted)!;
@@ -304,6 +308,7 @@ export const createTokens = (...args: unknown[]): unknown =>
           inherit.get(l.dotted)!,
           true,
           `createTokens(): ${l.dotted} value`,
+          !!(r.alias ?? r.refs),
         );
         registry.defs.get(name)!.path = l.dotted;
         const refs = r.alias === undefined ? r.refs : [r.alias];
@@ -314,7 +319,14 @@ export const createTokens = (...args: unknown[]): unknown =>
           );
           const targets = [...new Set(refs.map((d) => variable.get(d)!))];
           set.aliases.push({ name, targets, css });
-          live.push(`${name}:${css}`);
+          // a derived token whose literal a target cannot parse starts as that target's lowered literal (its `var()`
+          // replaced by the default), and the live value follows for the browsers that parse the literal
+          const fb = r.alias === undefined ? registry.defs.get(name)!.fallback : undefined;
+          live.push(`${name}:${fb ?? css}`);
+          if (fb)
+            guarded.push(
+              `@supports ${supportTest(TOKEN_TYPES[kind].syntax, r.text)}{:root{${name}:${css}}}`,
+            );
           Object.assign(registry.defs.get(name)!, { template: css, refs: targets });
         }
         set.tokens.set(l.dotted, token);
@@ -336,7 +348,7 @@ export const createTokens = (...args: unknown[]): unknown =>
         registry.themed.set(`${file}#${site}.${n}`, {
           file,
           key: `0:${file}#${String(site).padStart(6, "0")}.${n}`,
-          css: `:root{${live.join(";")}}`,
+          css: `:root{${live.join(";")}}${guarded.join("")}`,
           names: set.aliases.flatMap((a) => [a.name, ...a.targets]),
         });
       }
@@ -401,6 +413,8 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
         );
 
       const changed = new Map<string, string>(); // variable -> the value it gets here
+      const defaults = new Map<string, string>(); // variable -> the lowered literal that stands for it in older browsers
+      const guards = new Map<string, string[]>(); // `@supports` condition -> the live declarations it lets through
       const refs = new Map<string, string[]>(); // variable -> the variables its value here refers to
       const walk = Effect.fnUntraced(function* (
         node: Record<string, unknown>,
@@ -434,13 +448,18 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
               (_, r: string) => registry.defs.get(targets.get(r)!.name)!.value,
             );
             const css = text.replace(REF, (_, r: string) => `var(${targets.get(r)!.name})`);
-            yield* checkSyntaxFx(
+            const fb = yield* checkSyntaxFx(
               `createGlobalTheme(): ${dotted} value`,
               TOKEN_TYPES[kind].syntax,
               literal,
               `createGlobalTheme(): ${dotted} value in ${label}`,
-              [child.name, css],
+              child.name,
             );
+            if (fb && css !== literal && !PURE.test(css)) {
+              const test = supportTest(TOKEN_TYPES[kind].syntax, literal);
+              guards.set(test, [...(guards.get(test) ?? []), `${child.name}:${css}`]);
+              defaults.set(child.name, fb);
+            }
             changed.set(child.name, css);
             if (targets.size)
               refs.set(
@@ -489,7 +508,7 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
           (a) => a.targets.some((t) => stale.has(t)) && !stale.has(a.name) && !!stale.add(a.name),
         );
       const decls = [
-        ...[...changed].map(([name, text]) => `${name}:${text}`),
+        ...[...changed].map(([name, text]) => `${name}:${defaults.get(name) ?? text}`),
         ...set.aliases
           .filter((a) => stale.has(a.name) && !changed.has(a.name))
           .map((a) => `${a.name}:${a.css}`),
@@ -498,7 +517,9 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
       registry.themed.set(`${at.file}#${at.site}.${n}`, {
         file: at.file,
         key: `${typeof condition === "string" ? 2 : 1}:${at.file}#${String(at.site).padStart(6, "0")}.${n}`,
-        css: block(decls.join(";")),
+        css:
+          block(decls.join(";")) +
+          [...guards].map(([test, live]) => `@supports ${test}{${block(live.join(";"))}}`).join(""),
         names: decls.map((d) => d.slice(0, d.indexOf(":"))),
         theme: { label, values: changed },
       });
