@@ -32,7 +32,7 @@ for (const bg of [t.color.bg, t.color.bgSubtle, t.color.bgMuted]) {
 }
 check.contrast(t.color.textHigh, t.color.bgMuted, { min: 7 });
 check.contrast(t.color.accentStrong, t.color.accentSoft, { min: 4.5 });
-// Mu's pink on white is 3.9: enough for large text, icons and links that are also underlined, not for body text
+// Mu's pink on white is 3.8: enough for large text and icons, not for body text. Links are small text and use a darker step.
 check.contrast(t.color.accent, t.color.bg, { min: 3 });
-check.contrast(t.color.link, t.color.bg, { min: 3 });
-check.contrast(t.color.onAccent, t.color.accent, { min: 3 });
+check.contrast(t.color.link, t.color.bg, { min: 4.5 });
+// onAccent is a relative colour, which the check cannot read (a warning at every build): test/contrast.mjs holds it to 4.5.

@@ -6,6 +6,8 @@
 //   - a reload keeps the settings, and the first frame already has them: a rAF hook reads <html> at every frame from the
 //     start, while the app's script is held back for 600 ms. The control runs the same page with the inline script cut
 //     out and must show the flash, so the check can fail.
+// The next to last block holds onAccent, a relative colour, against the model of test/contrast.mjs: black at all 361 hues of
+// the slider (the accent's lightness is fixed), and a lighter or darker accent set on <html> flips it where the token says.
 // The last block compares the engine's contrast maths (colour outside sRGB clipped, color.ts) with the pixels Chrome paints.
 //   node test/browser.mjs
 import assert from "node:assert/strict";
@@ -18,6 +20,7 @@ import { build, preview } from "vite";
 
 import { luminance, ratio } from "../../../packages/cssints/src/color.ts";
 import { hueOf } from "../src/settings.ts";
+import tokens from "../src/tokens.json" with { type: "json" };
 
 const root = join(import.meta.dirname, "..");
 process.chdir(root);
@@ -59,7 +62,7 @@ try {
 
   // the lightness of each step per mode (Mu's primary ramp: tokens.json for light, theme.ts for dim and dark)
   const L = {
-    light: { accent: 0.637, hover: 0.58, strong: 0.525, soft: 0.926 },
+    light: { accent: 0.637, hover: 0.58, strong: 0.47, soft: 0.926 },
     dark: { accent: 0.637, hover: 0.697, strong: 0.755, soft: 0.357 },
   };
   const modes = [
@@ -231,6 +234,49 @@ try {
   assert.equal(await junk.getByLabel("Accent hue").inputValue(), "0");
   assert.deepEqual(errors, []);
   await junk.close();
+
+  // onAccent in Chrome: the colour of the label of the preview button at every hue, then at other lightnesses of the accent
+  const T = Number(/\(([\d.]+) - l\)/.exec(tokens.color.onAccent.$value)?.[1]);
+  const whiteUnder = ((T + 16) / 116) ** 3;
+  const pick = (accents) =>
+    page.getByTestId("button-label").evaluate((el, list) => {
+      const root = document.documentElement;
+      return list.map(([prop, v]) => {
+        root.style.setProperty(prop, v);
+        const c = getComputedStyle(el).color;
+        root.style.removeProperty(prop);
+        return c.startsWith("lab(100 ") ? "white" : c.startsWith("lab(0 ") ? "black" : c;
+      });
+    }, accents);
+  const sweeps = [];
+  for (let shift = -180; shift <= 180; shift++) sweeps.push(["--hue-accent", String(hueOf(shift))]);
+  for (const h of [345, 190, 265, 120, 30])
+    for (let l = 0.3; l < 0.95; l += 0.05)
+      sweeps.push(["--color-accent", `oklch(${l} 0.203 ${h})`]);
+  const picked = await pick(sweeps);
+  let worstPick = Infinity;
+  sweeps.forEach(([prop, v], i) => {
+    const accent = prop === "--hue-accent" ? `oklch(0.637 0.203 ${v})` : v;
+    const y = luminance(accent).lum;
+    const expected = y <= whiteUnder ? "white" : "black";
+    assert.equal(picked[i], expected, `onAccent on ${accent}`);
+    worstPick = Math.min(worstPick, ratio(y, expected === "white" ? 1 : 0));
+  });
+  const blackFrom = (h) =>
+    sweeps
+      .find(
+        ([prop, v], i) =>
+          prop === "--color-accent" && v.endsWith(` ${h})`) && picked[i] === "black",
+      )?.[1]
+      .slice(6, 10);
+  assert.ok(
+    picked.slice(0, 361).every((c) => c === "black"),
+    "black at every hue of the slider",
+  );
+  assert.ok(worstPick >= 4.5, `the worst pick is ${worstPick}`);
+  console.log(
+    `onAccent: black at 361 hues; worst ratio over ${sweeps.length} accents ${worstPick.toFixed(2)}; the accent lightness from which black wins, by hue: ${[345, 190, 265, 120, 30].map((h) => `${h} ${blackFrom(h)}`).join(", ")}`,
+  );
 
   // Chrome against the engine: the pixel of a colour outside sRGB, as the check reads it and as Chrome paints it
   const painted = await page.evaluate(
