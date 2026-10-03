@@ -61,6 +61,8 @@ updated_at: 2026-10-03T11:31:22Z
 
 - [Global rules, attr() and within()](cssints-eaob): css.global in _.k with a selector recogniser; attr(); group()/within() at flat specificity; sky's reset, nav and card hover use them; hyphenated-marker bug fixed.
 
+- Runtime polyfill for derived tokens, asked by the user: [cssints-i9xo](relative colour live in old browsers through the plugin runtime), after cssints-33pa.
+
 ## Not yet specified
 
 - cssints gaps the app will expose (Solid specifics, missing properties or helpers, performance on a real component tree): each becomes a ticket when found.
