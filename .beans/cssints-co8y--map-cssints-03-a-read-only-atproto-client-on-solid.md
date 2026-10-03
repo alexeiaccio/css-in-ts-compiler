@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-10-02T14:20:14Z
-updated_at: 2026-10-03T10:34:14Z
+updated_at: 2026-10-03T10:58:10Z
 ---
 
 ## Destination
@@ -51,6 +51,11 @@ updated_at: 2026-10-03T10:34:14Z
 
 - [sky: accent contrast across the whole hue range](cssints-bzal): text on the accent picks black or white (derived from the accent's lightness); implementation cssints-2jzr.
 - [Global rules and attribute or parent-state selectors](cssints-635k): css.global(selector, ...styles) in _.k; attr() and within() as condition wrappers; implementation cssints-eaob.
+
+- [Support warnings skip colours inside tokens](cssints-tuyw): token and theme values get support warnings; sky now warns truly for oklch() on its default targets.
+- [cv(): base and variants that overlap without containment](cssints-mbky): overlap errors at the cv() call; the variant wins via runtime drops; fixed two hash-decided cases in sky.
+- [Line clamp](cssints-l54z): the WebKit box (display -webkit-box, -webkit-box-orient joins the WebKit list); LightningCSS does not prefix line-clamp.
+- [sky: text on the accent picks black or white](cssints-2jzr): luminance-based derived token, not OKLCH l; links on accentStrong; all pairs but accent-on-white hold 4.5 over the slider.
 
 ## Not yet specified
 
