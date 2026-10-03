@@ -1,10 +1,11 @@
 ---
 # cssints-l54z
 title: 'Line clamp: -webkit-line-clamp and the lineClamp warning'
-status: todo
+status: in-progress
 type: task
+priority: normal
 created_at: 2026-10-02T16:04:44Z
-updated_at: 2026-10-02T16:04:44Z
+updated_at: 2026-10-03T10:27:03Z
 parent: cssints-co8y
 ---
 
