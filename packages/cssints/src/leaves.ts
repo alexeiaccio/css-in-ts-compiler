@@ -51,7 +51,7 @@ const full = (sides: Set<string> | undefined) =>
   !!sides && FAMILIES.some((f) => f.every((x) => sides.has(x)));
 
 // A covers B when everything B sets, A sets too: each longhand of B is one of A's, or a side of a group A sets whole.
-const covers = (a: string, b: string) => {
+export const covers = (a: string, b: string) => {
   const la = leaves(a);
   const ga = groups(a);
   return leaves(b).every((l) => la.includes(l) || full(ga.get(sideOf(l)?.[0] ?? "")));

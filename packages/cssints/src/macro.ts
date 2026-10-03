@@ -34,6 +34,7 @@ import {
   node,
   probed,
   PSEUDOS,
+  settled,
   toDecls,
   VAR,
   type Cond,
@@ -451,7 +452,30 @@ const cvOf = Effect.fnUntraced(function* (
       classes[n] = yield* styleOf(s, `variant ${k}.${n}`, at);
     variants[k] = classes;
   }
-  return JSON.stringify({ base, variants, defaultVariants: config.defaultVariants ?? {} });
+  // every value is a node now (styleOf checked)
+  const declsOf = (s: unknown) => (s as CssNode).__cssints;
+  const drops = yield* Effect.try({
+    try: () =>
+      settled(
+        config.base === undefined ? [] : declsOf(config.base),
+        Object.fromEntries(
+          Object.entries(config.variants ?? {}).map(([k, vs]) => [
+            k,
+            Object.fromEntries(Object.entries(vs).map(([n, s]) => [n, declsOf(s)])),
+          ]),
+        ),
+      ),
+    catch: (e) => {
+      if (e instanceof MacroError) return e;
+      throw e; // a bug, not a user error: a defect
+    },
+  });
+  return JSON.stringify({
+    base,
+    variants,
+    defaultVariants: config.defaultVariants ?? {},
+    ...(Object.keys(drops).length && { drops }),
+  });
 });
 
 export const cv = (config: CvConfig): CvNode => ({ __cv: config });
