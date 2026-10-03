@@ -1324,3 +1324,7 @@ Process note: a separate session is working in the main checkout on a "mise-en-m
 ## 0.3 closed (2026-10-03)
 
 The 0.3 map (cssints-co8y) is closed at f2edfcb. apps/sky, a read-only atproto client on Solid 2 and atcute with Mu's look, works end to end and shows every cssints feature; building it found and fixed about a dozen engine bugs and gaps, and led to the fallback work for older browsers (LightningCSS-aware warnings, token fallbacks, a runtime for derived tokens). A separate effort, a "mise-en-mode" plugin (cssints-l1qf), is in progress in another session and is not part of this map.
+
+## Solid RC recheck (cssints-z2i6)
+
+Asked by the user after 0.3. apps/sky now pins exact versions: solid-js and @solidjs/web 2.0.0-rc.13 (the newest RC), @solidjs/router 2.0.0-next.35, @solidjs/vite-plugin 3.0.0-next.47 (no stable 3.x yet; its `latest` tag points at that next build). Nothing broke; the router's `aria-current` now also needs the query to match, and sky's nav links have none. Both JSX no-ops in the Module Runner are still needed (removing either one makes the build fail on the JSX that `jsx: "preserve"` leaves). The old note "Solid Router 2 adds ~100 kB of server code to the client" is half true: those ~105 kB (unminified) are three lazy chunks in `dist` (server-function entry, form handler, decoder) that Chrome never downloads on the pages checked; the entry is 457 kB (139 kB gzip, +2.8 kB from the bump). No export condition or router option removes the chunks from `dist`. Each new RC still needs this recheck.
