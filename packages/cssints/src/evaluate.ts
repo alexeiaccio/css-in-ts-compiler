@@ -25,7 +25,7 @@ import { forget, Registry, type RegistryState } from "./registry.ts";
 // A class because Vite asks for one (`evaluator`): the runner calls it, not a program of ours.
 export class DomEvaluator extends ESModulesEvaluator {
   win = Object.assign(new Window(), { __jsx: () => null });
-  names: string[] = Object.getOwnPropertyNames(this.win).filter((k) => !(k in globalThis));
+  names: string[] = Object.getOwnPropertyNames(this.win).filter((k) => !Reflect.has(globalThis, k));
   override async runInlinedModule(context: ModuleRunnerContext, code: string): Promise<void> {
     const keys = Object.keys(context);
     // oxlint-disable-next-line typescript/no-implied-eval -- the module body is the point: it runs as a function

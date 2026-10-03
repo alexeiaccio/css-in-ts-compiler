@@ -9,25 +9,13 @@ interface OxlintRuleMetadata {
   readonly description: string;
 }
 
-// Rules with pre-existing violations are rolled out as warnings and promoted
-// to errors as the debt is burned down. See tools/ai-automation/README.md.
+// The core rules are not enabled in the root lint (they conflict with this repository's style, see README.md), so a
+// warning is the severity a user who turns them on starts with. The effect and anti-slop rules are errors.
 const warningRules = new Set([
   "no-banned-type-assertions",
-  "no-global-json",
-  "no-in-operator",
   "no-multiple-function-params",
   "no-optional-function-parameters",
-  "no-try-catch",
   "no-type-assertion",
-  "no-typeof-object",
-  "no-cascading-layer-provide",
-  "no-effect-asvoid",
-  "no-nested-layer-provide",
-  "pipe-max-arguments",
-  "prefer-option-from-nullable",
-  // All vendored anti-slop rules (vendor/anti-slop/UPSTREAM.md) are now at zero
-  // violations and promoted to errors. If a new rule is adopted with existing
-  // debt, add it here for a warning rollout and remove it once burned down.
 ]);
 
 const profileRules: Readonly<Record<RuleProfile, ReadonlyArray<string>>> = {

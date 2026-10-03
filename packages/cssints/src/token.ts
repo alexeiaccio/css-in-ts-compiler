@@ -8,7 +8,7 @@ import { browsers, supportOf } from "@cssints/css-grammar/support";
 import { TOKEN_TYPES, type TokenType } from "@cssints/css-grammar/token";
 import { matches } from "@cssints/css-grammar/twin";
 import { CSSStyleValue } from "@cssints/css-grammar/values";
-import { Effect } from "effect";
+import { Effect, Formatter, Predicate } from "effect";
 
 import { MacroError } from "./errors.ts";
 import { type Decl, edge, fail, isNode } from "./lib.ts";
@@ -97,7 +97,7 @@ export const nameOf = (name: unknown) => {
   const m = typeof v === "string" ? NAME.exec(v) : null;
   if (!m || typeof inherit !== "boolean")
     throw fail(
-      `cssints: a token name is a CSS identifier or { var, inherit }, got ${JSON.stringify(name)}`,
+      `cssints: a token name is a CSS identifier or { var, inherit }, got ${Formatter.formatJson(name)}`,
     );
   return { name: `--${m[1]}`, inherit };
 };
@@ -191,7 +191,7 @@ export interface StyleNode {
   __style: { sets: [name: string, value: string][]; decls: Decl[] };
 }
 export const isStyle = (v: unknown): v is StyleNode =>
-  !!v && typeof v === "object" && "__style" in v;
+  Predicate.hasProperty(v, "__style");
 
 const set = (...args: unknown[]): StyleNode => {
   const [t, value] = args;
@@ -235,7 +235,7 @@ export const style = (...args: unknown[]): StyleNode => {
       decls.push(...a.__cssints);
     } else
       throw fail(
-        `cssints: style() takes css.* values and token.set(...) results, got ${JSON.stringify(a)}`,
+        `cssints: style() takes css.* values and token.set(...) results, got ${Formatter.formatJson(a)}`,
       );
   }
   return { __style: { sets, decls } };

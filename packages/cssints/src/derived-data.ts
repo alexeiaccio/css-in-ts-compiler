@@ -4,7 +4,7 @@
 // the engine registers the runtime itself, through the same delivery as a plugin's (delivery.ts).
 import { browsers, supportOf } from "@cssints/css-grammar/support";
 import type { TokenType } from "@cssints/css-grammar/token";
-import { Effect } from "effect";
+import { Effect, Formatter, Result } from "effect";
 
 import { addDerived, DERIVED, needed } from "./delivery.ts";
 import { evaluate, KEY } from "./derived.ts";
@@ -12,11 +12,11 @@ import { Registry, type RegistryState } from "./registry.ts";
 
 // what stops the evaluator at `literal`, if anything
 const refuses = (literal: string): string | undefined => {
-  try {
-    evaluate(literal);
-  } catch (e) {
-    return `does not evaluate "${(e as Error).message}"`;
-  }
+  const tried = Result.try({
+    try: () => evaluate(literal),
+    catch: (e) => `does not evaluate "${(e as Error).message}"`,
+  });
+  return Result.isFailure(tried) ? tried.failure : undefined;
 };
 
 // Whether the runtime computes a derived token whose `literal` (its value with the defaults for each `var()`) a target
@@ -91,10 +91,10 @@ export const derivedRule = Effect.fnUntraced(function* (
   if (!names.size) return;
   const t = themes.flatMap(({ label, values, poly }) => {
     const set = Object.fromEntries(
-      [...values].filter(([n]) => names.has(n)).map(([n, css]) => [n, poly?.has(n) ? css : 0]),
+      [...values].flatMap(([n, css]) => (names.has(n) ? [[n, poly?.has(n) ? css : 0]] : [])),
     );
     return Object.keys(set).length ? [[label, set]] : [];
   });
-  const json = JSON.stringify({ p: [...probes], b: base, t });
+  const json = Formatter.formatJson({ p: [...probes], b: base, t });
   return `:root{${KEY}:'${json.replace(/[\\']/g, "\\$&")}'}`;
 });

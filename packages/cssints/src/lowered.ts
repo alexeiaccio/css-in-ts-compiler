@@ -7,6 +7,7 @@
 // `fallbackOf` gives the value of that first declaration, which token.ts writes as the initial value of an `@property`
 // rule (LightningCSS does not lower those).
 import type { Warning } from "@cssints/css-grammar/support";
+import { Result } from "effect";
 import { browserslistToTargets, transform } from "lightningcss";
 
 import { registry } from "./registry.ts";
@@ -42,11 +43,12 @@ export const fallbackOf = (prop: string, value: string, w: Warning): string | un
   const key = `${prop}\0${value}\0${w.feature}\0${w.lacking.join()}`;
   let hit = registry.lowered.get(key);
   if (hit === undefined) {
-    try {
-      hit = lower(prop, value, w.lacking, w.feature) ?? false;
-    } catch {
-      hit = false; // a value LightningCSS does not parse is not lowered by it
-    }
+    // a value LightningCSS does not parse is not lowered by it
+    hit =
+      Result.getOrElse(
+        Result.try(() => lower(prop, value, w.lacking, w.feature)),
+        () => undefined,
+      ) ?? false;
     registry.lowered.set(key, hit);
   }
   return hit || undefined;

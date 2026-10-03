@@ -40,7 +40,9 @@ for (const mode of [
   useMode(mode);
 
 // The relative luminance of a CSS colour, or why it has none. A colour outside sRGB is clipped to it.
-export const luminance = (text: string): { lum: number } | { why: string } => {
+export const luminance = (
+  text: string,
+): { lum: number; why?: undefined } | { lum?: undefined; why: string } => {
   const c = parse(text);
   if (!c) return { why: "is not a colour the check can read" };
   if ((c.alpha ?? 1) < 1) return { why: "is translucent, and has no contrast without a backdrop" };

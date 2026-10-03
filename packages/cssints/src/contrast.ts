@@ -58,7 +58,7 @@ const verify = (check: Check, state: RegistryState, { luminance, ratio }: Colour
     const [f, b] = pair as [(typeof pair)[number], (typeof pair)[number]];
     let ok = true;
     for (const p of pair)
-      if ("why" in p.l) {
+      if (p.l.why !== undefined) {
         ok = false;
         const key = `contrast ${p.name} ${p.text}`;
         if (!state.warned.has(key)) {
@@ -68,7 +68,7 @@ const verify = (check: Check, state: RegistryState, { luminance, ratio }: Colour
           );
         }
       }
-    if (!ok || !("lum" in f.l) || !("lum" in b.l)) continue;
+    if (!ok || f.l.lum === undefined || b.l.lum === undefined) continue;
     const r = ratio(f.l.lum, b.l.lum);
     if (r < min)
       errors.push(

@@ -1,5 +1,7 @@
 import { defineConfig } from "vite-plus";
 
+import { allRules, profiles } from "./tools/ai-automation/src/profiles.ts";
+
 // Out of scope: docs/archive is old; a research prototype is throwaway code that reruns a finding.
 const outOfScope = ["docs/archive/**", "docs/research/sublayers-proto/**"];
 
@@ -23,14 +25,78 @@ const noUnsafe = [
   "typescript/no-unsafe-return",
 ];
 
+// The automation rules of tools/ai-automation, as errors: the whole effect profile (spread into `rules` below), the Effect
+// tagged-value rules of anti-slop, and the anti-slop rules that have no violation left or took a cheap fix. The others stay
+// off, with their counts, in tools/ai-automation/README.md.
+const errors = [
+  "no-manual-effect-error-tag",
+  "no-manual-tag-comparison",
+  "no-manual-tagged-construction",
+  "no-service-constructor-imports",
+  "no-array-filter-map",
+  "no-module-mocking",
+  "no-object-parameters",
+  "no-reduce-accumulator-copy",
+  "no-reflect-apply",
+  "no-reflect-get",
+  "no-unknown-type-aliases",
+  "no-widen-then-assert",
+];
+const automationErrors: Record<string, "error"> = Object.fromEntries(
+  errors.map((r) => [`automation/${r}`, "error"]),
+);
+const automationOff: Record<string, "off"> = Object.fromEntries(
+  Object.keys(allRules).map((r) => [r, "off"]),
+);
+const automationWarn: Record<string, "warn"> = Object.fromEntries(
+  Object.keys({ ...profiles.effect, ...automationErrors }).map((r) => [r, "warn"]),
+);
+
+// Plain code by design (AGENTS.md "The one exception, and the hot paths"): no Effect rule applies.
+const plainCode = [
+  // Browser runtimes, shipped to the client: no imports, no Effect.
+  "packages/cssints/src/runtime.ts",
+  "packages/cssints/src/parent-vars.ts",
+  "packages/cssints/src/frame.ts",
+  "packages/cssints/src/surface.ts",
+  "packages/cssints/src/derived.ts",
+  // The Typed OM values (`CSS.rem()`, `new CSSColorValue()`) that user code calls in expressions.
+  "packages/css-grammar/src/values.ts",
+  // The twin's lexer and recognizer, per declaration.
+  "packages/css-grammar/src/twin-core.ts",
+  // @cssints/icons: a sync member on the style() helper, which user code calls in an expression.
+  "packages/icons/src/**",
+  // The apps are plain Solid and React; the tests, benches and generator scripts are node scripts.
+  "apps/**",
+  "**/test/**",
+  "**/bench/**",
+  "packages/*/scripts/**",
+  "**/*.mjs",
+  "**/vite.config.ts",
+  // The linter implementation mirrors AST shapes and parses JSON: exempt from the rules it implements.
+  "tools/ai-automation/**",
+];
+
+// The five files of the mise-en-mode session, not edited here: their violations are warnings until cssints-6nqy fixes them.
+const inFlight = [
+  "packages/cssints/src/macro.ts",
+  "packages/cssints/src/lib.ts",
+  "packages/cssints/src/registry.ts",
+  "packages/cssints/src/author.ts",
+  "packages/cssints/src/author-types.ts",
+];
+
 export default defineConfig({
   lint: {
-    ignorePatterns: [...outOfScope, ...inputs],
+    ignorePatterns: [...outOfScope, ...inputs, "tools/ai-automation/vendor/**"],
     options: {
       typeAware: true,
       typeCheck: true,
     },
-    jsPlugins: ["eslint-plugin-playwright"],
+    jsPlugins: [
+      "eslint-plugin-playwright",
+      { name: "automation", specifier: "./tools/ai-automation/src/plugin.ts" },
+    ],
     plugins: ["oxc", "typescript", "vitest", "import", "jsdoc", "promise"],
     categories: {
       correctness: "off",
@@ -58,8 +124,33 @@ export default defineConfig({
         ],
         rules: { "import/no-duplicates": "off" },
       },
+      { files: plainCode, rules: automationOff },
+      // The AST walk is plain code inside the `instrument` boundary; the rest of instrument.ts stays Effect code.
+      {
+        files: ["packages/cssints/src/instrument.ts"],
+        rules: { "automation/no-in-operator": "off", "automation/prefer-effect-match": "off" },
+      },
+      // supportOf and `get` run per declaration, inside check.ts's one boundary.
+      {
+        files: ["packages/css-grammar/src/support.ts"],
+        rules: { "automation/no-array-filter-map": "off" },
+      },
+      { files: inFlight, rules: automationWarn },
+      // The tool is checked by its own tests and tsgo; its rules read AST nodes typed `any`, its tests are vitest (not Playwright).
+      {
+        files: ["tools/ai-automation/**"],
+        rules: {
+          ...Object.fromEntries(noUnsafe.map((r) => [r, "off"])),
+          "jsdoc/require-param": "off",
+          "jsdoc/require-returns": "off",
+          "typescript/no-duplicate-type-constituents": "off",
+          "playwright/no-standalone-expect": "off",
+        },
+      },
     ],
     rules: {
+      ...profiles.effect,
+      ...automationErrors,
       "eslint/constructor-super": "error",
       "eslint/for-direction": "error",
       "eslint/no-async-promise-executor": "error",
