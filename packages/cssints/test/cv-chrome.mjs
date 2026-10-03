@@ -27,15 +27,20 @@ const out = (await server.environments.client.transformRequest("/fixtures/cv-cas
 const css = await plugins[0].api.sheet([`${import.meta.dirname}/fixtures/cv-cascade.ts`]);
 await server.close();
 const cvIn = (n) =>
-  _cv(new Function(`return ${new RegExp(`export const ${n} = _cv\\((\\{[\\s\\S]*?\\n\\})\\);`).exec(out)[1]}`)());
+  _cv(JSON.parse(new RegExp(`export const ${n} = _cv\\((\\{[\\s\\S]*?\\n\\})\\);`).exec(out)[1]));
 
+/** @type {[string, Record<string, string>, Record<string, string>][]} */
 const cases = [
   ["same", {}, { color: "rgb(255, 0, 0)" }],
   ["same", { tone: "blue" }, { color: "rgb(0, 0, 255)" }],
   ["covers", {}, { paddingLeft: "8px" }],
   ["covers", { size: "lg" }, { paddingLeft: "16px", paddingRight: "16px" }],
   ["inside", {}, { borderBottomColor: "rgb(255, 0, 0)" }],
-  ["inside", { active: "yes" }, { borderBottomColor: "rgb(0, 0, 255)", borderTopColor: "rgb(255, 0, 0)" }],
+  [
+    "inside",
+    { active: "yes" },
+    { borderBottomColor: "rgb(0, 0, 255)", borderTopColor: "rgb(255, 0, 0)" },
+  ],
   ["layered", { tone: "blue" }, { color: "rgb(255, 0, 0)" }],
 ];
 const browser = await chromium.launch({ channel: "chrome" });
@@ -44,11 +49,14 @@ await page.setContent(
   `<style>${css}</style>${cases.map(([n, p], i) => `<div id="e${i}" class="${cvIn(n)(p)}">x</div>`).join("")}`,
 );
 for (const [i, [n, p, want]] of cases.entries()) {
-  const got = await page.$eval(`#e${i}`, (el, keys) => {
-    const s = getComputedStyle(el);
-    return Object.fromEntries(keys.map((k) => [k, s[k]]));
-  }, Object.keys(want));
-  assert.deepEqual(got, want, `${n} ${JSON.stringify(p)}`);
+  const got = await page.evaluate(
+    ([id, keys]) => {
+      const s = getComputedStyle(document.getElementById(id));
+      return Object.fromEntries(keys.map((k) => [k, s[k]]));
+    },
+    [`e${i}`, Object.keys(want)],
+  );
+  assert.deepEqual(got, want, `${String(n)} ${JSON.stringify(p)}`);
 }
 await browser.close();
 console.log("cv chrome ok");

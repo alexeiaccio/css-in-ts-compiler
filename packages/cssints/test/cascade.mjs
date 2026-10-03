@@ -66,9 +66,7 @@ await assert.rejects(code("cn-overlap.ts"), (e) => {
 // without containment is an error at the cv() call.
 const { _cv } = await import("../src/runtime.ts");
 const cvIn = (out, n) =>
-  new Function(
-    `return ${new RegExp(`export const ${n} = _cv\\((\\{[\\s\\S]*?\\n\\})\\);`).exec(out)[1]}`,
-  )();
+  JSON.parse(new RegExp(`export const ${n} = _cv\\((\\{[\\s\\S]*?\\n\\})\\);`).exec(out)[1]);
 const variant = await code("cv-cascade.ts");
 const cvCss = await sheet("cv-cascade.ts");
 const rules = (c) => c.split(" ").map((x) => cvCss.indexOf(`.${x}{`));
