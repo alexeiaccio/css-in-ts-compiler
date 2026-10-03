@@ -61,7 +61,7 @@ updated_at: 2026-10-03T11:31:22Z
 
 - [Global rules, attr() and within()](cssints-eaob): css.global in _.k with a selector recogniser; attr(); group()/within() at flat specificity; sky's reset, nav and card hover use them; hyphenated-marker bug fixed.
 
-- Runtime polyfill for derived tokens, asked by the user: [cssints-i9xo](relative colour live in old browsers through the plugin runtime), after cssints-33pa.
+- Runtime polyfill for derived tokens, asked by the user: [Runtime polyfill for derived tokens](cssints-i9xo) done: engine-registered runtime on the plugin delivery path; Chromium 109 matches Chrome 154 within 1/255; 3.1 kB gzip; modern targets ship nothing.
 
 ## Not yet specified
 
