@@ -8,6 +8,7 @@ import { InvalidValueError, isTwinError, RuleError, type TwinError } from "./err
 import { syntaxes } from "./mdn.ts";
 import { ENTRY, type QueryKind } from "./query.ts";
 import { violation } from "./rules.ts";
+import { checkSelectorNow } from "./selector.ts";
 import { supportOf, type Warning } from "./support.ts";
 import { consume, parseGrammar, spaced, valid as validCore } from "./twin-core.ts";
 
@@ -77,6 +78,19 @@ export const checkQuery = Effect.fnUntraced(function* (
 ): Effect.fn.Return<void, TwinError> {
   return yield* Effect.try({
     try: () => checkQueryNow(kind, q),
+    catch: (e) => {
+      if (isTwinError(e)) return e;
+      throw e; // a bug, not a user error: a defect
+    },
+  });
+});
+
+/** The selector of a `css.global()` call is a <complex-selector-list>, or why not (selector.ts). */
+export const checkSelector = Effect.fnUntraced(function* (
+  selector: string,
+): Effect.fn.Return<void, TwinError> {
+  return yield* Effect.try({
+    try: () => checkSelectorNow(selector),
     catch: (e) => {
       if (isTwinError(e)) return e;
       throw e; // a bug, not a user error: a defect

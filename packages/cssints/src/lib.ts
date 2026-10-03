@@ -12,12 +12,14 @@ import { covers, relation } from "./leaves.ts";
 import { type Kernel, type Plug, type Property, registry } from "./registry.ts";
 
 /**
- * One condition of a style: an at-rule prelude (`@media (width >= 40rem)`) or a pseudo-class (`:hover`).
+ * One condition of a style: an at-rule prelude (`@media (width >= 40rem)`), a pseudo-class (`:hover`), an attribute
+ * (`[aria-current="page"]`) or, with `ancestor`, a selector of a marked ancestor (`:where(._g:hover)`).
  * `rank` orders the rules of a layer: the min-width of a media or container query in px, the place of a pseudo-class.
  */
 export interface Cond {
   text: string;
   rank: number;
+  ancestor?: true;
 }
 /**
  * One declaration: property and value, under the conditions that wrap it (outermost first). `fallbacks` are the other

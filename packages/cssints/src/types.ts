@@ -2,7 +2,7 @@
 // types they have in user code, where every call is already a class string, because the plugin replaced it.
 // The implementation (macro.ts) builds declaration nodes instead; nothing here runs.
 import type { properties } from "@cssints/css-grammar/mdn";
-import type { Condition } from "@cssints/css-grammar/query";
+import type { Condition, ValidSelector } from "@cssints/css-grammar/query";
 import type { StyleObject, TokenFn, TokenSetFn, TokenType } from "@cssints/css-grammar/token";
 import type { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
 
@@ -36,6 +36,8 @@ export type Chain<M extends Record<string, keyof typeof properties>> = Style & {
 
 /** A condition: styles in, the same styles under it out (media(), container(), supports(), hover, ...). */
 export type Wrap = (...styles: Style[]) => Style;
+/** A condition on the element's own state: the pseudo-class wrappers (`hover`) and `attr(...)`; `within()` takes one. */
+export type StateWrap = Wrap & { readonly __state: true };
 /** What media() and container() give: a condition that createGlobalTheme takes (a pseudo-class wrapper is not one). */
 export type QueryWrap = Wrap & { readonly __query: true };
 
@@ -105,6 +107,38 @@ export declare const clamp: <T extends string = "length">(
 export declare const media: Condition<"media", QueryWrap>;
 export declare const container: Condition<"container", QueryWrap>;
 export declare const supports: Condition<"supports", Wrap>;
+/** An attribute or a group name: no space, brackets, quotes, `=`, `.` or `#` (the build checks the rest). */
+type Name<N extends string> = N extends "" | `${string}${" " | "[" | "]" | "=" | '"' | "'" | "." | "#"}${string}`
+  ? `"${N}" is not a name`
+  : N;
+export type AttrOp = "=" | "~=" | "|=" | "^=" | "$=" | "*=";
+/**
+ * `attr("aria-current", "page")(color(...))` is `._x[aria-current="page"]`; no value is `[disabled]`. The value is
+ * quoted for you. `op` is how the value is compared: `=` (default), `~=` (a word), `|=`, `^=`, `$=`, `*=`. One condition.
+ */
+export declare const attr: {
+  <const N extends string>(name: Name<N>): StateWrap;
+  <const N extends string>(name: Name<N>, value: string, op?: AttrOp): StateWrap;
+};
+/**
+ * `group()` is the marker class `_g` for the element whose state `within()` reads; `group("row")` is `_g-row`, for a
+ * nested group. It has no CSS of its own.
+ */
+export declare const group: <const N extends string = never>(name?: Name<N>) => Style;
+/**
+ * `within(hover)(color("red"))` is the style while a marked ancestor is hovered: `:where(._g:hover) ._x`, one class of
+ * specificity, one condition. `within(hover, "row")` reads the `group("row")` ancestor.
+ */
+export declare const within: <const N extends string = never>(state: StateWrap, name?: Name<N>) => Wrap;
+/**
+ * `global(":root", media(dark)(colorScheme("dark")))`: a rule with no class, in layer `_.k`, in the sheet of the module
+ * that calls it. The selector is a `<complex-selector-list>` (the build reads it, the types check the brackets and
+ * quotes); the styles are plain declarations, under media(), container() or supports() if you like.
+ */
+export declare const global: <const S extends string>(
+  selector: ValidSelector<S>,
+  ...styles: Style[]
+) => void;
 /** `token.<type>(initial, name?)`: a Typed OM value of the type, `var(--name)`. With a name it can be set. */
 export declare const token: { readonly [K in TokenType]: TokenFn<K> } & {
   readonly set: TokenSetFn;
@@ -126,6 +160,10 @@ export declare const css: typeof import("./members.ts") & {
   media: typeof media;
   container: typeof container;
   supports: typeof supports;
+  attr: typeof attr;
+  group: typeof group;
+  within: typeof within;
+  global: typeof global;
   token: typeof token;
   style: typeof style;
   cv: typeof cv;

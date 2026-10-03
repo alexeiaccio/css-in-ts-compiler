@@ -8,6 +8,7 @@
 import {
   checkDeclarationNow,
   checkQuery,
+  checkSelector,
   type DeclarationError,
   isDeclarationError,
 } from "@cssints/css-grammar/check";
@@ -48,6 +49,7 @@ import { addKernel } from "./kernel.ts";
 import {
   type At,
   forgetKernels,
+  GLOBAL,
   type Kernel,
   registry,
   Registry,
@@ -56,7 +58,7 @@ import {
   type Rule,
 } from "./registry.ts";
 import { _cv as runtimeCv, type CvRuntimeConfig } from "./runtime.ts";
-import { check, createGlobalTheme, createTokens, isDone, tokensOf } from "./theme.ts";
+import { check, createGlobalTheme, createTokens, DONE, isDone, tokensOf } from "./theme.ts";
 import { isStyle, style, token, type StyleNode } from "./token.ts";
 
 export { CSS, CSSColorValue, CSSUnitValue };
@@ -259,10 +261,110 @@ const condition =
     return query(kind, only);
   };
 
+const NAME = /^-?[A-Za-z_][\w-]*$/;
+const OPS = ["=", "~=", "|=", "^=", "$=", "*="];
+
+// attr(name, value?, op?): the attribute of the element. The value is always quoted; no value is presence. It sorts
+// after the pseudo-classes, so `attr("aria-current", "page")` beats `hover` in a layer.
+const attr = (...args: unknown[]) => {
+  const [name, value, op] = args;
+  if (
+    args.length > 3 ||
+    typeof name !== "string" ||
+    !NAME.test(name) ||
+    (value !== undefined && typeof value !== "string") ||
+    (op !== undefined && (value === undefined || !OPS.includes(op as string)))
+  )
+    throw fail(
+      `cssints: attr(name, value?, op?) takes an attribute name, then a string value and one of ${OPS.join(" ")}, got ${JSON.stringify(args)}`,
+    );
+  const quoted = value?.replace(/["\\]/g, "\\$&").replace(/\n/g, "\\a ");
+  return wrapper({
+    text: `[${name}${quoted === undefined ? "" : `${op ?? "="}"${quoted}"`}]`,
+    rank: 1000,
+  });
+};
+
+// The marker of an ancestor: group() is `_g`, group("row") is `_g-row`. It has no rule of its own.
+const markerOf = (what: string, name: unknown) => {
+  if (name !== undefined && (typeof name !== "string" || !NAME.test(name)))
+    throw fail(`cssints: ${what} takes a name such as "row", got ${JSON.stringify(name)}`);
+  return name === undefined ? "_g" : `_g-${name}`;
+};
+const group = (name?: unknown) => node([], { markers: [[markerOf("group()", name), "group"]] });
+
+// within(hover, "row"): the state of a marked ancestor, `:where(._g-row:hover) ._x`. :where() keeps the specificity of
+// one class, so the sheet's order decides, as for every condition; the ancestor's state sorts before the element's own.
+const within = (state?: unknown, name?: unknown) => {
+  if (!isWrapper(state) || state.cond.ancestor || !/^[:[]/.test(state.cond.text))
+    throw fail(
+      "cssints: within() takes a pseudo-class wrapper (hover) or attr(...), then the name of the group",
+    );
+  return wrapper({
+    text: `:where(.${markerOf("within()", name)}${state.cond.text})`,
+    rank: state.cond.rank - 2000,
+    ancestor: true,
+  });
+};
+
+// global(selector, ...styles): a rule with no class, in the sheet of the module that calls it (layer _.k, after the
+// kernels and before the themes). The declarations are merged like cn(), the later of one property wins. Conditions
+// that wrap the rule (media, container, supports) are allowed; a state belongs in the selector.
+const globalRule = (selector?: unknown, ...styles: unknown[]) => {
+  const at = registry.at;
+  if (!at || typeof selector !== "string")
+    throw fail("cssints: global(selector, ...styles) takes a selector string and css.* styles");
+  const exit = Effect.runSyncExit(checkSelector(selector));
+  if (Exit.isFailure(exit)) {
+    const e = Cause.squash(exit.cause) as Error;
+    throw new MacroError({ message: `cssints: global(): ${e.message}`, cause: e, ...at });
+  }
+  if (!styles.length || !styles.every(isNode))
+    throw fail(
+      `cssints: global() takes css.* styles after the selector, got ${JSON.stringify(styles.filter((s) => !isNode(s)))}`,
+    );
+  if (styles.some((s) => s.markers || s.kernels || s.plugs))
+    throw fail("cssints: global() takes plain declarations: no marker class or kernel of a member");
+  const blocks = new Map<string, { conds: Cond[]; body: string[] }>();
+  for (const d of merged(styles.flatMap((s) => s.__cssints))) {
+    const [prop, value, conds = [], fallbacks] = d;
+    const state = conds.find((c) => !c.text.startsWith("@"));
+    if (state)
+      throw fail(
+        `cssints: global() takes media(), container() and supports() conditions, not ${state.text}: write the state in the selector`,
+      );
+    try {
+      checkNow(d, true, registry);
+    } catch (e) {
+      throw isDeclarationError(e) ? located(at)(e) : e;
+    }
+    const key = conds.map((c) => c.text).join("{");
+    const block = blocks.get(key) ?? blocks.set(key, { conds, body: [] }).get(key)!;
+    for (const v of fallbacks ? [...fallbacks.toReversed(), value] : [value])
+      block.body.push(`${prop}:${v}`);
+  }
+  const css = [...blocks.values()]
+    .map(({ conds, body }) =>
+      conds.toReversed().reduce((r, c) => `${c.text}{${r}}`, `${selector.trim()}{${body.join(";")}}`),
+    )
+    .join("")
+    .replace(/[\t\n\r\f]/g, " "); // an entry of the sheet is one line, split at tabs
+  const n = registry.tokens++;
+  registry.themed.set(`${at.file}#${at.site}.${n}`, {
+    file: at.file,
+    key: `${GLOBAL}${at.file}#${String(at.site).padStart(6, "0")}.${n}`,
+    css,
+    names: [],
+  });
+  return DONE;
+};
+
 const conditions = {
   media: condition("media"),
   container: condition("container"),
   supports: condition("supports"),
+  attr,
+  within,
   ...Object.fromEntries(Object.entries(PSEUDOS).map(([n, c]) => [n, wrapper(c)])),
 };
 
@@ -295,15 +397,17 @@ const located = (at: At) => (e: Invalid | MacroError | MemberError) =>
 const ruleOf = (cls: string, [prop, value, conds = [], fallbacks]: Decl): Rule => {
   const wrap: string[] = [];
   const ranks: number[] = [];
+  let before = "";
   let pseudo = "";
   let width = 0;
   for (const c of conds)
-    if (c.text.startsWith(":")) {
-      pseudo += c.text;
-      ranks.push(c.rank);
-    } else {
+    if (c.text.startsWith("@")) {
       wrap.push(c.text);
       width = Math.max(width, c.rank);
+    } else {
+      if (c.ancestor) before += `${c.text} `;
+      else pseudo += c.text;
+      ranks.push(c.rank);
     }
   const all = fallbacks ? `${value};${fallbacks.join(";")}` : value;
   const tokens = all.includes("var(--") ? [...all.matchAll(VAR)].map((m) => m[1]!) : undefined;
@@ -312,7 +416,7 @@ const ruleOf = (cls: string, [prop, value, conds = [], fallbacks]: Decl): Rule =
     cond: conds.length ? [width, ...ranks] : [],
     wrap,
     prop,
-    css: `.${cls}${pseudo}{${fallbacks ? [...fallbacks.toReversed(), value].map((v) => `${prop}:${v}`).join(";") : `${prop}:${value}`}}`,
+    css: `${before}.${cls}${pseudo}{${fallbacks ? [...fallbacks.toReversed(), value].map((v) => `${prop}:${v}`).join(";") : `${prop}:${value}`}}`,
     tokens,
   };
 };
@@ -504,6 +608,8 @@ const named: Record<string, unknown> = {
   flex,
   grid,
   cv,
+  group,
+  global: globalRule,
   ...conditions,
   token,
   style,

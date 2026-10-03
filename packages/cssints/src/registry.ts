@@ -86,6 +86,9 @@ export interface Themed {
   theme?: { label: string; values: Map<string, string> };
 }
 
+/** The `key` of a Themed entry that is a `css.global()` rule starts with this: it sorts before the aliases and themes. */
+export const GLOBAL = "-:";
+
 /** A `css.check.contrast` call, checked once the module that made it has run, and again at the end of a build. */
 export interface Check {
   at: At;

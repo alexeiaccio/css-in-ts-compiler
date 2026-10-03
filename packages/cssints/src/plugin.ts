@@ -30,7 +30,7 @@ import { instrument, keptImport, RUNTIME, type Instrumented } from "./instrument
 import { fallbackEntries, RUNTIME_ID, runtimeModule, runtimeNames } from "./delivery.ts";
 import { kernelEntries } from "./kernel.ts";
 import { forget, Registry } from "./registry.ts";
-import { closeNames, LAYERS, renderSheet, themedEntries } from "./sheet.ts";
+import { closeNames, globalNames, LAYERS, renderSheet, themedEntries } from "./sheet.ts";
 
 export { instrument } from "./instrument.ts";
 export { addGlobal, renderSheet } from "./sheet.ts";
@@ -216,6 +216,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
         // @property rules are recorded as text, so an edit of an initial value changes what the module recorded.
         const kernels = kernelEntries(registry, id);
         const names = new Set([...texts, ...kernels].flatMap((r) => r.match(/--[\w-]+/g) ?? []));
+        globalNames(themed, id).forEach((n) => names.add(n));
         for (const c of classes) rules.get(c)?.tokens?.forEach((n) => names.add(n));
         closeNames(names, registry.defs, themed);
         yield* record(id, [
