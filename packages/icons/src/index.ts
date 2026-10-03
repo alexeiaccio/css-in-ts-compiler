@@ -78,9 +78,10 @@ const iconify = (collection: string): Source => {
   try {
     const file = createRequire(join(process.cwd(), "_")).resolve(pkg);
     const mtime = statSync(file).mtimeMs;
-    const hit = (g.__cssintsIcons ??= new Map()).get(file);
+    const cache = (g.__cssintsIcons ??= new Map<string, { mtime: number; json: Json }>());
+    const hit = cache.get(file);
     json = hit?.mtime === mtime ? hit.json : (JSON.parse(readFileSync(file, "utf8")) as Json);
-    g.__cssintsIcons.set(file, { mtime, json });
+    cache.set(file, { mtime, json });
   } catch (e) {
     throw new Error(
       `cssints: icons: cannot read ${pkg} from ${process.cwd()}: install @iconify-json/${collection}`,

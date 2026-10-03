@@ -165,12 +165,13 @@ if (cmd === "_dev") {
   for (const r of routes) {
     const t = performance.now();
     await page.goto(base + r, { waitUntil: "load" });
-    await page.waitForSelector('nav[aria-label="Main"]');
+    await page.waitForFunction(() => document.querySelector('nav[aria-label="Main"]'));
+    // oxlint-disable-next-line playwright/no-networkidle -- the point: every module of the route has been asked for and served
     await page.waitForLoadState("networkidle");
     visit.push(performance.now() - t);
   }
   await page.goto(`${base}settings`);
-  await page.waitForSelector("h1");
+  await page.locator("h1").waitFor();
 
   // HMR: the file is written, the page shows the change. `sent` is what the server told the browser meanwhile.
   const file = join(root, "src/Shell.tsx");
@@ -325,7 +326,7 @@ if (cmd === "_modules") {
   await session.post("Profiler.start");
   // a helper that only build-time code imports (icons.ts) is never asked for by the client: it fails here, and is skipped
   for (const f of files)
-    await server.environments.client.transformRequest(`/src/${f}`).catch(() => {});
+    await server.environments.client.transformRequest(`/src/${String(f)}`).catch(() => {});
   const { profile } = await session.post("Profiler.stop");
   const offset = profile.startTime / 1000 - origin;
   const byId = new Map(profile.nodes.map((n) => [n.id, n]));
@@ -529,7 +530,7 @@ const typesPart = () => {
     const r = times(Math.min(RUNS, 3), () => diag(bin, args));
     row(
       "types",
-      `${name}: total / check`,
+      `${String(name)}: total / check`,
       `${ms(col(r, "total"))} / ${ms(col(r, "check"))}`,
       `${(r[0].inst / 1e6).toFixed(2)} M instantiations, ${r[0].files} files`,
     );
