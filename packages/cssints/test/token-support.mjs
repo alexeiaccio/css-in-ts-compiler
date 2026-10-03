@@ -24,7 +24,10 @@ const lines = warnings.map((w) =>
 const lacking = (feature, value, key) =>
   `"${feature}" in "${value}" is not supported by chrome 100, safari 15.2 (${key})`;
 const oklch = (value) => lacking("oklch()", value, "css.types.color.oklch");
-assert.equal(lines.length, 7, lines.join("\n"));
+// An @property initial value (token.color(), createTokens()) and an inline token.set() value are not lowered by
+// LightningCSS, so they warn. A theme override is a custom property of the sheet: LightningCSS lowers a literal oklch()
+// and light-dark() for these targets, so .brand and .mix give nothing; .rel has a var() inside, which it leaves alone.
+assert.equal(lines.length, 6, lines.join("\n"));
 assert.equal(
   lines[0],
   `token.color() initial value of --ts-named: ${oklch("oklch(0.62 0.19 259)")}`,
@@ -34,17 +37,15 @@ assert.equal(
   `token.color() initial value of --_private: ${oklch("oklch(0.5 0.1 20)")}`,
 );
 assert.equal(lines[2], `createTokens(): ts.accent value: ${oklch("oklch(0.62 0.19 259)")}`);
-assert.equal(
-  lines[3],
-  `createGlobalTheme(): ts.plain value in .brand: ${oklch("oklch(0.7 0.1 30)")}`,
-);
-const mix = "light-dark(oklch(0.9 0 0), oklch(0.2 0 0))";
+const rel = "oklch(from #2563eb l c h)";
+assert.equal(lines[3], `createGlobalTheme(): ts.twice value in .rel: ${oklch(rel)}`);
 assert.equal(
   lines[4],
-  `createGlobalTheme(): ts.twice value in .mix: ${lacking("light-dark()", mix, "css.types.color.light-dark")}`,
+  `createGlobalTheme(): ts.twice value in .rel: ${lacking("from", rel, "css.types.color.oklch.relative_syntax")}`,
 );
-assert.equal(lines[5], `createGlobalTheme(): ts.twice value in .mix: ${oklch(mix)}`);
-assert.equal(lines[6], `token.set() value of --ts-named: ${oklch("oklch(0.7 0.1 30)")}`);
+assert.equal(lines[5], `token.set() value of --ts-named: ${oklch("oklch(0.7 0.1 30)")}`);
 
-console.log("token-support: token and theme values warn like property values, once per feature");
+console.log(
+  "token-support: token and theme values warn like property values, once per feature, unless LightningCSS lowers them",
+);
 await server.close();

@@ -126,6 +126,8 @@ export interface RegistryState {
   warnings: string[];
   /** `property feature` keys already warned about in this build */
   warned: Set<string>;
+  /** `property value feature targets` -> whether LightningCSS lowers it (lowered.ts) */
+  lowered: Map<string, boolean>;
   at?: At;
 }
 
@@ -150,6 +152,7 @@ export const registry: RegistryState = (globalThis.__cssints ??= {
   tokens: 0,
   warnings: [],
   warned: new Set(),
+  lowered: new Map(),
 });
 
 export const Registry = Context.Reference<RegistryState>("cssints/Registry", {

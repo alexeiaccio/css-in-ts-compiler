@@ -433,16 +433,15 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
               REF,
               (_, r: string) => registry.defs.get(targets.get(r)!.name)!.value,
             );
+            const css = text.replace(REF, (_, r: string) => `var(${targets.get(r)!.name})`);
             yield* checkSyntaxFx(
               `createGlobalTheme(): ${dotted} value`,
               TOKEN_TYPES[kind].syntax,
               literal,
               `createGlobalTheme(): ${dotted} value in ${label}`,
+              [child.name, css],
             );
-            changed.set(
-              child.name,
-              text.replace(REF, (_, r: string) => `var(${targets.get(r)!.name})`),
-            );
+            changed.set(child.name, css);
             if (targets.size)
               refs.set(
                 child.name,
