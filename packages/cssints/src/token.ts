@@ -4,6 +4,7 @@
 import { createHash } from "node:crypto";
 import { relative } from "node:path";
 
+import { browsers, supportOf } from "@cssints/css-grammar/support";
 import { TOKEN_TYPES, type TokenType } from "@cssints/css-grammar/token";
 import { matches } from "@cssints/css-grammar/twin";
 import { CSSStyleValue } from "@cssints/css-grammar/values";
@@ -28,16 +29,45 @@ export class CSSTokenValue extends CSSStyleValue {
   }
 }
 
-// `text` is a value of the grammar `<syntax>`; `what` names it in the error.
+// A property that takes each syntax, so a token value gets the support check of a property value (a syntax with none,
+// custom-ident and resolution, has nothing BCD tracks). A warning of the property itself is not about the value.
+const SUPPORT_PROPERTY: Record<string, string> = {
+  color: "color",
+  length: "width",
+  percentage: "width",
+  "length-percentage": "width",
+  number: "opacity",
+  integer: "z-index",
+  angle: "transform",
+  time: "transition-duration",
+  url: "background-image",
+  image: "background-image",
+  "transform-list": "transform",
+};
+
+// `text` is a value of the grammar `<syntax>`; `what` names it in the error, and `who` (default `what`) in a support
+// warning, once per `who` and BCD feature per build, in the `warned` set of the properties.
 export const checkSyntaxFx = Effect.fnUntraced(function* (
   what: string,
   syntax: string,
   text: string,
+  who: string = what,
 ): Effect.fn.Return<void, MacroError> {
   const ok = yield* matches(`<${syntax}>`, text).pipe(
     Effect.mapError((e) => new MacroError({ message: e.message, cause: e, ...registry.at })),
   );
   if (!ok) return yield* fail(`cssints: ${what} "${text}" is not a <${syntax}>`);
+  const prop = SUPPORT_PROPERTY[syntax];
+  if (!prop) return;
+  const { warned, warnings } = registry;
+  for (const w of supportOf(prop, text)) {
+    const k = `${who} ${w.key}`;
+    if (w.feature === prop || warned.has(k)) continue;
+    warned.add(k);
+    warnings.push(
+      `${who}: "${w.feature}" in "${text}" is not supported by ${browsers(w.lacking)} (${w.key})`,
+    );
+  }
 });
 export const checkSyntax = (what: string, syntax: string, text: string): void =>
   edge(checkSyntaxFx(what, syntax, text));
@@ -78,7 +108,7 @@ export const declare = Effect.fnUntraced(function* (
   const at = registry.at!;
   const { syntax, probes } = TOKEN_TYPES[kind];
   const name = what ?? `token.${kind}() initial value`;
-  yield* checkSyntaxFx(name, syntax, text);
+  yield* checkSyntaxFx(name, syntax, text, what ?? `${name} of ${variable}`);
   if (FONT_RELATIVE.test(text))
     return yield* fail(
       `cssints: ${name} "${text}" depends on the font size, and a browser drops an @property rule whose initial-value is not computationally independent; use px or a viewport unit`,

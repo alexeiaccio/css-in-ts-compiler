@@ -437,6 +437,7 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
               `createGlobalTheme(): ${dotted} value`,
               TOKEN_TYPES[kind].syntax,
               literal,
+              `createGlobalTheme(): ${dotted} value in ${label}`,
             );
             changed.set(
               child.name,
