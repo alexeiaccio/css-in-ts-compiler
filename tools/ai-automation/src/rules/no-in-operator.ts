@@ -1,19 +1,19 @@
-import type { RuleTester } from 'oxlint/plugins-dev';
+import type { RuleTester } from "oxlint/plugins-dev";
 
-type Rule = Parameters<RuleTester['run']>[1];
+type Rule = Parameters<RuleTester["run"]>[1];
 
 const rule: Rule = {
   meta: {
-    type: 'problem' as const,
+    type: "problem" as const,
     docs: {
       description:
-        'Avoid object key checks with the in operator; refactor the check or use Predicate as a last resort.',
+        "Avoid object key checks with the in operator; refactor the check or use Predicate as a last resort.",
     },
   },
   create(context) {
     return {
       BinaryExpression(node) {
-        if (node.operator !== 'in') {
+        if (node.operator !== "in") {
           return;
         }
 

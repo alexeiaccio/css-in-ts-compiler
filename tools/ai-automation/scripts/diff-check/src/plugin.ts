@@ -1,8 +1,8 @@
-import type { RuleTester } from 'oxlint/plugins-dev';
-import noExplicitFunctionReturnType from './rules/no-explicit-function-return-type.ts';
-import noLet from './rules/no-let.ts';
+import type { RuleTester } from "oxlint/plugins-dev";
+import noExplicitFunctionReturnType from "./rules/no-explicit-function-return-type.ts";
+import noLet from "./rules/no-let.ts";
 
-type Rule = Parameters<RuleTester['run']>[1];
+type Rule = Parameters<RuleTester["run"]>[1];
 
 interface Plugin {
   readonly meta: {
@@ -13,11 +13,11 @@ interface Plugin {
 
 const plugin: Plugin = {
   meta: {
-    name: 'diff-check',
+    name: "diff-check",
   },
   rules: {
-    'no-explicit-function-return-type': noExplicitFunctionReturnType,
-    'no-let': noLet,
+    "no-explicit-function-return-type": noExplicitFunctionReturnType,
+    "no-let": noLet,
   },
 };
 

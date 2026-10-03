@@ -1,6 +1,6 @@
-import type { RuleTester } from 'oxlint/plugins-dev';
+import type { RuleTester } from "oxlint/plugins-dev";
 
-type Rule = Parameters<RuleTester['run']>[1];
+type Rule = Parameters<RuleTester["run"]>[1];
 
 type Node = {
   [key: string]: unknown;
@@ -8,20 +8,20 @@ type Node = {
   type: string;
 };
 
-const equalityOperators = new Set(['==', '===', '!=', '!==']);
+const equalityOperators = new Set(["==", "===", "!=", "!=="]);
 
 const isNode = (value: unknown): value is Node =>
-  typeof value === 'object' &&
+  typeof value === "object" &&
   value !== null &&
-  'type' in value &&
-  typeof value.type === 'string' &&
-  'range' in value &&
+  "type" in value &&
+  typeof value.type === "string" &&
+  "range" in value &&
   Array.isArray(value.range);
 
 const isLiteral = (node: unknown) =>
   isNode(node) &&
-  (node.type === 'Literal' ||
-    (node.type === 'TemplateLiteral' &&
+  (node.type === "Literal" ||
+    (node.type === "TemplateLiteral" &&
       Array.isArray(node.expressions) &&
       node.expressions.length === 0));
 
@@ -34,8 +34,8 @@ const getComparedValue = ({
 }) => {
   if (
     !isNode(node) ||
-    node.type !== 'BinaryExpression' ||
-    typeof node.operator !== 'string' ||
+    node.type !== "BinaryExpression" ||
+    typeof node.operator !== "string" ||
     !equalityOperators.has(node.operator)
   ) {
     return undefined;
@@ -54,10 +54,9 @@ const getComparedValue = ({
 
 const rule: Rule = {
   meta: {
-    type: 'problem' as const,
+    type: "problem" as const,
     docs: {
-      description:
-        'Use Match from effect for chained literal ternaries over the same value.',
+      description: "Use Match from effect for chained literal ternaries over the same value.",
     },
   },
   create(context) {
@@ -66,7 +65,7 @@ const rule: Rule = {
 
     return {
       ConditionalExpression(node) {
-        if (node.parent?.type === 'ConditionalExpression') {
+        if (node.parent?.type === "ConditionalExpression") {
           return;
         }
 
@@ -82,7 +81,7 @@ const rule: Rule = {
         let alternate = node.alternate;
         let literalChecks = 1;
 
-        while (alternate.type === 'ConditionalExpression') {
+        while (alternate.type === "ConditionalExpression") {
           const alternateComparedValue = getComparedValue({
             node: alternate.test,
             getText,
@@ -99,8 +98,7 @@ const rule: Rule = {
         if (literalChecks > 1) {
           context.report({
             node,
-            message:
-              'Use Match from effect instead of a chained literal ternary.',
+            message: "Use Match from effect instead of a chained literal ternary.",
           });
         }
       },

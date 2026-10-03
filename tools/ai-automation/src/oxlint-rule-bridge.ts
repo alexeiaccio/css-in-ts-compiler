@@ -1,7 +1,7 @@
-import type { RuleTester } from 'oxlint/plugins-dev';
+import type { RuleTester } from "oxlint/plugins-dev";
 
 /** The rule shape expected by `RuleTester.run`. */
-type TestableRule = Parameters<RuleTester['run']>[1];
+type TestableRule = Parameters<RuleTester["run"]>[1];
 
 /**
  * Bridge helper for tests.
@@ -12,5 +12,4 @@ type TestableRule = Parameters<RuleTester['run']>[1];
  * mutually assignable. This is the single, deliberate boundary cast; the
  * runtime rule shapes are identical. Keep all such bridging here.
  */
-export const asTestableRule = (rule: unknown): TestableRule =>
-  rule as TestableRule;
+export const asTestableRule = (rule: unknown): TestableRule => rule as TestableRule;

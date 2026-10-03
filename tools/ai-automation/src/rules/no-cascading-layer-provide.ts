@@ -1,23 +1,18 @@
-import type { RuleTester } from 'oxlint/plugins-dev';
+import type { RuleTester } from "oxlint/plugins-dev";
 
-type Rule = Parameters<RuleTester['run']>[1];
-type VisitorObject = ReturnType<NonNullable<Rule['create']>>;
-type CallExpressionNode = Parameters<
-  NonNullable<VisitorObject['CallExpression']>
->[0];
-type IdentifierNode = Extract<
-  CallExpressionNode['callee'],
-  { type: 'Identifier' }
->;
+type Rule = Parameters<RuleTester["run"]>[1];
+type VisitorObject = ReturnType<NonNullable<Rule["create"]>>;
+type CallExpressionNode = Parameters<NonNullable<VisitorObject["CallExpression"]>>[0];
+type IdentifierNode = Extract<CallExpressionNode["callee"], { type: "Identifier" }>;
 
-const provisioningMethods = new Set(['provide', 'provideMerge']);
+const provisioningMethods = new Set(["provide", "provideMerge"]);
 
 const rule: Rule = {
   meta: {
-    type: 'problem' as const,
+    type: "problem" as const,
     docs: {
       description:
-        'Combine independent Layer dependencies in one provide call and extract intentional dependency stages.',
+        "Combine independent Layer dependencies in one provide call and extract intentional dependency stages.",
     },
   },
   create(context) {
@@ -31,8 +26,8 @@ const rule: Rule = {
         if (variable !== undefined) {
           return variable.defs.find(
             (definition) =>
-              definition.type === 'ImportBinding' &&
-              definition.parent?.type === 'ImportDeclaration',
+              definition.type === "ImportBinding" &&
+              definition.parent?.type === "ImportDeclaration",
           );
         }
 
@@ -46,24 +41,20 @@ const rule: Rule = {
       const definition = findImportDefinition({ node });
 
       return (
-        definition?.parent?.type === 'ImportDeclaration' &&
-        definition.parent.source.value === 'effect' &&
-        definition.node.type === 'ImportSpecifier' &&
-        (definition.node.imported.type === 'Identifier'
+        definition?.parent?.type === "ImportDeclaration" &&
+        definition.parent.source.value === "effect" &&
+        definition.node.type === "ImportSpecifier" &&
+        (definition.node.imported.type === "Identifier"
           ? definition.node.imported.name
-          : definition.node.imported.value) === 'Layer'
+          : definition.node.imported.value) === "Layer"
       );
     };
 
-    const isLayerProvision = ({
-      node,
-    }: {
-      node: CallExpressionNode['arguments'][number];
-    }) => {
+    const isLayerProvision = ({ node }: { node: CallExpressionNode["arguments"][number] }) => {
       if (
-        node.type !== 'CallExpression' ||
-        node.callee.type !== 'MemberExpression' ||
-        node.callee.object.type !== 'Identifier' ||
+        node.type !== "CallExpression" ||
+        node.callee.type !== "MemberExpression" ||
+        node.callee.object.type !== "Identifier" ||
         !isEffectLayerIdentifier({ node: node.callee.object })
       ) {
         return false;
@@ -71,21 +62,21 @@ const rule: Rule = {
 
       const property = node.callee.property;
       const propertyName =
-        property.type === 'Identifier'
+        property.type === "Identifier"
           ? property.name
-          : property.type === 'Literal' && typeof property.value === 'string'
+          : property.type === "Literal" && typeof property.value === "string"
             ? property.value
             : undefined;
 
-      return provisioningMethods.has(propertyName ?? '');
+      return provisioningMethods.has(propertyName ?? "");
     };
 
     return {
       CallExpression(node) {
         if (
-          node.callee.type !== 'MemberExpression' ||
-          node.callee.property.type !== 'Identifier' ||
-          node.callee.property.name !== 'pipe'
+          node.callee.type !== "MemberExpression" ||
+          node.callee.property.type !== "Identifier" ||
+          node.callee.property.name !== "pipe"
         ) {
           return;
         }
@@ -101,7 +92,7 @@ const rule: Rule = {
         context.report({
           node,
           message:
-            'Avoid multiple Layer.provide or Layer.provideMerge stages in one pipe. Combine independent dependencies in one Layer.provide([...]); when a layer depends on another layer, extract and name that configured layer before providing it.',
+            "Avoid multiple Layer.provide or Layer.provideMerge stages in one pipe. Combine independent dependencies in one Layer.provide([...]); when a layer depends on another layer, extract and name that configured layer before providing it.",
         });
       },
     };

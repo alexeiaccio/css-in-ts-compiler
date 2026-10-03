@@ -1,52 +1,37 @@
-import type { RuleTester } from 'oxlint/plugins-dev';
+import type { RuleTester } from "oxlint/plugins-dev";
 
-type Rule = Parameters<RuleTester['run']>[1];
+type Rule = Parameters<RuleTester["run"]>[1];
 
 type Node = {
   [key: string]: unknown;
   type: string;
 };
 
-const catchMethods = new Set([
-  'catch',
-  'catchTag',
-  'catchTags',
-  'catchReason',
-  'catchReasons',
-]);
+const catchMethods = new Set(["catch", "catchTag", "catchTags", "catchReason", "catchReasons"]);
 
 const message =
-  'Do not silently swallow Effect errors with Effect.void or Effect.unit. Recover meaningfully, transform the error, or let it propagate.';
+  "Do not silently swallow Effect errors with Effect.void or Effect.unit. Recover meaningfully, transform the error, or let it propagate.";
 
 const isNode = (value: unknown): value is Node =>
-  typeof value === 'object' &&
-  value !== null &&
-  'type' in value &&
-  typeof value.type === 'string';
+  typeof value === "object" && value !== null && "type" in value && typeof value.type === "string";
 
 const nodeArray = ({ value }: { value: unknown }) =>
   Array.isArray(value) ? value.filter(isNode) : [];
 
 const nodeName = ({ value }: { value: unknown }) =>
-  isNode(value) && typeof value.name === 'string' ? value.name : undefined;
+  isNode(value) && typeof value.name === "string" ? value.name : undefined;
 
-const voidOrUnitMethods = new Set(['void', 'unit']);
+const voidOrUnitMethods = new Set(["void", "unit"]);
 
-const isEffectMember = ({
-  names,
-  node,
-}: {
-  names: Set<string>;
-  node: unknown;
-}) =>
+const isEffectMember = ({ names, node }: { names: Set<string>; node: unknown }) =>
   isNode(node) &&
-  node.type === 'MemberExpression' &&
+  node.type === "MemberExpression" &&
   isNode(node.object) &&
   isNode(node.property) &&
-  node.object.type === 'Identifier' &&
-  nodeName({ value: node.object }) === 'Effect' &&
-  node.property.type === 'Identifier' &&
-  names.has(nodeName({ value: node.property }) ?? '');
+  node.object.type === "Identifier" &&
+  nodeName({ value: node.object }) === "Effect" &&
+  node.property.type === "Identifier" &&
+  names.has(nodeName({ value: node.property }) ?? "");
 
 const isEffectVoidOrUnit = ({ node }: { node: unknown }) =>
   isEffectMember({ names: voidOrUnitMethods, node });
@@ -54,8 +39,7 @@ const isEffectVoidOrUnit = ({ node }: { node: unknown }) =>
 const returnsOnlyVoid = ({ node }: { node: unknown }) => {
   if (
     !isNode(node) ||
-    (node.type !== 'ArrowFunctionExpression' &&
-      node.type !== 'FunctionExpression')
+    (node.type !== "ArrowFunctionExpression" && node.type !== "FunctionExpression")
   ) {
     return false;
   }
@@ -64,7 +48,7 @@ const returnsOnlyVoid = ({ node }: { node: unknown }) => {
     return true;
   }
 
-  if (!isNode(node.body) || node.body.type !== 'BlockStatement') {
+  if (!isNode(node.body) || node.body.type !== "BlockStatement") {
     return false;
   }
 
@@ -76,18 +60,14 @@ const returnsOnlyVoid = ({ node }: { node: unknown }) => {
 
   const statement = statements[0];
 
-  return (
-    statement?.type === 'ReturnStatement' &&
-    isEffectVoidOrUnit({ node: statement.argument })
-  );
+  return statement?.type === "ReturnStatement" && isEffectVoidOrUnit({ node: statement.argument });
 };
 
 const rule: Rule = {
   meta: {
-    type: 'problem' as const,
+    type: "problem" as const,
     docs: {
-      description:
-        'Do not silently swallow Effect errors; recover, transform, or propagate them.',
+      description: "Do not silently swallow Effect errors; recover, transform, or propagate them.",
     },
   },
   create(context) {
@@ -110,15 +90,12 @@ const rule: Rule = {
             });
           }
 
-          if (!isNode(argument) || argument.type !== 'ObjectExpression') {
+          if (!isNode(argument) || argument.type !== "ObjectExpression") {
             continue;
           }
 
           for (const property of nodeArray({ value: argument.properties })) {
-            if (
-              property.type === 'Property' &&
-              returnsOnlyVoid({ node: property.value })
-            ) {
+            if (property.type === "Property" && returnsOnlyVoid({ node: property.value })) {
               context.report({
                 node,
                 message,

@@ -1,22 +1,16 @@
-import type { RuleTester } from 'oxlint/plugins-dev';
+import type { RuleTester } from "oxlint/plugins-dev";
 
-type Rule = Parameters<RuleTester['run']>[1];
+type Rule = Parameters<RuleTester["run"]>[1];
 
-const bannedTypes = new Set([
-  'TSAnyKeyword',
-  'TSNeverKeyword',
-  'TSUnknownKeyword',
-]);
+const bannedTypes = new Set(["TSAnyKeyword", "TSNeverKeyword", "TSUnknownKeyword"]);
 
-const message =
-  'Do not assert to any, never, or unknown. Fix the type or use generics.';
+const message = "Do not assert to any, never, or unknown. Fix the type or use generics.";
 
 const rule: Rule = {
   meta: {
-    type: 'problem' as const,
+    type: "problem" as const,
     docs: {
-      description:
-        'Disallow assertions to any, never, or unknown; fix the type or use generics.',
+      description: "Disallow assertions to any, never, or unknown; fix the type or use generics.",
     },
   },
   create(context) {

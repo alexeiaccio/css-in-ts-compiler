@@ -47,10 +47,7 @@ interface BanSpec {
 }
 
 interface BanContext {
-  readonly report: (descriptor: {
-    readonly node: unknown;
-    readonly message: string;
-  }) => void;
+  readonly report: (descriptor: { readonly node: unknown; readonly message: string }) => void;
 }
 
 type Handler = (node: unknown) => void;
@@ -58,7 +55,7 @@ type VisitorMap = Record<string, Handler>;
 
 interface BanRule {
   readonly meta: {
-    readonly type: 'problem';
+    readonly type: "problem";
     readonly docs: { readonly description: string };
   };
   readonly create: (context: BanContext) => VisitorMap;
@@ -67,23 +64,23 @@ interface BanRule {
 type AstNode = { readonly type: string; readonly [key: string]: unknown };
 
 const isNode = (value: unknown): value is AstNode =>
-  typeof value === 'object' &&
+  typeof value === "object" &&
   value !== null &&
-  typeof (value as { readonly type?: unknown }).type === 'string';
+  typeof (value as { readonly type?: unknown }).type === "string";
 
 const identifierName = (node: unknown): string | undefined =>
-  isNode(node) && node.type === 'Identifier' && typeof node.name === 'string'
+  isNode(node) && node.type === "Identifier" && typeof node.name === "string"
     ? node.name
     : undefined;
 
 const memberPropertyName = (node: unknown): string | undefined => {
-  if (!isNode(node) || node.type !== 'MemberExpression') {
+  if (!isNode(node) || node.type !== "MemberExpression") {
     return undefined;
   }
   if (node.computed === true) {
     return isNode(node.property) &&
-      node.property.type === 'Literal' &&
-      typeof node.property.value === 'string'
+      node.property.type === "Literal" &&
+      typeof node.property.value === "string"
       ? node.property.value
       : undefined;
   }
@@ -91,7 +88,7 @@ const memberPropertyName = (node: unknown): string | undefined => {
 };
 
 const toPath = (value: ObjectPath): readonly string[] =>
-  typeof value === 'string' ? [value] : value;
+  typeof value === "string" ? [value] : value;
 
 const matchesObjectPath = (node: unknown, path: readonly string[]): boolean => {
   if (path.length === 0) {
@@ -101,13 +98,10 @@ const matchesObjectPath = (node: unknown, path: readonly string[]): boolean => {
   if (path.length === 1) {
     return identifierName(node) === last;
   }
-  if (!isNode(node) || node.type !== 'MemberExpression') {
+  if (!isNode(node) || node.type !== "MemberExpression") {
     return false;
   }
-  return (
-    memberPropertyName(node) === last &&
-    matchesObjectPath(node.object, path.slice(0, -1))
-  );
+  return memberPropertyName(node) === last && matchesObjectPath(node.object, path.slice(0, -1));
 };
 
 const propertyMatches = (
@@ -120,13 +114,11 @@ const propertyMatches = (
   if (actual === undefined) {
     return false;
   }
-  return typeof expected === 'string'
-    ? actual === expected
-    : expected.includes(actual);
+  return typeof expected === "string" ? actual === expected : expected.includes(actual);
 };
 
 const matchesMember = (node: unknown, target: MemberTarget): boolean => {
-  if (!isNode(node) || node.type !== 'MemberExpression') {
+  if (!isNode(node) || node.type !== "MemberExpression") {
     return false;
   }
   return (
@@ -136,28 +128,24 @@ const matchesMember = (node: unknown, target: MemberTarget): boolean => {
 };
 
 const matchesMemberCall = (node: unknown, target: MemberTarget): boolean =>
-  isNode(node) &&
-  node.type === 'CallExpression' &&
-  matchesMember(node.callee, target);
+  isNode(node) && node.type === "CallExpression" && matchesMember(node.callee, target);
 
 const callName = (node: unknown): string | undefined =>
-  isNode(node) && node.type === 'CallExpression'
-    ? identifierName(node.callee)
-    : undefined;
+  isNode(node) && node.type === "CallExpression" ? identifierName(node.callee) : undefined;
 
 const importSource = (node: unknown): string | undefined => {
-  if (!isNode(node) || node.type !== 'ImportDeclaration') {
+  if (!isNode(node) || node.type !== "ImportDeclaration") {
     return undefined;
   }
   return isNode(node.source) &&
-    node.source.type === 'Literal' &&
-    typeof node.source.value === 'string'
+    node.source.type === "Literal" &&
+    typeof node.source.value === "string"
     ? node.source.value
     : undefined;
 };
 
 const toNames = (value: string | readonly string[]): readonly string[] =>
-  typeof value === 'string' ? [value] : value;
+  typeof value === "string" ? [value] : value;
 
 const isTargetArray = (
   value: MemberTarget | readonly MemberTarget[],
@@ -187,15 +175,12 @@ const makeRule = ({
   readonly description: string;
   readonly build: (context: BanContext) => VisitorMap;
 }): BanRule => ({
-  meta: { type: 'problem', docs: { description } },
+  meta: { type: "problem", docs: { description } },
   create: build,
 });
 
 const memberVisitor =
-  (
-    targets: readonly MemberTarget[],
-    message: string,
-  ): ((context: BanContext) => VisitorMap) =>
+  (targets: readonly MemberTarget[], message: string): ((context: BanContext) => VisitorMap) =>
   (context) => ({
     MemberExpression: (node) => {
       if (targets.some((target) => matchesMember(node, target))) {
@@ -211,10 +196,7 @@ export const banMember = (
 ): BanRule =>
   makeRule({
     description: options.description,
-    build: memberVisitor(
-      isTargetArray(target) ? target : [target],
-      options.message,
-    ),
+    build: memberVisitor(isTargetArray(target) ? target : [target], options.message),
   });
 
 /** Ban method calls matching a member target (e.g. `console.log(...)`). */
@@ -236,10 +218,7 @@ export const banCallOfMember = (
 };
 
 /** Ban bare identifier calls (e.g. `fetch(...)`). */
-export const banCallOf = (
-  name: string | readonly string[],
-  options: BanOptions,
-): BanRule => {
+export const banCallOf = (name: string | readonly string[], options: BanOptions): BanRule => {
   const names = toNames(name);
   return makeRule({
     description: options.description,
@@ -255,10 +234,7 @@ export const banCallOf = (
 };
 
 /** Ban `new` expressions with the given callee (e.g. `new Date()`). */
-export const banNewExpr = (
-  name: string | readonly string[],
-  options: BanOptions,
-): BanRule => {
+export const banNewExpr = (name: string | readonly string[], options: BanOptions): BanRule => {
   const names = toNames(name);
   return makeRule({
     description: options.description,
@@ -297,8 +273,7 @@ export const banImport = (
         if (actual === undefined) {
           return;
         }
-        const matches =
-          typeof source === 'function' ? source(actual) : actual === source;
+        const matches = typeof source === "function" ? source(actual) : actual === source;
         if (matches) {
           context.report({ node, message: options.message });
         }

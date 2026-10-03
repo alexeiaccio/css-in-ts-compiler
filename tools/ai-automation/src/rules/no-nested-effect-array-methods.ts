@@ -1,33 +1,30 @@
-import type { RuleTester } from 'oxlint/plugins-dev';
+import type { RuleTester } from "oxlint/plugins-dev";
 
-type Rule = Parameters<RuleTester['run']>[1];
+type Rule = Parameters<RuleTester["run"]>[1];
 
 type Node = {
   [key: string]: unknown;
   type: string;
 };
 
-const ignoredKeys = new Set(['parent']);
+const ignoredKeys = new Set(["parent"]);
 
 const isNode = (value: unknown): value is Node =>
-  typeof value === 'object' &&
-  value !== null &&
-  'type' in value &&
-  typeof value.type === 'string';
+  typeof value === "object" && value !== null && "type" in value && typeof value.type === "string";
 
 const nodeName = ({ value }: { value: unknown }) =>
-  isNode(value) && typeof value.name === 'string' ? value.name : undefined;
+  isNode(value) && typeof value.name === "string" ? value.name : undefined;
 
 const isEffectArrayCall = ({ node }: { node: unknown }) =>
   isNode(node) &&
-  node.type === 'CallExpression' &&
+  node.type === "CallExpression" &&
   isNode(node.callee) &&
-  node.callee.type === 'MemberExpression' &&
+  node.callee.type === "MemberExpression" &&
   isNode(node.callee.object) &&
   isNode(node.callee.property) &&
-  node.callee.object.type === 'Identifier' &&
-  node.callee.object.name === 'Array' &&
-  node.callee.property.type === 'Identifier';
+  node.callee.object.type === "Identifier" &&
+  node.callee.object.name === "Array" &&
+  node.callee.property.type === "Identifier";
 
 const containsEffectArrayCall = ({
   node,
@@ -36,7 +33,7 @@ const containsEffectArrayCall = ({
   node: unknown;
   seen: WeakSet<object>;
 }): boolean => {
-  if (node === null || typeof node !== 'object') {
+  if (node === null || typeof node !== "object") {
     return false;
   }
 
@@ -73,10 +70,10 @@ const containsEffectArrayCall = ({
 
 const rule: Rule = {
   meta: {
-    type: 'problem' as const,
+    type: "problem" as const,
     docs: {
       description:
-        'Avoid nested Effect Array method calls; compose them with pipe to preserve inference.',
+        "Avoid nested Effect Array method calls; compose them with pipe to preserve inference.",
     },
   },
   create(context) {
@@ -87,15 +84,15 @@ const rule: Rule = {
         if (
           isNode(node) &&
           isNode(node.source) &&
-          node.source.value === 'effect' &&
+          node.source.value === "effect" &&
           Array.isArray(node.specifiers) &&
           node.specifiers
             .filter(isNode)
             .some(
               (specifier) =>
-                specifier.type === 'ImportSpecifier' &&
-                nodeName({ value: specifier.imported }) === 'Array' &&
-                nodeName({ value: specifier.local }) === 'Array',
+                specifier.type === "ImportSpecifier" &&
+                nodeName({ value: specifier.imported }) === "Array" &&
+                nodeName({ value: specifier.local }) === "Array",
             )
         ) {
           arrayImportedFromEffect = true;
@@ -116,8 +113,7 @@ const rule: Rule = {
         ) {
           context.report({
             node,
-            message:
-              'Do not nest Effect Array method calls. Use pipe to preserve inference.',
+            message: "Do not nest Effect Array method calls. Use pipe to preserve inference.",
           });
         }
       },

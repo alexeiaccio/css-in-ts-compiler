@@ -101,11 +101,11 @@ and cover the edges plain `obj.prop` matchers miss: chained object paths
 (`globalThis.JSON.parse`) and computed string properties (`Reflect['get']`).
 
 ```ts
-import { banStatement } from './ban.ts';
+import { banStatement } from "./ban.ts";
 
-export default banStatement('TryStatement', {
-  message: 'Do not use try/catch; use Effect error channels.',
-  description: 'Avoid try/catch; use Effect error channels.',
+export default banStatement("TryStatement", {
+  message: "Do not use try/catch; use Effect error channels.",
+  description: "Avoid try/catch; use Effect error channels.",
 });
 ```
 

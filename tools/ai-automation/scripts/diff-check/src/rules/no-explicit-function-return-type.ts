@@ -1,27 +1,19 @@
-import type { RuleTester } from 'oxlint/plugins-dev';
+import type { RuleTester } from "oxlint/plugins-dev";
 
-type Rule = Parameters<RuleTester['run']>[1];
-type VisitorObject = ReturnType<NonNullable<Rule['create']>>;
-type FunctionDeclarationNode = Parameters<
-  NonNullable<VisitorObject['FunctionDeclaration']>
->[0];
-type FunctionExpressionNode = Parameters<
-  NonNullable<VisitorObject['FunctionExpression']>
->[0];
+type Rule = Parameters<RuleTester["run"]>[1];
+type VisitorObject = ReturnType<NonNullable<Rule["create"]>>;
+type FunctionDeclarationNode = Parameters<NonNullable<VisitorObject["FunctionDeclaration"]>>[0];
+type FunctionExpressionNode = Parameters<NonNullable<VisitorObject["FunctionExpression"]>>[0];
 type ArrowFunctionExpressionNode = Parameters<
-  NonNullable<VisitorObject['ArrowFunctionExpression']>
+  NonNullable<VisitorObject["ArrowFunctionExpression"]>
 >[0];
-type FunctionNode =
-  | FunctionDeclarationNode
-  | FunctionExpressionNode
-  | ArrowFunctionExpressionNode;
+type FunctionNode = FunctionDeclarationNode | FunctionExpressionNode | ArrowFunctionExpressionNode;
 
 const rule: Rule = {
   meta: {
-    type: 'problem' as const,
+    type: "problem" as const,
     docs: {
-      description:
-        'Disallow explicit return type annotations on function implementations.',
+      description: "Disallow explicit return type annotations on function implementations.",
     },
   },
   create(context) {
@@ -32,7 +24,7 @@ const rule: Rule = {
 
       context.report({
         node: node.returnType,
-        message: 'Do not explicitly declare a function return type; infer it.',
+        message: "Do not explicitly declare a function return type; infer it.",
       });
     };
 

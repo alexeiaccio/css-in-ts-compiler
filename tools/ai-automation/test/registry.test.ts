@@ -1,14 +1,14 @@
-import * as ts from 'typescript';
-import { describe, expect, it } from 'vite-plus/test';
-import path from 'node:path';
-import plugin from '../src/plugin.ts';
-import { readFileSync } from 'node:fs';
+import * as ts from "typescript";
+import { describe, expect, it } from "vite-plus/test";
+import path from "node:path";
+import plugin from "../src/plugin.ts";
+import { readFileSync } from "node:fs";
 
 const testedRuleNames = (): ReadonlyArray<string> => {
-  const testPath = path.join(import.meta.dirname, 'rules.test.ts');
+  const testPath = path.join(import.meta.dirname, "rules.test.ts");
   const sourceFile = ts.createSourceFile(
     testPath,
-    readFileSync(testPath, 'utf8'),
+    readFileSync(testPath, "utf8"),
     ts.ScriptTarget.Latest,
     true,
     ts.ScriptKind.TS,
@@ -19,8 +19,8 @@ const testedRuleNames = (): ReadonlyArray<string> => {
     if (
       ts.isCallExpression(node) &&
       ts.isPropertyAccessExpression(node.expression) &&
-      node.expression.expression.getText(sourceFile) === 'tester' &&
-      node.expression.name.text === 'run'
+      node.expression.expression.getText(sourceFile) === "tester" &&
+      node.expression.name.text === "run"
     ) {
       const name = node.arguments[0];
       if (name !== undefined && ts.isStringLiteral(name)) {
@@ -35,8 +35,8 @@ const testedRuleNames = (): ReadonlyArray<string> => {
   return names.toSorted();
 };
 
-describe('OXLint registry', () => {
-  it('has a behavioral test block for every registered rule', () => {
+describe("OXLint registry", () => {
+  it("has a behavioral test block for every registered rule", () => {
     expect(testedRuleNames()).toEqual(Object.keys(plugin.rules).toSorted());
   });
 });

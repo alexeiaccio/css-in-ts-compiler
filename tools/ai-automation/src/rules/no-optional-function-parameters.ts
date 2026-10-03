@@ -1,6 +1,6 @@
-import type { RuleTester } from 'oxlint/plugins-dev';
+import type { RuleTester } from "oxlint/plugins-dev";
 
-type Rule = Parameters<RuleTester['run']>[1];
+type Rule = Parameters<RuleTester["run"]>[1];
 
 type Node = {
   [key: string]: unknown;
@@ -8,20 +8,17 @@ type Node = {
 };
 
 const isNode = (value: unknown): value is Node =>
-  typeof value === 'object' &&
-  value !== null &&
-  'type' in value &&
-  typeof value.type === 'string';
+  typeof value === "object" && value !== null && "type" in value && typeof value.type === "string";
 
 const message =
-  'Optional function parameters are banned. Use an explicit union with undefined or null.';
+  "Optional function parameters are banned. Use an explicit union with undefined or null.";
 
 const rule: Rule = {
   meta: {
-    type: 'problem' as const,
+    type: "problem" as const,
     docs: {
       description:
-        'Avoid optional function parameters; use an explicit union with undefined or null.',
+        "Avoid optional function parameters; use an explicit union with undefined or null.",
     },
   },
   create(context) {
