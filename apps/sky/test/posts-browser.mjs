@@ -137,10 +137,9 @@ try {
   out.home = await home.locator("article").count();
   out.homeHidden = await home.getByText("Post hidden").count();
   // within(hover): the timestamp turns to full colour while the pointer is on the card, and back when it leaves
-  const time = home.locator("article a", { hasText: "·" }).first();
-  const colour = () => time.evaluate((el) => getComputedStyle(el).color);
+  const colour = () => home.$eval("article a:has-text('·')", (el) => getComputedStyle(el).color);
   const muted = await colour();
-  await home.locator("article").first().hover();
+  await home.hover("article");
   const lit = await colour();
   await home.mouse.move(0, 0);
   out.within = { muted, lit, left: await colour() };

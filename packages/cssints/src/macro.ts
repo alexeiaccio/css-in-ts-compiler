@@ -267,20 +267,22 @@ const OPS = ["=", "~=", "|=", "^=", "$=", "*="];
 // attr(name, value?, op?): the attribute of the element. The value is always quoted; no value is presence. It sorts
 // after the pseudo-classes, so `attr("aria-current", "page")` beats `hover` in a layer.
 const attr = (...args: unknown[]) => {
-  const [name, value, op] = args;
+  const [name, value, given] = args;
+  const op = typeof given === "string" ? given : "=";
   if (
     args.length > 3 ||
     typeof name !== "string" ||
     !NAME.test(name) ||
     (value !== undefined && typeof value !== "string") ||
-    (op !== undefined && (value === undefined || !OPS.includes(op as string)))
+    !OPS.includes(op) ||
+    (given !== undefined && (typeof given !== "string" || value === undefined))
   )
     throw fail(
       `cssints: attr(name, value?, op?) takes an attribute name, then a string value and one of ${OPS.join(" ")}, got ${JSON.stringify(args)}`,
     );
   const quoted = value?.replace(/["\\]/g, "\\$&").replace(/\n/g, "\\a ");
   return wrapper({
-    text: `[${name}${quoted === undefined ? "" : `${op ?? "="}"${quoted}"`}]`,
+    text: `[${name}${quoted === undefined ? "" : `${op}"${quoted}"`}]`,
     rank: 1000,
   });
 };
@@ -345,7 +347,9 @@ const globalRule = (selector?: unknown, ...styles: unknown[]) => {
   }
   const css = [...blocks.values()]
     .map(({ conds, body }) =>
-      conds.toReversed().reduce((r, c) => `${c.text}{${r}}`, `${selector.trim()}{${body.join(";")}}`),
+      conds
+        .toReversed()
+        .reduce((r, c) => `${c.text}{${r}}`, `${selector.trim()}{${body.join(";")}}`),
     )
     .join("")
     .replace(/[\t\n\r\f]/g, " "); // an entry of the sheet is one line, split at tabs

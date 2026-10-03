@@ -54,12 +54,6 @@ for (const [s, re] of bad) {
 
 // The type level: balanced brackets and quotes, not empty.
 type Ok<S extends string> = ValidSelector<S> extends S ? true : false;
-export const types: [Ok<"a:is(.b, .c)">, Ok<'a[href="("]'>, Ok<"a[b">, Ok<"a)">, Ok<" ">, Ok<"">] = [
-  true,
-  true,
-  false,
-  false,
-  false,
-  false,
-];
+export const types: [Ok<"a:is(.b, .c)">, Ok<'a[href="("]'>, Ok<"a[b">, Ok<"a)">, Ok<" ">, Ok<"">] =
+  [true, true, false, false, false, false];
 console.log(`ok: ${good.length + bad.length} selector cases`);

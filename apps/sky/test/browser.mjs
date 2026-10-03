@@ -46,12 +46,13 @@ try {
   await page.goto(`${base}settings`);
 
   // attr("aria-current", "page"): the router marks the link of the open page, and only that one, and the class reads it
-  const links = page.locator('nav[aria-label="Main"]').first().locator("a[aria-label]"); // the side one
+  const links = page.locator('nav[aria-label="Main"] a[aria-label]'); // the side nav, then the bottom bar
   const marks = () =>
     links.evaluateAll((as) =>
-      as.map((a) => [a.getAttribute("aria-label"), a.getAttribute("aria-current")]),
+      as.slice(0, 3).map((a) => [a.getAttribute("aria-label"), a.getAttribute("aria-current")]),
     );
-  const weights = () => links.evaluateAll((as) => as.map((a) => getComputedStyle(a).fontWeight));
+  const weights = () =>
+    links.evaluateAll((as) => as.slice(0, 3).map((a) => getComputedStyle(a).fontWeight));
   const { medium, bold } = tokens.fontWeight;
   assert.deepEqual(await marks(), [
     ["Home", null],
@@ -59,7 +60,7 @@ try {
     ["Settings", "page"],
   ]);
   assert.deepEqual(await weights(), [medium.$value, medium.$value, bold.$value].map(String));
-  await links.first().click(); // the mark moves with the route
+  await page.locator("a[aria-label=Home]:visible").click(); // the mark moves with the route
   await page.waitForURL(base);
   assert.deepEqual(await marks(), [
     ["Home", "page"],

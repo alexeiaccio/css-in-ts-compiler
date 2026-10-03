@@ -17,7 +17,7 @@ const SUB = y(
 const COMB = y(String.raw`(?:\|\||[>+~])\s*`);
 const WS = y(String.raw`\s+`);
 
-/** `(` at `i`: the index after its matching `)`, or -1; the content is not empty. */
+// `(` at `i`: the index after its matching `)`, or -1; the content is not empty.
 const close = (s: string, i: number): number => {
   for (let depth = 0, j = i; j < s.length; j++) {
     const c = s[j]!;
@@ -34,7 +34,7 @@ const close = (s: string, i: number): number => {
   return -1;
 };
 
-/** `sel` is a <complex-selector-list>, or throws an InvalidValueError that names the token it stopped at. */
+// `sel` is a <complex-selector-list>, or this throws an InvalidValueError that names the token it stopped at.
 export function checkSelectorNow(sel: string): void {
   let i = 0;
   const eat = (re: RegExp) => {

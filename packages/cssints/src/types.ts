@@ -108,7 +108,9 @@ export declare const media: Condition<"media", QueryWrap>;
 export declare const container: Condition<"container", QueryWrap>;
 export declare const supports: Condition<"supports", Wrap>;
 /** An attribute or a group name: no space, brackets, quotes, `=`, `.` or `#` (the build checks the rest). */
-type Name<N extends string> = N extends "" | `${string}${" " | "[" | "]" | "=" | '"' | "'" | "." | "#"}${string}`
+type Name<N extends string> = N extends
+  | ""
+  | `${string}${" " | "[" | "]" | "=" | '"' | "'" | "." | "#"}${string}`
   ? `"${N}" is not a name`
   : N;
 export type AttrOp = "=" | "~=" | "|=" | "^=" | "$=" | "*=";
@@ -129,7 +131,10 @@ export declare const group: <const N extends string = never>(name?: Name<N>) => 
  * `within(hover)(color("red"))` is the style while a marked ancestor is hovered: `:where(._g:hover) ._x`, one class of
  * specificity, one condition. `within(hover, "row")` reads the `group("row")` ancestor.
  */
-export declare const within: <const N extends string = never>(state: StateWrap, name?: Name<N>) => Wrap;
+export declare const within: <const N extends string = never>(
+  state: StateWrap,
+  name?: Name<N>,
+) => Wrap;
 /**
  * `global(":root", media(dark)(colorScheme("dark")))`: a rule with no class, in layer `_.k`, in the sheet of the module
  * that calls it. The selector is a `<complex-selector-list>` (the build reads it, the types check the brackets and

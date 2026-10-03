@@ -1,7 +1,16 @@
 // What user code sees of css.global(), attr(), within() and group(): `tsgo -p tsconfig.json` checks this file.
 import { cx } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
-import { attr, colorScheme, global, group, hover, media, p, within } from "cssints" with { type: "cssints" };
+import {
+  attr,
+  colorScheme,
+  global,
+  group,
+  hover,
+  media,
+  p,
+  within,
+} from "cssints" with { type: "cssints" };
 
 const dark = media("(prefers-color-scheme: dark)");
 

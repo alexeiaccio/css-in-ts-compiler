@@ -70,8 +70,9 @@ type Balanced<S extends string, Stack extends string = ""> = S extends `${infer 
     : false;
 
 /** The selector of `global()`, or a message: not empty, brackets and quotes balanced. */
-export type ValidSelector<S extends string> = Trim<S> extends ""
-  ? "global(): the selector is empty"
-  : Balanced<S> extends true
-    ? S
-    : `global(): unbalanced brackets or quotes in "${S}"`;
+export type ValidSelector<S extends string> =
+  Trim<S> extends ""
+    ? "global(): the selector is empty"
+    : Balanced<S> extends true
+      ? S
+      : `global(): unbalanced brackets or quotes in "${S}"`;
