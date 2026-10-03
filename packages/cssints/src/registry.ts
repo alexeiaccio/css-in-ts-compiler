@@ -70,6 +70,8 @@ export interface TokenDef {
   /** An alias or a derived token: its value with `var(--target)` for each reference, and the variables it refers to. */
   template?: string;
   refs?: string[];
+  /** `value` as LightningCSS lowers it for the targets that lack it: the initial value, and the default of a derived token. */
+  fallback?: string;
 }
 
 /**
@@ -129,8 +131,8 @@ export interface RegistryState {
   warnings: string[];
   /** `property feature` keys already warned about in this build */
   warned: Set<string>;
-  /** `property value feature targets` -> whether LightningCSS lowers it (lowered.ts) */
-  lowered: Map<string, boolean>;
+  /** `property value feature targets` -> what LightningCSS lowers it to, or false (lowered.ts) */
+  lowered: Map<string, string | false>;
   at?: At;
 }
 

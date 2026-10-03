@@ -2,9 +2,10 @@
 // (createTokens of an imported .json). Run: node derived.mjs
 import assert from "node:assert/strict";
 
-import { createServer } from "vite";
-
-import cssints from "../src/plugin.ts";
+// The targets are read when the grammar package loads: modern ones, so no initial value is lowered (token-fallback.mjs).
+process.env.BROWSERSLIST = "chrome 154";
+const { createServer } = await import("vite");
+const { default: cssints } = await import("../src/plugin.ts");
 
 const root = import.meta.dirname;
 const plugins = cssints();
