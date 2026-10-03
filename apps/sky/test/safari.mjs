@@ -170,6 +170,15 @@ function inPage(op, arg) {
             cs(sample("external").querySelector("article a[href^=http]"), "background-color"),
           ),
         },
+        // the largest image of each sample (an embed's box: width, height; the avatars are smaller)
+        embeds: Object.fromEntries(
+          [...document.querySelectorAll("[data-sample]")].map((e) => {
+            const [r] = [...e.querySelectorAll("article img")]
+              .map((i) => i.getBoundingClientRect())
+              .sort((a, b) => b.width * b.height - a.width * a.height);
+            return [e.dataset.sample, r ? `${Math.round(r.width)}x${Math.round(r.height)}` : ""];
+          }),
+        ),
         layout: {
           images3: cs(mediaBox("images3"), "grid-template-columns").split(" ").length,
           images4: cs(mediaBox("images4"), "grid-template-columns").split(" ").length,
@@ -199,7 +208,15 @@ const playwright = async (name, kind, ctxOptions = {}) => {
     name: `${name} ${browser.version()}`,
     eval: (op, arg) => page.evaluate(invoke(JSON.stringify(op), JSON.stringify(arg ?? null))),
     goto: (url) => page.goto(url),
-    shot: (sel) => page.locator(sel).screenshot(),
+    // a clip of the page, not locator.screenshot(): its wait for a stable element timed out in one WebKit build
+    shot: async (sel) =>
+      page.screenshot({
+        fullPage: true,
+        clip: await page.locator(sel).evaluate((e) => {
+          const r = e.getBoundingClientRect();
+          return { x: r.x + scrollX, y: r.y + scrollY, width: r.width, height: r.height };
+        }),
+      }),
     close: () => browser.close(),
   };
 };
@@ -401,7 +418,7 @@ try {
     }
     try {
       const r = await read(engine);
-      const tag = engine.name.replace(/[^\w.]+/g, "_");
+      const tag = `${engine.name} ${label}`.replace(/[^\w.]+/g, "_");
       for (const [name, png] of Object.entries(r.shots))
         writeFileSync(join(shots, `${tag}-${name}.png`), png);
       const bad = [];
@@ -433,7 +450,7 @@ try {
         }
       failed += bad.length;
       console.log(
-        `${engine.name}\n  ${state.ua}\n  style queries ${state.styleQueries}, frame/surface runtime ${state.poly ? "on" : "off"}; derived: ${state.probes} probes, parsed ${state.parsesAll}, runtime ${afterSettings.wrote ? "writing" : "idle"}\n  ${bad.length ? `FAIL\n    ${bad.join("\n    ")}` : r === reference ? "reference" : "settings (3 modes x 2 hues) and post card equal to Chrome"}${diffs.length ? `\n  screenshots differing from Chrome: ${diffs.join(", ")}` : ""}`,
+        `${engine.name} [${label}]\n  ${state.ua}\n  style queries ${state.styleQueries}, frame/surface runtime ${state.poly ? "on" : "off"}; derived: ${state.probes} probes, parsed ${state.parsesAll}, runtime ${afterSettings.wrote ? "writing" : "idle"}\n  ${bad.length ? `FAIL\n    ${bad.join("\n    ")}` : r === reference ? "reference" : "settings (3 modes x 2 hues) and post card equal to Chrome"}${diffs.length ? `\n  screenshots differing from Chrome: ${diffs.join(", ")}` : ""}`,
       );
     } catch (e) {
       failed++;
