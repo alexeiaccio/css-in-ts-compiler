@@ -88,7 +88,7 @@ const findCssImport = Effect.fnUntraced(function* (
 // Conditions in a variable are site roots too: `const md = css.media(q)`, `const [md, lg] = css.media(a, b)`,
 // `const { md } = css.media({ md: q })`, so `md(css.p(4))` is a site of its own (a call of a wrapper the client does
 // not have). Returns the names those declarations bind.
-const CONDITIONS = new Set(["media", "container", "supports"]);
+const CONDITIONS = new Set(["media", "container", "supports", "attr", "within"]);
 const boundNames = (id: Node | null, out: Set<string>) => {
   if (!id) return;
   if (id.type === "Identifier") out.add(id.name);
@@ -102,8 +102,8 @@ function withConditions(
   code: string,
   { locals, decls }: CssImports,
 ): Set<string> {
-  if (!/\b(?:media|container|supports)\b/.test(code)) return locals; // most modules: no walk
-  const ctors = new Set<string>(); // local names of media, container, supports imported by name
+  if (!/\b(?:media|container|supports|attr|within)\b/.test(code)) return locals; // most modules: no walk
+  const ctors = new Set<string>(); // local names of media, container, supports, attr, within imported by name
   for (const d of decls)
     for (const x of d.specifiers)
       if (x.type === "ImportSpecifier" && CONDITIONS.has(nameOf(x.imported)))

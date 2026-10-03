@@ -1,4 +1,4 @@
-// The sheet: the @property rules of tokens, then the global rules and the token sets and themes (layer _.k), then every rule once, sorted by layer, condition, shorthand before
+// The sheet: the @property rules of tokens, then the kernels, the css.global() rules and the token sets and themes (layer _.k), then every rule once, sorted by layer, condition, shorthand before
 // longhand, class; the rules of one layer under the same at-rules share a block.
 
 import { Effect } from "effect";
@@ -6,7 +6,7 @@ import { Effect } from "effect";
 import { FALLBACK } from "./delivery.ts";
 import { KERNEL } from "./kernel.ts";
 import { width } from "./leaves.ts";
-import { type Kernel, type Rule, Registry, type Themed } from "./registry.ts";
+import { GLOBAL, type Kernel, type Rule, Registry, type Themed } from "./registry.ts";
 
 // The entries of token sets and themes start with this and a tab: `@theme\t<key>\t<css>`.
 const THEME = "@theme\t";
@@ -43,6 +43,12 @@ export const themedEntries = (
   [...themed.values()]
     .filter((t) => t.file === file || t.names.some((n) => names.has(n)))
     .map((t) => `${THEME}${t.key}\t${t.css}`);
+
+// The variables that the global rules of `file` read: their tokens need a `@property` rule in its sheet.
+export const globalNames = (themed: Map<string, Themed>, file: string): string[] =>
+  [...themed.values()]
+    .filter((t) => t.file === file && t.key.startsWith(GLOBAL))
+    .flatMap((t) => t.css.match(/--[\w-]+/g) ?? []);
 
 // Adds to `names` the tokens that those are made of: a derived token is `oklch(0.6 0.2 var(--hue-accent))`, no colour
 // unless `--hue-accent` has its @property rule, and so is a theme value that refers to a token. Through chains.

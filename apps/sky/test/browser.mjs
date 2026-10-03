@@ -45,6 +45,31 @@ try {
   const page = await context.newPage();
   await page.goto(`${base}settings`);
 
+  // attr("aria-current", "page"): the router marks the link of the open page, and only that one, and the class reads it
+  const links = page.locator('nav[aria-label="Main"] a[aria-label]'); // the side nav, then the bottom bar
+  const marks = () =>
+    links.evaluateAll((as) =>
+      as.slice(0, 3).map((a) => [a.getAttribute("aria-label"), a.getAttribute("aria-current")]),
+    );
+  const weights = () =>
+    links.evaluateAll((as) => as.slice(0, 3).map((a) => getComputedStyle(a).fontWeight));
+  const { medium, bold } = tokens.fontWeight;
+  assert.deepEqual(await marks(), [
+    ["Home", null],
+    ["bsky.app", null],
+    ["Settings", "page"],
+  ]);
+  assert.deepEqual(await weights(), [medium.$value, medium.$value, bold.$value].map(String));
+  await page.locator("a[aria-label=Home]:visible").click(); // the mark moves with the route
+  await page.waitForURL(base);
+  assert.deepEqual(await marks(), [
+    ["Home", "page"],
+    ["bsky.app", null],
+    ["Settings", null],
+  ]);
+  assert.deepEqual(await weights(), [bold.$value, medium.$value, medium.$value].map(String));
+  await page.goto(`${base}settings`);
+
   const style = (testid, prop) =>
     page.getByTestId(testid).evaluate((el, p) => getComputedStyle(el)[p], prop);
   const steps = async () =>

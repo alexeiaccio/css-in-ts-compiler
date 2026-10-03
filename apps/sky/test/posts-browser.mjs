@@ -136,6 +136,13 @@ try {
   await home.waitForFunction(() => document.querySelector("article"));
   out.home = await home.locator("article").count();
   out.homeHidden = await home.getByText("Post hidden").count();
+  // within(hover): the timestamp turns to full colour while the pointer is on the card, and back when it leaves
+  const colour = () => home.$eval("article a:has-text('·')", (el) => getComputedStyle(el).color);
+  const muted = await colour();
+  await home.hover("article");
+  const lit = await colour();
+  await home.mouse.move(0, 0);
+  out.within = { muted, lit, left: await colour() };
 } finally {
   await browser.close();
   await server.close();
@@ -143,6 +150,12 @@ try {
 console.log(JSON.stringify(out, null, 1));
 assert.ok(out.home >= 20 && out.home <= 30, `Discover shows its posts: ${out.home}`);
 assert.equal(out.homeHidden, 0, "a hidden post is dropped from a feed, not drawn");
+assert.notEqual(
+  out.within.lit,
+  out.within.muted,
+  "within(hover): the card's hover lights the timestamp",
+);
+assert.equal(out.within.left, out.within.muted, "and the pointer leaving puts it back");
 const px = (v) => parseFloat(v);
 for (const [w, scheme] of runs) {
   const key = `${w}-${scheme}`;

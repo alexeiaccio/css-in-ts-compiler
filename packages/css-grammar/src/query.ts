@@ -50,3 +50,29 @@ export interface Condition<K extends QueryKind, R> {
   };
   <const Q extends string>(query: ValidQuery<K, Q>): R;
 }
+
+type Open = { ")": "("; "]": "[" };
+// Brackets and quotes pair up: what is cheap to say in a type. The build reads the whole <complex-selector-list> (selector.ts).
+type Balanced<S extends string, Stack extends string = ""> = S extends `${infer C}${infer R}`
+  ? C extends "(" | "["
+    ? Balanced<R, `${C}${Stack}`>
+    : C extends ")" | "]"
+      ? Stack extends `${Open[C]}${infer Rest}`
+        ? Balanced<R, Rest>
+        : false
+      : C extends '"' | "'"
+        ? R extends `${string}${C}${infer After}`
+          ? Balanced<After, Stack>
+          : false
+        : Balanced<R, Stack>
+  : Stack extends ""
+    ? true
+    : false;
+
+/** The selector of `global()`, or a message: not empty, brackets and quotes balanced. */
+export type ValidSelector<S extends string> =
+  Trim<S> extends ""
+    ? "global(): the selector is empty"
+    : Balanced<S> extends true
+      ? S
+      : `global(): unbalanced brackets or quotes in "${S}"`;

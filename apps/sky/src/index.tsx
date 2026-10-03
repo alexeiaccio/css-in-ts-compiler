@@ -1,5 +1,5 @@
 import "virtual:cssints.css";
-import "./assets/base.css";
+import "./base.ts";
 import "./assets/fonts.css";
 import { render } from "@solidjs/web";
 

@@ -18,6 +18,7 @@ import {
   grid,
   gridColumn,
   gridRow,
+  group,
   hover,
   left,
   marginTop,
@@ -32,6 +33,7 @@ import {
   top,
   transform,
   whiteSpace,
+  within,
 } from "cssints" with { type: "cssints" };
 import { frame } from "cssints/frame" with { type: "cssints" };
 import { surface } from "cssints/surface" with { type: "cssints" };
@@ -54,6 +56,7 @@ const cell = cn(containerType("inline-size"), containerName("post"));
 const card = _cv(
   cv({
     base: cn(
+      group(),
       frame().radius(t.radius.xl).padding(2).border(t.border.width),
       wide(frame().padding(3)),
       surface().lighten(0.04),
@@ -106,7 +109,8 @@ const meta = cn(
   textOverflow("ellipsis"),
   hover(textDecoration("underline")),
 );
-const time = cn(meta, flexShrink(0));
+// The timestamp turns from muted to full colour while the pointer is anywhere on the card (the card is a group).
+const time = cn(meta, flexShrink(0), within(hover)(color(t.color.text)));
 
 const guard = position("relative");
 const content = flex().direction("column").gap(t.space.sm);
