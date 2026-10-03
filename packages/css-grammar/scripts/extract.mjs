@@ -28,12 +28,22 @@ const ranged = (mine, spec) => {
 // WebKit-only properties with no standard form to prefix from, which LightningCSS passes through. Live per BCD: no removal in
 // Chrome or Safari (user-modify is listed as `user-modify` with a -webkit- prefix; touch-callout is iOS Safari only). Left out:
 // -webkit-overflow-scrolling (no BCD entry; Chrome 154, WebKit 26.6 and Firefox 155 all reject it in CSS.supports).
+// -webkit-line-clamp (cssints-l54z) is a standard-status property in mdn-data and needs no entry; LightningCSS never
+// prefixes the standard line-clamp (no engine ships it unprefixed yet) and adds no box properties, so a clamp is
+// `display: -webkit-box` (see <display-legacy> below) + -webkit-box-orient: vertical + -webkit-line-clamp: N everywhere.
 const LIVE_NONSTANDARD = [
   "-webkit-tap-highlight-color",
   "-webkit-touch-callout",
   "-webkit-box-reflect",
   "-webkit-user-modify",
+  "-webkit-box-orient",
 ];
+// mdn-data files it as `box-orient` (BCD: the same, with a -webkit- prefix, so no support warning). Without `inherit`, a
+// CSS-wide keyword that the grammars leave out.
+props["-webkit-box-orient"] = {
+  ...props["box-orient"],
+  syntax: props["box-orient"].syntax.replace(" | inherit", ""),
+};
 const want =
   process.argv.length > 2
     ? process.argv.slice(2)
@@ -108,6 +118,8 @@ const WEBREF = [
 // balanced tokens (css.ts `MathCall`); the twin scans a whole <calc-sum> with its own typed parser (twin-core.ts
 // `mathScan`) and never reads this grammar.
 const COLOR = {
+  // `display: -webkit-box` and `-webkit-inline-box` (Chrome 154 takes both): the box of -webkit-line-clamp, still live
+  "display-legacy": `${syn["display-legacy"].syntax} | -webkit-box | -webkit-inline-box`,
   "calc-value": `${syn["calc-value"].syntax} | <math-function>`,
   color: `${syn.color.syntax} | <contrast-color()> | <if()> | <var()>`,
   "contrast-color()": "contrast-color( <color> )",
