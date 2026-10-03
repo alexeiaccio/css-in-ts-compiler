@@ -137,13 +137,38 @@ export const lacking = Effect.fnUntraced(function* (
   return yield* Effect.sync(() => lackingOf(key, ts, exact));
 });
 
-// Plain core, also called by check.ts (one boundary per declaration).
+// What a property's grammar reaches depends on the property only, and walking it is the cost of a call (a grammar like
+// `background` reaches hundreds of types): once per property.
+const reached = new Map<string, [types: string[], owners: string[]]>();
+const reachOf = (p: string) => {
+  let r = reached.get(p);
+  if (!r) {
+    const all = [...reach(props[p] ?? "")];
+    r = [
+      all.filter((t) => get(`css.types.${t}`)),
+      [p, ...all.filter((q) => q.startsWith("'")).map((q) => q.slice(1))],
+    ];
+    reached.set(p, r);
+  }
+  return r;
+};
+
+// The answer for the default targets is a function of `p: v`, and a build asks the same declarations again (every
+// evaluation of a module that imports the theme): once per declaration. Callers read the warnings, none changes them.
+const known = new Map<string, Warning[]>();
 export function supportOf(p: string, v: string, ts: Target[] = DEFAULT): Warning[] {
+  if (ts !== DEFAULT) return compute(p, v, ts);
+  const key = `${p}\0${v}`;
+  let out = known.get(key);
+  if (!out) known.set(key, (out = compute(p, v, ts)));
+  return out;
+}
+
+// Plain core, also called by check.ts (one boundary per declaration).
+function compute(p: string, v: string, ts: Target[]): Warning[] {
   const pc = get(`css.properties.${p}`)?.__compat;
   if (!pc) return [];
-  const reached = [...reach(props[p] ?? "")];
-  const types = reached.filter((t) => get(`css.types.${t}`));
-  const owners = [p, ...reached.filter((q) => q.startsWith("'")).map((q) => q.slice(1))];
+  const [types, owners] = reachOf(p);
   const found: [feature: string, key: string][] = [];
   const code = v.replace(/"[^"]*"|'[^']*'/g, "");
   for (const { 0: tok, 1: fn, index } of code.matchAll(/(?<![\w.#-])-?[A-Za-z_][\w-]*(\()?/g)) {

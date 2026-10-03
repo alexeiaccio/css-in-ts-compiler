@@ -19,11 +19,18 @@ export const isDeclarationError = (e: unknown): e is DeclarationError =>
 
 // Plain core: the support warnings of `p: v` (none unless `warnings`); throws a DeclarationError. A custom property
 // (`--_r`, which a plugin's methods emit) has any value: nothing to check.
+// A declaration that passed is not checked again (a module that imports the theme is evaluated again for every
+// module that imports it): the twin and the prose rules read the property and the value only.
+const passed = new Set<string>();
 export function checkDeclarationNow(p: string, v: string, warnings: boolean): Warning[] {
   if (p.startsWith("--")) return [];
-  validCore(p, v); // build-time twin of the type-level check; fails at the bad token
-  const error = violation(p, v); // spec prose rules; fail like valid
-  if (error) throw error;
+  const key = `${p}\0${v}`;
+  if (!passed.has(key)) {
+    validCore(p, v); // build-time twin of the type-level check; fails at the bad token
+    const error = violation(p, v); // spec prose rules; fail like valid
+    if (error) throw error;
+    passed.add(key);
+  }
   return warnings ? supportOf(p, v) : [];
 }
 
