@@ -60,12 +60,12 @@ const swatches = [
 // The two square flags: a button made of two frames (the inner radius follows the outer one) and the two avatar sizes.
 const button = cn(
   frame().radius(t.radius.button).padding(1),
-  bg(t.color.accent),
+  bg(t.color.accentHover),
   display("inline-flex"),
 );
 const buttonLabel = cn(
   frame().padding(3),
-  bg(t.color.accentHover),
+  bg(t.color.accent),
   color(t.color.onAccent),
   fontWeight(t.fontWeight.semiBold),
 );

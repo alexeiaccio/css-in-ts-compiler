@@ -19,7 +19,11 @@ const walk = (node, path) => {
 };
 walk(tokens, []);
 
-// a colour token in a mode at a hue: the mode's value, else the default, references put in place
+// a colour token in a mode at a hue: the mode's value, else the default, references put in place. onAccent is a relative
+// colour that culori cannot read, so it is computed as the token says: white when the accent (clipped to sRGB) is under
+// CIE L* T, the T of tokens.json, else black; the luminance of L* T is ((T + 16) / 116) ** 3. test/browser.mjs holds this
+// model against Chrome.
+const T = Number(/\(([\d.]+) - l\)/.exec(base["color.onAccent"])?.[1]);
 const colour = (over, name, hue) => {
   const resolve = (path) =>
     path === "hue.accent"
@@ -28,6 +32,8 @@ const colour = (over, name, hue) => {
           /\{([^}]+)\}/g,
           (_, p) => resolve(p),
         );
+  if (name === "onAccent")
+    return lum(resolve("color.accent")) <= ((T + 16) / 116) ** 3 ? "#ffffff" : "#000000";
   return resolve(`color.${name}`);
 };
 const lum = (text) => {
@@ -36,18 +42,25 @@ const lum = (text) => {
   return r.lum;
 };
 
-// foreground, background and the floor per mode: the lowest ratio over the slider, cut to 0.1. A floor that is lower than
-// what a mode reaches is a change nobody meant: the test holds both sides (the ratio never goes under it, and the worst
-// hue is within 0.1 above it).
+// foreground, background and the floor every mode holds: 4.5 for small text, 3 for large text (18.66 px bold and up), icons
+// and fills (WCAG 1.4.3, 1.4.11). `known` is a mode that holds less, a documented exception: its worst case cut to 0.1, held
+// both ways (the ratio never goes under it, and the worst hue is within 0.1 above it), so a change nobody meant fails.
+//   accent / bg          the brand mark (20.6 px bold), the focus ring, the tab underline, the avatar and switch fills: large
+//                        text and graphics. Mu's lightness is fixed (0.637) and a cyan-green hue is 2.76 on white in light.
+//   link / bg            small text (links in a post): 4.5 in all three; light uses accentStrong, darker than Mu's primary_500
+//   onAccent / accent    the label of a button: small text, 4.5, black or white by itself (token onAccent)
+//   onAccent / hover     the same label on the hover step, which is darker than accent in light: a hair under 4.5
+//   accentStrong / soft  the note in the rail: small text, 4.5, with a strong that is darker than Mu's primary_700
 const pairs = [
-  { fg: "accent", bg: "bg", floors: { light: 2.7, dim: 4.5, dark: 5.5 } },
-  { fg: "link", bg: "bg", floors: { light: 2.7, dim: 5.8, dark: 7.1 } },
-  { fg: "onAccent", bg: "accent", floors: { light: 2.7, dim: 2.7, dark: 2.7 } },
-  { fg: "accentStrong", bg: "accentSoft", floors: { light: 3.6, dim: 4.8, dark: 4.8 } },
+  { fg: "accent", bg: "bg", min: 3, known: { light: 2.7 } },
+  { fg: "link", bg: "bg", min: 4.5 },
+  { fg: "onAccent", bg: "accent", min: 4.5 },
+  { fg: "onAccent", bg: "accentHover", min: 4.5, known: { light: 4.4 } },
+  { fg: "accentStrong", bg: "accentSoft", min: 4.5 },
 ];
 const modes = { light, dim, dark };
 const rows = [];
-for (const { fg, bg, floors } of pairs)
+for (const { fg, bg, min, known = {} } of pairs)
   for (const [mode, over] of Object.entries(modes)) {
     let worst = { r: Infinity, shift: 0 };
     for (let shift = -180; shift <= 180; shift++) {
@@ -55,16 +68,19 @@ for (const { fg, bg, floors } of pairs)
       const r = ratio(lum(colour(over, fg, hue)), lum(colour(over, bg, hue)));
       if (r < worst.r) worst = { r, shift };
     }
-    const floor = floors[mode];
+    const floor = known[mode] ?? min;
     assert.ok(
       worst.r >= floor,
       `${fg} on ${bg}, ${mode}: ${worst.r.toFixed(2)} at slider ${worst.shift} is below ${floor}`,
     );
-    assert.ok(
-      worst.r < floor + 0.1,
-      `${fg} on ${bg}, ${mode}: the floor ${floor} is lax, the worst is ${worst.r.toFixed(2)}`,
+    if (floor < min)
+      assert.ok(
+        worst.r < floor + 0.1,
+        `${fg} on ${bg}, ${mode}: the floor ${floor} is lax, the worst is ${worst.r.toFixed(2)}`,
+      );
+    rows.push(
+      `${fg}/${bg} ${mode}: ${worst.r.toFixed(2)} at slider ${worst.shift} (floor ${floor})`,
     );
-    rows.push(`${fg}/${bg} ${mode}: ${worst.r.toFixed(2)} at slider ${worst.shift}`);
   }
 
 // the default hue is far from the worst one: the build check (theme.ts) holds it to 3 and 4.5

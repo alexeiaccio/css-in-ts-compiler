@@ -198,9 +198,10 @@ negative ramps differ a little from the default ones; the tokens ignore that.
 
 Contrast, from `check.contrast` (the derived colours are computed per theme): `text` on `bg` is 21 (light) and `textMedium`
 on `bg` is 8.84 (light), 7.48 (dim), 9.03 (dark). `textLow` (`contrast_400`, `#92918E`) on white is 3.15, so Mu's own low text
-is below AA: do not check it at 4.5. Mu's pink `accent` on white, and white on `accent`, is 3.79 (culori): fine for large text, icons and bold labels, not for
-body text, so the app checks those pairs at 3 and sets body text in `text`. `accentStrong` on `accentSoft` is 4.60 in light and
-4.95 in dim (checked at 4.5, so a hue that breaks it is a build error).
+is below AA: do not check it at 4.5. Mu's pink `accent` on white is 3.79 (culori): fine for large text and icons, not for
+body text, so the app checks it at 3 and sets body text in `text`. White on that pink is 3.79 too, so `onAccent` is not white (see "Contrast
+coverage"). `accentStrong` is darker than Mu's primary_700 (L 0.47, not 0.525): it is 5.84 on `accentSoft` at pink in light (was 4.60) and holds 4.5 at every hue; in dim it is 4.95
+(checked at 4.5, so a hue that breaks it is a build error).
 
 The sheet of the shell has 62 `@property` rules (the tokens its classes use and what those are made of; the screens that come
 later use more). `--color-accent-hover` is `oklch(0.58 0.182 var(--hue-accent))`
@@ -229,7 +230,8 @@ storage means defaults. `apply()` writes the mode and the flags as classes on `<
 - **Contrast coverage.** `check.contrast` reads the default values and every theme that sets a token a check depends on. The
   slider is a run-time value, so no theme holds it and the build checks the accent pairs at the default hue only (`theme.ts`,
   in light, dim, dark and the dark media query): text, `textMedium` on the three backgrounds, `textHigh` on `bgMuted`, `accent` and
-  `link` on `bg` at 3, `onAccent` on `accent` at 3, `accentStrong` on `accentSoft` at 4.5. The square flags set radii only, so
+  `link` on `bg` and `accentStrong` on `accentSoft` at 4.5 (`onAccent` is a relative colour that the check cannot read; the sweep
+  holds it). The square flags set radii only, so
   they have no colour to check. Putting a theme per hue into the build does not work: a check applies to every theme that
   touches its tokens, so a theme at hue 190 would be held to the thresholds of the default hue, and the sheet would carry the
   themes. `test/contrast.mjs` therefore reads the pairs at all 361 slider positions in each mode with the engine's own maths
@@ -237,17 +239,35 @@ storage means defaults. `apply()` writes the mode and the flags as classes on `<
   the worst). The worst hue is inside the range, not at its ends (slider -155 for light, -114 for the soft pair in dark), so
   checking the two extremes as themes would miss it.
 
-| Pair (worst over the slider)   | light             | dim               | dark              |
-| ------------------------------ | ----------------- | ----------------- | ----------------- |
-| `accent` on `bg`               | 2.76 (at -155)    | 4.59 (at 4)       | 5.54 (at 4)       |
-| `link` on `bg`                 | 2.76 (at -155)    | 5.90 (at 6)       | 7.12 (at 6)       |
-| `onAccent` on `accent`         | 2.76 (at -155)    | 2.76 (at -155)    | 2.76 (at -155)    |
-| `accentStrong` on `accentSoft` | 3.69 (at -154)    | 4.90 (at -114)    | 4.90 (at -114)    |
+Floors: 4.5 for small text, 3 for large text (18.66 px bold and up), icons and fills. `onAccent`, `link` and `accentStrong` carry small
+text and hold 4.5; `accent` on `bg` is the brand mark (20.6 px bold), the focus ring, the tab underline and the fills, so 3.
 
-Body text is in `text`, which has no hue, so the floors concern the accent only: pink holds 3.79 on white, and a cyan-green hue
-(about 190) is the worst case at 2.76, below WCAG's 3 for large text and icons; `accentStrong` on `accentSoft`, the note in the
-rail, is 3.69 there, below the 4.5 of small text. Mu's lightness steps are fixed for pink; keeping 3 and 4.5 at every hue would
-take a lightness that depends on the hue (a second token set per hue range), which is not in this version. What the check cannot
+| Pair (worst over the slider)   | floor | light              | dim                | dark               |
+| ------------------------------ | ----- | ------------------ | ------------------ | ------------------ |
+| `accent` on `bg`               | 3     | 2.76 (at -155)     | 4.59 (at 4)        | 5.54 (at 4)        |
+| `link` on `bg`                 | 4.5   | 5.61 (at -155)     | 5.90 (at 6)        | 7.12 (at 6)        |
+| `onAccent` on `accent`         | 4.5   | 5.54 (at 4)        | 5.54 (at 4)        | 5.54 (at 4)        |
+| `onAccent` on `accentHover`    | 4.5   | 4.44 (at 4)        | 7.12 (at 6)        | 7.12 (at 6)        |
+| `accentStrong` on `accentSoft` | 4.5   | 4.61 (at -154)     | 4.90 (at -114)     | 4.90 (at -114)     |
+
+Before (white `onAccent`, Mu's primary_500 link and primary_700 strong): `onAccent` on `accent` 2.76 in all three modes (at -155), `link` on `bg`
+2.76 in light, `accentStrong` on `accentSoft` 3.69 in light (at -154). Two exceptions remain, both known and held both ways by the sweep: `accent` on
+`bg` in light is 2.76 (the accent's lightness is Mu's fixed 0.637, so a cyan-green hue is under 3 on white; it is large text and graphics, and
+a darker accent would not be Mu's), and `onAccent` on `accentHover` in light is 4.44, a hair under 4.5 (the hover step is darker than `accent` in light and black
+is the pick; nothing in the app sets text on it).
+
+**`onAccent`** is black or white by itself, a derived token: `lab(from color(from {color.accent} srgb-linear clamp(0, r, 1) clamp(0, g, 1) clamp(0, b, 1)) clamp(0, (49.4 - l) * 1e6, 100) 0 0)`.
+It is white under CIE L\* 49.4 and black over it, read from the accent clipped to sRGB. 49.4 is relative luminance 0.179, the point at which black and
+white give the same ratio (4.58), so whatever the accent, the pick holds 4.4 or more (4.42 over 20 000 random colours of any chroma, the loss being L\* in D50 against WCAG's D65 luminance); it is
+not the OKLCH `l` that `surface().ink()` reads, because the accent's `l` is the same 0.637 at every hue (the pick would not move with the slider), and an `l`
+threshold has a gap (0.51 to 0.59 at chroma 0.2) where neither colour holds 4.5 at every hue. A theme that sets `color.accent` gets its own pick, since the token is
+derived. At the slider's accent (L 0.637) the luminance is 0.227 to 0.330 over the 361 hues, always over 0.179: **black at every position**, 5.54 at the worst (hue 345, the
+default pink: Mu's white label would be 3.79). The pick flips for another accent lightness (Chrome, chroma 0.203, steps of 0.05): white up to L 0.55 at hues 345, 265 and 30, up to 0.50 at 190 and 120.
+`test/contrast.mjs` models the token (it reads T from tokens.json) and `test/browser.mjs` holds the model against Chrome at the 361 hues and 65 other accents. `check.contrast`
+cannot read a relative colour: a build says `contrast is not checked for color.onAccent in the default values: "lab(from color(from oklch(0.637 0.203 345) …" is not a colour the check can read`
+once, so `theme.ts` has no check on it.
+
+Body text is in `text`, which has no hue, so the floors concern the accent only. What the check cannot
 cover: the number is Chrome's own to within 0.01 (a canvas pixel of `oklch(0.637 0.203 190)` gives 2.76 as the engine does) on
 an sRGB screen, but a colour outside sRGB is clipped by the check, and a wide-gamut display shows it more saturated, so the real
 ratio there is not the one measured; and a value of `--hue-accent` that is not an integer from the slider (set by hand) is not
