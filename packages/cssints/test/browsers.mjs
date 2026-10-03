@@ -25,12 +25,23 @@ const here = import.meta.dirname;
 const modules = join(here, "../../../node_modules/.bun");
 const pw = readdirSync(modules).find((d) => d.startsWith("playwright-core@"));
 // PW=<an older playwright-core's index.mjs> with PLAYWRIGHT_BROWSERS_PATH drives an older browser (plugins-proto/README.md,
-// "Old browsers"); OLD=1 then says the browser has no style queries: only the builds that ship the runtime are run, and the
-// probe must switch it on by itself.
+// "Old browsers"; apps/sky/test/safari.mjs for the WebKit builds of Safari 17 and 18). A browser without style queries (found
+// by the probe's own test, below) runs only the builds that ship the runtime, and the probe must switch it on by itself.
 const { chromium, firefox, webkit } = await import(
   process.env.PW ?? pathToFileURL(join(modules, pw, "node_modules/playwright-core/index.mjs")).href
 );
-const old = !!process.env.OLD;
+// style queries on a custom property: an unknown query function never matches either, so this is the probe's own test
+const hasStyleQueries = async (browser) => {
+  const page = await browser.newPage();
+  await page.setContent(
+    "<style>@container style(--q:1){i{--h:1}}</style><div style=--q:1><i></i></div>",
+  );
+  const yes = await page.evaluate(
+    () => getComputedStyle(document.querySelector("i")).getPropertyValue("--h") === "1",
+  );
+  await page.close();
+  return yes;
+};
 const launchers = {
   chrome: () => chromium.launch({ channel: "chrome" }),
   firefox: () => firefox.launch(),
@@ -378,7 +389,8 @@ for (const app of apps.filter((a) => !only || only.includes(a.name))) {
 
 for (const name of names) {
   const browser = await launchers[name]();
-  console.log(`${name} ${browser.version()}`);
+  const old = !(await hasStyleQueries(browser));
+  console.log(`${name} ${browser.version()}${old ? ", no style queries" : ""}`);
   for (const [app, b] of builds) {
     console.log(` ${app.name}`);
     for (const [mode, bundle, opts] of [
