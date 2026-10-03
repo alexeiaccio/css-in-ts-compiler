@@ -34,7 +34,10 @@ assert.equal(
   `token.color() initial value of --_private: ${oklch("oklch(0.5 0.1 20)")}`,
 );
 assert.equal(lines[2], `createTokens(): ts.accent value: ${oklch("oklch(0.62 0.19 259)")}`);
-assert.equal(lines[3], `createGlobalTheme(): ts.plain value in .brand: ${oklch("oklch(0.7 0.1 30)")}`);
+assert.equal(
+  lines[3],
+  `createGlobalTheme(): ts.plain value in .brand: ${oklch("oklch(0.7 0.1 30)")}`,
+);
 const mix = "light-dark(oklch(0.9 0 0), oklch(0.2 0 0))";
 assert.equal(
   lines[4],
