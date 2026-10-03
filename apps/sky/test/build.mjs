@@ -90,8 +90,17 @@ assert.match(
   sheet,
   /@property --radius-button\{syntax:"<length>";inherits:true;initial-value:999px\}/,
 );
-// the page colour is set on <html>, so the first frame has it before a component is drawn
-assert.match(sheet, /html\{background:var\(--color-bg\)\}/);
+// the page colour is set on <html>, so the first frame has it before a component is drawn: a global rule (src/base.ts), in
+// layer _.k, before the layers of the classes
+assert.match(sheet, /html\{background-color:var\(--color-bg\)\}/);
+assert.match(sheet, /\*,:before,:after\{box-sizing:border-box\}/);
+assert.ok(
+  sheet.indexOf("button{font-family:inherit}") < sheet.indexOf("@layer _.a{"),
+  "globals come first",
+);
+// the active nav item reads the attribute the router sets, and the card's timestamp the card's hover
+assert.match(sheet, /\._\w+\[aria-current=page\]\{font-weight:var\(--font-weight-bold\)\}/); // attr()
+assert.match(sheet, /:where\(\._g:hover\) \._\w+\{color:var\(--color-text\)\}/); // within()
 
 // Inter, self-hosted, with its licence
 assert.match(sheet, /font-family:"?Inter Variable"?/);

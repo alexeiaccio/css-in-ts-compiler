@@ -47,8 +47,8 @@ try {
 
   // A style edit: new class in the component, new rule in the sheet, no reload.
   const style = await edit(
-    "no: css.fontWeight(t.fontWeight.medium)",
-    "no: css.fontWeight(t.fontWeight.normal)",
+    "css.fontWeight(t.fontWeight.medium),",
+    "css.fontWeight(t.fontWeight.normal),",
   );
   console.log("style edit:", style.paths);
   assert.ok(!style.paths.includes("full-reload"), style.paths);
@@ -60,7 +60,10 @@ try {
     style.paths.some((p) => p.includes(SHEET)),
     style.paths,
   );
-  assert.notEqual(before.match(/"no": "([^"]+)"/)?.[1], style.code.match(/"no": "([^"]+)"/)?.[1]);
+  assert.notEqual(
+    before.match(/"base": "([^"]+)"/)?.[1],
+    style.code.match(/"base": "([^"]+)"/)?.[1],
+  );
   assert.match(await get(`/@id/__x00__${SHEET}`), /font-weight: var\(--font-weight-normal\)/);
 
   // A component edit: the component is replaced, the classes and the sheet stay.

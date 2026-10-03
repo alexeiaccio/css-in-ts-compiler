@@ -1,4 +1,3 @@
-import { useLinkState } from "@solidjs/router";
 import { _cv } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 import { frame } from "cssints/frame" with { type: "cssints" };
@@ -80,7 +79,13 @@ const navItem = _cv(
       css.flex().alignItems("center").gap(3),
       css.textDecoration("none"),
       css.color(t.color.textHigh),
+      css.fontWeight(t.fontWeight.medium),
       css.hover(css.bg(t.color.bgMuted)),
+      // the router sets aria-current="page" on the link of the page that is open
+      css.attr(
+        "aria-current",
+        "page",
+      )(css.cn(css.fontWeight(t.fontWeight.bold), css.color(t.color.text))),
     ),
     variants: {
       place: {
@@ -96,12 +101,8 @@ const navItem = _cv(
           css.fontSize(t.fontSize.xs),
         ),
       },
-      active: {
-        yes: css.cn(css.fontWeight(t.fontWeight.bold), css.color(t.color.text)),
-        no: css.fontWeight(t.fontWeight.medium),
-      },
     },
-    defaultVariants: { place: "side", active: "no" },
+    defaultVariants: { place: "side" },
   }),
 );
 
@@ -165,13 +166,8 @@ const items = [
 ];
 
 function NavItem(props: { href: string; label: string; icon: string; place: "side" | "bar" }) {
-  const link = useLinkState(() => props.href);
   return (
-    <a
-      href={props.href}
-      class={navItem({ place: props.place, active: link.active() ? "yes" : "no" })}
-      aria-label={props.label}
-    >
+    <a href={props.href} class={navItem({ place: props.place })} aria-label={props.label}>
       <span class={props.icon} />
       <span class={props.place === "side" ? sideLabel : barLabel}>{props.label}</span>
     </a>

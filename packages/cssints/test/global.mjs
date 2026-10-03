@@ -40,7 +40,10 @@ const at = (s) => {
 assert.ok(at("@property --page-bg") < at("@layer _.k {"));
 assert.ok(at("*, *::before, *::after{box-sizing:border-box}") < at("html{"));
 assert.ok(at("html{background-color:var(--page-bg);margin:0}") < at(":root{color-scheme:light}"));
-assert.ok(at(":root{color-scheme:light}") < at("@media (prefers-color-scheme: dark){:root{color-scheme:dark}}"));
+assert.ok(
+  at(":root{color-scheme:light}") <
+    at("@media (prefers-color-scheme: dark){:root{color-scheme:dark}}"),
+);
 assert.ok(at("a[href^='http'] > b{min-height:100vh;min-height:100dvh}") > 0);
 assert.ok(!g.includes("margin:1px"));
 assert.ok(!g.includes("@layer _.a"), "a global rule has no class and no class layer");
@@ -71,8 +74,10 @@ assert.ok(
 assert.match(s, /@layer _\.c \{\s*@media/); // within() inside md is two conditions
 
 const errors = {
-  "global-selector": /^cssints: global\(\): selector: unexpected "\{" in "a \{", expected <complex-selector-list>/,
-  "global-state": /global\(\) takes media\(\), container\(\) and supports\(\) conditions, not :hover/,
+  "global-selector":
+    /^cssints: global\(\): selector: unexpected "\{" in "a \{", expected <complex-selector-list>/,
+  "global-state":
+    /global\(\) takes media\(\), container\(\) and supports\(\) conditions, not :hover/,
   "global-value": /color: unexpected "blu"/,
   "global-empty": /global\(\) takes css\.\* styles after the selector/,
   "global-kernel": /global\(\) takes plain declarations/,
