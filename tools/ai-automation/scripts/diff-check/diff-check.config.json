@@ -1,0 +1,31 @@
+{
+  "baseRef": "HEAD",
+  "oxlintConfigPath": "./diff-check.oxlintrc.json",
+  "sourceExtensions": [".ts", ".tsx"],
+  "excludePathPrefixes": [
+    "dist/",
+    "coverage/",
+    "node_modules/",
+    "repos/",
+    "vendor/",
+    "tools/ai-automation/"
+  ],
+  "changedFileRules": [
+    {
+      "rule": "diff/key-file-change",
+      "severity": "warning",
+      "matchers": [
+        {
+          "_tag": "File",
+          "path": "pnpm-lock.yaml",
+          "message": "The dependency lockfile changed. Verify no unintended dependency upgrades."
+        },
+        {
+          "_tag": "Directory",
+          "path": "repos/effect/",
+          "message": "The vendored Effect subtree changed."
+        }
+      ]
+    }
+  ]
+}

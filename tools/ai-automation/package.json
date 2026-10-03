@@ -1,0 +1,21 @@
+{
+  "name": "@cssints/ai-automation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agent-executable verification: custom oxlint rules (Effect/core/anti-slop) and the added-lines diff-check",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsgo -p tsconfig.json --noEmit",
+    "test": "vp test run",
+    "diff:check": "node scripts/diff-check/src/main.ts --config scripts/diff-check/diff-check.config.json"
+  },
+  "devDependencies": {
+    "@oxlint/plugins": "1.79.0",
+    "oxlint": "1.85.0",
+    "vite-plus": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

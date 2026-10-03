@@ -3,7 +3,8 @@
 	"private": true,
 	"workspaces": [
 		"packages/*",
-		"apps/*"
+		"apps/*",
+		"tools/*"
 	],
 	"scripts": {
 		"prepare": "effect-language-service patch && effect-tsgo patch --typescript",
