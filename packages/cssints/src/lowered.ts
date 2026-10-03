@@ -27,7 +27,7 @@ const lower = (prop: string, value: string, lacking: string[], feature: string):
   return out !== undefined && holds.test(`${prop}:${value}`) && !holds.test(out);
 };
 
-/** Whether LightningCSS lowers `prop: value` for the targets of the warning `w`; a custom property is `--name`. */
+// Whether LightningCSS lowers `prop: value` for the targets of the warning `w`; a custom property is `--name`.
 export const loweredOf = (prop: string, value: string, w: Warning): boolean => {
   const key = `${prop}\0${value}\0${w.feature}\0${w.lacking.join()}`;
   let hit = registry.lowered.get(key);
