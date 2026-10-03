@@ -29,6 +29,8 @@ import {
   textOverflow,
   top,
   transform,
+  WebkitBoxOrient,
+  WebkitLineClamp,
   whiteSpace,
   width,
   zIndex,
@@ -169,7 +171,9 @@ const extTitle = cn(fontWeight(t.fontWeight.semiBold), overflowWrap("anywhere"))
 const extDesc = cn(
   muted,
   margin("0"),
-  maxHeight("3em"),
+  display("-webkit-box"), // -webkit-line-clamp needs the box in every engine (LightningCSS adds nothing)
+  WebkitBoxOrient("vertical"),
+  WebkitLineClamp(2),
   overflow("hidden"),
   overflowWrap("anywhere"),
 );
