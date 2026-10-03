@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-10-02T14:20:14Z
-updated_at: 2026-10-02T16:45:13Z
+updated_at: 2026-10-03T10:34:14Z
 ---
 
 ## Destination
@@ -48,6 +48,9 @@ updated_at: 2026-10-02T16:45:13Z
 - [sky: profile screen](cssints-5d42): banner, avatar on radius.avatar, bio facets found client-side, header by container(); tabs as getAuthorFeed filters; two engine bugs fixed (CSS-wide keywords; inert JSX in imported .tsx); cv() base/variant overlap ticketed (cssints-mbky).
 
 - [sky: thread screen](cssints-dwty): parents, focused cv() variant, sorted reply tree with connector lines measured to 1 px, collapse in place, states; all five Chrome checks pass on the merged app.
+
+- [sky: accent contrast across the whole hue range](cssints-bzal): text on the accent picks black or white (derived from the accent's lightness); implementation cssints-2jzr.
+- [Global rules and attribute or parent-state selectors](cssints-635k): css.global(selector, ...styles) in _.k; attr() and within() as condition wrappers; implementation cssints-eaob.
 
 ## Not yet specified
 
