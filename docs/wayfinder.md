@@ -1320,3 +1320,7 @@ Asked by the user. Derived tokens whose live value holds `var()` are now live in
 Measured: Chromium 109 matches Chrome 154's pixels within 1/255 for the accent steps, onAccent and the background, over 5 hues × 5 mode cases (including a live system scheme flip); a slider input costs 1.1 ms against 0.5 ms of the browser's own recalculation (reads before writes, one forced recalc). Modern targets ship nothing; sky and demo are byte-identical there. Limit: a template that reads an alias of a derived token is one update late.
 
 Process note: a separate session is working in the main checkout on a "mise-en-mode" plugin (cssints-l1qf, uncommitted edits in author-types.ts, lib.ts, registry.ts). The coordinator now commits by explicit paths only; an earlier `git add -A .beans` had swept that bean into a chore commit.
+
+## 0.3 closed (2026-10-03)
+
+The 0.3 map (cssints-co8y) is closed at f2edfcb. apps/sky, a read-only atproto client on Solid 2 and atcute with Mu's look, works end to end and shows every cssints feature; building it found and fixed about a dozen engine bugs and gaps, and led to the fallback work for older browsers (LightningCSS-aware warnings, token fallbacks, a runtime for derived tokens). A separate effort, a "mise-en-mode" plugin (cssints-l1qf), is in progress in another session and is not part of this map.

@@ -1,13 +1,13 @@
 ---
 # cssints-co8y
 title: 'Map: cssints 0.3, a read-only atproto client on Solid 2'
-status: todo
+status: completed
 type: epic
 priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-10-02T14:20:14Z
-updated_at: 2026-10-03T11:31:22Z
+updated_at: 2026-10-03T12:46:59Z
 ---
 
 ## Destination
@@ -73,3 +73,7 @@ updated_at: 2026-10-03T11:31:22Z
 - Login, OAuth and every write (post, like, repost, follow), notifications, DMs (decided 2026-10-02: read-only).
 - Pixel-perfect parity with mu.social; Mu or Bluesky logos and trademarked assets.
 - Native apps, server rendering, deploying the app.
+
+## Summary of Changes
+
+Destination reached on 2026-10-03 (master f2edfcb): apps/sky is a read-only atproto client on Solid 2 RC and atcute with Mu's tokens and layout and Witchsky-style appearance settings (hue slider, four theme modes, square buttons and avatars). It shows frame() in post embeds, surface() layers, container() layouts, icons, keyframes(), derived tokens, themes with references, tokens from DTCG JSON, css.global(), attr(), group()/within(). It builds, type-checks with tsgo and tsc 5.9, and is tested in the repo (node tests on recorded API fixtures, build and HMR checks, six Chrome checks, one in Chromium 109). The app found and fixed a dozen engine bugs and gaps (JSX in the Module Runner, referred-only tokens without @property, check.contrast and derived tokens, CSS-wide keywords, inert JSX in imported .tsx, hyphenated markers, cv() overlaps, line clamp, token support warnings), and drove the fallback work: warnings that ask LightningCSS, token fallbacks, and a runtime for derived tokens in older browsers. Left out by decision: login and writes, hidden metrics, search, an HLS player.
