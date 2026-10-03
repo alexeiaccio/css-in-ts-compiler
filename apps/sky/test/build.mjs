@@ -144,6 +144,35 @@ assert.match(
   sheet,
   /@supports \(color: ?oklch\(0\.637 0\.203 345\)\)\{:root\{--color-accent:oklch\(\.637 \.203 var\(--hue-accent\)\)\}\}/,
 );
+// the runtime for derived tokens (cssints-i9xo): the sheet carries the templates of the accent steps and onAccent, with the
+// themes that set them, and the client imports the module that computes them where relative colour is missing
+const data = JSON.parse(/--_derived:"((?:[^"\\]|\\.)*)"/.exec(sheet)[1].replace(/\\(.)/g, "$1"));
+assert.deepEqual(Object.keys(data.b), [
+  "--color-accent",
+  "--color-accent-hover",
+  "--color-accent-strong",
+  "--color-accent-soft",
+  "--color-on-accent",
+]);
+assert.equal(data.b["--color-accent"], "oklch(0.637 0.203 var(--hue-accent))");
+assert.match(
+  data.b["--color-on-accent"],
+  /^lab\(from color\(from var\(--color-accent\) srgb-linear /,
+);
+assert.deepEqual(
+  data.t.map(([cond]) => cond),
+  ["@media (prefers-color-scheme: dark)", ".light", ".dim", ".dark"],
+);
+assert.equal(
+  data.t[1][1]["--color-link"],
+  0,
+  "light sets link to a literal: the runtime lets go of it",
+);
+assert.ok(data.p.every((p) => /^(oklch|lab)\(/.test(p)));
+assert.ok(
+  all.includes('"--_derived"') && all.includes("matchMedia"),
+  "the runtime is in the client",
+);
 console.log(
   `sky build: ${css[0].fileName} ${sheet.length} bytes, ${js.fileName} ${js.code.length} bytes`,
 );

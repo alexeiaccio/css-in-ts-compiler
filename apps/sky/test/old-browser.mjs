@@ -147,7 +147,7 @@ try {
   );
   assert.ok(
     chromeFlips.includes("rgb(255, 255, 255)") && chromeFlips.includes("rgb(0, 0, 0)"),
-    `chrome ${version}: ${chromeFlips}`,
+    `chrome ${version}: ${chromeFlips.join()}`,
   );
   chromeUpdate = await timing(page);
   console.log(`chrome ${version}: live oklch(), nothing written on <html>`);
@@ -157,7 +157,7 @@ try {
 
 // the time of one slider input: the style write and the microtask that runs the observer (the runtime, in a browser that needs
 // it), then the style recalculation that reads the new colour
-async function timing(page) {
+function timing(page) {
   return page.evaluate(async () => {
     const root = document.documentElement;
     const swatch = document.querySelector("[data-testid=swatch-accent]");
@@ -170,15 +170,18 @@ async function timing(page) {
       root.style.setProperty("--hue-accent", hue(i));
       await Promise.resolve();
       const t1 = performance.now();
-      getComputedStyle(swatch).backgroundColor;
+      void getComputedStyle(swatch).backgroundColor;
       const t2 = performance.now();
-      if (i >= 20) (input.push(t1 - t0), total.push(t2 - t0));
+      if (i >= 20) {
+        input.push(t1 - t0);
+        total.push(t2 - t0);
+      }
     }
     // the control: the style recalculation alone, before the observer's microtask has run
     for (let i = 0; i < 720; i++) {
       const t0 = performance.now();
       root.style.setProperty("--hue-accent", hue(i));
-      getComputedStyle(swatch).backgroundColor;
+      void getComputedStyle(swatch).backgroundColor;
       const t1 = performance.now();
       await Promise.resolve();
       if (i >= 20) control.push(t1 - t0);
@@ -238,7 +241,7 @@ try {
 
   // the slider and the modes against Chrome
   const got = await sweep(oldBrowser, {
-    toPixels: async (_, cs) => cs.map((c) => rgbOf(c)),
+    toPixels: (_, cs) => Promise.resolve(cs.map((c) => rgbOf(c))),
   });
   let worst = 0;
   let moved = 0;
@@ -262,7 +265,11 @@ try {
   const { page: flipPage } = await open(oldBrowser, "light");
   const flips = [];
   for (const l of FLIPS) flips.push(await onAccentAt(flipPage, false, l));
-  assert.deepEqual(flips, chromeFlips, `${kind} ${version}: onAccent at L ${FLIPS} is ${flips}`);
+  assert.deepEqual(
+    flips,
+    chromeFlips,
+    `${kind} ${version}: onAccent at L ${FLIPS.join()} is ${flips.join()}`,
+  );
   results.push(
     `${kind} ${version}: ${Object.keys(got).length} modes x ${SHIFTS.length} hues x 6 colours within ${worst}/255 of Chrome; the slider moved ${moved} steps; onAccent ${flips.map((c) => (c === "rgb(0, 0, 0)" ? "black" : "white")).join("/")} at L ${FLIPS.join("/")} like Chrome`,
   );
@@ -282,7 +289,7 @@ try {
 // onAccent flips where the accent's lightness crosses CIE L* 49.4. The slider never changes the lightness, so the accent is made
 // lighter and darker by hand: Chrome takes --color-accent on <html>, the old browser the accent template of the data the sheet
 // holds (a style rule that replaces --_derived, which the runtime reads again at each update).
-async function onAccentAt(page, chromeLike, lightness) {
+function onAccentAt(page, chromeLike, lightness) {
   return page.evaluate(
     async ([chromeLike, l]) => {
       const root = document.documentElement;

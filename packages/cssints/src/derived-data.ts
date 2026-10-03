@@ -19,11 +19,9 @@ const refuses = (literal: string): string | undefined => {
   }
 };
 
-/**
- * Whether the runtime computes a derived token whose `literal` (its value with the defaults for each `var()`) a target
- * cannot parse: a colour that inherits, set on :root (not under a container), in the subset of derived.ts. It then
- * registers the runtime for the file being evaluated. Otherwise the token stays at its static default, and the build says so.
- */
+// Whether the runtime computes a derived token whose `literal` (its value with the defaults for each `var()`) a target
+// cannot parse: a colour that inherits, set on :root (not under a container), in the subset of derived.ts. It then
+// registers the runtime for the file being evaluated. Otherwise the token stays at its static default, and the build says so.
 export const standIn = Effect.fnUntraced(function* (
   who: string,
   kind: TokenType,
@@ -54,19 +52,17 @@ export const standIn = Effect.fnUntraced(function* (
   return false;
 });
 
-/** Whether a module whose styles use the variables `names` needs the runtime: the tokens that declare them are often not in the client. */
+// Whether a module whose styles use the variables `names` needs the runtime: the tokens that declare them are often not in the client.
 export const usesDerived = ({ defs, themed }: RegistryState, names: Iterable<string>): boolean =>
   [...names].some(
     (n) =>
       defs.get(n)?.poly !== undefined || [...themed.values()].some((t) => t.theme?.poly?.has(n)),
   );
 
-/**
- * The rule that carries the data of the runtime: `:root{--_derived:'{"p":[…],"b":{…},"t":[…]}'}`. `properties` are the
- * @property rules of the sheet (the tokens it uses), `keys` the theme entries it holds, in order. `p` are the literals a
- * browser must parse for the runtime to stay idle, `b` the templates of the default theme, `t` each theme's: its
- * condition, and per token its template, or 0 where the theme sets a literal. Nothing when no target needs the runtime.
- */
+// The rule that carries the data of the runtime: `:root{--_derived:'{"p":[…],"b":{…},"t":[…]}'}`. `properties` are the
+// property rules of the sheet (the tokens it uses), `keys` the theme entries it holds, in order. `p` are the literals a
+// browser must parse for the runtime to stay idle, `b` the templates of the default theme, `t` each theme's: its
+// condition, and per token its template, or 0 where the theme sets a literal. Nothing when no target needs the runtime.
 export const derivedRule = Effect.fnUntraced(function* (
   properties: string[],
   keys: string[],

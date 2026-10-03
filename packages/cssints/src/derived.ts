@@ -122,10 +122,8 @@ const hex = (x: string): Color => {
   return { s: "srgb", c: [byte(0), byte(2), byte(4)], a: n.length > 6 ? byte(6) : 1 };
 };
 
-/**
- * The colour a template (`oklch(0.6 0.2 var(--hue))`) is worth, with `get` giving each `var()` (the text of a number or a
- * colour, or a Color). Throws, naming the token it stopped at, for anything outside the subset above.
- */
+// The colour a template (`oklch(0.6 0.2 var(--hue))`) is worth, with `get` giving each `var()` (the text of a number or a
+// colour, or a Color). Throws, naming the token it stopped at, for anything outside the subset above.
 export const evaluate = (
   text: string,
   get: (name: string) => string | Color = (n) => fail(n),
@@ -147,7 +145,10 @@ export const evaluate = (
   const list = () => {
     want("(");
     const out = [sum()];
-    while (t[i] === ",") (i++, out.push(sum()));
+    while (t[i] === ",") {
+      i++;
+      out.push(sum());
+    }
     want(")");
     return out;
   };
@@ -254,7 +255,7 @@ export const evaluate = (
   return out;
 };
 
-/** A colour as CSS `rgb()`, clipped to sRGB: an inline custom property of <html> takes it. */
+// A colour as CSS `rgb()`, clipped to sRGB: an inline custom property of <html> takes it.
 export const css = (c: Color): string => {
   const [r, g, b] = conv(c, "srgb").c.map((v) => Math.round(Math.min(1, Math.max(0, v)) * 255));
   return `rgb(${r} ${g} ${b}${c.a < 1 ? ` / ${+c.a.toFixed(3)}` : ""})`;
@@ -293,7 +294,10 @@ export default (): void => {
     const tpl = new Map(Object.entries(data.b));
     for (const [cond, v] of data.t)
       if (cond.startsWith("@") ? matchMedia(cond.slice(6)).matches : root.matches(cond))
-        for (const n in v) v[n] ? tpl.set(n, v[n]) : tpl.delete(n);
+        for (const n in v) {
+          if (v[n]) tpl.set(n, v[n]);
+          else tpl.delete(n);
+        }
     for (const n of names) if (!tpl.has(n) && written.delete(n)) root.style.removeProperty(n);
     // every input is read before the first write: a read after a write recalculates the style of the page
     const done = new Map<string, string | Color>();
@@ -336,5 +340,5 @@ export default (): void => {
     return true;
   };
   // the stylesheet may not be here yet
-  go() || addEventListener("load", go, { once: true });
+  if (!go()) addEventListener("load", go, { once: true });
 };
