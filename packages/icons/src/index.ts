@@ -1,6 +1,6 @@
 // @cssints/icons: an icon is a style (cssints/plugin) with a marker, a kernel and one custom property, the SVG as a
 // data URL. The kernel is global CSS printed once, so each icon costs one declaration. Build time only; no runtime.
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
 
@@ -66,13 +66,21 @@ const nearest = (name: string, names: string[]) => {
   return best;
 };
 
+// The engine evaluates this module again for every module that imports the one that calls icons(), and a collection is
+// megabytes of JSON (ph: 4.5 MB, 55 ms): parsed once per file version, kept on globalThis, which the engine's runner shares.
+const g = globalThis as typeof globalThis & {
+  __cssintsIcons?: Map<string, { mtime: number; json: Json }>;
+};
+
 const iconify = (collection: string): Source => {
   const pkg = `@iconify-json/${collection}/icons.json`;
   let json: Json;
   try {
-    json = JSON.parse(
-      readFileSync(createRequire(join(process.cwd(), "_")).resolve(pkg), "utf8"),
-    ) as Json;
+    const file = createRequire(join(process.cwd(), "_")).resolve(pkg);
+    const mtime = statSync(file).mtimeMs;
+    const hit = (g.__cssintsIcons ??= new Map()).get(file);
+    json = hit?.mtime === mtime ? hit.json : (JSON.parse(readFileSync(file, "utf8")) as Json);
+    g.__cssintsIcons.set(file, { mtime, json });
   } catch (e) {
     throw new Error(
       `cssints: icons: cannot read ${pkg} from ${process.cwd()}: install @iconify-json/${collection}`,
