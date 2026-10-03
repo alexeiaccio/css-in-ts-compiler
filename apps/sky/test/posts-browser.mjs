@@ -69,7 +69,10 @@ try {
       const full = desc.getBoundingClientRect().height;
       desc.style.removeProperty("-webkit-line-clamp");
       return {
-        clamp: { lines: Math.round(clamped / lineHeight), fullLines: Math.round(full / lineHeight) },
+        clamp: {
+          lines: Math.round(clamped / lineHeight),
+          fullLines: Math.round(full / lineHeight),
+        },
         width: Math.round(q.getBoundingClientRect().width),
         radius: {
           card: cs(q, "border-radius"),
@@ -151,7 +154,10 @@ for (const [w, scheme] of runs) {
   );
   assert.equal(r.width, w, "the card is as wide as asked");
   assert.equal(r.clamp.lines, 2, `the description is clamped to two lines at ${key}`);
-  assert.ok(r.clamp.fullLines > 2, `the text is longer than two lines at ${key}: ${r.clamp.fullLines}`);
+  assert.ok(
+    r.clamp.fullLines > 2,
+    `the text is longer than two lines at ${key}: ${r.clamp.fullLines}`,
+  );
   assert.equal(r.samples.length, 19);
   assert.equal(r.hidden.trim(), "Post hidden");
   assert.ok(r.notFound && r.detached && r.blocked);

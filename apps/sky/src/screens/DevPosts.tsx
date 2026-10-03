@@ -28,7 +28,7 @@ function samples(r: Record<string, PostView>) {
           description:
             "In April 2025, Bluesky raised $100 million in Series B funding led by Bain Capital Crypto. Since our Series A, we've grown the network and the team, and shipped a lot.",
         },
-      },
+      } as PostView["embed"],
     },
     quoteNotFound: quoteWith({
       $type: "app.bsky.embed.record#viewNotFound",

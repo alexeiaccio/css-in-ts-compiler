@@ -84,7 +84,13 @@ for (const [p, v] of [
   ["-webkit-box-orient", "vertical"],
   ["display", "-webkit-box"],
 ] as const)
-  verify(support(p, v, [["firefox", "120"], ["safari", "17"]]).length === 0, `${p}: ${v} is quiet`);
+  verify(
+    support(p, v, [
+      ["firefox", "120"],
+      ["safari", "17"],
+    ]).length === 0,
+    `${p}: ${v} is quiet`,
+  );
 verify(
   support("line-clamp", "3", [["chrome", "154"]]).length === 1,
   "line-clamp: 3 warns on chrome 154",
