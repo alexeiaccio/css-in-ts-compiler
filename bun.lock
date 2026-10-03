@@ -40,10 +40,10 @@
         "@atcute/client": "^5.1.2",
         "@atcute/lexicons": "^2.1.1",
         "@cssints/icons": "workspace:*",
-        "@solidjs/router": "^2.0.0-next.34",
-        "@solidjs/web": "next",
+        "@solidjs/router": "2.0.0-next.35",
+        "@solidjs/web": "2.0.0-rc.13",
         "cssints": "workspace:*",
-        "solid-js": "next",
+        "solid-js": "2.0.0-rc.13",
       },
       "devDependencies": {
         "@iconify-json/ph": "^1.2.2",
@@ -419,7 +419,7 @@
 
     "@solidjs/compiler-win32-x64-msvc": ["@solidjs/compiler-win32-x64-msvc@2.0.0-rc.13", "", { "os": "win32", "cpu": "x64" }, "sha512-1DT+5TgIFV5L8GdrGb+uD9ruHFVq6kJ4A/cb9amUU574TGM88B4nwy//dM57zmT99u7mej7JF91glQBnHOGhHQ=="],
 
-    "@solidjs/router": ["@solidjs/router@2.0.0-next.34", "", { "peerDependencies": { "@solidjs/web": "^2.0.0-rc.13", "filesystem-routing": ">=0.4.0", "solid-js": "^2.0.0-rc.13" }, "optionalPeers": ["filesystem-routing"] }, "sha512-XRmCQUOPpz6EYp6MyDqtC4KdToXayk/hYv0/jFdSjnmUDjYAi9l6HpTMxADnz1Sv1kX8Jn6DVbsDJTrxC+fU5Q=="],
+    "@solidjs/router": ["@solidjs/router@2.0.0-next.35", "", { "peerDependencies": { "@solidjs/web": "^2.0.0-rc.13", "filesystem-routing": ">=0.4.0", "solid-js": "^2.0.0-rc.13" }, "optionalPeers": ["filesystem-routing"] }, "sha512-6+frAz9M2vrLSz+2hr51++nzGyxt3+nCo08dY3PkdieSOwDutAXdfSXj681FqTOvffv8kPDF5tdRqPUoLbKhlQ=="],
 
     "@solidjs/signals": ["@solidjs/signals@2.0.0-rc.13", "", {}, "sha512-4+pRdrAHtfyE9BUJWBup3TpzJojJjgW2mV1vm/Jik4tWa5epxXB/YrLkwqP1v8+S9XjyKKZu5BSLqmcpswMYeQ=="],
 
