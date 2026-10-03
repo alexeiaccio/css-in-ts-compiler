@@ -64,6 +64,8 @@ export interface Property {
 /** What a token is worth, by variable name: its literal (an alias or a derived token: the flattened one), and what it stays live as. */
 export interface TokenDef {
   kind: TokenType;
+  /** Whether the custom property inherits: only a token that does can be written on <html> by the runtime of derived tokens. */
+  inherit: boolean;
   /** `color.bg` for a token of createTokens, else the variable. */
   path: string;
   value: string;
@@ -72,20 +74,23 @@ export interface TokenDef {
   refs?: string[];
   /** `value` as LightningCSS lowers it for the targets that lack it: the initial value, and the default of a derived token. */
   fallback?: string;
+  /** A derived token the runtime computes (derived-data.ts): its flattened literal, which a browser that parses it needs no runtime for. */
+  poly?: string;
 }
 
 /**
  * A rule of a token set or a theme, in layer _.k after the globals (sheet.ts). `key` orders them: the kind (0 the
  * `:root` declarations of aliases, 1 themes under a condition, 2 themes under a selector), then the place in the source.
  * `names` are the variables it sets or reads: a module that uses one of them has the rule in its sheet too (plugin.ts).
- * `theme` is what a contrast check reads: the values the theme sets, by variable name.
+ * `theme` is what a contrast check reads: the values the theme sets, by variable name; `poly` those of them that the
+ * runtime of derived tokens computes, with their flattened literals.
  */
 export interface Themed {
   file: string;
   key: string;
   css: string;
   names: string[];
-  theme?: { label: string; values: Map<string, string> };
+  theme?: { label: string; values: Map<string, string>; poly?: Map<string, string> };
 }
 
 /** The `key` of a Themed entry that is a `css.global()` rule starts with this: it sorts before the aliases and themes. */

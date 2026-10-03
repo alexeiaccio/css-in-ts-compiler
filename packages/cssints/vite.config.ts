@@ -22,9 +22,13 @@ export default defineConfig({
       clean: true,
     },
     // The parts that ship to browsers: cx and _cv (runtime), and the engine that plugin runtimes configure
-    // (parent-vars, only ever imported by `virtual:cssints/runtime/<name>`). No imports.
+    // (parent-vars) and derived tokens (derived), only ever imported by `virtual:cssints/runtime/<name>`. No imports.
     {
-      entry: { runtime: "src/runtime.ts", "parent-vars": "src/parent-vars.ts" },
+      entry: {
+        runtime: "src/runtime.ts",
+        "parent-vars": "src/parent-vars.ts",
+        derived: "src/derived.ts",
+      },
       platform: "browser",
       format: "esm",
       target: "es2022",
