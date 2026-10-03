@@ -210,7 +210,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
         const { rules, properties, themed } = registry;
         const texts = [...sites.values()];
         const classes = texts.flatMap((r) =>
-          [...r.matchAll(/"(_[a-z0-9]+(?: _[a-z0-9]+)*)"/g)].flatMap((m) => m[1]!.split(" ")),
+          [...r.matchAll(/"(_[\w-]+(?: _[\w-]+)*)"/g)].flatMap((m) => m[1]!.split(" ")),
         );
         // The tokens of the module: those its classes read, and those a site names (a token, a style). Their
         // @property rules are recorded as text, so an edit of an initial value changes what the module recorded.

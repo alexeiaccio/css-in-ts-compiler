@@ -65,7 +65,7 @@ export const A = () => <div className={cx("_1s47490", "_1ob5z5m", "_cn8dee", pro
 - **One sheet.** All rules are in `virtual:cssints.css`, each once, sorted by layer, then condition, then shorthand before longhand (`border` before `border-top`, counted from Chrome's own expansion of each shorthand), then class name. So a longhand wins over a shorthand that contains it, whatever the order of the arguments: `cn(pl(2), p(4))` keeps `padding-left: 0.5rem`.
 - **`cn()` keeps the later of the same property.** `cn(p(4), p(2))` is `p(2)`: the earlier declaration is dropped at build time (also for an alias: `wordWrap` is `overflowWrap`). Under different conditions both stay, because they are in different layers: `cn(md(p(6)), p(2))`. Two properties that overlap without one containing the other are a build error, because the sheet cannot order them by the arguments: `cn(borderTop("1px solid red"), borderColor("blue"))` both set `border-top-color`; so do a physical and a logical side (`marginLeft` and `marginInline`, `width` and `inlineSize`), since which physical side a logical one is depends on the writing mode. A logical property inside a physical shorthand that sets every side is contained, not overlapping: `cn(border(...), borderInline(...))` is fine, and `borderInline` wins. Styles that only meet in `cx()` in the browser are not seen at build time.
 - **A layout context** gives one string: `flex().alignItems("center")` is `"_1s47490 _1ob5z5m"`.
-- **Also exported:** `css` (the namespace as a value) and `cn`, `cv`, `firstThatWorks`, `media`, `container`, `supports`, `token`, `style`, `createTokens`, `createGlobalTheme`, `check`. `cx` and `_cv` are the only runtime exports.
+- **Also exported:** `css` (the namespace as a value) and `cn`, `cv`, `firstThatWorks`, `media`, `container`, `supports`, `attr`, `within`, `group`, `global`, `token`, `style`, `createTokens`, `createGlobalTheme`, `check`. `cx` and `_cv` are the only runtime exports.
 
 ### Without runtime
 
@@ -110,11 +110,11 @@ export const forms = cx(dark(css.bg("#111")), narrow(css.m(0)), grid(css.display
 
 - **Pseudo-classes** are ready-made wrappers named after the selector: `hover`, `focus`, `focusVisible`, `active`, `disabled`, and so on: 49 of them, from mdn-data `selectors.json` (standard pseudo-classes without arguments). Functional ones (`:nth-child()`) are not wrappers.
 - **Query strings are checked** against the mdn-data grammar (`<media-query-list>`, `<container-condition>`, `<supports-condition>`), in types and at build time, like property values. A range needs parentheses: `(width > 40rem)`, not `min-width > 40rem`. `supports()` takes property declarations; a typo in the property (`(display: grdi)`) is a build error, not a type error.
-- **Layer = number of conditions.** A style with no condition goes to `_.a`, one condition to `_.b`, two to `_.c`, and so on up to `_.e`. A fifth condition is a build error. A media query, a container query, `supports` and a pseudo-class each count as one. `_.k` comes first and holds token and theme rules.
+- **Layer = number of conditions.** A style with no condition goes to `_.a`, one condition to `_.b`, two to `_.c`, and so on up to `_.e`. A fifth condition is a build error. A media query, a container query, `supports` and a pseudo-class each count as one. `_.k` comes first and holds kernels, global rules, token and theme rules.
 - **Order inside a layer** comes from the sorted stylesheet. Each condition has a rank: a pseudo-class by its place in the list (`link`, `visited`, `any-link`, `focus-within`, `hover`, `focus`, `focus-visible`, `active` first), a media or container query by its min-width in px (`(min-width: X)` or `(width >= X)` in px, rem or em; 0 when none can be read). Rules sort by the ranks of their chain. With equal layers, `hover(...)` beats `md(...)` by specificity.
 - **Class names** hash the declaration together with its condition chain.
 - **Bindings.** `const md = media(...)`, and its tuple and object forms, are build-time only: the client has `null` in their place, so keep them in the module that uses them or import them from a module with the attribute.
-- Pseudo-elements (`::before`, `::placeholder`) and parent states (`group-hover`) are not part of 0.1.
+- Attributes and parent states are conditions too: `attr()`, `group()` and `within()` (below). Pseudo-elements (`::before`, `::placeholder`) are not part of 0.1.
 
 Output of `styles`; each form in `forms` gives one more rule in `_.b` (`dark`, `narrow` and `grid` in a block of their own before `:hover`):
 
@@ -136,6 +136,60 @@ Output of `styles`; each form in `forms` gives one more rule in `_.b` (`dark`, `
 	@media (width >= 40rem) {
 		._ronnd2:hover { background-color: #ddd; }
 	}
+}
+```
+
+### Global rules, attributes and parent states (decided 2026-10-03, cssints-635k, cssints-eaob)
+
+```ts
+import { cx } from "cssints";
+import * as css from "cssints" with { type: "cssints" };
+
+const dark = css.media("(prefers-color-scheme: dark)");
+
+// a reset: rules with no class
+css.global("*, *::before, *::after", css.boxSizing("border-box"));
+css.global("body", css.margin("0"), css.margin("8px")); // the later margin wins
+css.global(":root", css.colorScheme("light"), dark(css.colorScheme("dark")));
+css.global("a[href^='http'] > b", css.color("red"));
+css.global("a[href", css.color("red")); // error: a bracket is open
+css.global("a >", css.color("red")); // selector: unexpected end in "a >", expected <complex-selector-list>
+css.global("a", css.hover(css.color("red"))); // global() takes media(), container() and supports() conditions, not :hover: write the state in the selector
+
+// an attribute state, and the state of a marked ancestor
+export const row = css.cn(css.group(), css.p(2));
+export const link = cx(
+	css.color("gray"),
+	css.attr("aria-current", "page")(css.color("blue")),
+	css.within(css.hover)(css.textDecoration("underline")),
+);
+export const icon = css.attr("href", ".pdf", "$=")(css.opacity(0.8));
+export const nested = css.cn(css.group("card"), css.within(css.focusVisible, "card")(css.outline("2px solid")));
+css.attr("a b"); // error: a name has no space
+css.attr("a", "x", "!="); // error: not an operator
+css.within(css.media("(width >= 40rem)")); // error: a media query is not a state
+```
+
+- **`css.global(selector, ...styles)`** is a rule with no class: `body{margin:0}`. The styles are member calls (`margin("0")`, `cn(...)`), checked by the grammar of each property like a class's (types at the member call, the build at the call of `global()`, with the support warnings). One property twice is the later one, as in `cn()`; two that overlap without one containing the other are the same build error. A `media()`, `container()` or `supports()` condition around a style makes an at-rule block around the rule (`@media (prefers-color-scheme: dark){:root{color-scheme:dark}}`); `hover`, `attr()` and `within()` are errors there, since a global rule has the selector for that (`a:hover`). A marker or kernel of a plugin member (`frame()`, `icons()`) is an error too: they need a class. A `firstThatWorks()` prints as in a class. The call returns nothing (`void`; the client has `undefined` in its place).
+- **The selector** is a string checked at build time against `<complex-selector-list>` (css-selectors-4, mdn-data's grammar; `css-grammar/src/selector.ts` is a recogniser written over it, since the value twin drops the whitespace a selector is made of): type, `*`, `#id`, `.class`, `[attr]` with its operators, pseudo-classes and pseudo-elements, the combinators (descendant, `>`, `+`, `~`, `||`) and a list. The arguments of `:is()`, `:not()`, `:nth-child()` are balanced but not read (the grammar says `<any-value>`). `&` and a leading combinator are errors. A unknown pseudo-class is fine, as in the grammar. In the types the check is cheap: not empty, brackets and quotes pair up (about 180 instantiations a call); the build reads the rest and puts the message on the call.
+- **The sheet.** A global rule is in the sheet of the module that calls it, once, in layer `_.k`: after the kernels, before the token sets and themes, in source order (by file, then call). It sets declarations on elements by selector, so it carries no hash class and no layer number; classes (`_.a` to `_.e`) are in later layers and win over it, so a reset in `_.k` never fights a component. Import a module with its `global()` calls (`import "./reset.ts"`) to have them, as for a theme. A token that a global rule reads has its `@property` rule in the same sheet.
+- **`@font-face` and the other at-rules stay in CSS** (`keyframes()` and `positionTry()` are the local ones): `global()` takes a selector and declarations, and an at-rule with no selector is not one.
+- **`attr(name, value?, op?)`** is a condition like `hover`: `attr("aria-current", "page")(color(...))` is `._x[aria-current="page"]{...}`. No value is presence (`[disabled]`). The value is always quoted for you (`"` and `\` escaped); `op` is `=` (default), `~=` (a word of a list), `|=`, `^=`, `$=` or `*=`. The name is an identifier (`aria-current`, `data-state`; no namespaces, no `[`, `=` or spaces), the value a string, and the case flag (`i`) is not offered. It counts as one condition (a layer, as `hover`). Among the rules of a layer it sorts after every pseudo-class, so an attribute state beats `hover` on the same property. Two `attr()` conditions that can both match and set one property sort by class name: keep them exclusive (`[aria-current=page]` and `[aria-current=false]`).
+- **`group(name?)` and `within(state, name?)`** are the state of a marked ancestor. `group()` is a style that adds the fixed class `_g` (`group("card")` adds `_g-card`); it has no rule of its own, so the ancestor needs nothing else. `within(hover)(color("red"))` is `:where(._g:hover) ._x{color:red}`; `within(hover, "card")` reads the `_g-card` ancestor (any ancestor with that class, not the nearest one; use names to tell nested groups apart). `state` is a pseudo-class wrapper or `attr(...)`, not a `media()` and not another `within()`. It counts as one condition.
+- **Specificity of `within()` is one class.** `:where()` has none, so `:where(._g:hover) ._x` is as specific as `._x:hover` and `._x[aria-current="page"]`. Without it the ancestor's class would make `within(hover)` (0,3,0) beat `hover` (0,2,0) whatever the order, and a nested `md(within(hover)(...))` would fight the sheet's own order. Now the order decides, as for every condition: in a layer the ancestor's state comes first, then the pseudo-classes, then attributes, so an element's own state wins over its group's.
+- **`:has()` is not offered** (`has(...)`): it is a selector on the ancestor that looks down, `:where(._x:has(...))` would be a rule on another element than the class, and `within()` plus `group()` already say what it is used for in a card. It is a pseudo-class with arguments, like `:nth-child()`.
+
+```css
+@layer _.k {
+	*, *::before, *::after{box-sizing:border-box}
+	body{margin:8px}
+	:root{color-scheme:light}@media (prefers-color-scheme: dark){:root{color-scheme:dark}}
+	a[href^='http'] > b{color:red}
+}
+@layer _.b {
+	:where(._g:hover) ._72037{text-decoration:underline}
+	._fc1pxh[aria-current="page"]{color:blue}
+	._pl3vkk[href$=".pdf"]{opacity:0.8}
 }
 ```
 
@@ -238,7 +292,7 @@ css.createGlobalTheme(t, ".x", { radius: { md: "{hue.accent}" } }); // error: a 
 ```
 
 - **JSON input:** `createTokens` takes a DTCG file imported as JSON, `import tokens from "./tokens.json" with { type: "json" }`. The editor knows the tree (`t.color.bg`, and a wrong path is a type error) but not the types, since a JSON import widens `$type` to `string`: each token is a token of any type there, and its values, references and use in a property (and in `check.contrast`) are checked at build time.
-- **The sheet:** token sets and themes are rules of layer `_.k`, after the global rules and before the class layers. They set custom properties only, and no class does, so the layer order never decides between them; `_.k` is the lowest layer, so your own unlayered `--color-bg` rule wins over a theme. The `:root` rules of aliases come first, then themes under a condition, then themes under a selector, each in source order, so a selector theme beats a condition theme on the same element. A module has the rules of the tokens it uses, from wherever they were made, and of the tokens those are made of (the references of a derived token or of a theme value, through chains: a `hue.accent` that no class uses still gets its `@property` rule), and its own; import a theme module (`import "./theme.ts"`) to have all of it.
+- **The sheet:** token sets and themes are rules of layer `_.k`, after the global rules of `css.global()` and before the class layers. They set custom properties only, and no class does, so the layer order never decides between them; `_.k` is the lowest layer, so your own unlayered `--color-bg` rule wins over a theme. The `:root` rules of aliases come first, then themes under a condition, then themes under a selector, each in source order, so a selector theme beats a condition theme on the same element. A module has the rules of the tokens it uses, from wherever they were made, and of the tokens those are made of (the references of a derived token or of a theme value, through chains: a `hue.accent` that no class uses still gets its `@property` rule), and its own; import a theme module (`import "./theme.ts"`) to have all of it.
 - **`css.check.contrast(fg, bg, { min })`** computes the WCAG 2.x contrast ratio (`min` from 1 to 21) for the default values and for every theme that sets either token or one they are aliases of. It reads themes one at a time, not their combinations. A value that is set at run time (a slider that sets `--hue-accent` on `<html>`) belongs to no theme and is checked at its default only; a theme per value would put each rule in the sheet and hold it to the thresholds of the other themes, since a check applies to every theme that touches its tokens, so measure a range outside the build (apps/sky `test/contrast.mjs`). A ratio below `min` is a build error that names the theme and both resolved values (the ratio is cut, not rounded: 4.499 is 4.49). A value the check cannot evaluate (`color-mix()`, a relative colour, `light-dark()`, `currentColor`, a system colour) or a translucent one is a warning that names the token; a build says it once, and a dev server says it again after each edit. A derived token (or a theme value with `{path}` references) is read in each theme by putting that theme's values, or the defaults, in place of its references, through a chain of derived tokens: a ratio when the result is a colour (`oklch(0.6 0.2 {hue.accent})`), a warning that names the theme when it is not (`color-mix()` over another token), and a theme that sets any token a checked colour depends on, directly, through an alias or through references, is checked. The colour library (culori, `culori/fn`: 27 kB minified, 9 kB gzipped) is build-only and never ships. The check runs when its module has run, and again at the end of a build over the themes of every module.
 
 Output (the `@property` rules of `space-md` and `color-fg` are not shown):
@@ -614,4 +668,4 @@ createGlobalTheme(t, ".dark", { color: { brand: "#ef4444" } });
 
 - **Types and checks for every property** are generated from [mdn-data](https://github.com/mdn/data) and @webref/css by `packages/css-grammar` (`bun run extract`), not written by hand, so a new property or function needs no change here. 536 members: 525 properties (every standard and experimental one, except the three shorthands above) and the 11 short names.
 - **Browser support** comes from [`@mdn/browser-compat-data`](https://github.com/mdn/browser-compat-data) against browserslist, as build warnings (see above). There is no per-property table in the types.
-- **Not in 0.1:** pseudo-elements and parent states, derived tokens, slot variants, a typed runtime token setter, icons (the plugin API they are written on is above; `frame()` is in `cssints/frame`, `surface()` in `cssints/surface`), polyfills of its own for missing browser features. The map and the reasons are in [wayfinder.md](wayfinder.md).
+- **Not in 0.1:** pseudo-elements, `:has()`, derived tokens, slot variants, a typed runtime token setter, icons (the plugin API they are written on is above; `frame()` is in `cssints/frame`, `surface()` in `cssints/surface`), polyfills of its own for missing browser features. The map and the reasons are in [wayfinder.md](wayfinder.md).

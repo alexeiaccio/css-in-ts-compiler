@@ -59,6 +59,7 @@ for (const rule of [
   /\._\w+\[href\^="https"\]/,
   /\._\w+\[href\$="\.pdf"\]/,
   /\._\w+\[href\*="ex"\]/,
+  /:where\(\._g-card:hover\) \._\w+\{opacity:0\.3\}/,
   /@media \(width >= 40rem\) \{\s*:where\(\._g:hover\) \._\w+\{text-decoration:underline\}/,
 ])
   assert.match(s, rule);

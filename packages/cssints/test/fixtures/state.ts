@@ -22,3 +22,5 @@ export const ops = css.cn(
   css.attr("href", ".pdf", "$=")(css.opacity(0.1)),
   css.attr("href", "ex", "*=")(css.opacity(0.2)),
 );
+// a named marker comes first in the string: the classes after it still reach the sheet
+export const card = css.cn(css.group("card"), css.within(css.hover, "card")(css.opacity(0.3)));
