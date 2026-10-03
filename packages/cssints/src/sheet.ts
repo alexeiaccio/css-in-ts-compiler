@@ -1,9 +1,10 @@
-// The sheet: the @property rules of tokens, then the kernels, the css.global() rules and the token sets and themes (layer _.k), then every rule once, sorted by layer, condition, shorthand before
+// The sheet: the @property rules of tokens, then the kernels, the css.global() rules, the token sets and themes and the data of the derived-token runtime (layer _.k), then every rule once, sorted by layer, condition, shorthand before
 // longhand, class; the rules of one layer under the same at-rules share a block.
 
 import { Effect } from "effect";
 
 import { FALLBACK } from "./delivery.ts";
+import { derivedRule } from "./derived-data.ts";
 import { KERNEL } from "./kernel.ts";
 import { width } from "./leaves.ts";
 import { GLOBAL, type Kernel, type Rule, Registry, type Themed } from "./registry.ts";
@@ -84,6 +85,10 @@ export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
     .filter((e) => e.startsWith(FALLBACK))
     .map((e) => JSON.parse(e.slice(FALLBACK.length)) as string)
     .sort();
+  const derived = yield* derivedRule(
+    properties,
+    themes.map((t) => t[1]),
+  );
   const sorted = all
     .flatMap((cls) => {
       const rule = rules.get(cls);
@@ -92,7 +97,7 @@ export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
     .sort(byOrder);
   let out = `${LAYERS}\n${[...properties, ...used.flatMap((k) => k.atProperty ?? [])].map((p) => `${p}\n`).join("")}`;
   if (globals.size || used.length || fallbacks.length || themes.length)
-    out += `@layer _.k {\n${[...globals.values(), ...used.map((k) => k.css), ...fallbacks, ...themes.map((t) => t[2])].map((g) => `  ${g}\n`).join("")}}\n`;
+    out += `@layer _.k {\n${[...globals.values(), ...used.map((k) => k.css), ...fallbacks, ...themes.map((t) => t[2]), ...(derived ? [derived] : [])].map((g) => `  ${g}\n`).join("")}}\n`;
   let layer = "";
   let wrap = ""; // the at-rules that are open
   let depth = 0;

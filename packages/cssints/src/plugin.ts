@@ -27,7 +27,8 @@ import { verifyChecks } from "./contrast.ts";
 import { evaluate, DomEvaluator } from "./evaluate.ts";
 import { HookError, type PluginError, SiteMissingError } from "./errors.ts";
 import { instrument, keptImport, RUNTIME, type Instrumented } from "./instrument.ts";
-import { fallbackEntries, RUNTIME_ID, runtimeModule, runtimeNames } from "./delivery.ts";
+import { DERIVED, fallbackEntries, RUNTIME_ID, runtimeModule, runtimeNames } from "./delivery.ts";
+import { usesDerived } from "./derived-data.ts";
 import { kernelEntries } from "./kernel.ts";
 import { forget, Registry } from "./registry.ts";
 import { closeNames, globalNames, LAYERS, renderSheet, themedEntries } from "./sheet.ts";
@@ -227,6 +228,8 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
           ...(yield* fallbackEntries(registry, id)),
         ]);
         runtimes = runtimeNames(registry, id);
+        // the module that declares the tokens is often not in the client; the ones that use them are
+        if (!runtimes.includes(DERIVED) && usesDerived(registry, names)) runtimes.push(DERIVED);
       }
       return { sites, runtimes };
     });

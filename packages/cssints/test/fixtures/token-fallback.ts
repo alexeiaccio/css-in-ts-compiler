@@ -17,9 +17,17 @@ export const t = css.createTokens({
       link: { $value: "{tf.color.accent}" },
       // a literal that LightningCSS lowers
       brand: { $value: "oklch(0.7 0.1 30)" },
+      // relative colour of the accent, which the runtime for older targets computes (token-fallback.mjs); a mix in a polar space it does not
+      onAccent: {
+        $value:
+          "lab(from color(from {tf.color.accent} srgb-linear clamp(0, r, 1) clamp(0, g, 1) clamp(0, b, 1)) clamp(0, (49.4 - l) * 1e6, 100) 0 0)",
+      },
+      mixed: { $value: "color-mix(in oklch, {tf.color.accent}, black)" },
     },
   },
 });
 css.createGlobalTheme(t, ".dim", {
   tf: { color: { bg: "#111111", accent: "oklch(0.7 0.1 {tf.hue})", brand: "oklch(0.8 0.1 30)" } },
 });
+// a theme that sets a derived token to a literal: the runtime has to let go of it
+css.createGlobalTheme(t, ".hc", { tf: { color: { accent: "#ff0000" } } });

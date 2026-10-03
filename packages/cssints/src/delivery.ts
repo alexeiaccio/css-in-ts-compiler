@@ -4,7 +4,11 @@ import { lacking, type Target } from "@cssints/css-grammar/support";
 import { Effect } from "effect";
 
 import { MemberError } from "./errors.ts";
+import type { BcdKey } from "./author-types.ts";
 import { type At, type Plug, Registry, type RegistryState, type Runtime } from "./registry.ts";
+
+/** The name of the runtime of derived tokens (derived.ts): not a plugin's, the engine registers it (derived-data.ts). */
+export const DERIVED = "derived";
 
 export const RUNTIME_ID = "virtual:cssints/runtime/";
 
@@ -31,6 +35,18 @@ export const addRuntime = Effect.fnUntraced(function* (
   const e = entry ?? { runtime: runtime!, users: new Set<string>() };
   runtimes.set(name, e);
   if (at) e.users.add(at.file);
+});
+
+/** Registers the runtime of derived tokens for the file that declares them; the features its literals need add up across calls. */
+export const addDerived = Effect.fnUntraced(function* (
+  file: string,
+  keys: string[],
+): Effect.fn.Return<void> {
+  const { runtimes } = yield* Registry;
+  const e = runtimes.get(DERIVED) ?? { runtime: { polyfills: [] }, users: new Set<string>() };
+  e.runtime = { polyfills: [...new Set([...e.runtime.polyfills, ...keys])] as BcdKey[] };
+  e.users.add(file);
+  runtimes.set(DERIVED, e);
 });
 
 /**
@@ -65,10 +81,12 @@ export const fallbackEntries = Effect.fnUntraced(function* (
   return out;
 });
 
-/** The text of `virtual:cssints/runtime/<name>`: nothing, or the shared engine configured with the runtime's families. */
+/** The text of `virtual:cssints/runtime/<name>`: nothing, or the shared engine configured with the runtime's families (derived tokens: their runtime). */
 export const runtimeModule = Effect.fnUntraced(function* (name: string): Effect.fn.Return<string> {
   const { runtimes } = yield* Registry;
   const runtime = runtimes.get(name)?.runtime;
+  if (name === DERIVED && runtime && (yield* needed(runtime)))
+    return `import derived from "cssints/derived";\nderived();\n`;
   if (!runtime || !runtime.parentVars?.length || !(yield* needed(runtime))) return "export {};";
   return `import parentVars from "cssints/parent-vars";\nparentVars(${JSON.stringify(runtime.parentVars)});\n`;
 });

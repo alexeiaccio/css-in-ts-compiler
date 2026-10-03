@@ -155,7 +155,7 @@ export const declare = Effect.fnUntraced(function* (
       `cssints: ${variable} is already declared with another @property, in ${relative(process.cwd(), prev.file)}: ${prev.css}; here: ${css}`,
     );
   registry.properties.set(variable, { css, probes, by, file: at.file, gen: registry.gen });
-  registry.defs.set(variable, { kind, path: variable, value: text, fallback });
+  registry.defs.set(variable, { kind, inherit, path: variable, value: text, fallback });
   if (fallback && !live)
     registry.themed.set(by, {
       file: at.file,

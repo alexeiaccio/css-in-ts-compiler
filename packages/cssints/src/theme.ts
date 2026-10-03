@@ -6,6 +6,7 @@ import { DTCG_TYPES, type DtcgType, TOKEN_TYPES, type TokenType } from "@cssints
 import { Effect } from "effect";
 
 import type { MacroError } from "./errors.ts";
+import { standIn } from "./derived-data.ts";
 import { edge, fail } from "./lib.ts";
 import { registry } from "./registry.ts";
 import { checkSyntaxFx, CSSTokenValue, declare, nameOf, supportTest } from "./token.ts";
@@ -323,11 +324,14 @@ export const createTokens = (...args: unknown[]): unknown =>
           // replaced by the default), and the live value follows for the browsers that parse the literal
           const fb = r.alias === undefined ? registry.defs.get(name)!.fallback : undefined;
           live.push(`${name}:${fb ?? css}`);
-          if (fb)
+          const def = registry.defs.get(name)!;
+          if (fb) {
             guarded.push(
               `@supports ${supportTest(TOKEN_TYPES[kind].syntax, r.text)}{:root{${name}:${css}}}`,
             );
-          Object.assign(registry.defs.get(name)!, { template: css, refs: targets });
+            if (yield* standIn(l.dotted, kind, r.text, def.inherit, true)) def.poly = r.text;
+          }
+          Object.assign(def, { template: css, refs: targets });
         }
         set.tokens.set(l.dotted, token);
         set.types.set(name, r.dtcg);
@@ -415,6 +419,7 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
       const changed = new Map<string, string>(); // variable -> the value it gets here
       const defaults = new Map<string, string>(); // variable -> the lowered literal that stands for it in older browsers
       const guards = new Map<string, string[]>(); // `@supports` condition -> the live declarations it lets through
+      const poly = new Map<string, string>(); // variable -> the literal, for the values the runtime of derived tokens computes
       const refs = new Map<string, string[]>(); // variable -> the variables its value here refers to
       const walk = Effect.fnUntraced(function* (
         node: Record<string, unknown>,
@@ -459,6 +464,17 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
               const test = supportTest(TOKEN_TYPES[kind].syntax, literal);
               guards.set(test, [...(guards.get(test) ?? []), `${child.name}:${css}`]);
               defaults.set(child.name, fb);
+              const { inherit } = registry.defs.get(child.name)!;
+              if (
+                yield* standIn(
+                  `${dotted} in ${label}`,
+                  kind,
+                  literal,
+                  inherit,
+                  !label.startsWith("@container"),
+                )
+              )
+                poly.set(child.name, literal);
             }
             changed.set(child.name, css);
             if (targets.size)
@@ -521,7 +537,7 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
           block(decls.join(";")) +
           [...guards].map(([test, live]) => `@supports ${test}{${block(live.join(";"))}}`).join(""),
         names: decls.map((d) => d.slice(0, d.indexOf(":"))),
-        theme: { label, values: changed },
+        theme: { label, values: changed, poly: poly.size ? poly : undefined },
       });
       return DONE;
     }),
