@@ -7,7 +7,7 @@ priority: normal
 tags:
     - wayfinder:map
 created_at: 2026-10-02T14:20:14Z
-updated_at: 2026-10-03T10:58:10Z
+updated_at: 2026-10-03T11:05:54Z
 ---
 
 ## Destination
@@ -56,6 +56,8 @@ updated_at: 2026-10-03T10:58:10Z
 - [cv(): base and variants that overlap without containment](cssints-mbky): overlap errors at the cv() call; the variant wins via runtime drops; fixed two hash-decided cases in sky.
 - [Line clamp](cssints-l54z): the WebKit box (display -webkit-box, -webkit-box-orient joins the WebKit list); LightningCSS does not prefix line-clamp.
 - [sky: text on the accent picks black or white](cssints-2jzr): luminance-based derived token, not OKLCH l; links on accentStrong; all pairs but accent-on-white hold 4.5 over the slider.
+
+- Fallbacks for older targets (decided with the user 2026-10-03: in the engine, sky stays on defaults): [cssints-fxzg](warnings ask LightningCSS, browserslist config), [cssints-33pa](token fallbacks).
 
 ## Not yet specified
 
