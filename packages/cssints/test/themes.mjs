@@ -7,9 +7,11 @@ import { join } from "node:path";
 import { stripVTControlCharacters } from "node:util";
 import { setTimeout as sleep } from "node:timers/promises";
 
-import { build, createLogger, createServer } from "vite";
-
-import cssints from "../src/plugin.ts";
+// The targets are read when the grammar package loads: set them first, so the imports come after. Modern ones: the
+// warnings of this test are the contrast ones, token-support.mjs has the support warnings of token values.
+process.env.BROWSERSLIST = "chrome 130, firefox 130, safari 18";
+const { build, createLogger, createServer } = await import("vite");
+const { default: cssints } = await import("../src/plugin.ts");
 
 const root = import.meta.dirname;
 const plugins = cssints();
