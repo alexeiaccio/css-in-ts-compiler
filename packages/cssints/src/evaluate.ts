@@ -118,6 +118,7 @@ const evaluateModule = Effect.fnUntraced(function* (
     },
     catch: failureOf(id, registry),
   }).pipe(
+    Effect.withSpan("cssints.runner.import", { attributes: { file: id } }),
     Effect.timeoutOrElse({
       duration: "30 seconds",
       orElse: () =>
