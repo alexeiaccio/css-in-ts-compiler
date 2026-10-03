@@ -1,5 +1,6 @@
 {
   "$schema": "../../node_modules/@effect/tsgo/schema.json",
+  "extends": "../../tsconfig.effect.json",
   "compilerOptions": {
     "strict": true,
     "noEmit": true,
@@ -12,8 +13,7 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
-    "types": ["node"],
-    "plugins": [{ "name": "@effect/language-service" }]
+    "types": ["node"]
   },
   "include": ["src/*.ts", "test/*.ts"]
 }

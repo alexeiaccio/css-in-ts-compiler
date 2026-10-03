@@ -9,6 +9,7 @@ import { KERNEL } from "./kernel.ts";
 import { width } from "./leaves.ts";
 import { GLOBAL, type Kernel, type Rule, Registry, type Themed } from "./registry.ts";
 
+// @effect-diagnostics-next-line schemaSync:off -- the entries are what formatJson wrote, read back in a sync map
 const fromJson = Schema.decodeSync(Schema.fromJsonString(Schema.Unknown));
 
 // The entries of token sets and themes start with this and a tab: `@theme\t<key>\t<css>`.

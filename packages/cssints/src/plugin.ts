@@ -97,11 +97,11 @@ export const cssTarget = Effect.runSync(browsers()).flatMap((t) => {
 // ---------- the hook boundary
 
 // Runs a hook's program; a failure is thrown as the error itself.
-const run = async <A>(program: Effect.Effect<A, PluginError>): Promise<A> => {
-  const exit = await Effect.runPromiseExit(program);
-  if (Exit.isSuccess(exit)) return exit.value;
-  throw Cause.squash(exit.cause);
-};
+const run = <A>(program: Effect.Effect<A, PluginError>): Promise<A> =>
+  Effect.runPromiseExit(program).then((exit) => {
+    if (Exit.isSuccess(exit)) return exit.value;
+    throw Cause.squash(exit.cause);
+  });
 
 // 1-based line, 0-based column of an offset, as Vite's `loc`.
 const lineCol = (text: string, offset: number) => {
@@ -276,7 +276,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
   ): Effect.fn.Return<string, HookError> {
     const jsx = { runtime: "classic", pragma: "__jsx", pragmaFrag: "__jsx" } as const;
     return yield* Effect.tryPromise({
-      try: async () => (await transformWithOxc(code, id, { jsx })).code,
+      try: () => transformWithOxc(code, id, { jsx }).then((r) => r.code),
       catch: (cause) =>
         new HookError({ hook: "transform", message: `cssints: ${String(cause)}`, cause }),
     });
@@ -365,10 +365,10 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     const [css, cssPost] = cssPlugins;
     const text = yield* sheet();
     yield* Effect.tryPromise({
-      try: async () => {
-        const r = (await callTransform(css, ctx, text)) as { code?: string } | null | undefined;
-        await callTransform(cssPost, ctx, r?.code ?? text);
-      },
+      try: () =>
+        callTransform(css, ctx, text).then((r) =>
+          callTransform(cssPost, ctx, (r as { code?: string } | null | undefined)?.code ?? text),
+        ),
       catch: (cause) =>
         new HookError({
           hook: "renderChunk",

@@ -359,6 +359,7 @@ export const createTokens = (...args: unknown[]): unknown =>
   );
 
 // The text a site of createTokens leaves on the client: the tokens by path, as `var(--name)` strings.
+// @effect-diagnostics-next-line schemaSync:off -- tokensOf is called by the sync site builders
 const tokensJson = Schema.encodeSync(
   Schema.fromJsonString(Schema.Unknown, {
     replacer: (_, x: unknown) => (x instanceof CSSTokenValue ? String(x) : x),

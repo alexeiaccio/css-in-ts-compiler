@@ -26,6 +26,7 @@ import { forget, Registry, type RegistryState } from "./registry.ts";
 export class DomEvaluator extends ESModulesEvaluator {
   win = Object.assign(new Window(), { __jsx: () => null });
   names: string[] = Object.getOwnPropertyNames(this.win).filter((k) => !Reflect.has(globalThis, k));
+  // @effect-diagnostics-next-line asyncFunction:off -- the evaluator interface of Vite returns a Promise
   override async runInlinedModule(context: ModuleRunnerContext, code: string): Promise<void> {
     const keys = Object.keys(context);
     // oxlint-disable-next-line typescript/no-implied-eval -- the module body is the point: it runs as a function
@@ -112,10 +113,8 @@ const evaluateModule = Effect.fnUntraced(function* (
   registry.gen++;
   clearApp(runner.evaluatedModules);
   yield* Effect.tryPromise({
-    try: async () => {
-      const m = await runner.import<{ __cssints_hoisted?: () => void }>(id);
-      m.__cssints_hoisted?.();
-    },
+    try: () =>
+      runner.import<{ __cssints_hoisted?: () => void }>(id).then((m) => m.__cssints_hoisted?.()),
     catch: failureOf(id, registry),
   }).pipe(
     Effect.timeoutOrElse({

@@ -1,5 +1,6 @@
 {
   "$schema": "../../node_modules/@effect/tsgo/schema.json",
+  "extends": "../../tsconfig.effect.json",
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2023"],
@@ -13,8 +14,7 @@
     "verbatimModuleSyntax": true,
     "allowImportingTsExtensions": true,
     "skipLibCheck": true,
-    "types": ["node"],
-    "plugins": [{ "name": "@effect/language-service" }]
+    "types": ["node"]
   },
   "include": ["src/*.ts", "test/types/*.ts"]
 }
