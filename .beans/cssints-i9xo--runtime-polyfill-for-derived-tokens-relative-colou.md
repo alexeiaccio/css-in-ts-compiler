@@ -1,11 +1,11 @@
 ---
 # cssints-i9xo
 title: Runtime polyfill for derived tokens (relative colour) on the plugin runtime
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-03T11:54:30Z
-updated_at: 2026-10-03T11:54:30Z
+updated_at: 2026-10-03T12:00:13Z
 parent: cssints-co8y
 blocked_by:
     - cssints-33pa
