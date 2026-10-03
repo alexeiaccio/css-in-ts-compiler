@@ -122,20 +122,28 @@ type SplitParen<T extends string, R extends string> = T extends `${infer A})${in
 
 type LengthUnit = "px" | "em" | "rem" | "vw" | "vh" | "vmin" | "vmax" | "ch" | "ex" | "lh" | "rlh" | "cm" | "mm" | "in" | "pt" | "pc" | "q"
   | "svw" | "svh" | "lvw" | "lvh" | "dvw" | "dvh" | "cqw" | "cqh" | "cqi" | "cqb" | "cqmin" | "cqmax" | "ic" | "cap" | "rex" | "rch" | "ric" | "rcap";
+// A typed value whose type is not known (a token of a JSON import is of any type) is one sentinel `⟨*⟩`, which stands where a
+// sentinel of some type would (`Sentinel`). As the union of every type it made each such part in a call cost ~12 times
+// the one before it, since a call's parts are joined into one string per combination.
+export type Wild = "⟨*⟩";
+type Sentinels = "color" | "length" | "percentage" | "number" | "integer" | "angle" | "time" | "custom-ident" | "resolution" | "url" | "image" | "transform-list"; // the `sentinels` of TOKEN_TYPES (token.ts)
+/** What the recognizer sees of a typed value of type `T`: `⟨T⟩`, or `⟨*⟩` for one of every type (a token of a JSON import). */
+export type Sentinel<T extends string> = [Sentinels] extends [T] ? Wild : `⟨${T}⟩`;
+type WildNamed = "color" | "image" | "transform-list";
 type PrimitiveMap = {
-  length: `${number}${LengthUnit}` | "0" | "⟨length⟩";
-  percentage: `${number}%` | "⟨percentage⟩";
-  "length-percentage": `${number}${LengthUnit}` | "0" | `${number}%` | "⟨length⟩" | "⟨percentage⟩";
-  number: `${number}` | "⟨number⟩" | "⟨integer⟩"; // an integer is a number
-  integer: `${bigint}` | "⟨integer⟩";
+  length: `${number}${LengthUnit}` | "0" | "⟨length⟩" | Wild;
+  percentage: `${number}%` | "⟨percentage⟩" | Wild;
+  "length-percentage": `${number}${LengthUnit}` | "0" | `${number}%` | "⟨length⟩" | "⟨percentage⟩" | Wild;
+  number: `${number}` | "⟨number⟩" | "⟨integer⟩" | Wild; // an integer is a number
+  integer: `${bigint}` | "⟨integer⟩" | Wild;
   "hex-color": `#${string}`;
   "custom-ident": string; // minus NotIdent, and any sentinel but its own, see Consume
   ident: string; // minus NotIdentStart
   "ident-token": string; // minus NotIdentStart
   "dashed-ident": `--${string}` | "⟨dashed-ident⟩";
-  angle: `${number}${"deg" | "rad" | "grad" | "turn"}` | "⟨angle⟩";
-  time: `${number}${"s" | "ms"}` | "⟨time⟩";
-  resolution: `${number}${"dpi" | "dpcm" | "dppx" | "x"}` | "⟨resolution⟩";
+  angle: `${number}${"deg" | "rad" | "grad" | "turn"}` | "⟨angle⟩" | Wild;
+  time: `${number}${"s" | "ms"}` | "⟨time⟩" | Wild;
+  resolution: `${number}${"dpi" | "dpcm" | "dppx" | "x"}` | "⟨resolution⟩" | Wild;
   flex: `${number}fr`;
   zero: "0" | "+0" | "-0"; // the twin also takes 0.0 and 0e5
   "hash-token": `#${string}`;
@@ -157,7 +165,7 @@ export type Consume<N, S extends string, P extends boolean = false> =
     ? N extends ["kw", infer V extends string] ? (Tok1<S> extends [V, infer R extends string] ? Trim<R> : P extends true ? Pend<N, S> : never)
     : N extends ["lit", infer V extends string] ? (S extends `${V}${infer R}` ? Trim<R> : P extends true ? Pend<N, S> : never)
     : N extends ["type", infer V extends string]
-      ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? (V extends "custom-ident" ? (T extends "⟨custom-ident⟩" ? Trim<R> : Lowercase<T> extends NotIdent ? P extends true ? Pend<N, S> : never : Trim<R>) : V extends "ident" | "ident-token" ? (T extends NotIdentStart ? P extends true ? Pend<N, S> : never : Trim<R>) : Trim<R>) : V extends Numeric ? (T extends `${string}(${string}` ? MathCall<S> | (P extends true ? Pend<N, S> : never) : P extends true ? Pend<N, S> : never) : P extends true ? Pend<N, S> : never) : never)
+      ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? (V extends "custom-ident" ? (T extends "⟨custom-ident⟩" | Wild ? Trim<R> : Lowercase<T> extends NotIdent ? P extends true ? Pend<N, S> : never : Trim<R>) : V extends "ident" | "ident-token" ? (T extends NotIdentStart ? P extends true ? Pend<N, S> : never : Trim<R>) : Trim<R>) : V extends Numeric ? (T extends `${string}(${string}` ? MathCall<S> | (P extends true ? Pend<N, S> : never) : P extends true ? Pend<N, S> : never) : P extends true ? Pend<N, S> : never) : never)
       : V extends "string" | "url" ? Scanned<V, S> | (P extends true ? Pend<N, S> : never)
       : V extends "declaration-value" ? Scanned<V, S>
       : V extends "math-function" ? MathCall<S>
@@ -166,7 +174,7 @@ export type Consume<N, S extends string, P extends boolean = false> =
       // <if()> has `;` between its branches, which no token of the grammar is: balanced tokens too, the twin checks the conditions
       : V extends "if()" ? (S extends `if(${infer R}` ? Close<Declaration<Trim<R>, Trim<R>, [], true>> : never)
       // `<name()>`: the name must be next before its grammar is even parsed (keeps <color> cheap)
-      : V extends keyof Syns ? (V extends `${infer F}()` ? (S extends `${F}(${string}` ? Consume<Parse<Syns[V]>, S, P> : P extends true ? Pend<N, S> : never) : S extends `⟨${V}⟩${infer R}` ? Trim<R> : Consume<Parse<Syns[V]>, S, P>) // typed value sentinel (api-typed.ts)
+      : V extends keyof Syns ? (V extends `${infer F}()` ? (S extends `${F}(${string}` ? Consume<Parse<Syns[V]>, S, P> : P extends true ? Pend<N, S> : never) : S extends `⟨${V | (V extends WildNamed ? "*" : never)}⟩${infer R}` ? Trim<R> : Consume<Parse<Syns[V]>, S, P>) // typed value sentinel (api-typed.ts)
       : never
     : N extends ["prop", infer V extends string] ? (V extends keyof Props ? Consume<Parse<Props[V]>, S, P> : never)
     : N extends ["fn", infer F extends string, infer A] ? (S extends `${F}(${infer R}` ? (F extends RelativeFn ? (Trim<R> extends `from ${string}` ? Close<Declaration<Trim<R>, Trim<R>, []>> : Close<Consume<A, Trim<R>, P>>) : Close<Consume<A, Trim<R>, P>>) : P extends true ? Pend<N, S> : never)
@@ -220,7 +228,7 @@ type Scanned<V extends string, S extends string> = V extends "string" ? Quoted<S
 type Quoted<S extends string> =
   S extends `"${string}"${infer R}` ? Trim<R> : S extends `'${string}'${infer R}` ? Trim<R> : never;
 type UrlRest<S extends string> =
-  S extends `⟨url⟩${infer R}` ? Trim<R> : S extends `url(${infer B})${infer R}` ? (UrlBody<TrimEnd<Trim<B>>> extends true ? Trim<R> : never) : never;
+  S extends `⟨${"url" | "*"}⟩${infer R}` ? Trim<R> : S extends `url(${infer B})${infer R}` ? (UrlBody<TrimEnd<Trim<B>>> extends true ? Trim<R> : never) : never;
 type UrlBody<B extends string> =
   B extends `"${infer Q}"` ? (Q extends `${string}"${string}` ? false : true)
   : B extends `'${infer Q}'` ? (Q extends `${string}'${string}` ? false : true)
