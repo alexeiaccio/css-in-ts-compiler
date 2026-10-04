@@ -32,6 +32,7 @@ import { usesDerived } from "./derived-data.ts";
 import { kernelEntries } from "./kernel.ts";
 import { forget, Registry } from "./registry.ts";
 import { closeNames, globalNames, LAYERS, renderSheet, themedEntries } from "./sheet.ts";
+import { closeTrace, hook, runPromiseExit, runSync, warned } from "./trace.ts";
 
 export { instrument } from "./instrument.ts";
 export { addGlobal, renderSheet } from "./sheet.ts";
@@ -98,7 +99,7 @@ export const cssTarget = Effect.runSync(browsers()).flatMap((t) => {
 
 // Runs a hook's program; a failure is thrown as the error itself.
 const run = async <A>(program: Effect.Effect<A, PluginError>): Promise<A> => {
-  const exit = await Effect.runPromiseExit(program);
+  const exit = await runPromiseExit(program);
   if (Exit.isSuccess(exit)) return exit.value;
   throw Cause.squash(exit.cause);
 };
@@ -192,9 +193,11 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     return out;
   };
 
-  const flushWarnings = Effect.fnUntraced(function* (warn: (w: string) => void) {
+  const flushWarnings = Effect.fnUntraced(function* (warn: (w: string) => void, file?: string) {
     const { warnings } = yield* Registry;
-    yield* Effect.sync(() => warnings.splice(0).forEach(warn));
+    const ws = warnings.splice(0);
+    yield* Effect.sync(() => ws.forEach(warn));
+    yield* warned(ws, file);
   });
 
   const clientTransform = Effect.fn("cssints.clientTransform")(function* (
@@ -234,7 +237,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
       return { sites, runtimes };
     });
     const { sites, runtimes } = parsed.sites.length
-      ? yield* evaluate(runner!, id, recorded).pipe(Effect.ensuring(flushWarnings(warn)))
+      ? yield* evaluate(runner!, id, recorded).pipe(Effect.ensuring(flushWarnings(warn, id)))
       : yield* Effect.sync(() => forget(id)).pipe(Effect.andThen(recorded(new Map())));
 
     const ms = new MagicString(code);
@@ -370,18 +373,21 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     if (inner || !(SHEET in chunk.modules)) return null;
     const [css, cssPost] = cssPlugins;
     const text = yield* sheet();
-    yield* Effect.tryPromise({
-      try: async () => {
-        const r = (await callTransform(css, ctx, text)) as { code?: string } | null | undefined;
-        await callTransform(cssPost, ctx, r?.code ?? text);
-      },
-      catch: (cause) =>
-        new HookError({
-          hook: "renderChunk",
-          message: `cssints: the sheet failed in Vite's CSS pipeline: ${String(cause)}`,
-          cause,
-        }),
-    });
+    const via = (plugin: Plugin | undefined, code: string) =>
+      Effect.tryPromise({
+        try: () => callTransform(plugin, ctx, code),
+        catch: (cause) =>
+          new HookError({
+            hook: "renderChunk",
+            message: `cssints: the sheet failed in Vite's CSS pipeline: ${String(cause)}`,
+            cause,
+          }),
+      });
+    const r = (yield* via(css, text).pipe(Effect.withSpan("cssints.lightningcss"))) as
+      | { code?: string }
+      | null
+      | undefined;
+    yield* via(cssPost, r?.code ?? text).pipe(Effect.withSpan("cssints.cssPost"));
     return null;
   });
 
@@ -442,13 +448,21 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     },
     buildStart() {
       if (inner || server) return;
-      return run(startServer());
+      return run(hook("vite.buildStart", root, startServer()));
     },
     buildEnd() {
-      if (build && !inner) return run(buildEnd((w) => this.warn(w)));
+      if (build && !inner)
+        return run(
+          hook(
+            "vite.buildEnd",
+            root,
+            buildEnd((w) => this.warn(w)),
+          ),
+        );
     },
-    closeBundle() {
-      return run(stopServer());
+    async closeBundle() {
+      await run(hook("vite.closeBundle", root, stopServer()));
+      if (!inner) await closeTrace();
     },
     resolveId(id) {
       if (id === SHEET_IMPORT) return SHEET;
@@ -456,24 +470,29 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     },
     // Build: the rules are known only once every module is transformed, so a placeholder until renderChunk.
     load(id) {
-      if (id === SHEET) return build ? LAYERS : Effect.runSync(sheet());
+      if (id === SHEET) return build ? LAYERS : runSync(hook("vite.load", id, sheet()));
       if (id.startsWith(`\0${RUNTIME_ID}`))
-        return Effect.runSync(runtimeModule(id.slice(RUNTIME_ID.length + 1)));
+        return runSync(runtimeModule(id.slice(RUNTIME_ID.length + 1)));
     },
     renderChunk(_, chunk) {
-      return run(renderChunk(this, chunk));
+      return run(hook("vite.renderChunk", chunk.fileName, renderChunk(this, chunk)));
     },
     // Before every plugin that compiles JSX (Solid's, a Babel one), wherever the user lists them.
     transform: {
       order: "pre",
       handler(code, id) {
         return run(
-          transform(this, code, id).pipe(Effect.catch((e: PluginError) => locate(e, code, id))),
+          hook(
+            "vite.transform",
+            id,
+            transform(this, code, id).pipe(Effect.catch((e: PluginError) => locate(e, code, id))),
+            this.environment.name,
+          ),
         );
       },
     },
     hotUpdate({ file, modules }) {
-      return Effect.runSync(hotUpdate(this.environment, file, modules));
+      return runSync(hook("vite.hotUpdate", file, hotUpdate(this.environment, file, modules)));
     },
   };
   // After import analysis: the sheet module tells the server which version it runs (see configureServer).

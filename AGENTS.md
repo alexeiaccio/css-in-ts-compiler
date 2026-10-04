@@ -35,6 +35,8 @@ cd packages/css-grammar && bun run longhands  # rewrite src/longhands.ts (the lo
                                               # read it) after a Chrome or mdn-data bump (needs an installed Chrome)
 cd packages/css-grammar && bun run webref     # rewrite scripts/webref-properties.json with Chrome as the judge; run it, then extract, after a
                                               # Chrome, @webref/css, mdn-data or twin bump (needs an installed Chrome; ~1 minute)
+cd packages/cssints && node test/trace.mjs   # CSSINTS_TRACE=otlp against an in-process collector (in `test`); node test/trace-live.mjs: a traced sky build + HMR read back from a local Jaeger
+                                              # (docker run -d --rm -p 16686:16686 -p 4318:4318 jaegertracing/all-in-one; skips without it). Debug any build: CSSINTS_TRACE=otlp bun run build
 cd packages/cssints && node bench/lsp.mjs     # editor latency on the demo's Button.tsx over tsgo's language server
 cd packages/cssints && bun run members        # regenerate src/members.ts (the names of "cssints" in user code)
 bun run typecheck                             # per package: tsgo -p tsconfig.json --noEmit + effect-tsgo diagnostics; apps/demo and apps/sky: tsgo and tsc 5.9
