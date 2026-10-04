@@ -196,7 +196,9 @@ const invoke = (op, arg) => `(${inPage.toString()})(${op}, ${arg})`;
 
 const SCHEME =
   process.env.SCHEME ??
-  (spawnSync("defaults", ["read", "-g", "AppleInterfaceStyle"], { encoding: "utf8" }).stdout.trim() === "Dark"
+  (spawnSync("defaults", ["read", "-g", "AppleInterfaceStyle"], {
+    encoding: "utf8",
+  }).stdout.trim() === "Dark"
     ? "dark"
     : "light");
 const SCALE = Number(process.env.SCALE ?? 2);

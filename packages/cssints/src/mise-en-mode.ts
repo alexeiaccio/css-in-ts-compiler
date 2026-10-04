@@ -23,9 +23,7 @@ export const ASPECTS: Record<string, string> = {
 // custom properties (unlike kernels): that is what lets the same `--color-*` fill through from app to author to viewer.
 const order = { key: "mise-en-mode@1", css: `@layer ${LAYERS.join(", ")};` };
 
-const groupByAspect = (
-  declarations: Record<string, string>,
-): Map<string, [string, string][]> => {
+const groupByAspect = (declarations: Record<string, string>): Map<string, [string, string][]> => {
   const groups = new Map<string, [string, string][]>();
   for (const [name, value] of Object.entries(declarations)) {
     const prefix = Object.keys(ASPECTS).find((p) => name.startsWith(p));

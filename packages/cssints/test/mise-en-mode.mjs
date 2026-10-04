@@ -39,7 +39,9 @@ assert.ok(
   `typography fragment\n${css}`,
 );
 assert.ok(
-  css.includes('@layer viewer { :where([data-mode="dark"], [data-mode~="dark/color"]) { --color-bg: #101018 } }'),
+  css.includes(
+    '@layer viewer { :where([data-mode="dark"], [data-mode~="dark/color"]) { --color-bg: #101018 } }',
+  ),
   `viewer color\n${css}`,
 );
 assert.ok(
