@@ -46,6 +46,7 @@ import {
 import { addRuntime } from "./delivery.ts";
 import { clamp, colorMix, max, min } from "./functions.ts";
 import { addKernel } from "./kernel.ts";
+import { addGlobal } from "./sheet.ts";
 import { loweredOf } from "./lowered.ts";
 import {
   type At,
@@ -518,11 +519,12 @@ const conflictOf = ({ name, conflicts }: Plug, decls: Decl[], at?: At): MemberEr
 };
 
 const classesOf = Effect.fnUntraced(function* (
-  { __cssints: decls, markers, kernels, plugs }: CssNode,
+  { __cssints: decls, markers, kernels, globals, plugs }: CssNode,
   at?: At,
 ): Effect.fn.Return<string, Invalid | MacroError | MemberError> {
   const registry = yield* Registry;
   if (kernels) for (const k of kernels) yield* addKernel(k, markers ?? [], at);
+  if (globals) for (const g of globals) yield* addGlobal(g.key, g.css);
   if (plugs)
     for (const plug of plugs) {
       const conflict = conflictOf(plug, decls, at);

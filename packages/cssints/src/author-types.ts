@@ -24,6 +24,16 @@ export interface Kernel {
   atProperty?: string;
   requires?: (BcdKey | { key: BcdKey; exact: true })[];
 }
+/**
+ * A global rule a member contributes: `key` registers it once (like a kernel's), and it goes to layer `_.k` with the
+ * globals. Unlike a kernel, two globals **may** declare the same custom property — a look sets the same `--color-*` in
+ * several source layers, which is the point of fill-through. Use it for a rule that is not a class: a theme under
+ * `[data-mode]`, an `@layer` order statement.
+ */
+export interface GlobalRule {
+  key: string;
+  css: string;
+}
 /** One element family of a runtime: the nearest `marker` ancestor's computed `read` is copied into `write`. */
 export interface ParentVar {
   marker: string;
@@ -68,6 +78,7 @@ export interface Built {
   decls: Decl[];
   markers?: string[];
   kernels?: Kernel[];
+  globals?: GlobalRule[];
 }
 
 // A method that says nothing of `excludes` is inferred with `any` from the constraint of `context`, as `Sp` is.

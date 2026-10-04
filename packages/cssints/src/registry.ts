@@ -7,7 +7,7 @@ import { Context } from "effect";
 
 import type { Conflict, Kernel, Runtime } from "./author-types.ts";
 
-export type { Conflict, Kernel, ParentVar, Runtime } from "./author-types.ts";
+export type { Conflict, GlobalRule, Kernel, ParentVar, Runtime } from "./author-types.ts";
 
 export interface Rule {
   layer: string;

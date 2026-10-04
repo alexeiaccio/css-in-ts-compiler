@@ -9,7 +9,7 @@ import { Cause, Effect, Exit } from "effect";
 
 import { MacroError, MemberError } from "./errors.ts";
 import { covers, relation } from "./leaves.ts";
-import { type Kernel, type Plug, type Property, registry } from "./registry.ts";
+import { type GlobalRule, type Kernel, type Plug, type Property, registry } from "./registry.ts";
 
 /**
  * One condition of a style: an at-rule prelude (`@media (width >= 40rem)`), a pseudo-class (`:hover`), an attribute
@@ -41,21 +41,22 @@ export interface CssNode {
   __cssints: Decl[];
   markers?: [marker: string, kernel: string][];
   kernels?: Kernel[];
+  globals?: GlobalRule[];
   plugs?: Plug[];
 }
-type Carry = Pick<CssNode, "markers" | "kernels" | "plugs">;
+type Carry = Pick<CssNode, "markers" | "kernels" | "globals" | "plugs">;
 
 // A style node. Chaining a method on it calls `chain(name, args, self)`, which makes the next node (flex() and grid(),
 // a plugin's context). The target always has the three carried keys (undefined when empty): a missing one would read
 // as a chain method.
 export const node = (
   decls: Decl[],
-  { markers, kernels, plugs }: Carry = {},
+  { markers, kernels, globals, plugs }: Carry = {},
   chain: (name: string, args: unknown[], self: CssNode) => CssNode = (name, args) =>
     node([chainDecl(undefined, name, args)]),
 ): CssNode =>
   new Proxy<CssNode>(
-    { __cssints: decls, markers, kernels, plugs },
+    { __cssints: decls, markers, kernels, globals, plugs },
     {
       get: (t, k) =>
         k in t || typeof k === "symbol"
@@ -220,6 +221,11 @@ export function carried(nodes: CssNode[]): Carry {
       for (const k of n.kernels) {
         const all = (out.kernels ??= []);
         if (!all.includes(k)) all.push(k);
+      }
+    if (n.globals)
+      for (const g of n.globals) {
+        const all = (out.globals ??= []);
+        if (!all.some((x) => x.key === g.key)) all.push(g);
       }
     if (n.plugs)
       for (const p of n.plugs) {

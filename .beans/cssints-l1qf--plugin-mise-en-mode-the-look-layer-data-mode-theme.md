@@ -1,10 +1,11 @@
 ---
 # cssints-l1qf
 title: 'Plugin: mise-en-mode — the look layer (data-mode themes, source layers, containment)'
-status: todo
+status: completed
 type: feature
+priority: normal
 created_at: 2026-10-03T11:43:27Z
-updated_at: 2026-10-03T11:43:27Z
+updated_at: 2026-10-03T13:05:47Z
 ---
 
 Make **Mise en Mode** a cssints plugin: a look is a theme applied at a `data-mode` scope, resolved by the Mode Contract (`@layer app, author, viewer`, per-variable fill-through, exact record-key matching, viewer override as the a11y valve). This resolves the layer seam for the Atmosphere design system (effects-of-atmosphere ADR 0003, option 2) without changing the core.
@@ -34,3 +35,46 @@ mode("critical/color");   // the color aspect of the `critical` expression
 - Whether the plugin ships as `cssints/mise-en-mode` or a package (`@cssints/mise-en-mode`).
 - `@scope` containment: plugin-emitted or core.
 - Checking: a look that mixes sources value-by-value cannot be `check.contrast`-ed as one combination — check each theme, measure combinations outside the build (as `apps/sky/test/contrast.mjs` does).
+
+## Spike findings (2026-10-03, effects-of-atmosphere session)
+
+A working spike of `cssints/mise-en-mode` was written and run against `test/` (Vite + the real plugin), then reverted. What holds, and the one blocker:
+
+**Holds**
+- A plugin **member can be a plain wrapper** around `style()`: `export const look = (expression, source, declarations) => style(grammar, () => ({ decls: [], kernels: [...] }))(expression)`. The engine recognized the export as a member and evaluated the call (verified: the macro ran it and raised its errors).
+- `style()` checks the grammar against the **joined args**, so structured arguments must close over the wrapper — only the grammar-checked value goes to the member. Verified.
+- The expression grammar: `<custom-ident>` rejects a dotted reverse-DNS key (`com.alice.midnight`); `"<custom-ident> | <string>"` accepts both, with dotted keys quoted at the call site (`look('"com.alice.midnight"', …)`) and the quotes stripped when building the selector. Verified.
+- Kernels are emitted **verbatim inside `@layer _.k { … }`**, so a kernel css can carry the layering itself: `@layer app, author, viewer;` plus `@layer app { [data-mode="dark"] { --color-…: … } }` (nested layers under `_.k`). The layering is expressible.
+
+**Blocker**
+- `addKernel` (`src/kernel.ts`) rejects two kernels that declare the same custom property: `kernels mise-en-mode:app:dark and mise-en-mode:viewer:dark both declare --color-bg: a plugin picks its own short custom-property names`. A look **must** share `--color-*` across sources and expressions — that is the whole point of per-variable fill-through — so one-kernel-per-look cannot work.
+- `addGlobal(key, css)` (`src/sheet.ts`) adds global rules to `_.k` **without** that check and is documented "for the engine and plugins", but it is an `Effect.fn` over the Registry and is **not exposed** to `cssints/plugin`.
+
+**Recommended seam (small)**
+- Let a style node contribute global rules alongside kernels: extend `Built` / `CssNode` with `globals?: { key: string; css: string }[]`, registered with `addGlobal` (no variable-uniqueness check), or expose a `global(key, css)` helper on `cssints/plugin`.
+- Then `cssints/mise-en-mode` is a wrapper over `style()` returning `globals`: the order statement (`@layer app, author, viewer;`) and one rule per look (`@layer <source> { [data-mode="<expression>"] { … } }`). Fragments (`expression/aspect`) and containment (`@scope`) are then the plugin's own global css.
+
+**Still open after the seam**: fragments, `@scope` containment, and whether `check.contrast` should read a look's sources (it reads themes one at a time today).
+
+## Done (2026-10-03)
+
+**Engine seam**: a style node can carry **globals** — `Built.globals` / `CssNode.globals` (`{ key, css }[]`), merged by `carried`, registered with `addGlobal` in `macro.classesOf`. Unlike a kernel, two globals may share a custom property: that is the fill-through case a look needs.
+
+**Plugin** `cssints/mise-en-mode`: `look(expression, source, declarations)` — a wrapper over `style()` returning globals: `@layer app, author, viewer;` and `@layer <source> { [data-mode="<expression>"] { … } }`. A dotted reverse-DNS expression is quoted at the call (`look('"com.alice.midnight"', …)`) since `<custom-ident>` rejects dots. Subpath export added (dev + `publishConfig`), `vite pack` entry, and a `globals` bullet in docs/API.md (Plugins). Fixture + `test/mise-en-mode.mjs`, wired into the `test` script after `surface.mjs`.
+
+Output:
+
+```css
+@layer _.k, _.a, _.b, _.c, _.d, _.e;
+@layer _.k {
+  @layer app, author, viewer;
+  @layer app { [data-mode="dark"] { --color-bg: #0b0b0f; --color-fg: #f3f4f6 } }
+  @layer viewer { [data-mode="dark"] { --color-bg: #101018 } }
+  @layer author { [data-mode="com.alice.midnight"] { --color-bg: #0a0a12 } }
+  @layer app { [data-mode="critical"] { --color-action-primary-background: #e5484d } }
+}
+```
+
+**Verified**: `node mise-en-mode.mjs`, `plugins.mjs`, `frame.mjs`, `surface.mjs`, `docs.mjs`, `packages.mjs` all pass; `bun run typecheck` 0 errors / 0 warnings; `vp lint` 0 errors.
+
+**Still open**: `data-mode` fragments (`expression/aspect`), `@scope` containment, and whether `check.contrast` should read a look's sources.

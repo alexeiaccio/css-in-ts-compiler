@@ -13,6 +13,7 @@ export default defineConfig({
         plugin: "src/author.ts",
         frame: "src/frame.ts",
         surface: "src/surface.ts",
+        "mise-en-mode": "src/mise-en-mode.ts",
       },
       platform: "node",
       format: "esm",
