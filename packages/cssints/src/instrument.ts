@@ -9,7 +9,7 @@ import type {
 } from "oxc-parser";
 import { parseSync } from "oxc-parser";
 import MagicString from "magic-string";
-import { Effect, Predicate } from "effect";
+import { Effect, Formatter, Predicate } from "effect";
 
 import { ImportError } from "./errors.ts";
 
@@ -45,7 +45,9 @@ const isRuntime = (d: ImportDeclaration, x: ImportDeclarationSpecifier) =>
 // The runtime part of an attributed import, as an import of its own (`import { _cv } from "cssints";`), or "".
 export const keptImport = (d: ImportDeclaration, code: string) => {
   const names = d.specifiers.filter((x) => isRuntime(d, x)).map((x) => code.slice(x.start, x.end));
-  return names.length ? `import { ${names.join(", ")} } from ${JSON.stringify(RUNTIME)};` : "";
+  return names.length
+    ? `import { ${names.join(", ")} } from ${Formatter.formatJson(RUNTIME)};`
+    : "";
 };
 
 interface CssImports {
@@ -182,8 +184,9 @@ export const instrument = Effect.fn("cssints.instrument")(function* (
   const sites = findSites(program, withConditions(program, code, imp));
   const ms = new MagicString(code);
   const hoisted: string[] = [];
+  const file = Formatter.formatJson(id);
   sites.forEach((s, n) => {
-    const site = `__site(__at(${JSON.stringify(id)}, ${n}, ${s.start}), `;
+    const site = `__site(__at(${file}, ${n}, ${s.start}), `;
     // Sites inside functions never run at module load, and may use locals of a helper that is called with
     // arguments. The runner calls __cssints_hoisted only on the module it evaluates, after it has loaded.
     // A top-level site the load did not reach (`false && p(4)`, a branch not taken) goes there too, for the
@@ -192,7 +195,7 @@ export const instrument = Effect.fn("cssints.instrument")(function* (
     if (s.inFn) hoisted.push(`${site}${expr});`);
     else {
       ms.prependLeft(s.start, site).appendRight(s.end, ")");
-      hoisted.push(`__unseen(${JSON.stringify(id)}, ${n}) && ${site}${expr});`);
+      hoisted.push(`__unseen(${file}, ${n}) && ${site}${expr});`);
     }
   });
   // cssints members are properties of `css` (macro.ts): named imports destructure it.
@@ -202,14 +205,14 @@ export const instrument = Effect.fn("cssints.instrument")(function* (
     const named = d.specifiers.filter((x) => !isRuntime(d, x));
     const bind = ns
       ? ns.local.name
-      : `{ ${named.map((x) => `${JSON.stringify(importedName(x))}: ${x.local.name}`).join(", ")} }`;
+      : `{ ${named.map((x) => `${Formatter.formatJson(importedName(x))}: ${x.local.name}`).join(", ")} }`;
     ms.overwrite(
       d.start,
       d.end,
-      `import { css as __css${i} } from ${JSON.stringify(RUNTIME)}; const ${bind} = __css${i};${keptImport(d, code)}`,
+      `import { css as __css${i} } from ${Formatter.formatJson(RUNTIME)}; const ${bind} = __css${i};${keptImport(d, code)}`,
     );
   });
-  ms.prepend(`import { __at, __site, __unseen } from ${JSON.stringify(RUNTIME)};\n`);
+  ms.prepend(`import { __at, __site, __unseen } from ${Formatter.formatJson(RUNTIME)};\n`);
   if (hoisted.length)
     ms.append(`\nexport function __cssints_hoisted() {\n${hoisted.join("\n")}\n}\n`);
   return { code: ms.toString(), sites, imp };

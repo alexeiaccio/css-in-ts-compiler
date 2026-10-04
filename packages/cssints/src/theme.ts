@@ -3,7 +3,7 @@
 // sets, and the aliases that depend on them, under a condition or a selector. Both builders are called in user
 // expressions, so their edge is plain code (`edge`); everything behind it is Effect.
 import { DTCG_TYPES, type DtcgType, TOKEN_TYPES, type TokenType } from "@cssints/css-grammar/token";
-import { Effect } from "effect";
+import { Effect, Formatter, Predicate } from "effect";
 
 import type { MacroError } from "./errors.ts";
 import { standIn } from "./derived-data.ts";
@@ -11,8 +11,6 @@ import { edge, fail } from "./lib.ts";
 import { registry } from "./registry.ts";
 import { checkSyntaxFx, CSSTokenValue, declare, nameOf, supportTest } from "./token.ts";
 
-const isObject = (v: unknown): v is Record<string, unknown> =>
-  !!v && typeof v === "object" && !Array.isArray(v);
 const SUPPORTED = Object.keys(DTCG_TYPES).join(", ");
 
 // ---------- DTCG values to CSS text
@@ -69,10 +67,12 @@ const cssOf = Effect.fnUntraced(function* (
 ): Effect.fn.Return<string, MacroError> {
   if (typeof value === "string") {
     const key = value.trim().toLowerCase();
-    return type === "fontWeight" && key in FONT_WEIGHTS ? String(FONT_WEIGHTS[key]) : value.trim();
+    return type === "fontWeight" && Object.hasOwn(FONT_WEIGHTS, key)
+      ? String(FONT_WEIGHTS[key])
+      : value.trim();
   }
   if (isNumber(value) && (type === "number" || type === "fontWeight")) return String(value);
-  if (isObject(value) && type === "color") {
+  if (Predicate.isObject(value) && type === "color") {
     const { colorSpace: space, components: c, alpha } = value;
     const named = typeof space === "string" ? COLOR_FN[space] : undefined;
     if (
@@ -94,7 +94,7 @@ const cssOf = Effect.fnUntraced(function* (
       : `color(${space as string} ${parts.join(" ")}${a})`;
   }
   const units = UNITS[type];
-  if (isObject(value) && units) {
+  if (Predicate.isObject(value) && units) {
     const { value: n, unit } = value;
     if (!isNumber(n) || typeof unit !== "string" || !units.includes(unit))
       return yield* fail(
@@ -102,7 +102,9 @@ const cssOf = Effect.fnUntraced(function* (
       );
     return `${n}${unit}`;
   }
-  return yield* fail(`cssints: ${what} is not a DTCG ${type} value: ${JSON.stringify(value)}`);
+  return yield* fail(
+    `cssints: ${what} is not a DTCG ${type} value: ${Formatter.formatJson(value)}`,
+  );
 });
 
 // A value that is only `var(--target)` needs no feature of its own, so it stays live.
@@ -143,7 +145,7 @@ const collect = Effect.fnUntraced(function* (
   const own = node["$type"];
   if (own !== undefined && typeof own !== "string")
     return yield* fail(
-      `cssints: createTokens(): $type of ${here} is a string, got ${JSON.stringify(own)}`,
+      `cssints: createTokens(): $type of ${here} is a string, got ${Formatter.formatJson(own)}`,
     );
   const inherited = own ?? type;
   for (const [key, child] of Object.entries(node)) {
@@ -157,11 +159,11 @@ const collect = Effect.fnUntraced(function* (
         `cssints: createTokens(): the name "${key}" in ${here} has a { } or . (DTCG names cannot)`,
       );
     const at = [...path, key];
-    if (!isObject(child))
+    if (!Predicate.isObject(child))
       return yield* fail(
-        `cssints: createTokens(): ${at.join(".")} is a group or a token ({ $value }), got ${JSON.stringify(child)}`,
+        `cssints: createTokens(): ${at.join(".")} is a group or a token ({ $value }), got ${Formatter.formatJson(child)}`,
       );
-    if ("$value" in child) {
+    if (Object.hasOwn(child, "$value")) {
       const stray = Object.keys(child).filter((k) => !k.startsWith("$"));
       if (stray.length)
         return yield* fail(
@@ -195,7 +197,7 @@ export const createTokens = (...args: unknown[]): unknown =>
       const [tree, mapper] = args;
       if (
         !registry.at ||
-        !isObject(tree) ||
+        !Predicate.isObject(tree) ||
         args.length > 2 ||
         (mapper !== undefined && typeof mapper !== "function")
       )
@@ -234,7 +236,7 @@ export const createTokens = (...args: unknown[]): unknown =>
       ): Effect.fn.Return<Resolved, MacroError> {
         const done = resolved.get(leaf.dotted);
         if (done) return done;
-        if (leaf.type !== undefined && !(leaf.type in DTCG_TYPES))
+        if (leaf.type !== undefined && !Object.hasOwn(DTCG_TYPES, leaf.type))
           return yield* fail(
             `cssints: createTokens(): ${leaf.dotted} has $type "${leaf.type}", which has no token type (no @property syntax); supported: ${SUPPORTED}`,
           );
@@ -338,7 +340,7 @@ export const createTokens = (...args: unknown[]): unknown =>
         let group = root;
         for (const [i, k] of l.path.entries())
           if (i === l.path.length - 1) group[k] = token;
-          else if (isObject(group[k])) group = group[k];
+          else if (Predicate.isObject(group[k])) group = group[k];
           else {
             const g: Record<string, unknown> = (group[k] = {});
             sets.set(g, set);
@@ -362,9 +364,7 @@ export const createTokens = (...args: unknown[]): unknown =>
 
 // The text a site of createTokens leaves on the client: the tokens by path, as `var(--name)` strings.
 export const tokensOf = (v: unknown): string | undefined =>
-  isObject(v) && sets.has(v)
-    ? JSON.stringify(v, (_, x: unknown) => (x instanceof CSSTokenValue ? String(x) : x))
-    : undefined;
+  Predicate.isObject(v) && sets.has(v) ? Formatter.formatJson(v) : undefined;
 
 // ---------- createGlobalTheme
 
@@ -376,7 +376,7 @@ interface Condition {
   cond: { text: string };
 }
 const isCondition = (v: unknown): v is Condition =>
-  typeof v === "function" && "__cond" in v && "cond" in v;
+  typeof v === "function" && Predicate.hasProperty(v, "__cond") && Predicate.hasProperty(v, "cond");
 
 // Custom properties are declared on :root. Under a container query :root matches nothing (it has no container above
 // it), so there every element inside the container gets them; :where() keeps the specificity at zero.
@@ -390,9 +390,9 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
   edge(
     Effect.gen(function* () {
       const [tokens, condition, overrides] = args;
-      const set = isObject(tokens) ? sets.get(tokens) : undefined;
+      const set = Predicate.isObject(tokens) ? sets.get(tokens) : undefined;
       const at = registry.at;
-      if (!at || !set || args.length !== 3 || !isObject(overrides))
+      if (!at || !set || args.length !== 3 || !Predicate.isObject(overrides))
         return yield* fail(
           "cssints: createGlobalTheme(tokens, condition | selector, overrides) takes tokens of createTokens, a media() or container() condition or a selector, and the values to set",
         );
@@ -413,7 +413,7 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
         block = (d) => `${label}{${SCOPE[prelude]}{${d}}}`;
       } else
         return yield* fail(
-          `cssints: createGlobalTheme(): the second argument is a media() or container() condition or a selector, got ${JSON.stringify(condition)}`,
+          `cssints: createGlobalTheme(): the second argument is a media() or container() condition or a selector, got ${Formatter.formatJson(condition)}`,
         );
 
       const changed = new Map<string, string>(); // variable -> the value it gets here
@@ -482,7 +482,8 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
                 child.name,
                 [...targets.values()].map((t) => t.name),
               );
-          } else if (isObject(child) && isObject(v)) yield* walk(child, v, [...path, key]);
+          } else if (Predicate.isObject(child) && Predicate.isObject(v))
+            yield* walk(child, v, [...path, key]);
           else
             return yield* fail(
               child === undefined

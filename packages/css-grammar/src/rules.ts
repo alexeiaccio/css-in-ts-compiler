@@ -3,7 +3,7 @@
 // `checkRules` fails like the twin's `valid`: with a tagged error that names the property and the value.
 //
 // The rules themselves are plain code that calls the twin core directly; `checkRules` is the Effect boundary.
-import { Effect } from "effect";
+import { Effect, Formatter } from "effect";
 
 import { RuleError } from "./errors.ts";
 import { matches } from "./twin-core.ts";
@@ -37,7 +37,7 @@ function gridAreas(v: string) {
   const grid = strings(v).map((s) => {
     const cells: string[] = [];
     for (const [, name, nul, trash] of s.matchAll(/([\w\u0080-\uffff-]+)|(\.+)|\s+|(.)/gu)) {
-      if (trash) return `the string "${s}" has a trash token ${JSON.stringify(trash)}`;
+      if (trash) return `the string "${s}" has a trash token ${Formatter.formatJson(trash)}`;
       if (name || nul) cells.push(name ?? "");
     }
     return cells;

@@ -1,7 +1,7 @@
 // Kernels: the global rules a style needs (markers and kernels of a style node), registered with the sheet by key.
 // Kept out of sheet.ts, which reads mdn-data, because the library (macro.ts) registers them at evaluation.
 import { browsers, lacking } from "@cssints/css-grammar/support";
-import { Effect } from "effect";
+import { Effect, Formatter } from "effect";
 
 import { MacroError } from "./errors.ts";
 import { type At, type Kernel, Registry, type RegistryState } from "./registry.ts";
@@ -72,6 +72,6 @@ export const addKernel = Effect.fnUntraced(function* (
 // What a module records of kernels: those its styles use. One line each (JSON has no newline), so the sheet needs no
 // registry.
 export const kernelEntries = ({ kernels }: RegistryState, file: string): string[] =>
-  [...kernels.values()]
-    .filter((e) => e.users.has(file))
-    .map((e) => `${KERNEL}${JSON.stringify(e.kernel)}`);
+  [...kernels.values()].flatMap((e) =>
+    e.users.has(file) ? [`${KERNEL}${Formatter.formatJson(e.kernel)}`] : [],
+  );

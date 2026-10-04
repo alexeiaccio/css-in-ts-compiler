@@ -1,0 +1,6 @@
+{
+  // `bun run test` checks the type tests with TypeScript 5.9, which the Effect language service patches too; without Effect code
+  // under test, its anyUnknownInErrorContext diagnostic only trips TS2590 on the recognizer's unions. effect-tsgo (typecheck) runs them.
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "plugins": [] }
+}

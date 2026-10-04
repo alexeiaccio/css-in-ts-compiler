@@ -23,7 +23,7 @@
   },
   "scripts": {
     "build": "vp pack",
-    "test": "node test/check.ts && node test/check-typed.ts && node test/check-queries.ts && node test/check-selector.ts && node test/check-support.ts && node ../../node_modules/typescript/bin/tsc -p tsconfig.json",
+    "test": "node test/check.ts && node test/check-typed.ts && node test/check-queries.ts && node test/check-selector.ts && node test/check-support.ts && node ../../node_modules/typescript/bin/tsc -p tsconfig.tsc.json",
     "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
     "bench": "node bench/budget.mjs",
     "extract": "node scripts/extract.mjs && node scripts/keywords.ts",

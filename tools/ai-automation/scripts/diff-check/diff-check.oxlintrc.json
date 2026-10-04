@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": ["./src/plugin.ts", "../../src/plugin.ts"],
+  "rules": {
+    "diff-check/no-explicit-function-return-type": "warn",
+    "diff-check/no-let": "warn",
+    "automation/no-array-filter-map": "warn",
+    "automation/no-known-value-widening": "warn",
+    "automation/no-manual-effect-error-tag": "warn",
+    "automation/no-manual-tag-comparison": "warn",
+    "automation/no-manual-tagged-construction": "warn",
+    "automation/no-module-mocking": "warn",
+    "automation/no-object-parameters": "warn",
+    "automation/no-reduce-accumulator-copy": "warn",
+    "automation/no-reflect-apply": "warn",
+    "automation/no-reflect-get": "warn",
+    "automation/no-service-constructor-imports": "warn",
+    "automation/no-unknown-parameters": "warn",
+    "automation/no-unknown-returns": "warn",
+    "automation/no-unknown-type-aliases": "warn",
+    "automation/no-unsafe-dictionary-type": "warn",
+    "automation/no-widen-then-assert": "warn"
+  }
+}
