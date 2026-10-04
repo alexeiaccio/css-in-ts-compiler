@@ -5,7 +5,7 @@ status: completed
 type: feature
 priority: normal
 created_at: 2026-10-03T11:43:27Z
-updated_at: 2026-10-03T13:05:47Z
+updated_at: 2026-10-04T10:07:11Z
 ---
 
 Make **Mise en Mode** a cssints plugin: a look is a theme applied at a `data-mode` scope, resolved by the Mode Contract (`@layer app, author, viewer`, per-variable fill-through, exact record-key matching, viewer override as the a11y valve). This resolves the layer seam for the Atmosphere design system (effects-of-atmosphere ADR 0003, option 2) without changing the core.
@@ -77,4 +77,4 @@ Output:
 
 **Verified**: `node mise-en-mode.mjs`, `plugins.mjs`, `frame.mjs`, `surface.mjs`, `docs.mjs`, `packages.mjs` all pass; `bun run typecheck` 0 errors / 0 warnings; `vp lint` 0 errors.
 
-**Still open**: `data-mode` fragments (`expression/aspect`), `@scope` containment, and whether `check.contrast` should read a look's sources.
+**Follow-up**: `data-mode` fragments (`expression/aspect`) and `@scope` containment landed in `cssints-jkdk`. **Decided**: `check.contrast` reads registered themes one at a time; a look's fill-through is not a theme, so the plugin does not register looks as themes and core does not read them — the emitter checks each source it emits (ADR 0003).
