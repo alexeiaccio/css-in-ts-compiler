@@ -50,6 +50,11 @@ const selector = (expression: string, aspect: string): string =>
  * `@scope` (Rule 7), so a foreign look cannot repaint host chrome. Call it at a module's top level (it is a side effect,
  * like `css.global()`); it prints no class. `declarations` are custom properties (`--color-action-primary-background: …`).
  * A dotted reverse-DNS expression is quoted at the call: `look('"com.alice.midnight"', "author", { … })`.
+ * @param {string} expression the `data-mode` value the look answers to
+ * @param {Source} source the layer it lands in: "app", "author" or "viewer"
+ * @param {Record<string, string>} declarations the custom properties of the look
+ * @param {{ scope?: string }} options `scope`: a selector that confines the rule with `@scope`
+ * @returns {string} the look's style, for a module's top level
  */
 export const look = (
   expression: string,

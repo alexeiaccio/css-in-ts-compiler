@@ -460,9 +460,10 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
           ),
         );
     },
-    async closeBundle() {
-      await run(hook("vite.closeBundle", root, stopServer()));
-      if (!inner) await closeTrace();
+    closeBundle() {
+      return run(hook("vite.closeBundle", root, stopServer())).then(() =>
+        inner ? undefined : closeTrace(),
+      );
     },
     resolveId(id) {
       if (id === SHEET_IMPORT) return SHEET;

@@ -695,7 +695,7 @@ Jaeger takes traces only, which is all there is: a warning or an error is an eve
 
 The process must end the exporter or Node stays alive: `vite build` and `server.close()` do it (the `closeBundle` hook flushes and stops it); a script that exits by itself calls `closeTrace()` from `cssints/src/trace.ts` first. A backend that is not there costs a retry of up to three seconds at the end and loses the trace, nothing else.
 
-`packages/cssints/test/trace.mjs` (in `bun run test`) checks the spans, the file attribute and the error's trace id against an in-process collector. `node packages/cssints/test/trace-live.mjs` builds apps/sky and runs its HMR test traced, then reads both traces back through Jaeger's API (`GET /api/traces?service=cssints`) and prints span counts and the slowest hooks; it skips when no backend answers. Effect's DevTools (the VS Code extension, `effect/unstable/devtools`) is not wired: it needs the editor's extension listening, so neither a script nor an agent can read it.
+`packages/cssints/test/trace.mjs` (in `bun run test`) checks the spans, the file attribute and the error's trace id against an in-process collector. `node packages/cssints/test/trace-live.mjs` builds apps/sky and runs its HMR test traced, then reads both traces back through Jaeger's API (`GET /api/traces?service=cssints`) and prints span counts and the slowest hooks; it skips when no backend answers. Effect's DevTools (the VS Code extension, `effect/devtools`) is not wired: it needs the editor's extension listening, so neither a script nor an agent can read it.
 
 ### Browser support and what 0.1 does not have
 
