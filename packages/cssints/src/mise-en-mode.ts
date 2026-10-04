@@ -19,13 +19,17 @@ export const ASPECTS: Record<string, string> = {
   "--typography-": "typography",
 };
 
-// One global declares the nested layer order; each look adds one rule per aspect in its source's layer. Globals may share
-// custom properties (unlike kernels): that is what lets the same `--color-*` fill through from app to author to viewer.
-const order = { key: "mise-en-mode@1", css: `@layer ${LAYERS.join(", ")};` };
+// One global declares the top-level layer order; each look adds one rule per aspect in its source's layer (the sheet wraps
+// it in `@layer <source>`). Globals may share custom properties (unlike kernels): that is what lets the same `--color-*`
+// fill through from app to author to viewer. The layers are top-level, above cssints's own `_.k`, so a look beats the
+// engine's `:root` fallbacks.
+const order = {
+  key: "mise-en-mode@1",
+  css: `@layer ${LAYERS.join(", ")};`,
+  layer: null,
+};
 
-const groupByAspect = (
-  declarations: Record<string, string>,
-): Map<string, [string, string][]> => {
+const groupByAspect = (declarations: Record<string, string>): Map<string, [string, string][]> => {
   const groups = new Map<string, [string, string][]>();
   for (const [name, value] of Object.entries(declarations)) {
     const prefix = Object.keys(ASPECTS).find((p) => name.startsWith(p));
@@ -67,9 +71,8 @@ export const look = (
         )} { ${decls.map(([name, value]) => `${name}: ${value}`).join("; ")} }`;
         return {
           key: `mise-en-mode:${source}:${expression}:${aspect || "all"}:${options.scope ?? ""}`,
-          css: `@layer ${source} { ${
-            options.scope ? `@scope (${options.scope}) { ${rule} }` : rule
-          } }`,
+          css: options.scope ? `@scope (${options.scope}) { ${rule} }` : rule,
+          layer: source,
         };
       }),
     ],

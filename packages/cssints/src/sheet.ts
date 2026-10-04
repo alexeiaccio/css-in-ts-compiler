@@ -28,10 +28,14 @@ const byOrder = (a: Sortable, b: Sortable) =>
   width(b.prop) - width(a.prop) ||
   cmp(a.cls, b.cls);
 
-/** Adds a global rule (`*{box-sizing:border-box}`) to layer _.k, once per key. No user API yet: for the engine and plugins. */
-export const addGlobal = Effect.fn("cssints.addGlobal")(function* (key: string, css: string) {
+/** Adds a global rule (`*{box-sizing:border-box}`) once per key. `layer` names a top-level layer to wrap it in, `null` prints it verbatim at the top (an `@layer a, b;` order statement), and no layer puts it in `_.k`. No user API yet: for the engine and plugins. */
+export const addGlobal = Effect.fn("cssints.addGlobal")(function* (
+  key: string,
+  css: string,
+  layer?: string | null,
+) {
   const { globals } = yield* Registry;
-  if (!globals.has(key)) globals.set(key, css);
+  if (!globals.has(key)) globals.set(key, layer === undefined ? { css } : { css, layer });
 });
 
 // What a module records of token sets and themes: those it made, and those that set or read a variable it uses (`names`).
@@ -43,7 +47,7 @@ export const themedEntries = (
 ): string[] =>
   [...themed.values()]
     .filter((t) => t.file === file || t.names.some((n) => names.has(n)))
-    .map((t) => `${THEME}${t.key}\t${t.css}`);
+    .map((t) => `${THEME}${t.key}\t${t.layer ?? ""}\t${t.css}`);
 
 // The variables that the global rules of `file` read: their tokens need a `@property` rule in its sheet.
 export const globalNames = (themed: Map<string, Themed>, file: string): string[] =>
@@ -75,8 +79,10 @@ export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
   const properties = all.filter((e) => e.startsWith("@property")).sort();
   const themes = all
     .filter((e) => e.startsWith(THEME))
-    .map((e) => e.split("\t") as [string, string, string])
+    .map((e) => e.split("\t") as [string, string, string, string])
     .sort((a, b) => cmp(a[1], b[1]));
+  const kThemes = themes.filter((t) => t[2] === "");
+  const topThemes = themes.filter((t) => t[2] !== "");
   const used = all
     .filter((e) => e.startsWith(KERNEL))
     .map((e) => JSON.parse(e.slice(KERNEL.length)) as Kernel)
@@ -95,9 +101,20 @@ export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
       return rule ? [{ cls, ...rule }] : [];
     })
     .sort(byOrder);
+  const allGlobals = [...globals.values()];
+  const kGlobals = allGlobals.filter((g) => g.layer === undefined).map((g) => g.css);
+  const topGlobals = allGlobals.filter((g) => g.layer !== undefined);
+  const verbatim = topGlobals.filter((g) => g.layer === null);
+  const layered = topGlobals.filter((g) => typeof g.layer === "string");
   let out = `${LAYERS}\n${[...properties, ...used.flatMap((k) => k.atProperty ?? [])].map((p) => `${p}\n`).join("")}`;
-  if (globals.size || used.length || fallbacks.length || themes.length)
-    out += `@layer _.k {\n${[...globals.values(), ...used.map((k) => k.css), ...fallbacks, ...themes.map((t) => t[2]), ...(derived ? [derived] : [])].map((g) => `  ${g}\n`).join("")}}\n`;
+  if (kGlobals.length || used.length || fallbacks.length || kThemes.length)
+    out += `@layer _.k {\n${[...kGlobals, ...used.map((k) => k.css), ...fallbacks, ...kThemes.map((t) => t[3]), ...(derived ? [derived] : [])].map((g) => `  ${g}\n`).join("")}}\n`;
+  // Named top-level layers (a look's `@layer app`): declared after `_.k` and the class layers, so a look beats the
+  // engine's `:root` fallbacks. Verbatim globals (an `@layer a, b;` order statement) print first, so the order they
+  // name is the one that holds.
+  for (const g of verbatim) out += `${g.css}\n`;
+  for (const g of layered) out += `@layer ${g.layer} {\n  ${g.css}\n}\n`;
+  for (const t of topThemes) out += `@layer ${t[2]} {\n  ${t[3]}\n}\n`;
   let layer = "";
   let wrap = ""; // the at-rules that are open
   let depth = 0;

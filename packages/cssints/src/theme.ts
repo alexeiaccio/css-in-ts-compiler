@@ -389,12 +389,21 @@ const SCOPE = { "@media": ":root", "@container": ":where(*)" } as const;
 export const createGlobalTheme = (...args: unknown[]): unknown =>
   edge(
     Effect.gen(function* () {
-      const [tokens, condition, overrides] = args;
+      const [tokens, condition, overrides, options] = args;
       const set = isObject(tokens) ? sets.get(tokens) : undefined;
       const at = registry.at;
-      if (!at || !set || args.length !== 3 || !isObject(overrides))
+      const asked = isObject(options) ? options.layer : undefined;
+      const layer = typeof asked === "string" ? asked : undefined;
+      if (
+        !at ||
+        !set ||
+        args.length < 3 ||
+        args.length > 4 ||
+        !isObject(overrides) ||
+        (args.length === 4 && (!isObject(options) || (asked !== undefined && layer === undefined)))
+      )
         return yield* fail(
-          "cssints: createGlobalTheme(tokens, condition | selector, overrides) takes tokens of createTokens, a media() or container() condition or a selector, and the values to set",
+          "cssints: createGlobalTheme(tokens, condition | selector, overrides, { layer }?) takes tokens of createTokens, a media() or container() condition or a selector, the values to set, and an optional top-level layer for them",
         );
       let label: string;
       let block: (decls: string) => string;
@@ -537,6 +546,7 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
           block(decls.join(";")) +
           [...guards].map(([test, live]) => `@supports ${test}{${block(live.join(";"))}}`).join(""),
         names: decls.map((d) => d.slice(0, d.indexOf(":"))),
+        ...(layer === undefined ? {} : { layer }),
         theme: { label, values: changed, poly: poly.size ? poly : undefined },
       });
       return DONE;

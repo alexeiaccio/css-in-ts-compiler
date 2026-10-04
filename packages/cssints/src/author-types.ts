@@ -33,6 +33,11 @@ export interface Kernel {
 export interface GlobalRule {
   key: string;
   css: string;
+  /**
+   * Where the rule goes: a top-level `@layer` of this name (a look belongs in `@layer app`), `null` for a verbatim
+   * top-level rule (an `@layer a, b;` order statement), and omitted for layer `_.k` (the engine's own layer).
+   */
+  layer?: string | null;
 }
 /** One element family of a runtime: the nearest `marker` ancestor's computed `read` is copied into `write`. */
 export interface ParentVar {

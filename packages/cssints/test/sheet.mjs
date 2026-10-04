@@ -38,6 +38,16 @@ assert.ok(
   withGlobal.includes("@layer _.k {\n  *{box-sizing:border-box}\n}\n@layer _.a {"),
   withGlobal,
 );
+// A layered global (a look) goes to a top-level layer, after _.k; a verbatim one prints first, so the order holds.
+Effect.runSync(addGlobal("look", '[data-mode="dark"]{--color-bg:#000}', "app"));
+Effect.runSync(addGlobal("order", "@layer app, author, viewer;", null));
+const layered = Effect.runSync(renderSheet(Object.keys(fake)));
+assert.ok(
+  layered.includes(
+    '@layer app, author, viewer;\n@layer app {\n  [data-mode="dark"]{--color-bg:#000}\n}\n',
+  ),
+  layered,
+);
 for (const c in fake) globalThis.__cssints.rules.delete(c);
 globalThis.__cssints.globals.clear();
 

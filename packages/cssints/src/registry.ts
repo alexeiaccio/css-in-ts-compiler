@@ -82,6 +82,8 @@ export interface TokenDef {
  * A rule of a token set or a theme, in layer _.k after the globals (sheet.ts). `key` orders them: the kind (0 the
  * `:root` declarations of aliases, 1 themes under a condition, 2 themes under a selector), then the place in the source.
  * `names` are the variables it sets or reads: a module that uses one of them has the rule in its sheet too (plugin.ts).
+ * `layer`, when set, sends the rule to a **top-level** layer of that name instead of `_.k`: a look must rank above the
+ * engine's `:root` fallbacks, and a nested layer ranks below the rules of its parent.
  * `theme` is what a contrast check reads: the values the theme sets, by variable name; `poly` those of them that the
  * runtime of derived tokens computes, with their flattened literals.
  */
@@ -90,7 +92,14 @@ export interface Themed {
   key: string;
   css: string;
   names: string[];
+  layer?: string;
   theme?: { label: string; values: Map<string, string>; poly?: Map<string, string> };
+}
+
+/** A global rule (`addGlobal`): `layer` is a top-level layer to wrap it in, `null` prints it verbatim at the top, and `undefined` puts it in `_.k`. */
+export interface Global {
+  css: string;
+  layer?: string | null;
 }
 
 /** The `key` of a Themed entry that is a `css.global()` rule starts with this: it sorts before the aliases and themes. */
@@ -110,8 +119,8 @@ export interface RegistryState {
   sites: Map<string, Map<number, string>>;
   /** class -> rule; one entry per class across all modules */
   rules: Map<string, Rule>;
-  /** key -> CSS text of a global rule; rendered once each, in layer _.k (sheet.ts `addGlobal`) */
-  globals: Map<string, string>;
+  /** key -> a global rule; rendered once each, in layer _.k unless it names a layer (sheet.ts `addGlobal`) */
+  globals: Map<string, Global>;
   /** key -> the kernels of the styles evaluated so far (sheet.ts `addKernel`): for collisions; the sheet reads the entries of a module */
   kernels: Map<string, KernelEntry>;
   /** plugin name -> its runtime and the files that use it (delivery.ts) */

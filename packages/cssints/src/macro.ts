@@ -524,7 +524,7 @@ const classesOf = Effect.fnUntraced(function* (
 ): Effect.fn.Return<string, Invalid | MacroError | MemberError> {
   const registry = yield* Registry;
   if (kernels) for (const k of kernels) yield* addKernel(k, markers ?? [], at);
-  if (globals) for (const g of globals) yield* addGlobal(g.key, g.css);
+  if (globals) for (const g of globals) yield* addGlobal(g.key, g.css, g.layer);
   if (plugs)
     for (const plug of plugs) {
       const conflict = conflictOf(plug, decls, at);
