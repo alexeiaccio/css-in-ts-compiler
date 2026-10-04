@@ -43,19 +43,13 @@ const selector = (expression: string, aspect: string): string =>
     ? `[data-mode="${expression}"]`
     : `:where([data-mode="${expression}"], [data-mode~="${expression}/${aspect}"])`;
 
-/**
- * A look: the theme for one `expression`, set on `[data-mode="<expression>"]` in the layer of its `source`, so a viewer's
- * look fills over an author's over the app's, value by value. Its declarations are split by aspect, so a scope may take
- * the whole look or one aspect (`data-mode="dark/color"`). With `scope`, the rule is confined to that subtree with
- * `@scope` (Rule 7), so a foreign look cannot repaint host chrome. Call it at a module's top level (it is a side effect,
- * like `css.global()`); it prints no class. `declarations` are custom properties (`--color-action-primary-background: …`).
- * A dotted reverse-DNS expression is quoted at the call: `look('"com.alice.midnight"', "author", { … })`.
- * @param {string} expression the `data-mode` value the look answers to
- * @param {Source} source the layer it lands in: "app", "author" or "viewer"
- * @param {Record<string, string>} declarations the custom properties of the look
- * @param {{ scope?: string }} options `scope`: a selector that confines the rule with `@scope`
- * @returns {string} the look's style, for a module's top level
- */
+// A look: the theme for one `expression`, set on `[data-mode="<expression>"]` in the layer of its `source`, so a viewer's
+// look fills over an author's over the app's, value by value. Its declarations are split by aspect, so a scope may take
+// the whole look or one aspect (`data-mode="dark/color"`). With `scope`, the rule is confined to that subtree with
+// `@scope` (Rule 7), so a foreign look cannot repaint host chrome. Call it at a module's top level (it is a side effect,
+// like `css.global()`); it prints no class. `declarations` are custom properties (`--color-action-primary-background: …`).
+// A dotted reverse-DNS expression is quoted at the call: `look('"com.alice.midnight"', "author", { … })`. The returned
+// class string is always empty (a look prints no class).
 export const look = (
   expression: string,
   source: Source,

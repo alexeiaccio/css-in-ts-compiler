@@ -81,9 +81,12 @@ const avatarSmall = cn(avatar, width("24px"), height("24px"), borderRadius(t.rad
 const fieldset = cn(border("0"), padding("0"), margin("0"), section);
 
 export default function SettingsScreen() {
-  const [s, setS] = createSignal(load());
+  // Solid 2 reads the committed value until the next flush, so two changes in one task would build on a stale s(): keep the
+  // latest here.
+  let current = load();
+  const [s, setS] = createSignal(current);
   const set = (patch: Partial<Settings>) => {
-    const next = { ...s(), ...patch };
+    const next = (current = { ...current, ...patch });
     setS(next);
     save(next);
     apply(next);

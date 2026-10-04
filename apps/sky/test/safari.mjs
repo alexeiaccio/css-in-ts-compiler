@@ -20,9 +20,10 @@
 // The safaridriver client has not run against a real session yet (remote automation was off when it was written).
 // Safari needs "Allow remote automation" (Safari > Settings > Advanced > Show features for web developers; then Developer menu),
 // or once, as an administrator: sudo safaridriver --enable. Without it the Safari run is skipped with that message. Safari
-// follows the system appearance, so every engine is read in the light scheme.
+// follows the system appearance and paints at the display's scale, so every Playwright engine is read in the system's scheme
+// (macOS AppleInterfaceStyle; SCHEME=light|dark overrides) at SCALE (default 2, a Retina display).
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -193,13 +194,21 @@ function inPage(op, arg) {
 // the source of a call of inPage, for both kinds of engine
 const invoke = (op, arg) => `(${inPage.toString()})(${op}, ${arg})`;
 
+const SCHEME =
+  process.env.SCHEME ??
+  (spawnSync("defaults", ["read", "-g", "AppleInterfaceStyle"], { encoding: "utf8" }).stdout.trim() === "Dark"
+    ? "dark"
+    : "light");
+const SCALE = Number(process.env.SCALE ?? 2);
+
 // ---------- engines: { name, ua, eval(op, arg), goto(url), shot(selector) -> Buffer, close() }
 const playwright = async (name, kind, ctxOptions = {}) => {
   const browser = await kind;
   const page = await (
     await browser.newContext({
       viewport: { width: 1000, height: 900 },
-      colorScheme: "light",
+      colorScheme: SCHEME,
+      deviceScaleFactor: SCALE,
       ...ctxOptions,
     })
   ).newPage();
