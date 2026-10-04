@@ -1,12 +1,14 @@
 // Editor latency: time to diagnostics on a demo file after an edit, over tsgo's language server (stdio).
 // node bench/lsp.mjs [file relative to apps/demo] — not part of the budget (wall time varies by machine).
+// APP=sky node bench/lsp.mjs [file relative to apps/sky]: the same on sky (default file src/Shell.tsx).
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const root = `${import.meta.dirname}/../../..`;
-const demo = `${root}/apps/demo`;
-const file = `${demo}/${process.argv[2] ?? "src/components/Button.tsx"}`;
+const sky = process.env.APP === "sky";
+const demo = `${root}/apps/${sky ? "sky" : "demo"}`;
+const file = `${demo}/${process.argv[2] ?? (sky ? "src/Shell.tsx" : "src/components/Button.tsx")}`;
 const uri = pathToFileURL(file).href;
 const text = readFileSync(file, "utf8");
 
@@ -91,13 +93,25 @@ const edit = async (label, from, to) => {
   });
   await diagnostics();
 };
-for (let i = 0; i < (process.argv.length > 3 ? 0 : 3); i++) {
-  await edit("valid edit", 'fontSize("0.875rem")', 'fontSize("0.9rem")');
-  await edit("invalid edit", 'fontWeight("500")', 'fontWeight("bald")');
-  await edit("bad 2nd part", 'border("none")', 'border("1px", "nope")');
-}
+const edits = sky
+  ? [
+      ["valid edit", 'minHeight("100dvh")', 'minHeight("90dvh")'],
+      ["invalid edit", 'display("grid")', 'display("grld")'],
+      ["bad 2nd part", 'textDecoration("none")', 'textDecoration("none", "nope")'],
+    ]
+  : [
+      ["valid edit", 'fontSize("0.875rem")', 'fontSize("0.9rem")'],
+      ["invalid edit", 'fontWeight("500")', 'fontWeight("bald")'],
+      ["bad 2nd part", 'border("none")', 'border("1px", "nope")'],
+    ];
+for (let i = 0; i < (process.argv.length > 3 ? 0 : 3); i++) for (const e of edits) await edit(...e);
 // Hover on the first call of each word (node bench/lsp.mjs src/App.tsx direction gap): the JSDoc of members.ts.
-const words = process.argv.length > 3 ? process.argv.slice(3) : ["fontSize", "hover"];
+const words =
+  process.argv.length > 3
+    ? process.argv.slice(3)
+    : sky
+      ? ["css.fontSize", "gtMobile"]
+      : ["fontSize", "hover"];
 for (const w of words) {
   const at = text.indexOf(`${w}(`);
   if (at < 0) throw new Error(`no ${w}( in ${file}`);

@@ -1,11 +1,11 @@
 // Variadic property functions: string parts and Typed OM values, joined by a space.
 // A value is seen by the recognizer as one sentinel token `⟨type⟩` (css.ts PrimitiveMap and the named-syntax branch).
-import type { Valid } from "./css";
+import type { Sentinel, Valid } from "./css";
 import type { properties } from "./mdn";
 import type { CSSStyleValue } from "./values";
 
 type Part = string | CSSStyleValue;
-type Text<P> = P extends string ? P : P extends CSSStyleValue<infer T> ? `⟨${T}⟩` : never;
+type Text<P> = P extends string ? P : P extends CSSStyleValue<infer T> ? Sentinel<T> : never;
 export type Join<A extends readonly Part[]> = A extends readonly [
   infer H,
   ...infer R extends readonly Part[],

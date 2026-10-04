@@ -306,7 +306,13 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     if (!parsed) return undefined;
     const env = server!.environments.ssr;
     // No runner HMR: its full-reload re-imports would run outside the evaluation lock.
-    runner ??= createServerModuleRunner(env, { hmr: false, evaluator: new DomEvaluator() });
+    // Stack traces are mapped when an error makes one: Vite's default turns on Node's source map cache, which reads the map
+    // of every module body at load (~3 ms each).
+    runner ??= createServerModuleRunner(env, {
+      hmr: false,
+      sourcemapInterceptor: "prepareStackTrace",
+      evaluator: new DomEvaluator(),
+    });
     inflight.add(id);
     return yield* clientTransform(code, id, parsed, env, (w) => ctx.warn(w)).pipe(
       Effect.ensuring(Effect.sync(() => inflight.delete(id))),

@@ -1,6 +1,6 @@
 // The parts of a call (`padding("1rem", "2px")`) and how they are checked against a grammar, for a property (types.ts)
 // and for what a plugin defines (plugin-types.ts). Types only.
-import type { FurthestIn, Hint, ValidIn } from "@cssints/css-grammar/css";
+import type { FurthestIn, Hint, Sentinel, ValidIn } from "@cssints/css-grammar/css";
 import type { properties } from "@cssints/css-grammar/mdn";
 import type { CSSStyleValue } from "@cssints/css-grammar/values";
 
@@ -26,7 +26,7 @@ type Text<P> = P extends Style
     : P extends number
       ? `${P}`
       : P extends CSSStyleValue<infer T>
-        ? `⟨${T}⟩`
+        ? Sentinel<T>
         : P extends Fallback<infer V>
           ? Text<V[0]>
           : never;

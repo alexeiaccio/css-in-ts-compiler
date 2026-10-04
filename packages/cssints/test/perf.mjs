@@ -139,14 +139,17 @@ P.import = async function (url) {
 
 const transforms = [];
 function timed(plugin) {
-  const tr = plugin.transform;
+  const tr = plugin.transform.handler; // { order: "pre", handler }
   return {
     ...plugin,
-    async transform(code, id) {
-      const t0 = performance.now();
-      const r = await tr.call(this, code, id);
-      if (r && this.environment.name === "client") transforms.push(performance.now() - t0);
-      return r;
+    transform: {
+      ...plugin.transform,
+      async handler(code, id) {
+        const t0 = performance.now();
+        const r = await tr.call(this, code, id);
+        if (r && this.environment.name === "client") transforms.push(performance.now() - t0);
+        return r;
+      },
     },
   };
 }

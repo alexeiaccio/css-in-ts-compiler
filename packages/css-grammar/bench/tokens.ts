@@ -1,5 +1,5 @@
 import { border, color as colorProp, padding } from "../src/api-typed";
-import type { TokenFn, TokenSetFn } from "../src/token";
+import type { Token, TokenFn, TokenSetFn } from "../src/token";
 declare const color: TokenFn<"color">;
 declare const length: TokenFn<"length">;
 declare const number: TokenFn<"number">;
@@ -15,3 +15,6 @@ colorProp(blue);
 colorProp(muted);
 border("1px solid", blue);
 padding(gap, gap);
+// a token of a JSON import is of any type: four of them in one value cost 12^4 combinations when each is a union of sentinels
+declare const any: Token;
+padding(any, any, any, any);
