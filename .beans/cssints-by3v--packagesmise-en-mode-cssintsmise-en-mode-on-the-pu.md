@@ -1,11 +1,11 @@
 ---
 # cssints-by3v
 title: 'packages/mise-en-mode: @cssints/mise-en-mode on the public plugin API'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-05T09:25:14Z
-updated_at: 2026-10-05T09:25:14Z
+updated_at: 2026-10-05T09:59:50Z
 parent: cssints-easl
 blocked_by:
     - cssints-0v30

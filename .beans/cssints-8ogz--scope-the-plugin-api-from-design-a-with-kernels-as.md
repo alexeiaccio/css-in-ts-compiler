@@ -1,11 +1,11 @@
 ---
 # cssints-8ogz
 title: 'scope(): the plugin API from design A with kernels as css.* styles'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-05T09:25:14Z
-updated_at: 2026-10-05T09:25:14Z
+updated_at: 2026-10-05T09:59:50Z
 parent: cssints-easl
 blocked_by:
     - cssints-0v30
