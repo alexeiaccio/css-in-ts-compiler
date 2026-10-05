@@ -137,10 +137,21 @@ const POSITION_TRY =
   /^(?:top|right|bottom|left|inset(?:-(?:block|inline)(?:-(?:start|end))?)?|margin(?:-(?:top|right|bottom|left|block|inline)(?:-(?:start|end))?)?|(?:min-|max-)?(?:width|height|block-size|inline-size)|align-self|justify-self|place-self|position-anchor|position-area)$/;
 const STEP = /^(?:from|to|\d+(?:\.\d+)?%)$/;
 
+// The declarations of a block as `prop:value;...`.
+const blockOf = (what: string, style: unknown, allowed?: RegExp): string => {
+  if (!isNode(style))
+    throw fail(
+      `cssints: ${what} takes css.* declarations (a member call or cn(...)), got ${Formatter.formatJson(style)}`,
+    );
+  return declsOf(what, style, false, allowed)
+    .map(([prop, value]) => `${prop}:${value}`)
+    .join(";");
+};
+
 // The declarations of a block, checked like a class's (grammar, prose rules, support). A block is a style of member
 // calls, plain declarations only; a kernel's block (`conditions`) may hold conditions too.
-const declsOf = (what: string, style: unknown, conditions: boolean, allowed?: RegExp): Decl[] => {
-  if (!isNode(style) || !style.__cssints.length)
+const declsOf = (what: string, style: CssNode, conditions: boolean, allowed?: RegExp) => {
+  if (!style.__cssints.length)
     throw fail(
       `cssints: ${what} takes css.* declarations (a member call or cn(...)), got ${Formatter.formatJson(style)}`,
     );
@@ -173,12 +184,6 @@ const declsOf = (what: string, style: unknown, conditions: boolean, allowed?: Re
   }
   return style.__cssints;
 };
-
-// A block as `prop:value;...`.
-const blockOf = (what: string, style: unknown, allowed?: RegExp): string =>
-  declsOf(what, style, false, allowed)
-    .map(([prop, value]) => `${prop}:${value}`)
-    .join(";");
 
 // The name is a short hash of the content, so identical blocks are one name and one kernel. A kernel key that starts
 // with `@` is an at-rule of local names: a custom property in its steps is a use, not a declaration (kernel.ts).
@@ -460,7 +465,7 @@ const ruleOf = (cls: string, [prop, value, conds = [], fallbacks]: Decl): Rule =
 // A kernel written as styles: its rules under the class `cls`, in the order of the sheet (fewer conditions first, then media
 // by width and pseudo-classes by place, a shorthand before its longhands); the declarations of one selector under the same
 // at-rules share a block. `props` are the properties it sets, for the conflicts a member derives from them.
-const kernelOf = (what: string, style: unknown, cls: string) => {
+const kernelOf = (what: string, style: CssNode, cls: string) => {
   const decls = declsOf(what, style, true);
   const blocks: { wrap: string[]; selector: string; body: string[] }[] = [];
   for (const r of decls.map((d) => ({ cls, ...ruleOf(cls, d) })).sort(byOrder)) {
