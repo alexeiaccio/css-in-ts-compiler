@@ -3,6 +3,7 @@
 // loose; macro.ts registers `engine` in the registry, where the front finds it.
 import { checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { properties } from "@cssints/css-grammar/mdn";
+import { checkSelectorNow } from "@cssints/css-grammar/selector";
 import { CSSStyleValue } from "@cssints/css-grammar/values";
 import { Formatter, Result } from "effect";
 
@@ -415,6 +416,17 @@ const argOf = (c: Compiler, label: string, def: unknown, v: unknown, tokens?: un
   if (def === "$overrides") {
     if (!tokens || !v || typeof v !== "object" || Array.isArray(v))
       throw failIn(name, `cssints: ${label} expects an object of values by token path`);
+    return v;
+  }
+  if (def === "$selector") {
+    if (typeof v !== "string") throw failIn(name, `cssints: ${label} expects a selector`);
+    Result.getOrThrowWith(
+      Result.try({
+        try: () => checkSelectorNow(v),
+        catch: (e) => (isDeclarationError(e) ? failIn(name, `cssints: ${label}: ${e.message}`) : e),
+      }),
+      (e) => e,
+    );
     return v;
   }
   if (typeof def === "string") {

@@ -6,6 +6,7 @@
 //
 // Build time only (Node, the Module Runner): in user code a member returns a class string, so the types say `Style`.
 import type { Syntax, TokenType } from "@cssints/css-grammar/token";
+import type { ValidSelector } from "@cssints/css-grammar/query";
 import type { CSSStyleValue } from "@cssints/css-grammar/values";
 
 import type { BcdKey, Decl } from "./author-types.ts";
@@ -82,7 +83,7 @@ export interface Typed<T> {
 /** `arg<T>()`: one value of the TypeScript type `T`. */
 export const arg = <T>(): Typed<T> => ({ "~arg": 1 }) as never;
 
-/** One argument: a grammar (aliases of the table allowed), `"$tokens"` (a token set), `"$overrides"` (values for the paths of the `$tokens` before it) or `arg<T>()`. */
+/** One argument: a grammar (aliases of the table allowed), `"$tokens"` (a token set), `"$overrides"` (values for the paths of the `$tokens` before it), `"$selector"` (a CSS selector list) or `arg<T>()`. */
 export type Leaf = string | Typed<unknown>;
 /** An object argument of named leaves (`"key?"` is optional). */
 export interface RecordDef {
@@ -295,17 +296,23 @@ type One<L extends string, A, S, V, Tok> = S extends "$tokens"
     ? [Tok] extends [never]
       ? Err<`${L}: "$overrides" needs a "$tokens" before it`>
       : CheckOverrides<Tok, V>
-    : S extends string
-      ? V extends Part
-        ? Gram<L, Expand<S, A>, V>
-        : Err<`${L}: expected a value`>
-      : S extends Typed<infer T>
-        ? V extends T
+    : S extends "$selector"
+      ? V extends string
+        ? ValidSelector<V> extends V
           ? V
-          : Err<`${L}: wrong type`>
-        : V extends object
-          ? { [K in keyof V]: One<`${L}.${K & string}`, A, DefOf<S, K>, V[K], never> } & Req<S>
-          : Err<`${L}: expected an object`>;
+          : Err<ValidSelector<V>>
+        : Err<`${L}: expected a selector`>
+      : S extends string
+        ? V extends Part
+          ? Gram<L, Expand<S, A>, V>
+          : Err<`${L}: expected a value`>
+        : S extends Typed<infer T>
+          ? V extends T
+            ? V
+            : Err<`${L}: wrong type`>
+          : V extends object
+            ? { [K in keyof V]: One<`${L}.${K & string}`, A, DefOf<S, K>, V[K], never> } & Req<S>
+            : Err<`${L}: expected an object`>;
 type TokensAt<D extends readonly unknown[], P extends readonly unknown[]> = D extends readonly [
   infer H,
   ...infer R,
@@ -335,15 +342,17 @@ type Param<Def> = Def extends "$tokens"
   ? object
   : Def extends "$overrides"
     ? { readonly [group: string]: unknown }
-    : Def extends string
+    : Def extends "$selector"
       ? string
-      : Def extends Typed<infer T>
-        ? T
-        : {
-            -readonly [K in keyof Def as K extends `${string}?` ? never : K]: Param<Def[K]>;
-          } & {
-            -readonly [K in keyof Def as K extends `${infer R}?` ? R : never]?: Param<Def[K]>;
-          };
+      : Def extends string
+        ? string
+        : Def extends Typed<infer T>
+          ? T
+          : {
+              -readonly [K in keyof Def as K extends `${string}?` ? never : K]: Param<Def[K]>;
+            } & {
+              -readonly [K in keyof Def as K extends `${infer R}?` ? R : never]?: Param<Def[K]>;
+            };
 type Params<D> = D extends string
   ? [value: string]
   : D extends Typed<infer T>

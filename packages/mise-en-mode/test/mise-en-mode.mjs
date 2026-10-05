@@ -72,7 +72,11 @@ let e = await failure("bad-value.ts");
 assert.match(e.message, /^cssints: createGlobalTheme\(\): color\.bg value "blu" is not a <color>$/);
 assert.deepEqual({ line: e.loc?.line, column: e.loc?.column }, { line: 5, column: 17 });
 e = await failure("bad-expression.ts");
-assert.match(e.message.split("\n")[0], /^style: unexpected "mode" in "dark mode"/);
+assert.match(e.message.split("\n")[0], /^look\(2\): unexpected "mode" in "dark mode"/);
+
+e = await failure("bad-scope.ts");
+assert.match(e.message.split("\n")[0], /^cssints: look\(5\)\.scope: selector: unexpected end in "article >"/);
+assert.equal(e.loc?.line, 5);
 
 // check.contrast sees looks: a viewer look with poor contrast on the app look's background fails the build
 e = await failure("contrast-fail.ts");

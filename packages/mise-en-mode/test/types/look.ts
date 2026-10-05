@@ -1,7 +1,7 @@
 import { createTokens } from "cssints";
 import type { Style } from "cssints/plugin";
 
-import { look } from "../../src/types.ts";
+import { look } from "../../src/index.ts";
 
 const t = createTokens({
   color: { $type: "color", bg: { $value: "#ffffff" }, ink: { $value: "#111111" } },

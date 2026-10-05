@@ -1,8 +1,9 @@
 # @cssints/mise-en-mode
 
 The look layer of Mise en Mode for [cssints](../../README.md): a **look** is a theme set on a `data-mode` scope, and looks
-from three sources are resolved by the Mode Contract. It is written only on `cssints/plugin` (a member that emits themes)
-and on `createTokens`, so a look is checked against your token set, and `check.contrast` sees it. No runtime.
+from three sources are resolved by the Mode Contract. It is one call member of `cssints/plugin` `scope()` (positional
+arguments `$tokens` and `$overrides`, returning themes), so a look is checked against your token set, and `check.contrast` sees it.
+No runtime.
 
 ```ts
 import { createTokens } from "cssints" with { type: "cssints" };
@@ -60,9 +61,8 @@ look(t, "hero", "author", { color: { bg: "#123456" } }, { scope: "article.post" 
   layer order, so a viewer look that sets only the text colour is checked on the _app_ look's background, and a poor
   combination fails the build.
 
-A look prints no class: call it at a module's top level, like `createGlobalTheme`. The `source` and the call's other
-arguments are closed over (a member's arguments are joined into one string), which is why `look` is a plain function that
-calls `style()` and not a `style()` member itself.
+A look prints no class: call it at a module's top level, like `createGlobalTheme`. Its types are inferred from the `scope()`
+definition in `src/index.ts`: there is no types file.
 
 Changed from `cssints/mise-en-mode`, which this package replaces: `look(expression, source, declarations, { scope })` took
 raw custom-property declarations (`"--color-bg": "#000"`) that nothing checked; it is now `look(tokens, expression, source,
