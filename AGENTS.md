@@ -14,7 +14,7 @@ packages/icons         @cssints/icons: icons() on cssints/plugin scope() (iconif
 packages/mise-en-mode  @cssints/mise-en-mode: look(tokens, expression, source, overrides, { scope? }), a scope() call member (no types file), looks as themes in the layers app < author < viewer on data-mode scopes; test/: fixtures, mise-en-mode.mjs, types/
 apps/demo              React demo on the plugin: every 0.1 feature (App.tsx, components/Showcase.tsx, theme.ts)
 apps/sky               Solid 2 app on the plugin (solid-js 2.0.0-rc.13, @solidjs/router 2.0.0-next.35, atcute): Mu's shell (nav, 600 px column, rail, bottom bar), routes, themes, appearance settings (/settings), the post card and embeds (src/post/, /dev/posts in dev), the home feed with tabs (src/home/), the profile (src/profile/), the thread (src/thread/),
-                       src/api.ts (public AppView) and paged.ts; test/api.mjs (recorded fixtures), post.mjs (post model), home.mjs (tabs, paging), profile.mjs, thread.mjs, settings.mjs, contrast.mjs (the hue slider's range), build.mjs, dev.mjs (build, HMR), browser.mjs, posts-browser.mjs, home-browser.mjs, profile-browser.mjs and thread-browser.mjs (Chrome)
+                       src/api.ts (public AppView) and paged.ts; test/api.mjs (recorded fixtures), post.mjs (post model), home.mjs (tabs, paging), profile.mjs, thread.mjs, settings.mjs, contrast.mjs (the hue slider's range), build.mjs, dev.mjs (build, HMR), browser.mjs, posts-browser.mjs, home-browser.mjs, profile-browser.mjs, thread-browser.mjs and dev-browser.mjs (Chrome)
 README.md              what cssints is, setup, a short example
 docs/wayfinder.md      decisions and findings log (start here); docs/API.md the API reference
 docs/research/         comparisons with other libraries; docs/archive/ outdated plans
@@ -48,7 +48,7 @@ cd packages/cssints && bun run test:browsers   # cssints/frame and cssints/surfa
 cd packages/cssints && bun run build          # vp pack (tsdown) into dist/; same in packages/css-grammar
 cd packages/css-grammar && node bench/budget.mjs --update    # after a deliberate type-cost change
 cd apps/demo && bun run build                # vp build
-cd apps/sky && bun run test                  # the Solid app: api.ts against recorded fixtures, build check, then HMR on a style and on a component edit; bun run test:browser, test:posts, test:home, test:profile and test:thread: the settings, the post card and each screen in Chrome;
+cd apps/sky && bun run test                  # the Solid app: api.ts against recorded fixtures, build check, then HMR on a style and on a component edit; bun run test:browser, test:posts, test:home, test:profile and test:thread: the settings, the post card and each screen in Chrome; test:dev: every route on the dev server in Chrome, failing on a page error, a console error or SETTLED_CLEANUP_UNOWNED (the dev build checks what the production one drops);
                                               # test:safari: the built app in Chrome, the WebKit builds of Safari 17/18 and real Safari (header of test/safari.mjs)
 ```
 
