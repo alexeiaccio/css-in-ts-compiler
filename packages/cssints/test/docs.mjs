@@ -46,7 +46,7 @@ writeFileSync(
       lib: ["ES2023", "DOM"],
       // the icons package and its collection: not dependencies of cssints, so found by path
       paths: {
-        "@cssints/icons": ["../../../icons/src/types.ts"],
+        "@cssints/icons": ["../../../icons/src/index.ts"],
         "@iconify-json/*": ["../../../icons/node_modules/@iconify-json/*"],
       },
     },

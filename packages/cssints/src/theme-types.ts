@@ -210,7 +210,7 @@ type CheckRefs<V extends string, Kd extends TokenType, X> = V extends `{${infer 
         ? V
         : R
       : never;
-type CheckOverrides<X, O, Root = X> = {
+export type CheckOverrides<X, O, Root = X> = {
   [K in keyof O]: K extends keyof X
     ? X[K] extends { readonly "~token": infer Kd extends TokenType }
       ? O[K] extends string
