@@ -115,7 +115,11 @@ const all = files
   .filter((f) => f.fileName.endsWith(".js"))
   .map((f) => f.code)
   .join("");
-assert.match(all, /class="_frame-core _surface-core _\w+( _\w+)*"/, "the card's classes are in Solid's template");
+assert.match(
+  all,
+  /class="_frame-core _surface-core _\w+( _\w+)*"/,
+  "the card's classes are in Solid's template",
+);
 assert.ok(!all.includes("quoteDetached"), "the dev page and its recorded posts are not in a build");
 // the thread screen: the focused post is a cv() variant of the card (class strings in the config, its font size in the sheet), and
 // the connector lines are placed from the avatar's centre, narrow and (inside the card's own container) wide
