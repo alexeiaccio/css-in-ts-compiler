@@ -208,7 +208,7 @@ class Compiler {
       if (!lib) throw thrown(this.name, `${this.name}.${key}: the css library is not loaded`);
       const made = ran(this.name, () => (d.css as (c: unknown) => unknown)(lib.css));
       const nodes = (Array.isArray(made) ? made : [made]) as CssNode[];
-      const merged = (lib.css as Dict<(...n: unknown[]) => unknown>)["cn"]!(...nodes);
+      const merged = (lib.css as Dict<(...n: CssNode[]) => CssNode>)["cn"]!(...nodes);
       css = `&{${lib.blockOf(`${this.name}.${key}`, merged)}}`;
     }
     k = {

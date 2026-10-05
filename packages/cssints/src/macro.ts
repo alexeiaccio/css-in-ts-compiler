@@ -535,11 +535,7 @@ const classesNow = (
 };
 
 // A plugin's conflicts: its marker with one of the listed properties in one style.
-const conflictOf = (
-  { name, label = name, conflicts }: Plug,
-  decls: Decl[],
-  at?: At,
-): MemberError | undefined => {
+const conflictOf = ({ name, label = name, conflicts }: Plug, decls: Decl[], at?: At) => {
   const hit =
     conflicts &&
     decls.find(([p]) => conflicts.props.some((c) => (typeof c === "string" ? c === p : c.test(p))));

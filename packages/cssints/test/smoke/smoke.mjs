@@ -357,8 +357,12 @@ ok(
   "css: the kernel and the method of the plugin",
   css,
 );
-ok(/\._i\s*\{[^}]*mask:\s*var\(--_svg\)/.test(css), "css: the icon kernel (a mask)", css);
-ok(/--_svg:\s*url\("data:image\/svg\+xml,/.test(css), "css: the icon as one custom property");
+ok(
+  /\._icons-mask\s*\{[^}]*mask:\s*var\(--icons-svg\)/.test(css),
+  "css: the icon kernel (a mask)",
+  css,
+);
+ok(/--icons-svg:\s*url\("data:image\/svg\+xml,/.test(css), "css: the icon as one custom property");
 ok(
   /#1d4ed8/i.test(css) && css.match(/@property --color-brand/g)?.length === 1,
   "css: the library's cv and its token, once",

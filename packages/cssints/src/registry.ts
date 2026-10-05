@@ -5,6 +5,7 @@
 import type { TokenType } from "@cssints/css-grammar/token";
 import { Context } from "effect";
 
+import type { CssNode } from "./node.ts";
 import type { Conflict, GlobalRule, Kernel, Runtime } from "./author-types.ts";
 
 export type {
@@ -150,7 +151,7 @@ export interface RegistryState {
   /** scope name -> the hash of its content (scope.ts `register`): a name is unique per process */
   scopes: Map<string, string>;
   /** what scope.ts needs of the eval-time library, set by macro.ts: `css` for a kernel written as styles, `blockOf` to check it */
-  lib?: { css: object; blockOf: (what: string, style: unknown) => string };
+  lib?: { css: object; blockOf: (what: string, style: CssNode) => string };
   /** what the front of "cssints/plugin" calls (scope-engine.ts `engine`), set by macro.ts */
   engine?: object;
   /** the properties of property(): checked by their own grammar when called, not by the engine */

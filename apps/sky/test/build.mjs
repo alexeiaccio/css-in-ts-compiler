@@ -22,7 +22,7 @@ assert.match(
   /@media \(width ?>= ?1300px\)\{[^@]*grid-template-columns:var\(--layout-left-nav-width\)/,
 ); // media()
 assert.match(sheet, /\._\w+\{--frame-r:var\(--radius-lg\)\}/); // frame()
-assert.match(sheet, /\._\w+\{--_svg:url\(/); // the icon
+assert.match(sheet, /\._\w+\{--icons-svg:url\(/); // the icon
 
 // the post card (src/post): the card's own width through container(), concentric radii through frame(), tonal steps through
 // surface(); the only radius written for the card is its own, the quote and the media inside get theirs from the kernel

@@ -11,19 +11,7 @@ import { Cause, Effect, Exit } from "effect";
 
 import { MacroError } from "./errors.ts";
 import { covers, relation } from "./leaves.ts";
-import {
-  camel,
-  type Carry,
-  type Cond,
-  type CssNode,
-  type Decl,
-  fail,
-  failIn,
-  isNode,
-  node,
-  probed,
-  VAR,
-} from "./node.ts";
+import { camel, type Carry, type Cond, type CssNode, type Decl, fail, isNode } from "./node.ts";
 
 /** What firstThatWorks() builds: its values as text, the wanted one first. */
 export interface Fallback {
