@@ -2,7 +2,7 @@
 // arguments can be tokens, which a template string cannot be in the types. Build time only: the call is replaced by its text.
 import { CSSColorValue, CSSStyleValue } from "@cssints/css-grammar/values";
 
-import { fn } from "./author.ts";
+import { fn } from "./scope-engine.ts";
 import { COLOR_MIX } from "./grammars.ts";
 
 // ponytail: stands in for the spec's CSSMathMin, CSSMathMax and clamp, holds the text of a math function.

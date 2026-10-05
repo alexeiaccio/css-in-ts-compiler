@@ -62,6 +62,11 @@ const plainCode = [
   "packages/css-grammar/src/values.ts",
   // The sync css.* builders (`node`, `toDecls`, `chainDecl`, `isNode`), which user code calls in expressions, and the class hash.
   "packages/cssints/src/lib.ts",
+  "packages/cssints/src/node.ts",
+  // The front of cssints/plugin: signatures with generics and one-line bodies (the engine is scope-engine.ts).
+  "packages/cssints/src/scope.ts",
+  // scope() and the members it makes (chain, call, value): sync builders that user code calls in expressions, like lib.ts's.
+  "packages/cssints/src/scope-engine.ts",
   // The twin's lexer and recognizer, per declaration.
   "packages/css-grammar/src/twin-core.ts",
   // @cssints/icons and @cssints/mise-en-mode: sync members on the style() helper, which user code calls in an expression.
@@ -126,6 +131,11 @@ export default defineConfig({
       {
         files: ["packages/css-grammar/src/support.ts"],
         rules: { "automation/no-array-filter-map": "off" },
+      },
+      // The signatures of cssints/plugin are documented by prose: the types carry the parameters and the result.
+      {
+        files: ["packages/cssints/src/author.ts", "packages/cssints/src/scope.ts"],
+        rules: { "jsdoc/require-param": "off", "jsdoc/require-returns": "off" },
       },
       // The tool is checked by its own tests and tsgo; its rules read AST nodes typed `any`, its tests are vitest (not Playwright).
       {

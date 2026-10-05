@@ -37,9 +37,9 @@ export default defineConfig({
       clean: false,
     },
     // What user code sees (the "types" condition): members, theme types, and the css-grammar types they reach.
-    // Declarations only: types.ts and author-types.ts (cssints/plugin) have no code of their own.
+    // Declarations only: the types of types.ts and of author.ts (cssints/plugin), generated from the code.
     {
-      entry: { types: "src/types.ts", "plugin-types": "src/author-types.ts" },
+      entry: { types: "src/types.ts", "plugin-types": "src/author.ts" },
       platform: "neutral",
       format: "esm",
       fixedExtension: true,

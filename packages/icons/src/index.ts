@@ -1,4 +1,4 @@
-// @cssints/icons: an icon is a style (cssints/plugin) with a marker, a kernel and one custom property, the SVG as a
+// @cssints/icons: an icon is a style (cssints/plugin `scope()`) with a marker, a kernel and one custom property, the SVG as a
 // data URL. The kernel is global CSS printed once, so each icon costs one declaration. Build time only; no runtime.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -12,10 +12,22 @@ import {
   parseSVGContent,
   svgToURL,
 } from "@iconify/utils";
-import { style } from "cssints/plugin";
-import type { Kernel } from "cssints/plugin";
+import { arg, scope, type Style } from "cssints/plugin";
 
-import type * as Types from "./types.ts";
+/** An iconify JSON collection as TypeScript sees it: `typeof import("@iconify-json/mdi/icons.json")`. */
+export interface Collection {
+  icons: Record<string, unknown>;
+  aliases?: Record<string, unknown>;
+}
+/** The names of a collection: its icons and its aliases. `string` when the collection is not given. */
+export type IconName<C extends Collection> = (keyof C["icons"] | keyof NonNullable<C["aliases"]>) &
+  string;
+/** `icons(...)` gives this: call it with a name where the style is used (`cn(mdi("home"), ...)`). */
+export type Icons<N extends string> = (name: N) => Style;
+/** Where the icons come from: the `@iconify-json/<collection>` package, or the `.svg` files of a directory. */
+export type Options =
+  | { provider: "iconify-json"; collection: string }
+  | { provider: "fs"; dir: string };
 
 type Json = Parameters<typeof getIconData>[0];
 type Icon = NonNullable<ReturnType<typeof convertParsedSVG>>;
@@ -30,14 +42,10 @@ interface Source {
 // images. LightningCSS adds -webkit-mask for the browserslist targets, so the mask kernel requires nothing: a
 // `requires` key would warn for targets that have only the prefixed form, which LightningCSS covers.
 const box = "display:inline-block;width:1em;height:1em";
-const MASK: Kernel = {
-  key: "icon-mask@1",
-  css: `._i{${box};background-color:currentColor;mask:var(--_svg) no-repeat center/100% 100%}`,
+const mask = {
+  css: `&{${box};background-color:currentColor;mask:var(--_svg) no-repeat center/100% 100%}`,
 };
-const IMAGE: Kernel = {
-  key: "icon-image@1",
-  css: `._ic{${box};background:var(--_svg) no-repeat center/100% 100%}`,
-};
+const image = { css: `&{${box};background:var(--_svg) no-repeat center/100% 100%}` };
 
 const distance = (a: string, b: string) => {
   let row = Array.from({ length: b.length + 1 }, (_, j) => j);
@@ -133,24 +141,36 @@ const urlOf = (icon: Icon) => {
   );
 };
 
-// See types.ts. The grammar takes any name: the lookup says what is missing, and suggests.
-export const icons: typeof Types.icons = (
-  options: { provider: "iconify-json"; collection: string } | { provider: "fs"; dir: string },
-) => {
+/**
+ * Icons from the `@iconify-json/<collection>` package installed in the project (read from `node_modules` when the
+ * module runs; the project is the working directory), or from the `.svg` files of a directory (relative to the working
+ * directory, named without the extension). Say which collection in the type argument to have the names checked as you
+ * type: `icons<typeof import("@iconify-json/mdi/icons.json")>({ provider: "iconify-json", collection: "mdi" })`. A name
+ * that does not exist is a build error that suggests the nearest one.
+ *
+ * One scope, "icons", whatever the collection: its kernels are the same, and `build` is the same code, which the engine
+ * takes as one definition however many times `icons()` runs.
+ *
+ * @param {Options} options where the icons come from
+ * @returns {Icons<IconName<C>>} a function of the icon name: a style for `cn()`
+ */
+export const icons = <C extends Collection = Collection>(options: Options): Icons<IconName<C>> => {
   const source = options.provider === "fs" ? files(options.dir) : iconify(options.collection);
-  return style("<declaration-value>", (name) => {
-    const icon = source.get(name);
-    if (!icon) {
-      const near = nearest(name, source.names());
-      throw new Error(
-        `cssints: icons: no icon ${JSON.stringify(name)} in ${source.label}${near ? `, did you mean ${near}?` : ""}`,
-      );
-    }
-    const mask = icon.body.includes("currentColor");
-    return {
-      decls: [["--_svg", urlOf(icon)]],
-      markers: [mask ? "_i" : "_ic"],
-      kernels: [mask ? MASK : IMAGE],
-    };
-  }) as never;
+  return scope("icons", { mask, image, icon: { args: arg<IconName<C>>() } })
+    .build({
+      icon: (name) => {
+        const icon = source.get(name);
+        if (!icon) {
+          const near = nearest(name, source.names());
+          throw new Error(
+            `cssints: icons: no icon ${JSON.stringify(name)} in ${source.label}${near ? `, did you mean ${near}?` : ""}`,
+          );
+        }
+        return {
+          decls: [["--_svg", urlOf(icon)]],
+          uses: [icon.body.includes("currentColor") ? "mask" : "image"],
+        };
+      },
+    })
+    .export().icon;
 };

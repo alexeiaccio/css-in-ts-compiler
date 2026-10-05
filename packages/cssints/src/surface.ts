@@ -1,51 +1,52 @@
-// "cssints/surface": parent-relative colour, written only on the public helpers of "cssints/plugin" (docs/research/
+// "cssints/surface": parent-relative colour, written only on `scope()` of "cssints/plugin" (docs/research/
 // surfaces-frames.md §2.2, plugins.md §3). A surface passes one colour down the tree; a nested surface is that colour
 // moved in lightness (or an absolute base moved the same way). Tonal steps, not a contrast guarantee.
 //
 // The kernel is frame's trick: a property cannot read itself, so a surface reads the other of two parity colours. The
 // two colours are registered <color> (they inherit; registration keeps the value one colour, not a growing token
-// stream). The step `--sf-d` stays unregistered on purpose: it may contain `l`, which only resolves inside `oklch(from …)`.
-// Every custom property is `--sf-*`, frame's are `--fr-*`.
-import { context, method } from "cssints/plugin";
+// stream). The step `--_d` stays unregistered on purpose: it may contain `l`, which only resolves inside `oklch(from …)`.
+// Every custom property is the scope's own, `--_x` is `--surface-x`; frame's are `--frame-*`, and `&(frame.core)` is its class.
+import { scope } from "cssints/plugin";
+
+import { frameScope } from "./frame.ts";
 
 const registered = (names: string[], inherits: boolean) =>
   names
     .map(
       (n) =>
-        `@property --sf-${n} { syntax: "<color>"; inherits: ${inherits}; initial-value: canvas; }`,
+        `@property --_${n} { syntax: "<color>"; inherits: ${inherits}; initial-value: canvas; }`,
     )
     .join("\n");
 
 // inputs (set by the methods): k the base colour (guaranteed-invalid unless color() is called, so var() falls through to
 // the parent), d the signed lightness step. derived: s the colour used, p the parity, e and o the colour for even and odd depth.
 // runtime: u the parent's colour, written by the script; v our colour, which it reads; t its sentinel.
-const shift = (parent: string) =>
-  `oklch(from var(--sf-k, var(${parent})) calc(l + var(--sf-d)) c h)`;
+const shift = (parent: string) => `oklch(from var(--_k, var(${parent})) calc(l + var(--_d)) c h)`;
 
 const css = `
-._s {
-  --sf-k: initial;
-  --sf-d: 0;
-  background-color: var(--sf-s);
+& {
+  --_k: initial;
+  --_d: 0;
+  background-color: var(--_s);
 }
-@container (style(--sf-p: e)) or (not style(--sf-p)) {
-  ._s { --sf-p: o; --sf-s: ${shift("--sf-e")}; --sf-o: var(--sf-s); }
+@container (style(--_p: e)) or (not style(--_p)) {
+  & { --_p: o; --_s: ${shift("--_e")}; --_o: var(--_s); }
 }
-@container style(--sf-p: o) {
-  ._s { --sf-p: e; --sf-s: ${shift("--sf-o")}; --sf-e: var(--sf-s); }
+@container style(--_p: o) {
+  & { --_p: e; --_s: ${shift("--_o")}; --_e: var(--_s); }
 }`;
 
-// For a target without style queries (see frame.ts): the script copies the nearest surface ancestor's `--sf-v` into our
-// `--sf-u`. A surface that is also a frame needs both sentinels in one `transition`.
+// For a target without style queries (see frame.ts): the script copies the nearest surface ancestor's `--_v` into our
+// `--_u`. A surface that is also a frame needs both sentinels in one `transition`.
 const fallback = `
-:root[data-cssints-poly] ._s {
-  --sf-s: ${shift("--sf-u")};
-  --sf-v: var(--sf-s);
-  --sf-t: var(--sf-v);
-  background-color: var(--sf-s);
-  transition: --sf-t 1ms;
+:root[data-cssints-poly] & {
+  --_s: ${shift("--_u")};
+  --_v: var(--_s);
+  --_t: var(--_v);
+  background-color: var(--_s);
+  transition: --_t 1ms;
 }
-:root[data-cssints-poly] ._s._f { transition: --sf-t 1ms, --fr-t 1ms; }`;
+:root[data-cssints-poly] &&(frame.core) { transition: --_t 1ms, --frame-t 1ms; }`;
 
 // 0.5636 is the OKLCH lightness where black and white text have the same WCAG ratio on a grey; clamp(-1, x * 1e6, 1) is
 // sign(x) without Chrome 138. A chromatic colour can fall short of 4.5:1 (research finding 6).
@@ -61,11 +62,10 @@ const step = "<number [0,1]>" as const;
  * `css.check.contrast`. It stands for `background-color`, so mixing it with `bg()`, `background` or `backgroundColor` in
  * one `cn()` is a build error.
  */
-export const surface = context({
-  name: "surface",
-  marker: "_s",
-  kernel: {
-    key: "surface@1",
+export const surfaceScope = scope("surface", {
+  // embedded for the class of its kernel (`&(frame.core)`), which the fallback below names
+  frame: frameScope,
+  core: {
     css,
     atProperty: [registered(["e", "o"], true), registered(["u", "v", "t"], false)].join("\n"),
     requires: [
@@ -73,35 +73,35 @@ export const surface = context({
       { key: "css.types.color.oklch.relative_syntax", exact: true },
     ],
   },
-  runtime: {
+  fallback: {
     polyfills: ["css.at-rules.container.style_queries_for_custom_properties"],
-    parentVars: [{ marker: "_s", read: "--sf-v", write: "--sf-u", watch: "--sf-t" }],
+    parentVars: [{ marker: "&", read: "--_v", write: "--_u", watch: "--_t" }],
     css: fallback,
   },
-  conflicts: {
+  noBackground: {
     props: ["background", "background-color"],
     message: "surface() sets the background colour: use its methods",
   },
-  methods: {
-    color: method({ grammar: "<color>", emit: (v) => [["--sf-k", v]] }),
-    lighten: method({
-      grammar: step,
-      excludes: ["darken", "contrast"],
-      emit: (v) => [["--sf-d", v]],
-    }),
-    darken: method({
-      grammar: step,
-      excludes: ["lighten", "contrast"],
-      emit: (v) => [["--sf-d", `calc(${v} * -1)`]],
-    }),
-    contrast: method({
-      grammar: step,
-      excludes: ["lighten", "darken"],
-      emit: (v) => [["--sf-d", `calc(${v} * clamp(-1, ${pivot}, 1))`]],
-    }),
-    ink: method({
-      grammar: "",
-      emit: () => [["color", `oklch(from var(--sf-s) clamp(0, ${pivot}, 1) 0 0)`]],
-    }),
+  surface: {
+    uses: ["core", "fallback", "noBackground"],
+    chain: {
+      color: { args: "<color>", emit: (v) => [["--_k", v]] },
+      lighten: { args: step, excludes: ["darken", "contrast"], emit: (v) => [["--_d", v]] },
+      darken: {
+        args: step,
+        excludes: ["lighten", "contrast"],
+        emit: (v) => [["--_d", `calc(${v} * -1)`]],
+      },
+      contrast: {
+        args: step,
+        excludes: ["lighten", "darken"],
+        emit: (v) => [["--_d", `calc(${v} * clamp(-1, ${pivot}, 1))`]],
+      },
+      ink: {
+        args: "",
+        emit: () => [["color", `oklch(from var(--_s) clamp(0, ${pivot}, 1) 0 0)`]],
+      },
+    },
   },
 });
+export const { surface } = surfaceScope.export();

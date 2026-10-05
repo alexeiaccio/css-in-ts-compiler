@@ -422,8 +422,14 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     const affected = [...new Set([...(depsOf.get(file) ?? []), ...inflight])].flatMap(
       (id) => graph.getModuleById(id) ?? [],
     );
-    // HMR invalidation alone would still let Vite cache (and reuse) a result that is being computed now.
-    yield* Effect.sync(() => affected.forEach((m) => graph.invalidateModule(m)));
+    // HMR invalidation alone would still let Vite cache (and reuse) a result that is being computed now. What these modules
+    // registered is stale and they run again: a scope that this edit changed has no user of its old content left (scope.ts).
+    yield* Effect.sync(() =>
+      affected.forEach((m) => {
+        graph.invalidateModule(m);
+        if (m.id) forget(m.id);
+      }),
+    );
     return [...modules, ...affected];
   });
 

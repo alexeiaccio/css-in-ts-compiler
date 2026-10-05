@@ -36,40 +36,40 @@ const write = (name, body) => {
 
 // the classes: the marker first, then one custom-property class per method; a lone number is a step of the spacing scale
 const use = await code("frame-use.ts");
-assert.match(use, /export const a = "_f _\w+ _\w+ _\w+ _\w+";/, use);
+assert.match(use, /export const a = "_frame-core _\w+ _\w+ _\w+ _\w+";/, use);
 assert.match(
   use,
-  /export const b = "_f _\w+ _\w+";/,
+  /export const b = "_frame-core _\w+ _\w+";/,
   "cn(): one marker, the padding of the media query is a class",
 );
 assert.ok(
-  use.includes("virtual:cssints/runtime/frame"),
+  use.includes("virtual:cssints/runtime/frame.fallback"),
   "a client module that uses frame() imports its runtime",
 );
 const css = sheet("frame-use.ts");
 for (const d of [
-  "--fr-r:24px",
-  "--fr-p:0.5rem",
-  "--fr-b:2px",
-  "--fr-m:0.25rem",
-  "--fr-p:1em",
-  "--fr-r:8px",
+  "--frame-r:24px",
+  "--frame-p:0.5rem",
+  "--frame-b:2px",
+  "--frame-m:0.25rem",
+  "--frame-p:1em",
+  "--frame-r:8px",
 ])
   assert.ok(css.includes(`{${d}}`), `${d}\n${css}`);
 assert.match(
   css,
-  /@media \(width >= 40rem\) \{\s*\._\w+\{--fr-p:1\.5rem\}/,
+  /@media \(width >= 40rem\) \{\s*\._\w+\{--frame-p:1\.5rem\}/,
   "a condition just sets the custom property",
 );
-assert.match(css, /:hover\{--fr-r:2px\}/);
+assert.match(css, /:hover\{--frame-r:2px\}/);
 assert.equal(css.match(/@container/g)?.length, 2, "the kernel is printed once");
 assert.ok(
-  css.indexOf("@property --fr-r") < css.indexOf("@layer _.k {"),
+  css.indexOf("@property --frame-r") < css.indexOf("@layer _.k {"),
   "the registrations are at the top",
 );
 assert.match(
   css,
-  /@layer _\.k \{[\s\S]*\._f \{[\s\S]*@container[\s\S]*:root\[data-cssints-poly\] \._f \{/,
+  /@layer _\.k \{[\s\S]*\._frame-core \{[\s\S]*@container[\s\S]*:root\[data-cssints-poly\] \._frame-core \{/,
   "kernel, then the fallback: layer _.k",
 );
 assert.ok(
@@ -87,7 +87,7 @@ const old = spawnSync("node", ["run.mjs", "fixtures/frame-use.ts"], {
 });
 assert.match(
   old.stdout + old.stderr,
-  /kernel frame@1 needs css\.at-rules\.property, not supported by firefox 127, safari 15/,
+  /kernel frame.core needs css\.at-rules\.property, not supported by firefox 127, safari 15/,
 );
 
 // a token (a registered custom property) is a value; the kernel sees its computed length
@@ -98,8 +98,8 @@ export const a = frame().radius(radius).padding(2).border(radius);\n`,
 );
 await code("frame-token.ts");
 const tok = sheet("frame-token.ts");
-assert.match(tok, /\{--fr-r:var\(--radius-lg\)\}/, tok);
-assert.match(tok, /\{--fr-b:var\(--radius-lg\)\}/);
+assert.match(tok, /\{--frame-r:var\(--radius-lg\)\}/, tok);
+assert.match(tok, /\{--frame-b:var\(--radius-lg\)\}/);
 assert.match(tok, /@property --radius-lg/);
 
 // errors: the plugin, the grammar, the call site

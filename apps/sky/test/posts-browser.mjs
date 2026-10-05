@@ -54,10 +54,10 @@ try {
       const sample = (name) => document.querySelector(`[data-sample=${name}]`);
       const card = (name) => sample(name).querySelector("article").firstElementChild;
       const q = card("quoteImages");
-      const quote = [...q.querySelectorAll("._f")].find(
+      const quote = [...q.querySelectorAll("._frame-core")].find(
         (e) => cs(e, "border-top-width") === "1px" && e.querySelector("a"),
       );
-      const inner = quote.querySelector("._f"); // the media frame inside the quote
+      const inner = quote.querySelector("._frame-core"); // the media frame inside the quote
       const feed = sample("quoteImages").parentElement;
       const mediaBox = (name) =>
         sample(name).querySelector("article a[target=_blank] > img").closest("a").parentElement;

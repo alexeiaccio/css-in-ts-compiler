@@ -10,7 +10,7 @@ packages/cssints       Vite plugin on the Module Runner (src/plugin.ts) + the cs
 packages/css-grammar   type-level recognizer (src/css.ts) + runtime twin (src/twin.ts over twin-core.ts) over mdn-data grammars,
                        Typed OM values, BCD support warnings, prose rules; test/, bench/ (instantiation budgets)
 tools/ai-automation    the oxlint plugin `automation/*` (Effect, core and anti-slop rules), the added-lines diff-check, vendor/anti-slop (MIT, UPSTREAM.md); its tests run through `vp test run`
-packages/icons         @cssints/icons: icons() on the cssints/plugin style() helper (iconify-json and fs providers); test/: fixtures, icons.mjs, types/
+packages/icons         @cssints/icons: icons() on cssints/plugin scope() (iconify-json and fs providers); test/: fixtures, icons.mjs, types/
 packages/mise-en-mode  @cssints/mise-en-mode: look(tokens, expression, source, overrides, { scope? }), looks as themes in the layers app < author < viewer on data-mode scopes; test/: fixtures, mise-en-mode.mjs, types/
 apps/demo              React demo on the plugin: every 0.1 feature (App.tsx, components/Showcase.tsx, theme.ts)
 apps/sky               Solid 2 app on the plugin (solid-js 2.0.0-rc.13, @solidjs/router 2.0.0-next.35, atcute): Mu's shell (nav, 600 px column, rail, bottom bar), routes, themes, appearance settings (/settings), the post card and embeds (src/post/, /dev/posts in dev), the home feed with tabs (src/home/), the profile (src/profile/), the thread (src/thread/),

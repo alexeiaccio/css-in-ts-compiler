@@ -21,19 +21,19 @@ assert.match(
   sheet,
   /@media \(width ?>= ?1300px\)\{[^@]*grid-template-columns:var\(--layout-left-nav-width\)/,
 ); // media()
-assert.match(sheet, /\._\w+\{--fr-r:var\(--radius-lg\)\}/); // frame()
-assert.match(sheet, /\._\w+\{--_svg:url\(/); // the icon
+assert.match(sheet, /\._\w+\{--frame-r:var\(--radius-lg\)\}/); // frame()
+assert.match(sheet, /\._\w+\{--icons-svg:url\(/); // the icon
 
 // the post card (src/post): the card's own width through container(), concentric radii through frame(), tonal steps through
 // surface(); the only radius written for the card is its own, the quote and the media inside get theirs from the kernel
 assert.match(sheet, /@container post \(width ?>= ?28rem\)\{[^@]*grid-column:2/); // avatar beside the text when wide
 assert.match(sheet, /@container post \(width ?>= ?28rem\)\{[^@]*grid-template-columns:repeat\(3/); // media columns
-assert.match(sheet, /@container post \(width ?>= ?28rem\)\{[^@]*--fr-p:\.75rem/); // a wide card pads more, the quote follows
-assert.match(sheet, /\._\w+\{--fr-r:var\(--radius-xl\)\}/); // the card's radius
-assert.match(sheet, /@container style\(--fr-c: ?e\)/); // the frame kernel
-assert.match(sheet, /\._\w+\{--sf-d:\.04\}/); // surface().lighten(0.04): the card above the feed
-assert.match(sheet, /\._\w+\{--sf-d:calc\(\.03 \* clamp\(/); // surface().contrast(0.03): the quote away from the card
-assert.match(sheet, /@container style\(--sf-p: ?e\)/); // the surface kernel
+assert.match(sheet, /@container post \(width ?>= ?28rem\)\{[^@]*--frame-p:\.75rem/); // a wide card pads more, the quote follows
+assert.match(sheet, /\._\w+\{--frame-r:var\(--radius-xl\)\}/); // the card's radius
+assert.match(sheet, /@container style\(--frame-c: ?e\)/); // the frame kernel
+assert.match(sheet, /\._\w+\{--surface-d:\.04\}/); // surface().lighten(0.04): the card above the feed
+assert.match(sheet, /\._\w+\{--surface-d:calc\(\.03 \* clamp\(/); // surface().contrast(0.03): the quote away from the card
+assert.match(sheet, /@container style\(--surface-p: ?e\)/); // the surface kernel
 const embeds = readFileSync("src/post/Embed.tsx", "utf8");
 assert.ok(
   !embeds.includes(".radius("),
@@ -52,7 +52,7 @@ assert.match(sheet, /@media \(prefers-reduced-motion: ?reduce\)\{[^@]*\._\w+\{an
 assert.match(sheet, /@media \(prefers-reduced-motion: ?reduce\)\{[^@]*\._\w+\{transition:none\}/);
 assert.match(sheet, /\._\w+\{transition:transform \.25s ease-out\}/); // the indicator
 assert.match(sheet, /\._\w+\{top:var\(--layout-header-height\)\}/); // under the header
-assert.match(sheet, /\._\w+:hover\{--sf-d:calc\(\.03 \* -1\)\}/); // a tab a step darker on hover (surface().darken)
+assert.match(sheet, /\._\w+:hover\{--surface-d:calc\(\.03 \* -1\)\}/); // a tab a step darker on hover (surface().darken)
 assert.equal(sheet.match(/@keyframes kf-/g).length, 1, "one rule, however many skeletons use it");
 
 // the profile header (src/profile/Header.tsx): its layout is the column's container, not the window's: the avatar beside the name
@@ -84,7 +84,7 @@ assert.match(
   /\.square-avatars\{--radius-avatar:var\(--radius-sm\);--radius-avatar-small:3px\}/,
 );
 assert.match(sheet, /\._\w+\{border-radius:var\(--radius-button\)\}/); // the nav items
-assert.match(sheet, /\._\w+\{--fr-r:var\(--radius-button\)\}/); // a frame on the token
+assert.match(sheet, /\._\w+\{--frame-r:var\(--radius-button\)\}/); // a frame on the token
 assert.match(sheet, /\._\w+\{border-radius:var\(--radius-avatar-small\)\}/);
 assert.match(
   sheet,
@@ -115,7 +115,11 @@ const all = files
   .filter((f) => f.fileName.endsWith(".js"))
   .map((f) => f.code)
   .join("");
-assert.match(all, /class="_f _s _\w+( _\w+)*"/, "the card's classes are in Solid's template");
+assert.match(
+  all,
+  /class="_frame-core _surface-core _\w+( _\w+)*"/,
+  "the card's classes are in Solid's template",
+);
 assert.ok(!all.includes("quoteDetached"), "the dev page and its recorded posts are not in a build");
 // the thread screen: the focused post is a cv() variant of the card (class strings in the config, its font size in the sheet), and
 // the connector lines are placed from the avatar's centre, narrow and (inside the card's own container) wide

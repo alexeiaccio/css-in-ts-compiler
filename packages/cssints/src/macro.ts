@@ -47,6 +47,7 @@ import {
 import { addRuntime } from "./delivery.ts";
 import { clamp, colorMix, max, min } from "./functions.ts";
 import { addKernel } from "./kernel.ts";
+import { engine } from "./scope-engine.ts";
 import { addGlobal, addLayers } from "./sheet.ts";
 import { loweredOf } from "./lowered.ts";
 import {
@@ -534,14 +535,14 @@ const classesNow = (
 };
 
 // A plugin's conflicts: its marker with one of the listed properties in one style.
-const conflictOf = ({ name, conflicts }: Plug, decls: Decl[], at?: At): MemberError | undefined => {
+const conflictOf = ({ name, label = name, conflicts }: Plug, decls: Decl[], at?: At) => {
   const hit =
     conflicts &&
     decls.find(([p]) => conflicts.props.some((c) => (typeof c === "string" ? c === p : c.test(p))));
   return hit
     ? new MemberError({
-        message: `cssints: ${name}: ${conflicts.message} (this style also sets ${hit[0]})`,
-        pluginName: name,
+        message: `cssints: ${label}: ${conflicts.message} (this style also sets ${hit[0]})`,
+        pluginName: label,
         ...at,
       })
     : undefined;
@@ -668,6 +669,8 @@ export const css = new Proxy(named, {
   get: (t, k) => (Object.hasOwn(t, k) ? t[k as string] : member(String(k))),
 });
 named.css = css;
+registry.lib = { css, blockOf };
+registry.engine = engine;
 
 // A condition, or a tuple or an object of them, held in a variable (`const [md, lg] = css.media(a, b)`): nothing of it
 // ships. Every call of it is a site of its own (instrument.ts), so the client keeps a placeholder of the same shape.

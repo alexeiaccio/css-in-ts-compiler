@@ -1,4 +1,6 @@
 // Shared by the runtime (eval time) and the plugin (build time).
+export { camel, fail, failIn, isNode, node, probed, VAR } from "./node.ts";
+export type { Carry, Cond, CssNode, Decl } from "./node.ts";
 //
 // The builders here (`toDecls`, `chainDecl`) are the one synchronous part of the engine, with `isNode`: user code
 // calls css.* in expressions and stores the results, so they cannot return Effects. They throw a MacroError.
@@ -7,81 +9,16 @@ import { createRequire } from "node:module";
 import { properties } from "@cssints/css-grammar/mdn";
 import { Cause, Effect, Exit } from "effect";
 
-import { MacroError, MemberError } from "./errors.ts";
+import { MacroError } from "./errors.ts";
 import { covers, relation } from "./leaves.ts";
-import {
-  type GlobalRule,
-  type Kernel,
-  type Plug,
-  type Property,
-  registry,
-  type ThemeRule,
-} from "./registry.ts";
+import { camel, type Carry, type Cond, type CssNode, type Decl, fail, isNode } from "./node.ts";
 
-/**
- * One condition of a style: an at-rule prelude (`@media (width >= 40rem)`), a pseudo-class (`:hover`), an attribute
- * (`[aria-current="page"]`) or, with `ancestor`, a selector of a marked ancestor (`:where(._g:hover)`).
- * `rank` orders the rules of a layer: the min-width of a media or container query in px, the place of a pseudo-class.
- */
-export interface Cond {
-  text: string;
-  rank: number;
-  ancestor?: true;
-}
-/**
- * One declaration: property and value, under the conditions that wrap it (outermost first). `fallbacks` are the other
- * values of a `firstThatWorks(...)`, best first: the rule prints them before `value`, which is the one wanted.
- */
-export type Decl = [prop: string, value: string, conds?: Cond[], fallbacks?: string[]];
 /** What firstThatWorks() builds: its values as text, the wanted one first. */
 export interface Fallback {
   __fallback: string[];
 }
 export const isFallback = (v: unknown): v is Fallback =>
   !!v && typeof v === "object" && "__fallback" in v;
-/**
- * What a css.* builder returns: its declarations, and next to them the fixed classes it prints (`markers`, each with
- * the key of the kernel it belongs to), the kernels it needs, and the plugin members whose runtime and conflicts apply
- * (`plugs`). `cn()` merges all three.
- */
-export interface CssNode {
-  __cssints: Decl[];
-  markers?: [marker: string, kernel: string][];
-  kernels?: Kernel[];
-  globals?: GlobalRule[];
-  themes?: ThemeRule[];
-  layers?: string[][];
-  plugs?: Plug[];
-}
-type Carry = Pick<CssNode, "markers" | "kernels" | "globals" | "themes" | "layers" | "plugs">;
-
-// A style node. Chaining a method on it calls `chain(name, args, self)`, which makes the next node (flex() and grid(),
-// a plugin's context). The target always has the three carried keys (undefined when empty): a missing one would read
-// as a chain method.
-export const node = (
-  decls: Decl[],
-  { markers, kernels, globals, themes, layers, plugs }: Carry = {},
-  chain: (name: string, args: unknown[], self: CssNode) => CssNode = (name, args) =>
-    node([chainDecl(undefined, name, args)]),
-): CssNode =>
-  new Proxy<CssNode>(
-    { __cssints: decls, markers, kernels, globals, themes, layers, plugs },
-    {
-      get: (t, k) =>
-        k in t || typeof k === "symbol"
-          ? (t as unknown as Record<string | symbol, unknown>)[k]
-          : (...args: unknown[]) => chain(k, args, t),
-    },
-  );
-
-export const camel = (p: string) => p.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
-
-// A builder error names the call site being evaluated (`__at` set it), when there is one.
-export const fail = (message: string) => new MacroError({ message, ...registry.at });
-// The same for what a plugin member does wrong.
-export const failIn = (plugin: string, message: string) =>
-  new MemberError({ message, pluginName: plugin, ...registry.at });
-
 // Runs an Effect at a synchronous edge, a builder that user code calls in an expression: a failure is thrown as the error itself.
 export const edge = <A>(program: Effect.Effect<A, MacroError>): A => {
   const exit = Effect.runSyncExit(program);
@@ -191,9 +128,6 @@ export function minWidth(q: string): number {
 }
 
 const SPACING = /^(padding|margin|inset|gap|row-gap|column-gap)(-|$)/;
-export const isNode = (v: unknown): v is CssNode =>
-  !!v && typeof v === "object" && Array.isArray((v as CssNode).__cssints);
-
 // parts (strings, Typed OM values) are joined by a space; a lone number is the spacing scale in spacing properties
 const decl = (prop: string, name: string, args: unknown[]): Decl => {
   if (!args.length) throw fail(`cssints: ${name}() expects a value`);
@@ -357,20 +291,6 @@ export function chainDecl(ctx: string | undefined, method: string, args: unknown
   if (i < 0)
     throw fail(`cssints: ${ctx}() has no .${method}(); it chains ${chainNames(ctx).join(", ")}`);
   return decl(CONTEXTS[ctx]![i]!, method, args);
-}
-
-// The texts a value is checked as. The recognizer reads text and knows no var(): a token (`var(--name)`, however a
-// string came to hold it) is checked as literals of its type, one text per literal a type has (lengthPercentage: a
-// length and a percentage). A var() of no token stays as it is.
-export const VAR = /var\((--[\w-]+)\)/g;
-export function probed(value: string, properties: Map<string, Property>): string[] {
-  if (!value.includes("var(--")) return [value];
-  const probesOf = (name: string) => properties.get(name)?.probes ?? [];
-  let n = 1;
-  for (const [, name] of value.matchAll(VAR)) n = Math.max(n, probesOf(name!).length);
-  return Array.from({ length: n }, (_, i) =>
-    value.replace(VAR, (m, name: string) => probesOf(name)[i] ?? probesOf(name)[0] ?? m),
-  );
 }
 
 // The class name of a declaration. Plain code: a tight loop over the characters of every declaration, called

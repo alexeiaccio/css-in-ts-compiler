@@ -29,24 +29,28 @@ const use = await code("plug-use.ts");
 assert.match(use, /export const a = "_\w+";/, use);
 assert.match(
   use,
-  /export const b = "_f _\w+ _\w+";/,
+  /export const b = "_frame-core _\w+ _\w+";/,
   "marker, then the two custom-property classes",
 );
-assert.match(use, /export const c = "_f _\w+ _\w+";/, "cn(): the marker once");
+assert.match(use, /export const c = "_frame-core _\w+ _\w+";/, "cn(): the marker once");
 const css = sheet("plug-use.ts");
 assert.match(css, /\{-webkit-font-smoothing:antialiased\}/);
-assert.match(css, /\{--fr-r:8px\}/);
-assert.match(css, /\{--fr-p:1rem\}/, "a lone number is a spacing step");
-assert.ok(css.includes("@property --fr-r"), "the kernel's @property at the top");
+assert.match(css, /\{--frame-r:8px\}/);
+assert.match(css, /\{--frame-p:1rem\}/, "a lone number is a spacing step");
+assert.ok(css.includes("@property --frame-r"), "the kernel's @property at the top");
 assert.ok(!warnings.some((w) => w.includes("font-smoothing")), warnings.join("\n"));
 
 // runtime: the import is added for a member with a runtime; the module and the fallback CSS follow the targets
-assert.ok(use.includes("virtual:cssints/runtime/frame"), use);
+assert.ok(use.includes("virtual:cssints/runtime/frame.fallback"), use);
 assert.ok(use.includes("virtual:cssints/runtime/lit"), use);
-const frameRuntime = (await client.transformRequest("virtual:cssints/runtime/frame")).code;
+const frameRuntime = (await client.transformRequest("virtual:cssints/runtime/frame.fallback")).code;
 assert.ok(frameRuntime.includes("parent-vars"), frameRuntime);
-assert.ok(frameRuntime.includes(`"marker":"_f","read":"--fr-i","write":"--fr-u","watch":"--fr-t"`));
-assert.ok(css.includes(":root[data-cssints-poly] ._f {"), "the fallback is in the sheet");
+assert.ok(
+  frameRuntime.includes(
+    `"marker":"_frame-core","read":"--frame-i","write":"--frame-u","watch":"--frame-t"`,
+  ),
+);
+assert.ok(css.includes(":root[data-cssints-poly] ._frame-core {"), "the fallback is in the sheet");
 assert.ok(css.indexOf("@layer _.k {") < css.indexOf("data-cssints-poly"), "...in layer _.k");
 const litRuntime = (await client.transformRequest("virtual:cssints/runtime/lit")).code;
 assert.ok(!litRuntime.includes("parent-vars"), "every target has the feature: nothing");

@@ -475,68 +475,81 @@ export const clamp2 = cn(
 - Validity rules written only in prose are errors too (`transition: none, opacity 1s`, an unquoted `font-family` with a generic keyword inside a name).
 - Keywords and function names are written in their canonical case, on purpose: `color("RED")` and `rgb(` as `RGB(` are errors, so each value has one spelling (completions and class names stay the same). The message says the spelling: `color: unexpected "RED" in "RED" ("RED" is red in CSS; write "red"), expected <color>`. The types say it for keywords (`color("RED")`); the build says it for function names too. The CSS-wide keywords `inherit`, `initial`, `unset`, `revert` and `revert-layer` are a value of every property, whatever its grammar: `fontFamily("inherit")` is fine.
 
-### Plugins (decided 2026-09-30, cssints-zho2)
+### Plugins (decided 2026-09-30, cssints-zho2; `scope()` 2026-10-05, cssints-8ogz)
 
-A plugin is a module that exports members built with five helpers from `cssints/plugin`. User code imports it with the attribute, like `cssints` itself: `import { ring } from "./ring.ts" with { type: "cssints" }`. There is no registration in `vite.config` and no type augmentation; the engine finds the sites by the attribute, and learns kernels, runtimes and conflicts from the style each member returns. In user code a member returns a class string, so it goes into `cn()`, `cx()` and the conditions like any `css.*` value.
+A plugin is a module that exports the members of a `scope()` from `cssints/plugin`: `scope("name", table).build(impl).export()`. The table says what the plugin has (syntax names, kernels, a runtime, conflicts, token sets, other scopes, and its members); the members are typed from the table, with no second file of types. User code imports the plugin with the attribute, like `cssints` itself: `import { ring } from "./ring.ts" with { type: "cssints" }`. There is no registration in `vite.config` and no type augmentation; the engine finds the sites by the attribute, and learns kernels, runtimes and conflicts from the style each member returns. In user code a member returns a class string, so it goes into `cn()`, `cx()` and the conditions like any `css.*` value.
 
 ```ts
 import { cn, p } from "cssints" with { type: "cssints" };
-import { context, method, property, style } from "cssints/plugin";
+import { scope } from "cssints/plugin";
 
-// A property of your own, typed by its grammar (it is not in mdn-data). No support warning: the engine knows nothing of it.
-export const smoothing = property("-webkit-font-smoothing", "auto | none | antialiased | subpixel-antialiased");
-
-// A chaining context like flex(): the call gives the marker class and the kernel, each method emits custom properties.
-const length = "<length [0,∞]>";
-export const ring = context({
-	name: "ring",
-	marker: "_rg",
-	kernel: { key: "ring@1", css: "._rg { outline: var(--rg-w) solid var(--rg-c); }" },
-	conflicts: { props: ["outline", /^outline-/], message: "ring() sets the outline" },
-	methods: {
-		width: method({ grammar: length, emit: (v) => [["--rg-w", v]] }),
-		color: method({ grammar: "<color>", emit: (v) => [["--rg-c", v]] }),
+export const { ring, dot, webkitFontSmoothing } = scope("ring", {
+	// a local syntax name: `<width>` in a grammar of this scope (it does not leak into mdn's names)
+	width: "<length [0,∞]> | thin | thick",
+	// a kernel: global CSS, once. `&` is the class the engine mints for it, `--_w` is the custom property `--ring-w`
+	"#core": {
+		css: "& { outline: var(--_w) solid var(--_c); outline-offset: 2px }",
+		atProperty: '@property --_w { syntax: "<length>"; inherits: false; initial-value: 2px; }',
+		requires: ["css.at-rules.property"],
 	},
-});
+	"#noOutline": { props: ["outline", /^outline-/], message: "ring() sets the outline: use its methods" },
+	// a chain member, like flex(): a call gives the marker and the kernel, each method emits custom properties
+	ring: {
+		uses: ["core", "noOutline"],
+		chain: {
+			width: { args: "<width>", spacing: true, emit: (v) => [["--_w", v]] },
+			color: { args: "<color>", emit: (v) => [["--_c", v]] },
+		},
+	},
+	// a property of your own, typed by its grammar (it is not in mdn-data); the key starts with `-`
+	"-webkit-font-smoothing": "auto | none | antialiased | subpixel-antialiased",
+	// a call member: its function is the entry of the same name in build()
+	dot: { args: "small | large" },
+})
+	.build({ dot: (size) => ({ decls: [["--_size", size === "small" ? "4px" : "8px"]] }) })
+	.export();
 
-// A function of grammar-typed parts that returns a style: `build` gets the parts joined by a space.
-export const dot = style("small | large", (size) => ({
-	decls: [["--dot-size", size === "small" ? "4px" : "8px"]],
-}));
-
-export const card = cn(p(2), ring().width("2px").color("red"), smoothing("antialiased"), dot("small"));
+export const card = cn(p(2), ring().width("thin").color("red"), webkitFontSmoothing("antialiased"), dot("small"));
 export const twice = ring().width("1px").width("2px"); // error: a method is used once
-export const wrong = ring().width("red"); // error: not a length
-export const bad = smoothing("bold"); // error: not in the grammar
+export const wrong = ring().width("red"); // error: not a width
+export const bad = webkitFontSmoothing("bold"); // error: not in the grammar
+export const no = dot("medium"); // error: not in the grammar
+export const hidden = ring().core; // error: no such method
 ```
 
-- **`context({ name, marker, kernel, runtime?, conflicts?, methods })`** gives `() => chain`. The call is the marker and the kernel; `method({ grammar, spacing?, emit })` makes each method: its parts are checked against `grammar` in the types (the error is on the bad argument and says `ring.width: unexpected "red" ...`) and again at build time. `spacing` makes a lone number a step of the spacing scale, as in `padding`. `emit` returns declarations; a custom property (`--*`) is allowed and its value is not checked, any other property is checked like a `css.*` one. A method is used once: the chain leaves it out. `excludes: ["darken"]` leaves other methods out after this one too (`surface().lighten(…)` has no `.darken()`; the build says `cannot go with .lighten()` in plain JS), and `grammar: ""` makes a method that takes no value (`ink()`). A grammar must be a literal type (a `const` variable is fine; if TypeScript has widened it to `string`, the method says so and takes no value: write `as const`).
-- **`style(grammar, build)`** is a function of grammar-typed parts. `build(value)` returns `{ decls, markers?, kernels?, globals?, layers?, themes? }`: `markers` are fixed classes printed once (they belong to the first kernel), `kernels` are the kernels they need. Icons are this shape.
-- **`property(name, grammar, emit?)`** is a typed passthrough: the value is checked against `grammar` and emitted as `name: value`; `emit(value)` can return other declarations. A name that is a CSS property already is an error (use `css.<name>`).
-- **Kernels** are global CSS, registered by `key` (`name@version`) on first use: the CSS goes once into layer `_.k`, below every class layer, and `atProperty` (the `@property` rules of its custom properties) goes at the top of the sheet. Two members share a kernel by pointing at the same object. Build errors, at the call site: the same key with other CSS (a kernel that changes needs a new key), two keys that declare one custom property, two keys that print one marker. Pick short custom-property names and markers (`--rg-w`, `_rg`). A kernel's `requires` (BCD keys) is a build warning for a target that lacks one, never an error. As in every support warning, a BCD `partial_implementation` counts as support, because most partial entries are edge cases (`accent-color` without a minimum contrast, `content-visibility: auto` not found by find-in-page); an entry `{ key, exact: true }` counts it as lacking, for a feature whose partial form gives other results (`surface()` asks for `{ key: "css.types.color.oklch.relative_syntax", exact: true }`), and the warning says so: `(a partial implementation counts as lacking)`. `polyfills` has no such form: a runtime is chosen by what a polyfill can repair, and it cannot repair a partial relative colour.
-- **`globals`** — a member's `build` may also return `globals: { css, layer? }[]`: global rules that are not classes. A global is identified by its content (`layer` and `css`), not by a name: the same rule from two styles is one, and editing a value replaces it. It is in the sheet of the modules whose styles carry it (as kernels are), and leaves it with them: a module that runs again, in dev, forgets what it held before, so an edit of a look's values reaches the sheet, and a look that no file uses any more is gone. Rules of one layer are printed sorted by their text. `layer` sends a rule to a top-level layer of that name (`@layer app`); it must be declared by `layers` below, or by `layers()` in a module that was imported before. No layer puts it in `_.k`. Unlike a kernel, two globals **may** declare the same custom property; that is what lets a look set the same `--color-*` in several source layers. The look layer of Mise en Mode is a package written on themes, not on globals: [`@cssints/mise-en-mode`](../packages/mise-en-mode/README.md).
-- **`layers`** — `layers: ["app", "author", "viewer"]` in what `build` returns declares top-level layers, as `layers()` does for user code (same statement, printed once; the same errors at the call).
-- **`themes`** — `themes: { tokens, overrides, selector, layer?, scope? }[]` is `createGlobalTheme(tokens, selector, overrides, { layer, scope })` made by a member, through the same path: the paths and values of `overrides` are checked against the types of `tokens` at build time, the aliases that depend on an override are declared again, and `check.contrast` reads the theme with the others. `tokens` is a token set that the member's caller made with `createTokens()` and the member closes over (the arguments of a member are joined into one string, so it cannot take an object); the member is created where the tokens are, and its calls are the sites. The theme is in the sheet of the module that calls the member.
+- **The table** holds entries, by their shape. A string is a syntax name (`width: "<length [0,∞]> | thin"`), or, for a key that starts with `-`, a typed property (`-webkit-font-smoothing`, exported camel-cased as `webkitFontSmoothing`; a CSS property of mdn-data is an error, use `css.<name>`). `{ css, atProperty?, requires? }` is a kernel, `{ rule, layer? }` a global rule, `{ layers: [...] }` a declaration of top-level layers, `{ polyfills, parentVars?, css? }` a runtime, `{ props, message }` conflicts, `{ tokens }` a token set, a `scope(...)` another scope, `{ chain }` a chain member, `{ args }` a call member (a function in `build()`), `{ args, value }` a value member. A key that starts with `#` is private: other entries use it, it is not exported, and an embedding scope does not see it.
+- **Local syntax names.** `<width>` in a grammar of the table is the grammar written for `width`, in place, as a group (`[ <length [0,∞]> | thin | thick ]`); a name that is not in the table is left to mdn-data. The types and the build expand them with the same rule, so what the editor accepts is what the build accepts. A scope embedded as a module gives its public names as `<mod.name>`, a token set as `<tokens.color.accent>` (the type of that token), so a grammar can say "a colour or this token".
+- **Namespaces.** Everything a scope declares is the scope's own. In the CSS of a kernel, a runtime or a global, and in what `emit` and `build` return, `--_x` is the custom property `--<scope>-x`; in a kernel or a runtime `&` is the class the engine mints for the kernel (`_<scope>-<entry>`, `_ring-core`) and `&(mod.key)` that of the kernel `key` of an embedded scope. A runtime or conflicts entry takes the class of the first kernel in the `uses` of the member. Scope names are lowercase letters, digits and `-`; `cssints` and `derived` are the engine's.
+- **`uses`** lists what a member needs, by key: kernels, globals, layers, runtimes and conflicts of the scope, or `mod.key` of an embedded one (the types reject a name that is none of these, or a private one). A call member may add more in what `build` returns.
+- **Kernels** are global CSS, registered once per scope entry (key `<scope>.<entry>`) on first use: the CSS goes into layer `_.k`, below every class layer, and `atProperty` (the `@property` rules) at the top of the sheet. A kernel can also be written as styles, `css: (css) => [css.outline("var(--_w)", "solid", "var(--_c)"), css.outlineOffset("2px")]`, which prints `&{...}`: the declarations are checked like a user's (grammar, prose rules; no conditions). Build errors, at the call site: two keys that declare one custom property, two keys that print one marker. A kernel's `requires` (BCD keys) is a build warning for a target that lacks one, never an error. As in every support warning, a BCD `partial_implementation` counts as support, because most partial entries are edge cases; an entry `{ key, exact: true }` counts it as lacking, for a feature whose partial form gives other results (`surface()` asks for `{ key: "css.types.color.oklch.relative_syntax", exact: true }`), and the warning says so: `(a partial implementation counts as lacking)`.
+- **Chain members** (`chain: { method: { args, spacing?, excludes?, emit } }`) give `() => chain`. `args` is the grammar of the method's parts, checked in the types (the error is on the bad argument and says `ring.width: unexpected "red" ...`) and again at build time. `spacing` makes a lone number a step of the spacing scale (0.25rem), as in `padding`. `emit` returns declarations; a custom property is allowed and its value is not checked, any other property is checked like a `css.*` one. A method is used once: the chain leaves it out. `excludes: ["darken"]` leaves other methods out after this one too, and `args: ""` makes a method that takes no value (`ink()`). A grammar must be a literal type (a `const` variable is fine; if TypeScript has widened it to `string`, the method says so: write `as const`).
+- **Call members** (`{ args, uses? }` and a function in `build()`) take their arguments by `args`: a grammar (the parts, joined by a space, as a property takes them: `args: "small | large"`), `arg<T>()` (one value of a TypeScript type, which TypeScript checks and `build` gets as it is: `arg<"home" | "star">()`), or a **tuple of positional arguments**, each a grammar (one part), `"$tokens"` (a token set from `createTokens`), `"$overrides"` (values by path for the tokens of the `$tokens` before it, checked in the types against that token set), `arg<T>()`, or at the end one object of named leaves (`{ "size?": "<width>", on: "<color>" }`, a key ending in `?` is optional). `build` gets them as written, grammar parts as checked text. The positional form type-checks within the per-call budget; its cost is that an error lands on the call, with the position and the reason in the message, not on the argument. `build` returns `{ decls?, uses?, globals?, themes?, layers? }`.
+- **`globals`** are global rules that are not classes (`{ rule, layer? }` in the table, or `{ css, layer? }[]` from `build`). A global is identified by its content, not by a name: the same rule from two styles is one, and editing a value replaces it. It is in the sheet of the modules whose styles carry it (as kernels are), and leaves it with them. `layer` sends a rule to a top-level layer of that name (`@layer app`); it must be declared by a `layers` entry (or `layers` from `build`), or by `layers()` in a module imported before. No layer puts it in `_.k`. Unlike a kernel, two globals **may** declare the same custom property; that is what lets a look set the same `--color-*` in several source layers.
+- **`themes`** — `themes: { tokens, overrides, selector, layer?, scope? }[]` from `build` is `createGlobalTheme(tokens, selector, overrides, { layer, scope })` made by a member, through the same path: the paths and values of `overrides` are checked against the types of `tokens` at build time, the aliases that depend on an override are declared again, and `check.contrast` reads the theme with the others. With `args: ["$tokens", "$overrides", ...]` the member takes the token set from its caller and the overrides are checked in the types as well.
 
 ```ts
-import { createTokens } from "cssints" with { type: "cssints" };
-import { style } from "cssints/plugin";
+import { scope } from "cssints/plugin";
 
-const t = createTokens({ color: { $type: "color", bg: { $value: "#fff" } } });
-// A member that sets the background in a look: `mode("dark")` is `[data-mode="dark"] { --color-bg: #000 }` in @layer viewer
-const mode = style("<custom-ident>", (name) => ({
-	decls: [],
-	layers: ["app", "viewer"],
-	themes: [{ tokens: t, overrides: { color: { bg: "#000" } }, selector: `[data-mode="${name}"]`, layer: "viewer" }],
-}));
-export const dark = mode("dark");
+// A member that sets tokens in a look: `mode(t, "dark", { color: { bg: "#000" } })` is `[data-mode="dark"] { --color-bg: #000 }` in @layer viewer
+export const { mode } = scope("mode", {
+	layers: { layers: ["app", "viewer"] },
+	mode: { args: ["$tokens", "<custom-ident>", "$overrides"], uses: ["layers"] },
+})
+	.build({
+		mode: (tokens, name, overrides) => ({
+			themes: [{ tokens, overrides, selector: `[data-mode="${name}"]`, layer: "viewer" }],
+		}),
+	})
+	.export();
 ```
 
-- **`conflicts: { props, message }`**: one `cn()` that holds the marker and one of the listed properties (a name, or a RegExp) is a build error with the plugin's message and the call site: `cssints: ring: ring() sets the outline (this style also sets outline)`. Conditions count: `hover(outline("none"))` is the same conflict.
-- **`runtime: { polyfills, parentVars?, css? }`** is the part for browsers that lack a feature. `polyfills` are BCD keys. A client module that holds a site with the member imports `virtual:cssints/runtime/<name>`, and the module is empty (`export {};`, nothing ships) unless a browserslist target lacks one of the keys and has `@property`, which the runtime stands on; a target without it gets nothing from a polyfill. When it is needed, `parentVars` (`{ marker, read, write, watch? }`, a family of elements that read the nearest marked ancestor's computed custom property) configure `cssints/parent-vars`, one shared script and one `MutationObserver` for all plugins, which does nothing without a `document`; and `css` (the fallback rules) is added to the sheet in layer `_.k`, only then. There is no switch to turn a runtime off. Derived tokens are not members and have no plugin; the engine registers their runtime (`cssints/derived`) on this same delivery and `needed()` decision (see "Themes").
-- **Errors** are `MemberError` values (`Data.TaggedError`) with `pluginName` and the file, site and offset of the call, so the Vite overlay points at it.
-- **`fn(grammar, computeTo, name?)`** is a function of grammar-typed parts that returns a value, not a style (see "Functions").
-- **Not in 0.2:** `keyword` members, completions of keywords inside plugin grammar strings (the message still names the grammar), local syntax names in grammars, and a plugin that is a package of members you install (`@cssints/icons` is the first, see Icons, then `@cssints/mise-en-mode`; `cssints/frame` and `cssints/surface` are written on these helpers).
+- **`conflicts: { props, message }`**: one `cn()` that holds the marker and one of the listed properties (a name, or a RegExp) is a build error with the plugin's message and the call site: `cssints: ring: ring() sets the outline: use its methods (this style also sets outline)`. Conditions count. The message is prefixed with the scope's name.
+- **`runtime: { polyfills, parentVars?, css? }`** is the part for browsers that lack a feature. `polyfills` are BCD keys. A client module that holds a site with the member imports `virtual:cssints/runtime/<scope>.<entry>`, and the module is empty (`export {};`, nothing ships) unless a browserslist target lacks one of the keys and has `@property`, which the runtime stands on. When it is needed, `parentVars` (`{ marker: "&", read, write, watch? }`, custom properties written `--_x`) configure `cssints/parent-vars`, one shared script and one `MutationObserver` for all plugins, and `css` (the fallback rules) is added to the sheet in layer `_.k`, only then. Derived tokens are not members; the engine registers their runtime (`cssints/derived`) on this same delivery (see "Themes").
+- **Identity.** A scope name is unique in the process, and a scope is its content (the table, the source of its functions, the scopes it embeds), hashed. A module that runs again with the same content is nothing (every client module that uses a plugin runs it again). Another content under the same name replaces the old one, as an edit does in dev: the files that imported the edited module are forgotten when Vite reports it and run again. It is a build error, `scope "x" is defined twice with different content`, while a file that was not affected still uses the old one: two modules that define one name. `icons()` runs its scope once per collection, with the same table and the same code: one scope, and the collection is the closure of `build`, which the hash does not see.
+- **Errors** are `MemberError` values (`Data.TaggedError`) with `pluginName` (the scope) and the file, site and offset of the call, so the Vite overlay points at it. What `build`, `value` or a kernel's styles throw is a `MemberError` at the call.
+- **Types.** `cssints/plugin` points at `author.ts` and `scope.ts`: the signatures and the type-level code (`Members`, `Chain`, `Expand`, the call checks) and no code that runs, because a program that imports a plugin must not need Node's types or a newer `lib`. The engine is `scope-engine.ts`; `macro.ts` registers it when the library loads.
+- **Older helpers** `context()` with `method()`, `style()`, `fn()` and `property()` are the earlier, flat form (one kernel, one marker, names picked by the author), kept as they were for what still uses them: `style()` is `cssints/mise-en-mode`'s, `fn()` builds `colorMix()` and `min()`. They are replaced by `scope()` and go when nothing uses them.
+- **Not in 0.2:** `keyword` members, completions of keywords inside plugin grammar strings (the message still names the grammar), kernel conflicts derived from a kernel written as styles (write `conflicts`), and a plugin that is a package of members you install other than `@cssints/icons`.
 
 ### Functions: `colorMix`, `min`, `max`, `clamp` and `fn()` (decided 2026-10-02, cssints-obd3)
 
@@ -585,7 +598,7 @@ step(2);
 
 ### `frame()`: concentric radius (`cssints/frame`, cssints-q2vh)
 
-The first plugin, written only on the helpers above. A frame passes its inner radius down the tree; a nested frame's radius is the parent's inner radius less its own margin, so a rounded field in a rounded card stays concentric with no wiring, however many plain wrappers sit between them.
+The first plugin, written only on `scope()` above. A frame passes its inner radius down the tree; a nested frame's radius is the parent's inner radius less its own margin, so a rounded field in a rounded card stays concentric with no wiring, however many plain wrappers sit between them.
 
 ```ts
 import * as css from "cssints" with { type: "cssints" };
@@ -607,13 +620,13 @@ export const own = frame().color("red"); // error: a frame chains its own method
 
 - **Methods**, each once and in any order: `radius(<length>)`, `padding(<length> | step)`, `border(<length>)` (a width; the style is `solid`), `margin(<length> | step)`. `radius` is the radius of the outermost frame; inside a frame it is ignored (the radius is computed). A lone number in `padding` and `margin` is a step of the spacing scale (0.25rem). Tokens go anywhere a length does.
 - **Build errors** (at the call site): a negative radius, padding or border, a percentage, and a `cn()` that holds `frame()` and a property it sets: `padding*`, `margin*`, `border-radius` and its corners, `border`, `border-width`, `border-style` and the border sides (`cssints: frame: frame() sets padding, margin, border-radius and the border: use its methods (this style also sets padding)`). Border colours (`borderColor`, `borderTopColor`) are plain styles and do not conflict. Conflicts across `cx()` are not seen, as for any plugin.
-- **What it emits:** the class `_f` and one class per method (`._x{--fr-p:0.5rem}`, in `_.a`, or `_.b` inside a condition). The kernel `frame@1` (about 1.2 kB minified with its registrations and fallback, once, in `_.k`) is two `@container style(--fr-c: ...)` rules that alternate two names, because a property cannot read itself; the `@property` rules of its custom properties (`--fr-*`) are at the top of the sheet. The inputs are registered lengths, so `em`, `calc()` and tokens reach the child as exact lengths (an `em` padding is the parent's `em`, not the child's). The 24-line kernel for px and rem only was not chosen: `@property` is the floor of the runtime anyway, and the registered one costs about 0.2 kB more.
+- **What it emits:** the class `_frame-core` and one class per method (`._x{--frame-p:0.5rem}`, in `_.a`, or `_.b` inside a condition). The kernel `frame.core` (about 1.2 kB minified with its registrations and fallback, once, in `_.k`) is two `@container style(--frame-c: ...)` rules that alternate two names, because a property cannot read itself; the `@property` rules of its custom properties (`--frame-*`) are at the top of the sheet. The names are the scope's own (`--_x` in the source is `--frame-x`, `&` is `_frame-core`), which is why they are longer than the `--fr-*` and `_f` of the helpers it was first written on. The inputs are registered lengths, so `em`, `calc()` and tokens reach the child as exact lengths (an `em` padding is the parent's `em`, not the child's). The 24-line kernel for px and rem only was not chosen: `@property` is the floor of the runtime anyway, and the registered one costs about 0.2 kB more.
 - **Browsers.** The kernel needs `@container style()` on custom properties (Chrome 111, Safari 18, Firefox 151) and `@property` (Chrome 85, Safari 16.4, Firefox 128). For a target that has `@property` and lacks style queries the build ships the fallback instead: `polyfills: ["css.at-rules.container.style_queries_for_custom_properties"]` and `cssints/parent-vars` (about 1 kB gzip, shared with other plugins), which copies each frame's inner radius to its frame children, and the fallback CSS. The script probes the browser and stays off where style queries work. Below `@property` (Firefox 127, Safari 16.3) the kernel is a build warning and nothing is shipped: a frame keeps no concentric radius there.
 - **Limits of the runtime.** It costs about two or three times the style-query kernel on a first pass (190 ms for 5 500 nested frames in Firefox 128); a `transition` of your own on a frame replaces the sentinel that lets `:hover`, media and container conditions reach the script (the script still follows class and style changes); shadow roots are not crossed; a first paint before the script runs shows declared radii.
 
 ### `surface()`: parent-relative colour (`cssints/surface`, cssints-vsc9)
 
-The second plugin on the same helpers and the same runtime. A surface passes its colour down the tree; a nested surface is that colour with its OKLCH lightness moved, through any number of plain wrappers. **These are tonal steps, not a contrast guarantee**: `contrast()` and `ink()` pick a direction by lightness and never compute a ratio.
+The second plugin on `scope()` and the same runtime. A surface passes its colour down the tree; a nested surface is that colour with its OKLCH lightness moved, through any number of plain wrappers. **These are tonal steps, not a contrast guarantee**: `contrast()` and `ink()` pick a direction by lightness and never compute a ratio.
 
 ```ts
 import * as css from "cssints" with { type: "cssints" };
@@ -635,14 +648,14 @@ export const own = surface().radius("4px"); // error: a surface chains its own m
 
 - **Methods**, each once and in any order: `color(<color> | token)` is an absolute base (without it the base is the nearest surface around, or `Canvas` for the outermost); `lighten(step)`, `darken(step)` and `contrast(step)` move the lightness of the base by a `<number [0,1]>`, and only one of the three goes in a chain; `ink()` sets the text colour to black or white by the lightness of the surface (above 0.5636 black, else white). `contrast` moves *away* from the parent: a light parent is darkened, a dark one lightened. The base may be a relative colour (`oklch(from var(--brand) l c h)`).
 - **Build errors** (at the call site): a step outside 0 to 1, a bad colour, a method used twice or with another step, and a `cn()` that holds `surface()` and `background` or `background-color`, `bg()` included (`cssints: surface: surface() sets the background colour: use its methods (this style also sets background-color)`). `backgroundImage`, `color` and the border colours do not conflict. Conflicts across `cx()` are not seen, as for any plugin.
-- **What it emits:** the class `_s` and one class per method (`._x{--sf-d:0.06}`, in `_.a`, or `_.b` inside a condition: a `hover()` or a media query moves every surface below). The kernel `surface@1` (about 1 kB minified with its registrations and fallback, once, in `_.k`) is two `@container style(--sf-p: ...)` rules that alternate two registered `<color>` properties, `--sf-e` and `--sf-o`, because a property cannot read itself; the step `--sf-d` is not registered, since it may contain `l`, which only means something inside `oklch(from …)`. Its names are `--sf-*`; frame's are `--fr-*`, so a frame and a surface can be one element, or nest in each other, with no collision.
+- **What it emits:** the class `_surface-core` and one class per method (`._x{--surface-d:0.06}`, in `_.a`, or `_.b` inside a condition: a `hover()` or a media query moves every surface below). The kernel `surface.core` (about 1 kB minified with its registrations and fallback, once, in `_.k`) is two `@container style(--surface-p: ...)` rules that alternate two registered `<color>` properties, `--surface-e` and `--surface-o`, because a property cannot read itself; the step `--surface-d` is not registered, since it may contain `l`, which only means something inside `oklch(from …)`. Its names are `--surface-*`; frame's are `--frame-*`, so a frame and a surface can be one element, or nest in each other, with no collision.
 - **Not a contrast guarantee.** A lightness threshold of 0.5636 gives 4.6:1 at the worst on greys, but 3.7:1 on 3 000 random chromatic colours (research, Chrome). `ink()` on a saturated surface can fall short of WCAG AA. For a ratio, declare the colours as tokens and use `css.check.contrast` (see Themes): it checks the declared pair at build time, which the kernel cannot do because it never sees the parent.
-- **Browsers.** The kernel needs `@container style()` on custom properties (Chrome 111, Safari 18, Firefox 151), `@property` (Chrome 85, Safari 16.4, Firefox 128) and relative colour (Chrome 122, Safari 18, Firefox 128). Chrome 119 to 121 and Safari 16.4 to 17.6 have an early relative colour with other channel scales: the steps come out wrong (in Chrome `l` is a number from 0 to 100), so the kernel's `requires` asks for the whole feature (`exact`, see Plugins) and a target set that holds one of them gets the warning. Safari 17 has no style queries, so it gets the runtime as well, which does not change the steps; Chrome 120 has style queries and gets no runtime, only the warning. For a target that has `@property` and relative colour but lacks style queries (Firefox 128 to 150) the build ships the same fallback as `frame()`: the shared `cssints/parent-vars` script (one observer however many plugins use it) copies each surface's colour to its surface children. A surface that is also a frame needs both transition sentinels, so the fallback has a rule for `._s._f`. Below `@property` or relative colour the kernel is a build warning: a surface keeps no tonal step there.
+- **Browsers.** The kernel needs `@container style()` on custom properties (Chrome 111, Safari 18, Firefox 151), `@property` (Chrome 85, Safari 16.4, Firefox 128) and relative colour (Chrome 122, Safari 18, Firefox 128). Chrome 119 to 121 and Safari 16.4 to 17.6 have an early relative colour with other channel scales: the steps come out wrong (in Chrome `l` is a number from 0 to 100), so the kernel's `requires` asks for the whole feature (`exact`, see Plugins) and a target set that holds one of them gets the warning. Safari 17 has no style queries, so it gets the runtime as well, which does not change the steps; Chrome 120 has style queries and gets no runtime, only the warning. For a target that has `@property` and relative colour but lacks style queries (Firefox 128 to 150) the build ships the same fallback as `frame()`: the shared `cssints/parent-vars` script (one observer however many plugins use it) copies each surface's colour to its surface children. A surface that is also a frame needs both transition sentinels, so the fallback has a rule for `._surface-core._frame-core` (the surface scope embeds the frame scope for that class: `&(frame.core)`). Below `@property` or relative colour the kernel is a build warning: a surface keeps no tonal step there.
 - **Limits of the runtime** are frame's: about two or three times the style-query kernel on a first pass, shadow roots are not crossed, a first paint before the script runs shows the `canvas`-based colours, and a `transition` of your own on a surface replaces the sentinel that lets `:hover` and media conditions reach the script.
 
 ### Icons: `@cssints/icons` (decided 2026-10-02, cssints-1x1o)
 
-An icon is a style written on `style()`: a marker class, a mask kernel and one atomic class per icon that holds the SVG as a data URL. There is no runtime. Install `@cssints/icons` and a collection (`@iconify-json/mdi`), or point it at a folder of `.svg` files.
+An icon is a style written on `scope()` (one scope, "icons", whatever the collection): a marker class, a mask kernel and one atomic class per icon that holds the SVG as a data URL. There is no runtime. Install `@cssints/icons` and a collection (`@iconify-json/mdi`), or point it at a folder of `.svg` files.
 
 ```ts
 import { cn, color, width } from "cssints" with { type: "cssints" };
@@ -662,15 +675,15 @@ export const typo = mdi("clos"); // error: not an icon of mdi
 ```
 
 ```css
-/* kernel icon-mask@1, layer _.k; LightningCSS adds -webkit-mask for your targets */
-._i { display: inline-block; width: 1em; height: 1em; background-color: currentColor; mask: var(--_svg) no-repeat center / 100% 100%; }
+/* kernel icons.mask, layer _.k; LightningCSS adds -webkit-mask for your targets */
+._icons-mask { display: inline-block; width: 1em; height: 1em; background-color: currentColor; mask: var(--icons-svg) no-repeat center / 100% 100%; }
 /* the only per-icon rule */
-._x1 { --_svg: url("data:image/svg+xml,%3Csvg …"); }
+._x1 { --icons-svg: url("data:image/svg+xml,%3Csvg …"); }
 ```
 
 - **`icons({ provider: "iconify-json", collection })`** reads `@iconify-json/<collection>/icons.json` from the `node_modules` of the working directory, while the module runs. **`icons({ provider: "fs", dir })`** reads `<dir>/<name>.svg` (`dir` is relative to the working directory; the SVG needs a `viewBox`). The result is a function of the icon name: `mdi("home")` is a style that goes into `cn()`, `cx()` and the conditions like any member. Call `icons()` in a module of its own, imported with the attribute, as above.
 - **Names.** TypeScript cannot read a module type from a string, so the names of a collection come from the type argument: `icons<typeof import("@iconify-json/mdi/icons.json")>(…)` types `mdi(name)` as the icons and aliases of that collection, and a typo is an error in the editor. Without the type argument, and for `fs`, a name is any string. In every case a name that does not exist is a build error at the call, with the nearest name when it is close: `cssints: icons: no icon "hom" in iconify-json mdi, did you mean home?`.
-- **Mask or image.** An icon that paints with `currentColor` (every one-colour icon of a collection) gets the marker `_i` and takes the text `color`. Any other (a logo with its own colours) gets `_ic`, a background image. This is iconify's own rule. A non-square icon is centred on a square view box, so `width` and `height` set its size (`1em` by default).
+- **Mask or image.** An icon that paints with `currentColor` (every one-colour icon of a collection) gets the marker `_icons-mask` and takes the text `color`. Any other (a logo with its own colours) gets `_icons-image`, a background image. This is iconify's own rule. A non-square icon is centred on a square view box, so `width` and `height` set its size (`1em` by default).
 - **Cost.** The kernel is printed once. Each icon adds one class, and the same icon is the same class everywhere. The kernel has no `requires`: LightningCSS adds `-webkit-mask` for targets that have only the prefixed form.
 - **Not yet:** the iconify HTTP API (it would need a lockfile), names generated for `fs`, a name transform, and watching the SVG files in dev (a changed file needs a restart).
 

@@ -5,6 +5,7 @@
 import type { TokenType } from "@cssints/css-grammar/token";
 import { Context } from "effect";
 
+import type { CssNode } from "./node.ts";
 import type { Conflict, GlobalRule, Kernel, Runtime } from "./author-types.ts";
 
 export type {
@@ -32,6 +33,8 @@ export interface Rule {
 /** What a plugin member leaves on a style node besides declarations: its name, and the runtime and conflicts it has. */
 export interface Plug {
   name: string;
+  /** What errors call it (the scope that owns `name`), when that is not `name`. */
+  label?: string;
   marker: string;
   conflicts?: Conflict;
   runtime?: Runtime;
@@ -145,6 +148,12 @@ export interface RegistryState {
   kernels: Map<string, KernelEntry>;
   /** plugin name -> its runtime and the files that use it (delivery.ts) */
   runtimes: Map<string, RuntimeEntry>;
+  /** scope name -> the hash of its content (scope.ts `register`): a name is unique per process */
+  scopes: Map<string, string>;
+  /** what scope.ts needs of the eval-time library, set by macro.ts: `css` for a kernel written as styles, `blockOf` to check it */
+  lib?: { css: object; blockOf: (what: string, style: CssNode) => string };
+  /** what the front of "cssints/plugin" calls (scope-engine.ts `engine`), set by macro.ts */
+  engine?: object;
   /** the properties of property(): checked by their own grammar when called, not by the engine */
   userProps: Set<string>;
   /** file -> the evaluation (`gen`) in which its first site ran: its kernels of older ones are forgotten (`__at`) */
@@ -182,6 +191,7 @@ export const registry: RegistryState = (globalThis.__cssints ??= {
   layers: new Map(),
   kernels: new Map(),
   runtimes: new Map(),
+  scopes: new Map(),
   userProps: new Set(),
   seen: new Map(),
   properties: new Map(),
