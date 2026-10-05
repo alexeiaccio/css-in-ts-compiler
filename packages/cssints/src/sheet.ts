@@ -106,7 +106,7 @@ export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
     })
     .sort(byOrder);
   const allGlobals = [...globals.values()];
-  const kGlobals = allGlobals.filter((g) => g.layer === undefined).map((g) => g.css);
+  const kGlobals = allGlobals.flatMap((g) => (g.layer === undefined ? [g.css] : []));
   const topGlobals = allGlobals.filter((g) => g.layer !== undefined);
   const verbatim = topGlobals.filter((g) => g.layer === null);
   const layered = topGlobals.filter((g) => typeof g.layer === "string");
