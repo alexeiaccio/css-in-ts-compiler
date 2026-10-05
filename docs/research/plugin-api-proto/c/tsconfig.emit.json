@@ -1,0 +1,1 @@
+{"extends":"./tsconfig.base.json","compilerOptions":{"noEmit":false,"declaration":true,"emitDeclarationOnly":true,"outDir":"out","rootDir":"/private/var/folders/nr/v79_zy4n1y501j69qzmh8xzm0000gp/T/opencode/design-c"},"files":["ring.ts","icons.ts","mise-en-mode.ts","frame2.ts"]}

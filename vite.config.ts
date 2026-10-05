@@ -3,7 +3,7 @@ import { defineConfig } from "vite-plus";
 import { allRules, profiles } from "./tools/ai-automation/src/profiles.ts";
 
 // Out of scope: docs/archive is old; a research prototype is throwaway code that reruns a finding.
-const outOfScope = ["docs/archive/**", "docs/research/sublayers-proto/**"];
+const outOfScope = ["docs/archive/**", "docs/research/sublayers-proto/**", "docs/research/plugin-api-proto/**"];
 
 // Not linted: inputs of the plugin tests (import build-time members that only exist after the plugin rewrote the
 // import, and some are invalid on purpose), and the bench files whose type errors budget.mjs expects.

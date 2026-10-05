@@ -1,0 +1,1 @@
+{"extends":"./tsconfig.base.json","files":["ring.ts","ring-use.ts","icons.ts","icons-use.ts","mise-en-mode.ts","mise-use.ts","frame2.ts"]}

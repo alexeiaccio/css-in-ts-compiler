@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "strict": true, "noEmit": true, "skipLibCheck": true, "target": "ES2022", "lib": ["ES2023"],
+    "module": "preserve", "moduleResolution": "bundler", "allowImportingTsExtensions": true,
+    "noUncheckedIndexedAccess": true, "types": [],
+    "paths": {
+      "cssints": ["./cssints-draft.d.ts"],
+      "cssints/plugin": ["./plugin.d.ts"],
+      "cssints/internal/*": ["/Users/a.tukachev/github/css-in-ts-compiler/packages/cssints/src/*.ts"],
+      "@cssints/css-grammar/*": ["/Users/a.tukachev/github/css-in-ts-compiler/packages/css-grammar/src/*.ts"]
+    }
+  }
+}

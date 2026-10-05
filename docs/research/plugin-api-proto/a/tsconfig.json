@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", "lib": ["ES2023", "DOM"], "module": "ESNext", "moduleResolution": "bundler",
+    "noEmit": true, "strict": true, "noUncheckedIndexedAccess": true, "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true, "allowImportingTsExtensions": true, "skipLibCheck": true, "types": [],
+    "paths": {
+      "cssints/plugin": ["./plugin.ts"],
+      "cssints": ["/Users/a.tukachev/github/css-in-ts-compiler/packages/cssints/src/types.ts"],
+      "cssints-src/theme-types.ts": ["./check-overrides.ts"],
+      "cssints-src/*": ["/Users/a.tukachev/github/css-in-ts-compiler/packages/cssints/src/*"],
+      "@cssints/css-grammar/*": ["/Users/a.tukachev/github/css-in-ts-compiler/packages/css-grammar/src/*"]
+    }
+  },
+  "include": ["*.ts", "examples/*.ts"]
+}

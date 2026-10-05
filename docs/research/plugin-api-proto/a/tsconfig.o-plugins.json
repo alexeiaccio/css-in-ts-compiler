@@ -1,0 +1,45 @@
+{
+ "compilerOptions": {
+  "target": "ES2022",
+  "lib": [
+   "ES2023",
+   "DOM"
+  ],
+  "module": "ESNext",
+  "moduleResolution": "bundler",
+  "noEmit": true,
+  "strict": true,
+  "noUncheckedIndexedAccess": true,
+  "erasableSyntaxOnly": true,
+  "verbatimModuleSyntax": true,
+  "allowImportingTsExtensions": true,
+  "skipLibCheck": true,
+  "types": [],
+  "paths": {
+   "cssints/plugin": [
+    "/Users/a.tukachev/github/css-in-ts-compiler/packages/cssints/src/author-types.ts"
+   ],
+   "cssints": [
+    "/Users/a.tukachev/github/css-in-ts-compiler/packages/cssints/src/types.ts"
+   ],
+   "cssints-src/theme-types.ts": [
+    "./theme-types.copy.ts"
+   ],
+   "cssints-src/*": [
+    "/Users/a.tukachev/github/css-in-ts-compiler/packages/cssints/src/*"
+   ],
+   "@cssints/css-grammar/*": [
+    "/Users/a.tukachev/github/css-in-ts-compiler/packages/css-grammar/src/*"
+   ],
+   "cssints/frame": [
+    "/Users/a.tukachev/github/css-in-ts-compiler/packages/cssints/src/frame.ts"
+   ],
+   "cssints/surface": [
+    "/Users/a.tukachev/github/css-in-ts-compiler/packages/cssints/src/surface.ts"
+   ]
+  }
+ },
+ "include": [
+  "old/plugins.ts"
+ ]
+}

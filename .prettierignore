@@ -24,3 +24,5 @@ packages/cssints/src/members.ts
 
 # Vendored (dmmulroy/anti-slop), keeps its upstream style.
 tools/ai-automation/vendor
+# Throwaway drafts of the plugin API designs (cssints-<map>); not formatted.
+docs/research/plugin-api-proto

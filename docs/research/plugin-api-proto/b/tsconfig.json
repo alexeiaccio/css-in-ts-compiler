@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2023"
+    ],
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "types": [],
+    "paths": {
+      "cssints/plugin": [
+        "./plugin.ts"
+      ],
+      "cssints": [
+        "/Users/a.tukachev/github/css-in-ts-compiler/packages/cssints/src/types.ts"
+      ],
+      "@cssints/mise-en-mode": [
+        "./ex/mise.ts"
+      ],
+      "@cssints/icons": [
+        "./ex/icons.ts"
+      ],
+      "@cssints/css-grammar/*": [
+        "/Users/a.tukachev/github/css-in-ts-compiler/packages/css-grammar/src/*"
+      ],
+      "@iconify-json/mdi/icons.json": [
+        "/Users/a.tukachev/github/css-in-ts-compiler/packages/icons/node_modules/@iconify-json/mdi/icons.json"
+      ]
+    },
+    "resolveJsonModule": true
+  },
+  "include": [
+    "plugin.ts",
+    "ex/*.ts"
+  ]
+}
