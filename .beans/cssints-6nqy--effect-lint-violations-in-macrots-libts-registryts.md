@@ -1,11 +1,11 @@
 ---
 # cssints-6nqy
 title: Effect lint violations in macro.ts, lib.ts, registry.ts, author.ts, author-types.ts
-status: todo
+status: completed
 type: task
 priority: normal
 created_at: 2026-10-03T13:11:49Z
-updated_at: 2026-10-03T13:17:21Z
+updated_at: 2026-10-05T07:43:04Z
 ---
 
 cssints-fuyb turned the automation Effect rules on as errors (root vite.config.ts) and fixed every violation except those in the five files another session was editing (macro.ts, lib.ts, registry.ts, author.ts, author-types.ts). For exactly those files the root vite.config.ts sets the rules to "warn" (the `inFlight` override, comment names this bean). Fix them, then delete the `inFlight` override and its `automationWarn` constant: the rules are errors again.
@@ -60,3 +60,7 @@ Line numbers are those of master at 2026-10-03 (fc0dbc2); re-run `npx vp lint` t
 ## Effect language service
 
 tsconfig.effect.json (shared by packages/cssints, css-grammar, icons) sets every diagnostic to error. For exactly the five files its `overrides` entry makes `preferSchemaOverJson` a warning: macro.ts:548, 584, 678, 686, 687 (the same JSON.stringify calls as the lint's no-global-json). Fix them with the lint ones, then delete that override entry (and the "cssints-6nqy" comment).
+
+## Summary of Changes
+
+macro.ts and author.ts use the engine's Effect replacements (Formatter.formatJson, Schema.fromJsonString, Result.try, Predicate.*, flatMap); lib.ts (the sync css.* builders and the class hash) joined plainCode; registry.ts and author-types.ts had nothing left after the mise-en-mode commit. The inFlight lint override, its twin in tsconfig.effect.json and the AGENTS.md sentence are gone: vp lint is 0 errors, 0 warnings. trace-otlp.ts silences unstableApiUsage for the file (OTLP and FetchHttpClient are unstable in effect 4.0.0; opt-in debugging). perf.mjs seq, same worktree, master vs branch: median 14.5 vs 13.0–15.4 ms per eval (noise). The agent's session broke twice on a harness error; the coordinator finished the ticket.

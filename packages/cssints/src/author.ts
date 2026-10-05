@@ -5,6 +5,7 @@
 import { checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { properties } from "@cssints/css-grammar/mdn";
 import { CSSStyleValue } from "@cssints/css-grammar/values";
+import { Formatter, Result } from "effect";
 
 import { MemberError } from "./errors.ts";
 import { failIn, isNode, node, probed, type CssNode } from "./lib.ts";
@@ -30,12 +31,13 @@ const valueOf = (plugin: string, label: string, args: unknown[], spacing = false
 // a MemberError at the call site being evaluated.
 const check = (plugin: string, label: string, grammar: string, value: string): void => {
   for (const v of probed(value, registry.properties))
-    try {
-      checkValueNow(label, grammar, v);
-    } catch (e) {
-      if (isDeclarationError(e)) throw failIn(plugin, e.message);
-      throw e;
-    }
+    Result.getOrThrowWith(
+      Result.try({
+        try: () => checkValueNow(label, grammar, v),
+        catch: (e) => (isDeclarationError(e) ? failIn(plugin, e.message) : e),
+      }),
+      (e) => e,
+    );
 };
 
 const decls = (emitted: Decl[]) => emitted.map(([p, v]): [string, string] => [p, v]);
@@ -92,13 +94,15 @@ export const context: typeof Types.context = <
 };
 
 // What a plugin's callback (`build`, `computeTo`) throws is a failure at the call site, as a grammar error is.
-const ran = <T>(plugin: string, run: () => T): T => {
-  try {
-    return run();
-  } catch (e) {
-    throw e instanceof MemberError ? e : failIn(plugin, e instanceof Error ? e.message : String(e));
-  }
-};
+const ran = <T>(plugin: string, run: () => T) =>
+  Result.getOrThrowWith(
+    Result.try({
+      try: run,
+      catch: (e) =>
+        e instanceof MemberError ? e : failIn(plugin, e instanceof Error ? e.message : String(e)),
+    }),
+    (e) => e,
+  );
 
 // See author-types.ts.
 export const style: typeof Types.style = (grammar: string, build: (value: string) => Built) =>
@@ -136,7 +140,7 @@ export const property: typeof Types.property = (
 ) => {
   if (Object.hasOwn(properties, name))
     throw new MemberError({
-      message: `cssints: property(${JSON.stringify(name)}): ${name} is a CSS property already, with its own grammar`,
+      message: `cssints: property(${Formatter.formatJson(name)}): ${name} is a CSS property already, with its own grammar`,
       pluginName: name,
     });
   return ((...args: unknown[]) => {

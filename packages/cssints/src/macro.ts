@@ -15,7 +15,7 @@ import {
 import type { QueryKind } from "@cssints/css-grammar/query";
 import { messageOf, type Warning } from "@cssints/css-grammar/support";
 import { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
-import { Cause, Effect, Exit } from "effect";
+import { Cause, Effect, Exit, Formatter, Predicate, Result, Schema } from "effect";
 import { createHash } from "node:crypto";
 
 import { MacroError, MemberError } from "./errors.ts";
@@ -92,7 +92,7 @@ export const firstThatWorks = (...values: unknown[]): Fallback => {
       );
     if ((typeof v !== "string" || !v.trim()) && !(v instanceof CSSStyleValue))
       throw fail(
-        `cssints: firstThatWorks() takes non-empty strings and Typed OM values (tokens), got ${JSON.stringify(v)}`,
+        `cssints: firstThatWorks() takes non-empty strings and Typed OM values (tokens), got ${Formatter.formatJson(v)}`,
       );
   }
   // oxlint-disable-next-line typescript/no-base-to-string -- strings and CSSStyleValues, which override toString
@@ -132,7 +132,7 @@ const STEP = /^(?:from|to|\d+(?:\.\d+)?%)$/;
 const blockOf = (what: string, style: unknown, allowed?: RegExp): string => {
   if (!isNode(style) || !style.__cssints.length)
     throw fail(
-      `cssints: ${what} takes css.* declarations (a member call or cn(...)), got ${JSON.stringify(style)}`,
+      `cssints: ${what} takes css.* declarations (a member call or cn(...)), got ${Formatter.formatJson(style)}`,
     );
   if (style.markers || style.kernels || style.plugs)
     throw fail(`cssints: ${what} takes plain declarations: no marker class or kernel of a member`);
@@ -147,17 +147,20 @@ const blockOf = (what: string, style: unknown, allowed?: RegExp): string => {
         throw fail(
           `cssints: ${what}: ${prop} is not allowed in @position-try, which takes inset, margin, sizing and self-alignment properties, position-anchor and position-area`,
         );
-      try {
-        checkNow(d, true, registry);
-      } catch (e) {
-        if (isDeclarationError(e))
-          throw new MacroError({
-            message: `cssints: ${what}: ${e.message}`,
-            cause: e,
-            ...registry.at,
-          });
-        throw e;
-      }
+      Result.getOrThrowWith(
+        Result.try({
+          try: () => checkNow(d, true, registry),
+          catch: (e) =>
+            isDeclarationError(e)
+              ? new MacroError({
+                  message: `cssints: ${what}: ${e.message}`,
+                  cause: e,
+                  ...registry.at,
+                })
+              : e,
+        }),
+        (e) => e,
+      );
       return `${prop}:${value}`;
     })
     .join(";");
@@ -176,7 +179,7 @@ const atRule = (rule: string, prefix: string, body: string) => {
 
 // keyframes({ from: opacity(0), "50%": ..., to: ... }): the name of a `@keyframes` rule, for animation and animationName.
 export const keyframes = (steps: unknown): CSSAtRuleValue => {
-  const entries = typeof steps === "object" && steps !== null ? Object.entries(steps) : [];
+  const entries = Predicate.isObjectOrArray(steps) ? Object.entries(steps) : [];
   if (!entries.length)
     throw fail("cssints: keyframes() takes { from: style, to: style }: the steps are css.* styles");
   const body = entries.map(([step, style]) => {
@@ -211,14 +214,15 @@ interface Wrapper {
   __cond: true;
   cond: Cond;
 }
-const isWrapper = (v: unknown): v is Wrapper => typeof v === "function" && "__cond" in v;
+const isWrapper = (v: unknown): v is Wrapper =>
+  typeof v === "function" && Predicate.hasProperty(v, "__cond");
 
 const wrapper = (cond: Cond): Wrapper =>
   Object.assign(
     (...styles: unknown[]) => {
       if (!styles.length || !styles.every(isNode))
         throw fail(
-          `cssints: ${cond.text} wraps css.* styles, got ${JSON.stringify(styles.filter((s) => !isNode(s)))}`,
+          `cssints: ${cond.text} wraps css.* styles, got ${Formatter.formatJson(styles.filter((s) => !isNode(s)))}`,
         );
       return node(
         merged(
@@ -241,7 +245,7 @@ const wrapper = (cond: Cond): Wrapper =>
 // media("(width >= 40rem)"): the query is checked against its grammar, like a property value.
 const query = (kind: QueryKind, q: unknown): Wrapper => {
   if (typeof q !== "string")
-    throw fail(`cssints: ${kind}() takes a query string, got ${JSON.stringify(q)}`);
+    throw fail(`cssints: ${kind}() takes a query string, got ${Formatter.formatJson(q)}`);
   const exit = Effect.runSyncExit(checkQuery(kind, q));
   if (Exit.isFailure(exit)) {
     const e = Cause.squash(exit.cause) as Error;
@@ -258,7 +262,7 @@ const condition =
     const [only] = args;
     if (!args.length) throw fail(`cssints: ${kind}() expects a query string`);
     if (args.length > 1) return args.map((q) => query(kind, q));
-    if (typeof only === "object" && only !== null && !Array.isArray(only))
+    if (Predicate.isObject(only))
       return Object.fromEntries(Object.entries(only).map(([k, q]) => [k, query(kind, q)]));
     return query(kind, only);
   };
@@ -280,7 +284,7 @@ const attr = (...args: unknown[]) => {
     (given !== undefined && (typeof given !== "string" || value === undefined))
   )
     throw fail(
-      `cssints: attr(name, value?, op?) takes an attribute name, then a string value and one of ${OPS.join(" ")}, got ${JSON.stringify(args)}`,
+      `cssints: attr(name, value?, op?) takes an attribute name, then a string value and one of ${OPS.join(" ")}, got ${Formatter.formatJson(args)}`,
     );
   const quoted = value?.replace(/["\\]/g, "\\$&").replace(/\n/g, "\\a ");
   return wrapper({
@@ -292,7 +296,7 @@ const attr = (...args: unknown[]) => {
 // The marker of an ancestor: group() is `_g`, group("row") is `_g-row`. It has no rule of its own.
 const markerOf = (what: string, name: unknown) => {
   if (name !== undefined && (typeof name !== "string" || !NAME.test(name)))
-    throw fail(`cssints: ${what} takes a name such as "row", got ${JSON.stringify(name)}`);
+    throw fail(`cssints: ${what} takes a name such as "row", got ${Formatter.formatJson(name)}`);
   return name === undefined ? "_g" : `_g-${name}`;
 };
 const group = (name?: unknown) => node([], { markers: [[markerOf("group()", name), "group"]] });
@@ -325,7 +329,7 @@ const globalRule = (selector?: unknown, ...styles: unknown[]) => {
   }
   if (!styles.length || !styles.every(isNode))
     throw fail(
-      `cssints: global() takes css.* styles after the selector, got ${JSON.stringify(styles.filter((s) => !isNode(s)))}`,
+      `cssints: global() takes css.* styles after the selector, got ${Formatter.formatJson(styles.filter((s) => !isNode(s)))}`,
     );
   if (styles.some((s) => s.markers || s.kernels || s.plugs))
     throw fail("cssints: global() takes plain declarations: no marker class or kernel of a member");
@@ -337,11 +341,13 @@ const globalRule = (selector?: unknown, ...styles: unknown[]) => {
       throw fail(
         `cssints: global() takes media(), container() and supports() conditions, not ${state.text}: write the state in the selector`,
       );
-    try {
-      checkNow(d, true, registry);
-    } catch (e) {
-      throw isDeclarationError(e) ? located(at)(e) : e;
-    }
+    Result.getOrThrowWith(
+      Result.try({
+        try: () => checkNow(d, true, registry),
+        catch: (e) => (isDeclarationError(e) ? located(at)(e) : e),
+      }),
+      (e) => e,
+    );
     const key = conds.map((c) => c.text).join("{");
     const block = blocks.get(key) ?? blocks.set(key, { conds, body: [] }).get(key)!;
     for (const v of fallbacks ? [...fallbacks.toReversed(), value] : [value])
@@ -384,16 +390,17 @@ interface CvConfig {
 interface CvNode {
   __cv: CvConfig;
 }
-const isCv = (v: unknown): v is CvNode => !!v && typeof v === "object" && "__cv" in v;
+const isCv = (v: unknown): v is CvNode => Predicate.hasProperty(v, "__cv");
 
 // What the grammar package rejects, per declaration.
 type Invalid = DeclarationError;
 
 // A failure names the call site it happened in, so the plugin can point Vite at it.
 const located = (at: At) => (e: Invalid | MacroError | MemberError) =>
-  "file" in e && e.file !== undefined
+  (Predicate.isTagged(e, "MacroError") || Predicate.isTagged(e, "MemberError")) &&
+  e.file !== undefined
     ? e
-    : "pluginName" in e
+    : Predicate.isTagged(e, "MemberError")
       ? new MemberError({ message: e.message, pluginName: e.pluginName, cause: e, ...at })
       : new MacroError({ message: e.message, cause: e, ...at });
 
@@ -438,16 +445,20 @@ const checkValue = (
 ) => {
   let out: Warning[] = [];
   for (const v of probed(value, properties)) {
-    try {
-      const found = checkDeclarationNow(prop, v, fresh);
-      out = out.length ? out.concat(found) : found;
-    } catch (e) {
-      if (v !== value && isDeclarationError(e))
-        Object.assign(e, {
-          message: `${e.message} ("${value}" is checked as "${v}": a token stands for a value of its type)`,
-        });
-      throw e;
-    }
+    const found = Result.getOrThrowWith(
+      Result.try({
+        try: () => checkDeclarationNow(prop, v, fresh),
+        catch: (e) => {
+          if (v !== value && isDeclarationError(e))
+            Object.assign(e, {
+              message: `${e.message} ("${value}" is checked as "${v}": a token stands for a value of its type)`,
+            });
+          return e;
+        },
+      }),
+      (e) => e,
+    );
+    out = out.length ? out.concat(found) : found;
   }
   return out;
 };
@@ -547,7 +558,7 @@ const styleOf = Effect.fnUntraced(function* (
 ): Effect.fn.Return<string, Invalid | MacroError | MemberError> {
   if (!isNode(s))
     return yield* new MacroError({
-      message: `cssints: cv() ${where} must be a css.* value (cn(...), a flex() chain or one property), got ${JSON.stringify(s)}. CSS strings are gone: write cn(p(4), fontSize("1rem"))`,
+      message: `cssints: cv() ${where} must be a css.* value (cn(...), a flex() chain or one property), got ${Formatter.formatJson(s)}. CSS strings are gone: write cn(p(4), fontSize("1rem"))`,
     });
   return yield* classesOf(s, at);
 });
@@ -583,7 +594,7 @@ const cvOf = Effect.fnUntraced(function* (
       throw e; // a bug, not a user error: a defect
     },
   });
-  return JSON.stringify({
+  return Formatter.formatJson({
     base,
     variants,
     defaultVariants: config.defaultVariants ?? {},
@@ -593,6 +604,9 @@ const cvOf = Effect.fnUntraced(function* (
 
 export const cv = (config: CvConfig): CvNode => ({ __cv: config });
 
+// @effect-diagnostics-next-line schemaSync:off -- the text is what cvOf wrote, read back at a sync edge
+const fromJson = Schema.decodeSync(Schema.fromJsonString(Schema.Unknown));
+
 // `_cv` during evaluation (index.ts exports this one, the browser gets runtime.ts): cv() is a node here, not the
 // config of class strings the plugin puts in its place, so a module that calls `_cv(cv(...))` at its top level
 // gets the same function it will have in the browser.
@@ -600,7 +614,7 @@ export const _cv = (config: CvNode | CvRuntimeConfig) => {
   if (!isCv(config)) return runtimeCv(config);
   const exit = Effect.runSyncExit(cvOf(config.__cv));
   if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
-  return runtimeCv(JSON.parse(exit.value) as CvRuntimeConfig);
+  return runtimeCv(fromJson(exit.value) as CvRuntimeConfig);
 };
 
 // Any name besides these (css.p, css.alignItems) is a property. Named imports of build-time members come from
@@ -640,10 +654,10 @@ const inertOf = (v: unknown): string | undefined => {
   if (isWrapper(v) || isFallback(v)) return "null";
   if (Array.isArray(v) && v.length && v.every(isWrapper))
     return `[${v.map(() => "null").join(",")}]`;
-  if (typeof v !== "object" || v === null) return undefined;
+  if (!Predicate.isObject(v)) return undefined;
   const entries = Object.entries(v);
   return entries.length && entries.every(([, w]) => isWrapper(w))
-    ? `{${entries.map(([k]) => `${JSON.stringify(k)}:null`).join(",")}}`
+    ? `{${entries.map(([k]) => `${Formatter.formatJson(k)}:null`).join(",")}}`
     : undefined;
 };
 
@@ -657,7 +671,7 @@ const inlineOf = Effect.fnUntraced(function* ({
     try: () => {
       for (const d of decls) checkNow(d, true, registry, false);
       const entries = new Map([...sets, ...decls.map(([p, v]): [string, string] => [camel(p), v])]);
-      return `{ ${[...entries].map(([k, v]) => `${k.startsWith("--") ? JSON.stringify(k) : k}: ${JSON.stringify(v)}`).join(", ")} }`;
+      return `{ ${[...entries].map(([k, v]) => `${k.startsWith("--") ? Formatter.formatJson(k) : k}: ${Formatter.formatJson(v)}`).join(", ")} }`;
     },
     catch: (e) => {
       if (isDeclarationError(e)) return e;
@@ -669,15 +683,14 @@ const inlineOf = Effect.fnUntraced(function* ({
 // A definition site: `export const mdi = icons({...})` in a build-time module holds a plugin value, a function or a
 // configured object. It has no replacement (nothing of it ships: its module is not in the client graph), and a client
 // module that calls it (`mdi("home")`) has a site of its own.
-const isPluginValue = (v: unknown): boolean =>
-  typeof v === "function" || (typeof v === "object" && v !== null);
+const isPluginValue = Predicate.isObjectKeyword;
 
 // The replacement expression of a site, undefined for a definition site: class strings, the cv() config, an inline style, or a Typed OM value's CSS text.
 const replacementOf = Effect.fnUntraced(function* (
   at: At,
   value: unknown,
 ): Effect.fn.Return<string | undefined, Invalid | MacroError | MemberError> {
-  if (isNode(value)) return JSON.stringify(yield* classesOf(value, at));
+  if (isNode(value)) return Formatter.formatJson(yield* classesOf(value, at));
   if (isCv(value)) return yield* cvOf(value.__cv, at);
   if (isStyle(value)) return yield* inlineOf(value);
   const tokens = tokensOf(value);
@@ -685,8 +698,8 @@ const replacementOf = Effect.fnUntraced(function* (
   if (isDone(value)) return "undefined";
   // A Typed OM value (CSS.rem(1), new CSSColorValue(...)) ships as its CSS text; the objects are eval-time only.
   // oxlint-disable-next-line typescript/no-base-to-string -- every CSSStyleValue subclass overrides toString
-  if (value instanceof CSSStyleValue) return JSON.stringify(String(value));
-  if (typeof value === "string") return JSON.stringify(value); // an fn() that computes text
+  if (value instanceof CSSStyleValue) return Formatter.formatJson(String(value));
+  if (typeof value === "string") return Formatter.formatJson(value); // an fn() that computes text
   const inert = inertOf(value);
   if (inert !== undefined) return inert;
   if (isPluginValue(value)) return undefined;

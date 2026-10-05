@@ -48,9 +48,6 @@ const automationErrors: Record<string, "error"> = Object.fromEntries(
 const automationOff: Record<string, "off"> = Object.fromEntries(
   Object.keys(allRules).map((r) => [r, "off"]),
 );
-const automationWarn: Record<string, "warn"> = Object.fromEntries(
-  Object.keys({ ...profiles.effect, ...automationErrors }).map((r) => [r, "warn"]),
-);
 
 // Plain code by design (AGENTS.md "The one exception, and the hot paths"): no Effect rule applies.
 const plainCode = [
@@ -62,6 +59,8 @@ const plainCode = [
   "packages/cssints/src/derived.ts",
   // The Typed OM values (`CSS.rem()`, `new CSSColorValue()`) that user code calls in expressions.
   "packages/css-grammar/src/values.ts",
+  // The sync css.* builders (`node`, `toDecls`, `chainDecl`, `isNode`), which user code calls in expressions, and the class hash.
+  "packages/cssints/src/lib.ts",
   // The twin's lexer and recognizer, per declaration.
   "packages/css-grammar/src/twin-core.ts",
   // @cssints/icons: a sync member on the style() helper, which user code calls in an expression.
@@ -75,15 +74,6 @@ const plainCode = [
   "**/vite.config.ts",
   // The linter implementation mirrors AST shapes and parses JSON: exempt from the rules it implements.
   "tools/ai-automation/**",
-];
-
-// The five files of the mise-en-mode session, not edited here: their violations are warnings until cssints-6nqy fixes them.
-const inFlight = [
-  "packages/cssints/src/macro.ts",
-  "packages/cssints/src/lib.ts",
-  "packages/cssints/src/registry.ts",
-  "packages/cssints/src/author.ts",
-  "packages/cssints/src/author-types.ts",
 ];
 
 export default defineConfig({
@@ -135,7 +125,6 @@ export default defineConfig({
         files: ["packages/css-grammar/src/support.ts"],
         rules: { "automation/no-array-filter-map": "off" },
       },
-      { files: inFlight, rules: automationWarn },
       // The tool is checked by its own tests and tsgo; its rules read AST nodes typed `any`, its tests are vitest (not Playwright).
       {
         files: ["tools/ai-automation/**"],
