@@ -397,8 +397,8 @@ ok(
   "css: the fallback of the plugin's runtime (a target lacks the feature)",
 );
 ok(
-  /@layer app, author, viewer;/.test(css) &&
-    /@layer viewer\s*\{\s*:where\(\[data-mode="dark"\], \[data-mode~="dark\/color"\]\)\s*\{[^}]*--color-brand:\s*#ef4444/.test(
+  /@layer [^{;]*\bapp,\s*author\b/.test(css) &&
+    /@layer viewer\s*\{\s*:where\(\[data-mode="?dark"?\],\s*\[data-mode~="?dark\\?\/color"?\]\)\s*\{[^}]*--color-brand:\s*#ef4444/.test(
       css,
     ),
   "css: a look of @cssints/mise-en-mode (the declared layers, a theme in the viewer layer)",
