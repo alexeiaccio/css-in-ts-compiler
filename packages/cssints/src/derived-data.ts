@@ -8,7 +8,7 @@ import { Effect, Formatter, Result } from "effect";
 
 import { addDerived, DERIVED, needed } from "./delivery.ts";
 import { evaluate, KEY } from "./derived.ts";
-import { Registry, type RegistryState } from "./registry.ts";
+import { Registry, type At, type RegistryState } from "./registry.ts";
 
 // what stops the evaluator at `literal`, if anything
 const refuses = (literal: string): string | undefined => {
@@ -23,13 +23,14 @@ const refuses = (literal: string): string | undefined => {
 // cannot parse: a colour that inherits, set on :root (not under a container), in the subset of derived.ts. It then
 // registers the runtime for the file being evaluated. Otherwise the token stays at its static default, and the build says so.
 export const standIn = Effect.fnUntraced(function* (
+  at: At,
   who: string,
   kind: TokenType,
   literal: string,
   inherits: boolean,
   rooted: boolean,
 ): Effect.fn.Return<boolean> {
-  const { at, warned, warnings } = yield* Registry;
+  const { warned, warnings } = yield* Registry;
   let why: string | undefined;
   if (kind !== "color") why = "computes colours only";
   else if (!inherits) why = "does not write tokens that do not inherit";
@@ -38,7 +39,7 @@ export const standIn = Effect.fnUntraced(function* (
   const ws =
     kind === "color" ? supportOf("color", literal).filter((w) => w.feature !== "color") : [];
   if (why === undefined) {
-    yield* addDerived(at!.file, [...new Set(ws.map((w) => w.key))]);
+    yield* addDerived(at.file, [...new Set(ws.map((w) => w.key))]);
     return true;
   }
   const key = `derived ${who} ${why}`;

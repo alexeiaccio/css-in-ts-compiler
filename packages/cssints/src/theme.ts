@@ -333,7 +333,8 @@ export const createTokens = (...args: unknown[]): unknown =>
             guarded.push(
               `@supports ${supportTest(TOKEN_TYPES[kind].syntax, r.text)}{:root{${name}:${css}}}`,
             );
-            if (yield* standIn(l.dotted, kind, r.text, def.inherit, true)) def.poly = r.text;
+            if (yield* standIn(registry.at, l.dotted, kind, r.text, def.inherit, true))
+              def.poly = r.text;
           }
           Object.assign(def, { template: css, refs: targets });
         }
@@ -508,6 +509,7 @@ const theme = (at: At | undefined, args: unknown[]) =>
               const { inherit } = registry.defs.get(child.name)!;
               if (
                 yield* standIn(
+                  at,
                   `${dotted} in ${label}`,
                   kind,
                   literal,

@@ -583,8 +583,8 @@ const refuses = (literal) => {
 	});
 	return Result.isFailure(tried) ? tried.failure : void 0;
 };
-const standIn = Effect.fnUntraced(function* (who, kind, literal, inherits, rooted) {
-	const { at, warned, warnings } = yield* Registry;
+const standIn = Effect.fnUntraced(function* (at, who, kind, literal, inherits, rooted) {
+	const { warned, warnings } = yield* Registry;
 	let why;
 	if (kind !== "color") why = "computes colours only";
 	else if (!inherits) why = "does not write tokens that do not inherit";
