@@ -23,24 +23,27 @@ const sheet = (f) => plugins[0].api.sheet([`${root}/${f}`]);
 // iconify-json and fs: a replaced site is the marker and the class of the icon's one custom property
 const use = await code("use.ts");
 const [, a, b1, b2, c, d, e] =
-  /a = "(_i _\w+)";\nexport const b = "(_i _\w+) (_\w+)";\nexport const c = "(_i _\w+)";\nexport const d = "(_ic _\w+)";\nexport const e = "(_i _\w+)";/.exec(
+  /a = "(_icons-mask _\w+)";\nexport const b = "(_icons-mask _\w+) (_\w+)";\nexport const c = "(_icons-mask _\w+)";\nexport const d = "(_icons-image _\w+)";\nexport const e = "(_icons-mask _\w+)";/.exec(
     use,
   ) ?? [];
 assert.ok(a, use);
 assert.equal(b1, a, "the same icon is the same class, in a cn() too");
 assert.ok(new Set([a, c, d, e]).size === 4, "one class per icon");
-assert.ok(!use.includes("icons") && !use.includes("defs"), "the build-time imports are gone");
+assert.ok(!/\bimport\b|from "/.test(use), "the build-time imports are gone");
 
 const css = sheet("use.ts");
 // the kernels: printed once each, in layer _.k, a mask for one-colour icons and an image for coloured ones
-assert.equal(css.match(/\._i\{/g).length, 1);
-assert.equal(css.match(/\._ic\{/g).length, 1);
-assert.ok(css.indexOf("._i{") < css.indexOf("@layer _.a {"), "the kernels are below the classes");
-assert.match(css, /\._i\{[^}]*mask:var\(--_svg\) no-repeat center\/100% 100%/);
-assert.match(css, /\._ic\{[^}]*background:var\(--_svg\) no-repeat center\/100% 100%/);
+assert.equal(css.match(/\._icons-mask\{/g).length, 1);
+assert.equal(css.match(/\._icons-image\{/g).length, 1);
+assert.ok(
+  css.indexOf("._icons-mask{") < css.indexOf("@layer _.a {"),
+  "the kernels are below the classes",
+);
+assert.match(css, /\._icons-mask\{[^}]*mask:var\(--icons-svg\) no-repeat center\/100% 100%/);
+assert.match(css, /\._icons-image\{[^}]*background:var\(--icons-svg\) no-repeat center\/100% 100%/);
 // a declaration per icon: the SVG as a data URL, currentColor as black, on a square view box
 const svg = (cls) =>
-  new RegExp(`\\.${cls.split(" ")[1]}\\{--_svg:url\\("data:image/svg\\+xml,([^"]*)"\\)\\}`);
+  new RegExp(`\\.${cls.split(" ")[1]}\\{--icons-svg:url\\("data:image/svg\\+xml,([^"]*)"\\)\\}`);
 const star = svg(c).exec(css)?.[1];
 assert.match(
   star,
@@ -53,7 +56,7 @@ assert.ok(svg(a).test(css) && svg(e).test(css), "iconify-json icons, aliases res
 // the icon and a width of the user's: two classes
 assert.ok(css.includes(`.${b2}{width:2em}`), css);
 // no kernel warning: LightningCSS prefixes mask for targets with only -webkit-mask
-assert.ok(!warnings.some((w) => w.includes("kernel icon-")), warnings.join("\n"));
+assert.ok(!warnings.some((w) => w.includes("kernel icons.")), warnings.join("\n"));
 
 // the errors are build errors at the call site, with the nearest name when there is one
 const fails = async (f, text, loc = { line: 3, column: 17 }) =>

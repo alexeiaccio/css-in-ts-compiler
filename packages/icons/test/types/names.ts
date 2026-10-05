@@ -1,7 +1,7 @@
 import { cn } from "cssints";
 import type { Style } from "cssints/plugin";
 
-import { icons } from "../../src/types.ts";
+import { icons } from "../../src/index.ts";
 
 // iconify-json: the names come from the collection named in the type argument
 const mdi = icons<typeof import("@iconify-json/mdi/icons.json")>({

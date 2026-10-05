@@ -36,37 +36,37 @@ const write = (name, body) => {
 
 // the classes: the marker first, then one class per method; cn() prints the marker once
 const use = await code("surface-use.ts");
-assert.match(use, /export const a = "_s _\w+ _\w+ _\w+";/, use);
-assert.match(use, /export const b = "_s _\w+";/);
+assert.match(use, /export const a = "_surface-core _\w+ _\w+ _\w+";/, use);
+assert.match(use, /export const b = "_surface-core _\w+";/);
 assert.match(
   use,
-  /export const d = "_s _\w+ _\w+";/,
+  /export const d = "_surface-core _\w+ _\w+";/,
   "cn(): one marker, the hover step is a class",
 );
 assert.ok(
-  use.includes("virtual:cssints/runtime/surface"),
+  use.includes("virtual:cssints/runtime/surface.fallback"),
   "a client module that uses surface() imports its runtime",
 );
 const css = sheet("surface-use.ts");
 for (const d of [
-  "--sf-k:#2b3a67",
-  "--sf-d:0.06",
-  "--sf-d:calc(0.1 * -1)",
-  "--sf-d:calc(0.15 * clamp(-1, (0.5636 - l) * 1e6, 1))",
-  "--sf-k:oklch(from #123 l c h)",
-  "color:oklch(from var(--sf-s) clamp(0, (0.5636 - l) * 1e6, 1) 0 0)",
+  "--surface-k:#2b3a67",
+  "--surface-d:0.06",
+  "--surface-d:calc(0.1 * -1)",
+  "--surface-d:calc(0.15 * clamp(-1, (0.5636 - l) * 1e6, 1))",
+  "--surface-k:oklch(from #123 l c h)",
+  "color:oklch(from var(--surface-s) clamp(0, (0.5636 - l) * 1e6, 1) 0 0)",
 ])
   assert.ok(css.includes(`{${d}}`), `${d}\n${css}`);
-assert.match(css, /:hover\{--sf-d:0\.06\}/);
-assert.match(css, /@media \(width >= 40rem\) \{\s*\._\w+\{--sf-d:calc\(0\.05 \* -1\)\}/);
+assert.match(css, /:hover\{--surface-d:0\.06\}/);
+assert.match(css, /@media \(width >= 40rem\) \{\s*\._\w+\{--surface-d:calc\(0\.05 \* -1\)\}/);
 assert.equal(css.match(/@container/g)?.length, 2, "the kernel is printed once");
 assert.ok(
-  css.indexOf("@property --sf-e") < css.indexOf("@layer _.k {"),
+  css.indexOf("@property --surface-e") < css.indexOf("@layer _.k {"),
   "the registrations are at the top",
 );
 assert.match(
   css,
-  /@layer _\.k \{[\s\S]*\._s \{[\s\S]*@container[\s\S]*:root\[data-cssints-poly\] \._s \{/,
+  /@layer _\.k \{[\s\S]*\._surface-core \{[\s\S]*@container[\s\S]*:root\[data-cssints-poly\] \._surface-core \{/,
   "kernel, then the fallback: layer _.k",
 );
 assert.ok(css.indexOf("@layer _.k {") < css.indexOf("@layer _.a {"));
@@ -81,11 +81,11 @@ const old = spawnSync("node", ["run.mjs", "fixtures/surface-use.ts"], {
 });
 assert.match(
   old.stdout + old.stderr,
-  /kernel surface@1 needs css\.at-rules\.property, not supported by firefox 127, safari 15/,
+  /kernel surface.core needs css\.at-rules\.property, not supported by firefox 127, safari 15/,
 );
 assert.match(
   old.stdout + old.stderr,
-  /kernel surface@1 needs css\.types\.color\.oklch\.relative_syntax, not supported by firefox 127, safari 15/,
+  /kernel surface.core needs css\.types\.color\.oklch\.relative_syntax, not supported by firefox 127, safari 15/,
 );
 
 // relative colour is partial in Chrome 119-121 and Safari 16.4-17.6 (other channel scales): the kernel asks for the whole
@@ -99,10 +99,10 @@ const partial = (browserslist) =>
 const p17 = partial("chrome 120, safari 17.4, safari 18, firefox 128");
 assert.match(
   p17.stdout + p17.stderr,
-  /kernel surface@1 needs css\.types\.color\.oklch\.relative_syntax, not supported by chrome 120, safari 17\.4 \(a partial implementation counts as lacking\)/,
+  /kernel surface.core needs css\.types\.color\.oklch\.relative_syntax, not supported by chrome 120, safari 17\.4 \(a partial implementation counts as lacking\)/,
 );
 const p18 = partial("chrome 122, safari 18, firefox 128");
-assert.doesNotMatch(p18.stdout + p18.stderr, /kernel surface@1 needs/);
+assert.doesNotMatch(p18.stdout + p18.stderr, /kernel surface.core needs/);
 // the runtime follows style queries, not relative colour: Safari 17 ships it (no style queries), Chrome 120 does not
 // (it has them, and the script could not repair the steps anyway)
 const { needed } = await import("../src/delivery.ts");
@@ -119,7 +119,7 @@ export const a = surface().color(base).darken(0.1).ink();\n`,
 );
 await code("surface-token.ts");
 const tok = sheet("surface-token.ts");
-assert.match(tok, /\{--sf-k:var\(--base\)\}/, tok);
+assert.match(tok, /\{--surface-k:var\(--base\)\}/, tok);
 assert.match(tok, /@property --base/);
 
 // errors: the plugin, the grammar, the call site

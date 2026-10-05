@@ -145,10 +145,10 @@ function inPage(op, arg) {
     posts() {
       const sample = (name) => document.querySelector(`[data-sample=${name}]`);
       const q1 = sample("quoteImages").querySelector("article").firstElementChild;
-      const quote = [...q1.querySelectorAll("._f")].find(
+      const quote = [...q1.querySelectorAll("._frame-core")].find(
         (e) => cs(e, "border-top-width") === "1px" && e.querySelector("a"),
       );
-      const inner = quote.querySelector("._f");
+      const inner = quote.querySelector("._frame-core");
       const mediaBox = (name) =>
         sample(name).querySelector("article a[target=_blank] > img").closest("a").parentElement;
       const desc = sample("externalLong").querySelector("article a[href^=http] p");

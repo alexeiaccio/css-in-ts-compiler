@@ -374,15 +374,15 @@ ok(
   "css: the fallback of the plugin's runtime (a target lacks the feature)",
 );
 ok(
-  /--fr-r:\s*4px/.test(css) && /@container/.test(css) && /@property\s+--fr-p/.test(css),
+  /--frame-r:\s*4px/.test(css) && /@container/.test(css) && /@property\s+--frame-p/.test(css),
   "css: cssints/frame from the installed package (kernel, registrations, method)",
   css,
 );
 
 ok(
-  /--sf-d:\s*0?\.06/.test(css) &&
-    /oklch\(from var\(--sf-k/.test(css) &&
-    /@property\s+--sf-e/.test(css),
+  /--surface-d:\s*0?\.06/.test(css) &&
+    /oklch\(from var\(--surface-k/.test(css) &&
+    /@property\s+--surface-e/.test(css),
   "css: cssints/surface from the installed package (kernel with the relative colour, registrations, method)",
   css,
 );
