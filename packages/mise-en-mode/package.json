@@ -5,7 +5,8 @@
   "description": "Mise en Mode for cssints: looks are themes in the layers app < author < viewer, set on data-mode scopes",
   "license": "MIT",
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "type": "module",
   "sideEffects": false,

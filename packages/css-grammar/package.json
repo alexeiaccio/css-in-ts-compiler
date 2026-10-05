@@ -5,7 +5,8 @@
   "description": "Type-level and runtime recognizer of CSS values over mdn-data grammars (the engine of cssints)",
   "license": "MIT",
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "type": "module",
   "sideEffects": false,

@@ -5,7 +5,8 @@
   "description": "Icons for cssints: iconify JSON collections and SVG folders as a mask style, no runtime",
   "license": "MIT",
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "type": "module",
   "sideEffects": false,
