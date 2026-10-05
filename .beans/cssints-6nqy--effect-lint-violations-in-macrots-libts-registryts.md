@@ -63,15 +63,12 @@ tsconfig.effect.json (shared by packages/cssints, css-grammar, icons) sets every
 
 ## Summary of Changes
 
-macro.ts and author.ts use the engine's Effect replacements (Formatter.formatJson, Schema.fromJsonString, Result.try, Predicate.*, flatMap); lib.ts (the sync css.* builders and the class hash) joined plainCode; registry.ts and author-types.ts had nothing left after the mise-en-mode commit. The inFlight lint override, its twin in tsconfig.effect.json and the AGENTS.md sentence are gone: vp lint is 0 errors, 0 warnings. trace-otlp.ts silences unstableApiUsage for the file (OTLP and FetchHttpClient are unstable in effect 4.0.0; opt-in debugging). perf.mjs seq, same worktree, master vs branch: median 14.5 vs 13.0–15.4 ms per eval (noise). The agent's session broke twice on a harness error; the coordinator finished the ticket.
-
-## Summary of Changes
-
 All 36 lint warnings and the 5 `preferSchemaOverJson` language-service warnings of the five files are gone; the `inFlight` override, its `automationWarn` constant, the twin override in tsconfig.effect.json and the AGENTS.md sentence are deleted. `npx vp lint` reports 0 warnings and 0 errors.
 
 - macro.ts: `JSON.stringify` (15 calls) became `Formatter.formatJson`; the `JSON.parse` in `_cv` became `Schema.decodeSync(Schema.fromJsonString(Schema.Unknown))` (`fromJson`, with the same `schemaSync` note as sheet.ts); the four `try/catch` (blockOf, globalRule, checkValue, and the one in author.ts below) became `Result.getOrThrowWith(Result.try({ try, catch }), (e) => e)`; `typeof x === "object"` became `Predicate.isObject` / `isObjectOrArray` / `isObjectKeyword`; `"k" in v` became `Predicate.hasProperty` (`isWrapper`, `isCv`) and `Predicate.isTagged` (`located`, now written without `in`).
 - author.ts: two `try/catch` (`check`, `ran`) became `Result.try`; `JSON.stringify` became `Formatter.formatJson`.
 - lib.ts: moved to the `plainCode` override of vite.config.ts (sync css.* builders `node`, `toDecls`, `chainDecl`, `isNode`, `isFallback`, and the class hash): no code change.
 - registry.ts and author-types.ts had no warning.
+- trace-otlp.ts (not one of the five files; its three `unstableApiUsage` warnings were left by the engine's OTLP tracing) is silenced for the file with one `@effect-diagnostics` line, since OTLP and the fetch client are unstable in effect 4.0.0 and the tracing is opt-in.
 
 perf.mjs (200 modules, `seq`, per-module median ms, four to five interleaved runs each): after 4.08 to 4.81, before 4.29 to 4.87; user time per module 1.69 to 2.15 against 1.90 to 2.05. No change beyond noise.
