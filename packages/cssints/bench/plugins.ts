@@ -1,24 +1,30 @@
-// The cost of plugin calls: a context with four methods (a plugin author's module), a property, a style, and 30 calls of
-// them as user code writes them. Checked next to users.ts by `bun run bench`.
-import { context, method, property, style } from "cssints/plugin";
+// The cost of plugin calls: a scope with a chain of four methods (a plugin author's module), a property, a call member,
+// and 30 calls of them as user code writes them. Checked next to users.ts by `bun run bench`; plugins-defs.ts is the same
+// without the calls, so what the calls cost is the difference of the two.
+import { scope } from "cssints/plugin";
 
 const length = "<length [0,∞]>" as const;
-export const frame = context({
-  name: "frame",
-  marker: "_f",
-  kernel: { key: "frame@1", css: "._f{border-radius:var(--r)}" },
-  methods: {
-    radius: method({ grammar: length, emit: (v) => [["--r", v]] }),
-    padding: method({ grammar: length, spacing: true, emit: (v) => [["--p", v]] }),
-    border: method({ grammar: length, emit: (v) => [["--b", v]] }),
-    margin: method({ grammar: length, spacing: true, emit: (v) => [["--m", v]] }),
+const {
+  frame,
+  webkitFontSmoothing: smoothing,
+  icon,
+} = scope("frame", {
+  core: { css: "& { border-radius: var(--_r) }" },
+  frame: {
+    uses: ["core"],
+    chain: {
+      radius: { args: length, emit: (v) => [["--_r", v]] },
+      padding: { args: length, spacing: true, emit: (v) => [["--_p", v]] },
+      border: { args: length, emit: (v) => [["--_b", v]] },
+      margin: { args: length, spacing: true, emit: (v) => [["--_m", v]] },
+    },
   },
-});
-export const smoothing = property(
-  "-webkit-font-smoothing",
-  "auto | none | antialiased | subpixel-antialiased",
-);
-export const icon = style("home | star | moon", (name) => ({ decls: [["--svg", name]] }));
+  "-webkit-font-smoothing": "auto | none | antialiased | subpixel-antialiased",
+  icon: { args: "home | star | moon" },
+})
+  .build({ icon: (name) => ({ decls: [["--_svg", name]] }) })
+  .export();
+export { frame, smoothing, icon };
 
 export const calls = [
   frame().radius("8px"),

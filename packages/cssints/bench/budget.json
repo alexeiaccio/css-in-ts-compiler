@@ -15,9 +15,13 @@
     "tsc": 329582,
     "tsgo": 341252
   },
+  "plugins-defs.ts": {
+    "tsc": 56562,
+    "tsgo": 65901
+  },
   "plugins.ts": {
-    "tsc": 51124,
-    "tsgo": 55394
+    "tsc": 76647,
+    "tsgo": 86987
   },
   "state.ts": {
     "tsc": 212463,
