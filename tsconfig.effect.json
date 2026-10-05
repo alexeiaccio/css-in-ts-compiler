@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/@effect/tsgo/schema.json",
-  // Shared by the packages with Effect code (cssints, css-grammar, icons): every Effect language service diagnostic as an
+  // Shared by the packages with Effect code (cssints, css-grammar, icons, mise-en-mode): every Effect language service diagnostic as an
   // error (the off-by-default ones and the suggestions too), three left off for the reasons below. `bun run typecheck`
   // runs them through `effect-tsgo diagnostics`.
   "compilerOptions": {

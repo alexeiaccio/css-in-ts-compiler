@@ -42,7 +42,7 @@ const served = async () =>
 const write = (text) =>
   writeFileSync(
     file,
-    `import { look } from "cssints/mise-en-mode" with { type: "cssints" };\n${text}\n`,
+    `import { look } from "../fixtures/seam-look.ts" with { type: "cssints" };\n${text}\n`,
   );
 const edit = async (text) => {
   write(text);

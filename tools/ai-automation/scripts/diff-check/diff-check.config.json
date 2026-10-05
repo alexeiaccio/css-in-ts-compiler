@@ -11,6 +11,7 @@
     "packages/css-grammar/test/",
     "packages/css-grammar/bench/",
     "packages/icons/test/",
+    "packages/mise-en-mode/test/",
     "packages/cssints/src/runtime.ts",
     "packages/cssints/src/parent-vars.ts",
     "packages/cssints/src/frame.ts",
@@ -23,7 +24,8 @@
     "packages/css-grammar/src/mdn.ts",
     "packages/css-grammar/src/keywords.ts",
     "packages/css-grammar/src/longhands.ts",
-    "packages/icons/src/"
+    "packages/icons/src/",
+    "packages/mise-en-mode/src/"
   ],
   "changedFileRules": [
     {

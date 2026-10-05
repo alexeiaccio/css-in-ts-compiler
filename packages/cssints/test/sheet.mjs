@@ -129,7 +129,7 @@ const demo = String(assets[0].source);
 assert.ok(demo.startsWith("@layer "), demo);
 assert.deepEqual(
   [...new Set([...demo.matchAll(/@layer ([^{;]+)/g)].flatMap((m) => m[1].split(",")))],
-  LAYERS,
+  [...LAYERS, "app", "author", "viewer"], // the demo's look (@cssints/mise-en-mode) declares its sources
 );
 assert.ok(demo.includes("{padding:2rem}"), demo);
 assert.ok(demo.includes("{width:calc(100% - 2rem)}"), demo); // a math function survives the build

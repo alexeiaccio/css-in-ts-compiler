@@ -10,6 +10,7 @@ const outOfScope = ["docs/archive/**", "docs/research/sublayers-proto/**", "docs
 const inputs = [
   "packages/cssints/test/fixtures/**",
   "packages/icons/test/fixtures/**",
+  "packages/mise-en-mode/test/fixtures/**",
   "packages/cssints/test/pkg/**",
   "packages/css-grammar/bench/err.ts",
   "packages/cssints/bench/errors.ts",
@@ -63,8 +64,9 @@ const plainCode = [
   "packages/cssints/src/lib.ts",
   // The twin's lexer and recognizer, per declaration.
   "packages/css-grammar/src/twin-core.ts",
-  // @cssints/icons: a sync member on the style() helper, which user code calls in an expression.
+  // @cssints/icons and @cssints/mise-en-mode: sync members on the style() helper, which user code calls in an expression.
   "packages/icons/src/**",
+  "packages/mise-en-mode/src/**",
   // The apps are plain Solid and React; the tests, benches and generator scripts are node scripts.
   "apps/**",
   "**/test/**",

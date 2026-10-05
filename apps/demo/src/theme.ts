@@ -1,4 +1,5 @@
 import { check, createGlobalTheme, createTokens, media } from "cssints" with { type: "cssints" };
+import { look } from "@cssints/mise-en-mode" with { type: "cssints" };
 
 // The colours of the page and its cards, and one space step. Dark follows the system setting; `.compact` is a theme
 // for a selector. `link` is an alias of `accent`, so a theme that changes the accent changes the link with it.
@@ -25,6 +26,11 @@ createGlobalTheme(t, media("(prefers-color-scheme: dark)"), {
   },
 });
 createGlobalTheme(t, ".compact", { space: { md: "8px" } });
+
+// A look a viewer can switch on (`data-mode="contrast"`, or `contrast/color` for the colours alone), in the viewer layer.
+look(t, "contrast", "viewer", {
+  color: { page: "#000000", surface: "#000000", text: "#ffffff", accent: "#93c5fd" },
+});
 
 // Fails the build when the text is hard to read on the page, in the light or the dark theme.
 check.contrast(t.color.text, t.color.page, { min: 7 });
