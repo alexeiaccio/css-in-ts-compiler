@@ -1,13 +1,11 @@
-// The engine behind "cssints/plugin" (scope.ts and author.ts declare what it does): `scope()` and the helpers it replaces
-// (`context`, `style`, `fn`, `property`). Build time only. Its public types are those of the front, so what is typed here is
+// The engine behind "cssints/plugin" (scope.ts and author.ts declare what it does): `scope()`. Build time only. Its public types are those of the front, so what is typed here is
 // loose; macro.ts registers `engine` in the registry, where the front finds it.
 import { checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { properties } from "@cssints/css-grammar/mdn";
 import { checkSelectorNow } from "@cssints/css-grammar/selector";
 import { CSSStyleValue } from "@cssints/css-grammar/values";
-import { Formatter, Result } from "effect";
+import { Result } from "effect";
 
-import type { Conflict, Decl, Kernel as KernelType, Runtime } from "./author-types.ts";
 import { MemberError } from "./errors.ts";
 import { camel, type Carry, failIn, isNode, node, probed, type CssNode } from "./node.ts";
 import { type Kernel, type Plug, registry } from "./registry.ts";
@@ -146,9 +144,6 @@ export const ran = <T>(plugin: string, run: () => T) =>
     }),
     (e) => e,
   );
-
-export const decls = (emitted: readonly (readonly [string, string])[]) =>
-  emitted.map(([p, v]): [string, string] => [p, v]);
 
 const thrown = (name: string, message: string) => failIn(name, `cssints: ${message}`);
 
@@ -547,115 +542,5 @@ export function scope(name: string, table: Dict<unknown>): unknown {
   return s;
 }
 
-// ───────────────────────────── the helpers that scope() replaces
-
-// A chaining context like `flex()`: a marker, a kernel, methods each used once. See author.ts for what it says.
-const context = (def: {
-  name: string;
-  marker: string;
-  kernel: KernelType;
-  runtime?: Runtime;
-  conflicts?: Conflict;
-  methods: Record<
-    string,
-    {
-      grammar: string;
-      spacing?: boolean;
-      excludes?: readonly string[];
-      emit: (v: string) => Decl[];
-    }
-  >;
-}) => {
-  const { name, marker, kernel, runtime, conflicts, methods } = def;
-  const plugs = runtime || conflicts ? [{ name, marker, conflicts, runtime }] : undefined;
-  // `used`: the methods taken out of the chain, each with the one that took it out (itself, or what excludes it)
-  const next =
-    (used: ReadonlyMap<string, string>) =>
-    (m: string, args: unknown[], self: CssNode): CssNode => {
-      const meth = Object.hasOwn(methods, m) ? methods[m] : undefined;
-      if (!meth)
-        throw failIn(
-          name,
-          `cssints: ${name}() has no .${m}(); it chains ${Object.keys(methods)
-            .filter((k) => !used.has(k))
-            .join(", ")}`,
-        );
-      const by = used.get(m);
-      if (by === m) throw failIn(name, `cssints: ${name}().${m}() is used twice`);
-      if (by) throw failIn(name, `cssints: ${name}().${m}() cannot go with .${by}()`);
-      let value = "";
-      if (meth.grammar === "") {
-        if (args.length) throw failIn(name, `cssints: ${name}().${m}() takes no value`);
-      } else {
-        value = valueOf(name, `${name}.${m}`, args, meth.spacing);
-        check(name, `${name}.${m}`, meth.grammar, value);
-      }
-      const taken = new Map(used).set(m, m);
-      for (const x of meth.excludes ?? []) taken.set(x, m);
-      return node([...self.__cssints, ...decls(meth.emit(value))], self, next(taken));
-    };
-  return () =>
-    node([], { markers: [[marker, kernel.key]], kernels: [kernel], plugs }, next(new Map()));
-};
-
-// A function of grammar-typed parts that returns a style: `build` gets the parts joined by a space.
-const style =
-  (
-    grammar: string,
-    build: (value: string) => {
-      decls: Decl[];
-      markers?: string[];
-      kernels?: KernelType[];
-      globals?: Carry["globals"];
-      themes?: Carry["themes"];
-      layers?: string[];
-    },
-  ) =>
-  (...args: unknown[]) => {
-    const value = valueOf("style", "style", args);
-    check("style", "style", grammar, value);
-    const {
-      decls: d,
-      markers,
-      kernels,
-      globals,
-      themes,
-      layers,
-    } = ran("style", () => build(value));
-    return node(decls(d), {
-      markers: markers?.map((m) => [m, kernels?.[0]?.key ?? ""]),
-      kernels,
-      globals,
-      themes,
-      layers: layers && [layers],
-    });
-  };
-
-// A value function, a part of any property: `computeTo` gets each part as text and runs at build time only.
-export const fn =
-  (grammar: string, computeTo: (args: string[]) => string | CSSStyleValue, name = "fn") =>
-  (...args: unknown[]) => {
-    check(name, name, grammar, valueOf(name, name, args));
-    const out = ran(name, () => computeTo(args.map(String)));
-    if (typeof out !== "string" && !(out instanceof CSSStyleValue))
-      throw failIn(name, `cssints: ${name}() computeTo must return a string or a Typed OM value`);
-    return out;
-  };
-
-// A user-defined typed property.
-const property = (name: string, grammar: string, emit?: (value: string) => Decl[]) => {
-  if (Object.hasOwn(properties, name))
-    throw new MemberError({
-      message: `cssints: property(${Formatter.formatJson(name)}): ${name} is a CSS property already, with its own grammar`,
-      pluginName: name,
-    });
-  return (...args: unknown[]) => {
-    const value = valueOf(name, name, args);
-    check(name, name, grammar, value);
-    registry.userProps.add(name);
-    return node(decls(emit ? emit(value) : [[name, value]]));
-  };
-};
-
-/** What the front (scope.ts, author.ts) calls; macro.ts puts it in the registry. */
-export const engine = { scope, context, style, fn, property };
+/** What the front (scope.ts) calls; macro.ts puts it in the registry. */
+export const engine = { scope };

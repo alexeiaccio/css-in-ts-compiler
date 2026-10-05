@@ -448,13 +448,9 @@ export interface Pending<N extends string, T> {
 
 // ───────────────────────────── the engine ─────────────────────────────
 
-/** What the engine gives the front: one function per helper, loosely typed (the types are the signatures of the front). */
+/** What the engine gives the front, loosely typed (the types are the signatures of the front). */
 export interface Engine {
   scope(name: string, table: object): unknown;
-  context(def: object): unknown;
-  style(grammar: string, build: unknown): unknown;
-  fn(grammar: string, computeTo: unknown, name?: string): unknown;
-  property(name: string, grammar: string, emit?: unknown): unknown;
 }
 /** The engine, once the library is loaded (the prepended import of every module with sites loads it before any plugin module runs). */
 export const engine = (): Engine => {

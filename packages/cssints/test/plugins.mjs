@@ -1,8 +1,6 @@
-// The public plugin API (cssints/plugin) end to end: typed properties, contexts with kernels, conflicts, errors that
-// name the plugin and the call site, and runtime delivery for targets that lack a feature. Run: node plugins.mjs
+// What scope() (cssints/plugin) does for plugins, end to end: typed properties, value functions, chains with kernels, conflicts,
+// errors that name the scope and the call site, and runtime delivery for targets that lack a feature. Run: node plugins.mjs
 import assert from "node:assert/strict";
-import { rmSync, writeFileSync } from "node:fs";
-
 import { Effect } from "effect";
 import { build, createLogger, createServer } from "vite";
 
@@ -24,7 +22,7 @@ const client = server.environments.client;
 const sheet = (f) => plugins[0].api.sheet([`${import.meta.dirname}/fixtures/${f}`]);
 const code = async (f) => (await client.transformRequest(`/fixtures/${f}`)).code;
 
-// property(): a typed passthrough, no support warning (the engine knows nothing of it)
+// a typed property: a typed passthrough, no support warning (the engine knows nothing of it)
 const use = await code("plug-use.ts");
 assert.match(use, /export const a = "_\w+";/, use);
 assert.match(
@@ -42,7 +40,7 @@ assert.ok(!warnings.some((w) => w.includes("font-smoothing")), warnings.join("\n
 
 // runtime: the import is added for a member with a runtime; the module and the fallback CSS follow the targets
 assert.ok(use.includes("virtual:cssints/runtime/frame.fallback"), use);
-assert.ok(use.includes("virtual:cssints/runtime/lit"), use);
+assert.ok(use.includes("virtual:cssints/runtime/lit.fallback"), use);
 const frameRuntime = (await client.transformRequest("virtual:cssints/runtime/frame.fallback")).code;
 assert.ok(frameRuntime.includes("parent-vars"), frameRuntime);
 assert.ok(
@@ -52,7 +50,7 @@ assert.ok(
 );
 assert.ok(css.includes(":root[data-cssints-poly] ._frame-core {"), "the fallback is in the sheet");
 assert.ok(css.indexOf("@layer _.k {") < css.indexOf("data-cssints-poly"), "...in layer _.k");
-const litRuntime = (await client.transformRequest("virtual:cssints/runtime/lit")).code;
+const litRuntime = (await client.transformRequest("virtual:cssints/runtime/lit.fallback")).code;
 assert.ok(!litRuntime.includes("parent-vars"), "every target has the feature: nothing");
 assert.ok(!css.includes("--lit-fallback"), "...and no fallback CSS");
 // the floor: a target without @property gets nothing from a polyfill
@@ -71,7 +69,7 @@ assert.equal(
 assert.equal(Effect.runSync(needed(runtime, [["chrome", "120"]])), false);
 assert.ok(!(await code("plug-lit.ts")).includes("parent-vars"));
 assert.ok(
-  (await code("plug-lit.ts")).includes("virtual:cssints/runtime/lit"),
+  (await code("plug-lit.ts")).includes("virtual:cssints/runtime/lit.fallback"),
   "the import is there, its content is empty",
 );
 
@@ -95,7 +93,7 @@ await fails(
   "plug-bad-property.ts",
   /^-webkit-font-smoothing: unexpected "bold" in "bold", expected /,
   3,
-  "-webkit-font-smoothing",
+  "pk",
 );
 await fails("plug-twice.ts", /^cssints: frame\(\)\.radius\(\) is used twice$/, 3, "frame");
 await fails(
@@ -105,7 +103,7 @@ await fails(
   "frame",
 );
 
-// fn(): the result is inlined where the call is (a Typed OM value or a string), nothing ships
+// a value member: the result is inlined where the call is (a Typed OM value or a string), nothing ships
 const fnUse = await code("plug-fn.ts");
 assert.match(
   fnUse,
@@ -120,14 +118,14 @@ await fails(
   "plug-fn-bad-part.ts",
   /^mix: unexpected "solid" in "red solid", expected <color>$/,
   3,
-  "mix",
+  "pk",
 );
-await fails("plug-fn-throws.ts", /^cssints: boom: no luck$/, 3, "boom");
+await fails("plug-fn-throws.ts", /^cssints: boom: no luck$/, 3, "pk");
 await fails(
   "plug-fn-nothing.ts",
-  /^cssints: nothing\(\) computeTo must return a string or a Typed OM value$/,
+  /^cssints: nothing\(\) value must return a string or a Typed OM value$/,
   3,
-  "nothing",
+  "pk",
 );
 // a result that does not fit the property is that property's error, at the same site
 await assert.rejects(code("plug-fn-bad-result.ts"), (e) => {
@@ -136,7 +134,7 @@ await assert.rejects(code("plug-fn-bad-result.ts"), (e) => {
   return true;
 });
 
-// the built-ins of cssints on fn(): colorMix, min, max, clamp, with tokens as arguments
+// the built-ins of cssints (colorMix is a value member of the scope cssints-fn): colorMix, min, max, clamp, with tokens as arguments
 const bi = await code("fn-builtins.ts");
 assert.ok(!bi.includes("colorMix") && !bi.includes("clamp"), "nothing of them ships");
 const biCss = sheet("fn-builtins.ts");
@@ -153,25 +151,25 @@ await fails(
   "fn-builtins-bad-colors.ts",
   /^colorMix: unexpected end in "oklab red", expected /,
   5,
-  "colorMix",
+  "cssints-fn",
 );
 await fails(
   "fn-builtins-bad-token.ts",
   /^colorMix: unexpected "1px" in "oklab 1px red", expected /,
   5,
-  "colorMix",
+  "cssints-fn",
 );
 await fails(
   "fn-builtins-bad-share.ts",
   /^colorMix: unexpected "120%" in "oklab red 120% blue", expected /,
   3,
-  "colorMix",
+  "cssints-fn",
 );
 await fails(
   "fn-builtins-bad-arity.ts",
   /^cssints: colorMix\(\) takes a colour space and two colours$/,
   5,
-  "colorMix",
+  "cssints-fn",
 );
 await assert.rejects(code("fn-builtins-bad-math.ts"), (e) => {
   assert.match(
@@ -183,30 +181,6 @@ await assert.rejects(code("fn-builtins-bad-math.ts"), (e) => {
 });
 await assert.rejects(code("fn-builtins-bad-clamp.ts"), /clamp\(\) takes 3 arguments/);
 
-// a kernel used through a helper module that is edited does not collide with its own old self
-const fx = `${import.meta.dirname}/fixtures`;
-const kit = (css) => `import { context, method } from "cssints/plugin";
-export const k = context({ name: "tmp", marker: "_t", kernel: { key: "tmp@1", css: "${css}" },
-  methods: { w: method({ grammar: "<length>", emit: (v) => [["--tmp-w", v]] }) } });\n`;
-writeFileSync(`${fx}/tmp-kit.ts`, kit("._t{--tmp-a:1}"));
-writeFileSync(
-  `${fx}/tmp-helper.ts`,
-  `import { k } from "./tmp-kit" with { type: "cssints" };\nexport const base = k().w("1px");\n`,
-);
-writeFileSync(
-  `${fx}/tmp-use.ts`,
-  `import { cn } from "cssints" with { type: "cssints" };\nimport { base } from "./tmp-helper" with { type: "cssints" };\nexport const a = cn(base);\n`,
-);
-await code("tmp-use.ts");
-assert.ok(sheet("tmp-use.ts").includes("--tmp-a:1"));
-writeFileSync(`${fx}/tmp-kit.ts`, kit("._t{--tmp-b:1}"));
-for (const env of Object.values(server.environments)) env.moduleGraph.invalidateAll();
-await code("tmp-use.ts");
-assert.ok(
-  sheet("tmp-use.ts").includes("--tmp-b:1"),
-  "the edited kernel replaces the old one, no false collision",
-);
-for (const f of ["kit", "helper", "use"]) rmSync(`${fx}/tmp-${f}.ts`);
 await server.close();
 
 // the build: a runtime for a feature a target lacks is in the output, one nobody lacks is not
@@ -240,5 +214,5 @@ assert.ok(!only.js.includes("data-cssints-poly"), "no runtime when no target lac
 assert.ok(!only.css.includes("--lit-fallback") && !only.css.includes("data-cssints-poly"));
 assert.match(only.css, /--lit-c:\s*blue/);
 
-console.log("plugins: property, context, conflicts, errors, runtime delivery ok");
+console.log("plugins: property, value members, conflicts, errors, runtime delivery ok");
 process.exit(0);

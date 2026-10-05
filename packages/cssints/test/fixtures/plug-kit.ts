@@ -1,37 +1,37 @@
-// A plugin module on the public helpers: a typed property, and a context whose runtime is for a feature every test target
-// has (the runtime of one the targets lack is frame()'s).
+// Plugin modules on scope(): a typed property and value functions (a Typed OM result, a string, a function that throws, one
+// that returns nothing), and a chain whose runtime is for a feature every test target has (the runtime of one the targets
+// lack is frame()'s).
 import { CSSColorValue } from "@cssints/css-grammar/values";
-import { context, fn, method, property } from "cssints/plugin";
+import { scope } from "cssints/plugin";
 
-export const smoothing = property(
-  "-webkit-font-smoothing",
-  "auto | none | antialiased | subpixel-antialiased",
-);
+export const {
+  webkitFontSmoothing: smoothing,
+  mix,
+  quad,
+  boom,
+  nothing,
+} = scope("pk", {
+  "-webkit-font-smoothing": "auto | none | antialiased | subpixel-antialiased",
+  mix: {
+    args: "<color> <color>",
+    value: ([a, b]) => new CSSColorValue(`color-mix(in oklab, ${a}, ${b})`),
+  },
+  quad: { args: "<number>", value: ([n]) => `${Number(n) * 4}px` },
+  boom: {
+    args: "<number>",
+    value: () => {
+      throw new Error("cssints: boom: no luck");
+    },
+  },
+  nothing: { args: "<number>", value: (() => 1) as never },
+}).export();
 
-export const lit = context({
-  name: "lit",
-  marker: "_l",
-  kernel: { key: "lit@1", css: "._l{--lit-c:1}" },
-  runtime: {
+export const { lit } = scope("lit", {
+  core: { css: "& { --lit-c: 1 }" },
+  fallback: {
     polyfills: ["css.properties.color"],
-    parentVars: [{ marker: "_l", read: "--lit-r", write: "--lit-w" }],
-    css: "._l{--lit-fallback:1}",
+    parentVars: [{ marker: "&", read: "--_r", write: "--_w" }],
+    css: "& { --_fallback: 1 }",
   },
-  methods: { color: method({ grammar: "<color>", emit: (v) => [["--lit-c", v]] }) },
-});
-
-// value functions: a Typed OM result (a colour), a string result, a computeTo that throws, one that returns nothing
-export const mix = fn(
-  "<color> <color>",
-  ([a, b]) => new CSSColorValue(`color-mix(in oklab, ${a}, ${b})`),
-  "mix",
-);
-export const quad = fn("<number>", ([n]) => `${Number(n) * 4}px`, "quad");
-export const boom = fn(
-  "<number>",
-  () => {
-    throw new Error("cssints: boom: no luck");
-  },
-  "boom",
-);
-export const nothing = fn("<number>", (() => 1) as never, "nothing");
+  lit: { uses: ["core", "fallback"], chain: { color: { args: "<color>", emit: (v) => [["--_c", v]] } } },
+}).export();

@@ -117,7 +117,7 @@ assert.ok(
 assert.ok(css.includes('[data-mode="night"]{--mem-bg:#000000'), css);
 e = await failure("member-theme-bad.ts");
 assert.match(e.message, /^cssints: createGlobalTheme\(\): mem\.bg value "blu" is not a <color>$/);
-assert.deepEqual(at(e), { line: 3, column: 17 });
+assert.deepEqual(at(e), { line: 4, column: 17 });
 
 // check.contrast reads the themes of one selector together, in layer order: the viewer's text colour alone is checked
 // on the app's background

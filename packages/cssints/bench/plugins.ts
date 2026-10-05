@@ -1,6 +1,8 @@
-// The cost of plugin calls: a scope with a chain of four methods (a plugin author's module), a property, a call member,
-// and 30 calls of them as user code writes them. Checked next to users.ts by `bun run bench`; plugins-defs.ts is the same
+// The cost of plugin calls: a scope with a chain of four methods (a plugin author's module), a property, a call member, two value members,
+// and 34 calls of them as user code writes them. Checked next to users.ts by `bun run bench`; plugins-defs.ts is the same
 // without the calls, so what the calls cost is the difference of the two.
+import { CSSColorValue } from "@cssints/css-grammar/values";
+import { color, width } from "cssints";
 import { scope } from "cssints/plugin";
 
 const length = "<length [0,∞]>" as const;
@@ -8,6 +10,8 @@ const {
   frame,
   webkitFontSmoothing: smoothing,
   icon,
+  tint,
+  step,
 } = scope("frame", {
   core: { css: "& { border-radius: var(--_r) }" },
   frame: {
@@ -21,10 +25,15 @@ const {
   },
   "-webkit-font-smoothing": "auto | none | antialiased | subpixel-antialiased",
   icon: { args: "home | star | moon" },
+  tint: {
+    args: "<color> <percentage>",
+    value: ([c, share]) => new CSSColorValue(`color-mix(in oklab, ${c}, white ${share})`),
+  },
+  step: { args: "<number>", value: ([n]) => `${Number(n) * 4}px` },
 })
   .build({ icon: (name) => ({ decls: [["--_svg", name]] }) })
   .export();
-export { frame, smoothing, icon };
+export { frame, smoothing, icon, tint, step };
 
 export const calls = [
   frame().radius("8px"),
@@ -57,4 +66,8 @@ export const calls = [
   frame().margin("0.25rem"),
   smoothing("antialiased"),
   icon("home"),
+  color(tint("red", "20%")),
+  color(tint("#2563eb", "10%")),
+  width(step(10)),
+  width(step(1)),
 ];

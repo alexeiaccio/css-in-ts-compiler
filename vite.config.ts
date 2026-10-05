@@ -69,7 +69,7 @@ const plainCode = [
   "packages/cssints/src/scope-engine.ts",
   // The twin's lexer and recognizer, per declaration.
   "packages/css-grammar/src/twin-core.ts",
-  // @cssints/icons and @cssints/mise-en-mode: sync members on the style() helper, which user code calls in an expression.
+  // @cssints/icons and @cssints/mise-en-mode: sync members of scope(), which user code calls in an expression.
   "packages/icons/src/**",
   "packages/mise-en-mode/src/**",
   // The apps are plain Solid and React; the tests, benches and generator scripts are node scripts.

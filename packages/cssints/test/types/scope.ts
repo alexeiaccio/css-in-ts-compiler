@@ -1,4 +1,8 @@
-import { scope, arg } from "cssints/plugin";
+import { CSSColorValue } from "@cssints/css-grammar/values";
+import { color, width } from "cssints";
+import { scope, arg, type GlobalRule } from "cssints/plugin";
+
+import type { CheckIn } from "../../src/parts.ts";
 
 const plugin = scope("ring", {
   width: "<length [0,∞]> | thin | thick",
@@ -134,3 +138,72 @@ scope("bad3", { a: { args: "<color>" } }).export();
 export const hiddenCore = x.export().core;
 // @ts-expect-error build() takes a function for each call member
 scope("bad4", { a: { args: "<color>" } }).build({});
+
+// the label of a message is `name.method`, with the grammar of the method; a number is a length only with `spacing`
+type Bad = CheckIn<"ring.width", "<length [0,∞]>", false, ["red"]>;
+export const message: Bad extends [infer M] ? M : never =
+  'ring.width: unexpected "red" in "red", grammar <length [0,∞]>';
+// @ts-expect-error a number is a spacing step only where the method says so
+badge().tone(4);
+
+// a grammar in a plain const (not `as const`) keeps its literal type, inline in a chain too
+const plainGrammar = "<length [0,∞]>";
+const { box } = scope("plain", {
+  box: { chain: { size: { args: plainGrammar, emit: (v) => [["--_s", v]] } } },
+}).export();
+box().size(
+  // @ts-expect-error not a length
+  "red",
+);
+// @ts-expect-error a typed property needs a value
+webkitFontSmoothing();
+
+// value members: a Typed OM result keeps its type, a string is opaque
+const { mix, quad } = scope("vals", {
+  mix: {
+    args: "<color> <color>",
+    value: ([a, b]) => new CSSColorValue(`color-mix(in oklab, ${a}, ${b})`),
+  },
+  quad: { args: "<number>", value: ([n]) => `${Number(n) * 4}px` },
+}).export();
+export const m: string = color(mix("red", "blue"));
+export const q: string = width(quad(2));
+// @ts-expect-error not a color
+mix("red", "solid");
+// @ts-expect-error not a number
+quad("red");
+// @ts-expect-error a CSSColorValue is a <color>, not a <length>
+width(mix("red", "blue"));
+export const typed: CSSColorValue = mix("red", "blue");
+export const opaque: string = quad(1);
+
+// what a call member's build returns: globals by content, declared layers, themes over the tokens it was given
+export const { looks } = scope("looks", {
+  looks: { args: ["<custom-ident>", "$tokens"] },
+})
+  .build({
+    looks: (name, tokens) => ({
+      layers: ["app", "viewer"],
+      globals: [{ css: `[data-mode="${name}"]{--k:1}`, layer: "app" }, { css: "a{--k:2}" }],
+      themes: [
+        {
+          tokens,
+          overrides: { color: { bg: "#000" } },
+          selector: `.${name}`,
+          layer: "viewer",
+          scope: "main",
+        },
+      ],
+    }),
+  })
+  .export();
+// @ts-expect-error a global has no key: it is its content
+export const keyed: GlobalRule = { key: "k", css: "a{}" };
+scope("bad5", { a: { args: "<custom-ident>" } }).build({
+  // @ts-expect-error `null` (a verbatim rule) is gone: declare the layers with `layers`
+  a: () => ({ globals: [{ css: "@layer a, b;", layer: null }] }),
+});
+scope("bad6", { a: { args: "<custom-ident>" } }).build({
+  // @ts-expect-error a theme needs its tokens, overrides and selector
+  a: () => ({ themes: [{ selector: ".a" }] }),
+});

@@ -491,7 +491,7 @@ const checkNow = (
   { warnings, warned, properties, userProps }: RegistryState,
   sheet = true,
 ) => {
-  if (userProps.has(prop)) return; // a property() member checked its value against its own grammar
+  if (userProps.has(prop)) return; // a typed property of a scope checked its value against its own grammar
   let found = checkValue(prop, value, fresh, properties);
   if (fallbacks) {
     const lacking = [value, ...fallbacks].map(
@@ -723,7 +723,7 @@ const replacementOf = Effect.fnUntraced(function* (
   // A Typed OM value (CSS.rem(1), new CSSColorValue(...)) ships as its CSS text; the objects are eval-time only.
   // oxlint-disable-next-line typescript/no-base-to-string -- every CSSStyleValue subclass overrides toString
   if (value instanceof CSSStyleValue) return Formatter.formatJson(String(value));
-  if (typeof value === "string") return Formatter.formatJson(value); // an fn() that computes text
+  if (typeof value === "string") return Formatter.formatJson(value); // a value member that computes text
   const inert = inertOf(value);
   if (inert !== undefined) return inert;
   if (isPluginValue(value)) return undefined;
