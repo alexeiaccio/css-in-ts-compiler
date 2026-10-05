@@ -133,6 +133,46 @@ css.createGlobalTheme(t, 3, { color: { bg: "red" } });
 // @ts-expect-error a group is not a value
 css.createGlobalTheme(t, ".x", { color: "red" });
 
+// A theme may name a layer (`layers()` declares it) and a scope: a selector, checked by the build and balanced in the types.
+css.layers("app", "author", "viewer");
+css.createGlobalTheme(t, ".look", { color: { bg: "#000" } }, { layer: "viewer" });
+css.createGlobalTheme(
+  t,
+  ".look",
+  { color: { bg: "#000" } },
+  { layer: "app", scope: "article.post" },
+);
+css.createGlobalTheme(t, ".look", { color: { bg: "#000" } }, { scope: "main > .a:not(.b)" });
+css.createGlobalTheme(
+  t,
+  ".look",
+  { color: { bg: "#000" } },
+  // @ts-expect-error a layer is a name
+  { layer: 1 },
+);
+css.createGlobalTheme(
+  t,
+  ".look",
+  { color: { bg: "#000" } },
+  // @ts-expect-error unbalanced brackets in the scope
+  { scope: "a[href" },
+);
+css.createGlobalTheme(
+  t,
+  ".look",
+  {
+    color: {
+      // @ts-expect-error the options do not change the check of the values
+      bg: "blu",
+    },
+  },
+  { layer: "app" },
+);
+// @ts-expect-error a layer declaration has at least one name
+css.layers();
+// @ts-expect-error names are strings
+css.layers("app", 1);
+
 // An override may refer to tokens: the whole value, or inside a CSS value checked with each reference as its target's type.
 css.createGlobalTheme(t, ".ref", { space: { md: "{space.sm}" }, color: { bg: "{color.accent}" } });
 css.createGlobalTheme(t, ".ref", {

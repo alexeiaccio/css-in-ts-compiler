@@ -25,6 +25,7 @@ const OWN = new Set([
   "group",
   "within",
   "global",
+  "layers",
   "token",
   "style",
   "createTokens",

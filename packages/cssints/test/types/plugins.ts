@@ -3,7 +3,7 @@
 // error lands on the bad argument, a method is used once.
 import { CSSColorValue } from "@cssints/css-grammar/values";
 import { color, width, type Style } from "cssints";
-import { context, fn, method, property, style } from "cssints/plugin";
+import { context, fn, method, property, style, type GlobalRule } from "cssints/plugin";
 
 import type { CheckIn } from "../../src/parts.ts";
 
@@ -97,3 +97,33 @@ export const opaque: string = quad(1);
 type BadFn = CheckIn<"mix", "<color> <color>", false, ["red", "solid"]>;
 export const fnMessage: BadFn extends [infer M, unknown] ? M : never =
   'mix: unexpected "red" in "red solid", grammar <color> <color>';
+
+// Built: global rules by content, declared layers, and themes over a token set the member got from its caller
+const looks = (tokens: object) =>
+  style("<custom-ident>", (name) => ({
+    decls: [],
+    layers: ["app", "viewer"],
+    globals: [{ css: `[data-mode="${name}"]{--k:1}`, layer: "app" }, { css: "a{--k:2}" }],
+    themes: [
+      {
+        tokens,
+        overrides: { color: { bg: "#000" } },
+        selector: `.${name}`,
+        layer: "viewer",
+        scope: "main",
+      },
+    ],
+  }));
+export const look: Style = looks({})("dark");
+// @ts-expect-error a global has no key any more: it is its content
+export const keyed: GlobalRule = { key: "k", css: "a{}" };
+style("<custom-ident>", () => ({
+  decls: [],
+  // @ts-expect-error `null` (a verbatim rule) is gone: declare the layers with `layers`
+  globals: [{ css: "@layer a, b;", layer: null }],
+}));
+style("<custom-ident>", () => ({
+  decls: [],
+  // @ts-expect-error a theme needs its tokens, overrides and selector
+  themes: [{ selector: ".a" }],
+}));

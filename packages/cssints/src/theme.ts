@@ -2,13 +2,15 @@
 // stay live as `--a: var(--b)` on :root. createGlobalTheme(tokens, condition | selector, overrides): the tokens a theme
 // sets, and the aliases that depend on them, under a condition or a selector. Both builders are called in user
 // expressions, so their edge is plain code (`edge`); everything behind it is Effect.
+import { checkSelector } from "@cssints/css-grammar/check";
 import { DTCG_TYPES, type DtcgType, TOKEN_TYPES, type TokenType } from "@cssints/css-grammar/token";
 import { Effect, Formatter, Predicate } from "effect";
 
-import type { MacroError } from "./errors.ts";
+import { MacroError } from "./errors.ts";
 import { standIn } from "./derived-data.ts";
 import { edge, fail } from "./lib.ts";
-import { registry } from "./registry.ts";
+import { type At, registry, type ThemeRule } from "./registry.ts";
+import { requireLayer } from "./sheet.ts";
 import { checkSyntaxFx, CSSTokenValue, declare, nameOf, supportTest } from "./token.ts";
 
 const SUPPORTED = Object.keys(DTCG_TYPES).join(", ");
@@ -382,18 +384,28 @@ const isCondition = (v: unknown): v is Condition =>
 // it), so there every element inside the container gets them; :where() keeps the specificity at zero.
 const SCOPE = { "@media": ":root", "@container": ":where(*)" } as const;
 
-// createGlobalTheme(tokens, condition | selector, overrides): `overrides` has the shape of the tokens. Each value is
-// a DTCG value or a CSS string of the token's type, which may refer to tokens with `{path}` (declared as var(--target),
-// so live). Aliases that depend on an overridden token are declared again in
-// the block, since `var()` is substituted where it is declared.
-export const createGlobalTheme = (...args: unknown[]): unknown =>
+// A theme of a plugin member (`Built.themes`): the same path as createGlobalTheme, at the call site `at` of the member.
+export const addTheme = (t: ThemeRule, at: At) =>
+  Effect.try({
+    try: () => theme(at, [t.tokens, t.selector, t.overrides, { layer: t.layer, scope: t.scope }]),
+    catch: (e) => e as MacroError,
+  });
+
+export const createGlobalTheme = (...args: unknown[]) => theme(registry.at, args);
+
+// createGlobalTheme(tokens, condition | selector, overrides, { layer, scope }?): `overrides` has the shape of the tokens.
+// Each value is a DTCG value or a CSS string of the token's type, which may refer to tokens with `{path}` (declared as
+// var(--target), so live). Aliases that depend on an overridden token are declared again in the block, since `var()` is
+// substituted where it is declared.
+const theme = (at: At | undefined, args: unknown[]) =>
   edge(
     Effect.gen(function* () {
       const [tokens, condition, overrides, options] = args;
       const set = Predicate.isObject(tokens) ? sets.get(tokens) : undefined;
-      const at = registry.at;
       const asked = Predicate.isObject(options) ? options.layer : undefined;
       const layer = typeof asked === "string" ? asked : undefined;
+      const wanted = Predicate.isObject(options) ? options.scope : undefined;
+      const scope = typeof wanted === "string" ? wanted.trim() : undefined;
       if (
         !at ||
         !set ||
@@ -401,11 +413,30 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
         args.length > 4 ||
         !Predicate.isObject(overrides) ||
         (args.length === 4 &&
-          (!Predicate.isObject(options) || (asked !== undefined && layer === undefined)))
+          (!Predicate.isObject(options) ||
+            (asked !== undefined && layer === undefined) ||
+            (wanted !== undefined && scope === undefined)))
       )
         return yield* fail(
-          "cssints: createGlobalTheme(tokens, condition | selector, overrides, { layer }?) takes tokens of createTokens, a media() or container() condition or a selector, the values to set, and an optional top-level layer for them",
+          "cssints: createGlobalTheme(tokens, condition | selector, overrides, { layer, scope }?) takes tokens of createTokens, a media() or container() condition or a selector, the values to set, and optionally a declared top-level layer and a selector to scope them to",
         );
+      if (layer !== undefined) yield* requireLayer(layer, at);
+      if (scope !== undefined) {
+        if (typeof condition !== "string")
+          return yield* fail(
+            "cssints: createGlobalTheme(): a scope goes with a selector, not a condition",
+          );
+        yield* checkSelector(scope).pipe(
+          Effect.mapError(
+            (e) =>
+              new MacroError({
+                message: `cssints: createGlobalTheme(): scope: ${e.message}`,
+                cause: e,
+                ...at,
+              }),
+          ),
+        );
+      }
       let label: string;
       let block: (decls: string) => string;
       if (typeof condition === "string") {
@@ -541,15 +572,16 @@ export const createGlobalTheme = (...args: unknown[]): unknown =>
           .map((a) => `${a.name}:${a.css}`),
       ];
       const n = registry.tokens++;
+      const rules =
+        block(decls.join(";")) +
+        [...guards].map(([test, live]) => `@supports ${test}{${block(live.join(";"))}}`).join("");
       registry.themed.set(`${at.file}#${at.site}.${n}`, {
         file: at.file,
         key: `${typeof condition === "string" ? 2 : 1}:${at.file}#${String(at.site).padStart(6, "0")}.${n}`,
-        css:
-          block(decls.join(";")) +
-          [...guards].map(([test, live]) => `@supports ${test}{${block(live.join(";"))}}`).join(""),
+        css: scope === undefined ? rules : `@scope (${scope}){${rules}}`,
         names: decls.map((d) => d.slice(0, d.indexOf(":"))),
         ...(layer === undefined ? {} : { layer }),
-        theme: { label, values: changed, poly: poly.size ? poly : undefined },
+        theme: { label, scope, values: changed, poly: poly.size ? poly : undefined },
       });
       return DONE;
     }),

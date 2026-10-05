@@ -109,11 +109,20 @@ export const style: typeof Types.style = (grammar: string, build: (value: string
   ((...args: unknown[]) => {
     const value = valueOf("style", "style", args);
     check("style", "style", grammar, value);
-    const { decls: d, markers, kernels, globals } = ran("style", () => build(value));
+    const {
+      decls: d,
+      markers,
+      kernels,
+      globals,
+      themes,
+      layers,
+    } = ran("style", () => build(value));
     return node(decls(d), {
       markers: markers?.map((m) => [m, kernels?.[0]?.key ?? ""]),
       kernels,
       globals,
+      themes,
+      layers: layers && [layers],
     });
   }) as never;
 

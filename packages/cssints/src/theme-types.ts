@@ -11,6 +11,8 @@ import type {
   ValidSyntax,
 } from "@cssints/css-grammar/token";
 
+import type { ValidSelector } from "@cssints/css-grammar/query";
+
 import type { QueryWrap } from "./types.ts";
 
 type Component = number | "none";
@@ -229,12 +231,26 @@ type CheckOverrides<X, O, Root = X> = {
 /**
  * Re-declares the overridden tokens under a media or container condition (on `:root`), or under a selector, and the
  * aliases that depend on them. An unknown path and a value that is not of the token's type are type errors.
+ * `layer` puts the rule in a top-level layer that `layers()` declares (the build checks that it does); `scope` (with a
+ * selector) confines it to a subtree: `@scope (<scope>) { ... }`.
  */
-export declare const createGlobalTheme: <const X extends object, const O extends Overrides<X>>(
+export declare const createGlobalTheme: <
+  const X extends object,
+  const O extends Overrides<X>,
+  const S extends string,
+>(
   tokens: X,
   condition: QueryWrap | string,
   overrides: O & CheckOverrides<X, O>,
+  options?: { readonly layer?: string; readonly scope?: ValidSelector<S> },
 ) => void;
+
+/**
+ * Declares top-level layers in order, printed once after the engine's own (`@layer app, author, viewer;`), so what is in
+ * them beats the engine's `:root` fallbacks. A theme's `layer` and a plugin's rules must name a declared layer. The same
+ * names again are fine; the same names in another order are a build error.
+ */
+export declare const layers: (...names: readonly [string, ...string[]]) => void;
 
 // ---------- check
 

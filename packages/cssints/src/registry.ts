@@ -5,9 +5,16 @@
 import type { TokenType } from "@cssints/css-grammar/token";
 import { Context } from "effect";
 
-import type { Conflict, Kernel, Runtime } from "./author-types.ts";
+import type { Conflict, GlobalRule, Kernel, Runtime } from "./author-types.ts";
 
-export type { Conflict, GlobalRule, Kernel, ParentVar, Runtime } from "./author-types.ts";
+export type {
+  Conflict,
+  GlobalRule,
+  Kernel,
+  ParentVar,
+  Runtime,
+  ThemeRule,
+} from "./author-types.ts";
 
 export interface Rule {
   layer: string;
@@ -82,10 +89,10 @@ export interface TokenDef {
  * A rule of a token set or a theme, in layer _.k after the globals (sheet.ts). `key` orders them: the kind (0 the
  * `:root` declarations of aliases, 1 themes under a condition, 2 themes under a selector), then the place in the source.
  * `names` are the variables it sets or reads: a module that uses one of them has the rule in its sheet too (plugin.ts).
- * `layer`, when set, sends the rule to a **top-level** layer of that name instead of `_.k`: a look must rank above the
- * engine's `:root` fallbacks, and a nested layer ranks below the rules of its parent.
- * `theme` is what a contrast check reads: the values the theme sets, by variable name; `poly` those of them that the
- * runtime of derived tokens computes, with their flattened literals.
+ * `layer`, when set, sends the rule to a **top-level** declared layer of that name instead of `_.k`: a look must rank
+ * above the engine's `:root` fallbacks, and a nested layer ranks below the rules of its parent.
+ * `theme` is what a contrast check reads: the values the theme sets, by variable name, for the selector `label` (inside
+ * `@scope (scope)`, if it has one); `poly` those of them that the runtime of derived tokens computes, with their flattened literals.
  */
 export interface Themed {
   file: string;
@@ -93,13 +100,24 @@ export interface Themed {
   css: string;
   names: string[];
   layer?: string;
-  theme?: { label: string; values: Map<string, string>; poly?: Map<string, string> };
+  theme?: {
+    label: string;
+    scope?: string;
+    values: Map<string, string>;
+    poly?: Map<string, string>;
+  };
 }
 
-/** A global rule (`addGlobal`): `layer` is a top-level layer to wrap it in, `null` prints it verbatim at the top, and `undefined` puts it in `_.k`. */
-export interface Global {
-  css: string;
-  layer?: string | null;
+/** A global rule of a plugin member (`addGlobal`), by its content, with the files whose styles carry it. */
+export interface GlobalEntry {
+  global: GlobalRule;
+  users: Set<string>;
+}
+
+/** A declared statement `@layer a, b;` (`layers()`), by its names joined with `,`, with the files that declared it. */
+export interface LayerEntry {
+  names: string[];
+  users: Set<string>;
 }
 
 /** The `key` of a Themed entry that is a `css.global()` rule starts with this: it sorts before the aliases and themes. */
@@ -119,8 +137,10 @@ export interface RegistryState {
   sites: Map<string, Map<number, string>>;
   /** class -> rule; one entry per class across all modules */
   rules: Map<string, Rule>;
-  /** key -> a global rule; rendered once each, in layer _.k unless it names a layer (sheet.ts `addGlobal`) */
-  globals: Map<string, Global>;
+  /** `layer<TAB>css` -> a global rule: in the sheet of the modules that carry it, in layer _.k unless it names a layer (sheet.ts `addGlobal`) */
+  globals: Map<string, GlobalEntry>;
+  /** the declared top-level layers (sheet.ts `addLayers`) */
+  layers: Map<string, LayerEntry>;
   /** key -> the kernels of the styles evaluated so far (sheet.ts `addKernel`): for collisions; the sheet reads the entries of a module */
   kernels: Map<string, KernelEntry>;
   /** plugin name -> its runtime and the files that use it (delivery.ts) */
@@ -159,6 +179,7 @@ export const registry: RegistryState = (globalThis.__cssints ??= {
   sites: new Map(),
   rules: new Map(),
   globals: new Map(),
+  layers: new Map(),
   kernels: new Map(),
   runtimes: new Map(),
   userProps: new Set(),
@@ -178,13 +199,15 @@ export const Registry = Context.Reference<RegistryState>("cssints/Registry", {
   defaultValue: () => registry,
 });
 
-// What `file` left of its kernels and runtimes: dropped when it is about to run again (it is a dependency of an
-// evaluation: `__at`), or when it has no site any more.
+const unuse = (entries: Map<string, { users: Set<string> }>, file: string) => {
+  for (const [k, e] of entries) if (e.users.delete(file) && !e.users.size) entries.delete(k);
+};
+
+// What `file` left of its kernels, runtimes, global rules and layers: dropped when it is about to run again (it is a
+// dependency of an evaluation: `__at`), or when it has no site any more.
 export const forgetKernels = (file: string): void => {
-  for (const [k, e] of registry.kernels)
-    if (e.users.delete(file) && !e.users.size) registry.kernels.delete(k);
-  for (const [k, e] of registry.runtimes)
-    if (e.users.delete(file) && !e.users.size) registry.runtimes.delete(k);
+  for (const entries of [registry.kernels, registry.runtimes, registry.globals, registry.layers])
+    unuse(entries, file);
 };
 
 // What `file` left of its kernels, token sets, themes and checks is dropped when it is about to run again, or has no site any more.

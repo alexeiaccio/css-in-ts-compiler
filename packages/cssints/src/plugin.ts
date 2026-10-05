@@ -31,11 +31,19 @@ import { DERIVED, fallbackEntries, RUNTIME_ID, runtimeModule, runtimeNames } fro
 import { usesDerived } from "./derived-data.ts";
 import { kernelEntries } from "./kernel.ts";
 import { forget, Registry } from "./registry.ts";
-import { closeNames, globalNames, LAYERS, renderSheet, themedEntries } from "./sheet.ts";
+import {
+  closeNames,
+  globalEntries,
+  globalNames,
+  layerEntries,
+  LAYERS,
+  renderSheet,
+  themedEntries,
+} from "./sheet.ts";
 import { closeTrace, hook, runPromiseExit, runSync, warned } from "./trace.ts";
 
 export { instrument } from "./instrument.ts";
-export { addGlobal, renderSheet } from "./sheet.ts";
+export { addGlobal, addLayers, globalEntries, layerEntries, renderSheet } from "./sheet.ts";
 
 const FILE_RE = /\.(ts|tsx|js|jsx|mts|mjs)$/;
 const VERSION = /[?&]v=\w+$/;
@@ -228,6 +236,8 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
           ...[...names].flatMap((n) => properties.get(n)?.css ?? []),
           ...themedEntries(themed, id, names),
           ...kernels,
+          ...globalEntries(registry, id),
+          ...layerEntries(registry, id),
           ...(yield* fallbackEntries(registry, id)),
         ]);
         runtimes = runtimeNames(registry, id);

@@ -1,4 +1,4 @@
-import { createGlobalTheme, createTokens } from "cssints" with { type: "cssints" };
+import { createGlobalTheme, createTokens, layers } from "cssints" with { type: "cssints" };
 import { look } from "cssints/mise-en-mode" with { type: "cssints" };
 
 export const appDark = look("dark", "app", {
@@ -9,7 +9,8 @@ export const viewerDark = look("dark", "viewer", { "--color-bg": "#101018" });
 export const authorMidnight = look('"com.alice.midnight"', "author", { "--color-bg": "#0a0a12" });
 export const contained = look("hero", "author", { "--color-bg": "#123456" }, { scope: "article.post" });
 
-// an app theme in a named top-level layer (the same layer a look uses)
+// an app theme in a named top-level layer (the same layer a look uses, declared again: the same order is fine)
+layers("app", "author", "viewer");
 const t = createTokens({ color: { bg: { $value: "#ffffff", $type: "color" } } });
 createGlobalTheme(t, '[data-mode="scoped"]', { color: { bg: "#000000" } }, { layer: "app" });
 
