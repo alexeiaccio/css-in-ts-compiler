@@ -215,10 +215,13 @@ function View(props: { data: Awaited<ReturnType<typeof threadScreen>> }) {
   const root = () => props.data.root;
   const replies = createMemo(() => branches(repliesOf(root())));
 
-  // the parents are above the post: bring the post itself into view, below the sticky header
+  // the parents are above the post: bring the post itself into view, below the sticky header (a block body: Chrome's
+  // scrollIntoView returns a promise, and an effect callback's return value is its cleanup)
   createEffect(
     () => props.data,
-    () => focused?.scrollIntoView({ block: "start" }),
+    () => {
+      focused?.scrollIntoView({ block: "start" });
+    },
   );
   createEffect(
     () => {
