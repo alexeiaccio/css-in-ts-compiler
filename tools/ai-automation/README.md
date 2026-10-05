@@ -87,9 +87,8 @@ violations roll out as warnings; the rest are errors.
   and promote it once they are fixed.
 - Plain code by design is exempt through `overrides` in the root config (the
   `plainCode` list, with a reason each): browser runtimes, the Typed OM values,
-  the twin's recognizer, `@cssints/icons`, the apps, tests and `.mjs` scripts.
-  Violations in `macro.ts`, `lib.ts`, `registry.ts`, `author.ts` and
-  `author-types.ts` are warnings until cssints-6nqy.
+  the sync `css.*` builders and class hash of `lib.ts`, the twin's recognizer,
+  `@cssints/icons`, the apps, tests and `.mjs` scripts.
 
 ## Rules in this repository
 

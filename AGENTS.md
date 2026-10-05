@@ -428,9 +428,8 @@ Effect rules as errors on Effect code: the whole effect profile (no `try/catch`,
 `in` and `typeof`. Which rules are on and which are off, with counts, is in tools/ai-automation/README.md.
 
 Plain code by design is exempt through the `plainCode` override of `vite.config.ts` (a reason each): browser runtimes, the Typed OM
-values, the twin's recognizer, @cssints/icons, the apps, tests, benches and scripts. Add a file there when it joins that list, not a
-disable comment. `macro.ts`, `lib.ts`, `registry.ts`, `author.ts` and `author-types.ts` carry warnings until cssints-6nqy (and
-the `inFlight` override, with its twin in tsconfig.effect.json).
+values, the sync css.* builders and class hash of lib.ts, the twin's recognizer, @cssints/icons, the apps, tests, benches and scripts.
+Add a file there when it joins that list, not a disable comment.
 
 The Effect language service runs with every diagnostic as an error (tsconfig.effect.json, extended by cssints, css-grammar and icons);
 `strictBooleanExpressions`, `missingPipeableSignature` and `nodeBuiltinImport` are off there, with the reason beside each. A diagnostic
