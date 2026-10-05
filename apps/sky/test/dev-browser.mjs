@@ -63,7 +63,7 @@ try {
     ["dev/posts", "article"],
   ]) {
     await page.goto(base + path);
-    await page.waitForSelector(sentinel, { state: "attached" });
+    await page.waitForFunction((s) => document.querySelector(s), sentinel);
     await sleep(500); // the effects run after the page is on screen
   }
   assert.deepEqual(problems, []);
