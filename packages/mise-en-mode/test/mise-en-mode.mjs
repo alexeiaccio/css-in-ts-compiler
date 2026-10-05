@@ -75,7 +75,10 @@ e = await failure("bad-expression.ts");
 assert.match(e.message.split("\n")[0], /^look\(2\): unexpected "mode" in "dark mode"/);
 
 e = await failure("bad-scope.ts");
-assert.match(e.message.split("\n")[0], /^cssints: look\(5\)\.scope: selector: unexpected end in "article >"/);
+assert.match(
+  e.message.split("\n")[0],
+  /^cssints: look\(5\)\.scope: selector: unexpected end in "article >"/,
+);
 assert.equal(e.loc?.line, 5);
 
 // check.contrast sees looks: a viewer look with poor contrast on the app look's background fails the build
