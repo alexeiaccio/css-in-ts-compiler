@@ -150,8 +150,11 @@ export interface RegistryState {
   runtimes: Map<string, RuntimeEntry>;
   /** scope name -> the hash of its content (scope.ts `register`): a name is unique per process */
   scopes: Map<string, string>;
-  /** what scope.ts needs of the eval-time library, set by macro.ts: `css` for a kernel written as styles, `blockOf` to check it */
-  lib?: { css: object; blockOf: (what: string, style: CssNode) => string };
+  /** what scope.ts needs of the eval-time library, set by macro.ts: `css` for a kernel written as styles, `kernelOf` to check and print it under its class */
+  lib?: {
+    css: object;
+    kernelOf: (what: string, style: CssNode, cls: string) => { css: string; props: string[] };
+  };
   /** what the front of "cssints/plugin" calls (scope-engine.ts `engine`), set by macro.ts */
   engine?: object;
   /** the typed properties of scopes: checked by their own grammar when called, not by the engine */

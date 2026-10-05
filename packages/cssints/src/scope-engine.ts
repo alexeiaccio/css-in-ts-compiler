@@ -7,6 +7,7 @@ import { CSSStyleValue } from "@cssints/css-grammar/values";
 import { Result } from "effect";
 
 import { MemberError } from "./errors.ts";
+import { relation } from "./leaves.ts";
 import { camel, type Carry, failIn, isNode, node, probed, type CssNode } from "./node.ts";
 import { type Kernel, type Plug, registry } from "./registry.ts";
 import type {
@@ -155,6 +156,8 @@ class Compiler {
   // `uses` lists already resolved: the carry of a member
   private readonly carries = new Map<string, Carry>();
   private readonly kernels = new Map<string, Kernel>();
+  // the conflicts of each kernel written as styles, by key
+  private readonly derived = new Map<string, ConflictDef>();
 
   constructor(s: Impl_, compiled: Compiled) {
     this.name = s.name;
@@ -205,7 +208,15 @@ class Compiler {
       const made = ran(this.name, () => (d.css as (c: unknown) => unknown)(lib.css));
       const nodes = (Array.isArray(made) ? made : [made]) as CssNode[];
       const merged = (lib.css as Dict<(...n: CssNode[]) => CssNode>)["cn"]!(...nodes);
-      css = `&{${lib.blockOf(`${this.name}.${key}`, merged)}}`;
+      const built = lib.kernelOf(`${this.name}.${key}`, merged, marker);
+      css = built.css;
+      // what the kernel sets, and what meets it in a `cn()`: the member that uses it may not set those
+      this.derived.set(key, {
+        props: Object.keys(properties).filter((p) =>
+          built.props.some((k) => relation(p, k) !== "apart"),
+        ),
+        message: `kernel ${key} sets ${built.props.join(", ")}`,
+      });
     }
     k = {
       key: `${this.name}.${key}`,
@@ -228,11 +239,16 @@ class Compiler {
       return [u, s, key, ...s.entry(key)] as const;
     });
     const first = kinds.find((k) => k[3] === "kernel");
+    // a conflicts entry in the list replaces what the kernels written as styles derive
+    const explicit = kinds.some((k) => k[3] === "conflicts");
     for (const [u, s, key, kind, def] of kinds) {
       if (kind === "kernel") {
         const k = s.kernel(key);
         (c.kernels ??= []).push(k);
         (c.markers ??= []).push([s.marker(key), k.key]);
+        const conflicts = explicit ? undefined : s.derived.get(key);
+        if (conflicts)
+          (c.plugs ??= []).push({ name: k.key, label: s.name, marker: s.marker(key), conflicts });
       } else if (kind === "global") {
         const g = def as GlobalDef;
         (c.globals ??= []).push({ css: s.own(g.rule), layer: g.layer });

@@ -34,7 +34,7 @@ const cmpCond = (a: number[], b: number[]) =>
 
 type Sortable = Rule & { cls: string };
 const wrapKey = (r: Rule) => r.wrap.join("{");
-const byOrder = (a: Sortable, b: Sortable) =>
+export const byOrder = (a: Sortable, b: Sortable) =>
   cmp(a.layer, b.layer) ||
   cmpCond(a.cond, b.cond) ||
   cmp(wrapKey(a), wrapKey(b)) ||

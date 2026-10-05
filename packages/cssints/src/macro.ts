@@ -48,7 +48,7 @@ import { addRuntime } from "./delivery.ts";
 import { clamp, colorMix, max, min } from "./functions.ts";
 import { addKernel } from "./kernel.ts";
 import { engine } from "./scope-engine.ts";
-import { addGlobal, addLayers } from "./sheet.ts";
+import { addGlobal, addLayers, byOrder } from "./sheet.ts";
 import { loweredOf } from "./lowered.ts";
 import {
   type At,
@@ -137,44 +137,48 @@ const POSITION_TRY =
   /^(?:top|right|bottom|left|inset(?:-(?:block|inline)(?:-(?:start|end))?)?|margin(?:-(?:top|right|bottom|left|block|inline)(?:-(?:start|end))?)?|(?:min-|max-)?(?:width|height|block-size|inline-size)|align-self|justify-self|place-self|position-anchor|position-area)$/;
 const STEP = /^(?:from|to|\d+(?:\.\d+)?%)$/;
 
-// The declarations of a block, checked like a class's (grammar, prose rules, support), as `prop:value;...`. A block is
-// a style of member calls, plain declarations only.
-const blockOf = (what: string, style: unknown, allowed?: RegExp): string => {
+// The declarations of a block, checked like a class's (grammar, prose rules, support). A block is a style of member
+// calls, plain declarations only; a kernel's block (`conditions`) may hold conditions too.
+const declsOf = (what: string, style: unknown, conditions: boolean, allowed?: RegExp): Decl[] => {
   if (!isNode(style) || !style.__cssints.length)
     throw fail(
       `cssints: ${what} takes css.* declarations (a member call or cn(...)), got ${Formatter.formatJson(style)}`,
     );
   if (style.markers || style.kernels || style.plugs)
     throw fail(`cssints: ${what} takes plain declarations: no marker class or kernel of a member`);
-  return style.__cssints
-    .map((d) => {
-      const [prop, value, conds, fallbacks] = d;
-      if (conds?.length || fallbacks)
-        throw fail(
-          `cssints: ${what} takes declarations without conditions or firstThatWorks(...), got ${prop}`,
-        );
-      if (allowed && !allowed.test(prop))
-        throw fail(
-          `cssints: ${what}: ${prop} is not allowed in @position-try, which takes inset, margin, sizing and self-alignment properties, position-anchor and position-area`,
-        );
-      Result.getOrThrowWith(
-        Result.try({
-          try: () => checkNow(d, true, registry),
-          catch: (e) =>
-            isDeclarationError(e)
-              ? new MacroError({
-                  message: `cssints: ${what}: ${e.message}`,
-                  cause: e,
-                  ...registry.at,
-                })
-              : e,
-        }),
-        (e) => e,
+  for (const d of style.__cssints) {
+    const [prop, , conds, fallbacks] = d;
+    if ((!conditions && conds?.length) || fallbacks)
+      throw fail(
+        `cssints: ${what} takes declarations without ${conditions ? "" : "conditions or "}firstThatWorks(...), got ${prop}`,
       );
-      return `${prop}:${value}`;
-    })
-    .join(";");
+    if (allowed && !allowed.test(prop))
+      throw fail(
+        `cssints: ${what}: ${prop} is not allowed in @position-try, which takes inset, margin, sizing and self-alignment properties, position-anchor and position-area`,
+      );
+    Result.getOrThrowWith(
+      Result.try({
+        try: () => checkNow(d, true, registry),
+        catch: (e) =>
+          isDeclarationError(e)
+            ? new MacroError({
+                message: `cssints: ${what}: ${e.message}`,
+                cause: e,
+                ...registry.at,
+              })
+            : e,
+      }),
+      (e) => e,
+    );
+  }
+  return style.__cssints;
 };
+
+// A block as `prop:value;...`.
+const blockOf = (what: string, style: unknown, allowed?: RegExp): string =>
+  declsOf(what, style, false, allowed)
+    .map(([prop, value]) => `${prop}:${value}`)
+    .join(";");
 
 // The name is a short hash of the content, so identical blocks are one name and one kernel. A kernel key that starts
 // with `@` is an at-rule of local names: a custom property in its steps is a use, not a declaration (kernel.ts).
@@ -453,6 +457,31 @@ const ruleOf = (cls: string, [prop, value, conds = [], fallbacks]: Decl): Rule =
   };
 };
 
+// A kernel written as styles: its rules under the class `cls`, in the order of the sheet (fewer conditions first, then media
+// by width and pseudo-classes by place, a shorthand before its longhands); the declarations of one selector under the same
+// at-rules share a block. `props` are the properties it sets, for the conflicts a member derives from them.
+const kernelOf = (what: string, style: unknown, cls: string) => {
+  const decls = declsOf(what, style, true);
+  const blocks: { wrap: string[]; selector: string; body: string[] }[] = [];
+  for (const r of decls.map((d) => ({ cls, ...ruleOf(cls, d) })).sort(byOrder)) {
+    const open = r.css.indexOf("{");
+    const selector = r.css.slice(0, open);
+    const last = blocks.at(-1);
+    const body = r.css.slice(open + 1, -1);
+    if (last && last.selector === selector && last.wrap.join("{") === r.wrap.join("{"))
+      last.body.push(body);
+    else blocks.push({ wrap: r.wrap, selector, body: [body] });
+  }
+  return {
+    css: blocks
+      .map((b) =>
+        b.wrap.reduceRight((css, w) => `${w}{${css}}`, `${b.selector}{${b.body.join(";")}}`),
+      )
+      .join(" "),
+    props: [...new Set(decls.map(([prop]) => prop))],
+  };
+};
+
 // One declaration against the grammar, the prose rules and, once per class, browser support. Throws at the bad token (the
 // build-time twin of the type-level check) or at a prose rule. Support warnings are recorded once per property and BCD
 // feature per build, not once per value. A token in the value is checked as the literals of its type (`probed`).
@@ -669,7 +698,7 @@ export const css = new Proxy(named, {
   get: (t, k) => (Object.hasOwn(t, k) ? t[k as string] : member(String(k))),
 });
 named.css = css;
-registry.lib = { css, blockOf };
+registry.lib = { css, kernelOf };
 registry.engine = engine;
 
 // A condition, or a tuple or an object of them, held in a variable (`const [md, lg] = css.media(a, b)`): nothing of it
