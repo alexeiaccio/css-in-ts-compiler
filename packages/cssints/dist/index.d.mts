@@ -1,6 +1,6 @@
 import { a as Kernel } from "./author-types-VWp_4djS.mjs";
 import { i as cx, n as CvRuntimeConfig } from "./runtime-CnWWz4hd.mjs";
-import { n as At, t as CssNode } from "./node-7gUwLZVv.mjs";
+import { n as At, t as CssNode } from "./node-mZem3Im8.mjs";
 import { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
 import { Effect } from "effect";
 //#region src/lib.d.ts

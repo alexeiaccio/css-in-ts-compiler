@@ -782,7 +782,13 @@ const recordSite = Effect.fnUntraced(function* (
 
 // The call site the plugin is about to evaluate: builders that fail name it.
 export function __at(file: string, site: number, offset: number): At {
-  registry.tokens = 0;
+  // The counter is reset when the site changes, not on every call: a call in a loop is one site that
+  // registers several tokens (each `look()` its own theme), and they must not share a key.
+  const key = `${file}#${site}`;
+  if (registry.site !== key) {
+    registry.site = key;
+    registry.tokens = 0;
+  }
   // The first site of a module in this evaluation: what it registered in an earlier one is stale (a helper module that
   // an edit changed would otherwise collide with its own old kernel).
   if (registry.seen.get(file) !== registry.gen) {

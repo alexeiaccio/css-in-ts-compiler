@@ -1677,7 +1677,11 @@ const recordSite = Effect.fnUntraced(function* (at, value) {
 	return value;
 });
 function __at(file, site, offset) {
-	registry.tokens = 0;
+	const key = `${file}#${site}`;
+	if (registry.site !== key) {
+		registry.site = key;
+		registry.tokens = 0;
+	}
 	if (registry.seen.get(file) !== registry.gen) {
 		registry.seen.set(file, registry.gen);
 		forgetKernels(file);

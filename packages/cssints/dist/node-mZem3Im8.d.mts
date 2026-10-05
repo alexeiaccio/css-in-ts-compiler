@@ -155,6 +155,8 @@ interface RegistryState {
   /** `property value feature targets` -> what LightningCSS lowers it to, or false (lowered.ts) */
   lowered: Map<string, string | false>;
   at?: At;
+  /** the site `tokens` is counting for: a call in a loop is one site that registers several tokens */
+  site?: string;
 }
 declare global {
   var __cssints: RegistryState | undefined;
