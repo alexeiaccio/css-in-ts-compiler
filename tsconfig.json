@@ -10,6 +10,9 @@
 		"allowJs": true,
 		// Bundler mode
 		"moduleResolution": "bundler",
+		// Resolve first-party packages to their source (the `development` condition
+		// in their exports) so typechecking never needs a built dist.
+		"customConditions": ["development"],
 		"allowImportingTsExtensions": true,
 		"verbatimModuleSyntax": true,
 		"noEmit": true,

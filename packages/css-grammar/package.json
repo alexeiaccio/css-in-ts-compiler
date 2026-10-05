@@ -11,7 +11,14 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    "./*": "./src/*.ts"
+    "./*": {
+      "development": {
+        "types": "./src/*.ts",
+        "default": "./src/*.ts"
+      },
+      "types": "./dist/*.d.mts",
+      "default": "./dist/*.mjs"
+    }
   },
   "publishConfig": {
     "access": "public",

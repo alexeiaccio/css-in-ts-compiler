@@ -6,6 +6,17 @@ out
 dist
 *.tgz
 
+# The four publishable packages are consumed over git: their exports default to
+# dist (src is the `development` condition), so the built dist is tracked.
+!packages/cssints/dist/
+!packages/cssints/dist/**
+!packages/css-grammar/dist/
+!packages/css-grammar/dist/**
+!packages/icons/dist/
+!packages/icons/dist/**
+!packages/mise-en-mode/dist/
+!packages/mise-en-mode/dist/**
+
 # code coverage
 coverage
 *.lcov

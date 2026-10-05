@@ -12,25 +12,54 @@
   "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./src/types.ts",
-      "browser": "./src/runtime.ts",
-      "default": "./src/index.ts"
+      "development": {
+        "types": "./src/types.ts",
+        "browser": "./src/runtime.ts",
+        "default": "./src/index.ts"
+      },
+      "types": "./dist/types.d.mts",
+      "browser": "./dist/runtime.mjs",
+      "default": "./dist/index.mjs"
     },
-    "./vite": "./src/plugin.ts",
+    "./vite": {
+      "development": "./src/plugin.ts",
+      "types": "./dist/vite.d.mts",
+      "default": "./dist/vite.mjs"
+    },
     "./plugin": {
-      "types": "./src/author.ts",
-      "default": "./src/author.ts"
+      "development": {
+        "types": "./src/author.ts",
+        "default": "./src/author.ts"
+      },
+      "types": "./dist/plugin-types.d.mts",
+      "default": "./dist/plugin.mjs"
     },
     "./frame": {
-      "types": "./src/frame.ts",
-      "default": "./src/frame.ts"
+      "development": {
+        "types": "./src/frame.ts",
+        "default": "./src/frame.ts"
+      },
+      "types": "./dist/frame.d.mts",
+      "default": "./dist/frame.mjs"
     },
     "./surface": {
-      "types": "./src/surface.ts",
-      "default": "./src/surface.ts"
+      "development": {
+        "types": "./src/surface.ts",
+        "default": "./src/surface.ts"
+      },
+      "types": "./dist/surface.d.mts",
+      "default": "./dist/surface.mjs"
     },
-    "./parent-vars": "./src/parent-vars.ts",
-    "./derived": "./src/derived.ts"
+    "./parent-vars": {
+      "development": "./src/parent-vars.ts",
+      "types": "./dist/parent-vars.d.mts",
+      "default": "./dist/parent-vars.mjs"
+    },
+    "./derived": {
+      "development": "./src/derived.ts",
+      "types": "./dist/derived.d.mts",
+      "default": "./dist/derived.mjs"
+    }
   },
   "publishConfig": {
     "access": "public",

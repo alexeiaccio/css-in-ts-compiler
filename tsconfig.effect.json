@@ -4,6 +4,7 @@
   // error (the off-by-default ones and the suggestions too), three left off for the reasons below. `bun run typecheck`
   // runs them through `effect-tsgo diagnostics`.
   "compilerOptions": {
+    "customConditions": ["development"],
     "plugins": [
       {
         "name": "@effect/language-service",

@@ -85,7 +85,7 @@ const plainCode = [
 
 export default defineConfig({
   lint: {
-    ignorePatterns: [...outOfScope, ...inputs, "tools/ai-automation/vendor/**"],
+    ignorePatterns: [...outOfScope, ...inputs, "tools/ai-automation/vendor/**", "**/dist/**"],
     options: {
       typeAware: true,
       typeCheck: true,
