@@ -1,10 +1,11 @@
 ---
 # cssints-rmws
 title: 'mise-en-mode on scope(): look() as a call member, delete style()/context()/method()/property()/fn() shims'
-status: todo
+status: in-progress
 type: task
+priority: normal
 created_at: 2026-10-05T10:30:02Z
-updated_at: 2026-10-05T10:30:02Z
+updated_at: 2026-10-05T10:47:53Z
 parent: cssints-easl
 ---
 
