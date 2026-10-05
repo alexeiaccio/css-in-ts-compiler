@@ -1,5 +1,5 @@
 // css.check.contrast(fg, bg, { min }): the WCAG 2.x contrast ratio of two colour tokens for their default values and for
-// every theme that sets either one or a token they are aliases of or derived from. Build time only: color.ts (culori) is imported
+// every theme that sets either one or a token they are aliases of or derived from (themes of one selector meet: `together`). Build time only: color.ts (culori) is imported
 // here, when the first check runs, and nowhere the browser bundle reaches (runtime.ts imports nothing). A value it
 // cannot read (color-mix(), a relative colour, light-dark(), currentColor, a system colour, a var()) or that is
 // translucent is a warning that names the token.
@@ -7,6 +7,7 @@ import { Effect } from "effect";
 
 import { MacroError } from "./errors.ts";
 import { type Check, registry, type RegistryState } from "./registry.ts";
+import { layerStatements } from "./sheet.ts";
 
 const VAR = /var\((--[^\s,)]+)\)/g;
 
@@ -33,6 +34,25 @@ const affectedBy = (defs: RegistryState["defs"], names: string[], out = new Set<
   return out;
 };
 
+// The themes that meet on one element, as one: those with the same selector (and scope), each laid over the last in the
+// order the cascade ranks them: no layer first, then the declared layers in order, then source order. A viewer's look that
+// sets only the text colour is checked against the background of the app's look.
+const together = ({ themed, layers }: RegistryState) => {
+  const order = layerStatements([...layers.values()].map((l) => l.names)).flat();
+  const rank = (layer?: string) => (layer === undefined ? -1 : order.indexOf(layer));
+  const groups = new Map<string, { label: string; values: Map<string, string> }>();
+  for (const t of [...themed.values()].sort(
+    (a, b) => rank(a.layer) - rank(b.layer) || (a.key < b.key ? -1 : 1),
+  )) {
+    if (!t.theme) continue;
+    const { label, scope, values } = t.theme;
+    const key = `${label}\t${scope ?? ""}`;
+    const group = groups.get(key) ?? groups.set(key, { label, values: new Map() }).get(key)!;
+    for (const [n, v] of values) group.values.set(n, v);
+  }
+  return groups.values();
+};
+
 type Colours = typeof import("./color.ts");
 
 // The floor at two places, so that 4.499 does not read as the 4.5 it misses.
@@ -46,9 +66,9 @@ const verify = (check: Check, state: RegistryState, { luminance, ratio }: Colour
   const subjects: { label: string; values?: Map<string, string> }[] = [
     { label: "the default values" },
   ];
-  for (const { theme } of state.themed.values())
-    if (theme && [...theme.values.keys()].some((n) => affecting.has(n)))
-      subjects.push({ label: `theme ${theme.label}`, values: theme.values });
+  for (const { label, values } of together(state))
+    if ([...values.keys()].some((n) => affecting.has(n)))
+      subjects.push({ label: `theme ${label}`, values });
   const errors: string[] = [];
   for (const { label, values } of subjects) {
     const pair = [fg, bg].map((n) => {

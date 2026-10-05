@@ -8,6 +8,7 @@ import type { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/c
 
 import type { COLOR_MIX } from "./grammars.ts";
 import type { Alt, Check, CheckIn, Fallback, Part, Style } from "./parts.ts";
+import type { layers } from "./theme-types.ts";
 import type { CvRuntimeConfig } from "./runtime.ts";
 
 export * from "./members.ts";
@@ -169,6 +170,7 @@ export declare const css: typeof import("./members.ts") & {
   group: typeof group;
   within: typeof within;
   global: typeof global;
+  layers: typeof layers;
   token: typeof token;
   style: typeof style;
   cv: typeof cv;

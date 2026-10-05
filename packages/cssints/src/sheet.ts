@@ -1,13 +1,23 @@
-// The sheet: the @property rules of tokens, then the kernels, the css.global() rules, the token sets and themes and the data of the derived-token runtime (layer _.k), then every rule once, sorted by layer, condition, shorthand before
+// The sheet: the declared layers (`layers()`), the @property rules of tokens, then the kernels, the global rules of members and css.global(), the token sets and themes and the data of the derived-token runtime (layer _.k), then every rule once, sorted by layer, condition, shorthand before
 // longhand, class; the rules of one layer under the same at-rules share a block.
 
-import { Effect, Schema } from "effect";
+import { Effect, Formatter, Schema } from "effect";
 
 import { FALLBACK } from "./delivery.ts";
 import { derivedRule } from "./derived-data.ts";
+import { MacroError } from "./errors.ts";
 import { KERNEL } from "./kernel.ts";
 import { width } from "./leaves.ts";
-import { GLOBAL, type Kernel, type Rule, Registry, type Themed } from "./registry.ts";
+import {
+  type At,
+  GLOBAL,
+  type GlobalRule,
+  type Kernel,
+  type Rule,
+  Registry,
+  type RegistryState,
+  type Themed,
+} from "./registry.ts";
 
 // @effect-diagnostics-next-line schemaSync:off -- the entries are what formatJson wrote, read back in a sync map
 const fromJson = Schema.decodeSync(Schema.fromJsonString(Schema.Unknown));
@@ -31,15 +41,93 @@ const byOrder = (a: Sortable, b: Sortable) =>
   width(b.prop) - width(a.prop) ||
   cmp(a.cls, b.cls);
 
-/** Adds a global rule (`*{box-sizing:border-box}`) once per key. `layer` names a top-level layer to wrap it in, `null` prints it verbatim at the top (an `@layer a, b;` order statement), and no layer puts it in `_.k`. No user API yet: for the engine and plugins. */
-export const addGlobal = Effect.fn("cssints.addGlobal")(function* (
-  key: string,
-  css: string,
-  layer?: string | null,
-) {
+// The entries of global rules and of declared layers: `@global\t<json of [layer, css]>`, `@layers\ta,b,c`.
+const GLOBAL_RULE = "@global\t";
+const LAYER_LIST = "@layers\t";
+const LAYER_NAME = /^[A-Za-z_][\w-]*$/;
+
+/** Adds a global rule (`*{box-sizing:border-box}`) of a plugin member, by its content, to the sheet of the module at `at`. `layer` names a declared top-level layer to wrap it in, no layer puts it in `_.k`. */
+export const addGlobal = Effect.fnUntraced(function* (
+  g: GlobalRule,
+  at?: At,
+): Effect.fn.Return<void, MacroError> {
   const { globals } = yield* Registry;
-  if (!globals.has(key)) globals.set(key, layer === undefined ? { css } : { css, layer });
+  if (g.layer !== undefined) yield* requireLayer(g.layer, at);
+  const key = `${g.layer ?? ""}\t${g.css}`;
+  const entry = globals.get(key) ?? globals.set(key, { global: g, users: new Set() }).get(key)!;
+  if (at) entry.users.add(at.file);
 });
+
+// The global rules a module holds: one line each, so the sheet needs no registry.
+export const globalEntries = ({ globals }: RegistryState, file: string): string[] =>
+  [...globals.values()].flatMap((e) =>
+    e.users.has(file)
+      ? [`${GLOBAL_RULE}${Formatter.formatJson([e.global.layer ?? "", e.global.css])}`]
+      : [],
+  );
+
+/**
+ * Declares top-level layers, in order: the statement `@layer a, b, c;`, printed after the engine's own layers, once
+ * whoever declares it, so what is in them beats the engine's `:root` fallbacks. Another statement may name the same layers
+ * in the same order, or hold or be held by this one; layers in another order, or shared without one holding the other,
+ * are build errors at `at`, since the sheet could not say which comes first.
+ */
+export const addLayers = Effect.fnUntraced(function* (
+  names: readonly string[],
+  at?: At,
+): Effect.fn.Return<void, MacroError> {
+  const { layers } = yield* Registry;
+  const fail = (message: string) => new MacroError({ message: `cssints: ${message}`, ...at });
+  const list = names.join(", ");
+  if (
+    !names.length ||
+    new Set(names).size !== names.length ||
+    !names.every((n) => LAYER_NAME.test(n))
+  )
+    return yield* fail(
+      `layers(${list}) takes names of layers, each once: letters, digits, _ and -`,
+    );
+  for (const l of layers.values()) {
+    const mine = names.filter((n) => l.names.includes(n));
+    if (mine.length && mine.join() !== l.names.filter((n) => names.includes(n)).join())
+      return yield* fail(
+        `layers(${list}) names layers in another order than layers(${l.names.join(", ")})`,
+      );
+    if (mine.length && mine.length < Math.min(names.length, l.names.length))
+      return yield* fail(
+        `layers(${list}) and layers(${l.names.join(", ")}) share layers, and neither holds the other: declare them in one call`,
+      );
+  }
+  const key = names.join();
+  const entry =
+    layers.get(key) ?? layers.set(key, { names: [...names], users: new Set() }).get(key)!;
+  if (at) entry.users.add(at.file);
+});
+
+/** A build error at `at` unless `layer` is declared by a `layers()` that has run (this module, or one it imports). */
+export const requireLayer = Effect.fnUntraced(function* (
+  layer: string,
+  at?: At,
+): Effect.fn.Return<void, MacroError> {
+  const { layers } = yield* Registry;
+  if (![...layers.values()].some((l) => l.names.includes(layer)))
+    return yield* new MacroError({
+      message: `cssints: the layer "${layer}" is not declared: call layers("${layer}", ...) in this module or in one it imports`,
+      ...at,
+    });
+});
+
+// The layers a module declared: one line each.
+export const layerEntries = ({ layers }: RegistryState, file: string): string[] =>
+  [...layers.values()].flatMap((l) =>
+    l.users.has(file) ? [`${LAYER_LIST}${l.names.join()}`] : [],
+  );
+
+// The statements to print, each once, the longer first: one that holds another has already said its order.
+export const layerStatements = (lists: Iterable<readonly string[]>): string[][] =>
+  [...new Map([...lists].map((l) => [l.join(), [...l]])).values()].sort(
+    (a, b) => b.length - a.length || cmp(a.join(), b.join()),
+  );
 
 // What a module records of token sets and themes: those it made, and those that set or read a variable it uses (`names`).
 // One line each, sorted by `key` when the sheet is rendered.
@@ -79,7 +167,7 @@ export const closeNames = (
 export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
   entries: Iterable<string>,
 ): Effect.fn.Return<string> {
-  const { rules, globals } = yield* Registry;
+  const { rules, layers } = yield* Registry;
   const all = [...new Set(entries)];
   const properties = all.filter((e) => e.startsWith("@property")).sort();
   const themes = all
@@ -105,19 +193,28 @@ export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
       return rule ? [{ cls, ...rule }] : [];
     })
     .sort(byOrder);
-  const allGlobals = [...globals.values()];
-  const kGlobals = allGlobals.flatMap((g) => (g.layer === undefined ? [g.css] : []));
-  const topGlobals = allGlobals.filter((g) => g.layer !== undefined);
-  const verbatim = topGlobals.filter((g) => g.layer === null);
-  const layered = topGlobals.filter((g) => typeof g.layer === "string");
-  let out = `${LAYERS}\n${[...properties, ...used.flatMap((k) => k.atProperty ?? [])].map((p) => `${p}\n`).join("")}`;
+  // Sorted by their text: the layer, then the css. Rules of one layer do not depend on each other's order (a look sets
+  // a variable at most once per layer and selector).
+  const globals = all
+    .filter((e) => e.startsWith(GLOBAL_RULE))
+    .sort(cmp)
+    .map((e) => fromJson(e.slice(GLOBAL_RULE.length)) as [layer: string, css: string]);
+  const kGlobals = globals.flatMap(([layer, css]) => (layer === "" ? [css] : []));
+  const layered = globals.filter(([layer]) => layer !== "");
+  // The statements of the modules of this sheet, and those that the layers it uses are declared in
+  const inUse = new Set([...layered.map(([layer]) => layer), ...topThemes.map((t) => t[2])]);
+  const statements = layerStatements([
+    ...all.flatMap((e) =>
+      e.startsWith(LAYER_LIST) ? [e.slice(LAYER_LIST.length).split(",")] : [],
+    ),
+    ...[...layers.values()].flatMap((l) => (l.names.some((n) => inUse.has(n)) ? [l.names] : [])),
+  ]);
+  let out = `${LAYERS}\n${statements.map((s) => `@layer ${s.join(", ")};\n`).join("")}${[...properties, ...used.flatMap((k) => k.atProperty ?? [])].map((p) => `${p}\n`).join("")}`;
   if (kGlobals.length || used.length || fallbacks.length || kThemes.length)
     out += `@layer _.k {\n${[...kGlobals, ...used.map((k) => k.css), ...fallbacks, ...kThemes.map((t) => t[3]), ...(derived ? [derived] : [])].map((g) => `  ${g}\n`).join("")}}\n`;
-  // Named top-level layers (a look's `@layer app`): declared after `_.k` and the class layers, so a look beats the
-  // engine's `:root` fallbacks. Verbatim globals (an `@layer a, b;` order statement) print first, so the order they
-  // name is the one that holds.
-  for (const g of verbatim) out += `${g.css}\n`;
-  for (const g of layered) out += `@layer ${g.layer} {\n  ${g.css}\n}\n`;
+  // Named top-level layers (a look's `@layer app`), declared by the statements above: after `_.k` and the class layers,
+  // so a look beats the engine's `:root` fallbacks.
+  for (const [layer, css] of layered) out += `@layer ${layer} {\n  ${css}\n}\n`;
   for (const t of topThemes) out += `@layer ${t[2]} {\n  ${t[3]}\n}\n`;
   let layer = "";
   let wrap = ""; // the at-rules that are open

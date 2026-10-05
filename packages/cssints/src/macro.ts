@@ -25,6 +25,7 @@ import {
   merged,
   chainDecl,
   CONTEXTS,
+  edge,
   fail,
   hashClass,
   isFallback,
@@ -46,7 +47,7 @@ import {
 import { addRuntime } from "./delivery.ts";
 import { clamp, colorMix, max, min } from "./functions.ts";
 import { addKernel } from "./kernel.ts";
-import { addGlobal } from "./sheet.ts";
+import { addGlobal, addLayers } from "./sheet.ts";
 import { loweredOf } from "./lowered.ts";
 import {
   type At,
@@ -60,7 +61,15 @@ import {
   type Rule,
 } from "./registry.ts";
 import { _cv as runtimeCv, type CvRuntimeConfig } from "./runtime.ts";
-import { check, createGlobalTheme, createTokens, DONE, isDone, tokensOf } from "./theme.ts";
+import {
+  addTheme,
+  check,
+  createGlobalTheme,
+  createTokens,
+  DONE,
+  isDone,
+  tokensOf,
+} from "./theme.ts";
 import { isStyle, style, token, type StyleNode } from "./token.ts";
 
 export { CSS, CSSColorValue, CSSUnitValue };
@@ -371,6 +380,15 @@ const globalRule = (selector?: unknown, ...styles: unknown[]) => {
   return DONE;
 };
 
+// layers("app", "author", "viewer"): declares top-level layers in order, printed after the engine's own, for themes
+// and plugin rules that name one (`createGlobalTheme(..., { layer })`).
+const layersRule = (...names: unknown[]) => {
+  const at = registry.at;
+  if (!at || !names.every((n) => typeof n === "string"))
+    throw fail("cssints: layers(...names) takes the names of layers, strings");
+  return edge(addLayers(names, at).pipe(Effect.as(DONE)));
+};
+
 const conditions = {
   media: condition("media"),
   container: condition("container"),
@@ -530,12 +548,14 @@ const conflictOf = ({ name, conflicts }: Plug, decls: Decl[], at?: At): MemberEr
 };
 
 const classesOf = Effect.fnUntraced(function* (
-  { __cssints: decls, markers, kernels, globals, plugs }: CssNode,
+  { __cssints: decls, markers, kernels, globals, themes, layers, plugs }: CssNode,
   at?: At,
 ): Effect.fn.Return<string, Invalid | MacroError | MemberError> {
   const registry = yield* Registry;
   if (kernels) for (const k of kernels) yield* addKernel(k, markers ?? [], at);
-  if (globals) for (const g of globals) yield* addGlobal(g.key, g.css, g.layer);
+  if (layers) for (const l of layers) yield* addLayers(l, at);
+  if (globals) for (const g of globals) yield* addGlobal(g, at);
+  if (themes && at) for (const t of themes) yield* addTheme(t, at);
   if (plugs)
     for (const plug of plugs) {
       const conflict = conflictOf(plug, decls, at);
@@ -633,6 +653,7 @@ const named: Record<string, unknown> = {
   cv,
   group,
   global: globalRule,
+  layers: layersRule,
   ...conditions,
   token,
   style,

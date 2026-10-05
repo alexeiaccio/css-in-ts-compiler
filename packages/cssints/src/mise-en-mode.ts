@@ -19,15 +19,10 @@ export const ASPECTS: Record<string, string> = {
   "--typography-": "typography",
 };
 
-// One global declares the top-level layer order; each look adds one rule per aspect in its source's layer (the sheet wraps
-// it in `@layer <source>`). Globals may share custom properties (unlike kernels): that is what lets the same `--color-*`
-// fill through from app to author to viewer. The layers are top-level, above cssints's own `_.k`, so a look beats the
-// engine's `:root` fallbacks.
-const order = {
-  key: "mise-en-mode@1",
-  css: `@layer ${LAYERS.join(", ")};`,
-  layer: null,
-};
+// Each look declares the top-level layer order (`layers`, printed once) and adds one rule per aspect in its source's
+// layer (the sheet wraps it in `@layer <source>`). Globals may share custom properties (unlike kernels): that is what
+// lets the same `--color-*` fill through from app to author to viewer. The layers are top-level, above cssints's own
+// `_.k`, so a look beats the engine's `:root` fallbacks.
 
 const groupByAspect = (declarations: Record<string, string>): Map<string, [string, string][]> => {
   const groups = new Map<string, [string, string][]>();
@@ -62,18 +57,12 @@ export const look = (
 ): string =>
   style("<custom-ident> | <string>", () => ({
     decls: [],
-    globals: [
-      order,
-      ...[...groupByAspect(declarations)].map(([aspect, decls]) => {
-        const rule = `${selector(
-          expression.replace(/^"|"$/g, ""),
-          aspect,
-        )} { ${decls.map(([name, value]) => `${name}: ${value}`).join("; ")} }`;
-        return {
-          key: `mise-en-mode:${source}:${expression}:${aspect || "all"}:${options.scope ?? ""}`,
-          css: options.scope ? `@scope (${options.scope}) { ${rule} }` : rule,
-          layer: source,
-        };
-      }),
-    ],
+    layers: [...LAYERS],
+    globals: [...groupByAspect(declarations)].map(([aspect, decls]) => {
+      const rule = `${selector(
+        expression.replace(/^"|"$/g, ""),
+        aspect,
+      )} { ${decls.map(([name, value]) => `${name}: ${value}`).join("; ")} }`;
+      return { css: options.scope ? `@scope (${options.scope}) { ${rule} }` : rule, layer: source };
+    }),
   }))(expression);

@@ -25,19 +25,34 @@ export interface Kernel {
   requires?: (BcdKey | { key: BcdKey; exact: true })[];
 }
 /**
- * A global rule a member contributes: `key` registers it once (like a kernel's), and it goes to layer `_.k` with the
- * globals. Unlike a kernel, two globals **may** declare the same custom property — a look sets the same `--color-*` in
- * several source layers, which is the point of fill-through. Use it for a rule that is not a class: a theme under
- * `[data-mode]`, an `@layer` order statement.
+ * A global rule a member contributes. It is identified by its content (`layer` and `css`): the same rule from two
+ * styles is one, an edit of it replaces the old one, and it is in the sheet of the modules whose styles carry it, until
+ * they stop. It goes to layer `_.k` with the kernels. Unlike a kernel, two globals **may** declare the same custom
+ * property: a look sets the same `--color-*` in several source layers, which is the point of fill-through. Use it for a
+ * rule that is not a class.
  */
 export interface GlobalRule {
-  key: string;
   css: string;
   /**
-   * Where the rule goes: a top-level `@layer` of this name (a look belongs in `@layer app`), `null` for a verbatim
-   * top-level rule (an `@layer a, b;` order statement), and omitted for layer `_.k` (the engine's own layer).
+   * A top-level `@layer` of this name to put the rule in (a rule that must beat the engine's `:root` fallbacks). The
+   * layer must be declared: by `layers` of the same `Built`, or by `layers()` in a module this one imports. Omitted:
+   * layer `_.k`.
    */
-  layer?: string | null;
+  layer?: string;
+}
+/**
+ * A theme a member contributes, as `createGlobalTheme(tokens, selector, overrides, { layer, scope })` makes one: the
+ * same checks (the paths and values of `overrides` against the types of `tokens`, a layer that is declared), the
+ * aliases that depend on an override declared again, and `check.contrast` reads it. `tokens` is a token set of
+ * `createTokens()` that the member got from its caller (a closure: the arguments of a member are joined into one string).
+ */
+export interface ThemeRule {
+  tokens: object;
+  overrides: object;
+  selector: string;
+  layer?: string;
+  /** A selector: the rule goes inside `@scope (<scope>) { ... }`. */
+  scope?: string;
 }
 /** One element family of a runtime: the nearest `marker` ancestor's computed `read` is copied into `write`. */
 export interface ParentVar {
@@ -84,6 +99,9 @@ export interface Built {
   markers?: string[];
   kernels?: Kernel[];
   globals?: GlobalRule[];
+  themes?: ThemeRule[];
+  /** Top-level layers to declare, in order (`layers()` for a member: `@layer app, author, viewer;`). */
+  layers?: string[];
 }
 
 // A method that says nothing of `excludes` is inferred with `any` from the constraint of `context`, as `Sp` is.
