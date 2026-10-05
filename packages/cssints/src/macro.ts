@@ -396,15 +396,13 @@ const isCv = (v: unknown): v is CvNode => Predicate.hasProperty(v, "__cv");
 type Invalid = DeclarationError;
 
 // A failure names the call site it happened in, so the plugin can point Vite at it.
-const located =
-  (at: At) =>
-  (e: Invalid | MacroError | MemberError): MacroError | MemberError =>
-    (Predicate.isTagged(e, "MacroError") || Predicate.isTagged(e, "MemberError")) &&
-    e.file !== undefined
-      ? e
-      : Predicate.isTagged(e, "MemberError")
-        ? new MemberError({ message: e.message, pluginName: e.pluginName, cause: e, ...at })
-        : new MacroError({ message: e.message, cause: e, ...at });
+const located = (at: At) => (e: Invalid | MacroError | MemberError) =>
+  (Predicate.isTagged(e, "MacroError") || Predicate.isTagged(e, "MemberError")) &&
+  e.file !== undefined
+    ? e
+    : Predicate.isTagged(e, "MemberError")
+      ? new MemberError({ message: e.message, pluginName: e.pluginName, cause: e, ...at })
+      : new MacroError({ message: e.message, cause: e, ...at });
 
 // The rule of one declaration: its layer is the number of its conditions; pseudo-classes join the selector, the
 // others wrap the rule; `cond` orders the rules of a layer (min-width, then pseudo-class places).
@@ -685,7 +683,7 @@ const inlineOf = Effect.fnUntraced(function* ({
 // A definition site: `export const mdi = icons({...})` in a build-time module holds a plugin value, a function or a
 // configured object. It has no replacement (nothing of it ships: its module is not in the client graph), and a client
 // module that calls it (`mdi("home")`) has a site of its own.
-const isPluginValue = (v: unknown): boolean => Predicate.isObjectKeyword(v);
+const isPluginValue = Predicate.isObjectKeyword;
 
 // The replacement expression of a site, undefined for a definition site: class strings, the cv() config, an inline style, or a Typed OM value's CSS text.
 const replacementOf = Effect.fnUntraced(function* (

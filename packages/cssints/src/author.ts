@@ -94,7 +94,7 @@ export const context: typeof Types.context = <
 };
 
 // What a plugin's callback (`build`, `computeTo`) throws is a failure at the call site, as a grammar error is.
-const ran = <T>(plugin: string, run: () => T): T =>
+const ran = <T>(plugin: string, run: () => T) =>
   Result.getOrThrowWith(
     Result.try({
       try: run,

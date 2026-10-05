@@ -1,4 +1,5 @@
 // The runtime of `CSSINTS_TRACE=otlp[:url]`, loaded by trace.ts only then: spans go to <url>/v1/traces over OTLP/HTTP (JSON).
+// @effect-diagnostics unstableApiUsage:off -- OTLP and the fetch client are marked unstable in effect 4.0.0; opt-in debugging only
 import { Layer, ManagedRuntime } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { OtlpSerialization, OtlpTracer } from "effect/observability";
