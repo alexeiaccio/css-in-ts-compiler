@@ -82,10 +82,14 @@ const start = (): void => {
     attributes: true,
     attributeFilter: ["class", "style"],
   });
-  document.addEventListener(
-    "transitionrun",
-    (e) => families.some((f) => f.watch === e.propertyName) && update([e.target as Element]),
-  );
+  // `transitionend` too: WebKit before 18.5 reads `rem` wrong in an element while a custom-property transition runs
+  for (const type of ["transitionrun", "transitionend"])
+    document.addEventListener(
+      type,
+      (e) =>
+        families.some((f) => f.watch === (e as TransitionEvent).propertyName) &&
+        update([e.target as Element]),
+    );
 };
 
 // Adds families to the shared engine and runs it; the first call starts it (and does nothing in a browser that needs no help).

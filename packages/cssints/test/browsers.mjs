@@ -231,13 +231,18 @@ const away = (p) => p.mouse.move(900, 790);
 /** @type {App[]} */
 const apps = [
   // f1 (radius 24, padding 8, border 2) > f2 (padding 6, border 1, margin 3) > div > f3 (padding 4, a radius of 40 that
-  // is ignored) > f4; a lone frame; em1 (padding 1em of 20px) > em2 (10px): the radius is 24 - 20, not 24 - 10
+  // is ignored) > f4; a lone frame; em1 (padding 1em of 20px) > em2 (10px): the radius is 24 - 20, not 24 - 10; rp (radius
+  // 30, padding 4) > rem1 (padding 1rem, font-size 20px) > rem2: the radius is 26 - 16, not 26 - 20
   {
     name: "frame",
     entry: "frame-app.ts",
     ready: "#f4",
     steps: [
-      ["initial", async () => {}, r({ f1: 24, f2: 11, f3: 4, f4: 0, iso: 24, em1: 24, em2: 4 })],
+      [
+        "initial",
+        async () => {},
+        r({ f1: 24, f2: 11, f3: 4, f4: 0, iso: 24, em1: 24, em2: 4, rp: 30, rem1: 26, rem2: 10 }),
+      ],
       ["a frame inside f2, under a plain div", addTo("f2"), r({ f2: 11, n1: 4 })],
       ["viewport < 500px: f1 padding 16px", narrow, r({ f1: 24, f2: 3, f3: 0, n1: 0 })],
       ["viewport back", wide, r({ f2: 11, f3: 4, n1: 4 })],

@@ -16,7 +16,8 @@
 //   # 1.36.2 WebKit 17.0 (build 1869), 1.40.1 17.4 (1944), 1.45.3 17.4 (2035), 1.46.1 18.0 (2051), 1.49.1 18.2 (2104), 1.53.2 18.5 (2182)
 //   node test/safari.mjs                       # every pw-<v> that has a WebKit, the WebKit of this repo's Playwright, Safari
 //   ENGINES=1.36.2,1.53.2 SAFARI=0 node test/safari.mjs
-// Known: WebKit 17.0 (build 1869) fails the post card's radii (cssints-z7lt, a first-paint bug of that build); 17.4 and later pass.
+// WebKit 17.0 (build 1869) read `rem` as px while a custom-property transition ran (the frame sentinel): cssints-z7lt, fixed by
+// listening to `transitionend` too (parent-vars.ts).
 // The safaridriver client has not run against a real session yet (remote automation was off when it was written).
 // Safari needs "Allow remote automation" (Safari > Settings > Advanced > Show features for web developers; then Developer menu),
 // or once, as an administrator: sudo safaridriver --enable. Without it the Safari run is skipped with that message. Safari
