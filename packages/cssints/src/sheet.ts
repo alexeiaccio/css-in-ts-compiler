@@ -47,10 +47,7 @@ const LAYER_LIST = "@layers\t";
 const LAYER_NAME = /^[A-Za-z_][\w-]*$/;
 
 /** Adds a global rule (`*{box-sizing:border-box}`) of a plugin member, by its content, to the sheet of the module at `at`. `layer` names a declared top-level layer to wrap it in, no layer puts it in `_.k`. */
-export const addGlobal = Effect.fnUntraced(function* (
-  g: GlobalRule,
-  at?: At,
-): Effect.fn.Return<void, MacroError> {
+export const addGlobal = Effect.fnUntraced(function* (g: GlobalRule, at?: At) {
   const { globals } = yield* Registry;
   if (g.layer !== undefined) yield* requireLayer(g.layer, at);
   const key = `${g.layer ?? ""}\t${g.css}`;
@@ -59,7 +56,7 @@ export const addGlobal = Effect.fnUntraced(function* (
 });
 
 // The global rules a module holds: one line each, so the sheet needs no registry.
-export const globalEntries = ({ globals }: RegistryState, file: string): string[] =>
+export const globalEntries = ({ globals }: RegistryState, file: string) =>
   [...globals.values()].flatMap((e) =>
     e.users.has(file)
       ? [`${GLOBAL_RULE}${Formatter.formatJson([e.global.layer ?? "", e.global.css])}`]
@@ -72,10 +69,7 @@ export const globalEntries = ({ globals }: RegistryState, file: string): string[
  * in the same order, or hold or be held by this one; layers in another order, or shared without one holding the other,
  * are build errors at `at`, since the sheet could not say which comes first.
  */
-export const addLayers = Effect.fnUntraced(function* (
-  names: readonly string[],
-  at?: At,
-): Effect.fn.Return<void, MacroError> {
+export const addLayers = Effect.fnUntraced(function* (names: readonly string[], at?: At) {
   const { layers } = yield* Registry;
   const fail = (message: string) => new MacroError({ message: `cssints: ${message}`, ...at });
   const list = names.join(", ");
@@ -105,10 +99,7 @@ export const addLayers = Effect.fnUntraced(function* (
 });
 
 /** A build error at `at` unless `layer` is declared by a `layers()` that has run (this module, or one it imports). */
-export const requireLayer = Effect.fnUntraced(function* (
-  layer: string,
-  at?: At,
-): Effect.fn.Return<void, MacroError> {
+export const requireLayer = Effect.fnUntraced(function* (layer: string, at?: At) {
   const { layers } = yield* Registry;
   if (![...layers.values()].some((l) => l.names.includes(layer)))
     return yield* new MacroError({
@@ -118,13 +109,13 @@ export const requireLayer = Effect.fnUntraced(function* (
 });
 
 // The layers a module declared: one line each.
-export const layerEntries = ({ layers }: RegistryState, file: string): string[] =>
+export const layerEntries = ({ layers }: RegistryState, file: string) =>
   [...layers.values()].flatMap((l) =>
     l.users.has(file) ? [`${LAYER_LIST}${l.names.join()}`] : [],
   );
 
 // The statements to print, each once, the longer first: one that holds another has already said its order.
-export const layerStatements = (lists: Iterable<readonly string[]>): string[][] =>
+export const layerStatements = (lists: Iterable<readonly string[]>) =>
   [...new Map([...lists].map((l) => [l.join(), [...l]])).values()].sort(
     (a, b) => b.length - a.length || cmp(a.join(), b.join()),
   );
@@ -209,7 +200,9 @@ export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
     ),
     ...[...layers.values()].flatMap((l) => (l.names.some((n) => inUse.has(n)) ? [l.names] : [])),
   ]);
-  let out = `${LAYERS}\n${statements.map((s) => `@layer ${s.join(", ")};\n`).join("")}${[...properties, ...used.flatMap((k) => k.atProperty ?? [])].map((p) => `${p}\n`).join("")}`;
+  let out = `${LAYERS}\n${[...properties, ...used.flatMap((k) => k.atProperty ?? [])].map((p) => `${p}\n`).join("")}`;
+  // the declared layers follow the engine's, so everything named after them ranks above it
+  out = out.replace("\n", `\n${statements.map((s) => `@layer ${s.join(", ")};\n`).join("")}`);
   if (kGlobals.length || used.length || fallbacks.length || kThemes.length)
     out += `@layer _.k {\n${[...kGlobals, ...used.map((k) => k.css), ...fallbacks, ...kThemes.map((t) => t[3]), ...(derived ? [derived] : [])].map((g) => `  ${g}\n`).join("")}}\n`;
   // Named top-level layers (a look's `@layer app`), declared by the statements above: after `_.k` and the class layers,

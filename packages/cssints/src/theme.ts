@@ -386,202 +386,206 @@ const SCOPE = { "@media": ":root", "@container": ":where(*)" } as const;
 
 // A theme of a plugin member (`Built.themes`): the same path as createGlobalTheme, at the call site `at` of the member.
 export const addTheme = (t: ThemeRule, at: At) =>
-  applyTheme(at, [t.tokens, t.selector, t.overrides, { layer: t.layer, scope: t.scope }]);
+  Effect.try({
+    try: () => theme(at, [t.tokens, t.selector, t.overrides, { layer: t.layer, scope: t.scope }]),
+    catch: (e) => e as MacroError,
+  });
 
-export const createGlobalTheme = (...args: unknown[]): unknown =>
-  edge(applyTheme(registry.at, args));
+export const createGlobalTheme = (...args: unknown[]) => theme(registry.at, args);
 
 // createGlobalTheme(tokens, condition | selector, overrides, { layer, scope }?): `overrides` has the shape of the tokens.
 // Each value is a DTCG value or a CSS string of the token's type, which may refer to tokens with `{path}` (declared as
 // var(--target), so live). Aliases that depend on an overridden token are declared again in the block, since `var()` is
 // substituted where it is declared.
-const applyTheme = Effect.fnUntraced(function* (
-  at: At | undefined,
-  args: unknown[],
-): Effect.fn.Return<typeof DONE, MacroError> {
-  const [tokens, condition, overrides, options] = args;
-  const set = Predicate.isObject(tokens) ? sets.get(tokens) : undefined;
-  const asked = Predicate.isObject(options) ? options.layer : undefined;
-  const layer = typeof asked === "string" ? asked : undefined;
-  const wanted = Predicate.isObject(options) ? options.scope : undefined;
-  const scope = typeof wanted === "string" ? wanted.trim() : undefined;
-  if (
-    !at ||
-    !set ||
-    args.length < 3 ||
-    args.length > 4 ||
-    !Predicate.isObject(overrides) ||
-    (args.length === 4 &&
-      (!Predicate.isObject(options) ||
-        (asked !== undefined && layer === undefined) ||
-        (wanted !== undefined && scope === undefined)))
-  )
-    return yield* fail(
-      "cssints: createGlobalTheme(tokens, condition | selector, overrides, { layer, scope }?) takes tokens of createTokens, a media() or container() condition or a selector, the values to set, and optionally a declared top-level layer and a selector to scope them to",
-    );
-  if (layer !== undefined) yield* requireLayer(layer, at);
-  if (scope !== undefined) {
-    if (typeof condition !== "string")
-      return yield* fail(
-        "cssints: createGlobalTheme(): a scope goes with a selector, not a condition",
-      );
-    yield* checkSelector(scope).pipe(
-      Effect.mapError(
-        (e) =>
-          new MacroError({
-            message: `cssints: createGlobalTheme(): scope: ${e.message}`,
-            cause: e,
-            ...at,
-          }),
-      ),
-    );
-  }
-  let label: string;
-  let block: (decls: string) => string;
-  if (typeof condition === "string") {
-    label = condition.trim();
-    if (!/^[^{};@]+$/.test(label))
-      return yield* fail(`cssints: createGlobalTheme(): "${condition}" is not a selector`);
-    block = (d) => `${label}{${d}}`;
-  } else if (isCondition(condition)) {
-    label = condition.cond.text;
-    const prelude = /^@(media|container)\b/.exec(label)?.[0] as keyof typeof SCOPE | undefined;
-    if (!prelude)
-      return yield* fail(
-        `cssints: createGlobalTheme(): ${label} is not a theme, use a media() or container() condition, or a selector`,
-      );
-    block = (d) => `${label}{${SCOPE[prelude]}{${d}}}`;
-  } else
-    return yield* fail(
-      `cssints: createGlobalTheme(): the second argument is a media() or container() condition or a selector, got ${Formatter.formatJson(condition)}`,
-    );
-
-  const changed = new Map<string, string>(); // variable -> the value it gets here
-  const defaults = new Map<string, string>(); // variable -> the lowered literal that stands for it in older browsers
-  const guards = new Map<string, string[]>(); // `@supports` condition -> the live declarations it lets through
-  const poly = new Map<string, string>(); // variable -> the literal, for the values the runtime of derived tokens computes
-  const refs = new Map<string, string[]>(); // variable -> the variables its value here refers to
-  const walk = Effect.fnUntraced(function* (
-    node: Record<string, unknown>,
-    values: Record<string, unknown>,
-    path: string[],
-  ): Effect.fn.Return<void, MacroError> {
-    for (const [key, v] of Object.entries(values)) {
-      const child = Object.hasOwn(node, key) ? node[key] : undefined;
-      const dotted = [...path, key].join(".");
-      if (child instanceof CSSTokenValue) {
-        const kind = registry.defs.get(child.name)!.kind;
-        const text = yield* cssOf(set.types.get(child.name)!, v, dotted);
-        // a reference stays live as var(--target); the grammar check reads the targets' literals
-        const targets = new Map<string, CSSTokenValue>();
-        for (const [, ref] of text.matchAll(REF)) {
-          const target = set.tokens.get(ref!);
-          if (!target)
-            return yield* fail(
-              `cssints: createGlobalTheme(): ${dotted} refers to {${ref}}, and there is no token at ${ref}`,
-            );
-          targets.set(ref!, target);
-        }
-        const whole = ALIAS.exec(text)?.[1];
-        const other = whole && registry.defs.get(targets.get(whole)!.name)!.kind;
-        if (other && other !== kind)
-          return yield* fail(
-            `cssints: createGlobalTheme(): ${dotted} is a ${kind}, and its reference {${whole}} is a ${other}`,
-          );
-        const literal = text.replace(
-          REF,
-          (_, r: string) => registry.defs.get(targets.get(r)!.name)!.value,
-        );
-        const css = text.replace(REF, (_, r: string) => `var(${targets.get(r)!.name})`);
-        const fb = yield* checkSyntaxFx(
-          `createGlobalTheme(): ${dotted} value`,
-          TOKEN_TYPES[kind].syntax,
-          literal,
-          `createGlobalTheme(): ${dotted} value in ${label}`,
-          child.name,
-        );
-        if (fb && css !== literal && !PURE.test(css)) {
-          const test = supportTest(TOKEN_TYPES[kind].syntax, literal);
-          guards.set(test, [...(guards.get(test) ?? []), `${child.name}:${css}`]);
-          defaults.set(child.name, fb);
-          const { inherit } = registry.defs.get(child.name)!;
-          if (
-            yield* standIn(
-              `${dotted} in ${label}`,
-              kind,
-              literal,
-              inherit,
-              !label.startsWith("@container"),
-            )
-          )
-            poly.set(child.name, literal);
-        }
-        changed.set(child.name, css);
-        if (targets.size)
-          refs.set(
-            child.name,
-            [...targets.values()].map((t) => t.name),
-          );
-      } else if (Predicate.isObject(child) && Predicate.isObject(v))
-        yield* walk(child, v, [...path, key]);
-      else
+const theme = (at: At | undefined, args: unknown[]) =>
+  edge(
+    Effect.gen(function* () {
+      const [tokens, condition, overrides, options] = args;
+      const set = Predicate.isObject(tokens) ? sets.get(tokens) : undefined;
+      const asked = Predicate.isObject(options) ? options.layer : undefined;
+      const layer = typeof asked === "string" ? asked : undefined;
+      const wanted = Predicate.isObject(options) ? options.scope : undefined;
+      const scope = typeof wanted === "string" ? wanted.trim() : undefined;
+      if (
+        !at ||
+        !set ||
+        args.length < 3 ||
+        args.length > 4 ||
+        !Predicate.isObject(overrides) ||
+        (args.length === 4 &&
+          (!Predicate.isObject(options) ||
+            (asked !== undefined && layer === undefined) ||
+            (wanted !== undefined && scope === undefined)))
+      )
         return yield* fail(
-          child === undefined
-            ? `cssints: createGlobalTheme(): there is no token at ${dotted}`
-            : `cssints: createGlobalTheme(): ${dotted} is a group, its values are an object`,
+          "cssints: createGlobalTheme(tokens, condition | selector, overrides, { layer, scope }?) takes tokens of createTokens, a media() or container() condition or a selector, the values to set, and optionally a declared top-level layer and a selector to scope them to",
         );
-    }
-  });
-  yield* walk(tokens as Record<string, unknown>, overrides, []);
-  if (!changed.size) return yield* fail("cssints: createGlobalTheme(): the theme sets no token");
+      if (layer !== undefined) yield* requireLayer(layer, at);
+      if (scope !== undefined) {
+        if (typeof condition !== "string")
+          return yield* fail(
+            "cssints: createGlobalTheme(): a scope goes with a selector, not a condition",
+          );
+        yield* checkSelector(scope).pipe(
+          Effect.mapError(
+            (e) =>
+              new MacroError({
+                message: `cssints: createGlobalTheme(): scope: ${e.message}`,
+                cause: e,
+                ...at,
+              }),
+          ),
+        );
+      }
+      let label: string;
+      let block: (decls: string) => string;
+      if (typeof condition === "string") {
+        label = condition.trim();
+        if (!/^[^{};@]+$/.test(label))
+          return yield* fail(`cssints: createGlobalTheme(): "${condition}" is not a selector`);
+        block = (d) => `${label}{${d}}`;
+      } else if (isCondition(condition)) {
+        label = condition.cond.text;
+        const prelude = /^@(media|container)\b/.exec(label)?.[0] as keyof typeof SCOPE | undefined;
+        if (!prelude)
+          return yield* fail(
+            `cssints: createGlobalTheme(): ${label} is not a theme, use a media() or container() condition, or a selector`,
+          );
+        block = (d) => `${label}{${SCOPE[prelude]}{${d}}}`;
+      } else
+        return yield* fail(
+          `cssints: createGlobalTheme(): the second argument is a media() or container() condition or a selector, got ${Formatter.formatJson(condition)}`,
+        );
 
-  // a reference in a theme joins the base references: a circle is an error. Order does not matter otherwise: the
-  // declarations of one rule are one element's, and var() reads that element's own values, however they are ordered.
-  const deps = (n: string) => refs.get(n) ?? set.aliases.find((a) => a.name === n)?.targets ?? [];
-  const done = new Set<string>();
-  const visit = (n: string, stack: string[]): string[] | undefined => {
-    if (stack.includes(n)) return [...stack.slice(stack.indexOf(n)), n];
-    if (done.has(n)) return undefined;
-    for (const d of deps(n)) {
-      const circle = visit(d, [...stack, n]);
-      if (circle) return circle;
-    }
-    done.add(n);
-    return undefined;
-  };
-  for (const n of refs.keys()) {
-    const circle = visit(n, []);
-    if (circle)
-      return yield* fail(
-        `cssints: createGlobalTheme(): references go round in a circle: ${circle.map((c) => registry.defs.get(c)!.path).join(" -> ")}`,
-      );
-  }
+      const changed = new Map<string, string>(); // variable -> the value it gets here
+      const defaults = new Map<string, string>(); // variable -> the lowered literal that stands for it in older browsers
+      const guards = new Map<string, string[]>(); // `@supports` condition -> the live declarations it lets through
+      const poly = new Map<string, string>(); // variable -> the literal, for the values the runtime of derived tokens computes
+      const refs = new Map<string, string[]>(); // variable -> the variables its value here refers to
+      const walk = Effect.fnUntraced(function* (
+        node: Record<string, unknown>,
+        values: Record<string, unknown>,
+        path: string[],
+      ): Effect.fn.Return<void, MacroError> {
+        for (const [key, v] of Object.entries(values)) {
+          const child = Object.hasOwn(node, key) ? node[key] : undefined;
+          const dotted = [...path, key].join(".");
+          if (child instanceof CSSTokenValue) {
+            const kind = registry.defs.get(child.name)!.kind;
+            const text = yield* cssOf(set.types.get(child.name)!, v, dotted);
+            // a reference stays live as var(--target); the grammar check reads the targets' literals
+            const targets = new Map<string, CSSTokenValue>();
+            for (const [, ref] of text.matchAll(REF)) {
+              const target = set.tokens.get(ref!);
+              if (!target)
+                return yield* fail(
+                  `cssints: createGlobalTheme(): ${dotted} refers to {${ref}}, and there is no token at ${ref}`,
+                );
+              targets.set(ref!, target);
+            }
+            const whole = ALIAS.exec(text)?.[1];
+            const other = whole && registry.defs.get(targets.get(whole)!.name)!.kind;
+            if (other && other !== kind)
+              return yield* fail(
+                `cssints: createGlobalTheme(): ${dotted} is a ${kind}, and its reference {${whole}} is a ${other}`,
+              );
+            const literal = text.replace(
+              REF,
+              (_, r: string) => registry.defs.get(targets.get(r)!.name)!.value,
+            );
+            const css = text.replace(REF, (_, r: string) => `var(${targets.get(r)!.name})`);
+            const fb = yield* checkSyntaxFx(
+              `createGlobalTheme(): ${dotted} value`,
+              TOKEN_TYPES[kind].syntax,
+              literal,
+              `createGlobalTheme(): ${dotted} value in ${label}`,
+              child.name,
+            );
+            if (fb && css !== literal && !PURE.test(css)) {
+              const test = supportTest(TOKEN_TYPES[kind].syntax, literal);
+              guards.set(test, [...(guards.get(test) ?? []), `${child.name}:${css}`]);
+              defaults.set(child.name, fb);
+              const { inherit } = registry.defs.get(child.name)!;
+              if (
+                yield* standIn(
+                  `${dotted} in ${label}`,
+                  kind,
+                  literal,
+                  inherit,
+                  !label.startsWith("@container"),
+                )
+              )
+                poly.set(child.name, literal);
+            }
+            changed.set(child.name, css);
+            if (targets.size)
+              refs.set(
+                child.name,
+                [...targets.values()].map((t) => t.name),
+              );
+          } else if (Predicate.isObject(child) && Predicate.isObject(v))
+            yield* walk(child, v, [...path, key]);
+          else
+            return yield* fail(
+              child === undefined
+                ? `cssints: createGlobalTheme(): there is no token at ${dotted}`
+                : `cssints: createGlobalTheme(): ${dotted} is a group, its values are an object`,
+            );
+        }
+      });
+      yield* walk(tokens as Record<string, unknown>, overrides, []);
+      if (!changed.size)
+        return yield* fail("cssints: createGlobalTheme(): the theme sets no token");
 
-  const stale = new Set(changed.keys());
-  for (let grew = true; grew; )
-    grew = set.aliases.some(
-      (a) => a.targets.some((t) => stale.has(t)) && !stale.has(a.name) && !!stale.add(a.name),
-    );
-  const decls = [
-    ...[...changed].map(([name, text]) => `${name}:${defaults.get(name) ?? text}`),
-    ...set.aliases
-      .filter((a) => stale.has(a.name) && !changed.has(a.name))
-      .map((a) => `${a.name}:${a.css}`),
-  ];
-  const n = registry.tokens++;
-  const rules =
-    block(decls.join(";")) +
-    [...guards].map(([test, live]) => `@supports ${test}{${block(live.join(";"))}}`).join("");
-  registry.themed.set(`${at.file}#${at.site}.${n}`, {
-    file: at.file,
-    key: `${typeof condition === "string" ? 2 : 1}:${at.file}#${String(at.site).padStart(6, "0")}.${n}`,
-    css: scope === undefined ? rules : `@scope (${scope}){${rules}}`,
-    names: decls.map((d) => d.slice(0, d.indexOf(":"))),
-    ...(layer === undefined ? {} : { layer }),
-    theme: { label, scope, values: changed, poly: poly.size ? poly : undefined },
-  });
-  return DONE;
-});
+      // a reference in a theme joins the base references: a circle is an error. Order does not matter otherwise: the
+      // declarations of one rule are one element's, and var() reads that element's own values, however they are ordered.
+      const deps = (n: string) =>
+        refs.get(n) ?? set.aliases.find((a) => a.name === n)?.targets ?? [];
+      const done = new Set<string>();
+      const visit = (n: string, stack: string[]): string[] | undefined => {
+        if (stack.includes(n)) return [...stack.slice(stack.indexOf(n)), n];
+        if (done.has(n)) return undefined;
+        for (const d of deps(n)) {
+          const circle = visit(d, [...stack, n]);
+          if (circle) return circle;
+        }
+        done.add(n);
+        return undefined;
+      };
+      for (const n of refs.keys()) {
+        const circle = visit(n, []);
+        if (circle)
+          return yield* fail(
+            `cssints: createGlobalTheme(): references go round in a circle: ${circle.map((c) => registry.defs.get(c)!.path).join(" -> ")}`,
+          );
+      }
+
+      const stale = new Set(changed.keys());
+      for (let grew = true; grew; )
+        grew = set.aliases.some(
+          (a) => a.targets.some((t) => stale.has(t)) && !stale.has(a.name) && !!stale.add(a.name),
+        );
+      const decls = [
+        ...[...changed].map(([name, text]) => `${name}:${defaults.get(name) ?? text}`),
+        ...set.aliases
+          .filter((a) => stale.has(a.name) && !changed.has(a.name))
+          .map((a) => `${a.name}:${a.css}`),
+      ];
+      const n = registry.tokens++;
+      const rules =
+        block(decls.join(";")) +
+        [...guards].map(([test, live]) => `@supports ${test}{${block(live.join(";"))}}`).join("");
+      registry.themed.set(`${at.file}#${at.site}.${n}`, {
+        file: at.file,
+        key: `${typeof condition === "string" ? 2 : 1}:${at.file}#${String(at.site).padStart(6, "0")}.${n}`,
+        css: scope === undefined ? rules : `@scope (${scope}){${rules}}`,
+        names: decls.map((d) => d.slice(0, d.indexOf(":"))),
+        ...(layer === undefined ? {} : { layer }),
+        theme: { label, scope, values: changed, poly: poly.size ? poly : undefined },
+      });
+      return DONE;
+    }),
+  );
 
 // ---------- check.contrast
 
