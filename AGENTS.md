@@ -9,6 +9,7 @@ packages/cssints       Vite plugin on the Module Runner (src/plugin.ts) + the cs
                        test/: fixtures, run.mjs, map-check.mjs, docs.mjs, spec/ (Quint model, race, mbt), hmr/ app
 packages/css-grammar   type-level recognizer (src/css.ts) + runtime twin (src/twin.ts over twin-core.ts) over mdn-data grammars,
                        Typed OM values, BCD support warnings, prose rules; test/, bench/ (instantiation budgets)
+tools/ai-automation    the oxlint plugin `automation/*` (Effect, core and anti-slop rules), the added-lines diff-check, vendor/anti-slop (MIT, UPSTREAM.md); its tests run through `vp test run`
 packages/icons         @cssints/icons: icons() on the cssints/plugin style() helper (iconify-json and fs providers); test/: fixtures, icons.mjs, types/
 apps/demo              React demo on the plugin: every 0.1 feature (App.tsx, components/Showcase.tsx, theme.ts)
 apps/sky               Solid 2 app on the plugin (solid-js 2.0.0-rc.13, @solidjs/router 2.0.0-next.35, atcute): Mu's shell (nav, 600 px column, rail, bottom bar), routes, themes, appearance settings (/settings), the post card and embeds (src/post/, /dev/posts in dev), the home feed with tabs (src/home/), the profile (src/profile/), the thread (src/thread/),
@@ -35,9 +36,13 @@ cd packages/css-grammar && bun run longhands  # rewrite src/longhands.ts (the lo
                                               # read it) after a Chrome or mdn-data bump (needs an installed Chrome)
 cd packages/css-grammar && bun run webref     # rewrite scripts/webref-properties.json with Chrome as the judge; run it, then extract, after a
                                               # Chrome, @webref/css, mdn-data or twin bump (needs an installed Chrome; ~1 minute)
+cd packages/cssints && node test/trace.mjs   # CSSINTS_TRACE=otlp against an in-process collector (in `test`); node test/trace-live.mjs: a traced sky build + HMR read back from a local Jaeger
+                                              # (docker run -d --rm -p 16686:16686 -p 4318:4318 jaegertracing/all-in-one; skips without it). Debug any build: CSSINTS_TRACE=otlp bun run build
 cd packages/cssints && node bench/lsp.mjs     # editor latency on the demo's Button.tsx over tsgo's language server
 cd packages/cssints && bun run members        # regenerate src/members.ts (the names of "cssints" in user code)
-bun run typecheck                             # per package: tsgo -p tsconfig.json --noEmit + effect-tsgo diagnostics; apps/demo and apps/sky: tsgo and tsc 5.9
+bun run typecheck                             # per package: tsgo -p tsconfig.json --noEmit + effect-tsgo diagnostics (every one an error, tsconfig.effect.json); tools/ai-automation: tsgo; apps/demo and apps/sky: tsgo and tsc 5.9
+bun run diff:check                            # the lines added since master, linted by the anti-slop rules, plus key-file changes (bun.lock, vite.config.ts, ...); exit 1 on a warning
+cd tools/ai-automation && bun run test        # the rule tests and the diff-check tests (vp test run)
 cd packages/cssints && bun run test:browsers   # cssints/frame and cssints/surface in Chrome, Firefox and WebKit through playwright-core (not in `test`: needs the browsers installed; a browser without style queries is detected, so an older playwright-core's WebKit runs with `PW=` and `PLAYWRIGHT_BROWSERS_PATH=`)
 cd packages/cssints && bun run build          # vp pack (tsdown) into dist/; same in packages/css-grammar
 cd packages/css-grammar && node bench/budget.mjs --update    # after a deliberate type-cost change
@@ -78,7 +83,7 @@ Other deps:
 - [Lighting CSS](https://lightningcss.dev)
 - [tsdown](https://tsdown.dev/)
 - [Vite 8](https://main.vite.dev/)
-- [Vitest](https://main.vitest.dev/) (part of Vite+, unused: our tests are plain node scripts)
+- [Vitest](https://main.vitest.dev/) (part of Vite+; only tools/ai-automation's tests use it, imported from `vite-plus/test`: ours are plain node scripts)
 - [TypeScript Go](https://github.com/microsoft/typescript-go)
 - [OXC lint](https://oxc.rs/blog/2025-12-08-type-aware-alpha)
 - [OXC fmt](https://oxc.rs/docs/guide/usage/formatter)
@@ -91,7 +96,7 @@ Other deps:
 
 - **What counts is `vp fmt --check`**: 2 spaces, 100 columns, double quotes, semicolons, trailing commas, parens on arrow functions (oxfmt defaults)
 - The `fmt` block of the root `vite.config.ts` states exactly these values. vite-plus 1.0.0 does not read that block; if a later version does, nothing changes. Import sorting is not applied.
-- **Skipped by the formatter** (`.prettierignore`): the generated `members.ts`, `mdn.ts`, `keywords.ts` and `longhands.ts`, `css.ts`, the test fixtures, docs/archive, `.beans`
+- **Skipped by the formatter** (`.prettierignore`): the generated `members.ts`, `mdn.ts`, `keywords.ts` and `longhands.ts`, `css.ts`, the test fixtures, docs/archive, `.beans`, tools/ai-automation/vendor
 - The code blocks in docs/API.md use tabs and are not formatted
 
 ### TypeScript Configuration
@@ -137,7 +142,7 @@ bun run typecheck    # all packages; per package: tsgo -p tsconfig.json --noEmit
 `effect-tsgo` (`@effect/tsgo`) needs the native TypeScript 7 package `@typescript/native` patched by `effect-tsgo patch
 --typescript` (root `prepare`, runs on `bun install`). That alias takes over `node_modules/.bin/tsc`, so the places that
 want TypeScript 5.9 call it by path (`node ../../node_modules/typescript/bin/tsc`): css-grammar's `test` and
-`bench/budget.mjs`. `tsc` 5.9 stays green for css-grammar.
+`bench/budget.mjs`. `tsc` 5.9 stays green for css-grammar (its `test` uses tsconfig.tsc.json, without the Effect plugin: `anyUnknownInErrorContext` trips TS2590 on the recognizer's unions there).
 
 Verify Effect APIs against `packages/cssints/node_modules/effect` (source, `AGENTS.md`, `ai-docs/`), not memory: this is a beta, and names moved.
 In 4.0.0-beta.107: `Data.TaggedError("Tag")<{ ...fields }>` (there is no `Data.TaggedErrorClass`), `Context.Service` and
@@ -399,7 +404,7 @@ const camel = (p: string) => p.replace(/-([a-z])/g, (_, c: string) => c.toUpperC
 
 ### Testing
 
-Tests are plain `node` scripts with `node:assert`, run through `bun run test` (`vp run -r test`); there is no test runner. A fixture in `packages/cssints/test/fixtures` is a module the plugin transforms (`node run.mjs fixtures/x.ts` prints its code and css). A type test is a file that `tsgo` checks, with `@ts-expect-error` for what must fail (`packages/cssints/test/types/`, `packages/css-grammar/test/`). The doc test is `packages/cssints/test/docs.mjs`.
+Tests are plain `node` scripts with `node:assert`, run through `bun run test` (`vp run -r test`); there is no test runner, except in tools/ai-automation (vitest, `vp test run`). A fixture in `packages/cssints/test/fixtures` is a module the plugin transforms (`node run.mjs fixtures/x.ts` prints its code and css). A type test is a file that `tsgo` checks, with `@ts-expect-error` for what must fail (`packages/cssints/test/types/`, `packages/css-grammar/test/`). The doc test is `packages/cssints/test/docs.mjs`.
 
 ### File Structure
 
@@ -414,6 +419,22 @@ All TypeScript and correctness rules enforced as errors:
 - No duplicate keys/values
 - Proper JSDoc on exported functions
 - Import organization and no duplicates
+
+The `automation/*` rules of tools/ai-automation (a JS plugin, `lint.jsPlugins` of the root `vite.config.ts`) enforce this file's
+Effect rules as errors on Effect code: the whole effect profile (no `try/catch`, no global `JSON`, no `in`, no `typeof x === "object"`,
+`Match` over literal ternaries, no nested `Layer.provide`, ...), the tagged-value rules (no `_tag` comparison or literal `_tag` object:
+`Predicate.isTagged`, `Match`, the tagged constructors) and `no-array-filter-map`. The replacements used: `Formatter.formatJson` and
+`Schema.fromJsonString` for `JSON`, `Result.try` for `try/catch`, `Predicate.hasProperty` / `Predicate.isObject` / `Object.hasOwn` for
+`in` and `typeof`. Which rules are on and which are off, with counts, is in tools/ai-automation/README.md.
+
+Plain code by design is exempt through the `plainCode` override of `vite.config.ts` (a reason each): browser runtimes, the Typed OM
+values, the twin's recognizer, @cssints/icons, the apps, tests, benches and scripts. Add a file there when it joins that list, not a
+disable comment. `macro.ts`, `lib.ts`, `registry.ts`, `author.ts` and `author-types.ts` carry warnings until cssints-6nqy (and
+the `inFlight` override, with its twin in tsconfig.effect.json).
+
+The Effect language service runs with every diagnostic as an error (tsconfig.effect.json, extended by cssints, css-grammar and icons);
+`strictBooleanExpressions`, `missingPipeableSignature` and `nodeBuiltinImport` are off there, with the reason beside each. A diagnostic
+that must stay is silenced on its line, `// @effect-diagnostics-next-line <name>:off -- reason`.
 
 ## Notes
 

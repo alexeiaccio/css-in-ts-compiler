@@ -1,7 +1,7 @@
 // Runtime delivery (docs/research/plugins.md §5): a client module whose sites carry a member with a `runtime` imports
 // `virtual:cssints/runtime/<name>`; what that module holds is decided from the runtime and the targets, never from use.
 import { lacking, type Target } from "@cssints/css-grammar/support";
-import { Effect } from "effect";
+import { Effect, Formatter } from "effect";
 
 import { MemberError } from "./errors.ts";
 import type { BcdKey } from "./author-types.ts";
@@ -25,7 +25,7 @@ export const addRuntime = Effect.fnUntraced(function* (
   if (
     entry &&
     entry.runtime !== runtime &&
-    JSON.stringify(entry.runtime) !== JSON.stringify(runtime)
+    Formatter.formatJson(entry.runtime) !== Formatter.formatJson(runtime)
   )
     return yield* new MemberError({
       message: `cssints: ${name}: its runtime is registered twice with a different definition`,
@@ -65,7 +65,7 @@ export const needed = Effect.fnUntraced(function* (
 
 // The plugins whose runtime the styles of `file` use.
 export const runtimeNames = ({ runtimes }: RegistryState, file: string): string[] =>
-  [...runtimes].filter(([, e]) => e.users.has(file)).map(([name]) => name);
+  [...runtimes].flatMap(([name, e]) => (e.users.has(file) ? [name] : []));
 
 /** What a module records of fallback CSS: that of the runtimes it uses, when the targets need them. */
 export const fallbackEntries = Effect.fnUntraced(function* (
@@ -76,7 +76,7 @@ export const fallbackEntries = Effect.fnUntraced(function* (
   for (const e of runtimes.values()) {
     const { css } = e.runtime;
     if (css && e.users.has(file) && (yield* needed(e.runtime)))
-      out.push(`${FALLBACK}${JSON.stringify(css)}`);
+      out.push(`${FALLBACK}${Formatter.formatJson(css)}`);
   }
   return out;
 });
@@ -88,5 +88,5 @@ export const runtimeModule = Effect.fnUntraced(function* (name: string): Effect.
   if (name === DERIVED && runtime && (yield* needed(runtime)))
     return `import derived from "cssints/derived";\nderived();\n`;
   if (!runtime || !runtime.parentVars?.length || !(yield* needed(runtime))) return "export {};";
-  return `import parentVars from "cssints/parent-vars";\nparentVars(${JSON.stringify(runtime.parentVars)});\n`;
+  return `import parentVars from "cssints/parent-vars";\nparentVars(${Formatter.formatJson(runtime.parentVars)});\n`;
 });

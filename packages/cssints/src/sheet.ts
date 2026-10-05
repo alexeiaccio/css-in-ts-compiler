@@ -1,13 +1,16 @@
 // The sheet: the @property rules of tokens, then the kernels, the css.global() rules, the token sets and themes and the data of the derived-token runtime (layer _.k), then every rule once, sorted by layer, condition, shorthand before
 // longhand, class; the rules of one layer under the same at-rules share a block.
 
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 
 import { FALLBACK } from "./delivery.ts";
 import { derivedRule } from "./derived-data.ts";
 import { KERNEL } from "./kernel.ts";
 import { width } from "./leaves.ts";
 import { GLOBAL, type Kernel, type Rule, Registry, type Themed } from "./registry.ts";
+
+// @effect-diagnostics-next-line schemaSync:off -- the entries are what formatJson wrote, read back in a sync map
+const fromJson = Schema.decodeSync(Schema.fromJsonString(Schema.Unknown));
 
 // The entries of token sets and themes start with this and a tab: `@theme\t<key>\t<css>`.
 const THEME = "@theme\t";
@@ -45,9 +48,11 @@ export const themedEntries = (
   file: string,
   names: Set<string>,
 ): string[] =>
-  [...themed.values()]
-    .filter((t) => t.file === file || t.names.some((n) => names.has(n)))
-    .map((t) => `${THEME}${t.key}\t${t.layer ?? ""}\t${t.css}`);
+  [...themed.values()].flatMap((t) =>
+    t.file === file || t.names.some((n) => names.has(n))
+      ? [`${THEME}${t.key}\t${t.layer ?? ""}\t${t.css}`]
+      : [],
+  );
 
 // The variables that the global rules of `file` read: their tokens need a `@property` rule in its sheet.
 export const globalNames = (themed: Map<string, Themed>, file: string): string[] =>
@@ -78,18 +83,17 @@ export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
   const all = [...new Set(entries)];
   const properties = all.filter((e) => e.startsWith("@property")).sort();
   const themes = all
-    .filter((e) => e.startsWith(THEME))
-    .map((e) => e.split("\t") as [string, string, string, string])
+    .flatMap((e) =>
+      e.startsWith(THEME) ? [e.split("\t") as [string, string, string, string]] : [],
+    )
     .sort((a, b) => cmp(a[1], b[1]));
   const kThemes = themes.filter((t) => t[2] === "");
   const topThemes = themes.filter((t) => t[2] !== "");
   const used = all
-    .filter((e) => e.startsWith(KERNEL))
-    .map((e) => JSON.parse(e.slice(KERNEL.length)) as Kernel)
+    .flatMap((e) => (e.startsWith(KERNEL) ? [fromJson(e.slice(KERNEL.length)) as Kernel] : []))
     .sort((a, b) => cmp(a.key, b.key));
   const fallbacks = all
-    .filter((e) => e.startsWith(FALLBACK))
-    .map((e) => JSON.parse(e.slice(FALLBACK.length)) as string)
+    .flatMap((e) => (e.startsWith(FALLBACK) ? [fromJson(e.slice(FALLBACK.length)) as string] : []))
     .sort();
   const derived = yield* derivedRule(
     properties,

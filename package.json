@@ -3,7 +3,8 @@
 	"private": true,
 	"workspaces": [
 		"packages/*",
-		"apps/*"
+		"apps/*",
+		"tools/*"
 	],
 	"scripts": {
 		"prepare": "effect-language-service patch && effect-tsgo patch --typescript",
@@ -11,7 +12,8 @@
 		"dev": "vp run -r --parallel dev",
 		"test": "vp run -r --cache test",
 		"bench": "vp run -r bench",
-		"typecheck": "vp run --filter \"./packages/*\" --filter ./apps/demo --filter ./apps/sky typecheck",
+		"typecheck": "vp run --filter \"./packages/*\" --filter \"./tools/*\" --filter ./apps/demo --filter ./apps/sky typecheck",
+		"diff:check": "node tools/ai-automation/scripts/diff-check/src/main.ts --config tools/ai-automation/scripts/diff-check/diff-check.config.json",
 		"check": "vp check && bun run typecheck",
 		"lint": "vp lint",
 		"lint:fix": "vp lint --fix",

@@ -8,7 +8,7 @@ import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 import { browsers } from "@cssints/css-grammar/browsers";
-import { Cause, Effect, Exit } from "effect";
+import { Cause, Effect, Exit, Formatter, Option, Predicate, Result, Schema } from "effect";
 import { browserslistToTargets } from "lightningcss";
 import MagicString from "magic-string";
 import {
@@ -32,6 +32,7 @@ import { usesDerived } from "./derived-data.ts";
 import { kernelEntries } from "./kernel.ts";
 import { forget, Registry } from "./registry.ts";
 import { closeNames, globalNames, LAYERS, renderSheet, themedEntries } from "./sheet.ts";
+import { closeTrace, hook, runPromiseExit, runSync, warned } from "./trace.ts";
 
 export { instrument } from "./instrument.ts";
 export { addGlobal, renderSheet } from "./sheet.ts";
@@ -46,29 +47,29 @@ const ATTRIBUTE = /type\s*:\s*["']cssints["']/;
 const marked = (code: string, id: string) =>
   code.includes(RUNTIME) && (!id.includes("node_modules") || ATTRIBUTE.test(code));
 
-interface Manifest {
-  dependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
-  peerDependencies?: Record<string, string>;
-}
+const Deps = Schema.optional(Schema.Record(Schema.String, Schema.String));
+const Manifest = Schema.fromJsonString(
+  Schema.Struct({ dependencies: Deps, devDependencies: Deps, peerDependencies: Deps }),
+);
+const decodeManifest = Schema.decodeUnknownOption(Manifest);
 
 // The direct dependencies of the app that depend on cssints (a package whose files carry the attribute imports
 // "cssints", so it lists it). The optimizer and the ssr externalization would strip or never run the attributes of
 // these, so they are excluded from both. A transitive one is not found: list it in the app's dependencies.
 const packagesOnCssints = (root: string) =>
   Effect.sync(() => {
-    const read = (file: string) => {
-      try {
-        return JSON.parse(readFileSync(file, "utf8")) as Manifest;
-      } catch {
-        return undefined;
-      }
-    };
+    const read = (file: string) =>
+      Option.getOrUndefined(
+        Option.flatMap(
+          Result.getSuccess(Result.try(() => readFileSync(file, "utf8"))),
+          decodeManifest,
+        ),
+      );
     const app = read(join(root, "package.json"));
     const lookup = createRequire(join(root, "package.json")).resolve.paths(RUNTIME) ?? [];
     return Object.keys({ ...app?.dependencies, ...app?.devDependencies }).filter((name) => {
       const m = lookup.map((dir) => read(join(dir, name, "package.json"))).find(Boolean);
-      return !!m && RUNTIME in { ...m.dependencies, ...m.peerDependencies };
+      return !!m && Object.hasOwn({ ...m.dependencies, ...m.peerDependencies }, RUNTIME);
     });
   });
 
@@ -97,11 +98,11 @@ export const cssTarget = Effect.runSync(browsers()).flatMap((t) => {
 // ---------- the hook boundary
 
 // Runs a hook's program; a failure is thrown as the error itself.
-const run = async <A>(program: Effect.Effect<A, PluginError>): Promise<A> => {
-  const exit = await Effect.runPromiseExit(program);
-  if (Exit.isSuccess(exit)) return exit.value;
-  throw Cause.squash(exit.cause);
-};
+const run = <A>(program: Effect.Effect<A, PluginError>) =>
+  runPromiseExit(program).then((exit) => {
+    if (Exit.isSuccess(exit)) return exit.value;
+    throw Cause.squash(exit.cause);
+  });
 
 // 1-based line, 0-based column of an offset, as Vite's `loc`.
 const lineCol = (text: string, offset: number) => {
@@ -121,8 +122,8 @@ const locate = Effect.fn("cssints.locate")(function* (
   code: string,
   id: string,
 ): Effect.fn.Return<never, PluginError> {
-  const file = "file" in e && e.file ? e.file : id;
-  if ("offset" in e && e.offset !== undefined) {
+  const file = Predicate.hasProperty(e, "file") && e.file ? e.file : id;
+  if (Predicate.hasProperty(e, "offset") && e.offset !== undefined) {
     const text =
       file === id
         ? code
@@ -192,9 +193,11 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     return out;
   };
 
-  const flushWarnings = Effect.fnUntraced(function* (warn: (w: string) => void) {
+  const flushWarnings = Effect.fnUntraced(function* (warn: (w: string) => void, file?: string) {
     const { warnings } = yield* Registry;
-    yield* Effect.sync(() => warnings.splice(0).forEach(warn));
+    const ws = warnings.splice(0);
+    yield* Effect.sync(() => ws.forEach(warn));
+    yield* warned(ws, file);
   });
 
   const clientTransform = Effect.fn("cssints.clientTransform")(function* (
@@ -234,13 +237,13 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
       return { sites, runtimes };
     });
     const { sites, runtimes } = parsed.sites.length
-      ? yield* evaluate(runner!, id, recorded).pipe(Effect.ensuring(flushWarnings(warn)))
+      ? yield* evaluate(runner!, id, recorded).pipe(Effect.ensuring(flushWarnings(warn, id)))
       : yield* Effect.sync(() => forget(id)).pipe(Effect.andThen(recorded(new Map())));
 
     const ms = new MagicString(code);
     // The runtime of every plugin member a site holds: a module that decides at load what it contains.
     if (runtimes.length)
-      ms.prepend(runtimes.map((n) => `import ${JSON.stringify(RUNTIME_ID + n)};\n`).join(""));
+      ms.prepend(runtimes.map((n) => `import ${Formatter.formatJson(RUNTIME_ID + n)};\n`).join(""));
     for (const [n, s] of parsed.sites.entries()) {
       const replacement = sites.get(n);
       if (replacement === undefined)
@@ -276,7 +279,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
   ): Effect.fn.Return<string, HookError> {
     const jsx = { runtime: "classic", pragma: "__jsx", pragmaFrag: "__jsx" } as const;
     return yield* Effect.tryPromise({
-      try: async () => (await transformWithOxc(code, id, { jsx })).code,
+      try: () => transformWithOxc(code, id, { jsx }).then((r) => r.code),
       catch: (cause) =>
         new HookError({ hook: "transform", message: `cssints: ${String(cause)}`, cause }),
     });
@@ -367,21 +370,24 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     ctx: Rollup.PluginContext,
     chunk: Rollup.RenderedChunk,
   ): Effect.fn.Return<null, HookError> {
-    if (inner || !(SHEET in chunk.modules)) return null;
+    if (inner || !Object.hasOwn(chunk.modules, SHEET)) return null;
     const [css, cssPost] = cssPlugins;
     const text = yield* sheet();
-    yield* Effect.tryPromise({
-      try: async () => {
-        const r = (await callTransform(css, ctx, text)) as { code?: string } | null | undefined;
-        await callTransform(cssPost, ctx, r?.code ?? text);
-      },
-      catch: (cause) =>
-        new HookError({
-          hook: "renderChunk",
-          message: `cssints: the sheet failed in Vite's CSS pipeline: ${String(cause)}`,
-          cause,
-        }),
-    });
+    const via = (plugin: Plugin | undefined, code: string) =>
+      Effect.tryPromise({
+        try: () => callTransform(plugin, ctx, code),
+        catch: (cause) =>
+          new HookError({
+            hook: "renderChunk",
+            message: `cssints: the sheet failed in Vite's CSS pipeline: ${String(cause)}`,
+            cause,
+          }),
+      });
+    const r = (yield* via(css, text).pipe(Effect.withSpan("cssints.lightningcss"))) as
+      | { code?: string }
+      | null
+      | undefined;
+    yield* via(cssPost, r?.code ?? text).pipe(Effect.withSpan("cssints.cssPost"));
     return null;
   });
 
@@ -403,9 +409,9 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     const { warned } = yield* Registry;
     yield* Effect.sync(() => warned.clear());
     const graph = env.moduleGraph;
-    const affected = [...new Set([...(depsOf.get(file) ?? []), ...inflight])]
-      .map((id) => graph.getModuleById(id))
-      .filter((m): m is EnvironmentModuleNode => !!m);
+    const affected = [...new Set([...(depsOf.get(file) ?? []), ...inflight])].flatMap(
+      (id) => graph.getModuleById(id) ?? [],
+    );
     // HMR invalidation alone would still let Vite cache (and reuse) a result that is being computed now.
     yield* Effect.sync(() => affected.forEach((m) => graph.invalidateModule(m)));
     return [...modules, ...affected];
@@ -442,13 +448,22 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     },
     buildStart() {
       if (inner || server) return;
-      return run(startServer());
+      return run(hook("vite.buildStart", root, startServer()));
     },
     buildEnd() {
-      if (build && !inner) return run(buildEnd((w) => this.warn(w)));
+      if (build && !inner)
+        return run(
+          hook(
+            "vite.buildEnd",
+            root,
+            buildEnd((w) => this.warn(w)),
+          ),
+        );
     },
     closeBundle() {
-      return run(stopServer());
+      return run(hook("vite.closeBundle", root, stopServer())).then(() =>
+        inner ? undefined : closeTrace(),
+      );
     },
     resolveId(id) {
       if (id === SHEET_IMPORT) return SHEET;
@@ -456,24 +471,29 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     },
     // Build: the rules are known only once every module is transformed, so a placeholder until renderChunk.
     load(id) {
-      if (id === SHEET) return build ? LAYERS : Effect.runSync(sheet());
+      if (id === SHEET) return build ? LAYERS : runSync(hook("vite.load", id, sheet()));
       if (id.startsWith(`\0${RUNTIME_ID}`))
-        return Effect.runSync(runtimeModule(id.slice(RUNTIME_ID.length + 1)));
+        return runSync(runtimeModule(id.slice(RUNTIME_ID.length + 1)));
     },
     renderChunk(_, chunk) {
-      return run(renderChunk(this, chunk));
+      return run(hook("vite.renderChunk", chunk.fileName, renderChunk(this, chunk)));
     },
     // Before every plugin that compiles JSX (Solid's, a Babel one), wherever the user lists them.
     transform: {
       order: "pre",
       handler(code, id) {
         return run(
-          transform(this, code, id).pipe(Effect.catch((e: PluginError) => locate(e, code, id))),
+          hook(
+            "vite.transform",
+            id,
+            transform(this, code, id).pipe(Effect.catch((e: PluginError) => locate(e, code, id))),
+            this.environment.name,
+          ),
         );
       },
     },
     hotUpdate({ file, modules }) {
-      return Effect.runSync(hotUpdate(this.environment, file, modules));
+      return runSync(hook("vite.hotUpdate", file, hotUpdate(this.environment, file, modules)));
     },
   };
   // After import analysis: the sheet module tells the server which version it runs (see configureServer).
@@ -484,7 +504,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
       order: "post",
       handler(code, id) {
         if (id === SHEET && this.environment.name === "client")
-          return `${code}\nimport.meta.hot.send("cssints:sheet", ${JSON.stringify(hash(code))});`;
+          return `${code}\nimport.meta.hot.send("cssints:sheet", ${Formatter.formatJson(hash(code))});`;
       },
     },
   };
