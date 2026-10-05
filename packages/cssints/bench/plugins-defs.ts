@@ -9,6 +9,7 @@ const {
   frame,
   webkitFontSmoothing: smoothing,
   icon,
+  step,
 } = scope("frame", {
   core: { css: "& { border-radius: var(--_r) }" },
   frame: {
@@ -22,7 +23,8 @@ const {
   },
   "-webkit-font-smoothing": "auto | none | antialiased | subpixel-antialiased",
   icon: { args: "home | star | moon" },
+  step: { args: "<number>", value: ([n]) => `${Number(n) * 4}px` },
 })
   .build({ icon: (name) => ({ decls: [["--_svg", name]] }) })
   .export();
-export { frame, smoothing, icon };
+export { frame, smoothing, icon, step };

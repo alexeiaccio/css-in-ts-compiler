@@ -1,5 +1,5 @@
 import { cn } from "cssints" with { type: "cssints" };
 
-import { box, chip } from "./seam-kit" with { type: "cssints" };
+import { chip, chipA } from "./seam-kit" with { type: "cssints" };
 
-export const a = cn(box().width("2px"), chip().width("1px"));
+export const a = cn(chip().width("2px"), chipA().width("1px"));

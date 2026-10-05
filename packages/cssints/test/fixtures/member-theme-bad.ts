@@ -1,3 +1,4 @@
-import { bad } from "./member-theme-defs.ts" with { type: "cssints" };
+import { modes } from "./member-theme-kit.ts" with { type: "cssints" };
+import { t } from "./member-theme-defs.ts" with { type: "cssints" };
 
-export const a = bad("dark");
+export const a = modes("dark", t, { mem: { bg: "blu" } });

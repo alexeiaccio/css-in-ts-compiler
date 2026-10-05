@@ -204,22 +204,20 @@ export function Button({ busy }: { busy?: boolean }) {
 }
 `,
 );
-// a plugin on cssints/plugin: a context with a runtime for a feature the targets of the build lack
+// a plugin on cssints/plugin scope(): a chain with a runtime for a feature the targets of the build lack
 put(
   "src/ring.ts",
-  `import { context, method } from "cssints/plugin";
+  `import { scope } from "cssints/plugin";
 
-export const ring = context({
-  name: "ring",
-  marker: "_rg",
-  kernel: { key: "ring@1", css: "._rg{outline:var(--rg-w) solid}" },
-  runtime: {
+export const { ring } = scope("ring", {
+  core: { css: "&{outline:var(--_w) solid}" },
+  fallback: {
     polyfills: ["css.at-rules.container.style_queries_for_custom_properties"],
-    parentVars: [{ marker: "_rg", read: "--rg-i", write: "--rg-u" }],
-    css: ":root[data-cssints-poly] ._rg{--rg-u:0px}",
+    parentVars: [{ marker: "&", read: "--_i", write: "--_u" }],
+    css: ":root[data-cssints-poly] &{--_u:0px}",
   },
-  methods: { width: method({ grammar: "<length>", emit: (v) => [["--rg-w", v]] }) },
-});
+  ring: { uses: ["core", "fallback"], chain: { width: { args: "<length>", emit: (v) => [["--_w", v]] } } },
+}).export();
 `,
 );
 // icons: a build-time module on @cssints/icons, which reads @iconify-json/mdi from the app's node_modules
@@ -376,7 +374,7 @@ ok(
 );
 ok(/padding/.test(css), "css: padding from p()");
 ok(
-  /--rg-w:\s*2px/.test(css) && /\._rg\s*\{/.test(css),
+  /--ring-w:\s*2px/.test(css) && /\._ring-core\s*\{/.test(css),
   "css: the kernel and the method of the plugin",
   css,
 );

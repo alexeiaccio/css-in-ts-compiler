@@ -384,7 +384,7 @@ const isCondition = (v: unknown): v is Condition =>
 // it), so there every element inside the container gets them; :where() keeps the specificity at zero.
 const SCOPE = { "@media": ":root", "@container": ":where(*)" } as const;
 
-// A theme of a plugin member (`Built.themes`): the same path as createGlobalTheme, at the call site `at` of the member.
+// A theme of a plugin member (`Made.themes`): the same path as createGlobalTheme, at the call site `at` of the member.
 export const addTheme = (t: ThemeRule, at: At) =>
   Effect.try({
     try: () => theme(at, [t.tokens, t.selector, t.overrides, { layer: t.layer, scope: t.scope }]),

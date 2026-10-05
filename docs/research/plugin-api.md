@@ -54,3 +54,11 @@ top-level rules (`layer: null`), `createGlobalTheme(..., { layer })`. Its logic 
    `css.*` styles (from C), call members returning themes; frame, surface and icons migrate; `context`/`style`/`fn`/`property`
    stay as thin shims until nothing uses them. Positional structured args (B) if they type-check; else A's named record.
    Budgets re-baselined with a reason (the import floor), per-call cost held.
+
+## Done (2026-10-05)
+
+All three steps are in. `@cssints/mise-en-mode`'s `look()` is one call member of `scope()` (positional `$tokens` and `$overrides`, a new
+`$selector` leaf for `{ scope? }`) and has no types file: its public signature is inferred from the definition, with the same
+type errors. `context()`, `method()`, `style()`, `property()` and `fn()` are gone with their tests (what `scope()` keeps is
+tested on `scope()` now); `colorMix` is a value member of the scope `cssints-fn`, and `min`, `max` and `clamp` were never
+on `fn()`, so they stay plain calls.

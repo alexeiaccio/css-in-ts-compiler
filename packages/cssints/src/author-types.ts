@@ -1,5 +1,5 @@
 // The shapes the engine and the helpers of "cssints/plugin" share: kernels, global rules, themes, runtimes, conflicts and
-// what a legacy `style()` builds. Interfaces only; the helpers and their types are in author.ts and scope.ts.
+// the themes of a call member. Interfaces only; the helpers and their types are in author.ts and scope.ts.
 /** A declaration a member emits: property and value (a custom property, `--_r`, is allowed). */
 export type Decl = readonly [prop: string, value: string];
 /** A feature of `@mdn/browser-compat-data`: `css.at-rules.container.style_queries_for_custom_properties`. */
@@ -29,7 +29,7 @@ export interface GlobalRule {
   css: string;
   /**
    * A top-level `@layer` of this name to put the rule in (a rule that must beat the engine's `:root` fallbacks). The
-   * layer must be declared: by `layers` of the same `Built`, or by `layers()` in a module this one imports. Omitted:
+   * layer must be declared: by `layers` of the same `Made`, or by `layers()` in a module this one imports. Omitted:
    * layer `_.k`.
    */
   layer?: string;
@@ -71,29 +71,4 @@ export interface Runtime {
 export interface Conflict {
   props: (string | RegExp)[];
   message: string;
-}
-
-/** One method of a context: the grammar of its value (mdn syntax), and the declarations it emits. */
-export interface Method<
-  G extends string = string,
-  Sp extends boolean = boolean,
-  X extends string = string,
-> {
-  /** An empty grammar is a method that takes no value: `ink()`. */
-  readonly grammar: G;
-  /** A lone number is a step of the spacing scale (0.25rem), as in `padding`. */
-  readonly spacing?: Sp;
-  /** Methods that cannot be chained with this one: the chain leaves them out after it. */
-  readonly excludes?: readonly X[];
-  readonly emit: (value: string) => Decl[];
-}
-/** What `style()`'s `build` returns: declarations, and the fixed classes and kernels they need (markers belong to the first kernel). */
-export interface Built {
-  decls: Decl[];
-  markers?: string[];
-  kernels?: Kernel[];
-  globals?: GlobalRule[];
-  themes?: ThemeRule[];
-  /** Top-level layers to declare, in order (`layers()` for a member: `@layer app, author, viewer;`). */
-  layers?: string[];
 }

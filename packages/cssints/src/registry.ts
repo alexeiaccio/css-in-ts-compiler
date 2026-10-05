@@ -154,7 +154,7 @@ export interface RegistryState {
   lib?: { css: object; blockOf: (what: string, style: CssNode) => string };
   /** what the front of "cssints/plugin" calls (scope-engine.ts `engine`), set by macro.ts */
   engine?: object;
-  /** the properties of property(): checked by their own grammar when called, not by the engine */
+  /** the typed properties of scopes: checked by their own grammar when called, not by the engine */
   userProps: Set<string>;
   /** file -> the evaluation (`gen`) in which its first site ran: its kernels of older ones are forgotten (`__at`) */
   seen: Map<string, number>;
