@@ -104,6 +104,7 @@ More in [docs/API.md](docs/API.md): property names and short names, `flex()` and
 | `packages/cssints` | Vite plugin (`cssints/vite`) on the Vite Module Runner, and the `cssints` library |
 | `packages/css-grammar` | Type-level recognizer and its runtime twin over mdn-data grammars, Typed OM values, browser support and prose rules |
 | `packages/icons` | `@cssints/icons`: icons from iconify JSON collections or SVG folders, a mask style with no runtime |
+| `packages/mise-en-mode` | `@cssints/mise-en-mode`: looks as themes in the layers app < author < viewer, on `data-mode` scopes, checked against the tokens and by `check.contrast` |
 | `apps/demo` | React demo of every 0.1 feature |
 | `docs/research`, `docs/archive` | Comparisons with other libraries; outdated plans |
 

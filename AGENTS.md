@@ -11,6 +11,7 @@ packages/css-grammar   type-level recognizer (src/css.ts) + runtime twin (src/tw
                        Typed OM values, BCD support warnings, prose rules; test/, bench/ (instantiation budgets)
 tools/ai-automation    the oxlint plugin `automation/*` (Effect, core and anti-slop rules), the added-lines diff-check, vendor/anti-slop (MIT, UPSTREAM.md); its tests run through `vp test run`
 packages/icons         @cssints/icons: icons() on the cssints/plugin style() helper (iconify-json and fs providers); test/: fixtures, icons.mjs, types/
+packages/mise-en-mode  @cssints/mise-en-mode: look(tokens, expression, source, overrides, { scope? }), looks as themes in the layers app < author < viewer on data-mode scopes; test/: fixtures, mise-en-mode.mjs, types/
 apps/demo              React demo on the plugin: every 0.1 feature (App.tsx, components/Showcase.tsx, theme.ts)
 apps/sky               Solid 2 app on the plugin (solid-js 2.0.0-rc.13, @solidjs/router 2.0.0-next.35, atcute): Mu's shell (nav, 600 px column, rail, bottom bar), routes, themes, appearance settings (/settings), the post card and embeds (src/post/, /dev/posts in dev), the home feed with tabs (src/home/), the profile (src/profile/), the thread (src/thread/),
                        src/api.ts (public AppView) and paged.ts; test/api.mjs (recorded fixtures), post.mjs (post model), home.mjs (tabs, paging), profile.mjs, thread.mjs, settings.mjs, contrast.mjs (the hue slider's range), build.mjs, dev.mjs (build, HMR), browser.mjs, posts-browser.mjs, home-browser.mjs, profile-browser.mjs and thread-browser.mjs (Chrome)
@@ -428,10 +429,10 @@ Effect rules as errors on Effect code: the whole effect profile (no `try/catch`,
 `in` and `typeof`. Which rules are on and which are off, with counts, is in tools/ai-automation/README.md.
 
 Plain code by design is exempt through the `plainCode` override of `vite.config.ts` (a reason each): browser runtimes, the Typed OM
-values, the sync css.* builders and class hash of lib.ts, the twin's recognizer, @cssints/icons, the apps, tests, benches and scripts.
+values, the sync css.* builders and class hash of lib.ts, the twin's recognizer, @cssints/icons, @cssints/mise-en-mode, the apps, tests, benches and scripts.
 Add a file there when it joins that list, not a disable comment.
 
-The Effect language service runs with every diagnostic as an error (tsconfig.effect.json, extended by cssints, css-grammar and icons);
+The Effect language service runs with every diagnostic as an error (tsconfig.effect.json, extended by cssints, css-grammar, icons and mise-en-mode);
 `strictBooleanExpressions`, `missingPipeableSignature` and `nodeBuiltinImport` are off there, with the reason beside each. A diagnostic
 that must stay is silenced on its line, `// @effect-diagnostics-next-line <name>:off -- reason`.
 

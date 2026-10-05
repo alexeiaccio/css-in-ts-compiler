@@ -20,6 +20,7 @@
       "name": "cssints-demo",
       "dependencies": {
         "@cssints/icons": "workspace:*",
+        "@cssints/mise-en-mode": "workspace:*",
         "cssints": "workspace:*",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
@@ -97,6 +98,17 @@
       },
       "devDependencies": {
         "@iconify-json/mdi": "^1.2.0",
+        "cssints": "workspace:*",
+        "vite": "catalog:",
+      },
+      "peerDependencies": {
+        "cssints": "^0.1.0",
+      },
+    },
+    "packages/mise-en-mode": {
+      "name": "@cssints/mise-en-mode",
+      "version": "0.1.0",
+      "devDependencies": {
         "cssints": "workspace:*",
         "vite": "catalog:",
       },
@@ -191,6 +203,8 @@
     "@cssints/css-grammar": ["@cssints/css-grammar@workspace:packages/css-grammar"],
 
     "@cssints/icons": ["@cssints/icons@workspace:packages/icons"],
+
+    "@cssints/mise-en-mode": ["@cssints/mise-en-mode@workspace:packages/mise-en-mode"],
 
     "@effect/language-service": ["@effect/language-service@0.87.3", "", { "bin": { "effect-language-service": "cli.js" } }, "sha512-g1OmRBZF5chbW9QMNoirPo5Bb4zzU2HfP88tR7/VSZEUxHJ1/qVb8AQ0kUh2ggctLH1I715yCwP4gkw56PTjpQ=="],
 

@@ -27,6 +27,7 @@ const pkgs = {
   grammar: join(repo, "packages/css-grammar"),
   cssints: join(repo, "packages/cssints"),
   icons: join(repo, "packages/icons"),
+  mise: join(repo, "packages/mise-en-mode"),
 };
 const tsgo = join(repo, "node_modules/.bin/tsgo");
 const vp = join(repo, "node_modules/.bin/vp");
@@ -70,6 +71,7 @@ const tarballs = {
   grammar: tgz(pkgs.grammar),
   cssints: tgz(pkgs.cssints),
   icons: tgz(pkgs.icons),
+  mise: tgz(pkgs.mise),
 };
 console.log("tarballs");
 for (const t of Object.values(tarballs)) {
@@ -231,6 +233,16 @@ export const mdi = icons<typeof import("@iconify-json/mdi/icons.json")>({
 });
 `,
 );
+// a look on @cssints/mise-en-mode: a theme in the viewer layer, on the tokens of src/tokens.ts
+put(
+  "src/look.ts",
+  `import { look } from "@cssints/mise-en-mode" with { type: "cssints" };
+
+import { t } from "./tokens.ts" with { type: "cssints" };
+
+look(t, "dark", "viewer", { color: { brand: "#ef4444" } });
+`,
+);
 // the library's style, cv and token, and a theme of the token
 put(
   "src/Lib.tsx",
@@ -251,6 +263,7 @@ import { createRoot } from "react-dom/client";
 
 import { Button } from "./Button.tsx";
 import { Lib } from "./Lib.tsx";
+import "./look.ts";
 
 createRoot(document.getElementById("root")!).render(
   <>
@@ -264,10 +277,14 @@ put(
   "src/bad.ts",
   `import { color } from "cssints" with { type: "cssints" };
 
+import { look } from "@cssints/mise-en-mode" with { type: "cssints" };
+
 import { mdi } from "./icons.ts" with { type: "cssints" };
+import { t } from "./tokens.ts" with { type: "cssints" };
 
 export const wrong = color("blu");
 export const typo = mdi("hom");
+export const poorLook = look(t, "dark", "app", { color: { brand: "bleu" } });
 `,
 );
 put(
@@ -286,7 +303,9 @@ const install = run(
     "install",
     "--no-audit",
     "--no-fund",
-    ...[tarballs.cssints, tarballs.icons].map((t) => `./tarballs/${t.split("/").pop()}`),
+    ...[tarballs.cssints, tarballs.icons, tarballs.mise].map(
+      (t) => `./tarballs/${t.split("/").pop()}`,
+    ),
   ],
   app,
 );
@@ -298,6 +317,10 @@ ok(!existsSync(join(app, "node_modules/cssints/src")), "installed cssints has no
 ok(
   existsSync(join(app, "node_modules/@cssints/icons/dist/index.mjs")),
   "npm install: @cssints/icons from the tarball",
+);
+ok(
+  existsSync(join(app, "node_modules/@cssints/mise-en-mode/dist/index.mjs")),
+  "npm install: @cssints/mise-en-mode from the tarball",
 );
 ok(
   !/ERESOLVE|peer dep/i.test(install.out),
@@ -372,6 +395,14 @@ ok(
 ok(
   css.includes("data-cssints-poly"),
   "css: the fallback of the plugin's runtime (a target lacks the feature)",
+);
+ok(
+  /@layer [^{;]*\bapp,\s*author\b/.test(css) &&
+    /@layer viewer\s*\{\s*:where\(\[data-mode="?dark"?\],\s*\[data-mode~="?dark\\?\/color"?\]\)\s*\{[^}]*--color-brand:\s*#ef4444/.test(
+      css,
+    ),
+  "css: a look of @cssints/mise-en-mode (the declared layers, a theme in the viewer layer)",
+  css,
 );
 ok(
   /--fr-r:\s*4px/.test(css) && /@container/.test(css) && /@property\s+--fr-p/.test(css),
@@ -461,6 +492,7 @@ for (const [name, cmd, noConfig] of checkers) {
   );
   ok(wrong.code !== 0 && /blu/.test(wrong.out), `${name}: color("blu") is a type error`, wrong.out);
   ok(/hom/.test(wrong.out), `${name}: mdi("hom") is a type error`, wrong.out);
+  ok(/bleu/.test(wrong.out), `${name}: a look of "bleu" on a colour is a type error`, wrong.out);
   const across = run(
     bin,
     [
