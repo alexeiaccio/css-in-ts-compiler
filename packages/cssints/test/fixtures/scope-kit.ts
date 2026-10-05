@@ -29,17 +29,35 @@ export const kit = scope("sk", {
     parentVars: [{ marker: "&", read: "--_r", write: "--_w2" }],
     css: ":root[data-cssints-poly] & { --_fb: 1 }",
   },
-  noOutline: { props: ["outline", /^outline-/], message: "ring() sets the outline: use its methods" },
+  // conflicts of a kernel written as styles are derived (ring: outline and outline-offset); an entry of the list replaces them
+  onlyOutline: { props: ["outline"], message: "loose() sets the outline shorthand" },
+  // conditions inside a kernel, printed under its class in the order of the sheet
+  live: {
+    css: (css) => [
+      css.hover(css.color("red")),
+      css.color("var(--_c)"),
+      css.media("(width >= 40rem)")(css.padding("1rem")),
+      css.attr("aria-current", "page")(css.color("blue")),
+      css.container("(width > 20rem)")(css.margin("1px")),
+      css.supports("(display: grid)")(css.display("grid")),
+      css.within(css.focus)(css.paddingTop("2px")),
+      css.padding("2px"),
+    ],
+  },
+  edge: { css: (css) => css.borderColor("var(--_c)") },
   grid: { rule: ".sk-global { --_g: 1 }" },
   order: { layers: ["app", "viewer"] },
   ring: {
-    uses: ["core", "extra", "fallback", "noOutline"],
+    uses: ["core", "extra", "fallback"],
     chain: {
       width: { args: "<width>", spacing: true, emit: (v) => [["--_w", v]] },
       color: { args: "<tone>", emit: (v) => [["--_c", v]] },
       plain: { args: "", excludes: ["color"], emit: () => [["--_c", "currentColor"]] },
     },
   },
+  loose: { uses: ["core", "onlyOutline"], chain: { color: { args: "<tone>", emit: (v) => [["--_c", v]] } } },
+  alive: { uses: ["live"], chain: { color: { args: "<tone>", emit: (v) => [["--_c", v]] } } },
+  edged: { uses: ["edge"], chain: { color: { args: "<tone>", emit: (v) => [["--_c", v]] } } },
   tint: { args: "<color> <percentage>", value: ([c, p]) => `color-mix(in oklab, ${c}, black ${p})` },
   // positional: a colour, a token set, values for its paths, an object of options
   look: {
@@ -62,4 +80,5 @@ export const kit = scope("sk", {
     throw new Error("cssints: sk: no luck");
   },
 });
-export const { ring, tint, look, icon, fail, webkitFontSmoothing } = kit.export();
+export const { ring, loose, alive, edged, tint, look, icon, fail, webkitFontSmoothing } =
+  kit.export();

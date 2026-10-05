@@ -48,6 +48,15 @@ const x = scope("x", {
   "-webkit-font-smoothing": "auto | none | antialiased",
   core: { css: "& { color: var(--_c) }" },
   styled: { css: (css) => css.color("var(--_c)") },
+  // conditions inside a kernel written as styles
+  lively: {
+    css: (css) => [
+      css.color("var(--_c)"),
+      css.hover(css.color("red")),
+      css.media("(width >= 40rem)")(css.padding("1rem")),
+      css.attr("aria-current", "page")(css.color("blue")),
+    ],
+  },
   tint: {
     args: "<color> <percentage>",
     value: ([c, p]) => `color-mix(in oklab, ${c}, black ${p})`,

@@ -53,6 +53,21 @@ assert.match(
   "a token through a private alias over a token path",
 );
 assert.match(css, /\{-webkit-font-smoothing:none\}/);
+// conditions in a kernel written as styles: under its class, in the order of the sheet (fewer conditions first: @supports,
+// then the ancestor's state, own state, attribute, then queries by width), a shorthand before its longhand
+assert.ok(
+  css.includes(
+    '._sk-live{padding:2px;color:var(--sk-c)} @supports (display: grid){._sk-live{display:grid}} :where(._g:focus) ._sk-live{padding-top:2px} ._sk-live:hover{color:red} ._sk-live[aria-current="page"]{color:blue} @container (width > 20rem){._sk-live{margin:1px}} @media (width >= 40rem){._sk-live{padding:1rem}}',
+  ),
+  css,
+);
+// what is apart from the derived conflicts is fine: colour beside the outline, a border width beside the border colour
+assert.match(
+  use,
+  /export const q = "_sk-core \w+ \w+";/,
+  "an explicit conflicts entry: outline-color is allowed",
+);
+assert.match(use, /export const r = "_sk-core _sk-extra _sk-edge \w+ \w+";/, use);
 assert.match(
   use,
   /export const d = "color-mix\(in oklab, red, black 10%\)";/,
@@ -89,7 +104,7 @@ const fails = async (f, text, line, plugin = "sk") =>
     if (line) assert.equal(e.loc?.line, line, `${f}: the call site`);
     return true;
   });
-const kit = `import { ring, look, icon, tint, fail } from "./scope-kit" with { type: "cssints" };\nimport { brand } from "./scope-kit" with { type: "cssints" };\n`;
+const kit = `import { ring, loose, alive, edged, look, icon, tint, fail } from "./scope-kit" with { type: "cssints" };\nimport { brand } from "./scope-kit" with { type: "cssints" };\n`;
 await fails(
   write("sc-bad-width.ts", `${head}${kit}export const a = ring().width("red");\n`),
   /^ring\.width: unexpected "red"/,
@@ -115,16 +130,67 @@ await fails(
   /^ring\.color: unexpected "1px"/,
   4,
 );
-await fails(
-  write(
-    "sc-conflict.ts",
-    `${head}${kit}import {} from "cssints";\nexport const a = cn(ring().width(1), css.outline("1px"));\n`
-      .replace('import {} from "cssints";\n', "")
-      .replace("css.outline", "outline")
-      .replace("import { cn }", "import { cn, outline }"),
-  ),
-  /^cssints: sk: ring\(\) sets the outline: use its methods \(this style also sets outline\)$/,
-  4,
+// conflicts derived from a kernel written as styles (ring: outline, outline-offset): the property, a longhand of it, a
+// shorthand over it; what is apart from it is fine; a conflicts entry in `uses` replaces them
+const conflict = (name, imports, body, text, plugin = "sk") =>
+  fails(
+    write(
+      `sc-conflict-${name}.ts`,
+      `${head.replace("{ cn }", `{ cn, ${imports} }`)}${kit}export const a = ${body};\n`,
+    ),
+    text,
+    4,
+    plugin,
+  );
+const only = (kernel, props, also) =>
+  new RegExp(`^cssints: sk: kernel ${kernel} sets ${props} \\(this style also sets ${also}\\)$`);
+await conflict(
+  "same",
+  "outline",
+  `cn(ring(), outline("1px"))`,
+  only("core", "outline, outline-offset", "outline"),
+);
+await conflict(
+  "long",
+  "outlineColor",
+  `cn(ring(), outlineColor("red"))`,
+  only("core", "outline, outline-offset", "outline-color"),
+);
+await conflict(
+  "offset",
+  "outlineOffset",
+  `cn(ring(), outlineOffset("1px"))`,
+  only("core", "outline, outline-offset", "outline-offset"),
+);
+await conflict(
+  "under",
+  "outline, hover",
+  `cn(ring(), hover(outline("1px")))`,
+  only("core", "outline, outline-offset", "outline"),
+);
+await conflict(
+  "cond",
+  "paddingLeft",
+  `cn(alive(), paddingLeft("1px"))`,
+  only("live", "color, padding, margin, display, padding-top", "padding-left"),
+);
+await conflict(
+  "short",
+  "border",
+  `cn(edged(), border("1px solid"))`,
+  only("edge", "border-color", "border"),
+);
+await conflict(
+  "inside",
+  "borderTopColor",
+  `cn(edged(), borderTopColor("red"))`,
+  only("edge", "border-color", "border-top-color"),
+);
+await conflict(
+  "explicit",
+  "outline",
+  `cn(loose(), outline("1px"))`,
+  /^cssints: sk: loose\(\) sets the outline shorthand \(this style also sets outline\)$/,
 );
 await fails(
   write("sc-pos-color.ts", `${head}${kit}export const a = look("1px", brand, {});\n`),
@@ -170,6 +236,37 @@ await assert.rejects(
     assert.equal(e.loc?.line, 4);
     return true;
   },
+);
+
+// a kernel written as styles is checked like a user's styles: conditions are fine, firstThatWorks and overlap are not
+const kernelFails = async (name, body, text) => {
+  const f = write(
+    `sc-k-${name}.ts`,
+    `import { scope } from "cssints/plugin";\nexport const { m } = scope("sc-k-${name}", { core: { css: (css) => ${body} }, m: { uses: ["core"], chain: {} } }).export();\n`,
+  );
+  write(
+    `sc-k-${name}-use.ts`,
+    `import { m } from "./${f}" with { type: "cssints" };\nexport const a = m();\n`,
+  );
+  await assert.rejects(
+    code(`sc-k-${name}-use.ts`),
+    (e) => (assert.match(e.message.split("\n")[0], text), true),
+  );
+};
+await kernelFails(
+  "fb",
+  `css.color(css.firstThatWorks("red", "blue"))`,
+  /^cssints: sc-k-fb\.core takes declarations without firstThatWorks\(\.\.\.\), got color$/,
+);
+await kernelFails(
+  "val",
+  `css.hover(css.color("1px"))`,
+  /^cssints: sc-k-val\.core: color: unexpected "1px"/,
+);
+await kernelFails(
+  "lap",
+  `[css.marginLeft("1px"), css.marginInlineStart("1px")]`,
+  /^cssints: margin-left and margin-inline-start overlap without one containing the other/,
 );
 
 // the definition: names, entries
