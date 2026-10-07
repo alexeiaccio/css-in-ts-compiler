@@ -66,7 +66,7 @@ await assert.rejects(code("cn-overlap.ts"), (e) => {
 // without containment is an error at the cv() call.
 const { _cv } = await import("../src/runtime.ts");
 const cvIn = (out, n) =>
-  JSON.parse(new RegExp(`export const ${n} = _cv\\((\\{[\\s\\S]*?\\n\\})\\);`).exec(out)[1]);
+  JSON.parse(new RegExp(`export const ${n} = __cv\\((\\{[\\s\\S]*?\\n\\})\\);`).exec(out)[1]);
 const variant = await code("cv-cascade.ts");
 const cvCss = await sheet("cv-cascade.ts");
 const rules = (c) => c.split(" ").map((x) => cvCss.indexOf(`.${x}{`));
@@ -105,6 +105,35 @@ assert.equal(cvIn(variant, "peers").drops, undefined);
 // a dropped class is a class of the base only: the rule of the variant is still in the sheet
 assert.ok(cvCss.includes(`.${covers.variants.size.lg}{`));
 
+// compound variants win over the base and the variants they combine: those classes are dropped while it is active
+const cmp = cvIn(variant, "compound");
+const button = _cv(cmp);
+const { size, tone, disabled } = cmp.variants;
+const [cp, cbg] = cmp.compound[0].class.split(" ");
+const [loudColor] = tone.loud.split(" ");
+assert.equal(
+  button(),
+  `${size.sm} ${tone.quiet} ${disabled.false}`,
+  "defaults; the variants replace the base's padding and color",
+);
+assert.equal(
+  button({ size: "lg", tone: "loud" }),
+  `${loudColor} ${disabled.false} ${cp} ${cbg}`,
+  "the compound's padding and background replace the base's, size.lg's and tone.loud's",
+);
+assert.equal(
+  button({ size: "lg", tone: "loud", disabled: true }),
+  `${loudColor} ${cp} ${cbg} ${cmp.compound[1].class}`,
+  "two compounds at once; the second replaces the boolean variant's opacity",
+);
+assert.equal(
+  button({ tone: "loud", disabled: true }),
+  `${size.sm} ${tone.loud} ${cmp.compound[1].class}`,
+  "a compound needs all its values",
+);
+assert.equal(cmp.compound[0].when.size, "lg");
+assert.equal(cmp.defaultVariants.disabled, false, "a boolean default stays a boolean");
+
 for (const [f, re, line] of [
   [
     "cv-overlap.ts",
@@ -119,6 +148,16 @@ for (const [f, re, line] of [
   [
     "cv-same-keys.ts",
     /cv\(\) variants a\.x and b\.x both set color and can be active together, so nothing says which wins/,
+    4,
+  ],
+  [
+    "cv-compound-keys.ts",
+    /cv\(\) compoundVariants\[0\] and variant tone\.loud both set color and can be active together/,
+    4,
+  ],
+  [
+    "cv-compound-pair.ts",
+    /cv\(\) compoundVariants\[0\] and compoundVariants\[1\] both set color and can be active together/,
     4,
   ],
 ])

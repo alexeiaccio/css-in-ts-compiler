@@ -47,7 +47,7 @@ function gen(n, dir) {
     const sp = ["xs", "sm", "md", "lg", "xl"][i % 5];
     w(
       `src/components/${name}.tsx`,
-      `import { _cv, cx } from "cssints";
+      `import { cx } from "cssints";
 import { css, cn, cv, CSS, display, alignItems, gap, p, bg, color, borderRadius, fontSize, fontWeight, border } from "cssints" with { type: "cssints" };
 import { colors } from "../tokens/colors";
 import { radius, space } from "../tokens/space";
@@ -69,7 +69,7 @@ export function ${name}({ loud = false }: { loud?: boolean }) {
   return (
     <div className={cx(...root, loud && hover)}>
       <h2 className={cx(title)}>${name}</h2>
-      <p className={cx(body, ...muted, inset)}>{_cv(box, { tone: loud ? "loud" : "plain" })}</p>
+      <p className={cx(body, ...muted, inset)}>{box({ tone: loud ? "loud" : "plain" })}</p>
       ${child ? `<${child} loud={!loud} />` : ""}
     </div>
   );

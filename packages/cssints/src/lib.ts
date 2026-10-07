@@ -212,16 +212,20 @@ export function merged(decls: Decl[]): Decl[] {
   return out;
 }
 
-// What cv() joins at runtime: the base and the values of each variant that are active. Under one condition, a
-// variant's declaration that covers a base declaration (the same property, an alias, or a shorthand over it) replaces
-// it: the base class is dropped while that value is active, so the variant wins whatever the sheet order. The result is
-// the classes to drop, by variant and value. Two properties that overlap without containment, between the base and a
-// variant or between variants of different keys (both can be active), are an error as in cn(); so is the same property
-// in two keys, where nothing says which one wins. A longhand inside a shorthand is fine: the sheet puts it after.
+// What cv() joins at runtime: the base, the values of each variant that are active, and the compound variants whose
+// values are all active. Under one condition, a declaration that covers another (the same property, an alias, or a
+// shorthand over it) replaces it when it is active: a variant replaces the base, a compound replaces the base and the
+// variants it combines. The replaced class is dropped, so the winner wins whatever the sheet order. The result is the
+// classes to drop, by variant and value, and per compound. Two properties that overlap without containment, between
+// the base and a variant or between things that can be active together (variants of different keys, a compound and a
+// variant of another key, two compounds that share no key with different values), are an error as in cn(); so is the
+// same property in two of them, where nothing says which one wins. A longhand inside a shorthand is fine: the sheet puts
+// it after.
 export function settled(
   base: Decl[],
   variants: Record<string, Record<string, Decl[]>>,
-): Record<string, Record<string, string>> {
+  compounds: { when: Record<string, string>; decls: Decl[] }[] = [],
+) {
   const at = (d: Decl) => (d[2] ?? []).map((c) => c.text).join(" > ");
   const under = (d: Decl) => (at(d) ? ` (under ${at(d)})` : "");
   const meet = (o: Decl, d: Decl, who: string) => {
@@ -233,34 +237,59 @@ export function settled(
       );
     return r;
   };
+  // the classes of `olds` that `d` replaces, added to `gone`
+  const replace = (olds: Decl[], d: Decl, who: string, gone: string[]) => {
+    for (const o of olds) {
+      const cls = hashClass(o);
+      if (
+        meet(o, d, who) !== "apart" &&
+        covers(d[0], o[0]) &&
+        cls !== hashClass(d) &&
+        !gone.includes(cls)
+      )
+        gone.push(cls);
+    }
+  };
+  // two things that can be active together must not set the same property
+  const together = (o: Decl[], d: Decl, a: string, b: string) => {
+    for (const x of o)
+      if (meet(d, x, `${a} and ${b}:`) === "same")
+        throw fail(
+          `cssints: cv() ${a} and ${b} both set ${x[0]}${under(d)} and can be active together, so nothing says which wins: set it in one of them, or in the base`,
+        );
+  };
   const out: Record<string, Record<string, string>> = {};
   const keys = Object.entries(variants);
   keys.forEach(([k, vs], i) => {
     for (const [n, decls] of Object.entries(vs)) {
       const gone: string[] = [];
       for (const d of decls) {
-        for (const o of base) {
-          const cls = hashClass(o);
-          if (
-            meet(o, d, `base and variant ${k}.${n}:`) !== "apart" &&
-            covers(d[0], o[0]) &&
-            cls !== hashClass(d) &&
-            !gone.includes(cls)
-          )
-            gone.push(cls);
-        }
+        replace(base, d, `base and variant ${k}.${n}:`, gone);
         for (const [k2, vs2] of keys.slice(i + 1))
           for (const [n2, decls2] of Object.entries(vs2))
-            for (const o of decls2)
-              if (meet(d, o, `variants ${k}.${n} and ${k2}.${n2}:`) === "same")
-                throw fail(
-                  `cssints: cv() variants ${k}.${n} and ${k2}.${n2} both set ${o[0]}${under(d)} and can be active together, so nothing says which wins: set it in one of them, or in the base`,
-                );
+            together(decls2, d, `variants ${k}.${n}`, `${k2}.${n2}`);
       }
       if (gone.length) (out[k] ??= {})[n] = gone.join(" ");
     }
   });
-  return out;
+  const compound = compounds.map(({ when, decls }, j) => {
+    const gone: string[] = [];
+    const me = `compoundVariants[${j}]`;
+    for (const d of decls) {
+      replace(base, d, `base and ${me}:`, gone);
+      for (const [k, vs] of keys)
+        for (const [n, vdecls] of Object.entries(vs)) {
+          if (!(k in when)) together(vdecls, d, me, `variant ${k}.${n}`);
+          else if (when[k] === n) replace(vdecls, d, `variant ${k}.${n} and ${me}:`, gone);
+        }
+      compounds.slice(j + 1).forEach((c, i) => {
+        if (Object.keys(when).every((k) => !(k in c.when) || c.when[k] === when[k]))
+          together(c.decls, d, me, `compoundVariants[${j + 1 + i}]`);
+      });
+    }
+    return gone.join(" ");
+  });
+  return { drops: out, compound };
 }
 
 export function toDecls(member: string, args: unknown[]): Decl[] {

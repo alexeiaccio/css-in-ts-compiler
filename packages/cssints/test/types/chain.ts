@@ -1,7 +1,17 @@
 // What user code sees of flex(), grid() and cv(): `tsgo -p tsconfig.json` checks this file (`bun run typecheck`).
-import { cx, _cv } from "cssints";
+import { cx } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
-import { cn, cv, flex, fontSize, grid, hover, maxWidth, p } from "cssints" with { type: "cssints" };
+import {
+  cn,
+  cv,
+  flex,
+  fontSize,
+  grid,
+  hover,
+  maxWidth,
+  opacity,
+  p,
+} from "cssints" with { type: "cssints" };
 import type { Style } from "cssints";
 
 // Chain methods are their properties (flex-direction, gap, ...), and every step is still a class string.
@@ -56,16 +66,41 @@ flex("1 1 2");
 // @ts-expect-error not a grid value
 grid("sideways");
 
-// cv takes styles, not CSS strings.
+// cv takes styles, not CSS strings, and gives the function the browser calls: props typed from the variants.
 export const button = cv({
   base: cn(p(2), fontSize("1rem")),
   variants: {
     size: { sm: p(1), lg: cn(p(4), fontSize("1.25rem")) },
     wide: { yes: maxWidth("100%"), no: flex().gap(1) },
+    disabled: { true: opacity(0.5), false: opacity(1) },
   },
-  defaultVariants: { size: "sm" },
+  defaultVariants: { size: "sm", disabled: false },
+  compoundVariants: [{ size: "lg", wide: "yes", disabled: true, class: p(8) }],
 });
-export const className: string = _cv(button)({ size: "lg" });
+export const className: string = button({ size: "lg", disabled: true });
+button();
+button({});
+button({ size: undefined });
+// @ts-expect-error a typo in a variant name
+button({ sizee: "lg" });
+// @ts-expect-error a typo in a value
+button({ size: "xl" });
+// @ts-expect-error a boolean variant takes a boolean, not its key
+button({ disabled: "true" });
+// @ts-expect-error a string variant takes no boolean
+button({ size: true });
+// @ts-expect-error a default is checked against the variants
+cv({ variants: { size: { sm: p(1) } }, defaultVariants: { size: "lg" } });
+// @ts-expect-error so is a name
+cv({ variants: { size: { sm: p(1) } }, defaultVariants: { sizee: "sm" } });
+// @ts-expect-error a compound is checked against the variants too
+cv({ variants: { size: { sm: p(1) } }, compoundVariants: [{ size: "lg", class: p(2) }] });
+// @ts-expect-error a compound adds a style
+cv({ variants: { size: { sm: p(1) } }, compoundVariants: [{ size: "sm" }] });
+// @ts-expect-error and its class is a style, not a string
+cv({ variants: { size: { sm: p(1) } }, compoundVariants: [{ size: "sm", class: "_abc" }] });
+// @ts-expect-error _cv is not exported any more: cv() is the function
+export { _cv } from "cssints";
 
 // @ts-expect-error a CSS string is no style
 cv({ base: "padding: 1rem" });
@@ -75,5 +110,3 @@ cv({ variants: { size: { sm: "_abc" } } });
 cv({ variants: { size: { sm: [p(1)] } } });
 // @ts-expect-error cx gives a runtime string, not a build-time style
 cv({ base: cx(p(1)) });
-// @ts-expect-error a default is a name
-cv({ defaultVariants: { size: 1 } });

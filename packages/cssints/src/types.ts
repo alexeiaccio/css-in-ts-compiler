@@ -9,11 +9,10 @@ import type { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/c
 import type { COLOR_MIX } from "./grammars.ts";
 import type { Alt, Check, CheckIn, Fallback, Part, Style } from "./parts.ts";
 import type { layers } from "./theme-types.ts";
-import type { CvRuntimeConfig } from "./runtime.ts";
 
 export * from "./members.ts";
 export * from "./theme-types.ts";
-export { _cv, cx, type ClassValue, type CvRuntimeConfig } from "./runtime.ts";
+export { cx, type ClassValue } from "./runtime.ts";
 export type { Fallback, Part, Style };
 
 /** One property: parts are checked against its mdn grammar; `R` is what the call gives (a chain method: the chain). */
@@ -42,10 +41,18 @@ export type StateWrap = Wrap & { readonly __state: true };
 /** What media() and container() give: a condition that createGlobalTheme takes (a pseudo-class wrapper is not one). */
 export type QueryWrap = Wrap & { readonly __query: true };
 
-export interface CvConfig {
+/** The value a variant takes: its keys, or a boolean when they are only `true` and `false`. */
+export type CvValue<V> = [keyof V] extends ["true" | "false"]
+  ? boolean
+  : `${keyof V & (string | number)}`;
+/** The props of a `cv()` function: one optional value per variant. */
+export type CvProps<V> = { [K in keyof V]?: CvValue<V[K]> | undefined };
+export interface CvConfig<V extends Record<string, Record<string, Style>>> {
   base?: Style;
-  variants?: Record<string, Record<string, Style>>;
-  defaultVariants?: Record<string, string>;
+  variants?: V;
+  defaultVariants?: CvProps<NoInfer<V>>;
+  /** Styles added when every value named here is active, and that win over the variants they combine. */
+  compoundVariants?: (CvProps<NoInfer<V>> & { class: Style })[];
 }
 
 export declare const cn: (...styles: Style[]) => Style;
@@ -151,8 +158,10 @@ export declare const token: { readonly [K in TokenType]: TokenFn<K> } & {
 };
 /** css values (declarations, no conditions) and `token.set()` results, as an inline `style` object. */
 export declare const style: (...styles: (Style | StyleObject)[]) => StyleObject;
-/** The plugin replaces the call by the runtime config that `_cv` takes. */
-export declare const cv: (config: CvConfig) => CvRuntimeConfig;
+/** The plugin replaces the call by a runtime function of class strings: `button({ size: "lg" })` gives the class names. */
+export declare const cv: <V extends Record<string, Record<string, Style>> = Record<never, never>>(
+  config: CvConfig<V>,
+) => (props?: CvProps<V>) => string;
 
 export declare const css: typeof import("./members.ts") & {
   cn: typeof cn;

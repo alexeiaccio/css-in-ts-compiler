@@ -26,7 +26,7 @@ import type { ModuleRunner } from "vite/module-runner";
 import { verifyChecks } from "./contrast.ts";
 import { evaluate, DomEvaluator } from "./evaluate.ts";
 import { HookError, type PluginError, SiteMissingError } from "./errors.ts";
-import { instrument, keptImport, RUNTIME, type Instrumented } from "./instrument.ts";
+import { CV_CALL, instrument, keptImport, RUNTIME, type Instrumented } from "./instrument.ts";
 import { DERIVED, fallbackEntries, RUNTIME_ID, runtimeModule, runtimeNames } from "./delivery.ts";
 import { usesDerived } from "./derived-data.ts";
 import { kernelEntries } from "./kernel.ts";
@@ -254,6 +254,9 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     // The runtime of every plugin member a site holds: a module that decides at load what it contains.
     if (runtimes.length)
       ms.prepend(runtimes.map((n) => `import ${Formatter.formatJson(RUNTIME_ID + n)};\n`).join(""));
+    // A cv() site is a call of the runtime: its import is the plugin's, not the user's.
+    if ([...sites.values()].some((r) => r.startsWith(CV_CALL)))
+      ms.prepend(`import { _cv as __cv } from ${Formatter.formatJson(RUNTIME)};\n`);
     for (const [n, s] of parsed.sites.entries()) {
       const replacement = sites.get(n);
       if (replacement === undefined)
@@ -265,7 +268,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
         });
       ms.overwrite(s.start, s.end, replacement);
     }
-    // Build-time imports are gone from the client; runtime ones (cx, _cv) stay.
+    // Build-time imports are gone from the client; runtime ones (cx) stay.
     for (const decl of parsed.imp.decls) {
       const kept = keptImport(decl, code);
       if (kept) ms.overwrite(decl.start, decl.end, kept);
