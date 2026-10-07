@@ -92,12 +92,30 @@ type KindAt<N, P extends string, Root, Inherited = undefined> = P extends `${inf
       : never
     : never;
 
-/** The tokens of a `const` DTCG object: every leaf `{ $value }` is a named token of the type its `$type` maps to. */
+// The definition's value as text: a string as written (an alias keeps its `{path}`), a number or a { value, unit } as its CSS
+// text, a colour object (or a JSON import's widened value) as `string`.
+type Text<V> = V extends string
+  ? V
+  : V extends number
+    ? `${V}`
+    : V extends { readonly value: infer N extends number; readonly unit: infer U extends string }
+      ? `${N}${U}`
+      : string;
+type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+
+/**
+ * The tokens of a `const` DTCG object: every leaf `{ $value }` is a named token of the type its `$type` maps to, carrying the
+ * definition's value as text. A key that starts with a digit is read as `_<key>` (`t.space._2xs`).
+ */
 export type Tokens<G, Inherited = undefined, Root = G> = {
-  readonly [K in keyof G as K extends `$${string}` ? never : K]: G[K] extends {
+  readonly [K in keyof G as K extends `$${string}`
+    ? never
+    : K extends `${Digit}${string}`
+      ? `_${K}`
+      : K]: G[K] extends {
     readonly $value: infer V;
   }
-    ? Token<KindOf<V, TypeOf<G[K], Inherited>, Root>, true>
+    ? Token<KindOf<V, TypeOf<G[K], Inherited>, Root>, true, Text<V>>
     : Tokens<G[K], TypeOf<G[K], Inherited>, Root>;
 };
 

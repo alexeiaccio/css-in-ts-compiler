@@ -886,6 +886,7 @@ const token = {
 };
 //#endregion
 //#region src/theme.ts
+const accessOf = (key) => /^\d/.test(key) ? `_${key}` : key;
 const SUPPORTED = Object.keys(DTCG_TYPES).join(", ");
 const COLOR_FN = {
 	hsl: [1, 2],
@@ -998,6 +999,7 @@ const createTokens = (...args) => edge(Effect.gen(function* () {
 	yield* collect(tree, [], void 0, leaves);
 	if (!leaves.length) return yield* fail("cssints: createTokens(): the tokens have no leaf ({ $value })");
 	const names = /* @__PURE__ */ new Map();
+	const read = /* @__PURE__ */ new Map();
 	const inherit = /* @__PURE__ */ new Map();
 	for (const l of leaves) {
 		const given = mapper ? mapper([...l.path]) : l.path.map(kebab).join("-");
@@ -1008,6 +1010,9 @@ const createTokens = (...args) => edge(Effect.gen(function* () {
 		if (names.has(n.name)) return yield* fail(`cssints: createTokens(): ${names.get(n.name)} and ${l.dotted} are both ${n.name}`);
 		names.set(n.name, l.dotted);
 		inherit.set(l.dotted, n.inherit);
+		const as = l.path.map(accessOf).join(".");
+		if (read.has(as)) return yield* fail(`cssints: createTokens(): ${read.get(as)} and ${l.dotted} are both read as t.${as}`);
+		read.set(as, l.dotted);
 	}
 	const variable = new Map([...names].map(([v, dotted]) => [dotted, v]));
 	const byPath = new Map(leaves.map((l) => [l.dotted, l]));
@@ -1095,12 +1100,15 @@ const createTokens = (...args) => edge(Effect.gen(function* () {
 		set.tokens.set(l.dotted, token);
 		set.types.set(name, r.dtcg);
 		let group = root;
-		for (const [i, k] of l.path.entries()) if (i === l.path.length - 1) group[k] = token;
-		else if (Predicate.isObject(group[k])) group = group[k];
-		else {
-			const g = group[k] = {};
-			sets.set(g, set);
-			group = g;
+		for (const [i, key] of l.path.entries()) {
+			const k = accessOf(key);
+			if (i === l.path.length - 1) group[k] = token;
+			else if (Predicate.isObject(group[k])) group = group[k];
+			else {
+				const g = group[k] = {};
+				sets.set(g, set);
+				group = g;
+			}
 		}
 	}
 	sets.set(root, set);

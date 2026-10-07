@@ -71,7 +71,7 @@ const reasonLine = cn(
 );
 const note = cn(
   margin("0"),
-  padding(t.space["2xl"], t.gutter.base),
+  padding(t.space._2xl, t.gutter.base),
   textAlign("center"),
   color(t.color.textMedium),
 );

@@ -50,7 +50,7 @@ const nav = css.cn(
 );
 
 const brand = css.cn(
-  css.fontSize(t.fontSize["2xl"]),
+  css.fontSize(t.fontSize._2xl),
   css.fontWeight(t.fontWeight.bold),
   css.color(t.color.accent),
   css.textDecoration("none"),

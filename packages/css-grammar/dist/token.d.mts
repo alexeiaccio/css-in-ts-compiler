@@ -93,10 +93,15 @@ export type Syntax<K extends TokenType> = (typeof TOKEN_TYPES)[K]["syntax"];
 type Trim<S extends string> = S extends ` ${infer R}` ? Trim<R> : S;
 /** The value, or a message naming the bad token, like `Valid` for a property. */
 export type ValidSyntax<K extends string, S extends string> = Matches<`<${K}>`, S> extends true ? S : S extends string ? `${K}: ${Unexpected<Stuck<Trim<S> | Consume<Parse<`<${K}>`>, Trim<S>>>>} in "${S}", grammar <${K}>` : never;
-/** A token: a Typed OM value of its type whose text is `var(--name)`. `Settable` is whether it has a name. */
-export interface Token<K extends TokenType = TokenType, Settable extends boolean = boolean> extends CSSStyleValue<(typeof TOKEN_TYPES)[K]["sentinels"][number]> {
+/**
+ * A token: a Typed OM value of its type whose text is `var(--name)`. `Settable` is whether it has a name. `V` is the value of
+ * the definition as text, inferred by `createTokens` (`"#545434"`, `"{color.base}"` for an alias), `string` where nothing
+ * says; a covariant phantom, so a token of any `V` is a `Token<K, S>`.
+ */
+export interface Token<K extends TokenType = TokenType, Settable extends boolean = boolean, V extends string = string> extends CSSStyleValue<(typeof TOKEN_TYPES)[K]["sentinels"][number]> {
   readonly "~token": K;
   readonly "~settable": Settable;
+  readonly "~value": V;
 }
 /** `--name`, and whether the variable inherits (default true). */
 export interface TokenName {

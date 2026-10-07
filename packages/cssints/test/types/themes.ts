@@ -255,3 +255,22 @@ css.check.contrast(j.color.bg, j.color.accent, { min: 3 });
 css.check.contrast(j.color.bg, css.token.color("#fff"), { min: 3 });
 // @ts-expect-error a typed length is still not a colour
 css.check.contrast(j.color.bg, css.token.length("1px"), { min: 3 });
+
+// The token carries the value of its definition as text (a covariant phantom: any of them is a Token<K, S>).
+const vt = css.createTokens({
+  vc: { $type: "color", base: { $value: "#545434" }, link: { $value: "{vc.base}" } },
+  vm: { $type: "duration", fast: { $value: { value: 150, unit: "ms" } } },
+});
+export const vLit: Token<"color", true, "#545434"> = vt.vc.base;
+export const vAlias: Token<"color", true, "{vc.base}"> = vt.vc.link;
+export const vUnit: Token<"time", true, "150ms"> = vt.vm.fast;
+export const vWide: Token<"color", true> = vt.vc.base;
+// @ts-expect-error the literal is the definition's, not another colour
+export const vOther: Token<"color", true, "#000"> = vt.vc.base;
+
+// A key that starts with a digit is read as _<key>; overrides follow the set.
+const dg = css.createTokens({ dg: { $type: "dimension", "2xs": { $value: "2px" } } });
+export const dg2: Token<"length", true, "2px"> = dg.dg._2xs;
+css.createGlobalTheme(dg, ".dg", { dg: { _2xs: "3px" } });
+// @ts-expect-error read as _2xs
+export const dg3 = dg.dg["2xs"];

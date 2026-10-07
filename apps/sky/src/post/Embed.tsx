@@ -65,7 +65,7 @@ const block = display("block");
 
 // The columns come from the card's width ("post" container), the variant from how many images there are.
 const grid = cv({
-  base: cn(display("grid"), gap(t.space["2xs"])),
+  base: cn(display("grid"), gap(t.space._2xs)),
   variants: {
     n: {
       "1": gridTemplateColumns("minmax(0, 1fr)"),
@@ -155,7 +155,7 @@ const ext = cn(
   color(t.color.text),
 );
 const extBody = cn(
-  flex().direction("column").gap(t.space["2xs"]),
+  flex().direction("column").gap(t.space._2xs),
   padding(t.space.md),
   minWidth("0"),
 );

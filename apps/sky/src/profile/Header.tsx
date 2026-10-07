@@ -58,7 +58,7 @@ const avatar = cn(
 const ident = cn(minWidth("0"), padding(t.space.xs, "0"));
 const name = cn(
   margin("0"),
-  fontSize(t.fontSize["2xl"]),
+  fontSize(t.fontSize._2xl),
   lineHeight(t.lineHeight.tight),
   fontWeight(t.fontWeight.bold),
   overflowWrap("anywhere"),

@@ -97,6 +97,16 @@ assert.match(
 e = await failure("fixtures/themes-bad-value.ts");
 assert.match(e.message, /^cssints: createTokens\(\): color\.badbg value "blu" is not a <color>$/);
 
+// A key that starts with a digit is read as _<key> (t.dg._2xs); its variable, references and DTCG data keep the key.
+const digit = (await client.transformRequest("/fixtures/themes-digit.ts")).code;
+assert.match(digit, /"_2xs": "var\(--dg-2xs\)"/);
+assert.match(sheet("themes-digit.ts"), /\.dg\{--dg-2xs:3px/);
+e = await failure("fixtures/themes-digit-clash.ts");
+assert.match(
+  e.message,
+  /^cssints: createTokens\(\): dgc\.2xs and dgc\._2xs are both read as t\.dgc\._2xs$/,
+);
+
 console.log("themes: tokens from DTCG data, aliases flattened and live, errors located");
 
 // createGlobalTheme: rules in layer _.k after the :root aliases, in source order, media before selectors; an alias

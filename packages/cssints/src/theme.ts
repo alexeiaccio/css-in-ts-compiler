@@ -13,6 +13,9 @@ import { type At, registry, type ThemeRule } from "./registry.ts";
 import { requireLayer } from "./sheet.ts";
 import { checkSyntaxFx, CSSTokenValue, declare, nameOf, supportTest } from "./token.ts";
 
+// The key of a token or group as code reads it: one that starts with a digit (`2xs`) is `_2xs`, a name.
+const accessOf = (key: string) => (/^\d/.test(key) ? `_${key}` : key);
+
 const SUPPORTED = Object.keys(DTCG_TYPES).join(", ");
 
 // ---------- DTCG values to CSS text
@@ -212,6 +215,7 @@ export const createTokens = (...args: unknown[]): unknown =>
         return yield* fail("cssints: createTokens(): the tokens have no leaf ({ $value })");
 
       const names = new Map<string, string>(); // variable -> dotted path
+      const read = new Map<string, string>(); // the path as code reads it (t.space._2xs) -> dotted path
       const inherit = new Map<string, boolean>();
       for (const l of leaves) {
         const given = mapper
@@ -227,6 +231,12 @@ export const createTokens = (...args: unknown[]): unknown =>
           );
         names.set(n.name, l.dotted);
         inherit.set(l.dotted, n.inherit);
+        const as = l.path.map(accessOf).join(".");
+        if (read.has(as))
+          return yield* fail(
+            `cssints: createTokens(): ${read.get(as)} and ${l.dotted} are both read as t.${as}`,
+          );
+        read.set(as, l.dotted);
       }
       const variable = new Map([...names].map(([v, dotted]) => [dotted, v]));
       const byPath = new Map(leaves.map((l) => [l.dotted, l]));
@@ -341,7 +351,8 @@ export const createTokens = (...args: unknown[]): unknown =>
         set.tokens.set(l.dotted, token);
         set.types.set(name, r.dtcg);
         let group = root;
-        for (const [i, k] of l.path.entries())
+        for (const [i, key] of l.path.entries()) {
+          const k = accessOf(key);
           if (i === l.path.length - 1) group[k] = token;
           else if (Predicate.isObject(group[k])) group = group[k];
           else {
@@ -349,6 +360,7 @@ export const createTokens = (...args: unknown[]): unknown =>
             sets.set(g, set);
             group = g;
           }
+        }
       }
       sets.set(root, set);
       if (live.length) {

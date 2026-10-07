@@ -141,7 +141,7 @@ const counts = cn(
 const num = cn(fontWeight(t.fontWeight.bold), color(t.color.text));
 
 const actions = cn(
-  flex().alignItems("center").gap(t.space["3xl"]),
+  flex().alignItems("center").gap(t.space._3xl),
   color(t.color.textMedium),
   fontSize(t.fontSize.sm),
   marginTop(t.space.sm),
