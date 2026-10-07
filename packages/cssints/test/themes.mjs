@@ -37,12 +37,12 @@ const failure = async (f) => {
 const at = (e) => ({ line: e.loc.line, column: e.loc.column });
 const sheet = (...files) => plugins[0].api.sheet(files.map((f) => `${root}/fixtures/${f}`));
 
-// createTokens: the tokens by path, as var() strings on the client; $type inherited through groups.
+// createTokens: the tokens by path, as getters of var() strings on the client; $type inherited through groups.
 const code = (await client.transformRequest("/fixtures/themes-tokens.ts")).code;
-assert.match(code, /"bg": "var\(--color-bg\)"/);
-assert.match(code, /"linkHover": "var\(--color-link-hover\)"/);
-assert.match(code, /"strong": "var\(--font-strong\)"/);
-assert.ok(!/\bcss\.|createTokens/.test(code), "a module of tokens ships strings only");
+assert.match(code, /"bg": \(\) => "var\(--color-bg\)"/);
+assert.match(code, /"linkHover": \(\) => "var\(--color-link-hover\)"/);
+assert.match(code, /"strong": \(\) => "var\(--font-strong\)"/);
+assert.ok(!/\bcss\.|createTokens/.test(code), "a module of tokens ships getters of strings only");
 
 // Aliases: @property gets the flattened literal, :root keeps them live (in layer _.k, after @property).
 let css = sheet("themes-tokens.ts");
@@ -96,6 +96,13 @@ assert.match(
 );
 e = await failure("fixtures/themes-bad-value.ts");
 assert.match(e.message, /^cssints: createTokens\(\): color\.badbg value "blu" is not a <color>$/);
+
+// A leaf is a getter: one that was not called is an error that names it, at the call that took it
+e = await failure("fixtures/themes-uncalled.ts");
+assert.match(e.message, /^cssints: unc\.bg is a token getter, not a token: call it, as in t\.unc\.bg\(\)$/);
+assert.deepEqual(at(e), { line: 5, column: 17 });
+e = await failure("fixtures/themes-uncalled-contrast.ts");
+assert.match(e.message, /^cssints: uncc\.fg is a token getter, not a token: call it, as in t\.uncc\.fg\(\)$/);
 
 console.log("themes: tokens from DTCG data, aliases flattened and live, errors located");
 
@@ -257,8 +264,8 @@ export const t = css.createTokens({
     mix: { $value: "color-mix(in oklab, {cder.base}, black 15%)" },
   },
 });
-css.check.contrast(t.cder.mix, t.cder.bg, { min: 4.5 });
-css.check.contrast(t.cder.mix, t.cder.base, { min: 1 });
+css.check.contrast(t.cder.mix(), t.cder.bg(), { min: 4.5 });
+css.check.contrast(t.cder.mix(), t.cder.base(), { min: 1 });
 `;
 const derivedWarning = [
   'cssints: contrast is not checked for cder.mix in the default values: "color-mix(in oklab, #1d4ed8, black 15%)" is not a colour the check can read',
@@ -315,7 +322,7 @@ export const t = css.createTokens({ late: { $type: "color", bg: { $value: "#fff"
     "a.ts",
     `import * as css from "cssints" with { type: "cssints" };
 import { t } from "./tokens.ts" with { type: "cssints" };
-css.check.contrast(t.late.fg, t.late.bg, { min: 4.5 });
+css.check.contrast(t.late.fg(), t.late.bg(), { min: 4.5 });
 `,
   );
   w(

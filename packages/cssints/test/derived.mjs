@@ -97,7 +97,7 @@ await refError(
 
 // JSON: the tree of the import, the DTCG object forms, a derived value
 const json = await code("json-use.ts");
-assert.match(json, /"hover": "var\(--brand-hover\)"/);
+assert.match(json, /"hover": \(\) => "var\(--brand-hover\)"/);
 const jcss = await sheet("json-use.ts");
 assert.match(jcss, /@property --brand-accent\{[^}]*initial-value:oklch\(0\.62 0\.19 264\)/, jcss);
 assert.match(jcss, /--brand-hover:color-mix\(in oklab, var\(--brand-accent\), black 15%\)/, jcss);
