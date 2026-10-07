@@ -26,57 +26,57 @@ import { t } from "../theme.ts" with { type: "cssints" };
 
 const section = cn(
   flex().direction("column").gap(3),
-  padding(t.gutter.base()),
-  borderBottom(t.border.width(), "solid", t.color.border()),
+  padding(t.gutter.base),
+  borderBottom(t.border.width, "solid", t.color.border),
   margin("0"),
 );
-const heading = cn(fontSize(t.fontSize.lg()), fontWeight(t.fontWeight.bold()), margin("0"));
-const legend = cn(heading, padding("0"), marginBottom(t.space.md()));
-const hint = cn(margin("0"), color(t.color.textMedium()), fontSize(t.fontSize.sm()));
+const heading = cn(fontSize(t.fontSize.lg), fontWeight(t.fontWeight.bold), margin("0"));
+const legend = cn(heading, padding("0"), marginBottom(t.space.md));
+const hint = cn(margin("0"), color(t.color.textMedium), fontSize(t.fontSize.sm));
 const row = cn(flex().alignItems("center").gap(3));
 const option = cn(flex().alignItems("center").gap(2));
-const control = cn(accentColor(t.color.accent()), margin("0"));
+const control = cn(accentColor(t.color.accent), margin("0"));
 const slider = cn(control, flexGrow(1));
 
 // The derived accent colours, drawn from the tokens: they follow the slider and the mode.
 const swatch = cn(
   flex().direction("column").alignItems("center").gap(1),
-  fontSize(t.fontSize.xs()),
-  color(t.color.textMedium()),
+  fontSize(t.fontSize.xs),
+  color(t.color.textMedium),
 );
 const chip = cn(
-  width(t.avatar.feed()),
-  height(t.avatar.feed()),
-  borderRadius(t.radius.sm()),
-  border(t.border.width(), "solid", t.color.border()),
+  width(t.avatar.feed),
+  height(t.avatar.feed),
+  borderRadius(t.radius.sm),
+  border(t.border.width, "solid", t.color.border),
 );
 const swatches = [
-  ["accent", cn(chip, bg(t.color.accent()))],
-  ["hover", cn(chip, bg(t.color.accentHover()))],
-  ["strong", cn(chip, bg(t.color.accentStrong()))],
-  ["soft", cn(chip, bg(t.color.accentSoft()))],
+  ["accent", cn(chip, bg(t.color.accent))],
+  ["hover", cn(chip, bg(t.color.accentHover))],
+  ["strong", cn(chip, bg(t.color.accentStrong))],
+  ["soft", cn(chip, bg(t.color.accentSoft))],
 ] as const;
 
 // The two square flags: a button made of two frames (the inner radius follows the outer one) and the two avatar sizes.
 const button = cn(
-  frame().radius(t.radius.button()).padding(1),
-  bg(t.color.accentHover()),
+  frame().radius(t.radius.button).padding(1),
+  bg(t.color.accentHover),
   display("inline-flex"),
 );
 const buttonLabel = cn(
   frame().padding(3),
-  bg(t.color.accent()),
-  color(t.color.onAccent()),
-  fontWeight(t.fontWeight.semiBold()),
+  bg(t.color.accent),
+  color(t.color.onAccent),
+  fontWeight(t.fontWeight.semiBold),
 );
-const avatar = cn(bg(t.color.accent()), display("block"));
+const avatar = cn(bg(t.color.accent), display("block"));
 const avatarBig = cn(
   avatar,
-  width(t.avatar.feed()),
-  height(t.avatar.feed()),
-  borderRadius(t.radius.avatar()),
+  width(t.avatar.feed),
+  height(t.avatar.feed),
+  borderRadius(t.radius.avatar),
 );
-const avatarSmall = cn(avatar, width("24px"), height("24px"), borderRadius(t.radius.avatarSmall()));
+const avatarSmall = cn(avatar, width("24px"), height("24px"), borderRadius(t.radius.avatarSmall));
 
 const fieldset = cn(border("0"), padding("0"), margin("0"), section);
 

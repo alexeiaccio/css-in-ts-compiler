@@ -1,6 +1,6 @@
-import { G as types_d_exports, Xd as Style, Yd as Part, qd as CheckIn, t as CheckOverrides } from "./theme-types-B3A0kZcX.mjs";
-import { Syntax, TokenType } from "@cssints/css-grammar/token";
+import { G as types_d_exports, Xd as Style, Yd as Part, qd as CheckIn, t as CheckOverrides } from "./theme-types-BrXVrBUa.mjs";
 import { CSSStyleValue } from "@cssints/css-grammar/values";
+import { Syntax, TokenType } from "@cssints/css-grammar/token";
 import { ValidSelector } from "@cssints/css-grammar/query";
 //#region src/author-types.d.ts
 /** A declaration a member emits: property and value (a custom property, `--_r`, is allowed). */
@@ -223,9 +223,9 @@ type Camel<S extends string> = S extends `-${infer H}` ? Camel<H> : S extends `$
 type Expand<G extends string, A, D extends 0[] = []> = D["length"] extends 6 ? G : G extends `${infer Pre}<${infer N}>${infer Post}` ? N extends keyof A ? A[N] extends (infer S extends string) ? `${Pre}[ ${Expand<S, A, [...D, 0]>} ]${Expand<Post, A, D>}` : G : `${Pre}<${N}>${Expand<Post, A, D>}` : G;
 type Own<T> = { [K in keyof T & string as Kind<K, T[K]> extends "alias" ? Strip<K> : never]: T[K]; };
 type Resolved<A> = { [N in keyof A]: A[N] extends string ? Expand<A[N], A> : never; };
-type Paths<X, P extends string = ""> = { [K in keyof X & string]: X[K] extends (() => {
+type Paths<X, P extends string = ""> = { [K in keyof X & string]: X[K] extends {
   readonly "~token": infer Kd extends TokenType;
-}) ? { [Q in `${P}${K}`]: `<${Syntax<Kd>}>`; } : Paths<X[K], `${P}${K}.`>; }[keyof X & string];
+} ? { [Q in `${P}${K}`]: `<${Syntax<Kd>}>`; } : Paths<X[K], `${P}${K}.`>; }[keyof X & string];
 type Flat<U> = (U extends unknown ? (x: U) => void : never) extends ((x: infer I) => void) ? I : never;
 type ModAliases<T> = Flat<{ [K in keyof T & string]: Kind<K, T[K]> extends "module" ? T[K] extends {
   "~aliases": infer MA;

@@ -7,4 +7,4 @@ const t = css.createTokens({
 });
 css.createGlobalTheme(t, ".look", { cly: { fg: "#eeeeee", bg: "#111111" } }, { layer: "app" });
 css.createGlobalTheme(t, ".look", { cly: { fg: "#222222" } }, { layer: "viewer" });
-css.check.contrast(t.cly.fg(), t.cly.bg(), { min: 4.5 });
+css.check.contrast(t.cly.fg, t.cly.bg, { min: 4.5 });

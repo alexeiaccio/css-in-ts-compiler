@@ -11,16 +11,7 @@ import { standIn } from "./derived-data.ts";
 import { edge, fail } from "./lib.ts";
 import { type At, registry, type ThemeRule } from "./registry.ts";
 import { requireLayer } from "./sheet.ts";
-import {
-  checkSyntaxFx,
-  CSSTokenValue,
-  declare,
-  getterOf,
-  isGetter,
-  nameOf,
-  supportTest,
-  noGetter,
-} from "./token.ts";
+import { checkSyntaxFx, CSSTokenValue, declare, nameOf, supportTest } from "./token.ts";
 
 const SUPPORTED = Object.keys(DTCG_TYPES).join(", ");
 
@@ -351,7 +342,7 @@ export const createTokens = (...args: unknown[]): unknown =>
         set.types.set(name, r.dtcg);
         let group = root;
         for (const [i, k] of l.path.entries())
-          if (i === l.path.length - 1) group[k] = getterOf(l.dotted, token);
+          if (i === l.path.length - 1) group[k] = token;
           else if (Predicate.isObject(group[k])) group = group[k];
           else {
             const g: Record<string, unknown> = (group[k] = {});
@@ -374,12 +365,9 @@ export const createTokens = (...args: unknown[]): unknown =>
     }),
   );
 
-// The text a site of createTokens leaves on the client: the tokens by path, each a getter of its `var(--name)` string
-// (a getter serializes as that string; a key is followed by a colon).
+// The text a site of createTokens leaves on the client: the tokens by path, as `var(--name)` strings.
 export const tokensOf = (v: unknown): string | undefined =>
-  Predicate.isObject(v) && sets.has(v)
-    ? Formatter.formatJson(v).replace(/"var\(--[^"]*\)"(?!:)/g, (s) => `()=>${s}`)
-    : undefined;
+  Predicate.isObject(v) && sets.has(v) ? Formatter.formatJson(v) : undefined;
 
 // ---------- createGlobalTheme
 
@@ -481,8 +469,7 @@ const theme = (at: At | undefined, args: unknown[]) =>
         path: string[],
       ): Effect.fn.Return<void, MacroError> {
         for (const [key, v] of Object.entries(values)) {
-          const leaf = Object.hasOwn(node, key) ? node[key] : undefined;
-          const child = isGetter(leaf) ? leaf() : leaf;
+          const child = Object.hasOwn(node, key) ? node[key] : undefined;
           const dotted = [...path, key].join(".");
           if (child instanceof CSSTokenValue) {
             const kind = registry.defs.get(child.name)!.kind;
@@ -609,7 +596,6 @@ const theme = (at: At | undefined, args: unknown[]) =>
 const contrast = (...args: unknown[]): unknown =>
   edge(
     Effect.gen(function* () {
-      noGetter(args);
       const [fg, bg, options] = args;
       const min = (options as { min?: unknown } | null)?.min;
       const at = registry.at;

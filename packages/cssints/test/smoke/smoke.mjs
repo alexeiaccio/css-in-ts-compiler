@@ -188,7 +188,7 @@ import { t } from "./tokens.ts" with { type: "cssints" };
 const wide = media("(width >= 40rem)");
 
 const button = cv({
-  base: cn(p(2), bg(t.color.brand()), color("white"), hover(bg("#2563eb")), ring().width("2px"), mdi("home")),
+  base: cn(p(2), bg(t.color.brand), color("white"), hover(bg("#2563eb")), ring().width("2px"), mdi("home")),
   variants: { size: { lg: wide(p(4)) } },
   defaultVariants: { size: "lg" },
 });
@@ -247,7 +247,7 @@ import { button, card } from "cssints-fixture-ui";
 import { t } from "cssints-fixture-ui" with { type: "cssints" };
 
 createGlobalTheme(t, ".dark", { color: { brand: "#ef4444" } });
-const banner = cn(bg(t.color.brand()));
+const banner = cn(bg(t.color.brand));
 
 export const Lib = () => <div className={\`\${card} \${banner} \${button({ size: "lg" })}\`}>lib</div>;
 `,

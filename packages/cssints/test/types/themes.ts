@@ -22,56 +22,32 @@ const t = css.createTokens({
 });
 
 // A leaf is a named token of the type its $type maps to, alias or not; $type comes from the group.
-const bg: Token<"color", true> = t.color.bg();
-const link: Token<"color", true> = t.color.link();
-const hover: Token<"color", true> = t.color.hover();
-const md: Token<"length", true> = t.space.md();
-const fast: Token<"time", true> = t.motion.fast();
-const bold: Token<"number", true> = t.weight.bold();
-const own: Token<"color", true> = t.own.tone();
-export const all = [bg, link, hover, md, fast, bold, own, t.ratio.golden(), t.space.sm()];
-
-// The token carries the value of its definition as text: a string as written (an alias keeps its `{path}`), a number or a
-// { value, unit } as CSS text, a colour object as `string`; any of them is a `Token<K, S>`.
-const lit: Token<"color", true, "#ffffff"> = t.color.bg();
-const alias: Token<"color", true, "{color.accent}"> = t.color.link();
-const unit: Token<"time", true, "150ms"> = t.motion.fast();
-const num: Token<"number", true, "1.618"> = t.ratio.golden();
-const object: Token<"color", true, string> = t.color.accent();
-// @ts-expect-error the literal is the definition's, not another colour
-const other: Token<"color", true, "#000"> = t.color.bg();
-export const values = [lit, alias, unit, num, object, other];
-
-// A leaf is a getter: it is called for the token, and an uncalled one is an error in a property, a check and token.set().
-css.color(t.color.bg());
-// @ts-expect-error a getter is not a token: call it, t.color.bg()
-css.color(t.color.bg);
-// @ts-expect-error a getter is not a token
-css.padding(t.space.md, t.space.sm());
-// @ts-expect-error a getter is not a token
-css.check.contrast(t.color.accent, t.color.bg(), { min: 3 });
-// @ts-expect-error a getter is not a token
-css.token.set(t.color.bg, "red");
-// a group is the set, for themes
-css.createGlobalTheme(t.color, ".g", { bg: "red" });
+const bg: Token<"color", true> = t.color.bg;
+const link: Token<"color", true> = t.color.link;
+const hover: Token<"color", true> = t.color.hover;
+const md: Token<"length", true> = t.space.md;
+const fast: Token<"time", true> = t.motion.fast;
+const bold: Token<"number", true> = t.weight.bold;
+const own: Token<"color", true> = t.own.tone;
+export const all = [bg, link, hover, md, fast, bold, own, t.ratio.golden, t.space.sm];
 
 // They are Typed OM values of their type.
-color(t.color.bg());
-border("1px solid", t.color.accent());
-padding(t.space.md(), t.space.sm());
+color(t.color.bg);
+border("1px solid", t.color.accent);
+padding(t.space.md, t.space.sm);
 // @ts-expect-error a length is not a colour
-color(t.space.md());
+color(t.space.md);
 // @ts-expect-error a colour is not a length
-padding(t.color.bg());
+padding(t.color.bg);
 // @ts-expect-error there is no such token
 void t.color.nope;
 // @ts-expect-error $type is not a token
 void t.color.$type;
 
 // Named tokens can be set.
-export const themed: Record<string, string> = css.style(css.token.set(t.color.bg(), "red"));
+export const themed: Record<string, string> = css.style(css.token.set(t.color.bg, "red"));
 // @ts-expect-error not a length
-css.token.set(t.space.md(), "red");
+css.token.set(t.space.md, "red");
 
 // A mapper names the variables.
 css.createTokens({ size: { $type: "dimension", s: { $value: "1px" } } }, (path) => path.join("_"));
@@ -226,14 +202,14 @@ css.createGlobalTheme(t, ".x", {
 });
 
 // Contrast: two colour tokens and a minimum ratio.
-css.check.contrast(t.color.accent(), t.color.bg(), { min: 4.5 });
-css.check.contrast(t.color.link(), css.token.color("#fff"), { min: 3 });
+css.check.contrast(t.color.accent, t.color.bg, { min: 4.5 });
+css.check.contrast(t.color.link, css.token.color("#fff"), { min: 3 });
 // @ts-expect-error a length is not a colour
-css.check.contrast(t.space.md(), t.color.bg(), { min: 4.5 });
+css.check.contrast(t.space.md, t.color.bg, { min: 4.5 });
 // @ts-expect-error the minimum ratio is needed
-css.check.contrast(t.color.accent(), t.color.bg(), {});
+css.check.contrast(t.color.accent, t.color.bg, {});
 // @ts-expect-error a token, not a colour string
-css.check.contrast("#000", t.color.bg(), { min: 4.5 });
+css.check.contrast("#000", t.color.bg, { min: 4.5 });
 
 // Derived tokens: a reference inside a CSS value is checked as a value of its target's type.
 const d = css.createTokens({
@@ -244,8 +220,8 @@ const d = css.createTokens({
   },
   space: { $type: "dimension", md: { $value: "16px" }, lg: { $value: "calc({space.md} * 2)" } },
 });
-css.bg(d.color.hover());
-css.padding(d.space.lg());
+css.bg(d.color.hover);
+css.padding(d.space.lg);
 css.createTokens({
   color: {
     $type: "color",
@@ -271,11 +247,11 @@ declare const json: {
   };
 };
 const j = css.createTokens(json);
-css.bg(j.color.bg());
+css.bg(j.color.bg);
 // @ts-expect-error no token at this path
 css.bg(j.color.nope);
 // a JSON token has every type to the editor, so the contrast check takes it (the build says if it is no colour)
-css.check.contrast(j.color.bg(), j.color.accent(), { min: 3 });
-css.check.contrast(j.color.bg(), css.token.color("#fff"), { min: 3 });
+css.check.contrast(j.color.bg, j.color.accent, { min: 3 });
+css.check.contrast(j.color.bg, css.token.color("#fff"), { min: 3 });
 // @ts-expect-error a typed length is still not a colour
-css.check.contrast(j.color.bg(), css.token.length("1px"), { min: 3 });
+css.check.contrast(j.color.bg, css.token.length("1px"), { min: 3 });

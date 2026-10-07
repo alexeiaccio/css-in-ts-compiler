@@ -10,4 +10,4 @@ const t = css.createTokens({
   },
 });
 css.createGlobalTheme(t, ".x", { cdc: { d: 9 } });
-css.check.contrast(t.cdc.fg(), t.cdc.bg(), { min: 4.5 });
+css.check.contrast(t.cdc.fg, t.cdc.bg, { min: 4.5 });

@@ -26,13 +26,13 @@ createGlobalTheme(t, ".square-avatars", { radius: { avatar: "{radius.sm}", avata
 
 // Text on the backgrounds it sits on, at the default hue, in the default values and in every theme above.
 // The hue slider is a runtime value that no theme holds: test/contrast.mjs measures the accent pairs over its whole range.
-for (const bg of [t.color.bg(), t.color.bgSubtle(), t.color.bgMuted()]) {
-  check.contrast(t.color.text(), bg, { min: 7 });
-  check.contrast(t.color.textMedium(), bg, { min: 4.5 });
+for (const bg of [t.color.bg, t.color.bgSubtle, t.color.bgMuted]) {
+  check.contrast(t.color.text, bg, { min: 7 });
+  check.contrast(t.color.textMedium, bg, { min: 4.5 });
 }
-check.contrast(t.color.textHigh(), t.color.bgMuted(), { min: 7 });
-check.contrast(t.color.accentStrong(), t.color.accentSoft(), { min: 4.5 });
+check.contrast(t.color.textHigh, t.color.bgMuted, { min: 7 });
+check.contrast(t.color.accentStrong, t.color.accentSoft, { min: 4.5 });
 // Mu's pink on white is 3.8: enough for large text and icons, not for body text. Links are small text and use a darker step.
-check.contrast(t.color.accent(), t.color.bg(), { min: 3 });
-check.contrast(t.color.link(), t.color.bg(), { min: 4.5 });
+check.contrast(t.color.accent, t.color.bg, { min: 3 });
+check.contrast(t.color.link, t.color.bg, { min: 4.5 });
 // onAccent is a relative colour, which the check cannot read (a warning at every build): test/contrast.mjs holds it to 4.5.

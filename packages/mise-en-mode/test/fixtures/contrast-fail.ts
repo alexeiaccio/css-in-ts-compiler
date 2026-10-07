@@ -8,4 +8,4 @@ const t = createTokens({
 // the app's look sets both colours; a viewer's look sets only the text, and is read on the app's background
 look(t, "dark", "app", { cly: { bg: "#111111", fg: "#eeeeee" } });
 look(t, "dark", "viewer", { cly: { fg: "#222222" } });
-check.contrast(t.cly.fg(), t.cly.bg(), { min: 4.5 });
+check.contrast(t.cly.fg, t.cly.bg, { min: 4.5 });

@@ -23,4 +23,4 @@ css.createGlobalTheme(t, ".dim", {
   color: { accent: "oklch(0.7 0.1 {hue.accent})", soft: "{color.accent}" },
 });
 
-export const box = css.cn(css.bg(t.color.hover()), css.p(t.radius.lg()), css.color(t.color.soft()));
+export const box = css.cn(css.bg(t.color.hover), css.p(t.radius.lg), css.color(t.color.soft));

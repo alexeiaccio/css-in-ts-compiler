@@ -7,10 +7,10 @@ import { Cause, Effect, Exit, Formatter, Predicate, Result, Schema } from "effec
 import { createHash } from "node:crypto";
 import { properties } from "@cssints/css-grammar/mdn";
 import { checkSelectorNow } from "@cssints/css-grammar/selector";
-import { relative } from "node:path";
-import { DTCG_TYPES, TOKEN_TYPES } from "@cssints/css-grammar/token";
-import { matches } from "@cssints/css-grammar/twin";
 import { browserslistToTargets, transform } from "lightningcss";
+import { DTCG_TYPES, TOKEN_TYPES } from "@cssints/css-grammar/token";
+import { relative } from "node:path";
+import { matches } from "@cssints/css-grammar/twin";
 //#region src/node.ts
 const plain = (method) => {
 	throw fail(`cssints: plain styles do not chain (.${method}); merge them with cn(...) or cx(...)`);
@@ -266,198 +266,8 @@ function hashClass([p, v, conds, fallbacks]) {
 //#region src/grammars.ts
 const COLOR_MIX = "[ <rectangular-color-space> | <polar-color-space> <hue-interpolation-method>? ] [ <color> && <percentage [0,100]>? ]{2}";
 //#endregion
-//#region src/lowered.ts
-const first = (css) => /^[^{]*\{([^;}]*)/.exec(css)?.[1];
-const lower = (prop, value, lacking, feature) => {
-	const code = Buffer.from(prop.startsWith("--") ? `:root{${prop}:${value}}` : `x{${prop}:${value}}`);
-	const out = first(transform({
-		filename: "x.css",
-		code,
-		minify: true,
-		targets: browserslistToTargets(lacking)
-	}).code.toString());
-	const holds = new RegExp(`(?<![\\w-])${feature.replace(/\(\)$/, "")}(?![\\w-])`);
-	return out !== void 0 && holds.test(`${prop}:${value}`) && !holds.test(out) ? out.slice(out.indexOf(":") + 1) : void 0;
-};
-const fallbackOf = (prop, value, w) => {
-	const key = `${prop}\0${value}\0${w.feature}\0${w.lacking.join()}`;
-	let hit = registry.lowered.get(key);
-	if (hit === void 0) {
-		hit = Result.getOrElse(Result.try(() => lower(prop, value, w.lacking, w.feature)), () => void 0) ?? false;
-		registry.lowered.set(key, hit);
-	}
-	return hit || void 0;
-};
-const loweredOf = (prop, value, w) => fallbackOf(prop, value, w) !== void 0;
-//#endregion
-//#region src/token.ts
-var CSSTokenValue = class extends CSSStyleValue {
-	name;
-	syntax;
-	settable;
-	constructor(name, syntax, settable) {
-		super();
-		this.name = name;
-		this.syntax = syntax;
-		this.settable = settable;
-	}
-	toString() {
-		return `var(${this.name})`;
-	}
-	toJSON() {
-		return this.toString();
-	}
-};
-const GETTER = "~getter";
-const getterOf = (dotted, token) => Object.assign(() => token, {
-	[GETTER]: dotted,
-	toJSON: () => token.toString(),
-	[Symbol.toPrimitive]: () => {
-		throw uncalled(dotted);
-	}
-});
-const uncalled = (dotted) => fail(`cssints: ${dotted} is a token getter, not a token: call it, as in t.${dotted}()`);
-const isGetter = (v) => typeof v === "function" && Predicate.hasProperty(v, GETTER);
-const noGetter = (args) => {
-	const getter = args.find(isGetter);
-	if (getter) throw uncalled(getter[GETTER]);
-};
-const SUPPORT_PROPERTY = {
-	color: "color",
-	length: "width",
-	percentage: "width",
-	"length-percentage": "width",
-	number: "opacity",
-	integer: "z-index",
-	angle: "transform",
-	time: "transition-duration",
-	url: "background-image",
-	image: "background-image",
-	"transform-list": "transform"
-};
-const supportTest = (syntax, text) => `(${SUPPORT_PROPERTY[syntax]}:${text})`;
-const checkSyntaxFx = Effect.fnUntraced(function* (what, syntax, text, who = what, variable) {
-	if (!(yield* matches(`<${syntax}>`, text).pipe(Effect.mapError((e) => new MacroError({
-		message: e.message,
-		cause: e,
-		...registry.at
-	}))))) return yield* fail(`cssints: ${what} "${text}" is not a <${syntax}>`);
-	const prop = SUPPORT_PROPERTY[syntax];
-	if (!prop) return;
-	const { warned, warnings } = registry;
-	const ws = supportOf(prop, text).filter((w) => w.feature !== prop);
-	const lacking = [...new Set(ws.flatMap((w) => w.lacking))];
-	const lowered = ws.map((w) => variable && fallbackOf(variable, text, {
-		...w,
-		lacking
-	}));
-	if (ws.length && lowered.every(Boolean)) return lowered[0] || void 0;
-	for (const [i, w] of ws.entries()) {
-		const k = `${who} ${w.key}`;
-		if (warned.has(k) || lowered[i]) continue;
-		warned.add(k);
-		warnings.push(`${who}: "${w.feature}" in "${text}" is not supported by ${browsers(w.lacking)} (${w.key})`);
-	}
-});
-const checkSyntax = (what, syntax, text) => {
-	edge(checkSyntaxFx(what, syntax, text));
-};
-const NAME$2 = /^(?:--)?([A-Za-z_][\w-]*)$/;
-const nameOf = (name) => {
-	const { var: v, inherit = true } = typeof name === "string" ? { var: name } : name;
-	const m = typeof v === "string" ? NAME$2.exec(v) : null;
-	if (!m || typeof inherit !== "boolean") throw fail(`cssints: a token name is a CSS identifier or { var, inherit }, got ${Formatter.formatJson(name)}`);
-	return {
-		name: `--${m[1]}`,
-		inherit
-	};
-};
-const privateName = () => {
-	const at = registry.at;
-	const key = `${relative(process.cwd(), at.file)}:${at.site}:${registry.tokens}`;
-	return `--_${createHash("sha1").update(key).digest("hex").slice(0, 8)}`;
-};
-const FONT_RELATIVE = /[\d.](?:r?em|r?ex|r?ch|r?cap|r?ic|r?lh)\b/i;
-const declare = Effect.fnUntraced(function* (kind, text, variable, inherit, settable, what, live = false) {
-	const at = registry.at;
-	const { syntax, probes } = TOKEN_TYPES[kind];
-	const name = what ?? `token.${kind}() initial value`;
-	const fallback = yield* checkSyntaxFx(name, syntax, text, what ?? `${name} of ${variable}`, variable);
-	if (FONT_RELATIVE.test(text)) return yield* fail(`cssints: ${name} "${text}" depends on the font size, and a browser drops an @property rule whose initial-value is not computationally independent; use px or a viewport unit`);
-	const n = registry.tokens++;
-	const by = `${at.file}#${at.site}.${n}`;
-	const css = `@property ${variable}{syntax:"<${syntax}>";inherits:${inherit};initial-value:${fallback ?? text}}`;
-	const prev = registry.properties.get(variable);
-	if (prev && prev.css !== css && prev.by !== by && !(prev.file === at.file && prev.gen !== registry.gen)) return yield* fail(`cssints: ${variable} is already declared with another @property, in ${relative(process.cwd(), prev.file)}: ${prev.css}; here: ${css}`);
-	registry.properties.set(variable, {
-		css,
-		probes,
-		by,
-		file: at.file,
-		gen: registry.gen
-	});
-	registry.defs.set(variable, {
-		kind,
-		inherit,
-		path: variable,
-		value: text,
-		fallback
-	});
-	if (fallback && !live) registry.themed.set(by, {
-		file: at.file,
-		key: `0:${at.file}#${String(at.site).padStart(6, "0")}.${n}`,
-		css: `${inherit ? ":root" : ":where(*)"}{${variable}:${text}}`,
-		names: [variable]
-	});
-	return new CSSTokenValue(variable, syntax, settable);
-});
-const make = (kind) => (...args) => {
-	const [initial, name] = args;
-	if (!registry.at || typeof initial !== "string" && typeof initial !== "number" || args.length > 2) throw fail(`cssints: token.${kind}(initial, name?) takes an initial value (a string) and an optional name`);
-	const { name: variable, inherit } = name === void 0 ? {
-		name: privateName(),
-		inherit: true
-	} : nameOf(name);
-	return edge(declare(kind, String(initial).trim(), variable, inherit, name !== void 0));
-};
-const isStyle = (v) => Predicate.hasProperty(v, "__style");
-const set = (...args) => {
-	noGetter(args);
-	const [t, value] = args;
-	if (args.length !== 2 || !(t instanceof CSSTokenValue) || typeof value !== "string" && typeof value !== "number") throw fail("cssints: token.set(token, value) takes a token and a value");
-	if (!t.settable) throw fail(`cssints: ${t.name} is private, only a token with a name can be set: token.<type>(initial, "name")`);
-	const text = String(value).trim();
-	checkSyntax(`token.set() value of ${t.name}`, t.syntax, text);
-	return { __style: {
-		sets: [[t.name, text]],
-		decls: []
-	} };
-};
-const style = (...args) => {
-	if (!args.length) throw fail("cssints: style() expects css.* values or token.set(...) results");
-	const sets = [];
-	const decls = [];
-	for (const a of args) if (isStyle(a)) {
-		sets.push(...a.__style.sets);
-		decls.push(...a.__style.decls);
-	} else if (isNode(a)) {
-		if (a.markers || a.kernels) throw fail("cssints: style() takes plain declarations: an inline style has no marker class");
-		if (a.__cssints.some(([, , conds]) => conds?.length)) throw fail("cssints: style() takes styles without conditions: an inline style has no media query or :hover");
-		if (a.__cssints.some((d) => d[3])) throw fail("cssints: style() takes one value per property: an inline style cannot hold a firstThatWorks(...) fallback");
-		decls.push(...a.__cssints);
-	} else throw fail(`cssints: style() takes css.* values and token.set(...) results, got ${Formatter.formatJson(a)}`);
-	return { __style: {
-		sets,
-		decls
-	} };
-};
-const token = {
-	...Object.fromEntries(Object.keys(TOKEN_TYPES).map((kind) => [kind, make(kind)])),
-	set
-};
-//#endregion
 //#region src/scope-engine.ts
-const NAME$1 = /^[a-z][a-z0-9-]*$/;
+const NAME$2 = /^[a-z][a-z0-9-]*$/;
 const KEY = /^[A-Za-z][\w-]*$/;
 const RESERVED = /* @__PURE__ */ new Set(["cssints", "derived"]);
 const OWN_VAR = /--_([\w-]*)/g;
@@ -484,12 +294,11 @@ const kindOf = (k, v) => {
 };
 const expand = (g, a, depth = 0) => depth > 5 || !g.includes("<") ? g : g.replace(/<([^>]*)>/g, (m, n) => Object.hasOwn(a, n) ? `[ ${expand(a[n], a, depth + 1)} ]` : m);
 const tokenSyntaxes = (tokens, prefix, out) => {
-	if (tokens && typeof tokens === "object") for (const [k, v] of Object.entries(tokens)) if (isGetter(v)) out[`${prefix}${k}`] = `<${v().syntax}>`;
+	if (tokens && typeof tokens === "object") for (const [k, v] of Object.entries(tokens)) if (v && typeof v === "object" && typeof v["syntax"] === "string") out[`${prefix}${k}`] = `<${v["syntax"]}>`;
 	else tokenSyntaxes(v, `${prefix}${k}.`, out);
 	return out;
 };
 const canon = (v) => {
-	if (isGetter(v)) return canon(v());
 	if (typeof v === "function") return v.toString();
 	if (v instanceof RegExp) return String(v);
 	if (isScope(v)) return `scope(${v.name},${canon(v["~text"])})`;
@@ -837,7 +646,7 @@ const exportOf = (s) => {
 	return out;
 };
 function scope(name, table) {
-	if (!NAME$1.test(name) || RESERVED.has(name)) throw thrown(name, RESERVED.has(name) ? `scope "${name}" is reserved by the engine` : `scope(${JSON.stringify(name)}): a name is lowercase letters, digits and -, and starts with a letter`);
+	if (!NAME$2.test(name) || RESERVED.has(name)) throw thrown(name, RESERVED.has(name) ? `scope "${name}" is reserved by the engine` : `scope(${JSON.stringify(name)}): a name is lowercase letters, digits and -, and starts with a letter`);
 	for (const k of Object.keys(table)) if (!KEY.test(strip(k)) && !k.startsWith("-")) throw thrown(name, `${name}: the entry ${JSON.stringify(k)} is not a name`);
 	const s = {
 		name,
@@ -881,6 +690,30 @@ const min = math("min");
 const max = math("max");
 const clamp = math("clamp");
 //#endregion
+//#region src/lowered.ts
+const first = (css) => /^[^{]*\{([^;}]*)/.exec(css)?.[1];
+const lower = (prop, value, lacking, feature) => {
+	const code = Buffer.from(prop.startsWith("--") ? `:root{${prop}:${value}}` : `x{${prop}:${value}}`);
+	const out = first(transform({
+		filename: "x.css",
+		code,
+		minify: true,
+		targets: browserslistToTargets(lacking)
+	}).code.toString());
+	const holds = new RegExp(`(?<![\\w-])${feature.replace(/\(\)$/, "")}(?![\\w-])`);
+	return out !== void 0 && holds.test(`${prop}:${value}`) && !holds.test(out) ? out.slice(out.indexOf(":") + 1) : void 0;
+};
+const fallbackOf = (prop, value, w) => {
+	const key = `${prop}\0${value}\0${w.feature}\0${w.lacking.join()}`;
+	let hit = registry.lowered.get(key);
+	if (hit === void 0) {
+		hit = Result.getOrElse(Result.try(() => lower(prop, value, w.lacking, w.feature)), () => void 0) ?? false;
+		registry.lowered.set(key, hit);
+	}
+	return hit || void 0;
+};
+const loweredOf = (prop, value, w) => fallbackOf(prop, value, w) !== void 0;
+//#endregion
 //#region src/runtime.ts
 const cx = (...a) => a.flat(Infinity).filter(Boolean).join(" ");
 function _cv(config) {
@@ -900,6 +733,157 @@ function _cv(config) {
 		return out.join(" ").split(" ").filter((c) => c && !gone.includes(c)).join(" ");
 	};
 }
+//#endregion
+//#region src/token.ts
+var CSSTokenValue = class extends CSSStyleValue {
+	name;
+	syntax;
+	settable;
+	constructor(name, syntax, settable) {
+		super();
+		this.name = name;
+		this.syntax = syntax;
+		this.settable = settable;
+	}
+	toString() {
+		return `var(${this.name})`;
+	}
+	toJSON() {
+		return this.toString();
+	}
+};
+const SUPPORT_PROPERTY = {
+	color: "color",
+	length: "width",
+	percentage: "width",
+	"length-percentage": "width",
+	number: "opacity",
+	integer: "z-index",
+	angle: "transform",
+	time: "transition-duration",
+	url: "background-image",
+	image: "background-image",
+	"transform-list": "transform"
+};
+const supportTest = (syntax, text) => `(${SUPPORT_PROPERTY[syntax]}:${text})`;
+const checkSyntaxFx = Effect.fnUntraced(function* (what, syntax, text, who = what, variable) {
+	if (!(yield* matches(`<${syntax}>`, text).pipe(Effect.mapError((e) => new MacroError({
+		message: e.message,
+		cause: e,
+		...registry.at
+	}))))) return yield* fail(`cssints: ${what} "${text}" is not a <${syntax}>`);
+	const prop = SUPPORT_PROPERTY[syntax];
+	if (!prop) return;
+	const { warned, warnings } = registry;
+	const ws = supportOf(prop, text).filter((w) => w.feature !== prop);
+	const lacking = [...new Set(ws.flatMap((w) => w.lacking))];
+	const lowered = ws.map((w) => variable && fallbackOf(variable, text, {
+		...w,
+		lacking
+	}));
+	if (ws.length && lowered.every(Boolean)) return lowered[0] || void 0;
+	for (const [i, w] of ws.entries()) {
+		const k = `${who} ${w.key}`;
+		if (warned.has(k) || lowered[i]) continue;
+		warned.add(k);
+		warnings.push(`${who}: "${w.feature}" in "${text}" is not supported by ${browsers(w.lacking)} (${w.key})`);
+	}
+});
+const checkSyntax = (what, syntax, text) => {
+	edge(checkSyntaxFx(what, syntax, text));
+};
+const NAME$1 = /^(?:--)?([A-Za-z_][\w-]*)$/;
+const nameOf = (name) => {
+	const { var: v, inherit = true } = typeof name === "string" ? { var: name } : name;
+	const m = typeof v === "string" ? NAME$1.exec(v) : null;
+	if (!m || typeof inherit !== "boolean") throw fail(`cssints: a token name is a CSS identifier or { var, inherit }, got ${Formatter.formatJson(name)}`);
+	return {
+		name: `--${m[1]}`,
+		inherit
+	};
+};
+const privateName = () => {
+	const at = registry.at;
+	const key = `${relative(process.cwd(), at.file)}:${at.site}:${registry.tokens}`;
+	return `--_${createHash("sha1").update(key).digest("hex").slice(0, 8)}`;
+};
+const FONT_RELATIVE = /[\d.](?:r?em|r?ex|r?ch|r?cap|r?ic|r?lh)\b/i;
+const declare = Effect.fnUntraced(function* (kind, text, variable, inherit, settable, what, live = false) {
+	const at = registry.at;
+	const { syntax, probes } = TOKEN_TYPES[kind];
+	const name = what ?? `token.${kind}() initial value`;
+	const fallback = yield* checkSyntaxFx(name, syntax, text, what ?? `${name} of ${variable}`, variable);
+	if (FONT_RELATIVE.test(text)) return yield* fail(`cssints: ${name} "${text}" depends on the font size, and a browser drops an @property rule whose initial-value is not computationally independent; use px or a viewport unit`);
+	const n = registry.tokens++;
+	const by = `${at.file}#${at.site}.${n}`;
+	const css = `@property ${variable}{syntax:"<${syntax}>";inherits:${inherit};initial-value:${fallback ?? text}}`;
+	const prev = registry.properties.get(variable);
+	if (prev && prev.css !== css && prev.by !== by && !(prev.file === at.file && prev.gen !== registry.gen)) return yield* fail(`cssints: ${variable} is already declared with another @property, in ${relative(process.cwd(), prev.file)}: ${prev.css}; here: ${css}`);
+	registry.properties.set(variable, {
+		css,
+		probes,
+		by,
+		file: at.file,
+		gen: registry.gen
+	});
+	registry.defs.set(variable, {
+		kind,
+		inherit,
+		path: variable,
+		value: text,
+		fallback
+	});
+	if (fallback && !live) registry.themed.set(by, {
+		file: at.file,
+		key: `0:${at.file}#${String(at.site).padStart(6, "0")}.${n}`,
+		css: `${inherit ? ":root" : ":where(*)"}{${variable}:${text}}`,
+		names: [variable]
+	});
+	return new CSSTokenValue(variable, syntax, settable);
+});
+const make = (kind) => (...args) => {
+	const [initial, name] = args;
+	if (!registry.at || typeof initial !== "string" && typeof initial !== "number" || args.length > 2) throw fail(`cssints: token.${kind}(initial, name?) takes an initial value (a string) and an optional name`);
+	const { name: variable, inherit } = name === void 0 ? {
+		name: privateName(),
+		inherit: true
+	} : nameOf(name);
+	return edge(declare(kind, String(initial).trim(), variable, inherit, name !== void 0));
+};
+const isStyle = (v) => Predicate.hasProperty(v, "__style");
+const set = (...args) => {
+	const [t, value] = args;
+	if (args.length !== 2 || !(t instanceof CSSTokenValue) || typeof value !== "string" && typeof value !== "number") throw fail("cssints: token.set(token, value) takes a token and a value");
+	if (!t.settable) throw fail(`cssints: ${t.name} is private, only a token with a name can be set: token.<type>(initial, "name")`);
+	const text = String(value).trim();
+	checkSyntax(`token.set() value of ${t.name}`, t.syntax, text);
+	return { __style: {
+		sets: [[t.name, text]],
+		decls: []
+	} };
+};
+const style = (...args) => {
+	if (!args.length) throw fail("cssints: style() expects css.* values or token.set(...) results");
+	const sets = [];
+	const decls = [];
+	for (const a of args) if (isStyle(a)) {
+		sets.push(...a.__style.sets);
+		decls.push(...a.__style.decls);
+	} else if (isNode(a)) {
+		if (a.markers || a.kernels) throw fail("cssints: style() takes plain declarations: an inline style has no marker class");
+		if (a.__cssints.some(([, , conds]) => conds?.length)) throw fail("cssints: style() takes styles without conditions: an inline style has no media query or :hover");
+		if (a.__cssints.some((d) => d[3])) throw fail("cssints: style() takes one value per property: an inline style cannot hold a firstThatWorks(...) fallback");
+		decls.push(...a.__cssints);
+	} else throw fail(`cssints: style() takes css.* values and token.set(...) results, got ${Formatter.formatJson(a)}`);
+	return { __style: {
+		sets,
+		decls
+	} };
+};
+const token = {
+	...Object.fromEntries(Object.keys(TOKEN_TYPES).map((kind) => [kind, make(kind)])),
+	set
+};
 //#endregion
 //#region src/theme.ts
 const SUPPORTED = Object.keys(DTCG_TYPES).join(", ");
@@ -1111,7 +1095,7 @@ const createTokens = (...args) => edge(Effect.gen(function* () {
 		set.tokens.set(l.dotted, token);
 		set.types.set(name, r.dtcg);
 		let group = root;
-		for (const [i, k] of l.path.entries()) if (i === l.path.length - 1) group[k] = getterOf(l.dotted, token);
+		for (const [i, k] of l.path.entries()) if (i === l.path.length - 1) group[k] = token;
 		else if (Predicate.isObject(group[k])) group = group[k];
 		else {
 			const g = group[k] = {};
@@ -1132,7 +1116,7 @@ const createTokens = (...args) => edge(Effect.gen(function* () {
 	}
 	return root;
 }));
-const tokensOf = (v) => Predicate.isObject(v) && sets.has(v) ? Formatter.formatJson(v).replace(/"var\(--[^"]*\)"(?!:)/g, (s) => `()=>${s}`) : void 0;
+const tokensOf = (v) => Predicate.isObject(v) && sets.has(v) ? Formatter.formatJson(v) : void 0;
 const DONE = Object.freeze({ __done: true });
 const isDone = (v) => v === DONE;
 const isCondition = (v) => typeof v === "function" && Predicate.hasProperty(v, "__cond") && Predicate.hasProperty(v, "cond");
@@ -1189,8 +1173,7 @@ const theme = (at, args) => edge(Effect.gen(function* () {
 	const refs = /* @__PURE__ */ new Map();
 	const walk = Effect.fnUntraced(function* (node, values, path) {
 		for (const [key, v] of Object.entries(values)) {
-			const leaf = Object.hasOwn(node, key) ? node[key] : void 0;
-			const child = isGetter(leaf) ? leaf() : leaf;
+			const child = Object.hasOwn(node, key) ? node[key] : void 0;
 			const dotted = [...path, key].join(".");
 			if (child instanceof CSSTokenValue) {
 				const kind = registry.defs.get(child.name).kind;
@@ -1258,7 +1241,6 @@ const theme = (at, args) => edge(Effect.gen(function* () {
 	return DONE;
 }));
 const contrast = (...args) => edge(Effect.gen(function* () {
-	noGetter(args);
 	const [fg, bg, options] = args;
 	const min = options?.min;
 	const at = registry.at;

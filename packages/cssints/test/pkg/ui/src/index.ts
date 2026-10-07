@@ -4,7 +4,7 @@ import { t } from "./tokens.ts" with { type: "cssints" };
 
 export { t };
 
-export const card = cn(p(4), bg(t.color.brand()), color(t.color.ink()));
+export const card = cn(p(4), bg(t.color.brand), color(t.color.ink));
 
 export const button = cv({
   base: cn(p(2), hover(bg("#1d4ed8"))),

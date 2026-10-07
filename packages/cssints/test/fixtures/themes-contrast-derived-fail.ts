@@ -10,4 +10,4 @@ const t = css.createTokens({
 });
 css.createGlobalTheme(t, ".x", { cdf: { l: 0.95 } });
 css.createGlobalTheme(t, ".y", { cdf: { l: "{cdf.hi}" } });
-css.check.contrast(t.cdf.fg(), t.cdf.bg(), { min: 4.5 });
+css.check.contrast(t.cdf.fg, t.cdf.bg, { min: 4.5 });

@@ -10,7 +10,6 @@ import { MemberError } from "./errors.ts";
 import { relation } from "./leaves.ts";
 import { camel, type Carry, failIn, isNode, node, probed, type CssNode } from "./node.ts";
 import { type Kernel, type Plug, registry } from "./registry.ts";
-import { isGetter } from "./token.ts";
 import type {
   CallDef,
   ChainDef,
@@ -82,14 +81,14 @@ const expand = (g: string, a: Dict<string>, depth = 0): string =>
 const tokenSyntaxes = (tokens: unknown, prefix: string, out: Dict<string>): Dict<string> => {
   if (tokens && typeof tokens === "object")
     for (const [k, v] of Object.entries(tokens))
-      if (isGetter(v)) out[`${prefix}${k}`] = `<${v().syntax}>`;
+      if (v && typeof v === "object" && typeof (v as Dict<unknown>)["syntax"] === "string")
+        out[`${prefix}${k}`] = `<${(v as Dict<string>)["syntax"]}>`;
       else tokenSyntaxes(v, `${prefix}${k}.`, out);
   return out;
 };
 
 // The text that says what a scope is: its table (functions as their source), and the embedded scopes by name and text.
 const canon = (v: unknown): string => {
-  if (isGetter(v)) return canon(v());
   if (typeof v === "function") return v.toString();
   if (v instanceof RegExp) return String(v);
   if (isScope(v)) return `scope(${v.name},${canon(v["~text"])})`;

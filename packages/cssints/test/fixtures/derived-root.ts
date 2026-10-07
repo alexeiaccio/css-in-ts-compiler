@@ -15,7 +15,7 @@ export const t = css.createTokens({
 css.createGlobalTheme(t, ".dim", { root: { color: { hover: "oklch(0.7 0.18 {root.hue.accent})" } } });
 
 export const card = css.cn(
-  css.bg(t.root.color.soft()),
-  css.color(t.root.color.accent()),
-  css.outlineColor(t.root.color.hover()),
+  css.bg(t.root.color.soft),
+  css.color(t.root.color.accent),
+  css.outlineColor(t.root.color.hover),
 );

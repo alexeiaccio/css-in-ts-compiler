@@ -47,8 +47,8 @@ try {
 
   // A style edit: new class in the component, new rule in the sheet, no reload.
   const style = await edit(
-    "css.fontWeight(t.fontWeight.medium()),",
-    "css.fontWeight(t.fontWeight.normal()),",
+    "css.fontWeight(t.fontWeight.medium),",
+    "css.fontWeight(t.fontWeight.normal),",
   );
   console.log("style edit:", style.paths);
   assert.ok(!style.paths.includes("full-reload"), style.paths);

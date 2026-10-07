@@ -2,7 +2,6 @@
 // and for what a plugin defines (plugin-types.ts). Types only.
 import type { FurthestIn, Hint, Sentinel, ValidIn } from "@cssints/css-grammar/css";
 import type { properties } from "@cssints/css-grammar/mdn";
-import type { TokenGetter } from "@cssints/css-grammar/token";
 import type { CSSStyleValue } from "@cssints/css-grammar/values";
 
 /** One value of a `firstThatWorks`: a string or a Typed OM value (a token). */
@@ -11,11 +10,8 @@ export type Alt = string | CSSStyleValue;
 export interface Fallback<V extends readonly Alt[] = readonly Alt[]> {
   readonly __fallback: V;
 }
-/**
- * A value part: a string, a Typed OM value, a `firstThatWorks`, or a lone number (the spacing scale in spacing properties).
- * A token getter that was not called (`t.color.bg`, not `t.color.bg()`) is a part only to be the error that says so.
- */
-export type Part = string | number | CSSStyleValue | Fallback | TokenGetter;
+/** A value part: a string, a Typed OM value, a `firstThatWorks`, or a lone number (the spacing scale in spacing properties). */
+export type Part = string | number | CSSStyleValue | Fallback;
 /** What every member returns: a class string. It is a string (`className`, `cx`), but only members make one. */
 export type Style = string & { readonly __cssints: "style" };
 
@@ -33,9 +29,7 @@ type Text<P> = P extends Style
         ? Sentinel<T>
         : P extends Fallback<infer V>
           ? Text<V[0]>
-          : P extends TokenGetter
-            ? "⟨uncalled-token-getter⟩"
-            : never;
+          : never;
 type Join<A extends readonly Part[]> = A extends readonly [
   infer H,
   ...infer R extends readonly Part[],

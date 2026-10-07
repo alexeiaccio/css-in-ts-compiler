@@ -60,27 +60,13 @@ export type ValidSyntax<K extends string, S extends string> =
       ? `${K}: ${Unexpected<Stuck<Trim<S> | Consume<Parse<`<${K}>`>, Trim<S>>>>} in "${S}", grammar <${K}>`
       : never;
 
-/**
- * A token: a Typed OM value of its type whose text is `var(--name)`. `Settable` is whether it has a name. `V` is the value of
- * the definition as text, inferred by `createTokens` (`"#545434"`, `"{color.base}"` for an alias), `string` where nothing
- * says; a covariant phantom, so a token of any `V` is a `Token<K, S>`.
- */
+/** A token: a Typed OM value of its type whose text is `var(--name)`. `Settable` is whether it has a name. */
 export interface Token<
   K extends TokenType = TokenType,
   Settable extends boolean = boolean,
-  V extends string = string,
 > extends CSSStyleValue<(typeof TOKEN_TYPES)[K]["sentinels"][number]> {
   readonly "~token": K;
   readonly "~settable": Settable;
-  readonly "~value": V;
-}
-/**
- * What a leaf of `createTokens` is: a function that returns the token. Calling it is the one way to a token, so an
- * uncalled leaf in a property, `check.contrast` or `token.set` is an error that names this type (and the build says it).
- */
-export interface TokenGetter<T extends Token = Token> {
-  (): T;
-  readonly "~getter": "call it: t.group.name()";
 }
 /** `--name`, and whether the variable inherits (default true). */
 export interface TokenName {

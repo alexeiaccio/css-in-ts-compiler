@@ -25,8 +25,8 @@ css.createGlobalTheme(t, css.container("card (width < 30rem)"), {
 css.createGlobalTheme(t, "[data-tight]", { gap: { md: "4px" } });
 
 export const box = cx(
-  css.color(t.th.fg()),
-  css.bg(t.th.bg()),
-  css.padding(t.gap.md()),
-  css.borderColor(t.th.linkHover()),
+  css.color(t.th.fg),
+  css.bg(t.th.bg),
+  css.padding(t.gap.md),
+  css.borderColor(t.th.linkHover),
 );

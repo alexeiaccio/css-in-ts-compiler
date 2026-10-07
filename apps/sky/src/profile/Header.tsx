@@ -31,15 +31,15 @@ import { bioFacets, stat } from "./model.ts";
 
 // The header's layout follows the width of the column (container "column", Mu's narrow < 500 px), not the window's: wide, the
 // avatar sits beside the name and overlaps the banner by half; narrow, the avatar is smaller and the name stacks under it.
-const banner = cn(display("block"), width("100%"), aspectRatio("3 / 1"), bg(t.color.bgMuted()));
+const banner = cn(display("block"), width("100%"), aspectRatio("3 / 1"), bg(t.color.bgMuted));
 const bannerImg = cn(display("block"), width("100%"), height("100%"), objectFit("cover"));
 
 const top = cn(
-  flex().alignItems("flex-end").gap(t.space.md()),
-  paddingInline(t.gutter.base()),
+  flex().alignItems("flex-end").gap(t.space.md),
+  paddingInline(t.gutter.base),
   narrow(
-    flex().direction("column").alignItems("flex-start").gap(t.space.sm()),
-    paddingInline(t.gutter.compact()),
+    flex().direction("column").alignItems("flex-start").gap(t.space.sm),
+    paddingInline(t.gutter.compact),
   ),
 );
 // the ring is the page colour, so the avatar reads as cut out of the banner; the radius is the token the square-avatars flag moves
@@ -50,29 +50,29 @@ const avatar = cn(
   height("96px"),
   marginTop("-48px"),
   objectFit("cover"),
-  bg(t.color.bgMuted()),
-  border("4px", "solid", t.color.bg()),
-  borderRadius(t.radius.avatar()),
+  bg(t.color.bgMuted),
+  border("4px", "solid", t.color.bg),
+  borderRadius(t.radius.avatar),
   narrow(width("72px"), height("72px"), marginTop("-36px")),
 );
-const ident = cn(minWidth("0"), padding(t.space.xs(), "0"));
+const ident = cn(minWidth("0"), padding(t.space.xs, "0"));
 const name = cn(
   margin("0"),
-  fontSize(t.fontSize["2xl"]()),
-  lineHeight(t.lineHeight.tight()),
-  fontWeight(t.fontWeight.bold()),
+  fontSize(t.fontSize["2xl"]),
+  lineHeight(t.lineHeight.tight),
+  fontWeight(t.fontWeight.bold),
   overflowWrap("anywhere"),
-  narrow(fontSize(t.fontSize.xl())),
+  narrow(fontSize(t.fontSize.xl)),
 );
-const handle = cn(color(t.color.textMedium()), overflowWrap("anywhere"));
+const handle = cn(color(t.color.textMedium), overflowWrap("anywhere"));
 
 const body = cn(
-  flex().direction("column").gap(t.space.sm()),
-  padding(t.space.sm(), t.gutter.base(), t.space.lg()),
-  narrow(paddingInline(t.gutter.compact())),
+  flex().direction("column").gap(t.space.sm),
+  padding(t.space.sm, t.gutter.base, t.space.lg),
+  narrow(paddingInline(t.gutter.compact)),
 );
-const counts = cn(flex().wrap("wrap").gap(t.space.lg()), color(t.color.textMedium()));
-const strong = cn(color(t.color.text()), fontWeight(t.fontWeight.bold()));
+const counts = cn(flex().wrap("wrap").gap(t.space.lg), color(t.color.textMedium));
+const strong = cn(color(t.color.text), fontWeight(t.fontWeight.bold));
 
 // `hidden`: the account's profile is labeled adult, so there is no banner and avatar to show (a flat tile instead).
 export function ProfileHeader(props: {
