@@ -6,7 +6,7 @@ Every `ts` block here is type-checked against the workspace `cssints` types by `
 
 ### Authoring surface (decided 2026-09-29, cssints-5dbi)
 
-- **Import.** `with { type: "cssints" }` marks code that runs at build time: cssints itself, plugins such as icons, and your own helper modules. The plugin finds call sites by this attribute. Runtime helpers (`cx`, `_cv`) are imported without it. Using a build-time member without the attribute is a build error.
+- **Import.** `with { type: "cssints" }` marks code that runs at build time: cssints itself, plugins such as icons, and your own helper modules. The plugin finds call sites by this attribute. The one runtime helper, `cx`, is imported without it. Using a build-time member without the attribute is a build error.
 - **Names.** Every mdn property as camelCase (`paddingLeft`, `alignItems`, `justifyContent`), plus a short set: `p pt pr pb pl`, `m mt mr mb ml`, `bg`. Everything is available both as named exports and through the namespace (`css.p`). There is no `items` or `justify`: they were ambiguous (`align-items` or `align-content`, `justify-content` or `justify-items`).
 - **Numbers.** A bare number is a spacing step of 0.25rem in `padding*`, `margin*`, `gap*` and `inset*` (`p(4)` is `1rem`). In any other property it is a CSS `<number>`: `opacity(0.5)`, `zIndex(3)`.
 - **Values.** A property takes one or more parts joined by a space. Each part is a string or a Typed OM value: `border("1px solid", accent)`, `padding(CSS.rem(1), CSS.rem(2))`, `padding("1rem 2rem")`. Parts are checked against the mdn grammar in types and again at build time. `CSS.px`, `rem`, `em`, `percent`, `number`, `CSSUnitValue` and `CSSColorValue` come from `cssints`, imported with the attribute.
@@ -16,7 +16,7 @@ Every `ts` block here is type-checked against the workspace `cssints` types by `
 - **`flex(...parts)` and `grid(...parts)` are the shorthand properties.** With at least one argument the call is the `flex` (or `grid`) property, checked by its grammar like any member: `flex("1")`, `flex(1)` and `flex("1 1 0")` are `flex: 1`, `flex: 1` and `flex: 1 1 0`, `grid("auto / 1fr 1fr")` is `grid: auto / 1fr 1fr`. A bare number is a `<number>` here, not a spacing step. The result is a plain style: it sets no `display` and does not chain. The types tell the two forms apart by overload.
 - **`container` is the condition.** `container("sidebar (width < 30rem)")` is a query; the `container` shorthand property is written with its longhands `containerName` and `containerType`.
 - **Arguments are build-time values.** The plugin runs your module at build time and replaces each call with a class string. A literal, a `const`, a token or a value from another attributed module works. A value that exists only at runtime (a prop, state) does not: `p(n)` with `n` a parameter is a build error (`css arguments must be known at build time: n is not defined where the call is evaluated`) that points at the call. The types do not catch it: a helper module may take parameters (below), so a `string` or `number` is a fine argument there. Choose between styles with `cx(on && p(4))`, a `cv` variant, or a token set in a `style` prop. A helper module imported with the attribute may take parameters, because each call of it is a site with its own arguments: `stack(4)` below is a build-time call in the file that makes it.
-- **Top-level code runs at build time.** A call the run does not reach (`false && p(4)`, a branch not taken, a ternary arm) still gets its class string: it is evaluated after the module has loaded, like a call inside a function, so its arguments may use the bindings of the module but not the locals of the branch. A `_cv(cv(...))` at the top of a module works too: during the build `_cv` turns the `cv()` into the same function the browser gets.
+- **Top-level code runs at build time.** A call the run does not reach (`false && p(4)`, a branch not taken, a ternary arm) still gets its class string: it is evaluated after the module has loaded, like a call inside a function, so its arguments may use the bindings of the module but not the locals of the branch. A `cv(...)` at the top of a module works too: during the build it is the same function the browser gets, so `button({ size: "lg" })` at the top of a module gives its classes.
 
 ```ts
 // stack.ts
@@ -65,7 +65,7 @@ export const A = () => <div className={cx("_1s47490", "_1ob5z5m", "_cn8dee", pro
 - **One sheet.** All rules are in `virtual:cssints.css`, each once, sorted by layer, then condition, then shorthand before longhand (`border` before `border-top`, counted from Chrome's own expansion of each shorthand), then class name. So a longhand wins over a shorthand that contains it, whatever the order of the arguments: `cn(pl(2), p(4))` keeps `padding-left: 0.5rem`.
 - **`cn()` keeps the later of the same property.** `cn(p(4), p(2))` is `p(2)`: the earlier declaration is dropped at build time (also for an alias: `wordWrap` is `overflowWrap`). Under different conditions both stay, because they are in different layers: `cn(md(p(6)), p(2))`. Two properties that overlap without one containing the other are a build error, because the sheet cannot order them by the arguments: `cn(borderTop("1px solid red"), borderColor("blue"))` both set `border-top-color`; so do a physical and a logical side (`marginLeft` and `marginInline`, `width` and `inlineSize`), since which physical side a logical one is depends on the writing mode. A logical property inside a physical shorthand that sets every side is contained, not overlapping: `cn(border(...), borderInline(...))` is fine, and `borderInline` wins. Styles that only meet in `cx()` in the browser are not seen at build time.
 - **A layout context** gives one string: `flex().alignItems("center")` is `"_1s47490 _1ob5z5m"`.
-- **Also exported:** `css` (the namespace as a value) and `cn`, `cv`, `firstThatWorks`, `media`, `container`, `supports`, `attr`, `within`, `group`, `global`, `token`, `style`, `createTokens`, `createGlobalTheme`, `check`. `cx` and `_cv` are the only runtime exports.
+- **Also exported:** `css` (the namespace as a value) and `cn`, `cv`, `firstThatWorks`, `media`, `container`, `supports`, `attr`, `within`, `group`, `global`, `token`, `style`, `createTokens`, `createGlobalTheme`, `check`. `cx` is the only runtime export.
 
 ### Without runtime
 
@@ -399,34 +399,41 @@ export const f = positionTryFallbacks(fade); // error: a keyframes name is not a
 }
 ```
 
-### Runtime: `cx`, `cn`, `cv` (decided 2026-09-29, cssints-lo9x)
+### Runtime: `cx`, `cn`, `cv` (decided 2026-09-29, cssints-lo9x; `cv` without `_cv` 2026-10-07, cssints-ep2l)
 
-- **One runtime package: `cssints` itself.** `import { cx, _cv } from "cssints"` has no attribute and is the only code that ships to the browser. `@cssints/variants` is gone.
+- **One runtime package: `cssints` itself.** `import { cx } from "cssints"` has no attribute and is the only code that ships to the browser, together with the few lines the plugin puts in place of each `cv()`. `@cssints/variants` is gone.
 - **`cx(...)`** joins strings, skips falsy values and flattens nested arrays: `cx(base, on && p(4), [a, b])`. It takes no clsx-style objects; write `cond && style` instead.
 - **`cn(...)`** runs at build time only. Under the attribute, `cn(p(4), bg("red"))` becomes one class string, and nothing is left at runtime.
-- **`cv(config)`** takes `css.*` values, so types check them. The plugin replaces it with a config of class strings, and `_cv` (runtime) turns that into the function you call:
+- **`cv(config)`** takes `css.*` values, so types check them, and is the function you call: one call, no wrapper. The plugin replaces the site by a call of the small runtime (and imports it for you; `_cv` is not exported any more) with a config of class strings. The props are typed from `variants`: a name or a value that is not there is a type error, in the props and in `defaultVariants` and `compoundVariants` alike.
 
 ```ts
-import { _cv } from "cssints";
-import { cn, cv, fontSize, p } from "cssints" with { type: "cssints" };
+import { cn, cv, fontSize, opacity, p } from "cssints" with { type: "cssints" };
 
-const button = _cv(
-	cv({
-		base: cn(p(2), fontSize("1rem")),
-		variants: { size: { sm: p(1), lg: cn(p(4), fontSize("1.25rem")) } },
-		defaultVariants: { size: "sm" },
-	}),
-);
+const button = cv({
+	base: cn(p(2), fontSize("1rem")),
+	variants: {
+		size: { sm: p(1), lg: cn(p(4), fontSize("1.25rem")) },
+		disabled: { true: opacity(0.5), false: opacity(1) },
+	},
+	defaultVariants: { size: "sm", disabled: false },
+	compoundVariants: [{ size: "lg", disabled: true, class: opacity(0.3) }],
+});
 
-export const classes = () => button({ size: "lg" }); // "_1t8gqy5 _6tpir7 _lwugp7 _z6yj9k"
-export const bad = cv({ base: "padding: 1rem" }); // error: a base is a css value, not a CSS string
+export const classes = () => button({ size: "lg" }); // "_lwugp7 _z6yj9k _1t0bw2x"
+export const off = () => button({ size: "lg", disabled: true });
+export const bad = () => button({ size: "xl" }); // error: not a size
+export const bad2 = cv({ base: "padding: 1rem" }); // error: a base is a css value, not a CSS string
 ```
 
-- **What ships** for `button` is `_cv({ base: "_1t8gqy5 _6tpir7", variants: { size: { sm: "_lqk467", lg: "_lwugp7 _z6yj9k" } }, defaultVariants: { size: "sm" } })`: class strings only.
+- **What ships** for `button` is `__cv({ base: "_1t8gqy5 _6tpir7", variants: { size: { sm: "_lqk467", lg: "_lwugp7 _z6yj9k" }, ... }, defaultVariants: { size: "sm", disabled: false }, ... })` with `import { _cv as __cv } from "cssints"` added to the module: class strings only. `cv()` works in a function, at the top of a module and in a library.
+- **Old code.** `import { _cv } from "cssints"` is a type error (no such export) and, in a module the plugin handles, a build error at the import: `cssints: <file> imports _cv from "cssints", which is gone: cv({ ... }) is the function now. Write const button = cv({ base, variants }) ...`. It does not keep working for a release: `_cv(cv(...))` would hand a function to the runtime, and a shim would keep two spellings of one thing. The fix is mechanical: drop `_cv(` and its closing bracket. A library built the old way fails with the same error, naming its file.
+- **Boolean variants.** A variant whose keys are `true` and `false` (or only one of them) takes a boolean: `button({ disabled: true })`, and a default is a boolean too. `false` is a value, not a missing one: `button({ disabled: false })` selects the `false` key even when the default is `true`. `undefined` is the default.
+- **`compoundVariants`** as in cva: each entry names values (any of the variants, a boolean for a boolean one) and the style that is added when all of them are active. The key is `class`, as in cva, since what the entry adds is a class (a `cx` or `style()` key would suggest an inline style, and cssints has `style()` for that; `css` is the namespace). Its value is a `css.*` style like the others, not a string. The values of an entry are one value each, not a list of values.
 - **Values** of `base` and of each variant are one property, `cn(...)`, or a `flex()`/`grid()` chain. A CSS string is a build error that shows the new form: `cv() base must be a css.* value (cn(...), a flex() chain or one property), got "padding: 1rem". CSS strings are gone: write cn(p(4), fontSize("1rem"))`.
 
-- **The variant wins.** `_cv` joins the base and the variants that are active at runtime, so the build compares them (`cv()` has no compound variants). Under one condition, a variant that sets what the base sets (the same property, an alias, or a shorthand over a base longhand: `pl(2)` in the base, `p(4)` in the variant) replaces it: the base class is dropped from the string while that value is active, which `_cv` does from a `drops` entry in the config (`drops: { size: { lg: "_77ujlx" } }`, only where there is one). Which rule comes later in the sheet does not decide. A variant longhand inside a base shorthand needs no drop, since the sheet puts a longhand after its shorthand: base `border(...)` with `active: { yes: borderBottomColor(...) }` is fine. Under different conditions both stay, as in `cn()`.
+- **The variant wins.** The function joins the base and the variants that are active at runtime, so the build compares them. Under one condition, a variant that sets what the base sets (the same property, an alias, or a shorthand over a base longhand: `pl(2)` in the base, `p(4)` in the variant) replaces it: the base class is dropped from the string while that value is active, which the runtime does from a `drops` entry in the config (`drops: { size: { lg: "_77ujlx" } }`, only where there is one). Which rule comes later in the sheet does not decide. A variant longhand inside a base shorthand needs no drop, since the sheet puts a longhand after its shorthand: base `border(...)` with `active: { yes: borderBottomColor(...) }` is fine. Under different conditions both stay, as in `cn()`.
 - **Overlap is an error, as in `cn()`.** A base property and a variant property that overlap without one containing the other are a build error at the `cv()` call: `cssints: cv() base and variant active.yes: border-bottom and border-color overlap without one containing the other, so the sheet cannot order them: set one of them, or the longhands` (both set `border-bottom-color`; write `borderBottomColor` in the variant). The same holds for two variants of different keys, which can be active together. Two such variants that set the same property are an error too, since nothing says which wins: `cssints: cv() variants a.x and b.x both set color and can be active together, so nothing says which wins: set it in one of them, or in the base`. Values of one key are never compared, since only one is active.
+- **A compound wins over what it combines.** It is the most specific style, so under one condition it replaces what it sets again in the base and in the variant values it names (the same rule as a variant over the base): `compoundVariants: [{ size: "lg", tone: "loud", class: p(6) }]` drops the base's padding, `size.lg`'s padding and `tone.loud`'s padding while both are active, in the `compound` entry of the config (`{ when: { size: "lg", tone: "loud" }, class: "_x", drops: "_a _b" }`). The sheet order never decides. What a compound shares with other things that can be active together is compared as for variants: an overlap without containment is an error, and so is the same property in a compound and a variant of a key it does not name (it is active with any of its values), or in two compounds that can be active together (no key they both name with different values). Write the property in one of them, or in the base.
 
 Slot variants (`scv`) are not part of 0.1.
 
@@ -723,14 +730,13 @@ A package written on cssints ships JavaScript that still has the attribute, and 
 
 ```ts skip
 // src/index.ts of the library
-import { _cv } from "cssints";
 import { bg, cn, cv, hover, p } from "cssints" with { type: "cssints" };
 
 import { t } from "./tokens.ts" with { type: "cssints" };
 
 export { t };
 export const card = cn(p(4), bg(t.color.brand));
-export const button = _cv(cv({ base: cn(p(2), hover(bg("#1d4ed8"))) }));
+export const button = cv({ base: cn(p(2), hover(bg("#1d4ed8"))) });
 ```
 
 ```ts skip
@@ -742,7 +748,7 @@ import { t } from "my-ui" with { type: "cssints" };
 createGlobalTheme(t, ".dark", { color: { brand: "#ef4444" } });
 ```
 
-- **Build with tsdown** (`vp pack`), with `cssints` external and `dts: true`. tsdown keeps the import attributes, so there is no option to set. It also merges `import { _cv } from "cssints"` into the attributed import of the same module; the engine reads `cx` and `_cv` as runtime wherever they are written, so that is fine. Do not minify, bundle or transform the JS further with a tool that drops import attributes, and do not bundle `cssints` into it.
+- **Build with tsdown** (`vp pack`), with `cssints` external and `dts: true`. tsdown keeps the import attributes, so there is no option to set. It also merges `import { cx } from "cssints"` into the attributed import of the same module; the engine reads `cx` as runtime wherever it is written, so that is fine. The built `.d.ts` types `button` as `(props?: …) => string`, with the props of its variants. Do not minify, bundle or transform the JS further with a tool that drops import attributes, and do not bundle `cssints` into it.
 - **Keep in the package:** `cssints` in `peerDependencies` (the app needs it to build; a library that imports it must list it), the JS with the attributes, the `.d.ts` (it types `cssints` members as class strings and tokens as tokens, so the app is checked across the boundary), and no `.css` file: the library has no sheet of its own.
 - **The app needs cssints and its plugin.** The package has no classes until the app's `cssints()` plugin has evaluated it, so an app without cssints cannot use it. Pre-compiled output (class strings plus a sheet fragment for apps without cssints) is not supported yet; it waits for a first user.
 - **The package must be a direct dependency of the app.** `cssints/vite` reads the `package.json` of the app and of each of its dependencies, and for a dependency that lists `cssints` it adds the package to `optimizeDeps.exclude` (the dev optimizer would pre-bundle it with esbuild and drop the attributes) and to `ssr.noExternal` (the engine's runner would otherwise load it as native Node, which does not know the attribute). This is a few file reads at startup, one per dependency, and nothing else. A package that is only a dependency of another package is not found; add it to the app's own dependencies (or to those two options).

@@ -1,4 +1,4 @@
-// cv() in Chrome: the classes `_cv` returns, with the sheet the plugin builds for fixtures/cv-cascade.ts, read with
+// cv() in Chrome: the classes `cv()` returns, with the sheet the plugin builds for fixtures/cv-cascade.ts, read with
 // getComputedStyle. Not in `test` (needs Chrome installed). Run: node cv-chrome.mjs
 import assert from "node:assert/strict";
 import { readdirSync } from "node:fs";
@@ -27,9 +27,9 @@ const out = (await server.environments.client.transformRequest("/fixtures/cv-cas
 const css = await plugins[0].api.sheet([`${import.meta.dirname}/fixtures/cv-cascade.ts`]);
 await server.close();
 const cvIn = (n) =>
-  _cv(JSON.parse(new RegExp(`export const ${n} = _cv\\((\\{[\\s\\S]*?\\n\\})\\);`).exec(out)[1]));
+  _cv(JSON.parse(new RegExp(`export const ${n} = __cv\\((\\{[\\s\\S]*?\\n\\})\\);`).exec(out)[1]));
 
-/** @type {[string, Record<string, string>, Record<string, string>][]} */
+/** @type {[string, Record<string, string | boolean>, Record<string, string>][]} */
 const cases = [
   ["same", {}, { color: "rgb(255, 0, 0)" }],
   ["same", { tone: "blue" }, { color: "rgb(0, 0, 255)" }],
@@ -42,6 +42,28 @@ const cases = [
     { borderBottomColor: "rgb(0, 0, 255)", borderTopColor: "rgb(255, 0, 0)" },
   ],
   ["layered", { tone: "blue" }, { color: "rgb(255, 0, 0)" }],
+  ["compound", {}, { paddingLeft: "4px", color: "rgb(128, 128, 128)", opacity: "1" }],
+  [
+    "compound",
+    { size: "lg", tone: "loud" },
+    {
+      paddingLeft: "24px",
+      color: "rgb(255, 255, 255)",
+      backgroundColor: "rgb(220, 20, 60)",
+      opacity: "1",
+    },
+  ],
+  [
+    "compound",
+    { size: "lg", tone: "loud", disabled: true },
+    { paddingLeft: "24px", backgroundColor: "rgb(220, 20, 60)", opacity: "0.3" },
+  ],
+  [
+    "compound",
+    { tone: "loud", disabled: true },
+    { paddingLeft: "4px", backgroundColor: "rgb(255, 0, 0)", opacity: "0.3" },
+  ],
+  ["compound", { disabled: true }, { opacity: "0.5" }],
 ];
 const browser = await chromium.launch({ channel: "chrome" });
 const page = await browser.newPage();

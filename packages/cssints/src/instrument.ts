@@ -14,6 +14,8 @@ import { Effect, Formatter, Predicate } from "effect";
 import { ImportError } from "./errors.ts";
 
 export const RUNTIME = "cssints";
+// A cv() site becomes a call of the runtime; the plugin imports it as `__cv` into the modules that have one.
+export const CV_CALL = "__cv(";
 
 const rootIdent = (n: Node): string | null =>
   n.type === "Identifier"
@@ -24,7 +26,7 @@ const rootIdent = (n: Node): string | null =>
         ? rootIdent(n.callee)
         : null;
 
-const RUNTIME_ONLY = new Set(["cx", "_cv"]);
+const RUNTIME_ONLY = new Set(["cx"]);
 const nameOf = (m: ModuleExportName) => (m.type === "Identifier" ? m.name : m.value);
 const isSiteImport = (s: ImportDeclaration) =>
   s.attributes.some(
@@ -35,14 +37,14 @@ const isSiteImport = (s: ImportDeclaration) =>
 const importedName = (x: ImportDeclarationSpecifier) =>
   x.type === "ImportSpecifier" ? nameOf(x.imported) : null;
 
-// A bundler (tsdown) merges `import { _cv } from "cssints"` into the attributed import of the same module: cx and _cv
-// stay runtime wherever they are written.
+// A bundler (tsdown) merges `import { cx } from "cssints"` into the attributed import of the same module: cx stays
+// runtime wherever it is written.
 const isRuntime = (d: ImportDeclaration, x: ImportDeclarationSpecifier) =>
   d.source.value === RUNTIME &&
   x.type === "ImportSpecifier" &&
   RUNTIME_ONLY.has(nameOf(x.imported));
 
-// The runtime part of an attributed import, as an import of its own (`import { _cv } from "cssints";`), or "".
+// The runtime part of an attributed import, as an import of its own (`import { cx } from "cssints";`), or "".
 export const keptImport = (d: ImportDeclaration, code: string) => {
   const names = d.specifiers.filter((x) => isRuntime(d, x)).map((x) => code.slice(x.start, x.end));
   return names.length
@@ -66,19 +68,29 @@ const findCssImport = Effect.fnUntraced(function* (
   const decls: ImportDeclaration[] = [];
   for (const s of program.body) {
     if (s.type !== "ImportDeclaration") continue;
+    const old = s.source.value === RUNTIME && s.specifiers.find((x) => importedName(x) === "_cv");
+    if (old)
+      return yield* new ImportError({
+        message: `cssints: ${id} imports _cv from "cssints", which is gone: cv({ ... }) is the function now. Write const button = cv({ base, variants }) (cv from "cssints" with { type: "cssints" }), drop _cv, and call button({ size: "lg" })`,
+        file: id,
+        offset: old.start,
+      });
     if (isSiteImport(s)) {
       decls.push(s);
       s.specifiers.forEach((x) => isRuntime(s, x) || locals.add(x.local.name));
-    } else if (s.source.value === RUNTIME) {
+    } else if (s.source.value === RUNTIME && s.importKind !== "type") {
+      // a type import is erased: `import type { CvProps } from "cssints"`
       const bad = s.specifiers.filter(
-        (x) => x.type !== "ImportSpecifier" || !RUNTIME_ONLY.has(importedName(x) ?? ""),
+        (x) =>
+          x.type !== "ImportSpecifier" ||
+          (x.importKind !== "type" && !RUNTIME_ONLY.has(importedName(x) ?? "")),
       );
       if (!bad.length) continue;
       const names = bad.map((x) => code.slice(x.start, x.end));
       const fix =
         bad[0]!.type === "ImportNamespaceSpecifier" ? names[0] : `{ ${names.join(", ")} }`;
       return yield* new ImportError({
-        message: `cssints: ${id} imports build-time ${names.join(", ")} from "cssints" without the attribute. Import it as: import ${fix} from "cssints" with { type: "cssints" }; (only cx and _cv are runtime)`,
+        message: `cssints: ${id} imports build-time ${names.join(", ")} from "cssints" without the attribute. Import it as: import ${fix} from "cssints" with { type: "cssints" }; (only cx is runtime)`,
         file: id,
         offset: s.start,
       });

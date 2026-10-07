@@ -39,6 +39,11 @@ const dist = readFileSync(join(lib, "dist/index.js"), "utf8");
 assert.match(dist, /from "cssints" with \{ type: "cssints" \}/, dist);
 assert.ok(!dist.includes("node_modules"), "cssints is not bundled");
 assert.ok(existsSync(join(lib, "dist/index.d.ts")), "the .d.ts is emitted");
+assert.match(
+  readFileSync(join(lib, "dist/index.d.ts"), "utf8"),
+  /button: \(props\?: import\("cssints"\)\.CvProps<\{\s*size: \{/,
+  "the typed function of cv() is in the .d.ts",
+);
 
 // An app that installs it, uses its style, its cv and its token, and themes the token.
 const put = (file, text) => {

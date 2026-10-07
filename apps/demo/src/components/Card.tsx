@@ -1,4 +1,4 @@
-import { _cv, cx } from "cssints";
+import { cx } from "cssints";
 import {
   bg,
   border,
@@ -18,7 +18,7 @@ import {
 
 import { t } from "../theme.ts" with { type: "cssints" };
 
-const rootConfig = cv({
+const root = cv({
   base: cn(
     bg(t.color.surface),
     borderRadius("0.5rem"),
@@ -38,8 +38,6 @@ const rootConfig = cv({
   },
   defaultVariants: { variant: "default", size: "md" },
 });
-
-const root = _cv(rootConfig);
 
 const headerSlot = [padding("1.5rem 1.5rem 0"), flex().direction("column").gap("0.5rem")];
 const titleSlot = [fontSize("1.25rem"), fontWeight("600"), color(t.color.text), lineHeight("1.4")];

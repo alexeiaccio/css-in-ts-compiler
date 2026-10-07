@@ -54,7 +54,7 @@ cd apps/sky && bun run test                  # the Solid app: api.ts against rec
 
 Plain `.ts` files run with `node` (type stripping), no build step: erasable syntax only (no enums, namespaces or parameter
 properties) and `.ts` import specifiers. `cssints` exports `types` (src/types.ts: what user code sees, class strings),
-`browser` (src/runtime.ts: `cx` and `_cv`, no imports, no Effect) and `default` (src/index.ts: the eval-time library).
+`browser` (src/runtime.ts: `cx` and the runtime of `cv`, no imports, no Effect) and `default` (src/index.ts: the eval-time library).
 
 `vp <name>` is a Vite+ built-in, `vp run <name>` is a package.json script: `vp test` is vitest (unused here), `vp run test` is ours. Docs ship in `node_modules/vite-plus/docs`.
 
@@ -154,7 +154,7 @@ In 4.0.0-beta.107: `Data.TaggedError("Tag")<{ ...fields }>` (there is no `Data.T
 Everything in the engine returns an Effect (`Effect.fn("name")`, tagged errors that carry the file and the offset of the call
 site) except what user code calls in expressions: the `css.*` node builders (`toDecls`, `chainDecl`, `isNode` in lib.ts),
 the Typed OM values (`CSS.rem()`, `new CSSColorValue()`), and the two calls the plugin puts around every site, `__at` and
-`__site`, which run an Effect at that synchronous edge. `cx` and `_cv` (runtime.ts) ship to browsers and stay plain.
+`__site`, which run an Effect at that synchronous edge. `cx` and the runtime of `cv` (runtime.ts) ship to browsers and stay plain.
 
 The hot paths stay plain code inside an Effect boundary: the twin's lexer and recognizer (`twin-core.ts`), the class hash,
 the AST walk. A traced `Effect.fn` costs ~4 µs a call, so functions called per declaration or per site are

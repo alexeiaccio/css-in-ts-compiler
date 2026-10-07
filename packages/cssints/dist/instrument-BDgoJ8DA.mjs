@@ -1,6 +1,8 @@
 import { browsers, lacking, supportOf } from "@cssints/css-grammar/support";
-import { Context, Data, Effect, Formatter, Result, Schema } from "effect";
+import { Context, Data, Effect, Formatter, Predicate, Result, Schema } from "effect";
 import { longhands } from "@cssints/css-grammar/longhands";
+import { parseSync } from "oxc-parser";
+import MagicString from "magic-string";
 //#region src/errors.ts
 /** A css.* call, cv(), or a value in it is wrong. `file`, `site` (index) and `offset` name the call site, when known. */
 var MacroError = class extends Data.TaggedError("MacroError") {};
@@ -763,4 +765,139 @@ const renderSheet = Effect.fn("cssints.renderSheet")(function* (entries) {
 	return layer ? `${out}}\n` : out;
 });
 //#endregion
-export { HookError as A, covers as C, forgetKernels as D, forget as E, MacroError as M, MemberError as N, registry as O, SiteMissingError as P, runtimeNames as S, Registry as T, DERIVED as _, closeNames as a, fallbackEntries as b, layerEntries as c, requireLayer as d, themedEntries as f, kernelEntries as g, addKernel as h, byOrder as i, ImportError as j, EvalError as k, layerStatements as l, usesDerived as m, addGlobal as n, globalEntries as o, standIn as p, addLayers as r, globalNames as s, LAYERS as t, renderSheet as u, RUNTIME_ID as v, relation as w, runtimeModule as x, addRuntime as y };
+//#region src/instrument.ts
+const RUNTIME = "cssints";
+const CV_CALL = "__cv(";
+const rootIdent = (n) => n.type === "Identifier" ? n.name : n.type === "MemberExpression" ? rootIdent(n.object) : n.type === "CallExpression" ? rootIdent(n.callee) : null;
+const RUNTIME_ONLY = /* @__PURE__ */ new Set(["cx"]);
+const nameOf = (m) => m.type === "Identifier" ? m.name : m.value;
+const isSiteImport = (s) => s.attributes.some((a) => (a.key.type === "Identifier" ? a.key.name : a.key.value) === "type" && a.value.value === "cssints");
+const importedName = (x) => x.type === "ImportSpecifier" ? nameOf(x.imported) : null;
+const isRuntime = (d, x) => d.source.value === "cssints" && x.type === "ImportSpecifier" && RUNTIME_ONLY.has(nameOf(x.imported));
+const keptImport = (d, code) => {
+	const names = d.specifiers.filter((x) => isRuntime(d, x)).map((x) => code.slice(x.start, x.end));
+	return names.length ? `import { ${names.join(", ")} } from ${Formatter.formatJson(RUNTIME)};` : "";
+};
+const findCssImport = Effect.fnUntraced(function* (program, code, id) {
+	const locals = /* @__PURE__ */ new Set();
+	const decls = [];
+	for (const s of program.body) {
+		if (s.type !== "ImportDeclaration") continue;
+		const old = s.source.value === "cssints" && s.specifiers.find((x) => importedName(x) === "_cv");
+		if (old) return yield* new ImportError({
+			message: `cssints: ${id} imports _cv from "cssints", which is gone: cv({ ... }) is the function now. Write const button = cv({ base, variants }) (cv from "cssints" with { type: "cssints" }), drop _cv, and call button({ size: "lg" })`,
+			file: id,
+			offset: old.start
+		});
+		if (isSiteImport(s)) {
+			decls.push(s);
+			s.specifiers.forEach((x) => isRuntime(s, x) || locals.add(x.local.name));
+		} else if (s.source.value === "cssints" && s.importKind !== "type") {
+			const bad = s.specifiers.filter((x) => x.type !== "ImportSpecifier" || x.importKind !== "type" && !RUNTIME_ONLY.has(importedName(x) ?? ""));
+			if (!bad.length) continue;
+			const names = bad.map((x) => code.slice(x.start, x.end));
+			const fix = bad[0].type === "ImportNamespaceSpecifier" ? names[0] : `{ ${names.join(", ")} }`;
+			return yield* new ImportError({
+				message: `cssints: ${id} imports build-time ${names.join(", ")} from "cssints" without the attribute. Import it as: import ${fix} from "cssints" with { type: "cssints" }; (only cx is runtime)`,
+				file: id,
+				offset: s.start
+			});
+		}
+	}
+	return locals.size ? {
+		locals,
+		decls
+	} : null;
+});
+const CONDITIONS = /* @__PURE__ */ new Set([
+	"media",
+	"container",
+	"supports",
+	"attr",
+	"within"
+]);
+const boundNames = (id, out) => {
+	if (!id) return;
+	if (id.type === "Identifier") out.add(id.name);
+	else if (id.type === "ArrayPattern") id.elements.forEach((e) => boundNames(e, out));
+	else if (id.type === "ObjectPattern") id.properties.forEach((p) => boundNames(p.type === "Property" ? p.value : p.argument, out));
+	else if (id.type === "AssignmentPattern") boundNames(id.left, out);
+};
+function withConditions(program, code, { locals, decls }) {
+	if (!/\b(?:media|container|supports|attr|within)\b/.test(code)) return locals;
+	const ctors = /* @__PURE__ */ new Set();
+	for (const d of decls) for (const x of d.specifiers) if (x.type === "ImportSpecifier" && CONDITIONS.has(nameOf(x.imported))) ctors.add(x.local.name);
+	const all = new Set(locals);
+	const walk = (node) => {
+		if (!Predicate.isObject(node) || typeof node.type !== "string") return;
+		const n = node;
+		if (n.type === "VariableDeclarator" && n.init?.type === "CallExpression") {
+			const c = n.init.callee;
+			if (c.type === "Identifier" && ctors.has(c.name) || c.type === "MemberExpression" && !c.computed && c.property.type === "Identifier" && CONDITIONS.has(c.property.name) && locals.has(rootIdent(c.object) ?? "")) boundNames(n.id, all);
+		}
+		for (const k in node) {
+			const v = node[k];
+			if (Array.isArray(v)) v.forEach(walk);
+			else if (Predicate.isObject(v) && "type" in v) walk(v);
+		}
+	};
+	walk(program);
+	return all;
+}
+function findSites(program, locals) {
+	const sites = [];
+	const walk = (node, inFn) => {
+		if (!Predicate.isObject(node) || typeof node.type !== "string") return;
+		const n = node;
+		if ((n.type === "CallExpression" || n.type === "NewExpression") && locals.has(rootIdent(n.callee) ?? "")) {
+			sites.push({
+				start: n.start,
+				end: n.end,
+				inFn
+			});
+			return;
+		}
+		const fn = inFn || /Function/.test(n.type);
+		for (const k in node) {
+			const v = node[k];
+			if (Array.isArray(v)) v.forEach((c) => walk(c, fn));
+			else if (Predicate.isObject(v) && "type" in v) walk(v, fn);
+		}
+	};
+	walk(program, false);
+	return sites;
+}
+const instrument = Effect.fn("cssints.instrument")(function* (code, id) {
+	const { program } = parseSync(id, code);
+	const imp = yield* findCssImport(program, code, id);
+	if (!imp) return null;
+	const sites = findSites(program, withConditions(program, code, imp));
+	const ms = new MagicString(code);
+	const hoisted = [];
+	const file = Formatter.formatJson(id);
+	sites.forEach((s, n) => {
+		const site = `__site(__at(${file}, ${n}, ${s.start}), `;
+		const expr = code.slice(s.start, s.end);
+		if (s.inFn) hoisted.push(`${site}${expr});`);
+		else {
+			ms.prependLeft(s.start, site).appendRight(s.end, ")");
+			hoisted.push(`__unseen(${file}, ${n}) && ${site}${expr});`);
+		}
+	});
+	imp.decls.forEach((d, i) => {
+		if (d.source.value !== "cssints") return;
+		const ns = d.specifiers.find((x) => x.type === "ImportNamespaceSpecifier");
+		const named = d.specifiers.filter((x) => !isRuntime(d, x));
+		const bind = ns ? ns.local.name : `{ ${named.map((x) => `${Formatter.formatJson(importedName(x))}: ${x.local.name}`).join(", ")} }`;
+		ms.overwrite(d.start, d.end, `import { css as __css${i} } from ${Formatter.formatJson(RUNTIME)}; const ${bind} = __css${i};${keptImport(d, code)}`);
+	});
+	ms.prepend(`import { __at, __site, __unseen } from ${Formatter.formatJson(RUNTIME)};\n`);
+	if (hoisted.length) ms.append(`\nexport function __cssints_hoisted() {\n${hoisted.join("\n")}\n}\n`);
+	return {
+		code: ms.toString(),
+		sites,
+		imp
+	};
+});
+//#endregion
+export { forget as A, addRuntime as C, covers as D, runtimeNames as E, MacroError as F, MemberError as I, SiteMissingError as L, registry as M, EvalError as N, relation as O, HookError as P, RUNTIME_ID as S, runtimeModule as T, standIn as _, LAYERS as a, kernelEntries as b, byOrder as c, globalNames as d, layerEntries as f, themedEntries as g, requireLayer as h, keptImport as i, forgetKernels as j, Registry as k, closeNames as l, renderSheet as m, RUNTIME as n, addGlobal as o, layerStatements as p, instrument as r, addLayers as s, CV_CALL as t, globalEntries as u, usesDerived as v, fallbackEntries as w, DERIVED as x, addKernel as y };

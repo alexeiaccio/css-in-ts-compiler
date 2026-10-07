@@ -109,7 +109,7 @@ assert.ok(existsSync("public/fonts/inter/inter-latin-wght-normal.woff2"));
 
 const js = files.find((f) => f.fileName.endsWith(".js"));
 assert.match(js.code, /<main class="_\w+( _\w+)+">/, "Solid kept the classes in its template");
-assert.match(js.code, /_cv\(\{/, "the cv() config is class strings");
+assert.match(js.code, /\bbase"?:\s*"_/, "the cv() config is class strings");
 assert.ok(!/createTokens|css-grammar|toDecls/.test(js.code), "no engine code in the client");
 const all = files
   .filter((f) => f.fileName.endsWith(".js"))

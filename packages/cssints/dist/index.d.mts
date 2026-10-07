@@ -1,5 +1,5 @@
 import { a as Kernel } from "./author-types-VWp_4djS.mjs";
-import { i as cx, n as CvRuntimeConfig } from "./runtime-CnWWz4hd.mjs";
+import { n as cx } from "./runtime-CTvuM-Hm.mjs";
 import { n as At, t as CssNode } from "./node-mZem3Im8.mjs";
 import { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
 import { Effect } from "effect";
@@ -26,14 +26,12 @@ type Styles = Record<string, Record<string, unknown>>;
 interface CvConfig {
   base?: unknown;
   variants?: Styles;
-  defaultVariants?: Record<string, string>;
+  defaultVariants?: Record<string, string | boolean>;
+  compoundVariants?: Record<string, string | boolean | CssNode>[];
 }
-/** cv(config): the config as written; `recordSite` turns it into class strings. */
-interface CvNode {
+export declare const cv: (config: CvConfig) => ((props?: Record<string, string | boolean | undefined>) => string) & {
   __cv: CvConfig;
-}
-export declare const cv: (config: CvConfig) => CvNode;
-export declare const _cv: (config: CvNode | CvRuntimeConfig) => (props?: Record<string, string | undefined>) => string;
+};
 export declare const css: Record<string, unknown>;
 export declare function __at(file: string, site: number, offset: number): At;
 export declare const __unseen: (file: string, site: number) => boolean;

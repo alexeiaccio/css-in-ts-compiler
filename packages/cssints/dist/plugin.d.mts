@@ -1,3 +1,3 @@
-import { _ as Style, a as Entry, c as Made, d as Scope, f as Table, g as Part, h as scope, i as Css, l as Members, m as arg, n as ArgsDef, o as Impl, p as Typed, r as Chain, s as KernelDef, u as Pending } from "./scope-DdvIBw72.mjs";
+import { _ as Style, a as Entry, c as Made, d as Scope, f as Table, g as Part, h as scope, i as Css, l as Members, m as arg, n as ArgsDef, o as Impl, p as Typed, r as Chain, s as KernelDef, u as Pending } from "./scope-B8kaYDEO.mjs";
 import { a as Kernel, i as GlobalRule, n as Conflict, o as Runtime, r as Decl, s as ThemeRule } from "./author-types-VWp_4djS.mjs";
 export { type ArgsDef, type Chain, type Conflict, type Css, type Decl, type Entry, type GlobalRule, type Impl, type Kernel, type KernelDef, type Made, type Members, type Part, type Pending, type Runtime, type Scope, type Style, type Table, type ThemeRule, type Typed, arg, scope };

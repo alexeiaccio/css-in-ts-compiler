@@ -175,7 +175,7 @@ export const t = createTokens({ color: { $type: "color", brand: { $value: "#3b82
 );
 put(
   "src/Button.tsx",
-  `import { _cv, cx } from "cssints";
+  `import { cx } from "cssints";
 import { bg, cn, color, cv, hover, media, p } from "cssints" with { type: "cssints" };
 
 import { frame } from "cssints/frame" with { type: "cssints" };
@@ -187,13 +187,11 @@ import { t } from "./tokens.ts" with { type: "cssints" };
 
 const wide = media("(width >= 40rem)");
 
-const button = _cv(
-  cv({
-    base: cn(p(2), bg(t.color.brand), color("white"), hover(bg("#2563eb")), ring().width("2px"), mdi("home")),
-    variants: { size: { lg: wide(p(4)) } },
-    defaultVariants: { size: "lg" },
-  }),
-);
+const button = cv({
+  base: cn(p(2), bg(t.color.brand), color("white"), hover(bg("#2563eb")), ring().width("2px"), mdi("home")),
+  variants: { size: { lg: wide(p(4)) } },
+  defaultVariants: { size: "lg" },
+});
 
 export function Button({ busy }: { busy?: boolean }) {
   return (
@@ -438,7 +436,7 @@ ok(
 );
 ok(
   bundled.some((s) => s.endsWith("cssints/dist/runtime.mjs")),
-  "the browser runtime is in the bundle (cx and _cv)",
+  "the browser runtime is in the bundle (cx and the cv runtime)",
 );
 ok(
   bundled.some((s) => s.endsWith("cssints/dist/parent-vars.mjs")) &&

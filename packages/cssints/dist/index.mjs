@@ -1,4 +1,4 @@
-import { C as covers, D as forgetKernels, M as MacroError, N as MemberError, O as registry, T as Registry, d as requireLayer, h as addKernel, i as byOrder, n as addGlobal, p as standIn, r as addLayers, w as relation, y as addRuntime } from "./sheet-DOHuHrWO.mjs";
+import { C as addRuntime, D as covers, F as MacroError, I as MemberError, M as registry, O as relation, _ as standIn, c as byOrder, h as requireLayer, j as forgetKernels, k as Registry, o as addGlobal, s as addLayers, t as CV_CALL, y as addKernel } from "./instrument-BDgoJ8DA.mjs";
 import { createRequire } from "node:module";
 import { checkDeclarationNow, checkQuery, checkSelector, checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { browsers, messageOf, supportOf } from "@cssints/css-grammar/support";
@@ -191,7 +191,7 @@ function merged(decls) {
 	}
 	return out;
 }
-function settled(base, variants) {
+function settled(base, variants, compounds = []) {
 	const at = (d) => (d[2] ?? []).map((c) => c.text).join(" > ");
 	const under = (d) => at(d) ? ` (under ${at(d)})` : "";
 	const meet = (o, d, who) => {
@@ -200,22 +200,43 @@ function settled(base, variants) {
 		if (r === "overlap") throw fail(`cssints: cv() ${who} ${o[0]} and ${d[0]} overlap without one containing the other${under(d)}, so the sheet cannot order them: set one of them, or the longhands`);
 		return r;
 	};
+	const replace = (olds, d, who, gone) => {
+		for (const o of olds) {
+			const cls = hashClass(o);
+			if (meet(o, d, who) !== "apart" && covers(d[0], o[0]) && cls !== hashClass(d) && !gone.includes(cls)) gone.push(cls);
+		}
+	};
+	const together = (o, d, a, b) => {
+		for (const x of o) if (meet(d, x, `${a} and ${b}:`) === "same") throw fail(`cssints: cv() ${a} and ${b} both set ${x[0]}${under(d)} and can be active together, so nothing says which wins: set it in one of them, or in the base`);
+	};
 	const out = {};
 	const keys = Object.entries(variants);
 	keys.forEach(([k, vs], i) => {
 		for (const [n, decls] of Object.entries(vs)) {
 			const gone = [];
 			for (const d of decls) {
-				for (const o of base) {
-					const cls = hashClass(o);
-					if (meet(o, d, `base and variant ${k}.${n}:`) !== "apart" && covers(d[0], o[0]) && cls !== hashClass(d) && !gone.includes(cls)) gone.push(cls);
-				}
-				for (const [k2, vs2] of keys.slice(i + 1)) for (const [n2, decls2] of Object.entries(vs2)) for (const o of decls2) if (meet(d, o, `variants ${k}.${n} and ${k2}.${n2}:`) === "same") throw fail(`cssints: cv() variants ${k}.${n} and ${k2}.${n2} both set ${o[0]}${under(d)} and can be active together, so nothing says which wins: set it in one of them, or in the base`);
+				replace(base, d, `base and variant ${k}.${n}:`, gone);
+				for (const [k2, vs2] of keys.slice(i + 1)) for (const [n2, decls2] of Object.entries(vs2)) together(decls2, d, `variants ${k}.${n}`, `${k2}.${n2}`);
 			}
 			if (gone.length) (out[k] ??= {})[n] = gone.join(" ");
 		}
 	});
-	return out;
+	return {
+		drops: out,
+		compound: compounds.map(({ when, decls }, j) => {
+			const gone = [];
+			const me = `compoundVariants[${j}]`;
+			for (const d of decls) {
+				replace(base, d, `base and ${me}:`, gone);
+				for (const [k, vs] of keys) for (const [n, vdecls] of Object.entries(vs)) if (!(k in when)) together(vdecls, d, me, `variant ${k}.${n}`);
+				else if (when[k] === n) replace(vdecls, d, `variant ${k}.${n} and ${me}:`, gone);
+				compounds.slice(j + 1).forEach((c, i) => {
+					if (Object.keys(when).every((k) => !(k in c.when) || c.when[k] === when[k])) together(c.decls, d, me, `compoundVariants[${j + 1 + i}]`);
+				});
+			}
+			return gone.join(" ");
+		})
+	};
 }
 function toDecls(member, args) {
 	if (member === "cn") {
@@ -695,20 +716,21 @@ const loweredOf = (prop, value, w) => fallbackOf(prop, value, w) !== void 0;
 //#endregion
 //#region src/runtime.ts
 const cx = (...a) => a.flat(Infinity).filter(Boolean).join(" ");
-function _cv$1(config) {
+function _cv(config) {
 	return (props = {}) => {
-		const classes = [config.base];
+		const out = [config.base];
 		const gone = [];
-		const use = (name, v) => {
-			if (!v || !config.variants[name]?.[v]) return;
-			classes.push(config.variants[name][v]);
-			const d = config.drops?.[name]?.[v];
-			if (d) gone.push(...d.split(" "));
+		const val = {};
+		const take = (c, d) => {
+			if (c) out.push(c);
+			if (c && d) gone.push(...d.split(" "));
 		};
-		for (const [name, value] of Object.entries(props)) use(name, value || config.defaultVariants?.[name]);
-		for (const [name, v] of Object.entries(config.defaultVariants ?? {})) if (!props[name]) use(name, v);
-		if (gone.length) classes[0] = config.base.split(" ").filter((c) => !gone.includes(c)).join(" ");
-		return classes.filter(Boolean).join(" ");
+		for (const name in config.variants) {
+			const v = val[name] = String(props[name] ?? config.defaultVariants[name]);
+			take(config.variants[name][v], config.drops?.[name]?.[v]);
+		}
+		for (const m of config.compound ?? []) if (Object.keys(m.when).every((k) => val[k] === m.when[k])) take(m.class, m.drops);
+		return out.join(" ").split(" ").filter((c) => c && !gone.includes(c)).join(" ");
 	};
 }
 //#endregion
@@ -1578,9 +1600,22 @@ const cvOf = Effect.fnUntraced(function* (config, at) {
 		for (const [n, s] of Object.entries(vs)) classes[n] = yield* styleOf(s, `variant ${k}.${n}`, at);
 		variants[k] = classes;
 	}
+	const compound = [];
+	const whens = [];
+	for (const [i, { class: style, ...values }] of (config.compoundVariants ?? []).entries()) {
+		const when = Object.fromEntries(Object.entries(values).map(([k, v]) => [k, String(v)]));
+		compound.push({
+			when,
+			class: yield* styleOf(style, `compoundVariants[${i}] class`, at)
+		});
+		whens.push({
+			when,
+			decls: style.__cssints
+		});
+	}
 	const declsOf = (s) => s.__cssints;
-	const drops = yield* Effect.try({
-		try: () => settled(config.base === void 0 ? [] : declsOf(config.base), Object.fromEntries(Object.entries(config.variants ?? {}).map(([k, vs]) => [k, Object.fromEntries(Object.entries(vs).map(([n, s]) => [n, declsOf(s)]))]))),
+	const { drops, compound: gone } = yield* Effect.try({
+		try: () => settled(config.base === void 0 ? [] : declsOf(config.base), Object.fromEntries(Object.entries(config.variants ?? {}).map(([k, vs]) => [k, Object.fromEntries(Object.entries(vs).map(([n, s]) => [n, declsOf(s)]))])), whens),
 		catch: (e) => {
 			if (e instanceof MacroError) return e;
 			throw e;
@@ -1590,16 +1625,22 @@ const cvOf = Effect.fnUntraced(function* (config, at) {
 		base,
 		variants,
 		defaultVariants: config.defaultVariants ?? {},
-		...Object.keys(drops).length && { drops }
+		...Object.keys(drops).length && { drops },
+		...compound.length && { compound: compound.map((c, i) => gone[i] ? {
+			...c,
+			drops: gone[i]
+		} : c) }
 	});
 });
-const cv = (config) => ({ __cv: config });
 const fromJson = Schema.decodeSync(Schema.fromJsonString(Schema.Unknown));
-const _cv = (config) => {
-	if (!isCv(config)) return _cv$1(config);
-	const exit = Effect.runSyncExit(cvOf(config.__cv));
-	if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
-	return _cv$1(fromJson(exit.value));
+const cv = (config) => {
+	const built = [];
+	const build = () => {
+		const exit = Effect.runSyncExit(cvOf(config));
+		if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
+		return _cv(fromJson(exit.value));
+	};
+	return Object.assign((props) => (built[0] ??= build())(props), { __cv: config });
 };
 const named = {
 	cn,
@@ -1656,7 +1697,7 @@ const inlineOf = Effect.fnUntraced(function* ({ __style: { sets, decls } }) {
 const isPluginValue = Predicate.isObjectKeyword;
 const replacementOf = Effect.fnUntraced(function* (at, value) {
 	if (isNode(value)) return Formatter.formatJson(yield* classesOf(value, at));
-	if (isCv(value)) return yield* cvOf(value.__cv, at);
+	if (isCv(value)) return `${CV_CALL}${yield* cvOf(value.__cv, at)})`;
 	if (isStyle(value)) return yield* inlineOf(value);
 	const tokens = tokensOf(value);
 	if (tokens !== void 0) return tokens;
@@ -1700,4 +1741,4 @@ function __site(at, value) {
 	return exit.value;
 }
 //#endregion
-export { CSS, CSSAtRuleValue, CSSColorValue, CSSUnitValue, __at, __site, __unseen, _cv, cn, css, cv, cx, firstThatWorks, flex, grid, keyframes, positionTry };
+export { CSS, CSSAtRuleValue, CSSColorValue, CSSUnitValue, __at, __site, __unseen, cn, css, cv, cx, firstThatWorks, flex, grid, keyframes, positionTry };

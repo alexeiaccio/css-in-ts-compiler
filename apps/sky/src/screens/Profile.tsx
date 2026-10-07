@@ -1,4 +1,3 @@
-import { _cv } from "cssints";
 import {
   bg,
   border,
@@ -43,29 +42,27 @@ const tabs = cn(
   bg(t.color.bg),
   borderBottom(t.border.width, "solid", t.color.border),
 );
-const tab = _cv(
-  cv({
-    base: cn(
-      flexGrow(1),
-      padding(t.space.md, t.space.lg),
-      bg("transparent"),
-      border("0"),
-      borderBottom("3px", "solid", "transparent"),
-      fontFamily("inherit"),
-      fontSize(t.fontSize.md),
-      fontWeight(t.fontWeight.semiBold),
-      cursor("pointer"),
-      hover(bg(t.color.bgSubtle)),
-    ),
-    variants: {
-      active: {
-        yes: cn(color(t.color.text), borderBottomColor(t.color.accent)),
-        no: color(t.color.textMedium),
-      },
+const tab = cv({
+  base: cn(
+    flexGrow(1),
+    padding(t.space.md, t.space.lg),
+    bg("transparent"),
+    border("0"),
+    borderBottom("3px", "solid", "transparent"),
+    fontFamily("inherit"),
+    fontSize(t.fontSize.md),
+    fontWeight(t.fontWeight.semiBold),
+    cursor("pointer"),
+    hover(bg(t.color.bgSubtle)),
+  ),
+  variants: {
+    active: {
+      yes: cn(color(t.color.text), borderBottomColor(t.color.accent)),
+      no: color(t.color.textMedium),
     },
-    defaultVariants: { active: "no" },
-  }),
-);
+  },
+  defaultVariants: { active: "no" },
+});
 const reasonLine = cn(
   color(t.color.textMedium),
   fontSize(t.fontSize.sm),

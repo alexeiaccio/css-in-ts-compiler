@@ -61,6 +61,7 @@ import {
   type Plug,
   type Rule,
 } from "./registry.ts";
+import { CV_CALL } from "./instrument.ts";
 import { _cv as runtimeCv, type CvRuntimeConfig } from "./runtime.ts";
 import {
   addTheme,
@@ -412,13 +413,15 @@ type Styles = Record<string, Record<string, unknown>>;
 interface CvConfig {
   base?: unknown;
   variants?: Styles;
-  defaultVariants?: Record<string, string>;
+  defaultVariants?: Record<string, string | boolean>;
+  compoundVariants?: Record<string, string | boolean | CssNode>[];
 }
-/** cv(config): the config as written; `recordSite` turns it into class strings. */
-interface CvNode {
+/** What cv(config) is while a module is evaluated: the function the browser gets, and the config as written. */
+interface CvFn {
+  (props?: Record<string, string | boolean | undefined>): string;
   __cv: CvConfig;
 }
-const isCv = (v: unknown): v is CvNode => Predicate.hasProperty(v, "__cv");
+const isCv = (v: unknown): v is CvFn => Predicate.hasProperty(v, "__cv");
 
 // What the grammar package rejects, per declaration.
 type Invalid = DeclarationError;
@@ -618,7 +621,7 @@ const styleOf = Effect.fnUntraced(function* (
   return yield* classesOf(s, at);
 });
 
-// cv(config with css.* values) -> CvRuntimeConfig with class strings, consumed by _cv at runtime.
+// cv(config with css.* values) -> the CvRuntimeConfig of class strings that the runtime `_cv` takes.
 const cvOf = Effect.fnUntraced(function* (
   config: CvConfig,
   at?: At,
@@ -631,9 +634,17 @@ const cvOf = Effect.fnUntraced(function* (
       classes[n] = yield* styleOf(s, `variant ${k}.${n}`, at);
     variants[k] = classes;
   }
+  const compound: { when: Record<string, string>; class: string; drops?: string }[] = [];
+  const whens: { when: Record<string, string>; decls: Decl[] }[] = [];
+  for (const [i, { class: style, ...values }] of (config.compoundVariants ?? []).entries()) {
+    const named = values as Record<string, string | boolean>; // the values are the variants' keys, `class` the style
+    const when = Object.fromEntries(Object.entries(named).map(([k, v]) => [k, String(v)]));
+    compound.push({ when, class: yield* styleOf(style, `compoundVariants[${i}] class`, at) });
+    whens.push({ when, decls: (style as CssNode).__cssints });
+  }
   // every value is a node now (styleOf checked)
   const declsOf = (s: unknown) => (s as CssNode).__cssints;
-  const drops = yield* Effect.try({
+  const { drops, compound: gone } = yield* Effect.try({
     try: () =>
       settled(
         config.base === undefined ? [] : declsOf(config.base),
@@ -643,6 +654,7 @@ const cvOf = Effect.fnUntraced(function* (
             Object.fromEntries(Object.entries(vs).map(([n, s]) => [n, declsOf(s)])),
           ]),
         ),
+        whens,
       ),
     catch: (e) => {
       if (e instanceof MacroError) return e;
@@ -654,22 +666,28 @@ const cvOf = Effect.fnUntraced(function* (
     variants,
     defaultVariants: config.defaultVariants ?? {},
     ...(Object.keys(drops).length && { drops }),
+    ...(compound.length && {
+      compound: compound.map((c, i) => (gone[i] ? { ...c, drops: gone[i] } : c)),
+    }),
   });
 });
-
-export const cv = (config: CvConfig): CvNode => ({ __cv: config });
 
 // @effect-diagnostics-next-line schemaSync:off -- the text is what cvOf wrote, read back at a sync edge
 const fromJson = Schema.decodeSync(Schema.fromJsonString(Schema.Unknown));
 
-// `_cv` during evaluation (index.ts exports this one, the browser gets runtime.ts): cv() is a node here, not the
-// config of class strings the plugin puts in its place, so a module that calls `_cv(cv(...))` at its top level
-// gets the same function it will have in the browser.
-export const _cv = (config: CvNode | CvRuntimeConfig) => {
-  if (!isCv(config)) return runtimeCv(config);
-  const exit = Effect.runSyncExit(cvOf(config.__cv));
-  if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
-  return runtimeCv(fromJson(exit.value) as CvRuntimeConfig);
+// During evaluation cv() is the function the browser will have, built from the config on its first call, so a module
+// that calls it at its top level works; the plugin replaces the site by `__cv(config of class strings)` for the client.
+export const cv = (config: CvConfig) => {
+  const built: ReturnType<typeof runtimeCv>[] = [];
+  const build = () => {
+    const exit = Effect.runSyncExit(cvOf(config));
+    if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
+    return runtimeCv(fromJson(exit.value) as CvRuntimeConfig);
+  };
+  return Object.assign(
+    (props?: Record<string, string | boolean | undefined>) => (built[0] ??= build())(props),
+    { __cv: config },
+  );
 };
 
 // Any name besides these (css.p, css.alignItems) is a property. Named imports of build-time members come from
@@ -749,7 +767,7 @@ const replacementOf = Effect.fnUntraced(function* (
   value: unknown,
 ): Effect.fn.Return<string | undefined, Invalid | MacroError | MemberError> {
   if (isNode(value)) return Formatter.formatJson(yield* classesOf(value, at));
-  if (isCv(value)) return yield* cvOf(value.__cv, at);
+  if (isCv(value)) return `${CV_CALL}${yield* cvOf(value.__cv, at)})`;
   if (isStyle(value)) return yield* inlineOf(value);
   const tokens = tokensOf(value);
   if (tokens !== undefined) return tokens;

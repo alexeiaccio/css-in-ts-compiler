@@ -1,4 +1,3 @@
-import { _cv } from "cssints";
 import {
   bg,
   bottom,
@@ -73,44 +72,40 @@ const kids = cn(
   wide(marginLeft(centreWide)),
   paddingLeft(t.space.lg),
 );
-const vline = _cv(
-  cv({
-    base: cn(
-      position("absolute"),
-      left("calc(0px - var(--space-lg))"),
-      top("calc(0px - var(--space-sm))"),
-      width("2px"),
-      line,
-    ),
-    variants: {
-      end: {
-        through: bottom("0"),
-        card: cn(
-          height(`calc(var(--space-sm) + ${centre} + 2px)`),
-          wide(height(`calc(var(--space-sm) + ${centreWide} + 2px)`)),
-        ),
-        mid: height("calc(var(--space-sm) + 50% + 1px)"),
-      },
+const vline = cv({
+  base: cn(
+    position("absolute"),
+    left("calc(0px - var(--space-lg))"),
+    top("calc(0px - var(--space-sm))"),
+    width("2px"),
+    line,
+  ),
+  variants: {
+    end: {
+      through: bottom("0"),
+      card: cn(
+        height(`calc(var(--space-sm) + ${centre} + 2px)`),
+        wide(height(`calc(var(--space-sm) + ${centreWide} + 2px)`)),
+      ),
+      mid: height("calc(var(--space-sm) + 50% + 1px)"),
     },
-  }),
-);
-const elbow = _cv(
-  cv({
-    base: cn(
-      position("absolute"),
-      left("calc(0px - var(--space-lg))"),
-      width(t.space.lg),
-      height("2px"),
-      line,
-    ),
-    variants: {
-      at: {
-        card: cn(top(centre), wide(top(centreWide))),
-        mid: top("calc(50% - 1px)"),
-      },
+  },
+});
+const elbow = cv({
+  base: cn(
+    position("absolute"),
+    left("calc(0px - var(--space-lg))"),
+    width(t.space.lg),
+    height("2px"),
+    line,
+  ),
+  variants: {
+    at: {
+      card: cn(top(centre), wide(top(centreWide))),
+      mid: top("calc(50% - 1px)"),
     },
-  }),
-);
+  },
+});
 
 function Tie(props: { last: boolean; mid?: boolean }) {
   return (
