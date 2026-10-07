@@ -35,20 +35,20 @@ const bar = cn(
 
 // The size of a post card at rest: the same frame and surface step as the card, so nothing jumps when it lands.
 const card = cn(
-  frame().radius(t.radius.xl).padding(3).border(t.border.width),
+  frame().radius(t.radius.xl()).padding(3).border(t.border.width()),
   surface().lighten(0.04),
-  borderColor(t.color.border),
-  flex().gap(t.space.sm),
+  borderColor(t.color.border()),
+  flex().gap(t.space.sm()),
 );
-const column = cn(flex().direction("column").gap(t.space.sm), flexShrink(1), width("100%"));
+const column = cn(flex().direction("column").gap(t.space.sm()), flexShrink(1), width("100%"));
 const disc = cn(
   bar,
-  width(t.avatar.feed),
-  height(t.avatar.feed),
+  width(t.avatar.feed()),
+  height(t.avatar.feed()),
   flexShrink(0),
-  borderRadius(t.radius.avatar),
+  borderRadius(t.radius.avatar()),
 );
-const text = cn(bar, height("0.8em"), borderRadius(t.radius.xs));
+const text = cn(bar, height("0.8em"), borderRadius(t.radius.xs()));
 const short = cn(text, width("40%"));
 const full = cn(text, width("100%"));
 const most = cn(text, width("85%"));

@@ -44,7 +44,7 @@ import type { Branch } from "../thread/model.ts";
 // that is how far from the card's left (and top) a line must sit to run through the avatar.
 const centre = "calc(var(--border-width) + 0.5rem + var(--avatar-feed) / 2 - 1px)";
 const centreWide = "calc(var(--border-width) + 0.75rem + var(--avatar-feed) / 2 - 1px)";
-const line = bg(t.color.borderStrong);
+const line = bg(t.color.borderStrong());
 
 const row = cn(
   position("relative"),
@@ -60,18 +60,18 @@ const down = cn(
   left(centre),
   wide(left(centreWide)),
   width("2px"),
-  height(t.space.sm),
+  height(t.space.sm()),
   line,
 );
 
 // The replies of a post: indented by the avatar's centre, so the line the children hang on is the avatar's. Each child
 // draws its own part of it (from the gap above to the bottom, or to its elbow when it is the last) and an elbow into its card.
 const kids = cn(
-  flex().direction("column").gap(t.space.sm),
-  marginTop(t.space.sm),
+  flex().direction("column").gap(t.space.sm()),
+  marginTop(t.space.sm()),
   marginLeft(centre),
   wide(marginLeft(centreWide)),
-  paddingLeft(t.space.lg),
+  paddingLeft(t.space.lg()),
 );
 const vline = _cv(
   cv({
@@ -99,7 +99,7 @@ const elbow = _cv(
     base: cn(
       position("absolute"),
       left("calc(0px - var(--space-lg))"),
-      width(t.space.lg),
+      width(t.space.lg()),
       height("2px"),
       line,
     ),
@@ -155,13 +155,13 @@ function Row(props: {
 const moreBox = cn(position("relative"), flex().alignItems("center"));
 const moreButton = cn(
   minHeight("2rem"),
-  padding("0", t.space.md),
-  border(t.border.width, "solid", t.color.border),
-  borderRadius(t.radius.button),
-  bg(t.color.bg),
-  color(t.color.link),
-  fontSize(t.fontSize.sm),
-  fontWeight(t.fontWeight.semiBold),
+  padding("0", t.space.md()),
+  border(t.border.width(), "solid", t.color.border()),
+  borderRadius(t.radius.button()),
+  bg(t.color.bg()),
+  color(t.color.link()),
+  fontSize(t.fontSize.sm()),
+  fontWeight(t.fontWeight.semiBold()),
 );
 
 // The replies of a branch, each on the parent's line; `trail` is true when a "show more" button comes after them.
@@ -208,7 +208,7 @@ function More(props: { rest: ThreadNode[]; count: number }) {
 }
 
 // ---- the screen ------------------------------------------------------------------------------
-const message = cn(padding(t.gutter.base), color(t.color.textMedium), textAlign("center"));
+const message = cn(padding(t.gutter.base()), color(t.color.textMedium()), textAlign("center"));
 
 function View(props: { data: Awaited<ReturnType<typeof threadScreen>> }) {
   let focused: HTMLElement | undefined;

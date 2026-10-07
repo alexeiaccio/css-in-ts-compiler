@@ -38,57 +38,57 @@ import { t } from "../theme.ts" with { type: "cssints" };
 const tabs = cn(
   flex(),
   position("sticky"),
-  top(t.layout.headerHeight),
+  top(t.layout.headerHeight()),
   zIndex(4),
-  bg(t.color.bg),
-  borderBottom(t.border.width, "solid", t.color.border),
+  bg(t.color.bg()),
+  borderBottom(t.border.width(), "solid", t.color.border()),
 );
 const tab = _cv(
   cv({
     base: cn(
       flexGrow(1),
-      padding(t.space.md, t.space.lg),
+      padding(t.space.md(), t.space.lg()),
       bg("transparent"),
       border("0"),
       borderBottom("3px", "solid", "transparent"),
       fontFamily("inherit"),
-      fontSize(t.fontSize.md),
-      fontWeight(t.fontWeight.semiBold),
+      fontSize(t.fontSize.md()),
+      fontWeight(t.fontWeight.semiBold()),
       cursor("pointer"),
-      hover(bg(t.color.bgSubtle)),
+      hover(bg(t.color.bgSubtle())),
     ),
     variants: {
       active: {
-        yes: cn(color(t.color.text), borderBottomColor(t.color.accent)),
-        no: color(t.color.textMedium),
+        yes: cn(color(t.color.text()), borderBottomColor(t.color.accent())),
+        no: color(t.color.textMedium()),
       },
     },
     defaultVariants: { active: "no" },
   }),
 );
 const reasonLine = cn(
-  color(t.color.textMedium),
-  fontSize(t.fontSize.sm),
-  fontWeight(t.fontWeight.semiBold),
-  padding("0", t.space.sm, t.space.xs),
+  color(t.color.textMedium()),
+  fontSize(t.fontSize.sm()),
+  fontWeight(t.fontWeight.semiBold()),
+  padding("0", t.space.sm(), t.space.xs()),
 );
 const note = cn(
   margin("0"),
-  padding(t.space["2xl"], t.gutter.base),
+  padding(t.space["2xl"](), t.gutter.base()),
   textAlign("center"),
-  color(t.color.textMedium),
+  color(t.color.textMedium()),
 );
 const retry = cn(
-  padding(t.space.sm, t.space.lg),
-  borderRadius(t.radius.button),
-  border(t.border.width, "solid", t.color.borderStrong),
-  bg(t.color.bg),
-  color(t.color.text),
+  padding(t.space.sm(), t.space.lg()),
+  borderRadius(t.radius.button()),
+  border(t.border.width(), "solid", t.color.borderStrong()),
+  bg(t.color.bg()),
+  color(t.color.text()),
   fontFamily("inherit"),
-  fontWeight(t.fontWeight.semiBold),
+  fontWeight(t.fontWeight.semiBold()),
   cursor("pointer"),
 );
-const stateTitle = cn(margin("0", "0", t.space.xs), fontSize(t.fontSize.xl));
+const stateTitle = cn(margin("0", "0", t.space.xs()), fontSize(t.fontSize.xl()));
 
 // The screen shows the document title of what it drew, over the generic one the title bar sets.
 function useTitle(title: () => string) {

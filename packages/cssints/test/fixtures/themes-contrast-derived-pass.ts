@@ -10,4 +10,4 @@ const t = css.createTokens({
 });
 css.createGlobalTheme(t, ".x", { cdp: { l: 0.1 } });
 css.createGlobalTheme(t, ".z", { cdp: { l: "{cdp.k}" } });
-css.check.contrast(t.cdp.fg, t.cdp.bg, { min: 4.5 });
+css.check.contrast(t.cdp.fg(), t.cdp.bg(), { min: 4.5 });

@@ -6,6 +6,7 @@ import type {
   TOKEN_TYPES,
   Syntax,
   Token,
+  TokenGetter,
   TokenName,
   TokenType,
   ValidSyntax,
@@ -92,12 +93,23 @@ type KindAt<N, P extends string, Root, Inherited = undefined> = P extends `${inf
       : never
     : never;
 
-/** The tokens of a `const` DTCG object: every leaf `{ $value }` is a named token of the type its `$type` maps to. */
+// The definition's value as text: a string as written (an alias keeps its `{path}`), a number or a { value, unit } as its CSS
+// text, a colour object (or a JSON import's widened value) as `string`.
+type Text<V> = V extends string
+  ? V
+  : V extends number
+    ? `${V}`
+    : V extends { readonly value: infer N extends number; readonly unit: infer U extends string }
+      ? `${N}${U}`
+      : string;
+type Kd<T> = T extends () => { readonly "~token": infer K extends TokenType } ? K : never;
+
+/** The tokens of a `const` DTCG object: every leaf `{ $value }` is a getter of a named token of the type its `$type` maps to. */
 export type Tokens<G, Inherited = undefined, Root = G> = {
   readonly [K in keyof G as K extends `$${string}` ? never : K]: G[K] extends {
     readonly $value: infer V;
   }
-    ? Token<KindOf<V, TypeOf<G[K], Inherited>, Root>, true>
+    ? TokenGetter<Token<KindOf<V, TypeOf<G[K], Inherited>, Root>, true, Text<V>>>
     : Tokens<G[K], TypeOf<G[K], Inherited>, Root>;
 };
 
@@ -176,9 +188,9 @@ type ObjectValue<K extends TokenType> = K extends Kinds["color"]
 
 /** The values a theme may set: the paths of the tokens, each a value of the token's type. */
 export type Overrides<X> = {
-  readonly [K in keyof X]?: X[K] extends { readonly "~token": infer Kd extends TokenType }
-    ? string | number | ObjectValue<Kd>
-    : Overrides<X[K]>;
+  readonly [K in keyof X]?: [Kd<X[K]>] extends [never]
+    ? Overrides<X[K]>
+    : string | number | ObjectValue<Kd<X[K]>>;
 };
 // The token type at the dotted path P of the tokens X, or never.
 type KindIn<X, P extends string> = P extends `${infer H}.${infer R}`
@@ -186,9 +198,7 @@ type KindIn<X, P extends string> = P extends `${infer H}.${infer R}`
     ? KindIn<X[H], R>
     : never
   : P extends keyof X
-    ? X[P] extends { readonly "~token": infer Kd extends TokenType }
-      ? Kd
-      : never
+    ? Kd<X[P]>
     : never;
 type SubstIn<V extends string, X> = V extends `${infer A}{${infer P}}${infer B}`
   ? [KindIn<X, P>] extends [never]
@@ -212,19 +222,19 @@ type CheckRefs<V extends string, Kd extends TokenType, X> = V extends `{${infer 
       : never;
 export type CheckOverrides<X, O, Root = X> = {
   [K in keyof O]: K extends keyof X
-    ? X[K] extends { readonly "~token": infer Kd extends TokenType }
-      ? O[K] extends string
+    ? [Kd<X[K]>] extends [never]
+      ? CheckOverrides<X[K], O[K], Root>
+      : O[K] extends string
         ? O[K] extends FontWeightName
           ? O[K]
           : O[K] extends `${string}{${string}}${string}`
-            ? CheckRefs<O[K], Kd, Root>
-            : Fits<O[K], ValidSyntax<Syntax<Kd>, O[K]>> extends infer R
+            ? CheckRefs<O[K], Kd<X[K]>, Root>
+            : Fits<O[K], ValidSyntax<Syntax<Kd<X[K]>>, O[K]>> extends infer R
               ? [R] extends [true]
                 ? O[K]
                 : R
               : never
         : O[K]
-      : CheckOverrides<X[K], O[K], Root>
     : Bad<"no token at this path">;
 };
 

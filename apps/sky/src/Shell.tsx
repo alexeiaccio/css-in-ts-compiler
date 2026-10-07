@@ -16,23 +16,23 @@ const root = css.cn(
   css.gridTemplateColumns("minmax(0, 1fr)"),
   css.justifyContent("center"),
   css.minHeight("100dvh"),
-  css.bg(t.color.bg),
-  css.color(t.color.text),
+  css.bg(t.color.bg()),
+  css.color(t.color.text()),
   css.fontFamily(
     '"Inter Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
   ),
-  css.fontSize(t.fontSize.md),
-  css.lineHeight(t.lineHeight.relaxed),
-  gtMobile(css.gridTemplateColumns(t.layout.leftNavMinimalWidth, t.layout.centerWidth)),
+  css.fontSize(t.fontSize.md()),
+  css.lineHeight(t.lineHeight.relaxed()),
+  gtMobile(css.gridTemplateColumns(t.layout.leftNavMinimalWidth(), t.layout.centerWidth())),
   gtRail(
     css.gridTemplateColumns(
-      t.layout.leftNavMinimalWidth,
-      t.layout.centerWidth,
-      t.layout.rightRailNarrowWidth,
+      t.layout.leftNavMinimalWidth(),
+      t.layout.centerWidth(),
+      t.layout.rightRailNarrowWidth(),
     ),
   ),
   gtTablet(
-    css.gridTemplateColumns(t.layout.leftNavWidth, t.layout.centerWidth, t.layout.rightRailWidth),
+    css.gridTemplateColumns(t.layout.leftNavWidth(), t.layout.centerWidth(), t.layout.rightRailWidth()),
   ),
 );
 
@@ -44,17 +44,17 @@ const nav = css.cn(
     css.flex().direction("column").alignItems("center").gap(1),
     sticky,
     css.height("100dvh"),
-    css.padding(t.space.sm),
+    css.padding(t.space.sm()),
   ),
   gtTablet(css.alignItems("stretch")),
 );
 
 const brand = css.cn(
-  css.fontSize(t.fontSize["2xl"]),
-  css.fontWeight(t.fontWeight.bold),
-  css.color(t.color.accent),
+  css.fontSize(t.fontSize["2xl"]()),
+  css.fontWeight(t.fontWeight.bold()),
+  css.color(t.color.accent()),
   css.textDecoration("none"),
-  css.padding(t.space.md),
+  css.padding(t.space.md()),
   css.textAlign("center"),
   gtTablet(css.textAlign("start")),
 );
@@ -68,8 +68,8 @@ const bar = css.cn(
   css.flex().alignItems("center").justifyContent("space-around"),
   css.height("calc(52px + env(safe-area-inset-bottom))"),
   css.paddingBottom("env(safe-area-inset-bottom)"),
-  css.bg(t.color.bg),
-  css.borderTop(t.border.width, "solid", t.color.border),
+  css.bg(t.color.bg()),
+  css.borderTop(t.border.width(), "solid", t.color.border()),
   gtMobile(css.display("none")),
 );
 
@@ -78,27 +78,27 @@ const navItem = _cv(
     base: css.cn(
       css.flex().alignItems("center").gap(3),
       css.textDecoration("none"),
-      css.color(t.color.textHigh),
-      css.fontWeight(t.fontWeight.medium),
-      css.hover(css.bg(t.color.bgMuted)),
+      css.color(t.color.textHigh()),
+      css.fontWeight(t.fontWeight.medium()),
+      css.hover(css.bg(t.color.bgMuted())),
       // the router sets aria-current="page" on the link of the page that is open
       css.attr(
         "aria-current",
         "page",
-      )(css.cn(css.fontWeight(t.fontWeight.bold), css.color(t.color.text))),
+      )(css.cn(css.fontWeight(t.fontWeight.bold()), css.color(t.color.text()))),
     ),
     variants: {
       place: {
         side: css.cn(
-          css.minHeight(t.layout.navItem),
-          css.paddingInline(t.space.md),
-          css.borderRadius(t.radius.button),
+          css.minHeight(t.layout.navItem()),
+          css.paddingInline(t.space.md()),
+          css.borderRadius(t.radius.button()),
         ),
         bar: css.cn(
           css.flex().direction("column").justifyContent("center").gap(1),
           css.flexGrow(1),
           css.height("100%"),
-          css.fontSize(t.fontSize.xs),
+          css.fontSize(t.fontSize.xs()),
         ),
       },
     },
@@ -106,7 +106,7 @@ const navItem = _cv(
   }),
 );
 
-const icon = css.cn(css.width(t.layout.navIcon), css.height(t.layout.navIcon));
+const icon = css.cn(css.width(t.layout.navIcon()), css.height(t.layout.navIcon()));
 const sideLabel = css.cn(css.display("none"), gtTablet(css.display("inline")));
 const barLabel = css.cn(css.display("none"), gtPhone(css.display("inline")));
 
@@ -115,7 +115,7 @@ const column = css.cn(
   css.containerName("column"),
   css.minHeight("100dvh"),
   css.paddingBottom("calc(52px + env(safe-area-inset-bottom))"),
-  gtMobile(css.paddingBottom("0"), css.borderInline(t.border.width, "solid", t.color.border)),
+  gtMobile(css.paddingBottom("0"), css.borderInline(t.border.width(), "solid", t.color.border())),
 );
 
 const header = css.cn(
@@ -123,40 +123,40 @@ const header = css.cn(
   css.top(0),
   css.zIndex(5),
   css.flex().alignItems("center"),
-  css.minHeight(t.layout.headerHeight),
-  css.paddingInline(t.gutter.base),
-  css.bg(t.color.bg),
-  css.borderBottom(t.border.width, "solid", t.color.border),
-  narrow(css.paddingInline(t.gutter.compact)),
+  css.minHeight(t.layout.headerHeight()),
+  css.paddingInline(t.gutter.base()),
+  css.bg(t.color.bg()),
+  css.borderBottom(t.border.width(), "solid", t.color.border()),
+  narrow(css.paddingInline(t.gutter.compact())),
 );
 const title = css.cn(
-  css.fontSize(t.fontSize.xl),
-  css.fontWeight(t.fontWeight.bold),
+  css.fontSize(t.fontSize.xl()),
+  css.fontWeight(t.fontWeight.bold()),
   css.margin("0"),
-  narrow(css.fontSize(t.fontSize.lg)),
+  narrow(css.fontSize(t.fontSize.lg())),
 );
 
 const rail = css.cn(
   css.display("none"),
-  gtRail(css.display("block"), sticky, css.padding(t.space.lg)),
+  gtRail(css.display("block"), sticky, css.padding(t.space.lg())),
 );
 const card = css.cn(
-  frame().radius(t.radius.lg).padding(3).border(t.border.width),
-  css.bg(t.color.bgSubtle),
-  css.borderColor(t.color.border),
+  frame().radius(t.radius.lg()).padding(3).border(t.border.width()),
+  css.bg(t.color.bgSubtle()),
+  css.borderColor(t.color.border()),
   css.flex().direction("column").gap(3),
 );
 const note = css.cn(
-  frame().padding(2).border(t.border.width),
-  css.bg(t.color.accentSoft),
-  css.color(t.color.accentStrong),
-  css.borderColor(t.color.accentSoft),
-  css.fontSize(t.fontSize.sm),
+  frame().padding(2).border(t.border.width()),
+  css.bg(t.color.accentSoft()),
+  css.color(t.color.accentStrong()),
+  css.borderColor(t.color.accentSoft()),
+  css.fontSize(t.fontSize.sm()),
 );
 const cardText = css.cn(
   css.margin("0"),
-  css.color(t.color.textMedium),
-  css.fontSize(t.fontSize.sm),
+  css.color(t.color.textMedium()),
+  css.fontSize(t.fontSize.sm()),
 );
 
 const items = [

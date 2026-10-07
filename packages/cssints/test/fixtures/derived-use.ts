@@ -13,4 +13,4 @@ export const t = css.createTokens({
 // a theme sets the source; every token derived from it is declared again under the theme
 css.createGlobalTheme(t, ".brand", { color: { accent: "#db2777" } });
 
-export const button = css.cn(css.bg(t.color.hover), css.outlineColor(t.color.ring), css.p(t.space.lg));
+export const button = css.cn(css.bg(t.color.hover()), css.outlineColor(t.color.ring()), css.p(t.space.lg()));

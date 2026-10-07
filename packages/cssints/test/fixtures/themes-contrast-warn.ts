@@ -10,6 +10,6 @@ const t = css.createTokens({
   },
 });
 css.createGlobalTheme(t, ".x", { cwarn: { plain: "currentColor" } });
-css.check.contrast(t.cwarn.mixed, t.cwarn.bg, { min: 4.5 });
-css.check.contrast(t.cwarn.glass, t.cwarn.bg, { min: 4.5 });
-css.check.contrast(t.cwarn.plain, t.cwarn.bg, { min: 4.5 });
+css.check.contrast(t.cwarn.mixed(), t.cwarn.bg(), { min: 4.5 });
+css.check.contrast(t.cwarn.glass(), t.cwarn.bg(), { min: 4.5 });
+css.check.contrast(t.cwarn.plain(), t.cwarn.bg(), { min: 4.5 });

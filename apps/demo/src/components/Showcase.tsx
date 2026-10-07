@@ -44,8 +44,8 @@ const panel = cn(
   p(4),
   pt(6),
   m(0),
-  bg(t.color.surface),
-  css.color(t.color.text),
+  bg(t.color.surface()),
+  css.color(t.color.text()),
   css.borderRadius(radius),
   css.border("1px solid", new CSSColorValue("#9ca3af")),
 );
@@ -58,14 +58,14 @@ const chips = cn(
   flex().direction("row").wrap("wrap").alignItems("center").justifyContent("space-between").gap(2),
   css.listStyle("none"),
 );
-const chip = cn(css.fontSize("0.875rem"), css.color(t.color.muted));
+const chip = cn(css.fontSize("0.875rem"), css.color(t.color.muted()));
 const columns = cn(
   grid().templateColumns("1fr").gap(2),
   md(css.gridTemplateColumns("1fr 1fr")),
   lg(css.gridTemplateColumns("repeat(3, 1fr)")),
 );
 const wide = md(css.gridColumn("span 2"));
-const cell = cn(p(2), bg(t.color.surface), css.borderRadius(radius), css.color(t.color.text));
+const cell = cn(p(2), bg(t.color.surface()), css.borderRadius(radius), css.color(t.color.text()));
 
 // Pseudo-class wrappers, and one inside a breakpoint (two conditions). colorMix() takes the accent token, which a
 // template string cannot: the hover is the accent darkened in oklab.
@@ -73,12 +73,12 @@ const action = cn(
   p(2),
   css.cursor("pointer"),
   css.color("white"),
-  bg(t.color.accent),
+  bg(t.color.accent()),
   css.border("none"),
   css.borderRadius(radius),
-  hover(bg(css.colorMix("oklab", t.color.accent, "black 15%"))),
-  lg(hover(bg(css.colorMix("oklab", t.color.accent, "black 30%")))),
-  focusVisible(css.outline("2px solid", t.color.accent), css.outlineOffset("2px")),
+  hover(bg(css.colorMix("oklab", t.color.accent(), "black 15%"))),
+  lg(hover(bg(css.colorMix("oklab", t.color.accent(), "black 30%")))),
+  focusVisible(css.outline("2px solid", t.color.accent()), css.outlineOffset("2px")),
   active(css.transform("scale(0.97)")),
   disabled(css.opacity(0.5)),
   reduced(css.transform("none")),
@@ -97,17 +97,17 @@ const cardBody = cn(
 
 // keyframes() from a helper module: the name goes where animation wants one, the rule comes with it.
 const pulsing = cn(
-  css.color(t.color.text),
+  css.color(t.color.text()),
   animation(pulse, "1.5s", "ease-in-out", "infinite"),
   reduced(animation("none")),
 );
 
 // supports(): bold where CSS grid exists.
-const feature = cn(css.color(t.color.text), css.fontWeight("400"), hasGrid(css.fontWeight("700")));
+const feature = cn(css.color(t.color.text()), css.fontWeight("400"), hasGrid(css.fontWeight("700")));
 
 // Typed parts and math: Typed OM values as parts, and calc() as a string, min() and clamp() as calls.
 const typed = cn(
-  css.color(t.color.text),
+  css.color(t.color.text()),
   css.padding(CSS.rem(0.5), CSS.rem(1.5)),
   css.borderRadius(CSS.percent(10)),
   css.border("2px solid", new CSSColorValue("#2563eb")),
@@ -122,19 +122,19 @@ const typed = cn(
 // beside it would be a build error).
 const framed = cn(
   frame().radius("1.5rem").padding(4).border("1px"),
-  surface().color(t.color.surface),
+  surface().color(t.color.surface()),
   hover(surface().lighten(0.04)),
   css.borderColor("#9ca3af"),
 );
 const framedField = cn(
   frame().padding(2).border("1px"),
-  bg(t.color.page),
+  bg(t.color.page()),
   css.borderColor("#9ca3af"),
-  css.color(t.color.text),
+  css.color(t.color.text()),
 );
 
 // A theme for a selector: `.compact` makes --space-md 8px. The token fits padding like a length.
-const themed = cn(css.padding(t.space.md), bg(t.color.page), css.color(t.color.link));
+const themed = cn(css.padding(t.space.md()), bg(t.color.page()), css.color(t.color.link()));
 
 // cv: variants are css values, including a flex() chain and a condition.
 const badge = _cv(
