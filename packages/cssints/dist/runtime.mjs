@@ -2,18 +2,19 @@
 const cx = (...a) => a.flat(Infinity).filter(Boolean).join(" ");
 function _cv(config) {
 	return (props = {}) => {
-		const classes = [config.base];
+		const out = [config.base];
 		const gone = [];
-		const use = (name, v) => {
-			if (!v || !config.variants[name]?.[v]) return;
-			classes.push(config.variants[name][v]);
-			const d = config.drops?.[name]?.[v];
-			if (d) gone.push(...d.split(" "));
+		const val = {};
+		const take = (c, d) => {
+			if (c) out.push(c);
+			if (c && d) gone.push(...d.split(" "));
 		};
-		for (const [name, value] of Object.entries(props)) use(name, value || config.defaultVariants?.[name]);
-		for (const [name, v] of Object.entries(config.defaultVariants ?? {})) if (!props[name]) use(name, v);
-		if (gone.length) classes[0] = config.base.split(" ").filter((c) => !gone.includes(c)).join(" ");
-		return classes.filter(Boolean).join(" ");
+		for (const name in config.variants) {
+			const v = val[name] = String(props[name] ?? config.defaultVariants[name]);
+			take(config.variants[name][v], config.drops?.[name]?.[v]);
+		}
+		for (const m of config.compound ?? []) if (Object.keys(m.when).every((k) => val[k] === m.when[k])) take(m.class, m.drops);
+		return out.join(" ").split(" ").filter((c) => c && !gone.includes(c)).join(" ");
 	};
 }
 //#endregion

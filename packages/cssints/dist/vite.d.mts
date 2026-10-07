@@ -1,8 +1,8 @@
 import { i as GlobalRule } from "./author-types-VWp_4djS.mjs";
 import { n as At, r as RegistryState } from "./node-mZem3Im8.mjs";
 import { Effect } from "effect";
-import { Plugin } from "vite";
 import { ImportDeclaration } from "oxc-parser";
+import { Plugin } from "vite";
 //#region src/errors.d.ts
 declare const MacroError_base: new <A extends Record<string, any> = {}>(args: import("effect/Types").VoidIfEmpty<{ readonly [P in keyof A as P extends "_tag" ? never : P]: A[P]; }>) => import("effect/Cause").YieldableError & {
   readonly _tag: "MacroError";
