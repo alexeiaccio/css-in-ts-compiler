@@ -1,6 +1,6 @@
 # CSS-in-TS
 
-cssints is compile-time CSS-in-TypeScript. You write calls such as `css.flex().alignItems("center")`. A Vite plugin runs them at build time and replaces each one with atomic, content-hashed class names in `@layer`s. Nothing of the styling code ships to the browser except `cx` and `_cv`, which join class names.
+cssints is compile-time CSS-in-TypeScript. You write calls such as `css.flex().alignItems("center")`. A Vite plugin runs them at build time and replaces each one with atomic, content-hashed class names in `@layer`s. Nothing of the styling code ships to the browser except `cx` and the few lines behind `cv`, which join class names.
 
 - Values are checked against the spec grammars (mdn-data) in the types and again at build time. A typo is an error in the editor and in the build.
 - Conditions (`media`, `container`, `supports`, `hover`), variants (`cv`), design tokens and themes (`createTokens`, `createGlobalTheme`, `check.contrast`) are all build-time, and all typed.
@@ -46,30 +46,28 @@ export default {
 };
 ```
 
-`tsconfig.json` is Solid's: `"jsx": "preserve"`, `"jsxImportSource": "@solidjs/web"`, `"types": ["vite/client"]`. Solid's `class` takes a string, an object or an array, so `cx` is not needed: `class={[card, on() && p(4)]}` and `class={badge({ tone: tone() })}` (with `_cv` from `"cssints"`) work as in React. A site's arguments are still build-time values, so a signal goes in the condition or in a `cv` variant, not in `p(n())`. Under `vite dev` an edit of a component replaces it and resets its state below it (Solid's refresh); an edit of a style changes the class strings and the sheet with no reload.
+`tsconfig.json` is Solid's: `"jsx": "preserve"`, `"jsxImportSource": "@solidjs/web"`, `"types": ["vite/client"]`. Solid's `class` takes a string, an object or an array, so `cx` is not needed: `class={[card, on() && p(4)]}` and `class={badge({ tone: tone() })}` work as in React. A site's arguments are still build-time values, so a signal goes in the condition or in a `cv` variant, not in `p(n())`. Under `vite dev` an edit of a component replaces it and resets its state below it (Solid's refresh); an edit of a style changes the class strings and the sheet with no reload.
 
 ```tsx
-import { _cv, cx } from "cssints";
+import { cx } from "cssints";
 import { bg, color, cn, cv, flex, hover, media, p, style, token } from "cssints" with { type: "cssints" };
 
 const md = media("(width >= 40rem)");
 const accent = token.color("#2563eb", "accent");
 
-const button = _cv(
-	cv({
-		base: cn(p(2), color("white"), bg(accent), hover(bg("#1d4ed8"))),
-		variants: { wide: { yes: md(p(4)) } },
-	}),
-);
+const button = cv({
+	base: cn(p(2), color("white"), bg(accent), hover(bg("#1d4ed8"))),
+	variants: { wide: { true: md(p(4)) } },
+});
 
-export const Row = ({ wide, on }: { wide?: "yes"; on?: boolean }) => (
+export const Row = ({ wide, on }: { wide?: boolean; on?: boolean }) => (
 	<div className={cx(flex().alignItems("center").gap(2), on && p(1))} style={style(token.set(accent, "#dc2626"))}>
 		<button className={button({ wide })}>Save</button>
 	</div>
 );
 ```
 
-`with { type: "cssints" }` marks what runs at build time. The plugin replaces each call with a class string, so the browser gets `cx("_1s47490 _1ob5z5m _g2iyum", on && "_lqk467")` and `_cv({ base: "_1t8gqy5 ...", ... })`, and never sees `flex()`. `virtual:cssints.css` is one sheet with every rule once, sorted by layer, then condition, then shorthand before longhand, then class name:
+`with { type: "cssints" }` marks what runs at build time. The plugin replaces each call with a class string, so the browser gets `cx("_1s47490 _1ob5z5m _g2iyum", on && "_lqk467")` and `button` is a call of the runtime with `{ base: "_1t8gqy5 ...", ... }`, so it never sees `flex()`. `virtual:cssints.css` is one sheet with every rule once, sorted by layer, then condition, then shorthand before longhand, then class name:
 
 ```css
 @layer _.k, _.a, _.b, _.c, _.d, _.e;
