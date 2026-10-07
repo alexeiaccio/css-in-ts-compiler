@@ -19,7 +19,7 @@ import {
   isGetter,
   nameOf,
   supportTest,
-  tokenOf,
+  noGetter,
 } from "./token.ts";
 
 const SUPPORTED = Object.keys(DTCG_TYPES).join(", ");
@@ -374,15 +374,12 @@ export const createTokens = (...args: unknown[]): unknown =>
     }),
   );
 
-// The text a site of createTokens leaves on the client: the tokens by path, each a getter of its `var(--name)` string.
-const emit = (v: unknown): string =>
-  isGetter(v)
-    ? `()=>${Formatter.formatJson(String(v()))}`
-    : `{${Object.entries(v as object)
-        .map(([k, x]) => `${Formatter.formatJson(k)}:${emit(x)}`)
-        .join(",")}}`;
+// The text a site of createTokens leaves on the client: the tokens by path, each a getter of its `var(--name)` string
+// (a getter serializes as that string; a key is followed by a colon).
 export const tokensOf = (v: unknown): string | undefined =>
-  Predicate.isObject(v) && sets.has(v) ? emit(v) : undefined;
+  Predicate.isObject(v) && sets.has(v)
+    ? Formatter.formatJson(v).replace(/"var\(--[^"]*\)"(?!:)/g, (s) => `()=>${s}`)
+    : undefined;
 
 // ---------- createGlobalTheme
 
@@ -612,7 +609,8 @@ const theme = (at: At | undefined, args: unknown[]) =>
 const contrast = (...args: unknown[]): unknown =>
   edge(
     Effect.gen(function* () {
-      const [fg, bg, options] = args.map(tokenOf);
+      noGetter(args);
+      const [fg, bg, options] = args;
       const min = (options as { min?: unknown } | null)?.min;
       const at = registry.at;
       if (

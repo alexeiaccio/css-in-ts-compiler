@@ -3,7 +3,7 @@ import { i as cx$1, n as CvRuntimeConfig, r as _cv, t as ClassValue } from "./ru
 import { createRequire } from "node:module";
 import { CSS, CSS as CSS$1, CSSColorValue, CSSColorValue as CSSColorValue$1, CSSStyleValue, CSSUnitValue, CSSUnitValue as CSSUnitValue$1 } from "@cssints/css-grammar/values";
 import { properties } from "@cssints/css-grammar/mdn";
-import { DTCG_TYPES, DtcgType, StyleObject, Syntax, TOKEN_TYPES, Token, TokenFn, TokenName, TokenSetFn, TokenType, ValidSyntax } from "@cssints/css-grammar/token";
+import { DTCG_TYPES, DtcgType, StyleObject, Syntax, TOKEN_TYPES, Token, TokenFn, TokenGetter, TokenName, TokenSetFn, TokenType, ValidSyntax } from "@cssints/css-grammar/token";
 import { FurthestIn, Hint, Sentinel, ValidIn } from "@cssints/css-grammar/css";
 import { Condition, ValidSelector } from "@cssints/css-grammar/query";
 //#endregion
@@ -14,19 +14,22 @@ type Alt = string | CSSStyleValue;
 interface Fallback<V extends readonly Alt[] = readonly Alt[]> {
   readonly __fallback: V;
 }
-/** A value part: a string, a Typed OM value, a `firstThatWorks`, or a lone number (the spacing scale in spacing properties). */
-type Part = string | number | CSSStyleValue | Fallback;
+/**
+ * A value part: a string, a Typed OM value, a `firstThatWorks`, or a lone number (the spacing scale in spacing properties).
+ * A token getter that was not called (`t.color.bg`, not `t.color.bg()`) is a part only to be the error that says so.
+ */
+type Part = string | number | CSSStyleValue | Fallback | TokenGetter;
 /** What every member returns: a class string. It is a string (`className`, `cx`), but only members make one. */
 type Style = string & {
   readonly __cssints: "style";
 };
-type Text<P> = P extends Style ? "⟨style⟩" : P extends string ? P extends "" ? "⟨empty⟩" : P : P extends number ? `${P}` : P extends CSSStyleValue<infer T> ? Sentinel<T> : P extends Fallback<infer V> ? Text<V[0]> : never;
-type Join<A extends readonly Part[]> = A extends readonly [infer H, ...infer R extends readonly Part[]] ? R extends readonly [] ? Text<H> : `${Text<H>} ${Join<R>}` : "";
+type Text$1<P> = P extends Style ? "⟨style⟩" : P extends string ? P extends "" ? "⟨empty⟩" : P : P extends number ? `${P}` : P extends CSSStyleValue<infer T> ? Sentinel<T> : P extends Fallback<infer V> ? Text$1<V[0]> : P extends TokenGetter ? "⟨uncalled-token-getter⟩" : never;
+type Join<A extends readonly Part[]> = A extends readonly [infer H, ...infer R extends readonly Part[]] ? R extends readonly [] ? Text$1<H> : `${Text$1<H>} ${Join<R>}` : "";
 type Spacing = "padding" | "margin" | "inset" | "gap" | "row-gap" | "column-gap";
 type Value<Sp extends boolean | string, A extends readonly Part[]> = A extends readonly [number] ? Sp extends true | Spacing | `${Spacing}-${string}` ? "⟨length⟩" : Join<A> : Join<A>;
-type Bad$2<A extends readonly Part[], Pre extends string, Seen extends string = "", I extends 0[] = []> = A extends readonly [infer H, ...infer R extends readonly Part[]] ? (Seen extends "" ? Text<H> : `${Seen} ${Text<H>}`) extends (infer J extends string) ? J extends `${Pre}${string}` ? `${I["length"]}` : Bad$2<R, Pre, J, [...I, 0]> : never : "0";
-type Others<Label extends string, G extends string, Vs extends readonly Part[], Pre extends string, Suf extends string> = Vs extends readonly [infer H, ...infer T extends readonly Part[]] ? `${Pre}${Text<H>}${Suf}` extends (infer S extends string) ? ValidIn<Label, G, S> extends (infer V) ? V extends S ? Others<Label, G, T, Pre, Suf> : V : never : never : true;
-type Alts<Label extends string, G extends string, A extends readonly Part[], Rest extends readonly Part[] = A, Pre extends string = "", I extends 0[] = []> = Rest extends readonly [infer H, ...infer R extends readonly Part[]] ? H extends Fallback<infer Vs extends readonly [Alt, ...Alt[]]> ? [Extract<R[number], Fallback>] extends [never] ? Vs extends readonly [unknown, ...infer O extends readonly Part[]] ? Others<Label, G, O, Pre, R extends readonly [] ? "" : ` ${Join<R>}`> extends (infer M) ? M extends true ? A : { [K in keyof A]: K extends `${I["length"]}` ? M : A[K]; } : never : A : { [K in keyof A]: K extends `${I["length"]}` ? "firstThatWorks: one per declaration" : A[K]; } : Alts<Label, G, A, R, `${Pre}${Text<H>} `, [...I, 0]> : A;
+type Bad$2<A extends readonly Part[], Pre extends string, Seen extends string = "", I extends 0[] = []> = A extends readonly [infer H, ...infer R extends readonly Part[]] ? (Seen extends "" ? Text$1<H> : `${Seen} ${Text$1<H>}`) extends (infer J extends string) ? J extends `${Pre}${string}` ? `${I["length"]}` : Bad$2<R, Pre, J, [...I, 0]> : never : "0";
+type Others<Label extends string, G extends string, Vs extends readonly Part[], Pre extends string, Suf extends string> = Vs extends readonly [infer H, ...infer T extends readonly Part[]] ? `${Pre}${Text$1<H>}${Suf}` extends (infer S extends string) ? ValidIn<Label, G, S> extends (infer V) ? V extends S ? Others<Label, G, T, Pre, Suf> : V : never : never : true;
+type Alts<Label extends string, G extends string, A extends readonly Part[], Rest extends readonly Part[] = A, Pre extends string = "", I extends 0[] = []> = Rest extends readonly [infer H, ...infer R extends readonly Part[]] ? H extends Fallback<infer Vs extends readonly [Alt, ...Alt[]]> ? [Extract<R[number], Fallback>] extends [never] ? Vs extends readonly [unknown, ...infer O extends readonly Part[]] ? Others<Label, G, O, Pre, R extends readonly [] ? "" : ` ${Join<R>}`> extends (infer M) ? M extends true ? A : { [K in keyof A]: K extends `${I["length"]}` ? M : A[K]; } : never : A : { [K in keyof A]: K extends `${I["length"]}` ? "firstThatWorks: one per declaration" : A[K]; } : Alts<Label, G, A, R, `${Pre}${Text$1<H>} `, [...I, 0]> : A;
 /**
  * The parameters of a call with parts `A`, checked against grammar `G` (called `Label` in the message; `Sp`: a lone
  * number is the spacing scale). `A` itself when valid, else the message on the bad argument.
@@ -1442,10 +1445,17 @@ type KindOf<V, Ty, Root> = Ty extends DtcgType ? Kind$1<Ty> : V extends `{${infe
 type KindAt<N, P extends string, Root, Inherited = undefined> = P extends `${infer H}.${infer R}` ? H extends keyof N ? KindAt<N[H], R, Root, TypeOf<N[H], Inherited>> : never : P extends keyof N ? N[P] extends {
   readonly $value: infer V;
 } ? KindOf<V, TypeOf<N[P], Inherited>, Root> : never : never;
-/** The tokens of a `const` DTCG object: every leaf `{ $value }` is a named token of the type its `$type` maps to. */
+type Text<V> = V extends string ? V : V extends number ? `${V}` : V extends {
+  readonly value: infer N extends number;
+  readonly unit: infer U extends string;
+} ? `${N}${U}` : string;
+type Kd$1<T> = T extends (() => {
+  readonly "~token": infer K extends TokenType;
+}) ? K : never;
+/** The tokens of a `const` DTCG object: every leaf `{ $value }` is a getter of a named token of the type its `$type` maps to. */
 type Tokens<G, Inherited = undefined, Root = G> = { readonly [K in keyof G as K extends `$${string}` ? never : K]: G[K] extends {
   readonly $value: infer V;
-} ? Token<KindOf<V, TypeOf<G[K], Inherited>, Root>, true> : Tokens<G[K], TypeOf<G[K], Inherited>, Root>; };
+} ? TokenGetter<Token<KindOf<V, TypeOf<G[K], Inherited>, Root>, true, Text<V>>> : Tokens<G[K], TypeOf<G[K], Inherited>, Root>; };
 type Bad$1<Why extends string> = {
   readonly $error: `cssints: ${Why}`;
 };
@@ -1471,17 +1481,11 @@ declare const createTokens: <const T extends {
 type Kinds = { readonly [K in DtcgType]: (typeof DTCG_TYPES)[K]; };
 type ObjectValue<K extends TokenType> = K extends Kinds["color"] ? DtcgColor : K extends Kinds["dimension"] ? DtcgUnit<"px" | "rem"> : K extends Kinds["duration"] ? DtcgUnit<"ms" | "s"> : number;
 /** The values a theme may set: the paths of the tokens, each a value of the token's type. */
-type Overrides<X> = { readonly [K in keyof X]?: X[K] extends {
-  readonly "~token": infer Kd extends TokenType;
-} ? string | number | ObjectValue<Kd> : Overrides<X[K]>; };
-type KindIn<X, P extends string> = P extends `${infer H}.${infer R}` ? H extends keyof X ? KindIn<X[H], R> : never : P extends keyof X ? X[P] extends {
-  readonly "~token": infer Kd extends TokenType;
-} ? Kd : never : never;
+type Overrides<X> = { readonly [K in keyof X]?: [Kd$1<X[K]>] extends [never] ? Overrides<X[K]> : string | number | ObjectValue<Kd$1<X[K]>>; };
+type KindIn<X, P extends string> = P extends `${infer H}.${infer R}` ? H extends keyof X ? KindIn<X[H], R> : never : P extends keyof X ? Kd$1<X[P]> : never;
 type SubstIn<V extends string, X> = V extends `${infer A}{${infer P}}${infer B}` ? [KindIn<X, P>] extends [never] ? never : `${A}${Sentinel$1<KindIn<X, P>>}${SubstIn<B, X>}` : V;
 type CheckRefs<V extends string, Kd extends TokenType, X> = V extends `{${infer P}}` ? [KindIn<X, P>] extends [never] ? Bad$1<`a reference {${P}} has no token`> : [KindIn<X, P>] extends [Kd] ? V : Bad$1<`{${P}} is a ${KindIn<X, P>}, not a ${Kd}`> : [SubstIn<V, X>] extends [never] ? Bad$1<"a reference {…} has no token"> : Fits<SubstIn<V, X>, ValidSyntax<Syntax<Kd>, SubstIn<V, X>>> extends (infer R) ? [R] extends [true] ? V : R : never;
-type CheckOverrides<X, O, Root = X> = { [K in keyof O]: K extends keyof X ? X[K] extends {
-  readonly "~token": infer Kd extends TokenType;
-} ? O[K] extends string ? O[K] extends FontWeightName ? O[K] : O[K] extends `${string}{${string}}${string}` ? CheckRefs<O[K], Kd, Root> : Fits<O[K], ValidSyntax<Syntax<Kd>, O[K]>> extends (infer R) ? [R] extends [true] ? O[K] : R : never : O[K] : CheckOverrides<X[K], O[K], Root> : Bad$1<"no token at this path">; };
+type CheckOverrides<X, O, Root = X> = { [K in keyof O]: K extends keyof X ? [Kd$1<X[K]>] extends [never] ? CheckOverrides<X[K], O[K], Root> : O[K] extends string ? O[K] extends FontWeightName ? O[K] : O[K] extends `${string}{${string}}${string}` ? CheckRefs<O[K], Kd$1<X[K]>, Root> : Fits<O[K], ValidSyntax<Syntax<Kd$1<X[K]>>, O[K]>> extends (infer R) ? [R] extends [true] ? O[K] : R : never : O[K] : Bad$1<"no token at this path">; };
 /**
  * Re-declares the overridden tokens under a media or container condition (on `:root`), or under a selector, and the
  * aliases that depend on them. An unknown path and a value that is not of the token's type are type errors.
@@ -1655,9 +1659,9 @@ type Camel<S extends string> = S extends `-${infer H}` ? Camel<H> : S extends `$
 type Expand<G extends string, A, D extends 0[] = []> = D["length"] extends 6 ? G : G extends `${infer Pre}<${infer N}>${infer Post}` ? N extends keyof A ? A[N] extends (infer S extends string) ? `${Pre}[ ${Expand<S, A, [...D, 0]>} ]${Expand<Post, A, D>}` : G : `${Pre}<${N}>${Expand<Post, A, D>}` : G;
 type Own<T> = { [K in keyof T & string as Kind<K, T[K]> extends "alias" ? Strip<K> : never]: T[K]; };
 type Resolved<A> = { [N in keyof A]: A[N] extends string ? Expand<A[N], A> : never; };
-type Paths<X, P extends string = ""> = { [K in keyof X & string]: X[K] extends {
+type Paths<X, P extends string = ""> = { [K in keyof X & string]: X[K] extends (() => {
   readonly "~token": infer Kd extends TokenType;
-} ? { [Q in `${P}${K}`]: `<${Syntax<Kd>}>`; } : Paths<X[K], `${P}${K}.`>; }[keyof X & string];
+}) ? { [Q in `${P}${K}`]: `<${Syntax<Kd>}>`; } : Paths<X[K], `${P}${K}.`>; }[keyof X & string];
 type Flat<U> = (U extends unknown ? (x: U) => void : never) extends ((x: infer I) => void) ? I : never;
 type ModAliases<T> = Flat<{ [K in keyof T & string]: Kind<K, T[K]> extends "module" ? T[K] extends {
   "~aliases": infer MA;

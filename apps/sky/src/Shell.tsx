@@ -32,7 +32,11 @@ const root = css.cn(
     ),
   ),
   gtTablet(
-    css.gridTemplateColumns(t.layout.leftNavWidth(), t.layout.centerWidth(), t.layout.rightRailWidth()),
+    css.gridTemplateColumns(
+      t.layout.leftNavWidth(),
+      t.layout.centerWidth(),
+      t.layout.rightRailWidth(),
+    ),
   ),
 );
 

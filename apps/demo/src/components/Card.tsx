@@ -42,7 +42,12 @@ const rootConfig = cv({
 const root = _cv(rootConfig);
 
 const headerSlot = [padding("1.5rem 1.5rem 0"), flex().direction("column").gap("0.5rem")];
-const titleSlot = [fontSize("1.25rem"), fontWeight("600"), color(t.color.text()), lineHeight("1.4")];
+const titleSlot = [
+  fontSize("1.25rem"),
+  fontWeight("600"),
+  color(t.color.text()),
+  lineHeight("1.4"),
+];
 const descSlot = [fontSize("0.875rem"), color(t.color.muted()), lineHeight("1.5")];
 const contentSlot = [padding("1.5rem"), color(t.color.text())];
 const footerSlot = [padding("0 1.5rem 1.5rem"), flex().gap("0.75rem").justifyContent("flex-end")];

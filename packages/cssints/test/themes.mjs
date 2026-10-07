@@ -99,10 +99,16 @@ assert.match(e.message, /^cssints: createTokens\(\): color\.badbg value "blu" is
 
 // A leaf is a getter: one that was not called is an error that names it, at the call that took it
 e = await failure("fixtures/themes-uncalled.ts");
-assert.match(e.message, /^cssints: unc\.bg is a token getter, not a token: call it, as in t\.unc\.bg\(\)$/);
+assert.match(
+  e.message,
+  /^cssints: unc\.bg is a token getter, not a token: call it, as in t\.unc\.bg\(\)$/,
+);
 assert.deepEqual(at(e), { line: 5, column: 17 });
 e = await failure("fixtures/themes-uncalled-contrast.ts");
-assert.match(e.message, /^cssints: uncc\.fg is a token getter, not a token: call it, as in t\.uncc\.fg\(\)$/);
+assert.match(
+  e.message,
+  /^cssints: uncc\.fg is a token getter, not a token: call it, as in t\.uncc\.fg\(\)$/,
+);
 
 console.log("themes: tokens from DTCG data, aliases flattened and live, errors located");
 

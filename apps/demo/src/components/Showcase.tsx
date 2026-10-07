@@ -103,7 +103,11 @@ const pulsing = cn(
 );
 
 // supports(): bold where CSS grid exists.
-const feature = cn(css.color(t.color.text()), css.fontWeight("400"), hasGrid(css.fontWeight("700")));
+const feature = cn(
+  css.color(t.color.text()),
+  css.fontWeight("400"),
+  hasGrid(css.fontWeight("700")),
+);
 
 // Typed parts and math: Typed OM values as parts, and calc() as a string, min() and clamp() as calls.
 const typed = cn(
