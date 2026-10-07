@@ -71,7 +71,7 @@ import { button, card } from "${pkgName}";
 import { t } from "${pkgName}" with { type: "cssints" };
 
 createGlobalTheme(t, ".dark", { color: { brand: "#ef4444" } });
-const banner = cn(bg(t.color.brand));
+const banner = cn(bg(t.color.brand()));
 document.body.innerHTML = \`<div class="\${card} \${banner} \${button()}">x</div>\`;
 `,
 );

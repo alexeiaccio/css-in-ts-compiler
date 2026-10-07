@@ -23,10 +23,10 @@ import { t } from "../theme.ts" with { type: "cssints" };
 const hidden = cn(display("none"));
 const note = cn(
   margin("0"),
-  padding(t.space.lg),
+  padding(t.space.lg()),
   textAlign("center"),
-  color(t.color.textMedium),
-  fontSize(t.fontSize.sm),
+  color(t.color.textMedium()),
+  fontSize(t.fontSize.sm()),
 );
 
 // Calls `onVisible` when the sentinel comes within 800 px of the viewport. The observer only fires on a change, so after a

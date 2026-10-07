@@ -228,7 +228,7 @@ css.token.set(muted, "red"); // error: private tokens cannot be set
 
 #### Themes (decided 2026-09-29, cssints-exof)
 
-Tokens come from an inline DTCG-shaped `const` object. Every leaf is a token (see "Tokens") reached by property access. Values are DTCG values or CSS strings checked by the grammar of their `$type`. Aliases use DTCG `{path}` references.
+Tokens come from an inline DTCG-shaped `const` object. Every leaf is a getter of a token (see "Tokens"), reached by property access and called: `t.color.bg()`. Values are DTCG values or CSS strings checked by the grammar of their `$type`. Aliases use DTCG `{path}` references.
 
 ```tsx
 import * as css from "cssints" with { type: "cssints" };
@@ -249,13 +249,16 @@ css.createGlobalTheme(t, dark, { color: { bg: "#0b0b0f", fg: "#f3f4f6" } });
 css.createGlobalTheme(t, ".light", { color: { bg: "#fff" } });
 css.createGlobalTheme(t.color, css.container("(width < 30rem)"), { bg: "#eee" });
 
-css.check.contrast(t.color.fg, t.color.bg, { min: 4.5 });
+css.check.contrast(t.color.fg(), t.color.bg(), { min: 4.5 });
 
-export const A = () => <div className={css.cn(css.bg(t.color.bg), css.color(t.color.fg), css.p(t.space.md))} />;
+export const A = () => <div className={css.cn(css.bg(t.color.bg()), css.color(t.color.fg()), css.p(t.space.md()))} />;
 css.createGlobalTheme(t, dark, { color: { nope: "red" } }); // error: no token at this path
 css.createGlobalTheme(t, css.hover, { color: { bg: "red" } }); // error: a pseudo-class is not a theme condition
+export const B = css.color(t.color.bg); // error: a getter is not a token, call it: t.color.bg()
 ```
 
+- **Leaves are getters** (cssints-tdiu): `t.color.accent()` returns the token, the Typed OM value whose text is `var(--color-accent)`; a group (`t.color`, `t`) is a plain object and is what `createGlobalTheme(t, …)`, `look(t, …)` and a scope's `$tokens` take. The token type carries the value of its definition as a third type parameter that `createTokens` infers (you never write it): `Token<"color", true, "#545434">` on hover. `V` is the `$value` as text: a string as written, so an alias carries its reference (`Token<"color", true, "{color.base}">`, not the base's value, which a theme can change); a number or `{ value, unit }` as its CSS text (`345` is `"345"`, `{ value: 150, unit: "ms" }` is `"150ms"`); a DTCG colour object, and anything from a JSON import (`$value` widens to `string`), as `string`. It is the value of the default theme (`:root`): a theme overrides it, so read it as the definition, not as what the page shows. `V` is a covariant phantom with the default `string`, so a `Token<K, S, V>` fits wherever a `Token<K>` or `Token<K, true>` does (`token.set()`, `check.contrast()`, a property). On the client a module of tokens is the getters, `() => "var(--color-accent)"`. A single token from `token.<type>(initial, name?)` is already a call and stays a value (`Token<K, S>`, `V` is `string`).
+- **A getter that was not called** is an error: `css.color(t.color.accent)` is a type error on the argument (`Argument of type 'TokenGetter<Token<"color", true, "#545434">>' is not assignable to parameter of type '"color: unexpected \"⟨uncalled-token-getter⟩\" …"'`; in `check.contrast()` and `token.set()` it is `Type 'TokenGetter<…>' is missing the following properties from type 'Token<…>'`), and a build error at the call if the types are bypassed: `cssints: color.accent is a token getter, not a token: call it, as in t.color.accent()`.
 - **Types:** `$type` is inherited through groups, and a token needs one (it is not guessed from the value). It maps to a token type: `color` to `color`, `dimension` to `length`, `number` to `number`, `duration` to `time`, `fontWeight` to `number` (keywords such as `bold` become 700). `fontFamily`, `cubicBezier`, `strokeStyle` and the composite types have no `@property` syntax and are an error. A value is a CSS string of the type's grammar, or the DTCG form: `{ colorSpace, components, alpha? }`, `{ value, unit }` (`px` or `rem`, `ms` or `s`), a number. The initial value follows the rule of "Tokens": `{ value: 1, unit: "rem" }` is a build error, write `16px`.
 - **Names:** the variable name is the kebab-case path (`--color-bg`). A second argument to `createTokens` maps a path (an array of names) to a name, or to `{ var, inherit }`.
 - **Support warnings** (cssints-tuyw): a token value goes through the same support check as a property value, since it reaches the same browsers: the initial value of `token.<type>()` and of a `createTokens()` leaf, an override of `createGlobalTheme()` (its references replaced by their literals) and a `token.set()` value. It is checked as a value of a property that takes its type (`color` for a colour, `width` for a length, `transform` for a transform list; `custom-ident` and `resolution` have none), so `oklch()` warns for a target without it, like `color: oklch(...)`. A warning is given once per token (or theme value) and BCD feature per build, and a dev server gives it again after each edit, as for properties. It names the token path and, for a theme, the theme: `createTokens(): color.accent value: "oklch()" in "oklch(0.62 0.19 259)" is not supported by chrome 109 (css.types.color.oklch)`, `createGlobalTheme(): color.accent value in .light: "oklch()" in ...`, `token.color() initial value of --name: ...`, `token.set() value of --name: ...`. An alias has the same warning for its own token, since its `@property` rule holds the same literal. A value that goes into the sheet gets no warning when a fallback below handles it for the targets (the bullet "No warning for what LightningCSS lowers" below says what LightningCSS lowers); an inline `token.set()` value never goes through LightningCSS and keeps the warning, as does a value LightningCSS cannot lower (`color-mix()` over a token in a class).
@@ -314,7 +317,7 @@ css.createGlobalTheme(t, ".dim", { hue: { accent: 12 }, color: { accent: "oklch(
 css.createGlobalTheme(t, ".x", { radius: { md: "{hue.accent}" } }); // error: a number, not a length
 ```
 
-- **JSON input:** `createTokens` takes a DTCG file imported as JSON, `import tokens from "./tokens.json" with { type: "json" }`. The editor knows the tree (`t.color.bg`, and a wrong path is a type error) but not the types, since a JSON import widens `$type` to `string`: each token is a token of any type there, and its values, references and use in a property (and in `check.contrast`) are checked at build time.
+- **JSON input:** `createTokens` takes a DTCG file imported as JSON, `import tokens from "./tokens.json" with { type: "json" }`. The editor knows the tree (`t.color.bg()`, and a wrong path is a type error) but not the types, since a JSON import widens `$type` to `string`: each token is a token of any type there, its `V` is `string`, and its values, references and use in a property (and in `check.contrast`) are checked at build time.
 - **The sheet:** token sets and themes are rules of layer `_.k`, after the global rules of `css.global()` and before the class layers. They set custom properties only, and no class does, so the layer order never decides between them; `_.k` is the lowest layer, so your own unlayered `--color-bg` rule wins over a theme. The `:root` rules of aliases come first, then themes under a condition, then themes under a selector, each in source order, so a selector theme beats a condition theme on the same element. A module has the rules of the tokens it uses, from wherever they were made, and of the tokens those are made of (the references of a derived token or of a theme value, through chains: a `hue.accent` that no class uses still gets its `@property` rule), and its own; import a theme module (`import "./theme.ts"`) to have all of it.
 - **`css.check.contrast(fg, bg, { min })`** computes the WCAG 2.x contrast ratio (`min` from 1 to 21) for the default values and for every theme that sets either token or one they are aliases of. It reads themes one at a time, except those of one selector: themes with the same selector (and scope) meet on one element, so they are read together, laid over each other in the order of the cascade (no layer first, then the declared layers in order, then source order). A viewer look that sets only the text colour is checked on the background of the app look under the same selector. Themes of different selectors, or a selector and a condition, are still read one at a time, not in their combinations. A value that is set at run time (a slider that sets `--hue-accent` on `<html>`) belongs to no theme and is checked at its default only; a theme per value would put each rule in the sheet and hold it to the thresholds of the other themes, since a check applies to every theme that touches its tokens, so measure a range outside the build (apps/sky `test/contrast.mjs`). A ratio below `min` is a build error that names the theme and both resolved values (the ratio is cut, not rounded: 4.499 is 4.49). A value the check cannot evaluate (`color-mix()`, a relative colour, `light-dark()`, `currentColor`, a system colour) or a translucent one is a warning that names the token; a build says it once, and a dev server says it again after each edit. A derived token (or a theme value with `{path}` references) is read in each theme by putting that theme's values, or the defaults, in place of its references, through a chain of derived tokens: a ratio when the result is a colour (`oklch(0.6 0.2 {hue.accent})`), a warning that names the theme when it is not (`color-mix()` over another token), and a theme that sets any token a checked colour depends on, directly, through an alias or through references, is checked. The colour library (culori, `culori/fn`: 27 kB minified, 9 kB gzipped) is build-only and never ships. The check runs when its module has run, and again at the end of a build over the themes of every module.
 
@@ -595,12 +598,12 @@ const t = css.createTokens({
 	space: { $type: "dimension", md: { $value: "16px" } },
 });
 
-export const a = css.color(css.colorMix("oklab", t.color.accent, "black 15%")); // color: color-mix(in oklab, var(--color-accent), black 15%)
-export const b = css.padding(css.clamp(t.space.md, "2vw", "2rem")); // padding: clamp(var(--space-md), 2vw, 2rem)
+export const a = css.color(css.colorMix("oklab", t.color.accent(), "black 15%")); // color: color-mix(in oklab, var(--color-accent), black 15%)
+export const b = css.padding(css.clamp(t.space.md(), "2vw", "2rem")); // padding: clamp(var(--space-md), 2vw, 2rem)
 export const c = css.maxWidth(css.min("48rem", "100%"));
 export const d = css.opacity(css.clamp<"number">(0, 0.5, 1));
 export const e = css.color(css.colorMix("rgb", "red", "blue")); // error: not a colour space
-export const f = css.color(css.colorMix("oklab", t.space.md, "red")); // error: a length is not a colour
+export const f = css.color(css.colorMix("oklab", t.space.md(), "red")); // error: a length is not a colour
 export const g = css.width(css.colorMix("oklab", "red", "blue")); // error: a colour is not a length
 ```
 
@@ -735,7 +738,7 @@ import { bg, cn, cv, hover, p } from "cssints" with { type: "cssints" };
 import { t } from "./tokens.ts" with { type: "cssints" };
 
 export { t };
-export const card = cn(p(4), bg(t.color.brand));
+export const card = cn(p(4), bg(t.color.brand()));
 export const button = cv({ base: cn(p(2), hover(bg("#1d4ed8"))) });
 ```
 

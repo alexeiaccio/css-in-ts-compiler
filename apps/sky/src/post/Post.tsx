@@ -56,20 +56,20 @@ const cell = cn(containerType("inline-size"), containerName("post"));
 const card = cv({
   base: cn(
     group(),
-    frame().radius(t.radius.xl).padding(2).border(t.border.width),
+    frame().radius(t.radius.xl()).padding(2).border(t.border.width()),
     wide(frame().padding(3)),
     surface().lighten(0.04),
-    borderColor(t.color.border),
-    grid().templateColumns("auto minmax(0, 1fr)").columnGap(t.space.sm).rowGap(t.space.xs),
+    borderColor(t.color.border()),
+    grid().templateColumns("auto minmax(0, 1fr)").columnGap(t.space.sm()).rowGap(t.space.xs()),
   ),
-  variants: { look: { focus: fontSize(t.fontSize.xl) } },
+  variants: { look: { focus: fontSize(t.fontSize.xl()) } },
 });
 const tombCard = cn(
-  frame().radius(t.radius.xl).padding(3).border(t.border.width),
+  frame().radius(t.radius.xl()).padding(3).border(t.border.width()),
   surface().lighten(0.04),
-  borderColor(t.color.border),
-  color(t.color.textMedium),
-  fontSize(t.fontSize.sm),
+  borderColor(t.color.border()),
+  color(t.color.textMedium()),
+  fontSize(t.fontSize.sm()),
 );
 
 // Narrow: the avatar sits in a row with the name, the text runs full width under it. Wide: the avatar is a column beside
@@ -83,15 +83,15 @@ const avatarSlot = cn(
 const head = cn(
   gridColumn("2"),
   gridRow("1"),
-  flex().alignItems("baseline").gap(t.space.xs),
+  flex().alignItems("baseline").gap(t.space.xs()),
   minWidth("0"),
   alignSelf("center"),
   wide(alignSelf("start")),
 );
 const body = cn(gridColumn("1 / -1"), gridRow("2"), minWidth("0"), wide(gridColumn("2")));
 const name = cn(
-  fontWeight(t.fontWeight.bold),
-  color(t.color.text),
+  fontWeight(t.fontWeight.bold()),
+  color(t.color.text()),
   textDecoration("none"),
   overflow("hidden"),
   textOverflow("ellipsis"),
@@ -99,8 +99,8 @@ const name = cn(
   flexShrink(1),
 );
 const meta = cn(
-  color(t.color.textMedium),
-  fontSize(t.fontSize.sm),
+  color(t.color.textMedium()),
+  fontSize(t.fontSize.sm()),
   textDecoration("none"),
   whiteSpace("nowrap"),
   overflow("hidden"),
@@ -108,10 +108,10 @@ const meta = cn(
   hover(textDecoration("underline")),
 );
 // The timestamp turns from muted to full colour while the pointer is anywhere on the card (the card is a group).
-const time = cn(meta, flexShrink(0), within(hover)(color(t.color.text)));
+const time = cn(meta, flexShrink(0), within(hover)(color(t.color.text())));
 
 const guard = position("relative");
-const content = flex().direction("column").gap(t.space.sm);
+const content = flex().direction("column").gap(t.space.sm());
 const blurred = cn(
   filter("blur(14px)"),
   pointerEvents("none"),
@@ -123,31 +123,31 @@ const reveal = cn(
   top("50%"),
   left("50%"),
   transform("translate(-50%, -50%)"),
-  padding(t.space.sm, t.space.lg),
-  borderRadius(t.radius.button),
-  border(t.border.width, "solid", t.color.borderStrong),
-  bg(t.color.bg),
-  color(t.color.text),
-  fontWeight(t.fontWeight.semiBold),
+  padding(t.space.sm(), t.space.lg()),
+  borderRadius(t.radius.button()),
+  border(t.border.width(), "solid", t.color.borderStrong()),
+  bg(t.color.bg()),
+  color(t.color.text()),
+  fontWeight(t.fontWeight.semiBold()),
 );
 
-const stamp = cn(color(t.color.textMedium), fontSize(t.fontSize.sm), marginTop(t.space.sm));
+const stamp = cn(color(t.color.textMedium()), fontSize(t.fontSize.sm()), marginTop(t.space.sm()));
 const counts = cn(
-  flex().wrap("wrap").gap(t.space.lg),
-  fontSize(t.fontSize.sm),
-  color(t.color.textMedium),
-  marginTop(t.space.sm),
+  flex().wrap("wrap").gap(t.space.lg()),
+  fontSize(t.fontSize.sm()),
+  color(t.color.textMedium()),
+  marginTop(t.space.sm()),
 );
-const num = cn(fontWeight(t.fontWeight.bold), color(t.color.text));
+const num = cn(fontWeight(t.fontWeight.bold()), color(t.color.text()));
 
 const actions = cn(
-  flex().alignItems("center").gap(t.space["3xl"]),
-  color(t.color.textMedium),
-  fontSize(t.fontSize.sm),
-  marginTop(t.space.sm),
+  flex().alignItems("center").gap(t.space["3xl"]()),
+  color(t.color.textMedium()),
+  fontSize(t.fontSize.sm()),
+  marginTop(t.space.sm()),
 );
-const action = cn(flex().alignItems("center").gap(t.space.xs), minWidth("3rem"));
-const actionIcon = fontSize(t.fontSize.xl);
+const action = cn(flex().alignItems("center").gap(t.space.xs()), minWidth("3rem"));
+const actionIcon = fontSize(t.fontSize.xl());
 const reply = cn(ph("chat-circle"), actionIcon);
 const repost = cn(ph("repeat"), actionIcon);
 const like = cn(ph("heart"), actionIcon);

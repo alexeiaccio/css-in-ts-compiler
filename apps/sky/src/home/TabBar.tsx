@@ -36,11 +36,11 @@ import { t } from "../theme.ts" with { type: "cssints" };
 // Sticky under the header (which is 52 px, t.layout.headerHeight); a surface of the page colour, and a tab a step darker on hover.
 const bar = cn(
   position("sticky"),
-  top(t.layout.headerHeight),
+  top(t.layout.headerHeight()),
   zIndex(4),
   flex(),
-  surface().color(t.color.bg),
-  borderBottom(t.border.width, "solid", t.color.border),
+  surface().color(t.color.bg()),
+  borderBottom(t.border.width(), "solid", t.color.border()),
 );
 
 const tab = cv({
@@ -49,17 +49,17 @@ const tab = cv({
     flexBasis("0"),
     cursor("pointer"),
     border("0"),
-    fontSize(t.fontSize.md),
-    minHeight(t.layout.navItem),
-    padding(t.space.sm),
-    surface().color(t.color.bg),
+    fontSize(t.fontSize.md()),
+    minHeight(t.layout.navItem()),
+    padding(t.space.sm()),
+    surface().color(t.color.bg()),
     hover(surface().darken(0.03)),
-    focusVisible(outline("2px solid", t.color.accent), outlineOffset("-2px")),
+    focusVisible(outline("2px solid", t.color.accent()), outlineOffset("-2px")),
   ),
   variants: {
     active: {
-      yes: cn(fontWeight(t.fontWeight.bold), color(t.color.text)),
-      no: cn(fontWeight(t.fontWeight.medium), color(t.color.textMedium)),
+      yes: cn(fontWeight(t.fontWeight.bold()), color(t.color.text())),
+      no: cn(fontWeight(t.fontWeight.medium()), color(t.color.textMedium())),
     },
   },
   defaultVariants: { active: "no" },
@@ -72,8 +72,8 @@ const indicator = cn(
   left("0"),
   bottom("0"),
   height("3px"),
-  borderRadius(t.radius.full),
-  background(t.color.accent),
+  borderRadius(t.radius.full()),
+  background(t.color.accent()),
   transition("transform 250ms ease-out"),
   reduced(transition("none")),
 );

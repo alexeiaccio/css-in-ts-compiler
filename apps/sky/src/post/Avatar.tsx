@@ -14,11 +14,11 @@ import { Show } from "solid-js";
 import { t } from "../theme.ts" with { type: "cssints" };
 
 const avatar = cv({
-  base: cn(display("block"), flexShrink(0), objectFit("cover"), bg(t.color.bgMuted)),
+  base: cn(display("block"), flexShrink(0), objectFit("cover"), bg(t.color.bgMuted())),
   variants: {
     size: {
-      lg: cn(width(t.avatar.feed), height(t.avatar.feed), borderRadius(t.radius.avatar)),
-      sm: cn(width("20px"), height("20px"), borderRadius(t.radius.avatarSmall)),
+      lg: cn(width(t.avatar.feed()), height(t.avatar.feed()), borderRadius(t.radius.avatar())),
+      sm: cn(width("20px"), height("20px"), borderRadius(t.radius.avatarSmall())),
     },
   },
   defaultVariants: { size: "lg" },

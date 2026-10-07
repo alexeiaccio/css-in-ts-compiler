@@ -33,5 +33,5 @@ look(t, "contrast", "viewer", {
 });
 
 // Fails the build when the text is hard to read on the page, in the light or the dark theme.
-check.contrast(t.color.text, t.color.page, { min: 7 });
-check.contrast(t.color.link, t.color.surface, { min: 4.5 });
+check.contrast(t.color.text(), t.color.page(), { min: 7 });
+check.contrast(t.color.link(), t.color.surface(), { min: 4.5 });

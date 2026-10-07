@@ -19,9 +19,9 @@ const text = cn(
   margin("0"),
   whiteSpace("pre-wrap"),
   overflowWrap("anywhere"),
-  lineHeight(t.lineHeight.snug),
+  lineHeight(t.lineHeight.snug()),
 );
-const link = cn(color(t.color.link), textDecoration("none"), hover(textDecoration("underline")));
+const link = cn(color(t.color.link()), textDecoration("none"), hover(textDecoration("underline")));
 
 // Text with its facets: a link goes to feature.uri (http and https only), a mention to the profile route.
 export function RichText(props: { text: string; facets?: Facet<Feature>[] }) {

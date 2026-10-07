@@ -206,7 +206,7 @@ type Own<T> = {
 type Resolved<A> = { [N in keyof A]: A[N] extends string ? Expand<A[N], A> : never };
 // A token set's paths: the syntax of each token.
 type Paths<X, P extends string = ""> = {
-  [K in keyof X & string]: X[K] extends { readonly "~token": infer Kd extends TokenType }
+  [K in keyof X & string]: X[K] extends () => { readonly "~token": infer Kd extends TokenType }
     ? { [Q in `${P}${K}`]: `<${Syntax<Kd>}>` }
     : Paths<X[K], `${P}${K}.`>;
 }[keyof X & string];

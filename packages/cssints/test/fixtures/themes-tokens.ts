@@ -16,9 +16,9 @@ export const t = css.createTokens({
 });
 
 export const box = css.cn(
-  css.color(t.color.link),
-  css.bg(t.color.bg),
-  css.padding(t.space.md),
-  css.transitionDuration(t.motion.fast),
-  css.fontWeight(t.font.strong),
+  css.color(t.color.link()),
+  css.bg(t.color.bg()),
+  css.padding(t.space.md()),
+  css.transitionDuration(t.motion.fast()),
+  css.fontWeight(t.font.strong()),
 );

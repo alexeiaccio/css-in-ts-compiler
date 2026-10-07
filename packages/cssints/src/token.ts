@@ -33,6 +33,27 @@ export class CSSTokenValue extends CSSStyleValue {
   }
 }
 
+// A leaf of a token set is a getter, `() => token`; an uncalled one in a property, a check or a `token.set()` is an error
+// that says so, since a getter has no text of its own (`Symbol.toPrimitive`: the join of a value's parts).
+const GETTER = "~getter";
+export const getterOf = (dotted: string, token: CSSTokenValue) =>
+  Object.assign(() => token, {
+    [GETTER]: dotted,
+    toJSON: () => token.toString(),
+    [Symbol.toPrimitive]: () => {
+      throw uncalled(dotted);
+    },
+  });
+const uncalled = (dotted: string) =>
+  fail(`cssints: ${dotted} is a token getter, not a token: call it, as in t.${dotted}()`);
+export const isGetter = (v: unknown): v is (() => CSSTokenValue) & { readonly [GETTER]: string } =>
+  typeof v === "function" && Predicate.hasProperty(v, GETTER);
+// A call that took a getter that was not called fails here, naming it (`token.set()`, `check.contrast()`).
+export const noGetter = (args: readonly unknown[]) => {
+  const getter = args.find(isGetter);
+  if (getter) throw uncalled(getter[GETTER]);
+};
+
 // A property that takes each syntax, so a token value gets the support check of a property value (a syntax with none,
 // custom-ident and resolution, has nothing BCD tracks). A warning of the property itself is not about the value.
 const SUPPORT_PROPERTY: Record<string, string> = {
@@ -196,6 +217,7 @@ export interface StyleNode {
 export const isStyle = (v: unknown): v is StyleNode => Predicate.hasProperty(v, "__style");
 
 const set = (...args: unknown[]): StyleNode => {
+  noGetter(args);
   const [t, value] = args;
   if (
     args.length !== 2 ||
