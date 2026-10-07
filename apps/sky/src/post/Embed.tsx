@@ -1,4 +1,4 @@
-import { _cv, cx } from "cssints";
+import { cx } from "cssints";
 import {
   aspectRatio,
   bg,
@@ -64,52 +64,46 @@ const box = cn(frame(), position("relative"), overflow("hidden"));
 const block = display("block");
 
 // The columns come from the card's width ("post" container), the variant from how many images there are.
-const grid = _cv(
-  cv({
-    base: cn(display("grid"), gap(t.space["2xs"])),
-    variants: {
-      n: {
-        "1": gridTemplateColumns("minmax(0, 1fr)"),
-        "2": gridTemplateColumns("repeat(2, minmax(0, 1fr))"),
-        "3": cn(
-          gridTemplateColumns("repeat(2, minmax(0, 1fr))"),
-          wide(gridTemplateColumns("repeat(3, minmax(0, 1fr))")),
-        ),
-        "4": gridTemplateColumns("repeat(2, minmax(0, 1fr))"),
-        gallery: cn(
-          gridTemplateColumns("repeat(2, minmax(0, 1fr))"),
-          wide(gridTemplateColumns("repeat(4, minmax(0, 1fr))")),
-        ),
-      },
+const grid = cv({
+  base: cn(display("grid"), gap(t.space["2xs"])),
+  variants: {
+    n: {
+      "1": gridTemplateColumns("minmax(0, 1fr)"),
+      "2": gridTemplateColumns("repeat(2, minmax(0, 1fr))"),
+      "3": cn(
+        gridTemplateColumns("repeat(2, minmax(0, 1fr))"),
+        wide(gridTemplateColumns("repeat(3, minmax(0, 1fr))")),
+      ),
+      "4": gridTemplateColumns("repeat(2, minmax(0, 1fr))"),
+      gallery: cn(
+        gridTemplateColumns("repeat(2, minmax(0, 1fr))"),
+        wide(gridTemplateColumns("repeat(4, minmax(0, 1fr))")),
+      ),
     },
-    defaultVariants: { n: "1" },
-  }),
-);
+  },
+  defaultVariants: { n: "1" },
+});
 // With three images the first is a banner across a narrow card and one of three columns in a wide one.
-const cell = _cv(
-  cv({
-    base: cn(display("block"), position("relative"), minWidth("0")),
-    variants: {
-      banner: {
-        yes: cn(gridColumn("1 / -1"), wide(gridColumn("auto"))),
-        no: zIndex(0),
-      },
+const cell = cv({
+  base: cn(display("block"), position("relative"), minWidth("0")),
+  variants: {
+    banner: {
+      yes: cn(gridColumn("1 / -1"), wide(gridColumn("auto"))),
+      no: zIndex(0),
     },
-    defaultVariants: { banner: "no" },
-  }),
-);
-const pic = _cv(
-  cv({
-    base: cn(display("block"), width("100%"), objectFit("cover"), bg(t.color.bgMuted)),
-    variants: {
-      shape: {
-        single: maxHeight("34rem"), // the ratio is inline (data); a tall image is cropped
-        tile: aspectRatio("4 / 3"),
-        banner: cn(aspectRatio("16 / 9"), wide(aspectRatio("4 / 3"))),
-      },
+  },
+  defaultVariants: { banner: "no" },
+});
+const pic = cv({
+  base: cn(display("block"), width("100%"), objectFit("cover"), bg(t.color.bgMuted)),
+  variants: {
+    shape: {
+      single: maxHeight("34rem"), // the ratio is inline (data); a tall image is cropped
+      tile: aspectRatio("4 / 3"),
+      banner: cn(aspectRatio("16 / 9"), wide(aspectRatio("4 / 3"))),
     },
-  }),
-);
+  },
+});
 const more = cn(
   position("absolute"),
   inset("0"),

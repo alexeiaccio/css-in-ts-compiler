@@ -1,4 +1,4 @@
-import { _cv } from "cssints";
+import type { Style } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 import { frame } from "cssints/frame" with { type: "cssints" };
 import { createEffect, For } from "solid-js";
@@ -73,38 +73,36 @@ const bar = css.cn(
   gtMobile(css.display("none")),
 );
 
-const navItem = _cv(
-  css.cv({
-    base: css.cn(
-      css.flex().alignItems("center").gap(3),
-      css.textDecoration("none"),
-      css.color(t.color.textHigh),
-      css.fontWeight(t.fontWeight.medium),
-      css.hover(css.bg(t.color.bgMuted)),
-      // the router sets aria-current="page" on the link of the page that is open
-      css.attr(
-        "aria-current",
-        "page",
-      )(css.cn(css.fontWeight(t.fontWeight.bold), css.color(t.color.text))),
-    ),
-    variants: {
-      place: {
-        side: css.cn(
-          css.minHeight(t.layout.navItem),
-          css.paddingInline(t.space.md),
-          css.borderRadius(t.radius.button),
-        ),
-        bar: css.cn(
-          css.flex().direction("column").justifyContent("center").gap(1),
-          css.flexGrow(1),
-          css.height("100%"),
-          css.fontSize(t.fontSize.xs),
-        ),
-      },
+const navItem = css.cv({
+  base: css.cn(
+    css.flex().alignItems("center").gap(3),
+    css.textDecoration("none"),
+    css.color(t.color.textHigh),
+    css.fontWeight(t.fontWeight.medium),
+    css.hover(css.bg(t.color.bgMuted)),
+    // the router sets aria-current="page" on the link of the page that is open
+    css.attr(
+      "aria-current",
+      "page",
+    )(css.cn(css.fontWeight(t.fontWeight.bold), css.color(t.color.text))),
+  ),
+  variants: {
+    place: {
+      side: css.cn(
+        css.minHeight(t.layout.navItem),
+        css.paddingInline(t.space.md),
+        css.borderRadius(t.radius.button),
+      ),
+      bar: css.cn(
+        css.flex().direction("column").justifyContent("center").gap(1),
+        css.flexGrow(1),
+        css.height("100%"),
+        css.fontSize(t.fontSize.xs),
+      ),
     },
-    defaultVariants: { place: "side" },
-  }),
-);
+  },
+  defaultVariants: { place: "side" },
+});
 
 const icon = css.cn(css.width(t.layout.navIcon), css.height(t.layout.navIcon));
 const sideLabel = css.cn(css.display("none"), gtTablet(css.display("inline")));
@@ -165,7 +163,7 @@ const items = [
   { href: "/settings", label: "Settings", icon: css.cn(ph("gear"), icon) },
 ];
 
-function NavItem(props: { href: string; label: string; icon: string; place: "side" | "bar" }) {
+function NavItem(props: { href: string; label: string; icon: Style; place: "side" | "bar" }) {
   return (
     <a href={props.href} class={navItem({ place: props.place })} aria-label={props.label}>
       <span class={props.icon} />

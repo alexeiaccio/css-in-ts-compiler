@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { _cv, cx } from "cssints";
+import { cx } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 import {
   CSS,
@@ -137,20 +137,18 @@ const framedField = cn(
 const themed = cn(css.padding(t.space.md), bg(t.color.page), css.color(t.color.link));
 
 // cv: variants are css values, including a flex() chain and a condition.
-const badge = _cv(
-  cv({
-    base: cn(css.fontWeight("600"), css.fontSize("0.75rem"), css.borderRadius("999px")),
-    variants: {
-      tone: {
-        info: cn(bg("#dbeafe"), color("#1e3a8a")),
-        danger: cn(bg("#fee2e2"), color("#7f1d1d")),
-      },
-      size: { sm: p(1), lg: cn(p(2), md(css.fontSize("1rem"))) },
-      layout: { row: flex().gap(1).alignItems("center") },
+const badge = cv({
+  base: cn(css.fontWeight("600"), css.fontSize("0.75rem"), css.borderRadius("999px")),
+  variants: {
+    tone: {
+      info: cn(bg("#dbeafe"), color("#1e3a8a")),
+      danger: cn(bg("#fee2e2"), color("#7f1d1d")),
     },
-    defaultVariants: { tone: "info", size: "sm" },
-  }),
-);
+    size: { sm: p(1), lg: cn(p(2), md(css.fontSize("1rem"))) },
+    layout: { row: flex().gap(1).alignItems("center") },
+  },
+  defaultVariants: { tone: "info", size: "sm" },
+});
 
 export function Showcase() {
   const [compact, setCompact] = useState(false);

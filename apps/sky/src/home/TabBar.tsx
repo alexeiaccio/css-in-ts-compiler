@@ -1,4 +1,3 @@
-import { _cv } from "cssints";
 import {
   background,
   border,
@@ -44,29 +43,27 @@ const bar = cn(
   borderBottom(t.border.width, "solid", t.color.border),
 );
 
-const tab = _cv(
-  cv({
-    base: cn(
-      flexGrow(1),
-      flexBasis("0"),
-      cursor("pointer"),
-      border("0"),
-      fontSize(t.fontSize.md),
-      minHeight(t.layout.navItem),
-      padding(t.space.sm),
-      surface().color(t.color.bg),
-      hover(surface().darken(0.03)),
-      focusVisible(outline("2px solid", t.color.accent), outlineOffset("-2px")),
-    ),
-    variants: {
-      active: {
-        yes: cn(fontWeight(t.fontWeight.bold), color(t.color.text)),
-        no: cn(fontWeight(t.fontWeight.medium), color(t.color.textMedium)),
-      },
+const tab = cv({
+  base: cn(
+    flexGrow(1),
+    flexBasis("0"),
+    cursor("pointer"),
+    border("0"),
+    fontSize(t.fontSize.md),
+    minHeight(t.layout.navItem),
+    padding(t.space.sm),
+    surface().color(t.color.bg),
+    hover(surface().darken(0.03)),
+    focusVisible(outline("2px solid", t.color.accent), outlineOffset("-2px")),
+  ),
+  variants: {
+    active: {
+      yes: cn(fontWeight(t.fontWeight.bold), color(t.color.text)),
+      no: cn(fontWeight(t.fontWeight.medium), color(t.color.textMedium)),
     },
-    defaultVariants: { active: "no" },
-  }),
-);
+  },
+  defaultVariants: { active: "no" },
+});
 
 // One indicator under all the tabs, as wide as one tab: it slides to the active one. Position and width are the only inline
 // style (an index and a count are not known to the sheet); the slide is a transition, off under prefers-reduced-motion.

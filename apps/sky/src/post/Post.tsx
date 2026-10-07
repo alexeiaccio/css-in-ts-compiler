@@ -1,4 +1,4 @@
-import { _cv, cx } from "cssints";
+import { cx } from "cssints";
 import {
   alignSelf,
   bg,
@@ -53,19 +53,17 @@ import { RichText } from "./RichText.tsx";
 // one tonal step above the feed's; the quote and the media inside it are concentric with it and a step from it.
 const cell = cn(containerType("inline-size"), containerName("post"));
 // The focused post of a thread is the same card with bigger text; its timestamp and counts come in a row of their own.
-const card = _cv(
-  cv({
-    base: cn(
-      group(),
-      frame().radius(t.radius.xl).padding(2).border(t.border.width),
-      wide(frame().padding(3)),
-      surface().lighten(0.04),
-      borderColor(t.color.border),
-      grid().templateColumns("auto minmax(0, 1fr)").columnGap(t.space.sm).rowGap(t.space.xs),
-    ),
-    variants: { look: { focus: fontSize(t.fontSize.xl) } },
-  }),
-);
+const card = cv({
+  base: cn(
+    group(),
+    frame().radius(t.radius.xl).padding(2).border(t.border.width),
+    wide(frame().padding(3)),
+    surface().lighten(0.04),
+    borderColor(t.color.border),
+    grid().templateColumns("auto minmax(0, 1fr)").columnGap(t.space.sm).rowGap(t.space.xs),
+  ),
+  variants: { look: { focus: fontSize(t.fontSize.xl) } },
+});
 const tombCard = cn(
   frame().radius(t.radius.xl).padding(3).border(t.border.width),
   surface().lighten(0.04),
