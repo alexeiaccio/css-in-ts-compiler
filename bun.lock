@@ -141,6 +141,17 @@
         "cssints": "^0.1.0",
       },
     },
+    "packages/motion": {
+      "name": "@cssints/motion",
+      "version": "0.1.0",
+      "devDependencies": {
+        "cssints": "workspace:*",
+        "vite": "catalog:",
+      },
+      "peerDependencies": {
+        "cssints": "^0.1.0",
+      },
+    },
     "packages/reset": {
       "name": "@cssints/reset",
       "version": "0.1.0",
@@ -245,6 +256,8 @@
     "@cssints/layout": ["@cssints/layout@workspace:packages/layout"],
 
     "@cssints/mise-en-mode": ["@cssints/mise-en-mode@workspace:packages/mise-en-mode"],
+
+    "@cssints/motion": ["@cssints/motion@workspace:packages/motion"],
 
     "@cssints/reset": ["@cssints/reset@workspace:packages/reset"],
 
