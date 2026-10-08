@@ -73,6 +73,17 @@
         "vite": "catalog:",
       },
     },
+    "packages/balance": {
+      "name": "@cssints/balance",
+      "version": "0.1.0",
+      "devDependencies": {
+        "cssints": "workspace:*",
+        "vite": "catalog:",
+      },
+      "peerDependencies": {
+        "cssints": "^0.1.0",
+      },
+    },
     "packages/css-grammar": {
       "name": "@cssints/css-grammar",
       "version": "0.1.0",
@@ -335,6 +346,8 @@
     "@capsizecss/unpack": ["@capsizecss/unpack@4.0.1", "", { "dependencies": { "fontkitten": "^1.0.3" } }, "sha512-CuNiSqg7+e1cO/GjffyMOm5Tt2jUF9CWHHnvQ/UkqvtkGfHdgwEC0wpmq7fkN3gxwpRnrAN0WzO3vREKmNolMQ=="],
 
     "@cssints/ai-automation": ["@cssints/ai-automation@workspace:tools/ai-automation"],
+
+    "@cssints/balance": ["@cssints/balance@workspace:packages/balance"],
 
     "@cssints/css-grammar": ["@cssints/css-grammar@workspace:packages/css-grammar"],
 

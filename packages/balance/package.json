@@ -1,0 +1,64 @@
+{
+  "name": "@cssints/balance",
+  "version": "0.1.0",
+  "private": true,
+  "description": "text-wrap: balance and pretty for cssints, with a script that balances lines in browsers without text-wrap: balance",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "./src/runtime.ts",
+    "./dist/runtime.mjs"
+  ],
+  "exports": {
+    ".": {
+      "development": {
+        "types": "./src/index.ts",
+        "default": "./src/index.ts"
+      },
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    },
+    "./runtime": {
+      "development": {
+        "types": "./src/runtime.ts",
+        "default": "./src/runtime.ts"
+      },
+      "types": "./dist/runtime.d.mts",
+      "default": "./dist/runtime.mjs"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "./runtime": {
+        "types": "./dist/runtime.d.mts",
+        "default": "./dist/runtime.mjs"
+      }
+    },
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "test": "node test/balance.mjs",
+    "test:browsers": "node test/browsers.mjs",
+    "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
+    "pack:tgz": "node ../../scripts/pack.mjs"
+  },
+  "devDependencies": {
+    "cssints": "workspace:*",
+    "vite": "catalog:"
+  },
+  "peerDependencies": {
+    "cssints": "^0.1.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
