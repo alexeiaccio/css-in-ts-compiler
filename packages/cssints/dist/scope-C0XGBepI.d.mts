@@ -1908,11 +1908,15 @@ interface ChainDef {
     readonly [method: string]: MethodDef;
   };
   uses?: readonly string[];
+  /** Every style of the member carries the group marker `_g-<scope>`, which `within(state, "<scope>")` reads. */
+  group?: true;
 }
 /** A member that takes arguments and gives declarations: its function is the entry of the same name in `.build()`. */
 interface CallDef {
   args: ArgsDef;
   uses?: readonly string[];
+  /** Every style of the member carries the group marker `_g-<scope>`, which `within(state, "<scope>")` reads. */
+  group?: true;
 }
 /**
  * A member computed at build time into a value. `value` gets the arguments in an array: a grammar's parts as text, one by

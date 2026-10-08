@@ -1,4 +1,4 @@
-import { browsers, lacking, supportOf } from "@cssints/css-grammar/support";
+import { browsers, lacking, messageOf, supportOf } from "@cssints/css-grammar/support";
 import { Context, Data, Effect, Formatter, Predicate, Result, Schema } from "effect";
 import { longhands } from "@cssints/css-grammar/longhands";
 import { parseSync } from "oxc-parser";
@@ -175,6 +175,16 @@ const unreached = Effect.fnUntraced(function* ({ parentVars, css, script }, ts) 
 	if ((css || script) && !parentVars?.length) return /* @__PURE__ */ new Set();
 	return new Set((yield* lacking("css.at-rules.property", ts)).map((t) => t.join(" ")));
 });
+/**
+* Of `off`, the targets that lack `feature`, those no runtime of a style covers: one covers them when it polyfills the
+* feature and reaches them (`unreached`). The one rule for a kernel's `requires` and the support warnings of its declarations.
+*/
+const uncovered = Effect.fnUntraced(function* (feature, off, runtimes) {
+	const fallback = runtimes.find((r) => r.polyfills.includes(feature));
+	if (!fallback) return off;
+	const beyond = yield* unreached(fallback);
+	return off.filter((t) => beyond.has(t));
+});
 /** Whether a target needs the runtime: it lacks a feature in `polyfills` and the runtime reaches it (`unreached`). */
 const needed = Effect.fnUntraced(function* (runtime, ts) {
 	const off = yield* unreached(runtime, ts);
@@ -213,12 +223,15 @@ const runtimeModule = Effect.fnUntraced(function* (name) {
 //#endregion
 //#region src/kernel.ts
 const KERNEL = "@kernel	";
+/** The support warnings of the declarations of a kernel written as styles (scope-engine.ts), weighed by `addKernel`. */
+const kernelWarnings = /* @__PURE__ */ new WeakMap();
 const VARS = /(--[\w-]+)\s*:|@property\s+(--[\w-]+)/g;
 /**
 * Registers a kernel by key, on first use (a global rule with atProperty: its css in _.k, its atProperty at the top
 * of the sheet, both once however many styles use it). The same key with other css, another key that declares one of
 * its custom properties, and another key for a marker it prints are build errors at `at`; a `requires` that a target
-* lacks is a support warning, unless one of `runtimes` (those of the style) polyfills it and reaches that target.
+* lacks is a support warning, unless one of `runtimes` (those of the style) polyfills it and reaches that target
+* (`uncovered`); so is a declaration of a kernel written as styles that a target lacks (`kernelWarnings`), by the same rule.
 */
 const addKernel = Effect.fnUntraced(function* (kernel, markers, at, runtimes = []) {
 	const { kernels, warnings, warned } = yield* Registry;
@@ -248,13 +261,23 @@ const addKernel = Effect.fnUntraced(function* (kernel, markers, at, runtimes = [
 				key: r,
 				exact: false
 			} : r;
-			const fallback = runtimes.find((r) => r.polyfills.includes(feature));
-			const beyond = fallback ? yield* unreached(fallback) : void 0;
-			const off = (yield* lacking(feature, void 0, exact)).filter((t) => !beyond || beyond.has(t.join(" ")));
+			const all = (yield* lacking(feature, void 0, exact)).map((t) => t.join(" "));
+			const off = yield* uncovered(feature, all, runtimes);
 			const w = `${key} ${feature}`;
 			if (off.length && !warned.has(w)) {
 				warned.add(w);
-				warnings.push(`kernel ${key} needs ${feature}, not supported by ${browsers(off.map((t) => t.join(" ")))}${exact ? " (a partial implementation counts as lacking)" : ""}`);
+				warnings.push(`kernel ${key} needs ${feature}, not supported by ${browsers([...off])}${exact ? " (a partial implementation counts as lacking)" : ""}`);
+			}
+		}
+		for (const { prop, value, warning } of kernelWarnings.get(kernel) ?? []) {
+			const off = yield* uncovered(warning.key, warning.lacking, runtimes);
+			const w = `${prop} ${warning.key}${off.length < warning.lacking.length ? ` ${off.join()}` : ""}`;
+			if (off.length && !warned.has(w)) {
+				warned.add(w);
+				warnings.push(messageOf(prop, value, {
+					...warning,
+					lacking: [...off]
+				}));
 			}
 		}
 	}
@@ -933,4 +956,4 @@ const instrument = Effect.fn("cssints.instrument")(function* (code, id, client =
 	};
 });
 //#endregion
-export { forget as A, addRuntime as C, covers as D, runtimeNames as E, MacroError as F, MemberError as I, SiteMissingError as L, registry as M, EvalError as N, relation as O, HookError as P, RUNTIME_ID as S, runtimeModule as T, standIn as _, LAYERS as a, kernelEntries as b, byOrder as c, globalNames as d, layerEntries as f, themedEntries as g, requireLayer as h, keptImport as i, forgetKernels as j, Registry as k, closeNames as l, renderSheet as m, RUNTIME as n, addGlobal as o, layerStatements as p, instrument as r, addLayers as s, CV_CALL as t, globalEntries as u, usesDerived as v, fallbackEntries as w, DERIVED as x, addKernel as y };
+export { Registry as A, RUNTIME_ID as C, runtimeNames as D, runtimeModule as E, HookError as F, MacroError as I, MemberError as L, forgetKernels as M, registry as N, covers as O, EvalError as P, SiteMissingError as R, DERIVED as S, fallbackEntries as T, standIn as _, LAYERS as a, kernelEntries as b, byOrder as c, globalNames as d, layerEntries as f, themedEntries as g, requireLayer as h, keptImport as i, forget as j, relation as k, closeNames as l, renderSheet as m, RUNTIME as n, addGlobal as o, layerStatements as p, instrument as r, addLayers as s, CV_CALL as t, globalEntries as u, usesDerived as v, addRuntime as w, kernelWarnings as x, addKernel as y };

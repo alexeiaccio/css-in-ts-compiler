@@ -1,4 +1,4 @@
-import { C as addRuntime, D as covers, F as MacroError, I as MemberError, M as registry, O as relation, _ as standIn, c as byOrder, h as requireLayer, j as forgetKernels, k as Registry, o as addGlobal, s as addLayers, t as CV_CALL, y as addKernel } from "./instrument-DZg8_3NG.mjs";
+import { A as Registry, I as MacroError, L as MemberError, M as forgetKernels, N as registry, O as covers, _ as standIn, c as byOrder, h as requireLayer, k as relation, o as addGlobal, s as addLayers, t as CV_CALL, w as addRuntime, x as kernelWarnings, y as addKernel } from "./instrument-BO1E2KbH.mjs";
 import { createRequire } from "node:module";
 import { checkDeclarationNow, checkQuery, checkSelector, checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { browsers, messageOf, supportOf } from "@cssints/css-grammar/support";
@@ -620,6 +620,7 @@ var Compiler = class {
 	carries = /* @__PURE__ */ new Map();
 	kernels = /* @__PURE__ */ new Map();
 	derived = /* @__PURE__ */ new Map();
+	sets = /* @__PURE__ */ new Map();
 	atRules = /* @__PURE__ */ new Map();
 	constructor(s, compiled) {
 		this.name = s.name;
@@ -653,15 +654,24 @@ var Compiler = class {
 		const d = def;
 		const marker = this.marker(key);
 		let css = d.css;
+		let warnings = [];
 		if (typeof d.css === "function") {
 			const lib = registry.lib;
 			if (!lib) throw thrown(this.name, `${this.name}.${key}: the css library is not loaded`);
 			const made = ran(this.name, () => d.css(lib.css));
 			const nodes = Array.isArray(made) ? made : [made];
 			const merged = lib.css["cn"](...nodes);
-			const built = lib.kernelOf(`${this.name}.${key}`, merged, marker);
+			const built = Result.getOrThrowWith(Result.try({
+				try: () => lib.kernelOf(`${this.name}.${key}`, merged, marker),
+				catch: (e) => e instanceof Error ? Object.assign(e, { message: this.own(e.message) }) : e
+			}), (e) => e);
 			css = built.css;
+			warnings = built.warnings.map((w) => ({
+				...w,
+				value: this.own(w.value)
+			}));
 			if (built.kernels) this.atRules.set(key, built.kernels);
+			this.sets.set(key, built.props);
 			this.derived.set(key, {
 				props: Object.keys(properties).filter((p) => built.props.some((k) => relation(p, k) !== "apart")),
 				message: `kernel ${key} sets ${built.props.join(", ")}`
@@ -673,6 +683,7 @@ var Compiler = class {
 			atProperty: d.atProperty && this.own(d.atProperty),
 			requires: d.requires
 		};
+		if (warnings.length) kernelWarnings.set(k, warnings);
 		this.kernels.set(key, k);
 		return k;
 	}
@@ -692,8 +703,22 @@ var Compiler = class {
 		});
 		const first = kinds.find((k) => k[3] === "kernel");
 		const explicit = kinds.some((k) => k[3] === "conflicts");
+		const set = [];
 		for (const [u, s, key, kind, def] of kinds) if (kind === "kernel") {
 			const k = s.kernel(key);
+			const props = s.sets.get(key);
+			if (props) {
+				const meets = (a, b) => a.filter((p) => b.some((q) => relation(p, q) !== "apart"));
+				for (const [v, other, ps] of set) {
+					const both = [.../* @__PURE__ */ new Set([...meets(ps, props), ...meets(props, ps)])];
+					if (other !== k.key && both.length) throw thrown(this.name, `${this.name}: kernels ${v} and ${u} both set ${both.join(", ")} (they are one element's styles and print in no set order): write those in one kernel`);
+				}
+				set.push([
+					u,
+					k.key,
+					props
+				]);
+			}
 			(c.kernels ??= []).push(...s.atRules.get(key) ?? [], k);
 			(c.markers ??= []).push([s.marker(key), k.key]);
 			const conflicts = explicit ? void 0 : s.derived.get(key);
@@ -846,8 +871,12 @@ const chainOf = (c, key, def) => {
 		for (const x of meth.excludes ?? []) taken.set(x, m);
 		return node([...self.__cssints, ...ownDecls(c, meth.emit(value))], self, next(taken));
 	};
-	return () => node([], base ??= def.uses ? c.carry(def.uses) : {}, next(/* @__PURE__ */ new Map()));
+	return () => node([], base ??= grouped(c, def, def.uses ? c.carry(def.uses) : {}), next(/* @__PURE__ */ new Map()));
 };
+const grouped = (c, def, carry) => def.group ? {
+	...carry,
+	markers: [...carry.markers ?? [], [`_g-${c.name}`, "group"]]
+} : carry;
 const ownDecls = (c, emitted) => emitted.map(([p, v]) => [c.own(p), c.own(v)]);
 const argOf = (c, label, def, v, tokens) => {
 	const { name } = c;
@@ -916,7 +945,7 @@ const callOf = (c, key, def) => {
 	return (...args) => {
 		const given = argsOf(c, key, spec, args);
 		const made = ran(name, () => build(...given));
-		const carry = made.uses ? c.carry([...uses, ...made.uses]) : base ??= c.carry(uses);
+		const carry = made.uses ? grouped(c, def, c.carry([...uses, ...made.uses])) : base ??= grouped(c, def, c.carry(uses));
 		return node(made.decls ? ownDecls(c, made.decls) : [], {
 			...carry,
 			globals: made.globals ? [...carry.globals ?? [], ...made.globals] : carry.globals,
@@ -1423,7 +1452,7 @@ const blockOf = (what, style, allowed) => {
 	if (!isNode(style)) throw fail(`cssints: ${what} takes css.* declarations (a member call or cn(...)), got ${Formatter.formatJson(style)}`);
 	return declsOf(what, style, false, allowed).map(([prop, value]) => `${prop}:${value}`).join(";");
 };
-const declsOf = (what, style, conditions, allowed) => {
+const declsOf = (what, style, conditions, allowed, sink) => {
 	if (!style.__cssints.length) throw fail(`cssints: ${what} takes css.* declarations (a member call or cn(...)), got ${Formatter.formatJson(style)}`);
 	if (style.markers || style.plugs || style.kernels && !(conditions && style.kernels.every((k) => k.key.startsWith("@")))) throw fail(`cssints: ${what} takes plain declarations: no marker class or kernel of a member`);
 	for (const d of style.__cssints) {
@@ -1431,7 +1460,7 @@ const declsOf = (what, style, conditions, allowed) => {
 		if (!conditions && conds?.length || fallbacks) throw fail(`cssints: ${what} takes declarations without ${conditions ? "" : "conditions or "}firstThatWorks(...), got ${prop}`);
 		if (allowed && !allowed.test(prop)) throw fail(`cssints: ${what}: ${prop} is not allowed in @position-try, which takes inset, margin, sizing and self-alignment properties, position-anchor and position-area`);
 		Result.getOrThrowWith(Result.try({
-			try: () => checkNow(d, true, registry),
+			try: () => checkNow(d, true, registry, true, sink),
 			catch: (e) => isDeclarationError(e) ? new MacroError({
 				message: `cssints: ${what}: ${e.message}`,
 				cause: e,
@@ -1664,7 +1693,8 @@ const ruleOf = (cls, [prop, value, conds = [], fallbacks]) => {
 	};
 };
 const kernelOf = (what, style, cls) => {
-	const decls = declsOf(what, style, true);
+	const warnings = [];
+	const decls = declsOf(what, style, true, void 0, warnings);
 	const blocks = [];
 	const open = /* @__PURE__ */ new Map();
 	for (const r of decls.map((d) => ({
@@ -1690,7 +1720,8 @@ const kernelOf = (what, style, cls) => {
 	return {
 		css: blocks.map((b) => b.wrap.reduceRight((css, w) => `${w}{${css}}`, `${b.selector}{${b.body.join(";")}}`)).join(" "),
 		props: [...new Set(decls.flatMap(([prop, , conds]) => prop.startsWith("--") || conds?.some((c) => c.nest) ? [] : [prop]))],
-		kernels: style.kernels
+		kernels: style.kernels,
+		warnings
 	};
 };
 const checkValue = (prop, value, fresh, properties) => {
@@ -1707,7 +1738,7 @@ const checkValue = (prop, value, fresh, properties) => {
 	}
 	return out;
 };
-const checkNow = ([prop, value, , fallbacks], fresh, { warnings, warned, properties, userProps }, sheet = true) => {
+const checkNow = ([prop, value, , fallbacks], fresh, { warnings, warned, properties, userProps }, sheet = true, sink) => {
 	if (userProps.has(prop)) return;
 	let found = checkValue(prop, value, fresh, properties);
 	if (fallbacks) {
@@ -1718,6 +1749,14 @@ const checkNow = ([prop, value, , fallbacks], fresh, { warnings, warned, propert
 		})).filter((w) => w.lacking.length);
 	}
 	for (const w of found) {
+		if (sink) {
+			if (!(sheet && loweredOf(prop, value, w))) sink.push({
+				prop,
+				value,
+				warning: w
+			});
+			continue;
+		}
 		const k = `${prop} ${w.key}${fallbacks ? ` ${w.lacking.join()}` : ""}`;
 		if (!warned.has(k) && !(sheet && loweredOf(prop, value, w))) {
 			warned.add(k);

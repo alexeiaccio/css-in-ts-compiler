@@ -1,6 +1,6 @@
 import { a as Kernel } from "./author-types-C1AhsnrT.mjs";
 import { n as cx } from "./runtime-CTvuM-Hm.mjs";
-import { n as At, t as CssNode } from "./node-CaHk2VU4.mjs";
+import { n as At, t as CssNode } from "./node-KoPVlV43.mjs";
 import { CSS, CSSColorValue, CSSImageValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
 import { Effect } from "effect";
 //#region src/lib.d.ts
@@ -18,7 +18,7 @@ export declare class CSSAtRuleValue extends CSSStyleValue {
   toString(): string;
 }
 export declare const keyframes: (steps: unknown) => CSSAtRuleValue;
-export declare const positionTry: (...args: unknown[]) => CSSAtRuleValue | CssNode;
+export declare const positionTry: (...args: unknown[]) => CssNode | CSSAtRuleValue;
 export declare const cn: (...args: unknown[]) => CssNode;
 export declare const flex: (...args: unknown[]) => CssNode;
 export declare const grid: (...args: unknown[]) => CssNode;

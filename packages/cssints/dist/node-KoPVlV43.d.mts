@@ -1,4 +1,5 @@
 import { a as Kernel, i as GlobalRule, n as Conflict, o as Runtime, s as ThemeRule } from "./author-types-C1AhsnrT.mjs";
+import { Warning } from "@cssints/css-grammar/support";
 import { Context } from "effect";
 import { TokenType } from "@cssints/css-grammar/token";
 //#region src/registry.d.ts
@@ -34,6 +35,13 @@ interface KernelEntry {
   vars: string[];
   markers: Set<string>;
   users: Set<string>;
+}
+/** A support warning of a declaration in a kernel written as styles, weighed against the runtimes of a style (kernel.ts `addKernel`). */
+interface KernelWarning {
+  prop: string;
+  /** the value as the sheet prints it: `--_x` is `--<scope>-x` */
+  value: string;
+  warning: Warning;
 }
 /** The call site being evaluated, set by `__at` before its expression runs. */
 interface At {
@@ -135,6 +143,7 @@ interface RegistryState {
       css: string;
       props: string[];
       kernels?: Kernel[];
+      warnings: KernelWarning[];
     };
   };
   /** what the front of "cssints/plugin" calls (scope-engine.ts `engine`), set by macro.ts */
