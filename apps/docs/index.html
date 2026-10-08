@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="cssints: compile-time CSS-in-TypeScript. The README and the API reference."
+    />
+    <title>cssints</title>
+    <link rel="icon" href="data:," />
+    <!-- The stored mode, before the first paint (src/mode.ts): none is "system". -->
+    <script>
+      (function () {
+        var m;
+        try {
+          m = localStorage.getItem("cssints-docs.mode");
+        } catch (e) {}
+        if (m === "light" || m === "dark") document.documentElement.classList.add(m);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>
