@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-08T09:42:20Z
-updated_at: 2026-10-08T10:02:47Z
+updated_at: 2026-10-08T10:18:11Z
 ---
 
 Found by @cssints/tokens (cssints-0gll, repros under "## Engine gaps").
@@ -16,7 +16,7 @@ Found by @cssints/tokens (cssints-0gll, repros under "## Engine gaps").
 4. A module that imports the module calling createGlobalTheme gets the @property rule of every token the theme sets.
 
 ## Todo
-- [ ] rem in dimension tokens
+- [x] rem in dimension tokens
 - [ ] cubicBezier/transition and shadow token types (DTCG has both)
 - [ ] cheaper token types for large sets
 - [ ] themes register @property only for used tokens

@@ -112,13 +112,25 @@ const privateName = (): string => {
   return `--_${createHash("sha1").update(key).digest("hex").slice(0, 8)}`;
 };
 
-// Chrome rejects `1rem` and `1em` as an initial-value: relative to a font size, which CSS can change.
-const FONT_RELATIVE = /[\d.](?:r?em|r?ex|r?ch|r?cap|r?ic|r?lh)\b/i;
+// A browser drops an `@property` rule whose initial-value is relative to a font size (`1rem`, `1em`): the initial
+// value is the text in px at a 16px font (the fallbacks CSS gives: 1ex and 1ch are 0.5em, 1lh is 1.2em), and `:root`
+// gets the text itself, so the token follows the user's font size.
+const FONT_RELATIVE = /(\d*\.?\d+(?:e[+-]?\d+)?)(r?em|r?ex|r?ch|r?cap|r?ic|r?lh)\b/gi;
+const EM: Record<string, number> = { em: 1, ex: 0.5, ch: 0.5, cap: 0.7, ic: 1, lh: 1.2 };
+const inPx = (text: string) =>
+  text.replace(
+    FONT_RELATIVE,
+    (_, n: string, unit: string) => {
+      const u = unit.toLowerCase();
+      return `${Number((Number(n) * 16 * (EM[u] ?? EM[u.slice(1)]!)).toFixed(4))}px`;
+    },
+  );
 
 // Registers the `@property` rule of a token and what it is worth. `text` is a literal of the type, and `what` names it
 // in an error. A target that cannot parse `text` would drop the rule and leave the token with no value: the initial value
 // is what LightningCSS lowers `text` to, and `:root` gets `text` itself, which LightningCSS lowers too and adds the wide
-// value under `@supports`. `live`: the caller declares the `:root` value (an alias, a derived token, see theme.ts).
+// value under `@supports`. A font-relative `text` goes on `:root` the same way, with the px value as the initial one.
+// `live`: the caller declares the `:root` value (an alias, a derived token, see theme.ts).
 export const declare = Effect.fnUntraced(function* (
   kind: TokenType,
   text: string,
@@ -138,13 +150,10 @@ export const declare = Effect.fnUntraced(function* (
     what ?? `${name} of ${variable}`,
     variable,
   );
-  if (FONT_RELATIVE.test(text))
-    return yield* fail(
-      `cssints: ${name} "${text}" depends on the font size, and a browser drops an @property rule whose initial-value is not computationally independent; use px or a viewport unit`,
-    );
+  const initial = inPx(fallback ?? text);
   const n = registry.tokens++;
   const by = `${at.file}#${at.site}.${n}`;
-  const css = `@property ${variable}{syntax:"<${syntax}>";inherits:${inherit};initial-value:${fallback ?? text}}`;
+  const css = `@property ${variable}{syntax:"<${syntax}>";inherits:${inherit};initial-value:${initial}}`;
   // Another declaration of the name is fine when it is the same rule, this site again (an edit), or this file's
   // from an earlier evaluation (every evaluation runs its modules again). Otherwise the second one is the error.
   const prev = registry.properties.get(variable);
@@ -159,7 +168,7 @@ export const declare = Effect.fnUntraced(function* (
     );
   registry.properties.set(variable, { css, probes, by, file: at.file, gen: registry.gen });
   registry.defs.set(variable, { kind, inherit, path: variable, value: text, fallback });
-  if (fallback && !live)
+  if ((fallback || initial !== text) && !live)
     registry.themed.set(by, {
       file: at.file,
       key: `0:${at.file}#${String(at.site).padStart(6, "0")}.${n}`,
