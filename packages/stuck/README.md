@@ -44,7 +44,7 @@ export const link = stuck("bottom")(color("green"), hover(color("black")));
 }
 ```
 
-`header` is `_g-stuck _stuck-core _4k81c2`, `title` holds both `_it4l7h` and `_fec935`.
+`header` is `_stuck-core _g-stuck _4k81c2`, `title` holds both `_it4l7h` and `_fec935`.
 
 ## Browsers
 
