@@ -1,11 +1,11 @@
 ---
 # cssints-rf3k
 title: 'Plugin authoring: build targets and located errors'
-status: todo
+status: in-progress
 type: feature
 priority: low
 created_at: 2026-10-08T14:10:21Z
-updated_at: 2026-10-08T14:10:21Z
+updated_at: 2026-10-08T15:38:07Z
 ---
 
 Found by stuck (cssints-z1hd, repros under "## Engine gaps").
