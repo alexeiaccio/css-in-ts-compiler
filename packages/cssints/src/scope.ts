@@ -123,10 +123,30 @@ export interface CallDef {
   args: ArgsDef;
   uses?: readonly string[];
 }
+/**
+ * A member computed at build time into a value. `value` gets the arguments in an array: a grammar's parts as text, one by
+ * one; a tuple's arguments or `arg<T>()` as `build` would, which needs `fn({ args, value })` to type them. `label` names
+ * the member in its errors (the key by default).
+ */
 export interface ValueDef {
-  args: string;
-  value: (parts: string[]) => string | CSSStyleValue;
+  args: ArgsDef;
+  // a method: what `fn()` gives (`value(args: never)`) fits it
+  value(parts: string[]): string | CSSStyleValue;
+  label?: string;
 }
+/**
+ * A value member whose `args` is a tuple or `arg<T>()`: `value` gets the arguments as a call member's `build` does. A
+ * table cannot type `value` from the `args` beside it (as `build()` does for call members); this call can.
+ */
+export const fn = <
+  const D extends ArgsDef,
+  R extends string | CSSStyleValue,
+  const L extends string = never,
+>(def: {
+  args: D;
+  label?: L;
+  value: (args: Params<D>) => R;
+}): { args: D; label?: L; value(args: never): R } => def;
 export interface ModuleLike {
   readonly "~scope": string;
   readonly "~table": object;
@@ -367,6 +387,24 @@ type Params<D> = D extends string
         : []
       : never;
 
+// A member that takes `args` (a call or a value member) and returns R; L names it in the messages.
+type Callable<L extends string, D, A, R> = D extends string
+  ? <const P extends readonly Part[]>(...parts: CheckIn<L, Expand<D, A>, false, P>) => R
+  : D extends Typed<infer X>
+    ? (value: X) => R
+    : D extends readonly unknown[]
+      ? <const P extends Arity<D>>(...args: P & CheckAll<L, A, D, P>) => R
+      : never;
+
+// The name in a value member's messages: its `label`, else its key.
+type Label<K extends string, V> = V extends { label?: infer L }
+  ? NonNullable<L> extends infer S extends string
+    ? [S] extends [never]
+      ? K
+      : S
+    : K
+  : K;
+
 type MemberOf<K extends string, V, A> =
   Kind<K, V> extends "chain"
     ? V extends { chain: infer M }
@@ -374,17 +412,11 @@ type MemberOf<K extends string, V, A> =
       : never
     : Kind<K, V> extends "call"
       ? V extends { args: infer D }
-        ? D extends string
-          ? <const P extends readonly Part[]>(...parts: CheckIn<K, Expand<D, A>, false, P>) => Style
-          : D extends Typed<infer X>
-            ? (value: X) => Style
-            : D extends readonly unknown[]
-              ? <const P extends Arity<D>>(...args: P & CheckAll<K, A, D, P>) => Style
-              : never
+        ? Callable<K, D, A, Style>
         : never
       : Kind<K, V> extends "value"
-        ? V extends { args: infer G extends string; value: (parts: string[]) => infer R }
-          ? <const P extends readonly Part[]>(...parts: CheckIn<K, Expand<G, A>, false, P>) => R
+        ? V extends { args: infer D; value: (args: never) => infer R }
+          ? Callable<Label<K, V>, D, A, R>
           : never
         : Kind<K, V> extends "prop"
           ? V extends infer G extends string
@@ -419,8 +451,19 @@ type BadUses<N extends string, T, V> = V extends { uses: readonly (infer U exten
     ? unknown
     : Bad<`${N}: uses ${Exclude<U, UsableOf<T>>}, which is not a kernel, global, layers, runtime or conflicts of this scope`>
   : unknown;
+// A value member with a tuple or `arg<T>()` written in place: its `value` would be typed as a grammar's parts.
+type BadValue<N extends string, K, V> = V extends {
+  args: infer D;
+  value: (args: infer P) => unknown;
+}
+  ? D extends string
+    ? unknown
+    : [P] extends [never]
+      ? unknown
+      : Bad<`${N}: ${K & string}: a value member with a tuple or arg<T>() is written fn({ args, value })`>
+  : unknown;
 export type Valid<N extends string, T> = {
-  readonly [K in keyof T]: BadUses<N, T, T[K]>;
+  readonly [K in keyof T]: BadUses<N, T, T[K]> & BadValue<N, K, T[K]>;
 };
 type CallKeys<T> = {
   [K in keyof T & string]: Kind<K, T[K]> extends "call" ? K : never;

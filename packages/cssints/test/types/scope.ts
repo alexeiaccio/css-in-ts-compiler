@@ -1,8 +1,10 @@
 import { CSSColorValue } from "@cssints/css-grammar/values";
 import { color, width } from "cssints";
-import { scope, arg, type GlobalRule } from "cssints/plugin";
+import { scope, arg, fn, type GlobalRule } from "cssints/plugin";
 
 import type { CheckIn } from "../../src/parts.ts";
+
+type Err<M extends string> = { readonly $error: M };
 
 const plugin = scope("ring", {
   width: "<length [0,∞]> | thin | thick",
@@ -185,6 +187,32 @@ quad("red");
 width(mix("red", "blue"));
 export const typed: CSSColorValue = mix("red", "blue");
 export const opaque: string = quad(1);
+
+// a value member with a tuple, through fn(): `value` gets the arguments as `build` would; `label` names it in messages
+const { span } = scope("vargs", {
+  span: fn({
+    args: ["<length [0,∞]>", { "to?": "<length [0,∞]>", "zoom?": arg<boolean>() }],
+    label: "span.it",
+    value: ([a, { to, zoom }]) => {
+      const t: string | undefined = to;
+      const z: boolean | undefined = zoom;
+      return new CSSColorValue(`${a}${t}${z}`);
+    },
+  }),
+}).export();
+export const sp: CSSColorValue = span("1px", { zoom: false });
+export const sp2 = span("1px");
+type SpanBad = Parameters<typeof span<["red"]>>[0];
+export const spanMessage: SpanBad extends Err<infer M> ? M : never =
+  'span.it: unexpected "red" in "red", grammar <length [0,∞]>';
+// @ts-expect-error no such option
+span("1px", { nope: "1px" });
+// @ts-expect-error a boolean
+span("1px", { zoom: "no" });
+// @ts-expect-error a CSSColorValue is not a length
+width(span("1px"));
+// @ts-expect-error a tuple written in place, without fn(), would type `value` as a grammar's parts
+scope("vbad", { v: { args: ["<color>", arg<boolean>()], value: () => "x" } });
 
 // what a call member's build returns: globals by content, declared layers, themes over the tokens it was given
 export const { looks } = scope("looks", {

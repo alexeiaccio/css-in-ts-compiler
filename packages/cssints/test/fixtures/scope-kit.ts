@@ -1,7 +1,7 @@
 // A plugin on scope(): aliases (public and private), an embedded scope and a token set, kernels as raw CSS and as styles,
 // a runtime and conflicts, a global and layers, chain, call and value members, and a typed property.
 import { createTokens } from "cssints" with { type: "cssints" };
-import { arg, scope } from "cssints/plugin";
+import { arg, fn, scope } from "cssints/plugin";
 
 export const brand = createTokens({ color: { accent: { $type: "color", $value: "#0af" } } });
 
@@ -59,6 +59,12 @@ export const kit = scope("sk", {
   alive: { uses: ["live"], chain: { color: { args: "<tone>", emit: (v) => [["--_c", v]] } } },
   edged: { uses: ["edge"], chain: { color: { args: "<tone>", emit: (v) => [["--_c", v]] } } },
   tint: { args: "<color> <percentage>", value: ([c, p]) => `color-mix(in oklab, ${c}, black ${p})` },
+  // a value member with positional arguments and an options object, named in its errors by its label
+  shade: fn({
+    args: ["<color>", { "by?": "<percentage>", "dark?": arg<boolean>() }],
+    label: "tint.shade",
+    value: ([c, { by = "10%", dark }]) => `color-mix(in oklab, ${c}, ${dark ? "black" : "white"} ${by})`,
+  }),
   // positional: a colour, a token set, values for its paths, an object of options
   look: {
     args: ["<color>", "$tokens", "$overrides", { "size?": "<base.gap>", "in?": "app | viewer" }],
@@ -80,5 +86,5 @@ export const kit = scope("sk", {
     throw new Error("cssints: sk: no luck");
   },
 });
-export const { ring, loose, alive, edged, tint, look, icon, fail, webkitFontSmoothing } =
+export const { ring, loose, alive, edged, tint, shade, look, icon, fail, webkitFontSmoothing } =
   kit.export();

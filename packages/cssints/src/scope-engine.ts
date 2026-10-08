@@ -11,6 +11,7 @@ import { relation } from "./leaves.ts";
 import { camel, type Carry, failIn, isNode, node, probed, type CssNode } from "./node.ts";
 import { type Kernel, type Plug, registry } from "./registry.ts";
 import type {
+  ArgsDef,
   CallDef,
   ChainDef,
   ConflictDef,
@@ -20,6 +21,7 @@ import type {
   Made,
   MethodDef,
   RuntimeDef,
+  ValueDef,
 } from "./scope.ts";
 
 // ───────────────────────────── the implementation ─────────────────────────────
@@ -363,13 +365,16 @@ const member = (c: Compiler, key: string, kind: string, def: unknown): unknown =
     };
   }
   if (kind === "value") {
-    const grammar = c.grammar(d["args"] as string);
-    const compute = d["value"] as (parts: string[]) => unknown;
+    const def = d as unknown as ValueDef;
+    const { args: spec, label = key } = def;
     return (...args: unknown[]) => {
-      check(name, key, grammar, valueOf(name, key, args));
-      const out = ran(name, () => compute(args.map(String)));
+      const given = argsOf(c, label, spec, args);
+      // a grammar's parts one by one, as written; a tuple's arguments as `build` gets them
+      const out = ran(name, () =>
+        def.value((typeof spec === "string" ? args.map(String) : given) as string[]),
+      );
       if (typeof out !== "string" && !(out instanceof CSSStyleValue))
-        throw thrown(name, `${key}() value must return a string or a Typed OM value`);
+        throw thrown(name, `${label}() value must return a string or a Typed OM value`);
       return out;
     };
   }
@@ -466,6 +471,26 @@ const argOf = (c: Compiler, label: string, def: unknown, v: unknown, tokens?: un
   return out;
 };
 
+// The arguments of a call or a value member, checked against `args`: as `build` and `value` get them.
+const argsOf = (c: Compiler, label: string, spec: ArgsDef, args: unknown[]): unknown[] => {
+  const { name } = c;
+  if (typeof spec === "string") {
+    const value = valueOf(name, label, args);
+    check(name, label, c.grammar(spec), value);
+    return [value];
+  }
+  if (isTyped(spec)) return args;
+  const list = spec as readonly unknown[];
+  if (args.length > list.length)
+    throw failIn(name, `cssints: ${label}() takes at most ${list.length} arguments`);
+  let tokens: unknown;
+  return list.map((d, i) => {
+    const v = argOf(c, `${label}(${i + 1})`, d, args[i] ?? (isRecord(d) ? {} : undefined), tokens);
+    if (d === "$tokens") tokens = v;
+    return v;
+  });
+};
+
 const callOf = (c: Compiler, key: string, def: CallDef) => {
   const { name } = c;
   const build = c.impl?.[key];
@@ -474,29 +499,7 @@ const callOf = (c: Compiler, key: string, def: CallDef) => {
   const uses = def.uses ?? [];
   let base: Carry | undefined;
   return (...args: unknown[]) => {
-    let given: unknown[];
-    if (typeof spec === "string") {
-      const value = valueOf(name, key, args);
-      check(name, key, c.grammar(spec), value);
-      given = [value];
-    } else if (isTyped(spec)) given = args;
-    else {
-      const list = spec as readonly unknown[];
-      if (args.length > list.length)
-        throw failIn(name, `cssints: ${key}() takes at most ${list.length} arguments`);
-      let tokens: unknown;
-      given = list.map((d, i) => {
-        const v = argOf(
-          c,
-          `${key}(${i + 1})`,
-          d,
-          args[i] ?? (isRecord(d) ? {} : undefined),
-          tokens,
-        );
-        if (d === "$tokens") tokens = v;
-        return v;
-      });
-    }
+    const given = argsOf(c, key, spec, args);
     const made = ran(name, () => build(...given));
     const carry = made.uses ? c.carry([...uses, ...made.uses]) : (base ??= c.carry(uses));
     return node(made.decls ? ownDecls(c, made.decls) : [], {
