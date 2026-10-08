@@ -1,0 +1,100 @@
+{
+  "name": "@cssints/tokens",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Token sets for cssints as DTCG data: open-props, easings.net, Radix colors, Flexoki, Reasonable Colors",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./open-props": {
+      "development": {
+        "types": "./src/open-props.ts",
+        "default": "./src/open-props.ts"
+      },
+      "types": "./dist/open-props.d.mts",
+      "default": "./dist/open-props.mjs"
+    },
+    "./easings": {
+      "development": {
+        "types": "./src/easings.ts",
+        "default": "./src/easings.ts"
+      },
+      "types": "./dist/easings.d.mts",
+      "default": "./dist/easings.mjs"
+    },
+    "./radix": {
+      "development": {
+        "types": "./src/radix.ts",
+        "default": "./src/radix.ts"
+      },
+      "types": "./dist/radix.d.mts",
+      "default": "./dist/radix.mjs"
+    },
+    "./flexoki": {
+      "development": {
+        "types": "./src/flexoki.ts",
+        "default": "./src/flexoki.ts"
+      },
+      "types": "./dist/flexoki.d.mts",
+      "default": "./dist/flexoki.mjs"
+    },
+    "./reasonable-colors": {
+      "development": {
+        "types": "./src/reasonable-colors.ts",
+        "default": "./src/reasonable-colors.ts"
+      },
+      "types": "./dist/reasonable-colors.d.mts",
+      "default": "./dist/reasonable-colors.mjs"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      "./open-props": {
+        "types": "./dist/open-props.d.mts",
+        "default": "./dist/open-props.mjs"
+      },
+      "./easings": {
+        "types": "./dist/easings.d.mts",
+        "default": "./dist/easings.mjs"
+      },
+      "./radix": {
+        "types": "./dist/radix.d.mts",
+        "default": "./dist/radix.mjs"
+      },
+      "./flexoki": {
+        "types": "./dist/flexoki.d.mts",
+        "default": "./dist/flexoki.mjs"
+      },
+      "./reasonable-colors": {
+        "types": "./dist/reasonable-colors.d.mts",
+        "default": "./dist/reasonable-colors.mjs"
+      }
+    },
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "generate": "node scripts/generate.ts && vp fmt src",
+    "test": "node test/tokens.mjs",
+    "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
+    "pack:tgz": "node ../../scripts/pack.mjs"
+  },
+  "devDependencies": {
+    "@radix-ui/colors": "3.0.0",
+    "cssints": "workspace:*",
+    "open-props": "1.7.23",
+    "reasonable-colors": "0.4.0",
+    "vite": "catalog:"
+  },
+  "peerDependencies": {
+    "cssints": "^0.1.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
