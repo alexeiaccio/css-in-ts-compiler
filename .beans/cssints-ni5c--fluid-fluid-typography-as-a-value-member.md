@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: high
 created_at: 2026-10-08T08:55:57Z
-updated_at: 2026-10-08T09:03:02Z
+updated_at: 2026-10-08T09:11:54Z
 parent: cssints-dk1q
 ---
 
@@ -25,7 +25,7 @@ A value member `fluid(min, max, { from?, to? })` that computes `clamp(min, <slop
 - `cqi` variant: `fluid.container()`.
 
 ## Todo
-- [ ] value member with the clamp math and Typed OM result
-- [ ] 1.4.4 check as a build error
-- [ ] fixture + type test
-- [ ] docs/API.md section
+- [x] value member with the clamp math and Typed OM result
+- [x] 1.4.4 check as a build error
+- [x] fixture + type test
+- [ ] packages/fluid/README.md section (instead of docs/API.md)
