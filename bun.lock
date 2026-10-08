@@ -90,6 +90,20 @@
         "vite": "^8.3.0",
       },
     },
+    "packages/fluid": {
+      "name": "@cssints/fluid",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cssints/css-grammar": "workspace:*",
+      },
+      "devDependencies": {
+        "cssints": "workspace:*",
+        "vite": "catalog:",
+      },
+      "peerDependencies": {
+        "cssints": "^0.1.0",
+      },
+    },
     "packages/icons": {
       "name": "@cssints/icons",
       "version": "0.1.0",
@@ -212,6 +226,8 @@
     "@cssints/ai-automation": ["@cssints/ai-automation@workspace:tools/ai-automation"],
 
     "@cssints/css-grammar": ["@cssints/css-grammar@workspace:packages/css-grammar"],
+
+    "@cssints/fluid": ["@cssints/fluid@workspace:packages/fluid"],
 
     "@cssints/icons": ["@cssints/icons@workspace:packages/icons"],
 
