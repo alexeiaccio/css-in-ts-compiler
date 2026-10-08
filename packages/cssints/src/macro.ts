@@ -45,7 +45,7 @@ import {
   type Fallback,
 } from "./lib.ts";
 import { addRuntime } from "./delivery.ts";
-import { clamp, colorMix, max, min } from "./functions.ts";
+import { fns } from "./functions.ts";
 import { addKernel } from "./kernel.ts";
 import { engine } from "./scope-engine.ts";
 import { addGlobal, addLayers, byOrder } from "./sheet.ts";
@@ -695,10 +695,7 @@ export const cv = (config: CvConfig) => {
 const named: Record<string, unknown> = {
   cn,
   firstThatWorks,
-  colorMix,
-  min,
-  max,
-  clamp,
+  ...fns,
   keyframes,
   positionTry,
   flex,

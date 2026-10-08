@@ -6,8 +6,7 @@ import type { Condition, ValidSelector } from "@cssints/css-grammar/query";
 import type { StyleObject, TokenFn, TokenSetFn, TokenType } from "@cssints/css-grammar/token";
 import type { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
 
-import type { COLOR_MIX } from "./grammars.ts";
-import type { Alt, Check, CheckIn, Fallback, Part, Style } from "./parts.ts";
+import type { Alt, Check, Fallback, Part, Style } from "./parts.ts";
 import type { layers } from "./theme-types.ts";
 
 export * from "./members.ts";
@@ -88,29 +87,6 @@ export declare const positionTry: ((style: Style) => PositionTry) & Prop<"positi
 export declare const firstThatWorks: <const V extends readonly [Alt, Alt, ...Alt[]]>(
   ...values: V
 ) => Fallback<V>;
-/**
- * `colorMix("oklab", t.color.accent, "black 15%")`: a `<color>` that mixes two colours (a token or a string, each with an
- * optional share) in a colour space (`"oklch longer hue"` for a polar one). A part of any colour property, checked here and at build time.
- */
-export declare const colorMix: <const A extends readonly [Part, Part, Part]>(
-  ...parts: CheckIn<"colorMix", typeof COLOR_MIX, false, A>
-) => CSSColorValue;
-type Calc<T extends string> = string | number | CSSStyleValue<T>;
-/**
- * `min`, `max` and `clamp(low, value, high)`: tokens and strings as arguments, the result a part of a property of type
- * `T`: a length unless the first Typed OM argument is of another type, or `T` is given (`clamp<"number">(0, x, 1)`).
- * The declaration that takes it is checked at build time.
- */
-export declare const min: <T extends string = "length">(
-  first: Calc<T>,
-  ...rest: Calc<NoInfer<T>>[]
-) => CSSStyleValue<T>;
-export declare const max: typeof min;
-export declare const clamp: <T extends string = "length">(
-  low: Calc<T>,
-  value: Calc<NoInfer<T>>,
-  high: Calc<NoInfer<T>>,
-) => CSSStyleValue<T>;
 /** Query strings are checked against the mdn-data grammar: `media("(width >= 40rem)")`. Several give a tuple, an object an object. */
 export declare const media: Condition<"media", QueryWrap>;
 export declare const container: Condition<"container", QueryWrap>;
@@ -166,10 +142,6 @@ export declare const cv: <V extends Record<string, Record<string, Style>> = Reco
 export declare const css: typeof import("./members.ts") & {
   cn: typeof cn;
   firstThatWorks: typeof firstThatWorks;
-  colorMix: typeof colorMix;
-  min: typeof min;
-  max: typeof max;
-  clamp: typeof clamp;
   keyframes: typeof keyframes;
   positionTry: typeof positionTry;
   media: typeof media;

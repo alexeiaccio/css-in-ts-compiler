@@ -134,7 +134,7 @@ await assert.rejects(code("plug-fn-bad-result.ts"), (e) => {
   return true;
 });
 
-// the built-ins of cssints (colorMix is a value member of the scope cssints-fn): colorMix, min, max, clamp, with tokens as arguments
+// the css functions (a generated list, css-grammar functions.ts): tokens, numbers and strings as parts; nothing of a call ships
 const bi = await code("fn-builtins.ts");
 assert.ok(!bi.includes("colorMix") && !bi.includes("clamp"), "nothing of them ships");
 const biCss = sheet("fn-builtins.ts");
@@ -145,41 +145,81 @@ for (const rule of [
   "padding:clamp(var(--space-md), 2vw, 2rem)",
   "opacity:clamp(0, 0.5, 1)",
   "width:max(var(--space-md), 10vw)",
+  "width:calc(var(--space-md) * 2)",
+  "gap:calc(var(--space-md) + var(--space-sm) / 2)",
+  "color:light-dark(white, var(--color-bg))",
+  "color:oklch(0.7 0.1 200 / 0.5)",
+  "background-image:linear-gradient(to right, var(--color-accent), red 50%, blue)",
+  "padding:var(--space-sm, 4px)",
+  "transform:translate(var(--space-md), 0) rotate(10deg)",
+  "transition-timing-function:cubic-bezier(0.1, 0.7, 1, 0.1)",
+  "color:rgb(255, 0, 0)",
+  "width:calc(min(var(--space-md), 50%) - 1rem)",
 ])
   assert.ok(biCss.includes(`{${rule}}`), `${rule}\n${biCss}`);
-await fails(
+// a bad call is the twin's error, at the call: the same message as for a declaration
+const failsAt = (f, text, line) =>
+  assert.rejects(code(f), (e) => {
+    assert.match(e.message.split("\n")[0], text);
+    assert.equal(e.loc?.line, line, `${f}: the call site`);
+    return true;
+  });
+await failsAt(
   "fn-builtins-bad-colors.ts",
-  /^colorMix: unexpected end in "oklab red", expected /,
-  5,
-  "cssints-fn",
-);
-await fails(
-  "fn-builtins-bad-token.ts",
-  /^colorMix: unexpected "1px" in "oklab 1px red", expected /,
-  5,
-  "cssints-fn",
-);
-await fails(
-  "fn-builtins-bad-share.ts",
-  /^colorMix: unexpected "120%" in "oklab red 120% blue", expected /,
+  /^light-dark\(\): unexpected end in "light-dark\(white\)"/,
   3,
-  "cssints-fn",
 );
-await fails(
-  "fn-builtins-bad-arity.ts",
-  /^cssints: colorMix\(\) takes a colour space and two colours$/,
+await failsAt(
+  "fn-builtins-bad-token.ts",
+  /^color-mix\(\): unexpected "1px" in "color-mix\(in oklab, 1px, red\)"/,
   5,
-  "cssints-fn",
 );
-await assert.rejects(code("fn-builtins-bad-math.ts"), (e) => {
-  assert.match(
-    e.message.split("\n")[0],
-    /^width: unexpected "min\(1rem" .*min\(\) cannot take length and time\)$/,
-  );
-  assert.equal(e.loc?.line, 5);
-  return true;
-});
-await assert.rejects(code("fn-builtins-bad-clamp.ts"), /clamp\(\) takes 3 arguments/);
+await failsAt("fn-builtins-bad-share.ts", /^color-mix\(\): unexpected "120%" in /, 3);
+await failsAt("fn-builtins-bad-arity.ts", /^color-mix\(\): unexpected end in "color-mix\(in oklab, red, 50%, blue\)"/, 3);
+await failsAt(
+  "fn-builtins-bad-math.ts",
+  /^min\(\): unexpected "min\(1rem" .*\(min\(\) cannot take length and time\)$/,
+  5,
+);
+await failsAt("fn-builtins-bad-clamp.ts", /clamp\(\) takes 3 arguments/, 5);
+// a token is checked as a literal of its type: length + time is an error through two tokens
+await failsAt(
+  "fn-math-bad-token.ts",
+  /^calc\(\): unexpected "calc\(1px" in "calc\(1px \+ 1s\)" \(cannot add length and time\) \("calc\(var\(--space-md\) \+ var\(--time-fast\)\)" is checked as /,
+  8,
+);
+
+// var(): a token with a fallback of its type; a raw var(--token) in a string warns with the token to use, one of no token is an error
+warnings.length = 0;
+const vu = await code("var-use.ts");
+const varCss = sheet("var-use.ts");
+assert.ok(varCss.includes("{padding:var(--space-sm, 4px)}"), varCss);
+assert.ok(varCss.includes("{padding:var(--space-sm)}"), varCss);
+assert.ok(
+  warnings.some((w) =>
+    w.includes('padding: "var(--space-sm)" is the token space.sm: pass the token itself'),
+  ),
+  warnings.join("\n"),
+);
+assert.ok(
+  warnings.some((w) => w.includes('margin: "var(--space-sm)"')),
+  warnings.join("\n"),
+);
+assert.equal(
+  warnings.filter((w) => w.includes("var(--space-sm)")).length,
+  2,
+  "the token itself never warns",
+);
+await failsAt(
+  "var-unknown.ts",
+  /^cssints: padding: var\(--space-typo\) is no declared token \(a typo\?\)/,
+  3,
+);
+await failsAt(
+  "var-bad-fallback.ts",
+  /^var\(--space-sm\) fallback: unexpected "red" in "red", expected <length>/,
+  5,
+);
 
 await server.close();
 
