@@ -255,6 +255,14 @@ const wrapper = (cond: Cond): Wrapper =>
         throw fail(
           `cssints: ${cond.text} wraps css.* styles, got ${Formatter.formatJson(styles.filter((s) => !isNode(s)))}`,
         );
+      const carry = carried(styles);
+      // A kernel is global CSS keyed to its marker class: the marker goes out whatever the condition, so a member with
+      // no declaration of its own (pretty(), frame()) would lose it silently.
+      const [bare] = carry.bare ?? [];
+      if (bare)
+        throw fail(
+          `cssints: ${cond.text} wraps ${bare[0]}, the marker of kernel ${bare[1]}, with no declaration of its own: a kernel is global CSS keyed to its marker class and cannot be conditional, so the marker would apply everywhere. Put the member outside the condition; a condition can wrap the declarations a member sets (its methods)`,
+        );
       return node(
         merged(
           styles.flatMap((n) =>
@@ -267,7 +275,7 @@ const wrapper = (cond: Cond): Wrapper =>
             }),
           ),
         ),
-        carried(styles),
+        carry,
       );
     },
     { __cond: true as const, cond },

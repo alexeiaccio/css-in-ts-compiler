@@ -32,7 +32,8 @@ export type Decl = [prop: string, value: string, conds?: Cond[], fallbacks?: str
 /**
  * What a css.* builder returns: its declarations, and next to them the fixed classes it prints (`markers`, each with
  * the key of the kernel it belongs to), the kernels it needs, and the plugin members whose runtime and conflicts apply
- * (`plugs`). `cn()` merges all three.
+ * (`plugs`). `cn()` merges all three. `bare` are the markers of a merged style that came with no declaration of their
+ * own (`pretty()`, `frame()`): a condition around it would wrap nothing of theirs, so it is an error.
  */
 export interface CssNode {
   __cssints: Decl[];
@@ -42,10 +43,11 @@ export interface CssNode {
   themes?: ThemeRule[];
   layers?: LayersDecl[];
   plugs?: Plug[];
+  bare?: [marker: string, kernel: string][];
 }
 export type Carry = Pick<
   CssNode,
-  "markers" | "kernels" | "globals" | "themes" | "layers" | "plugs"
+  "markers" | "kernels" | "globals" | "themes" | "layers" | "plugs" | "bare"
 >;
 
 // What a plain style does when a method is chained on it.
@@ -58,11 +60,11 @@ const plain = (method: string): never => {
 // as a chain method.
 export const node = (
   decls: Decl[],
-  { markers, kernels, globals, themes, layers, plugs }: Carry = {},
+  { markers, kernels, globals, themes, layers, plugs, bare }: Carry = {},
   chain: (name: string, args: unknown[], self: CssNode) => CssNode = (name) => plain(name),
 ): CssNode =>
   new Proxy<CssNode>(
-    { __cssints: decls, markers, kernels, globals, themes, layers, plugs },
+    { __cssints: decls, markers, kernels, globals, themes, layers, plugs, bare },
     {
       get: (t, k) =>
         k in t || typeof k === "symbol"

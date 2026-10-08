@@ -168,6 +168,37 @@ for (const [name, call] of [
 ]) {
   await code(write(name, `export const a = css.cn(frame().radius("4px"), ${call});\n`));
 }
+
+// a condition around frame() with no method wraps nothing: its marker would apply everywhere, so it is an error at the
+// call, through cn(), nesting and cv(); a condition around its methods is fine (the custom properties are conditional)
+for (const [name, call, cond] of [
+  ["frame-cond-bare.ts", `css.hover(frame())`, ":hover"],
+  ["frame-cond-cn.ts", `css.hover(css.cn(frame(), css.color("red")))`, ":hover"],
+  ["frame-cond-args.ts", `css.hover(frame(), css.color("red"))`, ":hover"],
+  [
+    "frame-cond-nested.ts",
+    `css.media("(width >= 40rem)")(css.cn(frame(), css.hover(css.color("red"))))`,
+    "@media \\(width >= 40rem\\)",
+  ],
+  ["frame-cond-within.ts", `css.within(css.hover)(frame())`, ":where\\(\\._g:hover\\)"],
+  ["frame-cond-cv.ts", `css.cv({ variants: { on: { yes: css.focus(frame()) } } })`, ":focus"],
+])
+  await assert.rejects(code(write(name, `export const a = ${call};\n`)), (e) => {
+    assert.match(
+      e.message.split("\n")[0],
+      new RegExp(
+        `^cssints: ${cond} wraps _frame-core, the marker of kernel frame\\.core, with no declaration of its own`,
+      ),
+      name,
+    );
+    assert.equal(e.loc?.line, 3, `${name}: the call site`);
+    return true;
+  });
+for (const [name, call] of [
+  ["frame-cond-method.ts", `css.hover(frame().padding(2))`],
+  ["frame-cond-outside.ts", `css.cn(frame(), css.hover(frame().radius("2px")))`],
+])
+  await code(write(name, `export const a = ${call};\n`));
 await server.close();
 for (const f of tmp) rmSync(`${fx}/${f}`);
 console.log("frame: classes, css, token, errors, conflicts ok");
