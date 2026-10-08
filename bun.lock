@@ -104,6 +104,22 @@
         "cssints": "^0.1.0",
       },
     },
+    "packages/gradient": {
+      "name": "@cssints/gradient",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cssints/css-grammar": "workspace:*",
+        "culori": "^4.0.2",
+      },
+      "devDependencies": {
+        "@types/culori": "^4.0.0",
+        "cssints": "workspace:*",
+        "vite": "catalog:",
+      },
+      "peerDependencies": {
+        "cssints": "^0.1.0",
+      },
+    },
     "packages/icons": {
       "name": "@cssints/icons",
       "version": "0.1.0",
@@ -250,6 +266,8 @@
     "@cssints/css-grammar": ["@cssints/css-grammar@workspace:packages/css-grammar"],
 
     "@cssints/fluid": ["@cssints/fluid@workspace:packages/fluid"],
+
+    "@cssints/gradient": ["@cssints/gradient@workspace:packages/gradient"],
 
     "@cssints/icons": ["@cssints/icons@workspace:packages/icons"],
 
