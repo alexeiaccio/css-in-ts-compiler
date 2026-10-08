@@ -1,6 +1,7 @@
 // @cssints/fonts: a web font as a style (cssints/plugin `scope()`). `font()` reads the font files while the module runs,
-// takes their metrics with fontkitten, and gives the member `family()`: the @font-face rules as globals, a fallback face
-// whose metrics match the font's, and `font-family`. Build time only; no runtime.
+// takes their metrics with fontkitten, and gives two members: `family()` (the @font-face rules as globals, a fallback face
+// whose metrics match the font's, and `font-family`) and `trim()` (native `text-box` trimming, or capsize's negative
+// margins from the same metrics where a target lacks it). Build time only; no runtime.
 import { readFileSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, extname, join, resolve } from "node:path";
@@ -8,7 +9,7 @@ import { dirname, extname, join, resolve } from "node:path";
 import { create } from "fontkitten";
 import { scope } from "cssints/plugin";
 
-/** What the fallback face is computed from, in font units (capsize's names). */
+/** What the fallback face and `trim()` are computed from, in font units (capsize's names). */
 export interface Metrics {
   ascent: number;
   descent: number;
@@ -231,22 +232,58 @@ const fallbackFace = (name: string, metrics: Metrics, fallback: Fallback) => {
   );
 };
 
+// capsize's trims, in em: negative margins that remove the space above the cap height and below the baseline.
+const trims = (m: Metrics, lineHeight?: number) => {
+  const scale = (n: number) => n / m.unitsPerEm;
+  // with a line height, the half-leading it adds or removes against `normal`
+  const offset = lineHeight
+    ? (scale(m.ascent + m.lineGap + Math.abs(m.descent)) - lineHeight) / 2
+    : 0;
+  const top = scale(m.ascent) - scale(m.capHeight) + scale(m.lineGap) / 2 - offset;
+  const bottom = scale(Math.abs(m.descent)) + scale(m.lineGap) / 2 - offset;
+  return { top: `${round(-top)}em`, bottom: `${round(-bottom)}em` };
+};
+
 // One scope, "fonts", whatever the font: the table and the code are the same, the font is the closure of `build`.
+// `trim` is native where the targets have `text-box`; the capsize margins are a runtime's fallback CSS, added to the
+// sheet only when a target lacks it, and kept from browsers that have it by `@supports not`.
+const NATIVE = "text-box:trim-both cap alphabetic";
 const fonts = (family: string, fallback: string, source: Source, globals: { css: string }[]) =>
   scope("fonts", {
+    "#native": { css: `&{${NATIVE}}`, requires: ["css.properties.text-box"] },
+    "#capsize": {
+      polyfills: ["css.properties.text-box"],
+      css:
+        `@supports not (${NATIVE}){&::before,&::after{content:"";display:table}` +
+        `&::before{margin-bottom:var(--_t)}&::after{margin-top:var(--_b)}}`,
+    },
     family: { args: [] },
+    trim: { args: [{ "lineHeight?": "<number [0,∞]>" }], uses: ["native", "capsize"] },
   })
     .build({
       family: () => ({
         decls: [["font-family", `${quote(family)}, ${quote(`${family} Fallback`)}, ${fallback}`]],
         globals,
       }),
+      trim: (o) => {
+        const { top, bottom } = trims(
+          source.metrics,
+          o.lineHeight ? Number(o.lineHeight) : undefined,
+        );
+        return {
+          decls: [
+            ["line-height", o.lineHeight ?? "normal"],
+            ["--_t", top],
+            ["--_b", bottom],
+          ],
+        };
+      },
     })
     .export();
 
 /**
  * What `font()` gives: call its members where the style is used. `family()` is `font-family` with the fallback face and
- * carries the @font-face rules.
+ * carries the @font-face rules; `trim({ lineHeight? })` trims the space above the cap height and below the baseline.
  */
 export type Font = ReturnType<typeof fonts>;
 
@@ -258,7 +295,7 @@ export type Font = ReturnType<typeof fonts>;
  *
  * @param {string} family the CSS family name (for fontsource, also the package: "Atkinson Hyperlegible" is `@fontsource/atkinson-hyperlegible`)
  * @param {Options} options where the files come from, and the generic family of the fallback face (by default the font's category)
- * @returns {Font} the member `family()`
+ * @returns {Font} the members `family()` and `trim()`
  */
 export const font = (family: string, options: Options) => {
   const source =

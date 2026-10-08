@@ -1,4 +1,4 @@
 import "virtual:cssints.css";
-import { a, e } from "./use.ts";
+import { a, d } from "./use.ts";
 
-document.body.className = `${a} ${e}`;
+document.body.className = `${a} ${d}`;

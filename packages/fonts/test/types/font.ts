@@ -11,7 +11,13 @@ const brand = font("Brand", {
 });
 
 export const family: Style = body.family();
-export const both = cn(body.family(), brand.family());
+export const trimmed = cn(body.family(), body.trim(), brand.trim({ lineHeight: 1.5 }));
+export const text = body.trim({ lineHeight: "1.25" });
+
+// @ts-expect-error a line height is a number, not a length
+export const px = body.trim({ lineHeight: "24px" });
+// @ts-expect-error not a number
+export const tall = body.trim({ lineHeight: "tall" });
 // @ts-expect-error family() takes nothing
 export const arg = body.family("serif");
 

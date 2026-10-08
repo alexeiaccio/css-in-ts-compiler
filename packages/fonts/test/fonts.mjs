@@ -1,15 +1,18 @@
-// @cssints/fonts through the engine: both providers, the output (@font-face globals, the fallback face, font-family), the
-// numbers against @capsizecss/core, the errors, and a build (the font files become assets). The working directory is the package (set below): fontsource is read from its
+// @cssints/fonts through the engine: both providers, the output (@font-face globals, the fallback face, font-family, the
+// trim kernel and its capsize fallback), the numbers against @capsizecss/core, the errors, a build (the font files become
+// assets) and native-only targets. The working directory is the package (set below): fontsource is read from its
 // node_modules. Run: node test/fonts.mjs
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 
-import { createFontStack } from "@capsizecss/core";
+import { createFontStack, createStyleObject } from "@capsizecss/core";
 import { fromFile } from "@capsizecss/unpack/fs";
 import cssints from "cssints/vite";
 import { build, createLogger, createServer } from "vite";
 
 process.chdir(`${import.meta.dirname}/..`);
 const root = `${import.meta.dirname}/fixtures`;
+const native = process.argv[2] === "native";
 const warnings = [];
 const plugins = cssints();
 const server = await createServer({
@@ -25,9 +28,25 @@ const sheet = (f) => plugins[0].api.sheet([`${root}/${f}`]);
 
 const use = await code("use.ts");
 const css = sheet("use.ts");
-assert.deepEqual(warnings, [], "@font-face needs nothing a target lacks");
-const [, a, b1, b2, e] =
-  /a = "(_\w+)";\nexport const b = "(_\w+) (_\w+)";\nexport const e = "(_\w+)";/.exec(use) ?? [];
+const kernelWarning = warnings.some((w) =>
+  w.includes("kernel fonts.native needs css.properties.text-box"),
+);
+const fallbackCss = css.includes("@supports not (text-box:trim-both cap alphabetic)");
+
+if (native) {
+  // every target has text-box: no warning, and the capsize margins are not in the sheet
+  assert.ok(!kernelWarning, warnings.join("\n"));
+  assert.ok(!fallbackCss, css);
+  assert.ok(css.includes("._fonts-native{text-box:trim-both cap alphabetic}"), css);
+  await server.close();
+  console.log("fonts (native targets) ok");
+  process.exit(0);
+}
+
+const [, a, b1, b2, c, d, e] =
+  /a = "(_\w+)";\nexport const b = "(_\w+) (_\w+)";\nexport const c = "(_fonts-native(?: _\w+){3})";\nexport const d = "(_fonts-native(?: _\w+){3})";\nexport const e = "(_\w+)";/.exec(
+    use,
+  ) ?? [];
 assert.ok(a, use);
 assert.equal(b1, a, "the same family is the same class, in a cn() too");
 assert.ok(!/from "/.test(use), "the build-time imports are gone");
@@ -102,6 +121,29 @@ assert.equal(
   "a global is one rule however many sites carry it",
 );
 
+// trim: the native kernel once, and capsize's margins (createStyleObject) as custom properties, kept by @supports not
+assert.ok(css.includes("._fonts-native{text-box:trim-both cap alphabetic}"), css);
+assert.ok(
+  css.includes(
+    '@supports not (text-box:trim-both cap alphabetic){._fonts-native::before,._fonts-native::after{content:"";display:table}._fonts-native::before{margin-bottom:var(--fonts-t)}._fonts-native::after{margin-top:var(--fonts-b)}}',
+  ),
+  css,
+);
+const decls = (classes) => classes.split(" ").slice(1).map(rule).sort();
+for (const [classes, lineHeight, leading] of [
+  [c, "normal", undefined],
+  [d, "1.5", 24],
+]) {
+  const s = createStyleObject({ fontSize: 16, leading, fontMetrics: metrics });
+  assert.deepEqual(decls(classes), [
+    `--fonts-b:${s["::after"].marginTop}`,
+    `--fonts-t:${s["::before"].marginBottom}`,
+    `line-height:${lineHeight}`,
+  ]);
+}
+// a default target lacks text-box: the kernel warns, and the fallback is in the sheet
+assert.ok(kernelWarning && fallbackCss, warnings.join("\n"));
+
 // in dev the files are served from where they are
 const dev = (await client.transformRequest("virtual:cssints.css")).code;
 assert.match(dev, /url\(\\"\/@fs\/[^"]*atkinson-hyperlegible-latin-400-normal\.woff2\\"\)/);
@@ -121,6 +163,14 @@ await fails(
   /^cssints: fonts: cannot read @fontsource\/no-such-font from .*: install @fontsource\/no-such-font$/,
 );
 await fails("bad-file.ts", /^cssints: fonts: cannot read .*test\/fixtures\/no-such\.woff2$/);
+await assert.rejects(code("bad-line-height.ts"), (err) => {
+  assert.match(
+    err.message.split("\n")[0],
+    /^trim\(1\)\.lineHeight: unexpected "tall" in "tall", expected <number/,
+  );
+  assert.deepEqual({ line: err.loc?.line, column: err.loc?.column }, { line: 4, column: 17 });
+  return true;
+});
 await server.close();
 
 // a build: the font files are assets, the urls point at them
@@ -137,5 +187,12 @@ const assets = files.filter((f) => /\.woff2?$/.test(f.fileName)).map((f) => f.fi
 assert.equal(assets.length, 5, assets.join("\n"));
 for (const asset of assets) assert.ok(built.includes(`url(/${asset})`), `${asset}\n${built}`);
 
+// targets that all have text-box: another process, the targets are read once
+console.log(
+  execFileSync(process.execPath, [import.meta.filename, "native"], {
+    env: { ...process.env, BROWSERSLIST: "chrome 133, safari 18.2, firefox 154" },
+    encoding: "utf8",
+  }).trim(),
+);
 console.log("fonts ok");
 process.exit(0);

@@ -1,8 +1,9 @@
 # @cssints/fonts
 
-Web fonts for [cssints](../../README.md): `font()` reads the font files at build time and gives a member of a
+Web fonts for [cssints](../../README.md): `font()` reads the font files at build time and gives two members of a
 `cssints/plugin` `scope()`. `family()` emits the `@font-face` rules, a fallback face whose metrics match the font, and
-`font-family`. The metrics come from the files (fontkitten). No runtime.
+`font-family`. `trim()` removes the space above the cap height and below the baseline. The metrics come from the files
+(fontkitten). No script ships.
 
 ```ts
 // fonts.ts: a build-time module (it runs while the build runs, and never reaches the browser)
@@ -18,11 +19,11 @@ export const brand = font("Brand", {
 
 ```ts
 // a component imports them from there
-import { cn, color } from "cssints" with { type: "cssints" };
+import { cn } from "cssints" with { type: "cssints" };
 import { body } from "./fonts.ts" with { type: "cssints" };
 
 export const text = body.family();
-export const red = cn(body.family(), color("red"));
+export const heading = cn(body.family(), body.trim({ lineHeight: 1.2 }));
 ```
 
 ```css
@@ -47,13 +48,36 @@ export const red = cn(body.family(), color("red"));
     unicode-range: U+0000-00FF, …;
   }
   /* … latin-ext 400, latin 700, latin-ext 700 */
+  ._fonts-native {
+    text-box: trim-both cap alphabetic;
+  }
+  /* only when a target lacks text-box */
+  @supports not (text-box: trim-both cap alphabetic) {
+    ._fonts-native::before,
+    ._fonts-native::after {
+      content: "";
+      display: table;
+    }
+    ._fonts-native::before {
+      margin-bottom: var(--fonts-t);
+    }
+    ._fonts-native::after {
+      margin-top: var(--fonts-b);
+    }
+  }
 }
 @layer _.a {
   ._a {
     font-family: "Atkinson Hyperlegible", "Atkinson Hyperlegible Fallback", sans-serif;
   }
   ._b {
-    color: red;
+    line-height: 1.2;
+  }
+  ._c {
+    --fonts-t: -0.262em;
+  }
+  ._d {
+    --fonts-b: -0.27em;
   }
 }
 ```
@@ -73,12 +97,24 @@ export const red = cn(body.family(), color("red"));
   latin width (`size-adjust`) and overrides `ascent`, `descent` and `line-gap` with the font's. This is fontaine's
   formula. The numbers are those of `@capsizecss/core` `createFontStack` (checked in the test). The metrics come from
   the 400 normal face (else the first) of the latin subset.
+- **trim().** `trim()` sets `line-height` (`normal`, or the number given) and the class of the kernel
+  `text-box: trim-both cap alphabetic` (Chrome 133, Safari 18.2, Firefox 154). A target that lacks `text-box` gets a
+  build warning, and the sheet gets capsize's fallback: `::before` and `::after` with negative margins, in `em`, from
+  the metrics of the font and the line height (the numbers of `@capsizecss/core` `createStyleObject`, checked in the
+  test). The fallback is inside `@supports not`, so a browser with `text-box` does not trim twice. When every target
+  has `text-box`, the fallback is not in the sheet.
 - **Errors**, at build time: a package that is not installed (the message names it), a weight or a style the
-  package does not have, a file that cannot be read and a font collection.
+  package does not have, a file that cannot be read, a font collection, and a `lineHeight` that is not a number
+  (also a type error).
 - **Cache.** A file is parsed once per modification time in a process.
 
 ## Limits
 
+- `lineHeight` is a number (a multiple of the font size). A length would make the trim depend on the font size.
+- The trim is right for the web font. The fallback face matches ascent and descent, but not the cap height, so the
+  trim is off by a little until the font loads.
+- The capsize fallback is a `runtime` of the scope. The engine ships it only to targets that have `@property`, so a
+  target with neither `text-box` nor `@property` (Firefox before 128, Safari before 16.4) gets neither trim.
 - Not yet: variable fonts (`@fontsource-variable/*`), remote providers (unifont, Google Fonts), the subsets option,
   `font-display` other than `swap`, and watching the font files in dev (a changed file needs a restart).
 
