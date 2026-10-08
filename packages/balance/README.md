@@ -41,7 +41,8 @@ test:browsers` checks it in Chrome, Firefox and WebKit, natively and with the na
 
 ## Rules
 
-- **`balance()`** is a kernel, `text-wrap: balance`, and a runtime entry for `css.properties.text-wrap.balance`. When a
+- **`balance()`** is a kernel written as styles, `css.textWrap("balance")`, and a runtime entry for
+  `css.properties.text-wrap` and `css.properties.text-wrap.balance`, which covers the kernel's support warnings. When a
   target lacks it, the sheet gets the fallback rule above: `--balance-js: 1` inside `@supports not (text-wrap: balance)`,
   so it is on only in a browser without the feature, and the module that uses `balance()` imports the script through
   `virtual:cssints/runtime/balance.script` (the runtime entry names it, `script`). When every target has it, neither the
@@ -53,15 +54,18 @@ test:browsers` checks it in Chrome, Firefox and WebKit, natively and with the na
   (`MutationObserver`), and when the fonts are ready.
 - **`pretty()`** is `text-wrap: pretty` and nothing more. There is no small polyfill: pretty weighs the whole paragraph
   to avoid orphans and ragged edges, and a browser without it wraps as usual, which is what pretty improves on. So it
-  requires nothing, warns about nothing and ships nothing (a `css.textWrap("pretty")` warns for Firefox, this does not).
+  requires nothing, warns about nothing and ships nothing (a `css.textWrap("pretty")` warns for Firefox, this does not):
+  its kernel is raw CSS, `&{text-wrap:pretty}`, since nothing would cover the warnings of one written as styles.
 - **Conflicts.** Both set `text-wrap`: a `cn()` that holds one of them and `text-wrap*` or `white-space` is a build
-  error: `cssints: balance: it sets text-wrap (this style also sets text-wrap)`.
+  error. `balance()`'s are derived from its kernel, `cssints: balance: kernel core sets text-wrap (this style also sets
+text-wrap)`; `pretty()`'s raw kernel derives none, so an entry lists them: `cssints: balance: it sets text-wrap (this
+style also sets text-wrap-style)`.
 
 ## Limits
 
 - **No conditions.** A member is a kernel's class, global CSS that cannot be conditional: `hover(pretty())` or
   `media(...)(balance())` is a build error at the call (`:hover wraps _balance-prettyCore, the marker of kernel
-  balance.prettyCore, with no declaration of its own`). Under a condition, use `css.textWrap(...)` (native only).
+balance.prettyCore, with no declaration of its own`). Under a condition, use `css.textWrap(...)` (native only).
 - **The fallback sets `max-width`** on the element: the box narrows, where `text-wrap: balance` keeps it. Centred text
   needs `margin-inline: auto` on the element to stay centred. An inline `max-width` of your own is overwritten.
 - Horizontal writing modes only; the parent must not size itself from the element (a shrink-to-fit parent can loop
