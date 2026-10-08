@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-08T08:55:57Z
-updated_at: 2026-10-08T13:45:03Z
+updated_at: 2026-10-08T13:48:34Z
 parent: cssints-dk1q
 blocked_by:
     - cssints-11pj
@@ -24,5 +24,5 @@ blocked_by:
 
 ## Todo
 - [x] kernel + chain
-- [ ] runtime entry with the polyfill
+- [x] runtime entry with the polyfill (an IntersectionObserver runtime instead of flackr's polyfill: README)
 - [x] fixture
