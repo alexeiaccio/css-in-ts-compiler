@@ -2,7 +2,7 @@
 // scroll-state container; `stuck(...)` wraps styles of its descendants in `@container scroll-state(stuck: top)` (the
 // query matches descendants of the container, never the container itself). Where a target lacks scroll-state queries,
 // `stuck(...)` also emits the same styles under `[data-stuck~="top"]` on the sticky ancestor, an attribute that
-// `@cssints/stuck/observer` (an IntersectionObserver, imported by the app) sets.
+// `@cssints/stuck/observer` (an IntersectionObserver, delivered by the runtime) sets.
 import { lackingOf } from "@cssints/css-grammar/support";
 import {
   type Style,
@@ -37,8 +37,11 @@ export const stuckScope = scope("stuck", {
     props: ["position", "container", "container-type"],
     message: "sticky() sets position and container-type: use its methods",
   },
-  // The observer covers the queries (imported by the app: a runtime cannot ship a script of its own).
-  "#observer": { polyfills: [QUERIES, "css.properties.container-type.scroll-state"] },
+  // The observer covers the queries: virtual:cssints/runtime/stuck.observer imports it when a target lacks them.
+  "#observer": {
+    polyfills: [QUERIES, "css.properties.container-type.scroll-state"],
+    script: "@cssints/stuck/observer",
+  },
   sticky: {
     uses: ["core", "conflicts", "observer"],
     chain: {

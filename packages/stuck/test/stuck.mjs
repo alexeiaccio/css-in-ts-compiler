@@ -1,6 +1,6 @@
 // @cssints/stuck through the engine: the kernel, the classes of sticky() (with its group marker) and stuck(), the
 // fallback rules for targets without scroll-state queries (and none for targets that all have them), the runtime
-// module (always empty: the observer is imported by the app), the observer's size, and the build errors.
+// module (the observer, for targets that lack the queries), the observer's size, and the build errors.
 // Run: node test/stuck.mjs (the targets are read once per process: the other target sets run as children)
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -38,11 +38,13 @@ const css = flat(sheet("use.ts"));
 const runtime = (await client.transformRequest("virtual:cssints/runtime/stuck.observer")).code;
 const fallback = /:where\(\._g-stuck\[data-stuck~="top"\]\) \._\w+\{color:red\}/.test(css);
 
-// the kernel, the native rules, no warning (the observer covers the queries), and an empty runtime module
+// the kernel, the native rules, no warning (the observer covers the queries), and the runtime module: the observer,
+// unless every target has the queries
 assert.ok(css.includes("._stuck-core{position:sticky;container-type:scroll-state}"), css);
 assert.match(css, /@container scroll-state\(stuck: top\) \{ \._\w+\{color:red\} \}/);
 assert.equal(warnings.length, 0, warnings.join("\n"));
-assert.equal(runtime.trim(), "export {};");
+if (mode === "native") assert.equal(runtime, "export {};");
+else assert.match(runtime, /^import "[^"]*stuck\/src\/observer\.ts";/);
 
 if (mode) {
   // native: every target has scroll-state queries, so stuck() emits no fallback rule; old: a target lacks them
@@ -74,7 +76,7 @@ assert.match(
   css,
   /@layer _\.c \{ :where\(\._g-stuck\[data-stuck~="bottom"\]\) \._\w+:hover\{color:black\} @container scroll-state\(stuck: bottom\) \{ \._\w+:hover\{color:black\} \} \}/,
 );
-// the client imports the runtime module (empty) and nothing of the package
+// the client imports the runtime module and nothing of the package
 assert.ok(transformed.includes("virtual:cssints/runtime/stuck.observer"), transformed);
 assert.ok(!transformed.includes("@cssints/stuck"), transformed);
 
