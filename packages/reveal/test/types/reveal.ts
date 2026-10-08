@@ -13,5 +13,3 @@ export const e1 = reveal().preset("fade-out");
 export const e2 = reveal().range("sideways");
 // @ts-expect-error not a time
 export const e3 = reveal().duration("300px");
-// @ts-expect-error a method is used once
-export const e4 = reveal().preset("fade-in").preset("blur-in");

@@ -106,7 +106,10 @@ assert.equal(e.loc?.line, 4);
 
 // the grammars of the methods, at build time
 e = await failure("bad-preset.ts");
-assert.match(e.message, /^reveal\.preset: unexpected "fade-out" in "fade-out", expected fade-in \| /);
+assert.match(
+  e.message,
+  /^reveal\.preset: unexpected "fade-out" in "fade-out", expected fade-in \| /,
+);
 assert.equal(e.loc?.line, 4);
 e = await failure("bad-range.ts");
 assert.match(e.message, /^reveal\.range: unexpected "sideways" in "entry 0% sideways"/);
