@@ -142,7 +142,8 @@ assert.ok(all.includes("Show ") && all.includes("more "), "the collapsed branch 
 // the token fallbacks (cssints-33pa; the default targets hold chrome 109, which has no oklch()): the initial value is a
 // hex colour and the :root value is the default, the live colour of the hue comes under @supports of the literal
 assert.match(sheet, /@property --color-accent\{[^}]*initial-value:#[0-9a-f]{6}\}/);
-assert.match(sheet, /@property --color-shadow\{[^}]*initial-value:#[0-9a-f]{6,8}\}/);
+// the themes set --color-shadow and no class reads it: no @property rule for it (cssints-wpuv)
+assert.doesNotMatch(sheet, /@property --color-shadow\{/);
 assert.match(sheet, /:root\{[^}]*--color-accent:#[0-9a-f]{6}[;}]/);
 assert.match(
   sheet,
