@@ -265,10 +265,15 @@ export declare const createGlobalTheme: <
 
 /**
  * Declares top-level layers in order, printed once after the engine's own (`@layer app, author, viewer;`), so what is in
- * them beats the engine's `:root` fallbacks. A theme's `layer` and a plugin's rules must name a declared layer. The same
- * names again are fine; the same names in another order are a build error.
+ * them beats the engine's `:root` fallbacks; `{ before: true }` at the end prints them before the engine's, below every
+ * class (`layers("reset", { before: true })`). A theme's `layer` and a plugin's rules must name a declared layer. The
+ * same names again are fine; the same names in another order, or both before and after, are a build error.
  */
-export declare const layers: (...names: readonly [string, ...string[]]) => void;
+export declare const layers: (
+  ...names:
+    | readonly [string, ...string[]]
+    | readonly [string, ...string[], { readonly before: boolean }]
+) => void;
 
 // ---------- check
 

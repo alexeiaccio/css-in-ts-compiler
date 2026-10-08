@@ -98,6 +98,12 @@ assert.match(
   /layers\(second, first\) names layers in another order than layers\(first, second\)/,
 );
 assert.deepEqual(at(e), { line: 4, column: 0 });
+e = await failure("layers-both.ts");
+assert.match(
+  e.message,
+  /layers\(reset\) declares reset after the engine's layers, and layers\(reset\) before/,
+);
+assert.deepEqual(at(e), { line: 4, column: 0 });
 e = await failure("theme-scope-bad.ts");
 assert.match(e.message, /^cssints: createGlobalTheme\(\): scope: /);
 assert.deepEqual(at(e), { line: 4, column: 0 });

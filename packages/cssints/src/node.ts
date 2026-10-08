@@ -5,6 +5,7 @@ import { MacroError, MemberError } from "./errors.ts";
 import {
   type GlobalRule,
   type Kernel,
+  type LayersDecl,
   type Plug,
   type Property,
   registry,
@@ -37,7 +38,7 @@ export interface CssNode {
   kernels?: Kernel[];
   globals?: GlobalRule[];
   themes?: ThemeRule[];
-  layers?: string[][];
+  layers?: LayersDecl[];
   plugs?: Plug[];
 }
 export type Carry = Pick<

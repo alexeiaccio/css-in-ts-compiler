@@ -178,7 +178,8 @@ export function carried(nodes: CssNode[]): Carry {
     if (n.layers)
       for (const l of n.layers) {
         const all = (out.layers ??= []);
-        if (!all.some((x) => x.join() === l.join())) all.push(l);
+        if (!all.some((x) => x.names.join() === l.names.join() && x.before === l.before))
+          all.push(l);
       }
     if (n.plugs)
       for (const p of n.plugs) {

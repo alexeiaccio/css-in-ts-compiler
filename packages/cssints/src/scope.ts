@@ -37,9 +37,10 @@ export interface GlobalDef {
   rule: string;
   layer?: string;
 }
-/** Top-level layers to declare, in order. */
+/** Top-level layers to declare, in order: after the engine's layers, or with `before: true` before them (below every class). */
 export interface LayersDef {
   layers: readonly string[];
+  before?: boolean;
 }
 export interface ParentVar {
   marker: "&";
@@ -110,8 +111,8 @@ export interface Made {
     layer?: string;
     scope?: string;
   }[];
-  /** Top-level layers to declare, in order. */
-  layers?: string[];
+  /** Top-level layers to declare, in order: a list, printed after the engine's layers, or `{ layers, before: true }`. */
+  layers?: readonly string[] | LayersDef;
 }
 
 export interface ChainDef {

@@ -63,8 +63,8 @@ const outcome = (program) => {
   return Exit.isFailure(exit) ? Cause.squash(exit.cause).message : "ok";
 };
 assert.match(outcome(addGlobal(layered, at("a.ts"))), /the layer "app" is not declared/);
-Effect.runSync(addLayers(["app", "author", "viewer"], at("a.ts")));
-Effect.runSync(addLayers(["app", "author", "viewer"], at("b.ts")));
+Effect.runSync(addLayers({ names: ["app", "author", "viewer"] }, at("a.ts")));
+Effect.runSync(addLayers({ names: ["app", "author", "viewer"] }, at("b.ts")));
 Effect.runSync(addGlobal(layered, at("a.ts")));
 const withLayers = render("a.ts", "b.ts");
 assert.ok(
@@ -81,7 +81,27 @@ for (const [names, message] of [
   [["app", "app"], /each once/],
   [["a b"], /takes names of layers/],
 ])
-  assert.match(outcome(addLayers(names, at("a.ts"))), message, names.join());
+  assert.match(outcome(addLayers({ names }, at("a.ts"))), message, names.join());
+// Layers declared before the engine's: their statements come first, so the engine's classes beat what is in them; a
+// layer declared both before and after is an error at the call, either way round.
+Effect.runSync(addLayers({ names: ["reset"], before: true }, at("b.ts")));
+Effect.runSync(addLayers({ names: ["reset", "base"], before: true }, at("b.ts")));
+Effect.runSync(addGlobal({ css: "*{margin:0}", layer: "reset" }, at("b.ts")));
+const below = render("a.ts", "b.ts");
+assert.ok(
+  below.startsWith(
+    "@layer reset, base;\n@layer reset;\n@layer _.k, _.a, _.b, _.c, _.d, _.e;\n@layer app, author, viewer;\n",
+  ) && below.includes("@layer reset {\n  *{margin:0}\n}\n"),
+  below,
+);
+assert.match(
+  outcome(addLayers({ names: ["reset"] }, at("a.ts"))),
+  /layers\(reset\) declares reset after the engine's layers, and layers\(reset\) before/,
+);
+assert.match(
+  outcome(addLayers({ names: ["viewer"], before: true }, at("a.ts"))),
+  /declares viewer before the engine's layers, and layers\(app, author, viewer\) after/,
+);
 forgetKernels("a.ts");
 forgetKernels("b.ts");
 assert.equal(state.layers.size, 0);
