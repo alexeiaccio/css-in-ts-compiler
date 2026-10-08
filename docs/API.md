@@ -736,7 +736,7 @@ More plugins on `scope()`, each a package of its own with its rules and limits i
 | [`@cssints/layout`](../packages/layout/README.md) | `stack()`, `cluster()`, `sidebar()`, `switcher()`, `cover()`, `autoGrid()` | Every Layout primitives as chain members |
 | [`@cssints/fonts`](../packages/fonts/README.md) | `font(family, { provider, ... })` → `.family()`, `.trim()` | `@font-face` and a metric-matched fallback face; cap-height trimming by `text-box`, else capsize's margins |
 | [`@cssints/reset`](../packages/reset/README.md) | `reset({ media?, prose? })` | A modern reset in `@layer _.k.reset`, below every style |
-| [`@cssints/tokens`](../packages/tokens/README.md) | `/open-props`, `/easings`, `/radix`, `/flexoki`, `/reasonable-colors` | DTCG data for `createTokens` |
+| [`@cssints/tokens`](../packages/tokens/README.md) | `/open-props`, `/radix`, `/flexoki`, `/reasonable-colors` | DTCG data for `createTokens` |
 | [`@cssints/gradient`](../packages/gradient/README.md) | `gradient(kind, direction, from, to, easing?, stops?)` | Eased colour stops mixed in oklab at build time |
 | [`@cssints/motion`](../packages/motion/README.md) | `motion().preset().duration().delay().easing()` | Animation presets over `keyframes()`, with reduced motion |
 

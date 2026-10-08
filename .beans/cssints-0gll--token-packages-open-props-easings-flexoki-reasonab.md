@@ -5,7 +5,7 @@ status: completed
 type: feature
 priority: high
 created_at: 2026-10-08T08:55:57Z
-updated_at: 2026-10-08T09:29:37Z
+updated_at: 2026-10-08T10:01:39Z
 parent: cssints-dk1q
 ---
 
@@ -63,3 +63,6 @@ Found while building @cssints/tokens; each is worked around in the package and l
 - Contrast: Radix step 11 on step 1/2 is below 4.5 in light for amber, green, jade, orange, teal, yellow (9 pairs, 4.24 to 4.49; table in the README); everything else passes 4.5.
 - Type cost (tsgo, per createTokens): baseline 0.18M; Open Props all token groups 1.9M; Radix light 2.9M, + dark theme 5.4M; alpha + dark 5.8M; Radix blue+gray light+dark 0.5M; Flexoki 1.0M; Reasonable 1.3M.
 - Deferred: Flexoki light/dark semantic themes (not in the pinned data file), Radix P3 scales, Open Props gradients/fonts/animations.
+
+## Follow-up
+The easings.net subpath (GPL-3.0 data) was removed; Open Props' easings carry the same Penner curves (easeCubicOut and the others, MIT).

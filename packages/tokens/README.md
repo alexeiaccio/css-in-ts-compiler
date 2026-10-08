@@ -94,7 +94,6 @@ holds the dark rule:
 | Import                              | Exports                                                                                                      | From                    |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------- |
 | `@cssints/tokens/open-props`        | `colors`, `sizes`, `radii`, `borderSizes`, `fontWeights`, `lineHeights`; `easings`, `shadows`, `shadowsDark` | open-props 1.7.23       |
-| `@cssints/tokens/easings`           | `easings` (the 24 cubic-béziers of easings.net, `easeInSine` to `easeInOutBack`)                             | ai/easings.net@d2563f0  |
 | `@cssints/tokens/radix`             | `light`, `lightAlpha` (tokens); `dark`, `darkAlpha` (overrides)                                              | @radix-ui/colors 3.0.0  |
 | `@cssints/tokens/flexoki`           | `flexoki` (`base`: `black`, `paper`, `50`..`950`; eight accents `50`..`950`)                                 | kepano/flexoki@8d723ba  |
 | `@cssints/tokens/reasonable-colors` | `reasonableColors` (25 hues, shades `1`..`6`)                                                                | reasonable-colors 0.4.0 |
@@ -109,7 +108,8 @@ holds the dark rule:
   their variables are `--blue-a-3`.
 - **Open Props.** `colors` are the 19 hues of `open-props/src/colors`, `0`..`12`. `sizes` are the px scale (`size-px-*`,
   `000`..`15`) and the named widths `xxs`..`xxl`. `radii` are `1`..`6` and `round`. `fontWeights` are `1`..`9`,
-  `lineHeights` `00`..`5`. `easings`, `shadows` and `shadowsDark` are CSS strings (see "Limits"). The shadows are
+  `lineHeights` `00`..`5`. `easings`, `shadows` and `shadowsDark` are CSS strings (see "Limits"); `easings` include
+  the Penner curves (`easeCubicOut`, `easeQuintInOut`, sine to circ). The shadows are
   resolved: `--shadow-color` and `--shadow-strength` are written into each value, light and dark.
 - **Radix.** `light` has the 31 solid scales, `lightAlpha` the 31 alpha scales and `blackA`, `whiteA`. `dark` and
   `darkAlpha` give the same paths, `{ blue: { _1: "#0d1520", ... } }`, for `createGlobalTheme`. To pick scales, pick
@@ -171,10 +171,6 @@ The code is MIT (`LICENSE`). The data keeps the license of its source:
 - **Radix Colors**: MIT, Copyright (c) 2021 Radix.
 - **Flexoki**: MIT, Copyright (c) 2023 Steph Ango.
 - **Reasonable Colors**: MIT, Copyright (c) 2020 Matthew Howell.
-- **easings.net**: the site and its repository (ai/easings.net) are GPL-3.0. `src/easings.ts` holds only the 24
-  `cubic-bezier()` values from its `src/easings.yml`. Before you publish this subpath, decide if those values are
-  covered by GPL-3.0. If they are, publish them as a separate GPL-3.0 package, or take the Penner curves from
-  Open Props instead (`easings.easeCubicOut` and the others, MIT).
 
 The MIT notice of each source, with its copyright line above:
 

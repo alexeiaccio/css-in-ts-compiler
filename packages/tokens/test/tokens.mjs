@@ -38,11 +38,6 @@ assert.ok(
 );
 assert.ok(css.includes("{transition-timing-function:cubic-bezier(0, 0, .3, 1)}"), css);
 
-// easings.net: a CSS string, no token
-css = await sheet("easings.ts");
-assert.deepEqual(properties(css), [], css);
-assert.ok(css.includes("{transition-timing-function:cubic-bezier(0.34, 1.56, 0.64, 1)}"), css);
-
 // Flexoki and Reasonable Colors, nested under a group each
 css = await sheet("palettes.ts");
 assert.deepEqual(properties(css), ["--flexoki-base-black", "--reasonable-azure-1"], css);

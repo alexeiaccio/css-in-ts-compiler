@@ -12,7 +12,6 @@ import opFonts from "open-props/src/fonts";
 import opShadows from "open-props/src/shadows";
 import opSizes from "open-props/src/sizes";
 
-const EASINGS_NET = "d2563f0d32a511b5556774b838ec35c3a841b15d";
 const FLEXOKI = "8d723bac4a9ac46adfdf99d42155286977aac72a";
 
 const require = createRequire(import.meta.url);
@@ -128,20 +127,6 @@ const write = (file: string, header: string, exports: Group) => {
     shadows: shadowSet(false),
     shadowsDark: shadowSet(true),
   });
-}
-
-// ---------- easings.net
-{
-  const yml = await fetchText(
-    `https://raw.githubusercontent.com/ai/easings.net/${EASINGS_NET}/src/easings.yml`,
-  );
-  const easings = Object.fromEntries(
-    [...yml.matchAll(/^- name: (\w+)\n\s+css:\s+(cubic-bezier\([^)]*\))/gm)].map((m) => [
-      m[1],
-      m[2],
-    ]),
-  );
-  write("easings.ts", `from easings.net (ai/easings.net@${EASINGS_NET.slice(0, 7)})`, { easings });
 }
 
 // ---------- Radix colors

@@ -12,7 +12,6 @@ import {
   boxShadow,
 } from "cssints";
 
-import { easings } from "../../src/easings.ts";
 import { flexoki } from "../../src/flexoki.ts";
 import * as op from "../../src/open-props.ts";
 import { dark, darkAlpha, light, lightAlpha } from "../../src/radix.ts";
@@ -56,5 +55,5 @@ createGlobalTheme(rx, ".x", darkAlpha);
 export const c = [
   color(createTokens({ flexoki }).flexoki.red._600),
   color(createTokens(reasonableColors).azure._3),
-  transitionTimingFunction(easings.easeOutBack),
+  transitionTimingFunction(op.easings.easeCubicOut),
 ];
