@@ -157,8 +157,7 @@ function checkVars(where, text) {
 	if (!text.includes("var(")) return;
 	const { properties, defs, warned, warnings } = registry;
 	for (const [, name] of text.matchAll(RAW_VAR)) {
-		if (name.startsWith("--_")) continue;
-		if (!properties.has(name)) throw fail(`cssints: ${where}: var(${name}) is no declared token (a typo?): declare it with createTokens() or token.<type>(initial, "${name.slice(2)}") and pass the token`);
+		if (name.startsWith("--_") || !properties.has(name)) continue;
 		const path = defs.get(name)?.path;
 		const key = `var ${where} ${name}`;
 		if (warned.has(key)) continue;

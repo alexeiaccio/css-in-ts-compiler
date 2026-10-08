@@ -223,7 +223,7 @@ css.token.set(muted, "red"); // error: private tokens cannot be set
 
 - **`style()` and `token.set()`** are build-time and take static values; the result is a style object, custom properties first. A dynamic value is set with a plain `style={{ "--color-primary": value }}`; a typed runtime setter is not part of 0.1.
 - **A token of the wrong type** is an error that names the token: `color: unexpected "1px" in "1px", expected <color> ("var(--gap)" is checked as "1px": a token stands for a value of its type)`.
-- **A raw `env()` or `if()`** in a string part (`margin("env(safe-area-inset-top)", "auto")`) stands for any run of values, commas included, in any property, and the rest of the value is still checked: `margin("env(x)", "red")` is an error. Only the call's shape is checked (the conditions of an `if()`). **A raw `var(--name)`** is for a token, and a token is already its `var()`: a string that writes the `var()` of a declared token is a build warning that names the token to pass (`padding: "var(--space-sm)" is the token space.sm: pass the token itself, and css.var(token, fallback) for a fallback`), and one that writes the `var()` of no declared token is a build error (a typo). The scope's own `--_x` of a `scope()` kernel stays a string.
+- **A raw `env()` or `if()`** in a string part (`margin("env(safe-area-inset-top)", "auto")`) stands for any run of values, commas included, in any property, and the rest of the value is still checked: `margin("env(x)", "red")` is an error. Only the call's shape is checked (the conditions of an `if()`). **A raw `var(--name)`** is for a token, and a token is already its `var()`: a string that writes the `var()` of a declared token is a build warning that names the token to pass (`padding: "var(--space-sm)" is the token space.sm: pass the token itself, and css.var(token, fallback) for a fallback`). Any other custom property is left alone (a library's like `--shiki-light`, a plugin's own after namespacing like `--motion-o`, one an inline style or a script sets), and the scope's own `--_x` of a `scope()` kernel stays a string.
 - Design-token constraints and math (DTCG, Ariakit Tailwind) are researched in `docs/research/design-tokens.md`.
 
 #### Themes (decided 2026-09-29, cssints-exof)
@@ -640,7 +640,7 @@ export const c = css.padding(css.var(t.space.sm, "red")); // error: the fallback
 export const d = css.color(css.var(t.space.sm)); // error: a length is not a colour
 ```
 
-A string that writes `var(--space-sm)` is a build warning that names the token to pass, and `var(--space-typo)`, the `var()` of no declared token, is a build error (see "Tokens"). `--_x` custom properties of a scope's kernels are not checked.
+A string that writes `var(--space-sm)` is a build warning that names the token to pass; the `var()` of a custom property that is no token is left alone (see "Tokens"). `--_x` custom properties of a scope's kernels are not checked.
 
 A plugin author makes a function of their own with a value member of a `scope()` (`{ args, value }`):
 

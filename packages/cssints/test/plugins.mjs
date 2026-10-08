@@ -216,11 +216,6 @@ assert.equal(
   "the token itself never warns",
 );
 await failsAt(
-  "var-unknown.ts",
-  /^cssints: padding: var\(--space-typo\) is no declared token \(a typo\?\)/,
-  3,
-);
-await failsAt(
   "var-bad-fallback.ts",
   /^var\(--space-sm\) fallback: unexpected "red" in "red", expected <length>/,
   5,

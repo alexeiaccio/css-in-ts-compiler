@@ -160,18 +160,15 @@ export function minWidth(q: string): number {
   return w;
 }
 
-// A `var(--name)` written as text (the token itself is what a part should be). One of a declared token is a build warning
-// that names the token to pass; one of no token (a typo), an error. `--_x` is a scope's own custom property.
+// A `var(--name)` written as text (the token itself is what a part should be): one of a declared token is a build warning
+// that names the token to pass. Any other custom property is left alone: a library's (`--shiki-light`), a plugin's own
+// after namespacing (`--motion-o`), one set by an inline style or a script. `--_x` is a scope's own custom property.
 const RAW_VAR = /var\(\s*(--[\w-]+)/g;
 export function checkVars(where: string, text: string) {
   if (!text.includes("var(")) return;
   const { properties, defs, warned, warnings } = registry;
   for (const [, name] of text.matchAll(RAW_VAR)) {
-    if (name!.startsWith("--_")) continue;
-    if (!properties.has(name!))
-      throw fail(
-        `cssints: ${where}: var(${name}) is no declared token (a typo?): declare it with createTokens() or token.<type>(initial, "${name!.slice(2)}") and pass the token`,
-      );
+    if (name!.startsWith("--_") || !properties.has(name!)) continue;
     const path = defs.get(name!)?.path;
     const key = `var ${where} ${name}`;
     if (warned.has(key)) continue;
