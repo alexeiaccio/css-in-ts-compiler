@@ -213,6 +213,10 @@ export function carried(nodes: CssNode[]): Carry {
         const all = (out.markers ??= []);
         if (!all.some((x) => x[0] === m[0] && x[1] === m[1])) all.push(m);
       }
+    for (const m of n.bare ?? (n.__cssints.length ? [] : (n.markers ?? []))) {
+      const all = (out.bare ??= []);
+      if (!all.some((x) => x[0] === m[0] && x[1] === m[1])) all.push(m);
+    }
     if (n.kernels)
       for (const k of n.kernels) {
         const all = (out.kernels ??= []);

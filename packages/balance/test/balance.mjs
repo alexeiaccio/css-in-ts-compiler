@@ -55,6 +55,11 @@ await assert.rejects(
   code("conflict.ts"),
   /balance: it sets text-wrap \(this style also sets text-wrap\)/,
 );
+// a condition cannot wrap a kernel's marker: an error, not a pretty() that applies everywhere
+await assert.rejects(
+  code("condition.ts"),
+  /cssints: :hover wraps _balance-prettyCore, the marker of kernel balance\.prettyCore, with no declaration of its own/,
+);
 
 await server.close();
 for (const [m, targets] of [
