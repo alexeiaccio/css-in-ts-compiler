@@ -1,11 +1,11 @@
 ---
 # cssints-tdiu
 title: 'Tokens as getters: t.color.accent() with the definition''s value in the type'
-status: in-progress
+status: completed
 type: feature
 priority: normal
 created_at: 2026-10-07T10:09:44Z
-updated_at: 2026-10-07T14:25:10Z
+updated_at: 2026-10-08T11:09:06Z
 ---
 
 Asked by the user (2026-10-07): createTokens leaves become getters, t.color.accent() returns the token (the Typed OM value var(--color-accent) it is today), and the token type carries the value of its definition as an inferred type parameter (Token<"color", true, "#545434">), visible on hover; the user does not write the generic. The coordinator advised against (no-arg call is ceremony; value is only :root's, themes override it; JSON imports widen it to string); the user chose getters anyway.
