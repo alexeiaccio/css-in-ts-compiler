@@ -12,4 +12,4 @@ Found by stuck (cssints-z1hd, repro under "## Engine gaps"). A member cannot add
 
 ## Todo
 - [x] a `group` field on a member (or a kernel) that adds the marker
-- [ ] drop stuck's Proxy
+- [x] drop stuck's Proxy

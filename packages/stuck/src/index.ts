@@ -10,7 +10,6 @@ import {
   attr,
   cn,
   container,
-  group,
   within,
 } from "cssints" with { type: "cssints" };
 import { scope } from "cssints/plugin";
@@ -38,8 +37,10 @@ export const stuckScope = scope("stuck", {
     polyfills: [QUERIES, "css.properties.container-type.scroll-state"],
     script: "@cssints/stuck/observer",
   },
+  // its group marker _g-stuck is what the fallback rules of stuck() read through within()
   sticky: {
     uses: ["core", "observer"],
+    group: true,
     chain: {
       top: inset("top"),
       right: inset("right"),
@@ -49,31 +50,12 @@ export const stuckScope = scope("stuck", {
   },
 });
 
-const { sticky: member } = stuckScope.export();
-type Sticky = typeof member;
-
-// A member cannot carry a group() marker, so the chain is wrapped: each node also holds group("stuck"), which the
-// fallback rules of stuck() read through within().
-// While the module runs a node is an object whose other properties are the chain's methods.
-type Methods = Record<string, (...args: unknown[]) => Style>;
-const grouped = (n: Style) =>
-  new Proxy(cn(group("stuck"), n) as unknown as Methods, {
-    get: (t, k) =>
-      typeof k === "symbol"
-        ? undefined
-        : k in t
-          ? t[k]
-          : (...args: unknown[]) => grouped((n as unknown as Methods)[k]!(...args)),
-  }) as unknown as Style;
-
 /**
  * `sticky().top("0")`: `position: sticky`, `container-type: scroll-state` and the insets of its methods (each once, a
  * `<length-percentage>`, a lone number a spacing step). Its descendants take `stuck(...)` styles. It sets `position`
  * and `container-type`, so those in the same `cn()` are a build error.
- *
- * @returns {Sticky} the chain of the insets
  */
-export const sticky: Sticky = (() => grouped(member())) as unknown as Sticky;
+export const { sticky } = stuckScope.export();
 
 const lacking = lackingOf(QUERIES).length > 0;
 const under =

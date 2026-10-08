@@ -54,9 +54,9 @@ if (mode) {
   process.exit(0);
 }
 
-// sticky(): the group marker, the kernel and one class per inset (a lone number is a spacing step)
+// sticky(): the kernel, the group marker and one class per inset (a lone number is a spacing step)
 const [, bar] = /export const bar = "([^"]+)";/.exec(transformed) ?? [];
-assert.match(bar, /^_g-stuck _stuck-core _\w+$/);
+assert.match(bar, /^_stuck-core _g-stuck _\w+$/);
 const rule = (cls) => new RegExp(`\\.${cls}\\{([^}]*)\\}`).exec(css)?.[1];
 assert.equal(rule(bar.split(" ")[2]), "top:0");
 const [, foot] = /export const foot = "([^"]+)";/.exec(transformed) ?? [];
