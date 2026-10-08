@@ -1,11 +1,11 @@
 ---
 # cssints-wpuv
 title: 'Tokens: rem values, timing-function and shadow types, TS2589 on large sets, theme @property leak'
-status: in-progress
+status: completed
 type: feature
 priority: normal
 created_at: 2026-10-08T09:42:20Z
-updated_at: 2026-10-08T11:15:38Z
+updated_at: 2026-10-08T12:32:34Z
 ---
 
 Found by @cssints/tokens (cssints-0gll, repros under "## Engine gaps").
@@ -20,3 +20,11 @@ Found by @cssints/tokens (cssints-0gll, repros under "## Engine gaps").
 - [x] cubicBezier/transition and shadow token types (DTCG has both)
 - [x] cheaper token types for large sets
 - [x] themes register @property only for used tokens
+
+## Summary of Changes
+- rem/em/ch/ex/lh/cap/ic token values: `@property` initial value in px at 16px, the value itself on `:root` (`:where(*)` when not inherited).
+- New token types `easingFunction` (DTCG cubicBezier) and `shadow` (DTCG shadow, `<shadow>#`), `syntax: "*"`.
+- Themes register `@property` only for the tokens a module uses.
+- Hex colour tokens skip the colour grammar walk in the types: Radix light 2.8M -> 31k instantiations (bench/palette.ts).
+- @cssints/tokens regenerated: Open Props rem/ch/em sizes, font sizes, letter spacings; easings, springs and shadows as typed tokens.
+- The agent was cancelled before its last cleanup; an uncommitted lint-only refactor of `inPx` (which broke rem) was discarded, the wayfinder entry and this summary added by the coordinator.
