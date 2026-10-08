@@ -34,6 +34,7 @@ interface Site {
   start: number;
   end: number;
   inFn: boolean;
+  locals: Set<string>;
 }
 interface Instrumented {
   code: string;

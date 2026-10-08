@@ -122,6 +122,7 @@ const boundNames = (id: Node | null, out: Set<string>) => {
   else if (id.type === "ObjectPattern")
     id.properties.forEach((p) => boundNames(p.type === "Property" ? p.value : p.argument, out));
   else if (id.type === "AssignmentPattern") boundNames(id.left, out);
+  else if (id.type === "RestElement") boundNames(id.argument, out);
 };
 function withConditions(
   program: Program,
@@ -164,12 +165,37 @@ export interface Site {
   start: number;
   end: number;
   inFn: boolean;
+  // Names declared by the functions and blocks around the site: a runtime value, whatever a global or a module says
+  locals: Set<string>;
 }
+
+const declsOf = (stmts: Node[], out: Set<string>) =>
+  stmts.forEach((s) => {
+    if (s.type === "VariableDeclaration") s.declarations.forEach((d) => boundNames(d.id, out));
+    else if ((s.type === "FunctionDeclaration" || s.type === "ClassDeclaration") && s.id)
+      out.add(s.id.name);
+  });
+// What a node declares for the code inside it: parameters, the let/const/class/function of a block, a loop head, a catch.
+const declares = (n: Node, out: Set<string>) => {
+  if (
+    n.type === "ArrowFunctionExpression" ||
+    n.type === "FunctionExpression" ||
+    n.type === "FunctionDeclaration"
+  ) {
+    n.params.forEach((p) => boundNames(p, out));
+    if (n.type === "FunctionExpression" && n.id) out.add(n.id.name);
+  } else if (n.type === "BlockStatement" || n.type === "StaticBlock") declsOf(n.body, out);
+  else if (n.type === "SwitchCase") declsOf(n.consequent, out);
+  else if (n.type === "ForStatement" && n.init) declsOf([n.init], out);
+  else if (n.type === "ForInStatement" || n.type === "ForOfStatement") declsOf([n.left], out);
+  else if (n.type === "CatchClause") boundNames(n.param, out);
+};
 
 // Maximal css-rooted call expressions, with whether they sit inside a function body. A plain walk over the AST:
 // it runs for every module twice (ssr, client), inside the `instrument` boundary.
 function findSites(program: Program, locals: Set<string>): Site[] {
   const sites: Site[] = [];
+  const scopes = [new Set<string>()]; // innermost last
   const walk = (node: unknown, inFn: boolean) => {
     if (!Predicate.isObject(node) || typeof node.type !== "string") return;
     const n = node as unknown as Node;
@@ -178,15 +204,21 @@ function findSites(program: Program, locals: Set<string>): Site[] {
       (n.type === "CallExpression" || n.type === "NewExpression") &&
       locals.has(rootIdent(n.callee) ?? "")
     ) {
-      sites.push({ start: n.start, end: n.end, inFn });
+      sites.push({ start: n.start, end: n.end, inFn, locals: scopes[scopes.length - 1]! });
       return; // nested css calls are evaluated as part of this one
     }
     const fn = inFn || /Function/.test(n.type);
+    const own = new Set<string>();
+    declares(n, own);
+    scopes.push(
+      own.size ? new Set([...scopes[scopes.length - 1]!, ...own]) : scopes[scopes.length - 1]!,
+    );
     for (const k in node) {
       const v = node[k];
       if (Array.isArray(v)) v.forEach((c) => walk(c, fn));
       else if (Predicate.isObject(v) && "type" in v) walk(v, fn);
     }
+    scopes.pop();
   };
   walk(program, false);
   return sites;
@@ -217,8 +249,15 @@ export const instrument = Effect.fn("cssints.instrument")(function* (
     // A top-level site the load did not reach (`false && p(4)`, a branch not taken) goes there too, for the
     // module bindings; `__unseen` skips the ones that ran.
     const expr = code.slice(s.start, s.end);
-    if (s.inFn) hoisted.push(`${site}${expr});`);
-    else {
+    if (s.inFn) {
+      // A local the site names stays in the temporal dead zone there: reading it is a located error, never the
+      // global (`open`, `name`: the evaluator's window) or the module binding of the same name.
+      const names = new Set(expr.match(/[\p{L}\p{N}_$]+/gu));
+      const dead = [...s.locals].filter((x) => names.has(x));
+      hoisted.push(
+        dead.length ? `{ ${site}${expr}); let ${dead.join(", ")}; }` : `${site}${expr});`,
+      );
+    } else {
       ms.prependLeft(s.start, site).appendRight(s.end, ")");
       hoisted.push(`__unseen(${file}, ${n}) && ${site}${expr});`);
     }

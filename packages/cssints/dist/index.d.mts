@@ -18,7 +18,7 @@ export declare class CSSAtRuleValue extends CSSStyleValue {
   toString(): string;
 }
 export declare const keyframes: (steps: unknown) => CSSAtRuleValue;
-export declare const positionTry: (...args: unknown[]) => CssNode | CSSAtRuleValue;
+export declare const positionTry: (...args: unknown[]) => CSSAtRuleValue | CssNode;
 export declare const cn: (...args: unknown[]) => CssNode;
 export declare const flex: (...args: unknown[]) => CssNode;
 export declare const grid: (...args: unknown[]) => CssNode;
