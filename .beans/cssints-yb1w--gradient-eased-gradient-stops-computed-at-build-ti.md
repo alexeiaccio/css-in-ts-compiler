@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: high
 created_at: 2026-10-08T08:55:57Z
-updated_at: 2026-10-08T09:03:02Z
+updated_at: 2026-10-08T09:16:15Z
 parent: cssints-dk1q
 ---
 
@@ -21,6 +21,6 @@ Value member `gradient(kind, direction, from, to, { easing?, steps? })` that exp
 - `{ args: [...], value }`; easing is a cubic-bezier or a named one from the easings tokens; stops sampled at build time via culori or texel/color (both starred: https://github.com/Evercoder/culori, https://github.com/texel-org/color).
 
 ## Todo
-- [ ] stop sampling + oklab interpolation
-- [ ] value member, Typed OM image result
+- [x] stop sampling + oklab interpolation
+- [x] value member, Typed OM image result
 - [ ] fixture
