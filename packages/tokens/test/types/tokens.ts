@@ -33,9 +33,9 @@ export const a = [
   boxShadow(op.shadows.shadow2),
   boxShadow(op.shadowsDark.innerShadow1),
   transitionTimingFunction(op.easings.easeElasticInOut3),
+  transitionTimingFunction(op.easings.easeSpring3),
+  transitionTimingFunction(op.easings.easeBounce5),
 ];
-// @ts-expect-error engine gap (README "Limits"): the types take linear() up to 9 stops, the build takes this one
-export const e0 = transitionTimingFunction(op.easings.easeSpring3);
 // @ts-expect-error a colour is not a length
 export const e1 = padding(o.blue._7);
 // @ts-expect-error no such step

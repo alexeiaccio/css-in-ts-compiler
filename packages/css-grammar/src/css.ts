@@ -273,10 +273,12 @@ type Star<X, S extends string, P extends boolean, D extends any[] = []> = {
   next: S | Star<X, Consume<X, S, P>, P, [...D, 0]>;
 }[D extends Full ? "done" : "next"];
 
-type ListRest<X, R extends string, P extends boolean, D extends any[] = []> = {
-  done: R;
-  next: R | (AfterComma<R, P> extends infer Q extends string ? ([Q] extends [never] ? never : ListRest<X, Consume<X, Q, P>, P, [...D, 0]>) : never);
-}[D extends Full ? "done" : "next"];
+// A `#` list has no depth cap, like the twin: it goes on with the remainders not seen yet (Acc), which are suffixes of
+// the value, so it ends. Tail-recursive, so a long list (linear() with 44 stops) stays under TS2589.
+type ListRest<X, R, P extends boolean, Acc = never> =
+  (R extends string ? AfterComma<R, P> : never) extends infer Q extends string
+    ? ([Q] extends [never] ? Acc | R : ListRest<X, Exclude<Consume<X, Q, P>, Acc | R>, P, Acc | R>)
+    : never;
 
 type Digits = { "0": []; "1": [0]; "2": [0, 0]; "3": [0, 0, 0]; "4": [0, 0, 0, 0]; "5": [0, 0, 0, 0, 0]; "6": [0, 0, 0, 0, 0, 0]; "15": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; "∞": [0, 0, 0, 0, 0, 0, 0, 0] };
 type Rep<X, S extends string, Lo extends string, Hi extends string, P extends boolean> = RepN<X, S, Digits[Lo & keyof Digits], Digits[Hi & keyof Digits], [], P>;

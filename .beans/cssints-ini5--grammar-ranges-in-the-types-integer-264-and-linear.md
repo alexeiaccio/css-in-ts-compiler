@@ -5,7 +5,7 @@ status: in-progress
 type: bug
 priority: low
 created_at: 2026-10-08T09:42:20Z
-updated_at: 2026-10-08T10:02:47Z
+updated_at: 2026-10-08T10:39:16Z
 ---
 
 Found by gradient() and tokens (cssints-yb1w, cssints-0gll; repros under "## Engine gaps").
@@ -15,4 +15,4 @@ Found by gradient() and tokens (cssints-yb1w, cssints-0gll; repros under "## Eng
 
 ## Todo
 - [ ] ranges on integer/number parts in the type-level recognizer, within the budget
-- [ ] linear() repetition in the types without a fixed limit
+- [x] linear() repetition in the types without a fixed limit
