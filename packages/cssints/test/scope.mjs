@@ -268,6 +268,59 @@ await kernelFails(
   `[css.marginLeft("1px"), css.marginInlineStart("1px")]`,
   /^cssints: margin-left and margin-inline-start overlap without one containing the other/,
 );
+await kernelFails(
+  "nest",
+  `css.nest("& > [x")(css.color("red"))`,
+  /^cssints: nest\(\): /,
+);
+await kernelFails("own", `css.nest(":hover")(css.color("red"))`, /^cssints: nest\(\) takes a selector that starts with & and a combinator/);
+await kernelFails("var", `css.vars({ gap: "1rem" })`, /^cssints: vars\(\) takes/);
+
+// a kernel written as styles reaches other elements (nest), sets custom properties (vars) and carries a keyframes() name;
+// neither a nested rule nor a custom property is a property of the element, so derived conflicts leave them out
+write(
+  "sc-nest.ts",
+  `import { keyframes, opacity } from "cssints" with { type: "cssints" };
+import { scope } from "cssints/plugin";
+const fade = keyframes({ from: opacity(0) });
+export const { m } = scope("sc-nest", {
+  core: {
+    css: (css) => [
+      css.vars({ "--_gap": "1rem", "--_kf": fade }),
+      css.display("flex"),
+      css.nest("& > * + *")(css.marginTop("var(--_gap)")),
+      css.hover(css.nest("& > *")(css.opacity(0.5))),
+      css.nest("& > *")(css.hover(css.opacity(1))),
+      css.animationName(fade),
+    ],
+  },
+  m: { uses: ["core"], chain: {} },
+}).export();
+`,
+);
+write(
+  "sc-nest-use.ts",
+  `import { cn, margin, opacity } from "cssints" with { type: "cssints" };\nimport { m } from "./sc-nest.ts" with { type: "cssints" };\nexport const a = cn(m(), margin(0), opacity(1));\n`,
+);
+assert.match(await code("sc-nest-use.ts"), /export const a = "_sc-nest-core _\w+ _\w+";/);
+const nested = sheet("sc-nest-use.ts");
+const kf = nested.match(/@keyframes (kf-\w+)\{from\{opacity:0\}\}/)?.[1];
+assert.ok(kf, `the kernel carries the rule of its keyframes() name\n${nested}`);
+assert.ok(
+  nested.includes(
+    `._sc-nest-core{--sc-nest-gap:1rem;--sc-nest-kf:${kf};display:flex;animation-name:${kf}} ._sc-nest-core > * + *{margin-top:var(--sc-nest-gap)} ._sc-nest-core:hover > *{opacity:0.5} ._sc-nest-core > *:hover{opacity:1}`,
+  ),
+  nested,
+);
+await fails(
+  write(
+    "sc-nest-conflict.ts",
+    `import { cn, display } from "cssints" with { type: "cssints" };\nimport { m } from "./sc-nest.ts" with { type: "cssints" };\nexport const a = cn(m(), display("block"));\n`,
+  ),
+  /^cssints: sc-nest: kernel core sets display, animation-name \(this style also sets display\)$/,
+  3,
+  "sc-nest",
+);
 
 // the definition: names, entries
 const defs = (name, table = "{}") =>

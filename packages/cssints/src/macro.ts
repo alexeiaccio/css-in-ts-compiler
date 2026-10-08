@@ -150,13 +150,18 @@ const blockOf = (what: string, style: unknown, allowed?: RegExp): string => {
 };
 
 // The declarations of a block, checked like a class's (grammar, prose rules, support). A block is a style of member
-// calls, plain declarations only; a kernel's block (`conditions`) may hold conditions too.
+// calls, plain declarations only; a kernel's block (`conditions`) may hold conditions too, and keyframes() and positionTry()
+// names, whose at-rules go with the kernel.
 const declsOf = (what: string, style: CssNode, conditions: boolean, allowed?: RegExp) => {
   if (!style.__cssints.length)
     throw fail(
       `cssints: ${what} takes css.* declarations (a member call or cn(...)), got ${Formatter.formatJson(style)}`,
     );
-  if (style.markers || style.kernels || style.plugs)
+  if (
+    style.markers ||
+    style.plugs ||
+    (style.kernels && !(conditions && style.kernels.every((k) => k.key.startsWith("@"))))
+  )
     throw fail(`cssints: ${what} takes plain declarations: no marker class or kernel of a member`);
   for (const d of style.__cssints) {
     const [prop, , conds, fallbacks] = d;
@@ -335,6 +340,42 @@ const within = (state?: unknown, name?: unknown) => {
   });
 };
 
+// The two members only a kernel written as styles has (scope-engine.ts hands it `kernelCss`).
+// nest("& > *"): the styles on other elements, relative to the kernel's class. It sorts after the element's own states.
+const nest = (...args: unknown[]) => {
+  const [selector] = args;
+  if (typeof selector !== "string" || !/^&\s*[>+~\s]/.test(selector))
+    throw fail(
+      `cssints: nest() takes a selector that starts with & and a combinator ("& > *", "& > * + *", "& p"), got ${Formatter.formatJson(selector)}`,
+    );
+  const text = selector.trim().replace(/\s+/g, " ");
+  const exit = Effect.runSyncExit(checkSelector(`._${text.slice(1)}`));
+  if (Exit.isFailure(exit)) {
+    const e = Cause.squash(exit.cause) as Error;
+    throw new MacroError({ message: `cssints: nest(): ${e.message}`, cause: e, ...registry.at });
+  }
+  return wrapper({ text, rank: 3000, nest: true });
+};
+
+// vars({ "--_gap": "1rem" }): custom properties, values unchecked as in a chain's `emit`. A keyframes() or positionTry()
+// name is a value too, and its at-rule goes with the kernel.
+const vars = (...args: unknown[]) => {
+  const [set] = args;
+  const entries = Predicate.isObject(set) ? Object.entries(set) : [];
+  const bad = entries.find(
+    ([k, v]) =>
+      !/^--[\w-]+$/.test(k) ||
+      !(typeof v === "string" || typeof v === "number" || v instanceof CSSStyleValue),
+  );
+  if (!entries.length || bad)
+    throw fail(
+      `cssints: vars() takes { "--_name": value }, values strings, numbers or Typed OM values, got ${Formatter.formatJson(bad ?? set)}`,
+    );
+  // oxlint-disable-next-line typescript/no-base-to-string -- strings, numbers and CSSStyleValues, which override toString
+  const decls: Decl[] = entries.map(([k, v]) => [k, String(v)]);
+  return node(decls, { kernels: kernelsOf(entries.map(([, v]) => v)) });
+};
+
 // global(selector, ...styles): a rule with no class, in the sheet of the module that calls it (layer _.k, after the
 // kernels and before the themes). The declarations are merged like cn(), the later of one property wins. Conditions
 // that wrap the rule (media, container, supports) are allowed; a state belongs in the selector.
@@ -442,7 +483,8 @@ const ruleOf = (cls: string, [prop, value, conds = [], fallbacks]: Decl): Rule =
   const wrap: string[] = [];
   const ranks: number[] = [];
   let before = "";
-  let pseudo = "";
+  // the class, then the states and the nested selectors in the order they wrap: `.k:hover > *`, `.k > *:hover`
+  const sel = [`.${cls}`];
   let width = 0;
   for (const c of conds)
     if (c.text.startsWith("@")) {
@@ -450,7 +492,7 @@ const ruleOf = (cls: string, [prop, value, conds = [], fallbacks]: Decl): Rule =
       width = Math.max(width, c.rank);
     } else {
       if (c.ancestor) before += `${c.text} `;
-      else pseudo += c.text;
+      else sel.push(c.nest ? c.text.slice(1) : c.text);
       ranks.push(c.rank);
     }
   const all = fallbacks ? `${value};${fallbacks.join(";")}` : value;
@@ -460,25 +502,33 @@ const ruleOf = (cls: string, [prop, value, conds = [], fallbacks]: Decl): Rule =
     cond: conds.length ? [width, ...ranks] : [],
     wrap,
     prop,
-    css: `${before}.${cls}${pseudo}{${fallbacks ? [...fallbacks.toReversed(), value].map((v) => `${prop}:${v}`).join(";") : `${prop}:${value}`}}`,
+    css: `${before}${sel.join("")}{${fallbacks ? [...fallbacks.toReversed(), value].map((v) => `${prop}:${v}`).join(";") : `${prop}:${value}`}}`,
     tokens,
   };
 };
 
 // A kernel written as styles: its rules under the class `cls`, in the order of the sheet (fewer conditions first, then media
 // by width and pseudo-classes by place, a shorthand before its longhands); the declarations of one selector under the same
-// at-rules share a block. `props` are the properties it sets, for the conflicts a member derives from them.
+// at-rules share a block. `props` are the properties it sets on the element, for the conflicts a member derives from them:
+// not its custom properties, nor what a `nest()` sets on other elements. `kernels` are the at-rules of the names it holds.
 const kernelOf = (what: string, style: CssNode, cls: string) => {
   const decls = declsOf(what, style, true);
-  const blocks: { wrap: string[]; selector: string; body: string[] }[] = [];
+  type Block = { wrap: string[]; selector: string; body: string[] };
+  const blocks: Block[] = [];
+  // a block per selector under the same conditions (sorted, so they are a run): two nest() selectors of one rank share one
+  const open = new Map<string, Block>();
   for (const r of decls.map((d) => ({ cls, ...ruleOf(cls, d) })).sort(byOrder)) {
-    const open = r.css.indexOf("{");
-    const selector = r.css.slice(0, open);
-    const last = blocks.at(-1);
-    const body = r.css.slice(open + 1, -1);
-    if (last && last.selector === selector && last.wrap.join("{") === r.wrap.join("{"))
-      last.body.push(body);
-    else blocks.push({ wrap: r.wrap, selector, body: [body] });
+    const brace = r.css.indexOf("{");
+    const selector = r.css.slice(0, brace);
+    const body = r.css.slice(brace + 1, -1);
+    const key = `${r.layer}|${r.cond.join()}|${r.wrap.join("{")}|${selector}`;
+    const block = open.get(key);
+    if (block) block.body.push(body);
+    else {
+      const b = { wrap: r.wrap, selector, body: [body] };
+      blocks.push(b);
+      open.set(key, b);
+    }
   }
   return {
     css: blocks
@@ -486,7 +536,14 @@ const kernelOf = (what: string, style: CssNode, cls: string) => {
         b.wrap.reduceRight((css, w) => `${w}{${css}}`, `${b.selector}{${b.body.join(";")}}`),
       )
       .join(" "),
-    props: [...new Set(decls.map(([prop]) => prop))],
+    props: [
+      ...new Set(
+        decls.flatMap(([prop, , conds]) =>
+          prop.startsWith("--") || conds?.some((c) => c.nest) ? [] : [prop],
+        ),
+      ),
+    ],
+    kernels: style.kernels,
   };
 };
 
@@ -721,7 +778,11 @@ export const css = new Proxy(named, {
   get: (t, k) => (Object.hasOwn(t, k) ? t[k as string] : member(String(k))),
 });
 named.css = css;
-registry.lib = { css, kernelOf };
+const kernelCss = new Proxy(
+  { ...named, nest, vars },
+  { get: (t, k) => (Object.hasOwn(t, k) ? t[k as keyof typeof t] : member(String(k))) },
+);
+registry.lib = { css: kernelCss, kernelOf };
 registry.engine = engine;
 
 // A condition, or a tuple or an object of them, held in a variable (`const [md, lg] = css.media(a, b)`): nothing of it

@@ -55,6 +55,14 @@ const x = scope("x", {
       css.hover(css.color("red")),
       css.media("(width >= 40rem)")(css.padding("1rem")),
       css.attr("aria-current", "page")(css.color("blue")),
+      // other elements, custom properties (a keyframes() name among the values)
+      css.nest("& > * + *")(css.marginTop("var(--_gap)")),
+      css.nest("&>:last-child")(css.hover(css.color("red"))),
+      css.vars({ "--_gap": "1rem", "--_n": 1, "--_kf": css.keyframes({ from: css.opacity(0) }) }),
+      // @ts-expect-error -- a nest() selector starts with & and a combinator
+      css.nest(":hover")(css.color("red")),
+      // @ts-expect-error -- vars() takes custom properties
+      css.vars({ gap: "1rem" }),
     ],
   },
   tint: {
