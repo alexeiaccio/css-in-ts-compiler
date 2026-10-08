@@ -1,6 +1,6 @@
 // @cssints/masonry through the engine: the kernel and its method classes, the columns fallback for targets that lack grid
-// lanes (and none for targets that have them), conflicts, the grammar of the methods, the grammar gap that makes the
-// kernel raw CSS, and a build (LightningCSS keeps `display: grid-lanes`). Run: node test/masonry.mjs
+// lanes (and none for targets that have them), derived conflicts, the grammar of the methods, `display: grid-lanes` as a
+// user's declaration, and a build (LightningCSS keeps `display: grid-lanes`). Run: node test/masonry.mjs
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 
@@ -33,10 +33,10 @@ const failure = async (f) => {
 const transformed = await code("use.ts");
 const css = sheet("use.ts").replace(/\s+/g, " ");
 const kernel =
-  "._masonry-lanes{--masonry-min:16rem;--masonry-gap:1rem;display:grid-lanes;grid-template-columns:repeat(auto-fill,minmax(min(var(--masonry-min),100%),1fr));gap:var(--masonry-gap)}";
+  "._masonry-lanes{columns:var(--masonry-min);gap:var(--masonry-gap);--masonry-min:16rem;--masonry-gap:1rem;display:grid-lanes;grid-template-columns:repeat(auto-fill,minmax(min(var(--masonry-min),100%),1fr))}";
 const fallback =
-  "@supports not (display:grid-lanes){._masonry-lanes{columns:var(--masonry-min)}._masonry-lanes>*{display:inline-block;inline-size:100%;vertical-align:top;break-inside:avoid;margin-block-end:var(--masonry-gap)}}";
-// the fallback is a runtime of CSS only: it covers the kernel's requires for every target, so no warning
+  "@supports not (display:grid-lanes){._masonry-lanes>*{display:inline-block;inline-size:100%;vertical-align:top;break-inside:avoid;margin-block-end:var(--masonry-gap)}}";
+// the fallback is a runtime of CSS only: it covers the support warning of the kernel's display for every target
 assert.ok(!warnings.some((w) => w.includes("grid-lanes")), warnings.join("\n"));
 assert.ok(css.includes(kernel), css);
 
@@ -61,15 +61,17 @@ assert.deepEqual(
 assert.equal(rule(classes("tokens")[1]), "--masonry-gap:var(--space-md)");
 assert.match(css, /@layer _\.b \{ @media \(width >= 40rem\) \{ \._\w+\{--masonry-min:20rem\}/);
 
-// conflicts: display, the grid columns, the gap and its longhands, the multi-column properties
+// derived conflicts: display, the grid columns, the gap and its longhands, the multi-column properties
 let e = await failure("conflict.ts");
 assert.equal(
   e.message,
-  "cssints: masonry: masonry() sets display, the columns and the gap: use its methods (this style also sets display)",
+  "cssints: masonry: kernel lanes sets display, grid-template-columns, gap, columns (this style also sets display)",
 );
 assert.deepEqual({ line: e.loc?.line, column: e.loc?.column }, { line: 4, column: 17 });
 e = await failure("conflict-gap.ts");
 assert.match(e.message, /\(this style also sets row-gap\)$/);
+e = await failure("conflict-columns.ts");
+assert.match(e.message, /\(this style also sets column-count\)$/);
 
 // the grammar of the methods, and a method used once
 e = await failure("bad-columns.ts");
@@ -77,10 +79,13 @@ assert.match(e.message, /^masonry\.columns: unexpected "50%" in "50%", expected 
 e = await failure("twice.ts");
 assert.equal(e.message, "cssints: masonry().gap() is used twice");
 
-// engine gap: the grammar has no `display: grid-lanes`, which is why the kernel is raw CSS. When this passes, write the
-// kernel as styles and drop the conflicts entry.
-e = await failure("gap-display.ts");
-assert.match(e.message, /^display: unexpected "grid-lanes" in "grid-lanes"/);
+// a user's `display: grid-lanes` builds, and warns for the default targets: no runtime covers it there
+await code("display.ts");
+assert.match(sheet("display.ts"), /display:grid-lanes/);
+assert.ok(
+  warnings.some((w) => w.includes("(css.properties.display.grid-lanes)")),
+  warnings.join("\n"),
+);
 await server.close();
 
 // a build: LightningCSS keeps the value it does not know
