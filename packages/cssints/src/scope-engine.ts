@@ -3,6 +3,7 @@
 import { checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { properties } from "@cssints/css-grammar/mdn";
 import { checkSelectorNow } from "@cssints/css-grammar/selector";
+import { lackingOf } from "@cssints/css-grammar/support";
 import { grammarOf } from "@cssints/css-grammar/token";
 import { CSSStyleValue } from "@cssints/css-grammar/values";
 import { Result } from "effect";
@@ -139,7 +140,7 @@ export const valueOf = (
     : args.join(" ");
 };
 
-// What a plugin's callback (`build`, `value`) throws is a failure at the call site, as a grammar error is.
+// What a plugin's callback (`build`, `value`, `emit`, a kernel's styles) throws is a failure at the call site, as a grammar error is.
 export const ran = <T>(plugin: string, run: () => T) =>
   Result.getOrThrowWith(
     Result.try({
@@ -451,7 +452,8 @@ const chainOf = (c: Compiler, key: string, def: ChainDef) => {
       }
       const taken = new Map(used).set(m, m);
       for (const x of meth.excludes ?? []) taken.set(x, m);
-      return node([...self.__cssints, ...ownDecls(c, meth.emit(value))], self, next(taken));
+      const emitted = ran(name, () => meth.emit(value));
+      return node([...self.__cssints, ...ownDecls(c, emitted)], self, next(taken));
     };
   return () =>
     node([], (base ??= grouped(c, def, def.uses ? c.carry(def.uses) : {})), next(new Map()));
@@ -621,5 +623,10 @@ export function scope(name: string, table: Dict<unknown>): unknown {
   return s;
 }
 
+// The targets that lack any of `keys`, by the rules of the support warnings.
+const lacking = (keys: readonly string[]): string[] => [
+  ...new Set(keys.flatMap((k) => lackingOf(k).map((t) => t.join(" ")))),
+];
+
 /** What the front (scope.ts) calls; macro.ts puts it in the registry. */
-export const engine = { scope };
+export const engine = { scope, lacking };

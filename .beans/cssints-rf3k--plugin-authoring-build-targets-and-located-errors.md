@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: low
 created_at: 2026-10-08T14:10:21Z
-updated_at: 2026-10-08T15:38:07Z
+updated_at: 2026-10-08T15:48:22Z
 ---
 
 Found by stuck (cssints-z1hd, repros under "## Engine gaps").
@@ -14,5 +14,5 @@ Found by stuck (cssints-z1hd, repros under "## Engine gaps").
 
 ## Todo
 - [ ] expose `lacking(keys)` (the targets that lack a BCD key) on the build context of `build()`/`value`
-- [ ] errors thrown from a member's own code keep the call site
+- [x] errors thrown from a member's own code keep the call site
 - [ ] drop stuck's css-grammar dependency

@@ -525,6 +525,7 @@ export interface Pending<N extends string, T> {
 /** What the engine gives the front, loosely typed (the types are the signatures of the front). */
 export interface Engine {
   scope(name: string, table: object): unknown;
+  lacking(keys: readonly string[]): string[];
 }
 /** The engine, once the library is loaded (the prepended import of every module with sites loads it before any plugin module runs). */
 export const engine = (): Engine => {
@@ -549,3 +550,9 @@ export function scope<const N extends string, const T extends Table>(
 export function scope(name: string, table: object): unknown {
   return engine().scope(name, table);
 }
+
+/**
+ * The build's targets that lack one of the BCD keys, as browserslist names them (`["firefox 140"]`), by the rules of the
+ * support warnings (`partial_implementation` lacks); empty when every target has them all. Build time, like `scope()`.
+ */
+export const lacking = (...keys: BcdKey[]): string[] => engine().lacking(keys);
