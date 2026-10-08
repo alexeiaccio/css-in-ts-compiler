@@ -72,6 +72,14 @@ const plainCode = [
   // @cssints/icons and @cssints/mise-en-mode: sync scope() members, which user code calls in an expression.
   "packages/icons/src/**",
   "packages/mise-en-mode/src/**",
+  // The tier-1 plugin packages (cssints-dk1q): sync scope() members, like icons' and mise-en-mode's.
+  "packages/fluid/src/**",
+  "packages/layout/src/**",
+  "packages/fonts/src/**",
+  "packages/reset/src/**",
+  "packages/tokens/src/**",
+  "packages/gradient/src/**",
+  "packages/motion/src/**",
   // The apps are plain Solid and React; the tests, benches and generator scripts are node scripts.
   "apps/**",
   "**/test/**",
