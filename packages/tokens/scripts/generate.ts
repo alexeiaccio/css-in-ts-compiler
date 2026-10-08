@@ -17,45 +17,40 @@ const FLEXOKI = "8d723bac4a9ac46adfdf99d42155286977aac72a";
 
 const require = createRequire(import.meta.url);
 const src = `${import.meta.dirname}/../src`;
-const version = (pkg: string): string =>
+const version = (pkg: string) =>
   (JSON.parse(readFileSync(require.resolve(`${pkg}/package.json`), "utf8")) as { version: string })
     .version;
-const fetchText = async (url: string): Promise<string> => {
+const fetchText = async (url: string) => {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url}: ${res.status}`);
   return res.text();
 };
 
-type Group = Record<string, unknown>;
-const leaves = (type: string, entries: [string, string | number][]): Group => ({
+type Json = string | number | { readonly [key: string]: Json };
+type Group = Record<string, Json>;
+const leaves = (type: string, entries: [string, string | number][]) => ({
   $type: type,
   ...Object.fromEntries(entries.map(([k, v]) => [k, { $value: v }])),
 });
-const camel = (s: string): string => s.replace(/-([a-z0-9])/g, (_, c: string) => c.toUpperCase());
-const tidy = (v: string): string =>
-  v.replace(/\s+/g, " ").replace(/\( /g, "(").replace(/ \)/g, ")").trim();
+const camel = (s: string) => s.replace(/-([a-z0-9])/g, (_, c: string) => c.toUpperCase());
+const tidy = (v: string) => v.replace(/\s+/g, " ").replace(/\( /g, "(").replace(/ \)/g, ")").trim();
 // open-props states some sizes in rem, which an @property initial value cannot hold: 16px to the rem.
-const px = (v: string): string =>
-  v.replace(/(-?[\d.]+)rem\b/g, (_, n: string) => `${Number(n) * 16}px`);
+const px = (v: string) => v.replace(/(-?[\d.]+)rem\b/g, (_, n: string) => `${Number(n) * 16}px`);
 // The entries of a `--prefix-key: value` record whose key is a plain step (no `-fluid-`, `-content-` ...), prefix removed.
-const steps = (
-  props: Record<string, string>,
-  prefix: string,
-  key = /^[\w]+$/,
-): [string, string][] =>
+const steps = (props: Record<string, string>, prefix: string, key = /^[\w]+$/) =>
   Object.entries(props).flatMap(([name, v]) => {
     const k = name.slice(prefix.length);
-    return name.startsWith(prefix) && key.test(k) ? [[k, v]] : [];
+    return name.startsWith(prefix) && key.test(k) ? [[k, v] as [string, string]] : [];
   });
 // JSON with `$type` first (an integer-like key such as "1" would otherwise come before it).
-const print = (v: unknown): string => {
-  if (typeof v !== "object" || v === null) return JSON.stringify(v);
+const print: (v: Json) => string = (v) => {
+  if (typeof v !== "object") return JSON.stringify(v);
   const entries = Object.entries(v).sort(
     ([a], [b]) => Number(b === "$type") - Number(a === "$type"),
   );
   return `{${entries.map(([k, x]) => `${JSON.stringify(k)}:${print(x)}`).join(",")}}`;
 };
-const write = (file: string, header: string, exports: Record<string, unknown>): void => {
+const write = (file: string, header: string, exports: Group) => {
   const body = Object.entries(exports)
     .map(([name, value]) => `export const ${name} = ${print(value)} as const;\n`)
     .join("\n");
@@ -94,17 +89,18 @@ const write = (file: string, header: string, exports: Record<string, unknown>): 
   );
   // No token type holds a timing function or a shadow: these are CSS strings (README, "Limits").
   const ease = opEasing as Record<string, string>;
-  const resolve = (v: string): string =>
-    tidy(v).replace(/^var\((--[\w-]+)\)$/, (_, ref: string) => resolve(ease[ref]!));
+  // an alias (`--ease-elastic-1: var(--ease-elastic-out-1)`) is its target, a literal
+  const resolve = (v: string) =>
+    tidy(v.replace(/^var\((--[\w-]+)\)$/, (_, ref: string) => ease[ref]!));
   const easings = Object.fromEntries(
     Object.entries(ease).map(([name, v]) => [camel(name.slice(2)), resolve(v)]),
   );
   // The shadows read --shadow-color and --shadow-strength(-N); they are resolved here, light and dark.
-  const shadowSet = (dark: boolean): Record<string, string> => {
+  const shadowSet = (dark: boolean) => {
     const props = opShadows as Record<string, string>;
-    const pick = (name: string): string => props[dark ? `${name}-@media:dark` : name]!;
+    const pick = (name: string) => props[dark ? `${name}-@media:dark` : name]!;
     const strength = Number.parseFloat(pick("--shadow-strength"));
-    const value = (ref: string): string => {
+    const value = (ref: string) => {
       if (ref === "--shadow-color") return pick(ref);
       if (ref === "--shadow-strength") return `${strength}%`;
       const add = /calc\(var\(--shadow-strength\) \+ (\d+)%\)/.exec(props[ref] ?? "");
@@ -155,14 +151,14 @@ const write = (file: string, header: string, exports: Record<string, unknown>): 
     (k) => /^[a-z]+$/.test(k) && k !== "default" && r[`${k}Dark`],
   );
   // `blue1` .. `blue12` (or `blueA1`) to the step
-  const stepsOf = (scale: Record<string, string>): [string, string][] =>
-    Object.entries(scale).map(([k, v]) => [/\d+$/.exec(k)![0], v]);
+  const stepsOf = (scale: Record<string, string>) =>
+    Object.entries(scale).map(([k, v]) => [/\d+$/.exec(k)![0], v] as [string, string]);
   // Solid and alpha scales are separate sets: all of them in one createTokens() call is over TypeScript's instantiation limit.
   const light: Group = {};
   const lightAlpha: Group = {};
   const dark: Group = {};
   const darkAlpha: Group = {};
-  const overrides = (scale: Record<string, string>): Group =>
+  const overrides = (scale: Record<string, string>) =>
     Object.fromEntries(stepsOf(scale).map(([k, v]) => [`_${k}`, v]));
   for (const s of scales) {
     light[s] = leaves("color", stepsOf(r[s]!));
