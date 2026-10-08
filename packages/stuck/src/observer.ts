@@ -7,10 +7,14 @@
 const SIDES = ["top", "right", "bottom", "left"] as const;
 const watched = new Map<Element, IntersectionObserver>();
 
+// the nearest ancestor below <body> that clips its overflow (the scroll container), else null: the viewport
 const scroller = (el: Element) => {
-  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement)
-    if (/auto|scroll|hidden|overlay/.test(getComputedStyle(p).overflow)) return p;
-  return null;
+  const up = [el];
+  while (up.at(-1)!.parentElement) up.push(up.at(-1)!.parentElement!);
+  return (
+    up.slice(1, -2).find((p) => /auto|scroll|hidden|overlay/.test(getComputedStyle(p).overflow)) ??
+    null
+  );
 };
 
 const watch = (el: Element) => {

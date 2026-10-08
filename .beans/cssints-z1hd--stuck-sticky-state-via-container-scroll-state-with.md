@@ -1,11 +1,11 @@
 ---
 # cssints-z1hd
 title: 'stuck(): sticky state via @container scroll-state() with an observer fallback'
-status: in-progress
+status: completed
 type: feature
 priority: normal
 created_at: 2026-10-08T08:55:57Z
-updated_at: 2026-10-08T13:58:03Z
+updated_at: 2026-10-08T14:00:20Z
 parent: cssints-dk1q
 ---
 
@@ -39,3 +39,12 @@ A condition-like member `stuck(styles)` that applies styles when a sticky elemen
 4. **A plugin cannot read the build's targets.** Nothing in `cssints/plugin` says whether a target lacks a feature.
    Workaround: `lackingOf` from `@cssints/css-grammar/support` (a dependency), so `stuck()` emits its fallback rules only when a target lacks scroll-state queries.
 5. **An error thrown by a plain exported function has no location.** `stuck("middle")` throws `new Error("cssints: stuck: ...")`; the build error has the message but no `loc` (`MemberError`/`failIn` are not exported to plugins). The types reject it first.
+
+## Summary of Changes
+
+New package packages/stuck (@cssints/stuck):
+- `sticky()`: a chain member (top/right/bottom/left, `<length-percentage>`, spacing steps) over the raw kernel `._stuck-core{position:sticky;container-type:scroll-state}` (requires scroll-state queries), with conflicts on position/container/container-type and the group marker `_g-stuck`.
+- `stuck(...styles)` / `stuck(side)(...styles)`: `@container scroll-state(stuck: <side>)` for descendants, plus `:where(._g-stuck[data-stuck~="<side>"]) ._x` rules only when a browserslist target lacks the queries.
+- `@cssints/stuck/observer`: the fallback, ~1.35 kB minified, no imports; one IntersectionObserver per sticky element (root shrunk by the insets + 1px), sets data-stuck; off where CSS.supports says scroll-state is there.
+- Tests: test/stuck.mjs (output, native-only and lacking targets, empty runtime module, errors, observer size), test/types/stuck.ts, test/browsers.mjs (Chrome native and observer, Firefox, WebKit, with a control). README.
+- Deferred: logical sides, scrollable/snapped queries, following inset changes, tall sticky elements.

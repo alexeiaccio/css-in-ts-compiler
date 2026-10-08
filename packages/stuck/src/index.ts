@@ -55,16 +55,17 @@ type Sticky = typeof member;
 
 // A member cannot carry a group() marker, so the chain is wrapped: each node also holds group("stuck"), which the
 // fallback rules of stuck() read through within().
-const grouped = (n: Style): Style => {
-  const g = cn(group("stuck"), n);
-  return new Proxy(g, {
+// While the module runs a node is an object whose other properties are the chain's methods.
+type Methods = Record<string, (...args: unknown[]) => Style>;
+const grouped = (n: Style) =>
+  new Proxy(cn(group("stuck"), n) as unknown as Methods, {
     get: (t, k) =>
-      typeof k === "symbol" || k in t
-        ? (Reflect.get(t, k) as unknown)
-        : (...args: unknown[]) =>
-            grouped((Reflect.get(n, k) as (...a: unknown[]) => Style)(...args)),
-  });
-};
+      typeof k === "symbol"
+        ? undefined
+        : k in t
+          ? t[k]
+          : (...args: unknown[]) => grouped((n as unknown as Methods)[k]!(...args)),
+  }) as unknown as Style;
 
 /**
  * `sticky().top("0")`: `position: sticky`, `container-type: scroll-state` and the insets of its methods (each once, a
@@ -77,8 +78,8 @@ export const sticky: Sticky = (() => grouped(member())) as unknown as Sticky;
 
 const lacking = lackingOf(QUERIES).length > 0;
 const under =
-  (side: Side): Wrap =>
-  (...styles) =>
+  (side: Side) =>
+  (...styles: Style[]) =>
     cn(
       container(`scroll-state(stuck: ${side})`)(...styles),
       ...(lacking ? [within(attr("data-stuck", side, "~="), "stuck")(...styles)] : []),
