@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-08T08:55:57Z
-updated_at: 2026-10-08T13:43:54Z
+updated_at: 2026-10-08T13:46:26Z
 parent: cssints-dk1q
 ---
 
@@ -21,5 +21,5 @@ parent: cssints-dk1q
 
 ## Todo
 - [x] native kernel
-- [ ] worklet runtime on the plugin runtime delivery
-- [ ] fixture, browser check
+- [x] fallback runtime on the plugin runtime delivery (a CSS mask, not a worklet: see the README)
+- [x] fixture, browser check
