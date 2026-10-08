@@ -258,7 +258,7 @@ export interface Keywords {
   "cursor": K_cursor_predefined;
   "d": { "n": "none" };
   "direction": { "l": "ltr"; "r": "rtl" };
-  "display": { "g": "grid-lanes"; "i": "inline-grid-lanes" } | K_display_box | K_display_inside | K_display_internal | K_display_legacy | K_display_listitem | K_display_outside;
+  "display": { "g": "grid-lanes"; "i": "inline-grid-lanes"; "m": "math" } | K_display_box | K_display_inside | K_display_internal | K_display_legacy | K_display_listitem | K_display_outside;
   "dominant-baseline": { "a": "alphabetic" | "auto"; "c": "central"; "h": "hanging"; "i": "ideographic"; "m": "mathematical" | "middle"; "t": "text-bottom" | "text-top" };
   "dynamic-range-limit": { "c": "constrained"; "n": "no-limit"; "s": "standard" };
   "empty-cells": { "h": "hide"; "s": "show" };

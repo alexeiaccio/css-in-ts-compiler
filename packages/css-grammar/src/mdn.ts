@@ -1,4 +1,4 @@
-// verbatim from mdn-data 2.27.1, plus the numeric ranges it omits, from @webref/css 8.7.5; 45 properties take the @webref/css grammar (webref-properties.json), 5 a hand override (extract.mjs)
+// verbatim from mdn-data 2.27.1, plus the numeric ranges it omits, from @webref/css 8.7.5; 46 properties take the @webref/css grammar (webref-properties.json), 5 a hand override (extract.mjs)
 export const properties = {
   "--*": "<declaration-value>",
   "-webkit-box-reflect": "[ above | below | right | left ]? <length>? <image>?",
@@ -182,7 +182,7 @@ export const properties = {
   cy: "<length-percentage>",
   d: "none | path(<string>)",
   direction: "ltr | rtl",
-  display: "[ <display-outside> || <display-inside> ] | <display-listitem> | <display-internal> | <display-box> | <display-legacy> | grid-lanes | inline-grid-lanes",
+  display: "[ <display-outside> || <display-inside> ] | <display-listitem> | <display-internal> | <display-box> | <display-legacy> | grid-lanes | inline-grid-lanes | <display-outside> || [ <display-inside> | math ]",
   "dominant-baseline": "auto | text-bottom | alphabetic | ideographic | middle | central | mathematical | hanging | text-top",
   "dynamic-range-limit": "standard | no-limit | constrained | <dynamic-range-limit-mix()>",
   "empty-cells": "show | hide",

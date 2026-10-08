@@ -360,7 +360,7 @@ export declare const cy: Prop<"cy">;
 export declare const d: Prop<"d">;
 /** `ltr | rtl`. Chrome 2, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/direction) */
 export declare const direction: Prop<"direction">;
-/** `[ <display-outside> || <display-inside> ] | <display-listitem> | <display-internal> | <display-box> | <display-legacy> | grid-lanes | inline-grid-lanes`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/display) */
+/** `[ <display-outside> || <display-inside> ] | <display-listitem> | <display-internal> | <display-box> | <display-legacy> | grid-lanes | inline-grid-lanes | <display-outside> || [ <display-inside> | math ]`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/display) */
 export declare const display: Prop<"display">;
 /** `auto | text-bottom | alphabetic | ideographic | middle | central | mathematical | hanging | text-top`. Chrome 1, Edge 79, Firefox 1, Safari 4, iOS 3.2, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/dominant-baseline) */
 export declare const dominantBaseline: Prop<"dominant-baseline">;

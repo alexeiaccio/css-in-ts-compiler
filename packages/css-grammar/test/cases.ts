@@ -279,6 +279,7 @@ export const cases = [
   ["display", "-webkit-flex", false],
   ["display", "grid-lanes", true],
   ["display", "inline-grid-lanes", true],
+  ["display", "math", true],
   ["display", "block grid-lanes", false],
   ["flow-tolerance", "normal", true],
   ["flow-tolerance", "1em", true],
