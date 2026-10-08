@@ -163,7 +163,7 @@ export function minWidth(q: string): number {
 // A `var(--name)` written as text (the token itself is what a part should be). One of a declared token is a build warning
 // that names the token to pass; one of no token (a typo), an error. `--_x` is a scope's own custom property.
 const RAW_VAR = /var\(\s*(--[\w-]+)/g;
-export function checkVars(where: string, text: string): void {
+export function checkVars(where: string, text: string) {
   if (!text.includes("var(")) return;
   const { properties, defs, warned, warnings } = registry;
   for (const [, name] of text.matchAll(RAW_VAR)) {

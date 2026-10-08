@@ -27,13 +27,15 @@ class CSSFunctionValue extends CSSStyleValue {
 const MATH = "<number> | <length-percentage> | <angle-percentage> | <time> | <resolution>";
 const OPERATORS = new Set(["+", "-", "*", "/"]);
 
+type Atom = string | number | CSSStyleValue;
+const isGroup = (p: Atom | readonly Atom[]): p is readonly Atom[] => Array.isArray(p);
 type Spec = { sep: string; math?: string };
 
 const build = (member: string, name: string) => {
   const { sep, math } = (functions as Record<string, Spec>)[name]!;
   const grammar = math ? MATH : `<${name}()>`;
-  return (...parts: unknown[]) => {
-    const atom = (p: unknown): string => {
+  return (...parts: (Atom | readonly Atom[])[]) => {
+    const atom = (p: Atom) => {
       if (typeof p === "string") checkVars(`${member}()`, p);
       else if (typeof p !== "number" && !(p instanceof CSSStyleValue))
         throw fail(
@@ -44,7 +46,7 @@ const build = (member: string, name: string) => {
     };
     // var(token, fallback?): the first part is the token's name, not its own var(); an array is one part, joined by a space
     const texts = parts.map((p, i) =>
-      Array.isArray(p)
+      isGroup(p)
         ? p.map(atom).join(" ")
         : name === "var" && !i && p instanceof CSSTokenValue
           ? p.name
@@ -87,6 +89,6 @@ const checkText = (label: string, grammar: string, text: string) => {
 };
 
 /** The members of `css` that are functions, by name. */
-export const fns: Record<string, unknown> = Object.fromEntries(
+export const fns = Object.fromEntries(
   Object.entries(FUNCTIONS).map(([member, name]) => [member, build(member, name)]),
 );

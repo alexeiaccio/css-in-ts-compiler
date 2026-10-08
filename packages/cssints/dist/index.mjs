@@ -497,6 +497,7 @@ const OPERATORS = /* @__PURE__ */ new Set([
 	"*",
 	"/"
 ]);
+const isGroup = (p) => Array.isArray(p);
 const build = (member, name) => {
 	const { sep, math } = functions[name];
 	const grammar = math ? MATH : `<${name}()>`;
@@ -506,7 +507,7 @@ const build = (member, name) => {
 			else if (typeof p !== "number" && !(p instanceof CSSStyleValue)) throw fail(`cssints: ${member}() takes strings, numbers and Typed OM values (tokens, other calls), got ${Formatter.formatJson(p)}`);
 			return String(p);
 		};
-		const texts = parts.map((p, i) => Array.isArray(p) ? p.map(atom).join(" ") : name === "var" && !i && p instanceof CSSTokenValue ? p.name : atom(p));
+		const texts = parts.map((p, i) => isGroup(p) ? p.map(atom).join(" ") : name === "var" && !i && p instanceof CSSTokenValue ? p.name : atom(p));
 		const value = `${name}(${texts.reduce((acc, t, i) => i ? `${acc}${OPERATORS.has(t) || OPERATORS.has(texts[i - 1]) ? " " : sep}${t}` : t, "")})`;
 		const first = parts[0];
 		if (name === "var") {
