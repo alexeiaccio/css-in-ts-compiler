@@ -47,6 +47,11 @@ export const slow = cn(motion().preset("scale-in"), hover(motion().duration("1s"
     }
   }
   ._motion-core {
+    animation: var(--motion-n) var(--motion-d) var(--motion-e) var(--motion-l) both;
+    --motion-in: kf-7f473efd;
+    --motion-out: kf-eaeb1c11;
+    --motion-ri: kf-4f766ef7;
+    --motion-ro: kf-9b622913;
     --motion-n: none;
     --motion-r: none;
     --motion-d: 300ms;
@@ -57,7 +62,6 @@ export const slow = cn(motion().preset("scale-in"), hover(motion().duration("1s"
     --motion-y: 0;
     --motion-s: 1;
     --motion-b: 0;
-    animation: var(--motion-n) var(--motion-d) var(--motion-e) var(--motion-l) both;
   }
   @media (prefers-reduced-motion: reduce) {
     ._motion-core {
@@ -66,11 +70,11 @@ export const slow = cn(motion().preset("scale-in"), hover(motion().duration("1s"
   }
 }
 @layer _.a {
-  ._hb8jg2 {
-    --motion-n: kf-7f473efd;
+  ._13945js {
+    --motion-n: var(--motion-in);
   }
-  ._1gq9p2j {
-    --motion-r: kf-4f766ef7;
+  ._jddydc {
+    --motion-r: var(--motion-ri);
   }
   ._knj5bv {
     --motion-o: 0;
@@ -96,16 +100,18 @@ export const slow = cn(motion().preset("scale-in"), hover(motion().duration("1s"
   runs from those values to the element's own, `-out` from its own to those, and holds the end (`both`). `slide-in-up`
   moves up into place; `slide-out-up` moves up out of it.
 - **The keyframes** are four `keyframes()`: in and out, and their reduced-motion twins that move only the opacity. They
-  read `--motion-*`, so all presets share them.
+  read `--motion-*`, so all presets share them. The kernel is written as styles and names them in `--motion-in`,
+  `--motion-out`, `--motion-ri` and `--motion-ro` (`vars()`), which puts their rules in the sheet with it; a preset picks
+  one (`--motion-n: var(--motion-in)`).
 - **Reduced motion.** Under `prefers-reduced-motion: reduce` the kernel runs the opacity-only keyframes: a slide, scale or
   blur becomes a fade of the same duration, and `animationend` still fires.
 - **No inheritance.** The kernel resets every `--motion-*` on its class, so a motion inside another one starts from its own
   preset, not its parent's.
 - **Conflicts.** `motion()` sets the animation: a `cn()` that holds it and an `animation*` property is a build error,
-  `cssints: motion: motion() sets the animation: use its methods (this style also sets animation-duration)`.
+  derived from the kernel: `cssints: motion: kernel core sets animation, animation-name (this style also sets animation-duration)`.
 - **Errors** are the grammar's, in the types and at build time: `motion.preset: unexpected "spin" in "spin", expected
 fade-in | ...`, `motion.duration: unexpected "-1s" in "-1s", expected <time [0s,∞]>`.
-- **For other members.** `presets` (the table by name), `PresetName`, `motionKeyframes` and `motionScope` are exported,
+- **For other members.** `presets` (the table by name), `PresetName`, `motionKeyframes` and `motionScope` (its kernel `core`) are exported,
   so a member built on these presets reuses them.
 
 ## Limits

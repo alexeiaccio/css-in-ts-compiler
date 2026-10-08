@@ -1,17 +1,10 @@
 // @cssints/motion: animation presets as one kernel over keyframes(), in the composable way of tailwindcss-motion and
 // tailwindcss-animate. There are two keyframes for the motion (`in` starts from the values a preset sets, `out` ends at
-// them) and two for reduced motion (opacity only). A preset only sets custom properties: the keyframes to run and the
-// start (or end) opacity, translation, scale and blur. The kernel resets those on its class, so a nested motion inherits
-// nothing, and runs `animation` from them; under `prefers-reduced-motion: reduce` it runs the opacity-only keyframes.
-import {
-  cn,
-  filter,
-  keyframes,
-  type Keyframes,
-  opacity,
-  scale,
-  translate,
-} from "cssints" with { type: "cssints" };
+// them) and two for reduced motion (opacity only); the kernel names them in custom properties, which carries their rules.
+// A preset only sets custom properties: the keyframes to run and the start (or end) opacity, translation, scale and blur.
+// The kernel resets those on its class, so a nested motion inherits nothing, and runs `animation` from them; under
+// `prefers-reduced-motion: reduce` it runs the opacity-only keyframes.
+import { cn, filter, keyframes, opacity, scale, translate } from "cssints" with { type: "cssints" };
 import { scope } from "cssints/plugin";
 
 /** What a preset sets: the direction, and the opacity, translation, scale and blur it starts from (in) or ends at (out). */
@@ -71,31 +64,11 @@ export const motionKeyframes = {
   reducedOut: keyframes({ to: faded }),
 };
 
-// Engine gap (cssints-11pj): a kernel cannot carry a keyframes() name (a kernel written as styles takes plain declarations,
-// and `emit` gives strings), so the rules are part of the kernel's CSS, read from the names that carry them at build time.
-const ruleOf = (k: Keyframes) => (k as unknown as { kernel: { css: string } }).kernel.css;
-const nameOf = (k: Keyframes) => (k as unknown as { name: string }).name;
-
-const css = `
-${Object.values(motionKeyframes).map(ruleOf).join("\n")}
-& {
-  --_n: none; --_r: none; --_d: 300ms; --_l: 0s; --_e: ease-out;
-  --_o: 1; --_x: 0; --_y: 0; --_s: 1; --_b: 0;
-  animation: var(--_n) var(--_d) var(--_e) var(--_l) both;
-}
-@media (prefers-reduced-motion: reduce) {
-  & { animation-name: var(--_r); }
-}`;
-
 const emitPreset = (name: string) => {
   const p = presets[name as PresetName];
-  const [run, reduced] =
-    p.dir === "in"
-      ? [motionKeyframes.in, motionKeyframes.reducedIn]
-      : [motionKeyframes.out, motionKeyframes.reducedOut];
   const set: [string, string | undefined][] = [
-    ["--_n", nameOf(run)],
-    ["--_r", nameOf(reduced)],
+    ["--_n", p.dir === "in" ? "var(--_in)" : "var(--_out)"],
+    ["--_r", p.dir === "in" ? "var(--_ri)" : "var(--_ro)"],
     ["--_o", p.opacity],
     ["--_x", p.x],
     ["--_y", p.y],
@@ -105,15 +78,33 @@ const emitPreset = (name: string) => {
   return set.flatMap(([k, v]) => (v === undefined ? [] : [[k, v] as const]));
 };
 
-/** The scope of `motion()`, for a scope that embeds it (its kernel `core` and conflicts `noAnimation`). */
+/** The scope of `motion()`, for a scope that embeds it (its kernel `core`). */
 export const motionScope = scope("motion", {
-  core: { css, requires: ["css.at-rules.keyframes"] },
-  noAnimation: {
-    props: [/^animation(-|$)/],
-    message: "motion() sets the animation: use its methods",
+  // the names of the keyframes, the defaults, and the animation over them: what it sets is its derived conflicts
+  core: {
+    css: (css) => [
+      css.vars({
+        "--_in": motionKeyframes.in,
+        "--_out": motionKeyframes.out,
+        "--_ri": motionKeyframes.reducedIn,
+        "--_ro": motionKeyframes.reducedOut,
+        "--_n": "none",
+        "--_r": "none",
+        "--_d": "300ms",
+        "--_l": "0s",
+        "--_e": "ease-out",
+        "--_o": 1,
+        "--_x": 0,
+        "--_y": 0,
+        "--_s": 1,
+        "--_b": 0,
+      }),
+      css.animation("var(--_n) var(--_d) var(--_e) var(--_l) both"),
+      css.media("(prefers-reduced-motion: reduce)")(css.animationName("var(--_r)")),
+    ],
   },
   motion: {
-    uses: ["core", "noAnimation"],
+    uses: ["core"],
     chain: {
       preset: { args: names, emit: emitPreset },
       duration: { args: "<time [0s,∞]>", emit: (v) => [["--_d", v]] },
