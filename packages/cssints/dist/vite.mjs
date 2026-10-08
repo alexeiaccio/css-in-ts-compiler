@@ -1,4 +1,4 @@
-import { A as forget, E as runtimeNames, F as MacroError, I as MemberError, L as SiteMissingError, M as registry, N as EvalError, P as HookError, S as RUNTIME_ID, T as runtimeModule, a as LAYERS, b as kernelEntries, d as globalNames, f as layerEntries, g as themedEntries, i as keptImport, k as Registry, l as closeNames, m as renderSheet, n as RUNTIME, o as addGlobal, p as layerStatements, r as instrument, s as addLayers, u as globalEntries, v as usesDerived, w as fallbackEntries, x as DERIVED } from "./instrument-BDgoJ8DA.mjs";
+import { A as forget, E as runtimeNames, F as MacroError, I as MemberError, L as SiteMissingError, M as registry, N as EvalError, P as HookError, S as RUNTIME_ID, T as runtimeModule, a as LAYERS, b as kernelEntries, d as globalNames, f as layerEntries, g as themedEntries, i as keptImport, k as Registry, l as closeNames, m as renderSheet, n as RUNTIME, o as addGlobal, p as layerStatements, r as instrument, s as addLayers, u as globalEntries, v as usesDerived, w as fallbackEntries, x as DERIVED } from "./instrument-0r6gH5aJ.mjs";
 import { createRequire } from "node:module";
 import { Cause, Clock, Config, Effect, Exit, Formatter, Option, Predicate, Result, Schema, Semaphore } from "effect";
 import { createHash } from "node:crypto";
@@ -415,7 +415,7 @@ function cssints({ inner = false } = {}) {
 		if (!FILE_RE.test(id)) return void 0;
 		if (!marked(code, id)) return ctx.environment.name === "ssr" && /[jt]sx$/.test(id) && !id.includes("node_modules") ? yield* inertJsx(code, id) : void 0;
 		if (ctx.environment.name === "ssr") {
-			const out = yield* instrument(code, id);
+			const out = yield* instrument(code, id, false);
 			return out && /x$/.test(id) ? yield* inertJsx(out.code, id) : out?.code;
 		}
 		if (inner) return void 0;

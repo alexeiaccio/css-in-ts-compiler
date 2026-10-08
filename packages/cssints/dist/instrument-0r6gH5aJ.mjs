@@ -770,6 +770,13 @@ const RUNTIME = "cssints";
 const CV_CALL = "__cv(";
 const rootIdent = (n) => n.type === "Identifier" ? n.name : n.type === "MemberExpression" ? rootIdent(n.object) : n.type === "CallExpression" ? rootIdent(n.callee) : null;
 const RUNTIME_ONLY = /* @__PURE__ */ new Set(["cx"]);
+const TYPED_OM = /* @__PURE__ */ new Set([
+	"CSS",
+	"CSSStyleValue",
+	"CSSUnitValue",
+	"CSSColorValue",
+	"CSSImageValue"
+]);
 const nameOf = (m) => m.type === "Identifier" ? m.name : m.value;
 const isSiteImport = (s) => s.attributes.some((a) => (a.key.type === "Identifier" ? a.key.name : a.key.value) === "type" && a.value.value === "cssints");
 const importedName = (x) => x.type === "ImportSpecifier" ? nameOf(x.imported) : null;
@@ -778,7 +785,8 @@ const keptImport = (d, code) => {
 	const names = d.specifiers.filter((x) => isRuntime(d, x)).map((x) => code.slice(x.start, x.end));
 	return names.length ? `import { ${names.join(", ")} } from ${Formatter.formatJson(RUNTIME)};` : "";
 };
-const findCssImport = Effect.fnUntraced(function* (program, code, id) {
+const findCssImport = Effect.fnUntraced(function* (program, code, id, client) {
+	const plain = (name) => RUNTIME_ONLY.has(name) || !client && TYPED_OM.has(name);
 	const locals = /* @__PURE__ */ new Set();
 	const decls = [];
 	for (const s of program.body) {
@@ -793,7 +801,7 @@ const findCssImport = Effect.fnUntraced(function* (program, code, id) {
 			decls.push(s);
 			s.specifiers.forEach((x) => isRuntime(s, x) || locals.add(x.local.name));
 		} else if (s.source.value === "cssints" && s.importKind !== "type") {
-			const bad = s.specifiers.filter((x) => x.type !== "ImportSpecifier" || x.importKind !== "type" && !RUNTIME_ONLY.has(importedName(x) ?? ""));
+			const bad = s.specifiers.filter((x) => x.type !== "ImportSpecifier" || x.importKind !== "type" && !plain(importedName(x) ?? ""));
 			if (!bad.length) continue;
 			const names = bad.map((x) => code.slice(x.start, x.end));
 			const fix = bad[0].type === "ImportNamespaceSpecifier" ? names[0] : `{ ${names.join(", ")} }`;
@@ -867,9 +875,9 @@ function findSites(program, locals) {
 	walk(program, false);
 	return sites;
 }
-const instrument = Effect.fn("cssints.instrument")(function* (code, id) {
+const instrument = Effect.fn("cssints.instrument")(function* (code, id, client = true) {
 	const { program } = parseSync(id, code);
-	const imp = yield* findCssImport(program, code, id);
+	const imp = yield* findCssImport(program, code, id, client);
 	if (!imp) return null;
 	const sites = findSites(program, withConditions(program, code, imp));
 	const ms = new MagicString(code);

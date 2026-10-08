@@ -13,6 +13,11 @@ export declare class CSSColorValue extends CSSStyleValue<"color"> {
   constructor(value: string);
   toString(): string;
 }
+export declare class CSSImageValue extends CSSStyleValue<"image"> {
+  readonly value: string;
+  constructor(value: string);
+  toString(): string;
+}
 export declare const CSS: {
   px: (v: number) => CSSUnitValue<"length">;
   rem: (v: number) => CSSUnitValue<"length">;

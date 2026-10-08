@@ -1,8 +1,8 @@
-import { C as addRuntime, D as covers, F as MacroError, I as MemberError, M as registry, O as relation, _ as standIn, c as byOrder, h as requireLayer, j as forgetKernels, k as Registry, o as addGlobal, s as addLayers, t as CV_CALL, y as addKernel } from "./instrument-BDgoJ8DA.mjs";
+import { C as addRuntime, D as covers, F as MacroError, I as MemberError, M as registry, O as relation, _ as standIn, c as byOrder, h as requireLayer, j as forgetKernels, k as Registry, o as addGlobal, s as addLayers, t as CV_CALL, y as addKernel } from "./instrument-0r6gH5aJ.mjs";
 import { createRequire } from "node:module";
 import { checkDeclarationNow, checkQuery, checkSelector, checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { browsers, messageOf, supportOf } from "@cssints/css-grammar/support";
-import { CSS, CSSColorValue, CSSColorValue as CSSColorValue$1, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
+import { CSS, CSSColorValue, CSSColorValue as CSSColorValue$1, CSSImageValue, CSSStyleValue, CSSStyleValue as CSSStyleValue$1, CSSUnitValue } from "@cssints/css-grammar/values";
 import { Cause, Effect, Exit, Formatter, Predicate, Result, Schema } from "effect";
 import { createHash } from "node:crypto";
 import { properties } from "@cssints/css-grammar/mdn";
@@ -522,7 +522,7 @@ const member$1 = (c, key, kind, def) => {
 		return (...args) => {
 			check$1(name, key, grammar, valueOf(name, key, args));
 			const out = ran(name, () => compute(args.map(String)));
-			if (typeof out !== "string" && !(out instanceof CSSStyleValue)) throw thrown(name, `${key}() value must return a string or a Typed OM value`);
+			if (typeof out !== "string" && !(out instanceof CSSStyleValue$1)) throw thrown(name, `${key}() value must return a string or a Typed OM value`);
 			return out;
 		};
 	}
@@ -559,7 +559,7 @@ const ownDecls = (c, emitted) => emitted.map(([p, v]) => [c.own(p), c.own(v)]);
 const argOf = (c, label, def, v, tokens) => {
 	const { name } = c;
 	if (def === "$tokens") {
-		if (!v || typeof v !== "object" || isNode(v) || v instanceof CSSStyleValue) throw failIn(name, `cssints: ${label} expects a token set (createTokens)`);
+		if (!v || typeof v !== "object" || isNode(v) || v instanceof CSSStyleValue$1) throw failIn(name, `cssints: ${label} expects a token set (createTokens)`);
 		return v;
 	}
 	if (def === "$overrides") {
@@ -667,7 +667,7 @@ function scope(name, table) {
 const engine = { scope };
 //#endregion
 //#region src/functions.ts
-var CSSMathValue = class extends CSSStyleValue {
+var CSSMathValue = class extends CSSStyleValue$1 {
 	value;
 	constructor(value) {
 		super();
@@ -735,7 +735,7 @@ function _cv(config) {
 }
 //#endregion
 //#region src/token.ts
-var CSSTokenValue = class extends CSSStyleValue {
+var CSSTokenValue = class extends CSSStyleValue$1 {
 	name;
 	syntax;
 	settable;
@@ -1673,6 +1673,8 @@ const named = {
 	check,
 	CSS,
 	CSSColorValue,
+	CSSImageValue,
+	CSSStyleValue,
 	CSSUnitValue
 };
 const css = new Proxy(named, { get: (t, k) => Object.hasOwn(t, k) ? t[k] : member(String(k)) });
@@ -1749,4 +1751,4 @@ function __site(at, value) {
 	return exit.value;
 }
 //#endregion
-export { CSS, CSSAtRuleValue, CSSColorValue, CSSUnitValue, __at, __site, __unseen, cn, css, cv, cx, firstThatWorks, flex, grid, keyframes, positionTry };
+export { CSS, CSSAtRuleValue, CSSColorValue, CSSImageValue, CSSStyleValue, CSSUnitValue, __at, __site, __unseen, cn, css, cv, cx, firstThatWorks, flex, grid, keyframes, positionTry };
