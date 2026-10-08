@@ -76,8 +76,8 @@ const action = cn(
   bg(t.color.accent),
   css.border("none"),
   css.borderRadius(radius),
-  hover(bg(css.colorMix("oklab", t.color.accent, "black 15%"))),
-  lg(hover(bg(css.colorMix("oklab", t.color.accent, "black 30%")))),
+  hover(bg(css.colorMix("in oklab", t.color.accent, "black 15%"))),
+  lg(hover(bg(css.colorMix("in oklab", t.color.accent, "black 30%")))),
   focusVisible(css.outline("2px solid", t.color.accent), css.outlineOffset("2px")),
   active(css.transform("scale(0.97)")),
   disabled(css.opacity(0.5)),
@@ -105,7 +105,7 @@ const pulsing = cn(
 // supports(): bold where CSS grid exists.
 const feature = cn(css.color(t.color.text), css.fontWeight("400"), hasGrid(css.fontWeight("700")));
 
-// Typed parts and math: Typed OM values as parts, and calc() as a string, min() and clamp() as calls.
+// Typed parts and math: Typed OM values as parts, and calc(), min() and clamp() as calls whose parts are tokens, numbers and strings.
 const typed = cn(
   css.color(t.color.text),
   css.padding(CSS.rem(0.5), CSS.rem(1.5)),
@@ -113,7 +113,8 @@ const typed = cn(
   css.border("2px solid", new CSSColorValue("#2563eb")),
   css.width(css.min("100%", "24rem")),
   css.fontSize(css.clamp("1rem", "2.5vw", "1.5rem")),
-  css.marginInline("calc(1rem + 2%)"),
+  css.marginInline(css.calc("1rem", "+", "2%")),
+  css.marginBlock(css.calc(t.space.md, "*", 2)),
 );
 
 // frame(): the field's radius is the card's less the card's padding and border (24 - 16 - 1 = 7px), with no wiring. The

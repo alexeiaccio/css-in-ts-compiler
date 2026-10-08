@@ -195,7 +195,7 @@ css.within(css.media("(width >= 40rem)")); // error: a media query is not a stat
 
 ### Tokens (decided 2026-09-29, cssints-o00x)
 
-A token is a Typed OM value whose `toString()` is `var(--name)`. It fits anywhere a value of its type fits: `color(blue)`, `border("1px solid", blue)`.
+A token is a Typed OM value whose `toString()` is `var(--name)`. It fits anywhere a value of its type fits: `color(blue)`, `border("1px solid", blue)`. In math and in other CSS functions it is a part of a call: `calc(t.space.md, "*", 2)`, `var(t.space.sm, "4px")` (see "Functions").
 
 ```tsx
 import * as css from "cssints" with { type: "cssints" };

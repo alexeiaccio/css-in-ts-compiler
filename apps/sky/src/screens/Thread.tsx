@@ -3,6 +3,7 @@ import {
   bottom,
   border,
   borderRadius,
+  calc,
   cn,
   color,
   containerName,
@@ -41,15 +42,15 @@ import type { Branch } from "../thread/model.ts";
 // Every row is a "post" container like the card inside it, so that wide() here and in the card agree. The centre of the
 // card's avatar is its border, its padding (0.5rem, 0.75rem when wide) and half the avatar, less half the line's 2 px:
 // that is how far from the card's left (and top) a line must sit to run through the avatar.
-const centre = "calc(var(--border-width) + 0.5rem + var(--avatar-feed) / 2 - 1px)";
-const centreWide = "calc(var(--border-width) + 0.75rem + var(--avatar-feed) / 2 - 1px)";
+const centre = calc(t.border.width, "+", "0.5rem", "+", t.avatar.feed, "/", 2, "-", "1px");
+const centreWide = calc(t.border.width, "+", "0.75rem", "+", t.avatar.feed, "/", 2, "-", "1px");
 const line = bg(t.color.borderStrong);
 
 const row = cn(
   position("relative"),
   containerType("inline-size"),
   containerName("post"),
-  scrollMarginTop("calc(var(--layout-header-height) + var(--space-sm))"),
+  scrollMarginTop(calc(t.layout.headerHeight, "+", t.space.sm)),
 );
 
 // Under a parent: from the card's bottom to the next card, in the gap of the feed, through the avatar.
@@ -75,8 +76,8 @@ const kids = cn(
 const vline = cv({
   base: cn(
     position("absolute"),
-    left("calc(0px - var(--space-lg))"),
-    top("calc(0px - var(--space-sm))"),
+    left(calc("0px", "-", t.space.lg)),
+    top(calc("0px", "-", t.space.sm)),
     width("2px"),
     line,
   ),
@@ -84,17 +85,17 @@ const vline = cv({
     end: {
       through: bottom("0"),
       card: cn(
-        height(`calc(var(--space-sm) + ${centre} + 2px)`),
-        wide(height(`calc(var(--space-sm) + ${centreWide} + 2px)`)),
+        height(calc(t.space.sm, "+", centre, "+", "2px")),
+        wide(height(calc(t.space.sm, "+", centreWide, "+", "2px"))),
       ),
-      mid: height("calc(var(--space-sm) + 50% + 1px)"),
+      mid: height(calc(t.space.sm, "+", "50%", "+", "1px")),
     },
   },
 });
 const elbow = cv({
   base: cn(
     position("absolute"),
-    left("calc(0px - var(--space-lg))"),
+    left(calc("0px", "-", t.space.lg)),
     width(t.space.lg),
     height("2px"),
     line,
