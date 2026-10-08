@@ -106,6 +106,28 @@ assert.ok(
   "the import is there, its content is empty",
 );
 
+// a runtime with a script of its own: it stands on nothing, so it reaches a target below @property too; the module imports
+// it when a target lacks a polyfilled feature, and two entries with one script are one module in the browser
+assert.equal(
+  Effect.runSync(needed({ ...runtime, script: "x" }, [["firefox", "127"]])),
+  true,
+  "a script reaches every target",
+);
+assert.deepEqual(requiresWarnings("t.script", [{ ...runtime, script: "x" }]), [], "covered");
+const scriptUse = await code("plug-script-use.ts");
+for (const n of ["ps.a", "ps.b", "ps.c"])
+  assert.ok(scriptUse.includes(`virtual:cssints/runtime/${n}`), scriptUse);
+const scriptModule = async (n) =>
+  (await client.transformRequest(`virtual:cssints/runtime/${n}`)).code;
+const [sa, sb, sc] = [
+  await scriptModule("ps.a"),
+  await scriptModule("ps.b"),
+  await scriptModule("ps.c"),
+];
+assert.equal(sa, 'import "/fixtures/plug-script-run.js";\n', sa);
+assert.equal(sb, sa, "one script, one import: the browser runs it once");
+assert.equal(sc, "export {};", "every target has the feature: nothing ships");
+
 // errors name the plugin and the call site
 const fails = async (f, text, line, plugin) =>
   assert.rejects(code(f), (e) => {

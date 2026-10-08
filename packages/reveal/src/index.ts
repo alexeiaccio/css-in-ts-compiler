@@ -1,7 +1,7 @@
 // @cssints/reveal: an entrance animation driven by scroll, on @cssints/motion's presets and keyframes. The kernel runs
 // motion's `in` keyframes on `animation-timeline: view()` over `animation-range`; a preset only sets the `--motion-*`
-// values those keyframes read. Where a target lacks scroll-driven animations, a runtime of CSS only holds the animation
-// paused until ./runtime.ts (imported by the app) sees the element enter, then it plays once over its duration.
+// values those keyframes read. Where a target lacks scroll-driven animations, a runtime holds the animation paused (its
+// CSS) until its script, ./runtime.ts, sees the element enter, then it plays once over its duration.
 import { motionKeyframes, presets, type PresetName } from "@cssints/motion";
 import { scope } from "cssints/plugin";
 
@@ -52,6 +52,7 @@ export const revealScope = scope("reveal", {
   // without a view timeline the animation is time-based: held at its start until runtime.ts marks the element in view
   "#io": {
     polyfills: ["css.properties.animation-timeline", "css.properties.animation-range"],
+    script: "@cssints/reveal/runtime",
     css: `@supports not (${supported}){[data-reveal] &:not([data-reveal-in]){animation-play-state:paused}}`,
   },
   reveal: {

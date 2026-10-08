@@ -34,7 +34,7 @@ const out = await build({
   configFile: false,
   logLevel: "silent",
   plugins: cssints(),
-  build: { write: false, minify: false, rollupOptions: { input: join(here, "fixtures/main.js") } },
+  build: { write: false, minify: false, rollupOptions: { input: join(here, "fixtures/app.ts") } },
 });
 const files = [out].flat().flatMap((o) => o.output);
 const text = (ext) =>
@@ -43,6 +43,8 @@ const text = (ext) =>
     .map((f) => String(f.code ?? f.source))
     .join("\n");
 const js = text(".js");
+// the observer comes with the runtime module of sticky(), once (the default targets lack the queries)
+assert.equal(js.split("new IntersectionObserver").length, 2, "the observer, once");
 const css = text(".css");
 assert.match(css, /@container scroll-state\(stuck: top\)/);
 assert.match(css, /\[data-stuck~="top"\]/);

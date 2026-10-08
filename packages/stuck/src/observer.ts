@@ -2,8 +2,8 @@
 // The browser half of @cssints/stuck for targets without scroll-state queries: sets `data-stuck="top ..."` on each
 // `sticky()` element while it is stuck, which the fallback rules of `stuck()` read. One IntersectionObserver per
 // element, its root the nearest scroll container shrunk by the element's insets plus 1px (bramus/sticky-observer):
-// stuck to an edge is past that edge of the shrunk root. Import it once in the app; it does nothing where the browser
-// has scroll-state queries. No imports, no Effect.
+// stuck to an edge is past that edge of the shrunk root. virtual:cssints/runtime/stuck.observer imports it when a target
+// lacks scroll-state queries; it does nothing where the browser has them. No imports, no Effect.
 const SIDES = ["top", "right", "bottom", "left"] as const;
 const watched = new Map<Element, IntersectionObserver>();
 

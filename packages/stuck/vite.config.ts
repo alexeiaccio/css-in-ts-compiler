@@ -13,7 +13,7 @@ export default defineConfig({
       dts: true,
       clean: true,
     },
-    // The observer, imported by the app and shipped to browsers. No imports.
+    // The observer, imported by virtual:cssints/runtime/stuck.observer and shipped to browsers. No imports.
     {
       entry: { observer: "src/observer.ts" },
       platform: "browser",

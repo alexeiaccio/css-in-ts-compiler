@@ -4,7 +4,7 @@
 // react-wrap-balancer: the narrowest `max-width` that keeps the element's line count, found by a binary search, again
 // when its parent resizes or its text changes. It acts only on an element whose computed `--balance-js` is set: the
 // fallback CSS sets it in `@supports not (text-wrap:balance)`, and only when a browserslist target lacks the feature.
-// Imported by the app (`import "@cssints/balance/runtime"`); no imports, no Effect.
+// Imported by virtual:cssints/runtime/balance.script when a target lacks the feature; no imports, no Effect.
 const MARKER = "_balance-core";
 const FLAG = "--balance-js";
 

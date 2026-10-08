@@ -20,11 +20,6 @@ export const card = reveal()
 export const tile = cn(reveal().preset("blur-in"), hover(reveal().duration("1s")));
 ```
 
-```ts
-// once, in the app's entry, if your targets have Firefox or Safari < 26 (the default browserslist has Firefox)
-import "@cssints/reveal/runtime";
-```
-
 ```css
 @layer _.k {
   @keyframes kf-7f473efd {
@@ -110,7 +105,9 @@ expected fade-in | ...`, `reveal.range: unexpected "sideways" in "entry 0% sidew
   `animation-range`). Firefox has them behind a flag only.
 - **The fallback.** When a browserslist target lacks them, the build adds the `@supports not` rule above to the sheet
   (it stays out of the sheet for targets that all have them), and the kernel's `requires` gives no warning. The
-  runtime, `@cssints/reveal/runtime`, does nothing where `CSS.supports("animation-timeline:view()")`; elsewhere it
+  script, `@cssints/reveal/runtime`, comes with it: the runtime entry names it (`script`), so the module that uses
+  `reveal()` imports it through `virtual:cssints/runtime/reveal.io`, which is empty when every target has the timeline.
+  Nothing to import by hand. In the browser it does nothing where `CSS.supports("animation-timeline:view()")`; elsewhere it
   marks `<html data-reveal>` (the rule then holds each reveal at its first frame) and an `IntersectionObserver` gives an
   element `data-reveal-in` when it enters the viewport, which plays the keyframes once, over `duration()`. A
   `MutationObserver` picks up elements added later. 536 bytes minified, 319 gzip; no imports.
@@ -125,13 +122,12 @@ expected fade-in | ...`, `reveal.range: unexpected "sideways" in "entry 0% sidew
 
 ## Limits
 
-- **The script is imported by hand.** A plugin's runtime can be fallback CSS or `cssints/parent-vars`, not a script of
-  its own, so the engine's `virtual:cssints/runtime/reveal.io` module stays empty and the app imports
-  `@cssints/reveal/runtime` itself (it ships even to browsers that do not need it, where it only probes).
+- With targets that mix both (the default browserslist), the script ships to every browser and only probes where the
+  timeline is native.
 - The fallback does not follow the range, the scroll direction or an element that leaves the viewport: it plays once. An
   element that gets the class after it is in the document (not added with it) is not seen.
-- Until the script runs, a reveal below the fold may start playing; it is paused where it is and resumes on entry. Load
-  the script early.
+- Until the script runs, a reveal below the fold may start playing; it is paused where it is and resumes on entry. The
+  script runs with the first module that uses `reveal()`.
 - Entrance presets only, one per element; for an exit on scroll write the animation with `animationTimeline("view()")`
   and `animationRange("exit ...")` yourself.
 

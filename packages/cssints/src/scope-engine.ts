@@ -278,6 +278,7 @@ class Compiler {
               watch: p.watch && (s.own(p.watch) as `--${string}`),
             })),
             css: r.css && s.own(s.mark(r.css, own)),
+            script: r.script,
           };
         }
         (c.plugs ??= []).push(plug);

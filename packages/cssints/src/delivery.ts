@@ -50,11 +50,14 @@ export const addDerived = Effect.fnUntraced(function* (
 });
 
 /**
- * The targets a runtime cannot reach: a script (`parentVars`, or the derived tokens' runtime, which has no `css`) stands
- * on `@property`, so those without it; a runtime of fallback CSS only reaches every target.
+ * The targets a runtime cannot reach: `parentVars` and the derived tokens' runtime (no `css`, no `script`) stand on
+ * `@property`, so those without it; fallback CSS and a plugin's own `script` reach every target.
  */
-export const unreached = Effect.fnUntraced(function* ({ parentVars, css }: Runtime, ts?: Target[]) {
-  if (css && !parentVars?.length) return new Set();
+export const unreached = Effect.fnUntraced(function* (
+  { parentVars, css, script }: Runtime,
+  ts?: Target[],
+) {
+  if ((css || script) && !parentVars?.length) return new Set();
   return new Set((yield* lacking("css.at-rules.property", ts)).map((t) => t.join(" ")));
 });
 
@@ -87,12 +90,24 @@ export const fallbackEntries = Effect.fnUntraced(function* (
   return out;
 });
 
-/** The text of `virtual:cssints/runtime/<name>`: nothing, or the shared engine configured with the runtime's families (derived tokens: their runtime). */
+/**
+ * The text of `virtual:cssints/runtime/<name>`: nothing, or the plugin's `script` (an import, which the browser runs
+ * once however many modules import it) and the shared engine configured with the runtime's families (derived tokens:
+ * their runtime).
+ */
 export const runtimeModule = Effect.fnUntraced(function* (name: string): Effect.fn.Return<string> {
   const { runtimes } = yield* Registry;
   const runtime = runtimes.get(name)?.runtime;
-  if (name === DERIVED && runtime && (yield* needed(runtime)))
-    return `import derived from "cssints/derived";\nderived();\n`;
-  if (!runtime || !runtime.parentVars?.length || !(yield* needed(runtime))) return "export {};";
-  return `import parentVars from "cssints/parent-vars";\nparentVars(${Formatter.formatJson(runtime.parentVars)});\n`;
+  if (!runtime) return "export {};";
+  if (name === DERIVED)
+    return (yield* needed(runtime))
+      ? `import derived from "cssints/derived";\nderived();\n`
+      : "export {};";
+  const { polyfills, script, parentVars } = runtime;
+  let out = "";
+  if (script && (yield* needed({ polyfills, script })))
+    out += `import ${Formatter.formatJson(script)};\n`;
+  if (parentVars?.length && (yield* needed(runtime)))
+    out += `import parentVars from "cssints/parent-vars";\nparentVars(${Formatter.formatJson(parentVars)});\n`;
+  return out || "export {};";
 });

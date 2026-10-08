@@ -1,5 +1,5 @@
 // The page of test/browsers.mjs: a sticky header in the document and one in a scroll container, each with a title that
-// is red while the header is stuck. main.js imports the observer and this module.
+// is red while the header is stuck. The observer comes with sticky()'s runtime module.
 import "virtual:cssints.css";
 import { cn, color, height, overflow } from "cssints" with { type: "cssints" };
 import { sticky, stuck } from "@cssints/stuck" with { type: "cssints" };

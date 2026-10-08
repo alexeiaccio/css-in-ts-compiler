@@ -31,9 +31,10 @@ const FALLBACK = "@supports not (text-wrap:balance){._balance-core{--balance-js:
 // with any targets: the kernel, no warning (the runtime covers text-wrap.balance; pretty requires nothing)
 assert.ok(out.includes("._balance-core{text-wrap:balance}"), out);
 assert.deepEqual(warnings, []);
-// the runtime module stays empty: the engine ships parent-vars only (Engine gaps, cssints-q6il); the app imports
-// @cssints/balance/runtime, which reads the flag of the fallback CSS
-assert.match(runtime, /export \{\};/);
+// the runtime module imports the script (which reads the flag of the fallback CSS) only for targets that lack balance
+// (the default ones have Firefox 115 ESR), and is empty for the others
+if (mode === "native") assert.equal(runtime, "export {};");
+else assert.match(runtime, /^import "[^"]*balance\/src\/runtime\.ts";/);
 
 if (mode) {
   // native: every target has balance, so no fallback CSS; old: a target without it gets the flag
