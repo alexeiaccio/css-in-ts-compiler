@@ -92,8 +92,10 @@ assert.match(
 e = await failure("fixtures/themes-unsupported.ts");
 assert.match(
   e.message,
-  /^cssints: createTokens\(\): shadow\.card has \$type "shadow", which has no token type/,
+  /^cssints: createTokens\(\): border\.card has \$type "border", which has no token type/,
 );
+e = await failure("fixtures/themes-bad-shadow.ts");
+assert.match(e.message, /^cssints: shadow\.bad is not a DTCG shadow: \{ color, offsetX/);
 e = await failure("fixtures/themes-bad-value.ts");
 assert.match(e.message, /^cssints: createTokens\(\): color\.badbg value "blu" is not a <color>$/);
 
@@ -142,6 +144,19 @@ assert.deepEqual(
   ["--gap-md", "--th-bg"],
   css,
 );
+
+// cubicBezier and shadow: DTCG values to CSS, `@property` syntax "*" (no registrable syntax), a theme sets them
+await client.transformRequest("/fixtures/themes-easing-shadow.ts");
+css = sheet("themes-easing-shadow.ts");
+for (const rule of [
+  '@property --es-ease-out{syntax:"*";inherits:true;initial-value:cubic-bezier(0, 0, 0.3, 1)}',
+  '@property --es-quick{syntax:"*";inherits:true;initial-value:ease-out}',
+  '@property --es-shadow-sm{syntax:"*";inherits:true;initial-value:0px 1px 2px 0rem #0000001a}',
+  "initial-value:0 4px 8px -2px #0000001a, inset 0 0 0 1px color(srgb 0 0 0 / 0.2)}",
+  ".es-dark{--es-shadow-sm:0 1px 2px 0.5rem #000;--es-ease-out:cubic-bezier(0.2, 0, 0, 1)}",
+  "{box-shadow:var(--es-shadow-lg)}",
+])
+  assert.ok(css.includes(rule), `${rule}\n${css}`);
 
 // Errors, located at the call: an unknown path, a value of another type, a condition that is not a theme
 for (const [f, message, column] of [

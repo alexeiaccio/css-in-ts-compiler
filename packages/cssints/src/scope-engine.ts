@@ -3,6 +3,7 @@
 import { checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { properties } from "@cssints/css-grammar/mdn";
 import { checkSelectorNow } from "@cssints/css-grammar/selector";
+import { grammarOf } from "@cssints/css-grammar/token";
 import { CSSStyleValue } from "@cssints/css-grammar/values";
 import { Result } from "effect";
 
@@ -82,7 +83,7 @@ const tokenSyntaxes = (tokens: unknown, prefix: string, out: Dict<string>): Dict
   if (tokens && typeof tokens === "object")
     for (const [k, v] of Object.entries(tokens))
       if (v && typeof v === "object" && typeof (v as Dict<unknown>)["syntax"] === "string")
-        out[`${prefix}${k}`] = `<${(v as Dict<string>)["syntax"]}>`;
+        out[`${prefix}${k}`] = grammarOf((v as Dict<string>)["syntax"]!);
       else tokenSyntaxes(v, `${prefix}${k}.`, out);
   return out;
 };

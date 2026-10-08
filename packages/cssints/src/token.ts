@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { relative } from "node:path";
 
 import { browsers, supportOf } from "@cssints/css-grammar/support";
-import { TOKEN_TYPES, type TokenType } from "@cssints/css-grammar/token";
+import { grammarOf, TOKEN_TYPES, type TokenType } from "@cssints/css-grammar/token";
 import { matches } from "@cssints/css-grammar/twin";
 import { CSSStyleValue } from "@cssints/css-grammar/values";
 import { Effect, Formatter, Predicate } from "effect";
@@ -47,6 +47,8 @@ const SUPPORT_PROPERTY: Record<string, string> = {
   url: "background-image",
   image: "background-image",
   "transform-list": "transform",
+  "easing-function": "transition-timing-function",
+  shadow: "box-shadow",
 };
 
 // The condition of an `@supports` rule for a value of `syntax`: the browsers that parse `text` are the ones that can
@@ -54,7 +56,7 @@ const SUPPORT_PROPERTY: Record<string, string> = {
 export const supportTest = (syntax: string, text: string): string =>
   `(${SUPPORT_PROPERTY[syntax]}:${text})`;
 
-// `text` is a value of the grammar `<syntax>`; `what` names it in the error, and `who` (default `what`) in a support
+// `text` is a value of the grammar of `syntax` (`<syntax>`, `<shadow>#`); `what` names it in the error, and `who` (default `what`) in a support
 // warning, once per `who` and BCD feature per build, in the `warned` set of the properties. `variable` is the custom
 // property of the sheet that holds the value (a token, or a theme override), which LightningCSS lowers for the
 // targets: when it lowers every feature that warns, there is no warning and the result is the lowered value (the
@@ -67,10 +69,11 @@ export const checkSyntaxFx = Effect.fnUntraced(function* (
   who: string = what,
   variable?: string,
 ): Effect.fn.Return<string | undefined, MacroError> {
-  const ok = yield* matches(`<${syntax}>`, text).pipe(
+  const grammar = grammarOf(syntax);
+  const ok = yield* matches(grammar, text).pipe(
     Effect.mapError((e) => new MacroError({ message: e.message, cause: e, ...registry.at })),
   );
-  if (!ok) return yield* fail(`cssints: ${what} "${text}" is not a <${syntax}>`);
+  if (!ok) return yield* fail(`cssints: ${what} "${text}" is not a ${grammar}`);
   const prop = SUPPORT_PROPERTY[syntax];
   if (!prop) return;
   const { warned, warnings } = registry;
@@ -141,7 +144,8 @@ export const declare = Effect.fnUntraced(function* (
   live = false,
 ): Effect.fn.Return<CSSTokenValue, MacroError> {
   const at = registry.at!;
-  const { syntax, probes } = TOKEN_TYPES[kind];
+  const type: { syntax: string; probes: readonly string[]; property?: string } = TOKEN_TYPES[kind];
+  const { syntax, probes, property = `<${syntax}>` } = type;
   const name = what ?? `token.${kind}() initial value`;
   const fallback = yield* checkSyntaxFx(
     name,
@@ -150,10 +154,11 @@ export const declare = Effect.fnUntraced(function* (
     what ?? `${name} of ${variable}`,
     variable,
   );
-  const initial = inPx(fallback ?? text);
+  // `*` takes any initial value, font-relative or not
+  const initial = property === "*" ? (fallback ?? text) : inPx(fallback ?? text);
   const n = registry.tokens++;
   const by = `${at.file}#${at.site}.${n}`;
-  const css = `@property ${variable}{syntax:"<${syntax}>";inherits:${inherit};initial-value:${initial}}`;
+  const css = `@property ${variable}{syntax:"${property}";inherits:${inherit};initial-value:${initial}}`;
   // Another declaration of the name is fine when it is the same rule, this site again (an edit), or this file's
   // from an earlier evaluation (every evaluation runs its modules again). Otherwise the second one is the error.
   const prev = registry.properties.get(variable);

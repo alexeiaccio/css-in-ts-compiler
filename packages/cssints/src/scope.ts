@@ -5,7 +5,7 @@
 // bodies hand the call to the engine (scope-engine.ts), which macro.ts registers when the library loads.
 //
 // Build time only (Node, the Module Runner): in user code a member returns a class string, so the types say `Style`.
-import type { Syntax, TokenType } from "@cssints/css-grammar/token";
+import type { Grammar, TokenType } from "@cssints/css-grammar/token";
 import type { ValidSelector } from "@cssints/css-grammar/query";
 import type { CSSStyleValue } from "@cssints/css-grammar/values";
 
@@ -207,7 +207,7 @@ type Resolved<A> = { [N in keyof A]: A[N] extends string ? Expand<A[N], A> : nev
 // A token set's paths: the syntax of each token.
 type Paths<X, P extends string = ""> = {
   [K in keyof X & string]: X[K] extends { readonly "~token": infer Kd extends TokenType }
-    ? { [Q in `${P}${K}`]: `<${Syntax<Kd>}>` }
+    ? { [Q in `${P}${K}`]: Grammar<Kd> }
     : Paths<X[K], `${P}${K}.`>;
 }[keyof X & string];
 type Flat<U> = (U extends unknown ? (x: U) => void : never) extends (x: infer I) => void
