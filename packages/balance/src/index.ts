@@ -5,7 +5,7 @@
 // The kernels are raw CSS: one written as styles warns for `text-wrap` itself, which the runtime does not cover.
 import { scope } from "cssints/plugin";
 
-export const { balance, pretty } = scope("balance", {
+const balanceScope = scope("balance", {
   "#core": { css: "&{text-wrap:balance}", requires: ["css.properties.text-wrap.balance"] },
   "#prettyCore": { css: "&{text-wrap:pretty}" },
   // Only in the sheet when a target lacks balance, and only on in a browser that lacks it.
@@ -19,6 +19,11 @@ export const { balance, pretty } = scope("balance", {
   },
   balance: { args: [], uses: ["core", "script", "wrap"] },
   pretty: { args: [], uses: ["prettyCore", "wrap"] },
-})
-  .build({ balance: () => ({}), pretty: () => ({}) })
-  .export();
+}).build({ balance: () => ({}), pretty: () => ({}) });
+// named through the scope, as mise-en-mode's look: the inferred type is too long to print (TS7056)
+type Members = ReturnType<typeof balanceScope.export>;
+const members: Members = balanceScope.export();
+/** `text-wrap: balance`, with a script fallback for targets that lack it (import `@cssints/balance/runtime`). */
+export const balance: Members["balance"] = members.balance;
+/** `text-wrap: pretty`; a target without it wraps as usual. */
+export const pretty: Members["pretty"] = members.pretty;

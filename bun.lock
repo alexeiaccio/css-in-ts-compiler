@@ -234,9 +234,37 @@
         "cssints": "^0.1.0",
       },
     },
+    "packages/reveal": {
+      "name": "@cssints/reveal",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cssints/motion": "workspace:*",
+      },
+      "devDependencies": {
+        "cssints": "workspace:*",
+        "vite": "catalog:",
+      },
+      "peerDependencies": {
+        "cssints": "^0.1.0",
+      },
+    },
     "packages/squircle": {
       "name": "@cssints/squircle",
       "version": "0.1.0",
+      "devDependencies": {
+        "cssints": "workspace:*",
+        "vite": "catalog:",
+      },
+      "peerDependencies": {
+        "cssints": "^0.1.0",
+      },
+    },
+    "packages/stuck": {
+      "name": "@cssints/stuck",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cssints/css-grammar": "workspace:*",
+      },
       "devDependencies": {
         "cssints": "workspace:*",
         "vite": "catalog:",
@@ -369,7 +397,11 @@
 
     "@cssints/reset": ["@cssints/reset@workspace:packages/reset"],
 
+    "@cssints/reveal": ["@cssints/reveal@workspace:packages/reveal"],
+
     "@cssints/squircle": ["@cssints/squircle@workspace:packages/squircle"],
+
+    "@cssints/stuck": ["@cssints/stuck@workspace:packages/stuck"],
 
     "@cssints/tokens": ["@cssints/tokens@workspace:packages/tokens"],
 

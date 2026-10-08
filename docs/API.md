@@ -816,6 +816,11 @@ More plugins on `scope()`, each a package of its own with its rules and limits i
 | [`@cssints/tokens`](../packages/tokens/README.md) | `/open-props`, `/radix`, `/flexoki`, `/reasonable-colors` | DTCG data for `createTokens` |
 | [`@cssints/gradient`](../packages/gradient/README.md) | `gradient(kind, direction, from, to, easing?, stops?)` | Eased colour stops mixed in oklab at build time |
 | [`@cssints/motion`](../packages/motion/README.md) | `motion().preset().duration().delay().easing()` | Animation presets over `keyframes()`, with reduced motion |
+| [`@cssints/squircle`](../packages/squircle/README.md) | `squircle().radius()` | `corner-shape: squircle`, else a CSS `mask` of the same shape |
+| [`@cssints/reveal`](../packages/reveal/README.md) | `reveal().preset().range().duration().easing()` | motion's entrance presets on `animation-timeline: view()`; for other targets import `@cssints/reveal/runtime` (plays once on entry) |
+| [`@cssints/stuck`](../packages/stuck/README.md) | `sticky().top()`, `stuck(styles)`, `stuck("bottom")(styles)` | Styles inside a sticky element while it is stuck, by `@container scroll-state()`; for other targets import `@cssints/stuck/observer` |
+| [`@cssints/balance`](../packages/balance/README.md) | `balance()`, `pretty()` | `text-wrap: balance` / `pretty`; for targets without balance import `@cssints/balance/runtime` |
+| [`@cssints/masonry`](../packages/masonry/README.md) | `masonry().columns().gap()` | `display: grid-lanes`, else CSS `columns` (top to bottom per column) |
 
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 
