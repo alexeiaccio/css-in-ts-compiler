@@ -8,7 +8,10 @@ import type { CSSStyleValue } from "./values";
  * - `syntax`: the `@property` syntax, `<syntax>`, checked by the twin and by `ValidSyntax`;
  * - `sentinels`: the typed-value types the token stands for in a property value (`⟨length⟩`, api-typed.ts);
  * - `probes`: literals of the type that a build-time check puts in place of the token (one per sentinel), since the
- *   recognizer reads text and a token is `var(--name)`.
+ *   recognizer reads text and a token is `var(--name)`;
+ * - `grammar`: the grammar of a value when it is not `<syntax>` (a list of shadows);
+ * - `property`: the `@property` syntax when `<syntax>` is not one `@property` takes: `*`, any value, which a browser
+ *   does not check or animate (an easing function, a shadow).
  */
 export const TOKEN_TYPES = {
   color: { syntax: "color", sentinels: ["color"], probes: ["red"] },
@@ -33,13 +36,35 @@ export const TOKEN_TYPES = {
     sentinels: ["transform-list"],
     probes: ["translateX(1px)"],
   },
+  easingFunction: {
+    syntax: "easing-function",
+    sentinels: ["easing-function"],
+    probes: ["ease"],
+    property: "*",
+  },
+  shadow: {
+    syntax: "shadow",
+    sentinels: ["shadow"],
+    probes: ["0 0 red"],
+    grammar: "<shadow>#",
+    property: "*",
+  },
 } as const;
 export type TokenType = keyof typeof TOKEN_TYPES;
 
 /**
+ * The grammar of a value of a token type.
+ * @param {string} syntax the `syntax` of the token type
+ * @returns {string} `<syntax>`, or the type's `grammar`
+ */
+export const grammarOf = (syntax: string): string =>
+  (Object.values(TOKEN_TYPES) as { syntax: string; grammar?: string }[]).find(
+    (t) => t.syntax === syntax,
+  )?.grammar ?? `<${syntax}>`;
+
+/**
  * DTCG `$type` to token type (createTokens, docs/API.md "Themes"). `fontWeight` is a number: its keywords become numbers.
- * The other DTCG types (`fontFamily`, `cubicBezier`, `strokeStyle`, `border`, `transition`, `shadow`, `gradient`,
- * `typography`) have no `@property` syntax and are an error.
+ * The other DTCG types (`fontFamily`, `strokeStyle`, `border`, `transition`, `gradient`, `typography`) are an error.
  */
 export const DTCG_TYPES = {
   color: "color",
@@ -47,18 +72,28 @@ export const DTCG_TYPES = {
   number: "number",
   duration: "time",
   fontWeight: "number",
+  cubicBezier: "easingFunction",
+  shadow: "shadow",
 } as const satisfies Record<string, TokenType>;
 export type DtcgType = keyof typeof DTCG_TYPES;
 export type Syntax<K extends TokenType> = (typeof TOKEN_TYPES)[K]["syntax"];
+/** The grammar of a value of the token type `K` (`grammarOf`). */
+export type Grammar<K extends TokenType> = (typeof TOKEN_TYPES)[K] extends {
+  readonly grammar: infer G extends string;
+}
+  ? G
+  : `<${Syntax<K>}>`;
 
 type Trim<S extends string> = S extends ` ${infer R}` ? Trim<R> : S;
 /** The value, or a message naming the bad token, like `Valid` for a property. */
-export type ValidSyntax<K extends string, S extends string> =
-  Matches<`<${K}>`, S> extends true
+export type ValidSyntax<K extends string, S extends string, G extends string = `<${K}>`> =
+  Matches<G, S> extends true
     ? S
     : S extends string
-      ? `${K}: ${Unexpected<Stuck<Trim<S> | Consume<Parse<`<${K}>`>, Trim<S>>>>} in "${S}", grammar <${K}>`
+      ? `${K}: ${Unexpected<Stuck<Trim<S> | Consume<Parse<G>, Trim<S>>>>} in "${S}", grammar ${G}`
       : never;
+/** `ValidSyntax` for a value of the token type `K`. */
+export type ValidToken<K extends TokenType, S extends string> = ValidSyntax<Syntax<K>, S, Grammar<K>>;
 
 /**
  * A token: a Typed OM value of its type whose text is `var(--name)`. `Settable` is whether it has a name. `V` is the value of
@@ -86,11 +121,11 @@ export type TokenFn<K extends TokenType> = <
   const I extends string,
   const N extends string | TokenName | undefined = undefined,
 >(
-  initial: ValidSyntax<Syntax<K>, I>,
+  initial: ValidToken<K, I>,
   name?: N,
 ) => Token<K, [N] extends [undefined] ? false : true>;
 /** `token.set(token, value)`: a style object with one custom property. A private token cannot be set. */
 export type TokenSetFn = <const K extends TokenType, const V extends string>(
   token: Token<K, true>,
-  value: ValidSyntax<Syntax<K>, V>,
+  value: ValidToken<K, V>,
 ) => StyleObject;

@@ -4,11 +4,11 @@ import type {
   DTCG_TYPES,
   DtcgType,
   TOKEN_TYPES,
-  Syntax,
   Token,
   TokenName,
   TokenType,
   ValidSyntax,
+  ValidToken,
 } from "@cssints/css-grammar/token";
 
 import type { ValidSelector } from "@cssints/css-grammar/query";
@@ -61,6 +61,16 @@ export interface DtcgUnit<U extends string> {
   readonly value: number;
   readonly unit: U;
 }
+export type DtcgCubicBezier = readonly [number, number, number, number];
+/** A DTCG shadow: a colour and four dimensions, each a DTCG value or a CSS string. */
+export interface DtcgShadow {
+  readonly color: DtcgColor | string;
+  readonly offsetX: DtcgUnit<"px" | "rem"> | string;
+  readonly offsetY: DtcgUnit<"px" | "rem"> | string;
+  readonly blur: DtcgUnit<"px" | "rem"> | string;
+  readonly spread: DtcgUnit<"px" | "rem"> | string;
+  readonly inset?: boolean;
+}
 /** The object forms of a DTCG `$value` (a CSS string is always allowed, a number for `number` and `fontWeight`). */
 export type DtcgValue<D extends DtcgType> = D extends "color"
   ? DtcgColor
@@ -70,7 +80,11 @@ export type DtcgValue<D extends DtcgType> = D extends "color"
       ? DtcgUnit<"ms" | "s">
       : D extends "fontWeight"
         ? number | FontWeightName
-        : number;
+        : D extends "cubicBezier"
+          ? DtcgCubicBezier
+          : D extends "shadow"
+            ? DtcgShadow | readonly DtcgShadow[]
+            : number;
 
 type Kind<D> = D extends DtcgType ? (typeof DTCG_TYPES)[D] : never;
 type TypeOf<N, Inherited> = N extends { readonly $type: infer Y } ? Y : Inherited;
@@ -123,6 +137,15 @@ export type Tokens<G, Inherited = undefined, Root = G> = {
 // A message is the type `{ $error: "..." }` that a leaf is intersected with, so it is the text of the error.
 type Bad<Why extends string> = { readonly $error: `cssints: ${Why}` };
 type Fits<V, R> = [R] extends [V] ? true : Bad<R extends string ? R : "not a value of this type">;
+// A value of a token type. A hex colour, one word after `#`, is a `<color>` without the walk of every colour syntax:
+// ~7k instantiations a value, which a palette of hundreds pays per token (TS2589 at ~5M); the build checks the digits.
+type Valid<Kd extends TokenType, V extends string> = Kd extends "color"
+  ? V extends `#${string}${" " | "," | "(" | ")" | "/"}${string}`
+    ? ValidToken<Kd, V>
+    : V extends `#${string}`
+      ? V
+      : ValidToken<Kd, V>
+  : ValidToken<Kd, V>;
 // A derived value is checked as the type's grammar with each reference in place as a value of the target's type.
 type Sentinel<K> = K extends TokenType ? `⟨${(typeof TOKEN_TYPES)[K]["sentinels"][0]}⟩` : never;
 type Subst<V extends string, Root> = V extends `${infer A}{${infer P}}${infer B}`
@@ -137,12 +160,12 @@ type CheckString<
 > = V extends `${string}{${string}}${string}`
   ? [Subst<V, Root>] extends [never]
     ? Bad<"a reference {…} has no token">
-    : Fits<Subst<V, Root>, ValidSyntax<Syntax<Kind<Ty>>, Subst<V, Root>>>
+    : Fits<Subst<V, Root>, Valid<Kind<Ty>, Subst<V, Root>>>
   : Ty extends "fontWeight"
     ? V extends FontWeightName
       ? true
       : Fits<V, ValidSyntax<"number", V>>
-    : Fits<V, ValidSyntax<Syntax<Kind<Ty>>, V>>;
+    : Fits<V, Valid<Kind<Ty>, V>>;
 // A JSON import (`with { type: "json" }`) widens $type to string: its tree is typed, its values are checked at build time.
 type CheckValue<V, Ty, Root> = string extends Ty
   ? true
@@ -156,7 +179,7 @@ type CheckValue<V, Ty, Root> = string extends Ty
         : V extends DtcgValue<Ty>
           ? true
           : Bad<`not a DTCG ${Ty}`>
-      : Bad<`$type ${Ty extends string ? `"${Ty}"` : "missing"} has no token type (color, dimension, number, duration, fontWeight)`>;
+      : Bad<`$type ${Ty extends string ? `"${Ty}"` : "missing"} has no token type (color, dimension, number, duration, fontWeight, cubicBezier, shadow)`>;
 type ValidLeaf<L, Ty, Root> = L extends { readonly $value: infer V }
   ? CheckValue<V, Ty, Root> extends infer R
     ? [R] extends [true]
@@ -188,7 +211,11 @@ type ObjectValue<K extends TokenType> = K extends Kinds["color"]
     ? DtcgUnit<"px" | "rem">
     : K extends Kinds["duration"]
       ? DtcgUnit<"ms" | "s">
-      : number;
+      : K extends Kinds["cubicBezier"]
+        ? DtcgCubicBezier
+        : K extends Kinds["shadow"]
+          ? DtcgShadow | readonly DtcgShadow[]
+          : number;
 
 // ---------- createGlobalTheme
 
@@ -223,7 +250,7 @@ type CheckRefs<V extends string, Kd extends TokenType, X> = V extends `{${infer 
       : Bad<`{${P}} is a ${KindIn<X, P>}, not a ${Kd}`>
   : [SubstIn<V, X>] extends [never]
     ? Bad<"a reference {…} has no token">
-    : Fits<SubstIn<V, X>, ValidSyntax<Syntax<Kd>, SubstIn<V, X>>> extends infer R
+    : Fits<SubstIn<V, X>, Valid<Kd, SubstIn<V, X>>> extends infer R
       ? [R] extends [true]
         ? V
         : R
@@ -236,7 +263,7 @@ export type CheckOverrides<X, O, Root = X> = {
           ? O[K]
           : O[K] extends `${string}{${string}}${string}`
             ? CheckRefs<O[K], Kd, Root>
-            : Fits<O[K], ValidSyntax<Syntax<Kd>, O[K]>> extends infer R
+            : Fits<O[K], Valid<Kd, O[K]>> extends infer R
               ? [R] extends [true]
                 ? O[K]
                 : R

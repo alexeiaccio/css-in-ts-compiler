@@ -59,6 +59,9 @@ css.createTokens({ size: { $type: "dimension", s: { $value: "1px" } } }, (path) 
 // A value is a CSS string of the type's grammar, or a DTCG value.
 // @ts-expect-error not a colour
 css.createTokens({ c: { $type: "color", x: { $value: "blu" } } });
+// @ts-expect-error a hex colour is one word
+css.createTokens({ c: { $type: "color", x: { $value: "#fff red" } } });
+css.createTokens({ c: { $type: "color", x: { $value: "#fff8" }, y: { $value: "#ffffff80" } } });
 // @ts-expect-error a dimension needs its unit
 css.createTokens({ c: { $type: "dimension", x: { $value: "12" } } });
 // @ts-expect-error DTCG dimensions have px and rem
@@ -75,8 +78,33 @@ css.createTokens({ c: { $type: "fontWeight", x: { $value: "heavier" } } });
 // A type is needed, and only types with a token type are supported.
 // @ts-expect-error no $type
 css.createTokens({ c: { x: { $value: "red" } } });
-// @ts-expect-error a shadow has no @property syntax
-css.createTokens({ c: { $type: "shadow", x: { $value: "0 1px black" } } });
+// @ts-expect-error a border has no token type
+css.createTokens({ c: { $type: "border", x: { $value: "1px solid black" } } });
+
+// Easing functions and shadows: DTCG values or CSS strings of their grammar, where those go.
+const m = css.createTokens({
+  ease: { $type: "cubicBezier", out: { $value: [0, 0, 0.3, 1] }, in: { $value: "ease-in" } },
+  shadow: {
+    $type: "shadow",
+    sm: { $value: "0 1px 2px #0003, inset 0 0 0 1px red" },
+    md: {
+      $value: { color: "#0003", offsetX: "0", offsetY: { value: 4, unit: "px" }, blur: "8px", spread: "0" },
+    },
+  },
+});
+css.transitionTimingFunction(m.ease.out);
+css.boxShadow(m.shadow.md);
+css.createGlobalTheme(m, ".dark", { ease: { out: [0.2, 0, 0, 1] }, shadow: { sm: "0 0 1px #000" } });
+// @ts-expect-error a cubicBezier has four numbers
+css.createTokens({ e: { $type: "cubicBezier", x: { $value: [0, 1] } } });
+// @ts-expect-error not an easing function
+css.createTokens({ e: { $type: "cubicBezier", x: { $value: "fast" } } });
+// @ts-expect-error a shadow has two lengths at least
+css.createTokens({ s: { $type: "shadow", x: { $value: "1px red" } } });
+// @ts-expect-error an easing function is no length
+css.width(m.ease.out);
+// @ts-expect-error a box shadow is not a text shadow
+css.textShadow(m.shadow.sm);
 
 // An alias names a token.
 css.createTokens({

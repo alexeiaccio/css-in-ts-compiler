@@ -334,14 +334,84 @@ export const sizes = {
   xxl: { $value: "1920px" },
 } as const;
 
+export const remSizes = {
+  $type: "dimension",
+  "1": { $value: ".25rem" },
+  "2": { $value: ".5rem" },
+  "3": { $value: "1rem" },
+  "4": { $value: "1.25rem" },
+  "5": { $value: "1.5rem" },
+  "6": { $value: "1.75rem" },
+  "7": { $value: "2rem" },
+  "8": { $value: "3rem" },
+  "9": { $value: "4rem" },
+  "10": { $value: "5rem" },
+  "11": { $value: "7.5rem" },
+  "12": { $value: "10rem" },
+  "13": { $value: "15rem" },
+  "14": { $value: "20rem" },
+  "15": { $value: "30rem" },
+  "000": { $value: "-.5rem" },
+  "00": { $value: "-.25rem" },
+} as const;
+
+export const fluidSizes = {
+  $type: "dimension",
+  "1": { $value: "clamp(.5rem, 1vw, 1rem)" },
+  "2": { $value: "clamp(1rem, 2vw, 1.5rem)" },
+  "3": { $value: "clamp(1.5rem, 3vw, 2rem)" },
+  "4": { $value: "clamp(2rem, 4vw, 3rem)" },
+  "5": { $value: "clamp(4rem, 5vw, 5rem)" },
+  "6": { $value: "clamp(5rem, 7vw, 7.5rem)" },
+  "7": { $value: "clamp(7.5rem, 10vw, 10rem)" },
+  "8": { $value: "clamp(10rem, 20vw, 15rem)" },
+  "9": { $value: "clamp(15rem, 30vw, 20rem)" },
+  "10": { $value: "clamp(20rem, 40vw, 30rem)" },
+} as const;
+
+export const contentSizes = {
+  $type: "dimension",
+  "1": { $value: "20ch" },
+  "2": { $value: "45ch" },
+  "3": { $value: "60ch" },
+} as const;
+
+export const headerSizes = {
+  $type: "dimension",
+  "1": { $value: "20ch" },
+  "2": { $value: "25ch" },
+  "3": { $value: "35ch" },
+} as const;
+
+export const relativeSizes = {
+  $type: "dimension",
+  "1": { $value: ".25ch" },
+  "2": { $value: ".5ch" },
+  "3": { $value: "1ch" },
+  "4": { $value: "1.25ch" },
+  "5": { $value: "1.5ch" },
+  "6": { $value: "1.75ch" },
+  "7": { $value: "2ch" },
+  "8": { $value: "3ch" },
+  "9": { $value: "4ch" },
+  "10": { $value: "5ch" },
+  "11": { $value: "7.5ch" },
+  "12": { $value: "10ch" },
+  "13": { $value: "15ch" },
+  "14": { $value: "20ch" },
+  "15": { $value: "30ch" },
+  "000": { $value: "-.5ch" },
+  "00": { $value: "-.25ch" },
+} as const;
+
 export const radii = {
   $type: "dimension",
   "1": { $value: "2px" },
   "2": { $value: "5px" },
-  "3": { $value: "16px" },
-  "4": { $value: "32px" },
-  "5": { $value: "64px" },
-  "6": { $value: "128px" },
+  "3": { $value: "1rem" },
+  "4": { $value: "2rem" },
+  "5": { $value: "4rem" },
+  "6": { $value: "8rem" },
   round: { $value: "1e5px" },
 } as const;
 
@@ -352,6 +422,40 @@ export const borderSizes = {
   "3": { $value: "5px" },
   "4": { $value: "10px" },
   "5": { $value: "25px" },
+} as const;
+
+export const fontSizes = {
+  $type: "dimension",
+  "0": { $value: ".75rem" },
+  "1": { $value: "1rem" },
+  "2": { $value: "1.1rem" },
+  "3": { $value: "1.25rem" },
+  "4": { $value: "1.5rem" },
+  "5": { $value: "2rem" },
+  "6": { $value: "2.5rem" },
+  "7": { $value: "3rem" },
+  "8": { $value: "3.5rem" },
+  "00": { $value: ".5rem" },
+} as const;
+
+export const fluidFontSizes = {
+  $type: "dimension",
+  "0": { $value: "clamp(.75rem, 2vw, 1rem)" },
+  "1": { $value: "clamp(1rem, 4vw, 1.5rem)" },
+  "2": { $value: "clamp(1.5rem, 6vw, 2.5rem)" },
+  "3": { $value: "clamp(2rem, 9vw, 3.5rem)" },
+} as const;
+
+export const letterSpacings = {
+  $type: "dimension",
+  "0": { $value: "-.05em" },
+  "1": { $value: ".025em" },
+  "2": { $value: ".050em" },
+  "3": { $value: ".075em" },
+  "4": { $value: ".150em" },
+  "5": { $value: ".500em" },
+  "6": { $value: ".750em" },
+  "7": { $value: "1em" },
 } as const;
 
 export const fontWeights = {
@@ -379,119 +483,161 @@ export const lineHeights = {
 } as const;
 
 export const easings = {
-  ease1: "cubic-bezier(.25, 0, .5, 1)",
-  ease2: "cubic-bezier(.25, 0, .4, 1)",
-  ease3: "cubic-bezier(.25, 0, .3, 1)",
-  ease4: "cubic-bezier(.25, 0, .2, 1)",
-  ease5: "cubic-bezier(.25, 0, .1, 1)",
-  easeIn1: "cubic-bezier(.25, 0, 1, 1)",
-  easeIn2: "cubic-bezier(.50, 0, 1, 1)",
-  easeIn3: "cubic-bezier(.70, 0, 1, 1)",
-  easeIn4: "cubic-bezier(.90, 0, 1, 1)",
-  easeIn5: "cubic-bezier(1, 0, 1, 1)",
-  easeOut1: "cubic-bezier(0, 0, .75, 1)",
-  easeOut2: "cubic-bezier(0, 0, .50, 1)",
-  easeOut3: "cubic-bezier(0, 0, .3, 1)",
-  easeOut4: "cubic-bezier(0, 0, .1, 1)",
-  easeOut5: "cubic-bezier(0, 0, 0, 1)",
-  easeInOut1: "cubic-bezier(.1, 0, .9, 1)",
-  easeInOut2: "cubic-bezier(.3, 0, .7, 1)",
-  easeInOut3: "cubic-bezier(.5, 0, .5, 1)",
-  easeInOut4: "cubic-bezier(.7, 0, .3, 1)",
-  easeInOut5: "cubic-bezier(.9, 0, .1, 1)",
-  easeElasticOut1: "cubic-bezier(.5, .75, .75, 1.25)",
-  easeElasticOut2: "cubic-bezier(.5, 1, .75, 1.25)",
-  easeElasticOut3: "cubic-bezier(.5, 1.25, .75, 1.25)",
-  easeElasticOut4: "cubic-bezier(.5, 1.5, .75, 1.25)",
-  easeElasticOut5: "cubic-bezier(.5, 1.75, .75, 1.25)",
-  easeElasticIn1: "cubic-bezier(.5, -0.25, .75, 1)",
-  easeElasticIn2: "cubic-bezier(.5, -0.50, .75, 1)",
-  easeElasticIn3: "cubic-bezier(.5, -0.75, .75, 1)",
-  easeElasticIn4: "cubic-bezier(.5, -1.00, .75, 1)",
-  easeElasticIn5: "cubic-bezier(.5, -1.25, .75, 1)",
-  easeElasticInOut1: "cubic-bezier(.5, -.1, .1, 1.5)",
-  easeElasticInOut2: "cubic-bezier(.5, -.3, .1, 1.5)",
-  easeElasticInOut3: "cubic-bezier(.5, -.5, .1, 1.5)",
-  easeElasticInOut4: "cubic-bezier(.5, -.7, .1, 1.5)",
-  easeElasticInOut5: "cubic-bezier(.5, -.9, .1, 1.5)",
-  easeStep1: "steps(2)",
-  easeStep2: "steps(3)",
-  easeStep3: "steps(4)",
-  easeStep4: "steps(7)",
-  easeStep5: "steps(10)",
-  easeElastic1: "cubic-bezier(.5, .75, .75, 1.25)",
-  easeElastic2: "cubic-bezier(.5, 1, .75, 1.25)",
-  easeElastic3: "cubic-bezier(.5, 1.25, .75, 1.25)",
-  easeElastic4: "cubic-bezier(.5, 1.5, .75, 1.25)",
-  easeElastic5: "cubic-bezier(.5, 1.75, .75, 1.25)",
-  easeSquish1: "cubic-bezier(.5, -.1, .1, 1.5)",
-  easeSquish2: "cubic-bezier(.5, -.3, .1, 1.5)",
-  easeSquish3: "cubic-bezier(.5, -.5, .1, 1.5)",
-  easeSquish4: "cubic-bezier(.5, -.7, .1, 1.5)",
-  easeSquish5: "cubic-bezier(.5, -.9, .1, 1.5)",
-  easeSpring1:
-    "linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%, 0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001)",
-  easeSpring2:
-    "linear(0, 0.007, 0.029 2.2%, 0.118 4.7%, 0.625 14.4%, 0.826 19%, 0.902, 0.962, 1.008 26.1%, 1.041 28.7%, 1.064 32.1%, 1.07 36%, 1.061 40.5%, 1.015 53.4%, 0.999 61.6%, 0.995 71.2%, 1)",
-  easeSpring3:
-    "linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, 0.991, 0.977 51%, 0.974 53.8%, 0.975 57.1%, 0.997 69.8%, 1.003 76.9%, 1)",
-  easeSpring4:
-    "linear(0, 0.009, 0.037 1.7%, 0.153 3.6%, 0.776 10.3%, 1.001, 1.142 16%, 1.185, 1.209 19%, 1.215 19.9% 20.8%, 1.199, 1.165 25%, 1.056 30.3%, 1.008 33%, 0.973, 0.955 39.2%, 0.953 41.1%, 0.957 43.3%, 0.998 53.3%, 1.009 59.1% 63.7%, 0.998 78.9%, 1)",
-  easeSpring5:
-    "linear(0, 0.01, 0.04 1.6%, 0.161 3.3%, 0.816 9.4%, 1.046, 1.189 14.4%, 1.231, 1.254 17%, 1.259, 1.257 18.6%, 1.236, 1.194 22.3%, 1.057 27%, 0.999 29.4%, 0.955 32.1%, 0.942, 0.935 34.9%, 0.933, 0.939 38.4%, 1 47.3%, 1.011, 1.017 52.6%, 1.016 56.4%, 1 65.2%, 0.996 70.2%, 1.001 87.2%, 1)",
-  easeBounce1:
-    "linear(0, 0.004, 0.016, 0.035, 0.063, 0.098, 0.141, 0.191, 0.25, 0.316, 0.391 36.8%, 0.563, 0.766, 1 58.8%, 0.946, 0.908 69.1%, 0.895, 0.885, 0.879, 0.878, 0.879, 0.885, 0.895, 0.908 89.7%, 0.946, 1)",
-  easeBounce2:
-    "linear(0, 0.004, 0.016, 0.035, 0.063, 0.098, 0.141 15.1%, 0.25, 0.391, 0.562, 0.765, 1, 0.892 45.2%, 0.849, 0.815, 0.788, 0.769, 0.757, 0.753, 0.757, 0.769, 0.788, 0.815, 0.85, 0.892 75.2%, 1 80.2%, 0.973, 0.954, 0.943, 0.939, 0.943, 0.954, 0.973, 1)",
-  easeBounce3:
-    "linear(0, 0.004, 0.016, 0.035, 0.062, 0.098, 0.141 11.4%, 0.25, 0.39, 0.562, 0.764, 1 30.3%, 0.847 34.8%, 0.787, 0.737, 0.699, 0.672, 0.655, 0.65, 0.656, 0.672, 0.699, 0.738, 0.787, 0.847 61.7%, 1 66.2%, 0.946, 0.908, 0.885 74.2%, 0.879, 0.878, 0.879, 0.885 79.5%, 0.908, 0.946, 1 87.4%, 0.981, 0.968, 0.96, 0.957, 0.96, 0.968, 0.981, 1)",
-  easeBounce4:
-    "linear(0, 0.004, 0.016 3%, 0.062, 0.141, 0.25, 0.391, 0.562 18.2%, 1 24.3%, 0.81, 0.676 32.3%, 0.629, 0.595, 0.575, 0.568, 0.575, 0.595, 0.629, 0.676 48.2%, 0.811, 1 56.2%, 0.918, 0.86, 0.825, 0.814, 0.825, 0.86, 0.918, 1 77.2%, 0.94 80.6%, 0.925, 0.92, 0.925, 0.94 87.5%, 1 90.9%, 0.974, 0.965, 0.974, 1)",
-  easeBounce5:
-    "linear(0, 0.004, 0.016 2.5%, 0.063, 0.141, 0.25 10.1%, 0.562, 1 20.2%, 0.783, 0.627, 0.534 30.9%, 0.511, 0.503, 0.511, 0.534 38%, 0.627, 0.782, 1 48.7%, 0.892, 0.815, 0.769 56.3%, 0.757, 0.753, 0.757, 0.769 61.3%, 0.815, 0.892, 1 68.8%, 0.908 72.4%, 0.885, 0.878, 0.885, 0.908 79.4%, 1 83%, 0.954 85.5%, 0.943, 0.939, 0.943, 0.954 90.5%, 1 93%, 0.977, 0.97, 0.977, 1)",
-  easeCircIn: "cubic-bezier(.6,.04,.98,.335)",
-  easeCircInOut: "cubic-bezier(.785,.135,.15,.86)",
-  easeCircOut: "cubic-bezier(.075,.82,.165,1)",
-  easeCubicIn: "cubic-bezier(.55,.055,.675,.19)",
-  easeCubicInOut: "cubic-bezier(.645,.045,.355,1)",
-  easeCubicOut: "cubic-bezier(.215,.61,.355,1)",
-  easeExpoIn: "cubic-bezier(.95,.05,.795,.035)",
-  easeExpoInOut: "cubic-bezier(1,0,0,1)",
-  easeExpoOut: "cubic-bezier(.19,1,.22,1)",
-  easeQuadIn: "cubic-bezier(.55,.085,.68,.53)",
-  easeQuadInOut: "cubic-bezier(.455,.03,.515,.955)",
-  easeQuadOut: "cubic-bezier(.25,.46,.45,.94)",
-  easeQuartIn: "cubic-bezier(.895,.03,.685,.22)",
-  easeQuartInOut: "cubic-bezier(.77,0,.175,1)",
-  easeQuartOut: "cubic-bezier(.165,.84,.44,1)",
-  easeQuintIn: "cubic-bezier(.755,.05,.855,.06)",
-  easeQuintInOut: "cubic-bezier(.86,0,.07,1)",
-  easeQuintOut: "cubic-bezier(.23,1,.32,1)",
-  easeSineIn: "cubic-bezier(.47,0,.745,.715)",
-  easeSineInOut: "cubic-bezier(.445,.05,.55,.95)",
-  easeSineOut: "cubic-bezier(.39,.575,.565,1)",
+  $type: "cubicBezier",
+  ease1: { $value: "cubic-bezier(.25, 0, .5, 1)" },
+  ease2: { $value: "cubic-bezier(.25, 0, .4, 1)" },
+  ease3: { $value: "cubic-bezier(.25, 0, .3, 1)" },
+  ease4: { $value: "cubic-bezier(.25, 0, .2, 1)" },
+  ease5: { $value: "cubic-bezier(.25, 0, .1, 1)" },
+  easeIn1: { $value: "cubic-bezier(.25, 0, 1, 1)" },
+  easeIn2: { $value: "cubic-bezier(.50, 0, 1, 1)" },
+  easeIn3: { $value: "cubic-bezier(.70, 0, 1, 1)" },
+  easeIn4: { $value: "cubic-bezier(.90, 0, 1, 1)" },
+  easeIn5: { $value: "cubic-bezier(1, 0, 1, 1)" },
+  easeOut1: { $value: "cubic-bezier(0, 0, .75, 1)" },
+  easeOut2: { $value: "cubic-bezier(0, 0, .50, 1)" },
+  easeOut3: { $value: "cubic-bezier(0, 0, .3, 1)" },
+  easeOut4: { $value: "cubic-bezier(0, 0, .1, 1)" },
+  easeOut5: { $value: "cubic-bezier(0, 0, 0, 1)" },
+  easeInOut1: { $value: "cubic-bezier(.1, 0, .9, 1)" },
+  easeInOut2: { $value: "cubic-bezier(.3, 0, .7, 1)" },
+  easeInOut3: { $value: "cubic-bezier(.5, 0, .5, 1)" },
+  easeInOut4: { $value: "cubic-bezier(.7, 0, .3, 1)" },
+  easeInOut5: { $value: "cubic-bezier(.9, 0, .1, 1)" },
+  easeElasticOut1: { $value: "cubic-bezier(.5, .75, .75, 1.25)" },
+  easeElasticOut2: { $value: "cubic-bezier(.5, 1, .75, 1.25)" },
+  easeElasticOut3: { $value: "cubic-bezier(.5, 1.25, .75, 1.25)" },
+  easeElasticOut4: { $value: "cubic-bezier(.5, 1.5, .75, 1.25)" },
+  easeElasticOut5: { $value: "cubic-bezier(.5, 1.75, .75, 1.25)" },
+  easeElasticIn1: { $value: "cubic-bezier(.5, -0.25, .75, 1)" },
+  easeElasticIn2: { $value: "cubic-bezier(.5, -0.50, .75, 1)" },
+  easeElasticIn3: { $value: "cubic-bezier(.5, -0.75, .75, 1)" },
+  easeElasticIn4: { $value: "cubic-bezier(.5, -1.00, .75, 1)" },
+  easeElasticIn5: { $value: "cubic-bezier(.5, -1.25, .75, 1)" },
+  easeElasticInOut1: { $value: "cubic-bezier(.5, -.1, .1, 1.5)" },
+  easeElasticInOut2: { $value: "cubic-bezier(.5, -.3, .1, 1.5)" },
+  easeElasticInOut3: { $value: "cubic-bezier(.5, -.5, .1, 1.5)" },
+  easeElasticInOut4: { $value: "cubic-bezier(.5, -.7, .1, 1.5)" },
+  easeElasticInOut5: { $value: "cubic-bezier(.5, -.9, .1, 1.5)" },
+  easeStep1: { $value: "steps(2)" },
+  easeStep2: { $value: "steps(3)" },
+  easeStep3: { $value: "steps(4)" },
+  easeStep4: { $value: "steps(7)" },
+  easeStep5: { $value: "steps(10)" },
+  easeElastic1: { $value: "cubic-bezier(.5, .75, .75, 1.25)" },
+  easeElastic2: { $value: "cubic-bezier(.5, 1, .75, 1.25)" },
+  easeElastic3: { $value: "cubic-bezier(.5, 1.25, .75, 1.25)" },
+  easeElastic4: { $value: "cubic-bezier(.5, 1.5, .75, 1.25)" },
+  easeElastic5: { $value: "cubic-bezier(.5, 1.75, .75, 1.25)" },
+  easeSquish1: { $value: "cubic-bezier(.5, -.1, .1, 1.5)" },
+  easeSquish2: { $value: "cubic-bezier(.5, -.3, .1, 1.5)" },
+  easeSquish3: { $value: "cubic-bezier(.5, -.5, .1, 1.5)" },
+  easeSquish4: { $value: "cubic-bezier(.5, -.7, .1, 1.5)" },
+  easeSquish5: { $value: "cubic-bezier(.5, -.9, .1, 1.5)" },
+  easeCircIn: { $value: "cubic-bezier(.6,.04,.98,.335)" },
+  easeCircInOut: { $value: "cubic-bezier(.785,.135,.15,.86)" },
+  easeCircOut: { $value: "cubic-bezier(.075,.82,.165,1)" },
+  easeCubicIn: { $value: "cubic-bezier(.55,.055,.675,.19)" },
+  easeCubicInOut: { $value: "cubic-bezier(.645,.045,.355,1)" },
+  easeCubicOut: { $value: "cubic-bezier(.215,.61,.355,1)" },
+  easeExpoIn: { $value: "cubic-bezier(.95,.05,.795,.035)" },
+  easeExpoInOut: { $value: "cubic-bezier(1,0,0,1)" },
+  easeExpoOut: { $value: "cubic-bezier(.19,1,.22,1)" },
+  easeQuadIn: { $value: "cubic-bezier(.55,.085,.68,.53)" },
+  easeQuadInOut: { $value: "cubic-bezier(.455,.03,.515,.955)" },
+  easeQuadOut: { $value: "cubic-bezier(.25,.46,.45,.94)" },
+  easeQuartIn: { $value: "cubic-bezier(.895,.03,.685,.22)" },
+  easeQuartInOut: { $value: "cubic-bezier(.77,0,.175,1)" },
+  easeQuartOut: { $value: "cubic-bezier(.165,.84,.44,1)" },
+  easeQuintIn: { $value: "cubic-bezier(.755,.05,.855,.06)" },
+  easeQuintInOut: { $value: "cubic-bezier(.86,0,.07,1)" },
+  easeQuintOut: { $value: "cubic-bezier(.23,1,.32,1)" },
+  easeSineIn: { $value: "cubic-bezier(.47,0,.745,.715)" },
+  easeSineInOut: { $value: "cubic-bezier(.445,.05,.55,.95)" },
+  easeSineOut: { $value: "cubic-bezier(.39,.575,.565,1)" },
+} as const;
+
+export const springs = {
+  $type: "cubicBezier",
+  easeSpring1: {
+    $value:
+      "linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%, 0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001)",
+  },
+  easeSpring2: {
+    $value:
+      "linear(0, 0.007, 0.029 2.2%, 0.118 4.7%, 0.625 14.4%, 0.826 19%, 0.902, 0.962, 1.008 26.1%, 1.041 28.7%, 1.064 32.1%, 1.07 36%, 1.061 40.5%, 1.015 53.4%, 0.999 61.6%, 0.995 71.2%, 1)",
+  },
+  easeSpring3: {
+    $value:
+      "linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, 0.991, 0.977 51%, 0.974 53.8%, 0.975 57.1%, 0.997 69.8%, 1.003 76.9%, 1)",
+  },
+  easeSpring4: {
+    $value:
+      "linear(0, 0.009, 0.037 1.7%, 0.153 3.6%, 0.776 10.3%, 1.001, 1.142 16%, 1.185, 1.209 19%, 1.215 19.9% 20.8%, 1.199, 1.165 25%, 1.056 30.3%, 1.008 33%, 0.973, 0.955 39.2%, 0.953 41.1%, 0.957 43.3%, 0.998 53.3%, 1.009 59.1% 63.7%, 0.998 78.9%, 1)",
+  },
+  easeSpring5: {
+    $value:
+      "linear(0, 0.01, 0.04 1.6%, 0.161 3.3%, 0.816 9.4%, 1.046, 1.189 14.4%, 1.231, 1.254 17%, 1.259, 1.257 18.6%, 1.236, 1.194 22.3%, 1.057 27%, 0.999 29.4%, 0.955 32.1%, 0.942, 0.935 34.9%, 0.933, 0.939 38.4%, 1 47.3%, 1.011, 1.017 52.6%, 1.016 56.4%, 1 65.2%, 0.996 70.2%, 1.001 87.2%, 1)",
+  },
+  easeBounce1: {
+    $value:
+      "linear(0, 0.004, 0.016, 0.035, 0.063, 0.098, 0.141, 0.191, 0.25, 0.316, 0.391 36.8%, 0.563, 0.766, 1 58.8%, 0.946, 0.908 69.1%, 0.895, 0.885, 0.879, 0.878, 0.879, 0.885, 0.895, 0.908 89.7%, 0.946, 1)",
+  },
+  easeBounce2: {
+    $value:
+      "linear(0, 0.004, 0.016, 0.035, 0.063, 0.098, 0.141 15.1%, 0.25, 0.391, 0.562, 0.765, 1, 0.892 45.2%, 0.849, 0.815, 0.788, 0.769, 0.757, 0.753, 0.757, 0.769, 0.788, 0.815, 0.85, 0.892 75.2%, 1 80.2%, 0.973, 0.954, 0.943, 0.939, 0.943, 0.954, 0.973, 1)",
+  },
+  easeBounce3: {
+    $value:
+      "linear(0, 0.004, 0.016, 0.035, 0.062, 0.098, 0.141 11.4%, 0.25, 0.39, 0.562, 0.764, 1 30.3%, 0.847 34.8%, 0.787, 0.737, 0.699, 0.672, 0.655, 0.65, 0.656, 0.672, 0.699, 0.738, 0.787, 0.847 61.7%, 1 66.2%, 0.946, 0.908, 0.885 74.2%, 0.879, 0.878, 0.879, 0.885 79.5%, 0.908, 0.946, 1 87.4%, 0.981, 0.968, 0.96, 0.957, 0.96, 0.968, 0.981, 1)",
+  },
+  easeBounce4: {
+    $value:
+      "linear(0, 0.004, 0.016 3%, 0.062, 0.141, 0.25, 0.391, 0.562 18.2%, 1 24.3%, 0.81, 0.676 32.3%, 0.629, 0.595, 0.575, 0.568, 0.575, 0.595, 0.629, 0.676 48.2%, 0.811, 1 56.2%, 0.918, 0.86, 0.825, 0.814, 0.825, 0.86, 0.918, 1 77.2%, 0.94 80.6%, 0.925, 0.92, 0.925, 0.94 87.5%, 1 90.9%, 0.974, 0.965, 0.974, 1)",
+  },
+  easeBounce5: {
+    $value:
+      "linear(0, 0.004, 0.016 2.5%, 0.063, 0.141, 0.25 10.1%, 0.562, 1 20.2%, 0.783, 0.627, 0.534 30.9%, 0.511, 0.503, 0.511, 0.534 38%, 0.627, 0.782, 1 48.7%, 0.892, 0.815, 0.769 56.3%, 0.757, 0.753, 0.757, 0.769 61.3%, 0.815, 0.892, 1 68.8%, 0.908 72.4%, 0.885, 0.878, 0.885, 0.908 79.4%, 1 83%, 0.954 85.5%, 0.943, 0.939, 0.943, 0.954 90.5%, 1 93%, 0.977, 0.97, 0.977, 1)",
+  },
 } as const;
 
 export const shadows = {
-  shadow1: "0 1px 2px -1px hsl(220 3% 15% / 10%)",
-  shadow2: "0 3px 5px -2px hsl(220 3% 15% / 4%), 0 7px 14px -5px hsl(220 3% 15% / 6%)",
-  shadow3:
-    "0 -1px 3px 0 hsl(220 3% 15% / 3%), 0 1px 2px -5px hsl(220 3% 15% / 3%), 0 2px 5px -5px hsl(220 3% 15% / 5%), 0 4px 12px -5px hsl(220 3% 15% / 6%), 0 12px 15px -5px hsl(220 3% 15% / 8%)",
-  shadow4:
-    "0 -2px 5px 0 hsl(220 3% 15% / 3%), 0 1px 1px -2px hsl(220 3% 15% / 4%), 0 2px 2px -2px hsl(220 3% 15% / 4%), 0 5px 5px -2px hsl(220 3% 15% / 5%), 0 9px 9px -2px hsl(220 3% 15% / 6%), 0 16px 16px -2px hsl(220 3% 15% / 7%)",
-  shadow5:
-    "0 -1px 2px 0 hsl(220 3% 15% / 3%), 0 2px 1px -2px hsl(220 3% 15% / 4%), 0 5px 5px -2px hsl(220 3% 15% / 4%), 0 10px 10px -2px hsl(220 3% 15% / 5%), 0 20px 20px -2px hsl(220 3% 15% / 6%), 0 40px 40px -2px hsl(220 3% 15% / 8%)",
-  shadow6:
-    "0 -1px 2px 0 hsl(220 3% 15% / 3%), 0 3px 2px -2px hsl(220 3% 15% / 4%), 0 7px 5px -2px hsl(220 3% 15% / 4%), 0 12px 10px -2px hsl(220 3% 15% / 5%), 0 22px 18px -2px hsl(220 3% 15% / 6%), 0 41px 33px -2px hsl(220 3% 15% / 7%), 0 100px 80px -2px hsl(220 3% 15% / 8%)",
-  innerShadow0: "inset 0 0 0 1px hsl(220 3% 15% / 10%)",
-  innerShadow1:
-    "inset 0 1px 2px 0 hsl(220 3% 15% / 10%), inset 0 -.5px 0 0 #fff, inset 0 .5px 0 0 #0001",
-  innerShadow2:
-    "inset 0 1px 4px 0 hsl(220 3% 15% / 10%), inset 0 -.5px 0 0 #fff, inset 0 .5px 0 0 #0001",
-  innerShadow3:
-    "inset 0 2px 8px 0 hsl(220 3% 15% / 10%), inset 0 -.5px 0 0 #fff, inset 0 .5px 0 0 #0001",
-  innerShadow4:
-    "inset 0 2px 14px 0 hsl(220 3% 15% / 10%), inset 0 -.5px 0 0 #fff, inset 0 .5px 0 0 #0001",
+  $type: "shadow",
+  shadow1: { $value: "0 1px 2px -1px hsl(220 3% 15% / 10%)" },
+  shadow2: { $value: "0 3px 5px -2px hsl(220 3% 15% / 4%), 0 7px 14px -5px hsl(220 3% 15% / 6%)" },
+  shadow3: {
+    $value:
+      "0 -1px 3px 0 hsl(220 3% 15% / 3%), 0 1px 2px -5px hsl(220 3% 15% / 3%), 0 2px 5px -5px hsl(220 3% 15% / 5%), 0 4px 12px -5px hsl(220 3% 15% / 6%), 0 12px 15px -5px hsl(220 3% 15% / 8%)",
+  },
+  shadow4: {
+    $value:
+      "0 -2px 5px 0 hsl(220 3% 15% / 3%), 0 1px 1px -2px hsl(220 3% 15% / 4%), 0 2px 2px -2px hsl(220 3% 15% / 4%), 0 5px 5px -2px hsl(220 3% 15% / 5%), 0 9px 9px -2px hsl(220 3% 15% / 6%), 0 16px 16px -2px hsl(220 3% 15% / 7%)",
+  },
+  shadow5: {
+    $value:
+      "0 -1px 2px 0 hsl(220 3% 15% / 3%), 0 2px 1px -2px hsl(220 3% 15% / 4%), 0 5px 5px -2px hsl(220 3% 15% / 4%), 0 10px 10px -2px hsl(220 3% 15% / 5%), 0 20px 20px -2px hsl(220 3% 15% / 6%), 0 40px 40px -2px hsl(220 3% 15% / 8%)",
+  },
+  shadow6: {
+    $value:
+      "0 -1px 2px 0 hsl(220 3% 15% / 3%), 0 3px 2px -2px hsl(220 3% 15% / 4%), 0 7px 5px -2px hsl(220 3% 15% / 4%), 0 12px 10px -2px hsl(220 3% 15% / 5%), 0 22px 18px -2px hsl(220 3% 15% / 6%), 0 41px 33px -2px hsl(220 3% 15% / 7%), 0 100px 80px -2px hsl(220 3% 15% / 8%)",
+  },
+  innerShadow0: { $value: "inset 0 0 0 1px hsl(220 3% 15% / 10%)" },
+  innerShadow1: {
+    $value:
+      "inset 0 1px 2px 0 hsl(220 3% 15% / 10%), inset 0 -.5px 0 0 #fff, inset 0 .5px 0 0 #0001",
+  },
+  innerShadow2: {
+    $value:
+      "inset 0 1px 4px 0 hsl(220 3% 15% / 10%), inset 0 -.5px 0 0 #fff, inset 0 .5px 0 0 #0001",
+  },
+  innerShadow3: {
+    $value:
+      "inset 0 2px 8px 0 hsl(220 3% 15% / 10%), inset 0 -.5px 0 0 #fff, inset 0 .5px 0 0 #0001",
+  },
+  innerShadow4: {
+    $value:
+      "inset 0 2px 14px 0 hsl(220 3% 15% / 10%), inset 0 -.5px 0 0 #fff, inset 0 .5px 0 0 #0001",
+  },
 } as const;
 
 export const shadowsDark = {

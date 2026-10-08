@@ -8,24 +8,30 @@ runtime and no `scope()`.
 ```ts
 // tokens.ts
 import { createTokens } from "cssints" with { type: "cssints" };
-import { colors, radii, sizes } from "@cssints/tokens/open-props";
+import { colors, easings, radii, shadows, sizes } from "@cssints/tokens/open-props";
 import { light } from "@cssints/tokens/radix";
 
-export const op = createTokens({ ...colors, size: sizes, radius: radii });
+export const op = createTokens({
+  ...colors,
+  size: sizes,
+  radius: radii,
+  ease: easings,
+  shadow: shadows,
+});
 export const rx = createTokens({ radix: { blue: light.blue, gray: light.gray } });
 ```
 
 ```ts
 // theme.ts, imported once by the entry
 import { createGlobalTheme, media } from "cssints" with { type: "cssints" };
+import { shadowsDark } from "@cssints/tokens/open-props";
 import { dark } from "@cssints/tokens/radix";
 
-import { rx } from "./tokens.ts";
+import { op, rx } from "./tokens.ts";
 
-createGlobalTheme(rx.radix, media("(prefers-color-scheme: dark)"), {
-  blue: dark.blue,
-  gray: dark.gray,
-});
+const scheme = media("(prefers-color-scheme: dark)");
+createGlobalTheme(rx.radix, scheme, { blue: dark.blue, gray: dark.gray });
+createGlobalTheme(op.shadow, scheme, shadowsDark);
 ```
 
 ```ts
@@ -37,26 +43,38 @@ import {
   p,
   transitionTimingFunction,
 } from "cssints" with { type: "cssints" };
-import { easings, shadows } from "@cssints/tokens/open-props";
 
 import { op, rx } from "./tokens.ts";
 
 export const card = cn(
   p(op.size._3),
   color(rx.radix.blue._11),
-  boxShadow(shadows.shadow2),
-  transitionTimingFunction(easings.easeOut3),
+  boxShadow(op.shadow.shadow2),
+  transitionTimingFunction(op.ease.easeOut3),
 );
 ```
 
-The sheet of `card.ts` holds the two tokens the module uses, of the 302 that `tokens.ts` makes. The sheet of `theme.ts`
-holds the dark rule:
+The sheet of `card.ts` holds the four tokens the module uses, of the 384 that `tokens.ts` makes. Easings and shadows
+have no `@property` syntax of their own, so their rule takes any value (`syntax: "*"`). The sheet of `theme.ts` holds
+the dark rules:
 
 ```css
+@property --ease-ease-out3 {
+  syntax: "*";
+  inherits: true;
+  initial-value: cubic-bezier(0, 0, 0.3, 1);
+}
 @property --radix-blue-11 {
   syntax: "<color>";
   inherits: true;
   initial-value: #0d74ce;
+}
+@property --shadow-shadow2 {
+  syntax: "*";
+  inherits: true;
+  initial-value:
+    0 3px 5px -2px hsl(220 3% 15% / 4%),
+    0 7px 14px -5px hsl(220 3% 15% / 6%);
 }
 @property --size-3 {
   syntax: "<length>";
@@ -67,16 +85,14 @@ holds the dark rule:
   ._16gq2dh {
     padding: var(--size-3);
   }
-  ._1jyizjh {
-    transition-timing-function: cubic-bezier(0, 0, 0.3, 1);
-  }
-  ._1y5wvf0 {
-    box-shadow:
-      0 3px 5px -2px hsl(220 3% 15% / 4%),
-      0 7px 14px -5px hsl(220 3% 15% / 6%);
+  ._6lyfev {
+    transition-timing-function: var(--ease-ease-out3);
   }
   ._jwbgq6 {
     color: var(--radix-blue-11);
+  }
+  ._lwcu7u {
+    box-shadow: var(--shadow-shadow2);
   }
 }
 @layer _.k {
@@ -86,17 +102,22 @@ holds the dark rule:
       --radix-gray-12: #eeeeee;
     }
   }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --shadow-shadow1: 0 1px 2px -1px hsl(220 40% 2% / 34%); /* ... */
+    }
+  }
 }
 ```
 
 ## The sets
 
-| Import                              | Exports                                                                                                      | From                    |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------- |
-| `@cssints/tokens/open-props`        | `colors`, `sizes`, `radii`, `borderSizes`, `fontWeights`, `lineHeights`; `easings`, `shadows`, `shadowsDark` | open-props 1.7.23       |
-| `@cssints/tokens/radix`             | `light`, `lightAlpha` (tokens); `dark`, `darkAlpha` (overrides)                                              | @radix-ui/colors 3.0.0  |
-| `@cssints/tokens/flexoki`           | `flexoki` (`base`: `black`, `paper`, `50`..`950`; eight accents `50`..`950`)                                 | kepano/flexoki@8d723ba  |
-| `@cssints/tokens/reasonable-colors` | `reasonableColors` (25 hues, shades `1`..`6`)                                                                | reasonable-colors 0.4.0 |
+| Import                              | Exports                                                                                                                                                                                                                                                                 | From                    |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `@cssints/tokens/open-props`        | `colors`, `sizes`, `remSizes`, `fluidSizes`, `contentSizes`, `headerSizes`, `relativeSizes`, `radii`, `borderSizes`, `fontSizes`, `fluidFontSizes`, `letterSpacings`, `fontWeights`, `lineHeights`, `easings`, `springs`, `shadows` (tokens); `shadowsDark` (overrides) | open-props 1.7.23       |
+| `@cssints/tokens/radix`             | `light`, `lightAlpha` (tokens); `dark`, `darkAlpha` (overrides)                                                                                                                                                                                                         | @radix-ui/colors 3.0.0  |
+| `@cssints/tokens/flexoki`           | `flexoki` (`base`: `black`, `paper`, `50`..`950`; eight accents `50`..`950`)                                                                                                                                                                                            | kepano/flexoki@8d723ba  |
+| `@cssints/tokens/reasonable-colors` | `reasonableColors` (25 hues, shades `1`..`6`)                                                                                                                                                                                                                           | reasonable-colors 0.4.0 |
 
 - **Data, not a `createTokens` call.** The variable name is the token path, so the group you put a set under is its
   prefix: `createTokens({ radix: light })` gives `--radix-blue-11`, `createTokens(light)` gives `--blue-11`. Open Props,
@@ -107,10 +128,22 @@ holds the dark rule:
   `t.size._000`), as cssints reads it; the variable keeps the key (`--blue-7`). Radix's alpha scales are `blueA`, so
   their variables are `--blue-a-3`.
 - **Open Props.** `colors` are the 19 hues of `open-props/src/colors`, `0`..`12`. `sizes` are the px scale (`size-px-*`,
-  `000`..`15`) and the named widths `xxs`..`xxl`. `radii` are `1`..`6` and `round`. `fontWeights` are `1`..`9`,
-  `lineHeights` `00`..`5`. `easings`, `shadows` and `shadowsDark` are CSS strings (see "Limits"); `easings` include
-  the Penner curves (`easeCubicOut`, `easeQuintInOut`, sine to circ). The shadows are
-  resolved: `--shadow-color` and `--shadow-strength` are written into each value, light and dark.
+  `000`..`15`) and the named widths `xxs`..`xxl`; `remSizes` the rem scale (`size-*`, `000`..`15`), `fluidSizes`
+  `1`..`10` (`clamp()`), `contentSizes` and `headerSizes` `1`..`3` (`ch`), `relativeSizes` `000`..`15` (`ch`). `radii`
+  are `1`..`6` and `round`, in rem as upstream. `fontSizes` are `00`..`8` (rem), `fluidFontSizes` `0`..`3`,
+  `letterSpacings` `0`..`7` (em). `fontWeights` are `1`..`9`, `lineHeights` `00`..`5`. `easings` (`cubicBezier`) are the
+  cubic-béziers and steps, with the Penner curves (`easeCubicOut`, `easeQuintInOut`, sine to circ); `springs` the
+  springs and bounces, which are `linear()` (see "Limits"). `shadows` are tokens and `shadowsDark` their overrides for
+  `createGlobalTheme`: `--shadow-color` and `--shadow-strength` are written into each value, light and dark.
+- **rem, ch and em.** cssints gives a token in rem, ch or em an `@property` initial value in px (at 16px) and declares
+  the value itself on `:root`, so the tokens follow the user's font size. On `:root` an `em` or `ch` is the root's.
+  For the letter spacings, and the `ch` sizes if they should follow the element's font, make them not inherit: then
+  each element computes its own (`:where(*){--tracking-1:.025em}`):
+
+  ```ts
+  createTokens({ tracking: letterSpacings }, (path) => ({ var: path.join("-"), inherit: false }));
+  ```
+
 - **Radix.** `light` has the 31 solid scales, `lightAlpha` the 31 alpha scales and `blackA`, `whiteA`. `dark` and
   `darkAlpha` give the same paths, `{ blue: { _1: "#0d1520", ... } }`, for `createGlobalTheme`. To pick scales, pick
   them in both the tokens and the overrides. An override for a token you did not create is a type error.
@@ -134,31 +167,23 @@ results (`test/fixtures/radix-theme.ts` checks all 31 scales, light and dark):
 
 ## Limits
 
-- **rem.** A token's `@property` initial value cannot depend on the font size, so cssints rejects `1rem`. The rem values
-  of Open Props are converted at 16px to the rem (`radius-3` is `16px`). For this reason, the rem and `ch` sizes
-  (`size-1` as `.25rem`, `size-fluid-*`, `size-content-*`), the font sizes and the letter spacings are not included.
-- **Strings, not tokens.** cssints has no token type for a timing function or a shadow (`cubicBezier` and the composite
-  DTCG types have no `@property` syntax). Because of this, the easings and shadows are CSS strings: they go into the
-  property as they are, with no variable. A theme cannot change them: use `shadowsDark` under your dark condition.
-- **A theme takes the whole set.** Only the tokens a module uses go into its sheet. But a module that imports the
-  module that calls `createGlobalTheme` gets the `@property` rules of every token the theme sets. Put the theme in its
-  own module, import it once from the entry, and pass it only the scales you use.
-- **Type cost** (tsgo, `createTokens` per set, about 7,000 instantiations per colour token):
+- **A shadow costs in the types.** cssints checks each shadow value by the `<shadow>#` grammar: about 30,000
+  instantiations a layer, so `shadows` (11 tokens of up to 7 layers) costs 1.2 M and `shadowsDark` as a theme 1.2 M more.
+- **Type cost** (tsgo, one file per row; a hex colour costs about 80 instantiations):
 
-  | Call                                         | Instantiations | Check time |
-  | -------------------------------------------- | -------------- | ---------- |
-  | `color("red")` (the baseline)                | 0.18 M         | 0.13 s     |
-  | Open Props `colors` (247 tokens)             | 1.9 M          | 0.6 s      |
-  | Open Props, all token groups (299)           | 1.9 M          | 0.6 s      |
-  | Radix `light` (372)                          | 2.9 M          | 0.8 s      |
-  | Radix `light` and the `dark` theme           | 5.4 M          | 1.4 s      |
-  | Radix `lightAlpha` and the `darkAlpha` theme | 5.8 M          | 2.0 s      |
-  | Radix `blue` and `gray`, light and dark      | 0.5 M          | 0.25 s     |
-  | Flexoki (119)                                | 1.0 M          | 0.35 s     |
-  | Reasonable Colors (150)                      | 1.3 M          | 0.45 s     |
+  | Call                                                           | Instantiations | Check time |
+  | -------------------------------------------------------------- | -------------- | ---------- |
+  | `color("red")` (the baseline)                                  | 0.16 M         | 0.08 s     |
+  | Open Props `colors` (247 tokens)                               | 0.18 M         | 0.09 s     |
+  | Open Props, all token groups (453) and the `shadowsDark` theme | 2.7 M          | 1.8 s      |
+  | Radix `light` (372)                                            | 0.19 M         | 0.10 s     |
+  | Radix `light` and the `dark` theme                             | 0.27 M         | 0.12 s     |
+  | Radix `lightAlpha` and the `darkAlpha` theme                   | 0.54 M         | 0.29 s     |
+  | Radix `light` and `lightAlpha` in one call, with both themes   | 0.66 M         | 0.38 s     |
+  | Flexoki (119)                                                  | 0.17 M         | 0.09 s     |
+  | Reasonable Colors (150)                                        | 0.17 M         | 0.10 s     |
 
-  A single statement stops at TypeScript's limit (TS2589, "excessively deep"). `createTokens({ ...light, ...lightAlpha })`
-  (766 tokens) is over that limit. This is why the solid and alpha scales of Radix are separate sets.
+  A single statement stops at TypeScript's limit (TS2589, "excessively deep") at about 5 M.
 
 ## Licenses
 

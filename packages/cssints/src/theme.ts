@@ -59,6 +59,7 @@ const FONT_WEIGHTS: Record<string, number> = {
   "extra-black": 950,
   "ultra-black": 950,
 };
+const SHADOW = ["color", "offsetX", "offsetY", "blur", "spread"];
 const UNITS: Record<string, string[]> = { dimension: ["px", "rem"], duration: ["ms", "s"] };
 
 const isNumber = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n);
@@ -97,6 +98,31 @@ const cssOf = Effect.fnUntraced(function* (
     return named
       ? `${space as string}(${parts.join(" ")}${a})`
       : `color(${space as string} ${parts.join(" ")}${a})`;
+  }
+  if (type === "cubicBezier") {
+    if (!Array.isArray(value) || value.length !== 4 || !value.every(isNumber))
+      return yield* fail(`cssints: ${what} is not a DTCG cubicBezier: [x1, y1, x2, y2]`);
+    return `cubic-bezier(${value.join(", ")})`;
+  }
+  if (type === "shadow") {
+    const layers: unknown[] = Array.isArray(value) ? value : [value];
+    const out: string[] = [];
+    for (const l of layers) {
+      if (
+        !Predicate.isObject(l) ||
+        SHADOW.some((k) => l[k] === undefined) ||
+        (l.inset !== undefined && typeof l.inset !== "boolean")
+      )
+        return yield* fail(
+          `cssints: ${what} is not a DTCG shadow: { color, offsetX, offsetY, blur, spread, inset? } or an array of them`,
+        );
+      const parts = [];
+      for (const k of SHADOW.slice(1))
+        parts.push(yield* cssOf("dimension", l[k], `${what} ${k}`));
+      parts.push(yield* cssOf("color", l.color, `${what} color`));
+      out.push(`${l.inset ? "inset " : ""}${parts.join(" ")}`);
+    }
+    return out.join(", ");
   }
   const units = UNITS[type];
   if (Predicate.isObject(value) && units) {

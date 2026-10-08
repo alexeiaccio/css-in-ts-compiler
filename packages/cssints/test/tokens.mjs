@@ -42,13 +42,20 @@ assert.match(code, /export const muted = "var\(--_[0-9a-f]{8}\)";/);
 assert.equal(code.match(/export const muted = "var\((--_[0-9a-f]{8})\)"/)[1], "--_aa6d0a79");
 assert.ok(!/\bcss\.|token\./.test(code), "a module of tokens ships strings only");
 
-// A font-relative initial value: a browser would drop the @property rule.
-let e = await failure("fixtures/token-relative.ts");
-assert.match(e.message, /^cssints: token.length\(\) initial value "1rem" depends on the font size/);
-assert.deepEqual({ line: e.loc.line, column: e.loc.column }, { line: 3, column: 19 });
+// A font-relative value: a browser drops an @property rule with it, so the initial value is in px at 16px, and :root
+// (:where(*) when it does not inherit) holds the value itself.
+await client.transformRequest("/fixtures/token-relative.ts");
+const relative = plugins[0].api.sheet([`${root}/fixtures/token-relative.ts`]);
+for (const rule of [
+  '@property --gap-relative{syntax:"<length>";inherits:true;initial-value:16px}',
+  ":root{--gap-relative:1rem}",
+  '@property --wide-relative{syntax:"<length>";inherits:false;initial-value:calc(24px + 16px)}',
+  ":where(*){--wide-relative:calc(1.5rem + 2ch)}",
+])
+  assert.ok(relative.includes(rule), `${rule}\n${relative}`);
 
 // A bad initial value and a token where another type goes: errors at the call.
-e = await failure("fixtures/token-bad.ts");
+let e = await failure("fixtures/token-bad.ts");
 assert.match(e.message, /^cssints: token.color\(\) initial value "blu" is not a <color>/);
 assert.deepEqual({ line: e.loc.line, column: e.loc.column }, { line: 3, column: 20 });
 e = await failure("fixtures/token-misuse.ts");

@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { relative } from "node:path";
 
 import { browsers, supportOf } from "@cssints/css-grammar/support";
-import { TOKEN_TYPES, type TokenType } from "@cssints/css-grammar/token";
+import { grammarOf, TOKEN_TYPES, type TokenType } from "@cssints/css-grammar/token";
 import { matches } from "@cssints/css-grammar/twin";
 import { CSSStyleValue } from "@cssints/css-grammar/values";
 import { Effect, Formatter, Predicate } from "effect";
@@ -47,6 +47,8 @@ const SUPPORT_PROPERTY: Record<string, string> = {
   url: "background-image",
   image: "background-image",
   "transform-list": "transform",
+  "easing-function": "transition-timing-function",
+  shadow: "box-shadow",
 };
 
 // The condition of an `@supports` rule for a value of `syntax`: the browsers that parse `text` are the ones that can
@@ -54,7 +56,7 @@ const SUPPORT_PROPERTY: Record<string, string> = {
 export const supportTest = (syntax: string, text: string): string =>
   `(${SUPPORT_PROPERTY[syntax]}:${text})`;
 
-// `text` is a value of the grammar `<syntax>`; `what` names it in the error, and `who` (default `what`) in a support
+// `text` is a value of the grammar of `syntax` (`<syntax>`, `<shadow>#`); `what` names it in the error, and `who` (default `what`) in a support
 // warning, once per `who` and BCD feature per build, in the `warned` set of the properties. `variable` is the custom
 // property of the sheet that holds the value (a token, or a theme override), which LightningCSS lowers for the
 // targets: when it lowers every feature that warns, there is no warning and the result is the lowered value (the
@@ -67,10 +69,11 @@ export const checkSyntaxFx = Effect.fnUntraced(function* (
   who: string = what,
   variable?: string,
 ): Effect.fn.Return<string | undefined, MacroError> {
-  const ok = yield* matches(`<${syntax}>`, text).pipe(
+  const grammar = grammarOf(syntax);
+  const ok = yield* matches(grammar, text).pipe(
     Effect.mapError((e) => new MacroError({ message: e.message, cause: e, ...registry.at })),
   );
-  if (!ok) return yield* fail(`cssints: ${what} "${text}" is not a <${syntax}>`);
+  if (!ok) return yield* fail(`cssints: ${what} "${text}" is not a ${grammar}`);
   const prop = SUPPORT_PROPERTY[syntax];
   if (!prop) return;
   const { warned, warnings } = registry;
@@ -112,13 +115,25 @@ const privateName = (): string => {
   return `--_${createHash("sha1").update(key).digest("hex").slice(0, 8)}`;
 };
 
-// Chrome rejects `1rem` and `1em` as an initial-value: relative to a font size, which CSS can change.
-const FONT_RELATIVE = /[\d.](?:r?em|r?ex|r?ch|r?cap|r?ic|r?lh)\b/i;
+// A browser drops an `@property` rule whose initial-value is relative to a font size (`1rem`, `1em`): the initial
+// value is the text in px at a 16px font (the fallbacks CSS gives: 1ex and 1ch are 0.5em, 1lh is 1.2em), and `:root`
+// gets the text itself, so the token follows the user's font size.
+const FONT_RELATIVE = /(\d*\.?\d+(?:e[+-]?\d+)?)(r?em|r?ex|r?ch|r?cap|r?ic|r?lh)\b/gi;
+const EM: Record<string, number> = { em: 1, ex: 0.5, ch: 0.5, cap: 0.7, ic: 1, lh: 1.2 };
+const inPx = (text: string) =>
+  text.replace(
+    FONT_RELATIVE,
+    (_, n: string, unit: string) => {
+      const u = unit.toLowerCase();
+      return `${Number((Number(n) * 16 * (EM[u] ?? EM[u.slice(1)]!)).toFixed(4))}px`;
+    },
+  );
 
 // Registers the `@property` rule of a token and what it is worth. `text` is a literal of the type, and `what` names it
 // in an error. A target that cannot parse `text` would drop the rule and leave the token with no value: the initial value
 // is what LightningCSS lowers `text` to, and `:root` gets `text` itself, which LightningCSS lowers too and adds the wide
-// value under `@supports`. `live`: the caller declares the `:root` value (an alias, a derived token, see theme.ts).
+// value under `@supports`. A font-relative `text` goes on `:root` the same way, with the px value as the initial one.
+// `live`: the caller declares the `:root` value (an alias, a derived token, see theme.ts).
 export const declare = Effect.fnUntraced(function* (
   kind: TokenType,
   text: string,
@@ -129,7 +144,8 @@ export const declare = Effect.fnUntraced(function* (
   live = false,
 ): Effect.fn.Return<CSSTokenValue, MacroError> {
   const at = registry.at!;
-  const { syntax, probes } = TOKEN_TYPES[kind];
+  const type: { syntax: string; probes: readonly string[]; property?: string } = TOKEN_TYPES[kind];
+  const { syntax, probes, property = `<${syntax}>` } = type;
   const name = what ?? `token.${kind}() initial value`;
   const fallback = yield* checkSyntaxFx(
     name,
@@ -138,13 +154,11 @@ export const declare = Effect.fnUntraced(function* (
     what ?? `${name} of ${variable}`,
     variable,
   );
-  if (FONT_RELATIVE.test(text))
-    return yield* fail(
-      `cssints: ${name} "${text}" depends on the font size, and a browser drops an @property rule whose initial-value is not computationally independent; use px or a viewport unit`,
-    );
+  // `*` takes any initial value, font-relative or not
+  const initial = property === "*" ? (fallback ?? text) : inPx(fallback ?? text);
   const n = registry.tokens++;
   const by = `${at.file}#${at.site}.${n}`;
-  const css = `@property ${variable}{syntax:"<${syntax}>";inherits:${inherit};initial-value:${fallback ?? text}}`;
+  const css = `@property ${variable}{syntax:"${property}";inherits:${inherit};initial-value:${initial}}`;
   // Another declaration of the name is fine when it is the same rule, this site again (an edit), or this file's
   // from an earlier evaluation (every evaluation runs its modules again). Otherwise the second one is the error.
   const prev = registry.properties.get(variable);
@@ -159,7 +173,7 @@ export const declare = Effect.fnUntraced(function* (
     );
   registry.properties.set(variable, { css, probes, by, file: at.file, gen: registry.gen });
   registry.defs.set(variable, { kind, inherit, path: variable, value: text, fallback });
-  if (fallback && !live)
+  if ((fallback || initial !== text) && !live)
     registry.themed.set(by, {
       file: at.file,
       key: `0:${at.file}#${String(at.site).padStart(6, "0")}.${n}`,

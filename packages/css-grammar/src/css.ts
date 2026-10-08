@@ -131,10 +131,10 @@ export type LengthUnit = "px" | "em" | "rem" | "vw" | "vh" | "vmin" | "vmax" | "
 // sentinel of some type would (`Sentinel`). As the union of every type it made each such part in a call cost ~12 times
 // the one before it, since a call's parts are joined into one string per combination.
 export type Wild = "⟨*⟩";
-export type Sentinels = "color" | "length" | "percentage" | "number" | "integer" | "angle" | "time" | "custom-ident" | "resolution" | "url" | "image" | "transform-list"; // the `sentinels` of TOKEN_TYPES (token.ts)
+export type Sentinels = "color" | "length" | "percentage" | "number" | "integer" | "angle" | "time" | "custom-ident" | "resolution" | "url" | "image" | "transform-list" | "easing-function" | "shadow"; // the `sentinels` of TOKEN_TYPES (token.ts)
 /** What the recognizer sees of a typed value of type `T`: `⟨T⟩`, or `⟨*⟩` for one of every type (a token of a JSON import). */
 export type Sentinel<T extends string> = [Sentinels] extends [T] ? Wild : `⟨${T}⟩`;
-type WildNamed = "color" | "image" | "transform-list";
+type WildNamed = "color" | "image" | "transform-list" | "easing-function" | "shadow";
 type PrimitiveMap = {
   length: `${number}${LengthUnit}` | "0" | "⟨length⟩" | Wild;
   percentage: `${number}%` | "⟨percentage⟩" | Wild;

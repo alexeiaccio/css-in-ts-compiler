@@ -33,8 +33,6 @@ const leaves = (type: string, entries: [string, string | number][]) => ({
 });
 const camel = (s: string) => s.replace(/-([a-z0-9])/g, (_, c: string) => c.toUpperCase());
 const tidy = (v: string) => v.replace(/\s+/g, " ").replace(/\( /g, "(").replace(/ \)/g, ")").trim();
-// open-props states some sizes in rem, which an @property initial value cannot hold: 16px to the rem.
-const px = (v: string) => v.replace(/(-?[\d.]+)rem\b/g, (_, n: string) => `${Number(n) * 16}px`);
 // The entries of a `--prefix-key: value` record whose key is a plain step (no `-fluid-`, `-content-` ...), prefix removed.
 const steps = (props: Record<string, string>, prefix: string, key = /^[\w]+$/) =>
   Object.entries(props).flatMap(([name, v]) => {
@@ -73,11 +71,19 @@ const write = (file: string, header: string, exports: Group) => {
     ...steps(opSizes, "--size-px-"),
     ...steps(opSizes, "--size-", /^(x*s|sm|md|lg|x*l)$/),
   ]);
-  const radii = leaves(
-    "dimension",
-    steps(opBorders, "--radius-", /^(\d+|round)$/).map(([k, v]) => [k, px(v)]),
-  );
-  const borderSizes = leaves("dimension", steps(opBorders, "--border-size-"));
+  // rem, ch and em values: cssints gives each a px initial value and the value itself on :root (README)
+  const dimensions = (props: Record<string, string>, prefix: string, key?: RegExp) =>
+    leaves("dimension", steps(props, prefix, key));
+  const remSizes = dimensions(opSizes, "--size-", /^\d+$/);
+  const fluidSizes = dimensions(opSizes, "--size-fluid-");
+  const contentSizes = dimensions(opSizes, "--size-content-");
+  const headerSizes = dimensions(opSizes, "--size-header-");
+  const relativeSizes = dimensions(opSizes, "--size-relative-");
+  const radii = dimensions(opBorders, "--radius-", /^(\d+|round)$/);
+  const borderSizes = dimensions(opBorders, "--border-size-");
+  const fontSizes = dimensions(opFonts, "--font-size-", /^\d+$/);
+  const fluidFontSizes = dimensions(opFonts, "--font-size-fluid-");
+  const letterSpacings = dimensions(opFonts, "--font-letterspacing-");
   const fontWeights = leaves(
     "fontWeight",
     steps(opFonts, "--font-weight-").map(([k, v]) => [k, Number(v)]),
@@ -86,15 +92,20 @@ const write = (file: string, header: string, exports: Group) => {
     "number",
     steps(opFonts, "--font-lineheight-").map(([k, v]) => [k, Number(v)]),
   );
-  // No token type holds a timing function or a shadow: these are CSS strings (README, "Limits").
   const ease = opEasing as Record<string, string>;
   // an alias (`--ease-elastic-1: var(--ease-elastic-out-1)`) is its target, a literal
   const resolve = (v: string) =>
     tidy(v.replace(/^var\((--[\w-]+)\)$/, (_, ref: string) => ease[ref]));
-  const easings = Object.fromEntries(
-    Object.entries(ease).map(([name, v]) => [camel(name.slice(2)), resolve(v)]),
-  );
-  // The shadows read --shadow-color and --shadow-strength(-N); they are resolved here, light and dark.
+  // the springs and bounces are linear() with more than 9 stops, which cssints' types reject (README, "Limits")
+  const curves = (springs: boolean) =>
+    leaves(
+      "cubicBezier",
+      Object.entries(ease).flatMap(([name, v]) =>
+        resolve(v).startsWith("linear(") === springs ? [[camel(name.slice(2)), resolve(v)]] : [],
+      ),
+    );
+  // The shadows read --shadow-color and --shadow-strength(-N); they are resolved here, light and dark: the light ones
+  // are tokens, the dark ones the overrides of a theme.
   const shadowSet = (dark: boolean) => {
     const props = opShadows as Record<string, string>;
     const pick = (name: string) => props[dark ? `${name}-@media:dark` : name];
@@ -119,12 +130,21 @@ const write = (file: string, header: string, exports: Group) => {
   write("open-props.ts", `from open-props ${version("open-props")}`, {
     colors,
     sizes,
+    remSizes,
+    fluidSizes,
+    contentSizes,
+    headerSizes,
+    relativeSizes,
     radii,
     borderSizes,
+    fontSizes,
+    fluidFontSizes,
+    letterSpacings,
     fontWeights,
     lineHeights,
-    easings,
-    shadows: shadowSet(false),
+    easings: curves(false),
+    springs: curves(true),
+    shadows: leaves("shadow", Object.entries(shadowSet(false))),
     shadowsDark: shadowSet(true),
   });
 }
@@ -138,7 +158,7 @@ const write = (file: string, header: string, exports: Group) => {
   // `blue1` .. `blue12` (or `blueA1`) to the step
   const stepsOf = (scale: Record<string, string>) =>
     Object.entries(scale).map(([k, v]) => [/\d+$/.exec(k)![0], v] as [string, string]);
-  // Solid and alpha scales are separate sets: all of them in one createTokens() call is over TypeScript's instantiation limit.
+  // Solid and alpha scales are separate sets, so a page that needs one pays for one.
   const light: Group = {};
   const lightAlpha: Group = {};
   const dark: Group = {};

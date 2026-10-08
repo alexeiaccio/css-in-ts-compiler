@@ -4,7 +4,10 @@
 * - `syntax`: the `@property` syntax, `<syntax>`, checked by the twin and by `ValidSyntax`;
 * - `sentinels`: the typed-value types the token stands for in a property value (`⟨length⟩`, api-typed.ts);
 * - `probes`: literals of the type that a build-time check puts in place of the token (one per sentinel), since the
-*   recognizer reads text and a token is `var(--name)`.
+*   recognizer reads text and a token is `var(--name)`;
+* - `grammar`: the grammar of a value when it is not `<syntax>` (a list of shadows);
+* - `property`: the `@property` syntax when `<syntax>` is not one `@property` takes: `*`, any value, which a browser
+*   does not check or animate (an easing function, a shadow).
 */
 const TOKEN_TYPES = {
 	color: {
@@ -71,19 +74,39 @@ const TOKEN_TYPES = {
 		syntax: "transform-list",
 		sentinels: ["transform-list"],
 		probes: ["translateX(1px)"]
+	},
+	easingFunction: {
+		syntax: "easing-function",
+		sentinels: ["easing-function"],
+		probes: ["ease"],
+		property: "*"
+	},
+	shadow: {
+		syntax: "shadow",
+		sentinels: ["shadow"],
+		probes: ["0 0 red"],
+		grammar: "<shadow>#",
+		property: "*"
 	}
 };
 /**
+* The grammar of a value of a token type.
+* @param {string} syntax the `syntax` of the token type
+* @returns {string} `<syntax>`, or the type's `grammar`
+*/
+const grammarOf = (syntax) => Object.values(TOKEN_TYPES).find((t) => t.syntax === syntax)?.grammar ?? `<${syntax}>`;
+/**
 * DTCG `$type` to token type (createTokens, docs/API.md "Themes"). `fontWeight` is a number: its keywords become numbers.
-* The other DTCG types (`fontFamily`, `cubicBezier`, `strokeStyle`, `border`, `transition`, `shadow`, `gradient`,
-* `typography`) have no `@property` syntax and are an error.
+* The other DTCG types (`fontFamily`, `strokeStyle`, `border`, `transition`, `gradient`, `typography`) are an error.
 */
 const DTCG_TYPES = {
 	color: "color",
 	dimension: "length",
 	number: "number",
 	duration: "time",
-	fontWeight: "number"
+	fontWeight: "number",
+	cubicBezier: "easingFunction",
+	shadow: "shadow"
 };
 //#endregion
-export { DTCG_TYPES, TOKEN_TYPES };
+export { DTCG_TYPES, TOKEN_TYPES, grammarOf };

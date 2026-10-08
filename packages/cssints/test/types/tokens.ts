@@ -126,6 +126,13 @@ backgroundImage(ident);
 animationDuration(gap);
 // @ts-expect-error a url needs url()
 token.url("a.png");
+// a shadow token is a list of box shadows, an easing function any of them
+token.shadow("0 1px 2px red, inset 0 0 0 1px blue", "elevation");
+token.easingFunction("linear(0, 0.5 20%, 1)", "spring");
+// @ts-expect-error a shadow needs two lengths
+token.shadow("red");
+// @ts-expect-error not an easing function
+token.easingFunction("fast");
 // @ts-expect-error an image is not a colour
 token.image("red");
 // @ts-expect-error a resolution needs its unit
