@@ -11,7 +11,7 @@ const inputs = [
   "packages/cssints/test/fixtures/**",
   "packages/icons/test/fixtures/**",
   "packages/mise-en-mode/test/fixtures/**",
-  "packages/{fluid,layout,fonts,reset,tokens,gradient,motion}/test/fixtures/**",
+  "packages/{fluid,layout,fonts,reset,tokens,gradient,motion,squircle,reveal,stuck,balance,masonry}/test/fixtures/**",
   "packages/cssints/test/pkg/**",
   "packages/css-grammar/bench/err.ts",
   "packages/cssints/bench/errors.ts",
@@ -83,6 +83,12 @@ const plainCode = [
   "packages/tokens/src/**",
   "packages/gradient/src/**",
   "packages/motion/src/**",
+  // tier 2: scope() members plus the browser runtimes they ship when a target lacks the native feature
+  "packages/squircle/src/**",
+  "packages/reveal/src/**",
+  "packages/stuck/src/**",
+  "packages/balance/src/**",
+  "packages/masonry/src/**",
   // The apps are plain Solid and React; the tests, benches and generator scripts are node scripts.
   "apps/**",
   "**/test/**",

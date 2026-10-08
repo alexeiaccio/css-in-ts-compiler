@@ -1,11 +1,11 @@
 ---
 # cssints-qhug
 title: 'reveal(): scroll-driven animations with a scroll-timeline polyfill'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-08T08:55:57Z
-updated_at: 2026-10-08T08:56:05Z
+updated_at: 2026-10-08T13:37:41Z
 parent: cssints-dk1q
 blocked_by:
     - cssints-11pj

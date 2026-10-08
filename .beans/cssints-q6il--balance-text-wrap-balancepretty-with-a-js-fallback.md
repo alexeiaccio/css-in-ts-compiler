@@ -1,11 +1,11 @@
 ---
 # cssints-q6il
 title: 'balance(): text-wrap balance/pretty with a JS fallback'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-08T08:55:58Z
-updated_at: 2026-10-08T08:55:58Z
+updated_at: 2026-10-08T13:37:41Z
 parent: cssints-dk1q
 ---
 

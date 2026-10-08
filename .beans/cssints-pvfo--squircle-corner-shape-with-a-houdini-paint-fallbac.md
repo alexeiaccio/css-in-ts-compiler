@@ -1,11 +1,11 @@
 ---
 # cssints-pvfo
 title: 'squircle(): corner-shape with a Houdini paint fallback'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-08T08:55:57Z
-updated_at: 2026-10-08T08:55:57Z
+updated_at: 2026-10-08T13:37:41Z
 parent: cssints-dk1q
 ---
 

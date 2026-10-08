@@ -1,11 +1,11 @@
 ---
 # cssints-z1hd
 title: 'stuck(): sticky state via @container scroll-state() with an observer fallback'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-08T08:55:57Z
-updated_at: 2026-10-08T08:55:57Z
+updated_at: 2026-10-08T13:37:41Z
 parent: cssints-dk1q
 ---
 
