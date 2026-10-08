@@ -76,6 +76,86 @@ css.width(css.rgb(1, 2, 3));
 // @ts-expect-error no such unit
 css.rgb(255, 0, "banana");
 
+// the error lands on the argument where the text stops matching (the comment sits on that argument's line)
+css.lightDark(
+  "white",
+  // @ts-expect-error argument 2: a length is not a colour
+  t.space.md,
+);
+css.lightDark(
+  t.color.bg,
+  // @ts-expect-error argument 2: not a colour
+  "banana",
+);
+css.linearGradient(
+  "to right",
+  t.color.accent,
+  // @ts-expect-error argument 3: not a colour stop
+  "banana 50%",
+  "blue",
+);
+css.linearGradient(
+  "to right",
+  "red",
+  "blue",
+  // @ts-expect-error argument 4: not a colour stop
+  t.space.md,
+);
+css.oklch(
+  0.7,
+  // @ts-expect-error argument 2: not a chroma
+  "banana",
+  200,
+);
+css.oklch(
+  0.7,
+  0.1,
+  // @ts-expect-error argument 3: not a hue
+  "banana",
+);
+css.oklch(
+  0.7,
+  0.1,
+  200,
+  "/",
+  // @ts-expect-error argument 5: not an alpha value
+  "banana",
+);
+css.rgb(
+  255,
+  0,
+  // @ts-expect-error argument 3: no such unit
+  "banana",
+);
+css.colorMix(
+  "in oklab",
+  t.color.accent,
+  // @ts-expect-error argument 3: not a colour
+  t.space.md,
+);
+css.cubicBezier(
+  0.1,
+  0.7,
+  // @ts-expect-error argument 3: not a number
+  "banana",
+  0.1,
+);
+css.lightDark(
+  "white",
+  "red",
+  // @ts-expect-error argument 3: one argument too many
+  "blue",
+);
+css.lightDark(
+  // @ts-expect-error the call ends too soon: said on the last argument
+  "white",
+);
+css.lightDark(
+  css.rgb(255, 0, 0),
+  // @ts-expect-error argument 2: a nested call that is not a colour
+  css.linearGradient("red", "blue"),
+);
+
 // var(): the token's type, the fallback checked as a value of it
 export const v: css.Style = css.padding(css.var(t.space.md, "4px"));
 export const v2: css.Style = css.color(css.var(t.color.accent));
@@ -83,5 +163,10 @@ export const v2: css.Style = css.color(css.var(t.color.accent));
 css.color(css.var(t.space.md));
 // @ts-expect-error the fallback is a length
 css.padding(css.var(t.space.md, "red"));
+css.var(
+  t.space.md,
+  // @ts-expect-error argument 2, the fallback: a colour is not a length
+  "red",
+);
 // @ts-expect-error a name is not a token
 css.var("--space-md");
