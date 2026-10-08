@@ -1,6 +1,6 @@
-import { G as types_d_exports, Xd as Style, Yd as Part, qd as CheckIn, t as CheckOverrides } from "./theme-types-DAzfQokg.mjs";
+import { Qd as Style, Yd as CheckIn, Zd as Part, q as types_d_exports, t as CheckOverrides } from "./theme-types-7p7QyJQS.mjs";
 import { CSSStyleValue } from "@cssints/css-grammar/values";
-import { Syntax, TokenType } from "@cssints/css-grammar/token";
+import { Grammar, TokenType } from "@cssints/css-grammar/token";
 import { ValidSelector } from "@cssints/css-grammar/query";
 //#region src/author-types.d.ts
 /** A declaration a member emits: property and value (a custom property, `--_r`, is allowed). */
@@ -225,7 +225,7 @@ type Own<T> = { [K in keyof T & string as Kind<K, T[K]> extends "alias" ? Strip<
 type Resolved<A> = { [N in keyof A]: A[N] extends string ? Expand<A[N], A> : never; };
 type Paths<X, P extends string = ""> = { [K in keyof X & string]: X[K] extends {
   readonly "~token": infer Kd extends TokenType;
-} ? { [Q in `${P}${K}`]: `<${Syntax<Kd>}>`; } : Paths<X[K], `${P}${K}.`>; }[keyof X & string];
+} ? { [Q in `${P}${K}`]: Grammar<Kd>; } : Paths<X[K], `${P}${K}.`>; }[keyof X & string];
 type Flat<U> = (U extends unknown ? (x: U) => void : never) extends ((x: infer I) => void) ? I : never;
 type ModAliases<T> = Flat<{ [K in keyof T & string]: Kind<K, T[K]> extends "module" ? T[K] extends {
   "~aliases": infer MA;

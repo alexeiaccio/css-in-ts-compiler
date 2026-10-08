@@ -1,4 +1,4 @@
-import { C as addRuntime, D as covers, F as MacroError, I as MemberError, M as registry, O as relation, _ as standIn, c as byOrder, h as requireLayer, j as forgetKernels, k as Registry, o as addGlobal, s as addLayers, t as CV_CALL, y as addKernel } from "./instrument-BDgoJ8DA.mjs";
+import { C as addRuntime, D as covers, F as MacroError, I as MemberError, M as registry, O as relation, _ as standIn, c as byOrder, h as requireLayer, j as forgetKernels, k as Registry, o as addGlobal, s as addLayers, t as CV_CALL, y as addKernel } from "./instrument-BqES13KF.mjs";
 import { createRequire } from "node:module";
 import { checkDeclarationNow, checkQuery, checkSelector, checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { browsers, messageOf, supportOf } from "@cssints/css-grammar/support";
@@ -7,8 +7,8 @@ import { Cause, Effect, Exit, Formatter, Predicate, Result, Schema } from "effec
 import { createHash } from "node:crypto";
 import { properties } from "@cssints/css-grammar/mdn";
 import { checkSelectorNow } from "@cssints/css-grammar/selector";
+import { DTCG_TYPES, TOKEN_TYPES, grammarOf } from "@cssints/css-grammar/token";
 import { browserslistToTargets, transform } from "lightningcss";
-import { DTCG_TYPES, TOKEN_TYPES } from "@cssints/css-grammar/token";
 import { relative } from "node:path";
 import { matches } from "@cssints/css-grammar/twin";
 //#region src/node.ts
@@ -294,7 +294,7 @@ const kindOf = (k, v) => {
 };
 const expand = (g, a, depth = 0) => depth > 5 || !g.includes("<") ? g : g.replace(/<([^>]*)>/g, (m, n) => Object.hasOwn(a, n) ? `[ ${expand(a[n], a, depth + 1)} ]` : m);
 const tokenSyntaxes = (tokens, prefix, out) => {
-	if (tokens && typeof tokens === "object") for (const [k, v] of Object.entries(tokens)) if (v && typeof v === "object" && typeof v["syntax"] === "string") out[`${prefix}${k}`] = `<${v["syntax"]}>`;
+	if (tokens && typeof tokens === "object") for (const [k, v] of Object.entries(tokens)) if (v && typeof v === "object" && typeof v["syntax"] === "string") out[`${prefix}${k}`] = grammarOf(v["syntax"]);
 	else tokenSyntaxes(v, `${prefix}${k}.`, out);
 	return out;
 };
@@ -763,15 +763,18 @@ const SUPPORT_PROPERTY = {
 	time: "transition-duration",
 	url: "background-image",
 	image: "background-image",
-	"transform-list": "transform"
+	"transform-list": "transform",
+	"easing-function": "transition-timing-function",
+	shadow: "box-shadow"
 };
 const supportTest = (syntax, text) => `(${SUPPORT_PROPERTY[syntax]}:${text})`;
 const checkSyntaxFx = Effect.fnUntraced(function* (what, syntax, text, who = what, variable) {
-	if (!(yield* matches(`<${syntax}>`, text).pipe(Effect.mapError((e) => new MacroError({
+	const grammar = grammarOf(syntax);
+	if (!(yield* matches(grammar, text).pipe(Effect.mapError((e) => new MacroError({
 		message: e.message,
 		cause: e,
 		...registry.at
-	}))))) return yield* fail(`cssints: ${what} "${text}" is not a <${syntax}>`);
+	}))))) return yield* fail(`cssints: ${what} "${text}" is not a ${grammar}`);
 	const prop = SUPPORT_PROPERTY[syntax];
 	if (!prop) return;
 	const { warned, warnings } = registry;
@@ -807,16 +810,28 @@ const privateName = () => {
 	const key = `${relative(process.cwd(), at.file)}:${at.site}:${registry.tokens}`;
 	return `--_${createHash("sha1").update(key).digest("hex").slice(0, 8)}`;
 };
-const FONT_RELATIVE = /[\d.](?:r?em|r?ex|r?ch|r?cap|r?ic|r?lh)\b/i;
+const FONT_RELATIVE = /(\d*\.?\d+(?:e[+-]?\d+)?)(r?em|r?ex|r?ch|r?cap|r?ic|r?lh)\b/gi;
+const EM = {
+	em: 1,
+	ex: .5,
+	ch: .5,
+	cap: .7,
+	ic: 1,
+	lh: 1.2
+};
+const inPx = (text) => text.replace(FONT_RELATIVE, (_, n, unit) => {
+	const u = unit.toLowerCase();
+	return `${Number((Number(n) * 16 * (EM[u] ?? EM[u.slice(1)])).toFixed(4))}px`;
+});
 const declare = Effect.fnUntraced(function* (kind, text, variable, inherit, settable, what, live = false) {
 	const at = registry.at;
-	const { syntax, probes } = TOKEN_TYPES[kind];
+	const { syntax, probes, property = `<${syntax}>` } = TOKEN_TYPES[kind];
 	const name = what ?? `token.${kind}() initial value`;
 	const fallback = yield* checkSyntaxFx(name, syntax, text, what ?? `${name} of ${variable}`, variable);
-	if (FONT_RELATIVE.test(text)) return yield* fail(`cssints: ${name} "${text}" depends on the font size, and a browser drops an @property rule whose initial-value is not computationally independent; use px or a viewport unit`);
+	const initial = property === "*" ? fallback ?? text : inPx(fallback ?? text);
 	const n = registry.tokens++;
 	const by = `${at.file}#${at.site}.${n}`;
-	const css = `@property ${variable}{syntax:"<${syntax}>";inherits:${inherit};initial-value:${fallback ?? text}}`;
+	const css = `@property ${variable}{syntax:"${property}";inherits:${inherit};initial-value:${initial}}`;
 	const prev = registry.properties.get(variable);
 	if (prev && prev.css !== css && prev.by !== by && !(prev.file === at.file && prev.gen !== registry.gen)) return yield* fail(`cssints: ${variable} is already declared with another @property, in ${relative(process.cwd(), prev.file)}: ${prev.css}; here: ${css}`);
 	registry.properties.set(variable, {
@@ -833,7 +848,7 @@ const declare = Effect.fnUntraced(function* (kind, text, variable, inherit, sett
 		value: text,
 		fallback
 	});
-	if (fallback && !live) registry.themed.set(by, {
+	if ((fallback || initial !== text) && !live) registry.themed.set(by, {
 		file: at.file,
 		key: `0:${at.file}#${String(at.site).padStart(6, "0")}.${n}`,
 		css: `${inherit ? ":root" : ":where(*)"}{${variable}:${text}}`,
@@ -926,6 +941,13 @@ const FONT_WEIGHTS = {
 	"extra-black": 950,
 	"ultra-black": 950
 };
+const SHADOW = [
+	"color",
+	"offsetX",
+	"offsetY",
+	"blur",
+	"spread"
+];
 const UNITS = {
 	dimension: ["px", "rem"],
 	duration: ["ms", "s"]
@@ -945,6 +967,22 @@ const cssOf = Effect.fnUntraced(function* (type, value, what) {
 		const parts = c.map((n, i) => named?.includes(i) && n !== "none" ? `${n}%` : n);
 		const a = alpha === void 0 ? "" : ` / ${alpha}`;
 		return named ? `${space}(${parts.join(" ")}${a})` : `color(${space} ${parts.join(" ")}${a})`;
+	}
+	if (type === "cubicBezier") {
+		if (!Array.isArray(value) || value.length !== 4 || !value.every(isNumber)) return yield* fail(`cssints: ${what} is not a DTCG cubicBezier: [x1, y1, x2, y2]`);
+		return `cubic-bezier(${value.join(", ")})`;
+	}
+	if (type === "shadow") {
+		const layers = Array.isArray(value) ? value : [value];
+		const out = [];
+		for (const l of layers) {
+			if (!Predicate.isObject(l) || SHADOW.some((k) => l[k] === void 0) || l.inset !== void 0 && typeof l.inset !== "boolean") return yield* fail(`cssints: ${what} is not a DTCG shadow: { color, offsetX, offsetY, blur, spread, inset? } or an array of them`);
+			const parts = [];
+			for (const k of SHADOW.slice(1)) parts.push(yield* cssOf("dimension", l[k], `${what} ${k}`));
+			parts.push(yield* cssOf("color", l.color, `${what} color`));
+			out.push(`${l.inset ? "inset " : ""}${parts.join(" ")}`);
+		}
+		return out.join(", ");
 	}
 	const units = UNITS[type];
 	if (Predicate.isObject(value) && units) {

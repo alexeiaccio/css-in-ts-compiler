@@ -172,10 +172,10 @@ type SplitComma<T extends string, R extends string> = T extends `${infer A},${in
 type SplitParen<T extends string, R extends string> = T extends `${infer A})${infer B}` ? [A, `)${B}${R}`] : [T, R];
 type LengthUnit = "px" | "em" | "rem" | "vw" | "vh" | "vmin" | "vmax" | "ch" | "ex" | "lh" | "rlh" | "cm" | "mm" | "in" | "pt" | "pc" | "q" | "svw" | "svh" | "lvw" | "lvh" | "dvw" | "dvh" | "cqw" | "cqh" | "cqi" | "cqb" | "cqmin" | "cqmax" | "ic" | "cap" | "rex" | "rch" | "ric" | "rcap";
 export type Wild = "⟨*⟩";
-type Sentinels = "color" | "length" | "percentage" | "number" | "integer" | "angle" | "time" | "custom-ident" | "resolution" | "url" | "image" | "transform-list";
+type Sentinels = "color" | "length" | "percentage" | "number" | "integer" | "angle" | "time" | "custom-ident" | "resolution" | "url" | "image" | "transform-list" | "easing-function" | "shadow";
 /** What the recognizer sees of a typed value of type `T`: `⟨T⟩`, or `⟨*⟩` for one of every type (a token of a JSON import). */
 export type Sentinel<T extends string> = [Sentinels] extends [T] ? Wild : `⟨${T}⟩`;
-type WildNamed = "color" | "image" | "transform-list";
+type WildNamed = "color" | "image" | "transform-list" | "easing-function" | "shadow";
 type PrimitiveMap = {
   length: `${number}${LengthUnit}` | "0" | "⟨length⟩" | Wild;
   percentage: `${number}%` | "⟨percentage⟩" | Wild;

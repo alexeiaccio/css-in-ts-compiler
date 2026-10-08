@@ -699,11 +699,14 @@ const layerEntries = ({ layers }, file) => [...layers.values()].flatMap((l) => l
 const layerStatements = (lists) => [...new Map([...lists].map((l) => [l.join(), [...l]])).values()].sort((a, b) => b.length - a.length || cmp(a.join(), b.join()));
 const themedEntries = (themed, file, names) => [...themed.values()].flatMap((t) => t.file === file || t.names.some((n) => names.has(n)) ? [`${THEME}${t.key}\t${t.layer ?? ""}\t${t.css}`] : []);
 const globalNames = (themed, file) => [...themed.values()].filter((t) => t.file === file && t.key.startsWith("-:")).flatMap((t) => t.css.match(/--[\w-]+/g) ?? []);
+const DECL = /(--[\w-]+):([^;{}]*)/g;
 const closeNames = (names, defs, themed) => {
 	for (let size = -1; size !== names.size;) {
 		size = names.size;
 		for (const n of [...names]) defs.get(n)?.refs?.forEach((r) => names.add(r));
-		for (const t of themed.values()) if (t.names.some((n) => names.has(n))) t.css.match(/--[\w-]+/g)?.forEach((n) => names.add(n));
+		for (const t of themed.values()) if (t.names.some((n) => names.has(n))) {
+			for (const [, n, value] of t.css.matchAll(DECL)) if (names.has(n)) value.match(/--[\w-]+/g)?.forEach((r) => names.add(r));
+		}
 	}
 };
 /** The rules of `entries`: class names, and the text of `@property` rules (once each, whichever module has them). */
