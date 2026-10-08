@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-08T08:55:57Z
-updated_at: 2026-10-08T13:37:41Z
+updated_at: 2026-10-08T13:43:54Z
 parent: cssints-dk1q
 ---
 
@@ -20,6 +20,6 @@ parent: cssints-dk1q
 - kernel with `requires`, runtime with `polyfills` + worklet registration; the fallback uses `mask`/`background: paint(squircle)`.
 
 ## Todo
-- [ ] native kernel
+- [x] native kernel
 - [ ] worklet runtime on the plugin runtime delivery
 - [ ] fixture, browser check

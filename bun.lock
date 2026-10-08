@@ -212,6 +212,17 @@
         "cssints": "^0.1.0",
       },
     },
+    "packages/squircle": {
+      "name": "@cssints/squircle",
+      "version": "0.1.0",
+      "devDependencies": {
+        "cssints": "workspace:*",
+        "vite": "catalog:",
+      },
+      "peerDependencies": {
+        "cssints": "^0.1.0",
+      },
+    },
     "packages/tokens": {
       "name": "@cssints/tokens",
       "version": "0.1.0",
@@ -331,6 +342,8 @@
     "@cssints/motion": ["@cssints/motion@workspace:packages/motion"],
 
     "@cssints/reset": ["@cssints/reset@workspace:packages/reset"],
+
+    "@cssints/squircle": ["@cssints/squircle@workspace:packages/squircle"],
 
     "@cssints/tokens": ["@cssints/tokens@workspace:packages/tokens"],
 
