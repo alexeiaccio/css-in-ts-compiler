@@ -1,25 +1,22 @@
 // @cssints/reveal: an entrance animation driven by scroll, on @cssints/motion's presets and keyframes. The kernel runs
-// motion's `in` keyframes on `animation-timeline: view()` over `animation-range`; a preset only sets the `--motion-*`
-// values those keyframes read. Where a target lacks scroll-driven animations, a runtime holds the animation paused (its
+// motion's `in` keyframes on `animation-timeline: view()` over `animation-range`; a preset only sets the values those
+// keyframes read, under motion's names (`motionVars`). Where a target lacks scroll-driven animations, a runtime holds the animation paused (its
 // CSS) until its script, ./runtime.ts, sees the element enter, then it plays once over its duration.
-import { motionKeyframes, presets, type PresetName } from "@cssints/motion";
+import { motionKeyframes, motionVars, presets, type PresetName } from "@cssints/motion";
 import { scope } from "cssints/plugin";
 
 // The entrance presets of motion: an exit on scroll needs the native timeline, the fallback can only play on entry.
 const names =
   "fade-in | slide-in-up | slide-in-down | slide-in-left | slide-in-right | scale-in | blur-in" as const;
 
-// What a preset moves from, in motion's own custom properties (its keyframes read `--motion-*`).
+// What a preset moves from, in motion's own custom properties (those its keyframes read).
+const fields = Object.keys(motionVars) as (keyof typeof motionVars)[];
 const emitPreset = (name: string) => {
   const p = presets[name as PresetName];
-  const set: [string, string | undefined][] = [
-    ["--motion-o", p.opacity],
-    ["--motion-x", p.x],
-    ["--motion-y", p.y],
-    ["--motion-s", p.scale],
-    ["--motion-b", p.blur],
-  ];
-  return set.flatMap(([k, v]) => (v === undefined ? [] : [[k, v] as const]));
+  return fields.flatMap((f) => {
+    const v = p[f];
+    return v === undefined ? [] : [[motionVars[f], v] as const];
+  });
 };
 
 const supported = "animation-timeline:view()";
@@ -37,11 +34,11 @@ export const revealScope = scope("reveal", {
         "--_d": "300ms",
         "--_e": "ease-out",
         "--_g": "entry 0% cover 40%",
-        "--motion-o": 0,
-        "--motion-x": 0,
-        "--motion-y": 0,
-        "--motion-s": 1,
-        "--motion-b": 0,
+        [motionVars.opacity]: 0,
+        [motionVars.x]: 0,
+        [motionVars.y]: 0,
+        [motionVars.scale]: 1,
+        [motionVars.blur]: 0,
       }),
       css.animation("var(--_k) var(--_d) var(--_e) both"),
       css.animationTimeline("view()"),
