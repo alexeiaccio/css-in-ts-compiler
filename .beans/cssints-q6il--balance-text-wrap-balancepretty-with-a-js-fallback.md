@@ -5,7 +5,7 @@ status: completed
 type: feature
 priority: normal
 created_at: 2026-10-08T08:55:58Z
-updated_at: 2026-10-08T13:52:33Z
+updated_at: 2026-10-08T15:34:21Z
 parent: cssints-dk1q
 ---
 
@@ -53,3 +53,8 @@ parent: cssints-dk1q
 
 Deferred: delivery of the script through `virtual:cssints/runtime/*` once the engine supports a plugin script (gap 1);
 vertical writing modes; keeping the box width (padding instead of max-width) for centred text.
+
+## Engine gaps, resolved (2026-10-08)
+- A runtime ships its own script: cssints-kuki.
+- Styles-kernel warnings covered by polyfills: cssints-rp0e (balance() is a styles kernel; pretty() stays raw by design).
+- A condition around a kernel-only member: cssints-q83n (build error).

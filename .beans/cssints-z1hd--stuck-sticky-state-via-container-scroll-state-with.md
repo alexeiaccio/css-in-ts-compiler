@@ -5,7 +5,7 @@ status: completed
 type: feature
 priority: normal
 created_at: 2026-10-08T08:55:57Z
-updated_at: 2026-10-08T14:00:20Z
+updated_at: 2026-10-08T15:34:21Z
 parent: cssints-dk1q
 ---
 
@@ -48,3 +48,9 @@ New package packages/stuck (@cssints/stuck):
 - `@cssints/stuck/observer`: the fallback, ~1.35 kB minified, no imports; one IntersectionObserver per sticky element (root shrunk by the insets + 1px), sets data-stuck; off where CSS.supports says scroll-state is there.
 - Tests: test/stuck.mjs (output, native-only and lacking targets, empty runtime module, errors, observer size), test/types/stuck.ts, test/browsers.mjs (Chrome native and observer, Firefox, WebKit, with a control). README.
 - Deferred: logical sides, scrollable/snapped queries, following inset changes, tall sticky elements.
+
+## Engine gaps, resolved (2026-10-08)
+- A runtime ships its own script: cssints-kuki.
+- Styles-kernel warnings covered by polyfills: cssints-rp0e.
+- group() marker on a member: cssints-sbs8 (`group: true`, no Proxy).
+- Open: build targets and located errors for plugins (cssints-rf3k).

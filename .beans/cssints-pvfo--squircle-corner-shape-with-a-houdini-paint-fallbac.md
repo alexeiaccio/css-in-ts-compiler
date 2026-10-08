@@ -5,7 +5,7 @@ status: completed
 type: feature
 priority: normal
 created_at: 2026-10-08T08:55:57Z
-updated_at: 2026-10-08T13:47:39Z
+updated_at: 2026-10-08T15:34:21Z
 parent: cssints-dk1q
 ---
 
@@ -43,3 +43,6 @@ parent: cssints-dk1q
 - Not a paint worklet: it runs only in Chromium, which already has corner-shape (README, "Why a mask").
 - Tests: fixtures through the engine (output, fallback in/out by BROWSERSLIST, no warning, conflict, grammar error), type test, `test:browsers` in Chrome/Firefox/WebKit (native, fallback, forced-mask builds; the mask matches Chrome's native corner to 2/1600 px, WebKit 0).
 - Deferred: `superellipse(k)` smoothing (a build-time SVG per value), per-corner radii; the fallback clips box-shadow/outline (documented); a row for the README in docs/API.md "Plugin packages" (coordinator).
+
+## Engine gaps, resolved (2026-10-08)
+- Styles-kernel support warnings covered by runtime polyfills: cssints-rp0e. squircle's kernel is written as styles again.

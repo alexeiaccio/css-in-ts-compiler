@@ -5,7 +5,7 @@ status: completed
 type: feature
 priority: normal
 created_at: 2026-10-08T08:55:57Z
-updated_at: 2026-10-08T13:51:28Z
+updated_at: 2026-10-08T15:34:21Z
 parent: cssints-dk1q
 blocked_by:
     - cssints-11pj
@@ -43,3 +43,9 @@ blocked_by:
 - Fallback: a CSS runtime (`polyfills` = both keys) adds `@supports not (animation-timeline:view()){[data-reveal] &:not([data-reveal-in]){animation-play-state:paused}}` only when a target lacks the feature, and `@cssints/reveal/runtime` (536 B min, 319 B gzip; IntersectionObserver + MutationObserver, off where `CSS.supports` says yes) plays it once on entry. Chosen over flackr's scroll-timeline polyfill (61 kB min / 17 kB gzip, scrubbed): README "Browsers".
 - Tests: test/reveal.mjs (output, default / native / Firefox targets, runtime module, no warnings, conflicts, grammar errors), test/types/reveal.ts, test/browsers.mjs (`test:browsers`): Chrome 154 and WebKit 26.6 scrubbed natively, Firefox 155 by the fallback, the fallback forced in all three, and a control that fails without the fallback.
 - README in motion's style.
+
+## Engine gaps, resolved (2026-10-08)
+- A runtime ships its own script: cssints-kuki (no manual import).
+- Styles-kernel warnings covered by polyfills, `--_x` expanded in messages: cssints-rp0e (reveal's kernels merged into one, no doubled class).
+- Order between two kernels of one member: cssints-life (overlap is a build error).
+- Open: motion's custom property names (cssints-2mnh).
