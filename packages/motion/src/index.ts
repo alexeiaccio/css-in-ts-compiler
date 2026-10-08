@@ -46,15 +46,27 @@ export const presets: Readonly<Record<PresetName, Preset>> = {
   "blur-out": { dir: "out", opacity: "0", blur: "5px" },
 };
 
-// The values a preset moves from (or to): the kernel's `--_o` is `--motion-o`. The full names, so a keyframes name used in a
-// style of its own (which carries the rule as written) reads the same properties.
+/**
+ * The custom properties `motionKeyframes` read, by the field of a preset: the kernel's `--_o` is `--motion-o`. The full
+ * names, so a keyframes name used in a style of its own (which carries the rule as written), or a scope that runs these
+ * keyframes, reads and sets the same properties.
+ */
+export const motionVars = {
+  opacity: "--motion-o",
+  x: "--motion-x",
+  y: "--motion-y",
+  scale: "--motion-s",
+  blur: "--motion-b",
+} as const;
+
+const v = motionVars;
 const moved = cn(
-  opacity("var(--motion-o)"),
-  translate("var(--motion-x) var(--motion-y)"),
-  scale("var(--motion-s)"),
-  filter("blur(var(--motion-b))"),
+  opacity(`var(${v.opacity})`),
+  translate(`var(${v.x}) var(${v.y})`),
+  scale(`var(${v.scale})`),
+  filter(`blur(var(${v.blur}))`),
 );
-const faded = opacity("var(--motion-o)");
+const faded = opacity(`var(${v.opacity})`);
 
 /** The keyframes of each direction, and their reduced-motion twins (opacity only). */
 export const motionKeyframes = {
