@@ -39,6 +39,7 @@ const build = (member: string, name: string) => {
         throw fail(
           `cssints: ${member}() takes strings, numbers and Typed OM values (tokens, other calls), got ${Formatter.formatJson(p)}`,
         );
+      // oxlint-disable-next-line typescript/no-base-to-string -- strings, numbers and CSSStyleValues, which override toString
       return String(p);
     };
     // var(token, fallback?): the first part is the token's name, not its own var(); an array is one part, joined by a space

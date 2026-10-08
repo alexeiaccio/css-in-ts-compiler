@@ -2,13 +2,14 @@
 // checked: a math function by the kind of its arguments (which gives the kind of its result), any other against its
 // mdn-data grammar, `<rgb()>`, with the call as text. A part is a string, a number or a Typed OM value (a token, a call).
 // Parts are joined by the function's separator, and by a space next to an operator (`"+"`, `"-"`, `"*"`, `"/"`). Types only.
+import type { LengthUnit, Sentinel, Sentinels, ValidIn } from "@cssints/css-grammar/css";
 import type {
-  LengthUnit,
-  Sentinel,
-  Sentinels,
-  ValidIn,
-} from "@cssints/css-grammar/css";
-import type { Syntax, Token, TOKEN_TYPES, TokenType, ValidSyntax } from "@cssints/css-grammar/token";
+  Syntax,
+  Token,
+  TOKEN_TYPES,
+  TokenType,
+  ValidSyntax,
+} from "@cssints/css-grammar/token";
 import type { CSSStyleValue } from "@cssints/css-grammar/values";
 
 type Atom = string | number | CSSStyleValue;
@@ -158,30 +159,37 @@ type Walk<
   : [Prod] extends [never]
     ? Acc
     : Join2<Acc, Fold<Sum, Prod, Dec<I>>, Dec<I>>;
-type Step<R extends readonly Arg[], Acc, Sum, Prod, Pend extends string, k, I extends 0[]> =
-  Pend extends "*"
-    ? MulK<Prod, k, I> extends infer X
+type Step<
+  R extends readonly Arg[],
+  Acc,
+  Sum,
+  Prod,
+  Pend extends string,
+  k,
+  I extends 0[],
+> = Pend extends "*"
+  ? MulK<Prod, k, I> extends infer X
+    ? IsErr<X> extends true
+      ? X
+      : Walk<R, Acc, Sum, X, "", [...I, 0]>
+    : never
+  : Pend extends "/"
+    ? DivK<Prod, k, I> extends infer X
       ? IsErr<X> extends true
         ? X
         : Walk<R, Acc, Sum, X, "", [...I, 0]>
       : never
-    : Pend extends "/"
-      ? DivK<Prod, k, I> extends infer X
+    : Pend extends "+" | "-"
+      ? Fold<Sum, Prod, I> extends infer X
         ? IsErr<X> extends true
           ? X
-          : Walk<R, Acc, Sum, X, "", [...I, 0]>
+          : Walk<R, Acc, X, k, "", [...I, 0]>
         : never
-      : Pend extends "+" | "-"
-        ? Fold<Sum, Prod, I> extends infer X
-          ? IsErr<X> extends true
-            ? X
-            : Walk<R, Acc, X, k, "", [...I, 0]>
-          : never
-        : Join2<Acc, Fold<Sum, Prod, I>, I> extends infer X
-          ? IsErr<X> extends true
-            ? X
-            : Walk<R, X, never, k, "", [...I, 0]>
-          : never;
+      : Join2<Acc, Fold<Sum, Prod, I>, I> extends infer X
+        ? IsErr<X> extends true
+          ? X
+          : Walk<R, X, never, k, "", [...I, 0]>
+        : never;
 
 /** The parameters of a math call: `A`, or the message of the first operation that mixes kinds, on its argument. */
 export type CheckMath<A extends readonly Arg[]> =

@@ -11,13 +11,21 @@ const t = css.createTokens({
 
 // math: the kind of the result is the kind of the arguments
 export const mul: css.Style = css.width(css.calc(t.space.md, "*", 2));
-export const sum: CSSStyleValue<"length"> = css.calc(t.space.md, "+", "0.5rem", "+", t.space.md, "/", 2);
+export const sum: CSSStyleValue<"length"> = css.calc(
+  t.space.md,
+  "+",
+  "0.5rem",
+  "+",
+  t.space.md,
+  "/",
+  2,
+);
 export const pct: css.Style = css.width(css.calc("100%", "-", t.space.md));
 export const prec: css.Style = css.padding(css.calc("1rem", "+", 2, "*", t.space.md));
 export const ratio: CSSStyleValue<"number"> = css.calc(t.scale.ratio, "*", 2);
 export const div: CSSStyleValue<"number"> = css.calc(t.space.md, "/", "1rem");
 export const mn: css.Style = css.maxWidth(css.min("48rem", "100%", t.space.md));
-export const mx: css.Style = css.width(css.max(t.space.md, 4 * 0 + 0 === 0 ? "1rem" : "2rem"));
+export const mx: css.Style = css.width(css.max(t.space.md, "4px"));
 export const cl: css.Style = css.padding(css.clamp("1rem", "2vw", css.calc(t.space.md, "*", 2)));
 export const op: css.Style = css.opacity(css.clamp(0, 0.5, 1));
 export const rd: css.Style = css.width(css.round("up", t.space.md, "4px"));
@@ -45,8 +53,12 @@ css.opacity(css.calc(t.space.md, "*", 2));
 export const ld: css.Style = css.color(css.lightDark("white", t.color.bg));
 export const mixed: css.Style = css.color(css.colorMix("in oklab", t.color.accent, "black 15%"));
 export const polar: css.Style = css.color(css.colorMix("in oklch longer hue", "red", "blue 30%"));
-export const nested: css.Style = css.color(css.lightDark(css.rgb(255, 0, 0), css.oklch(0.7, 0.1, 200, "/", 0.5)));
-export const grad: css.Style = css.backgroundImage(css.linearGradient("to right", t.color.accent, "red 50%", "blue"));
+export const nested: css.Style = css.color(
+  css.lightDark(css.rgb(255, 0, 0), css.oklch(0.7, 0.1, 200, "/", 0.5)),
+);
+export const grad: css.Style = css.backgroundImage(
+  css.linearGradient("to right", t.color.accent, "red 50%", "blue"),
+);
 export const bez: css.Style = css.transitionTimingFunction(css.cubicBezier(0.1, 0.7, 1, 0.1));
 export const rot: css.Style = css.transform(css.translateFn(t.space.md, 0), css.rotateFn("10deg"));
 export const rgbValue: CSSStyleValue<"rgb()"> = css.rgb(255, 0, 0);

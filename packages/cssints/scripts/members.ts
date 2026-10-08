@@ -61,10 +61,15 @@ const pseudoDoc = (n: string) => {
   return doc("", `css.selectors.${text.slice(1)}`, selectorPages[text]?.mdn_url);
 };
 // The css functions (extract.mjs): the syntax of mdn-data, the BCD row of `css.types.<name>` (or of its group), and the page.
-const fnPages = need("mdn-data/css/functions.json") as Record<string, { syntax: string; mdn_url?: string }>;
+const fnPages = need("mdn-data/css/functions.json") as Record<
+  string,
+  { syntax: string; mdn_url?: string }
+>;
 const bcdTypes = Object.keys(bcd("css.types") ?? {});
 const fnKey = (f: string) =>
-  [f, ...bcdTypes].map((g) => `css.types.${g}${g === f ? "" : `.${f}`}`).find((k) => bcd(k)?.__compat);
+  [f, ...bcdTypes]
+    .map((g) => `css.types.${g}${g === f ? "" : `.${f}`}`)
+    .find((k) => bcd(k)?.__compat);
 const fnDoc = (f: string) =>
   doc(`\`${fnPages[`${f}()`]!.syntax}\``, fnKey(f) ?? "", fnPages[`${f}()`]!.mdn_url);
 // `var` is a reserved word: exported by an alias. The sorted names make the file stable.
@@ -112,4 +117,6 @@ ${layout("flex", "Flex")}
 ${layout("grid", "Grid")}
 `,
 );
-console.log(`members.ts: ${names.length} properties, ${pseudos.length} pseudo-classes, ${fns.length} functions`);
+console.log(
+  `members.ts: ${names.length} properties, ${pseudos.length} pseudo-classes, ${fns.length} functions`,
+);

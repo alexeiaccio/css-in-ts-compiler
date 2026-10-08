@@ -175,7 +175,11 @@ await failsAt(
   5,
 );
 await failsAt("fn-builtins-bad-share.ts", /^color-mix\(\): unexpected "120%" in /, 3);
-await failsAt("fn-builtins-bad-arity.ts", /^color-mix\(\): unexpected end in "color-mix\(in oklab, red, 50%, blue\)"/, 3);
+await failsAt(
+  "fn-builtins-bad-arity.ts",
+  /^color-mix\(\): unexpected end in "color-mix\(in oklab, red, 50%, blue\)"/,
+  3,
+);
 await failsAt(
   "fn-builtins-bad-math.ts",
   /^min\(\): unexpected "min\(1rem" .*\(min\(\) cannot take length and time\)$/,
@@ -191,7 +195,7 @@ await failsAt(
 
 // var(): a token with a fallback of its type; a raw var(--token) in a string warns with the token to use, one of no token is an error
 warnings.length = 0;
-const vu = await code("var-use.ts");
+await code("var-use.ts");
 const varCss = sheet("var-use.ts");
 assert.ok(varCss.includes("{padding:var(--space-sm, 4px)}"), varCss);
 assert.ok(varCss.includes("{padding:var(--space-sm)}"), varCss);
