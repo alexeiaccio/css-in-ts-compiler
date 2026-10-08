@@ -1,11 +1,11 @@
 ---
 # cssints-ini5
 title: 'Grammar ranges in the types: <integer [2,64]> and linear() with many stops'
-status: todo
+status: in-progress
 type: bug
 priority: low
 created_at: 2026-10-08T09:42:20Z
-updated_at: 2026-10-08T09:42:20Z
+updated_at: 2026-10-08T10:02:47Z
 ---
 
 Found by gradient() and tokens (cssints-yb1w, cssints-0gll; repros under "## Engine gaps").

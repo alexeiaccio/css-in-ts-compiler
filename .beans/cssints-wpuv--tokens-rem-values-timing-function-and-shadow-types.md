@@ -1,11 +1,11 @@
 ---
 # cssints-wpuv
 title: 'Tokens: rem values, timing-function and shadow types, TS2589 on large sets, theme @property leak'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-08T09:42:20Z
-updated_at: 2026-10-08T09:42:20Z
+updated_at: 2026-10-08T10:02:47Z
 ---
 
 Found by @cssints/tokens (cssints-0gll, repros under "## Engine gaps").

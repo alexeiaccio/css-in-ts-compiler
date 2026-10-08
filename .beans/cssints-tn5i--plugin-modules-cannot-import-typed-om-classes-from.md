@@ -1,11 +1,11 @@
 ---
 # cssints-tn5i
 title: Plugin modules cannot import Typed OM classes from cssints; no <image> value or CSSStyleValue export
-status: todo
+status: in-progress
 type: bug
 priority: high
 created_at: 2026-10-08T09:42:19Z
-updated_at: 2026-10-08T09:42:19Z
+updated_at: 2026-10-08T10:02:47Z
 ---
 
 Found by the tier-1 plugins (cssints-dk1q). Repros in cssints-ni5c and cssints-yb1w under "## Engine gaps".

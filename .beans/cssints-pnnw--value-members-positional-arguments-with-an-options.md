@@ -1,11 +1,11 @@
 ---
 # cssints-pnnw
 title: 'Value members: positional arguments with an options object, and sub-members (fluid.container)'
-status: todo
+status: in-progress
 type: feature
 priority: low
 created_at: 2026-10-08T09:42:20Z
-updated_at: 2026-10-08T09:42:20Z
+updated_at: 2026-10-08T10:02:47Z
 ---
 
 Found by fluid() (cssints-ni5c, repros under "## Engine gaps").

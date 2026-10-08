@@ -1,11 +1,11 @@
 ---
 # cssints-b4q6
 title: 'Kernels written as styles: child selectors, custom properties and keyframes() names'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-08T09:42:19Z
-updated_at: 2026-10-08T09:42:19Z
+updated_at: 2026-10-08T10:02:47Z
 ---
 
 Found by the tier-1 plugins (cssints-dk1q). Repros in cssints-kg3q and cssints-11pj under "## Engine gaps".
