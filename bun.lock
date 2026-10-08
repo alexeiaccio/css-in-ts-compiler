@@ -212,6 +212,20 @@
         "cssints": "^0.1.0",
       },
     },
+    "packages/stuck": {
+      "name": "@cssints/stuck",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cssints/css-grammar": "workspace:*",
+      },
+      "devDependencies": {
+        "cssints": "workspace:*",
+        "vite": "catalog:",
+      },
+      "peerDependencies": {
+        "cssints": "^0.1.0",
+      },
+    },
     "packages/tokens": {
       "name": "@cssints/tokens",
       "version": "0.1.0",
@@ -331,6 +345,8 @@
     "@cssints/motion": ["@cssints/motion@workspace:packages/motion"],
 
     "@cssints/reset": ["@cssints/reset@workspace:packages/reset"],
+
+    "@cssints/stuck": ["@cssints/stuck@workspace:packages/stuck"],
 
     "@cssints/tokens": ["@cssints/tokens@workspace:packages/tokens"],
 

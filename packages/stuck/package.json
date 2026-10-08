@@ -1,0 +1,67 @@
+{
+  "name": "@cssints/stuck",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Style a sticky element while it is stuck: @container scroll-state(stuck) natively, an IntersectionObserver fallback",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "./src/observer.ts",
+    "./dist/observer.mjs"
+  ],
+  "exports": {
+    ".": {
+      "development": {
+        "types": "./src/index.ts",
+        "default": "./src/index.ts"
+      },
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    },
+    "./observer": {
+      "development": {
+        "types": "./src/observer.ts",
+        "default": "./src/observer.ts"
+      },
+      "types": "./dist/observer.d.mts",
+      "default": "./dist/observer.mjs"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "./observer": {
+        "types": "./dist/observer.d.mts",
+        "default": "./dist/observer.mjs"
+      }
+    },
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "test": "node test/stuck.mjs",
+    "test:browsers": "node test/browsers.mjs",
+    "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
+    "pack:tgz": "node ../../scripts/pack.mjs"
+  },
+  "dependencies": {
+    "@cssints/css-grammar": "workspace:*"
+  },
+  "devDependencies": {
+    "cssints": "workspace:*",
+    "vite": "catalog:"
+  },
+  "peerDependencies": {
+    "cssints": "^0.1.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
