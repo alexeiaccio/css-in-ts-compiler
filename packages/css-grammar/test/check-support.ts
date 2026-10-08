@@ -42,6 +42,9 @@ const warns: [string, string, string | null][] = [
   ["padding", "calc(1rem + 2px) min(1rem, 5%)", null],
   ["color", "var(--x)", null],
   ["display", "flex", null],
+  ["display", "grid-lanes", "css.properties.display.grid-lanes"],
+  ["display", "inline-grid-lanes", "css.properties.display.inline-grid-lanes"],
+  ["flow-tolerance", "normal", "css.properties.flow-tolerance"],
   ["color", "rgb(1 2 3)", null],
   ["font-family", '"full-width", serif', null],
 ];
@@ -91,6 +94,11 @@ for (const [p, v] of [
     ]).length === 0,
     `${p}: ${v} is quiet`,
   );
+verify(
+  support("display", "grid-lanes", [["safari", "26.4"]]).length === 0 &&
+    support("display", "grid-lanes", [["safari", "26.2"]]).length === 1,
+  "display: grid-lanes is quiet on safari 26.4, warns on 26.2",
+);
 verify(
   support("line-clamp", "3", [["chrome", "154"]]).length === 1,
   "line-clamp: 3 warns on chrome 154",
