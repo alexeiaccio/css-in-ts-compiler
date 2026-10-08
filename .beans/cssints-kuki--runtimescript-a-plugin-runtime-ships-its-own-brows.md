@@ -1,11 +1,11 @@
 ---
 # cssints-kuki
 title: 'runtime.script: a plugin runtime ships its own browser script through virtual:cssints/runtime'
-status: todo
+status: in-progress
 type: feature
 priority: high
 created_at: 2026-10-08T14:10:21Z
-updated_at: 2026-10-08T14:10:21Z
+updated_at: 2026-10-08T14:26:40Z
 ---
 
 Found by three tier-2 plugins (cssints-dk1q). Repros in cssints-qhug, cssints-q6il and cssints-z1hd under "## Engine gaps".
