@@ -64,6 +64,8 @@ const plainCode = [
   // The sync css.* builders (`node`, `toDecls`, `chainDecl`, `isNode`), which user code calls in expressions, and the class hash.
   "packages/cssints/src/lib.ts",
   "packages/cssints/src/node.ts",
+  // The css functions (`css.calc(...)`): sync builders that user code calls in expressions, built from the generated list.
+  "packages/cssints/src/functions.ts",
   // The front of cssints/plugin: signatures with generics and one-line bodies (the engine is scope-engine.ts).
   "packages/cssints/src/scope.ts",
   // scope() and the members it makes (chain, call, value): sync builders that user code calls in expressions, like lib.ts's.

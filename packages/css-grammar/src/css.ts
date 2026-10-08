@@ -120,13 +120,13 @@ type Split<T extends string, R extends string> = T extends `${string}${"," | ")"
 type SplitComma<T extends string, R extends string> = T extends `${infer A},${infer B}` ? SplitParen<A, `,${B}${R}`> : SplitParen<T, R>;
 type SplitParen<T extends string, R extends string> = T extends `${infer A})${infer B}` ? [A, `)${B}${R}`] : [T, R];
 
-type LengthUnit = "px" | "em" | "rem" | "vw" | "vh" | "vmin" | "vmax" | "ch" | "ex" | "lh" | "rlh" | "cm" | "mm" | "in" | "pt" | "pc" | "q"
+export type LengthUnit = "px" | "em" | "rem" | "vw" | "vh" | "vmin" | "vmax" | "ch" | "ex" | "lh" | "rlh" | "cm" | "mm" | "in" | "pt" | "pc" | "q"
   | "svw" | "svh" | "lvw" | "lvh" | "dvw" | "dvh" | "cqw" | "cqh" | "cqi" | "cqb" | "cqmin" | "cqmax" | "ic" | "cap" | "rex" | "rch" | "ric" | "rcap";
 // A typed value whose type is not known (a token of a JSON import is of any type) is one sentinel `⟨*⟩`, which stands where a
 // sentinel of some type would (`Sentinel`). As the union of every type it made each such part in a call cost ~12 times
 // the one before it, since a call's parts are joined into one string per combination.
 export type Wild = "⟨*⟩";
-type Sentinels = "color" | "length" | "percentage" | "number" | "integer" | "angle" | "time" | "custom-ident" | "resolution" | "url" | "image" | "transform-list"; // the `sentinels` of TOKEN_TYPES (token.ts)
+export type Sentinels = "color" | "length" | "percentage" | "number" | "integer" | "angle" | "time" | "custom-ident" | "resolution" | "url" | "image" | "transform-list"; // the `sentinels` of TOKEN_TYPES (token.ts)
 /** What the recognizer sees of a typed value of type `T`: `⟨T⟩`, or `⟨*⟩` for one of every type (a token of a JSON import). */
 export type Sentinel<T extends string> = [Sentinels] extends [T] ? Wild : `⟨${T}⟩`;
 type WildNamed = "color" | "image" | "transform-list";
@@ -174,7 +174,7 @@ export type Consume<N, S extends string, P extends boolean = false> =
       // <if()> has `;` between its branches, which no token of the grammar is: balanced tokens too, the twin checks the conditions
       : V extends "if()" ? (S extends `if(${infer R}` ? Close<Declaration<Trim<R>, Trim<R>, [], true>> : never)
       // `<name()>`: the name must be next before its grammar is even parsed (keeps <color> cheap)
-      : V extends keyof Syns ? (V extends `${infer F}()` ? (S extends `${F}(${string}` ? Consume<Parse<Syns[V]>, S, P> : P extends true ? Pend<N, S> : never) : S extends `⟨${V | (V extends WildNamed ? "*" : never)}⟩${infer R}` ? Trim<R> : Consume<Parse<Syns[V]>, S, P>) // typed value sentinel (api-typed.ts)
+      : V extends keyof Syns ? (V extends `${infer F}()` ? (S extends `${F}(${string}` ? Consume<Parse<Syns[V]>, S, P> : S extends `⟨${V}⟩${infer R}` ? Trim<R> : P extends true ? Pend<N, S> : never) : S extends `⟨${V | (V extends WildNamed ? "*" : never)}⟩${infer R}` ? Trim<R> : Consume<Parse<Syns[V]>, S, P>) // typed value sentinel (api-typed.ts)
       : never
     : N extends ["prop", infer V extends string] ? (V extends keyof Props ? Consume<Parse<Props[V]>, S, P> : never)
     : N extends ["fn", infer F extends string, infer A] ? (S extends `${F}(${infer R}` ? (F extends RelativeFn ? (Trim<R> extends `from ${string}` ? Close<Declaration<Trim<R>, Trim<R>, []>> : Close<Consume<A, Trim<R>, P>>) : Close<Consume<A, Trim<R>, P>>) : P extends true ? Pend<N, S> : never)

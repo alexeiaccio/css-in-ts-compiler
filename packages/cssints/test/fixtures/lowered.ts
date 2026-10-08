@@ -3,6 +3,7 @@ import {
   color,
   hover,
   height,
+  oklch,
   style,
   textWrap,
   token,
@@ -23,6 +24,6 @@ export const f = hover(color("oklch(55% 0.18 250)"));
 export const i = style(color("lab(40% 20 -50)"));
 
 // not lowered: a var() inside is unknown to LightningCSS (two warnings: oklch() and the relative syntax)
-export const g = color(`oklch(from ${brand} l c h)`);
+export const g = color(oklch("from", brand, "l", "c", "h"));
 // not lowered: LightningCSS cannot prefix text-wrap, it has no prefixed form
 export const h = textWrap("balance");

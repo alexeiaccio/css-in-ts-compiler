@@ -1,9 +1,11 @@
+import { calc, token, width } from "cssints" with { type: "cssints" };
 import { createMemo, For, Loading } from "solid-js";
 import type { AppBskyFeedDefs } from "@atcute/bluesky";
 
 import { Feed } from "../post/Feed.tsx";
 import { Post } from "../post/Post.tsx";
 import { Header } from "../Shell.tsx";
+import { t } from "../theme.ts" with { type: "cssints" };
 
 type PostView = AppBskyFeedDefs.PostView;
 const MOD = "did:plc:ar7c4by46qjdydhdevvrndac";
@@ -47,7 +49,10 @@ function samples(r: Record<string, PostView>) {
   } as Record<string, PostView>;
 }
 
-// ?w=360 (or 600) fixes the card width (the feed padding comes on top), to see the layout follow it.
+// ?w=360 (or 600) fixes the card width (the feed padding comes on top), to see the layout follow it: the page sets --dev-width,
+// the class adds the gutters.
+const devWidth = token.length("0px", "dev-width");
+const fixed = width(calc(devWidth, "+", 2, "*", t.gutter.compact));
 export default function DevPosts() {
   const w = new URLSearchParams(location.search).get("w");
   const posts = createMemo(async () =>
@@ -56,7 +61,7 @@ export default function DevPosts() {
   return (
     <>
       <Header title="Dev: posts" />
-      <div style={w ? { width: `calc(${w}px + 2 * var(--gutter-compact))` } : undefined}>
+      <div class={w ? fixed : undefined} style={w ? { "--dev-width": `${w}px` } : undefined}>
         <Loading fallback={<p>Loading…</p>}>
           <Feed>
             <For each={Object.entries(posts())}>

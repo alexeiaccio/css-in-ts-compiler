@@ -11,7 +11,7 @@ Every `ts` block here is type-checked against the workspace `cssints` types by `
 - **Numbers.** A bare number is a spacing step of 0.25rem in `padding*`, `margin*`, `gap*` and `inset*` (`p(4)` is `1rem`). In any other property it is a CSS `<number>`: `opacity(0.5)`, `zIndex(3)`.
 - **Values.** A property takes one or more parts joined by a space. Each part is a string or a Typed OM value: `border("1px solid", accent)`, `padding(CSS.rem(1), CSS.rem(2))`, `padding("1rem 2rem")`. Parts are checked against the mdn grammar in types and again at build time. `CSS.px`, `rem`, `em`, `percent`, `number`, `CSSUnitValue` and `CSSColorValue` come from `cssints`, imported with the attribute.
 - **Editor.** A bad part is marked on that part: `padding("2px", "red")` puts the error on `"red"`, with the message of the whole value. While a string is not a value yet, the editor offers the keywords of the property that the word under the cursor begins (`display("fl…")` gives `flex`, `flow`, `flow-root`; `border("1px", "so…")` gives `solid`), and all of them in an empty part (`border("1px", "")`; an empty part is an error). The offer is the keywords of the whole grammar, not only those that fit at that point, it stops once the string is valid, and functions such as `rgb(` are not offered.
-- **Math.** `calc()`, `min()`, `max()`, `clamp()` and the other CSS Values 4 math functions are accepted wherever their type is: `width("calc(100% - 2rem)")`. The types check only the function name and the parentheses; the build checks the units (`calc(1px + 2s)` is an error).
+- **Math.** `calc()`, `min()`, `max()`, `clamp()` and the other CSS Values 4 math functions are accepted wherever their type is, as strings (`width("calc(100% - 2rem)")`, checked by the build: `calc(1px + 2s)` is an error) and as calls that take tokens (`calc(t.space.md, "*", 2)`, see "Functions").
 - **Layout contexts.** `flex()` and `grid()` without arguments set `display` and chain only their container properties. Names drop only the context prefix: `flex().direction("column").wrap("wrap").alignItems("center").justifyContent("space-between")`, `grid().templateColumns("1fr 2fr").gap(4)`. Plain styles do not chain; merge them with `cn(...)` or `cx(...)`. Item properties (`flexGrow`, `alignSelf`, `gridColumn`, `order`) are plain functions.
 - **`flex(...parts)` and `grid(...parts)` are the shorthand properties.** With at least one argument the call is the `flex` (or `grid`) property, checked by its grammar like any member: `flex("1")`, `flex(1)` and `flex("1 1 0")` are `flex: 1`, `flex: 1` and `flex: 1 1 0`, `grid("auto / 1fr 1fr")` is `grid: auto / 1fr 1fr`. A bare number is a `<number>` here, not a spacing step. The result is a plain style: it sets no `display` and does not chain. The types tell the two forms apart by overload.
 - **`container` is the condition.** `container("sidebar (width < 30rem)")` is a query; the `container` shorthand property is written with its longhands `containerName` and `containerType`.
@@ -195,7 +195,7 @@ css.within(css.media("(width >= 40rem)")); // error: a media query is not a stat
 
 ### Tokens (decided 2026-09-29, cssints-o00x)
 
-A token is a Typed OM value whose `toString()` is `var(--name)`. It fits anywhere a value of its type fits: `color(blue)`, `border("1px solid", blue)`.
+A token is a Typed OM value whose `toString()` is `var(--name)`. It fits anywhere a value of its type fits: `color(blue)`, `border("1px solid", blue)`. In math and in other CSS functions it is a part of a call: `calc(t.space.md, "*", 2)`, `var(t.space.sm, "4px")` (see "Functions").
 
 ```tsx
 import * as css from "cssints" with { type: "cssints" };
@@ -223,7 +223,7 @@ css.token.set(muted, "red"); // error: private tokens cannot be set
 
 - **`style()` and `token.set()`** are build-time and take static values; the result is a style object, custom properties first. A dynamic value is set with a plain `style={{ "--color-primary": value }}`; a typed runtime setter is not part of 0.1.
 - **A token of the wrong type** is an error that names the token: `color: unexpected "1px" in "1px", expected <color> ("var(--gap)" is checked as "1px": a token stands for a value of its type)`.
-- **A raw `var()`, `env()` or `if()`** in a string part (`padding("var(--a)", "2px")`, `margin("env(safe-area-inset-top)")`) stands for any run of values, commas included, in any property, and the rest of the value is still checked: `padding("var(--a)", "red")` is an error, unlike in Chrome. Only the call's shape is checked (`var(--name)`, the conditions of an `if()`).
+- **A raw `env()` or `if()`** in a string part (`margin("env(safe-area-inset-top)", "auto")`) stands for any run of values, commas included, in any property, and the rest of the value is still checked: `margin("env(x)", "red")` is an error. Only the call's shape is checked (the conditions of an `if()`). **A raw `var(--name)`** is for a token, and a token is already its `var()`: a string that writes the `var()` of a declared token is a build warning that names the token to pass (`padding: "var(--space-sm)" is the token space.sm: pass the token itself, and css.var(token, fallback) for a fallback`), and one that writes the `var()` of no declared token is a build error (a typo). The scope's own `--_x` of a `scope()` kernel stays a string.
 - Design-token constraints and math (DTCG, Ariakit Tailwind) are researched in `docs/research/design-tokens.md`.
 
 #### Themes (decided 2026-09-29, cssints-exof)
@@ -585,32 +585,64 @@ export const b = cn(chip(), paddingLeft("1px"));
 - **Types.** `cssints/plugin` points at `author.ts` and `scope.ts`: the signatures and the type-level code (`Members`, `Chain`, `Expand`, the call checks) and no code that runs, because a program that imports a plugin must not need Node's types or a newer `lib`. The engine is `scope-engine.ts`; `macro.ts` registers it when the library loads.
 - **Not in 0.2:** `keyword` members, completions of keywords inside plugin grammar strings (the message still names the grammar), and a plugin that is a package of members you install other than `@cssints/icons`.
 
-### Functions: `colorMix`, `min`, `max` and `clamp`; value members (decided 2026-10-02, cssints-obd3)
+### Functions: every CSS function is a call (cssints-67qf)
 
-A value function is a part of any property that is computed at build time and inlined where it is called: nothing of it ships. It exists because a token cannot go into a template string (`` `color-mix(in oklab, ${accent}, black)` `` is a `${string}` to the types, and the types reject it), and a call can take one.
+Every CSS function that mdn-data has a grammar for is a member of `css` and a named import, camelCased: `calc`, `min`, `clamp`, `round`, `sin`, `rgb`, `oklch`, `colorMix`, `lightDark`, `linearGradient`, `cubicBezier`, `steps`, `translateX`, `url`, `env`, `var`, ... 110 of them (`bun run extract` writes the list from `mdn-data/css/functions.json` and the `name()` grammars of mdn-data's syntaxes, `bun run members` the types). A call takes parts: a token, a number, a string, another call, or an array of those joined by a space (`[t.color.bg, "25%"]`, a colour stop). It is computed at build time, checked against the grammar of its function by the twin, and replaced by its text: nothing ships. What it returns is a Typed OM value of the function's type, a part of any property that takes one.
 
 ```ts
 import * as css from "cssints" with { type: "cssints" };
 
 const t = css.createTokens({
-	color: { $type: "color", accent: { $value: "oklch(62% 0.19 259)" } },
-	space: { $type: "dimension", md: { $value: "16px" } },
+	color: { $type: "color", accent: { $value: "oklch(62% 0.19 259)" }, bg: { $value: "white" } },
+	space: { $type: "dimension", sm: { $value: "8px" }, md: { $value: "16px" } },
+	time: { $type: "duration", fast: { $value: "100ms" } },
 });
 
-export const a = css.color(css.colorMix("oklab", t.color.accent, "black 15%")); // color: color-mix(in oklab, var(--color-accent), black 15%)
-export const b = css.padding(css.clamp(t.space.md, "2vw", "2rem")); // padding: clamp(var(--space-md), 2vw, 2rem)
-export const c = css.maxWidth(css.min("48rem", "100%"));
-export const d = css.opacity(css.clamp<"number">(0, 0.5, 1));
-export const e = css.color(css.colorMix("rgb", "red", "blue")); // error: not a colour space
-export const f = css.color(css.colorMix("oklab", t.space.md, "red")); // error: a length is not a colour
-export const g = css.width(css.colorMix("oklab", "red", "blue")); // error: a colour is not a length
+export const a = css.width(css.calc(t.space.md, "*", 2)); // width: calc(var(--space-md) * 2)
+export const b = css.padding(css.calc("1rem", "+", 2, "*", t.space.md)); // padding: calc(1rem + 2 * var(--space-md))
+export const c = css.padding(css.clamp(t.space.md, "2vw", "2rem")); // padding: clamp(var(--space-md), 2vw, 2rem)
+export const d = css.maxWidth(css.min("48rem", "100%"));
+export const e = css.color(css.lightDark("white", t.color.bg)); // color: light-dark(white, var(--color-bg))
+export const f = css.color(css.colorMix("in oklab", t.color.accent, "black 15%"));
+export const g = css.color(css.oklch(0.7, 0.1, 200, "/", 0.5)); // color: oklch(0.7 0.1 200 / 0.5)
+export const h = css.backgroundImage(css.linearGradient("to right", [t.color.accent, "25%"], "blue"));
+export const i = css.transitionTimingFunction(css.cubicBezier(0.1, 0.7, 1, 0.1));
+export const img = css.backgroundImage(css.url('"a.png"')); // url("a.png"): the quotes are yours
+export const j = css.transform(css.translateFn(t.space.md, 0), css.rotateFn("10deg"));
+export const k = css.width(css.calc(t.space.md, "+", t.time.fast)); // error: cannot add length and time
+export const l = css.width(css.calc(t.space.md, "*", t.space.md)); // error: cannot multiply length by length
+export const m = css.color(css.lightDark("white", t.space.md)); // error: a length is not a colour
+export const n = css.width(css.rgb(255, 0, 0)); // error: a colour is not a length
 ```
 
-- **`colorMix(space, a, b)`** is a `<color>`: the colour space (`"oklch longer hue"` for a polar one), then two colours, each a token or a string with an optional share (`"black 15%"`). It is checked in the types and at build time (a share over 100% is the build's), and takes exactly three arguments. A bare `css.color("color-mix(in oklab, red, blue)")` is valid already; the helper is for the token argument.
-- **`min`, `max` and `clamp(low, value, high)`** take tokens, strings and numbers, and give a Typed OM value of type `T`: a length, unless the first typed argument is of another type (`clamp(t.fraction, ...)` is a number) or you say so, `clamp<"number">(0, x, 1)`. The arguments are not checked one by one: the declaration that takes the result is, at build time, with the usual message (`width: unexpected "min(1rem" in "min(1rem, 2s)" ... (min() cannot take length and time)`).
-- **Only these four.** `calc()` stays a string (`"calc(100% - 2rem)"` is checked as before), like every other CSS function; a token argument in one is a value member of a scope or a raw `var(--name)`.
+- **Parts and operators.** The parts of a call are its arguments, joined by `", "`, or by a space when the function's grammar has no comma (`oklch`, `hwb`, `lab`, `color`, `inset`, `circle`, `dropShadow`). An operator is a string part, `"+"`, `"-"`, `"*"` or `"/"`, and joins its neighbours with a space instead: `calc(t.space.md, "*", 2)` is `calc(var(--space-md) * 2)`, `min(t.space.md, "*", 2, "4px")` is `min(var(--space-md) * 2, 4px)`, `oklch(0.7, 0.1, 200, "/", 0.5)` is `oklch(0.7 0.1 200 / 0.5)`. A number is its text. `rgb(255, 0, 0)` is the comma syntax; the space syntax is `rgb("255 0 0", "/", 0.5)` or `rgb("from", t.color.accent, "r", "g", "b")` (a relative colour, with a token).
+- **Math types.** The kind of each argument is read (a token's type, a string such as `"2vw"` or `"50%"`, a number) and folded with the precedence of CSS: `*` and `/` before `+` and `-`; a length times a number is a length, a length over a length a number, a length plus a percentage a `length-percentage`. The result has the kind of its arguments (`min`, `max`, `clamp`, `calc`, `round`, `mod`, `rem`, `hypot`, `abs`), or is a number (`sign`, `sin`, `cos`, `tan`, `sqrt`, `exp`, `pow`, `log`) or an angle (`asin`, `acos`, `atan`, `atan2`). `calc(t.space.md, "+", t.time.fast)` is a type error on `t.time.fast` (`cannot add length and time`), as is a colour in a calculation. A string the types cannot read (`"var(--x)"`, `"(1px + 2px)"`, `"pi"`) is of any kind and the result is a wild typed value. `round("up", x, y)` skips its mode.
+- **Other types.** The call is checked as the text it will be, against `<name()>`: `lightDark("white", t.space.md)` is an error because a length is not a `<color>`, `colorMix("in rgb", ...)` because `rgb` is not a colour space. The result is a `CSSStyleValue<"name()">`, a value where the grammar of the property reaches `<name()>` through its types (`<color>` reaches `<light-dark()>`, `<image>` the gradients). The error is on the first argument with the message of the whole call: the recognizer does not say which argument it stopped at. A function a property writes inline in its grammar (`fit-content()` and `minmax()` in the grid and size properties) is not reached by its type: write it as a string.
+- **The build** checks every call with the twin and the usual message, at the call: `min(): unexpected "min(1rem" in "min(1rem, 2s)" (min() cannot take length and time)`. A token is checked as a literal of its type (`calc(): unexpected "calc(1px" in "calc(1px + 1s)" (cannot add length and time) ("calc(var(--space-md) + var(--time-fast))" is checked as "calc(1px + 1s)": ...)`). What the types leave to the build: the number of arguments (`clamp` takes three, `light-dark` two), numeric ranges (a share over 100%), and `sqrt` of a length.
+- **Names that clash** keep the member they had, and the function gets `Fn` after its name: `attrFn` (`attr()` the value; `attr` is the attribute condition), and the functions that are also properties, `colorFn` (`color()` the colour; `color` is the property), `insetFn`, `opacityFn`, `perspectiveFn`, `rotateFn`, `scaleFn`, `translateFn`. A name that is a pseudo-class or another builder would be treated the same way; the list is computed (`FUNCTIONS` in lib.ts), not written. `var` is a reserved word: `css.var(...)` and `import { var as v } from "cssints"`.
+- **`colorMix`, `min`, `max`, `clamp` are generated now.** `colorMix` takes the grammar's arguments, the interpolation method with its `in` (`colorMix("in oklab", a, b)`, was `colorMix("oklab", a, b)`). `min`, `max` and `clamp` infer their kind from their arguments (`clamp<"number">(0, x, 1)` is `clamp(0, x, 1)`).
 
-A value member of a `scope()` (`{ args, value }`) makes the same kind of function; `colorMix` is one, of the scope `cssints-fn`:
+#### `var()`
+
+A token is its `var()` already, so `var(--name)` is not written. `css.var(token, fallback?)` is the call that adds a fallback: `css.var(t.space.sm, "4px")` is `var(--space-sm, 4px)`. The result has the token's type, and the fallback is checked as a value of it (a string or a Typed OM value, in the types and at build time). Its first argument is a token, never a name.
+
+```ts
+import * as css from "cssints" with { type: "cssints" };
+
+const t = css.createTokens({
+	color: { $type: "color", accent: { $value: "red" } },
+	space: { $type: "dimension", sm: { $value: "8px" } },
+});
+
+export const a = css.padding(css.var(t.space.sm, "4px")); // padding: var(--space-sm, 4px)
+export const b = css.color(css.var(t.color.accent, css.rgb(0, 0, 0)));
+export const c = css.padding(css.var(t.space.sm, "red")); // error: the fallback is a length
+export const d = css.color(css.var(t.space.sm)); // error: a length is not a colour
+```
+
+A string that writes `var(--space-sm)` is a build warning that names the token to pass, and `var(--space-typo)`, the `var()` of no declared token, is a build error (see "Tokens"). `--_x` custom properties of a scope's kernels are not checked.
+
+A plugin author makes a function of their own with a value member of a `scope()` (`{ args, value }`):
 
 ```ts
 import { CSSColorValue } from "cssints";
@@ -633,7 +665,7 @@ step(2);
 - **Typed or opaque.** What `value` returns is what the call returns. A Typed OM value (`CSSColorValue`, `CSS.rem(1)`) keeps its type: `tint(...)` is a `<color>` in the types and goes only where a colour goes. A string is opaque to the types, which accept it anywhere, and it is checked at build time in the declaration it lands in, as any value is. Return a Typed OM value when you know the type.
 - **Build time only.** `value` runs in the Module Runner, once per call, and the call is replaced by its CSS text (`"_1hjzi3b"` for a class, `"color-mix(...)"` for a call of its own); the function and its module do not reach the client.
 - **Errors** are `MemberError` values with the file, site and offset of the call, and `pluginName` is the scope: `tint: unexpected "solid" in "red solid", expected <percentage>` for the parts (the label is the member's key); a `value` that throws (`cssints: boom: no luck`, any `Error`) or returns something else than a string or a Typed OM value (`cssints: tint() value must return a string or a Typed OM value`). A result that does not fit the property is that property's error, at the same site (`width: unexpected "color-mix(in" in "color-mix(in oklab, red, blue)"`): the engine cannot know the property a function is used for.
-- **Limits.** The parts are joined with a space, so a grammar cannot tell the arguments apart (`<color> <color>` takes `"red", "blue"` and `"red blue"`; check `parts.length` in `value` as `colorMix` does). A token is checked as the values of its type, so a wrong one is named by its value: `unexpected "1px" in "oklab 1px red"`. `light-dark()` cannot be a function: its result is a browser's choice at the element, not a value.
+- **Limits.** The parts are joined with a space, so a grammar cannot tell the arguments apart (`<color> <color>` takes `"red", "blue"` and `"red blue"`; check `parts.length` in `value`). A token is checked as the values of its type, so a wrong one is named by its value: `unexpected "1px" in "oklab 1px red"`. The css functions above are not value members: `lightDark(a, b)` is the text `light-dark(a, b)`, whose choice is the browser's at the element.
 
 ### `frame()`: concentric radius (`cssints/frame`, cssints-q2vh)
 

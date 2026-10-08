@@ -6,12 +6,14 @@ export type { Carry, Cond, CssNode, Decl } from "./node.ts";
 // calls css.* in expressions and stores the results, so they cannot return Effects. They throw a MacroError.
 import { createRequire } from "node:module";
 
+import { functions } from "@cssints/css-grammar/functions";
 import { properties } from "@cssints/css-grammar/mdn";
 import { Cause, Effect, Exit } from "effect";
 
 import { MacroError } from "./errors.ts";
 import { covers, relation } from "./leaves.ts";
 import { camel, type Carry, type Cond, type CssNode, type Decl, fail, isNode } from "./node.ts";
+import { registry } from "./registry.ts";
 
 /** What firstThatWorks() builds: its values as text, the wanted one first. */
 export interface Fallback {
@@ -113,6 +115,37 @@ export const PSEUDOS: Record<string, Cond> = Object.fromEntries(
   ]),
 );
 
+// Not properties of `css`: the builders macro.ts defines itself.
+export const BUILDERS = new Set([
+  "cn",
+  "firstThatWorks",
+  "keyframes",
+  "flex",
+  "grid",
+  "cv",
+  "media",
+  "container",
+  "supports",
+  "attr",
+  "group",
+  "within",
+  "global",
+  "layers",
+  "token",
+  "style",
+  "createTokens",
+  "createGlobalTheme",
+  "check",
+]);
+// Every css function is a member, camelCased (`color-mix` is colorMix); one named like a property, a pseudo-class or a
+// builder gets `Fn` after it (`colorFn`, `attrFn`, `translateFn`): the property or the condition keeps its name.
+export const FUNCTIONS: Record<string, string> = Object.fromEntries(
+  Object.keys(functions).map((f) => {
+    const n = camel(f);
+    return [n in PROPS || n in PSEUDOS || BUILDERS.has(n) ? `${n}Fn` : n, f];
+  }),
+);
+
 // A style has at most this many conditions: layers _.a (none) to _.e.
 export const MAX_CONDS = 4;
 export const LAYER = ["_.a", "_.b", "_.c", "_.d", "_.e"];
@@ -127,6 +160,28 @@ export function minWidth(q: string): number {
   return w;
 }
 
+// A `var(--name)` written as text (the token itself is what a part should be). One of a declared token is a build warning
+// that names the token to pass; one of no token (a typo), an error. `--_x` is a scope's own custom property.
+const RAW_VAR = /var\(\s*(--[\w-]+)/g;
+export function checkVars(where: string, text: string) {
+  if (!text.includes("var(")) return;
+  const { properties, defs, warned, warnings } = registry;
+  for (const [, name] of text.matchAll(RAW_VAR)) {
+    if (name!.startsWith("--_")) continue;
+    if (!properties.has(name!))
+      throw fail(
+        `cssints: ${where}: var(${name}) is no declared token (a typo?): declare it with createTokens() or token.<type>(initial, "${name!.slice(2)}") and pass the token`,
+      );
+    const path = defs.get(name!)?.path;
+    const key = `var ${where} ${name}`;
+    if (warned.has(key)) continue;
+    warned.add(key);
+    warnings.push(
+      `${where}: "var(${name})" is the token ${path === name ? `declared as ${name}` : path}: pass the token itself, and css.var(token, fallback) for a fallback`,
+    );
+  }
+}
+
 const SPACING = /^(padding|margin|inset|gap|row-gap|column-gap)(-|$)/;
 // parts (strings, Typed OM values) are joined by a space; a lone number is the spacing scale in spacing properties
 const decl = (prop: string, name: string, args: unknown[]): Decl => {
@@ -134,6 +189,7 @@ const decl = (prop: string, name: string, args: unknown[]): Decl => {
   if (args.some(isNode))
     throw fail(`cssints: ${name}() takes values, not styles; merge styles with cn(...) or cx(...)`);
   // A fallback inside several parts repeats the whole declaration with each of its values: one per declaration.
+  for (const a of args) if (typeof a === "string") checkVars(name, a);
   const [fb, extra] = args.filter(isFallback);
   if (extra) throw fail(`cssints: ${name}() takes one firstThatWorks(...) per declaration`);
   if (fb) {

@@ -10,6 +10,7 @@ import {
   flexShrink,
   height,
   keyframes,
+  linearGradient,
   width,
 } from "cssints" with { type: "cssints" };
 import { frame } from "cssints/frame" with { type: "cssints" };
@@ -26,7 +27,12 @@ const sweep = keyframes({
 
 const bar = cn(
   backgroundImage(
-    "linear-gradient(90deg, var(--color-bg-muted) 25%, var(--color-border) 50%, var(--color-bg-muted) 75%)",
+    linearGradient(
+      "90deg",
+      [t.color.bgMuted, "25%"],
+      [t.color.border, "50%"],
+      [t.color.bgMuted, "75%"],
+    ),
   ),
   backgroundSize("200% 100%"),
   animation(sweep, "1.4s", "linear", "infinite"),
