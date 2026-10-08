@@ -360,7 +360,7 @@ export declare const cy: Prop<"cy">;
 export declare const d: Prop<"d">;
 /** `ltr | rtl`. Chrome 2, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/direction) */
 export declare const direction: Prop<"direction">;
-/** `[ <display-outside> || <display-inside> ] | <display-listitem> | <display-internal> | <display-box> | <display-legacy>`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/display) */
+/** `[ <display-outside> || <display-inside> ] | <display-listitem> | <display-internal> | <display-box> | <display-legacy> | grid-lanes | inline-grid-lanes | <display-outside> || [ <display-inside> | math ]`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/display) */
 export declare const display: Prop<"display">;
 /** `auto | text-bottom | alphabetic | ideographic | middle | central | mathematical | hanging | text-top`. Chrome 1, Edge 79, Firefox 1, Safari 4, iOS 3.2, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/dominant-baseline) */
 export declare const dominantBaseline: Prop<"dominant-baseline">;
@@ -396,6 +396,8 @@ export declare const float: Prop<"float">;
 export declare const floodColor: Prop<"flood-color">;
 /** `<'opacity'>`. Chrome 5, Edge 12, Firefox 3, Safari 6, iOS 6, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/flood-opacity) */
 export declare const floodOpacity: Prop<"flood-opacity">;
+/** `normal | <length-percentage [0,∞]> | infinite`. Chrome no, Edge no, Firefox no, Safari 26.4, iOS 26.4, Android no */
+export declare const flowTolerance: Prop<"flow-tolerance">;
 /** `[ [ <'font-style'> || <font-variant-css2> || <'font-weight'> || <font-width-css3> ]? <'font-size'> [ / <'line-height'> ]? <'font-family'># ] | <system-family-name>`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/font) */
 export declare const font: Prop<"font">;
 /** `[ <family-name> | <generic-family> ]#`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/font-family) */

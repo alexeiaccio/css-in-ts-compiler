@@ -5,6 +5,7 @@
   "contain",
   "cx",
   "cy",
+  "display",
   "flex-flow",
   "flex-wrap",
   "grid-area",

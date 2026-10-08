@@ -45,13 +45,26 @@ props["-webkit-box-orient"] = {
   ...props["box-orient"],
   syntax: props["box-orient"].syntax.replace(" | inherit", ""),
 };
+// CSS Grid 3 (masonry) as Safari 26.4 ships it, which mdn-data 2.27.1 lacks and BCD 8.1.3 has (css.properties.display.
+// grid-lanes, css.properties.flow-tolerance). Chrome 154 and Firefox 155 reject all of it, so Chrome cannot judge it: not a
+// `PROP` override (webref-rule.mjs would fail it). The keywords go into mdn-data's own display grammar, in every mode, so
+// both twins of the rule accept them and they stay out of its D (the rule then takes webref's display for its `math`);
+// flow-tolerance is webref's grammar verbatim. The support warnings come from BCD.
+props.display = {
+  ...props.display,
+  syntax: `${props.display.syntax} | grid-lanes | inline-grid-lanes`,
+};
+const AHEAD_OF_CHROME = ["flow-tolerance"];
 const want =
   process.argv.length > 2
     ? process.argv.slice(2)
-    : Object.keys(props).filter(
-        (p) =>
-          ["standard", "experimental"].includes(props[p].status) || LIVE_NONSTANDARD.includes(p),
-      );
+    : [
+        ...Object.keys(props).filter(
+          (p) =>
+            ["standard", "experimental"].includes(props[p].status) || LIVE_NONSTANDARD.includes(p),
+        ),
+        ...AHEAD_OF_CHROME,
+      ];
 const P = {},
   S = {};
 const refs = (s) => [...s.matchAll(/<([^'>\s[]+)(?:\s*\[[^\]]*\])?>/g)].map((m) => m[1]);
