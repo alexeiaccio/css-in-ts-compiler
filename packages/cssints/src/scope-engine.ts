@@ -8,9 +8,10 @@ import { CSSStyleValue } from "@cssints/css-grammar/values";
 import { Result } from "effect";
 
 import { MemberError } from "./errors.ts";
+import { kernelWarnings } from "./kernel.ts";
 import { relation } from "./leaves.ts";
 import { camel, type Carry, failIn, isNode, node, probed, type CssNode } from "./node.ts";
-import { type Kernel, type Plug, registry } from "./registry.ts";
+import { type Kernel, type KernelWarning, type Plug, registry } from "./registry.ts";
 import type {
   ArgsDef,
   CallDef,
@@ -207,14 +208,24 @@ class Compiler {
     const d = def as KernelDef;
     const marker = this.marker(key);
     let css = d.css as string;
+    let warnings: KernelWarning[] = [];
     if (typeof d.css === "function") {
       const lib = registry.lib;
       if (!lib) throw thrown(this.name, `${this.name}.${key}: the css library is not loaded`);
       const made = ran(this.name, () => (d.css as (c: unknown) => unknown)(lib.css));
       const nodes = (Array.isArray(made) ? made : [made]) as CssNode[];
       const merged = (lib.css as Dict<(...n: CssNode[]) => CssNode>)["cn"]!(...nodes);
-      const built = lib.kernelOf(`${this.name}.${key}`, merged, marker);
+      const built = Result.getOrThrowWith(
+        Result.try({
+          try: () => lib.kernelOf(`${this.name}.${key}`, merged, marker),
+          // an error names the value as the sheet prints it
+          catch: (e) =>
+            e instanceof Error ? Object.assign(e, { message: this.own(e.message) }) : e,
+        }),
+        (e) => e,
+      );
       css = built.css;
+      warnings = built.warnings.map((w) => ({ ...w, value: this.own(w.value) }));
       if (built.kernels) this.atRules.set(key, built.kernels);
       // what the kernel sets, and what meets it in a `cn()`: the member that uses it may not set those
       this.derived.set(key, {
@@ -230,6 +241,7 @@ class Compiler {
       atProperty: d.atProperty && this.own(d.atProperty),
       requires: d.requires,
     };
+    if (warnings.length) kernelWarnings.set(k, warnings);
     this.kernels.set(key, k);
     return k;
   }

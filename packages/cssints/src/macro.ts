@@ -61,6 +61,7 @@ import {
   forgetKernels,
   GLOBAL,
   type Kernel,
+  type KernelWarning,
   registry,
   Registry,
   type RegistryState,
@@ -157,8 +158,14 @@ const blockOf = (what: string, style: unknown, allowed?: RegExp): string => {
 
 // The declarations of a block, checked like a class's (grammar, prose rules, support). A block is a style of member
 // calls, plain declarations only; a kernel's block (`conditions`) may hold conditions too, and keyframes() and positionTry()
-// names, whose at-rules go with the kernel.
-const declsOf = (what: string, style: CssNode, conditions: boolean, allowed?: RegExp) => {
+// names, whose at-rules go with the kernel. A kernel's support warnings go to `sink`, for the runtimes of its styles.
+const declsOf = (
+  what: string,
+  style: CssNode,
+  conditions: boolean,
+  allowed?: RegExp,
+  sink?: KernelWarning[],
+) => {
   if (!style.__cssints.length)
     throw fail(
       `cssints: ${what} takes css.* declarations (a member call or cn(...)), got ${Formatter.formatJson(style)}`,
@@ -181,7 +188,7 @@ const declsOf = (what: string, style: CssNode, conditions: boolean, allowed?: Re
       );
     Result.getOrThrowWith(
       Result.try({
-        try: () => checkNow(d, true, registry),
+        try: () => checkNow(d, true, registry, true, sink),
         catch: (e) =>
           isDeclarationError(e)
             ? new MacroError({
@@ -535,7 +542,8 @@ const ruleOf = (cls: string, [prop, value, conds = [], fallbacks]: Decl): Rule =
 // at-rules share a block. `props` are the properties it sets on the element, for the conflicts a member derives from them:
 // not its custom properties, nor what a `nest()` sets on other elements. `kernels` are the at-rules of the names it holds.
 const kernelOf = (what: string, style: CssNode, cls: string) => {
-  const decls = declsOf(what, style, true);
+  const warnings: KernelWarning[] = [];
+  const decls = declsOf(what, style, true, undefined, warnings);
   type Block = { wrap: string[]; selector: string; body: string[] };
   const blocks: Block[] = [];
   // a block per selector under the same conditions (sorted, so they are a run): two nest() selectors of one rank share one
@@ -567,6 +575,7 @@ const kernelOf = (what: string, style: CssNode, cls: string) => {
       ),
     ],
     kernels: style.kernels,
+    warnings,
   };
 };
 
@@ -602,11 +611,13 @@ const checkValue = (
 // The wanted value warns for the targets that lack it; with fallbacks, only for those that lack every value too, and the
 // key of the warning holds them, so a plain declaration of the same feature still warns for all of its targets.
 // No warning for what LightningCSS lowers for those targets (lowered.ts), except in an inline style, which it never sees.
+// With a `sink` (a kernel's declarations), the warnings go there, unrecorded.
 const checkNow = (
   [prop, value, , fallbacks]: Decl,
   fresh: boolean,
   { warnings, warned, properties, userProps }: RegistryState,
   sheet = true,
+  sink?: KernelWarning[],
 ) => {
   if (userProps.has(prop)) return; // a typed property of a scope checked its value against its own grammar
   let found = checkValue(prop, value, fresh, properties);
@@ -620,6 +631,10 @@ const checkNow = (
       .filter((w) => w.lacking.length);
   }
   for (const w of found) {
+    if (sink) {
+      if (!(sheet && loweredOf(prop, value, w))) sink.push({ prop, value, warning: w });
+      continue;
+    }
     const k = `${prop} ${w.key}${fallbacks ? ` ${w.lacking.join()}` : ""}`;
     if (!warned.has(k) && !(sheet && loweredOf(prop, value, w))) {
       warned.add(k);

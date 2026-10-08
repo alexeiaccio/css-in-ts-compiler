@@ -15,9 +15,9 @@ export const card = cn(squircle(), hover(squircle().radius("2rem")));
 ```css
 @layer _.k {
   ._squircle-core {
-    --squircle-r: 1rem;
     border-radius: var(--squircle-r);
     corner-shape: squircle;
+    --squircle-r: 1rem;
   }
   /* only when a browserslist target lacks corner-shape (Firefox, Safari today) */
   @supports not (corner-shape: squircle) {
@@ -51,9 +51,9 @@ export const card = cn(squircle(), hover(squircle().radius("2rem")));
 
 - **Native** (`css.properties.corner-shape.squircle`): Chrome 139. Firefox and Safari have it in preview only;
   Playwright's WebKit build already has it.
-- **The fallback** is a runtime of CSS only (`polyfills: ["css.properties.corner-shape.squircle"]`), so it is in the
-  sheet only when a browserslist target lacks the feature, and `@supports not` keeps it off in a browser that has it. The
-  kernel's `requires` is covered by it: no build warning. It needs `mask` with `var()` and `min()`/`max()` in its sizes:
+- **The fallback** is a runtime of CSS only (`polyfills: ["css.properties.corner-shape", "css.properties.corner-shape.squircle"]`),
+  so it is in the sheet only when a browserslist target lacks the feature, and `@supports not` keeps it off in a browser
+  that has it. The kernel's `requires` and the support warnings of its declarations are covered by it: no build warning. It needs `mask` with `var()` and `min()`/`max()` in its sizes:
   Firefox 75, Safari 15.4 (LightningCSS does not prefix a value with `var()`).
 - **Checked** in Chrome, Firefox and WebKit (`bun run test:browsers`): the corners and edges of a box read from a
   screenshot, from a build for Chrome 139 only, one for Firefox and Safari too, and that build with `corner-shape` cut out
@@ -78,8 +78,10 @@ export const card = cn(squircle(), hover(squircle().radius("2rem")));
   condition (`hover(squircle().radius("2rem"))`). A percentage is of each side, as in `border-radius` (elliptical corners);
   a radius over half the box is clamped by the browser natively, and by `min(…, 100%)` in the mask.
 - **No inheritance.** The kernel sets `--squircle-r` on its class, so a squircle inside another one has its own radius.
-- **Conflicts.** `squircle()` sets the corners: a `cn()` that holds it and a `*radius` or `corner-*` property is a build
-  error, `cssints: squircle: squircle() sets the corners: use its radius() (this style also sets border-top-left-radius)`.
+- **Conflicts.** `squircle()` sets the corners: a `cn()` that holds it and a `border-*radius` or `corner-*` property is a
+  build error, derived from the kernel (written as styles):
+  `cssints: squircle: kernel core sets border-radius, corner-shape (this style also sets border-top-left-radius)`. Set
+  the radius with `radius()`.
 - **Errors** are the grammar's, in the types and at build time:
   `squircle.radius: unexpected "-4px" in "-4px", expected <length-percentage [0,∞]>`.
 

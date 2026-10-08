@@ -37,6 +37,7 @@ export const tile = cn(reveal().preset("blur-in"), hover(reveal().duration("1s")
   }
   ._reveal-core {
     animation: var(--reveal-k) var(--reveal-d) var(--reveal-e) both;
+    animation-range: var(--reveal-g);
     --reveal-k: kf-7f473efd;
     --reveal-rk: kf-4f766ef7;
     --reveal-d: 300ms;
@@ -47,15 +48,12 @@ export const tile = cn(reveal().preset("blur-in"), hover(reveal().duration("1s")
     --motion-y: 0;
     --motion-s: 1;
     --motion-b: 0;
+    animation-timeline: view();
   }
   @media (prefers-reduced-motion: reduce) {
     ._reveal-core {
       animation-name: var(--reveal-rk);
     }
-  }
-  ._reveal-view._reveal-view {
-    animation-timeline: view();
-    animation-range: var(--reveal-g);
   }
   /* only when a target lacks scroll-driven animations */
   @supports not (animation-timeline: view()) {
@@ -92,10 +90,10 @@ export const tile = cn(reveal().preset("blur-in"), hover(reveal().duration("1s")
   keyframes read, from motion's `presets` table. Nothing is copied.
 - **Reduced motion.** Under `prefers-reduced-motion: reduce` the kernel runs the opacity-only keyframes (motion's rule):
   a slide, scale or blur becomes a fade over the same range.
-- **Two kernels.** The `animation` shorthand resets `animation-timeline` and `animation-range`, so they are in a kernel
-  of their own whose selector is the class twice: it wins by specificity, whatever order the sheet gives the kernels.
+- **One kernel, written as styles.** The `animation` shorthand resets `animation-timeline` and `animation-range`; a
+  kernel prints a shorthand before its longhands, so the timeline set beside it wins.
 - **Conflicts.** `reveal()` sets the animation: a `cn()` that holds it and an `animation*` property is a build error,
-  derived from the kernel: `cssints: reveal: kernel core sets animation, animation-name (this style also sets animation-duration)`.
+  derived from the kernel: `cssints: reveal: kernel core sets animation, animation-timeline, animation-range, animation-name (this style also sets animation-duration)`.
 - **Errors** are the grammar's, in the types and at build time: `reveal.preset: unexpected "fade-out" in "fade-out",
 expected fade-in | ...`, `reveal.range: unexpected "sideways" in "entry 0% sideways"`.
 
@@ -104,7 +102,7 @@ expected fade-in | ...`, `reveal.range: unexpected "sideways" in "entry 0% sidew
 - **Native**: Chrome 115, Safari 26 (scroll-driven animations, `css.properties.animation-timeline` and
   `animation-range`). Firefox has them behind a flag only.
 - **The fallback.** When a browserslist target lacks them, the build adds the `@supports not` rule above to the sheet
-  (it stays out of the sheet for targets that all have them), and the kernel's `requires` gives no warning. The
+  (it stays out of the sheet for targets that all have them), and the kernel's `animation-timeline` and `animation-range` give no warning: the runtime polyfills both. The
   script, `@cssints/reveal/runtime`, comes with it: the runtime entry names it (`script`), so the module that uses
   `reveal()` imports it through `virtual:cssints/runtime/reveal.io`, which is empty when every target has the timeline.
   Nothing to import by hand. In the browser it does nothing where `CSS.supports("animation-timeline:view()")`; elsewhere it

@@ -30,21 +30,22 @@ const MASK = [
  * outline there). It sets the corners, so a `border-radius*` or `corner-*` property in the same `cn()` is a build error.
  */
 export const { squircle } = scope("squircle", {
-  // raw CSS, not styles: the support check of a declaration in a kernel written as styles is not covered by the runtime
+  // written as styles: its conflicts are derived (border-radius, corner-shape and their longhands), and the runtime
+  // covers its support warnings
   core: {
-    css: "&{--_r:1rem;border-radius:var(--_r);corner-shape:squircle}",
+    css: (css) => [
+      css.vars({ "--_r": "1rem" }),
+      css.borderRadius("var(--_r)"),
+      css.cornerShape("squircle"),
+    ],
     requires: ["css.properties.corner-shape.squircle"],
   },
   mask: {
-    polyfills: ["css.properties.corner-shape.squircle"],
+    polyfills: ["css.properties.corner-shape", "css.properties.corner-shape.squircle"],
     css: `@supports not (corner-shape:squircle){&{--_m:${url};border-radius:0;mask:${MASK}}}`,
   },
-  corners: {
-    props: [/radius$/, /^corner-/],
-    message: "squircle() sets the corners: use its radius()",
-  },
   squircle: {
-    uses: ["core", "mask", "corners"],
+    uses: ["core", "mask"],
     chain: { radius: { args: "<length-percentage [0,∞]>", emit: (v) => [["--_r", v]] } },
   },
 }).export();

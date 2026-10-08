@@ -28,7 +28,7 @@ const out = flat(sheet("use.ts"));
 const runtime = (await client.transformRequest("virtual:cssints/runtime/balance.script")).code;
 const FALLBACK = "@supports not (text-wrap:balance){._balance-core{--balance-js:1}}";
 
-// with any targets: the kernel, no warning (the runtime covers text-wrap.balance; pretty requires nothing)
+// with any targets: the kernel, no warning (the runtime covers text-wrap and text-wrap.balance; pretty is raw CSS)
 assert.ok(out.includes("._balance-core{text-wrap:balance}"), out);
 assert.deepEqual(warnings, []);
 // the runtime module imports the script (which reads the flag of the fallback CSS) only for targets that lack balance
@@ -51,10 +51,19 @@ assert.match(use, /export const lead = "_balance-prettyCore";/);
 assert.ok(out.includes("._balance-prettyCore{text-wrap:pretty}"), out);
 assert.ok(use.includes("virtual:cssints/runtime/balance.script"), use);
 
-// derived conflict: balance() sets text-wrap
+// derived conflict: balance() sets text-wrap, so text-wrap and its longhands and white-space meet it
 await assert.rejects(
   code("conflict.ts"),
-  /balance: it sets text-wrap \(this style also sets text-wrap\)/,
+  /balance: kernel core sets text-wrap \(this style also sets text-wrap\)/,
+);
+await assert.rejects(
+  code("conflict-white-space.ts"),
+  /balance: kernel core sets text-wrap \(this style also sets white-space\)/,
+);
+// pretty()'s raw kernel: an explicit conflicts entry
+await assert.rejects(
+  code("conflict-pretty.ts"),
+  /balance: it sets text-wrap \(this style also sets text-wrap-style\)/,
 );
 // a condition cannot wrap a kernel's marker: an error, not a pretty() that applies everywhere
 await assert.rejects(

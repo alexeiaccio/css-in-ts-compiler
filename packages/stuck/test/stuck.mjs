@@ -84,7 +84,7 @@ assert.ok(!transformed.includes("@cssints/stuck"), transformed);
 let e = await failure("conflict.ts");
 assert.equal(
   e.message,
-  "cssints: stuck: sticky() sets position and container-type: use its methods (this style also sets position)",
+  "cssints: stuck: kernel core sets position, container-type (this style also sets position)",
 );
 assert.equal(e.loc?.line, 4);
 e = await failure("bad-inset.ts");

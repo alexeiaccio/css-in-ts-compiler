@@ -2,6 +2,7 @@
 // by Node) and the library (loaded by the Vite Module Runner) are separate module graphs that share one process.
 // `Registry` is the handle Effects ask for. Its default is that global object, so the plugin and the library get
 // the same one without a layer; a test can provide another with Effect.provideService.
+import type { Warning } from "@cssints/css-grammar/support";
 import type { TokenType } from "@cssints/css-grammar/token";
 import { Context } from "effect";
 
@@ -51,6 +52,14 @@ export interface KernelEntry {
   vars: string[];
   markers: Set<string>;
   users: Set<string>;
+}
+
+/** A support warning of a declaration in a kernel written as styles, weighed against the runtimes of a style (kernel.ts `addKernel`). */
+export interface KernelWarning {
+  prop: string;
+  /** the value as the sheet prints it: `--_x` is `--<scope>-x` */
+  value: string;
+  warning: Warning;
 }
 
 /** The call site being evaluated, set by `__at` before its expression runs. */
@@ -164,7 +173,7 @@ export interface RegistryState {
       what: string,
       style: CssNode,
       cls: string,
-    ) => { css: string; props: string[]; kernels?: Kernel[] };
+    ) => { css: string; props: string[]; kernels?: Kernel[]; warnings: KernelWarning[] };
   };
   /** what the front of "cssints/plugin" calls (scope-engine.ts `engine`), set by macro.ts */
   engine?: object;

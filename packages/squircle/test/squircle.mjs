@@ -32,9 +32,9 @@ const failure = async (f) => {
 const transformed = await code("use.ts");
 const css = plugins[0].api.sheet([`${root}/use.ts`]);
 const native =
-  "._squircle-core{--squircle-r:1rem;border-radius:var(--squircle-r);corner-shape:squircle}";
+  "._squircle-core{border-radius:var(--squircle-r);corner-shape:squircle;--squircle-r:1rem}";
 const fallback = css.includes("@supports not (corner-shape:squircle)");
-// the runtime covers the kernel's requires: never a warning
+// the runtime covers the kernel's requires and its declarations: never a warning
 assert.ok(!warnings.some((w) => w.includes("corner-shape")), warnings.join("\n"));
 assert.ok(css.includes(native), css);
 
@@ -72,13 +72,19 @@ assert.equal(corners?.length, 4, mask);
 assert.equal(mask.match(/linear-gradient\(#000 0 0\) 50%\//g)?.length, 2, mask);
 assert.ok(mask.includes("max(0px,100% - 2*var(--squircle-r))"), mask);
 
-// conflicts
+// conflicts, derived from the kernel
 let e = await failure("conflict.ts");
 assert.equal(
   e.message,
-  "cssints: squircle: squircle() sets the corners: use its radius() (this style also sets border-top-left-radius)",
+  "cssints: squircle: kernel core sets border-radius, corner-shape (this style also sets border-top-left-radius)",
 );
 assert.equal(e.loc?.line, 4);
+// derived: a corner-*-shape longhand too
+e = await failure("conflict-corner.ts");
+assert.match(
+  e.message,
+  /kernel core sets border-radius, corner-shape \(this style also sets corner-top-left-shape\)/,
+);
 // the grammar of radius(), at build time
 e = await failure("bad-radius.ts");
 assert.match(
