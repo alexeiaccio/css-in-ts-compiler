@@ -14,7 +14,13 @@ import {
 } from "@cssints/css-grammar/check";
 import type { QueryKind } from "@cssints/css-grammar/query";
 import { messageOf, type Warning } from "@cssints/css-grammar/support";
-import { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
+import {
+  CSS,
+  CSSColorValue,
+  CSSImageValue,
+  CSSStyleValue,
+  CSSUnitValue,
+} from "@cssints/css-grammar/values";
 import { Cause, Effect, Exit, Formatter, Predicate, Result, Schema } from "effect";
 import { createHash } from "node:crypto";
 
@@ -74,7 +80,7 @@ import {
 } from "./theme.ts";
 import { isStyle, style, token, type StyleNode } from "./token.ts";
 
-export { CSS, CSSColorValue, CSSUnitValue };
+export { CSS, CSSColorValue, CSSImageValue, CSSStyleValue, CSSUnitValue };
 
 // A style's chain: flex() and grid() chain the container properties of their context.
 const flexChain =
@@ -715,6 +721,8 @@ const named: Record<string, unknown> = {
   check,
   CSS,
   CSSColorValue,
+  CSSImageValue,
+  CSSStyleValue,
   CSSUnitValue,
 };
 export const css = new Proxy(named, {

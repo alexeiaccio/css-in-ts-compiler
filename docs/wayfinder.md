@@ -1396,3 +1396,9 @@ The user looked at a sky hover and saw what the coordinator had warned: sky's to
 ## Sky's tokens show their values on hover (2026-10-08)
 
 A JSON import widens every value to `string`, so a sky token showed every kind and `${number}${string}`. `apps/sky/scripts/tokens-types.mjs` (`bun run tokens:types`) writes `src/tokens.d.json.ts`, the type of `tokens.json` with its literals; with `allowArbitraryExtensions` TypeScript reads it for `./tokens.json`, so `t.space.sm` is `Token<"length", true, "8px">`. `typecheck` fails when the file is stale. Cost: sky 2.45M → 3.14M instantiations (literal values are now checked by the grammars in the types too; before cssints-lfoi it was 10.1M), check time unchanged, about 50–80 ms more per edit in bench/lsp.mjs (293 → 345 ms invalid edit, 307 → 381 ms bad part).
+
+## Typed OM imports in build-time modules (2026-10-08, cssints-tn5i)
+
+The import check ran in both environments, so a plugin module could not `import { CSSColorValue } from "cssints"` without the attribute, as the "Functions" example in API.md does: the error was raised in the ssr transform, while the Module Runner loaded the plugin. In that environment `CSS`, `CSSStyleValue`, `CSSUnitValue`, `CSSColorValue` and `CSSImageValue` are real exports of the eval-time library, so the ssr check now accepts them plainly. The client check is unchanged: the browser's `cssints` (runtime.ts) has none of them, and with the attribute a constructor is a site that ships as its CSS text ("Value constructors are sites"). A plugin module never reaches the client (its import has the attribute), so only the ssr check sees it.
+
+`cssints` now exports `CSSStyleValue` (the base, for a value of another type) and `CSSImageValue` (an `<image>` text, beside `CSSColorValue`). `@cssints/fluid` and `@cssints/gradient` import them from `cssints` and no longer depend on `@cssints/css-grammar`. docs.mjs runs the `tint`/`step` example through the engine.

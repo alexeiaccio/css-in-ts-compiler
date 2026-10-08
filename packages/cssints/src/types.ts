@@ -4,7 +4,13 @@
 import type { properties } from "@cssints/css-grammar/mdn";
 import type { Condition, ValidSelector } from "@cssints/css-grammar/query";
 import type { StyleObject, TokenFn, TokenSetFn, TokenType } from "@cssints/css-grammar/token";
-import type { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
+import type {
+  CSS,
+  CSSColorValue,
+  CSSImageValue,
+  CSSStyleValue,
+  CSSUnitValue,
+} from "@cssints/css-grammar/values";
 
 import type { COLOR_MIX } from "./grammars.ts";
 import type { Alt, Check, CheckIn, Fallback, Part, Style } from "./parts.ts";
@@ -185,6 +191,14 @@ export declare const css: typeof import("./members.ts") & {
   cv: typeof cv;
   CSS: typeof CSS;
   CSSColorValue: typeof CSSColorValue;
+  CSSImageValue: typeof CSSImageValue;
+  CSSStyleValue: typeof CSSStyleValue;
   CSSUnitValue: typeof CSSUnitValue;
 };
-export { CSS, CSSColorValue, CSSUnitValue } from "@cssints/css-grammar/values";
+export {
+  CSS,
+  CSSColorValue,
+  CSSImageValue,
+  CSSStyleValue,
+  CSSUnitValue,
+} from "@cssints/css-grammar/values";
