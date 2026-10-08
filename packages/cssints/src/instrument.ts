@@ -27,6 +27,15 @@ const rootIdent = (n: Node): string | null =>
         : null;
 
 const RUNTIME_ONLY = new Set(["cx"]);
+// Real exports of the eval-time library: a module that only runs at build time (a plugin's) may import them plainly.
+// The client's "cssints" has none of them, so there they need the attribute, and a constructor becomes its CSS text.
+const TYPED_OM = new Set([
+  "CSS",
+  "CSSStyleValue",
+  "CSSUnitValue",
+  "CSSColorValue",
+  "CSSImageValue",
+]);
 const nameOf = (m: ModuleExportName) => (m.type === "Identifier" ? m.name : m.value);
 const isSiteImport = (s: ImportDeclaration) =>
   s.attributes.some(
@@ -58,12 +67,15 @@ interface CssImports {
 }
 
 // Every import `with { type: "cssints" }` (cssints, other packages, local helper modules) makes its bindings
-// site roots. "cssints" without the attribute may only give runtime members. Returns null without site imports.
+// site roots. "cssints" without the attribute may only give runtime members, and in the ssr environment (`client`
+// false) the Typed OM values too. Returns null without site imports.
 const findCssImport = Effect.fnUntraced(function* (
   program: Program,
   code: string,
   id: string,
+  client: boolean,
 ): Effect.fn.Return<CssImports | null, ImportError> {
+  const plain = (name: string) => RUNTIME_ONLY.has(name) || (!client && TYPED_OM.has(name));
   const locals = new Set<string>();
   const decls: ImportDeclaration[] = [];
   for (const s of program.body) {
@@ -83,7 +95,7 @@ const findCssImport = Effect.fnUntraced(function* (
       const bad = s.specifiers.filter(
         (x) =>
           x.type !== "ImportSpecifier" ||
-          (x.importKind !== "type" && !RUNTIME_ONLY.has(importedName(x) ?? "")),
+          (x.importKind !== "type" && !plain(importedName(x) ?? "")),
       );
       if (!bad.length) continue;
       const names = bad.map((x) => code.slice(x.start, x.end));
@@ -189,9 +201,10 @@ export interface Instrumented {
 export const instrument = Effect.fn("cssints.instrument")(function* (
   code: string,
   id: string,
+  client = true,
 ): Effect.fn.Return<Instrumented | null, ImportError> {
   const { program } = parseSync(id, code);
-  const imp = yield* findCssImport(program, code, id);
+  const imp = yield* findCssImport(program, code, id, client);
   if (!imp) return null;
   const sites = findSites(program, withConditions(program, code, imp));
   const ms = new MagicString(code);
