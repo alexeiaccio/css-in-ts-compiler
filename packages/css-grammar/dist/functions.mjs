@@ -1,0 +1,173 @@
+//#region src/functions.ts
+const functions = {
+	abs: {
+		"sep": ", ",
+		"math": "same"
+	},
+	acos: {
+		"sep": ", ",
+		"math": "angle"
+	},
+	anchor: { "sep": ", " },
+	"anchor-size": { "sep": ", " },
+	asin: {
+		"sep": ", ",
+		"math": "angle"
+	},
+	atan: {
+		"sep": ", ",
+		"math": "angle"
+	},
+	atan2: {
+		"sep": ", ",
+		"math": "angle"
+	},
+	attr: { "sep": ", " },
+	blur: { "sep": " " },
+	brightness: { "sep": " " },
+	calc: {
+		"sep": ", ",
+		"math": "same"
+	},
+	"calc-size": { "sep": ", " },
+	circle: { "sep": " " },
+	clamp: {
+		"sep": ", ",
+		"math": "same"
+	},
+	color: { "sep": " " },
+	"color-mix": { "sep": ", " },
+	"conic-gradient": { "sep": ", " },
+	contrast: { "sep": " " },
+	cos: {
+		"sep": ", ",
+		"math": "number"
+	},
+	counter: { "sep": ", " },
+	counters: { "sep": ", " },
+	"cross-fade": { "sep": ", " },
+	"cubic-bezier": { "sep": ", " },
+	"drop-shadow": { "sep": " " },
+	element: { "sep": " " },
+	ellipse: { "sep": " " },
+	env: { "sep": ", " },
+	exp: {
+		"sep": ", ",
+		"math": "number"
+	},
+	"fit-content": { "sep": " " },
+	grayscale: { "sep": " " },
+	hsl: { "sep": ", " },
+	hsla: { "sep": ", " },
+	"hue-rotate": { "sep": " " },
+	hwb: { "sep": " " },
+	hypot: {
+		"sep": ", ",
+		"math": "same"
+	},
+	image: { "sep": ", " },
+	"image-set": { "sep": ", " },
+	inset: { "sep": " " },
+	invert: { "sep": " " },
+	lab: { "sep": " " },
+	layer: { "sep": " " },
+	lch: { "sep": " " },
+	leader: { "sep": " " },
+	"light-dark": { "sep": ", " },
+	linear: { "sep": ", " },
+	"linear-gradient": { "sep": ", " },
+	log: {
+		"sep": ", ",
+		"math": "number"
+	},
+	matrix: { "sep": ", " },
+	matrix3d: { "sep": ", " },
+	max: {
+		"sep": ", ",
+		"math": "same"
+	},
+	min: {
+		"sep": ", ",
+		"math": "same"
+	},
+	minmax: { "sep": ", " },
+	mod: {
+		"sep": ", ",
+		"math": "same"
+	},
+	oklab: { "sep": " " },
+	oklch: { "sep": " " },
+	opacity: { "sep": " " },
+	paint: { "sep": ", " },
+	"palette-mix": { "sep": ", " },
+	path: { "sep": ", " },
+	perspective: { "sep": " " },
+	polygon: { "sep": ", " },
+	pow: {
+		"sep": ", ",
+		"math": "number"
+	},
+	"radial-gradient": { "sep": ", " },
+	ray: { "sep": " " },
+	rect: { "sep": " " },
+	rem: {
+		"sep": ", ",
+		"math": "same"
+	},
+	"repeating-conic-gradient": { "sep": ", " },
+	"repeating-linear-gradient": { "sep": ", " },
+	"repeating-radial-gradient": { "sep": ", " },
+	rgb: { "sep": ", " },
+	rgba: { "sep": ", " },
+	rotate: { "sep": " " },
+	rotate3d: { "sep": ", " },
+	rotateX: { "sep": " " },
+	rotateY: { "sep": " " },
+	rotateZ: { "sep": " " },
+	round: {
+		"sep": ", ",
+		"math": "same"
+	},
+	saturate: { "sep": " " },
+	scale: { "sep": ", " },
+	scale3d: { "sep": ", " },
+	scaleX: { "sep": " " },
+	scaleY: { "sep": " " },
+	scaleZ: { "sep": " " },
+	scroll: { "sep": " " },
+	sepia: { "sep": " " },
+	sign: {
+		"sep": ", ",
+		"math": "number"
+	},
+	sin: {
+		"sep": ", ",
+		"math": "number"
+	},
+	skew: { "sep": ", " },
+	skewX: { "sep": " " },
+	skewY: { "sep": " " },
+	sqrt: {
+		"sep": ", ",
+		"math": "number"
+	},
+	steps: { "sep": ", " },
+	symbols: { "sep": " " },
+	tan: {
+		"sep": ", ",
+		"math": "number"
+	},
+	"target-counter": { "sep": ", " },
+	"target-counters": { "sep": ", " },
+	"target-text": { "sep": ", " },
+	translate: { "sep": ", " },
+	translate3d: { "sep": ", " },
+	translateX: { "sep": " " },
+	translateY: { "sep": " " },
+	translateZ: { "sep": " " },
+	var: { "sep": ", " },
+	view: { "sep": " " },
+	xywh: { "sep": " " }
+};
+//#endregion
+export { functions };

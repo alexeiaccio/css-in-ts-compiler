@@ -877,5 +877,17 @@ export declare const syntaxes: {
   readonly "if-boolean-expr": "not <if-group> | <if-group> [ [ and <if-group> ]* | [ or <if-group> ]* ]";
   readonly "if-group": "<if-test> | ( <if-boolean-expr> )";
   readonly "if-test": "supports( [ <custom-ident> : <declaration-value> ] | <supports-condition> ) | media( <media-feature> | <media-condition> ) | style( <style-query> )";
+  readonly "env()": "env( <custom-ident> , <declaration-value>? )";
+  readonly "fit-content()": "fit-content( <length-percentage [0,∞]> )";
+  readonly "layer()": "layer( <layer-name> )";
+  readonly "layer-name": "<ident> [ '.' <ident> ]*";
+  readonly "leader()": "leader( <leader-type> )";
+  readonly "leader-type": "dotted | solid | space | <string>";
+  readonly "minmax()": "minmax( [ <length-percentage> | min-content | max-content | auto ] , [ <length-percentage> | <flex> | min-content | max-content | auto ] )";
+  readonly "symbols()": "symbols( <symbols-type>? [ <string> | <image> ]+ )";
+  readonly "symbols-type": "cyclic | numeric | alphabetic | symbolic | fixed";
+  readonly "target-counter()": "target-counter( [ <string> | <url> ] , <custom-ident> , <counter-style>? )";
+  readonly "target-counters()": "target-counters( [ <string> | <url> ] , <custom-ident> , <string> , <counter-style>? )";
+  readonly "target-text()": "target-text( [ <string> | <url> ] , [ content | before | after | first-letter ]? )";
 };
 //#endregion

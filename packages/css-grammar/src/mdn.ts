@@ -876,5 +876,17 @@ export const syntaxes = {
   "if-condition": "<if-boolean-expr> | else",
   "if-boolean-expr": "not <if-group> | <if-group> [ [ and <if-group> ]* | [ or <if-group> ]* ]",
   "if-group": "<if-test> | ( <if-boolean-expr> )",
-  "if-test": "supports( [ <custom-ident> : <declaration-value> ] | <supports-condition> ) | media( <media-feature> | <media-condition> ) | style( <style-query> )"
+  "if-test": "supports( [ <custom-ident> : <declaration-value> ] | <supports-condition> ) | media( <media-feature> | <media-condition> ) | style( <style-query> )",
+  "env()": "env( <custom-ident> , <declaration-value>? )",
+  "fit-content()": "fit-content( <length-percentage [0,∞]> )",
+  "layer()": "layer( <layer-name> )",
+  "layer-name": "<ident> [ '.' <ident> ]*",
+  "leader()": "leader( <leader-type> )",
+  "leader-type": "dotted | solid | space | <string>",
+  "minmax()": "minmax( [ <length-percentage> | min-content | max-content | auto ] , [ <length-percentage> | <flex> | min-content | max-content | auto ] )",
+  "symbols()": "symbols( <symbols-type>? [ <string> | <image> ]+ )",
+  "symbols-type": "cyclic | numeric | alphabetic | symbolic | fixed",
+  "target-counter()": "target-counter( [ <string> | <url> ] , <custom-ident> , <counter-style>? )",
+  "target-counters()": "target-counters( [ <string> | <url> ] , <custom-ident> , <string> , <counter-style>? )",
+  "target-text()": "target-text( [ <string> | <url> ] , [ content | before | after | first-letter ]? )"
 } as const;
