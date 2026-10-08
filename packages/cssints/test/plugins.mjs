@@ -8,6 +8,8 @@ import { build, createLogger, createServer } from "vite";
 process.env.BROWSERSLIST = "chrome 120, firefox 128";
 const { default: cssints } = await import("../src/plugin.ts");
 const { needed } = await import("../src/delivery.ts");
+const { addKernel } = await import("../src/kernel.ts");
+const { Registry } = await import("../src/registry.ts");
 
 const warnings = [];
 const plugins = cssints();
@@ -67,6 +69,37 @@ assert.equal(
   true,
 );
 assert.equal(Effect.runSync(needed(runtime, [["chrome", "120"]])), false);
+// fallback CSS without parentVars is no script: it stands on nothing, so a target below @property gets it
+const cssOnly = { ...runtime, css: "& { --_x: 1 }" };
+assert.equal(Effect.runSync(needed(cssOnly, [["firefox", "127"]])), true, "CSS only");
+assert.equal(
+  Effect.runSync(
+    needed({ ...cssOnly, parentVars: [{ marker: "&", read: "--_a", write: "--_b" }] }, [
+      ["firefox", "127"],
+    ]),
+  ),
+  false,
+  "parentVars: no @property, no runtime",
+);
+// a kernel's `requires` that its runtime polyfills warns only for the targets the runtime does not reach (firefox 128
+// lacks style queries and has @property)
+const requiresWarnings = (key, runtimes) => {
+  const state = { ...globalThis.__cssints, kernels: new Map(), warnings: [], warned: new Set() };
+  const kernel = { key, css: "", requires: [runtime.polyfills[0]] };
+  Effect.runSync(
+    addKernel(kernel, [], undefined, runtimes).pipe(Effect.provideService(Registry, state)),
+  );
+  return state.warnings;
+};
+assert.equal(requiresWarnings("t.none", []).length, 1, "no runtime: the warning");
+assert.deepEqual(requiresWarnings("t.css", [cssOnly]), [], "covered by fallback CSS");
+assert.deepEqual(
+  requiresWarnings("t.vars", [
+    { ...runtime, parentVars: [{ marker: "&", read: "--_a", write: "--_b" }] },
+  ]),
+  [],
+  "covered by parent-vars where @property is",
+);
 assert.ok(!(await code("plug-lit.ts")).includes("parent-vars"));
 assert.ok(
   (await code("plug-lit.ts")).includes("virtual:cssints/runtime/lit.fallback"),

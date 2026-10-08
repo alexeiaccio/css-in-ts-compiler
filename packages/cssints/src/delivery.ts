@@ -50,16 +50,22 @@ export const addDerived = Effect.fnUntraced(function* (
 });
 
 /**
- * Whether a target needs the runtime: it lacks a feature in `polyfills` and has `@property`, which the runtime stands
- * on (a target without it gets nothing from a polyfill).
+ * The targets a runtime cannot reach: a script (`parentVars`, or the derived tokens' runtime, which has no `css`) stands
+ * on `@property`, so those without it; a runtime of fallback CSS only reaches every target.
  */
+export const unreached = Effect.fnUntraced(function* ({ parentVars, css }: Runtime, ts?: Target[]) {
+  if (css && !parentVars?.length) return new Set();
+  return new Set((yield* lacking("css.at-rules.property", ts)).map((t) => t.join(" ")));
+});
+
+/** Whether a target needs the runtime: it lacks a feature in `polyfills` and the runtime reaches it (`unreached`). */
 export const needed = Effect.fnUntraced(function* (
-  { polyfills }: Runtime,
+  runtime: Runtime,
   ts?: Target[],
 ): Effect.fn.Return<boolean> {
-  const noProperty = new Set((yield* lacking("css.at-rules.property", ts)).map((t) => t.join(" ")));
-  for (const key of polyfills)
-    for (const t of yield* lacking(key, ts)) if (!noProperty.has(t.join(" "))) return true;
+  const off = yield* unreached(runtime, ts);
+  for (const key of runtime.polyfills)
+    for (const t of yield* lacking(key, ts)) if (!off.has(t.join(" "))) return true;
   return false;
 });
 

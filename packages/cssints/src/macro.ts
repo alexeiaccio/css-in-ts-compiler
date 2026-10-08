@@ -590,7 +590,10 @@ const classesOf = Effect.fnUntraced(function* (
   at?: At,
 ): Effect.fn.Return<string, Invalid | MacroError | MemberError> {
   const registry = yield* Registry;
-  if (kernels) for (const k of kernels) yield* addKernel(k, markers ?? [], at);
+  if (kernels) {
+    const runtimes = plugs?.flatMap((p) => (p.runtime ? [p.runtime] : []));
+    for (const k of kernels) yield* addKernel(k, markers ?? [], at, runtimes);
+  }
   if (layers) for (const l of layers) yield* addLayers(l, at);
   if (globals) for (const g of globals) yield* addGlobal(g, at);
   if (themes && at) for (const t of themes) yield* addTheme(t, at);

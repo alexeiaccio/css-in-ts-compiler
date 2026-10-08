@@ -1,4 +1,4 @@
-import { C as addRuntime, D as covers, F as MacroError, I as MemberError, M as registry, O as relation, _ as standIn, c as byOrder, h as requireLayer, j as forgetKernels, k as Registry, o as addGlobal, s as addLayers, t as CV_CALL, y as addKernel } from "./instrument-BDgoJ8DA.mjs";
+import { C as addRuntime, D as covers, F as MacroError, I as MemberError, M as registry, O as relation, _ as standIn, c as byOrder, h as requireLayer, j as forgetKernels, k as Registry, o as addGlobal, s as addLayers, t as CV_CALL, y as addKernel } from "./instrument-DM1W8kR2.mjs";
 import { createRequire } from "node:module";
 import { checkDeclarationNow, checkQuery, checkSelector, checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { browsers, messageOf, supportOf } from "@cssints/css-grammar/support";
@@ -647,7 +647,10 @@ const exportOf = (s) => {
 };
 function scope(name, table) {
 	if (!NAME$2.test(name) || RESERVED.has(name)) throw thrown(name, RESERVED.has(name) ? `scope "${name}" is reserved by the engine` : `scope(${JSON.stringify(name)}): a name is lowercase letters, digits and -, and starts with a letter`);
-	for (const k of Object.keys(table)) if (!KEY.test(strip(k)) && !k.startsWith("-")) throw thrown(name, `${name}: the entry ${JSON.stringify(k)} is not a name`);
+	for (const k of Object.keys(table)) {
+		if (!KEY.test(strip(k)) && !k.startsWith("-")) throw thrown(name, `${name}: the entry ${JSON.stringify(k)} is not a name`);
+		if (isPrivate(k) && Object.hasOwn(table, strip(k))) throw thrown(name, `${name}: ${k} and ${strip(k)} share a name: rename one`);
+	}
 	const s = {
 		name,
 		table,
@@ -1579,7 +1582,10 @@ const conflictOf = ({ name, label = name, conflicts }, decls, at) => {
 };
 const classesOf = Effect.fnUntraced(function* ({ __cssints: decls, markers, kernels, globals, themes, layers, plugs }, at) {
 	const registry = yield* Registry;
-	if (kernels) for (const k of kernels) yield* addKernel(k, markers ?? [], at);
+	if (kernels) {
+		const runtimes = plugs?.flatMap((p) => p.runtime ? [p.runtime] : []);
+		for (const k of kernels) yield* addKernel(k, markers ?? [], at, runtimes);
+	}
 	if (layers) for (const l of layers) yield* addLayers(l, at);
 	if (globals) for (const g of globals) yield* addGlobal(g, at);
 	if (themes && at) for (const t of themes) yield* addTheme(t, at);

@@ -1,4 +1,4 @@
-import { r as Decl, t as BcdKey } from "./author-types-VWp_4djS.mjs";
+import { r as Decl, t as BcdKey } from "./author-types-DXdNP23z.mjs";
 import { n as cx$1, t as ClassValue } from "./runtime-CTvuM-Hm.mjs";
 import { createRequire } from "node:module";
 import { CSS, CSS as CSS$1, CSSColorValue, CSSColorValue as CSSColorValue$1, CSSStyleValue, CSSUnitValue, CSSUnitValue as CSSUnitValue$1 } from "@cssints/css-grammar/values";
@@ -1724,7 +1724,8 @@ type Bad<Why extends string> = {
 type BadUses<N extends string, T, V> = V extends {
   uses: readonly (infer U extends string)[];
 } ? [Exclude<U, UsableOf<T>>] extends [never] ? unknown : Bad<`${N}: uses ${Exclude<U, UsableOf<T>>}, which is not a kernel, global, layers, runtime or conflicts of this scope`> : unknown;
-type Valid<N extends string, T> = { readonly [K in keyof T]: BadUses<N, T, T[K]>; };
+type Clash<N extends string, T, K> = K extends `#${infer R}` ? R extends keyof T ? Bad<`${N}: ${K} and ${R} share a name: rename one`> : unknown : unknown;
+type Valid<N extends string, T> = { readonly [K in keyof T]: BadUses<N, T, T[K]> & Clash<N, T, K>; };
 type CallKeys<T> = { [K in keyof T & string]: Kind<K, T[K]> extends "call" ? K : never; }[keyof T & string];
 type ArgsOf<E> = E extends {
   args: infer D;

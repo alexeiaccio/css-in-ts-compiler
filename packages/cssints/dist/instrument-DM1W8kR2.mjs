@@ -168,12 +168,17 @@ const addDerived = Effect.fnUntraced(function* (file, keys) {
 	runtimes.set(DERIVED, e);
 });
 /**
-* Whether a target needs the runtime: it lacks a feature in `polyfills` and has `@property`, which the runtime stands
-* on (a target without it gets nothing from a polyfill).
+* The targets a runtime cannot reach: a script (`parentVars`, or the derived tokens' runtime, which has no `css`) stands
+* on `@property`, so those without it; a runtime of fallback CSS only reaches every target.
 */
-const needed = Effect.fnUntraced(function* ({ polyfills }, ts) {
-	const noProperty = new Set((yield* lacking("css.at-rules.property", ts)).map((t) => t.join(" ")));
-	for (const key of polyfills) for (const t of yield* lacking(key, ts)) if (!noProperty.has(t.join(" "))) return true;
+const unreached = Effect.fnUntraced(function* ({ parentVars, css }, ts) {
+	if (css && !parentVars?.length) return /* @__PURE__ */ new Set();
+	return new Set((yield* lacking("css.at-rules.property", ts)).map((t) => t.join(" ")));
+});
+/** Whether a target needs the runtime: it lacks a feature in `polyfills` and the runtime reaches it (`unreached`). */
+const needed = Effect.fnUntraced(function* (runtime, ts) {
+	const off = yield* unreached(runtime, ts);
+	for (const key of runtime.polyfills) for (const t of yield* lacking(key, ts)) if (!off.has(t.join(" "))) return true;
 	return false;
 });
 const runtimeNames = ({ runtimes }, file) => [...runtimes].flatMap(([name, e]) => e.users.has(file) ? [name] : []);
@@ -202,9 +207,9 @@ const VARS = /(--[\w-]+)\s*:|@property\s+(--[\w-]+)/g;
 * Registers a kernel by key, on first use (a global rule with atProperty: its css in _.k, its atProperty at the top
 * of the sheet, both once however many styles use it). The same key with other css, another key that declares one of
 * its custom properties, and another key for a marker it prints are build errors at `at`; a `requires` that a target
-* lacks is a support warning.
+* lacks is a support warning, unless one of `runtimes` (those of the style) polyfills it and reaches that target.
 */
-const addKernel = Effect.fnUntraced(function* (kernel, markers, at) {
+const addKernel = Effect.fnUntraced(function* (kernel, markers, at, runtimes = []) {
 	const { kernels, warnings, warned } = yield* Registry;
 	const fail = (message) => new MacroError({
 		message: `cssints: ${message}`,
@@ -232,7 +237,9 @@ const addKernel = Effect.fnUntraced(function* (kernel, markers, at) {
 				key: r,
 				exact: false
 			} : r;
-			const off = yield* lacking(feature, void 0, exact);
+			const fallback = runtimes.find((r) => r.polyfills.includes(feature));
+			const beyond = fallback ? yield* unreached(fallback) : void 0;
+			const off = (yield* lacking(feature, void 0, exact)).filter((t) => !beyond || beyond.has(t.join(" ")));
 			const w = `${key} ${feature}`;
 			if (off.length && !warned.has(w)) {
 				warned.add(w);
