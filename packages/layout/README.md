@@ -24,15 +24,14 @@ export const cards = autoGrid().min("16rem").gap(4);
 
 ```css
 @layer _.k {
-  ._layout-stack-base {
-    --layout-stack-gap: 1rem;
-  }
   ._layout-stack-core {
     gap: var(--layout-stack-gap);
+    --layout-stack-gap: 1rem;
     display: flex;
     flex-direction: column;
   }
-  ._layout-sidebar-base {
+  ._layout-sidebar-core {
+    gap: var(--layout-sidebar-gap);
     --layout-sidebar-gap: 1rem;
     --layout-sidebar-width: auto;
     --layout-sidebar-content: 50%;
@@ -40,26 +39,25 @@ export const cards = autoGrid().min("16rem").gap(4);
     --layout-sidebar-fm: auto;
     --layout-sidebar-lf: 999 1 0;
     --layout-sidebar-lm: var(--layout-sidebar-content);
-  }
-  ._layout-sidebar-base > :first-child {
-    flex: var(--layout-sidebar-ff);
-    min-inline-size: var(--layout-sidebar-fm);
-  }
-  ._layout-sidebar-base > :last-child {
-    flex: var(--layout-sidebar-lf);
-    min-inline-size: var(--layout-sidebar-lm);
-  }
-  ._layout-sidebar-core {
-    gap: var(--layout-sidebar-gap);
     display: flex;
     flex-wrap: wrap;
   }
-  ._layout-switcher-base > * {
+  ._layout-sidebar-core > :first-child {
+    flex: var(--layout-sidebar-ff);
+    min-inline-size: var(--layout-sidebar-fm);
+  }
+  ._layout-sidebar-core > :last-child {
+    flex: var(--layout-sidebar-lf);
+    min-inline-size: var(--layout-sidebar-lm);
+  }
+  ._layout-switcher-core > * {
     flex-grow: 1;
     flex-basis: calc((var(--layout-switcher-threshold) - 100%) * 999);
   }
   ._layout-grid-core {
     gap: var(--layout-grid-gap);
+    --layout-grid-min: 16rem;
+    --layout-grid-gap: 1rem;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(var(--layout-grid-min), 100%), 1fr));
   }
@@ -97,14 +95,14 @@ center | baseline | stretch`, `side` is `left | right`. Tokens go where a length
 
 ## Rules
 
-- **Kernels.** Each primitive is two kernels in layer `_.k`, once: `-core`, written as styles, sets the container's
-  properties; `-base`, raw CSS, sets the defaults of the custom properties on the element and, for `sidebar()` and
-  `switcher()`, the rules of the children. A call is the two classes (`_layout-stack-core _layout-stack-base`), and each
-  method one class in `_.a` (or `_.b` under a condition), which wins over the defaults.
+- **Kernels.** Each primitive is one kernel in layer `_.k`, once, written as styles: the defaults of its custom properties
+  on the element (`vars()`), the container's properties and, for `sidebar()` and `switcher()`, the rules of the children
+  (`nest("& > *")`). A call is its class (`_layout-stack-core`), and each method one class in `_.a` (or `_.b` under a
+  condition), which wins over the defaults.
 - **Conflicts.** A `cn()` that holds a primitive and a property its core sets is a build error at the call, derived from
   the kernel: `cn(stack(), display("grid"))` is
   `cssints: layout: kernel stack-core sets display, flex-direction, gap (this style also sets display)`, and `cn(autoGrid(), rowGap("1rem"))` fails as well (a longhand of `gap`). Padding, sizes and
-  colours do not conflict. Conflicts across `cx()` are not seen, as for any plugin.
+  colours do not conflict, nor do the properties the kernel sets on the children (`cn(switcher(), flexGrow(0))` is fine). Conflicts across `cx()` are not seen, as for any plugin.
 - **No leak into nested primitives.** The defaults are set on every primitive, so a `stack()` inside a `stack().gap(8)`
   has a gap of 1rem, not 2rem.
 - **The children.** `sidebar()` sizes its first and last child (the first is the sidebar, or the last with

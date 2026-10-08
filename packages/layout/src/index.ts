@@ -1,8 +1,8 @@
-// @cssints/layout: the layout primitives of Every Layout and smolcss as chain members of one `scope()`. Each primitive has
-// two kernels: `-core`, written as styles, sets the container's properties (so a `cn()` that also sets one of them is a
-// derived conflict), and `-base`, raw CSS, sets the defaults of the primitive's custom properties on the element (a nested
-// primitive does not inherit its parent's values) and, for sidebar and switcher, the rules of the children, which a
-// kernel written as styles cannot address. The methods set the custom properties (`--_stack-gap` is `--layout-stack-gap`).
+// @cssints/layout: the layout primitives of Every Layout and smolcss as chain members of one `scope()`. Each primitive is
+// one kernel written as styles: the defaults of its custom properties on the element (a nested primitive does not inherit
+// its parent's values), the container's properties (so a `cn()` that also sets one of them is a derived conflict) and,
+// for sidebar and switcher, the rules of the children (`nest()`, which derived conflicts leave out). The methods set the
+// custom properties (`--_stack-gap` is `--layout-stack-gap`).
 import { scope } from "cssints/plugin";
 
 const space = "<length-percentage [0,∞]>" as const;
@@ -19,20 +19,28 @@ const sides = (first: typeof narrow, last: typeof narrow) =>
     "--_sidebar-lf": last.flex,
     "--_sidebar-lm": last.min,
   });
-const declare = (decls: [string, string][]) => decls.map(([k, v]) => `${k}: ${v};`).join(" ");
 
 const layout = scope("layout", {
   "#stack-core": {
-    css: (css) => [css.display("flex"), css.flexDirection("column"), css.gap("var(--_stack-gap)")],
+    css: (css) => [
+      css.vars({ "--_stack-gap": "1rem" }),
+      css.display("flex"),
+      css.flexDirection("column"),
+      css.gap("var(--_stack-gap)"),
+    ],
   },
-  "#stack-base": { css: "& { --_stack-gap: 1rem; }" },
   stack: {
-    uses: ["stack-core", "stack-base"],
+    uses: ["stack-core"],
     chain: { gap: { ...gap, emit: (v) => [["--_stack-gap", v]] } },
   },
 
   "#cluster-core": {
     css: (css) => [
+      css.vars({
+        "--_cluster-gap": "1rem",
+        "--_cluster-justify": "flex-start",
+        "--_cluster-align": "center",
+      }),
       css.display("flex"),
       css.flexWrap("wrap"),
       css.gap("var(--_cluster-gap)"),
@@ -40,11 +48,8 @@ const layout = scope("layout", {
       css.alignItems("var(--_cluster-align)"),
     ],
   },
-  "#cluster-base": {
-    css: "& { --_cluster-gap: 1rem; --_cluster-justify: flex-start; --_cluster-align: center; }",
-  },
   cluster: {
-    uses: ["cluster-core", "cluster-base"],
+    uses: ["cluster-core"],
     chain: {
       gap: { ...gap, emit: (v) => [["--_cluster-gap", v]] },
       justify: {
@@ -59,15 +64,28 @@ const layout = scope("layout", {
   },
 
   "#sidebar-core": {
-    css: (css) => [css.display("flex"), css.flexWrap("wrap"), css.gap("var(--_sidebar-gap)")],
-  },
-  "#sidebar-base": {
-    css: `& { --_sidebar-gap: 1rem; --_sidebar-width: auto; --_sidebar-content: 50%; ${declare(sides(narrow, wide))} }
-& > :first-child { flex: var(--_sidebar-ff); min-inline-size: var(--_sidebar-fm); }
-& > :last-child { flex: var(--_sidebar-lf); min-inline-size: var(--_sidebar-lm); }`,
+    css: (css) => [
+      css.vars({
+        "--_sidebar-gap": "1rem",
+        "--_sidebar-width": "auto",
+        "--_sidebar-content": "50%",
+        ...Object.fromEntries(sides(narrow, wide)),
+      }),
+      css.display("flex"),
+      css.flexWrap("wrap"),
+      css.gap("var(--_sidebar-gap)"),
+      css.nest("& > :first-child")(
+        css.flex("var(--_sidebar-ff)"),
+        css.minInlineSize("var(--_sidebar-fm)"),
+      ),
+      css.nest("& > :last-child")(
+        css.flex("var(--_sidebar-lf)"),
+        css.minInlineSize("var(--_sidebar-lm)"),
+      ),
+    ],
   },
   sidebar: {
-    uses: ["sidebar-core", "sidebar-base"],
+    uses: ["sidebar-core"],
     chain: {
       side: {
         args: "left | right",
@@ -80,14 +98,19 @@ const layout = scope("layout", {
   },
 
   "#switcher-core": {
-    css: (css) => [css.display("flex"), css.flexWrap("wrap"), css.gap("var(--_switcher-gap)")],
-  },
-  "#switcher-base": {
-    css: `& { --_switcher-gap: 1rem; --_switcher-threshold: 30rem; }
-& > * { flex-grow: 1; flex-basis: calc((var(--_switcher-threshold) - 100%) * 999); }`,
+    css: (css) => [
+      css.vars({ "--_switcher-gap": "1rem", "--_switcher-threshold": "30rem" }),
+      css.display("flex"),
+      css.flexWrap("wrap"),
+      css.gap("var(--_switcher-gap)"),
+      css.nest("& > *")(
+        css.flexGrow(1),
+        css.flexBasis("calc((var(--_switcher-threshold) - 100%) * 999)"),
+      ),
+    ],
   },
   switcher: {
-    uses: ["switcher-core", "switcher-base"],
+    uses: ["switcher-core"],
     chain: {
       threshold: { args: "<length [0,∞]>", emit: (v) => [["--_switcher-threshold", v]] },
       gap: { ...gap, emit: (v) => [["--_switcher-gap", v]] },
@@ -96,6 +119,7 @@ const layout = scope("layout", {
 
   "#cover-core": {
     css: (css) => [
+      css.vars({ "--_cover-min": "100vh", "--_cover-gap": "1rem" }),
       css.display("flex"),
       css.flexDirection("column"),
       css.justifyContent("center"),
@@ -103,9 +127,8 @@ const layout = scope("layout", {
       css.gap("var(--_cover-gap)"),
     ],
   },
-  "#cover-base": { css: "& { --_cover-min: 100vh; --_cover-gap: 1rem; }" },
   cover: {
-    uses: ["cover-core", "cover-base"],
+    uses: ["cover-core"],
     chain: {
       minHeight: { args: space, emit: (v) => [["--_cover-min", v]] },
       gap: { ...gap, emit: (v) => [["--_cover-gap", v]] },
@@ -114,14 +137,14 @@ const layout = scope("layout", {
 
   "#grid-core": {
     css: (css) => [
+      css.vars({ "--_grid-min": "16rem", "--_grid-gap": "1rem" }),
       css.display("grid"),
       css.gridTemplateColumns("repeat(auto-fit, minmax(min(var(--_grid-min), 100%), 1fr))"),
       css.gap("var(--_grid-gap)"),
     ],
   },
-  "#grid-base": { css: "& { --_grid-min: 16rem; --_grid-gap: 1rem; }" },
   autoGrid: {
-    uses: ["grid-core", "grid-base"],
+    uses: ["grid-core"],
     chain: {
       min: { args: space, emit: (v) => [["--_grid-min", v]] },
       gap: { ...gap, emit: (v) => [["--_grid-gap", v]] },

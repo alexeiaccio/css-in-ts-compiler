@@ -34,39 +34,39 @@ const css = sheet("use.ts");
 const out = flat(css);
 console.log(css);
 
-// a call is the two kernel classes, each method one class more
-assert.deepEqual(classes("plain"), ["_layout-stack-core", "_layout-stack-base"]);
-assert.equal(classes("toolbar").length, 5);
+// a call is the kernel's class, each method one class more
+assert.deepEqual(classes("plain"), ["_layout-stack-core"]);
+assert.equal(classes("toolbar").length, 4);
 assert.ok(!transformed.includes("@cssints/layout"), `no runtime import\n${transformed}`);
 
-// the kernels, in _.k: the container's properties read the custom properties, whose defaults the base sets
+// the kernels, in _.k: the defaults of the custom properties, the container's properties that read them, the children
 const kernels = [
-  "._layout-stack-base { --layout-stack-gap: 1rem; }",
-  "._layout-stack-core{gap:var(--layout-stack-gap);display:flex;flex-direction:column}",
-  "._layout-cluster-core{gap:var(--layout-cluster-gap);display:flex;flex-wrap:wrap;justify-content:var(--layout-cluster-justify);align-items:var(--layout-cluster-align)}",
-  "._layout-sidebar-base > :first-child { flex: var(--layout-sidebar-ff); min-inline-size: var(--layout-sidebar-fm); }",
-  "._layout-sidebar-base > :last-child { flex: var(--layout-sidebar-lf); min-inline-size: var(--layout-sidebar-lm); }",
-  "--layout-sidebar-ff: 1 1 var(--layout-sidebar-width); --layout-sidebar-fm: auto; --layout-sidebar-lf: 999 1 0; --layout-sidebar-lm: var(--layout-sidebar-content);",
-  "._layout-switcher-base > * { flex-grow: 1; flex-basis: calc((var(--layout-switcher-threshold) - 100%) * 999); }",
-  "._layout-cover-core{gap:var(--layout-cover-gap);display:flex;flex-direction:column;justify-content:center;min-block-size:var(--layout-cover-min)}",
-  "._layout-grid-core{gap:var(--layout-grid-gap);display:grid;grid-template-columns:repeat(auto-fit, minmax(min(var(--layout-grid-min), 100%), 1fr))}",
+  "._layout-stack-core{gap:var(--layout-stack-gap);--layout-stack-gap:1rem;display:flex;flex-direction:column}",
+  "._layout-cluster-core{gap:var(--layout-cluster-gap);--layout-cluster-gap:1rem;--layout-cluster-justify:flex-start;--layout-cluster-align:center;display:flex;flex-wrap:wrap;justify-content:var(--layout-cluster-justify);align-items:var(--layout-cluster-align)}",
+  "._layout-sidebar-core{gap:var(--layout-sidebar-gap);--layout-sidebar-gap:1rem;--layout-sidebar-width:auto;--layout-sidebar-content:50%;--layout-sidebar-ff:1 1 var(--layout-sidebar-width);--layout-sidebar-fm:auto;--layout-sidebar-lf:999 1 0;--layout-sidebar-lm:var(--layout-sidebar-content);display:flex;flex-wrap:wrap}",
+  "._layout-sidebar-core > :first-child{flex:var(--layout-sidebar-ff);min-inline-size:var(--layout-sidebar-fm)}",
+  "._layout-sidebar-core > :last-child{flex:var(--layout-sidebar-lf);min-inline-size:var(--layout-sidebar-lm)}",
+  "._layout-switcher-core{gap:var(--layout-switcher-gap);--layout-switcher-gap:1rem;--layout-switcher-threshold:30rem;display:flex;flex-wrap:wrap} ._layout-switcher-core > *{flex-grow:1;flex-basis:calc((var(--layout-switcher-threshold) - 100%) * 999)}",
+  "._layout-cover-core{gap:var(--layout-cover-gap);--layout-cover-min:100vh;--layout-cover-gap:1rem;display:flex;flex-direction:column;justify-content:center;min-block-size:var(--layout-cover-min)}",
+  "._layout-grid-core{gap:var(--layout-grid-gap);--layout-grid-min:16rem;--layout-grid-gap:1rem;display:grid;grid-template-columns:repeat(auto-fit, minmax(min(var(--layout-grid-min), 100%), 1fr))}",
 ];
 for (const k of kernels) assert.ok(out.includes(k), `${k}\n${css}`);
+assert.ok(!out.includes("-base"), css);
 assert.ok(out.startsWith("@layer _.k, _.a, _.b, _.c, _.d, _.e;"), css);
 
 // the methods: a number is a spacing step, a token its var(), side("right") swaps the children
-const [, , pageGap] = classes("page");
+const [, pageGap] = classes("page");
 assert.equal(rule(pageGap), "--layout-stack-gap:1rem");
-assert.equal(rule(classes("toolbar")[2]), "--layout-cluster-gap:var(--space-md)");
-assert.deepEqual(classes("aside").slice(2, 6).map(rule), [
+assert.equal(rule(classes("toolbar")[1]), "--layout-cluster-gap:var(--space-md)");
+assert.deepEqual(classes("aside").slice(1, 5).map(rule), [
   "--layout-sidebar-ff:999 1 0",
   "--layout-sidebar-fm:var(--layout-sidebar-content)",
   "--layout-sidebar-lf:1 1 var(--layout-sidebar-width)",
   "--layout-sidebar-lm:auto",
 ]);
-assert.equal(rule(classes("buttons")[2]), "--layout-switcher-threshold:30rem");
-assert.equal(rule(classes("hero")[2]), "--layout-cover-min:100dvh");
-assert.equal(rule(classes("cards")[2]), "--layout-grid-min:16rem");
+assert.equal(rule(classes("buttons")[1]), "--layout-switcher-threshold:30rem");
+assert.equal(rule(classes("hero")[1]), "--layout-cover-min:100dvh");
+assert.equal(rule(classes("cards")[1]), "--layout-grid-min:16rem");
 // a condition puts the method's class in _.b
 assert.ok(
   out.includes("@layer _.b { @media (width >= 40rem) { ._1bkayo5{--layout-stack-gap:2rem}"),
