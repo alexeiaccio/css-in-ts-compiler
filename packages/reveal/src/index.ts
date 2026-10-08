@@ -26,7 +26,9 @@ const supported = "animation-timeline:view()";
 
 /** The scope of `reveal()`, for a scope that embeds it (its kernel `core`). */
 export const revealScope = scope("reveal", {
-  // motion's keyframes, fade-in by default, on the view timeline; under reduced motion only the opacity moves
+  // motion's keyframes, fade-in by default, on the view timeline (after the `animation` shorthand, which resets it: the
+  // kernel prints a shorthand before its longhands); under reduced motion only the opacity moves. The runtime below
+  // covers the support warnings of the timeline.
   "#core": {
     css: (css) => [
       css.vars({
@@ -42,12 +44,10 @@ export const revealScope = scope("reveal", {
         "--motion-b": 0,
       }),
       css.animation("var(--_k) var(--_d) var(--_e) both"),
+      css.animationTimeline("view()"),
+      css.animationRange("var(--_g)"),
       css.media("(prefers-reduced-motion: reduce)")(css.animationName("var(--_rk)")),
     ],
-  },
-  "#view": {
-    css: `&&{animation-timeline:view();animation-range:var(--_g)}`,
-    requires: ["css.properties.animation-timeline", "css.properties.animation-range"],
   },
   // without a view timeline the animation is time-based: held at its start until runtime.ts marks the element in view
   "#io": {
@@ -56,7 +56,7 @@ export const revealScope = scope("reveal", {
     css: `@supports not (${supported}){[data-reveal] &:not([data-reveal-in]){animation-play-state:paused}}`,
   },
   reveal: {
-    uses: ["core", "view", "io"],
+    uses: ["core", "io"],
     chain: {
       preset: { args: names, emit: emitPreset },
       range: { args: "<'animation-range'>", emit: (v) => [["--_g", v]] },

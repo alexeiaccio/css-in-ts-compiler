@@ -38,24 +38,22 @@ const fallback =
 const runtime = (await client.transformRequest("virtual:cssints/runtime/reveal.io")).code;
 assert.equal(runtime.includes("reveal/src/runtime.ts"), mode !== "native", `${mode}: ${runtime}`);
 if (mode === "native") assert.equal(runtime, "export {};");
-// the fallback covers the kernel's requires everywhere: never a support warning
+// the fallback covers the kernel's timeline declarations everywhere: never a support warning
 assert.deepEqual(warnings, []);
 
 if (mode) {
   // native: every target has scroll-driven animations, no fallback CSS; old: Firefox lacks them, the fallback is in
   assert.equal(out.includes(fallback), mode === "old", out);
-  assert.ok(out.includes("._reveal-view._reveal-view{animation-timeline:view()"), out);
+  assert.ok(out.includes("animation-timeline:view()"), out);
+  assert.ok(out.includes("animation-range:var(--reveal-g)"), out);
   await server.close();
   console.log(`reveal (${mode} targets) ok`);
   process.exit(0);
 }
 
-// a member is the classes of its two kernels and of its methods; the client module imports the runtime module
-assert.match(transformed, /export const fade = "_reveal-core _reveal-view";/);
-assert.match(
-  transformed,
-  /export const slide = "_reveal-core _reveal-view _\w+ _\w+ _\w+ _\w+ _\w+";/,
-);
+// a member is the class of its kernel and those of its methods; the client module imports the runtime module
+assert.match(transformed, /export const fade = "_reveal-core";/);
+assert.match(transformed, /export const slide = "_reveal-core _\w+ _\w+ _\w+ _\w+ _\w+";/);
 assert.match(transformed, /^import "[^"]*virtual:cssints\/runtime\/reveal\.io[^"]*";/);
 assert.ok(!transformed.includes("@cssints/reveal"), transformed);
 
@@ -63,22 +61,30 @@ assert.ok(!transformed.includes("@cssints/reveal"), transformed);
 const enter = /@keyframes (kf-\w+)\{from\{opacity:var\(--motion-o\);translate:/.exec(out)?.[1];
 const reduced = /@keyframes (kf-\w+)\{from\{opacity:var\(--motion-o\)\}\}/.exec(out)?.[1];
 assert.ok(enter && reduced, out);
-assert.ok(
-  out.includes(
-    `._reveal-core{animation:var(--reveal-k) var(--reveal-d) var(--reveal-e) both;--reveal-k:${enter};--reveal-rk:${reduced};--reveal-d:300ms;--reveal-e:ease-out;--reveal-g:entry 0% cover 40%;--motion-o:0;--motion-x:0;--motion-y:0;--motion-s:1;--motion-b:0}`,
-  ),
+// the timeline: after the `animation` shorthand, which resets it (a kernel prints a shorthand before its longhands)
+const core = /\._reveal-core\{([^}]*)\}/.exec(out)?.[1]?.split(";") ?? [];
+assert.equal(core[0], "animation:var(--reveal-k) var(--reveal-d) var(--reveal-e) both", out);
+assert.deepEqual(
+  core.slice(1).toSorted(),
+  [
+    "--motion-b:0",
+    "--motion-o:0",
+    "--motion-s:1",
+    "--motion-x:0",
+    "--motion-y:0",
+    "--reveal-d:300ms",
+    "--reveal-e:ease-out",
+    "--reveal-g:entry 0% cover 40%",
+    `--reveal-k:${enter}`,
+    `--reveal-rk:${reduced}`,
+    "animation-range:var(--reveal-g)",
+    "animation-timeline:view()",
+  ],
   out,
 );
 assert.ok(
   out.includes(
     "@media (prefers-reduced-motion: reduce){._reveal-core{animation-name:var(--reveal-rk)}}",
-  ),
-  out,
-);
-// the timeline beats the `animation` shorthand (which resets it) by specificity, whatever the order of the kernels
-assert.ok(
-  out.includes(
-    "._reveal-view._reveal-view{animation-timeline:view();animation-range:var(--reveal-g)}",
   ),
   out,
 );
@@ -101,7 +107,7 @@ assert.match(out, /@layer _\.b \{ \._\w+:hover\{--reveal-d:1s\}/);
 let e = await failure("conflict.ts");
 assert.equal(
   e.message,
-  "cssints: reveal: kernel core sets animation, animation-name (this style also sets animation-duration)",
+  "cssints: reveal: kernel core sets animation, animation-timeline, animation-range, animation-name (this style also sets animation-duration)",
 );
 assert.equal(e.loc?.line, 4);
 
