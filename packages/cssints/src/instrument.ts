@@ -201,7 +201,7 @@ export interface Instrumented {
 export const instrument = Effect.fn("cssints.instrument")(function* (
   code: string,
   id: string,
-  client = true,
+  client: boolean = true,
 ): Effect.fn.Return<Instrumented | null, ImportError> {
   const { program } = parseSync(id, code);
   const imp = yield* findCssImport(program, code, id, client);
