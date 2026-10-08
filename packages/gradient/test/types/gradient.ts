@@ -24,7 +24,10 @@ export const e3 = gradient("linear", "to bottom", "red", "banana");
 export const e4 = gradient("linear", "to bottom", t.space.md, "red");
 // @ts-expect-error steps() is not an easing here
 export const e5 = gradient("linear", "to bottom", "red", "blue", "steps(4)");
-// the range of the stops is the build's (bad-stops.ts)
+// @ts-expect-error 2 to 64 stops
 export const e6 = gradient("linear", "to bottom", "red", "blue", "ease", 1);
+// @ts-expect-error 2 to 64 stops
+export const e8 = gradient("linear", "to bottom", "red", "blue", "ease", "65");
+export const e9 = gradient("linear", "to bottom", "red", "blue", "ease", 64);
 // @ts-expect-error an image is not a colour
 export const e7 = color(gradient("linear", "to bottom", "red", "blue"));

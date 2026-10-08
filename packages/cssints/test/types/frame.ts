@@ -41,7 +41,7 @@ frame().padding(
   // @ts-expect-error no percentages: it must be a length
   "5%",
 );
-// a negative padding or radius is the build's to reject, not the types' (test/frame.mjs: the range of <length [0,∞]>)
+// @ts-expect-error a negative padding: the range of <length [0,∞]> (the build too, test/frame.mjs)
 frame().padding("-1px");
 frame().margin(
   // @ts-expect-error not a length

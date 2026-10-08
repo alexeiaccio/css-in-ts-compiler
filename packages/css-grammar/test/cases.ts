@@ -18,6 +18,22 @@ export const cases = [
   ["border", "red 2px", true],
   ["z-index", "10", true],
   ["opacity", "0.5", true],
+  ["padding", "-0px +0.0rem 0", true],
+  ["font-weight", "1000", true],
+  ["font-weight", "1000.0", true],
+  ["font-weight", "+1", true],
+  ["font-weight", "1e3", true],
+  ["flex-grow", "-0", true],
+  ["flex-grow", "007", true],
+  ["column-count", "1", true],
+  ["width", "calc(-1px)", true],
+  // a `#` list longer than 9 items (Open Props' easeBounce3)
+  [
+    "transition-timing-function",
+    "linear(0, 0.004, 0.016, 0.035, 0.062, 0.098, 0.141 11.4%, 0.25, 0.39, 0.562, 0.764, 1 30.3%, 0.847 34.8%, 0.787, 0.737, 0.699, 0.672, 0.655, 0.65, 0.656, 0.672, 0.699, 0.738, 0.787, 0.847 61.7%, 1 66.2%, 0.946, 0.908, 0.885, 0.871, 0.866, 0.871, 0.885, 0.908, 0.946, 1 87.1%, 0.979, 0.966, 0.961, 0.966, 0.979, 1, 1 100%, 1)",
+    true,
+  ],
+  ["transition-timing-function", "linear(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1,)", false],
   ["color", "rgb(1 2 3)", true],
   ["color", "currentColor", true],
   ["border-radius", "1rem 2rem / 3rem", true],
@@ -321,13 +337,22 @@ export const cases = [
   ["width", "min(1px", false],
   ["width", "calc(1px));", false],
   ["z-index", "calc(1px", false],
+  // ranges with integer bounds from 0 up, -∞ or ∞ (css.ts `Out`)
+  ["padding", "-1rem", false],
+  ["padding", "1rem -0.5rem", false],
+  ["width", "-10px", false],
+  ["font-weight", "1001", false],
+  ["font-weight", "1000.5", false],
+  ["font-weight", "0.9", false],
+  ["flex-grow", "-1", false],
+  ["column-count", "0", false],
+  ["column-count", "-0", false],
+  ["padding", "-1px var(--a)", false],
 ] as const;
 
-// Only the runtime rejects these: ranges and hex digits are beyond `${number}` / `#${string}`.
+// Only the runtime rejects these: ranges with unit or negative bounds, exponents and hex digits are beyond the types.
 export const runtimeOnly = [
-  ["padding", "-1rem"],
-  ["width", "-10px"],
-  ["font-weight", "1001"],
+  ["font-weight", "1e4"], // an exponent is not read by the types
   ["color", "#ggg"],
   ["animation-duration", "-1s"],
   ["font-style", "oblique 100deg"],
@@ -356,7 +381,6 @@ export const runtimeOnly = [
   ["color", "if(style(--x: 1): red !important)"],
   // pending substitution: types take the arguments of an if() as balanced tokens and do not see a negative length
   ["padding", "if(red: 1px)"],
-  ["padding", "-1px var(--a)"],
   ["padding", "env(1px)"],
   ["padding", "var(--a) calc(1px + 2s)"],
   // math functions: types read the arguments as balanced tokens, the twin checks the syntax and the calc type

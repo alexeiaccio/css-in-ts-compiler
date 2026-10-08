@@ -140,9 +140,6 @@ results (`test/fixtures/radix-theme.ts` checks all 31 scales, light and dark):
 - **Strings, not tokens.** cssints has no token type for a timing function or a shadow (`cubicBezier` and the composite
   DTCG types have no `@property` syntax). Because of this, the easings and shadows are CSS strings: they go into the
   property as they are, with no variable. A theme cannot change them: use `shadowsDark` under your dark condition.
-- **`linear()` in the types.** cssints' types reject a `linear()` easing with more than 9 stops. The build accepts it.
-  `transitionTimingFunction(easings.easeSpring3)` (Open Props' springs and bounces) is a type error. It builds
-  correctly.
 - **A theme takes the whole set.** Only the tokens a module uses go into its sheet. But a module that imports the
   module that calls `createGlobalTheme` gets the `@property` rules of every token the theme sets. Put the theme in its
   own module, import it once from the entry, and pass it only the scales you use.

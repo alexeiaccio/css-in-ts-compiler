@@ -26,8 +26,9 @@ surface().color(
   // @ts-expect-error a length token is not a colour
   gap,
 );
-// the range of a step is the build's to reject, not the types' (test/surface.mjs: <number [0,1]>)
+// @ts-expect-error a step is in <number [0,1]> (the build too, test/surface.mjs)
 surface().lighten(2);
+// @ts-expect-error a step is in <number [0,1]>
 surface().contrast(-0.5);
 surface().darken(
   // @ts-expect-error a step is a number, not a length

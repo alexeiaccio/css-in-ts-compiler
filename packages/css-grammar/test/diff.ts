@@ -114,7 +114,7 @@ try {
 } catch (e) {
   out = (e as { stdout: string }).stdout;
 }
-// The types strip numeric ranges by design: a row that only the twin's range check rejects is no disagreement.
+// The types check only some numeric ranges (css.ts `Out`): a row that only the twin's range check rejects is no disagreement.
 const rangeOnly = (c: Case) => {
   if (c.twin) return false;
   try {

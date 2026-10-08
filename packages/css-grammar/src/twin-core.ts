@@ -5,8 +5,9 @@
 // nothing here returns an Effect. Failures are thrown as the tagged errors of errors.ts; the Effect.fn boundary is
 // twin.ts (and rules.ts, support.ts, which call `matches` here without the boundary cost).
 //
-// Where the type level has to give up, the twin is stricter: numeric ranges like `[0,∞]`, `${number}`
-// accepting "1 " (so "1 rem"), hex digits, empty idents, more than 8 repetitions, the type of a math function
+// Where the type level has to give up, the twin is stricter: numeric ranges other than integer bounds on a
+// plain decimal (css.ts `Out`), `${number}` accepting "1 " (so "1 rem"), hex digits, empty idents, more than 8
+// repetitions of `*` and `+`, the type of a math function
 // (`calc(1px + 2s)`). The twin also reports the furthest point the value reached and what the grammar expected there.
 import { InvalidValueError, ParseError, UnknownPropertyError } from "./errors.ts";
 import { properties, syntaxes } from "./mdn.ts";
@@ -820,7 +821,7 @@ function consumeType(
       return pend(["type", v, lo, hi], s, ctx, label);
   }
   if (lo === undefined || hi === undefined) return rs;
-  // Ranges: the type level strips them, the twin checks the number that was consumed.
+  // Ranges: the twin checks the number that was consumed (the type level only some, css.ts `Out`).
   const out = new Set<string>();
   for (const r of rs) {
     const x = magnitude(s.slice(0, s.length - r.length));

@@ -19,21 +19,25 @@ type WordChar =
   | "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z"
   | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z"
   | "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "-" | "_";
-type StripRange<T extends string> = T extends `${infer N} [${string}` ? N : T;
+// `<t [lo,hi]>` keeps its range only when `Out` can check it: each bound an integer from 0 up, `-∞` or `∞`.
+type TypeTok<T extends string> =
+  T extends `${infer N} [${infer Lo},${infer Hi}]`
+    ? ([Lo, Hi] extends [`${bigint}` | "-∞", `${bigint}` | "∞"] ? (`${Lo}${Hi}` extends `${string}-${Digit}${string}` ? { t: "type"; v: N } : { t: "type"; v: N; lo: Lo; hi: Hi }) : { t: "type"; v: N })
+    : { t: "type"; v: T };
 type IsWord<W extends string> = W extends "" ? false : W extends `${string}${Special}${string}` ? false : true;
 type Word<S extends string, Acc extends string = ""> =
   S extends `${infer C}${infer R}` ? (C extends WordChar ? Word<R, `${Acc}${C}`> : [Acc, S]) : [Acc, ""];
 
 type Tok =
   | { t: "type"; v: string } | { t: "prop"; v: string } | { t: "kw"; v: string } | { t: "fn"; v: string }
-  | { t: "range"; lo: string; hi: string } | { t: "p"; v: string } | { t: "lit"; v: string } | { t: "eof" };
+  | { t: "type"; v: string; lo: string; hi: string } | { t: "range"; lo: string; hi: string } | { t: "p"; v: string } | { t: "lit"; v: string } | { t: "eof" };
 
 // Next<S> = [token, rest]
 type Next<S extends string> =
   S extends "" ? [{ t: "eof" }, ""]
   : S extends `${Ws}${infer R}` ? Next<R>
   : S extends `<'${infer P}'>${infer R}` ? [{ t: "prop"; v: P }, R]
-  : S extends `<${infer T}>${infer R}` ? [{ t: "type"; v: StripRange<T> }, R]
+  : S extends `<${infer T}>${infer R}` ? [TypeTok<T>, R]
   : S extends `||${infer R}` ? [{ t: "p"; v: "||" }, R]
   : S extends `&&${infer R}` ? [{ t: "p"; v: "&&" }, R]
   : S extends `{${infer B}}${infer R}` ? (B extends `${infer Lo},${infer Hi}` ? [{ t: "range"; lo: Lo; hi: Hi extends "" ? "∞" : Hi }, R] : [{ t: "range"; lo: B; hi: B }, R])
@@ -51,7 +55,7 @@ type NextWord<S extends string> =
 // Alternatives are cons lists ["alt", head, tail | null] built tail-recursively (order is irrelevant).
 
 type Node =
-  | ["kw", string] | ["type", string] | ["prop", string] | ["fn", string, Node] | ["lit", string]
+  | ["kw", string] | ["type", string] | ["type", string, string, string] | ["prop", string] | ["fn", string, Node] | ["lit", string]
   | ["alt", Node, Node | null] | ["or", Node[]] | ["and", Node[]] | ["seq", Node[]]
   | ["opt", Node] | ["star", Node] | ["plus", Node] | ["list", Node] | ["rep", Node, string, string] | ["bang", Node];
 
@@ -85,6 +89,7 @@ type ParseTerm<S extends string> =
     ? T extends { t: "p"; v: "[" } ? (ParseAlt<R> extends [infer N extends Node, infer R2 extends string] ? (Next<R2> extends [{ t: "p"; v: "]" }, infer R3 extends string] ? Mult<N, R3> : never) : never)
     : T extends { t: "fn"; v: infer V extends string } ? FnArgs<V, R>
     : T extends { t: "p"; v: "(" } ? FnArgs<"", R>
+    : T extends { t: "type"; v: infer V extends string; lo: infer Lo extends string; hi: infer Hi extends string } ? Mult<["type", V, Lo, Hi], R>
     : T extends { t: "type"; v: infer V extends string } ? Mult<["type", V], R>
     : T extends { t: "prop"; v: infer V extends string } ? Mult<["prop", V], R>
     : T extends { t: "kw"; v: infer V extends string } ? Mult<["kw", V], R>
@@ -164,8 +169,8 @@ export type Consume<N, S extends string, P extends boolean = false> =
   S extends string
     ? N extends ["kw", infer V extends string] ? (Tok1<S> extends [V, infer R extends string] ? Trim<R> : P extends true ? Pend<N, S> : never)
     : N extends ["lit", infer V extends string] ? (S extends `${V}${infer R}` ? Trim<R> : P extends true ? Pend<N, S> : never)
-    : N extends ["type", infer V extends string]
-      ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? (V extends "custom-ident" ? (T extends "⟨custom-ident⟩" | Wild ? Trim<R> : Lowercase<T> extends NotIdent ? P extends true ? Pend<N, S> : never : Trim<R>) : V extends "ident" | "ident-token" ? (T extends NotIdentStart ? P extends true ? Pend<N, S> : never : Trim<R>) : Trim<R>) : V extends Numeric ? (T extends `${string}(${string}` ? MathCall<S> | (P extends true ? Pend<N, S> : never) : P extends true ? Pend<N, S> : never) : P extends true ? Pend<N, S> : never) : never)
+    : N extends ["type", infer V extends string, ...infer G]
+      ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? (V extends "custom-ident" ? (T extends "⟨custom-ident⟩" | Wild ? Trim<R> : Lowercase<T> extends NotIdent ? P extends true ? Pend<N, S> : never : Trim<R>) : V extends "ident" | "ident-token" ? (T extends NotIdentStart ? P extends true ? Pend<N, S> : never : Trim<R>) : G extends [infer Lo extends string, infer Hi extends string] ? (true extends Out<T, Lo, Hi> ? never : Trim<R>) : Trim<R>) : V extends Numeric ? (T extends `${string}(${string}` ? MathCall<S> | (P extends true ? Pend<N, S> : never) : P extends true ? Pend<N, S> : never) : P extends true ? Pend<N, S> : never) : never)
       : V extends "string" | "url" ? Scanned<V, S> | (P extends true ? Pend<N, S> : never)
       : V extends "declaration-value" ? Scanned<V, S>
       : V extends "math-function" ? MathCall<S>
@@ -273,10 +278,12 @@ type Star<X, S extends string, P extends boolean, D extends any[] = []> = {
   next: S | Star<X, Consume<X, S, P>, P, [...D, 0]>;
 }[D extends Full ? "done" : "next"];
 
-type ListRest<X, R extends string, P extends boolean, D extends any[] = []> = {
-  done: R;
-  next: R | (AfterComma<R, P> extends infer Q extends string ? ([Q] extends [never] ? never : ListRest<X, Consume<X, Q, P>, P, [...D, 0]>) : never);
-}[D extends Full ? "done" : "next"];
+// A `#` list has no depth cap, like the twin: it goes on with the remainders not seen yet (Acc), which are suffixes of
+// the value, so it ends. Tail-recursive, so a long list (linear() with 44 stops) stays under TS2589.
+type ListRest<X, R, P extends boolean, Acc = never> =
+  (R extends string ? AfterComma<R, P> : never) extends infer Q extends string
+    ? ([Q] extends [never] ? Acc | R : ListRest<X, Exclude<Consume<X, Q, P>, Acc | R>, P, Acc | R>)
+    : never;
 
 type Digits = { "0": []; "1": [0]; "2": [0, 0]; "3": [0, 0, 0]; "4": [0, 0, 0, 0]; "5": [0, 0, 0, 0, 0]; "6": [0, 0, 0, 0, 0, 0]; "15": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; "∞": [0, 0, 0, 0, 0, 0, 0, 0] };
 type Rep<X, S extends string, Lo extends string, Hi extends string, P extends boolean> = RepN<X, S, Digits[Lo & keyof Digits], Digits[Hi & keyof Digits], [], P>;
@@ -315,6 +322,34 @@ type TryEach<Parts extends Node[], Todo extends Node[], S extends string, All ex
     : never;
 type RemoveAt<T extends any[], K extends string, I extends any[] = [], Acc extends any[] = []> =
   T extends [infer H, ...infer R] ? (`${I["length"]}` extends K ? [...Acc, ...R] : RemoveAt<R, K, [...I, 0], [...Acc, H]>) : Acc;
+
+// Ranges (`<integer [2,64]>`, `<length [0,∞]>`): a literal number or dimension out of the range fails, as in the twin.
+// Only bounds that are integers from 0 up, `-∞` or `∞` are kept (`TypeTok`; `[0s,∞]`, `[-90deg,90deg]` and `[-∞,-1]` are
+// the twin's alone), and only a plain decimal is read (one with an exponent, a sentinel, a math function or a var()
+// passes): its sign, integer part and whether its fraction is zero, compared digit by digit. The unit is ignored, like
+// the twin's `magnitude` (with such bounds no unit needs scaling). Runs only on a token the primitive already took.
+type Out<T extends string, Lo extends string, Hi extends string> =
+  T extends `-${infer M}` ? (Lo extends "-∞" ? false : M extends `${string}${"e" | "E"}-${string}` ? false : Lo extends "0" ? NonZero<M> : true)
+  : [Lo, Hi] extends ["0" | "-∞", "∞"] ? false
+  : Decimal<T extends `+${infer M}` ? M : T> extends [infer I extends string, infer F extends boolean]
+    ? (Lo extends "-∞" | "0" ? false : Cmp<I, Lo> extends "lt" ? true : false) | (Hi extends "∞" ? false : Cmp<I, Hi> extends "gt" ? true : Cmp<I, Hi> extends "eq" ? F : false)
+    : false;
+// A plain decimal (unit or not) that is not zero.
+type NonZero<M extends string> = M extends `${"0" | "."}${infer R}` ? NonZero<R> : M extends `${Exclude<Digit, "0">}${string}` ? true : false;
+// [integer part without leading zeros, fraction not zero] of an unsigned decimal, or false.
+type Decimal<M extends string> = M extends `${Digit | "."}${string}` ? DecInt<M, ""> : false;
+type DecInt<M extends string, I extends string> =
+  M extends `${infer C extends Digit}${infer R}` ? DecInt<R, I extends "" ? (C extends "0" ? "" : C) : `${I}${C}`>
+  : M extends `.${infer R}` ? DecFrac<R, I extends "" ? "0" : I, false>
+  : DecEnd<M, I extends "" ? "0" : I, false>;
+type DecFrac<M extends string, I extends string, F extends boolean> =
+  M extends `${infer C extends Digit}${infer R}` ? DecFrac<R, I, C extends "0" ? F : true> : DecEnd<M, I, F>;
+type DecEnd<M extends string, I extends string, F extends boolean> = M extends `${"e" | "E"}${"+" | "-" | ""}${Digit}${string}` ? false : [I, F];
+// Two digit strings without leading zeros: "lt", "eq" or "gt".
+type Cmp<A extends string, B extends string, V extends string = "eq"> =
+  A extends `${infer X}${infer RA}`
+    ? (B extends `${infer Y}${infer RB}` ? Cmp<RA, RB, V extends "eq" ? (X extends Y ? "eq" : "0123456789" extends `${string}${X}${string}${Y}${string}` ? "lt" : "gt") : V> : "gt")
+    : B extends "" ? V : "lt";
 
 // ---------------------------------------------------------------- public
 
