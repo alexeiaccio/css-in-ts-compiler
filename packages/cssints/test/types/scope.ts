@@ -147,6 +147,8 @@ scope("bad3", { a: { args: "<color>" } }).export();
 export const hiddenCore = x.export().core;
 // @ts-expect-error build() takes a function for each call member
 scope("bad4", { a: { args: "<color>" } }).build({});
+// @ts-expect-error #trim and trim share a name (`uses` names both "trim")
+scope("bad5", { "#trim": { css: "&{}" }, trim: { chain: {}, uses: ["trim"] } });
 
 // the label of a message is `name.method`, with the grammar of the method; a number is a length only with `spacing`
 type Bad = CheckIn<"ring.width", "<length [0,∞]>", false, ["red"]>;

@@ -63,9 +63,10 @@ interface ParentVar$1 {
 }
 /**
  * The runtime half of a member. The client module that holds a site with the member imports
- * `virtual:cssints/runtime/<name>`, which is empty unless a browserslist target lacks a feature in `polyfills` (and has
- * `@property`, which the runtime stands on); then it configures `cssints/parent-vars`, and `css` (the fallback rules) is
- * added to the sheet in layer `_.k`.
+ * `virtual:cssints/runtime/<name>`, which is empty unless a browserslist target lacks a feature in `polyfills` (and, with
+ * `parentVars`, has `@property`, which the script stands on); then it configures `cssints/parent-vars`, and `css` (the
+ * fallback rules) is added to the sheet in layer `_.k`. A `requires` of the member's kernel that is in `polyfills` warns
+ * only for the targets the runtime does not reach.
  */
 interface Runtime {
   polyfills: BcdKey[];
@@ -276,7 +277,8 @@ type Bad<Why extends string> = {
 type BadUses<N extends string, T, V> = V extends {
   uses: readonly (infer U extends string)[];
 } ? [Exclude<U, UsableOf<T>>] extends [never] ? unknown : Bad<`${N}: uses ${Exclude<U, UsableOf<T>>}, which is not a kernel, global, layers, runtime or conflicts of this scope`> : unknown;
-type Valid<N extends string, T> = { readonly [K in keyof T]: BadUses<N, T, T[K]>; };
+type Clash<N extends string, T, K> = K extends `#${infer R}` ? R extends keyof T ? Bad<`${N}: ${K} and ${R} share a name: rename one`> : unknown : unknown;
+type Valid<N extends string, T> = { readonly [K in keyof T]: BadUses<N, T, T[K]> & Clash<N, T, K>; };
 type CallKeys<T> = { [K in keyof T & string]: Kind<K, T[K]> extends "call" ? K : never; }[keyof T & string];
 type ArgsOf<E> = E extends {
   args: infer D;

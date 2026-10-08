@@ -98,11 +98,11 @@ export const heading = cn(body.family(), body.trim({ lineHeight: 1.2 }));
   formula. The numbers are those of `@capsizecss/core` `createFontStack` (checked in the test). The metrics come from
   the 400 normal face (else the first) of the latin subset.
 - **trim().** `trim()` sets `line-height` (`normal`, or the number given) and the class of the kernel
-  `text-box: trim-both cap alphabetic` (Chrome 133, Safari 18.2, Firefox 154). A target that lacks `text-box` gets a
-  build warning, and the sheet gets capsize's fallback: `::before` and `::after` with negative margins, in `em`, from
-  the metrics of the font and the line height (the numbers of `@capsizecss/core` `createStyleObject`, checked in the
-  test). The fallback is inside `@supports not`, so a browser with `text-box` does not trim twice. When every target
-  has `text-box`, the fallback is not in the sheet.
+  `text-box: trim-both cap alphabetic` (Chrome 133, Safari 18.2, Firefox 154). When a target lacks `text-box`, the
+  sheet gets capsize's fallback: `::before` and `::after` with negative margins, in `em`, from the metrics of the font
+  and the line height (the numbers of `@capsizecss/core` `createStyleObject`, checked in the test). The fallback is
+  plain CSS, so every target gets it (Firefox 120 too), and there is no build warning. It is inside `@supports not`,
+  so a browser with `text-box` does not trim twice. When every target has `text-box`, the fallback is not in the sheet.
 - **Errors**, at build time: a package that is not installed (the message names it), a weight or a style the
   package does not have, a file that cannot be read, a font collection, and a `lineHeight` that is not a number
   (also a type error).
@@ -113,8 +113,6 @@ export const heading = cn(body.family(), body.trim({ lineHeight: 1.2 }));
 - `lineHeight` is a number (a multiple of the font size). A length would make the trim depend on the font size.
 - The trim is right for the web font. The fallback face matches ascent and descent, but not the cap height, so the
   trim is off by a little until the font loads.
-- The capsize fallback is a `runtime` of the scope. The engine ships it only to targets that have `@property`, so a
-  target with neither `text-box` nor `@property` (Firefox before 128, Safari before 16.4) gets neither trim.
 - Not yet: variable fonts (`@fontsource-variable/*`), remote providers (unifont, Google Fonts), the subsets option,
   `font-display` other than `swap`, and watching the font files in dev (a changed file needs a restart).
 

@@ -59,9 +59,10 @@ interface ParentVar {
 }
 /**
  * The runtime half of a member. The client module that holds a site with the member imports
- * `virtual:cssints/runtime/<name>`, which is empty unless a browserslist target lacks a feature in `polyfills` (and has
- * `@property`, which the runtime stands on); then it configures `cssints/parent-vars`, and `css` (the fallback rules) is
- * added to the sheet in layer `_.k`.
+ * `virtual:cssints/runtime/<name>`, which is empty unless a browserslist target lacks a feature in `polyfills` (and, with
+ * `parentVars`, has `@property`, which the script stands on); then it configures `cssints/parent-vars`, and `css` (the
+ * fallback rules) is added to the sheet in layer `_.k`. A `requires` of the member's kernel that is in `polyfills` warns
+ * only for the targets the runtime does not reach.
  */
 interface Runtime {
   polyfills: BcdKey[];

@@ -1,6 +1,6 @@
 // @cssints/fonts through the engine: both providers, the output (@font-face globals, the fallback face, font-family, the
 // trim kernel and its capsize fallback), the numbers against @capsizecss/core, the errors, a build (the font files become
-// assets) and native-only targets. The working directory is the package (set below): fontsource is read from its
+// assets), native-only targets and targets below @property. The working directory is the package (set below): fontsource is read from its
 // node_modules. Run: node test/fonts.mjs
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -12,7 +12,7 @@ import { build, createLogger, createServer } from "vite";
 
 process.chdir(`${import.meta.dirname}/..`);
 const root = `${import.meta.dirname}/fixtures`;
-const native = process.argv[2] === "native";
+const mode = process.argv[2];
 const warnings = [];
 const plugins = cssints();
 const server = await createServer({
@@ -33,13 +33,14 @@ const kernelWarning = warnings.some((w) =>
 );
 const fallbackCss = css.includes("@supports not (text-box:trim-both cap alphabetic)");
 
-if (native) {
-  // every target has text-box: no warning, and the capsize margins are not in the sheet
+if (mode) {
+  // native: every target has text-box, so the capsize margins are not in the sheet; old: a target with neither text-box
+  // nor @property gets them (the fallback is CSS, it stands on nothing). The runtime covers text-box: no warning.
   assert.ok(!kernelWarning, warnings.join("\n"));
-  assert.ok(!fallbackCss, css);
+  assert.equal(fallbackCss, mode === "old", css);
   assert.ok(css.includes("._fonts-native{text-box:trim-both cap alphabetic}"), css);
   await server.close();
-  console.log("fonts (native targets) ok");
+  console.log(`fonts (${mode} targets) ok`);
   process.exit(0);
 }
 
@@ -141,8 +142,8 @@ for (const [classes, lineHeight, leading] of [
     `line-height:${lineHeight}`,
   ]);
 }
-// a default target lacks text-box: the kernel warns, and the fallback is in the sheet
-assert.ok(kernelWarning && fallbackCss, warnings.join("\n"));
+// a default target lacks text-box: the fallback is in the sheet, and it covers the kernel's requires (no warning)
+assert.ok(fallbackCss && !kernelWarning, warnings.join("\n"));
 
 // in dev the files are served from where they are
 const dev = (await client.transformRequest("virtual:cssints.css")).code;
@@ -187,12 +188,17 @@ const assets = files.filter((f) => /\.woff2?$/.test(f.fileName)).map((f) => f.fi
 assert.equal(assets.length, 5, assets.join("\n"));
 for (const asset of assets) assert.ok(built.includes(`url(/${asset})`), `${asset}\n${built}`);
 
-// targets that all have text-box: another process, the targets are read once
-console.log(
-  execFileSync(process.execPath, [import.meta.filename, "native"], {
-    env: { ...process.env, BROWSERSLIST: "chrome 133, safari 18.2, firefox 154" },
-    encoding: "utf8",
-  }).trim(),
-);
+// targets that all have text-box, and one with neither text-box nor @property: another process each, the targets are
+// read once
+for (const [m, targets] of [
+  ["native", "chrome 133, safari 18.2, firefox 154"],
+  ["old", "firefox 120"],
+])
+  console.log(
+    execFileSync(process.execPath, [import.meta.filename, m], {
+      env: { ...process.env, BROWSERSLIST: targets },
+      encoding: "utf8",
+    }).trim(),
+  );
 console.log("fonts ok");
 process.exit(0);

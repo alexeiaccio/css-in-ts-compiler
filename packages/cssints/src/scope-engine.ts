@@ -534,9 +534,13 @@ export function scope(name: string, table: Dict<unknown>): unknown {
         ? `scope "${name}" is reserved by the engine`
         : `scope(${JSON.stringify(name)}): a name is lowercase letters, digits and -, and starts with a letter`,
     );
-  for (const k of Object.keys(table))
+  for (const k of Object.keys(table)) {
     if (!KEY.test(strip(k)) && !k.startsWith("-"))
       throw thrown(name, `${name}: the entry ${JSON.stringify(k)} is not a name`);
+    // `uses` names a private key without its `#`: one name for two keys would point at the public one
+    if (isPrivate(k) && Object.hasOwn(table, strip(k)))
+      throw thrown(name, `${name}: ${k} and ${strip(k)} share a name: rename one`);
+  }
   const s: Impl_ & Dict<unknown> = {
     name,
     table,

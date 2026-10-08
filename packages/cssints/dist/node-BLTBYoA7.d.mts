@@ -1,4 +1,4 @@
-import { a as Kernel, i as GlobalRule, n as Conflict, o as Runtime, s as ThemeRule } from "./author-types-VWp_4djS.mjs";
+import { a as Kernel, i as GlobalRule, n as Conflict, o as Runtime, s as ThemeRule } from "./author-types-DXdNP23z.mjs";
 import { Context } from "effect";
 import { TokenType } from "@cssints/css-grammar/token";
 //#region src/registry.d.ts
