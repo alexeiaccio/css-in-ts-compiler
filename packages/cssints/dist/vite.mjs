@@ -1,4 +1,4 @@
-import { A as forget, E as runtimeNames, F as MacroError, I as MemberError, L as SiteMissingError, M as registry, N as EvalError, P as HookError, S as RUNTIME_ID, T as runtimeModule, a as LAYERS, b as kernelEntries, d as globalNames, f as layerEntries, g as themedEntries, i as keptImport, k as Registry, l as closeNames, m as renderSheet, n as RUNTIME, o as addGlobal, p as layerStatements, r as instrument, s as addLayers, u as globalEntries, v as usesDerived, w as fallbackEntries, x as DERIVED } from "./instrument-DZg8_3NG.mjs";
+import { A as forget, E as runtimeNames, F as MacroError, I as MemberError, L as SiteMissingError, M as registry, N as EvalError, P as HookError, S as RUNTIME_ID, T as runtimeModule, a as LAYERS, b as kernelEntries, d as globalNames, f as layerEntries, g as themedEntries, i as keptImport, k as Registry, l as closeNames, m as renderSheet, n as RUNTIME, o as addGlobal, p as layerStatements, r as instrument, s as addLayers, u as globalEntries, v as usesDerived, w as fallbackEntries, x as DERIVED } from "./instrument-BU3RD4hA.mjs";
 import { createRequire } from "node:module";
 import { Cause, Clock, Config, Effect, Exit, Formatter, Option, Predicate, Result, Schema, Semaphore } from "effect";
 import { createHash } from "node:crypto";
@@ -141,7 +141,8 @@ const failureOf = (id, registry) => (e) => {
 		cause: e.cause
 	});
 	const at = registry.at;
-	const name = at && e instanceof ReferenceError ? /^(\S+) is not defined$/.exec(e.message)?.[1] : void 0;
+	const m = at && e instanceof ReferenceError ? /^(?:(\S+) is not defined|Cannot access '(\S+)' before initialization)$/.exec(e.message) : null;
+	const name = m?.[1] ?? m?.[2];
 	return name ? new MacroError({
 		message: `cssints: css arguments must be known at build time: \`${name}\` is not defined where the call is evaluated (a parameter, a prop or state). Use cx(on && p(4)), a cv variant, or a token in a style prop`,
 		cause: e,

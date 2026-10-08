@@ -855,6 +855,7 @@ const boundNames = (id, out) => {
 	else if (id.type === "ArrayPattern") id.elements.forEach((e) => boundNames(e, out));
 	else if (id.type === "ObjectPattern") id.properties.forEach((p) => boundNames(p.type === "Property" ? p.value : p.argument, out));
 	else if (id.type === "AssignmentPattern") boundNames(id.left, out);
+	else if (id.type === "RestElement") boundNames(id.argument, out);
 };
 function withConditions(program, code, { locals, decls }) {
 	if (!/\b(?:media|container|supports|attr|within)\b/.test(code)) return locals;
@@ -877,27 +878,45 @@ function withConditions(program, code, { locals, decls }) {
 	walk(program);
 	return all;
 }
+const declsOf = (stmts, out) => stmts.forEach((s) => {
+	if (s.type === "VariableDeclaration") s.declarations.forEach((d) => boundNames(d.id, out));
+	else if ((s.type === "FunctionDeclaration" || s.type === "ClassDeclaration") && s.id) out.add(s.id.name);
+});
+const declares = (n, out) => {
+	if (n.type === "ArrowFunctionExpression" || n.type === "FunctionExpression" || n.type === "FunctionDeclaration") {
+		n.params.forEach((p) => boundNames(p, out));
+		if (n.type === "FunctionExpression" && n.id) out.add(n.id.name);
+	} else if (n.type === "BlockStatement" || n.type === "StaticBlock") declsOf(n.body, out);
+	else if (n.type === "SwitchCase") declsOf(n.consequent, out);
+	else if (n.type === "ForStatement" && n.init) declsOf([n.init], out);
+	else if (n.type === "ForInStatement" || n.type === "ForOfStatement") declsOf([n.left], out);
+	else if (n.type === "CatchClause") boundNames(n.param, out);
+};
 function findSites(program, locals) {
 	const sites = [];
-	const walk = (node, inFn) => {
+	const walk = (node, inFn, scope) => {
 		if (!Predicate.isObject(node) || typeof node.type !== "string") return;
 		const n = node;
 		if ((n.type === "CallExpression" || n.type === "NewExpression") && locals.has(rootIdent(n.callee) ?? "")) {
 			sites.push({
 				start: n.start,
 				end: n.end,
-				inFn
+				inFn,
+				locals: scope
 			});
 			return;
 		}
 		const fn = inFn || /Function/.test(n.type);
+		const own = /* @__PURE__ */ new Set();
+		declares(n, own);
+		const here = own.size ? /* @__PURE__ */ new Set([...scope, ...own]) : scope;
 		for (const k in node) {
 			const v = node[k];
-			if (Array.isArray(v)) v.forEach((c) => walk(c, fn));
-			else if (Predicate.isObject(v) && "type" in v) walk(v, fn);
+			if (Array.isArray(v)) v.forEach((c) => walk(c, fn, here));
+			else if (Predicate.isObject(v) && "type" in v) walk(v, fn, here);
 		}
 	};
-	walk(program, false);
+	walk(program, false, /* @__PURE__ */ new Set());
 	return sites;
 }
 const instrument = Effect.fn("cssints.instrument")(function* (code, id, client = true) {
@@ -911,8 +930,11 @@ const instrument = Effect.fn("cssints.instrument")(function* (code, id, client =
 	sites.forEach((s, n) => {
 		const site = `__site(__at(${file}, ${n}, ${s.start}), `;
 		const expr = code.slice(s.start, s.end);
-		if (s.inFn) hoisted.push(`${site}${expr});`);
-		else {
+		if (s.inFn) {
+			const names = new Set(expr.match(/[\p{L}\p{N}_$]+/gu));
+			const dead = [...s.locals].filter((x) => names.has(x));
+			hoisted.push(dead.length ? `{ ${site}${expr}); let ${dead.join(", ")}; }` : `${site}${expr});`);
+		} else {
 			ms.prependLeft(s.start, site).appendRight(s.end, ")");
 			hoisted.push(`__unseen(${file}, ${n}) && ${site}${expr});`);
 		}
