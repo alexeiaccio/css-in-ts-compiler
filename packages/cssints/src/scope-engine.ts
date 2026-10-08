@@ -434,8 +434,14 @@ const chainOf = (c: Compiler, key: string, def: ChainDef) => {
       for (const x of meth.excludes ?? []) taken.set(x, m);
       return node([...self.__cssints, ...ownDecls(c, meth.emit(value))], self, next(taken));
     };
-  return () => node([], (base ??= def.uses ? c.carry(def.uses) : {}), next(new Map()));
+  return () =>
+    node([], (base ??= grouped(c, def, def.uses ? c.carry(def.uses) : {})), next(new Map()));
 };
+
+// `group: true`: the carry with the group marker `_g-<scope>` after the kernels' markers (a condition around a member
+// with no declaration names its kernel first).
+const grouped = (c: Compiler, def: { group?: true }, carry: Carry): Carry =>
+  def.group ? { ...carry, markers: [...(carry.markers ?? []), [`_g-${c.name}`, "group"]] } : carry;
 
 const ownDecls = (c: Compiler, emitted: readonly (readonly [string, string])[]) =>
   emitted.map(([p, v]): [string, string] => [c.own(p), c.own(v)]);
@@ -520,7 +526,9 @@ const callOf = (c: Compiler, key: string, def: CallDef) => {
   return (...args: unknown[]) => {
     const given = argsOf(c, key, spec, args);
     const made = ran(name, () => build(...given));
-    const carry = made.uses ? c.carry([...uses, ...made.uses]) : (base ??= c.carry(uses));
+    const carry = made.uses
+      ? grouped(c, def, c.carry([...uses, ...made.uses]))
+      : (base ??= grouped(c, def, c.carry(uses)));
     return node(made.decls ? ownDecls(c, made.decls) : [], {
       ...carry,
       globals: made.globals ? [...(carry.globals ?? []), ...made.globals] : carry.globals,

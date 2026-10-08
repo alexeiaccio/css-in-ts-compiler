@@ -348,6 +348,51 @@ await fails(
   "sc-nest",
 );
 
+// `group: true`: every style of the member carries `_g-<scope>` after its kernels' markers, which within(state, "<scope>")
+// reads; it is a marker, so a condition around the member with no declaration is still an error
+write(
+  "sc-group.ts",
+  `import { scope } from "cssints/plugin";
+export const { g, h } = scope("sc-group", {
+  "#core": { css: "&{position:sticky}" },
+  g: { uses: ["core"], group: true, chain: { pad: { args: "<length>", emit: (v) => [["padding", v]] } } },
+  h: { args: [], group: true },
+})
+  .build({ h: () => ({ decls: [["--_h", "1"]] }) })
+  .export();
+`,
+);
+const grp = (name, body) =>
+  write(
+    name,
+    `import { cn, color, hover, within } from "cssints" with { type: "cssints" };\nimport { g, h } from "./sc-group.ts" with { type: "cssints" };\n${body}`,
+  );
+const grouped = await code(
+  grp(
+    "sc-group-use.ts",
+    `export const a = cn(g().pad("1px"));\nexport const b = h();\nexport const c = within(hover, "sc-group")(color("red"));\n`,
+  ),
+);
+assert.match(grouped, /export const a = "_sc-group-core _g-sc-group _\w+";/, grouped);
+assert.match(grouped, /export const b = "_g-sc-group _\w+";/, grouped);
+assert.match(sheet("sc-group-use.ts"), /:where\(\._g-sc-group:hover\) \._\w+\{color:red\}/);
+assert.match(
+  await code(grp("sc-group-cond.ts", `export const a = hover(g().pad("1px"));\n`)),
+  /_g-sc-group/,
+);
+for (const [name, body, marker] of [
+  [
+    "sc-group-bare.ts",
+    `export const a = hover(g());\n`,
+    "_sc-group-core, the marker of kernel sc-group\\.core",
+  ],
+  ["sc-group-bare-h.ts", `export const a = hover(cn(h(), g()));\n`, "_sc-group-core"],
+])
+  await assert.rejects(code(grp(name, body)), (e) => {
+    assert.match(e.message.split("\n")[0], new RegExp(`^cssints: :hover wraps ${marker}`));
+    return true;
+  });
+
 // the definition: names, entries
 const defs = (name, table = "{}") =>
   write(
