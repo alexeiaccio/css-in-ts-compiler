@@ -160,6 +160,8 @@ class Compiler {
   private readonly kernels = new Map<string, Kernel>();
   // the conflicts of each kernel written as styles, by key
   private readonly derived = new Map<string, ConflictDef>();
+  // the keyframes() and positionTry() rules of each kernel written as styles, by key
+  private readonly atRules = new Map<string, Kernel[]>();
 
   constructor(s: Impl_, compiled: Compiled) {
     this.name = s.name;
@@ -212,6 +214,7 @@ class Compiler {
       const merged = (lib.css as Dict<(...n: CssNode[]) => CssNode>)["cn"]!(...nodes);
       const built = lib.kernelOf(`${this.name}.${key}`, merged, marker);
       css = built.css;
+      if (built.kernels) this.atRules.set(key, built.kernels);
       // what the kernel sets, and what meets it in a `cn()`: the member that uses it may not set those
       this.derived.set(key, {
         props: Object.keys(properties).filter((p) =>
@@ -246,7 +249,7 @@ class Compiler {
     for (const [u, s, key, kind, def] of kinds) {
       if (kind === "kernel") {
         const k = s.kernel(key);
-        (c.kernels ??= []).push(k);
+        (c.kernels ??= []).push(...(s.atRules.get(key) ?? []), k);
         (c.markers ??= []).push([s.marker(key), k.key]);
         const conflicts = explicit ? undefined : s.derived.get(key);
         if (conflicts)

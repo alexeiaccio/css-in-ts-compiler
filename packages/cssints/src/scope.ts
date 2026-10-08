@@ -19,8 +19,26 @@ export type { BcdKey, Decl };
 
 // ───────────────────────────── the entries of a table ─────────────────────────────
 
-/** The `css` a kernel written as styles is handed: all of "cssints", as user code has it. */
-export type Css = typeof Cssints;
+/** A selector of `nest()`: `&` (the kernel's class), then a combinator (`& > *`, `& > * + *`, `& p`); the build reads the rest. */
+export type NestSelector<S extends string> = S extends `&${" " | ">" | "+" | "~"}${string}`
+  ? S
+  : `nest(): "${S}" does not start with & and a combinator`;
+/** What only a kernel written as styles has, besides all of "cssints". */
+export interface KernelCss {
+  /**
+   * `nest("& > *")(flexGrow(1))`: the styles on other elements, relative to the kernel's class (`._k > *`). A condition
+   * inside applies to them (`& > *:hover`), one around it to the element (`._k:hover > *`). One condition. What it sets is
+   * not the element's, so a member's derived conflicts leave it out.
+   */
+  nest: <const S extends string>(selector: NestSelector<S>) => Cssints.Wrap;
+  /**
+   * `vars({ "--_gap": "1rem" })`: custom properties on the element (`--_x` is `--<scope>-x`), values not checked. A
+   * `keyframes()` or `positionTry()` name is a value too: its rule goes with the kernel. Not part of derived conflicts.
+   */
+  vars: (set: { readonly [name: `--${string}`]: string | number | CSSStyleValue }) => Style;
+}
+/** The `css` a kernel written as styles is handed: all of "cssints", as user code has it, and `nest` and `vars`. */
+export type Css = typeof Cssints & KernelCss;
 
 /**
  * A kernel: global CSS printed once, bound to a class. `&` stands for the class the engine mints for it (`&(mod.key)`: the

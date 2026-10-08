@@ -14,13 +14,15 @@ import {
 
 /**
  * One condition of a style: an at-rule prelude (`@media (width >= 40rem)`), a pseudo-class (`:hover`), an attribute
- * (`[aria-current="page"]`) or, with `ancestor`, a selector of a marked ancestor (`:where(._g:hover)`).
+ * (`[aria-current="page"]`) or, with `ancestor`, a selector of a marked ancestor (`:where(._g:hover)`), or, with
+ * `nest` (kernels only), other elements relative to the class (`& > *`: `&` is the class, the rest follows it).
  * `rank` orders the rules of a layer: the min-width of a media or container query in px, the place of a pseudo-class.
  */
 export interface Cond {
   text: string;
   rank: number;
   ancestor?: true;
+  nest?: true;
 }
 /**
  * One declaration: property and value, under the conditions that wrap it (outermost first). `fallbacks` are the other
