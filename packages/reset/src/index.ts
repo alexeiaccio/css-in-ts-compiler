@@ -1,15 +1,13 @@
 // @cssints/reset: a small modern reset (after Josh Comeau's and Jake Lazaroff's, with Andy Bell's `role="list"` and flow),
-// as global rules of a call member of cssints/plugin `scope()`. The rules are in a layer `reset` nested in the engine's
-// `_.k`: a nested layer ranks below the rules of its parent, so the reset sits below the kernels and token rules of `_.k`,
-// the class layers and every top-level layer, and any style beats it. A top-level `@layer reset` cannot go there: the
-// sheet declares the engine's layers first, and a declared top-level layer follows them.
+// as global rules of a call member of cssints/plugin `scope()`. The rules are in a top-level layer `reset` declared before
+// the engine's layers, so it ranks below `_.k`, the class layers and every layer declared after, and any style beats it.
 import { arg, scope } from "cssints/plugin";
 
 const HEADINGS = "h1, h2, h3, h4, h5, h6";
 const FLOW = `${HEADINGS}, p, ul, ol, dl, blockquote, pre, figure, table, hr`;
 
 // Each block is its own global, identified by its text, so `reset()` and `reset({ media: true })` share the base.
-const layered = (rules: string) => ({ css: `@layer reset { ${rules} }` });
+const layered = (rules: string) => ({ css: rules, layer: "reset" });
 
 const BASE = layered(
   [
@@ -40,6 +38,7 @@ const resetScope = scope("reset", {
   reset: { args: [{ "media?": arg<boolean>(), "prose?": arg<boolean>() }] },
 }).build({
   reset: (options) => ({
+    layers: { layers: ["reset"], before: true },
     globals: [BASE, ...(options.media ? [MEDIA] : []), ...(options.prose ? [PROSE] : [])],
   }),
 });
