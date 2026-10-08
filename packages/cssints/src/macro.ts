@@ -398,12 +398,21 @@ const globalRule = (selector?: unknown, ...styles: unknown[]) => {
 };
 
 // layers("app", "author", "viewer"): declares top-level layers in order, printed after the engine's own, for themes
-// and plugin rules that name one (`createGlobalTheme(..., { layer })`).
-const layersRule = (...names: unknown[]) => {
+// and plugin rules that name one (`createGlobalTheme(..., { layer })`); `layers("reset", { before: true })` before them.
+const layersRule = (...args: unknown[]) => {
   const at = registry.at;
-  if (!at || !names.every((n) => typeof n === "string"))
-    throw fail("cssints: layers(...names) takes the names of layers, strings");
-  return edge(addLayers(names, at).pipe(Effect.as(DONE)));
+  const last = args.at(-1);
+  const options = Predicate.isObject(last) ? last : undefined;
+  const names = options ? args.slice(0, -1) : args;
+  if (
+    !at ||
+    !names.every((n) => typeof n === "string") ||
+    (options && typeof options.before !== "boolean")
+  )
+    throw fail(
+      "cssints: layers(...names, { before? }) takes the names of layers, strings, and at the end { before: true } or none",
+    );
+  return edge(addLayers({ names, before: options?.before === true }, at).pipe(Effect.as(DONE)));
 };
 
 const conditions = {

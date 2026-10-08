@@ -117,9 +117,16 @@ export interface GlobalEntry {
   users: Set<string>;
 }
 
+/** A statement `@layer a, b;` to declare: `before` prints it before the engine's `@layer _.k, …;`, so its layers rank below. */
+export interface LayersDecl {
+  names: readonly string[];
+  before?: boolean;
+}
+
 /** A declared statement `@layer a, b;` (`layers()`), by its names joined with `,`, with the files that declared it. */
 export interface LayerEntry {
   names: string[];
+  before: boolean;
   users: Set<string>;
 }
 

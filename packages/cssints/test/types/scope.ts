@@ -214,6 +214,14 @@ scope("bad5", { a: { args: "<custom-ident>" } }).build({
   // @ts-expect-error `null` (a verbatim rule) is gone: declare the layers with `layers`
   a: () => ({ globals: [{ css: "@layer a, b;", layer: null }] }),
 });
+// layers before the engine's: a table entry, or what a build returns
+scope("below", { "#l": { layers: ["reset"], before: true }, a: { args: "<custom-ident>" } }).build({
+  a: () => ({ layers: { layers: ["reset", "base"], before: true }, uses: ["#l"] }),
+});
+scope("bad7", { a: { args: "<custom-ident>" } }).build({
+  // @ts-expect-error `before` is a boolean
+  a: () => ({ layers: { layers: ["reset"], before: "yes" } }),
+});
 scope("bad6", { a: { args: "<custom-ident>" } }).build({
   // @ts-expect-error a theme needs its tokens, overrides and selector
   a: () => ({ themes: [{ selector: ".a" }] }),

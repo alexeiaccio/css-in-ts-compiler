@@ -252,8 +252,10 @@ class Compiler {
       } else if (kind === "global") {
         const g = def as GlobalDef;
         (c.globals ??= []).push({ css: s.own(g.rule), layer: g.layer });
-      } else if (kind === "layers") (c.layers ??= []).push([...(def as LayersDef).layers]);
-      else if (kind === "runtime" || kind === "conflicts") {
+      } else if (kind === "layers") {
+        const l = def as LayersDef;
+        (c.layers ??= []).push({ names: l.layers, before: l.before });
+      } else if (kind === "runtime" || kind === "conflicts") {
         const r = def as RuntimeDef;
         if (!first && kind === "runtime" && (r.parentVars?.length || r.css?.includes("&")))
           throw thrown(this.name, `${this.name}: ${u} uses & but no kernel goes with it in uses`);
@@ -503,7 +505,17 @@ const callOf = (c: Compiler, key: string, def: CallDef) => {
       ...carry,
       globals: made.globals ? [...(carry.globals ?? []), ...made.globals] : carry.globals,
       themes: made.themes,
-      layers: made.layers ? [...(carry.layers ?? []), made.layers] : carry.layers,
+      layers: made.layers
+        ? [
+            ...(carry.layers ?? []),
+            has(made.layers, "layers")
+              ? {
+                  names: (made.layers as LayersDef).layers,
+                  before: (made.layers as LayersDef).before,
+                }
+              : { names: made.layers as readonly string[] },
+          ]
+        : carry.layers,
     });
   };
 };

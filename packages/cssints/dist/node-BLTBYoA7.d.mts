@@ -94,9 +94,15 @@ interface GlobalEntry {
   global: GlobalRule;
   users: Set<string>;
 }
+/** A statement `@layer a, b;` to declare: `before` prints it before the engine's `@layer _.k, …;`, so its layers rank below. */
+interface LayersDecl {
+  names: readonly string[];
+  before?: boolean;
+}
 /** A declared statement `@layer a, b;` (`layers()`), by its names joined with `,`, with the files that declared it. */
 interface LayerEntry {
   names: string[];
+  before: boolean;
   users: Set<string>;
 }
 /** A `css.check.contrast` call, checked once the module that made it has run, and again at the end of a build. */
@@ -189,8 +195,8 @@ interface CssNode {
   kernels?: Kernel[];
   globals?: GlobalRule[];
   themes?: ThemeRule[];
-  layers?: string[][];
+  layers?: LayersDecl[];
   plugs?: Plug[];
 }
 //#endregion
-export { At as n, RegistryState as r, CssNode as t };
+export { RegistryState as i, At as n, LayersDecl as r, CssNode as t };

@@ -1765,10 +1765,13 @@ declare const createGlobalTheme: <const X extends object, const O extends Overri
 }) => void;
 /**
  * Declares top-level layers in order, printed once after the engine's own (`@layer app, author, viewer;`), so what is in
- * them beats the engine's `:root` fallbacks. A theme's `layer` and a plugin's rules must name a declared layer. The same
- * names again are fine; the same names in another order are a build error.
+ * them beats the engine's `:root` fallbacks; `{ before: true }` at the end prints them before the engine's, below every
+ * class (`layers("reset", { before: true })`). A theme's `layer` and a plugin's rules must name a declared layer. The
+ * same names again are fine; the same names in another order, or both before and after, are a build error.
  */
-declare const layers: (...names: readonly [string, ...string[]]) => void;
+declare const layers: (...names: readonly [string, ...string[]] | readonly [string, ...string[], {
+  readonly before: boolean;
+}]) => void;
 /** Build-time checks over tokens. */
 declare const check: {
   /**
@@ -1802,9 +1805,10 @@ interface GlobalDef {
   rule: string;
   layer?: string;
 }
-/** Top-level layers to declare, in order. */
+/** Top-level layers to declare, in order: after the engine's layers, or with `before: true` before them (below every class). */
 interface LayersDef {
   layers: readonly string[];
+  before?: boolean;
 }
 interface ParentVar {
   marker: "&";
@@ -1870,8 +1874,8 @@ interface Made {
     layer?: string;
     scope?: string;
   }[];
-  /** Top-level layers to declare, in order. */
-  layers?: string[];
+  /** Top-level layers to declare, in order: a list, printed after the engine's layers, or `{ layers, before: true }`. */
+  layers?: readonly string[] | LayersDef;
 }
 interface ChainDef {
   chain: {

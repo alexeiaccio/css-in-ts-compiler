@@ -13,6 +13,7 @@ import {
   GLOBAL,
   type GlobalRule,
   type Kernel,
+  type LayersDecl,
   type Rule,
   Registry,
   type RegistryState,
@@ -41,9 +42,11 @@ export const byOrder = (a: Sortable, b: Sortable) =>
   width(b.prop) - width(a.prop) ||
   cmp(a.cls, b.cls);
 
-// The entries of global rules and of declared layers: `@global\t<json of [layer, css]>`, `@layers\ta,b,c`.
+// The entries of global rules and of declared layers: `@global\t<json of [layer, css]>`, `@layers\ta,b,c`, and
+// `@layers<\ta,b` for layers declared before the engine's.
 const GLOBAL_RULE = "@global\t";
 const LAYER_LIST = "@layers\t";
+const LAYER_BEFORE = "@layers<\t";
 const LAYER_NAME = /^[A-Za-z_][\w-]*$/;
 
 /** Adds a global rule (`*{box-sizing:border-box}`) of a plugin member, by its content, to the sheet of the module at `at`. `layer` names a declared top-level layer to wrap it in, no layer puts it in `_.k`. */
@@ -65,11 +68,15 @@ export const globalEntries = ({ globals }: RegistryState, file: string) =>
 
 /**
  * Declares top-level layers, in order: the statement `@layer a, b, c;`, printed after the engine's own layers, once
- * whoever declares it, so what is in them beats the engine's `:root` fallbacks. Another statement may name the same layers
- * in the same order, or hold or be held by this one; layers in another order, or shared without one holding the other,
- * are build errors at `at`, since the sheet could not say which comes first.
+ * whoever declares it, so what is in them beats the engine's `:root` fallbacks; with `before`, printed before them, so
+ * the engine's classes beat what is in them (a reset). Another statement may name the same layers in the same order, or
+ * hold or be held by this one; layers in another order, shared without one holding the other, or declared both before
+ * and after the engine's, are build errors at `at`, since the sheet could not say which comes first.
  */
-export const addLayers = Effect.fnUntraced(function* (names: readonly string[], at?: At) {
+export const addLayers = Effect.fnUntraced(function* (
+  { names, before = false }: LayersDecl,
+  at?: At,
+) {
   const { layers } = yield* Registry;
   const fail = (message: string) => new MacroError({ message: `cssints: ${message}`, ...at });
   const list = names.join(", ");
@@ -83,6 +90,10 @@ export const addLayers = Effect.fnUntraced(function* (names: readonly string[], 
     );
   for (const l of layers.values()) {
     const mine = names.filter((n) => l.names.includes(n));
+    if (mine.length && l.before !== before)
+      return yield* fail(
+        `layers(${list}) declares ${mine.join(", ")} ${before ? "before" : "after"} the engine's layers, and layers(${l.names.join(", ")}) ${l.before ? "before" : "after"}`,
+      );
     if (mine.length && mine.join() !== l.names.filter((n) => names.includes(n)).join())
       return yield* fail(
         `layers(${list}) names layers in another order than layers(${l.names.join(", ")})`,
@@ -94,7 +105,7 @@ export const addLayers = Effect.fnUntraced(function* (names: readonly string[], 
   }
   const key = names.join();
   const entry =
-    layers.get(key) ?? layers.set(key, { names: [...names], users: new Set() }).get(key)!;
+    layers.get(key) ?? layers.set(key, { names: [...names], before, users: new Set() }).get(key)!;
   if (at) entry.users.add(at.file);
 });
 
@@ -111,7 +122,7 @@ export const requireLayer = Effect.fnUntraced(function* (layer: string, at?: At)
 // The layers a module declared: one line each.
 export const layerEntries = ({ layers }: RegistryState, file: string) =>
   [...layers.values()].flatMap((l) =>
-    l.users.has(file) ? [`${LAYER_LIST}${l.names.join()}`] : [],
+    l.users.has(file) ? [`${l.before ? LAYER_BEFORE : LAYER_LIST}${l.names.join()}`] : [],
   );
 
 // The statements to print, each once, the longer first: one that holds another has already said its order.
@@ -194,19 +205,20 @@ export const renderSheet = Effect.fn("cssints.renderSheet")(function* (
   const layered = globals.filter(([layer]) => layer !== "");
   // The statements of the modules of this sheet, and those that the layers it uses are declared in
   const inUse = new Set([...layered.map(([layer]) => layer), ...topThemes.map((t) => t[2])]);
-  const statements = layerStatements([
-    ...all.flatMap((e) =>
-      e.startsWith(LAYER_LIST) ? [e.slice(LAYER_LIST.length).split(",")] : [],
-    ),
-    ...[...layers.values()].flatMap((l) => (l.names.some((n) => inUse.has(n)) ? [l.names] : [])),
-  ]);
+  const statementsOf = (prefix: string, before: boolean) =>
+    layerStatements([
+      ...all.flatMap((e) => (e.startsWith(prefix) ? [e.slice(prefix.length).split(",")] : [])),
+      ...[...layers.values()].flatMap((l) =>
+        l.before === before && l.names.some((n) => inUse.has(n)) ? [l.names] : [],
+      ),
+    ]).map((s) => `@layer ${s.join(", ")};\n`);
   let out = `${LAYERS}\n${[...properties, ...used.flatMap((k) => k.atProperty ?? [])].map((p) => `${p}\n`).join("")}`;
-  // the declared layers follow the engine's, so everything named after them ranks above it
-  out = out.replace("\n", `\n${statements.map((s) => `@layer ${s.join(", ")};\n`).join("")}`);
+  // the layers declared before the engine's rank below it, those after above it
+  out = `${statementsOf(LAYER_BEFORE, true).join("")}${out.replace("\n", `\n${statementsOf(LAYER_LIST, false).join("")}`)}`;
   if (kGlobals.length || used.length || fallbacks.length || kThemes.length)
     out += `@layer _.k {\n${[...kGlobals, ...used.map((k) => k.css), ...fallbacks, ...kThemes.map((t) => t[3]), ...(derived ? [derived] : [])].map((g) => `  ${g}\n`).join("")}}\n`;
-  // Named top-level layers (a look's `@layer app`), declared by the statements above: after `_.k` and the class layers,
-  // so a look beats the engine's `:root` fallbacks.
+  // Named top-level layers (a look's `@layer app`), ranked by the statements above, not by where their blocks are: after
+  // `_.k` and the class layers, so a look beats the engine's `:root` fallbacks, or before `_.k` (a reset).
   for (const [layer, css] of layered) out += `@layer ${layer} {\n  ${css}\n}\n`;
   for (const t of topThemes) out += `@layer ${t[2]} {\n  ${t[3]}\n}\n`;
   let layer = "";

@@ -172,6 +172,12 @@ css.createGlobalTheme(
 css.layers();
 // @ts-expect-error names are strings
 css.layers("app", 1);
+// before the engine's layers, below every class
+css.layers("reset", { before: true });
+// @ts-expect-error the options come after the names
+css.layers({ before: true }, "reset");
+// @ts-expect-error a name first
+css.layers({ before: true });
 
 // An override may refer to tokens: the whole value, or inside a CSS value checked with each reference as its target's type.
 css.createGlobalTheme(t, ".ref", { space: { md: "{space.sm}" }, color: { bg: "{color.accent}" } });

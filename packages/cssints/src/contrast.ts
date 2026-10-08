@@ -35,11 +35,16 @@ const affectedBy = (defs: RegistryState["defs"], names: string[], out = new Set<
 };
 
 // The themes that meet on one element, as one: those with the same selector (and scope), each laid over the last in the
-// order the cascade ranks them: no layer first, then the declared layers in order, then source order. A viewer's look that
-// sets only the text colour is checked against the background of the app's look.
+// order the cascade ranks them: the layers declared before the engine's, no layer (`_.k`), the layers declared after, each
+// in order, then source order. A viewer's look that sets only the text colour is checked against the background of the
+// app's look.
 const together = ({ themed, layers }: RegistryState) => {
-  const order = layerStatements([...layers.values()].map((l) => l.names)).flat();
-  const rank = (layer?: string) => (layer === undefined ? -1 : order.indexOf(layer));
+  const side = (before: boolean) =>
+    layerStatements(
+      [...layers.values()].flatMap((l) => (l.before === before ? [l.names] : [])),
+    ).flat();
+  const order = [...side(true), "", ...side(false)];
+  const rank = (layer?: string) => order.indexOf(layer ?? "");
   const groups = new Map<string, { label: string; values: Map<string, string> }>();
   for (const t of [...themed.values()].sort(
     (a, b) => rank(a.layer) - rank(b.layer) || (a.key < b.key ? -1 : 1),
