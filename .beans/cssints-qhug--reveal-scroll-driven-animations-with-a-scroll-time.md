@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-08T08:55:57Z
-updated_at: 2026-10-08T13:37:41Z
+updated_at: 2026-10-08T13:45:03Z
 parent: cssints-dk1q
 blocked_by:
     - cssints-11pj
@@ -23,6 +23,6 @@ blocked_by:
 - builds on motion()'s presets; `polyfills: ["css.properties.animation-timeline"]`.
 
 ## Todo
-- [ ] kernel + chain
+- [x] kernel + chain
 - [ ] runtime entry with the polyfill
-- [ ] fixture
+- [x] fixture
