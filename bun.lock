@@ -105,6 +105,17 @@
         "cssints": "^0.1.0",
       },
     },
+    "packages/layout": {
+      "name": "@cssints/layout",
+      "version": "0.1.0",
+      "devDependencies": {
+        "cssints": "workspace:*",
+        "vite": "catalog:",
+      },
+      "peerDependencies": {
+        "cssints": "^0.1.0",
+      },
+    },
     "packages/mise-en-mode": {
       "name": "@cssints/mise-en-mode",
       "version": "0.1.0",
@@ -203,6 +214,8 @@
     "@cssints/css-grammar": ["@cssints/css-grammar@workspace:packages/css-grammar"],
 
     "@cssints/icons": ["@cssints/icons@workspace:packages/icons"],
+
+    "@cssints/layout": ["@cssints/layout@workspace:packages/layout"],
 
     "@cssints/mise-en-mode": ["@cssints/mise-en-mode@workspace:packages/mise-en-mode"],
 
