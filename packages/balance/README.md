@@ -14,11 +14,6 @@ export const title = cn(balance(), fontSize("2rem"));
 export const lead = pretty();
 ```
 
-```ts
-// the app's entry, once: needed only when a target lacks text-wrap: balance (see "Rules")
-import "@cssints/balance/runtime";
-```
-
 ```css
 @layer _.k {
   ._balance-core {
@@ -48,14 +43,14 @@ test:browsers` checks it in Chrome, Firefox and WebKit, natively and with the na
 
 - **`balance()`** is a kernel, `text-wrap: balance`, and a runtime entry for `css.properties.text-wrap.balance`. When a
   target lacks it, the sheet gets the fallback rule above: `--balance-js: 1` inside `@supports not (text-wrap: balance)`,
-  so it is on only in a browser without the feature. When every target has it, the rule is not in the sheet and the
-  runtime does nothing (drop the import). No support warning either way.
+  so it is on only in a browser without the feature, and the module that uses `balance()` imports the script through
+  `virtual:cssints/runtime/balance.script` (the runtime entry names it, `script`). When every target has it, neither the
+  rule nor the script ships: the runtime module is empty. No support warning either way, and nothing to import by hand.
 - **The runtime** (`@cssints/balance/runtime`, no imports, 552 bytes minified and gzipped) acts on an element of class
   `_balance-core` whose computed `--balance-js` is set: it binary-searches the narrowest `max-width` (between half the
   width and all of it) that keeps the element's height, so the line count stays and the lines even out. It runs again
   when the element's parent resizes (`ResizeObserver`), when its text changes, when a marked element is added
-  (`MutationObserver`), and when the fonts are ready. Import it from the app's entry, not from a module with styles:
-  the engine evaluates those in Node.
+  (`MutationObserver`), and when the fonts are ready.
 - **`pretty()`** is `text-wrap: pretty` and nothing more. There is no small polyfill: pretty weighs the whole paragraph
   to avoid orphans and ragged edges, and a browser without it wraps as usual, which is what pretty improves on. So it
   requires nothing, warns about nothing and ships nothing (a `css.textWrap("pretty")` warns for Firefox, this does not).
@@ -70,8 +65,6 @@ test:browsers` checks it in Chrome, Firefox and WebKit, natively and with the na
   needs `margin-inline: auto` on the element to stay centred. An inline `max-width` of your own is overwritten.
 - Horizontal writing modes only; the parent must not size itself from the element (a shrink-to-fit parent can loop
   with the `ResizeObserver`).
-- The runtime is the app's import: the engine delivers a plugin's script only for `parentVars` runtimes, so
-  `virtual:cssints/runtime/balance.script` stays empty and nothing warns when the import is missing.
 
 ```bash
 cd packages/balance && bun run test            # fixtures through the engine (kernel, fallback CSS by target, conflict)

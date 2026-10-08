@@ -12,6 +12,8 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 process.env.BROWSERSLIST = "chrome 110, safari 17.3, firefox 120";
+// the exports' `development` condition: the runtime is src/runtime.ts (dist is not built in the workspace)
+process.env.NODE_ENV = "development";
 const { default: cssints } = await import("cssints/vite");
 const { build } = await import("vite");
 
@@ -43,7 +45,7 @@ const text = (ext) =>
 const js = text(".js");
 const css = text(".css");
 assert.match(css, /@supports not \(text-wrap:\s*balance\)/, css);
-assert.ok(js.includes("--balance-js"), "the runtime is in the bundle");
+assert.equal(js.split('"--balance-js"').length, 2, "the runtime is in the bundle, once");
 
 const FORCE = "._balance-core{text-wrap-style:auto !important;--balance-js:1 !important}";
 const serve = async (browser, { force = false, blind = false } = {}) => {
