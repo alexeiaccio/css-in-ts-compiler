@@ -894,7 +894,8 @@ const declares = (n, out) => {
 };
 function findSites(program, locals) {
 	const sites = [];
-	const walk = (node, inFn, scope) => {
+	const scopes = [/* @__PURE__ */ new Set()];
+	const walk = (node, inFn) => {
 		if (!Predicate.isObject(node) || typeof node.type !== "string") return;
 		const n = node;
 		if ((n.type === "CallExpression" || n.type === "NewExpression") && locals.has(rootIdent(n.callee) ?? "")) {
@@ -902,21 +903,22 @@ function findSites(program, locals) {
 				start: n.start,
 				end: n.end,
 				inFn,
-				locals: scope
+				locals: scopes[scopes.length - 1]
 			});
 			return;
 		}
 		const fn = inFn || /Function/.test(n.type);
 		const own = /* @__PURE__ */ new Set();
 		declares(n, own);
-		const here = own.size ? /* @__PURE__ */ new Set([...scope, ...own]) : scope;
+		scopes.push(own.size ? /* @__PURE__ */ new Set([...scopes[scopes.length - 1], ...own]) : scopes[scopes.length - 1]);
 		for (const k in node) {
 			const v = node[k];
-			if (Array.isArray(v)) v.forEach((c) => walk(c, fn, here));
-			else if (Predicate.isObject(v) && "type" in v) walk(v, fn, here);
+			if (Array.isArray(v)) v.forEach((c) => walk(c, fn));
+			else if (Predicate.isObject(v) && "type" in v) walk(v, fn);
 		}
+		scopes.pop();
 	};
-	walk(program, false, /* @__PURE__ */ new Set());
+	walk(program, false);
 	return sites;
 }
 const instrument = Effect.fn("cssints.instrument")(function* (code, id, client = true) {

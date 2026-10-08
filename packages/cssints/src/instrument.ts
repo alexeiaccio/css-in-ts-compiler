@@ -195,7 +195,8 @@ const declares = (n: Node, out: Set<string>) => {
 // it runs for every module twice (ssr, client), inside the `instrument` boundary.
 function findSites(program: Program, locals: Set<string>): Site[] {
   const sites: Site[] = [];
-  const walk = (node: unknown, inFn: boolean, scope: Set<string>) => {
+  const scopes = [new Set<string>()]; // innermost last
+  const walk = (node: unknown, inFn: boolean) => {
     if (!Predicate.isObject(node) || typeof node.type !== "string") return;
     const n = node as unknown as Node;
     // `new CSSColorValue(...)` too: value constructors are sites, replaced by their CSS text.
@@ -203,20 +204,23 @@ function findSites(program: Program, locals: Set<string>): Site[] {
       (n.type === "CallExpression" || n.type === "NewExpression") &&
       locals.has(rootIdent(n.callee) ?? "")
     ) {
-      sites.push({ start: n.start, end: n.end, inFn, locals: scope });
+      sites.push({ start: n.start, end: n.end, inFn, locals: scopes[scopes.length - 1]! });
       return; // nested css calls are evaluated as part of this one
     }
     const fn = inFn || /Function/.test(n.type);
     const own = new Set<string>();
     declares(n, own);
-    const here = own.size ? new Set([...scope, ...own]) : scope;
+    scopes.push(
+      own.size ? new Set([...scopes[scopes.length - 1]!, ...own]) : scopes[scopes.length - 1]!,
+    );
     for (const k in node) {
       const v = node[k];
-      if (Array.isArray(v)) v.forEach((c) => walk(c, fn, here));
-      else if (Predicate.isObject(v) && "type" in v) walk(v, fn, here);
+      if (Array.isArray(v)) v.forEach((c) => walk(c, fn));
+      else if (Predicate.isObject(v) && "type" in v) walk(v, fn);
     }
+    scopes.pop();
   };
-  walk(program, false, new Set());
+  walk(program, false);
   return sites;
 }
 
@@ -250,7 +254,9 @@ export const instrument = Effect.fn("cssints.instrument")(function* (
       // global (`open`, `name`: the evaluator's window) or the module binding of the same name.
       const names = new Set(expr.match(/[\p{L}\p{N}_$]+/gu));
       const dead = [...s.locals].filter((x) => names.has(x));
-      hoisted.push(dead.length ? `{ ${site}${expr}); let ${dead.join(", ")}; }` : `${site}${expr});`);
+      hoisted.push(
+        dead.length ? `{ ${site}${expr}); let ${dead.join(", ")}; }` : `${site}${expr});`,
+      );
     } else {
       ms.prependLeft(s.start, site).appendRight(s.end, ")");
       hoisted.push(`__unseen(${file}, ${n}) && ${site}${expr});`);
