@@ -11,6 +11,8 @@ export type Length = `${number}rem` | `${number}px`;
 export interface Range {
   from?: Length;
   to?: Length;
+  /** `false` skips the WCAG 1.4.4 check, for a length that is not text (a padding, a gap). */
+  zoom?: boolean;
 }
 /** What `fluid()` gives: a length, for any property that takes one. */
 export type Fluid = CSSStyleValue<"length">;
@@ -39,7 +41,7 @@ const rem = (label: string, text: string) => {
 const num = (n: number) => String(Number(n.toFixed(4)) + 0);
 
 const compute = (label: string, unit: "vw" | "cqi") => (parts: string[]) => {
-  const [min = "", max = "", from = "", to = ""] = parts;
+  const [min = "", max = "", from = "", to = "", unchecked] = parts;
   const [lo = 0, hi = 0, a = 0, b = 0] = [min, max, from, to].map((t) => rem(label, t));
   if (lo === hi)
     throw new Error(
@@ -53,7 +55,10 @@ const compute = (label: string, unit: "vw" | "cqi") => (parts: string[]) => {
   // twice the size at 100%. Both sides are piecewise linear, so checking at their kinks is checking everywhere.
   const at = (w: number) =>
     Math.min(Math.max(intercept + slope * w, Math.min(lo, hi)), Math.max(lo, hi));
-  const fails = [a, b, 5 * a, 5 * b].find((w) => 5 * at(w / 5) < 2 * at(w) - 1e-9);
+  const fails =
+    unchecked === undefined
+      ? [a, b, 5 * a, 5 * b].find((w) => 5 * at(w / 5) < 2 * at(w) - 1e-9)
+      : undefined;
   if (fails !== undefined)
     throw new Error(
       `cssints: ${label}: ${min} to ${max} between ${from} and ${to} fails WCAG 1.4.4: at ${num(fails)}rem wide, 500% zoom gives ${num(5 * at(fails / 5))}rem, under twice ${num(at(fails))}rem; narrow the range of sizes or widen the widths`,
@@ -64,17 +69,21 @@ const compute = (label: string, unit: "vw" | "cqi") => (parts: string[]) => {
   );
 };
 
-const grammar = "<length [0,∞]> <length [0,∞]> <length [0,∞]> <length [0,∞]>";
-// The members take the four lengths as parts (a value member's arguments are parts); the export gives them names.
+const grammar = "<length [0,∞]> <length [0,∞]> <length [0,∞]> <length [0,∞]> unchecked?";
+// The members take the four lengths as parts (a value member's arguments are parts), and `unchecked` for `zoom: false`;
+// the export gives them names.
 const members = scope("fluid", {
   fluid: { args: grammar, value: compute("fluid", "vw") },
   fluidContainer: { args: grammar, value: compute("fluid.container", "cqi") },
-}).export() as unknown as Record<"fluid" | "fluidContainer", (...parts: Length[]) => Fluid>;
+}).export() as unknown as Record<
+  "fluid" | "fluidContainer",
+  (...parts: (Length | "unchecked")[]) => Fluid
+>;
 
 const ranged =
-  (member: (...parts: Length[]) => Fluid) =>
-  (min: Length, max: Length, { from = "20rem", to = "80rem" }: Range = {}) =>
-    member(min, max, from, to);
+  (member: (...parts: (Length | "unchecked")[]) => Fluid) =>
+  (min: Length, max: Length, { from = "20rem", to = "80rem", zoom = true }: Range = {}) =>
+    zoom ? member(min, max, from, to) : member(min, max, from, to, "unchecked");
 
 /**
  * `fluid(min, max, { from?, to? })`: a length that is `min` at the viewport width `from` (20rem), `max` at `to` (80rem),

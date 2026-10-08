@@ -42,6 +42,8 @@ has("font-size:clamp(1.5rem, -0.8333vw + 2.1667rem, 2rem)");
 has("font-size:clamp(1rem, 1.25vw + 0.5rem, 1.25rem)");
 // a negative intercept is subtracted
 has("font-size:clamp(2rem, 5vw - 1rem, 3rem)");
+// zoom: false skips the 1.4.4 check (bad-zoom.ts fails it with the same sizes)
+has("padding:clamp(1rem, 5vw + 0rem, 4rem)");
 // nothing of the package reaches the client
 assert.ok(!transformed.includes("fluid"), `no runtime import\n${transformed}`);
 

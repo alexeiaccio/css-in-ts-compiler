@@ -50,8 +50,8 @@ export const hero = fontSize(fluid("1rem", "4rem")); // build error: fails WCAG 
 
 ## Limits
 
-- The 1.4.4 check runs on every call, also on lengths that are not text (a padding from 1rem to 4rem fails it); there is
-  no switch to turn it off.
+- The 1.4.4 check runs on every call unless `{ zoom: false }` is passed, which is for lengths that are not text (a
+  padding, a gap): `padding(fluid("1rem", "4rem", { zoom: false }))`.
 - `fluid.container()` uses the same check with the container's width in place of the viewport's, which holds when the
   container scales with the viewport.
 - No defaults from a token set, and no token as an argument: a token is a `var()`, which the build cannot compute with.
