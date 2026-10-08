@@ -93,7 +93,11 @@ export type ValidSyntax<K extends string, S extends string, G extends string = `
       ? `${K}: ${Unexpected<Stuck<Trim<S> | Consume<Parse<G>, Trim<S>>>>} in "${S}", grammar ${G}`
       : never;
 /** `ValidSyntax` for a value of the token type `K`. */
-export type ValidToken<K extends TokenType, S extends string> = ValidSyntax<Syntax<K>, S, Grammar<K>>;
+export type ValidToken<K extends TokenType, S extends string> = ValidSyntax<
+  Syntax<K>,
+  S,
+  Grammar<K>
+>;
 
 /**
  * A token: a Typed OM value of its type whose text is `var(--name)`. `Settable` is whether it has a name. `V` is the value of

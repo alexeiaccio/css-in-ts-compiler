@@ -294,12 +294,12 @@ await kernelFails(
   `[css.marginLeft("1px"), css.marginInlineStart("1px")]`,
   /^cssints: margin-left and margin-inline-start overlap without one containing the other/,
 );
+await kernelFails("nest", `css.nest("& > [x")(css.color("red"))`, /^cssints: nest\(\): /);
 await kernelFails(
-  "nest",
-  `css.nest("& > [x")(css.color("red"))`,
-  /^cssints: nest\(\): /,
+  "own",
+  `css.nest(":hover")(css.color("red"))`,
+  /^cssints: nest\(\) takes a selector that starts with & and a combinator/,
 );
-await kernelFails("own", `css.nest(":hover")(css.color("red"))`, /^cssints: nest\(\) takes a selector that starts with & and a combinator/);
 await kernelFails("var", `css.vars({ gap: "1rem" })`, /^cssints: vars\(\) takes/);
 
 // a kernel written as styles reaches other elements (nest), sets custom properties (vars) and carries a keyframes() name;
@@ -372,8 +372,7 @@ for (const [name, text] of [
 await assert.rejects(
   code(use2(defs("sc-prop", `{ "-webkit-line-clamp": "<integer>" }`))),
   (e) => (
-    assert.match(e.message.split("\n")[0], /-webkit-line-clamp is a CSS property already/),
-    true
+    assert.match(e.message.split("\n")[0], /-webkit-line-clamp is a CSS property already/), true
   ),
 );
 // `uses` names a private key without its `#`: `#trim` beside a member `trim` is one name for two keys

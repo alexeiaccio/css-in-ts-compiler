@@ -30,3 +30,7 @@ tools/ai-automation/vendor
 docs/research/plugin-api-proto
 apps/sky/src/tokens.d.json.ts
 apps/docs/src/tokens.d.json.ts
+# Scratch output of css-grammar scripts (git-ignored).
+packages/css-grammar/out
+# The order of the export conditions is meaningful ("development" before "types"); the formatter sorts the keys.
+packages/*/package.json

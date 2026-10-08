@@ -117,8 +117,7 @@ const cssOf = Effect.fnUntraced(function* (
           `cssints: ${what} is not a DTCG shadow: { color, offsetX, offsetY, blur, spread, inset? } or an array of them`,
         );
       const parts = [];
-      for (const k of SHADOW.slice(1))
-        parts.push(yield* cssOf("dimension", l[k], `${what} ${k}`));
+      for (const k of SHADOW.slice(1)) parts.push(yield* cssOf("dimension", l[k], `${what} ${k}`));
       parts.push(yield* cssOf("color", l.color, `${what} color`));
       out.push(`${l.inset ? "inset " : ""}${parts.join(" ")}`);
     }

@@ -61,7 +61,7 @@ test:browsers` checks it in Chrome, Firefox and WebKit, natively and with the na
 
 - **No conditions.** A member is a kernel's class, global CSS that cannot be conditional: `hover(pretty())` or
   `media(...)(balance())` is a build error at the call (`:hover wraps _balance-prettyCore, the marker of kernel
-  balance.prettyCore, with no declaration of its own`). Under a condition, use `css.textWrap(...)` (native only).
+balance.prettyCore, with no declaration of its own`). Under a condition, use `css.textWrap(...)` (native only).
 - **The fallback sets `max-width`** on the element: the box narrows, where `text-wrap: balance` keeps it. Centred text
   needs `margin-inline: auto` on the element to stay centred. An inline `max-width` of your own is overwritten.
 - Horizontal writing modes only; the parent must not size itself from the element (a shrink-to-fit parent can loop

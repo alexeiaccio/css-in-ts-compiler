@@ -167,7 +167,10 @@ assert.match(
 );
 assert.ok(!/quad|import|[^-]mix\(/.test(fnUse), "...and no call or import is left");
 // plug-kit.ts imports CSSColorValue from "cssints" plainly: fine at build time, an error in a module the client gets
-await assert.rejects(code("plug-kit.ts"), /imports build-time CSSColorValue from "cssints" without/);
+await assert.rejects(
+  code("plug-kit.ts"),
+  /imports build-time CSSColorValue from "cssints" without/,
+);
 const fnCss = sheet("plug-fn.ts");
 assert.match(fnCss, /\{color:color-mix\(in oklab, red, blue\)\}/);
 assert.match(fnCss, /\{width:8px\}/, "a string result");

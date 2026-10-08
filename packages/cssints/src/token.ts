@@ -121,13 +121,10 @@ const privateName = (): string => {
 const FONT_RELATIVE = /(\d*\.?\d+(?:e[+-]?\d+)?)(r?em|r?ex|r?ch|r?cap|r?ic|r?lh)\b/gi;
 const EM: Record<string, number> = { em: 1, ex: 0.5, ch: 0.5, cap: 0.7, ic: 1, lh: 1.2 };
 const inPx = (text: string) =>
-  text.replace(
-    FONT_RELATIVE,
-    (_, n: string, unit: string) => {
-      const u = unit.toLowerCase();
-      return `${Number((Number(n) * 16 * (EM[u] ?? EM[u.slice(1)]!)).toFixed(4))}px`;
-    },
-  );
+  text.replace(FONT_RELATIVE, (_, n: string, unit: string) => {
+    const u = unit.toLowerCase();
+    return `${Number((Number(n) * 16 * (EM[u] ?? EM[u.slice(1)]!)).toFixed(4))}px`;
+  });
 
 // Registers the `@property` rule of a token and what it is worth. `text` is a literal of the type, and `what` names it
 // in an error. A target that cannot parse `text` would drop the rule and leave the token with no value: the initial value

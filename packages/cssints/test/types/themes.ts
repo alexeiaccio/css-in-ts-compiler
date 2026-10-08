@@ -88,13 +88,22 @@ const m = css.createTokens({
     $type: "shadow",
     sm: { $value: "0 1px 2px #0003, inset 0 0 0 1px red" },
     md: {
-      $value: { color: "#0003", offsetX: "0", offsetY: { value: 4, unit: "px" }, blur: "8px", spread: "0" },
+      $value: {
+        color: "#0003",
+        offsetX: "0",
+        offsetY: { value: 4, unit: "px" },
+        blur: "8px",
+        spread: "0",
+      },
     },
   },
 });
 css.transitionTimingFunction(m.ease.out);
 css.boxShadow(m.shadow.md);
-css.createGlobalTheme(m, ".dark", { ease: { out: [0.2, 0, 0, 1] }, shadow: { sm: "0 0 1px #000" } });
+css.createGlobalTheme(m, ".dark", {
+  ease: { out: [0.2, 0, 0, 1] },
+  shadow: { sm: "0 0 1px #000" },
+});
 // @ts-expect-error a cubicBezier has four numbers
 css.createTokens({ e: { $type: "cubicBezier", x: { $value: [0, 1] } } });
 // @ts-expect-error not an easing function
