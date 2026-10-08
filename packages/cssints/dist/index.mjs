@@ -1,4 +1,4 @@
-import { C as addRuntime, D as covers, F as MacroError, I as MemberError, M as registry, O as relation, _ as standIn, c as byOrder, h as requireLayer, j as forgetKernels, k as Registry, o as addGlobal, s as addLayers, t as CV_CALL, y as addKernel } from "./instrument-BDgoJ8DA.mjs";
+import { C as addRuntime, D as covers, F as MacroError, I as MemberError, M as registry, O as relation, _ as standIn, c as byOrder, h as requireLayer, j as forgetKernels, k as Registry, o as addGlobal, s as addLayers, t as CV_CALL, y as addKernel } from "./instrument-CQnOJsD9.mjs";
 import { createRequire } from "node:module";
 import { checkDeclarationNow, checkQuery, checkSelector, checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { browsers, messageOf, supportOf } from "@cssints/css-grammar/support";
@@ -166,7 +166,7 @@ function carried(nodes) {
 		}
 		if (n.layers) for (const l of n.layers) {
 			const all = out.layers ??= [];
-			if (!all.some((x) => x.join() === l.join())) all.push(l);
+			if (!all.some((x) => x.names.join() === l.names.join() && x.before === l.before)) all.push(l);
 		}
 		if (n.plugs) for (const p of n.plugs) {
 			const all = out.plugs ??= [];
@@ -422,8 +422,13 @@ var Compiler = class {
 				css: s.own(g.rule),
 				layer: g.layer
 			});
-		} else if (kind === "layers") (c.layers ??= []).push([...def.layers]);
-		else if (kind === "runtime" || kind === "conflicts") {
+		} else if (kind === "layers") {
+			const l = def;
+			(c.layers ??= []).push({
+				names: l.layers,
+				before: l.before
+			});
+		} else if (kind === "runtime" || kind === "conflicts") {
 			const r = def;
 			if (!first && kind === "runtime" && (r.parentVars?.length || r.css?.includes("&"))) throw thrown(this.name, `${this.name}: ${u} uses & but no kernel goes with it in uses`);
 			const own = first ? first[1].marker(first[2]) : "";
@@ -626,7 +631,10 @@ const callOf = (c, key, def) => {
 			...carry,
 			globals: made.globals ? [...carry.globals ?? [], ...made.globals] : carry.globals,
 			themes: made.themes,
-			layers: made.layers ? [...carry.layers ?? [], made.layers] : carry.layers
+			layers: made.layers ? [...carry.layers ?? [], has(made.layers, "layers") ? {
+				names: made.layers.layers,
+				before: made.layers.before
+			} : { names: made.layers }] : carry.layers
 		});
 	};
 };
@@ -1453,10 +1461,16 @@ const globalRule = (selector, ...styles) => {
 	});
 	return DONE;
 };
-const layersRule = (...names) => {
+const layersRule = (...args) => {
 	const at = registry.at;
-	if (!at || !names.every((n) => typeof n === "string")) throw fail("cssints: layers(...names) takes the names of layers, strings");
-	return edge(addLayers(names, at).pipe(Effect.as(DONE)));
+	const last = args.at(-1);
+	const options = Predicate.isObject(last) ? last : void 0;
+	const names = options ? args.slice(0, -1) : args;
+	if (!at || !names.every((n) => typeof n === "string") || options && typeof options.before !== "boolean") throw fail("cssints: layers(...names, { before? }) takes the names of layers, strings, and at the end { before: true } or none");
+	return edge(addLayers({
+		names,
+		before: options?.before === true
+	}, at).pipe(Effect.as(DONE)));
 };
 const conditions = {
 	media: condition("media"),

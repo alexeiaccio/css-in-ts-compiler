@@ -1,4 +1,4 @@
-import { G as types_d_exports, Xd as Style, Yd as Part, qd as CheckIn, t as CheckOverrides } from "./theme-types-DAzfQokg.mjs";
+import { G as types_d_exports, Xd as Style, Yd as Part, qd as CheckIn, t as CheckOverrides } from "./theme-types-DJaLF1ob.mjs";
 import { CSSStyleValue } from "@cssints/css-grammar/values";
 import { Syntax, TokenType } from "@cssints/css-grammar/token";
 import { ValidSelector } from "@cssints/css-grammar/query";
@@ -99,9 +99,10 @@ interface GlobalDef {
   rule: string;
   layer?: string;
 }
-/** Top-level layers to declare, in order. */
+/** Top-level layers to declare, in order: after the engine's layers, or with `before: true` before them (below every class). */
 interface LayersDef {
   layers: readonly string[];
+  before?: boolean;
 }
 interface ParentVar {
   marker: "&";
@@ -167,8 +168,8 @@ interface Made {
     layer?: string;
     scope?: string;
   }[];
-  /** Top-level layers to declare, in order. */
-  layers?: string[];
+  /** Top-level layers to declare, in order: a list, printed after the engine's layers, or `{ layers, before: true }`. */
+  layers?: readonly string[] | LayersDef;
 }
 interface ChainDef {
   chain: {
