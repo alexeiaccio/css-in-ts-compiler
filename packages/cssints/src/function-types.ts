@@ -2,7 +2,14 @@
 // checked: a math function by the kind of its arguments (which gives the kind of its result), any other against its
 // mdn-data grammar, `<rgb()>`, with the call as text. A part is a string, a number or a Typed OM value (a token, a call).
 // Parts are joined by the function's separator, and by a space next to an operator (`"+"`, `"-"`, `"*"`, `"/"`). Types only.
-import type { LengthUnit, Sentinel, Sentinels, ValidIn } from "@cssints/css-grammar/css";
+import type {
+  LengthUnit,
+  MatchesValue,
+  Sentinel,
+  Sentinels,
+  Unexpected,
+  ValidIn,
+} from "@cssints/css-grammar/css";
 import type {
   Syntax,
   Token,
@@ -37,9 +44,29 @@ type Join<
   : Acc;
 type Call<N extends string, Sep extends string, A extends readonly Arg[]> = `${N}(${Join<A, Sep>})`;
 
+// The recognizer does not say where inside a call it stopped (a failed sequence reports its start), so the bad argument is
+// found by prefixes: a `var()` stands for any run of values (css.ts "Pending substitution"), so `name(parts so far, var(--x))`
+// is a `<name()>` while the parts can still go on (or the call is complete). The first part after which it is not is the bad
+// one; when every prefix goes on, the call ends too soon and the last part is where it is said.
+type Stop<
+  N extends string,
+  Sep extends string,
+  A extends readonly Arg[],
+  Acc extends string = `${N}(`,
+  Prev = never,
+  I extends 0[] = [],
+> = A extends readonly [infer H, ...infer R extends readonly Arg[]]
+  ? `${Acc}${Next<Prev, H, Sep>}${Text<H>}` extends infer J extends string
+    ? MatchesValue<`<${N}()>`, `${J}${Glue<H, "", Sep>}var(--x))`> extends true
+      ? Stop<N, Sep, R, J, H, [...I, 0]>
+      : MatchesValue<`<${N}()>`, `${J})`> extends true
+        ? Stop<N, Sep, R, J, H, [...I, 0]>
+        : [at: `${I["length"]}`, n: [...I, 0]["length"], bad: Text<H>]
+    : never
+  : [at: `${Dec<I>["length"]}`, n: I["length"], bad: ""];
 /**
- * The parameters of a call to function `N` joined by `Sep`: `A` when the call is a valid `<N()>`, else the message on every
- * part (the recognizer does not say which part of a call it stopped at, the build's message does).
+ * The parameters of a call to function `N` joined by `Sep`: `A` when the call is a valid `<N()>`, else the twin's message,
+ * with the position of the argument, on the argument where the text stops matching the grammar.
  */
 export type CheckFn<N extends string, Sep extends string, A extends readonly Arg[]> =
   ValidIn<`${N}()`, `<${N}()>`, Call<N, Sep, A>> extends infer V
@@ -47,7 +74,17 @@ export type CheckFn<N extends string, Sep extends string, A extends readonly Arg
       ? A
       : A extends readonly []
         ? [value: V]
-        : { [K in keyof A]: V }
+        : Stop<N, Sep, A> extends [
+              infer At extends string,
+              infer Pos extends number,
+              infer Bad extends string,
+            ]
+          ? {
+              [K in keyof A]: K extends At
+                ? `${N}(): ${Unexpected<Bad>} in "${Call<N, Sep, A>}", grammar <${N}()> (${Bad extends "" ? "after " : ""}argument ${Pos})`
+                : A[K];
+            }
+          : never
     : never;
 /** `rgb`, `linearGradient`, `lightDark`: a call whose result is a `<N()>`, a part wherever the grammar takes one. */
 export type Fn<N extends string, Sep extends string> = <const A extends readonly Arg[]>(
