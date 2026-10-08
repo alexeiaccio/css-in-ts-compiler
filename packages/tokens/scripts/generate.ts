@@ -91,14 +91,14 @@ const write = (file: string, header: string, exports: Group) => {
   const ease = opEasing as Record<string, string>;
   // an alias (`--ease-elastic-1: var(--ease-elastic-out-1)`) is its target, a literal
   const resolve = (v: string) =>
-    tidy(v.replace(/^var\((--[\w-]+)\)$/, (_, ref: string) => ease[ref]!));
+    tidy(v.replace(/^var\((--[\w-]+)\)$/, (_, ref: string) => ease[ref]));
   const easings = Object.fromEntries(
     Object.entries(ease).map(([name, v]) => [camel(name.slice(2)), resolve(v)]),
   );
   // The shadows read --shadow-color and --shadow-strength(-N); they are resolved here, light and dark.
   const shadowSet = (dark: boolean) => {
     const props = opShadows as Record<string, string>;
-    const pick = (name: string) => props[dark ? `${name}-@media:dark` : name]!;
+    const pick = (name: string) => props[dark ? `${name}-@media:dark` : name];
     const strength = Number.parseFloat(pick("--shadow-strength"));
     const value = (ref: string) => {
       if (ref === "--shadow-color") return pick(ref);
@@ -137,8 +137,8 @@ const write = (file: string, header: string, exports: Group) => {
   );
   const easings = Object.fromEntries(
     [...yml.matchAll(/^- name: (\w+)\n\s+css:\s+(cubic-bezier\([^)]*\))/gm)].map((m) => [
-      m[1]!,
-      m[2]!,
+      m[1],
+      m[2],
     ]),
   );
   write("easings.ts", `from easings.net (ai/easings.net@${EASINGS_NET.slice(0, 7)})`, { easings });
@@ -161,12 +161,12 @@ const write = (file: string, header: string, exports: Group) => {
   const overrides = (scale: Record<string, string>) =>
     Object.fromEntries(stepsOf(scale).map(([k, v]) => [`_${k}`, v]));
   for (const s of scales) {
-    light[s] = leaves("color", stepsOf(r[s]!));
-    lightAlpha[`${s}A`] = leaves("color", stepsOf(r[`${s}A`]!));
-    dark[s] = overrides(r[`${s}Dark`]!);
-    darkAlpha[`${s}A`] = overrides(r[`${s}DarkA`]!);
+    light[s] = leaves("color", stepsOf(r[s]));
+    lightAlpha[`${s}A`] = leaves("color", stepsOf(r[`${s}A`]));
+    dark[s] = overrides(r[`${s}Dark`]);
+    darkAlpha[`${s}A`] = overrides(r[`${s}DarkA`]);
   }
-  for (const s of ["blackA", "whiteA"]) lightAlpha[s] = leaves("color", stepsOf(r[s]!));
+  for (const s of ["blackA", "whiteA"]) lightAlpha[s] = leaves("color", stepsOf(r[s]));
   write("radix.ts", `from @radix-ui/colors ${version("@radix-ui/colors")}`, {
     light,
     dark,
@@ -182,8 +182,8 @@ const write = (file: string, header: string, exports: Group) => {
   );
   const groups: Record<string, [string, string][]> = {};
   for (const [, name, value] of css.matchAll(/--flexoki-([\w-]+):\s*(#[0-9A-Fa-f]+);/g)) {
-    const m = /^(?:([a-z]+)-)?(\w+)$/.exec(name!)!;
-    (groups[m[1] ?? "base"] ??= []).push([m[2]!, value!.toLowerCase()]);
+    const m = /^(?:([a-z]+)-)?(\w+)$/.exec(name)!;
+    (groups[m[1] ?? "base"] ??= []).push([m[2], value.toLowerCase()]);
   }
   const flexoki = Object.fromEntries(
     Object.entries(groups).map(([g, entries]) => [g, leaves("color", entries)]),
@@ -197,7 +197,7 @@ const write = (file: string, header: string, exports: Group) => {
   const css = readFileSync(`${dir}/reasonable-colors.css`, "utf8");
   const groups: Record<string, [string, string][]> = {};
   for (const [, hue, step, value] of css.matchAll(/--color-([a-z]+)-(\d+):\s*(#[0-9a-f]+);/gi))
-    (groups[hue!] ??= []).push([step!, value!.toLowerCase()]);
+    (groups[hue] ??= []).push([step, value.toLowerCase()]);
   const reasonableColors = Object.fromEntries(
     Object.entries(groups).map(([g, entries]) => [g, leaves("color", entries)]),
   );
