@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-08T09:42:20Z
-updated_at: 2026-10-08T11:03:44Z
+updated_at: 2026-10-08T11:15:38Z
 ---
 
 Found by @cssints/tokens (cssints-0gll, repros under "## Engine gaps").
@@ -18,5 +18,5 @@ Found by @cssints/tokens (cssints-0gll, repros under "## Engine gaps").
 ## Todo
 - [x] rem in dimension tokens
 - [x] cubicBezier/transition and shadow token types (DTCG has both)
-- [ ] cheaper token types for large sets
+- [x] cheaper token types for large sets
 - [x] themes register @property only for used tokens

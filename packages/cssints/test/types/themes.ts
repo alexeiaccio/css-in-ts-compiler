@@ -59,6 +59,9 @@ css.createTokens({ size: { $type: "dimension", s: { $value: "1px" } } }, (path) 
 // A value is a CSS string of the type's grammar, or a DTCG value.
 // @ts-expect-error not a colour
 css.createTokens({ c: { $type: "color", x: { $value: "blu" } } });
+// @ts-expect-error a hex colour is one word
+css.createTokens({ c: { $type: "color", x: { $value: "#fff red" } } });
+css.createTokens({ c: { $type: "color", x: { $value: "#fff8" }, y: { $value: "#ffffff80" } } });
 // @ts-expect-error a dimension needs its unit
 css.createTokens({ c: { $type: "dimension", x: { $value: "12" } } });
 // @ts-expect-error DTCG dimensions have px and rem

@@ -137,6 +137,15 @@ export type Tokens<G, Inherited = undefined, Root = G> = {
 // A message is the type `{ $error: "..." }` that a leaf is intersected with, so it is the text of the error.
 type Bad<Why extends string> = { readonly $error: `cssints: ${Why}` };
 type Fits<V, R> = [R] extends [V] ? true : Bad<R extends string ? R : "not a value of this type">;
+// A value of a token type. A hex colour, one word after `#`, is a `<color>` without the walk of every colour syntax:
+// ~7k instantiations a value, which a palette of hundreds pays per token (TS2589 at ~5M); the build checks the digits.
+type Valid<Kd extends TokenType, V extends string> = Kd extends "color"
+  ? V extends `#${string}${" " | "," | "(" | ")" | "/"}${string}`
+    ? ValidToken<Kd, V>
+    : V extends `#${string}`
+      ? V
+      : ValidToken<Kd, V>
+  : ValidToken<Kd, V>;
 // A derived value is checked as the type's grammar with each reference in place as a value of the target's type.
 type Sentinel<K> = K extends TokenType ? `⟨${(typeof TOKEN_TYPES)[K]["sentinels"][0]}⟩` : never;
 type Subst<V extends string, Root> = V extends `${infer A}{${infer P}}${infer B}`
@@ -151,12 +160,12 @@ type CheckString<
 > = V extends `${string}{${string}}${string}`
   ? [Subst<V, Root>] extends [never]
     ? Bad<"a reference {…} has no token">
-    : Fits<Subst<V, Root>, ValidToken<Kind<Ty>, Subst<V, Root>>>
+    : Fits<Subst<V, Root>, Valid<Kind<Ty>, Subst<V, Root>>>
   : Ty extends "fontWeight"
     ? V extends FontWeightName
       ? true
       : Fits<V, ValidSyntax<"number", V>>
-    : Fits<V, ValidToken<Kind<Ty>, V>>;
+    : Fits<V, Valid<Kind<Ty>, V>>;
 // A JSON import (`with { type: "json" }`) widens $type to string: its tree is typed, its values are checked at build time.
 type CheckValue<V, Ty, Root> = string extends Ty
   ? true
@@ -241,7 +250,7 @@ type CheckRefs<V extends string, Kd extends TokenType, X> = V extends `{${infer 
       : Bad<`{${P}} is a ${KindIn<X, P>}, not a ${Kd}`>
   : [SubstIn<V, X>] extends [never]
     ? Bad<"a reference {…} has no token">
-    : Fits<SubstIn<V, X>, ValidToken<Kd, SubstIn<V, X>>> extends infer R
+    : Fits<SubstIn<V, X>, Valid<Kd, SubstIn<V, X>>> extends infer R
       ? [R] extends [true]
         ? V
         : R
@@ -254,7 +263,7 @@ export type CheckOverrides<X, O, Root = X> = {
           ? O[K]
           : O[K] extends `${string}{${string}}${string}`
             ? CheckRefs<O[K], Kd, Root>
-            : Fits<O[K], ValidToken<Kd, O[K]>> extends infer R
+            : Fits<O[K], Valid<Kd, O[K]>> extends infer R
               ? [R] extends [true]
                 ? O[K]
                 : R

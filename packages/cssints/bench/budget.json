@@ -15,6 +15,10 @@
     "tsc": 310807,
     "tsgo": 322309
   },
+  "palette.ts": {
+    "tsc": 20947,
+    "tsgo": 20990
+  },
   "plugins-defs.ts": {
     "tsc": 56562,
     "tsgo": 65901
