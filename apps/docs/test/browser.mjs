@@ -1,4 +1,4 @@
-// The site on the dev server in Chrome (playwright-core from node_modules/.bun; not in CI: needs Chrome installed). Every page of the
+// The site on the dev server in Chrome (playwright-core from node_modules/.bun; skipped when Chrome is not installed). Every page of the
 // sidebar is opened: it must render its title and its text, and a page error, a console error, a failed request or Solid's
 // SETTLED_CLEANUP_UNOWNED (the dev build reports what the production one drops) fails the run. Then the parts: the links between the
 // pages and their anchors, the search, the colour mode (system and the toggle), the mobile menu, the type hovers. Screenshots go to
@@ -21,10 +21,13 @@ const { chromium } = await import(
   pathToFileURL(join(modules, pw, "node_modules/playwright-core/index.mjs")).href
 );
 
+const browser = await chromium.launch({ channel: "chrome" }).catch((e) => {
+  console.log(`docs browser: skipped, Chrome did not start (${String(e).split("\n")[0]})`);
+  process.exit(0);
+});
 const server = await createServer({ root, logLevel: "error", server: { port: 0 } });
 await server.listen();
 const base = server.resolvedUrls.local[0];
-const browser = await chromium.launch({ channel: "chrome" });
 const problems = [];
 
 const open = async (context, path = "") => {
