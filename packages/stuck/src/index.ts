@@ -60,7 +60,7 @@ const grouped = (n: Style): Style => {
   return new Proxy(g, {
     get: (t, k) =>
       typeof k === "symbol" || k in t
-        ? Reflect.get(t, k)
+        ? (Reflect.get(t, k) as unknown)
         : (...args: unknown[]) =>
             grouped((Reflect.get(n, k) as (...a: unknown[]) => Style)(...args)),
   });
@@ -70,6 +70,8 @@ const grouped = (n: Style): Style => {
  * `sticky().top("0")`: `position: sticky`, `container-type: scroll-state` and the insets of its methods (each once, a
  * `<length-percentage>`, a lone number a spacing step). Its descendants take `stuck(...)` styles. It sets `position`
  * and `container-type`, so those in the same `cn()` are a build error.
+ *
+ * @returns {Sticky} the chain of the insets
  */
 export const sticky: Sticky = (() => grouped(member())) as unknown as Sticky;
 
@@ -90,7 +92,11 @@ export interface Stuck {
   (...styles: Style[]): Style;
 }
 
-/** Styles of a descendant of `sticky()` while the sticky element is stuck: `stuck(...styles)` (top) or `stuck(side)(...styles)`. */
+/**
+ * Styles of a descendant of `sticky()` while the sticky element is stuck: `stuck(...styles)` (top) or `stuck(side)(...styles)`.
+ *
+ * @returns {Style | Wrap} the styles under the condition, or the condition of that side
+ */
 export const stuck = ((...args: unknown[]) => {
   const [side] = args;
   if (typeof side !== "string") return under("top")(...(args as Style[]));

@@ -11,7 +11,8 @@
   "type": "module",
   "sideEffects": [
     "./src/observer.ts",
-    "./dist/observer.mjs"
+    "./dist/observer.mjs",
+    "./test/fixtures/*"
   ],
   "exports": {
     ".": {
