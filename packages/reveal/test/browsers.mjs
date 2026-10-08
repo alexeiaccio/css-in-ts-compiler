@@ -55,7 +55,9 @@ const native = bundle("chrome 120, safari 26");
 const withFallback = bundle("chrome 120, firefox 128");
 assert.ok(!native.css.includes("data-reveal"), "native targets: no fallback CSS");
 assert.ok(withFallback.css.includes("data-reveal-in"), "Firefox in the targets: the fallback CSS");
-assert.ok(withFallback.js.includes("IntersectionObserver"), "the runtime is in the bundle");
+// the script comes with the runtime module, once, and only when a target lacks the timeline
+assert.equal(withFallback.js.split("new IntersectionObserver").length, 2, "the script, once");
+assert.ok(!native.js.includes("IntersectionObserver"), "native targets: no script");
 // forced: no view timeline left, and the fallback rules apply whatever the browser has
 const forced = {
   js: withFallback.js,
@@ -126,6 +128,8 @@ const state = (page) =>
 const scrubbed = async (page) => {
   const out = [];
   const check = (ok, what, s) => out.push(ok ? null : `${what}: ${JSON.stringify(s)}`);
+  // WebKit may read the first frame before the view timeline has a time
+  await frames(page);
   let s = await state(page);
   check(s.opacity === 0 && s.timeline === "ViewTimeline" && !s.poly, "below the fold", s);
   await scroll(page, 450);

@@ -34,9 +34,14 @@ const transformed = await code("use.ts");
 const out = flat(plugins[0].api.sheet([`${root}/use.ts`]));
 const fallback =
   "@supports not (animation-timeline:view()){[data-reveal] ._reveal-core:not([data-reveal-in]){animation-play-state:paused}}";
-// a runtime of CSS only: the engine has no script of a plugin's own to put in it (README, "Limits")
+// the runtime module imports the script when a target lacks the timeline (the default targets have Firefox), else nothing
 const runtime = (await client.transformRequest("virtual:cssints/runtime/reveal.io")).code;
-assert.equal(runtime, "export {};");
+assert.equal(
+  runtime.includes("reveal/src/runtime.ts"),
+  mode !== "native",
+  `${mode}: ${runtime}`,
+);
+if (mode === "native") assert.equal(runtime, "export {};");
 // the fallback covers the kernel's requires everywhere: never a support warning
 assert.deepEqual(warnings, []);
 

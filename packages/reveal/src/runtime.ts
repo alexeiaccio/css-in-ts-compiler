@@ -2,7 +2,8 @@
 /// <reference lib="dom.iterable" />
 // The fallback of reveal() for browsers without scroll-driven animations: marks <html data-reveal> (the fallback CSS then
 // holds each reveal paused at its first frame) and gives an element data-reveal-in when it enters the viewport, which
-// plays it once. Off where `animation-timeline: view()` works. No imports, no Effect; import it once in the app.
+// plays it once. Off where `animation-timeline: view()` works. No imports, no Effect; the engine delivers it
+// (virtual:cssints/runtime/reveal.io) when a target lacks the timeline.
 if (typeof CSS !== "undefined" && !CSS.supports("animation-timeline:view()")) {
   const root = document.documentElement;
   const marker = "._reveal-core";

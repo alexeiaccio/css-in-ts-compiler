@@ -13,7 +13,7 @@ export default defineConfig({
       dts: true,
       clean: true,
     },
-    // The browser fallback, imported by the app: minified, no imports.
+    // The browser fallback, imported by virtual:cssints/runtime/reveal.io: minified, no imports.
     {
       entry: { runtime: "src/runtime.ts" },
       platform: "browser",
