@@ -2,23 +2,11 @@
 // postcss-easing-gradients does: the curve's parameter t is sampled evenly, x(t) places the stop and y(t) is the share of the
 // second colour, mixed in oklab with premultiplied alpha (as CSS mixes). An endpoint that cannot be read at build time (a
 // token is `var(--name)`, `currentColor`) makes every stop a `color-mix(in oklab, …)` for the browser to compute.
-import { CSSStyleValue } from "@cssints/css-grammar/values";
+import { CSSImageValue } from "cssints";
 import { scope } from "cssints/plugin";
 import { formatHex, formatHex8, interpolateWithPremultipliedAlpha, parse } from "culori";
 
 import { fixed, samples } from "./stops.ts";
-
-// ponytail: stands in for the spec's CSSImageValue, holds the text of a gradient.
-class CSSImageValue extends CSSStyleValue<"image"> {
-  readonly value: string;
-  constructor(value: string) {
-    super();
-    this.value = value;
-  }
-  override toString() {
-    return this.value;
-  }
-}
 
 const eased = scope("gradient", {
   // local syntax names: the direction of each kind (as the CSS function takes it), then the parts every kind shares

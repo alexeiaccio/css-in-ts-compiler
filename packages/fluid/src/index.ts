@@ -2,7 +2,7 @@
 // `clamp(min, <slope>vw + <intercept>rem, max)` (cqi in a container). Two value members of cssints/plugin `scope()`, so
 // the parts are checked at the call and a failure is a build error there; the result is a Typed OM length. The WCAG 1.4.4 check is fluid-tailwind's (barvian/fluid-tailwind): at 500% zoom the value must reach twice its
 // size at 100%, or text cannot be resized to 200%.
-import { CSSStyleValue } from "@cssints/css-grammar/values";
+import { CSSStyleValue } from "cssints";
 import { scope } from "cssints/plugin";
 
 /** A length the build can compute with: px or rem (16px to the rem). */

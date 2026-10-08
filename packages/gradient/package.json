@@ -36,7 +36,6 @@
     "pack:tgz": "node ../../scripts/pack.mjs"
   },
   "dependencies": {
-    "@cssints/css-grammar": "workspace:*",
     "culori": "^4.0.2"
   },
   "devDependencies": {
