@@ -162,6 +162,8 @@ class Compiler {
   private readonly kernels = new Map<string, Kernel>();
   // the conflicts of each kernel written as styles, by key
   private readonly derived = new Map<string, ConflictDef>();
+  // the properties each kernel written as styles sets on the element, by key
+  private readonly sets = new Map<string, string[]>();
   // the keyframes() and positionTry() rules of each kernel written as styles, by key
   private readonly atRules = new Map<string, Kernel[]>();
 
@@ -227,6 +229,7 @@ class Compiler {
       css = built.css;
       warnings = built.warnings.map((w) => ({ ...w, value: this.own(w.value) }));
       if (built.kernels) this.atRules.set(key, built.kernels);
+      this.sets.set(key, built.props);
       // what the kernel sets, and what meets it in a `cn()`: the member that uses it may not set those
       this.derived.set(key, {
         props: Object.keys(properties).filter((p) =>
@@ -259,9 +262,25 @@ class Compiler {
     const first = kinds.find((k) => k[3] === "kernel");
     // a conflicts entry in the list replaces what the kernels written as styles derive
     const explicit = kinds.some((k) => k[3] === "conflicts");
+    const set: [u: string, k: string, props: string[]][] = [];
     for (const [u, s, key, kind, def] of kinds) {
       if (kind === "kernel") {
         const k = s.kernel(key);
+        // kernels print by key, not in `uses` order: two that set one property of the element would leave it to their names
+        const props = s.sets.get(key);
+        if (props) {
+          const meets = (a: string[], b: string[]) =>
+            a.filter((p) => b.some((q) => relation(p, q) !== "apart"));
+          for (const [v, other, ps] of set) {
+            const both = [...new Set([...meets(ps, props), ...meets(props, ps)])];
+            if (other !== k.key && both.length)
+              throw thrown(
+                this.name,
+                `${this.name}: kernels ${v} and ${u} both set ${both.join(", ")} (they are one element's styles and print in no set order): write those in one kernel`,
+              );
+          }
+          set.push([u, k.key, props]);
+        }
         (c.kernels ??= []).push(...(s.atRules.get(key) ?? []), k);
         (c.markers ??= []).push([s.marker(key), k.key]);
         const conflicts = explicit ? undefined : s.derived.get(key);

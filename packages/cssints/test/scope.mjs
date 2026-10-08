@@ -348,6 +348,36 @@ await fails(
   "sc-nest",
 );
 
+// two kernels of one member have no order between them (the sheet prints kernels by key), so what they set on the
+// element may not meet: a shorthand in one and its longhand in the other, or one property in both, is a build error
+const pair = (name, a, b) => {
+  write(
+    `sc-pair-${name}.ts`,
+    `import { scope } from "cssints/plugin";\nexport const { m } = scope("sc-pair-${name}", { "#view": { css: (css) => ${a} }, "#zap": { css: (css) => ${b} }, m: { uses: ["zap", "view"], chain: {} } }).export();\n`,
+  );
+  return write(
+    `sc-pair-${name}-use.ts`,
+    `import { m } from "./sc-pair-${name}.ts" with { type: "cssints" };\nexport const a = m();\n`,
+  );
+};
+await fails(
+  pair("short", `css.animationTimeline("view()")`, `css.animation("1s both")`),
+  /^cssints: sc-pair-short: kernels zap and view both set animation, animation-timeline \(they are one element's styles and print in no set order\): write those in one kernel$/,
+  2,
+  "sc-pair-short",
+);
+await fails(
+  pair("same", `css.hover(css.color("red"))`, `[css.display("flex"), css.color("blue")]`),
+  /^cssints: sc-pair-same: kernels zap and view both set color /,
+  2,
+  "sc-pair-same",
+);
+// properties that do not meet are fine
+assert.match(
+  await code(pair("apart", `css.animationTimeline("view()")`, `css.color("red")`)),
+  /"_sc-pair-apart-zap _sc-pair-apart-view"/,
+);
+
 // the definition: names, entries
 const defs = (name, table = "{}") =>
   write(
