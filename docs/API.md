@@ -726,6 +726,20 @@ export const typo = mdi("clos"); // error: not an icon of mdi
 - **Cost.** The kernel is printed once. Each icon adds one class, and the same icon is the same class everywhere. The kernel has no `requires`: LightningCSS adds `-webkit-mask` for targets that have only the prefixed form.
 - **Not yet:** the iconify HTTP API (it would need a lockfile), names generated for `fs`, a name transform, and watching the SVG files in dev (a changed file needs a restart).
 
+### Plugin packages (cssints-dk1q)
+
+More plugins on `scope()`, each a package of its own with its rules and limits in its README. Import them with the attribute, like `cssints`.
+
+| Package | Members | What it does |
+|---|---|---|
+| [`@cssints/fluid`](../packages/fluid/README.md) | `fluid(min, max, { from?, to?, zoom? })`, `fluid.container(...)` | A `clamp()` that grows between two widths, computed at build time; a range that fails WCAG 1.4.4 is a build error |
+| [`@cssints/layout`](../packages/layout/README.md) | `stack()`, `cluster()`, `sidebar()`, `switcher()`, `cover()`, `autoGrid()` | Every Layout primitives as chain members |
+| [`@cssints/fonts`](../packages/fonts/README.md) | `font(family, { provider, ... })` → `.family()`, `.trim()` | `@font-face` and a metric-matched fallback face; cap-height trimming by `text-box`, else capsize's margins |
+| [`@cssints/reset`](../packages/reset/README.md) | `reset({ media?, prose? })` | A modern reset in `@layer _.k.reset`, below every style |
+| [`@cssints/tokens`](../packages/tokens/README.md) | `/open-props`, `/easings`, `/radix`, `/flexoki`, `/reasonable-colors` | DTCG data for `createTokens` |
+| [`@cssints/gradient`](../packages/gradient/README.md) | `gradient(kind, direction, from, to, easing?, stops?)` | Eased colour stops mixed in oklab at build time |
+| [`@cssints/motion`](../packages/motion/README.md) | `motion().preset().duration().delay().easing()` | Animation presets over `keyframes()`, with reduced motion |
+
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 
 A package written on cssints ships JavaScript that still has the attribute, and its `.d.ts`. The app that installs it evaluates the package with its own engine: one sheet, the app's browserslist and themes, and a token, a kernel or an `@property` of the package is made once however many modules use it. Nothing is declared: the engine recognises a file by `with { type: "cssints" }`, the same marker as in app code.
