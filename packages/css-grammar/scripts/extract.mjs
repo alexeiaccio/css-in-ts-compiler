@@ -47,9 +47,9 @@ props["-webkit-box-orient"] = {
 };
 // CSS Grid 3 (masonry) as Safari 26.4 ships it, which mdn-data 2.27.1 lacks and BCD 8.1.3 has (css.properties.display.
 // grid-lanes, css.properties.flow-tolerance). Chrome 154 and Firefox 155 reject all of it, so Chrome cannot judge it: not a
-// `PROP` override (webref-rule.mjs would fail it) and not the webref list (display's webref grammar also has `math`). The
-// keywords go into mdn-data's own display grammar, in every mode, so both twins of the rule accept them and `display`
-// stays out of its D; flow-tolerance is webref's grammar verbatim. The support warnings come from BCD.
+// `PROP` override (webref-rule.mjs would fail it). The keywords go into mdn-data's own display grammar, in every mode, so
+// both twins of the rule accept them and they stay out of its D (the rule then takes webref's display for its `math`);
+// flow-tolerance is webref's grammar verbatim. The support warnings come from BCD.
 props.display = {
   ...props.display,
   syntax: `${props.display.syntax} | grid-lanes | inline-grid-lanes`,
