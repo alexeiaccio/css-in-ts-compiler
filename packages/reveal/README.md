@@ -86,8 +86,8 @@ export const tile = cn(reveal().preset("blur-in"), hover(reveal().duration("1s")
 - **Presets** are motion's entrance presets: `fade-in`, `slide-in-up`, `slide-in-down`, `slide-in-left`,
   `slide-in-right`, `scale-in`, `blur-in`. The `-out` ones are not: the fallback can only play when an element enters.
 - **Reuse of motion.** The kernel names motion's `motionKeyframes.in` and `motionKeyframes.reducedIn`, which carries
-  their rules (shared with `motion()` on the same page: one rule each), and a preset sets the `--motion-*` values those
-  keyframes read, from motion's `presets` table. Nothing is copied.
+  their rules (shared with `motion()` on the same page: one rule each), and a preset sets the values those keyframes
+  read, from motion's `presets` table under motion's names (`motionVars`). Nothing is copied, not even a name.
 - **Reduced motion.** Under `prefers-reduced-motion: reduce` the kernel runs the opacity-only keyframes (motion's rule):
   a slide, scale or blur becomes a fade over the same range.
 - **One kernel, written as styles.** The `animation` shorthand resets `animation-timeline` and `animation-range`; a
