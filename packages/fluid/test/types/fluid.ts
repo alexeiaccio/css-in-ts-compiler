@@ -10,8 +10,11 @@ export const b = padding(card);
 
 // @ts-expect-error not a length
 export const e1 = fluid("1rem", "red");
-// @ts-expect-error em cannot be computed at build time
+// em is a length to the types: the build rejects it (bad-unit.ts)
 export const e2 = fluid("1em", "2em");
+export const gap = fluid("1rem", "4rem", { zoom: false });
+// @ts-expect-error zoom is a boolean
+export const e7 = fluid("1rem", "4rem", { zoom: "no" });
 // @ts-expect-error a width is a length
 export const e3 = fluid.container("1rem", "2rem", { from: "wide" });
 // @ts-expect-error no such option
