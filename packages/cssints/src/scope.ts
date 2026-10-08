@@ -419,8 +419,14 @@ type BadUses<N extends string, T, V> = V extends { uses: readonly (infer U exten
     ? unknown
     : Bad<`${N}: uses ${Exclude<U, UsableOf<T>>}, which is not a kernel, global, layers, runtime or conflicts of this scope`>
   : unknown;
+// `uses` names a private key without its `#`, so `#x` and `x` in one table would be one name for two keys.
+type Clash<N extends string, T, K> = K extends `#${infer R}`
+  ? R extends keyof T
+    ? Bad<`${N}: ${K} and ${R} share a name: rename one`>
+    : unknown
+  : unknown;
 export type Valid<N extends string, T> = {
-  readonly [K in keyof T]: BadUses<N, T, T[K]>;
+  readonly [K in keyof T]: BadUses<N, T, T[K]> & Clash<N, T, K>;
 };
 type CallKeys<T> = {
   [K in keyof T & string]: Kind<K, T[K]> extends "call" ? K : never;
