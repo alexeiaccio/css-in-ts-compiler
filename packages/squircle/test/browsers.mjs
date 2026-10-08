@@ -78,7 +78,7 @@ assert.ok(builds.fallback.css.includes("@supports not"), builds.fallback.css);
 builds.forced = {
   js: builds.fallback.js,
   css: builds.fallback.css
-    .replace(";corner-shape:squircle}", "}")
+    .replace(/;?corner-shape:squircle(?=[;}])/, "")
     .replace("@supports not (corner-shape:squircle)", "@supports (display:block)"),
 };
 assert.notEqual(builds.forced.css, builds.fallback.css);
