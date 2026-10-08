@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: high
 created_at: 2026-10-08T08:55:57Z
-updated_at: 2026-10-08T09:03:02Z
+updated_at: 2026-10-08T09:12:42Z
 parent: cssints-dk1q
 ---
 
@@ -24,6 +24,6 @@ parent: cssints-dk1q
 - scope `reset`, one `layers: ["reset"]` entry and one global; options as flags: `reset({ prose?: boolean, media?: boolean })`.
 
 ## Todo
-- [ ] pick the rule set (jakelazaroff + piccalil 3 lines)
-- [ ] global + layer
-- [ ] fixture
+- [x] pick the rule set (jakelazaroff + piccalil 3 lines)
+- [x] global + layer
+- [x] fixture
