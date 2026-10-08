@@ -56,7 +56,8 @@ export const link = stuck("bottom")(color("green"), hover(color("black")));
   import by hand: the runtime entry names it (`script`), so the module that uses `sticky()` imports it through
   `virtual:cssints/runtime/stuck.observer` when a target lacks the queries; that module is empty when none does.
 - The fallback rules are in the sheet only when a browserslist target lacks the queries (`chrome 133` alone gets the
-  `@container` rules only). The kernel's support warnings (its `requires`, the queries, and its declaration
+  `@container` rules only): `stuck()` asks `lacking()` of `cssints/plugin`, the same query and rules as the support
+  warnings. The kernel's support warnings (its `requires`, the queries, and its declaration
   `container-type: scroll-state`) are covered by the observer, so a build for the default targets prints none.
 - Checked in Chrome (native, and the observer with the queries cut out), Firefox and WebKit (the observer):
   `bun run test:browsers`.
@@ -77,7 +78,7 @@ export const link = stuck("bottom")(color("green"), hover(color("black")));
 position, container-type (this style also sets position)`.
 - **Errors**: a bad inset is the grammar's, in the types and at build time (`sticky.top: unexpected "red" in "red",
 expected <length-percentage>`), a method twice is `cssints: sticky().top() is used twice`, and an unknown side is a type
-  error and `cssints: stuck: stuck() takes top, right, bottom or left, got "middle"`.
+  error and `cssints: stuck: stuck() takes top, right, bottom or left, got "middle"`. Each points at the call.
 
 ## Limits
 
