@@ -92,3 +92,39 @@ if (problems.length) {
   process.exit(1);
 }
 console.log(`docs: ${blocks.length} code blocks type-check`);
+
+// The plugin module of "Functions" (tint, step) also runs through the engine, used from a module as an app would.
+const fn = blocks.find((b) => b.code.includes("export const { tint, step }"));
+assert.ok(fn, "the value member example of docs/API.md");
+const end = fn.code.indexOf(".export();") + ".export();".length;
+mkdirSync(tmp);
+writeFileSync(join(tmp, "units.ts"), fn.code.slice(0, end));
+writeFileSync(
+  join(tmp, "use.ts"),
+  `import { color, width } from "cssints" with { type: "cssints" };
+import { step, tint } from "./units.ts" with { type: "cssints" };
+export const a = color(tint("red", "20%"));
+export const b = width(step(2));
+`,
+);
+const { createServer } = await import("vite");
+const { default: cssints } = await import("../src/plugin.ts");
+const plugins = cssints();
+const server = await createServer({
+  root: tmp,
+  configFile: false,
+  logLevel: "warn",
+  server: { middlewareMode: true, watch: null, hmr: false },
+  plugins,
+});
+try {
+  const out = (await server.environments.client.transformRequest("/use.ts")).code;
+  assert.ok(!/tint|step|import/.test(out), `nothing of the plugin ships:\n${out}`);
+  const sheet = plugins[0].api.sheet([join(tmp, "use.ts")]);
+  assert.match(sheet, /\{color:color-mix\(in oklab, red, white 20%\)\}/, sheet);
+  assert.match(sheet, /\{width:8px\}/, sheet);
+} finally {
+  await server.close();
+  rmSync(tmp, { recursive: true, force: true });
+}
+console.log("docs: the value member example runs through the engine");

@@ -5,7 +5,7 @@ status: in-progress
 type: bug
 priority: high
 created_at: 2026-10-08T09:42:19Z
-updated_at: 2026-10-08T10:17:42Z
+updated_at: 2026-10-08T10:23:17Z
 ---
 
 Found by the tier-1 plugins (cssints-dk1q). Repros in cssints-ni5c and cssints-yb1w under "## Engine gaps".
@@ -16,5 +16,5 @@ Found by the tier-1 plugins (cssints-dk1q). Repros in cssints-ni5c and cssints-y
 ## Todo
 - [x] allow Typed OM imports from cssints in plugin modules (they are build-time values)
 - [ ] export CSSStyleValue (and an image value) from cssints
-- [ ] run the tint example through the engine in docs.mjs, not only tsgo
+- [x] run the tint example through the engine in docs.mjs, not only tsgo
 - [ ] drop the @cssints/css-grammar dependency from fluid and gradient
