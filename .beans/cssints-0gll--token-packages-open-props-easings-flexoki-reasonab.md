@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: high
 created_at: 2026-10-08T08:55:57Z
-updated_at: 2026-10-08T09:03:02Z
+updated_at: 2026-10-08T09:22:30Z
 parent: cssints-dk1q
 ---
 
@@ -25,6 +25,6 @@ Data-only token sets as `{ tokens }` entries: `@cssints/open-props` (sizes, easi
 - Radix: light/dark as `createGlobalTheme`, contrast pairs through check.contrast.
 
 ## Todo
-- [ ] generator script from upstream data
-- [ ] open-props first, then radix
+- [x] generator script from upstream data
+- [x] open-props first, then radix
 - [ ] fixture: only used tokens reach the sheet
