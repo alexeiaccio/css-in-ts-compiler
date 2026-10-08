@@ -587,7 +587,7 @@ export const b = cn(chip(), paddingLeft("1px"));
 
 ### Functions: every CSS function is a call (cssints-67qf)
 
-Every CSS function that mdn-data has a grammar for is a member of `css` and a named import, camelCased: `calc`, `min`, `clamp`, `round`, `sin`, `rgb`, `oklch`, `colorMix`, `lightDark`, `linearGradient`, `cubicBezier`, `steps`, `translateX`, `url`, `env`, `var`, ... 105 of them (`bun run extract` writes the list from `mdn-data/css/functions.json`, `bun run members` the types). A call takes parts: a token, a number, a string, another call, or an array of those joined by a space (`[t.color.bg, "25%"]`, a colour stop). It is computed at build time, checked against the grammar of its function by the twin, and replaced by its text: nothing ships. What it returns is a Typed OM value of the function's type, a part of any property that takes one.
+Every CSS function that mdn-data has a grammar for is a member of `css` and a named import, camelCased: `calc`, `min`, `clamp`, `round`, `sin`, `rgb`, `oklch`, `colorMix`, `lightDark`, `linearGradient`, `cubicBezier`, `steps`, `translateX`, `url`, `env`, `var`, ... 110 of them (`bun run extract` writes the list from `mdn-data/css/functions.json` and the `name()` grammars of mdn-data's syntaxes, `bun run members` the types). A call takes parts: a token, a number, a string, another call, or an array of those joined by a space (`[t.color.bg, "25%"]`, a colour stop). It is computed at build time, checked against the grammar of its function by the twin, and replaced by its text: nothing ships. What it returns is a Typed OM value of the function's type, a part of any property that takes one.
 
 ```ts
 import * as css from "cssints" with { type: "cssints" };
@@ -607,6 +607,7 @@ export const f = css.color(css.colorMix("in oklab", t.color.accent, "black 15%")
 export const g = css.color(css.oklch(0.7, 0.1, 200, "/", 0.5)); // color: oklch(0.7 0.1 200 / 0.5)
 export const h = css.backgroundImage(css.linearGradient("to right", [t.color.accent, "25%"], "blue"));
 export const i = css.transitionTimingFunction(css.cubicBezier(0.1, 0.7, 1, 0.1));
+export const img = css.backgroundImage(css.url('"a.png"')); // url("a.png"): the quotes are yours
 export const j = css.transform(css.translateFn(t.space.md, 0), css.rotateFn("10deg"));
 export const k = css.width(css.calc(t.space.md, "+", t.time.fast)); // error: cannot add length and time
 export const l = css.width(css.calc(t.space.md, "*", t.space.md)); // error: cannot multiply length by length

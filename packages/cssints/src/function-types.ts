@@ -52,7 +52,7 @@ export type CheckFn<N extends string, Sep extends string, A extends readonly Arg
 /** `rgb`, `linearGradient`, `lightDark`: a call whose result is a `<N()>`, a part wherever the grammar takes one. */
 export type Fn<N extends string, Sep extends string> = <const A extends readonly Arg[]>(
   ...parts: CheckFn<N, Sep, A>
-) => CSSStyleValue<`${N}()`>;
+) => CSSStyleValue<N extends "url" | "src" ? "url" : `${N}()`>; // the recognizer reads <url> itself, not <url()>
 
 // ---- math: the kind of each argument, folded with the precedence of CSS (`*` `/` before `+` `-`)
 type Known = "length" | "percentage" | "angle" | "time" | "resolution";

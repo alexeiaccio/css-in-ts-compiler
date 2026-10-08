@@ -61,6 +61,7 @@ export const grad: css.Style = css.backgroundImage(
 );
 export const bez: css.Style = css.transitionTimingFunction(css.cubicBezier(0.1, 0.7, 1, 0.1));
 export const rot: css.Style = css.transform(css.translateFn(t.space.md, 0), css.rotateFn("10deg"));
+export const img: css.Style = css.backgroundImage(css.url('"a.png"'));
 export const rgbValue: CSSStyleValue<"rgb()"> = css.rgb(255, 0, 0);
 // @ts-expect-error not a colour space
 css.colorMix("in rgb", "red", "blue");

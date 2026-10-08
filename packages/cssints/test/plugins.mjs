@@ -154,6 +154,7 @@ for (const rule of [
   "transform:translate(var(--space-md), 0) rotate(10deg)",
   "transition-timing-function:cubic-bezier(0.1, 0.7, 1, 0.1)",
   "color:rgb(255, 0, 0)",
+  'background-image:url("a.png")',
   "width:calc(min(var(--space-md), 50%) - 1rem)",
 ])
   assert.ok(biCss.includes(`{${rule}}`), `${rule}\n${biCss}`);

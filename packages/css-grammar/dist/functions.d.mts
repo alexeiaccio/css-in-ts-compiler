@@ -336,5 +336,20 @@ export declare const functions: {
   readonly xywh: {
     readonly sep: " ";
   };
+  readonly url: {
+    readonly sep: " ";
+  };
+  readonly src: {
+    readonly sep: " ";
+  };
+  readonly "contrast-color": {
+    readonly sep: " ";
+  };
+  readonly superellipse: {
+    readonly sep: " ";
+  };
+  readonly "dynamic-range-limit-mix": {
+    readonly sep: ", ";
+  };
 };
 //#endregion

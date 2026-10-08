@@ -6,7 +6,7 @@ import { writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 
 import { functions } from "@cssints/css-grammar/functions";
-import { properties } from "@cssints/css-grammar/mdn";
+import { properties, syntaxes } from "@cssints/css-grammar/mdn";
 import { get as bcd } from "@cssints/css-grammar/support";
 
 import { BUILDERS, chainNames, CONTEXTS, FUNCTIONS, PROPS, PSEUDOS } from "../src/lib.ts";
@@ -70,8 +70,11 @@ const fnKey = (f: string) =>
   [f, ...bcdTypes]
     .map((g) => `css.types.${g}${g === f ? "" : `.${f}`}`)
     .find((k) => bcd(k)?.__compat);
-const fnDoc = (f: string) =>
-  doc(`\`${fnPages[`${f}()`]!.syntax}\``, fnKey(f) ?? "", fnPages[`${f}()`]!.mdn_url);
+const fnDoc = (f: string) => {
+  const page = fnPages[`${f}()`];
+  const syntax = page?.syntax ?? (syntaxes as Record<string, string>)[`${f}()`];
+  return doc(`\`${syntax}\``, fnKey(f) ?? "", page?.mdn_url);
+};
 // `var` is a reserved word: exported by an alias. The sorted names make the file stable.
 const fnDecl = (m: string) => {
   const f = FUNCTIONS[m]!;

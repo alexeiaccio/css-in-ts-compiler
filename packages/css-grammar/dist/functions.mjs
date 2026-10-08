@@ -167,7 +167,12 @@ const functions = {
 	translateZ: { "sep": " " },
 	var: { "sep": ", " },
 	view: { "sep": " " },
-	xywh: { "sep": " " }
+	xywh: { "sep": " " },
+	url: { "sep": " " },
+	src: { "sep": " " },
+	"contrast-color": { "sep": " " },
+	superellipse: { "sep": " " },
+	"dynamic-range-limit-mix": { "sep": ", " }
 };
 //#endregion
 export { functions };

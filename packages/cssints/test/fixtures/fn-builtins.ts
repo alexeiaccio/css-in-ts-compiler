@@ -21,3 +21,4 @@ export const m = css.transform(css.translateFn(t.space.md, 0), css.rotateFn("10d
 export const n = css.transitionTimingFunction(css.cubicBezier(0.1, 0.7, 1, 0.1));
 export const o = css.color(css.rgb(255, 0, 0));
 export const p = css.width(css.calc(css.min(t.space.md, "50%"), "-", "1rem"));
+export const q = css.backgroundImage(css.url('"a.png"'));

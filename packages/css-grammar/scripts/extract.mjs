@@ -181,7 +181,7 @@ const addC = (n) => {
 // property reaches are added here), the math functions are scanned by the twin and have none. `functions.ts` says how a
 // call's parts are joined: by ", " when the grammar (its types expanded) has a comma or a list, by a space otherwise
 // (`oklch(0.7 0.1 200 / 50%)`), and what a math function gives: the kind of its arguments, a number or an angle.
-const MATH = (n) => FN[n].syntax.includes("<calc-sum>") && n !== "calc-size()";
+const MATH = (n) => !!FN[n]?.syntax.includes("<calc-sum>") && n !== "calc-size()";
 for (const n of Object.keys(FN)) if (!MATH(n)) addS(n);
 const lit = (o) =>
   JSON.stringify(o, null, 2).replace(/"([^"]+)":/g, (m, k) =>
@@ -194,8 +194,15 @@ const flat = (g, seen = new Set()) =>
   );
 const NUMBER_FN = ["sign", "sin", "cos", "tan", "sqrt", "exp", "pow", "log"];
 const ANGLE_FN = ["asin", "acos", "atan", "atan2"];
+// the ones mdn-data has a grammar for outside functions.json too (url(), contrast-color(), ...); if() is a reserved word
+const names = [
+  ...new Set([
+    ...Object.keys(FN),
+    ...Object.keys(S).filter((k) => k.endsWith("()") && k !== "if()"),
+  ]),
+];
 const fns = Object.fromEntries(
-  Object.keys(FN).map((k) => {
+  names.map((k) => {
     const n = k.slice(0, -2);
     if (MATH(k))
       return [
@@ -205,7 +212,10 @@ const fns = Object.fromEntries(
           math: NUMBER_FN.includes(n) ? "number" : ANGLE_FN.includes(n) ? "angle" : "same",
         },
       ];
-    return [n, { sep: /[,#]/.test(flat(FN[k].syntax).replace(/\{[\d,∞]+\}/g, "")) ? ", " : " " }];
+    return [
+      n,
+      { sep: /[,#]/.test(flat(FN[k]?.syntax ?? S[k]).replace(/\{[\d,∞]+\}/g, "")) ? ", " : " " },
+    ];
   }),
 );
 writeFileSync(

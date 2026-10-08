@@ -1220,6 +1220,8 @@ export declare const colorMix: Fn<"color-mix", ", ">;
 export declare const conicGradient: Fn<"conic-gradient", ", ">;
 /** `contrast( [ <number> | <percentage> ]? )`. Chrome 18, Edge 12, Firefox 35, Safari 6, iOS 6, Android 53. [MDN](https://developer.mozilla.org/docs/Web/CSS/filter-function/contrast) */
 export declare const contrast: Fn<"contrast", " ">;
+/** `contrast-color( <color> )`. Chrome 147, Edge 147, Firefox 146, Safari 26, iOS 26, Android 147. [MDN](https://developer.mozilla.org/docs/Web/CSS/Reference/Values/color_value/contrast-color) */
+export declare const contrastColor: Fn<"contrast-color", " ">;
 /** `cos( <calc-sum> )`. Chrome 111, Edge 111, Firefox 108, Safari 15.4, iOS 15.4, Android 111. [MDN](https://developer.mozilla.org/docs/Web/CSS/cos) */
 export declare const cos: MathCall<"number">;
 /** `counter( <counter-name>, <counter-style>? )`. Chrome 1, Edge 12, Firefox 1, Safari 3, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/counter) */
@@ -1232,6 +1234,8 @@ export declare const crossFade: Fn<"cross-fade", ", ">;
 export declare const cubicBezier: Fn<"cubic-bezier", ", ">;
 /** `drop-shadow( [ <color>? && <length>{2,3} ] )`. Chrome 18, Edge 12, Firefox 35, Safari 6, iOS 6, Android 53. [MDN](https://developer.mozilla.org/docs/Web/CSS/filter-function/drop-shadow) */
 export declare const dropShadow: Fn<"drop-shadow", " ">;
+/** `dynamic-range-limit-mix( [ <'dynamic-range-limit'> && <percentage [0,100]> ]#{2,} )`. Chrome 136, Edge 136, Firefox no, Safari no, iOS no, Android 136. [MDN](https://developer.mozilla.org/docs/Web/CSS/Reference/Values/dynamic-range-limit-mix) */
+export declare const dynamicRangeLimitMix: Fn<"dynamic-range-limit-mix", ", ">;
 /** `element( <id-selector> )`. Chrome no, Edge no, Firefox no, Safari no, iOS no, Android no. [MDN](https://developer.mozilla.org/docs/Web/CSS/element) */
 export declare const element: Fn<"element", " ">;
 /** `ellipse( <radial-size>? [ at <position> ]? )`. Chrome 37, Edge 79, Firefox 54, Safari 10.1, iOS 10.3, Android 37. [MDN](https://developer.mozilla.org/docs/Web/CSS/basic-shape/ellipse) */
@@ -1366,8 +1370,12 @@ export declare const skewX: Fn<"skewX", " ">;
 export declare const skewY: Fn<"skewY", " ">;
 /** `sqrt( <calc-sum> )`. Chrome 120, Edge 120, Firefox 118, Safari 15.4, iOS 15.4, Android 120. [MDN](https://developer.mozilla.org/docs/Web/CSS/sqrt) */
 export declare const sqrt: MathCall<"number">;
+/** `src( <string> <url-modifier>* )` */
+export declare const src: Fn<"src", " ">;
 /** `steps( <integer>, <step-position>? )`. Chrome 8, Edge 12, Firefox 4, Safari 5.1, iOS 5, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/easing-function/steps) */
 export declare const steps: Fn<"steps", ", ">;
+/** `superellipse( [ <number> | infinity | -infinity ] )`. Chrome 139, Edge 139, Firefox no, Safari no, iOS no, Android 139. [MDN](https://developer.mozilla.org/docs/Web/CSS/Reference/Values/superellipse) */
+export declare const superellipse: Fn<"superellipse", " ">;
 /** `symbols( <symbols-type>? [ <string> | <image> ]+ )`. [MDN](https://developer.mozilla.org/docs/Web/CSS/symbols) */
 export declare const symbols: Fn<"symbols", " ">;
 /** `tan( <calc-sum> )`. Chrome 111, Edge 111, Firefox 108, Safari 15.4, iOS 15.4, Android 111. [MDN](https://developer.mozilla.org/docs/Web/CSS/tan) */
@@ -1388,6 +1396,8 @@ export declare const translateX: Fn<"translateX", " ">;
 export declare const translateY: Fn<"translateY", " ">;
 /** `translateZ( <length> )`. Chrome 12, Edge 12, Firefox 10, Safari 4, iOS 3.2, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/transform-function/translateZ) */
 export declare const translateZ: Fn<"translateZ", " ">;
+/** `url( <string> <url-modifier>* ) | <url-token>`. Chrome 1, Edge 12, Firefox 1, Safari 1, iOS 1, Android 18. [MDN](https://developer.mozilla.org/docs/Web/CSS/Reference/Values/url_function) */
+export declare const url: Fn<"url", " ">;
 /** `var( <custom-property-name> , <declaration-value>? )`. Chrome 49, Edge 15, Firefox 31, Safari 9.1, iOS 9.3, Android 49. [MDN](https://developer.mozilla.org/docs/Web/CSS/var) */
 declare const _var: VarCall;
 export { _var as var };
