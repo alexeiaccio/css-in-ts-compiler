@@ -35,9 +35,6 @@
     "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
     "pack:tgz": "node ../../scripts/pack.mjs"
   },
-  "dependencies": {
-    "@cssints/css-grammar": "workspace:*"
-  },
   "devDependencies": {
     "cssints": "workspace:*",
     "vite": "catalog:"

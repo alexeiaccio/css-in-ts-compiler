@@ -1,7 +1,7 @@
 // Plugin modules on scope(): a typed property and value functions (a Typed OM result, a string, a function that throws, one
 // that returns nothing), and a chain whose runtime is for a feature every test target has (the runtime of one the targets
 // lack is frame()'s).
-import { CSSColorValue } from "@cssints/css-grammar/values";
+import { CSSColorValue } from "cssints";
 import { scope } from "cssints/plugin";
 
 export const {

@@ -29,6 +29,18 @@ export class CSSColorValue extends CSSStyleValue<"color"> {
   }
 }
 
+// ponytail: the spec's CSSImageValue is opaque; this one holds any <image> text (a gradient, url()).
+export class CSSImageValue extends CSSStyleValue<"image"> {
+  readonly value: string;
+  constructor(value: string) {
+    super();
+    this.value = value;
+  }
+  override toString() {
+    return this.value;
+  }
+}
+
 const unit =
   <T extends string>(u: string) =>
   (v: number) =>

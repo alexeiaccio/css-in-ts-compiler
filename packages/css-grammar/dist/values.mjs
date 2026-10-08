@@ -22,6 +22,16 @@ var CSSColorValue = class extends CSSStyleValue {
 		return this.value;
 	}
 };
+var CSSImageValue = class extends CSSStyleValue {
+	value;
+	constructor(value) {
+		super();
+		this.value = value;
+	}
+	toString() {
+		return this.value;
+	}
+};
 const unit = (u) => (v) => new CSSUnitValue(v, u);
 const CSS = {
 	px: unit("px"),
@@ -31,4 +41,4 @@ const CSS = {
 	number: unit("number")
 };
 //#endregion
-export { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue };
+export { CSS, CSSColorValue, CSSImageValue, CSSStyleValue, CSSUnitValue };

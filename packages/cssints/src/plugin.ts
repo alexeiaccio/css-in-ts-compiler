@@ -313,7 +313,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
         : undefined;
     }
     if (ctx.environment.name === "ssr") {
-      const out = yield* instrument(code, id);
+      const out = yield* instrument(code, id, false);
       return out && /x$/.test(id) ? yield* inertJsx(out.code, id) : out?.code;
     }
     if (inner) return undefined;

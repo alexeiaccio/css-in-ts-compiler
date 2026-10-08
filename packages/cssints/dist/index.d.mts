@@ -1,7 +1,7 @@
 import { a as Kernel } from "./author-types-VWp_4djS.mjs";
 import { n as cx } from "./runtime-CTvuM-Hm.mjs";
 import { n as At, t as CssNode } from "./node-mZem3Im8.mjs";
-import { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
+import { CSS, CSSColorValue, CSSImageValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
 import { Effect } from "effect";
 //#region src/lib.d.ts
 /** What firstThatWorks() builds: its values as text, the wanted one first. */
@@ -37,4 +37,4 @@ export declare function __at(file: string, site: number, offset: number): At;
 export declare const __unseen: (file: string, site: number) => boolean;
 export declare function __site(at: At, value: unknown): unknown;
 //#endregion
-export { CSS, CSSColorValue, CSSUnitValue, cx };
+export { CSS, CSSColorValue, CSSImageValue, CSSStyleValue, CSSUnitValue, cx };

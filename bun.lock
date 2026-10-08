@@ -113,9 +113,6 @@
     "packages/fluid": {
       "name": "@cssints/fluid",
       "version": "0.1.0",
-      "dependencies": {
-        "@cssints/css-grammar": "workspace:*",
-      },
       "devDependencies": {
         "cssints": "workspace:*",
         "vite": "catalog:",
@@ -145,7 +142,6 @@
       "name": "@cssints/gradient",
       "version": "0.1.0",
       "dependencies": {
-        "@cssints/css-grammar": "workspace:*",
         "culori": "^4.0.2",
       },
       "devDependencies": {
