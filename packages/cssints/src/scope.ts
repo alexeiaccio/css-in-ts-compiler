@@ -71,6 +71,8 @@ export interface RuntimeDef {
   polyfills: BcdKey[];
   parentVars?: ParentVar[];
   css?: string;
+  /** A module specifier the app resolves (a package subpath, `"@cssints/balance/runtime"`): imported when a target lacks a polyfilled feature. */
+  script?: string;
 }
 /** A build error when one `cn()` holds the member's marker and a property listed here (a name, or a pattern). */
 export interface ConflictDef {
