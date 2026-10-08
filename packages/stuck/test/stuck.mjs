@@ -94,6 +94,7 @@ e = await failure("twice.ts");
 assert.equal(e.message, "cssints: sticky().top() is used twice");
 e = await failure("bad-side.ts");
 assert.equal(e.message, 'cssints: stuck: stuck() takes top, right, bottom or left, got "middle"');
+assert.equal(e.loc?.line, 5);
 await server.close();
 
 // the observer: no imports, tiny

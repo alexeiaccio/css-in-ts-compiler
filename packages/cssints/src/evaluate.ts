@@ -70,9 +70,9 @@ const isMemberError = (e: unknown): e is MemberError => Predicate.isTagged(e, "M
 
 // What came out of runner.import. The runner has its own copy of errors.ts, so a MacroError from the library is
 // recognized by its tag and rebuilt here with the same fields; anything else is the module's own failure.
-// A ReferenceError while a site's arguments run (`__at` set, `__site` not reached yet) is a value that exists only at
-// runtime: a parameter, a prop, a block-scoped variable ("not defined", or "Cannot access" for a local that
-// instrument.ts keeps in the dead zone of the hoisted site).
+// Anything thrown while a site's arguments run (`__at` set, `__site` not reached yet) is located at that site; a
+// ReferenceError there is a value that exists only at runtime: a parameter, a prop, a block-scoped variable ("not
+// defined", or "Cannot access" for a local that instrument.ts keeps in the dead zone of the hoisted site).
 const failureOf = (id: string, registry: RegistryState) => (e: unknown) => {
   if (isMacroError(e))
     return new MacroError({
@@ -92,18 +92,21 @@ const failureOf = (id: string, registry: RegistryState) => (e: unknown) => {
       cause: e.cause,
     });
   const at = registry.at;
+  const message = e instanceof Error ? e.message : String(e);
+  if (!at) return new EvalError({ file: id, message, cause: e });
+  // anything else thrown while a site runs (a plugin's own function, a helper) is located at that site
   const m =
-    at && e instanceof ReferenceError
+    e instanceof ReferenceError
       ? /^(?:(\S+) is not defined|Cannot access '(\S+)' before initialization)$/.exec(e.message)
       : null;
   const name = m?.[1] ?? m?.[2];
-  return name
-    ? new MacroError({
-        message: `cssints: css arguments must be known at build time: \`${name}\` is not defined where the call is evaluated (a parameter, a prop or state). Use cx(on && p(4)), a cv variant, or a token in a style prop`,
-        cause: e,
-        ...at,
-      })
-    : new EvalError({ file: id, message: e instanceof Error ? e.message : String(e), cause: e });
+  return new MacroError({
+    message: name
+      ? `cssints: css arguments must be known at build time: \`${name}\` is not defined where the call is evaluated (a parameter, a prop or state). Use cx(on && p(4)), a cv variant, or a token in a style prop`
+      : message,
+    cause: e,
+    ...at,
+  });
 };
 
 const evaluateModule = Effect.fnUntraced(function* (

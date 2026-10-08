@@ -249,6 +249,57 @@ await fails(
   /^cssints: sk: no luck$/,
   4,
 );
+// what a plugin's own code throws is located at the call site, in every member kind and in a plain function of the plugin
+write(
+  "sc-throw.ts",
+  `import { color } from "cssints" with { type: "cssints" };
+import { lacking, scope } from "cssints/plugin";
+const boom = () => { throw new Error("boom"); };
+export const { ch, ca, va, ke, off } = scope("sc-throw", {
+  "#k": { css: () => boom() },
+  ch: { chain: { x: { args: "<length>", emit: () => boom() } } },
+  ca: { args: [] },
+  va: { args: "<length>", value: () => boom() },
+  ke: { uses: ["k"], chain: {} },
+  off: { args: [], value: () => lacking("css.at-rules.container.scroll-state_queries", "css.at-rules.property").join(", ") },
+})
+  .build({ ca: () => boom() })
+  .export();
+export const helper = () => (boom(), color("red"));
+`,
+);
+for (const [n, body, plugin] of [
+  ["ch", `ch().x("1px")`, "sc-throw"],
+  ["ca", "ca()", "sc-throw"],
+  ["va", `va("1px")`, "sc-throw"],
+  ["ke", "ke()", "sc-throw"],
+  ["helper", "helper()"],
+])
+  await assert.rejects(
+    code(
+      write(
+        `sc-throw-${n}.ts`,
+        `import { ${n} } from "./sc-throw.ts" with { type: "cssints" };\n\nexport const a = ${body};\n`,
+      ),
+    ),
+    (e) => {
+      assert.equal(e.message.split("\n")[0], "boom", n);
+      assert.equal(e.pluginName, plugin, n);
+      assert.equal(e.loc?.line, 3, `${n}: the call site`);
+      return true;
+    },
+  );
+// lacking(): the targets (chrome 120, firefox 128) that lack any of the keys, as the support warnings decide
+assert.match(
+  await code(
+    write(
+      "sc-lacking.ts",
+      `import { off } from "./sc-throw.ts" with { type: "cssints" };\nexport const a = off();\n`,
+    ),
+  ),
+  /export const a = "chrome 120, firefox 128";/,
+);
+
 // overrides are checked by the theme path, at the call site
 await assert.rejects(
   code(

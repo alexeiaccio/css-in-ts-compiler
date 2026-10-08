@@ -3,7 +3,6 @@
 // query matches descendants of the container, never the container itself). Where a target lacks scroll-state queries,
 // `stuck(...)` also emits the same styles under `[data-stuck~="top"]` on the sticky ancestor, an attribute that
 // `@cssints/stuck/observer` (an IntersectionObserver, delivered by the runtime) sets.
-import { lackingOf } from "@cssints/css-grammar/support";
 import {
   type Style,
   type Wrap,
@@ -12,7 +11,7 @@ import {
   container,
   within,
 } from "cssints" with { type: "cssints" };
-import { scope } from "cssints/plugin";
+import { lacking, scope } from "cssints/plugin";
 
 /** An edge a sticky element sticks to. */
 export type Side = "top" | "right" | "bottom" | "left";
@@ -57,13 +56,13 @@ export const stuckScope = scope("stuck", {
  */
 export const { sticky } = stuckScope.export();
 
-const lacking = lackingOf(QUERIES).length > 0;
+const fallback = lacking(QUERIES).length > 0;
 const under =
   (side: Side) =>
   (...styles: Style[]) =>
     cn(
       container(`scroll-state(stuck: ${side})`)(...styles),
-      ...(lacking ? [within(attr("data-stuck", side, "~="), "stuck")(...styles)] : []),
+      ...(fallback ? [within(attr("data-stuck", side, "~="), "stuck")(...styles)] : []),
     );
 
 /** The styles of a descendant of `sticky()` while it is stuck: to the top edge, or to the side given. */

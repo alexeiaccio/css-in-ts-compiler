@@ -262,9 +262,6 @@
     "packages/stuck": {
       "name": "@cssints/stuck",
       "version": "0.1.0",
-      "dependencies": {
-        "@cssints/css-grammar": "workspace:*",
-      },
       "devDependencies": {
         "cssints": "workspace:*",
         "vite": "catalog:",
