@@ -7,7 +7,6 @@ export default defineConfig({
     {
       entry: {
         "open-props": "src/open-props.ts",
-        easings: "src/easings.ts",
         radix: "src/radix.ts",
         flexoki: "src/flexoki.ts",
         "reasonable-colors": "src/reasonable-colors.ts",

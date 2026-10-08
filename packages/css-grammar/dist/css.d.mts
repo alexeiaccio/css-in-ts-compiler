@@ -7,7 +7,21 @@ type Ws = " " | "\n" | "\t";
 type Trim<S extends string> = S extends `${Ws}${infer R}` ? Trim<R> : S;
 type Special = "(" | ")" | "[" | "]" | "|" | "&" | "?" | "*" | "+" | "#" | "!" | "," | "/" | "{" | "}" | "<" | ">" | "'" | Ws;
 type WordChar = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" | "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "-" | "_";
-type StripRange<T extends string> = T extends `${infer N} [${string}` ? N : T;
+type TypeTok<T extends string> = T extends `${infer N} [${infer Lo},${infer Hi}]` ? ([Lo, Hi] extends [`${bigint}` | "-∞", `${bigint}` | "∞"] ? (`${Lo}${Hi}` extends `${string}-${Digit}${string}` ? {
+  t: "type";
+  v: N;
+} : {
+  t: "type";
+  v: N;
+  lo: Lo;
+  hi: Hi;
+}) : {
+  t: "type";
+  v: N;
+}) : {
+  t: "type";
+  v: T;
+};
 type IsWord<W extends string> = W extends "" ? false : W extends `${string}${Special}${string}` ? false : true;
 type Word<S extends string, Acc extends string = ""> = S extends `${infer C}${infer R}` ? (C extends WordChar ? Word<R, `${Acc}${C}`> : [Acc, S]) : [Acc, ""];
 type Tok = {
@@ -22,6 +36,11 @@ type Tok = {
 } | {
   t: "fn";
   v: string;
+} | {
+  t: "type";
+  v: string;
+  lo: string;
+  hi: string;
 } | {
   t: "range";
   lo: string;
@@ -40,10 +59,7 @@ type Next<S extends string> = S extends "" ? [{
 }, ""] : S extends `${Ws}${infer R}` ? Next<R> : S extends `<'${infer P}'>${infer R}` ? [{
   t: "prop";
   v: P;
-}, R] : S extends `<${infer T}>${infer R}` ? [{
-  t: "type";
-  v: StripRange<T>;
-}, R] : S extends `||${infer R}` ? [{
+}, R] : S extends `<${infer T}>${infer R}` ? [TypeTok<T>, R] : S extends `||${infer R}` ? [{
   t: "p";
   v: "||";
 }, R] : S extends `&&${infer R}` ? [{
@@ -82,7 +98,7 @@ type NextWord<S extends string> = Word<S> extends [infer W extends string, infer
   t: "kw";
   v: W;
 }, R] : never;
-type Node = ["kw", string] | ["type", string] | ["prop", string] | ["fn", string, Node] | ["lit", string] | ["alt", Node, Node | null] | ["or", Node[]] | ["and", Node[]] | ["seq", Node[]] | ["opt", Node] | ["star", Node] | ["plus", Node] | ["list", Node] | ["rep", Node, string, string] | ["bang", Node];
+type Node = ["kw", string] | ["type", string] | ["type", string, string, string] | ["prop", string] | ["fn", string, Node] | ["lit", string] | ["alt", Node, Node | null] | ["or", Node[]] | ["and", Node[]] | ["seq", Node[]] | ["opt", Node] | ["star", Node] | ["plus", Node] | ["list", Node] | ["rep", Node, string, string] | ["bang", Node];
 export type Parse<S extends string> = ParseAlt<S> extends [infer N, any] ? N : never;
 type ParseAlt<S extends string> = ParseOr<S> extends [infer N extends Node, infer R extends string] ? AltRest<R, ["alt", N, null]> : never;
 type AltRest<S extends string, Acc extends Node> = Next<S> extends [{
@@ -118,6 +134,11 @@ type ParseTerm<S extends string> = Next<S> extends [infer T extends Tok, infer R
   t: "p";
   v: "(";
 } ? FnArgs<"", R> : T extends {
+  t: "type";
+  v: infer V extends string;
+  lo: infer Lo extends string;
+  hi: infer Hi extends string;
+} ? Mult<["type", V, Lo, Hi], R> : T extends {
   t: "type";
   v: infer V extends string;
 } ? Mult<["type", V], R> : T extends {
@@ -172,10 +193,10 @@ type SplitComma<T extends string, R extends string> = T extends `${infer A},${in
 type SplitParen<T extends string, R extends string> = T extends `${infer A})${infer B}` ? [A, `)${B}${R}`] : [T, R];
 export type LengthUnit = "px" | "em" | "rem" | "vw" | "vh" | "vmin" | "vmax" | "ch" | "ex" | "lh" | "rlh" | "cm" | "mm" | "in" | "pt" | "pc" | "q" | "svw" | "svh" | "lvw" | "lvh" | "dvw" | "dvh" | "cqw" | "cqh" | "cqi" | "cqb" | "cqmin" | "cqmax" | "ic" | "cap" | "rex" | "rch" | "ric" | "rcap";
 export type Wild = "⟨*⟩";
-export type Sentinels = "color" | "length" | "percentage" | "number" | "integer" | "angle" | "time" | "custom-ident" | "resolution" | "url" | "image" | "transform-list";
+export type Sentinels = "color" | "length" | "percentage" | "number" | "integer" | "angle" | "time" | "custom-ident" | "resolution" | "url" | "image" | "transform-list" | "easing-function" | "shadow";
 /** What the recognizer sees of a typed value of type `T`: `⟨T⟩`, or `⟨*⟩` for one of every type (a token of a JSON import). */
 export type Sentinel<T extends string> = [Sentinels] extends [T] ? Wild : `⟨${T}⟩`;
-type WildNamed = "color" | "image" | "transform-list";
+type WildNamed = "color" | "image" | "transform-list" | "easing-function" | "shadow";
 type PrimitiveMap = {
   length: `${number}${LengthUnit}` | "0" | "⟨length⟩" | Wild;
   percentage: `${number}%` | "⟨percentage⟩" | Wild;
@@ -202,7 +223,7 @@ type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 type NotIdentChar = "'" | '"' | "#" | "." | "+" | "(" | "!" | "$" | "%" | "&" | "*" | "/" | ":" | ";" | "<" | "=" | ">" | "?" | "@" | "[" | "\\" | "]" | "^" | "`" | "{" | "|" | "}" | "~";
 type NotIdentStart = `${string}${NotIdentChar}${string}` | `${Digit | `-${Digit}`}${string}` | "-" | `⟨${string}`;
 type NotIdent = NotIdentStart | "initial" | "inherit" | "unset" | "revert" | "revert-layer" | "default";
-export type Consume<N, S extends string, P extends boolean = false> = S extends string ? N extends ["kw", infer V extends string] ? (Tok1<S> extends [V, infer R extends string] ? Trim<R> : P extends true ? Pend<N, S> : never) : N extends ["lit", infer V extends string] ? (S extends `${V}${infer R}` ? Trim<R> : P extends true ? Pend<N, S> : never) : N extends ["type", infer V extends string] ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? (V extends "custom-ident" ? (T extends "⟨custom-ident⟩" | Wild ? Trim<R> : Lowercase<T> extends NotIdent ? P extends true ? Pend<N, S> : never : Trim<R>) : V extends "ident" | "ident-token" ? (T extends NotIdentStart ? P extends true ? Pend<N, S> : never : Trim<R>) : Trim<R>) : V extends Numeric ? (T extends `${string}(${string}` ? MathCall<S> | (P extends true ? Pend<N, S> : never) : P extends true ? Pend<N, S> : never) : P extends true ? Pend<N, S> : never) : never) : V extends "string" | "url" ? Scanned<V, S> | (P extends true ? Pend<N, S> : never) : V extends "declaration-value" ? Scanned<V, S> : V extends "math-function" ? MathCall<S> : V extends "declaration" ? Scanned<"declaration-value", S> : V extends "if()" ? (S extends `if(${infer R}` ? Close<Declaration<Trim<R>, Trim<R>, [], true>> : never) : V extends keyof Syns ? (V extends `${infer F}()` ? (S extends `${F}(${string}` ? Consume<Parse<Syns[V]>, S, P> : S extends `⟨${V}⟩${infer R}` ? Trim<R> : P extends true ? Pend<N, S> : never) : S extends `⟨${V | (V extends WildNamed ? "*" : never)}⟩${infer R}` ? Trim<R> : Consume<Parse<Syns[V]>, S, P>) : never : N extends ["prop", infer V extends string] ? (V extends keyof Props ? Consume<Parse<Props[V]>, S, P> : never) : N extends ["fn", infer F extends string, infer A] ? (S extends `${F}(${infer R}` ? (F extends RelativeFn ? (Trim<R> extends `from ${string}` ? Close<Declaration<Trim<R>, Trim<R>, []>> : Close<Consume<A, Trim<R>, P>>) : Close<Consume<A, Trim<R>, P>>) : P extends true ? Pend<N, S> : never) : N extends ["alt", any, any] ? ConsumeAlt<N, S, P> : N extends ["seq", infer Xs extends Node[]] ? SeqRest<Xs, S, never, never, never, P> : N extends ["opt", infer X] ? S | Consume<X, S, P> : N extends ["star", infer X] ? Star<X, S, P> : N extends ["plus", infer X] ? Star<X, Consume<X, S, P>, P> : N extends ["list", infer X] ? ListRest<X, Consume<X, S, P>, P> : N extends ["rep", infer X, infer Lo extends string, infer Hi extends string] ? Rep<X, S, Lo, Hi, P> : N extends ["or", infer Xs extends Node[]] ? AnyOrder<Xs, S, false, P> : N extends ["and", infer Xs extends Node[]] ? AnyOrder<Xs, S, true, P> : N extends ["bang", infer X] ? Exclude<Consume<X, S, P>, S> : never : never;
+export type Consume<N, S extends string, P extends boolean = false> = S extends string ? N extends ["kw", infer V extends string] ? (Tok1<S> extends [V, infer R extends string] ? Trim<R> : P extends true ? Pend<N, S> : never) : N extends ["lit", infer V extends string] ? (S extends `${V}${infer R}` ? Trim<R> : P extends true ? Pend<N, S> : never) : N extends ["type", infer V extends string, ...infer G] ? V extends keyof PrimitiveMap ? (Tok1<S> extends [infer T extends string, infer R extends string] ? (T extends "" ? never : T extends PrimitiveMap[V] ? (V extends "custom-ident" ? (T extends "⟨custom-ident⟩" | Wild ? Trim<R> : Lowercase<T> extends NotIdent ? P extends true ? Pend<N, S> : never : Trim<R>) : V extends "ident" | "ident-token" ? (T extends NotIdentStart ? P extends true ? Pend<N, S> : never : Trim<R>) : G extends [infer Lo extends string, infer Hi extends string] ? (true extends Out<T, Lo, Hi> ? never : Trim<R>) : Trim<R>) : V extends Numeric ? (T extends `${string}(${string}` ? MathCall<S> | (P extends true ? Pend<N, S> : never) : P extends true ? Pend<N, S> : never) : P extends true ? Pend<N, S> : never) : never) : V extends "string" | "url" ? Scanned<V, S> | (P extends true ? Pend<N, S> : never) : V extends "declaration-value" ? Scanned<V, S> : V extends "math-function" ? MathCall<S> : V extends "declaration" ? Scanned<"declaration-value", S> : V extends "if()" ? (S extends `if(${infer R}` ? Close<Declaration<Trim<R>, Trim<R>, [], true>> : never) : V extends keyof Syns ? (V extends `${infer F}()` ? (S extends `${F}(${string}` ? Consume<Parse<Syns[V]>, S, P> : S extends `⟨${V}⟩${infer R}` ? Trim<R> : P extends true ? Pend<N, S> : never) : S extends `⟨${V | (V extends WildNamed ? "*" : never)}⟩${infer R}` ? Trim<R> : Consume<Parse<Syns[V]>, S, P>) : never : N extends ["prop", infer V extends string] ? (V extends keyof Props ? Consume<Parse<Props[V]>, S, P> : never) : N extends ["fn", infer F extends string, infer A] ? (S extends `${F}(${infer R}` ? (F extends RelativeFn ? (Trim<R> extends `from ${string}` ? Close<Declaration<Trim<R>, Trim<R>, []>> : Close<Consume<A, Trim<R>, P>>) : Close<Consume<A, Trim<R>, P>>) : P extends true ? Pend<N, S> : never) : N extends ["alt", any, any] ? ConsumeAlt<N, S, P> : N extends ["seq", infer Xs extends Node[]] ? SeqRest<Xs, S, never, never, never, P> : N extends ["opt", infer X] ? S | Consume<X, S, P> : N extends ["star", infer X] ? Star<X, S, P> : N extends ["plus", infer X] ? Star<X, Consume<X, S, P>, P> : N extends ["list", infer X] ? ListRest<X, Consume<X, S, P>, P> : N extends ["rep", infer X, infer Lo extends string, infer Hi extends string] ? Rep<X, S, Lo, Hi, P> : N extends ["or", infer Xs extends Node[]] ? AnyOrder<Xs, S, false, P> : N extends ["and", infer Xs extends Node[]] ? AnyOrder<Xs, S, true, P> : N extends ["bang", infer X] ? Exclude<Consume<X, S, P>, S> : never : never;
 type Numeric = "length" | "percentage" | "length-percentage" | "number" | "integer" | "angle" | "time" | "resolution" | "x" | "y";
 type MathFn = "calc" | "min" | "max" | "clamp" | "round" | "mod" | "rem" | "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "atan2" | "pow" | "sqrt" | "hypot" | "log" | "exp" | "abs" | "sign";
 type MathCall<S extends string> = S extends `${MathFn}(${infer R}` ? Close<Declaration<Trim<R>, Trim<R>, []>> : never;
@@ -226,10 +247,7 @@ type Star<X, S extends string, P extends boolean, D extends any[] = []> = {
   done: S;
   next: S | Star<X, Consume<X, S, P>, P, [...D, 0]>;
 }[D extends Full ? "done" : "next"];
-type ListRest<X, R extends string, P extends boolean, D extends any[] = []> = {
-  done: R;
-  next: R | (AfterComma<R, P> extends (infer Q extends string) ? ([Q] extends [never] ? never : ListRest<X, Consume<X, Q, P>, P, [...D, 0]>) : never);
-}[D extends Full ? "done" : "next"];
+type ListRest<X, R, P extends boolean, Acc = never> = (R extends string ? AfterComma<R, P> : never) extends (infer Q extends string) ? ([Q] extends [never] ? Acc | R : ListRest<X, Exclude<Consume<X, Q, P>, Acc | R>, P, Acc | R>) : never;
 type Digits = {
   "0": [];
   "1": [0];
@@ -252,6 +270,13 @@ type PendHead<S extends string> = S extends `var(--${string}` | `env(${string}` 
 type TryHead<Parts extends Node[], Todo extends Node[], I extends any[], Skip extends string, S extends string> = Todo extends [infer H, ...infer R extends Node[]] ? (Exclude<Consume<H, S, true>, Skip> extends (infer R1 extends string) ? R1 | AnyOrder<RemoveAt<Parts, `${I["length"]}`>, R1, false, true> : never) | TryHead<Parts, R, [...I, 0], Skip, S> : never;
 type TryEach<Parts extends Node[], Todo extends Node[], S extends string, All extends boolean, I extends any[], P extends boolean> = Todo extends [infer H, ...infer R extends Node[]] ? (Consume<H, S, P> extends (infer R1 extends string) ? (All extends true ? never : R1) | AnyOrder<RemoveAt<Parts, `${I["length"]}`>, R1, All, P> : never) | TryEach<Parts, R, S, All, [...I, 0], P> : never;
 type RemoveAt<T extends any[], K extends string, I extends any[] = [], Acc extends any[] = []> = T extends [infer H, ...infer R] ? (`${I["length"]}` extends K ? [...Acc, ...R] : RemoveAt<R, K, [...I, 0], [...Acc, H]>) : Acc;
+type Out<T extends string, Lo extends string, Hi extends string> = T extends `-${infer M}` ? (Lo extends "-∞" ? false : M extends `${string}${"e" | "E"}-${string}` ? false : Lo extends "0" ? NonZero<M> : true) : [Lo, Hi] extends ["0" | "-∞", "∞"] ? false : Decimal<T extends `+${infer M}` ? M : T> extends [infer I extends string, infer F extends boolean] ? (Lo extends "-∞" | "0" ? false : Cmp<I, Lo> extends "lt" ? true : false) | (Hi extends "∞" ? false : Cmp<I, Hi> extends "gt" ? true : Cmp<I, Hi> extends "eq" ? F : false) : false;
+type NonZero<M extends string> = M extends `${"0" | "."}${infer R}` ? NonZero<R> : M extends `${Exclude<Digit, "0">}${string}` ? true : false;
+type Decimal<M extends string> = M extends `${Digit | "."}${string}` ? DecInt<M, ""> : false;
+type DecInt<M extends string, I extends string> = M extends `${infer C extends Digit}${infer R}` ? DecInt<R, I extends "" ? (C extends "0" ? "" : C) : `${I}${C}`> : M extends `.${infer R}` ? DecFrac<R, I extends "" ? "0" : I, false> : DecEnd<M, I extends "" ? "0" : I, false>;
+type DecFrac<M extends string, I extends string, F extends boolean> = M extends `${infer C extends Digit}${infer R}` ? DecFrac<R, I, C extends "0" ? F : true> : DecEnd<M, I, F>;
+type DecEnd<M extends string, I extends string, F extends boolean> = M extends `${"e" | "E"}${"+" | "-" | ""}${Digit}${string}` ? false : [I, F];
+type Cmp<A extends string, B extends string, V extends string = "eq"> = A extends `${infer X}${infer RA}` ? (B extends `${infer Y}${infer RB}` ? Cmp<RA, RB, V extends "eq" ? (X extends Y ? "eq" : "0123456789" extends `${string}${X}${string}${Y}${string}` ? "lt" : "gt") : V> : "gt") : B extends "" ? V : "lt";
 export type Matches<Syntax extends string, S extends string> = "" extends Consume<Parse<Syntax>, Trim<S>> ? true : false;
 export type MatchesValue<Syntax extends string, S extends string> = Consume<Parse<Syntax>, Trim<S>, HasPending<S>> extends (infer R extends string) ? ("" extends R ? true : true extends PendDone<R> ? true : false) : never;
 export type Stuck<U extends string, All extends string = U> = U extends string ? ([All] extends [`${string}${U}`] ? U : never) : never;

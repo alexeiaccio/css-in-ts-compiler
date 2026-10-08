@@ -1,5 +1,5 @@
 import { i as GlobalRule } from "./author-types-DXdNP23z.mjs";
-import { n as At, r as RegistryState } from "./node-BLTBYoA7.mjs";
+import { i as RegistryState, n as At, r as LayersDecl } from "./node-BlTe_haN.mjs";
 import { Effect } from "effect";
 import { ImportDeclaration } from "oxc-parser";
 import { Plugin } from "vite";
@@ -48,11 +48,12 @@ export declare const addGlobal: (g: GlobalRule, at?: At | undefined) => Effect.E
 export declare const globalEntries: ({ globals }: RegistryState, file: string) => string[];
 /**
  * Declares top-level layers, in order: the statement `@layer a, b, c;`, printed after the engine's own layers, once
- * whoever declares it, so what is in them beats the engine's `:root` fallbacks. Another statement may name the same layers
- * in the same order, or hold or be held by this one; layers in another order, or shared without one holding the other,
- * are build errors at `at`, since the sheet could not say which comes first.
+ * whoever declares it, so what is in them beats the engine's `:root` fallbacks; with `before`, printed before them, so
+ * the engine's classes beat what is in them (a reset). Another statement may name the same layers in the same order, or
+ * hold or be held by this one; layers in another order, shared without one holding the other, or declared both before
+ * and after the engine's, are build errors at `at`, since the sheet could not say which comes first.
  */
-export declare const addLayers: (names: readonly string[], at?: At | undefined) => Effect.Effect<undefined, MacroError, never>;
+export declare const addLayers: (args_0: LayersDecl, at?: At | undefined) => Effect.Effect<undefined, MacroError, never>;
 export declare const layerEntries: ({ layers }: RegistryState, file: string) => string[];
 /** The rules of `entries`: class names, and the text of `@property` rules (once each, whichever module has them). */
 export declare const renderSheet: (entries: Iterable<string>) => Effect.Effect<string, never, never>;

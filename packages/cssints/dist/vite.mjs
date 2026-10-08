@@ -1,4 +1,4 @@
-import { A as forget, E as runtimeNames, F as MacroError, I as MemberError, L as SiteMissingError, M as registry, N as EvalError, P as HookError, S as RUNTIME_ID, T as runtimeModule, a as LAYERS, b as kernelEntries, d as globalNames, f as layerEntries, g as themedEntries, i as keptImport, k as Registry, l as closeNames, m as renderSheet, n as RUNTIME, o as addGlobal, p as layerStatements, r as instrument, s as addLayers, u as globalEntries, v as usesDerived, w as fallbackEntries, x as DERIVED } from "./instrument-0r6gH5aJ.mjs";
+import { A as forget, E as runtimeNames, F as MacroError, I as MemberError, L as SiteMissingError, M as registry, N as EvalError, P as HookError, S as RUNTIME_ID, T as runtimeModule, a as LAYERS, b as kernelEntries, d as globalNames, f as layerEntries, g as themedEntries, i as keptImport, k as Registry, l as closeNames, m as renderSheet, n as RUNTIME, o as addGlobal, p as layerStatements, r as instrument, s as addLayers, u as globalEntries, v as usesDerived, w as fallbackEntries, x as DERIVED } from "./instrument-QavwPakv.mjs";
 import { createRequire } from "node:module";
 import { Cause, Clock, Config, Effect, Exit, Formatter, Option, Predicate, Result, Schema, Semaphore } from "effect";
 import { createHash } from "node:crypto";
@@ -27,8 +27,13 @@ const affectedBy = (defs, names, out = /* @__PURE__ */ new Set()) => {
 	return out;
 };
 const together = ({ themed, layers }) => {
-	const order = layerStatements([...layers.values()].map((l) => l.names)).flat();
-	const rank = (layer) => layer === void 0 ? -1 : order.indexOf(layer);
+	const side = (before) => layerStatements([...layers.values()].flatMap((l) => l.before === before ? [l.names] : [])).flat();
+	const order = [
+		...side(true),
+		"",
+		...side(false)
+	];
+	const rank = (layer) => order.indexOf(layer ?? "");
 	const groups = /* @__PURE__ */ new Map();
 	for (const t of [...themed.values()].sort((a, b) => rank(a.layer) - rank(b.layer) || (a.key < b.key ? -1 : 1))) {
 		if (!t.theme) continue;

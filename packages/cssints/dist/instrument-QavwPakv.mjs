@@ -655,6 +655,7 @@ const wrapKey = (r) => r.wrap.join("{");
 const byOrder = (a, b) => cmp(a.layer, b.layer) || cmpCond(a.cond, b.cond) || cmp(wrapKey(a), wrapKey(b)) || width(b.prop) - width(a.prop) || cmp(a.cls, b.cls);
 const GLOBAL_RULE = "@global	";
 const LAYER_LIST = "@layers	";
+const LAYER_BEFORE = "@layers<	";
 const LAYER_NAME = /^[A-Za-z_][\w-]*$/;
 /** Adds a global rule (`*{box-sizing:border-box}`) of a plugin member, by its content, to the sheet of the module at `at`. `layer` names a declared top-level layer to wrap it in, no layer puts it in `_.k`. */
 const addGlobal = Effect.fnUntraced(function* (g, at) {
@@ -670,11 +671,12 @@ const addGlobal = Effect.fnUntraced(function* (g, at) {
 const globalEntries = ({ globals }, file) => [...globals.values()].flatMap((e) => e.users.has(file) ? [`${GLOBAL_RULE}${Formatter.formatJson([e.global.layer ?? "", e.global.css])}`] : []);
 /**
 * Declares top-level layers, in order: the statement `@layer a, b, c;`, printed after the engine's own layers, once
-* whoever declares it, so what is in them beats the engine's `:root` fallbacks. Another statement may name the same layers
-* in the same order, or hold or be held by this one; layers in another order, or shared without one holding the other,
-* are build errors at `at`, since the sheet could not say which comes first.
+* whoever declares it, so what is in them beats the engine's `:root` fallbacks; with `before`, printed before them, so
+* the engine's classes beat what is in them (a reset). Another statement may name the same layers in the same order, or
+* hold or be held by this one; layers in another order, shared without one holding the other, or declared both before
+* and after the engine's, are build errors at `at`, since the sheet could not say which comes first.
 */
-const addLayers = Effect.fnUntraced(function* (names, at) {
+const addLayers = Effect.fnUntraced(function* ({ names, before = false }, at) {
 	const { layers } = yield* Registry;
 	const fail = (message) => new MacroError({
 		message: `cssints: ${message}`,
@@ -684,12 +686,14 @@ const addLayers = Effect.fnUntraced(function* (names, at) {
 	if (!names.length || new Set(names).size !== names.length || !names.every((n) => LAYER_NAME.test(n))) return yield* fail(`layers(${list}) takes names of layers, each once: letters, digits, _ and -`);
 	for (const l of layers.values()) {
 		const mine = names.filter((n) => l.names.includes(n));
+		if (mine.length && l.before !== before) return yield* fail(`layers(${list}) declares ${mine.join(", ")} ${before ? "before" : "after"} the engine's layers, and layers(${l.names.join(", ")}) ${l.before ? "before" : "after"}`);
 		if (mine.length && mine.join() !== l.names.filter((n) => names.includes(n)).join()) return yield* fail(`layers(${list}) names layers in another order than layers(${l.names.join(", ")})`);
 		if (mine.length && mine.length < Math.min(names.length, l.names.length)) return yield* fail(`layers(${list}) and layers(${l.names.join(", ")}) share layers, and neither holds the other: declare them in one call`);
 	}
 	const key = names.join();
 	const entry = layers.get(key) ?? layers.set(key, {
 		names: [...names],
+		before,
 		users: /* @__PURE__ */ new Set()
 	}).get(key);
 	if (at) entry.users.add(at.file);
@@ -702,7 +706,7 @@ const requireLayer = Effect.fnUntraced(function* (layer, at) {
 		...at
 	});
 });
-const layerEntries = ({ layers }, file) => [...layers.values()].flatMap((l) => l.users.has(file) ? [`${LAYER_LIST}${l.names.join()}`] : []);
+const layerEntries = ({ layers }, file) => [...layers.values()].flatMap((l) => l.users.has(file) ? [`${l.before ? LAYER_BEFORE : LAYER_LIST}${l.names.join()}`] : []);
 const layerStatements = (lists) => [...new Map([...lists].map((l) => [l.join(), [...l]])).values()].sort((a, b) => b.length - a.length || cmp(a.join(), b.join()));
 const themedEntries = (themed, file, names) => [...themed.values()].flatMap((t) => t.file === file || t.names.some((n) => names.has(n)) ? [`${THEME}${t.key}\t${t.layer ?? ""}\t${t.css}`] : []);
 const globalNames = (themed, file) => [...themed.values()].filter((t) => t.file === file && t.key.startsWith("-:")).flatMap((t) => t.css.match(/--[\w-]+/g) ?? []);
@@ -738,9 +742,9 @@ const renderSheet = Effect.fn("cssints.renderSheet")(function* (entries) {
 	const kGlobals = globals.flatMap(([layer, css]) => layer === "" ? [css] : []);
 	const layered = globals.filter(([layer]) => layer !== "");
 	const inUse = /* @__PURE__ */ new Set([...layered.map(([layer]) => layer), ...topThemes.map((t) => t[2])]);
-	const statements = layerStatements([...all.flatMap((e) => e.startsWith(LAYER_LIST) ? [e.slice(8).split(",")] : []), ...[...layers.values()].flatMap((l) => l.names.some((n) => inUse.has(n)) ? [l.names] : [])]);
+	const statementsOf = (prefix, before) => layerStatements([...all.flatMap((e) => e.startsWith(prefix) ? [e.slice(prefix.length).split(",")] : []), ...[...layers.values()].flatMap((l) => l.before === before && l.names.some((n) => inUse.has(n)) ? [l.names] : [])]).map((s) => `@layer ${s.join(", ")};\n`);
 	let out = `${LAYERS}\n${[...properties, ...used.flatMap((k) => k.atProperty ?? [])].map((p) => `${p}\n`).join("")}`;
-	out = out.replace("\n", `\n${statements.map((s) => `@layer ${s.join(", ")};\n`).join("")}`);
+	out = `${statementsOf(LAYER_BEFORE, true).join("")}${out.replace("\n", `\n${statementsOf(LAYER_LIST, false).join("")}`)}`;
 	if (kGlobals.length || used.length || fallbacks.length || kThemes.length) out += `@layer _.k {\n${[
 		...kGlobals,
 		...used.map((k) => k.css),

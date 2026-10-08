@@ -69,11 +69,14 @@ const args = [
   "<length [0,∞]>",
   { "from?": "<length [0,∞]>", "to?": "<length [0,∞]>", "zoom?": arg<boolean>() },
 ] as const;
-const members = scope("fluid", {
+const fluidScope = scope("fluid", {
   fluid: fn({ args, value: compute("fluid", "vw") }),
   // a key is a name, so the container variant is a member of its own, attached below; its label is what users call
   fluidContainer: fn({ args, label: "fluid.container", value: compute("fluid.container", "cqi") }),
-}).export();
+});
+// named through the scope, as mise-en-mode's look: the inferred type is too long to print (TS7056)
+type Members = ReturnType<typeof fluidScope.export>;
+const members: Members = fluidScope.export();
 
 /**
  * `fluid(min, max, { from?, to?, zoom? })`: a length that is `min` at the viewport width `from` (20rem), `max` at `to`
@@ -81,4 +84,7 @@ const members = scope("fluid", {
  * in px or rem. A range that fails WCAG 1.4.4 (500% zoom cannot reach twice the size) is a build error at the call, unless
  * `zoom: false`. `fluid.container(...)` is the same against the width of the nearest container (`cqi`).
  */
-export const fluid = Object.assign(members.fluid, { container: members.fluidContainer });
+export const fluid: Members["fluid"] & { container: Members["fluidContainer"] } = Object.assign(
+  members.fluid,
+  { container: members.fluidContainer },
+);

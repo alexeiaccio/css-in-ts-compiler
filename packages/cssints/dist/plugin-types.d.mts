@@ -1,6 +1,6 @@
-import { Gp as CheckIn, Jp as Style, V as types_d_exports, qp as Part, t as CheckOverrides } from "./theme-types-R7ZMxjrY.mjs";
+import { A as Wrap, G as types_d_exports, Qp as Style, Yp as CheckIn, Zp as Part, t as CheckOverrides } from "./theme-types-dI3sXi9W.mjs";
 import { CSSStyleValue } from "@cssints/css-grammar/values";
-import { Syntax, TokenType } from "@cssints/css-grammar/token";
+import { Grammar, TokenType } from "@cssints/css-grammar/token";
 import { ValidSelector } from "@cssints/css-grammar/query";
 //#region src/author-types.d.ts
 /** A declaration a member emits: property and value (a custom property, `--_r`, is allowed). */
@@ -80,8 +80,26 @@ interface Conflict {
 }
 //#endregion
 //#region src/scope.d.ts
-/** The `css` a kernel written as styles is handed: all of "cssints", as user code has it. */
-type Css = typeof types_d_exports;
+/** A selector of `nest()`: `&` (the kernel's class), then a combinator (`& > *`, `& > * + *`, `& p`); the build reads the rest. */
+type NestSelector<S extends string> = S extends `&${" " | ">" | "+" | "~"}${string}` ? S : `nest(): "${S}" does not start with & and a combinator`;
+/** What only a kernel written as styles has, besides all of "cssints". */
+interface KernelCss {
+  /**
+   * `nest("& > *")(flexGrow(1))`: the styles on other elements, relative to the kernel's class (`._k > *`). A condition
+   * inside applies to them (`& > *:hover`), one around it to the element (`._k:hover > *`). One condition. What it sets is
+   * not the element's, so a member's derived conflicts leave it out.
+   */
+  nest: <const S extends string>(selector: NestSelector<S>) => Wrap;
+  /**
+   * `vars({ "--_gap": "1rem" })`: custom properties on the element (`--_x` is `--<scope>-x`), values not checked. A
+   * `keyframes()` or `positionTry()` name is a value too: its rule goes with the kernel. Not part of derived conflicts.
+   */
+  vars: (set: {
+    readonly [name: `--${string}`]: string | number | CSSStyleValue;
+  }) => Style;
+}
+/** The `css` a kernel written as styles is handed: all of "cssints", as user code has it, and `nest` and `vars`. */
+type Css = typeof types_d_exports & KernelCss;
 /**
  * A kernel: global CSS printed once, bound to a class. `&` stands for the class the engine mints for it (`&(mod.key)`: the
  * class of the kernel `key` of an embedded scope `mod`), `--_x` for the custom property `--<scope>-x`. `css` is verbatim
@@ -100,9 +118,10 @@ interface GlobalDef {
   rule: string;
   layer?: string;
 }
-/** Top-level layers to declare, in order. */
+/** Top-level layers to declare, in order: after the engine's layers, or with `before: true` before them (below every class). */
 interface LayersDef {
   layers: readonly string[];
+  before?: boolean;
 }
 interface ParentVar {
   marker: "&";
@@ -168,8 +187,8 @@ interface Made {
     layer?: string;
     scope?: string;
   }[];
-  /** Top-level layers to declare, in order. */
-  layers?: string[];
+  /** Top-level layers to declare, in order: a list, printed after the engine's layers, or `{ layers, before: true }`. */
+  layers?: readonly string[] | LayersDef;
 }
 interface ChainDef {
   chain: {
@@ -182,10 +201,29 @@ interface CallDef {
   args: ArgsDef;
   uses?: readonly string[];
 }
+/**
+ * A member computed at build time into a value. `value` gets the arguments in an array: a grammar's parts as text, one by
+ * one; a tuple's arguments or `arg<T>()` as `build` would, which needs `fn({ args, value })` to type them. `label` names
+ * the member in its errors (the key by default).
+ */
 interface ValueDef {
-  args: string;
-  value: (parts: string[]) => string | CSSStyleValue;
+  args: ArgsDef;
+  value(parts: string[]): string | CSSStyleValue;
+  label?: string;
 }
+/**
+ * A value member whose `args` is a tuple or `arg<T>()`: `value` gets the arguments as a call member's `build` does. A
+ * table cannot type `value` from the `args` beside it (as `build()` does for call members); this call can.
+ */
+export declare const fn: <const D extends ArgsDef, R extends string | CSSStyleValue, const L extends string = never>(def: {
+  args: D;
+  label?: L;
+  value: (args: Params<D>) => R;
+}) => {
+  args: D;
+  label?: L;
+  value(args: never): R;
+};
 interface ModuleLike {
   readonly "~scope": string;
   readonly "~table": object;
@@ -226,7 +264,7 @@ type Own<T> = { [K in keyof T & string as Kind<K, T[K]> extends "alias" ? Strip<
 type Resolved<A> = { [N in keyof A]: A[N] extends string ? Expand<A[N], A> : never; };
 type Paths<X, P extends string = ""> = { [K in keyof X & string]: X[K] extends {
   readonly "~token": infer Kd extends TokenType;
-} ? { [Q in `${P}${K}`]: `<${Syntax<Kd>}>`; } : Paths<X[K], `${P}${K}.`>; }[keyof X & string];
+} ? { [Q in `${P}${K}`]: Grammar<Kd>; } : Paths<X[K], `${P}${K}.`>; }[keyof X & string];
 type Flat<U> = (U extends unknown ? (x: U) => void : never) extends ((x: infer I) => void) ? I : never;
 type ModAliases<T> = Flat<{ [K in keyof T & string]: Kind<K, T[K]> extends "module" ? T[K] extends {
   "~aliases": infer MA;
@@ -258,14 +296,18 @@ type Param<Def> = Def extends "$tokens" ? object : Def extends "$overrides" ? {
   readonly [group: string]: unknown;
 } : Def extends "$selector" ? string : Def extends string ? string : Def extends Typed<infer T> ? T : { -readonly [K in keyof Def as K extends `${string}?` ? never : K]: Param<Def[K]>; } & { -readonly [K in keyof Def as K extends `${infer R}?` ? R : never]?: Param<Def[K]>; };
 type Params<D> = D extends string ? [value: string] : D extends Typed<infer T> ? [value: T] : D extends readonly unknown[] ? D extends readonly [...infer R, infer Last] ? Last extends string | Typed<unknown> ? { -readonly [K in keyof D]: Param<D[K]>; } : [keyof Req<Last>] extends [never] ? [...{ -readonly [K in keyof R]: Param<R[K]>; }, Param<Last>] : { -readonly [K in keyof D]: Param<D[K]>; } : [] : never;
+type Callable<L extends string, D, A, R> = D extends string ? <const P extends readonly Part[]>(...parts: CheckIn<L, Expand<D, A>, false, P>) => R : D extends Typed<infer X> ? (value: X) => R : D extends readonly unknown[] ? <const P extends Arity<D>>(...args: P & CheckAll<L, A, D, P>) => R : never;
+type Label<K extends string, V> = V extends {
+  label?: infer L;
+} ? NonNullable<L> extends (infer S extends string) ? [S] extends [never] ? K : S : K : K;
 type MemberOf<K extends string, V, A> = Kind<K, V> extends "chain" ? V extends {
   chain: infer M;
 } ? () => Chain<K, M, A> : never : Kind<K, V> extends "call" ? V extends {
   args: infer D;
-} ? D extends string ? <const P extends readonly Part[]>(...parts: CheckIn<K, Expand<D, A>, false, P>) => Style : D extends Typed<infer X> ? (value: X) => Style : D extends readonly unknown[] ? <const P extends Arity<D>>(...args: P & CheckAll<K, A, D, P>) => Style : never : never : Kind<K, V> extends "value" ? V extends {
-  args: infer G extends string;
-  value: (parts: string[]) => infer R;
-} ? <const P extends readonly Part[]>(...parts: CheckIn<K, Expand<G, A>, false, P>) => R : never : Kind<K, V> extends "prop" ? V extends (infer G extends string) ? <const P extends readonly Part[]>(...parts: CheckIn<K, Expand<G, A>, false, P>) => Style : never : never;
+} ? Callable<K, D, A, Style> : never : Kind<K, V> extends "value" ? V extends {
+  args: infer D;
+  value: (args: never) => infer R;
+} ? Callable<Label<K, V>, D, A, R> : never : Kind<K, V> extends "prop" ? V extends (infer G extends string) ? <const P extends readonly Part[]>(...parts: CheckIn<K, Expand<G, A>, false, P>) => Style : never : never;
 /** What `.export()` gives: the members of the table, typed from it (a `-prefixed` property is camel-cased, an embedded scope nests). */
 type Members<T> = { [K in keyof T & string as Private<K> extends true ? never : Kind<K, T[K]> extends "chain" | "call" | "value" ? K : Kind<K, T[K]> extends "prop" ? Camel<K> : Kind<K, T[K]> extends "module" ? K : never]: Kind<K, T[K]> extends "module" ? T[K] extends {
   "~scope": string;
@@ -278,7 +320,11 @@ type BadUses<N extends string, T, V> = V extends {
   uses: readonly (infer U extends string)[];
 } ? [Exclude<U, UsableOf<T>>] extends [never] ? unknown : Bad<`${N}: uses ${Exclude<U, UsableOf<T>>}, which is not a kernel, global, layers, runtime or conflicts of this scope`> : unknown;
 type Clash<N extends string, T, K> = K extends `#${infer R}` ? R extends keyof T ? Bad<`${N}: ${K} and ${R} share a name: rename one`> : unknown : unknown;
-type Valid<N extends string, T> = { readonly [K in keyof T]: BadUses<N, T, T[K]> & Clash<N, T, K>; };
+type BadValue<N extends string, K, V> = V extends {
+  args: infer D;
+  value: (args: infer P) => unknown;
+} ? D extends string ? unknown : [P] extends [never] ? unknown : Bad<`${N}: ${K & string}: a value member with a tuple or arg<T>() is written fn({ args, value })`> : unknown;
+type Valid<N extends string, T> = { readonly [K in keyof T]: BadUses<N, T, T[K]> & Clash<N, T, K> & BadValue<N, K, T[K]>; };
 type CallKeys<T> = { [K in keyof T & string]: Kind<K, T[K]> extends "call" ? K : never; }[keyof T & string];
 type ArgsOf<E> = E extends {
   args: infer D;

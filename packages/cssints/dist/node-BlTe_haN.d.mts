@@ -128,12 +128,13 @@ interface RegistryState {
   runtimes: Map<string, RuntimeEntry>;
   /** scope name -> the hash of its content (scope.ts `register`): a name is unique per process */
   scopes: Map<string, string>;
-  /** what scope.ts needs of the eval-time library, set by macro.ts: `css` for a kernel written as styles, `kernelOf` to check and print it under its class */
+  /** what scope.ts needs of the eval-time library, set by macro.ts: `css` for a kernel written as styles (with `nest` and `vars`), `kernelOf` to check and print it under its class */
   lib?: {
     css: object;
     kernelOf: (what: string, style: CssNode, cls: string) => {
       css: string;
       props: string[];
+      kernels?: Kernel[];
     };
   };
   /** what the front of "cssints/plugin" calls (scope-engine.ts `engine`), set by macro.ts */
@@ -171,13 +172,15 @@ declare global {
 //#region src/node.d.ts
 /**
  * One condition of a style: an at-rule prelude (`@media (width >= 40rem)`), a pseudo-class (`:hover`), an attribute
- * (`[aria-current="page"]`) or, with `ancestor`, a selector of a marked ancestor (`:where(._g:hover)`).
+ * (`[aria-current="page"]`) or, with `ancestor`, a selector of a marked ancestor (`:where(._g:hover)`), or, with
+ * `nest` (kernels only), other elements relative to the class (`& > *`: `&` is the class, the rest follows it).
  * `rank` orders the rules of a layer: the min-width of a media or container query in px, the place of a pseudo-class.
  */
 interface Cond {
   text: string;
   rank: number;
   ancestor?: true;
+  nest?: true;
 }
 /**
  * One declaration: property and value, under the conditions that wrap it (outermost first). `fallbacks` are the other

@@ -1,14 +1,14 @@
-import { C as addRuntime, D as covers, F as MacroError, I as MemberError, M as registry, O as relation, _ as standIn, c as byOrder, h as requireLayer, j as forgetKernels, k as Registry, o as addGlobal, s as addLayers, t as CV_CALL, y as addKernel } from "./instrument-CQnOJsD9.mjs";
+import { C as addRuntime, D as covers, F as MacroError, I as MemberError, M as registry, O as relation, _ as standIn, c as byOrder, h as requireLayer, j as forgetKernels, k as Registry, o as addGlobal, s as addLayers, t as CV_CALL, y as addKernel } from "./instrument-QavwPakv.mjs";
 import { createRequire } from "node:module";
 import { checkDeclarationNow, checkQuery, checkSelector, checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { browsers, messageOf, supportOf } from "@cssints/css-grammar/support";
-import { CSS, CSSColorValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
+import { CSS, CSSColorValue, CSSImageValue, CSSStyleValue, CSSStyleValue as CSSStyleValue$1, CSSUnitValue } from "@cssints/css-grammar/values";
 import { Cause, Effect, Exit, Formatter, Predicate, Result, Schema } from "effect";
 import { createHash } from "node:crypto";
 import { functions } from "@cssints/css-grammar/functions";
 import { properties } from "@cssints/css-grammar/mdn";
 import { relative } from "node:path";
-import { DTCG_TYPES, TOKEN_TYPES } from "@cssints/css-grammar/token";
+import { DTCG_TYPES, TOKEN_TYPES, grammarOf } from "@cssints/css-grammar/token";
 import { matches } from "@cssints/css-grammar/twin";
 import { browserslistToTargets, transform } from "lightningcss";
 import { checkSelectorNow } from "@cssints/css-grammar/selector";
@@ -328,7 +328,7 @@ const fallbackOf = (prop, value, w) => {
 const loweredOf = (prop, value, w) => fallbackOf(prop, value, w) !== void 0;
 //#endregion
 //#region src/token.ts
-var CSSTokenValue = class extends CSSStyleValue {
+var CSSTokenValue = class extends CSSStyleValue$1 {
 	name;
 	syntax;
 	settable;
@@ -356,15 +356,18 @@ const SUPPORT_PROPERTY = {
 	time: "transition-duration",
 	url: "background-image",
 	image: "background-image",
-	"transform-list": "transform"
+	"transform-list": "transform",
+	"easing-function": "transition-timing-function",
+	shadow: "box-shadow"
 };
 const supportTest = (syntax, text) => `(${SUPPORT_PROPERTY[syntax]}:${text})`;
 const checkSyntaxFx = Effect.fnUntraced(function* (what, syntax, text, who = what, variable) {
-	if (!(yield* matches(`<${syntax}>`, text).pipe(Effect.mapError((e) => new MacroError({
+	const grammar = grammarOf(syntax);
+	if (!(yield* matches(grammar, text).pipe(Effect.mapError((e) => new MacroError({
 		message: e.message,
 		cause: e,
 		...registry.at
-	}))))) return yield* fail(`cssints: ${what} "${text}" is not a <${syntax}>`);
+	}))))) return yield* fail(`cssints: ${what} "${text}" is not a ${grammar}`);
 	const prop = SUPPORT_PROPERTY[syntax];
 	if (!prop) return;
 	const { warned, warnings } = registry;
@@ -400,16 +403,28 @@ const privateName = () => {
 	const key = `${relative(process.cwd(), at.file)}:${at.site}:${registry.tokens}`;
 	return `--_${createHash("sha1").update(key).digest("hex").slice(0, 8)}`;
 };
-const FONT_RELATIVE = /[\d.](?:r?em|r?ex|r?ch|r?cap|r?ic|r?lh)\b/i;
+const FONT_RELATIVE = /(\d*\.?\d+(?:e[+-]?\d+)?)(r?em|r?ex|r?ch|r?cap|r?ic|r?lh)\b/gi;
+const EM = {
+	em: 1,
+	ex: .5,
+	ch: .5,
+	cap: .7,
+	ic: 1,
+	lh: 1.2
+};
+const inPx = (text) => text.replace(FONT_RELATIVE, (_, n, unit) => {
+	const u = unit.toLowerCase();
+	return `${Number((Number(n) * 16 * (EM[u] ?? EM[u.slice(1)])).toFixed(4))}px`;
+});
 const declare = Effect.fnUntraced(function* (kind, text, variable, inherit, settable, what, live = false) {
 	const at = registry.at;
-	const { syntax, probes } = TOKEN_TYPES[kind];
+	const { syntax, probes, property = `<${syntax}>` } = TOKEN_TYPES[kind];
 	const name = what ?? `token.${kind}() initial value`;
 	const fallback = yield* checkSyntaxFx(name, syntax, text, what ?? `${name} of ${variable}`, variable);
-	if (FONT_RELATIVE.test(text)) return yield* fail(`cssints: ${name} "${text}" depends on the font size, and a browser drops an @property rule whose initial-value is not computationally independent; use px or a viewport unit`);
+	const initial = property === "*" ? fallback ?? text : inPx(fallback ?? text);
 	const n = registry.tokens++;
 	const by = `${at.file}#${at.site}.${n}`;
-	const css = `@property ${variable}{syntax:"<${syntax}>";inherits:${inherit};initial-value:${fallback ?? text}}`;
+	const css = `@property ${variable}{syntax:"${property}";inherits:${inherit};initial-value:${initial}}`;
 	const prev = registry.properties.get(variable);
 	if (prev && prev.css !== css && prev.by !== by && !(prev.file === at.file && prev.gen !== registry.gen)) return yield* fail(`cssints: ${variable} is already declared with another @property, in ${relative(process.cwd(), prev.file)}: ${prev.css}; here: ${css}`);
 	registry.properties.set(variable, {
@@ -426,7 +441,7 @@ const declare = Effect.fnUntraced(function* (kind, text, variable, inherit, sett
 		value: text,
 		fallback
 	});
-	if (fallback && !live) registry.themed.set(by, {
+	if ((fallback || initial !== text) && !live) registry.themed.set(by, {
 		file: at.file,
 		key: `0:${at.file}#${String(at.site).padStart(6, "0")}.${n}`,
 		css: `${inherit ? ":root" : ":where(*)"}{${variable}:${text}}`,
@@ -479,7 +494,7 @@ const token = {
 };
 //#endregion
 //#region src/functions.ts
-var CSSFunctionValue = class extends CSSStyleValue {
+var CSSFunctionValue = class extends CSSStyleValue$1 {
 	value;
 	constructor(value) {
 		super();
@@ -503,7 +518,7 @@ const build = (member, name) => {
 	return (...parts) => {
 		const atom = (p) => {
 			if (typeof p === "string") checkVars(`${member}()`, p);
-			else if (typeof p !== "number" && !(p instanceof CSSStyleValue)) throw fail(`cssints: ${member}() takes strings, numbers and Typed OM values (tokens, other calls), got ${Formatter.formatJson(p)}`);
+			else if (typeof p !== "number" && !(p instanceof CSSStyleValue$1)) throw fail(`cssints: ${member}() takes strings, numbers and Typed OM values (tokens, other calls), got ${Formatter.formatJson(p)}`);
 			return String(p);
 		};
 		const texts = parts.map((p, i) => isGroup(p) ? p.map(atom).join(" ") : name === "var" && !i && p instanceof CSSTokenValue ? p.name : atom(p));
@@ -559,7 +574,7 @@ const kindOf = (k, v) => {
 };
 const expand = (g, a, depth = 0) => depth > 5 || !g.includes("<") ? g : g.replace(/<([^>]*)>/g, (m, n) => Object.hasOwn(a, n) ? `[ ${expand(a[n], a, depth + 1)} ]` : m);
 const tokenSyntaxes = (tokens, prefix, out) => {
-	if (tokens && typeof tokens === "object") for (const [k, v] of Object.entries(tokens)) if (v && typeof v === "object" && typeof v["syntax"] === "string") out[`${prefix}${k}`] = `<${v["syntax"]}>`;
+	if (tokens && typeof tokens === "object") for (const [k, v] of Object.entries(tokens)) if (v && typeof v === "object" && typeof v["syntax"] === "string") out[`${prefix}${k}`] = grammarOf(v["syntax"]);
 	else tokenSyntaxes(v, `${prefix}${k}.`, out);
 	return out;
 };
@@ -600,6 +615,7 @@ var Compiler = class {
 	carries = /* @__PURE__ */ new Map();
 	kernels = /* @__PURE__ */ new Map();
 	derived = /* @__PURE__ */ new Map();
+	atRules = /* @__PURE__ */ new Map();
 	constructor(s, compiled) {
 		this.name = s.name;
 		this.table = s.table;
@@ -640,6 +656,7 @@ var Compiler = class {
 			const merged = lib.css["cn"](...nodes);
 			const built = lib.kernelOf(`${this.name}.${key}`, merged, marker);
 			css = built.css;
+			if (built.kernels) this.atRules.set(key, built.kernels);
 			this.derived.set(key, {
 				props: Object.keys(properties).filter((p) => built.props.some((k) => relation(p, k) !== "apart")),
 				message: `kernel ${key} sets ${built.props.join(", ")}`
@@ -672,7 +689,7 @@ var Compiler = class {
 		const explicit = kinds.some((k) => k[3] === "conflicts");
 		for (const [u, s, key, kind, def] of kinds) if (kind === "kernel") {
 			const k = s.kernel(key);
-			(c.kernels ??= []).push(k);
+			(c.kernels ??= []).push(...s.atRules.get(key) ?? [], k);
 			(c.markers ??= []).push([s.marker(key), k.key]);
 			const conflicts = explicit ? void 0 : s.derived.get(key);
 			if (conflicts) (c.plugs ??= []).push({
@@ -787,12 +804,12 @@ const member$1 = (c, key, kind, def) => {
 		};
 	}
 	if (kind === "value") {
-		const grammar = c.grammar(d["args"]);
-		const compute = d["value"];
+		const def = d;
+		const { args: spec, label = key } = def;
 		return (...args) => {
-			check$1(name, key, grammar, valueOf(name, key, args));
-			const out = ran(name, () => compute(args.map(String)));
-			if (typeof out !== "string" && !(out instanceof CSSStyleValue)) throw thrown(name, `${key}() value must return a string or a Typed OM value`);
+			const given = argsOf(c, label, spec, args);
+			const out = ran(name, () => def.value(typeof spec === "string" ? args.map(String) : given));
+			if (typeof out !== "string" && !(out instanceof CSSStyleValue$1)) throw thrown(name, `${label}() value must return a string or a Typed OM value`);
 			return out;
 		};
 	}
@@ -829,7 +846,7 @@ const ownDecls = (c, emitted) => emitted.map(([p, v]) => [c.own(p), c.own(v)]);
 const argOf = (c, label, def, v, tokens) => {
 	const { name } = c;
 	if (def === "$tokens") {
-		if (!v || typeof v !== "object" || isNode(v) || v instanceof CSSStyleValue) throw failIn(name, `cssints: ${label} expects a token set (createTokens)`);
+		if (!v || typeof v !== "object" || isNode(v) || v instanceof CSSStyleValue$1) throw failIn(name, `cssints: ${label} expects a token set (createTokens)`);
 		return v;
 	}
 	if (def === "$overrides") {
@@ -866,6 +883,23 @@ const argOf = (c, label, def, v, tokens) => {
 	for (const k of Object.keys(v)) if (!(k in out) && !(k in rec) && !(`${k}?` in rec)) throw failIn(name, `cssints: ${label}: no argument ${k}`);
 	return out;
 };
+const argsOf = (c, label, spec, args) => {
+	const { name } = c;
+	if (typeof spec === "string") {
+		const value = valueOf(name, label, args);
+		check$1(name, label, c.grammar(spec), value);
+		return [value];
+	}
+	if (isTyped(spec)) return args;
+	const list = spec;
+	if (args.length > list.length) throw failIn(name, `cssints: ${label}() takes at most ${list.length} arguments`);
+	let tokens;
+	return list.map((d, i) => {
+		const v = argOf(c, `${label}(${i + 1})`, d, args[i] ?? (isRecord(d) ? {} : void 0), tokens);
+		if (d === "$tokens") tokens = v;
+		return v;
+	});
+};
 const callOf = (c, key, def) => {
 	const { name } = c;
 	const build = c.impl?.[key];
@@ -874,22 +908,7 @@ const callOf = (c, key, def) => {
 	const uses = def.uses ?? [];
 	let base;
 	return (...args) => {
-		let given;
-		if (typeof spec === "string") {
-			const value = valueOf(name, key, args);
-			check$1(name, key, c.grammar(spec), value);
-			given = [value];
-		} else if (isTyped(spec)) given = args;
-		else {
-			const list = spec;
-			if (args.length > list.length) throw failIn(name, `cssints: ${key}() takes at most ${list.length} arguments`);
-			let tokens;
-			given = list.map((d, i) => {
-				const v = argOf(c, `${key}(${i + 1})`, d, args[i] ?? (isRecord(d) ? {} : void 0), tokens);
-				if (d === "$tokens") tokens = v;
-				return v;
-			});
-		}
+		const given = argsOf(c, key, spec, args);
 		const made = ran(name, () => build(...given));
 		const carry = made.uses ? c.carry([...uses, ...made.uses]) : base ??= c.carry(uses);
 		return node(made.decls ? ownDecls(c, made.decls) : [], {
@@ -920,7 +939,10 @@ const exportOf = (s) => {
 };
 function scope(name, table) {
 	if (!NAME$1.test(name) || RESERVED.has(name)) throw thrown(name, RESERVED.has(name) ? `scope "${name}" is reserved by the engine` : `scope(${JSON.stringify(name)}): a name is lowercase letters, digits and -, and starts with a letter`);
-	for (const k of Object.keys(table)) if (!KEY.test(strip(k)) && !k.startsWith("-")) throw thrown(name, `${name}: the entry ${JSON.stringify(k)} is not a name`);
+	for (const k of Object.keys(table)) {
+		if (!KEY.test(strip(k)) && !k.startsWith("-")) throw thrown(name, `${name}: the entry ${JSON.stringify(k)} is not a name`);
+		if (isPrivate(k) && Object.hasOwn(table, strip(k))) throw thrown(name, `${name}: ${k} and ${strip(k)} share a name: rename one`);
+	}
 	const s = {
 		name,
 		table,
@@ -1000,6 +1022,13 @@ const FONT_WEIGHTS = {
 	"extra-black": 950,
 	"ultra-black": 950
 };
+const SHADOW = [
+	"color",
+	"offsetX",
+	"offsetY",
+	"blur",
+	"spread"
+];
 const UNITS = {
 	dimension: ["px", "rem"],
 	duration: ["ms", "s"]
@@ -1019,6 +1048,22 @@ const cssOf = Effect.fnUntraced(function* (type, value, what) {
 		const parts = c.map((n, i) => named?.includes(i) && n !== "none" ? `${n}%` : n);
 		const a = alpha === void 0 ? "" : ` / ${alpha}`;
 		return named ? `${space}(${parts.join(" ")}${a})` : `color(${space} ${parts.join(" ")}${a})`;
+	}
+	if (type === "cubicBezier") {
+		if (!Array.isArray(value) || value.length !== 4 || !value.every(isNumber)) return yield* fail(`cssints: ${what} is not a DTCG cubicBezier: [x1, y1, x2, y2]`);
+		return `cubic-bezier(${value.join(", ")})`;
+	}
+	if (type === "shadow") {
+		const layers = Array.isArray(value) ? value : [value];
+		const out = [];
+		for (const l of layers) {
+			if (!Predicate.isObject(l) || SHADOW.some((k) => l[k] === void 0) || l.inset !== void 0 && typeof l.inset !== "boolean") return yield* fail(`cssints: ${what} is not a DTCG shadow: { color, offsetX, offsetY, blur, spread, inset? } or an array of them`);
+			const parts = [];
+			for (const k of SHADOW.slice(1)) parts.push(yield* cssOf("dimension", l[k], `${what} ${k}`));
+			parts.push(yield* cssOf("color", l.color, `${what} color`));
+			out.push(`${l.inset ? "inset " : ""}${parts.join(" ")}`);
+		}
+		return out.join(", ");
 	}
 	const units = UNITS[type];
 	if (Predicate.isObject(value) && units) {
@@ -1374,7 +1419,7 @@ const blockOf = (what, style, allowed) => {
 };
 const declsOf = (what, style, conditions, allowed) => {
 	if (!style.__cssints.length) throw fail(`cssints: ${what} takes css.* declarations (a member call or cn(...)), got ${Formatter.formatJson(style)}`);
-	if (style.markers || style.kernels || style.plugs) throw fail(`cssints: ${what} takes plain declarations: no marker class or kernel of a member`);
+	if (style.markers || style.plugs || style.kernels && !(conditions && style.kernels.every((k) => k.key.startsWith("@")))) throw fail(`cssints: ${what} takes plain declarations: no marker class or kernel of a member`);
 	for (const d of style.__cssints) {
 		const [prop, , conds, fallbacks] = d;
 		if (!conditions && conds?.length || fallbacks) throw fail(`cssints: ${what} takes declarations without ${conditions ? "" : "conditions or "}firstThatWorks(...), got ${prop}`);
@@ -1487,6 +1532,33 @@ const within = (state, name) => {
 		ancestor: true
 	});
 };
+const nest = (...args) => {
+	const [selector] = args;
+	if (typeof selector !== "string" || !/^&\s*[>+~\s]/.test(selector)) throw fail(`cssints: nest() takes a selector that starts with & and a combinator ("& > *", "& > * + *", "& p"), got ${Formatter.formatJson(selector)}`);
+	const text = selector.trim().replace(/\s+/g, " ");
+	const exit = Effect.runSyncExit(checkSelector(`._${text.slice(1)}`));
+	if (Exit.isFailure(exit)) {
+		const e = Cause.squash(exit.cause);
+		throw new MacroError({
+			message: `cssints: nest(): ${e.message}`,
+			cause: e,
+			...registry.at
+		});
+	}
+	return wrapper({
+		text,
+		rank: 3e3,
+		nest: true
+	});
+};
+const vars = (...args) => {
+	const [set] = args;
+	const entries = Predicate.isObject(set) ? Object.entries(set) : [];
+	const bad = entries.find(([k, v]) => !/^--[\w-]+$/.test(k) || !(typeof v === "string" || typeof v === "number" || v instanceof CSSStyleValue));
+	if (!entries.length || bad) throw fail(`cssints: vars() takes { "--_name": value }, values strings, numbers or Typed OM values, got ${Formatter.formatJson(bad ?? set)}`);
+	const decls = entries.map(([k, v]) => [k, String(v)]);
+	return node(decls, { kernels: kernelsOf(entries.map(([, v]) => v)) });
+};
 const globalRule = (selector, ...styles) => {
 	const at = registry.at;
 	if (!at || typeof selector !== "string") throw fail("cssints: global(selector, ...styles) takes a selector string and css.* styles");
@@ -1561,14 +1633,14 @@ const ruleOf = (cls, [prop, value, conds = [], fallbacks]) => {
 	const wrap = [];
 	const ranks = [];
 	let before = "";
-	let pseudo = "";
+	const sel = [`.${cls}`];
 	let width = 0;
 	for (const c of conds) if (c.text.startsWith("@")) {
 		wrap.push(c.text);
 		width = Math.max(width, c.rank);
 	} else {
 		if (c.ancestor) before += `${c.text} `;
-		else pseudo += c.text;
+		else sel.push(c.nest ? c.text.slice(1) : c.text);
 		ranks.push(c.rank);
 	}
 	const all = fallbacks ? `${value};${fallbacks.join(";")}` : value;
@@ -1578,31 +1650,38 @@ const ruleOf = (cls, [prop, value, conds = [], fallbacks]) => {
 		cond: conds.length ? [width, ...ranks] : [],
 		wrap,
 		prop,
-		css: `${before}.${cls}${pseudo}{${fallbacks ? [...fallbacks.toReversed(), value].map((v) => `${prop}:${v}`).join(";") : `${prop}:${value}`}}`,
+		css: `${before}${sel.join("")}{${fallbacks ? [...fallbacks.toReversed(), value].map((v) => `${prop}:${v}`).join(";") : `${prop}:${value}`}}`,
 		tokens
 	};
 };
 const kernelOf = (what, style, cls) => {
 	const decls = declsOf(what, style, true);
 	const blocks = [];
+	const open = /* @__PURE__ */ new Map();
 	for (const r of decls.map((d) => ({
 		cls,
 		...ruleOf(cls, d)
 	})).sort(byOrder)) {
-		const open = r.css.indexOf("{");
-		const selector = r.css.slice(0, open);
-		const last = blocks.at(-1);
-		const body = r.css.slice(open + 1, -1);
-		if (last && last.selector === selector && last.wrap.join("{") === r.wrap.join("{")) last.body.push(body);
-		else blocks.push({
-			wrap: r.wrap,
-			selector,
-			body: [body]
-		});
+		const brace = r.css.indexOf("{");
+		const selector = r.css.slice(0, brace);
+		const body = r.css.slice(brace + 1, -1);
+		const key = `${r.layer}|${r.cond.join()}|${r.wrap.join("{")}|${selector}`;
+		const block = open.get(key);
+		if (block) block.body.push(body);
+		else {
+			const b = {
+				wrap: r.wrap,
+				selector,
+				body: [body]
+			};
+			blocks.push(b);
+			open.set(key, b);
+		}
 	}
 	return {
 		css: blocks.map((b) => b.wrap.reduceRight((css, w) => `${w}{${css}}`, `${b.selector}{${b.body.join(";")}}`)).join(" "),
-		props: [...new Set(decls.map(([prop]) => prop))]
+		props: [...new Set(decls.flatMap(([prop, , conds]) => prop.startsWith("--") || conds?.some((c) => c.nest) ? [] : [prop]))],
+		kernels: style.kernels
 	};
 };
 const checkValue = (prop, value, fresh, properties) => {
@@ -1659,7 +1738,10 @@ const conflictOf = ({ name, label = name, conflicts }, decls, at) => {
 };
 const classesOf = Effect.fnUntraced(function* ({ __cssints: decls, markers, kernels, globals, themes, layers, plugs }, at) {
 	const registry = yield* Registry;
-	if (kernels) for (const k of kernels) yield* addKernel(k, markers ?? [], at);
+	if (kernels) {
+		const runtimes = plugs?.flatMap((p) => p.runtime ? [p.runtime] : []);
+		for (const k of kernels) yield* addKernel(k, markers ?? [], at, runtimes);
+	}
 	if (layers) for (const l of layers) yield* addLayers(l, at);
 	if (globals) for (const g of globals) yield* addGlobal(g, at);
 	if (themes && at) for (const t of themes) yield* addTheme(t, at);
@@ -1750,12 +1832,19 @@ const named = {
 	check,
 	CSS,
 	CSSColorValue,
+	CSSImageValue,
+	CSSStyleValue,
 	CSSUnitValue
 };
 const css = new Proxy(named, { get: (t, k) => Object.hasOwn(t, k) ? t[k] : member(String(k)) });
 named.css = css;
+const kernelCss = new Proxy({
+	...named,
+	nest,
+	vars
+}, { get: (t, k) => Object.hasOwn(t, k) ? t[k] : member(String(k)) });
 registry.lib = {
-	css,
+	css: kernelCss,
 	kernelOf
 };
 registry.engine = engine;
@@ -1826,4 +1915,4 @@ function __site(at, value) {
 	return exit.value;
 }
 //#endregion
-export { CSS, CSSAtRuleValue, CSSColorValue, CSSUnitValue, __at, __site, __unseen, cn, css, cv, cx, firstThatWorks, flex, grid, keyframes, positionTry };
+export { CSS, CSSAtRuleValue, CSSColorValue, CSSImageValue, CSSStyleValue, CSSUnitValue, __at, __site, __unseen, cn, css, cv, cx, firstThatWorks, flex, grid, keyframes, positionTry };
