@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-08T09:42:20Z
-updated_at: 2026-10-08T10:18:11Z
+updated_at: 2026-10-08T10:32:29Z
 ---
 
 Found by @cssints/tokens (cssints-0gll, repros under "## Engine gaps").
@@ -19,4 +19,4 @@ Found by @cssints/tokens (cssints-0gll, repros under "## Engine gaps").
 - [x] rem in dimension tokens
 - [ ] cubicBezier/transition and shadow token types (DTCG has both)
 - [ ] cheaper token types for large sets
-- [ ] themes register @property only for used tokens
+- [x] themes register @property only for used tokens

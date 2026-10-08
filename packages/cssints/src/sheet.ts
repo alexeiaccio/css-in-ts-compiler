@@ -140,7 +140,9 @@ export const globalNames = (themed: Map<string, Themed>, file: string): string[]
     .flatMap((t) => t.css.match(/--[\w-]+/g) ?? []);
 
 // Adds to `names` the tokens that those are made of: a derived token is `oklch(0.6 0.2 var(--hue-accent))`, no colour
-// unless `--hue-accent` has its @property rule, and so is a theme value that refers to a token. Through chains.
+// unless `--hue-accent` has its @property rule, and so is a theme value that refers to a token. Through chains. Only the
+// declarations of those names count: a theme that sets 300 tokens adds nothing for the 299 the module does not use.
+const DECL = /(--[\w-]+):([^;{}]*)/g;
 export const closeNames = (
   names: Set<string>,
   defs: Map<string, { refs?: string[] }>,
@@ -150,7 +152,9 @@ export const closeNames = (
     size = names.size;
     for (const n of [...names]) defs.get(n)?.refs?.forEach((r) => names.add(r));
     for (const t of themed.values())
-      if (t.names.some((n) => names.has(n))) t.css.match(/--[\w-]+/g)?.forEach((n) => names.add(n));
+      if (t.names.some((n) => names.has(n)))
+        for (const [, n, value] of t.css.matchAll(DECL))
+          if (names.has(n!)) value!.match(/--[\w-]+/g)?.forEach((r) => names.add(r));
   }
 };
 

@@ -136,6 +136,12 @@ css = sheet("themes-use.ts");
 assert.ok(css.includes("@media (prefers-color-scheme: dark){:root{--th-bg:#0b0b0f"), css);
 assert.ok(css.includes("[data-tight]{--gap-md:4px}"), css);
 assert.ok(!css.includes(".light{"), "a theme that sets no token it uses stays out");
+// the @property rules are those of the tokens it uses, not of every token a theme of them sets (--th-fg)
+assert.deepEqual(
+  [...css.matchAll(/@property (--[\w-]+)/g)].map((m) => m[1]),
+  ["--gap-md", "--th-bg"],
+  css,
+);
 
 // Errors, located at the call: an unknown path, a value of another type, a condition that is not a theme
 for (const [f, message, column] of [
