@@ -128,6 +128,22 @@ assert.equal(sa, 'import "/fixtures/plug-script-run.js";\n', sa);
 assert.equal(sb, sa, "one script, one import: the browser runs it once");
 assert.equal(sc, "export {};", "every target has the feature: nothing ships");
 
+// a kernel written as styles: the support warning of a declaration is covered like `requires`, and names --sw-g, not --_g
+warnings.length = 0;
+await code("plug-styles-use.ts");
+assert.ok(!warnings.some((w) => w.includes("corner-shape")), warnings.join("\n"));
+assert.ok(
+  warnings.some((w) =>
+    w.includes('animation-range: the property in "var(--sw-g)" is not supported by firefox 128'),
+  ),
+  warnings.join("\n"),
+);
+await assert.rejects(code("plug-styles-bad-use.ts"), (e) => {
+  assert.match(e.message, /"rgb\(var\(--swb-g\) 1s\)"/);
+  assert.ok(!e.message.includes("--_g"), e.message);
+  return true;
+});
+
 // errors name the plugin and the call site
 const fails = async (f, text, line, plugin) =>
   assert.rejects(code(f), (e) => {

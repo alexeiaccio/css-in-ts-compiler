@@ -1,14 +1,24 @@
 // Kernels: the global rules a style needs (markers and kernels of a style node), registered with the sheet by key.
 // Kept out of sheet.ts, which reads mdn-data, because the library (macro.ts) registers them at evaluation.
-import { browsers, lacking } from "@cssints/css-grammar/support";
+import { browsers, lacking, messageOf } from "@cssints/css-grammar/support";
 import { Effect, Formatter } from "effect";
 
-import { unreached } from "./delivery.ts";
+import { uncovered } from "./delivery.ts";
 import { MacroError } from "./errors.ts";
-import { type At, type Kernel, Registry, type RegistryState, type Runtime } from "./registry.ts";
+import {
+  type At,
+  type Kernel,
+  type KernelWarning,
+  Registry,
+  type RegistryState,
+  type Runtime,
+} from "./registry.ts";
 
 // The entries of kernels start with this and a tab: `@kernel\t<json>`.
 export const KERNEL = "@kernel\t";
+
+/** The support warnings of the declarations of a kernel written as styles (scope-engine.ts), weighed by `addKernel`. */
+export const kernelWarnings = new WeakMap<Kernel, readonly KernelWarning[]>();
 
 // The custom properties a kernel declares: `--x:` in its css, `@property --x` in its atProperty.
 const VARS = /(--[\w-]+)\s*:|@property\s+(--[\w-]+)/g;
@@ -17,7 +27,8 @@ const VARS = /(--[\w-]+)\s*:|@property\s+(--[\w-]+)/g;
  * Registers a kernel by key, on first use (a global rule with atProperty: its css in _.k, its atProperty at the top
  * of the sheet, both once however many styles use it). The same key with other css, another key that declares one of
  * its custom properties, and another key for a marker it prints are build errors at `at`; a `requires` that a target
- * lacks is a support warning, unless one of `runtimes` (those of the style) polyfills it and reaches that target.
+ * lacks is a support warning, unless one of `runtimes` (those of the style) polyfills it and reaches that target
+ * (`uncovered`); so is a declaration of a kernel written as styles that a target lacks (`kernelWarnings`), by the same rule.
  */
 export const addKernel = Effect.fnUntraced(function* (
   kernel: Kernel,
@@ -51,17 +62,23 @@ export const addKernel = Effect.fnUntraced(function* (
     kernels.set(key, (entry = { kernel, vars, markers: new Set(), users: new Set() }));
     for (const r of kernel.requires ?? []) {
       const { key: feature, exact } = typeof r === "string" ? { key: r, exact: false } : r;
-      const fallback = runtimes.find((r) => r.polyfills.includes(feature));
-      const beyond = fallback ? yield* unreached(fallback) : undefined;
-      const off = (yield* lacking(feature, undefined, exact)).filter(
-        (t) => !beyond || beyond.has(t.join(" ")),
-      );
+      const all = (yield* lacking(feature, undefined, exact)).map((t) => t.join(" "));
+      const off = yield* uncovered(feature, all, runtimes);
       const w = `${key} ${feature}`;
       if (off.length && !warned.has(w)) {
         warned.add(w);
         warnings.push(
-          `kernel ${key} needs ${feature}, not supported by ${browsers(off.map((t) => t.join(" ")))}${exact ? " (a partial implementation counts as lacking)" : ""}`,
+          `kernel ${key} needs ${feature}, not supported by ${browsers([...off])}${exact ? " (a partial implementation counts as lacking)" : ""}`,
         );
+      }
+    }
+    for (const { prop, value, warning } of kernelWarnings.get(kernel) ?? []) {
+      const off = yield* uncovered(warning.key, warning.lacking, runtimes);
+      // the key of a user's declaration of the same feature, unless a runtime covers some of the targets
+      const w = `${prop} ${warning.key}${off.length < warning.lacking.length ? ` ${off.join()}` : ""}`;
+      if (off.length && !warned.has(w)) {
+        warned.add(w);
+        warnings.push(messageOf(prop, value, { ...warning, lacking: [...off] }));
       }
     }
   }

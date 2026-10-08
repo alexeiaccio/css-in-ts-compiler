@@ -61,6 +61,21 @@ export const unreached = Effect.fnUntraced(function* (
   return new Set((yield* lacking("css.at-rules.property", ts)).map((t) => t.join(" ")));
 });
 
+/**
+ * Of `off`, the targets that lack `feature`, those no runtime of a style covers: one covers them when it polyfills the
+ * feature and reaches them (`unreached`). The one rule for a kernel's `requires` and the support warnings of its declarations.
+ */
+export const uncovered = Effect.fnUntraced(function* (
+  feature: string,
+  off: readonly string[],
+  runtimes: readonly Runtime[],
+) {
+  const fallback = runtimes.find((r) => r.polyfills.includes(feature as BcdKey));
+  if (!fallback) return off;
+  const beyond = yield* unreached(fallback);
+  return off.filter((t) => beyond.has(t));
+});
+
 /** Whether a target needs the runtime: it lacks a feature in `polyfills` and the runtime reaches it (`unreached`). */
 export const needed = Effect.fnUntraced(function* (
   runtime: Runtime,
