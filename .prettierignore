@@ -28,3 +28,4 @@ tools/ai-automation/vendor
 # Throwaway drafts of the plugin API designs (cssints-<map>); not formatted.
 docs/research/plugin-api-proto
 apps/sky/src/tokens.d.json.ts
+apps/docs/src/tokens.d.json.ts

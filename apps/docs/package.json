@@ -1,0 +1,35 @@
+{
+  "name": "cssints-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vp dev",
+    "build": "vp build",
+    "preview": "vp preview",
+    "typecheck": "node scripts/tokens-types.mjs --check && tsgo -p tsconfig.json --noEmit && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
+    "test": "node test/search.mjs && node test/build.mjs && node test/browser.mjs",
+    "tokens:types": "node scripts/tokens-types.mjs"
+  },
+  "dependencies": {
+    "@cssints/icons": "workspace:*",
+    "@solidjs/router": "2.0.0-next.35",
+    "@solidjs/web": "2.0.0-rc.13",
+    "cssints": "workspace:*",
+    "solid-js": "2.0.0-rc.13"
+  },
+  "devDependencies": {
+    "@iconify-json/ph": "^1.2.2",
+    "@shikijs/twoslash": "^3.0.0",
+    "@solidjs/vite-plugin": "3.0.0-next.47",
+    "lightningcss": "^1.32.0",
+    "marked": "^16.0.0",
+    "shiki": "^3.0.0",
+    "typescript": "^5.9.3",
+    "vite": "catalog:"
+  },
+  "browserslist": [
+    "last 2 chrome versions",
+    "last 2 firefox versions",
+    "last 2 safari versions"
+  ]
+}
