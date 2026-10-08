@@ -1,4 +1,4 @@
-import { C as addRuntime, D as covers, F as MacroError, I as MemberError, M as registry, O as relation, _ as standIn, c as byOrder, h as requireLayer, j as forgetKernels, k as Registry, o as addGlobal, s as addLayers, t as CV_CALL, y as addKernel } from "./instrument-QavwPakv.mjs";
+import { C as addRuntime, D as covers, F as MacroError, I as MemberError, M as registry, O as relation, _ as standIn, c as byOrder, h as requireLayer, j as forgetKernels, k as Registry, o as addGlobal, s as addLayers, t as CV_CALL, y as addKernel } from "./instrument-DZg8_3NG.mjs";
 import { createRequire } from "node:module";
 import { checkDeclarationNow, checkQuery, checkSelector, checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { browsers, messageOf, supportOf } from "@cssints/css-grammar/support";
@@ -16,14 +16,15 @@ import { checkSelectorNow } from "@cssints/css-grammar/selector";
 const plain = (method) => {
 	throw fail(`cssints: plain styles do not chain (.${method}); merge them with cn(...) or cx(...)`);
 };
-const node = (decls, { markers, kernels, globals, themes, layers, plugs } = {}, chain = (name) => plain(name)) => new Proxy({
+const node = (decls, { markers, kernels, globals, themes, layers, plugs, bare } = {}, chain = (name) => plain(name)) => new Proxy({
 	__cssints: decls,
 	markers,
 	kernels,
 	globals,
 	themes,
 	layers,
-	plugs
+	plugs,
+	bare
 }, { get: (t, k) => k in t || typeof k === "symbol" ? t[k] : (...args) => chain(k, args, t) });
 const camel = (p) => p.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
 const fail = (message) => new MacroError({
@@ -190,6 +191,10 @@ function carried(nodes) {
 	for (const n of nodes) {
 		if (n.markers) for (const m of n.markers) {
 			const all = out.markers ??= [];
+			if (!all.some((x) => x[0] === m[0] && x[1] === m[1])) all.push(m);
+		}
+		for (const m of n.bare ?? (n.__cssints.length ? [] : n.markers ?? [])) {
+			const all = out.bare ??= [];
 			if (!all.some((x) => x[0] === m[0] && x[1] === m[1])) all.push(m);
 		}
 		if (n.kernels) for (const k of n.kernels) {
@@ -728,7 +733,8 @@ var Compiler = class {
 					write: s.own(p.write),
 					watch: p.watch && s.own(p.watch)
 				})),
-				css: r.css && s.own(s.mark(r.css, own))
+				css: r.css && s.own(s.mark(r.css, own)),
+				script: r.script
 			};
 			(c.plugs ??= []).push(plug);
 		}
@@ -1463,6 +1469,9 @@ const grid = member("grid");
 const isWrapper = (v) => typeof v === "function" && Predicate.hasProperty(v, "__cond");
 const wrapper = (cond) => Object.assign((...styles) => {
 	if (!styles.length || !styles.every(isNode)) throw fail(`cssints: ${cond.text} wraps css.* styles, got ${Formatter.formatJson(styles.filter((s) => !isNode(s)))}`);
+	const carry = carried(styles);
+	const [bare] = carry.bare ?? [];
+	if (bare) throw fail(`cssints: ${cond.text} wraps ${bare[0]}, the marker of kernel ${bare[1]}, with no declaration of its own: a kernel is global CSS keyed to its marker class and cannot be conditional, so the marker would apply everywhere. Put the member outside the condition; a condition can wrap the declarations a member sets (its methods)`);
 	return node(merged(styles.flatMap((n) => n.__cssints.map(([p, v, inner = [], fallbacks]) => {
 		if (inner.length >= 4) throw fail(`cssints: a style takes at most 4 conditions (layers ${LAYER[0]} to ${LAYER[4]}); this one has ${inner.length + 1}: ${[cond, ...inner].map((c) => c.text).join(" > ")}`);
 		return [
@@ -1471,7 +1480,7 @@ const wrapper = (cond) => Object.assign((...styles) => {
 			[cond, ...inner],
 			fallbacks
 		];
-	}))), carried(styles));
+	}))), carry);
 }, {
 	__cond: true,
 	cond

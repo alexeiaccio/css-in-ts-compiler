@@ -1,4 +1,4 @@
-import { a as Kernel, i as GlobalRule, n as Conflict, o as Runtime, s as ThemeRule } from "./author-types-DXdNP23z.mjs";
+import { a as Kernel, i as GlobalRule, n as Conflict, o as Runtime, s as ThemeRule } from "./author-types-C1AhsnrT.mjs";
 import { Context } from "effect";
 import { TokenType } from "@cssints/css-grammar/token";
 //#region src/registry.d.ts
@@ -190,7 +190,8 @@ type Decl = [prop: string, value: string, conds?: Cond[], fallbacks?: string[]];
 /**
  * What a css.* builder returns: its declarations, and next to them the fixed classes it prints (`markers`, each with
  * the key of the kernel it belongs to), the kernels it needs, and the plugin members whose runtime and conflicts apply
- * (`plugs`). `cn()` merges all three.
+ * (`plugs`). `cn()` merges all three. `bare` are the markers of a merged style that came with no declaration of their
+ * own (`pretty()`, `frame()`): a condition around it would wrap nothing of theirs, so it is an error.
  */
 interface CssNode {
   __cssints: Decl[];
@@ -200,6 +201,7 @@ interface CssNode {
   themes?: ThemeRule[];
   layers?: LayersDecl[];
   plugs?: Plug[];
+  bare?: [marker: string, kernel: string][];
 }
 //#endregion
 export { RegistryState as i, At as n, LayersDecl as r, CssNode as t };

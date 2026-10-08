@@ -64,14 +64,16 @@ interface ParentVar$1 {
 /**
  * The runtime half of a member. The client module that holds a site with the member imports
  * `virtual:cssints/runtime/<name>`, which is empty unless a browserslist target lacks a feature in `polyfills` (and, with
- * `parentVars`, has `@property`, which the script stands on); then it configures `cssints/parent-vars`, and `css` (the
- * fallback rules) is added to the sheet in layer `_.k`. A `requires` of the member's kernel that is in `polyfills` warns
- * only for the targets the runtime does not reach.
+ * `parentVars`, has `@property`, which the script stands on); then it imports `script`, configures `cssints/parent-vars`,
+ * and `css` (the fallback rules) is added to the sheet in layer `_.k`. A `requires` of the member's kernel that is in
+ * `polyfills` warns only for the targets the runtime does not reach.
  */
 interface Runtime {
   polyfills: BcdKey[];
   parentVars?: ParentVar$1[];
   css?: string;
+  /** The plugin's browser script, a module specifier the app resolves (`"@cssints/balance/runtime"`): imported, never evaluated at build time. */
+  script?: string;
 }
 /** A build error when one `cn()` holds the member's marker and a property listed here (a name, or a pattern). */
 interface Conflict {
@@ -134,6 +136,8 @@ interface RuntimeDef {
   polyfills: BcdKey[];
   parentVars?: ParentVar[];
   css?: string;
+  /** A module specifier the app resolves (a package subpath, `"@cssints/balance/runtime"`): imported when a target lacks a polyfilled feature. */
+  script?: string;
 }
 /** A build error when one `cn()` holds the member's marker and a property listed here (a name, or a pattern). */
 interface ConflictDef {

@@ -1,4 +1,4 @@
-import { r as Decl, t as BcdKey } from "./author-types-DXdNP23z.mjs";
+import { r as Decl, t as BcdKey } from "./author-types-C1AhsnrT.mjs";
 import { n as cx$1, t as ClassValue } from "./runtime-CTvuM-Hm.mjs";
 import { createRequire } from "node:module";
 import { CSS, CSS as CSS$1, CSSColorValue, CSSColorValue as CSSColorValue$1, CSSImageValue, CSSImageValue as CSSImageValue$1, CSSStyleValue, CSSStyleValue as CSSStyleValue$1, CSSUnitValue, CSSUnitValue as CSSUnitValue$1 } from "@cssints/css-grammar/values";
@@ -1845,6 +1845,8 @@ interface RuntimeDef {
   polyfills: BcdKey[];
   parentVars?: ParentVar[];
   css?: string;
+  /** A module specifier the app resolves (a package subpath, `"@cssints/balance/runtime"`): imported when a target lacks a polyfilled feature. */
+  script?: string;
 }
 /** A build error when one `cn()` holds the member's marker and a property listed here (a name, or a pattern). */
 interface ConflictDef {
