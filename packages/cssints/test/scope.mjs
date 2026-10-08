@@ -378,7 +378,6 @@ assert.match(
   /"_sc-pair-apart-zap _sc-pair-apart-view"/,
 );
 
-
 // `group: true`: every style of the member carries `_g-<scope>` after its kernels' markers, which within(state, "<scope>")
 // reads; it is a marker, so a condition around the member with no declaration is still an error
 write(
