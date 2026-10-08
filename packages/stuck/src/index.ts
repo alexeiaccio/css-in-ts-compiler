@@ -28,14 +28,10 @@ const inset = (side: Side) => ({
 
 /** The scope of `sticky()`, for a scope that embeds it (its kernel `core`). */
 export const stuckScope = scope("stuck", {
-  // Raw CSS, not styles: the value warning of `container-type: scroll-state` would not be covered by the runtime below.
+  // Its conflicts are derived (position, container, container-type); the observer covers its support warnings.
   "#core": {
-    css: "&{position:sticky;container-type:scroll-state}",
+    css: (css) => [css.position("sticky"), css.containerType("scroll-state")],
     requires: [QUERIES],
-  },
-  "#conflicts": {
-    props: ["position", "container", "container-type"],
-    message: "sticky() sets position and container-type: use its methods",
   },
   // The observer covers the queries: virtual:cssints/runtime/stuck.observer imports it when a target lacks them.
   "#observer": {
@@ -43,7 +39,7 @@ export const stuckScope = scope("stuck", {
     script: "@cssints/stuck/observer",
   },
   sticky: {
-    uses: ["core", "conflicts", "observer"],
+    uses: ["core", "observer"],
     chain: {
       top: inset("top"),
       right: inset("right"),
