@@ -8,16 +8,16 @@
     "tsgo": 318725
   },
   "frame.ts": {
-    "tsc": 188027,
-    "tsgo": 196154
+    "tsc": 199716,
+    "tsgo": 216858
   },
   "functions.ts": {
-    "tsc": 377419,
-    "tsgo": 377711
+    "tsc": 428112,
+    "tsgo": 439495
   },
   "palette.ts": {
-    "tsc": 20947,
-    "tsgo": 20990
+    "tsc": 65784,
+    "tsgo": 73149
   },
   "plugins-defs.ts": {
     "tsc": 56562,
@@ -32,8 +32,8 @@
     "tsgo": 222040
   },
   "surface.ts": {
-    "tsc": 337346,
-    "tsgo": 345387
+    "tsc": 360256,
+    "tsgo": 382433
   },
   "unused.ts": {
     "tsc": 47015,

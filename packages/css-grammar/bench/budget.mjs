@@ -29,6 +29,9 @@ const run = (c, f) =>
       "--module",
       "preserve",
       "--allowImportingTsExtensions",
+      // the sources, as in the editor and in the packages' own typecheck (exports without it point at the built dist/)
+      "--customConditions",
+      "development",
       "--extendedDiagnostics",
       f,
     ],
