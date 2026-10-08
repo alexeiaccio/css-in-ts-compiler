@@ -15,5 +15,10 @@ const engine = () => {
 function scope(name, table) {
 	return engine().scope(name, table);
 }
+/**
+* The build's targets that lack one of the BCD keys, as browserslist names them (`["firefox 140"]`), by the rules of the
+* support warnings (`partial_implementation` lacks); empty when every target has them all. Build time, like `scope()`.
+*/
+const lacking = (...keys) => engine().lacking(keys);
 //#endregion
-export { arg, fn, scope };
+export { arg, fn, lacking, scope };

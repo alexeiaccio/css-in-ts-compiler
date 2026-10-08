@@ -1,7 +1,7 @@
 import { A as Registry, I as MacroError, L as MemberError, M as forgetKernels, N as registry, O as covers, _ as standIn, c as byOrder, h as requireLayer, k as relation, o as addGlobal, s as addLayers, t as CV_CALL, w as addRuntime, x as kernelWarnings, y as addKernel } from "./instrument-Tso4tOWx.mjs";
 import { createRequire } from "node:module";
 import { checkDeclarationNow, checkQuery, checkSelector, checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
-import { browsers, messageOf, supportOf } from "@cssints/css-grammar/support";
+import { browsers, lackingOf, messageOf, supportOf } from "@cssints/css-grammar/support";
 import { CSS, CSSColorValue, CSSImageValue, CSSStyleValue, CSSStyleValue as CSSStyleValue$1, CSSUnitValue } from "@cssints/css-grammar/values";
 import { Cause, Effect, Exit, Formatter, Predicate, Result, Schema } from "effect";
 import { createHash } from "node:crypto";
@@ -869,7 +869,8 @@ const chainOf = (c, key, def) => {
 		}
 		const taken = new Map(used).set(m, m);
 		for (const x of meth.excludes ?? []) taken.set(x, m);
-		return node([...self.__cssints, ...ownDecls(c, meth.emit(value))], self, next(taken));
+		const emitted = ran(name, () => meth.emit(value));
+		return node([...self.__cssints, ...ownDecls(c, emitted)], self, next(taken));
 	};
 	return () => node([], base ??= grouped(c, def, def.uses ? c.carry(def.uses) : {}), next(/* @__PURE__ */ new Map()));
 };
@@ -993,8 +994,12 @@ function scope(name, table) {
 	};
 	return s;
 }
+const lacking$1 = (keys) => [...new Set(keys.flatMap((k) => lackingOf(k).map((t) => t.join(" "))))];
 /** What the front (scope.ts) calls; macro.ts puts it in the registry. */
-const engine = { scope };
+const engine = {
+	scope,
+	lacking: lacking$1
+};
 //#endregion
 //#region src/runtime.ts
 const cx = (...a) => a.flat(Infinity).filter(Boolean).join(" ");

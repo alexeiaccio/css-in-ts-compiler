@@ -1,4 +1,4 @@
-import { A as Wrap, G as types_d_exports, Qp as Style, Yp as CheckIn, Zp as Part, t as CheckOverrides } from "./theme-types-DPJ9j2Op.mjs";
+import { $p as Style, A as Wrap, G as types_d_exports, Qp as Part, Xp as CheckIn, t as CheckOverrides } from "./theme-types-D1hN5h7Z.mjs";
 import { CSSStyleValue } from "@cssints/css-grammar/values";
 import { Grammar, TokenType } from "@cssints/css-grammar/token";
 import { ValidSelector } from "@cssints/css-grammar/query";
@@ -360,5 +360,10 @@ interface Pending<N extends string, T> {
  * namespaced by `name`, which is unique in the process (`cssints` and `derived` are reserved).
  */
 export declare function scope<const N extends string, const T extends Table>(name: N, table: T & Valid<N, T>): [CallKeys<T>] extends [never] ? Scope<N, T> : Pending<N, T>;
+/**
+ * The build's targets that lack one of the BCD keys, as browserslist names them (`["firefox 140"]`), by the rules of the
+ * support warnings (`partial_implementation` lacks); empty when every target has them all. Build time, like `scope()`.
+ */
+export declare const lacking: (...keys: BcdKey[]) => string[];
 //#endregion
 export type { ArgsDef, Chain, Conflict, Css, Decl, Entry, GlobalRule, Impl, Kernel, KernelDef, Made, Members, Part, Pending, Runtime, Scope, Style, Table, ThemeRule, Typed };

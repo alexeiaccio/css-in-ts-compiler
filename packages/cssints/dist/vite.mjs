@@ -141,16 +141,18 @@ const failureOf = (id, registry) => (e) => {
 		cause: e.cause
 	});
 	const at = registry.at;
-	const m = at && e instanceof ReferenceError ? /^(?:(\S+) is not defined|Cannot access '(\S+)' before initialization)$/.exec(e.message) : null;
+	const message = e instanceof Error ? e.message : String(e);
+	if (!at) return new EvalError({
+		file: id,
+		message,
+		cause: e
+	});
+	const m = e instanceof ReferenceError ? /^(?:(\S+) is not defined|Cannot access '(\S+)' before initialization)$/.exec(e.message) : null;
 	const name = m?.[1] ?? m?.[2];
-	return name ? new MacroError({
-		message: `cssints: css arguments must be known at build time: \`${name}\` is not defined where the call is evaluated (a parameter, a prop or state). Use cx(on && p(4)), a cv variant, or a token in a style prop`,
+	return new MacroError({
+		message: name ? `cssints: css arguments must be known at build time: \`${name}\` is not defined where the call is evaluated (a parameter, a prop or state). Use cx(on && p(4)), a cv variant, or a token in a style prop` : message,
 		cause: e,
 		...at
-	}) : new EvalError({
-		file: id,
-		message: e instanceof Error ? e.message : String(e),
-		cause: e
 	});
 };
 const evaluateModule = Effect.fnUntraced(function* (runner, id) {

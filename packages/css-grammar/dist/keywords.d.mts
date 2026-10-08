@@ -1086,7 +1086,11 @@ export interface Keywords {
     "l": "ltr";
     "r": "rtl";
   };
-  "display": K_display_box | K_display_inside | K_display_internal | K_display_legacy | K_display_listitem | K_display_outside;
+  "display": {
+    "g": "grid-lanes";
+    "i": "inline-grid-lanes";
+    "m": "math";
+  } | K_display_box | K_display_inside | K_display_internal | K_display_legacy | K_display_listitem | K_display_outside;
   "dominant-baseline": {
     "a": "alphabetic" | "auto";
     "c": "central";
@@ -2340,6 +2344,10 @@ export interface Keywords {
     "h": "horizontal";
     "i": "inline-axis";
     "v": "vertical";
+  };
+  "flow-tolerance": {
+    "i": "infinite";
+    "n": "normal";
   };
 }
 //#endregion
