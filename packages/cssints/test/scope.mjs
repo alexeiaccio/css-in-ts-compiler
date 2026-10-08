@@ -73,6 +73,16 @@ assert.match(
   /export const d = "color-mix\(in oklab, red, black 10%\)";/,
   "a value member is inlined",
 );
+assert.match(
+  use,
+  /export const f = "color-mix\(in oklab, red, black 20%\)";/,
+  "positional and options",
+);
+assert.match(
+  use,
+  /export const g = "color-mix\(in oklab, red, white 10%\)";/,
+  "the options left out",
+);
 assert.match(css, /\{--sk-icon:home\}/);
 assert.ok(
   css.includes(":root[data-cssints-poly] ._sk-core { --sk-fb: 1 }"),
@@ -104,7 +114,7 @@ const fails = async (f, text, line, plugin = "sk") =>
     if (line) assert.equal(e.loc?.line, line, `${f}: the call site`);
     return true;
   });
-const kit = `import { ring, loose, alive, edged, look, icon, tint, fail } from "./scope-kit" with { type: "cssints" };\nimport { brand } from "./scope-kit" with { type: "cssints" };\n`;
+const kit = `import { ring, loose, alive, edged, look, icon, tint, shade, fail } from "./scope-kit" with { type: "cssints" };\nimport { brand } from "./scope-kit" with { type: "cssints" };\n`;
 await fails(
   write("sc-bad-width.ts", `${head}${kit}export const a = ring().width("red");\n`),
   /^ring\.width: unexpected "red"/,
@@ -216,6 +226,22 @@ await fails(
 await fails(
   write("sc-pos-tok.ts", `${head}${kit}export const a = look("red", 3, {});\n`),
   /^cssints: look\(2\) expects a token set/,
+  4,
+);
+// a value member's tuple is checked as a call member's, under its label
+await fails(
+  write("sc-val-pos.ts", `${head}${kit}export const a = shade("1px");\n`),
+  /^tint\.shade\(1\): unexpected "1px"/,
+  4,
+);
+await fails(
+  write("sc-val-opt.ts", `${head}${kit}export const a = shade("red", { by: "red" });\n`),
+  /^tint\.shade\(2\)\.by: unexpected "red"/,
+  4,
+);
+await fails(
+  write("sc-val-key.ts", `${head}${kit}export const a = shade("red", { nope: 1 });\n`),
+  /^cssints: tint\.shade\(2\): no argument nope$/,
   4,
 );
 await fails(

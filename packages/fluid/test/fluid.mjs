@@ -69,7 +69,7 @@ await fails(
 await fails("bad-range.ts", "cssints: fluid: from 80rem must be below to 20rem");
 await fails(
   "bad-grammar.ts",
-  'fluidContainer: unexpected "red" in "1rem red 20rem 80rem", expected <length>',
+  'fluid.container(2): unexpected "red" in "red", expected <length>',
   5,
 );
 // a length, so it is checked where it lands

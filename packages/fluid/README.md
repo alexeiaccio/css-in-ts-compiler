@@ -2,13 +2,14 @@
 
 Fluid lengths for [cssints](../../README.md): `fluid(min, max)` is a length that is `min` on a narrow viewport, `max` on a
 wide one, and grows linearly between. The `clamp()` is computed at build time, and a range that breaks text resizing
-(WCAG 1.4.4) fails the build. Two value members of `cssints/plugin` `scope()`. No runtime.
+(WCAG 1.4.4) fails the build. Two value members of `cssints/plugin` `scope()` (`fn({ args, value })`, positional
+arguments and an options object). No runtime.
 
 ```ts
 import { fontSize, padding } from "cssints" with { type: "cssints" };
 import { fluid } from "@cssints/fluid" with { type: "cssints" };
 
-// fluid(min, max, { from?, to? }): from and to are the widths, 20rem and 80rem when left out
+// fluid(min, max, { from?, to?, zoom? }): from and to are the widths, 20rem and 80rem when left out
 export const title = fontSize(fluid("1rem", "1.5rem"));
 export const lead = fontSize(fluid("16px", "24px", { from: "40rem", to: "90rem" }));
 // against the inline size of the nearest container instead of the viewport
@@ -36,7 +37,8 @@ export const hero = fontSize(fluid("1rem", "4rem")); // build error: fails WCAG 
   the user's font size. A `max` below `min` makes a value that shrinks: the bounds are sorted for `clamp()` and the slope is
   negative.
 - **Units.** `min`, `max`, `from` and `to` are px or rem, at 16px to the rem; the bounds keep the unit you wrote. Other
-  units (`em`, `vw`, `%`, `calc()`, tokens) cannot be computed at build time: the types reject them, and so does the build.
+  units (`em`, `vw`, `%`, `calc()`, tokens) cannot be computed at build time: the build rejects them (the types check a
+  non-negative `<length>`, and a grammar cannot name units).
 - **WCAG 1.4.4.** The check of [fluid-tailwind](https://github.com/barvian/fluid-tailwind): at 500% zoom the viewport is a
   fifth as wide and the rem five times larger, and the value must still reach twice its size at 100%, or text cannot be
   resized to 200%. It is checked at every width (at the four kinks of the two curves), and a failure is a build error at
@@ -46,7 +48,8 @@ export const hero = fontSize(fluid("1rem", "4rem")); // build error: fails WCAG 
 - **A length.** The result is a Typed OM length (`CSSStyleValue<"length">`): it goes where a length goes, in the types,
   and `color(fluid(...))` is an error. It can be an argument of `clamp()`, `min()` and `max()` of cssints.
 - **Build errors** (at the call): a unit that is not px or rem, `min` equal to `max`, `from` not below `to`, a failed
-  1.4.4 check, and the grammar of the parts (`fluidContainer: unexpected "red" ...`: the label is the member's key).
+  1.4.4 check, and the grammar of the arguments, by position (`fluid.container(2): unexpected "red" in "red", expected
+<length>`).
 
 ## Limits
 
