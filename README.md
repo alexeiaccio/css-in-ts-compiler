@@ -6,7 +6,7 @@ cssints is compile-time CSS-in-TypeScript. You write calls such as `css.flex().a
 - Conditions (`media`, `container`, `supports`, `hover`), variants (`cv`), design tokens and themes (`createTokens`, `createGlobalTheme`, `check.contrast`) are all build-time, and all typed.
 - LightningCSS optimizes the output. Browser support (`@mdn/browser-compat-data` against your browserslist) is reported as warnings, except for what LightningCSS lowers for those targets.
 
-Status: 0.1 is not published yet. Decisions and findings are in [docs/wayfinder.md](docs/wayfinder.md); the API reference is [docs/API.md](docs/API.md).
+Status: 0.1 is not published yet. Decisions and findings are in [docs/wayfinder.md](docs/wayfinder.md); the API reference is [docs/API.md](docs/API.md). Both are also a site with search and type hovers: [apps/docs](apps/docs) (`cd apps/docs && bun run dev`).
 
 ## Install
 
@@ -104,6 +104,7 @@ More in [docs/API.md](docs/API.md): property names and short names, `flex()` and
 | `packages/icons` | `@cssints/icons`: icons from iconify JSON collections or SVG folders, a mask style with no runtime |
 | `packages/mise-en-mode` | `@cssints/mise-en-mode`: looks as themes in the layers app < author < viewer, on `data-mode` scopes, checked against the tokens and by `check.contrast` |
 | `apps/demo` | React demo of every 0.1 feature |
+| `apps/docs` | The documentation site: this file and `docs/API.md` as pages, with search and type hovers (`cd apps/docs && bun run dev`) |
 | `docs/research`, `docs/archive` | Comparisons with other libraries; outdated plans |
 
 ## Development
@@ -115,6 +116,7 @@ bun run bench   # type instantiation budgets (tsc and tsgo)
 bun run check   # format, lint, type-check (vp check), then the Effect diagnostics (bun run typecheck)
 bun run diff:check   # the added lines against master: anti-slop rules, key-file changes (tools/ai-automation)
 cd apps/demo && bun run dev
+cd apps/docs && bun run dev   # the documentation site, on the pages of README.md and docs/API.md
 ```
 
 See [AGENTS.md](AGENTS.md) for the layout, commands and code style.

@@ -199,7 +199,10 @@ try {
   );
   assert.deepEqual(wide, [], "nothing sticks out of a phone's width");
   await mobile.screenshot({ path: join(out, "install-mobile.png") });
+  const menuIcon = () => mobile.locator("button[aria-label=Menu] span").getAttribute("class");
+  const closedIcon = await menuIcon();
   await mobile.click("button[aria-label=Menu]");
+  assert.notEqual(await menuIcon(), closedIcon, "the menu button turns into a cross");
   await mobile.locator("#sidebar").waitFor({ state: "visible" });
   await sleep(300);
   await mobile.screenshot({ path: join(out, "menu-mobile.png") });

@@ -59,6 +59,7 @@ const iconButton = css.cn(
 );
 const menuButton = css.cn(gtSidebar(css.display("none")));
 const icon = css.cn(css.width("20px"), css.height("20px"));
+const menuIcon = { list: css.cn(ph("list"), icon), x: css.cn(ph("x"), icon) };
 const modeIcon = {
   system: css.cn(ph("desktop"), icon),
   light: css.cn(ph("sun"), icon),
@@ -208,7 +209,7 @@ export function Shell(props: { children?: JSX.Element }) {
           aria-expanded={open() ? "true" : "false"}
           onClick={() => setOpen(!open())}
         >
-          <span class={css.cn(ph(open() ? "x" : "list"), icon)} />
+          <span class={open() ? menuIcon.x : menuIcon.list} />
         </button>
         <a href="/" class={brand}>
           <span class={brandMark}>css</span>ints

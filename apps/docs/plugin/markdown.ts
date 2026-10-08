@@ -188,13 +188,15 @@ declare namespace JSX {
         code({ text, lang }) {
           const [language = "text", ...meta] = (lang ?? "").split(/\s+/);
           const skip = meta.includes("skip") || !/^tsx?$/.test(language);
-          return highlighter.codeToHtml(text, {
+          const out = highlighter.codeToHtml(text, {
             lang: highlighter.getLoadedLanguages().includes(language) ? language : "text",
             themes: { light: "github-light", dark: "github-dark" },
             defaultColor: false,
             meta: { __raw: skip ? "notwoslash" : "" },
             transformers: hovers ? [twoslash] : [],
           });
+          // a type in an error message is named by its file: not this machine's path
+          return out.replaceAll(`${root}/`, "");
         },
         link({ href: target, tokens }) {
           const to = href(file, target);

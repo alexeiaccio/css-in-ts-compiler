@@ -97,6 +97,7 @@ assert.equal(
 );
 assert.equal(count(/shiki-themes github-light github-dark"/g) >= skipped, true);
 assert.equal(count(/twoslash-error-line/g), marked, "an error line for each `// error`");
+assert.ok(!all.includes(root), "no path of this machine in the pages");
 const popups = count(/twoslash-popup-container/g);
 assert.ok(popups > 100, `${popups} popups`);
 

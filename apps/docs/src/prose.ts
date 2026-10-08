@@ -49,6 +49,7 @@ global(
   overflowWrap("break-word"),
 );
 global(`${p} > *`, margin("0"));
+global("h1 code", fontFamily(mono), fontSize("0.8em"), fontWeight(600));
 global(`${p} > * + *`, marginTop(t.space.lg));
 
 global(
