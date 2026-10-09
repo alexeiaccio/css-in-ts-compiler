@@ -14,7 +14,9 @@ packages/icons         @cssints/icons: icons() on cssints/plugin scope() (iconif
 packages/mise-en-mode  @cssints/mise-en-mode: look(tokens, expression, source, overrides, { scope? }), a scope() call member (no types file), looks as themes in the layers app < author < viewer on data-mode scopes; test/: fixtures, mise-en-mode.mjs, types/
 packages/fluid, layout, fonts, reset, gradient, motion, squircle, reveal, stuck, balance, masonry, placeholder, ramp, skeleton
                        plugin packages on scope() (docs/API.md "Plugin packages"), each laid out as mise-en-mode: src/index.ts, README.md, test/<name>.mjs, fixtures/, types/
-packages/mcp           @cssints/mcp: the MCP server (bin cssints-mcp, stdio) on effect/ai McpServer: check_declaration, check_support, check_contrast, compile, search_docs, list_plugins; test/: tools.mjs (in-process client), stdio.mjs
+packages/mcp           @cssints/mcp: the MCP server (bin cssints-mcp, stdio) on effect/ai McpServer: check_declaration, check_support, check_contrast, compile, search_docs, list_plugins;
+                       on a running dev server with devtools: true (live.ts, Vite's HMR websocket): explain_class, module_styles, dev_errors; in Chromium (browser.ts, playwright-core, the devtools core injected): inspect_element, why_property;
+                       test/: tools.mjs (in-process client), stdio.mjs, live.mjs (apps/demo's dev server, fixtures/app), browser.mjs (test:browser, the demo in Chromium)
 packages/devtools      @cssints/devtools: the dev overlay of cssints({ devtools: true }): src/core (Effect: table, sheet parser, cascade, DOM page), src/ui (Solid + cssints, built ahead into dist/overlay.js);
                        test/: core.mjs (the cascade on happy-dom), build.mjs (nothing in a build), browsers.mjs (the demo in Chrome, Firefox, WebKit)
 packages/tokens        @cssints/tokens: DTCG data for createTokens, one subpath per set (open-props, radix, flexoki, reasonable-colors),

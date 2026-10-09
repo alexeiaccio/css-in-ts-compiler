@@ -233,10 +233,12 @@
       },
       "dependencies": {
         "@cssints/css-grammar": "workspace:*",
+        "@cssints/devtools": "workspace:*",
         "@effect/platform-node": "4.0.0",
         "cssints": "workspace:*",
         "culori": "^4.0.2",
         "effect": "4.0.0",
+        "playwright-core": "^1.63.0",
         "vite": "catalog:",
       },
       "devDependencies": {

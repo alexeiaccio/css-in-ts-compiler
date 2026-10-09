@@ -15,7 +15,12 @@
     "./core": {
       "types": "./src/core/index.ts",
       "default": "./src/core/index.ts"
-    }
+    },
+    "./model": {
+      "types": "./src/core/model.ts",
+      "default": "./src/core/model.ts"
+    },
+    "./inject": "./src/core/inject.ts"
   },
   "scripts": {
     "build": "vp build",

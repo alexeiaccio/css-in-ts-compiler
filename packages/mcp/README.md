@@ -1,7 +1,7 @@
 # @cssints/mcp
 
 An [MCP](https://modelcontextprotocol.io) server for [cssints](../../README.md): it lets a coding agent check its CSS the
-way the build checks it, without running the app. It runs over stdio (`cssints-mcp`) and is built on `effect/ai`
+way the build checks it, without running the app, and ask a running app's dev server what its classes are. It runs over stdio (`cssints-mcp`) and is built on `effect/ai`
 `McpServer`. Logs go to stderr; stdout carries the protocol only.
 
 ## Tools
@@ -14,6 +14,35 @@ way the build checks it, without running the app. It runs over stdio (`cssints-m
 | `compile`           | a module through the real plugin: its class strings, the CSS it adds to the sheet, the transformed code, errors (`file:line:col` of the call) and warnings               | `{ "file": "src/Button.tsx" }`, or `{ "file": "src/Card.ts", "source": "..." }` for text that is not saved                   |
 | `search_docs`       | the matching sections of docs/API.md, README.md and the plugin READMEs: file, line, heading trail, an excerpt                                                            | `{ "query": "firstThatWorks fallback" }`                                                                                     |
 | `list_plugins`      | the plugin packages, their members, what each does, the README                                                                                                           | `{}`                                                                                                                         |
+
+### On a running dev server
+
+| Tool            | Answers                                                                                                                                                                                   | Example                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `explain_class` | per class: its declarations, conditions (`@media`, `@container`, `:hover`, ...), layer, plugin or kernel, the tokens it reads with their values, the calls that made it (`file:line:col`) | `{ "classes": "_1d608he" }` → `color: #dc2626`, `:hover`, `_.b`, `src/components/Inspect.tsx:25:14` |
+| `module_styles` | the `css.*` calls of one file as the dev server compiled them, each with its classes and their CSS                                                                                        | `{ "file": "src/components/Button.tsx" }`                                                           |
+| `dev_errors`    | the build errors Vite sends to its clients now (message, `file:line:col`, plugin, code frame); what is not sent (warnings, the page's runtime errors) is named                            | `{}` → `padding: unexpected "-1rem"` at `src/bad.ts:4:20`                                           |
+
+They take `url`, the app's dev server (default `http://localhost:5173`), which must be running. `explain_class` and
+`module_styles` need `cssints({ devtools: true })` in the app's `vite.config` (else they say so): they ask for the
+table the devtools overlay reads (`cssints:devtools:get` over Vite's HMR websocket, one socket per url for the session)
+and keep it until the server says it is stale. The server knows only the modules it has served, so the first call
+fetches every module the page reaches (dynamic imports too), and again after an edit: no browser has to be open.
+`dev_errors` works on any Vite dev server: it fetches the modules again and collects Vite's `error` payloads.
+
+### In a browser
+
+| Tool              | Answers                                                                                                                                                                                                    | Example                                                                                                                             |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `inspect_element` | what the devtools overlay shows: the element's classes by the call that made them, per property the winner, what it overrides (and why), what does not apply now, and the check against the computed style | `{ "selector": "[data-case=hover-md]", "hover": true }` → `color: #dc2626` from `._1d608he:hover` beats `#2563eb` by specificity, ✓ |
+| `why_property`    | one property: the winner and its call, its conditions and whether each holds, what it beats and why, what does not apply, ✓/✗ with the reason                                                              | `{ "selector": "[data-case=unlayered]", "property": "color" }` → ✗, `.mine { … } in src/components/inspect.css beats it`            |
+
+They open `url` (default `http://localhost:5173`) in a headless Chromium of playwright-core, one page per url kept for
+the session, read the table from the dev server as the live tools do (so `cssints({ devtools: true })` again; `server`
+when the server is not the page's origin), add the devtools core to the page (`@cssints/devtools/inject`, bundled by
+Vite on the first call) and run the overlay's cascade on the first element the selector matches. `hover` and `focus`
+put the element in that state first (else the pointer is moved away and the focus dropped); `width` and `height` size
+the viewport. They need a Chromium: `npx playwright-core install chromium`, else an installed Chrome is used.
 
 `check_support` without `query` reads the project's browserslist (`package.json` `"browserslist"` or `.browserslistrc`,
 found from the working directory), as the plugin does. `compile` starts a Vite dev server in middleware mode for the
@@ -78,6 +107,8 @@ In this repository, use `node packages/mcp/src/bin.ts` as the command (Node 22.1
 
 ```sh
 cd packages/mcp
-bun run test        # test/tools.mjs: every tool through an in-process MCP client; test/stdio.mjs: the bin over stdio
+bun run test        # test/tools.mjs: every tool through an in-process MCP client; test/stdio.mjs: the bin over stdio;
+                    # test/live.mjs: the live tools on apps/demo's dev server and on test/fixtures/app
+bun run test:browser  # test/browser.mjs: inspect_element and why_property on the demo in Chromium (needs one)
 bun run typecheck
 ```

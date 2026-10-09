@@ -18,7 +18,8 @@ writing a plugin: `packages/cssints/skills/cssints-plugin/SKILL.md`.
 
 If the cssints MCP server is configured, prefer it to answer "is this value valid / supported / what does this module
 compile to" (`check_declaration`, `check_support`, `check_contrast`, `compile`, `search_docs`, `list_plugins`) before
-writing a throwaway fixture.
+writing a throwaway fixture; on apps/demo's dev server, `explain_class`, `module_styles`, `dev_errors`,
+`inspect_element` and `why_property` answer what a running app does.
 
 ## Commands
 

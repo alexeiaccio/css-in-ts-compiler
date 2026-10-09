@@ -17,7 +17,7 @@ const client = new Client({ name: "cssints-mcp-e2e", version: "0" });
 await client.connect(transport);
 
 assert.equal(client.getServerVersion().name, "cssints");
-assert.equal((await client.listTools()).tools.length, 6);
+assert.equal((await client.listTools()).tools.length, 11);
 const r = await client.callTool({
   name: "check_declaration",
   arguments: { property: "padding", value: "-1rem" },
