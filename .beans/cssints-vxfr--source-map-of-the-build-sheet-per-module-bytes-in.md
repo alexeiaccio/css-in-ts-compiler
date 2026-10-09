@@ -1,11 +1,11 @@
 ---
 # cssints-vxfr
 title: Source map of the build sheet (per-module bytes in Sonda)
-status: in-progress
+status: completed
 type: feature
 priority: normal
 created_at: 2026-10-09T07:45:40Z
-updated_at: 2026-10-09T08:46:28Z
+updated_at: 2026-10-09T08:50:06Z
 parent: cssints-dk1q
 ---
 
@@ -20,3 +20,13 @@ From cssints-0a3p (docs/research/devtools.md). The dev sheet maps each class rul
 - [x] Demo build byte-identical without sourcemaps
 - [x] Sonda on apps/demo
 - [x] Docs: API.md, research/devtools.md, wayfinder.md
+
+## Summary of Changes
+
+- Vite 8 writes no CSS map in a build (vite:css-post keeps strings; finalizeCss/emitFile carry no map), so nothing handed through its pipeline survives.
+- plugin.ts: with build.sourcemap (true / hidden / inline) siteOf is recorded in the build too; a generateBundle hook (order post) maps each CSS asset as written with the shared sheetMap, now one segment per selector (unmapped for selectors and preludes without a class), modules taken by path for reproducible maps; emits <asset>.css.map and the comment. Off: nothing recorded, demo build byte-identical.
+- test/sheet-map.mjs: build with true, hidden and off on apps/demo (plugin from src).
+- Sonda 0.14.0: its Vite plugin never analyses CSS assets (upstream gap); its Report fed the asset splits the demo's 9 kB sheet into Showcase 3.4 kB, App 2.1 kB, Button 0.8 kB, Card 0.3 kB, 2.5 kB unassigned.
+- Docs: API.md (debugging section), research/devtools.md section 4, wayfinder entry.
+
+Deferred: report the Sonda gap upstream (filipsobol/sonda: Vite writeBundle passes undefined entrypoints for assets, so CSS is dropped).
