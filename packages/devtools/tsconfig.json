@@ -1,0 +1,22 @@
+{
+  "$schema": "../../node_modules/@effect/tsgo/schema.json",
+  "extends": "../../tsconfig.effect.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "jsxImportSource": "@solidjs/web",
+    "noEmit": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "types": ["node", "vite/client"]
+  },
+  "include": ["src", "vite.config.ts"]
+}

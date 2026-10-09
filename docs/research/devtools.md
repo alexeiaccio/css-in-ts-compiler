@@ -147,3 +147,87 @@ the 47 extra bytes are the comment. Same limit as in dev: a class shared by modu
 
 Beans under cssints-dk1q: a source map of the build sheet (Sonda, per-module bytes; done, section 4), CSS
 coverage per route on apps/sky, and the four atomic-css-devtools gaps reported upstream with the repro sheets above.
+
+## Our devtools (cssints-cncb, 2026-10-09)
+
+What §1 found missing is what the compiler already knows: which classes an element has, which call made each one,
+under which conditions and in which layer it is printed, and in what order the sheet prints it. So the inspector is
+built on that, not on the CSSOM: a dev overlay that the plugin injects (no extension to install; Chrome, Firefox and
+Safari; driven by Playwright), with a core that an extension could wrap later.
+
+**Data model.** The dev server sends one table:
+
+- `sheet`: the text of the sheet as `renderSheet` prints it for the modules served so far (what `load()` of
+  `virtual:cssints.css` returns, before LightningCSS). The core parses it into rules, each with its layer, its chain of
+  at-rules (`@media`, `@container`, `@supports`, `@scope`) and its index: the sheet's own order, kernels, global rules
+  and themes in `_.k` included. Nothing is sorted a second time on the client.
+- `layers`: the top-level layers in rank order: those declared `before` the engine's, `_.k`, `_.a` to `_.e`, then the
+  declared ones (`app, author, viewer`).
+- `classes`: per class, a **ClassInfo**: `cls`, `prop`, the declarations (`decls`, from the rule's text), the
+  `conditions` chain (the at-rules, outermost first, and the states in the selector: `:hover`, `[aria-current="page"]`,
+  `within(:hover)` for `:where(._g:hover) ._x`), `layer`, `plugin` (a member's class: the scope whose `--<scope>-*` it
+  sets; a marker: its kernel `frame.core`; `_g`, `_g-<name>`: a group), `tokens` (the `--names` its value reads, with
+  the path and the declared value of each: `color.text`, `#111827`) and `sites` (indexes into `sites`).
+- `sites`: every `css.*` call of the client modules: `file`, `line`, `column`, and the classes it produced. An element's
+  `class` is grouped by these: the site whose classes cover most of the element's goes first.
+
+**Transport.** Dev only, over Vite's HMR channel, so no endpoint and no port: the overlay sends `cssints:devtools:get`,
+the server answers `cssints:devtools` with the table, built at that moment from the plugin's own records (`usedBy`, the
+classes and entries of each client module, the registry's `rules`, `kernels` and `defs`, and the sites of each module,
+recorded beside `siteOf` in the same loop: nothing is evaluated or parsed again). After every client transform of a
+module with sites, and every reload of the sheet, the server sends `cssints:devtools:stale`; the overlay refetches if
+it is open, else on open. Every change of those records happens inside a client transform, so once nothing is in
+flight the overlay's table is the current one: the same argument as `sheetFresh` in the Quint model. A transform that
+fails sends nothing; the next one catches up.
+
+**The cascade rule.** For an element, the candidates are the parsed rules whose selector, with its states removed,
+matches it (`._x:hover` is a candidate of every `._x`; `._k > *` of the children of `._k`). A candidate **applies** when
+its selector matches now (`Element.matches`, states included) and each of its at-rules holds for this element. The
+at-rules are evaluated in the page by the browser itself: a probe sheet puts each condition around
+`[data-cssints-probe]{--cssints-probe-N:1}` and reads the custom property back with `getComputedStyle`, so
+`@container card (width < 24rem)`, `@container style(--frame-c: e)`, `@supports` and `@scope (…) to (…)` are decided
+for this element by the same engine that paints it. Per longhand (a shorthand counts for each of its longhands, by
+`@cssints/css-grammar/longhands`, Chrome's expansion), the winner among the applying rules is the highest by **layer
+rank, then specificity, then the sheet's index**. Specificity is computed from the selector (`:where()` counts 0, so
+`within()` is one class; `:is()`, `:not()`, `:has()` their most specific argument). Proximity of `@scope` is not
+modelled (cssints prints no two scopes that set one property on one element).
+
+**Verification.** Each winner is checked against `getComputedStyle`: a childless clone of the element, put right after
+it (same parent, classes and attributes), gets the winning declaration inline with `!important`, and the clone's
+computed value must equal the element's. When it does not, the panel says why instead of claiming the winner: an inline
+`style` on the element, a rule outside cssints' sheet that matches and sets the property (the CSSOM of the other sheets
+is walked for it; an unlayered rule beats every layer), or a running animation or transition; else "the browser
+computes X". Values that depend on the element's content (`width: auto`, `fr` tracks) are marked unverified when the
+clone differs.
+
+**UI sketch.** A corner button and a hotkey (Alt+Shift+C) toggle the overlay. Picking: the hovered element gets an
+outline and a label with its tag and cssints class count; a click selects it. The panel, docked to the right:
+
+```
+div[data-demo=frame]                                  ↑ parent  ↓ child
+Showcase.tsx:121  cn(frame()…, surface()…)                       open ↗
+  frame.core      marker, kernel in _.k
+  ._1l9fh6        --frame-r: 1.5rem                              _.a
+  ._gkv2dr        --surface-d: 0.04           :hover (not now)    _.b
+Properties
+  padding-top     var(--frame-p) = 16px       ._frame-core  _.k   ✓
+  background-color ~~#fff~~ var(--surface-s)  ._surface-core      ✓
+Tokens  --color-surface = #ffffff (color.surface)
+```
+
+Keyboard: Esc closes, ↑ and ↓ walk to the parent and the first child, ← and → the siblings. The source
+link opens the file through Vite's `/__open-in-editor?file=path:line:column`.
+
+**Turning it on: opt-in, `cssints({ devtools: true })`, with `@cssints/devtools` as a dev dependency.** On by default
+would put a script and a package into every dev page of every app (sky's `test:dev` fails on any console message, the
+HMR tests count modules), and the overlay is a separate package so the plugin does not ship Solid and Effect's browser
+build to users who never open it. Once on, the hotkey toggles it, so it costs nothing until used. It adds nothing to a
+build: the code is a plugin with `apply: "serve"` (`transformIndexHtml` and a virtual module), and a test builds
+apps/demo with `devtools: true` and asserts that no file of the output mentions it.
+
+**Kept out of the user's sheet: a shadow root with its own sheet.** The overlay is a custom element with an open shadow
+root, so the page's rules do not reach it (and `:host { all: initial }` cuts the inherited ones). The overlay is built
+ahead (packages/devtools `build`: Vite with `cssints()` and Solid), so its classes are in its own sheet, attached in the
+shadow root, and never in the app's sheet or in the class table the overlay inspects. cssints can target it: the sheet
+is plain CSS with classes, and nothing in it depends on the document. One limit: `@property` is ignored inside a shadow
+root (Chrome), so the overlay uses no tokens, only constants.

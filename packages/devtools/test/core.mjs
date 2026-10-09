@@ -1,0 +1,418 @@
+// The core on the hard cases of docs/research/devtools.md, in Node: happy-dom gives the tree and Element.matches (states are
+// attributes here: `:hover` is `[data-hover]`), the test says which at-rules hold, and what the browser computes.
+//   @container, @supports, @scope looks, hover vs media in one layer (specificity), an unlayered user rule, kernels in
+//   _.k with custom properties (frame), within(), the grouping of classes by site, the table's decoding.
+import assert from "node:assert/strict";
+
+import { Effect, Exit, Layer } from "effect";
+import { Window } from "happy-dom";
+
+import { inspect, toModel, Page, specificity, stripStates } from "../src/core/index.ts";
+
+const window = new Window();
+const document = window.document;
+
+// the at-rules that hold, and what verify reports (default: the browser agrees with the winner)
+let holds = new Set();
+let observe = (el, prop, value, l) => ({
+  prop: l,
+  computed: value,
+  expected: value,
+  inline: "",
+  foreign: [],
+  animated: false,
+});
+const states = (sel) =>
+  sel
+    .replace(/:(hover|focus-visible|focus)\b/g, (_, s) => `[data-${s}]`)
+    .replace(/:root\b/g, "html");
+const matches = (el, sel) => {
+  try {
+    return el.matches(states(sel));
+  } catch {
+    return false;
+  }
+};
+// @scope (start) to (limit): the nearest start around the element; `:scope` is that root
+const inScope = (el, prelude, selector) => {
+  const [, start, limit] = /^@scope\s*\(([^)]*)\)(?:\s*to\s*\(([^)]*)\))?/.exec(prelude);
+  const root = el.closest(states(start));
+  if (!root) return false;
+  if (
+    limit &&
+    el !== root &&
+    el.closest(states(limit)) !== el.closest(states(start)) &&
+    root.contains(el.closest(states(limit)))
+  )
+    return false;
+  if (!selector) return true;
+  root.setAttribute("data-scope-root", "");
+  const hit = matches(el, selector.replace(/:scope\b/g, "[data-scope-root]"));
+  root.removeAttribute("data-scope-root");
+  return hit;
+};
+const page = Layer.succeed(
+  Page,
+  Page.of({
+    classes: (el) => Effect.sync(() => [...el.classList]),
+    label: (el) => Effect.sync(() => el.localName + (el.id ? `#${el.id}` : "")),
+    parent: (el) => Effect.sync(() => el.parentElement ?? undefined),
+    matches: (el, sel) => Effect.sync(() => matches(el, sel)),
+    probe: (el, probes) =>
+      Effect.sync(() =>
+        probes.map(({ wrap, selector }) => {
+          const scope = wrap.find((w) => w.startsWith("@scope"));
+          const rest = wrap.filter((w) => w !== scope);
+          return (
+            rest.every((w) => holds.has(w)) &&
+            (scope ? inScope(el, scope, selector) : !selector || matches(el, selector))
+          );
+        }),
+      ),
+    custom: (el, names) => Effect.sync(() => names.map((n) => `computed(${n})`)),
+    verify: (el, prop, value, longhands) =>
+      Effect.sync(() => longhands.map((l) => observe(el, prop, value, l))),
+  }),
+);
+
+const table = (
+  sheet,
+  classes = {},
+  sites = [],
+  layers = ["_.k", "_.a", "_.b", "_.c", "_.d", "_.e"],
+) => ({
+  root: "/app",
+  sheet,
+  layers,
+  classes,
+  sites,
+  tokens: { "--color-bg": { path: "color.bg", value: "#fff" } },
+});
+const cls = (layer, css, more = {}) => ({
+  kind: "class",
+  layer,
+  wrap: [],
+  prop: "",
+  css,
+  tokens: [],
+  sites: [],
+  ...more,
+});
+const run = async (t, el) => {
+  const exit = await Effect.runPromiseExit(
+    toModel(t).pipe(
+      Effect.flatMap((m) => inspect(m, el)),
+      Effect.provide(page),
+    ),
+  );
+  if (Exit.isFailure(exit)) throw new Error(String(exit.cause));
+  return exit.value;
+};
+const row = (r, prop) => r.rows.find((x) => x.prop === prop || x.longhands.includes(prop));
+const html = (s) => {
+  document.body.innerHTML = s;
+  return document.querySelector("#t");
+};
+
+// ---------- selectors
+assert.deepEqual(specificity("._x:hover"), [0, 2, 0]);
+assert.deepEqual(specificity(":where(._g:hover) ._x"), [0, 1, 0]);
+assert.deepEqual(specificity(":is(#a, .b) p::before"), [1, 0, 2]);
+assert.deepEqual(specificity(':where([data-mode="x"], [data-mode~="x/c"])'), [0, 0, 0]);
+assert.deepEqual(stripStates("._x:hover"), { base: "._x", states: [":hover"] });
+assert.deepEqual(stripStates(":where(._g:hover) ._x"), {
+  base: ":where(._g) ._x",
+  states: ["within :hover"],
+});
+assert.deepEqual(stripStates('._x[aria-current="page"]'), {
+  base: "._x",
+  states: ['[aria-current="page"]'],
+});
+assert.deepEqual(stripStates("._k:hover > *"), { base: "._k > *", states: [":hover"] });
+
+// ---------- hover vs media in one layer: :hover is printed first and wins by specificity (0,2,0) over (0,1,0)
+{
+  const sheet = `@layer _.k, _.a, _.b, _.c, _.d, _.e;
+@layer _.b {
+  ._h:hover{color:red}
+  @media (width >= 40rem) {
+    ._m{color:blue}
+  }
+}
+`;
+  const t = table(sheet, {
+    _h: cls("_.b", "._h:hover{color:red}"),
+    _m: cls("_.b", "._m{color:blue}", { wrap: ["@media (width >= 40rem)"] }),
+  });
+  const el = html('<a id="t" class="_h _m" data-hover></a>');
+  holds = new Set(["@media (width >= 40rem)"]);
+  let r = await run(t, el);
+  assert.equal(
+    row(r, "color").winner.selector,
+    "._h:hover",
+    "hovered and wide: the hover wins by specificity",
+  );
+  assert.deepEqual(
+    row(r, "color").overridden.map((c) => c.selector),
+    ["._m"],
+  );
+  assert.deepEqual(row(r, "color").winner.conditions, [{ text: ":hover", holds: true }]);
+  el.removeAttribute("data-hover");
+  r = await run(t, el);
+  assert.equal(row(r, "color").winner.selector, "._m", "not hovered: the query");
+  const idle = row(r, "color").inactive[0];
+  assert.deepEqual(idle.conditions, [{ text: ":hover", holds: false }]);
+  holds = new Set();
+  r = await run(t, el);
+  assert.equal(row(r, "color").winner, undefined, "narrow, not hovered: nothing applies");
+  assert.deepEqual(
+    row(r, "color").inactive.map((c) => c.conditions.map((x) => `${x.text}=${x.holds}`).join()),
+    [":hover=false", "@media (width >= 40rem)=false"],
+  );
+}
+
+// ---------- @container and @supports: a layer up, and only where the browser says it holds
+{
+  const q = "@container card (width < 24rem)";
+  const s = "@supports (display: grid)";
+  const sheet = `@layer _.a {
+  ._b{background-color:#dbeafe}
+  ._w{font-weight:400}
+}
+@layer _.b {
+  ${q} {
+    ._n{background-color:#fee2e2}
+  }
+  ${s} {
+    ._s{font-weight:700}
+  }
+}`;
+  const t = table(sheet, {
+    _b: cls("_.a", ""),
+    _n: cls("_.b", "", { wrap: [q] }),
+    _w: cls("_.a", ""),
+    _s: cls("_.b", "", { wrap: [s] }),
+  });
+  const el = html('<div class="_cb"><p id="t" class="_b _n _w _s"></p></div>');
+  holds = new Set([q, s]);
+  let r = await run(t, el);
+  assert.equal(row(r, "background-color").winner.selector, "._n");
+  assert.equal(row(r, "background-color").winner.layer, "_.b");
+  assert.equal(row(r, "font-weight").winner.selector, "._s");
+  holds = new Set();
+  r = await run(t, el);
+  assert.equal(row(r, "background-color").winner.selector, "._b");
+  assert.deepEqual(row(r, "background-color").inactive[0].conditions, [{ text: q, holds: false }]);
+  assert.equal(row(r, "font-weight").winner.selector, "._w");
+  const g = r.groups.flatMap((x) => x.classes).find((c) => c.cls === "_n");
+  assert.equal(g.active, false);
+  assert.deepEqual(g.conditions, [{ text: q, holds: false }]);
+}
+
+// ---------- @scope looks: the token on the element comes from the look of the nearest scope, in its top-level layer
+{
+  const look = "@scope (article.post)";
+  const sheet = `@layer _.k, _.a, _.b, _.c, _.d, _.e;
+@layer app, author, viewer;
+@layer _.k {
+  :root{--color-bg:#fff}
+}
+@layer author {
+  ${look}{:where([data-mode="hero"], [data-mode~="hero/color"]){--color-bg:#123456}}
+}
+@layer _.a {
+  ._bg{background-color:var(--color-bg)}
+}`;
+  const t = table(
+    sheet,
+    { _bg: cls("_.a", "", { tokens: ["--color-bg"] }) },
+    [],
+    ["_.k", "_.a", "_.b", "_.c", "_.d", "_.e", "app", "author", "viewer"],
+  );
+  let el = html(
+    '<article class="post"><section data-mode="hero"><p id="t" class="_bg"></p></section></article>',
+  );
+  let r = await run(t, el);
+  assert.equal(row(r, "background-color").winner.selector, "._bg");
+  const token = r.tokens.find((x) => x.name === "--color-bg");
+  assert.equal(token.path, "color.bg");
+  assert.equal(token.computed, "computed(--color-bg)");
+  assert.deepEqual(
+    {
+      selector: token.source.selector,
+      layer: token.source.layer,
+      wrap: token.source.wrap,
+      on: token.source.on,
+    },
+    {
+      selector: ':where([data-mode="hero"], [data-mode~="hero/color"])',
+      layer: "author",
+      wrap: [look],
+      on: "section",
+    },
+  );
+  // outside the scope the look does not apply: the :root rule of _.k gives it
+  el = html('<div><section data-mode="hero"><p id="t" class="_bg"></p></section></div>');
+  r = await run(t, el);
+  assert.deepEqual(
+    [r.tokens[0].source.selector, r.tokens[0].source.layer, r.tokens[0].source.on],
+    [":root", "_.k", "html"],
+  );
+}
+
+// ---------- an unlayered user rule beats cssints' layers: the panel says so instead of claiming the winner
+{
+  const t = table(`@layer _.a {\n  ._c{color:red}\n}`, { _c: cls("_.a", "") });
+  const el = html('<p id="t" class="_c mine"></p>');
+  observe = (el, prop, value, l) => ({
+    prop: l,
+    computed: "rgb(0, 0, 255)",
+    expected: "rgb(255, 0, 0)",
+    inline: "",
+    foreign: [
+      { selector: ".mine", source: "/src/mine.css", layer: "", value: "blue", important: false },
+    ],
+    animated: false,
+  });
+  const r = await run(t, el);
+  const v = row(r, "color").verdicts[0];
+  assert.equal(v.status, "mismatch");
+  assert.match(
+    v.reason,
+    /\.mine \{ color: blue \} in \/src\/mine\.css beats it: a rule outside every layer/,
+  );
+  assert.deepEqual(
+    r.groups.at(-1).classes.map((c) => [c.cls, c.kind]),
+    [
+      ["_c", "class"],
+      ["mine", "other"],
+    ],
+  );
+  // an inline style is named as such
+  observe = (el, prop, value, l) => ({
+    prop: l,
+    computed: "blue",
+    expected: "red",
+    inline: "blue",
+    foreign: [],
+    animated: false,
+  });
+  assert.match(row(await run(t, el), "color").verdicts[0].reason, /style attribute/);
+  observe = (el, prop, value, l) => ({
+    prop: l,
+    computed: value,
+    expected: value,
+    inline: "",
+    foreign: [],
+    animated: false,
+  });
+}
+
+// ---------- kernels in _.k with custom properties (frame): the kernel reads what the member's class sets in _.a
+{
+  const sheet = `@layer _.k {
+._frame-core {
+  padding: var(--frame-p);
+  border-radius: var(--frame-x);
+}
+@container (style(--frame-c: e)) or (not style(--frame-c)) {
+  ._frame-core { --frame-c: o; --frame-x: max(var(--frame-r) - var(--frame-m), 0px); }
+}
+}
+@layer _.a {
+  ._fp{--frame-p:0.5rem}
+  ._pl{padding-left:2rem}
+}`;
+  const t = table(
+    `@property --frame-p { syntax: "<length>"; inherits: false; initial-value: 0px; }\n${sheet}`,
+    {
+      "_frame-core": {
+        kind: "marker",
+        layer: "_.k",
+        wrap: [],
+        prop: "",
+        css: "",
+        tokens: [],
+        plugin: "frame.core",
+        sites: [0],
+      },
+      _fp: cls("_.a", "", { plugin: "frame", sites: [0] }),
+      _pl: cls("_.a", "", { sites: [1] }),
+    },
+    [
+      { file: "/app/src/Card.tsx", line: 4, column: 13, classes: ["_frame-core", "_fp"] },
+      { file: "/app/src/Card.tsx", line: 9, column: 2, classes: ["_pl"] },
+    ],
+  );
+  const el = html('<div><div id="t" class="_frame-core _fp _pl"></div></div>');
+  holds = new Set(["@container (style(--frame-c: e)) or (not style(--frame-c))"]);
+  const r = await run(t, el);
+  const pad = r.rows.find((x) => x.prop === "padding");
+  assert.equal(pad.winner.selector, "._frame-core");
+  assert.equal(pad.winner.layer, "_.k");
+  assert.deepEqual(
+    pad.lost.map((l) => [l.prop, l.by.selector]),
+    [["padding-left", "._pl"]],
+    "_.a beats the kernel's _.k",
+  );
+  assert.equal(row(r, "padding-left").winner.selector, "._pl");
+  assert.equal(
+    row(r, "--frame-x").winner.wrap[0],
+    "@container (style(--frame-c: e)) or (not style(--frame-c))",
+  );
+  assert.equal(row(r, "--frame-p").winner.selector, "._fp");
+  // --frame-p does not inherit (its @property): its source is the element's own class
+  assert.equal(r.tokens.find((x) => x.name === "--frame-p").source.selector, "._fp");
+  // grouped by the call: the frame() call first, then the other
+  assert.deepEqual(
+    r.groups.map((g) => [
+      g.site.line,
+      g.classes.map((c) => `${c.cls}:${c.kind}:${c.plugin ?? ""}`),
+    ]),
+    [
+      [4, ["_frame-core:marker:frame.core", "_fp:class:frame"]],
+      [9, ["_pl:class:"]],
+    ],
+  );
+}
+
+// ---------- within(): the state of the marked ancestor, one class of specificity, under the element's own state
+{
+  const sheet = `@layer _.b {
+  :where(._g:hover) ._x{text-decoration:underline}
+  ._y:hover{text-decoration:none}
+}`;
+  const t = table(sheet, {
+    _g: { kind: "group", layer: "", wrap: [], prop: "", css: "", tokens: [], sites: [] },
+    _x: cls("_.b", ""),
+    _y: cls("_.b", ""),
+  });
+  const el = html('<div class="_g" data-hover><a id="t" class="_x _y"></a></div>');
+  let r = await run(t, el);
+  const td = row(r, "text-decoration");
+  assert.equal(td.winner.selector, ":where(._g:hover) ._x");
+  assert.deepEqual(td.winner.specificity, [0, 1, 0]);
+  assert.deepEqual(td.inactive[0].conditions, [{ text: ":hover", holds: false }]);
+  el.setAttribute("data-hover", "");
+  r = await run(t, el);
+  assert.equal(
+    row(r, "text-decoration").winner.selector,
+    "._y:hover",
+    "the element's own state wins",
+  );
+  document.querySelector("._g").removeAttribute("data-hover");
+  el.removeAttribute("data-hover");
+  r = await run(t, el);
+  assert.deepEqual(row(r, "text-decoration").inactive[0].conditions, [
+    { text: "within :hover", holds: false },
+  ]);
+}
+
+// ---------- a bad table is a TableError
+{
+  const exit = await Effect.runPromiseExit(toModel({ sheet: 1 }));
+  assert.ok(Exit.isFailure(exit));
+  assert.match(String(exit.cause), /TableError/);
+}
+
+console.log("devtools core ok");

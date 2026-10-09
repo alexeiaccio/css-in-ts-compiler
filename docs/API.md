@@ -919,6 +919,45 @@ A class is a hash of its declaration, so a class that many calls share points at
 
 A build maps the sheet too, when the app asks for maps (`build: { sourcemap: true }`, `"hidden"` or `"inline"`, as for its JS): the CSS asset that holds the sheet gets `<file>.css.map` and a `sourceMappingURL` comment (`"hidden"`: the file only; `"inline"`: a data URL). Vite writes no CSS map in a build, so cssints maps the asset as written, after LightningCSS and the minify: each rule with a class points at its call, the rest maps nowhere. Bundle analysers read it to split the sheet's bytes by module (docs/research/devtools.md: Sonda). Without `build.sourcemap` nothing is recorded and the output is unchanged. Devtools that read the CSSOM (atomic-css-devtools) see the sheet as any other; what they miss is in docs/research/devtools.md.
 
+### Debugging: the devtools overlay (`@cssints/devtools`, decided 2026-10-09, cssints-cncb)
+
+An inspector in the page, in dev only, built on what the dev server knows of every class. Install `@cssints/devtools` as a dev dependency of the app and turn it on:
+
+```ts skip
+export default defineConfig({ plugins: [cssints({ devtools: true })] });
+```
+
+Alt+Shift+C, or the `cssints` button in the bottom right corner, opens it. Hovering an element previews it, a click picks it; ↑ is the parent, ↓ the first child, ← and → the siblings; Esc stops picking, then closes. For the demo's action button, hovered in a 1300 px window, the panel shows:
+
+```text skip
+button                                                   pick  ↑  ×
+CLASSES BY CALL
+src/components/Showcase.tsx:72 ↗
+._1t8gqy5  padding: 0.5rem                                       _.a
+._1r802m6  background-color: color-mix(…, black 15%)  :hover     _.b
+._pb21ov   background-color: color-mix(…, black 30%)  @media (width >= 60rem) :hover   _.c
+._tw1yer   outline: 2px solid var(--color-accent)  :focus-visible (not now)            _.b
+PROPERTIES
+background-color  color-mix(in oklab, var(--color-accent), black 30%)   ✓
+  ._pb21ov:hover _.c  @media (width >= 60rem) :hover
+  background-color: var(--color-accent) ._ijw0jd _.a                    (struck through)
+  background-color: color-mix(…, black 15%) ._1r802m6:hover _.b         (struck through)
+outline  nothing applies now
+  outline: 2px solid var(--color-accent) ._tw1yer:focus-visible _.b  :focus-visible
+TOKENS
+--color-accent  rgb(29, 78, 216)  color.accent
+  the initial value of its @property
+```
+
+- **Classes by call.** The element's classes, grouped by the `css.*` call that made them (`cn(...)`, `cx(...)`, a member), the call that covers most of them first; the link opens the file at that line through Vite's `/__open-in-editor`. Each class shows its declarations, its conditions (green: holds now) and its layer; a marker shows its kernel (`marker of kernel frame.core`), a member's class its scope (`(frame)`); a class that is not cssints' is listed as such.
+- **Properties.** Per property, the winning declaration, what it beat (struck through) and what does not apply now, with the condition that fails. The winner is the highest by **layer, then specificity, then the sheet's order**, among the rules that apply: a rule applies when its selector matches the element now and each of its at-rules holds for it, which the browser decides (a probe sheet around the element, so `@container`, `@container style()`, `@supports` and `@scope` are evaluated where the element is). A shorthand counts for each of its longhands: `padding` beside a `padding-left` of a higher layer says `except padding-left`. Kernels and global rules in `_.k`, themes and looks in their layers are rules like the others.
+- **Checked against the browser.** Each winner is set inline on a childless clone of the element, in its place, and the clone's computed value must equal the element's: ✓. When it does not (✗), the panel says why: the element's `style` attribute, a rule of another sheet (a rule outside every layer beats every layer, cssints' too: `.mine { color: … } in src/inspect.css beats it`), or a running animation. A value that depends on the element's content (`width: auto`, grid tracks) is `?`, not checked.
+- **Tokens.** Each custom property the element's rules read: its value on the element, its path (`color.surface`), and the rule that sets it on the element or the nearest ancestor (a theme, a look in `@scope`, a member's class).
+- **How it gets the data.** Over Vite's HMR channel, no endpoint: the overlay asks for the table (`cssints:devtools:get`) and the server builds it from its own records: the sheet as it serves it, each class's rule, plugin and tokens, and the place of every call. After each transform the server says the table is stale, and an open overlay asks again.
+- **Nothing in a build.** The option adds a plugin with `apply: "serve"`; `vite build` has no entry, no script and no event of it (packages/devtools/test/build.mjs builds the demo with the option on and searches the output).
+- **Its own styles do not touch yours.** The overlay is a custom element with a shadow root and its own cssints sheet, built with the package: the page's rules do not reach it, and its classes are not in your sheet or in the table.
+- **Limits.** The proximity of `@scope` is not ranked (no two looks set one property on one element), and a logical and a physical property (`margin-inline-start`, `margin-left`) are two properties, as `cn()` treats them; an element inside another shadow root is picked as its host; a page that Vite does not serve as HTML (server rendering) gets no entry.
+
 ### Debugging: traces of the engine (`CSSINTS_TRACE`, cssints-r2qq)
 
 Opt-in. Set `CSSINTS_TRACE=otlp` (or `otlp:http://host:port`; the default is `http://localhost:4318`) before `vite dev` or `vite build`, and the plugin sends one trace per Vite hook to an OpenTelemetry backend over OTLP/HTTP (JSON). Unset, nothing is loaded and nothing runs: the hooks use Effect's own `runSync` and `runPromiseExit`, no tracer, no exporter, no HTTP client. The variable is read once, when the plugin loads.
