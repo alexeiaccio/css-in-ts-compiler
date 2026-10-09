@@ -6,6 +6,7 @@ import { McpProtocol, McpServer, Tool, Toolkit } from "effect/ai";
 import { checkDeclaration, checkSupport, ToolError } from "./check.ts";
 import { checkContrast } from "./contrast.ts";
 import { Compiler } from "./compile.ts";
+import { listPlugins, searchDocs } from "./docs.ts";
 
 const Failure = Schema.instanceOf(ToolError);
 const Text = (description: string) => Schema.String.annotate({ description });
@@ -122,7 +123,63 @@ Example: { "file": "src/Button.ts", "source": "import { css } from \\"cssints\\"
   .annotate(Tool.Destructive, false)
   .annotate(Tool.OpenWorld, false);
 
-export const tools = Toolkit.make(CheckDeclaration, CheckSupport, CheckContrast, Compile);
+const SearchDocs = Tool.make("search_docs", {
+  description: `Searches the cssints documentation (docs/API.md, README.md and the plugin packages' READMEs; in a project, the READMEs installed in node_modules) and answers the matching sections, best first: the file and line, the heading and its trail of parent headings, and a short excerpt. Use it to find how an API works or what an error means before reading the whole file at that line.
+Example: { "query": "firstThatWorks fallback" } -> { "results": [{ "heading": "Fallbacks: \`firstThatWorks\` (decided 2026-10-01, cssints-bogz)", "file": ".../docs/API.md", "line": 379, "excerpt": "…" }] }`,
+  parameters: Schema.Struct({
+    query: Text(
+      'Words to look for, e.g. "check.contrast themes"; sections that hold more of them rank first',
+    ),
+    limit: Maybe(Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 20 }))).annotate({
+      description: "How many sections, 1 to 20 (default 5)",
+    }),
+  }),
+  success: Schema.Struct({
+    sources: Schema.Array(Schema.String),
+    results: Schema.Array(
+      Schema.Struct({
+        file: Schema.String,
+        line: Schema.Finite,
+        heading: Schema.String,
+        path: Schema.String,
+        excerpt: Schema.String,
+      }),
+    ),
+  }),
+  failure: Failure,
+})
+  .annotate(Tool.Readonly, true)
+  .annotate(Tool.Destructive, false)
+  .annotate(Tool.OpenWorld, false);
+
+const ListPlugins = Tool.make("list_plugins", {
+  description: `Lists the cssints plugin packages (@cssints/fluid, layout, motion, ...): their members (what to import and call), what each does, and the README to read. Use it to find a ready-made plugin before writing a pattern by hand; import a plugin with the attribute, like cssints: import { fluid } from "@cssints/fluid" with { type: "cssints" }.
+Example: {} -> { "plugins": [{ "name": "@cssints/fluid", "members": "\`fluid(min, max, { from?, to?, zoom? })\`, ...", "description": "A \`clamp()\` that grows between two widths...", "readme": ".../packages/fluid/README.md" }, ...] }`,
+  success: Schema.Struct({
+    source: Schema.String,
+    plugins: Schema.Array(
+      Schema.Struct({
+        name: Schema.String,
+        members: Schema.String,
+        description: Schema.String,
+        readme: Schema.String,
+      }),
+    ),
+  }),
+  failure: Failure,
+})
+  .annotate(Tool.Readonly, true)
+  .annotate(Tool.Destructive, false)
+  .annotate(Tool.OpenWorld, false);
+
+export const tools = Toolkit.make(
+  CheckDeclaration,
+  CheckSupport,
+  CheckContrast,
+  Compile,
+  SearchDocs,
+  ListPlugins,
+);
 
 const handlers = tools
   .toLayer(
@@ -134,6 +191,8 @@ const handlers = tools
         check_contrast: ({ foreground, background, min }) =>
           checkContrast(foreground, background, min),
         compile: (input) => compile(input),
+        search_docs: ({ query, limit }) => searchDocs(query, limit),
+        list_plugins: () => listPlugins(),
       });
     }),
   )
