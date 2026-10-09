@@ -71,6 +71,7 @@
         "solid-js": "2.0.0-rc.13",
       },
       "devDependencies": {
+        "@cssints/devtools": "workspace:*",
         "@iconify-json/ph": "^1.2.2",
         "@solidjs/vite-plugin": "3.0.0-next.47",
         "lightningcss": "^1.32.0",
