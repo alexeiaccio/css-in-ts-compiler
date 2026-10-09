@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: low
 created_at: 2026-10-08T08:55:58Z
-updated_at: 2026-10-09T07:26:31Z
+updated_at: 2026-10-09T07:36:29Z
 parent: cssints-dk1q
 ---
 
@@ -17,5 +17,8 @@ parent: cssints-dk1q
 - https://oscargabriel.dev/blog/skeletons-in-my-codebase
 
 ## Todo
-- [ ] kernel + chain
-- [ ] fixture
+- [x] kernel + chain
+- [x] fixture
+
+- [ ] browser test (sync phase, reduced motion)
+- [ ] README

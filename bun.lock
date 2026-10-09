@@ -248,6 +248,17 @@
         "cssints": "^0.1.0",
       },
     },
+    "packages/skeleton": {
+      "name": "@cssints/skeleton",
+      "version": "0.1.0",
+      "devDependencies": {
+        "cssints": "workspace:*",
+        "vite": "catalog:",
+      },
+      "peerDependencies": {
+        "cssints": "^0.1.0",
+      },
+    },
     "packages/squircle": {
       "name": "@cssints/squircle",
       "version": "0.1.0",
@@ -395,6 +406,8 @@
     "@cssints/reset": ["@cssints/reset@workspace:packages/reset"],
 
     "@cssints/reveal": ["@cssints/reveal@workspace:packages/reveal"],
+
+    "@cssints/skeleton": ["@cssints/skeleton@workspace:packages/skeleton"],
 
     "@cssints/squircle": ["@cssints/squircle@workspace:packages/squircle"],
 
