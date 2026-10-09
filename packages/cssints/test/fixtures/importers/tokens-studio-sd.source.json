@@ -1,0 +1,10 @@
+{
+  "spacing": { "base": { "value": "8", "type": "spacing" }, "lg": { "value": "{spacing.base} * 2", "type": "spacing" } },
+  "colors": {
+    "red": { "value": "#C14242", "type": "color" },
+    "redLight": { "value": "{colors.red}", "type": "color", "$extensions": { "studio.tokens": { "modify": { "type": "lighten", "value": "0.2", "space": "srgb" } } } },
+    "glass": { "value": "rgba({colors.red}, 0.5)", "type": "color" }
+  },
+  "weight": { "bold": { "value": "Bold", "type": "fontWeights" } },
+  "lh": { "body": { "value": "150%", "type": "lineHeights" } }
+}

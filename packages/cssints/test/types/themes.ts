@@ -298,6 +298,22 @@ css.check.contrast(j.color.bg, j.color.accent, { min: 3 });
 css.check.contrast(j.color.bg, css.token.color("#fff"), { min: 3 });
 // @ts-expect-error a typed length is still not a colour
 css.check.contrast(j.color.bg, css.token.length("1px"), { min: 3 });
+// The JSON of another mode (Figma's Export modes) is a theme: { $value } leaves, $type and $extensions skipped, a
+// key that starts with a digit is the set's _<key>.
+declare const mode: {
+  color: {
+    $type: string;
+    bg: { $type: string; $value: string; $extensions: { "com.figma.scopes": string[] } };
+    "500": { $value: string };
+  };
+  $extensions: { "com.figma.modeName": string };
+};
+const jd = css.createTokens({
+  color: { $type: "color", bg: { $value: "#fff" }, "500": { $value: "#888" } },
+});
+css.createGlobalTheme(jd, ".dark", mode);
+// @ts-expect-error no token at this path
+css.createGlobalTheme(jd, ".dark", { color: { fg: { $value: "#000" } } });
 
 // The token carries the value of its definition as text (a covariant phantom: any of them is a Token<K, S>).
 const vt = css.createTokens({

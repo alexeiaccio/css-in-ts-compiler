@@ -1,0 +1,7 @@
+{
+  "spacing": {
+    "$type": "dimension",
+    "base": { "$value": "8px" },
+    "lg": { "$value": "{spacing.base} * 2" }
+  }
+}

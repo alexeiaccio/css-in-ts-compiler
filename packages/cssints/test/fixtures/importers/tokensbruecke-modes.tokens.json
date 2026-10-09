@@ -1,0 +1,20 @@
+{
+  "clr-core": {
+    "ntrl": {
+      "40": { "$type": "color", "$value": "#636363" },
+      "55": { "$type": "color", "$value": "#8c8c8c" }
+    }
+  },
+  "clr-theme": {
+    "container-outline": {
+      "mid": {
+        "$type": "color",
+        "$value": "{clr-core.ntrl.40}",
+        "$description": "",
+        "$extensions": {
+          "mode": { "light": "{clr-core.ntrl.40}", "dark": "{clr-core.ntrl.55}" }
+        }
+      }
+    }
+  }
+}

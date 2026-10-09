@@ -1,0 +1,24 @@
+{
+  "color": {
+    "red": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [0.8886906504631042, 0.15790081024169922, 0.15790081024169922],
+        "alpha": 1,
+        "hex": "#E32828"
+      },
+      "$extensions": { "com.figma.variableId": "VariableID:1:2", "com.figma.scopes": ["ALL_SCOPES"] }
+    },
+    "surface": {
+      "$type": "color",
+      "$value": { "colorSpace": "srgb", "components": [1, 1, 1], "alpha": 1, "hex": "#FFFFFF" }
+    },
+    "danger": { "$type": "color", "$value": "{color.red}" },
+    "gray": { "500": { "$type": "color", "$value": { "colorSpace": "srgb", "components": [0.4196, 0.4471, 0.502], "alpha": 1, "hex": "#6B7280" } } }
+  },
+  "border-radius-default": { "$type": "number", "$value": 5 },
+  "padding-default": { "$type": "dimension", "$value": { "value": 16, "unit": "px" } },
+  "transition-duration": { "$type": "duration", "$value": { "value": 0.3, "unit": "s" } },
+  "$extensions": { "com.figma.modeName": "Light" }
+}

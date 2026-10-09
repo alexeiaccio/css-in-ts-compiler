@@ -1,0 +1,10 @@
+{
+  "colors": {
+    "red": { "$type": "color", "$value": "#C14242" },
+    "redLight": {
+      "$type": "color",
+      "$value": "{colors.red}",
+      "$extensions": { "studio.tokens": { "modify": { "type": "lighten", "value": "0.2", "space": "srgb" } } }
+    }
+  }
+}
