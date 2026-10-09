@@ -23,5 +23,6 @@ const luminance = (text) => {
 	return { lum: wcagLuminance(clampRgb(c)) };
 };
 const ratio = (a, b) => (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
+const shown = (r) => (Math.floor(r * 100) / 100).toFixed(2);
 //#endregion
-export { luminance, ratio };
+export { ratio as n, shown as r, luminance as t };

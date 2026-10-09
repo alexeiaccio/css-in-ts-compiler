@@ -1,4 +1,6 @@
-import { A as Registry, I as MacroError, L as MemberError, M as forgetKernels, N as registry, O as covers, _ as standIn, c as byOrder, h as requireLayer, k as relation, o as addGlobal, s as addLayers, t as CV_CALL, w as addRuntime, x as kernelWarnings, y as addKernel } from "./instrument-BMqsI0Gq.mjs";
+import { a as registry, d as MacroError, f as MemberError, o as warn, r as forgetKernels, t as Registry } from "./registry-n9JCX4pl.mjs";
+import { O as covers, _ as standIn, c as byOrder, h as requireLayer, k as relation, o as addGlobal, s as addLayers, t as CV_CALL, w as addRuntime, x as kernelWarnings, y as addKernel } from "./instrument-Cclndlxs.mjs";
+import { n as loweredOf, t as fallbackOf } from "./lowered-CeoXbm0P.mjs";
 import { createRequire } from "node:module";
 import { checkDeclarationNow, checkQuery, checkSelector, checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { browsers, lackingOf, messageOf, supportOf } from "@cssints/css-grammar/support";
@@ -10,7 +12,6 @@ import { properties } from "@cssints/css-grammar/mdn";
 import { relative } from "node:path";
 import { DTCG_TYPES, TOKEN_TYPES, grammarOf } from "@cssints/css-grammar/token";
 import { matches } from "@cssints/css-grammar/twin";
-import { browserslistToTargets, transform } from "lightningcss";
 import { checkSelectorNow } from "@cssints/css-grammar/selector";
 //#region src/node.ts
 const plain = (method) => {
@@ -156,14 +157,11 @@ function minWidth(q) {
 const RAW_VAR = /var\(\s*(--[\w-]+)/g;
 function checkVars(where, text) {
 	if (!text.includes("var(")) return;
-	const { properties, defs, warned, warnings } = registry;
+	const { properties, defs } = registry;
 	for (const [, name] of text.matchAll(RAW_VAR)) {
 		if (name.startsWith("--_") || !properties.has(name)) continue;
 		const path = defs.get(name)?.path;
-		const key = `var ${where} ${name}`;
-		if (warned.has(key)) continue;
-		warned.add(key);
-		warnings.push(`${where}: "var(${name})" is the token ${path === name ? `declared as ${name}` : path}: pass the token itself, and css.var(token, fallback) for a fallback`);
+		warn(registry, `var ${where} ${name}`, `${where}: "var(${name})" is the token ${path === name ? `declared as ${name}` : path}: pass the token itself, and css.var(token, fallback) for a fallback`);
 	}
 }
 const SPACING = /^(padding|margin|inset|gap|row-gap|column-gap)(-|$)/;
@@ -308,30 +306,6 @@ function hashClass([p, v, conds, fallbacks]) {
 	return "_" + (h >>> 0).toString(36);
 }
 //#endregion
-//#region src/lowered.ts
-const first = (css) => /^[^{]*\{([^;}]*)/.exec(css)?.[1];
-const lower = (prop, value, lacking, feature) => {
-	const code = Buffer.from(prop.startsWith("--") ? `:root{${prop}:${value}}` : `x{${prop}:${value}}`);
-	const out = first(transform({
-		filename: "x.css",
-		code,
-		minify: true,
-		targets: browserslistToTargets(lacking)
-	}).code.toString());
-	const holds = new RegExp(`(?<![\\w-])${feature.replace(/\(\)$/, "")}(?![\\w-])`);
-	return out !== void 0 && holds.test(`${prop}:${value}`) && !holds.test(out) ? out.slice(out.indexOf(":") + 1) : void 0;
-};
-const fallbackOf = (prop, value, w) => {
-	const key = `${prop}\0${value}\0${w.feature}\0${w.lacking.join()}`;
-	let hit = registry.lowered.get(key);
-	if (hit === void 0) {
-		hit = Result.getOrElse(Result.try(() => lower(prop, value, w.lacking, w.feature)), () => void 0) ?? false;
-		registry.lowered.set(key, hit);
-	}
-	return hit || void 0;
-};
-const loweredOf = (prop, value, w) => fallbackOf(prop, value, w) !== void 0;
-//#endregion
 //#region src/token.ts
 var CSSTokenValue = class extends CSSStyleValue$1 {
 	name;
@@ -375,7 +349,6 @@ const checkSyntaxFx = Effect.fnUntraced(function* (what, syntax, text, who = wha
 	}))))) return yield* fail(`cssints: ${what} "${text}" is not a ${grammar}`);
 	const prop = SUPPORT_PROPERTY[syntax];
 	if (!prop) return;
-	const { warned, warnings } = registry;
 	const ws = supportOf(prop, text).filter((w) => w.feature !== prop);
 	const lacking = [...new Set(ws.flatMap((w) => w.lacking))];
 	const lowered = ws.map((w) => variable && fallbackOf(variable, text, {
@@ -383,12 +356,7 @@ const checkSyntaxFx = Effect.fnUntraced(function* (what, syntax, text, who = wha
 		lacking
 	}));
 	if (ws.length && lowered.every(Boolean)) return lowered[0] || void 0;
-	for (const [i, w] of ws.entries()) {
-		const k = `${who} ${w.key}`;
-		if (warned.has(k) || lowered[i]) continue;
-		warned.add(k);
-		warnings.push(`${who}: "${w.feature}" in "${text}" is not supported by ${browsers(w.lacking)} (${w.key})`);
-	}
+	for (const [i, w] of ws.entries()) if (!lowered[i]) warn(registry, `${who} ${w.key}`, `${who}: "${w.feature}" in "${text}" is not supported by ${browsers(w.lacking)} (${w.key})`);
 });
 const checkSyntax = (what, syntax, text) => {
 	edge(checkSyntaxFx(what, syntax, text));
@@ -1529,7 +1497,7 @@ const declsOf = (what, style, conditions, allowed, sink) => {
 		if (!conditions && conds?.length || fallbacks) throw fail(`cssints: ${what} takes declarations without ${conditions ? "" : "conditions or "}firstThatWorks(...), got ${prop}`);
 		if (allowed && !allowed.test(prop)) throw fail(`cssints: ${what}: ${prop} is not allowed in @position-try, which takes inset, margin, sizing and self-alignment properties, position-anchor and position-area`);
 		Result.getOrThrowWith(Result.try({
-			try: () => checkNow(d, true, registry, true, sink),
+			try: () => checkNow(d, registry, true, sink),
 			catch: (e) => isDeclarationError(e) ? new MacroError({
 				message: `cssints: ${what}: ${e.message}`,
 				cause: e,
@@ -1696,7 +1664,7 @@ const globalRule = (selector, ...styles) => {
 		const state = conds.find((c) => !c.text.startsWith("@"));
 		if (state) throw fail(`cssints: global() takes media(), container() and supports() conditions, not ${state.text}: write the state in the selector`);
 		Result.getOrThrowWith(Result.try({
-			try: () => checkNow(d, true, registry),
+			try: () => checkNow(d, registry),
 			catch: (e) => isDeclarationError(e) ? located(at)(e) : e
 		}), (e) => e);
 		const key = conds.map((c) => c.text).join("{");
@@ -1809,11 +1777,11 @@ const kernelOf = (what, style, cls) => {
 		warnings
 	};
 };
-const checkValue = (prop, value, fresh, properties) => {
+const checkValue = (prop, value, properties) => {
 	let out = [];
 	for (const v of probed(value, properties)) {
 		const found = Result.getOrThrowWith(Result.try({
-			try: () => checkDeclarationNow(prop, v, fresh),
+			try: () => checkDeclarationNow(prop, v, true),
 			catch: (e) => {
 				if (v !== value && isDeclarationError(e)) Object.assign(e, { message: `${e.message} ("${value}" is checked as "${v}": a token stands for a value of its type)` });
 				return e;
@@ -1823,11 +1791,12 @@ const checkValue = (prop, value, fresh, properties) => {
 	}
 	return out;
 };
-const checkNow = ([prop, value, , fallbacks], fresh, { warnings, warned, properties, userProps }, sheet = true, sink) => {
+const checkNow = ([prop, value, , fallbacks], registry, sheet = true, sink) => {
+	const { properties, userProps } = registry;
 	if (userProps.has(prop)) return;
-	let found = checkValue(prop, value, fresh, properties);
+	let found = checkValue(prop, value, properties);
 	if (fallbacks) {
-		const lacking = [value, ...fallbacks].map((v, i) => new Set((i ? checkValue(prop, v, fresh, properties) : found).flatMap((w) => w.lacking)));
+		const lacking = [value, ...fallbacks].map((v, i) => new Set((i ? checkValue(prop, v, properties) : found).flatMap((w) => w.lacking)));
 		found = found.map((w) => ({
 			...w,
 			lacking: w.lacking.filter((t) => lacking.every((s) => s.has(t)))
@@ -1843,10 +1812,7 @@ const checkNow = ([prop, value, , fallbacks], fresh, { warnings, warned, propert
 			continue;
 		}
 		const k = `${prop} ${w.key}${fallbacks ? ` ${w.lacking.join()}` : ""}`;
-		if (!warned.has(k) && !(sheet && loweredOf(prop, value, w))) {
-			warned.add(k);
-			warnings.push(messageOf(prop, value, w) + (fallbacks ? ", and no fallback of its firstThatWorks covers them" : ""));
-		}
+		if (!(sheet && loweredOf(prop, value, w))) warn(registry, k, messageOf(prop, value, w) + (fallbacks ? ", and no fallback of its firstThatWorks covers them" : ""));
 	}
 };
 const classesNow = (decls, registry, markers) => {
@@ -1854,10 +1820,9 @@ const classesNow = (decls, registry, markers) => {
 	const out = markers ? [...new Set(markers.map((m) => m[0]))] : [];
 	for (const d of decls) {
 		const cls = hashClass(d);
-		const fresh = !rules.has(cls);
-		checkNow(d, fresh, registry);
+		checkNow(d, registry);
 		if (!out.includes(cls)) out.push(cls);
-		if (fresh) rules.set(cls, ruleOf(cls, d));
+		if (!rules.has(cls)) rules.set(cls, ruleOf(cls, d));
 	}
 	return out.join(" ");
 };
@@ -1992,7 +1957,7 @@ const inlineOf = Effect.fnUntraced(function* ({ __style: { sets, decls } }) {
 	const registry = yield* Registry;
 	return yield* Effect.try({
 		try: () => {
-			for (const d of decls) checkNow(d, true, registry, false);
+			for (const d of decls) checkNow(d, registry, false);
 			return `{ ${[...new Map([...sets, ...decls.map(([p, v]) => [camel(p), v])])].map(([k, v]) => `${k.startsWith("--") ? Formatter.formatJson(k) : k}: ${Formatter.formatJson(v)}`).join(", ")} }`;
 		},
 		catch: (e) => {
@@ -2042,8 +2007,9 @@ function __at(file, site, offset) {
 }
 const __unseen = (file, site) => !registry.sites.get(file)?.has(site);
 function __site(at, value) {
-	registry.at = void 0;
+	registry.at = at;
 	const exit = Effect.runSyncExit(recordSite(at, value));
+	registry.at = void 0;
 	if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
 	return exit.value;
 }

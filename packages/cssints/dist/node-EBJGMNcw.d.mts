@@ -164,9 +164,9 @@ interface RegistryState {
   gen: number;
   /** tokens created at the site being evaluated: two in one site get different private names */
   tokens: number;
-  /** support warnings not yet handed to Vite */
-  warnings: string[];
-  /** `property feature` keys already warned about in this build */
+  /** warnings not yet handed to Vite, each at the site that made it (`warn`) */
+  warnings: Warned[];
+  /** `file of the site \0 key` of the warnings said in this build; in dev, until that file is edited (`forgetWarnings`) */
   warned: Set<string>;
   /** `property value feature targets` -> what LightningCSS lowers it to, or false (lowered.ts) */
   lowered: Map<string, string | false>;
@@ -178,6 +178,11 @@ interface RegistryState {
 }
 declare global {
   var __cssints: RegistryState | undefined;
+}
+/** A warning and the site that made it, when there is one. */
+interface Warned {
+  message: string;
+  at?: At | undefined;
 }
 //#endregion
 //#region src/node.d.ts

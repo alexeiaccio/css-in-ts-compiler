@@ -19,10 +19,18 @@ const BCD_NAME = {
 	android: "webview_android",
 	ie: "ie"
 };
-const targets = Effect.fn("support.targets")(function* (query) {
-	return (yield* browsers$1(query)).map((t) => [t.split(" ")[0], t.split(" ")[1].split("-")[0]]).filter(([a]) => BCD_NAME[a]);
+const targets = Effect.fn("support.targets")(function* (query, path) {
+	return (yield* browsers$1(query, path)).map((t) => [t.split(" ")[0], t.split(" ")[1].split("-")[0]]).filter(([a]) => BCD_NAME[a]);
 });
 const DEFAULT = Effect.runSync(targets());
+const current = () => globalThis.__cssintsTargets ?? DEFAULT;
+/**
+* Sets the targets the functions here default to (cssints: those of the Vite root, before each evaluation).
+* @param {Target[] | undefined} ts the targets, or `undefined` for those of process.cwd()
+*/
+const useTargets = (ts) => {
+	globalThis.__cssintsTargets = ts;
+};
 const cmp = (a, b) => {
 	const x = a.replace("≤", "").split("."), y = b.split(".");
 	for (let i = 0; i < Math.max(x.length, y.length); i++) {
@@ -52,11 +60,11 @@ function reach(syntax, seen = /* @__PURE__ */ new Set()) {
 }
 const get = (key) => key.split(".").reduce((n, k) => n?.[k] ?? n?.[k.toLowerCase()], bcd);
 const lacks = (c, on, exact = false) => on.filter(([a, ver]) => !supports(c.support[BCD_NAME[a]], ver, exact));
-const lackingOf = (key, ts = DEFAULT, exact = false) => {
+const lackingOf = (key, ts = current(), exact = false) => {
 	const c = get(key)?.__compat;
 	return c ? lacks(c, ts, exact) : [];
 };
-const lacking = Effect.fnUntraced(function* (key, ts = DEFAULT, exact = false) {
+const lacking = Effect.fnUntraced(function* (key, ts = current(), exact = false) {
 	return yield* Effect.sync(() => lackingOf(key, ts, exact));
 });
 const reached = /* @__PURE__ */ new Map();
@@ -69,12 +77,13 @@ const reachOf = (p) => {
 	}
 	return r;
 };
-const known = /* @__PURE__ */ new Map();
-function supportOf(p, v, ts = DEFAULT) {
-	if (ts !== DEFAULT) return compute(p, v, ts);
+const known = /* @__PURE__ */ new WeakMap();
+function supportOf(p, v, ts = current()) {
+	let byDecl = known.get(ts);
+	if (!byDecl) known.set(ts, byDecl = /* @__PURE__ */ new Map());
 	const key = `${p}\0${v}`;
-	let out = known.get(key);
-	if (!out) known.set(key, out = compute(p, v, ts));
+	let out = byDecl.get(key);
+	if (!out) byDecl.set(key, out = compute(p, v, ts));
 	return out;
 }
 function compute(p, v, ts) {
@@ -128,7 +137,7 @@ function browsers(lacking) {
 		return vs.length === 1 ? `${a} ${vs[0]}` : `${a} ${vs[0]}-${vs.at(-1)}`;
 	}).join(", ");
 }
-const support = Effect.fnUntraced(function* (p, v, ts = DEFAULT) {
+const support = Effect.fnUntraced(function* (p, v, ts = current()) {
 	return yield* Effect.sync(() => supportOf(p, v, ts));
 });
 const messageOf = (p, v, w) => `${p}: ${w.feature === p ? "the property" : `"${w.feature}"`} in "${v}" is not supported by ${browsers(w.lacking)} (${w.key})`;
@@ -136,4 +145,4 @@ const message = Effect.fn("support.message")(function* (p, v, w) {
 	return yield* Effect.sync(() => messageOf(p, v, w));
 });
 //#endregion
-export { browsers, get, lacking, lackingOf, message, messageOf, support, supportOf, targets };
+export { browsers, get, lacking, lackingOf, message, messageOf, support, supportOf, targets, useTargets };
