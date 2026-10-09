@@ -239,7 +239,11 @@ class Compiler {
             const name = r.key.slice(r.key.indexOf(" ") + 1);
             const scoped = `${name}-${this.name}`;
             css = css.replaceAll(name, scoped);
-            return { ...r, key: r.key.replace(name, scoped), css: this.own(r.css.replace(name, scoped)) };
+            return {
+              ...r,
+              key: r.key.replace(name, scoped),
+              css: this.own(r.css.replace(name, scoped)),
+            };
           }),
         );
       this.sets.set(key, built.props);

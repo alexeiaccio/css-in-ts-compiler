@@ -441,7 +441,9 @@ const aroundCss = sheet("sc-around-use.ts");
 for (const s of ["a", "b"]) {
   const k = `_sc-around-${s}-core`;
   const kf = aroundCss.match(
-    new RegExp(`@keyframes (kf-[\\w-]+)\\{from\\{--sc-around-${s}-p:100%\\}to\\{--sc-around-${s}-p:0%\\}\\}`),
+    new RegExp(
+      `@keyframes (kf-[\\w-]+)\\{from\\{--sc-around-${s}-p:100%\\}to\\{--sc-around-${s}-p:0%\\}\\}`,
+    ),
   )?.[1];
   assert.ok(kf, `the keyframes of ${s} name --sc-around-${s}-p\n${aroundCss}`);
   assert.ok(
