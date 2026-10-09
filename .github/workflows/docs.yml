@@ -1,0 +1,42 @@
+# Deploys apps/docs to Cloudflare (https://cssints.accio.blue) with Alchemy on every push to master that can change it.
+# Secrets: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (see apps/docs/README.md "Deploy"). The state is in the account
+# (Cloudflare.state()), shared with local deploys. The packages are not built: Vite bundles the tracked packages/*/dist.
+name: docs
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - README.md
+      - docs/**
+      - apps/docs/**
+      - packages/*/src/**
+      - packages/*/dist/**
+      - bun.lock
+      - .github/workflows/docs.yml
+  workflow_dispatch:
+
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      # the docs plugin's worker runs .ts files with Node's type stripping
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - run: bun install --frozen-lockfile
+      - name: Deploy
+        working-directory: apps/docs
+        run: bun alchemy deploy --stage prod --yes
+        env:
+          CI: "true"
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
