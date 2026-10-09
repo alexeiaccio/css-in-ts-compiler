@@ -17,9 +17,12 @@ const cases = JSON.parse(readFileSync(process.argv[2], "utf8"));
 const warnings = [];
 const logger = createLogger("warn");
 // Vite prints a warning as "warning: <message>\n  Plugin: cssints\n  File: <file>"
+// (colours when the runner forces them)
+const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
 logger.warn = (m) =>
   warnings.push(
     m
+      .replace(ANSI, "")
       .replace(/^warning: /, "")
       .split("\n  Plugin:")[0]
       .trim(),
