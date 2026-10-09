@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-09T08:40:45Z
-updated_at: 2026-10-09T08:40:45Z
+updated_at: 2026-10-09T08:51:31Z
 ---
 
 Our own devtools for cssints, built on what docs/research/devtools.md (cssints-0a3p) found: atomic-css-devtools reads rules through the CSSOM and gets @container/@supports/@scope, specificity and unlayered rules wrong, and cannot say where a class comes from.
@@ -16,7 +16,7 @@ Decided with the user (2026-10-09):
 - **UI:** Solid + cssints (the tool styles itself). Core (protocol with the dev server, state, cascade) in Effect.
 
 ## Todo
-- [ ] design note: data model, protocol, cascade rule, UI sketch (docs/research/devtools.md or a new section)
+- [x] design note: data model, protocol, cascade rule, UI sketch (docs/research/devtools.md or a new section)
 - [ ] dev-server side: class metadata endpoint / virtual module, kept fresh on HMR
 - [ ] core (Effect): element -> classes -> metadata -> cascade per property, verified against getComputedStyle
 - [ ] overlay UI (Solid + cssints): pick element, panel with grouped rules, winner, source link (open in editor)
