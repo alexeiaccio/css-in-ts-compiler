@@ -7,7 +7,7 @@ import { createRequire } from "node:module";
 import { dirname, extname, join, resolve } from "node:path";
 
 import { create } from "fontkitten";
-import { scope } from "cssints/plugin";
+import { dependsOn, scope } from "cssints/plugin";
 
 /** What the fallback face and `trim()` are computed from, in font units (capsize's names). */
 export interface Metrics {
@@ -202,6 +202,7 @@ const files = (list: string[]) => {
   const faces = list.map((f) => {
     const file = resolve(f);
     if (!FORMATS.has(extname(file))) fail(`${f}: not a .woff2, .woff, .ttf or .otf file`);
+    dependsOn(file);
     const { weight, style } = read(file);
     return { file, weight, style };
   });

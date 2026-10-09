@@ -4,6 +4,8 @@
 // node_modules. Run: node test/fonts.mjs
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { setTimeout as sleep } from "node:timers/promises";
 
 import { createFontStack, createStyleObject } from "@capsizecss/core";
 import { fromFile } from "@capsizecss/unpack/fs";
@@ -187,6 +189,34 @@ const built = String(files.find((f) => f.fileName.endsWith(".css")).source);
 const assets = files.filter((f) => /\.woff2?$/.test(f.fileName)).map((f) => f.fileName);
 assert.equal(assets.length, 5, assets.join("\n"));
 for (const asset of assets) assert.ok(built.includes(`url(/${asset})`), `${asset}\n${built}`);
+
+// dev: another font written over a file of the fs provider changes the CSS of the module that reads it, the module
+// untouched (cssints-04u8)
+const woff = (w) =>
+  readFileSync(
+    `node_modules/@fontsource/atkinson-hyperlegible/files/atkinson-hyperlegible-latin-${w}.woff`,
+  );
+mkdirSync("test/fixtures/out", { recursive: true });
+writeFileSync("test/fixtures/out/dev.woff", woff("700-normal"));
+const devPlugins = cssints();
+const devServer = await createServer({
+  root,
+  configFile: false,
+  logLevel: "silent",
+  server: { middlewareMode: true, ws: false },
+  plugins: devPlugins,
+});
+const devSheet = async () => {
+  await devServer.environments.client.transformRequest("/dev.ts");
+  return devPlugins[0].api.sheet([`${root}/dev.ts`]);
+};
+assert.match(await devSheet(), /font-family:"Dev";font-style:normal;font-weight:700;/);
+writeFileSync("test/fixtures/out/dev.woff", woff("400-italic"));
+const devMod = devServer.environments.client.moduleGraph.getModuleById(`${root}/dev.ts`);
+for (let i = 0; i < 100 && devMod.transformResult; i++) await sleep(50);
+assert.equal(devMod.transformResult, null, "dev.ts was not invalidated");
+assert.match(await devSheet(), /font-family:"Dev";font-style:italic;font-weight:400;/);
+await devServer.close();
 
 // targets that all have text-box, and one with neither text-box nor @property: another process each, the targets are
 // read once

@@ -3,6 +3,7 @@
 // Run: node test/placeholder.mjs
 import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { setTimeout as sleep } from "node:timers/promises";
 
 import cssints from "cssints/vite";
 import jpeg from "jpeg-js";
@@ -154,5 +155,33 @@ assert.match(e.message, /^color: unexpected "radial-gradient\(at"/);
 assert.equal(e.loc?.line, 5);
 
 await server.close();
+
+// dev: an edit of the image changes the CSS of the module that reads it, the module untouched (cssints-04u8)
+const devPlugins = cssints();
+const dev = await createServer({
+  root,
+  configFile: false,
+  customLogger: createLogger("error"),
+  server: { middlewareMode: true, ws: false },
+  plugins: devPlugins,
+});
+const devSheet = async () => {
+  await dev.environments.client.transformRequest("/use.ts");
+  return devPlugins[0].api.sheet([`${root}/use.ts`]);
+};
+const before = await devSheet();
+const dusk = image(16, 24, (_, y) => [200, 60 + y * 4, 20, 255]);
+writeFileSync(
+  "test/fixtures/img/sky.jpg",
+  jpeg.encode({ ...dusk, data: Buffer.from(dusk.data) }, 90).data,
+);
+const mod = dev.environments.client.moduleGraph.getModuleById(`${root}/use.ts`);
+for (let i = 0; i < 100 && mod.transformResult; i++) await sleep(50);
+assert.equal(mod.transformResult, null, "use.ts was not invalidated");
+const after = await devSheet();
+assert.notEqual(after, before);
+// the split image did not change: its gradient stays
+assert.ok(after.includes(`background-image:${gradients(quadrants, 4, 3)}}`), after);
+await dev.close();
 console.log("placeholder: ok");
 process.exit(0);

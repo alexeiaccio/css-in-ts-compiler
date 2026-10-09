@@ -12,7 +12,7 @@ import {
   parseSVGContent,
   svgToURL,
 } from "@iconify/utils";
-import { arg, scope, type Style } from "cssints/plugin";
+import { arg, dependsOn, scope, type Style } from "cssints/plugin";
 
 /** An iconify JSON collection as TypeScript sees it: `typeof import("@iconify-json/mdi/icons.json")`. */
 export interface Collection {
@@ -118,7 +118,9 @@ const files = (dir: string): Source => {
     names: () => list().map((f) => f.slice(0, -4)),
     get: (name) => {
       if (!list().includes(`${name}.svg`)) return undefined;
-      const svg = parseSVGContent(readFileSync(join(abs, `${name}.svg`), "utf8"));
+      const file = join(abs, `${name}.svg`);
+      dependsOn(file);
+      const svg = parseSVGContent(readFileSync(file, "utf8"));
       const icon = svg && convertParsedSVG(svg);
       if (!icon) throw new Error(`cssints: icons: ${name}.svg is not an SVG with a viewBox`);
       return icon;

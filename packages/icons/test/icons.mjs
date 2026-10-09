@@ -1,6 +1,8 @@
 // @cssints/icons through the engine: both providers, the output (a marker, a kernel, one custom property per icon) and
 // the errors. The working directory is the package (set below): the collection is read from its node_modules. Run: node test/icons.mjs
 import assert from "node:assert/strict";
+import { readFileSync, writeFileSync } from "node:fs";
+import { setTimeout as sleep } from "node:timers/promises";
 
 import cssints from "cssints/vite";
 import { createLogger, createServer } from "vite";
@@ -81,4 +83,32 @@ await assert.rejects(code("bad-collection.ts"), (err) => {
 });
 
 await server.close();
+
+// dev: an edit of an SVG of the fs provider changes the CSS of the module that uses it, the module untouched (cssints-04u8)
+const devPlugins = cssints();
+const dev = await createServer({
+  root,
+  configFile: false,
+  customLogger: createLogger("error"),
+  server: { middlewareMode: true, ws: false },
+  plugins: devPlugins,
+});
+const devSheet = async () => {
+  await dev.environments.client.transformRequest("/use.ts");
+  return devPlugins[0].api.sheet([`${root}/use.ts`]);
+};
+const starFile = `${root}/svg/star.svg`;
+const starSvg = readFileSync(starFile, "utf8");
+try {
+  assert.ok((await devSheet()).includes("M12 2l3 7h7"));
+  writeFileSync(starFile, starSvg.replace("M12 2l3 7h7", "M12 3l3 6h7"));
+  const mod = dev.environments.client.moduleGraph.getModuleById(`${root}/use.ts`);
+  for (let i = 0; i < 100 && mod.transformResult; i++) await sleep(50);
+  assert.equal(mod.transformResult, null, "use.ts was not invalidated");
+  const after = await devSheet();
+  assert.ok(after.includes("M12 3l3 6h7") && !after.includes("M12 2l3 7h7"), after);
+} finally {
+  writeFileSync(starFile, starSvg);
+  await dev.close();
+}
 console.log("icons ok");
