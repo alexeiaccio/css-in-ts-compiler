@@ -5,6 +5,7 @@ import { Shell } from "./Shell.tsx";
 
 // One route per page: the slug is the path ("" is the overview); an unknown slug is the not-found page.
 const Router = createRouter({
+  base: import.meta.env.BASE_URL.replace(/\/$/, ""),
   routes: [
     { path: "/", component: () => <Page slug="" /> },
     defineRoute({ path: "/:slug", component: (props) => <Page slug={props.params.slug} /> }),

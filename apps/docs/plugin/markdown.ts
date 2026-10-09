@@ -63,7 +63,8 @@ const project = new Set(["Layout", "Development", "License"]);
 // DOCS_HOVERS=0 skips the type-check of the ts blocks (the part of the build that takes ~15 s) while the styles are being worked on
 const hovers = process.env.DOCS_HOVERS !== "0";
 
-export async function buildPages(): Promise<Page[]> {
+/** `base` is the site's base path (ends with a slash): the links between pages start with it */
+export async function buildPages(base = "/"): Promise<Page[]> {
   const marked = new Marked();
   const sections: { file: string; tokens: Token[] }[] = [];
   for (const { path, split } of files) {
@@ -138,9 +139,9 @@ export async function buildPages(): Promise<Page[]> {
     if (/^https?:|^#/.test(target)) return target;
     const [path = "", hash = ""] = target.split("#");
     const repoPath = posix.normalize(posix.join(dirname(file), path));
-    if (repoPath === "README.md") return "/";
+    if (repoPath === "README.md") return base;
     if (repoPath === "docs/API.md")
-      return `/${(hash && owner.get(hash)) || apiSlug}${hash && !tops.has(hash) ? `#${hash}` : ""}`;
+      return `${base}${(hash && owner.get(hash)) || apiSlug}${hash && !tops.has(hash) ? `#${hash}` : ""}`;
     return REPO + repoPath + (hash && `#${hash}`);
   };
 

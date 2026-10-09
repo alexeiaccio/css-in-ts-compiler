@@ -2,15 +2,18 @@
 // sidebar is opened: it must render its title and its text, and a page error, a console error, a failed request or Solid's
 // SETTLED_CLEANUP_UNOWNED (the dev build reports what the production one drops) fails the run. Then the parts: the links between the
 // pages and their anchors, the search, the colour mode (system and the toggle), the mobile menu, the type hovers. Screenshots go to
-// test/out/ (ignored by git).
+// test/out/ (ignored by git). Then the built site, as a static host serves it: each document holds its page (read with JavaScript off),
+// the app takes over with no frame that shows both or neither, and the links work. DOCS_BASE (see vite.config.ts) runs all of it
+// under that base path.
 //   node test/browser.mjs
+//   DOCS_BASE=/css-in-ts-compiler/ node test/browser.mjs
 import assert from "node:assert/strict";
 import { mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 
-import { createServer } from "vite";
+import { build, createServer, preview } from "vite";
 
 const root = join(import.meta.dirname, "..");
 const out = join(import.meta.dirname, "out");
@@ -28,6 +31,8 @@ const browser = await chromium.launch({ channel: "chrome" }).catch((e) => {
 const server = await createServer({ root, logLevel: "error", server: { port: 0 } });
 await server.listen();
 const base = server.resolvedUrls.local[0];
+const prefix = new URL(base).pathname; // the base path: "/" or "/css-in-ts-compiler/"
+const slugOf = (href) => href.slice(prefix.length);
 const problems = [];
 
 const open = async (context, path = "") => {
@@ -59,7 +64,7 @@ try {
   const anchors = new Map();
   const links = [];
   for (const href of hrefs) {
-    await home.goto(base + href.slice(1));
+    await home.goto(base + slugOf(href));
     await home.locator("main h1").waitFor({ state: "visible" });
     await ready(home).catch(() => {}); // License is one line
     await sleep(150); // the effects run after the page is on screen
@@ -78,11 +83,12 @@ try {
     assert.ok(info.h1.length > 0 && info.text > 0, `${href}: empty page`);
     assert.equal(info.h1s, 1, `${href}: one title`);
     assert.ok(!info.overflow, `${href}: scrolls sideways`);
-    anchors.set(href === "/" ? "" : href.slice(1), new Set(info.ids));
+    anchors.set(slugOf(href), new Set(info.ids));
     links.push(...info.links.map((l) => [href, l]));
   }
   for (const [from, link] of links) {
-    const [slug = "", hash] = link.slice(1).split("#");
+    assert.ok(link.startsWith(prefix), `${from}: link ${link} is outside ${prefix}`);
+    const [slug = "", hash] = slugOf(link).split("#");
     const ids = anchors.get(slug);
     assert.ok(ids, `${from}: link to ${link}, which is no page`);
     assert.ok(!hash || ids.has(hash), `${from}: link to ${link}, which has no such anchor`);
@@ -209,7 +215,7 @@ try {
   await mobile.locator("#sidebar").waitFor({ state: "visible" });
   await sleep(300);
   await mobile.screenshot({ path: join(out, "menu-mobile.png") });
-  await mobile.click("#sidebar a[href='/tokens']");
+  await mobile.click(`#sidebar a[href='${prefix}tokens']`);
   await mobile.waitForURL(/\/tokens$/);
   await mobile.locator("#sidebar").waitFor({ state: "hidden" });
   await phone.close();
@@ -220,12 +226,92 @@ try {
   await home.goto(base);
   await ready(home);
   await home.screenshot({ path: join(out, "overview-light.png") });
+
+  // the built site
+  const dist = join(out, "dist");
+  await build({ root, logLevel: "error", build: { outDir: dist, emptyOutDir: true } });
+  const site = await preview({
+    root,
+    logLevel: "error",
+    build: { outDir: dist },
+    preview: { port: 0 },
+  });
+  try {
+    const built = site.resolvedUrls.local[0];
+    // JavaScript off: the page is the document (as a crawler reads it), with its links
+    const plain = await browser.newContext({ javaScriptEnabled: false });
+    const bare = await plain.newPage();
+    await bare.goto(`${built}authoring-surface/`);
+    assert.equal(await bare.title(), "Authoring surface · cssints");
+    assert.equal(await bare.textContent("h1"), "Authoring surface");
+    assert.ok((await bare.textContent(".prose")).length > 1000, "the article is in the document");
+    assert.ok((await bare.getAttribute("meta[name=description]", "content")).length > 40);
+    assert.equal(await bare.locator("#root").isVisible(), false, "the empty root is hidden");
+    await bare.click(`#prerender nav a[href='${prefix}tokens/']`);
+    assert.equal(await bare.textContent("h1"), "Tokens", "a link is another document");
+    await plain.close();
+
+    // JavaScript on: the app takes over. At every frame the page is the static copy or the app, never both and never neither
+    const watched = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    await watched.addInitScript(() => {
+      window.__frames = [];
+      const tick = () => {
+        const copy = !!document.getElementById("prerender");
+        const app = document.getElementById("root")?.hidden === false;
+        window.__frames.push([copy, app]);
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    const seen = [];
+    for (const path of ["tokens/", "tokens", "frame-concentric-radius#names", "", "no-such-page"]) {
+      const page = await watched.newPage();
+      page.on("pageerror", (e) => problems.push(`built ${path}: ${e}`));
+      page.on(
+        "console",
+        (m) => m.type() === "error" && problems.push(`built ${path}: ${m.text()}`),
+      );
+      await page.goto(built + path);
+      await page.locator("main h1").waitFor({ state: "visible" });
+      await sleep(200);
+      const state = await page.evaluate(() => ({
+        copies: document.querySelectorAll("#prerender").length,
+        h1s: document.querySelectorAll("h1").length,
+        proses: document.querySelectorAll(".prose").length,
+        frames: window.__frames,
+      }));
+      assert.deepEqual([state.copies, state.h1s, state.proses <= 1], [0, 1, true], `built ${path}`);
+      const live = state.frames.slice(state.frames.findIndex(([copy, app]) => copy || app));
+      assert.ok(
+        live.every(([copy, app]) => copy !== app),
+        `built ${path}: a frame shows both or neither`,
+      );
+      seen.push(await page.textContent("h1"));
+      if (path === "tokens/") {
+        await page.click(`#sidebar a[href='${prefix}install']`);
+        await page.waitForURL(/\/install$/);
+        await page.locator("main h1", { hasText: "Install" }).waitFor({ state: "visible" });
+        assert.equal(await page.title(), "Install · cssints");
+      }
+      await page.close();
+    }
+    assert.deepEqual(seen, [
+      "Tokens",
+      "Tokens",
+      "frame(): concentric radius",
+      "CSS-in-TS",
+      "Page not found",
+    ]);
+    await watched.close();
+  } finally {
+    await site.close();
+  }
   assert.deepEqual(problems, []);
 } finally {
   await browser.close();
   await server.close();
 }
 console.log(
-  "docs browser: every page renders with no console error; links, search, modes, menu and hovers ok",
+  `docs browser (base ${prefix}): every page renders with no console error; links, search, modes, menu and hovers ok; the built pages read without JS and the app takes over cleanly`,
 );
 process.exit(0);

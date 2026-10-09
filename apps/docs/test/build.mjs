@@ -1,5 +1,6 @@
 // The build check: one sheet with the site's layers in order, the themes and the plugin kernels in it, none of the engine in the
-// JavaScript, a chunk of html for each page, a document for each URL, and a type hover on every ts block that docs.mjs checks.
+// JavaScript, a chunk of html for each page, a document for each URL that holds the page's text (readable without JS), every URL
+// under the base path (DOCS_BASE, "/" by default), and a type hover on every ts block that docs.mjs checks.
 // The working directory is the project, as in a user's build: icons() reads @iconify-json/* from it.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -71,6 +72,46 @@ for (const slug of slugs) {
 }
 assert.ok(html.get("index.html").includes("<title>cssints</title>"));
 assert.ok(js.length > slugs.length, "a chunk per page");
+
+// the prerender: the title, the description and the article are in the document, the app's root is hidden until it takes over
+const base = process.env.DOCS_BASE || "/";
+const meta = (doc) => /name="description"\s+content="([^"]*)"/.exec(doc)[1];
+const written = (slug, h1, text) => {
+  const doc = html.get(slug ? `${slug}/index.html` : "index.html");
+  const shown = /<div id="prerender">([\s\S]*)<\/div><div id="root" hidden><\/div>/.exec(doc)?.[1];
+  assert.ok(shown, `${slug}: no prerendered page`);
+  assert.ok(shown.startsWith(`<h1>${h1}</h1><div class="prose">`), `${slug}: h1`);
+  assert.ok(shown.includes(text), `${slug}: ${text}`);
+  return meta(doc);
+};
+assert.match(
+  written("tokens", "Tokens", "A token is a Typed OM value whose"),
+  /^A token is a Typed OM value/,
+);
+assert.match(written("install", "Install", "It needs Vite 8"), /^Not on npm yet/);
+assert.match(
+  written("", "CSS-in-TS", "cssints is compile-time CSS-in-TypeScript"),
+  /^cssints is compile-time/,
+);
+written(
+  "frame-concentric-radius",
+  "<code>frame()</code>: concentric radius",
+  "twoslash-popup-container",
+);
+for (const slug of slugs) {
+  const doc = html.get(`${slug}/index.html`);
+  assert.ok(
+    doc.includes('<div id="prerender"><h1>') && doc.includes('<div id="root" hidden>'),
+    slug,
+  );
+  assert.ok(doc.includes(`<a href="${base}${slug}/">`), `${slug}: the list of pages`);
+}
+assert.ok(!html.get("404.html").includes("prerender"), "the not-found document has no page");
+// every URL in a document, the prerendered links included, is under the base path
+for (const [file, doc] of html)
+  for (const [, url] of doc.matchAll(/\b(?:href|src)="(\/[^"]*)"/g))
+    assert.ok(url.startsWith(base), `${file}: ${url} is outside ${base}`);
+assert.ok(html.get("index.html").includes(`src="${base}assets/index-`), "the entry script");
 
 // every ts and tsx block that docs.mjs checks has hovers; the blocks fenced `skip` have none; the lines that end in `// error` show
 // their message, and no other line does (so the hover setup type-checks as docs.mjs does)

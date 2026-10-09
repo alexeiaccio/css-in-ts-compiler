@@ -14,7 +14,7 @@ import {
   useContext,
 } from "solid-js";
 
-import { DocsContext, type Meta } from "./docs.ts";
+import { DocsContext, type Meta, url } from "./docs.ts";
 import { gtOutline, gtSidebar } from "./layout.ts" with { type: "cssints" };
 import { t } from "./theme.ts" with { type: "cssints" };
 
@@ -131,11 +131,19 @@ const START = [
   ["tokens", "Tokens and themes", "Typed design tokens, themes, contrast checks."],
 ] as const;
 
+// The built pages carry their article as static html beside the hidden root (plugin/docs.ts): once the app has a page to show,
+// the static copy goes and the root appears in the same task.
+const reveal = () => {
+  document.getElementById("prerender")?.remove();
+  document.getElementById("root")!.hidden = false;
+};
+
 function Article(props: { html: string }) {
   const location = useLocation();
   createEffect(
     () => [props.html, location.hash] as const,
     ([, hash]) => {
+      reveal();
       if (hash) document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView();
     },
   );
@@ -195,7 +203,7 @@ function Doc(props: { page: Meta }) {
           <nav class={start} aria-label="Start here">
             <For each={START}>
               {([slug, name, text]) => (
-                <a href={`/${slug}`} class={card}>
+                <a href={url(slug)} class={card}>
                   <span class={cardTitle}>{name}</span>
                   <span class={cardText}>{text}</span>
                 </a>
@@ -209,7 +217,7 @@ function Doc(props: { page: Meta }) {
         <nav class={pager} aria-label="Pages">
           <Show when={pages[at() - 1]}>
             {(prev) => (
-              <a href={`/${prev().slug}`} class={card}>
+              <a href={url(prev().slug)} class={card}>
                 <span class={cardLabel}>Previous</span>
                 <span class={cardTitle}>{prev().title}</span>
               </a>
@@ -217,7 +225,7 @@ function Doc(props: { page: Meta }) {
           </Show>
           <Show when={pages[at() + 1]}>
             {(following) => (
-              <a href={`/${following().slug}`} class={css.cn(card, next)}>
+              <a href={url(following().slug)} class={css.cn(card, next)}>
                 <span class={cardLabel}>Next</span>
                 <span class={cardTitle}>{following().title}</span>
               </a>
@@ -236,10 +244,11 @@ function Doc(props: { page: Meta }) {
 }
 
 function NotFound() {
+  onSettled(reveal);
   return (
     <main class={main}>
       <h1 class={title}>Page not found</h1>
-      <a href="/" class={card}>
+      <a href={url("")} class={card}>
         <span class={cardTitle}>Back to the overview</span>
       </a>
     </main>

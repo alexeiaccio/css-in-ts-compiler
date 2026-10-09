@@ -5,7 +5,7 @@ import { surface } from "cssints/surface" with { type: "cssints" };
 import { useNavigate } from "@solidjs/router";
 import { createMemo, createSignal, For, onSettled, useContext } from "solid-js";
 
-import { DocsContext } from "./docs.ts";
+import { DocsContext, url } from "./docs.ts";
 import { ph } from "./icons.ts" with { type: "cssints" };
 import { gtSidebar } from "./layout.ts" with { type: "cssints" };
 import { createIndex, search } from "./lookup.ts";
@@ -165,7 +165,7 @@ export function Search() {
             <For each={hits()}>
               {(hit, i) => (
                 <a
-                  href={`/${hit.slug}${hit.id && `#${hit.id}`}`}
+                  href={url(`${hit.slug}${hit.id && `#${hit.id}`}`)}
                   class={row}
                   role="option"
                   aria-selected={i() === active() ? "true" : "false"}
