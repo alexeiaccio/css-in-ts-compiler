@@ -37,6 +37,7 @@
   "scripts": {
     "build": "vp pack",
     "test": "node test/tools.mjs && node test/stdio.mjs && node test/live.mjs",
+    "test:browser": "node test/browser.mjs",
     "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
     "pack:tgz": "node ../../scripts/pack.mjs"
   },
@@ -47,6 +48,7 @@
     "cssints": "workspace:*",
     "culori": "^4.0.2",
     "effect": "4.0.0",
+    "playwright-core": "^1.63.0",
     "vite": "catalog:"
   },
   "devDependencies": {

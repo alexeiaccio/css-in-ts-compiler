@@ -30,6 +30,20 @@ and keep it until the server says it is stale. The server knows only the modules
 fetches every module the page reaches (dynamic imports too), and again after an edit: no browser has to be open.
 `dev_errors` works on any Vite dev server: it fetches the modules again and collects Vite's `error` payloads.
 
+### In a browser
+
+| Tool              | Answers                                                                                                                                                                                                    | Example                                                                                                                             |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `inspect_element` | what the devtools overlay shows: the element's classes by the call that made them, per property the winner, what it overrides (and why), what does not apply now, and the check against the computed style | `{ "selector": "[data-case=hover-md]", "hover": true }` → `color: #dc2626` from `._1d608he:hover` beats `#2563eb` by specificity, ✓ |
+| `why_property`    | one property: the winner and its call, its conditions and whether each holds, what it beats and why, what does not apply, ✓/✗ with the reason                                                              | `{ "selector": "[data-case=unlayered]", "property": "color" }` → ✗, `.mine { … } in src/components/inspect.css beats it`            |
+
+They open `url` (default `http://localhost:5173`) in a headless Chromium of playwright-core, one page per url kept for
+the session, read the table from the dev server as the live tools do (so `cssints({ devtools: true })` again; `server`
+when the server is not the page's origin), add the devtools core to the page (`@cssints/devtools/inject`, bundled by
+Vite on the first call) and run the overlay's cascade on the first element the selector matches. `hover` and `focus`
+put the element in that state first (else the pointer is moved away and the focus dropped); `width` and `height` size
+the viewport. They need a Chromium: `npx playwright-core install chromium`, else an installed Chrome is used.
+
 `check_support` without `query` reads the project's browserslist (`package.json` `"browserslist"` or `.browserslistrc`,
 found from the working directory), as the plugin does. `compile` starts a Vite dev server in middleware mode for the
 project root (the `root` argument, else the working directory) on its first call and reuses it: the project's
@@ -95,5 +109,6 @@ In this repository, use `node packages/mcp/src/bin.ts` as the command (Node 22.1
 cd packages/mcp
 bun run test        # test/tools.mjs: every tool through an in-process MCP client; test/stdio.mjs: the bin over stdio;
                     # test/live.mjs: the live tools on apps/demo's dev server and on test/fixtures/app
+bun run test:browser  # test/browser.mjs: inspect_element and why_property on the demo in Chromium (needs one)
 bun run typecheck
 ```
