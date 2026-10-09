@@ -407,11 +407,13 @@ try {
   console.log(
     "route          bytes     %      rules    %       bytes     %      rules    %       rules bytes gzip",
   );
+  const onlyOf = {};
   for (const name of [...shipped, "dev/posts"]) {
     const x = used[name];
     const others = new Set(shipped.filter((n) => n !== name).flatMap((n) => [...used[n].all]));
     // a rule of a component: the themes (:root.dark, .square-buttons) apply on every route once stored, so they stay shared
     const only = new Set([...x.all].filter((r) => !others.has(r) && /\._/.test(r.prelude)));
+    onlyOf[name] = only;
     const o = size(only);
     console.log(
       `${name.padEnd(12)} ${x.load ? cell(x.load) : "(dev server)".padEnd(31)}    ${cell(x.all)}    ${String(only.size).padStart(5)} ${String(o.bytes).padStart(5)} ${String(only.size ? o.gzip : 0).padStart(4)}`,
@@ -431,6 +433,19 @@ try {
     `unused by every route: ${unused.length} rules, ${size(new Set(unused)).bytes} bytes (${size(new Set(unused)).gzip} gzip); ` +
       `${devOnly.length} of them used on /dev/posts\n`,
   );
+  // a sheet per route: the one sheet without the rules that only other routes use (an upper bound of what splitting saves)
+  console.log("a sheet per route instead of the one: bytes, gzip, saved");
+  for (const name of shipped) {
+    const drop = shipped.filter((n) => n !== name).flatMap((n) => [...onlyOf[n]]);
+    let text = sheet;
+    for (const r of drop.toSorted((a, b) => b.start - a.start))
+      text = text.slice(0, r.start) + text.slice(r.end);
+    const z = gzipSync(text).length;
+    const saved = `${total.bytes - text.length} (${pct(total.bytes - text.length, total.bytes).trim()}), ${total.gzip - z} gzip (${pct(total.gzip - z, total.gzip).trim()})`;
+    console.log(`  ${name.padEnd(10)} ${text.length} ${z}   ${saved}`);
+    report[name].split = { bytes: text.length, gzip: z };
+  }
+  console.log("");
   console.log("used on /dev/posts only (embeds and states the route fixtures lack):");
   for (const r of devOnly) console.log(`  ${label(r)}`);
   console.log("\nused nowhere, not even on /dev/posts:");
