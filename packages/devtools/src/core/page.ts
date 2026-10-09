@@ -43,9 +43,11 @@ export class Page extends Context.Service<
     readonly probe: (el: Element, probes: readonly Probe[]) => Effect.Effect<boolean[]>;
     /** computed values of custom properties */
     readonly custom: (el: Element, names: readonly string[]) => Effect.Effect<string[]>;
+    /** the winner's declaration `prop: value` of the rule `selector` */
     readonly verify: (
       el: Element,
       prop: string,
+      selector: string,
       value: string,
       longhands: readonly string[],
     ) => Effect.Effect<Observed[]>;

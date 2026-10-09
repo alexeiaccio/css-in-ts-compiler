@@ -277,7 +277,7 @@ export const inspect = Effect.fn("devtools.inspect")(function* (model: Model, el
     lh(c.decl.prop).some((l) => ls.includes(l));
   const rows: Row[] = [];
   for (const [c, ls] of won) {
-    const verdicts = (yield* page.verify(el, c.decl.prop, c.decl.value, ls)).map((o) =>
+    const verdicts = (yield* page.verify(el, c.decl.prop, c.selector, c.decl.value, ls)).map((o) =>
       verdictOf(o, c, table.root),
     );
     rows.push({

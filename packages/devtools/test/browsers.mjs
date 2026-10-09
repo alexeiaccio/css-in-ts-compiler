@@ -169,6 +169,29 @@ const run = async (name) => {
   if (name === "chrome") assert.ok(scoped, "Chrome has @scope");
   assert.equal(/@scope/.test(token) && /author/.test(token), scoped, token);
 
+  // a surface in a surface: the unregistered custom properties (`--surface-d`, `--surface-k` with odd whitespace) are
+  // judged against the page's sheet, which LightningCSS reprinted (`0.04` is `.04` there), not the server's
+  for (const [c, d] of [
+    ["surface-outer", "0.04"],
+    ["surface-inner", "calc(0.03 * clamp(-1, (0.5636 - l) * 1e6, 1))"],
+  ]) {
+    await pick(`[data-case="${c}"]`);
+    r = await settle("--surface-d", (x) => x.value === d);
+    assert.equal(r.status, "ok", `${name} ${c}: ${r.text}`);
+    assert.notEqual(r.computed, d, "the page's sheet is reprinted");
+    const bad = await page
+      .locator('[data-devtools=properties] [data-prop^="--"]')
+      .evaluateAll((els) =>
+        els.flatMap((e) => (e.dataset.status === "mismatch" ? [e.innerText] : [])),
+      );
+    assert.deepEqual(bad, [], `${name} ${c}`);
+  }
+  await pick('[data-case="surface-outer"]');
+  // the base colour, written with odd whitespace, is a hex colour and a lab() under @supports in the page
+  r = await settle("--surface-k", (x) => x.value === "oklch( 0.9   0.02 90 )");
+  assert.equal(r.status, "ok", r.text);
+  assert.notEqual(r.computed, r.value);
+
   // Esc closes
   await page.keyboard.press("Escape");
   await until("closed", async () => (await page.locator("[data-devtools=panel]").count()) === 0);
