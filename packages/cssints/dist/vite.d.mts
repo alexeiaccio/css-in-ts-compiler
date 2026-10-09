@@ -31,6 +31,8 @@ interface DevSite {
   line: number;
   column: number;
   classes: string[];
+  /** the source of the call, as written */
+  text: string;
 }
 /** What the dev server knows of a class: its rule as the sheet prints it, the tokens it reads, the plugin it belongs to. */
 interface ClassRecord {
@@ -105,8 +107,11 @@ export declare const targets: import("lightningcss").Targets;
 export declare const cssTarget: string[];
 export default function cssints({ inner, devtools }?: {
   inner?: boolean;
-  /** Dev only: the inspector of @cssints/devtools in every page (Alt+Shift+C), which must be installed. */
-  devtools?: boolean;
+  /**
+   * The inspector of @cssints/devtools in every page (Alt+Shift+C), which must be installed. `true`: dev only; `"build"`:
+   * a build too, with the table as a static asset and the overlay in a chunk that loads on the first open.
+   */
+  devtools?: boolean | "build";
 }): Plugin[];
 //#endregion
 export type { DevTable };

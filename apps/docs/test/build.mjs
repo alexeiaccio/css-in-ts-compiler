@@ -171,10 +171,31 @@ assert.equal(
 assert.equal(count(/shiki-themes github-light github-dark"/g) >= skipped, true);
 assert.equal(count(/twoslash-error-line/g), marked, "an error line for each `// error`");
 assert.ok(!all.includes(root), "no path of this machine in the pages");
+// the devtools (cssints({ devtools: "build" })): the entry holds the loader, the overlay is a chunk the page does not preload, the
+// table is a JSON asset of the calls with paths relative to the project
+const overlay = js.find((f) => f.isDynamicEntry && f.code.includes("data-cssints-probe"));
+const table = files.find((f) => /^assets\/cssints-devtools-.*\.json$/.test(f.fileName));
+assert.ok(overlay && table, "the overlay chunk and the table");
+assert.ok(!entry.code.includes("data-cssints-probe") && entry.code.includes(table.fileName));
+assert.ok(
+  !String(html.get("index.html")).includes(overlay.fileName),
+  "the overlay is not preloaded",
+);
+const calls = JSON.parse(String(table.source));
+assert.equal(calls.root, "");
+assert.ok(!String(table.source).includes(root), "no path of this machine in the table");
+assert.ok(
+  calls.sites.some((s) => /^src\/.+\.tsx?$/.test(s.file)),
+  "files of the project",
+);
+assert.ok(
+  calls.sites.every((s) => s.line > 0 && s.text.length),
+  "a line and the call's text",
+);
 const popups = count(/twoslash-popup-container/g);
 assert.ok(popups > 100, `${popups} popups`);
 
 console.log(
-  `docs build: ${css[0].fileName} ${sheet.length} bytes, entry ${entry.code.length} bytes, ${slugs.length + 1} pages, ${checked} blocks with ${popups} hovers (${marked} errors shown), ${skipped} plain`,
+  `docs build: devtools table ${table.source.length} bytes, overlay ${overlay.code.length} bytes (lazy); ${css[0].fileName} ${sheet.length} bytes, entry ${entry.code.length} bytes, ${slugs.length + 1} pages, ${checked} blocks with ${popups} hovers (${marked} errors shown), ${skipped} plain`,
 );
 process.exit(0);

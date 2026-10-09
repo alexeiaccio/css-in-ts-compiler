@@ -12,6 +12,7 @@ import { createServer, createServerModuleRunner, normalizePath, transformWithOxc
 import { fileURLToPath } from "node:url";
 import { Window } from "happy-dom";
 import { ESModulesEvaluator, ssrModuleExportsKey } from "vite/module-runner";
+import { gzipSync } from "node:zlib";
 //#region src/contrast.ts
 const VAR = /var\((--[^\s,)]+)\)/g;
 const valueOf = (state, name, values) => {
@@ -234,9 +235,8 @@ const table = Effect.fn("cssints.devtoolsTable")(function* (root, usedBy, callsO
 			});
 			if (!known.length) continue;
 			const n = sites.push({
+				...call,
 				file,
-				line: call.line,
-				column: call.column,
 				classes: known
 			}) - 1;
 			for (const c of known) classes[c].sites.push(n);
@@ -315,6 +315,91 @@ const devtoolsPlugin = (usedBy, callsOf) => {
 		}
 	};
 };
+const TABLE_FILE = "__CSSINTS_DEVTOOLS_TABLE__";
+const loaderModule = (overlay, base) => `const key = (e) => {
+  if (e.altKey && e.shiftKey && e.code === "KeyC") {
+    e.preventDefault();
+    open();
+  }
+};
+const button = document.createElement("button");
+button.textContent = "cssints";
+button.title = "cssints devtools (Alt+Shift+C)";
+button.style.cssText = "position:fixed;right:12px;bottom:12px;z-index:2147483647;padding:4px 8px;border:1px solid #374151;border-radius:999px;background:#111827;color:#e5e7eb;font:11px ui-monospace,monospace;cursor:pointer;opacity:.75";
+button.onclick = () => open();
+const open = () => {
+  button.remove();
+  removeEventListener("keydown", key, true);
+  import(${Formatter.formatJson(overlay)}).then(({ mount }) => {
+    const listeners = {};
+    mount({
+      root: "",
+      build: true,
+      request: () => fetch(new URL(${Formatter.formatJson(base)} + "${TABLE_FILE}", document.baseURI))
+        .then((r) => r.json())
+        .then((table) => listeners["cssints:devtools"]?.(table)),
+      on: (event, listener) => { listeners[event] = listener; },
+    });
+  });
+};
+addEventListener("keydown", key, true);
+document.body.append(button);
+`;
+const kb = (n) => `${(n / 1024).toFixed(1)} kB`;
+/**
+* The build side of `cssints({ devtools: "build" })`: the overlay in every page behind a button, the table as a JSON asset.
+* Nothing loads until the first open. The files of the sites are relative to the root, so the asset holds no path of this machine.
+* @param {Map<string, string>} usedBy the entries of each client module (plugin.ts)
+* @param {Map<string, DevSite[]>} callsOf the sites of each client module
+* @returns {Plugin} the plugin
+*/
+const devtoolsBuildPlugin = (usedBy, callsOf) => ({
+	name: "cssints:devtools-build",
+	apply: "build",
+	transformIndexHtml: {
+		order: "pre",
+		handler: () => [{
+			tag: "script",
+			attrs: {
+				type: "module",
+				src: DEVTOOLS_ID
+			},
+			injectTo: "body"
+		}]
+	},
+	resolveId(id) {
+		if (id === "virtual:cssints/devtools") return RESOLVED;
+	},
+	load(id) {
+		if (id !== RESOLVED) return;
+		return Effect.runPromise(Effect.tryPromise(() => this.resolve("@cssints/devtools/overlay", void 0, { skipSelf: true })).pipe(Effect.orElseSucceed(() => null), Effect.map((overlay) => overlay ? loaderModule(overlay.id, this.environment.config.base) : `console.warn("cssints: devtools is on, but @cssints/devtools/overlay is not installed: add @cssints/devtools to the devDependencies of the app");\n`)));
+	},
+	generateBundle(_, bundle) {
+		if (this.environment.name !== "client") return;
+		const chunks = Object.values(bundle).flatMap((f) => f.type === "chunk" ? [f] : []);
+		const loader = chunks.find((c) => c.code.includes(TABLE_FILE));
+		if (!loader) return;
+		const { root } = this.environment.config;
+		const t = Effect.runSync(table(root, usedBy, callsOf));
+		const json = Formatter.formatJson({
+			...t,
+			root: "",
+			sites: t.sites.map((s) => ({
+				...s,
+				file: relative(root, s.file)
+			}))
+		});
+		const ref = this.emitFile({
+			type: "asset",
+			name: "cssints-devtools.json",
+			source: json
+		});
+		const file = this.getFileName(ref);
+		loader.code = loader.code.replace(TABLE_FILE, () => file);
+		const overlay = chunks.find((c) => c.isDynamicEntry && c.code.includes("cssints-devtools"));
+		this.info(`devtools: ${file} ${kb(Buffer.byteLength(json))} (${kb(gzipSync(json).length)} gzip)` + (overlay ? `, ${overlay.fileName} ${kb(Buffer.byteLength(overlay.code))} (${kb(gzipSync(overlay.code).length)} gzip), loaded on the first open` : ""));
+	}
+});
 //#endregion
 //#region src/trace.ts
 const mode = /^otlp(?::(.+))?$/.exec(Effect.runSync(Config.String("CSSINTS_TRACE").pipe(Config.withDefault(""))));
@@ -568,7 +653,7 @@ function cssints({ inner = false, devtools = false } = {}) {
 			};
 		});
 		const { sites, runtimes, files } = parsed.sites.length ? yield* evaluate(runner, id, recorded).pipe(Effect.ensuring(flushWarnings(warn, id))) : yield* Effect.sync(() => forget(id)).pipe(Effect.andThen(recorded(/* @__PURE__ */ new Map())));
-		if (!build || buildMap) {
+		if (!build || buildMap || devtools === "build") {
 			const at = /* @__PURE__ */ new Map();
 			for (const [n, s] of parsed.sites.entries()) {
 				const loc = lineCol(code, s.start);
@@ -577,7 +662,8 @@ function cssints({ inner = false, devtools = false } = {}) {
 			siteOf.set(id, at);
 			if (devtools) callsOf.set(id, parsed.sites.map((s, n) => ({
 				...lineCol(code, s.start),
-				classes: sites.get(n)?.match(/_[\w-]+/g) ?? []
+				classes: sites.get(n)?.match(/_[\w-]+/g) ?? [],
+				text: code.slice(s.start, s.end)
 			})));
 		}
 		const ms = new MagicString(code);
@@ -813,11 +899,18 @@ function cssints({ inner = false, devtools = false } = {}) {
 			}
 		}
 	};
-	return devtools && !inner ? [
+	if (!devtools || inner) return [main, version];
+	const dev = devtoolsPlugin(usedBy, callsOf);
+	return devtools === "build" ? [
 		main,
 		version,
-		devtoolsPlugin(usedBy, callsOf)
-	] : [main, version];
+		dev,
+		devtoolsBuildPlugin(usedBy, callsOf)
+	] : [
+		main,
+		version,
+		dev
+	];
 }
 const callTransform = (plugin, ctx, code) => {
 	const t = plugin?.transform;
