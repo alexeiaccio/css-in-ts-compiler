@@ -63,7 +63,7 @@ const project = new Set(["Layout", "Development", "License"]);
 // DOCS_HOVERS=0 skips the type-check of the ts blocks (the part of the build that takes ~15 s) while the styles are being worked on
 const hovers = process.env.DOCS_HOVERS !== "0";
 
-/** `base` is the site's base path (ends with a slash): the links between pages start with it */
+// `base` is the site's base path (ends with a slash): the links between pages start with it
 export async function buildPages(base = "/"): Promise<Page[]> {
   const marked = new Marked();
   const sections: { file: string; tokens: Token[] }[] = [];

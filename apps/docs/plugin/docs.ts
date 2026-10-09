@@ -35,7 +35,7 @@ const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
 // the first paragraph or item of some length outside the code blocks, as plain text (marked has escaped it, so it is safe in an
 // attribute), cut at a word; "" when there is none
-const describe = (html: string) => {
+const summary = (html: string) => {
   for (const m of html
     .replace(/<pre[\s\S]*?<\/pre>/g, "")
     .matchAll(/<(p|li)[^>]*>([\s\S]*?)<\/\1>/g)) {
@@ -111,7 +111,7 @@ export default function docs(): Plugin {
               () => `<title>${page.slug ? `${escape(page.title)} · cssints` : "cssints"}</title>`,
             )
             .replace(/(name="description"\s+content=")[^"]*/, (all, head) =>
-              describe(page.html) ? head + describe(page.html) : all,
+              summary(page.html) ? head + summary(page.html) : all,
             )
             .replace(
               '<div id="root"></div>',
