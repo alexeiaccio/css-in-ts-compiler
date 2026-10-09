@@ -28,7 +28,7 @@ import { verifyChecks } from "./contrast.ts";
 import { evaluate, DomEvaluator } from "./evaluate.ts";
 import { HookError, type PluginError, SiteMissingError } from "./errors.ts";
 import { CV_CALL, instrument, keptImport, RUNTIME, type Instrumented } from "./instrument.ts";
-import { type DevSite, devtoolsPlugin } from "./devtools-server.ts";
+import { type DevSite, devtoolsBuildPlugin, devtoolsPlugin } from "./devtools-server.ts";
 import { DERIVED, fallbackEntries, RUNTIME_ID, runtimeModule, runtimeNames } from "./delivery.ts";
 import { usesDerived } from "./derived-data.ts";
 import { kernelEntries } from "./kernel.ts";
@@ -209,8 +209,11 @@ export default function cssints({
   devtools = false,
 }: {
   inner?: boolean;
-  /** Dev only: the inspector of @cssints/devtools in every page (Alt+Shift+C), which must be installed. */
-  devtools?: boolean;
+  /**
+   * The inspector of @cssints/devtools in every page (Alt+Shift+C), which must be installed. `true`: dev only; `"build"`:
+   * a build too, with the table as a static asset and the overlay in a chunk that loads on the first open.
+   */
+  devtools?: boolean | "build";
 } = {}): Plugin[] {
   let server: ViteDevServer | undefined; // dev server (dev) or a private one (build)
   let ownServer = false;
@@ -320,7 +323,7 @@ export default function cssints({
     const { sites, runtimes, files } = parsed.sites.length
       ? yield* evaluate(runner!, id, recorded).pipe(Effect.ensuring(flushWarnings(warn, id)))
       : yield* Effect.sync(() => forget(id)).pipe(Effect.andThen(recorded(new Map())));
-    if (!build || buildMap) {
+    if (!build || buildMap || devtools === "build") {
       const at = new Map<string, Loc>();
       for (const [n, s] of parsed.sites.entries()) {
         const loc = lineCol(code, s.start);
@@ -334,6 +337,7 @@ export default function cssints({
           parsed.sites.map((s, n) => ({
             ...lineCol(code, s.start),
             classes: sites.get(n)?.match(/_[\w-]+/g) ?? [],
+            text: code.slice(s.start, s.end),
           })),
         );
     }
@@ -678,7 +682,11 @@ export default function cssints({
       },
     },
   };
-  return devtools && !inner ? [main, version, devtoolsPlugin(usedBy, callsOf)] : [main, version];
+  if (!devtools || inner) return [main, version];
+  const dev = devtoolsPlugin(usedBy, callsOf);
+  return devtools === "build"
+    ? [main, version, dev, devtoolsBuildPlugin(usedBy, callsOf)]
+    : [main, version, dev];
 }
 
 // vite:css and vite:css-post declare `transform` as { handler }; the plugin context of renderChunk stands in.
