@@ -15,6 +15,7 @@
     "test:profile": "node test/profile-browser.mjs",
     "test:thread": "node test/thread-browser.mjs",
     "test:dev": "node test/dev-browser.mjs",
+    "test:coverage": "node test/coverage.mjs",
     "preview": "vp preview",
     "tokens:types": "node scripts/tokens-types.mjs"
   },
