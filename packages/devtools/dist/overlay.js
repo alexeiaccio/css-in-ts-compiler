@@ -7477,7 +7477,7 @@ var Kb = (e) => new Gb(e), qb = "~effect/Stream", Jb = (e) => F(e, qb), Yb = Kb,
 		model: t,
 		setActive: (e) => ux(n, e).pipe(em(a))
 	};
-}), pS = "_1hqog5g _df4eqw _1vbyxpb _120vnyk _1t8gqy5 _1nu71z9 _14o2sa1 _1a8gflu _fjx7jy _16hpt8q _6to0fc _1lwcmvy _s7rk0y _1gqyter", mS = "_1hqog5g _120vnyj _z3zdsi _13tqlfe _1ecomh", hS = "_1f14wpf _rhyb7t _33i4pm _i1h5ry _1dh9zox _1h4s3ko _16hpt8q _6to0fc _184nt68", gS = "_1hqog5g _4k81c2 _jveril _rv7stg _ndevfi _120vnyk _r0xwy4 _1a8gflu _fjx7jy _z6zrz5 _omr8bg _6to19l _dnf785", _S = "_1s47490 _1ob5z5m _g2iyum _6axxrf _4k81c2 _1t8gqy5 _1a8gflu _1fskg2z", vS = "_1wme27f _16hpt8q _1i8j81t", yS = "_i1h7gg _1kazld4 _14o2sa1 _k0i4ku _v4t4nx _fjx7jy _n5igo9 _1lwcmvy _1gmfivd", bS = "_1t8gqy5 _1fskg2z", xS = "_1q2li77 _6to0fc _17lglqt _n5339z _1n07ta0", SS = "_1jvfuo0 _g9h8t5 _v4i8ee _m367sd _v4t4nx _1k2b3pg _16hpt8q _6to0fc _1lwcmvy _1gt2bai _hyivqx", CS = "_16hpt8q _6to0fc _g9cs3h _1jjinuh _lqk467 _1waot2e _r0xwy4 _1ajqzk5 _97o3l3", wS = "_1jvfuo0 _g9h8t5 _1k2b3pg _16hpt8q _6to0fc", TS = "_1s4813v _1cl1tpz _g2iyum _1kazkiv _16hpt8q _6to0fc", ES = "_1c7it6z", DS = "_1n07ta0", OS = "_n7bsss _oir30p _i1h5ry _k0i3ql _14o2sa1 _16hpt8q _6tnzl3", kS = "_1kazn1m _1p6y9cw", AS = "_1s47490 _138gorg _g2iyum _16hpt8q", jS = "_g9ymq9 _6to0fc", MS = "_1wme27f _6to0fc _g9cs3h", NS = "_k9k5db _1n07ta0", PS = "_u6js88 _16hpt8q _6to0fc", FS = "_1lh9g66", IS = "_h3m4ra", LS = "_h3od5l", RS = "_u6js88 _h3m4ra _6to0fc", zS = "_1t8gqy5 _1n07ta0", BS = /* @__PURE__ */ k("<span>"), VS = /* @__PURE__ */ k("<div>except "), HS = /* @__PURE__ */ k("<div><div><span></span><!><!></div><!><!><!><!><!>"), US = /* @__PURE__ */ k("<span>nothing applies now"), WS = /* @__PURE__ */ k("<span><!><!>"), GS = /* @__PURE__ */ k("<div><span></span> "), KS = /* @__PURE__ */ k("<div><span>: <!></span> <span>"), qS = /* @__PURE__ */ k("<div>: <!> <span></span> <!>"), JS = /* @__PURE__ */ k("<div>"), YS = /* @__PURE__ */ k("<div data-devtools=classes><h3>Classes by call"), XS = /* @__PURE__ */ k("<div data-devtools=properties><h3>Properties"), ZS = /* @__PURE__ */ k("<div data-devtools=tokens><h3>Tokens"), QS = /* @__PURE__ */ k("<div><!><!>"), $S = /* @__PURE__ */ k("<div>no cssints call"), eC = /* @__PURE__ */ k("<button>:<!> ↗"), tC = /* @__PURE__ */ k("<pre data-call>"), nC = /* @__PURE__ */ k("<div>:<!>"), rC = /* @__PURE__ */ k("<div><span>.</span><span><!> <!></span><span>"), iC = /* @__PURE__ */ k("<div><div><span></span><span></span><span>"), aC = /* @__PURE__ */ k("<div>from <!> <!> <!> on <!>"), oC = /* @__PURE__ */ k("<button data-devtools=toggle title=\"cssints devtools (Alt+Shift+C)\">cssints"), sC = /* @__PURE__ */ k("<aside data-devtools=panel><div><span data-devtools=element></span><button data-devtools=pick title=\"pick an element\">pick</button><button title=\"parent (↑)\">↑</button><button data-devtools=close title=\"close (Esc)\">×"), cC = /* @__PURE__ */ k("<div><span>"), lC = "@layer _.k{*{box-sizing:border-box}}@layer _.a{._n5igo9{font:inherit}._14o2sa1{border:1px solid #374151}._m367sd{border:none}._1jjinuh{margin:0 0 4px}._1nu71z9{border-radius:999px}._1t8gqy5{padding:.5rem}._99b8e4{border-color:#16a34a}._k0i3ql{border-radius:3px}._k0i4ku{border-radius:4px}._k9k5db{text-decoration:line-through}._lqk467{padding:.25rem}._v4i8ee{padding:0}._13tqlfe{outline:2px solid #60a5fa}._1fskg2z{border-bottom:1px solid #374151}._1p6y9cw{border-top:1px solid #1f2937}._z6zrz5{border-left:1px solid #374151}._184nt68{white-space:nowrap}._1kazkiv{padding-block:1px}._1kazld4{padding-block:2px}._1kazn1m{padding-block:4px}._1q2li77{margin-block:0 6px}._97o3l3{white-space:pre-wrap}._g2iyum{gap:.5rem}._i1h5ry{padding-inline:4px}._i1h7gg{padding-inline:6px}._r0xwy4{overflow:auto}._120vnyj{z-index:2147483646}._120vnyk{z-index:2147483647}._138gorg{align-items:baseline}._16hpt8q{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}._17lglqt{text-transform:uppercase}._1a8gflu{background-color:#111827}._1ajqzk5{background-color:#0b1220}._1c7it6z{opacity:.5}._1cl1tpz{grid-template-columns:auto 1fr auto}._1dh9zox{background-color:#60a5fa}._1ecomh{background-color:#60a5fa1f}._1f14wpf{position:absolute}._1gt2bai{text-align:start}._1h4s3ko{color:#0b1220}._1hqog5g{position:fixed}._1i8j81t{font-weight:600}._1jvfuo0{display:block}._1k2b3pg{color:#60a5fa}._1lh9g66{color:#86efac}._1lwcmvy{cursor:pointer}._1n07ta0{color:#9ca3af}._1ob5z5m{align-items:center}._1s47490{display:flex}._1s4813v{display:grid}._1vbyxpb{bottom:12px}._1waot2e{max-height:120px}._1wme27f{flex-grow:1}._33i4pm{left:0}._4k81c2{top:0}._6axxrf{position:sticky}._6tnzl3{font-size:10px}._6to0fc{font-size:11px}._6to19l{font-size:12px}._df4eqw{right:12px}._dnf785{line-height:1.45}._fjx7jy{color:#e5e7eb}._g9cs3h{overflow-wrap:anywhere}._g9h8t5{margin-bottom:2px}._g9ymq9{color:#f9a8d4}._h3m4ra{color:#fca5a5}._h3od5l{color:#fcd34d}._jveril{right:0}._n5339z{letter-spacing:.06em}._n7bsss{display:inline-block}._ndevfi{width:min(440px,100vw)}._oir30p{margin-inline-end:4px}._omr8bg{font-family:system-ui,sans-serif}._rhyb7t{top:-20px}._rv7stg{bottom:0}._s7rk0y{opacity:.75}._u6js88{padding-inline-start:12px}._v4t4nx{background-color:#0000}._z3zdsi{pointer-events:none}}@layer _.b{._1gmfivd:hover{border-color:#60a5fa}._hyivqx:hover{text-decoration:underline}._1gqyter:hover{opacity:1}}@layer _.c,_.d,_.e;\n/*$vite$:1*/", uC = "cssints-devtools", dC = (...e) => e.filter(Boolean).join(" "), fC = (e, t) => {
+}), pS = "_1hqog5g _df4eqw _1vbyxpb _120vnyk _1t8gqy5 _1nu71z9 _14o2sa1 _1a8gflu _fjx7jy _16hpt8q _6to0fc _1lwcmvy _s7rk0y _1gqyter", mS = "_1hqog5g _120vnyj _z3zdsi _13tqlfe _1ecomh", hS = "_1f14wpf _rhyb7t _33i4pm _i1h5ry _1dh9zox _1h4s3ko _16hpt8q _6to0fc _184nt68", gS = "_1hqog5g _4k81c2 _jveril _rv7stg _ndevfi _120vnyk _r0xwy4 _1a8gflu _fjx7jy _z6zrz5 _omr8bg _6to19l _dnf785", _S = "_1s47490 _1ob5z5m _g2iyum _6axxrf _4k81c2 _1t8gqy5 _1a8gflu _1fskg2z", vS = "_1wme27f _16hpt8q _1i8j81t", yS = "_i1h7gg _1kazld4 _14o2sa1 _k0i4ku _v4t4nx _fjx7jy _n5igo9 _1lwcmvy _1gmfivd", bS = "_1t8gqy5 _1fskg2z", xS = "_1q2li77 _6to0fc _17lglqt _n5339z _1n07ta0", SS = "_1jvfuo0 _g9h8t5 _v4i8ee _m367sd _v4t4nx _1k2b3pg _16hpt8q _6to0fc _1lwcmvy _1gt2bai _hyivqx", CS = "_16hpt8q _6to0fc _g9cs3h _1jjinuh _lqk467 _1waot2e _r0xwy4 _1ajqzk5 _tnb0cg", wS = "_1jvfuo0 _g9h8t5 _1k2b3pg _16hpt8q _6to0fc", TS = "_1s4813v _1cl1tpz _g2iyum _1kazkiv _16hpt8q _6to0fc", ES = "_1c7it6z", DS = "_1n07ta0", OS = "_n7bsss _oir30p _i1h5ry _k0i3ql _14o2sa1 _16hpt8q _6tnzl3", kS = "_1kazn1m _1p6y9cw", AS = "_1s47490 _138gorg _g2iyum _16hpt8q", jS = "_g9ymq9 _6to0fc", MS = "_1wme27f _6to0fc _g9cs3h", NS = "_k9k5db _1n07ta0", PS = "_u6js88 _16hpt8q _6to0fc", FS = "_1lh9g66", IS = "_h3m4ra", LS = "_h3od5l", RS = "_u6js88 _h3m4ra _6to0fc", zS = "_1t8gqy5 _1n07ta0", BS = /* @__PURE__ */ k("<span>"), VS = /* @__PURE__ */ k("<div>except "), HS = /* @__PURE__ */ k("<div><div><span></span><!><!></div><!><!><!><!><!>"), US = /* @__PURE__ */ k("<span>nothing applies now"), WS = /* @__PURE__ */ k("<span><!><!>"), GS = /* @__PURE__ */ k("<div><span></span> "), KS = /* @__PURE__ */ k("<div><span>: <!></span> <span>"), qS = /* @__PURE__ */ k("<div>: <!> <span></span> <!>"), JS = /* @__PURE__ */ k("<div>"), YS = /* @__PURE__ */ k("<div data-devtools=classes><h3>Classes by call"), XS = /* @__PURE__ */ k("<div data-devtools=properties><h3>Properties"), ZS = /* @__PURE__ */ k("<div data-devtools=tokens><h3>Tokens"), QS = /* @__PURE__ */ k("<div><!><!>"), $S = /* @__PURE__ */ k("<div>no cssints call"), eC = /* @__PURE__ */ k("<button>:<!> ↗"), tC = /* @__PURE__ */ k("<pre data-call>"), nC = /* @__PURE__ */ k("<div>:<!>"), rC = /* @__PURE__ */ k("<div><span>.</span><span><!> <!></span><span>"), iC = /* @__PURE__ */ k("<div><div><span></span><span></span><span>"), aC = /* @__PURE__ */ k("<div>from <!> <!> <!> on <!>"), oC = /* @__PURE__ */ k("<button data-devtools=toggle title=\"cssints devtools (Alt+Shift+C)\">cssints"), sC = /* @__PURE__ */ k("<aside data-devtools=panel><div><span data-devtools=element></span><button data-devtools=pick title=\"pick an element\">pick</button><button title=\"parent (↑)\">↑</button><button data-devtools=close title=\"close (Esc)\">×"), cC = /* @__PURE__ */ k("<div><span>"), lC = "@layer _.k{*{box-sizing:border-box}}@layer _.a{._n5igo9{font:inherit}._14o2sa1{border:1px solid #374151}._m367sd{border:none}._1jjinuh{margin:0 0 4px}._1nu71z9{border-radius:999px}._1t8gqy5{padding:.5rem}._99b8e4{border-color:#16a34a}._k0i3ql{border-radius:3px}._k0i4ku{border-radius:4px}._k9k5db{text-decoration:line-through}._lqk467{padding:.25rem}._v4i8ee{padding:0}._13tqlfe{outline:2px solid #60a5fa}._1fskg2z{border-bottom:1px solid #374151}._1p6y9cw{border-top:1px solid #1f2937}._z6zrz5{border-left:1px solid #374151}._184nt68{white-space:nowrap}._1kazkiv{padding-block:1px}._1kazld4{padding-block:2px}._1kazn1m{padding-block:4px}._1q2li77{margin-block:0 6px}._g2iyum{gap:.5rem}._i1h5ry{padding-inline:4px}._i1h7gg{padding-inline:6px}._r0xwy4{overflow:auto}._tnb0cg{white-space:pre}._120vnyj{z-index:2147483646}._120vnyk{z-index:2147483647}._138gorg{align-items:baseline}._16hpt8q{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}._17lglqt{text-transform:uppercase}._1a8gflu{background-color:#111827}._1ajqzk5{background-color:#0b1220}._1c7it6z{opacity:.5}._1cl1tpz{grid-template-columns:auto 1fr auto}._1dh9zox{background-color:#60a5fa}._1ecomh{background-color:#60a5fa1f}._1f14wpf{position:absolute}._1gt2bai{text-align:start}._1h4s3ko{color:#0b1220}._1hqog5g{position:fixed}._1i8j81t{font-weight:600}._1jvfuo0{display:block}._1k2b3pg{color:#60a5fa}._1lh9g66{color:#86efac}._1lwcmvy{cursor:pointer}._1n07ta0{color:#9ca3af}._1ob5z5m{align-items:center}._1s47490{display:flex}._1s4813v{display:grid}._1vbyxpb{bottom:12px}._1waot2e{max-height:120px}._1wme27f{flex-grow:1}._33i4pm{left:0}._4k81c2{top:0}._6axxrf{position:sticky}._6tnzl3{font-size:10px}._6to0fc{font-size:11px}._6to19l{font-size:12px}._df4eqw{right:12px}._dnf785{line-height:1.45}._fjx7jy{color:#e5e7eb}._g9cs3h{overflow-wrap:anywhere}._g9h8t5{margin-bottom:2px}._g9ymq9{color:#f9a8d4}._h3m4ra{color:#fca5a5}._h3od5l{color:#fcd34d}._jveril{right:0}._n5339z{letter-spacing:.06em}._n7bsss{display:inline-block}._ndevfi{width:min(440px,100vw)}._oir30p{margin-inline-end:4px}._omr8bg{font-family:system-ui,sans-serif}._rhyb7t{top:-20px}._rv7stg{bottom:0}._s7rk0y{opacity:.75}._u6js88{padding-inline-start:12px}._v4t4nx{background-color:#0000}._z3zdsi{pointer-events:none}}@layer _.b{._1gmfivd:hover{border-color:#60a5fa}._hyivqx:hover{text-decoration:underline}._1gqyter:hover{opacity:1}}@layer _.c,_.d,_.e;\n/*$vite$:1*/", uC = "cssints-devtools", dC = (...e) => e.filter(Boolean).join(" "), fC = (e, t) => {
 	let n = Om(qx(e, t).pipe(hm(nS)));
 	return Xf(n) ? n.value : String(n.cause);
 }, pC = (e, t, n) => void fetch(`/__open-in-editor?file=${encodeURIComponent(`${e}:${t}:${n + 1}`)}`), mC = (e, t) => t.startsWith(`${e}/`) ? t.slice(e.length + 1) : t, hC = (e) => D(jr, {
@@ -7613,7 +7613,8 @@ function _C(e) {
 		A(n, e, c?.e), t !== c?.t && ni(n, "data-prop", t), a !== c?.a && ni(n, "data-status", a), A(r, o, c?.o), A(i, s, c?.i);
 	}), n;
 }
-function vC(e) {
+var vC = (e, t) => e === t || JSON.stringify(e) === JSON.stringify(t);
+function yC(e) {
 	let t = () => e.inspection;
 	return [
 		(() => {
@@ -7763,15 +7764,15 @@ function vC(e) {
 		})
 	];
 }
-var yC = (e) => e.firstElementChild ?? void 0;
-function bC(e) {
+var bC = (e) => e.firstElementChild ?? void 0;
+function xC(e) {
 	let [t, n] = Dr(!1), [r, i] = Dr(!1), [a, o] = Dr(), [s, c] = Dr(), [l, u] = Dr(0), d = () => r() ? a() ?? s() : s(), f = (r = !t()) => {
 		n(r), i(r && !s()), e.setActive(r);
 	}, p = Er(() => {
 		l();
 		let n = e.model(), r = d();
 		return t() && n && r?.isConnected ? fC(n, r) : void 0;
-	}), m = Er(() => (l(), t() ? d()?.getBoundingClientRect() : void 0));
+	}, { equals: vC }), m = Er(() => (l(), t() ? d()?.getBoundingClientRect() : void 0));
 	return nr(() => {
 		let n = (t) => t.composedPath().includes(e.host), l = (e) => {
 			r() && !n(e) && e.target instanceof Element && e.target !== a() && o(e.target);
@@ -7789,7 +7790,7 @@ function bC(e) {
 			}
 			let a = s();
 			if (!a || r()) return;
-			let o = n.key === "ArrowUp" ? a.parentElement ?? void 0 : n.key === "ArrowDown" ? yC(a) : n.key === "ArrowLeft" ? a.previousElementSibling ?? void 0 : n.key === "ArrowRight" ? a.nextElementSibling ?? void 0 : void 0;
+			let o = n.key === "ArrowUp" ? a.parentElement ?? void 0 : n.key === "ArrowDown" ? bC(a) : n.key === "ArrowLeft" ? a.previousElementSibling ?? void 0 : n.key === "ArrowRight" ? a.nextElementSibling ?? void 0 : void 0;
 			o && o !== e.host && (n.preventDefault(), c(o));
 		}, m = setInterval(() => t() && u((e) => e + 1), 600);
 		return document.addEventListener("pointermove", l, !0), document.addEventListener("click", d, !0), window.addEventListener("keydown", p, !0), () => {
@@ -7858,7 +7859,7 @@ function bC(e) {
 									A(e, t, n);
 								}), e;
 							},
-							children: (t) => D(vC, {
+							children: (t) => D(yC, {
 								get inspection() {
 									return t();
 								},
@@ -7883,7 +7884,7 @@ function bC(e) {
 		})
 	];
 }
-function xC(e) {
+function SC(e) {
 	if (document.querySelector(uC)) return;
 	let t = document.createElement(uC);
 	t.setAttribute("style", "all: initial");
@@ -7892,7 +7893,7 @@ function xC(e) {
 	let i = document.createElement("div");
 	n.append(r, i), document.documentElement.append(t);
 	let a = Dm(fS().pipe(gm(uS, e))), [o, s] = Dr();
-	Tm(nx(mx(a.model), (e) => Y(() => s(() => e)))), Gr(() => D(bC, {
+	Tm(nx(mx(a.model), (e) => Y(() => s(() => e)))), Gr(() => D(xC, {
 		model: o,
 		setActive: (e) => Dm(a.setActive(e)),
 		host: t,
@@ -7903,4 +7904,4 @@ function xC(e) {
 }
 qr(["click"]);
 //#endregion
-export { xC as mount };
+export { SC as mount };

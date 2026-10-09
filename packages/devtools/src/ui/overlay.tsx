@@ -127,6 +127,10 @@ function PropRow(props: { row: Row }) {
   );
 }
 
+// The panel re-inspects every 600 ms: an unchanged result keeps the old object, so the rows are not rebuilt (a rebuilt <pre>
+// loses its scroll position)
+const same = (a: unknown, b: unknown) => a === b || JSON.stringify(a) === JSON.stringify(b);
+
 function Panel(props: { inspection: Inspection; build?: boolean }) {
   const i = () => props.inspection;
   return (
@@ -254,7 +258,7 @@ function App(props: {
     const m = props.model();
     const el = target();
     return open() && m && el?.isConnected ? run(m, el) : undefined;
-  });
+  }, { equals: same });
   const rect = createMemo(() => {
     tick();
     return open() ? target()?.getBoundingClientRect() : undefined;

@@ -169,7 +169,8 @@ export const callText = cn(
   maxHeight("120px"),
   overflow("auto"),
   bg("#0b1220"),
-  whiteSpace("pre-wrap"),
+  // pre, not pre-wrap: a long line wrapped after its indent read as a blank line and a dedent
+  whiteSpace("pre"),
 );
 
 export const siteText = cn(
