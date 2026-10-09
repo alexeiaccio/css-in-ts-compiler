@@ -27,6 +27,7 @@ import { verifyChecks } from "./contrast.ts";
 import { evaluate, DomEvaluator } from "./evaluate.ts";
 import { HookError, type PluginError, SiteMissingError } from "./errors.ts";
 import { CV_CALL, instrument, keptImport, RUNTIME, type Instrumented } from "./instrument.ts";
+import { type DevSite, devtoolsPlugin } from "./devtools-server.ts";
 import { DERIVED, fallbackEntries, RUNTIME_ID, runtimeModule, runtimeNames } from "./delivery.ts";
 import { usesDerived } from "./derived-data.ts";
 import { kernelEntries } from "./kernel.ts";
@@ -42,6 +43,7 @@ import {
 } from "./sheet.ts";
 import { closeTrace, hook, runPromiseExit, runSync, warned } from "./trace.ts";
 
+export type { DevTable } from "./devtools-server.ts";
 export { instrument } from "./instrument.ts";
 export { addGlobal, addLayers, globalEntries, layerEntries, renderSheet } from "./sheet.ts";
 
@@ -181,7 +183,14 @@ const locate = Effect.fn("cssints.locate")(function* (
 
 // ---------- the plugin
 
-export default function cssints({ inner = false }: { inner?: boolean } = {}): Plugin[] {
+export default function cssints({
+  inner = false,
+  devtools = false,
+}: {
+  inner?: boolean;
+  /** Dev only: the inspector of @cssints/devtools in every page (Alt+Shift+C), which must be installed. */
+  devtools?: boolean;
+} = {}): Plugin[] {
   let server: ViteDevServer | undefined; // dev server (dev) or a private one (build)
   let ownServer = false;
   let runner: ModuleRunner | undefined; // private runner with DOM bindings; server.environments.ssr.runner stays untouched
@@ -192,6 +201,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
   const depsOf = new Map<string, Set<string>>(); // dependency file -> Set<client module id>
   const inflight = new Set<string>(); // client module ids inside transform: their deps are not in depsOf yet
   const siteOf = new Map<string, Map<string, Loc>>(); // dev: client module id -> class -> its first site (sheetMap)
+  const callsOf = new Map<string, DevSite[]>(); // dev with devtools: client module id -> its sites, in order
 
   // The helpers below run at most a few times per module: untraced. The hook-level programs (transform,
   // clientTransform, evaluate, renderChunk, ...) are the traced boundaries.
@@ -293,6 +303,14 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
           if (!at.has(m[0])) at.set(m[0], loc);
       }
       siteOf.set(id, at);
+      if (devtools)
+        callsOf.set(
+          id,
+          parsed.sites.map((s, n) => ({
+            ...lineCol(code, s.start),
+            classes: sites.get(n)?.match(/_[\w-]+/g) ?? [],
+          })),
+        );
     }
 
     const ms = new MagicString(code);
@@ -576,7 +594,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
       },
     },
   };
-  return [main, version];
+  return devtools && !inner ? [main, version, devtoolsPlugin(usedBy, callsOf)] : [main, version];
 }
 
 // vite:css and vite:css-post declare `transform` as { handler }; the plugin context of renderChunk stands in.
