@@ -5,8 +5,12 @@
 //     sheetFresh --witnesses settledAfterEdits sheetServed --max-steps 60 --max-samples 100000
 //   --main original --invariant servedFresh --max-steps 14 --max-samples 2000000 --mbt --out-itf x.itf.json
 //   finds the 13-step counterexample; node spec/trace.mjs x.itf.json prints it.
+//   --main asset (same invariants as fixed): tokens is a file a plugin reads through dependsOn() (cssints-04u8), an
+//   image, an SVG, a font. No module graph has it, so the watcher invalidates nothing and the evaluation reads the disk;
+//   only our hotUpdate (depsOf, inflight) knows it.
 module runner {
   const FIX: bool
+  const ASSET: bool
 
   pure val C = Set("card", "button") // client modules that use css.*
   pure val FILES = C.union(Set("tokens"))
@@ -62,7 +66,7 @@ module runner {
 
   // The watcher: every module graph invalidates f (moduleGraph.onFileChange). This sets lastInvalidationTimestamp,
   // so Vite will not cache in-flight transforms of f and of its known client importers (soft-invalidated).
-  pure def doFileChange(s: S, f: str): S = {
+  pure def doFileChange(s: S, f: str): S = if (ASSET and f == "tokens") { ...s, watch: s.watch.exclude(Set(f)), hot: s.hot.union(Set(f)) } else {
     val s1 = { ...s, watch: s.watch.exclude(Set(f)), hot: s.hot.union(Set(f)), ssr: s.ssr.set(f, -1),
       fetchStale: if (s.fetching.get(f) >= 0) s.fetchStale.union(Set(f)) else s.fetchStale,
       cached: if (C.contains(f)) s.cached.set(f, NONE) else s.cached }
@@ -131,6 +135,11 @@ module runner {
     else if (t.pc == "waitSelf") // cachedRequest: evaluated exports are reused, the body does not run again
       if (s.evaluated.get(t.c) >= 0) setTx(s, i, { ...t, pc: "read" })
       else setTx({ ...s, evaluated: s.evaluated.set(t.c, -2) }, i, { ...t, pc: "tokens", self: nodeCode(s, t, t.c) })
+    else if (t.pc == "tokens" and ASSET) { // dependsOn(): read from the disk, then the css file's body runs __site
+      val used = { src: -1, self: t.self, tokens: s.disk.get("tokens") }
+      setTx({ ...s, sites: s.sites.set(t.c, used), evaluated: s.evaluated.setBy(t.c, e => if (e == -2) t.self else e) }, i,
+        { ...t, pc: "read", tokens: used.tokens })
+    }
     else if (t.pc == "tokens") { val r = fetch(s, t, "tokens", "waitTokens"); setTx(r._1, i, r._2) }
     else if (t.pc == "waitTokens") { // tokens evaluated if needed, then the css file's body runs __site
       val tv = if (s.evaluated.get("tokens") >= 0) s.evaluated.get("tokens") else nodeCode(s, t, "tokens")
@@ -224,5 +233,6 @@ module runner {
   action mbtStep = any { mbtEdit, mbtWatch, mbtRequest, mbtFetchDone }
 }
 
-module fixed { import runner(FIX = true).* }
-module original { import runner(FIX = false).* }
+module fixed { import runner(FIX = true, ASSET = false).* }
+module original { import runner(FIX = false, ASSET = false).* }
+module asset { import runner(FIX = true, ASSET = true).* }

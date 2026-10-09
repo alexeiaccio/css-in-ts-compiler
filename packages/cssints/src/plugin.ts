@@ -15,6 +15,7 @@ import {
   createServer,
   createServerModuleRunner,
   type EnvironmentModuleNode,
+  normalizePath,
   type Plugin,
   type ResolvedConfig,
   type Rollup,
@@ -271,9 +272,12 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     parsed: Instrumented,
     env: ViteDevServer["environments"]["ssr"],
     warn: (w: string) => void,
+    watch: (file: string) => void,
   ) {
     const recorded = Effect.fnUntraced(function* (sites: Map<number, string>) {
       let runtimes: string[] = [];
+      // what the evaluation read through dependsOn(), taken inside the lock as the sites are
+      const files = parsed.sites.length ? [...(yield* Registry).files] : [];
       if (parsed.sites.every((_, n) => sites.has(n))) {
         const registry = yield* Registry;
         const { rules, properties, themed } = registry;
@@ -301,9 +305,9 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
         // the module that declares the tokens is often not in the client; the ones that use them are
         if (!runtimes.includes(DERIVED) && usesDerived(registry, names)) runtimes.push(DERIVED);
       }
-      return { sites, runtimes };
+      return { sites, runtimes, files };
     });
-    const { sites, runtimes } = parsed.sites.length
+    const { sites, runtimes, files } = parsed.sites.length
       ? yield* evaluate(runner!, id, recorded).pipe(Effect.ensuring(flushWarnings(warn, id)))
       : yield* Effect.sync(() => forget(id)).pipe(Effect.andThen(recorded(new Map())));
     if (!build || buildMap) {
@@ -341,8 +345,14 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
       else ms.remove(decl.start, decl.end);
     }
 
+    // Before the result is returned, so before Vite caches it (runner.qnt `depsOfKnown`); in flight, `inflight` stands in.
     for (const dep of runnerDeps(env, id))
       (depsOf.get(dep) ?? depsOf.set(dep, new Set()).get(dep)!).add(id);
+    for (const file of files) {
+      const dep = normalizePath(resolve(file));
+      (depsOf.get(dep) ?? depsOf.set(dep, new Set()).get(dep)!).add(id);
+      yield* Effect.sync(() => watch(dep));
+    }
     return {
       code: ms.toString(),
       map: ms.generateMap({ hires: true, source: id, includeContent: true }),
@@ -396,7 +406,11 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
       evaluator: new DomEvaluator(),
     });
     inflight.add(id);
-    return yield* clientTransform(code, id, parsed, env, (w) => ctx.warn(w)).pipe(
+    // dependsOn() files: watched by rollup in `vite build --watch`, by the dev server's watcher in dev (ctx.addWatchFile
+    // there would make the file an import of the client module).
+    const watch = (file: string) =>
+      build ? ctx.addWatchFile(file) : void server!.watcher.add(file);
+    return yield* clientTransform(code, id, parsed, env, (w) => ctx.warn(w), watch).pipe(
       Effect.ensuring(Effect.sync(() => inflight.delete(id))),
     );
   });
@@ -441,6 +455,9 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
           cause,
         }),
     });
+    // `vite build --watch` builds again: its buildStart starts a new server, with a new runner
+    server = runner = undefined;
+    ownServer = false;
   });
 
   // Before vite:css-post's renderChunk joins the chunk's CSS: run the sheet through vite:css (LightningCSS) and

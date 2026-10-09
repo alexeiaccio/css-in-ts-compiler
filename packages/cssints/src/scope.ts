@@ -527,6 +527,7 @@ export interface Pending<N extends string, T> {
 export interface Engine {
   scope(name: string, table: object): unknown;
   lacking(keys: readonly string[]): string[];
+  dependsOn(path: string): void;
 }
 /** The engine, once the library is loaded (the prepended import of every module with sites loads it before any plugin module runs). */
 export const engine = (): Engine => {
@@ -557,3 +558,10 @@ export function scope(name: string, table: object): unknown {
  * support warnings (`partial_implementation` lacks); empty when every target has them all. Build time, like `scope()`.
  */
 export const lacking = (...keys: BcdKey[]): string[] => engine().lacking(keys);
+
+/**
+ * Tells the engine that the module being evaluated read the file at `path` (relative to the working directory): in dev, an
+ * edit of the file runs that module again, as an edit of a module it imports does; in `vite build --watch`, it is a watched
+ * file. Build time, like `scope()`: in a member's functions or in the plugin's own.
+ */
+export const dependsOn = (path: string): void => engine().dependsOn(path);
