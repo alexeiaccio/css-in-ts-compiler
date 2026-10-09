@@ -82,6 +82,24 @@ assert.ok(
 );
 assert.ok(!entry.code.includes("shiki-themes"), "the entry chunk holds no code block");
 
+// the playground (src/playground/): the engine, the wasm, the editor and the page are lazy, the entry holds a route and a link
+assert.ok(
+  !/cm-editor|transformSync|binding-wasm32|lightningcss_node/.test(entry.code),
+  "no playground code in the entry chunk",
+);
+const names = files.map((f) => f.fileName);
+for (const part of [
+  /^assets\/worker-.*\.js$/,
+  /^assets\/Playground-.*\.js$/,
+  /^assets\/parser\.wasm32-wasi-.*\.wasm$/,
+  /^assets\/transform\.wasm32-wasi-.*\.wasm$/,
+  /^assets\/lightningcss_node-.*\.wasm$/,
+])
+  assert.ok(
+    names.some((n) => part.test(n)),
+    `the build holds ${part}`,
+  );
+
 // a chunk of html per page, and a document per URL with the page's own title
 const html = new Map(
   files
@@ -130,7 +148,13 @@ written(
   "<code>frame()</code>: concentric radius",
   "twoslash-popup-container",
 );
-for (const slug of slugs) {
+// /playground is not a page of the docs: its document is the shell, whose root is not hidden, and a note for those without JS
+const shell = html.get("playground/index.html");
+assert.ok(
+  shell.includes('<div id="root"></div>') && shell.includes("<noscript>"),
+  "the playground document",
+);
+for (const slug of slugs.filter((s) => s !== "playground")) {
   const doc = html.get(`${slug}/index.html`);
   assert.ok(
     doc.includes('<div id="prerender"><h1>') && doc.includes('<div id="root" hidden>'),

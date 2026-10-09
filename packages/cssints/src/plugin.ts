@@ -30,19 +30,10 @@ import { evaluate, DomEvaluator } from "./evaluate.ts";
 import { HookError, type PluginError, SiteMissingError } from "./errors.ts";
 import { CV_CALL, instrument, keptImport, RUNTIME, type Instrumented } from "./instrument.ts";
 import { type DevSite, devtoolsBuildPlugin, devtoolsPlugin } from "./devtools-server.ts";
-import { DERIVED, fallbackEntries, RUNTIME_ID, runtimeModule, runtimeNames } from "./delivery.ts";
-import { usesDerived } from "./derived-data.ts";
-import { kernelEntries } from "./kernel.ts";
+import { RUNTIME_ID, runtimeModule } from "./delivery.ts";
+import { moduleEntries } from "./entries.ts";
 import { forget, forgetWarnings, Registry } from "./registry.ts";
-import {
-  closeNames,
-  globalEntries,
-  globalNames,
-  layerEntries,
-  LAYERS,
-  renderSheet,
-  themedEntries,
-} from "./sheet.ts";
+import { LAYERS, renderSheet } from "./sheet.ts";
 import { closeTrace, hook, runPromiseExit, runSync, warned } from "./trace.ts";
 
 export type { DevTable } from "./devtools-server.ts";
@@ -319,31 +310,9 @@ export default function cssints({
       // what the evaluation read through dependsOn(), taken inside the lock as the sites are
       const files = parsed.sites.length ? [...(yield* Registry).files] : [];
       if (parsed.sites.every((_, n) => sites.has(n))) {
-        const registry = yield* Registry;
-        const { rules, properties, themed } = registry;
-        const texts = [...sites.values()];
-        const classes = texts.flatMap((r) =>
-          [...r.matchAll(/"(_[\w-]+(?: _[\w-]+)*)"/g)].flatMap((m) => m[1]!.split(" ")),
-        );
-        // The tokens of the module: those its classes read, and those a site names (a token, a style). Their
-        // @property rules are recorded as text, so an edit of an initial value changes what the module recorded.
-        const kernels = kernelEntries(registry, id);
-        const names = new Set([...texts, ...kernels].flatMap((r) => r.match(/--[\w-]+/g) ?? []));
-        globalNames(themed, id).forEach((n) => names.add(n));
-        for (const c of classes) rules.get(c)?.tokens?.forEach((n) => names.add(n));
-        closeNames(names, registry.defs, themed);
-        yield* record(id, [
-          ...classes,
-          ...[...names].flatMap((n) => properties.get(n)?.css ?? []),
-          ...themedEntries(themed, id, names),
-          ...kernels,
-          ...globalEntries(registry, id),
-          ...layerEntries(registry, id),
-          ...(yield* fallbackEntries(registry, id)),
-        ]);
-        runtimes = runtimeNames(registry, id);
-        // the module that declares the tokens is often not in the client; the ones that use them are
-        if (!runtimes.includes(DERIVED) && usesDerived(registry, names)) runtimes.push(DERIVED);
+        const made = yield* moduleEntries(id, sites);
+        yield* record(id, made.entries);
+        runtimes = made.runtimes;
       }
       return { sites, runtimes, files };
     });

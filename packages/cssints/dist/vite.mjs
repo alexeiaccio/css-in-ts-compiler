@@ -402,6 +402,34 @@ const devtoolsBuildPlugin = (usedBy, callsOf) => ({
 	}
 });
 //#endregion
+//#region src/entries.ts
+const moduleEntries = Effect.fnUntraced(function* (id, sites) {
+	const registry = yield* Registry;
+	const { rules, properties, themed } = registry;
+	const texts = [...sites.values()];
+	const classes = texts.flatMap((r) => [...r.matchAll(/"(_[\w-]+(?: _[\w-]+)*)"/g)].flatMap((m) => m[1].split(" ")));
+	const kernels = kernelEntries(registry, id);
+	const names = new Set([...texts, ...kernels].flatMap((r) => r.match(/--[\w-]+/g) ?? []));
+	globalNames(themed, id).forEach((n) => names.add(n));
+	for (const c of classes) rules.get(c)?.tokens?.forEach((n) => names.add(n));
+	closeNames(names, registry.defs, themed);
+	const entries = [
+		...classes,
+		...[...names].flatMap((n) => properties.get(n)?.css ?? []),
+		...themedEntries(themed, id, names),
+		...kernels,
+		...globalEntries(registry, id),
+		...layerEntries(registry, id),
+		...yield* fallbackEntries(registry, id)
+	];
+	const runtimes = runtimeNames(registry, id);
+	if (!runtimes.includes("derived") && usesDerived(registry, names)) runtimes.push(DERIVED);
+	return {
+		entries,
+		runtimes
+	};
+});
+//#endregion
 //#region src/trace.ts
 const mode = /^otlp(?::(.+))?$/.exec(Effect.runSync(Config.String("CSSINTS_TRACE").pipe(Config.withDefault(""))));
 const otlp = mode ? await import("./trace-otlp-CbKFDsn9.mjs").then((m) => m.start(mode[1] ?? "http://localhost:4318")) : void 0;
@@ -642,26 +670,9 @@ function cssints({ inner = false, devtools = false } = {}) {
 			let runtimes = [];
 			const files = parsed.sites.length ? [...(yield* Registry).files] : [];
 			if (parsed.sites.every((_, n) => sites.has(n))) {
-				const registry = yield* Registry;
-				const { rules, properties, themed } = registry;
-				const texts = [...sites.values()];
-				const classes = texts.flatMap((r) => [...r.matchAll(/"(_[\w-]+(?: _[\w-]+)*)"/g)].flatMap((m) => m[1].split(" ")));
-				const kernels = kernelEntries(registry, id);
-				const names = new Set([...texts, ...kernels].flatMap((r) => r.match(/--[\w-]+/g) ?? []));
-				globalNames(themed, id).forEach((n) => names.add(n));
-				for (const c of classes) rules.get(c)?.tokens?.forEach((n) => names.add(n));
-				closeNames(names, registry.defs, themed);
-				yield* record(id, [
-					...classes,
-					...[...names].flatMap((n) => properties.get(n)?.css ?? []),
-					...themedEntries(themed, id, names),
-					...kernels,
-					...globalEntries(registry, id),
-					...layerEntries(registry, id),
-					...yield* fallbackEntries(registry, id)
-				]);
-				runtimes = runtimeNames(registry, id);
-				if (!runtimes.includes("derived") && usesDerived(registry, names)) runtimes.push(DERIVED);
+				const made = yield* moduleEntries(id, sites);
+				yield* record(id, made.entries);
+				runtimes = made.runtimes;
 			}
 			return {
 				sites,

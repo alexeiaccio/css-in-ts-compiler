@@ -56,6 +56,7 @@ const iconButton = css.cn(
 const menuButton = css.cn(gtSidebar(css.display("none")));
 const icon = css.cn(css.width("20px"), css.height("20px"));
 const menuIcon = { list: css.cn(ph("list"), icon), x: css.cn(ph("x"), icon) };
+const playIcon = css.cn(ph("play-circle"), icon);
 const settingsIcon = css.cn(ph("sliders-horizontal"), icon);
 
 // The sidebar is a drawer under the header (hidden from tab order while closed) until 900 px, then a sticky column.
@@ -193,6 +194,9 @@ export function Shell(props: { children?: JSX.Element }) {
           <span class={brandMark}>css</span>ints
         </a>
         <Search />
+        <a href={url("playground")} class={iconButton} aria-label="Playground" title="Playground">
+          <span class={playIcon} />
+        </a>
         <button
           type="button"
           class={iconButton}
