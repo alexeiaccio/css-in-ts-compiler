@@ -1,7 +1,7 @@
 ---
 # cssints-sin2
 title: Devtools overlay on a production build (static table) for the docs site
-status: in-progress
+status: completed
 type: feature
 created_at: 2026-10-09T12:50:59Z
 updated_at: 2026-10-09T12:50:59Z
