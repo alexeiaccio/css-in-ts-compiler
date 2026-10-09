@@ -127,7 +127,7 @@ function PropRow(props: { row: Row }) {
   );
 }
 
-function Panel(props: { inspection: Inspection }) {
+function Panel(props: { inspection: Inspection; build?: boolean }) {
   const i = () => props.inspection;
   return (
     <>
@@ -138,13 +138,32 @@ function Panel(props: { inspection: Inspection }) {
             <div>
               <Show when={g.site} fallback={<div class={s.muted}>no cssints call</div>}>
                 {(site) => (
-                  <button
-                    class={s.site}
-                    data-site={`${relative(i().root, site().file)}:${site().line}`}
-                    onClick={() => openInEditor(site().file, site().line, site().column)}
-                  >
-                    {relative(i().root, site().file)}:{site().line} ↗
-                  </button>
+                  <>
+                    <Show
+                      when={!props.build}
+                      fallback={
+                        <div
+                          class={s.siteText}
+                          data-site={`${relative(i().root, site().file)}:${site().line}`}
+                        >
+                          {relative(i().root, site().file)}:{site().line}
+                        </div>
+                      }
+                    >
+                      <button
+                        class={s.site}
+                        data-site={`${relative(i().root, site().file)}:${site().line}`}
+                        onClick={() => openInEditor(site().file, site().line, site().column)}
+                      >
+                        {relative(i().root, site().file)}:{site().line} ↗
+                      </button>
+                    </Show>
+                    <Show when={site().text}>
+                      <pre class={s.callText} data-call>
+                        {site().text}
+                      </pre>
+                    </Show>
+                  </>
                 )}
               </Show>
               <For each={g.classes}>
@@ -215,6 +234,8 @@ function App(props: {
   model: () => Model | undefined;
   setActive: (on: boolean) => void;
   host: Element;
+  /** a build's overlay: open from the start, the sites are text (there is no editor to open them in) */
+  build?: boolean;
 }) {
   const [open, setOpen] = createSignal(false);
   const [picking, setPicking] = createSignal(false);
@@ -295,6 +316,9 @@ function App(props: {
     };
   });
   onCleanup(() => props.setActive(false));
+  onSettled(() => {
+    if (props.build) toggle(true);
+  });
 
   return (
     <>
@@ -358,7 +382,11 @@ function App(props: {
           </div>
           <Show
             when={props.model()}
-            fallback={<div class={s.hint}>waiting for the dev server…</div>}
+            fallback={
+              <div class={s.hint}>
+                {props.build ? "loading the table…" : "waiting for the dev server…"}
+              </div>
+            }
           >
             <Show
               when={typeof inspection() === "object" ? (inspection() as Inspection) : undefined}
@@ -370,7 +398,7 @@ function App(props: {
                 </div>
               }
             >
-              {(i) => <Panel inspection={i()} />}
+              {(i) => <Panel inspection={i()} build={props.build} />}
             </Show>
           </Show>
         </aside>
@@ -381,9 +409,10 @@ function App(props: {
 
 /**
  * Puts the overlay in the page, connected to the dev server (virtual:cssints/devtools calls it).
- * @param {TransportApi & { root: string }} transport the HMR channel, and the root of the app
+ * @param {TransportApi & { root: string; build?: boolean }} transport the HMR channel, and the root of the app; in a build
+ *   (`build`) the table comes from the static asset and the overlay opens at once
  */
-export function mount(transport: TransportApi & { root: string }): void {
+export function mount(transport: TransportApi & { root: string; build?: boolean }): void {
   if (document.querySelector(HOST)) return;
   const host = document.createElement(HOST);
   host.setAttribute("style", "all: initial");
@@ -402,7 +431,14 @@ export function mount(transport: TransportApi & { root: string }): void {
     ),
   );
   render(
-    () => <App model={model} setActive={(on) => Effect.runSync(s.setActive(on))} host={host} />,
+    () => (
+      <App
+        model={model}
+        setActive={(on) => Effect.runSync(s.setActive(on))}
+        host={host}
+        build={transport.build}
+      />
+    ),
     root,
   );
 }

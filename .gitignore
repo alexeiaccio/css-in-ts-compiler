@@ -16,6 +16,9 @@ dist
 !packages/icons/dist/**
 !packages/mise-en-mode/dist/
 !packages/mise-en-mode/dist/**
+# the docs site's overlay: CI deploys it without a build
+!packages/devtools/dist/
+!packages/devtools/dist/**
 
 # code coverage
 coverage

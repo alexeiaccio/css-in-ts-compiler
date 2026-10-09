@@ -9,6 +9,7 @@ const Site = Schema.Struct({
   line: Schema.Finite,
   column: Schema.Finite,
   classes: Schema.Array(Schema.String),
+  text: Schema.optionalKey(Schema.String),
 });
 
 const ClassRecord = Schema.Struct({
