@@ -17,5 +17,5 @@ parent: cssints-0phg
 - [x] contrast of two colours (WCAG 2, as check.contrast)
 - [x] compile a module (file path or source) through the plugin: classes, emitted CSS, errors and warnings with locations
 - [x] search docs/API.md, README and the plugin packages' READMEs; list plugin packages and their members
-- [ ] stdio transport, a bin, README with the config for opencode / Claude Code / Cursor
+- [x] stdio transport, a bin, README with the config for opencode / Claude Code / Cursor
 - [x] tests: each tool through an MCP client in-process
