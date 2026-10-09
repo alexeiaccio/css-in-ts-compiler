@@ -54,8 +54,8 @@ await assert.rejects(
 await assert.rejects(code("condition.ts"), /:hover wraps _x-core, the marker of kernel x\.core/);
 ```
 
-Then the targets: run the same file again per browserslist, in a child process (the query is read once per
-process):
+Then the targets: run the same file again per browserslist, in a child process (`BROWSERSLIST` is read once per
+process; a Vite root with its own `.browserslistrc` works in one process too):
 
 ```js
 if (mode) {

@@ -36,12 +36,17 @@ Example: { "property": "padding", "value": "-1rem" } -> { "ok": false, "message"
   .annotate(Tool.OpenWorld, false);
 
 const CheckSupport = Tool.make("check_support", {
-  description: `Which target browsers lack a CSS property, or the features in a value (keywords, functions), by MDN browser-compat-data: the support warnings of a cssints build, with the BCD key of each. Targets: a browserslist query, else the project's browserslist config (package.json "browserslist" or .browserslistrc from the working directory), as the plugin reads it. Use it to decide whether a feature needs a fallback (firstThatWorks).
+  description: `Which target browsers lack a CSS property, or the features in a value (keywords, functions), by MDN browser-compat-data: the support warnings of a cssints build, with the BCD key of each. Targets: a browserslist query, else the project's browserslist config (package.json "browserslist" or .browserslistrc, found from root, default the working directory), as the plugin reads it from its Vite root. What LightningCSS lowers for the lacking targets (oklch() gets a hex fallback) counts as supported, as in a build, and is listed under lowered with the value it writes. Use it to decide whether a feature needs a fallback (firstThatWorks).
 Example: { "property": "textWrap", "value": "balance", "query": "chrome 109" } -> { "supported": false, "lacking": [{ "feature": "text-wrap", "key": "css.properties.text-wrap", "targets": "chrome 109", ... }] }`,
   parameters: Schema.Struct({
     property: Text("The property, camelCase or kebab-case"),
     value: Maybe(Text("A value: its keywords and functions are looked up too")),
     query: Maybe(Text('A browserslist query, e.g. "defaults" or "safari >= 16"')),
+    root: Maybe(
+      Text(
+        "Without query: the project root its browserslist config is found from; default: the server's working directory",
+      ),
+    ),
   }),
   success: Schema.Struct({
     property: Schema.String,
@@ -56,6 +61,16 @@ Example: { "property": "textWrap", "value": "balance", "query": "chrome 109" } -
         key: Schema.String,
         targets: Schema.String,
         message: Schema.String,
+      }),
+    ),
+    lowered: Schema.Array(
+      Schema.Struct({
+        feature: Schema.String,
+        key: Schema.String,
+        targets: Schema.String,
+        value: Schema.String.annotate({
+          description: "what LightningCSS writes for those targets, so a build does not warn",
+        }),
       }),
     ),
     rule: Schema.String,
@@ -117,7 +132,10 @@ Example: { "file": "src/Button.ts", "source": "import { css } from \\"cssints\\"
     css: Schema.String,
     code: Schema.String,
     errors: Schema.Array(Located),
-    warnings: Schema.Array(Schema.Struct({ file: Schema.String, message: Schema.String })),
+    warnings: Schema.Array(Located).annotate({
+      description:
+        "every warning of the module and what it runs, each at the css.* call that made it",
+    }),
   }),
   failure: Failure,
 })
@@ -126,7 +144,7 @@ Example: { "file": "src/Button.ts", "source": "import { css } from \\"cssints\\"
   .annotate(Tool.OpenWorld, false);
 
 const SearchDocs = Tool.make("search_docs", {
-  description: `Searches the cssints documentation (docs/API.md, README.md and the plugin packages' READMEs; in a project, the READMEs installed in node_modules) and answers the matching sections, best first: the file and line, the heading and its trail of parent headings, and a short excerpt. Use it to find how an API works or what an error means before reading the whole file at that line.
+  description: `Searches the cssints documentation (docs/API.md, README.md and the plugin packages' READMEs; in a project, the copies installed in node_modules: cssints/docs/API.md and the READMEs) and answers the matching sections, best first: the file and line, the heading and its trail of parent headings, and a short excerpt. Use it to find how an API works or what an error means before reading the whole file at that line.
 Example: { "query": "firstThatWorks fallback" } -> { "results": [{ "heading": "Fallbacks: \`firstThatWorks\` (decided 2026-10-01, cssints-bogz)", "file": ".../docs/API.md", "line": 379, "excerpt": "…" }] }`,
   parameters: Schema.Struct({
     query: Text(
@@ -418,7 +436,8 @@ const handlers = tools
       const inspector = yield* Inspector;
       return tools.of({
         check_declaration: ({ property, value }) => checkDeclaration(property, value),
-        check_support: ({ property, value, query }) => checkSupport(property, value, query),
+        check_support: ({ property, value, query, root }) =>
+          checkSupport(property, value, query, root),
         check_contrast: ({ foreground, background, min }) =>
           checkContrast(foreground, background, min),
         compile: (input) => compile(input),

@@ -8,6 +8,7 @@ import { readFile } from "node:fs/promises";
 import { basename, join, relative, resolve } from "node:path";
 
 import { browsers } from "@cssints/css-grammar/browsers";
+import { type Target, targets as targetsOf } from "@cssints/css-grammar/support";
 import { Cause, Effect, Exit, Formatter, Option, Predicate, Result, Schema } from "effect";
 import { browserslistToTargets } from "lightningcss";
 import MagicString from "magic-string";
@@ -32,7 +33,7 @@ import { type DevSite, devtoolsBuildPlugin, devtoolsPlugin } from "./devtools-se
 import { DERIVED, fallbackEntries, RUNTIME_ID, runtimeModule, runtimeNames } from "./delivery.ts";
 import { usesDerived } from "./derived-data.ts";
 import { kernelEntries } from "./kernel.ts";
-import { forget, Registry } from "./registry.ts";
+import { forget, forgetWarnings, Registry } from "./registry.ts";
 import {
   closeNames,
   globalEntries,
@@ -86,7 +87,10 @@ const packagesOnCssints = (root: string) =>
 
 const hash = (s: string) => createHash("sha1").update(s).digest("hex").slice(0, 8);
 
-/** LightningCSS targets (css.lightningcss.targets) from the browserslist query of the support warnings. */
+/**
+ * LightningCSS targets (css.lightningcss.targets) from the browserslist config of process.cwd(), read when vite.config.ts
+ * imports this module: the support warnings read the one of the Vite root, the same unless the root is elsewhere.
+ */
 export const targets = browserslistToTargets(Effect.runSync(browsers()));
 
 // The same query as esbuild-style names for Vite's `build.cssTarget`: Vite's CSS minify takes its targets from there, not
@@ -100,7 +104,7 @@ const ESBUILD: Record<string, string> = {
   firefox: "firefox",
   safari: "safari",
 };
-/** `build: { cssTarget }`, the browserslist query of the support warnings, so a minified build keeps `firstThatWorks` fallbacks. */
+/** `build: { cssTarget }`, the browserslist query of `targets`, so a minified build keeps `firstThatWorks` fallbacks. */
 export const cssTarget = Effect.runSync(browsers()).flatMap((t) => {
   const [agent, version] = t.split(" ") as [string, string];
   return ESBUILD[agent] && /^\d/.test(version) ? [`${ESBUILD[agent]}${version.split("-")[0]}`] : [];
@@ -220,6 +224,7 @@ export default function cssints({
   let runner: ModuleRunner | undefined; // private runner with DOM bindings; server.environments.ssr.runner stays untouched
   let build = false;
   let root = process.cwd();
+  let rootTargets: Target[] | undefined; // the browserslist config of `root`: the support checks of every evaluation
   let cssPlugins: (Plugin | undefined)[] = []; // vite:css, vite:css-post: in build they take the sheet in renderChunk
   const usedBy = new Map<string, string>(); // client module id -> its classes and @property rules, sorted, one a line
   const depsOf = new Map<string, Set<string>>(); // dependency file -> Set<client module id>
@@ -272,11 +277,33 @@ export default function cssints({
     return out;
   };
 
-  const flushWarnings = Effect.fnUntraced(function* (warn: (w: string) => void, file?: string) {
+  // Each warning goes to Vite at the site that made it (`loc`: Vite prints the file, line and column and a code frame);
+  // `code` is the text of `id`, a site in another file is read from disk.
+  const flushWarnings = Effect.fnUntraced(function* (
+    warn: (w: Rollup.RollupLog) => void,
+    id?: string,
+    code?: string,
+  ) {
     const { warnings } = yield* Registry;
     const ws = warnings.splice(0);
-    yield* Effect.sync(() => ws.forEach(warn));
-    yield* warned(ws, file);
+    for (const { message, at } of ws) {
+      const file = at?.file ?? id;
+      const text =
+        at === undefined
+          ? undefined
+          : at.file === id
+            ? code
+            : yield* Effect.tryPromise(() => readFile(at.file, "utf8")).pipe(
+                Effect.orElseSucceed(() => undefined),
+              );
+      const loc =
+        at && text !== undefined ? { file: at.file, ...lineCol(text, at.offset) } : undefined;
+      yield* Effect.sync(() => warn({ message, ...(file && { id: file }), ...(loc && { loc }) }));
+    }
+    yield* warned(
+      ws.map((w) => w.message),
+      id,
+    );
   });
 
   const clientTransform = Effect.fn("cssints.clientTransform")(function* (
@@ -284,7 +311,7 @@ export default function cssints({
     id: string,
     parsed: Instrumented,
     env: ViteDevServer["environments"]["ssr"],
-    warn: (w: string) => void,
+    warn: (w: Rollup.RollupLog) => void,
     watch: (file: string) => void,
   ) {
     const recorded = Effect.fnUntraced(function* (sites: Map<number, string>) {
@@ -321,7 +348,9 @@ export default function cssints({
       return { sites, runtimes, files };
     });
     const { sites, runtimes, files } = parsed.sites.length
-      ? yield* evaluate(runner!, id, recorded).pipe(Effect.ensuring(flushWarnings(warn, id)))
+      ? yield* evaluate(runner!, id, recorded, rootTargets).pipe(
+          Effect.ensuring(flushWarnings(warn, id, code)),
+        )
       : yield* Effect.sync(() => forget(id)).pipe(Effect.andThen(recorded(new Map())));
     if (!build || buildMap || devtools === "build") {
       const at = new Map<string, Loc>();
@@ -541,7 +570,7 @@ export default function cssints({
   });
 
   // The end of a build: every contrast check again, over the themes of every module (a module that came after the check).
-  const buildEnd = Effect.fn("cssints.buildEnd")(function* (warn: (w: string) => void) {
+  const buildEnd = Effect.fn("cssints.buildEnd")(function* (warn: (w: Rollup.RollupLog) => void) {
     yield* verifyChecks(() => true).pipe(
       Effect.catch((e: PluginError) => locate(e, "", "")),
       Effect.ensuring(flushWarnings(warn)),
@@ -554,9 +583,9 @@ export default function cssints({
     modules: EnvironmentModuleNode[],
   ) {
     if (env.name !== "client") return undefined;
-    // `warned` dedupes a build, which has an end; a dev server has none, so an edit starts the next round of warnings.
-    const { warned } = yield* Registry;
-    yield* Effect.sync(() => warned.clear());
+    // A build says a warning once per file of its site; a dev server, which has no end, again once that file is edited
+    // (and the modules that run it are transformed again): not on every update of an unrelated module.
+    yield* Effect.sync(() => forgetWarnings([file]));
     const graph = env.moduleGraph;
     const affected = [...new Set([...(depsOf.get(file) ?? []), ...inflight])].flatMap(
       (id) => graph.getModuleById(id) ?? [],
@@ -581,11 +610,17 @@ export default function cssints({
     },
     // The sheet of all (or the given) client modules transformed so far: test/run.mjs. A plain value for callers
     // that are not Effect programs (other plugins, tests).
-    api: { sheet: (ids?: string[]) => Effect.runSync(sheet(ids)) },
+    // `forgetWarnings`: the warnings of the sites in `files` (every file, without it) are said again by the next
+    // transform that runs them, as after an edit of those files (@cssints/mcp `compile`).
+    api: {
+      sheet: (ids?: string[]) => Effect.runSync(sheet(ids)),
+      forgetWarnings: (files?: string[]) => forgetWarnings(files),
+    },
     configResolved(config: ResolvedConfig) {
       build = config.command === "build";
       buildMap = build && !inner && config.build.sourcemap;
       root = config.root;
+      if (!inner) rootTargets = Effect.runSync(targetsOf(undefined, root));
       cssPlugins = ["vite:css", "vite:css-post"].map((n) =>
         config.plugins.find((p) => p.name === n),
       );
@@ -603,7 +638,9 @@ export default function cssints({
       });
     },
     buildStart() {
-      if (inner || server) return;
+      if (inner) return;
+      if (build) forgetWarnings(); // `vite build --watch`: each build says its warnings
+      if (server) return;
       return run(hook("vite.buildStart", root, startServer()));
     },
     buildEnd() {

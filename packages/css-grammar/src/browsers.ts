@@ -1,7 +1,7 @@
-// The target browsers, one query for the BCD support warnings (support.ts) and the LightningCSS targets
-// (cssints/vite `targets`, `cssTarget`), read once per process from the browserslist config of process.cwd(): the
-// exports are computed when vite.config.ts is imported, before the Vite root is known, so the warnings read the same
-// place. BROWSERSLIST overrides it.
+// The target browsers, one query for the BCD support warnings (support.ts) and the LightningCSS targets: the
+// browserslist config found from a directory (the Vite root of a build: cssints sets it per evaluation, support.ts
+// `useTargets`), else from process.cwd() (cssints/vite `targets` and `cssTarget`, computed when vite.config.ts is
+// imported, before the root is known). BROWSERSLIST overrides both.
 import { Effect } from "effect";
 
 import { BrowsersError } from "./errors.ts";
@@ -14,13 +14,15 @@ const browserslist = process.getBuiltinModule("node:module").createRequire(impor
   "browserslist",
 ) as typeof browserslistT;
 
-// No query: browserslist's own lookup, `BROWSERSLIST`, then the config found upward from process.cwd() (package.json
-// "browserslist", .browserslistrc; the section of BROWSERSLIST_ENV, NODE_ENV or production), else `defaults`.
+// No query: browserslist's own lookup, `BROWSERSLIST`, then the config found upward from `path` (default
+// process.cwd(); package.json "browserslist", .browserslistrc; the section of BROWSERSLIST_ENV, NODE_ENV or
+// production), else `defaults`.
 export const browsers = Effect.fn("browsers")(function* (
   query?: string,
+  path?: string,
 ): Effect.fn.Return<string[], BrowsersError> {
   return yield* Effect.try({
-    try: () => browserslist(query),
+    try: () => browserslist(query, path === undefined ? undefined : { path }),
     catch: (e) => new BrowsersError({ message: e instanceof Error ? e.message : String(e), query }),
   });
 });

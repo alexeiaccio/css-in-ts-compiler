@@ -12,6 +12,7 @@ import {
   Registry,
   type RegistryState,
   type Runtime,
+  warn,
 } from "./registry.ts";
 
 // The entries of kernels start with this and a tab: `@kernel\t<json>`.
@@ -36,7 +37,8 @@ export const addKernel = Effect.fnUntraced(function* (
   at?: At,
   runtimes: readonly Runtime[] = [],
 ): Effect.fn.Return<void, MacroError> {
-  const { kernels, warnings, warned } = yield* Registry;
+  const registry = yield* Registry;
+  const { kernels } = registry;
   const fail = (message: string) => new MacroError({ message: `cssints: ${message}`, ...at });
   const { key } = kernel;
   let entry = kernels.get(key);
@@ -64,22 +66,20 @@ export const addKernel = Effect.fnUntraced(function* (
       const { key: feature, exact } = typeof r === "string" ? { key: r, exact: false } : r;
       const all = (yield* lacking(feature, undefined, exact)).map((t) => t.join(" "));
       const off = yield* uncovered(feature, all, runtimes);
-      const w = `${key} ${feature}`;
-      if (off.length && !warned.has(w)) {
-        warned.add(w);
-        warnings.push(
+      if (off.length)
+        warn(
+          registry,
+          `${key} ${feature}`,
           `kernel ${key} needs ${feature}, not supported by ${browsers([...off])}${exact ? " (a partial implementation counts as lacking)" : ""}`,
+          at,
         );
-      }
     }
     for (const { prop, value, warning } of kernelWarnings.get(kernel) ?? []) {
       const off = yield* uncovered(warning.key, warning.lacking, runtimes);
       // the key of a user's declaration of the same feature, unless a runtime covers some of the targets
       const w = `${prop} ${warning.key}${off.length < warning.lacking.length ? ` ${off.join()}` : ""}`;
-      if (off.length && !warned.has(w)) {
-        warned.add(w);
-        warnings.push(messageOf(prop, value, { ...warning, lacking: [...off] }));
-      }
+      if (off.length)
+        warn(registry, w, messageOf(prop, value, { ...warning, lacking: [...off] }), at);
     }
   }
   if (at) entry.users.add(at.file);

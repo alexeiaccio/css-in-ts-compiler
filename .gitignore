@@ -50,6 +50,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # git worktrees
 .worktrees
 
+# docs/API.md, copied into the cssints package when it is packed (its "prepack" script)
+packages/cssints/docs/
+
 # packages/cssints/test/spec/harness.mjs temp apps
 packages/cssints/test/.tmp-*
 .alchemy

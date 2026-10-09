@@ -54,6 +54,13 @@ export class HookError extends Data.TaggedError("HookError")<{
   readonly cause?: unknown;
 }> {}
 
+/** cssints/check `contrast`: a colour that has no contrast (one it cannot read, or a translucent one). */
+export class ContrastError extends Data.TaggedError("ContrastError")<{
+  readonly message: string;
+  /** The colour as given. */
+  readonly colour: string;
+}> {}
+
 export type PluginError =
   | MacroError
   | MemberError

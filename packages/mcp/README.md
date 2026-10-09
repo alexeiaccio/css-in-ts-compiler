@@ -6,14 +6,14 @@ way the build checks it, without running the app, and ask a running app's dev se
 
 ## Tools
 
-| Tool                | Answers                                                                                                                                                                  | Example                                                                                                                      |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| `check_declaration` | ok, or the exact message the build gives: the property's grammar, value ranges, the prose rules of the specs                                                             | `{ "property": "padding", "value": "-1rem" }` → `padding: unexpected "-1rem" in "-1rem", expected <length-percentage [0,∞]>` |
-| `check_support`     | the targets that lack a property or a feature of its value, with the BCD key, by the rule of the build's support warnings (`partial_implementation` counts as supported) | `{ "property": "textWrap", "value": "balance", "query": "chrome 109" }` → `css.properties.text-wrap`, lacking `chrome 109`   |
-| `check_contrast`    | the WCAG 2.x ratio as `css.check.contrast` computes it (cut, not rounded, at two places), and whether it meets `min`                                                     | `{ "foreground": "#777", "background": "white", "min": 4.5 }` → `contrast 4.47 is below 4.5`                                 |
-| `compile`           | a module through the real plugin: its class strings, the CSS it adds to the sheet, the transformed code, errors (`file:line:col` of the call) and warnings               | `{ "file": "src/Button.tsx" }`, or `{ "file": "src/Card.ts", "source": "..." }` for text that is not saved                   |
-| `search_docs`       | the matching sections of docs/API.md, README.md and the plugin READMEs: file, line, heading trail, an excerpt                                                            | `{ "query": "firstThatWorks fallback" }`                                                                                     |
-| `list_plugins`      | the plugin packages, their members, what each does, the README                                                                                                           | `{}`                                                                                                                         |
+| Tool                | Answers                                                                                                                                                                                                                                                                                             | Example                                                                                                                      |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `check_declaration` | ok, or the exact message the build gives: the property's grammar, value ranges, the prose rules of the specs                                                                                                                                                                                        | `{ "property": "padding", "value": "-1rem" }` → `padding: unexpected "-1rem" in "-1rem", expected <length-percentage [0,∞]>` |
+| `check_support`     | the targets that lack a property or a feature of its value, with the BCD key, by the rule of the build's support warnings (`partial_implementation` counts as supported); what LightningCSS lowers for them (`loweredOf` of `cssints/check`) is supported, under `lowered` with the value it writes | `{ "property": "textWrap", "value": "balance", "query": "chrome 109" }` → `css.properties.text-wrap`, lacking `chrome 109`   |
+| `check_contrast`    | the WCAG 2.x ratio of `css.check.contrast`, from the engine (`contrast` of `cssints/check`; cut, not rounded, at two places), and whether it meets `min`                                                                                                                                            | `{ "foreground": "#777", "background": "white", "min": 4.5 }` → `contrast 4.47 is below 4.5`                                 |
+| `compile`           | a module through the real plugin: its class strings, the CSS it adds to the sheet, the transformed code, errors and warnings, each at its call (`file:line:col`; a warning is said by every compile)                                                                                                | `{ "file": "src/Button.tsx" }`, or `{ "file": "src/Card.ts", "source": "..." }` for text that is not saved                   |
+| `search_docs`       | the matching sections of docs/API.md, README.md and the plugin READMEs: file, line, heading trail, an excerpt                                                                                                                                                                                       | `{ "query": "firstThatWorks fallback" }`                                                                                     |
+| `list_plugins`      | the plugin packages, their members, what each does, the README                                                                                                                                                                                                                                      | `{}`                                                                                                                         |
 
 ### On a running dev server
 
@@ -45,13 +45,15 @@ put the element in that state first (else the pointer is moved away and the focu
 the viewport. They need a Chromium: `npx playwright-core install chromium`, else an installed Chrome is used.
 
 `check_support` without `query` reads the project's browserslist (`package.json` `"browserslist"` or `.browserslistrc`,
-found from the working directory), as the plugin does. `compile` starts a Vite dev server in middleware mode for the
+found from `root`, else the working directory), as the plugin reads it from its Vite root; `compile`'s warnings are
+those of the root's targets. `compile` starts a Vite dev server in middleware mode for the
 project root (the `root` argument, else the working directory) on its first call and reuses it: the project's
 `vite.config` is loaded when it has one (its aliases, its `cssints()` options), else the plugin alone; the project's own
 `vite` and `cssints` are used when installed. Each call reads the module and what it imports again.
 
-Installed in a project, `search_docs` and `list_plugins` read the READMEs of `cssints` and `@cssints/*` in
-`node_modules`; run from this repository, they read docs/API.md, README.md and every package README.
+Installed in a project, `search_docs` reads `node_modules/cssints/docs/API.md` (the published cssints holds a copy, made
+by its `prepack`), the README of `cssints` and those of `@cssints/*`, and `list_plugins` those READMEs; run from this
+repository, they read docs/API.md, README.md and every package README.
 
 ## Install
 

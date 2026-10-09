@@ -8,7 +8,7 @@ import { Effect, Formatter, Result } from "effect";
 
 import { addDerived, DERIVED, needed } from "./delivery.ts";
 import { evaluate, KEY } from "./derived.ts";
-import { Registry, type At, type RegistryState } from "./registry.ts";
+import { Registry, type At, type RegistryState, warn } from "./registry.ts";
 
 // what stops the evaluator at `literal`, if anything
 const refuses = (literal: string): string | undefined => {
@@ -30,7 +30,7 @@ export const standIn = Effect.fnUntraced(function* (
   inherits: boolean,
   rooted: boolean,
 ): Effect.fn.Return<boolean> {
-  const { warned, warnings } = yield* Registry;
+  const registry = yield* Registry;
   let why: string | undefined;
   if (kind !== "color") why = "computes colours only";
   else if (!inherits) why = "does not write tokens that do not inherit";
@@ -42,14 +42,13 @@ export const standIn = Effect.fnUntraced(function* (
     yield* addDerived(at.file, [...new Set(ws.map((w) => w.key))]);
     return true;
   }
-  const key = `derived ${who} ${why}`;
-  if (!warned.has(key)) {
-    warned.add(key);
-    const lacking = browsers([...new Set(ws.flatMap((w) => w.lacking))]);
-    warnings.push(
-      `${who}: "${literal}" stays at its static default${lacking ? ` in ${lacking}` : " in the older targets"}: the runtime for derived tokens ${why}`,
-    );
-  }
+  const lacking = browsers([...new Set(ws.flatMap((w) => w.lacking))]);
+  warn(
+    registry,
+    `derived ${who} ${why}`,
+    `${who}: "${literal}" stays at its static default${lacking ? ` in ${lacking}` : " in the older targets"}: the runtime for derived tokens ${why}`,
+    at,
+  );
   return false;
 });
 

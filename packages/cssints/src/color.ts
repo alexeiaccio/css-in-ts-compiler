@@ -49,3 +49,6 @@ export const luminance = (text: string) => {
 
 export const ratio = (a: number, b: number): number =>
   (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+
+// The floor at two places, so that 4.499 does not read as the 4.5 it misses.
+export const shown = (r: number): string => (Math.floor(r * 100) / 100).toFixed(2);

@@ -13,7 +13,7 @@ import { Cause, Effect, Exit } from "effect";
 import { MacroError } from "./errors.ts";
 import { covers, relation } from "./leaves.ts";
 import { camel, type Carry, type Cond, type CssNode, type Decl, fail, isNode } from "./node.ts";
-import { registry } from "./registry.ts";
+import { registry, warn } from "./registry.ts";
 
 /** What firstThatWorks() builds: its values as text, the wanted one first. */
 export interface Fallback {
@@ -166,14 +166,13 @@ export function minWidth(q: string): number {
 const RAW_VAR = /var\(\s*(--[\w-]+)/g;
 export function checkVars(where: string, text: string) {
   if (!text.includes("var(")) return;
-  const { properties, defs, warned, warnings } = registry;
+  const { properties, defs } = registry;
   for (const [, name] of text.matchAll(RAW_VAR)) {
     if (name!.startsWith("--_") || !properties.has(name!)) continue;
     const path = defs.get(name!)?.path;
-    const key = `var ${where} ${name}`;
-    if (warned.has(key)) continue;
-    warned.add(key);
-    warnings.push(
+    warn(
+      registry,
+      `var ${where} ${name}`,
       `${where}: "var(${name})" is the token ${path === name ? `declared as ${name}` : path}: pass the token itself, and css.var(token, fallback) for a fallback`,
     );
   }
