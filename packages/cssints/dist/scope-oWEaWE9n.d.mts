@@ -2027,6 +2027,7 @@ type Callable<L extends string, D, A, R> = D extends string ? <const P extends r
 type Label<K extends string, V> = V extends {
   label?: infer L;
 } ? NonNullable<L> extends (infer S extends string) ? [S] extends [never] ? K : S : K : K;
+type Opaque<R> = R extends string ? string : R;
 type MemberOf<K extends string, V, A> = Kind<K, V> extends "chain" ? V extends {
   chain: infer M;
 } ? () => Chain<K, M, A> : never : Kind<K, V> extends "call" ? V extends {
@@ -2034,7 +2035,7 @@ type MemberOf<K extends string, V, A> = Kind<K, V> extends "chain" ? V extends {
 } ? Callable<K, D, A, Style> : never : Kind<K, V> extends "value" ? V extends {
   args: infer D;
   value: (args: never) => infer R;
-} ? Callable<Label<K, V>, D, A, R> : never : Kind<K, V> extends "prop" ? V extends (infer G extends string) ? <const P extends readonly Part[]>(...parts: CheckIn<K, Expand<G, A>, false, P>) => Style : never : never;
+} ? Callable<Label<K, V>, D, A, Opaque<R>> : never : Kind<K, V> extends "prop" ? V extends (infer G extends string) ? <const P extends readonly Part[]>(...parts: CheckIn<K, Expand<G, A>, false, P>) => Style : never : never;
 /** What `.export()` gives: the members of the table, typed from it (a `-prefixed` property is camel-cased, an embedded scope nests). */
 type Members<T> = { [K in keyof T & string as Private<K> extends true ? never : Kind<K, T[K]> extends "chain" | "call" | "value" ? K : Kind<K, T[K]> extends "prop" ? Camel<K> : Kind<K, T[K]> extends "module" ? K : never]: Kind<K, T[K]> extends "module" ? T[K] extends {
   "~scope": string;
