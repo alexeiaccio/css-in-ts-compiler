@@ -11,7 +11,7 @@ const inputs = [
   "packages/cssints/test/fixtures/**",
   "packages/icons/test/fixtures/**",
   "packages/mise-en-mode/test/fixtures/**",
-  "packages/{fluid,layout,fonts,reset,tokens,gradient,motion,squircle,reveal,stuck,balance,masonry,placeholder,ramp,skeleton}/test/fixtures/**",
+  "packages/{fluid,layout,fonts,reset,tokens,gradient,motion,squircle,reveal,stuck,balance,masonry,placeholder,ramp,skeleton,devtools}/test/fixtures/**",
   "packages/cssints/test/pkg/**",
   "packages/css-grammar/bench/err.ts",
   "packages/cssints/bench/errors.ts",
@@ -93,6 +93,8 @@ const plainCode = [
   "packages/placeholder/src/**",
   "packages/ramp/src/**",
   "packages/skeleton/src/**",
+  // @cssints/devtools: the Solid UI of the dev inspector (its core is Effect code)
+  "packages/devtools/src/ui/**",
   // The apps are plain Solid and React; the tests, benches and generator scripts are node scripts.
   "apps/**",
   "**/test/**",
