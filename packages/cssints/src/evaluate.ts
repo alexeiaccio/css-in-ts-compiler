@@ -2,6 +2,7 @@
 // timeout and typed errors.
 import { fileURLToPath } from "node:url";
 
+import { type Target, useTargets } from "@cssints/css-grammar/support";
 import { Effect, Predicate, Semaphore } from "effect";
 import { Window } from "happy-dom";
 import {
@@ -112,8 +113,10 @@ const failureOf = (id: string, registry: RegistryState) => (e: unknown) => {
 const evaluateModule = Effect.fnUntraced(function* (
   runner: ModuleRunner,
   id: string,
+  targets: Target[] | undefined,
 ): Effect.fn.Return<Map<number, string>, MacroError | MemberError | EvalError> {
   const registry = yield* Registry;
+  useTargets(targets); // the build's, for every support check of this evaluation
   registry.sites.delete(id);
   forget(id);
   registry.at = undefined;
@@ -142,11 +145,17 @@ const evaluateModule = Effect.fnUntraced(function* (
   return registry.sites.get(id) ?? new Map();
 });
 
-/** Evaluates `id` and runs `whileLocked` on its sites before the next evaluation may start (runner.qnt `rules`). */
+/**
+ * Evaluates `id` for the browser `targets` (default: those of process.cwd()) and runs `whileLocked` on its sites before
+ * the next evaluation may start (runner.qnt `rules`).
+ */
 export const evaluate = Effect.fn("cssints.evaluate")(function* <A, E>(
   runner: ModuleRunner,
   id: string,
   whileLocked: (sites: Map<number, string>) => Effect.Effect<A, E>,
+  targets?: Target[],
 ): Effect.fn.Return<A, E | MacroError | MemberError | EvalError> {
-  return yield* evalLock.withPermit(evaluateModule(runner, id).pipe(Effect.flatMap(whileLocked)));
+  return yield* evalLock.withPermit(
+    evaluateModule(runner, id, targets).pipe(Effect.flatMap(whileLocked)),
+  );
 });

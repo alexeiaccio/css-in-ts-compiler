@@ -58,16 +58,30 @@ const BCD_NAME: Record<string, BrowserName> = {
 };
 
 export type Target = [agent: string, version: string];
+// `path`: where the browserslist config is looked up from, without a query (browsers.ts).
 export const targets = Effect.fn("support.targets")(function* (
   query?: string,
+  path?: string,
 ): Effect.fn.Return<Target[], BrowsersError> {
-  const list = yield* listBrowsers(query);
+  const list = yield* listBrowsers(query, path);
   return list
     .map((t) => [t.split(" ")[0]!, t.split(" ")[1]!.split("-")[0]!] as Target)
     .filter(([a]) => BCD_NAME[a]);
 });
-// Module init is the boundary: the default targets are fixed for the process, like the BCD require above.
+// Module init is the boundary: the targets of process.cwd() are fixed for the process, like the BCD require above.
 const DEFAULT = Effect.runSync(targets());
+
+declare global {
+  // oxlint-disable-next-line no-var -- an ambient declaration of a property of globalThis, not a variable
+  var __cssintsTargets: Target[] | undefined;
+}
+// The default of every function below: the targets of the build in progress, else those of process.cwd(). On
+// globalThis, as cssints' registry: the Vite Module Runner evaluates its own copy of this module.
+const current = () => globalThis.__cssintsTargets ?? DEFAULT;
+/** Sets the targets the functions here default to (cssints: those of the Vite root, before each evaluation); `undefined`, those of process.cwd(). */
+export const useTargets = (ts: Target[] | undefined): void => {
+  globalThis.__cssintsTargets = ts;
+};
 
 const cmp = (a: string, b: string) => {
   const x = a.replace("≤", "").split("."),
@@ -123,7 +137,7 @@ const lacks = (c: Compat, on: Target[], exact = false) =>
 
 // The targets that lack a BCD feature (`css.at-rules.property`), by the same rules as the warnings: no prefix, no
 // flags, `partial_implementation` counts unless `exact`. A key BCD does not know lacks nothing.
-export const lackingOf = (key: string, ts: Target[] = DEFAULT, exact = false): Target[] => {
+export const lackingOf = (key: string, ts: Target[] = current(), exact = false): Target[] => {
   const c = get(key)?.__compat;
   return c ? lacks(c, ts, exact) : [];
 };
@@ -131,7 +145,7 @@ export const lackingOf = (key: string, ts: Target[] = DEFAULT, exact = false): T
 // Next to `support`: for a plugin's `requires`.
 export const lacking = Effect.fnUntraced(function* (
   key: string,
-  ts: Target[] = DEFAULT,
+  ts: Target[] = current(),
   exact: boolean = false,
 ): Effect.fn.Return<Target[]> {
   return yield* Effect.sync(() => lackingOf(key, ts, exact));
@@ -153,14 +167,16 @@ const reachOf = (p: string) => {
   return r;
 };
 
-// The answer for the default targets is a function of `p: v`, and a build asks the same declarations again (every
-// evaluation of a module that imports the theme): once per declaration. Callers read the warnings, none changes them.
-const known = new Map<string, Warning[]>();
-export function supportOf(p: string, v: string, ts: Target[] = DEFAULT): Warning[] {
-  if (ts !== DEFAULT) return compute(p, v, ts);
+// The answer for a list of targets is a function of `p: v`, and a build asks the same declarations again (every
+// evaluation of a module that imports the theme): once per declaration and list. Callers read the warnings, none
+// changes them.
+const known = new WeakMap<Target[], Map<string, Warning[]>>();
+export function supportOf(p: string, v: string, ts: Target[] = current()): Warning[] {
+  let byDecl = known.get(ts);
+  if (!byDecl) known.set(ts, (byDecl = new Map()));
   const key = `${p}\0${v}`;
-  let out = known.get(key);
-  if (!out) known.set(key, (out = compute(p, v, ts)));
+  let out = byDecl.get(key);
+  if (!out) byDecl.set(key, (out = compute(p, v, ts)));
   return out;
 }
 
@@ -223,7 +239,7 @@ export function browsers(lacking: string[]): string {
 export const support = Effect.fnUntraced(function* (
   p: string,
   v: string,
-  ts: Target[] = DEFAULT,
+  ts: Target[] = current(),
 ): Effect.fn.Return<Warning[]> {
   return yield* Effect.sync(() => supportOf(p, v, ts));
 });

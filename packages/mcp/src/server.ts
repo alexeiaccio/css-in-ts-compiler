@@ -36,12 +36,17 @@ Example: { "property": "padding", "value": "-1rem" } -> { "ok": false, "message"
   .annotate(Tool.OpenWorld, false);
 
 const CheckSupport = Tool.make("check_support", {
-  description: `Which target browsers lack a CSS property, or the features in a value (keywords, functions), by MDN browser-compat-data: the support warnings of a cssints build, with the BCD key of each. Targets: a browserslist query, else the project's browserslist config (package.json "browserslist" or .browserslistrc from the working directory), as the plugin reads it. What LightningCSS lowers for the lacking targets (oklch() gets a hex fallback) counts as supported, as in a build, and is listed under lowered with the value it writes. Use it to decide whether a feature needs a fallback (firstThatWorks).
+  description: `Which target browsers lack a CSS property, or the features in a value (keywords, functions), by MDN browser-compat-data: the support warnings of a cssints build, with the BCD key of each. Targets: a browserslist query, else the project's browserslist config (package.json "browserslist" or .browserslistrc, found from root, default the working directory), as the plugin reads it from its Vite root. What LightningCSS lowers for the lacking targets (oklch() gets a hex fallback) counts as supported, as in a build, and is listed under lowered with the value it writes. Use it to decide whether a feature needs a fallback (firstThatWorks).
 Example: { "property": "textWrap", "value": "balance", "query": "chrome 109" } -> { "supported": false, "lacking": [{ "feature": "text-wrap", "key": "css.properties.text-wrap", "targets": "chrome 109", ... }] }`,
   parameters: Schema.Struct({
     property: Text("The property, camelCase or kebab-case"),
     value: Maybe(Text("A value: its keywords and functions are looked up too")),
     query: Maybe(Text('A browserslist query, e.g. "defaults" or "safari >= 16"')),
+    root: Maybe(
+      Text(
+        "Without query: the project root its browserslist config is found from; default: the server's working directory",
+      ),
+    ),
   }),
   success: Schema.Struct({
     property: Schema.String,
@@ -430,7 +435,8 @@ const handlers = tools
       const inspector = yield* Inspector;
       return tools.of({
         check_declaration: ({ property, value }) => checkDeclaration(property, value),
-        check_support: ({ property, value, query }) => checkSupport(property, value, query),
+        check_support: ({ property, value, query, root }) =>
+          checkSupport(property, value, query, root),
         check_contrast: ({ foreground, background, min }) =>
           checkContrast(foreground, background, min),
         compile: (input) => compile(input),

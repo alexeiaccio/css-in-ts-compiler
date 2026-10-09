@@ -95,6 +95,13 @@ const relative = await call("check_support", {
 });
 assert.equal(relative.supported, false);
 assert.deepEqual(relative.lowered, []);
+// no query: the browserslist of the root (the fixtures': chrome 109)
+const rooted = await call("check_support", { property: "textWrap", value: "balance", root: fixtures });
+assert.deepEqual(
+  rooted.lacking.map((w) => w.targets),
+  ["chrome 109"],
+);
+assert.match(rooted.query, /found from .*fixtures/);
 const fine = await call("check_support", { property: "color", query: "chrome 120" });
 assert.equal(fine.supported, true);
 assert.equal(fine.known, true);
@@ -133,6 +140,17 @@ assert.equal(button.classes.length, 3);
 assert.match(button.css, /\{padding:1rem\}/);
 assert.match(button.code, /export const pad = "_\w+";/);
 assert.ok(Array.isArray(button.warnings));
+
+// the plugin reads the browserslist of the project root, not of the server's working directory
+const wrap = await call("compile", {
+  file: "virtual/wrap.ts",
+  root: fixtures,
+  source: `import { css } from "cssints" with { type: "cssints" };\nexport const w = css.textWrap("balance");\n`,
+});
+assert.deepEqual(
+  wrap.warnings.map((w) => w.message),
+  ['text-wrap: the property in "balance" is not supported by chrome 109 (css.properties.text-wrap)'],
+);
 
 // a support warning at its call, and said by every compile (line-clamp: no target has it unprefixed)
 const clamp = {

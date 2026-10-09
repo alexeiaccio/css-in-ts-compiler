@@ -45,7 +45,8 @@ put the element in that state first (else the pointer is moved away and the focu
 the viewport. They need a Chromium: `npx playwright-core install chromium`, else an installed Chrome is used.
 
 `check_support` without `query` reads the project's browserslist (`package.json` `"browserslist"` or `.browserslistrc`,
-found from the working directory), as the plugin does. `compile` starts a Vite dev server in middleware mode for the
+found from `root`, else the working directory), as the plugin reads it from its Vite root; `compile`'s warnings are
+those of the root's targets. `compile` starts a Vite dev server in middleware mode for the
 project root (the `root` argument, else the working directory) on its first call and reuses it: the project's
 `vite.config` is loaded when it has one (its aliases, its `cssints()` options), else the plugin alone; the project's own
 `vite` and `cssints` are used when installed. Each call reads the module and what it imports again.

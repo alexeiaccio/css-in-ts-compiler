@@ -8,6 +8,7 @@ import { readFile } from "node:fs/promises";
 import { basename, join, relative, resolve } from "node:path";
 
 import { browsers } from "@cssints/css-grammar/browsers";
+import { type Target, targets as targetsOf } from "@cssints/css-grammar/support";
 import { Cause, Effect, Exit, Formatter, Option, Predicate, Result, Schema } from "effect";
 import { browserslistToTargets } from "lightningcss";
 import MagicString from "magic-string";
@@ -86,7 +87,10 @@ const packagesOnCssints = (root: string) =>
 
 const hash = (s: string) => createHash("sha1").update(s).digest("hex").slice(0, 8);
 
-/** LightningCSS targets (css.lightningcss.targets) from the browserslist query of the support warnings. */
+/**
+ * LightningCSS targets (css.lightningcss.targets) from the browserslist config of process.cwd(), read when vite.config.ts
+ * imports this module: the support warnings read the one of the Vite root, the same unless the root is elsewhere.
+ */
 export const targets = browserslistToTargets(Effect.runSync(browsers()));
 
 // The same query as esbuild-style names for Vite's `build.cssTarget`: Vite's CSS minify takes its targets from there, not
@@ -100,7 +104,7 @@ const ESBUILD: Record<string, string> = {
   firefox: "firefox",
   safari: "safari",
 };
-/** `build: { cssTarget }`, the browserslist query of the support warnings, so a minified build keeps `firstThatWorks` fallbacks. */
+/** `build: { cssTarget }`, the browserslist query of `targets`, so a minified build keeps `firstThatWorks` fallbacks. */
 export const cssTarget = Effect.runSync(browsers()).flatMap((t) => {
   const [agent, version] = t.split(" ") as [string, string];
   return ESBUILD[agent] && /^\d/.test(version) ? [`${ESBUILD[agent]}${version.split("-")[0]}`] : [];
@@ -217,6 +221,7 @@ export default function cssints({
   let runner: ModuleRunner | undefined; // private runner with DOM bindings; server.environments.ssr.runner stays untouched
   let build = false;
   let root = process.cwd();
+  let rootTargets: Target[] | undefined; // the browserslist config of `root`: the support checks of every evaluation
   let cssPlugins: (Plugin | undefined)[] = []; // vite:css, vite:css-post: in build they take the sheet in renderChunk
   const usedBy = new Map<string, string>(); // client module id -> its classes and @property rules, sorted, one a line
   const depsOf = new Map<string, Set<string>>(); // dependency file -> Set<client module id>
@@ -336,7 +341,9 @@ export default function cssints({
       return { sites, runtimes, files };
     });
     const { sites, runtimes, files } = parsed.sites.length
-      ? yield* evaluate(runner!, id, recorded).pipe(Effect.ensuring(flushWarnings(warn, id, code)))
+      ? yield* evaluate(runner!, id, recorded, rootTargets).pipe(
+          Effect.ensuring(flushWarnings(warn, id, code)),
+        )
       : yield* Effect.sync(() => forget(id)).pipe(Effect.andThen(recorded(new Map())));
     if (!build || buildMap) {
       const at = new Map<string, Loc>();
@@ -605,6 +612,7 @@ export default function cssints({
       build = config.command === "build";
       buildMap = build && !inner && config.build.sourcemap;
       root = config.root;
+      if (!inner) rootTargets = Effect.runSync(targetsOf(undefined, root));
       cssPlugins = ["vite:css", "vite:css-post"].map((n) =>
         config.plugins.find((p) => p.name === n),
       );

@@ -5,7 +5,7 @@ status: in-progress
 type: task
 priority: low
 created_at: 2026-10-09T09:15:41Z
-updated_at: 2026-10-09T13:02:33Z
+updated_at: 2026-10-09T13:08:35Z
 ---
 
 Found by @cssints/mcp (cssints-w57u, "## Engine gaps"); each is worked around inside packages/mcp.
@@ -18,7 +18,7 @@ Found by @cssints/mcp (cssints-w57u, "## Engine gaps"); each is worked around in
 ## Todo
 - [x] export contrast and loweredOf from a public entry
 - [x] warnings with a location, repeatable per build (an API, not hotUpdate)
-- [ ] targets per root
+- [x] targets per root
 - [ ] ship docs/API.md in the cssints package (or a docs subpath)
 
 ## Progress

@@ -9,6 +9,8 @@ import {
   targets,
   type Target,
 } from "@cssints/css-grammar/support";
+import { resolve } from "node:path";
+
 import { loweredOf } from "cssints/check";
 import { Data, Effect } from "effect";
 
@@ -37,14 +39,15 @@ export const checkSupport = Effect.fn("mcp.checkSupport")(function* (
   property: string,
   value: string | undefined,
   query: string | undefined,
+  root: string | undefined,
 ) {
   const p = kebab(property);
   const v = value ?? "";
-  const ts: Target[] | undefined =
-    query === undefined
-      ? undefined
-      : yield* targets(query).pipe(Effect.mapError((e) => new ToolError({ message: e.message })));
-  const all = ts ?? (yield* targets().pipe(Effect.orElseSucceed(() => [])));
+  const from = resolve(root ?? process.cwd());
+  // a query, else the project's config, as the plugin reads it from its Vite root
+  const ts: Target[] = yield* targets(query, from).pipe(
+    Effect.mapError((e) => new ToolError({ message: e.message })),
+  );
   const found = [];
   for (const w of yield* support(p, v, ts))
     found.push({ ...w, lowered: value === undefined ? undefined : yield* loweredOf(p, v, w) });
@@ -52,8 +55,8 @@ export const checkSupport = Effect.fn("mcp.checkSupport")(function* (
   return {
     property: p,
     ...(value === undefined ? {} : { value }),
-    query: query ?? "the browserslist config found from the working directory (else defaults)",
-    targets: browsers(all.map((t) => t.join(" "))),
+    query: query ?? `the browserslist config found from ${from} (else defaults)`,
+    targets: browsers(ts.map((t) => t.join(" "))),
     known: get(`css.properties.${p}`)?.__compat !== undefined,
     supported: lacking.length === 0,
     lacking: lacking.map((w) => ({
