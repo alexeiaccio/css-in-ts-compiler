@@ -30,8 +30,13 @@ const edit = async (from, to) => {
   // The browser applies the update by asking for the module again; the sheet follows when that transform ran.
   const code = await get("/src/Shell.tsx");
   await sleep(500);
+  // custom events (the devtools' `cssints:devtools:stale`, sent as `hot.send(event)`) are not updates
   const paths = sent.flatMap((p) =>
-    p.type === "update" ? p.updates.map((u) => u.path) : [p.type],
+    typeof p === "string" || p.type === "custom"
+      ? []
+      : p.type === "update"
+        ? p.updates.map((u) => u.path)
+        : [p.type],
   );
   return { paths, code };
 };

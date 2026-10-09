@@ -4,16 +4,18 @@ Question: sky ships one global sheet for all routes (docs/research/css-output.md
 grows slowly with the app). How much of that sheet does each route use, would a sheet per route save enough to be
 worth it, and is anything in it dead?
 
-Answer: **keep one sheet.** A route uses 49–74 % of the style-rule bytes after its interactions, but most of the
-rest is used by the other routes' shared parts. A sheet per route would save 7.6–11.6 % of the bytes, which is
-0.7–1.0 KB gzip of 7.6 KB. **Nothing of sky's own is dead.** 95.3 % of the style rules are used by some shipped route.
-Of the other 15 rules, 12 are embeds and a moderation state that the route fixtures do not have (/dev/posts uses
-them). The last 3 are the style-query polyfill of the frame and surface kernels, which Chrome never needs. Also,
+Answer: **keep one sheet.** A route uses 49–75 % of the style-rule bytes after its interactions, but most of the
+rest is used by the other routes' shared parts. A sheet per route would save 7.9–12.9 % of the bytes, which is
+0.7–1.1 KB gzip of 7.6 KB. **Nothing of sky's own is dead.** 98.7 % of the style rules are used by some shipped route.
+Of the other 4 rules, 1 is the fixed width of the dev page /dev/posts. The last 3 are the style-query polyfill of the
+frame and surface kernels, which Chrome never needs. Also,
 **`page.coverage` cannot measure a sheet in `@layer` blocks**: on sky it reads 80.1 % on every route, the 404 page
 too. The 79 % that cssints-0a3p reported for the demo comes from this artifact, not from use.
 
 Measured on 2026-10-09 with `cd apps/sky && bun run test:coverage` (apps/sky/test/coverage.mjs), Chrome through
-playwright-core 1.63, the production build of sky as of master f4db568.
+playwright-core 1.63, the production build of sky as of master f4db568. Re-measured the same day (cssints-5jj1) after
+the profile's Media fixture got a 3-image post, a gallery and a "warn" post: only the profile row, the union, the
+splits and the unused rules changed (and /dev/posts by one rule).
 
 ## How it is measured
 
@@ -26,7 +28,8 @@ playwright-core 1.63, the production build of sky as of master f4db568.
   reduced motion. Then the route's own steps, then the widths and the pointer again:
   - home: paging to the 414 end note, the Science tab, and the skeletons again under reduced motion (the API holds
     the first page for 400 ms);
-  - profile: the Replies, Media and Posts tabs, paging, then the not-found and network-error states;
+  - profile: the Replies, Media and Posts tabs (Media ends with a 3-image post, a gallery and a "warn" post from
+    posts.json, scripts/record-profile.mjs), paging, then the not-found and network-error states;
   - thread: every "Show N more replies", then a gone parent, a blocked parent, and a 500;
   - settings: the four modes, three hues, and the square buttons and avatars;
   - 404: nothing more.
@@ -77,17 +80,19 @@ of the 319 rules.
 | route               | on load: bytes  | rules        | after interactions: bytes | rules            | only this route (class rules): rules, bytes, gzip |
 | ------------------- | --------------- | ------------ | ------------------------- | ---------------- | ------------------------------------------------- |
 | home (`/`)          | 14 867 (64.0 %) | 187 (58.6 %) | 16 550 (71.3 %)           | 213 (66.8 %)     | 18, 711, 422                                      |
-| profile             | 15 258 (65.7 %) | 200 (62.7 %) | 17 099 (73.6 %)           | 230 (72.1 %)     | 32, 1 157, 535                                    |
+| profile             | 15 258 (65.7 %) | 200 (62.7 %) | 17 484 (75.3 %)           | 241 (75.5 %)     | 43, 1 542, 708                                    |
 | thread              | 14 839 (63.9 %) | 181 (56.7 %) | 16 289 (70.1 %)           | 201 (63.0 %)     | 22, 1 237, 405                                    |
 | settings            | 10 999 (47.4 %) | 125 (39.2 %) | 14 772 (63.6 %)           | 158 (49.5 %)     | 14, 504, 279                                      |
 | 404                 | 9 917 (42.7 %)  | 96 (30.1 %)  | 11 275 (48.5 %)           | 114 (35.7 %)     | 0                                                 |
-| /dev/posts (dev)    |                 |              | 16 283 (70.1 %)           | 206 (64.6 %)     | 12, 452, 284                                      |
-| **union** (shipped) |                 |              | **22 146 (95.3 %)**       | **304 (95.3 %)** |                                                   |
+| /dev/posts (dev)    |                 |              | 16 308 (70.2 %)           | 207 (64.9 %)     | 1, 67, 79                                         |
+| **union** (shipped) |                 |              | **22 531 (97.0 %)**       | **315 (98.7 %)** |                                                   |
 
 - **Shared by every route:** 114 rules, 11 275 bytes (3 401 gzip). These are the shell (nav, column, rail, bottom
   bar), the base styles and the tokens. The 404 page uses exactly this set.
 - **Only one route:** home has the skeletons and the tab bar with its indicator (Skeleton.tsx, TabBar.tsx).
-  Profile has the header and its `column (width < 500px)` layout, its tabs and states (Header.tsx, Profile.tsx).
+  Profile has the header and its `column (width < 500px)` layout, its tabs and states (Header.tsx, Profile.tsx),
+  and, through its Media fixture, the 3-image grid, the gallery's "+N" overlay and the blurred post (Embed.tsx,
+  Post.tsx).
   Thread has the connector lines and the reply rows (Thread.tsx). Settings has its controls (Settings.tsx). The
   post card and its embeds are on three routes, so they are shared.
 - **Themes are global, not settings-only.** 18 rules (`:root.dim,:root.dark`, `.light`, `.dim`, `.dark` with their
@@ -101,62 +106,56 @@ A sheet per route at best is the one sheet without the class rules that only oth
 
 | route    | its sheet: bytes | gzip  | saved vs the one sheet              |
 | -------- | ---------------- | ----- | ----------------------------------- |
-| home     | 28 151           | 6 847 | 2 898 (9.3 %), 732 gzip (9.7 %)     |
+| home     | 27 766           | 6 717 | 3 283 (10.6 %), 862 gzip (11.4 %)   |
 | profile  | 28 597           | 6 892 | 2 452 (7.9 %), 687 gzip (9.1 %)     |
-| thread   | 28 677           | 6 851 | 2 372 (7.6 %), 728 gzip (9.6 %)     |
-| settings | 27 944           | 6 706 | 3 105 (10.0 %), 873 gzip (11.5 %)   |
-| 404      | 27 440           | 6 568 | 3 609 (11.6 %), 1 011 gzip (13.3 %) |
+| thread   | 28 292           | 6 726 | 2 757 (8.9 %), 853 gzip (11.3 %)    |
+| settings | 27 559           | 6 574 | 3 490 (11.2 %), 1 005 gzip (13.3 %) |
+| 404      | 27 055           | 6 438 | 3 994 (12.9 %), 1 141 gzip (15.1 %) |
 
 This is an upper bound. A real split goes by module, not by observed use. Each chunk would also hold the rules its
 components can produce but that the fixtures did not trigger. The post card (Post.tsx, Embed.tsx, RichText.tsx)
 would stay in a shared chunk for home, profile and thread. Against that: a second request on the first visit, a
 second request on each navigation to a new route (the app is a client-side router, so the one sheet is cached after
 the first page), and the layer order statement has to come first in every sheet (css-output.md). Atomic classes
-reduce what a split can save: a declaration that two routes use is one rule, not two. That is why 95 % of the
-sheet is used by some route, but no route uses more than 74 %.
+reduce what a split can save: a declaration that two routes use is one rule, not two. That is why 97 % of the
+sheet is used by some route, but no route uses more than 75 %.
 
-**About 0.7–1.0 KB gzip per route is not worth an extra request and the ordering risk.** Look at this again when
+**About 0.7–1.1 KB gzip per route is not worth an extra request and the ordering risk.** Look at this again when
 the sheet grows: a route with a large, separate set of components (a composer, a media viewer), or a "only here"
 share above ~30 % of the sheet. Run `bun run test:coverage` to get the numbers.
 
 ## What no route uses
 
-15 rules, 1 081 bytes (462 gzip).
+4 rules, 696 bytes (275 gzip). Until cssints-5jj1 it was 15 rules: 11 of them were the 3-image grid and its banner
+cell, the gallery's "+N" overlay and the blurred "warn" post with its reveal (Embed.tsx:67–107, Post.tsx:115), which
+only /dev/posts showed. The profile's Media fixture now has those posts, so the route measures them.
 
-**Used on /dev/posts only.** These are content kinds the route fixtures do not have, not dead code:
-
-| rule                                                                     | source                      | what                                              |
-| ------------------------------------------------------------------------ | --------------------------- | ------------------------------------------------- |
-| `._1d66ix8`, `@container post (width >= 28rem)` `._1ekewh9`, `._1jjci4s` | src/post/Embed.tsx:67       | image grid, the 3-image and gallery variants      |
-| `@container post (width >= 28rem)` `._1u5hi6w`                           | src/post/Embed.tsx:87       | the banner cell of three images                   |
-| `._w4577e`, `@container post (width >= 28rem)` `._ip5mkg`                | src/post/Embed.tsx:97       | the banner image shape                            |
-| `._187hwr6`, `._2ik27d`                                                  | src/post/Embed.tsx:107      | the "+N" overlay on the last image of a gallery   |
-| `._1watf5i`, `._q1zvg8`, `._z3zdsi`                                      | src/post/Post.tsx:115       | a blurred post (moderation "warn") and its reveal |
-| `._14h850t`                                                              | src/screens/DevPosts.tsx:55 | the dev page's fixed width                        |
+**Used on /dev/posts only.** `._14h850t` (src/screens/DevPosts.tsx:55), the dev page's fixed width. It is not
+shipped.
 
 **Used nowhere.** There are 3 rules, and they belong to cssints, not to sky:
 
-| rule                                                  | source                                                 | why                                                         |
-| ----------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------- |
-| `:root[data-cssints-poly] ._frame-core`               | cssints frame.ts (first used in src/Shell.tsx:141)     | the frame kernel's fallback without container style queries |
-| `:root[data-cssints-poly] ._surface-core`             | cssints surface.ts (first used in src/post/Feed.tsx:8) | the same for surface                                        |
-| `:root[data-cssints-poly] ._surface-core._frame-core` | cssints surface.ts                                     | both on one element                                         |
+| rule                                                  | source                                                      | why                                                         |
+| ----------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------- |
+| `:root[data-cssints-poly] ._frame-core`               | cssints frame.ts (first used in src/Shell.tsx:141)          | the frame kernel's fallback without container style queries |
+| `:root[data-cssints-poly] ._surface-core`             | cssints surface.ts (first used in src/home/Skeleton.tsx:43) | the same for surface                                        |
+| `:root[data-cssints-poly] ._surface-core._frame-core` | cssints surface.ts                                          | both on one element                                         |
 
 `parent-vars.ts` sets `data-cssints-poly` only in a browser that fails its style-query probe, so Chrome never
 matches these rules. They are not dead code: the same sheet serves every browser that the targets name, and in a browser whose probe
 fails, this fallback is what draws the frames and surfaces.
 
-So there is nothing to delete. The fixture gap is real but small: route fixtures with a 3-image post, a 4+ image
-post and a "warn" label would move the 12 /dev/posts rules into the measured routes. posts-browser.mjs already
-tests these layouts on /dev/posts.
+So there is nothing to delete, and no fixture gap is left: every rule of sky's own that a shipped route can draw is
+measured on a route.
 
 ## Recommendation
 
-- **Keep one sheet.** The most a route could save is ~1 KB gzip of 7.6 KB, and the cost is requests and layer order.
+- **Keep one sheet.** The most a route could save is ~1.1 KB gzip of 7.6 KB, and the cost is requests and layer order.
 - **No per-route chunks for now.** Check again when a route adds a large set of its own components. The measure is
   "only this route" bytes in `test:coverage`.
 - **Delete nothing.** Sky's own rules are all reachable. The 3 unmatched rules are a cssints fallback for other
   browsers.
 - **Do not use `page.coverage` on a layered sheet.** It counts every rule inside a used `@layer` block. Use CDP rule
   usage as coverage.mjs does (or check that a tool such as @projectwallace/css-code-coverage does). The demo figure
-  in devtools.md needs a correction (follow-up bean).
+  in devtools.md is corrected (cssints-5jj1): by rule usage the demo uses 75.2 % of its style-rule bytes on load,
+  83.9 % after interactions.
