@@ -52,11 +52,13 @@ const build = (member: string, name: string) => {
           ? p.name
           : atom(p),
     );
-    const text = texts.reduce(
-      (acc, t, i) =>
-        i ? `${acc}${OPERATORS.has(t) || OPERATORS.has(texts[i - 1]!) ? " " : sep}${t}` : t,
-      "",
-    );
+    const join = (ts: string[]) =>
+      ts.reduce(
+        (acc, t, i) =>
+          i ? `${acc}${OPERATORS.has(t) || OPERATORS.has(ts[i - 1]!) ? " " : sep}${t}` : t,
+        "",
+      );
+    const text = join(texts);
     const value = `${name}(${text})`;
     const first = parts[0];
     if (name === "var") {
@@ -68,20 +70,55 @@ const build = (member: string, name: string) => {
       if (first instanceof CSSTokenValue && texts.length > 1)
         checkText(`var(${first.name}) fallback`, `<${first.syntax}>`, texts.slice(1).join(sep));
     } // the var() itself is valid by construction: a token is declared
-    else checkText(`${name}()`, grammar, value);
+    else
+      checkText(
+        `${name}()`,
+        grammar,
+        value,
+        math ? undefined : () => argumentOf(name, grammar, texts, sep, join),
+      );
     return new CSSFunctionValue(value);
   };
 };
 
+// Where a call stops matching `<name()>`, said like the types do: a `var()` stands for the rest (the recognizer's pending
+// substitution), so the first part whose prefix can neither go on nor end is the bad one; if every prefix goes on, the call ends
+// too soon. Runs on the failure path only.
+const argumentOf = (
+  name: string,
+  grammar: string,
+  texts: string[],
+  sep: string,
+  join: (ts: string[]) => string,
+) => {
+  const fits = (s: string) => {
+    try {
+      checkValueNow(name, grammar, s);
+      return true;
+    } catch (e) {
+      if (!isDeclarationError(e)) throw e;
+      return false;
+    }
+  };
+  const i = texts.findIndex((t, n) =>
+    probed(join(texts.slice(0, n + 1)), registry.properties).some(
+      (h) =>
+        !fits(`${name}(${h}${OPERATORS.has(t) ? " " : sep}var(--x))`) && !fits(`${name}(${h})`),
+    ),
+  );
+  return !texts.length ? "" : i < 0 ? ` (after argument ${texts.length})` : ` (argument ${i + 1})`;
+};
+
 // `text` against `grammar`, a token in it as the literals of its type (lib.ts `probed`); the twin's message, at the call site.
-const checkText = (label: string, grammar: string, text: string) => {
+// `where` names the argument, on the failure path.
+const checkText = (label: string, grammar: string, text: string, where?: () => string) => {
   for (const v of probed(text, registry.properties))
     try {
       checkValueNow(label, grammar, v);
     } catch (e) {
       if (!isDeclarationError(e)) throw e; // a bug, not a user error
       throw new MacroError({
-        message: `${e.message.replace(`, expected ${MATH}`, "")}${v === text ? "" : ` ("${text}" is checked as "${v}": a token stands for a value of its type)`}`,
+        message: `${e.message.replace(`, expected ${MATH}`, "")}${where?.() ?? ""}${v === text ? "" : ` ("${text}" is checked as "${v}": a token stands for a value of its type)`}`,
         cause: e,
         ...registry.at,
       });
