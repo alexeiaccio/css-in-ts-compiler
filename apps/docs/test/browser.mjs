@@ -302,6 +302,48 @@ try {
       "CSS-in-TS",
       "Page not found",
     ]);
+    // the devtools: the page asks for nothing of them until the first open, then the overlay and the table load, and a pick shows its calls
+    const tools = await watched.newPage();
+    const loaded = [];
+    tools.on("request", (r) => loaded.push(r.url()));
+    tools.on("pageerror", (e) => problems.push(`built devtools: ${e}`));
+    tools.on(
+      "console",
+      (m) => m.type() === "error" && problems.push(`built devtools: ${m.text()}`),
+    );
+    await tools.goto(`${built}install`);
+    await tools.locator("main h1").waitFor({ state: "visible" });
+    await sleep(500);
+    const lazy = /\/assets\/(overlay|cssints-devtools)-/;
+    assert.deepEqual(
+      loaded.filter((u) => lazy.test(u)),
+      [],
+      "nothing of the devtools before the first open",
+    );
+    await tools.keyboard.press("Alt+Shift+C");
+    await tools.locator("[data-devtools=panel]").waitFor();
+    assert.equal(loaded.filter((u) => lazy.test(u)).length, 2, "the overlay and the table");
+    await tools.locator("text=hover an element").waitFor();
+    await tools.hover("#sidebar", { position: { x: 4, y: 4 } });
+    await tools.click("#sidebar", { position: { x: 4, y: 4 } });
+    await tools.waitForSelector("[data-devtools=classes] [data-site]");
+    const where = await tools
+      .locator("[data-site]")
+      .evaluateAll((es) => es.map((e) => e.dataset.site));
+    assert.match(where.join(), /^src\/[\w/.-]+\.tsx?:\d+/, "file:line, relative to the project");
+    assert.ok(
+      (await tools.$eval("[data-call]", (e) => e.textContent)).length > 3,
+      "the call's text",
+    );
+    assert.equal(
+      await tools.locator("[data-devtools=classes] button").count(),
+      0,
+      "no link to an editor",
+    );
+    assert.ok(await tools.locator("[data-devtools=properties] [data-prop]").count(), "the cascade");
+    await tools.screenshot({ path: join(out, "devtools-built.png") });
+    await tools.keyboard.press("Escape");
+    await tools.close();
     await watched.close();
   } finally {
     await site.close();
