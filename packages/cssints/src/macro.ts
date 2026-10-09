@@ -362,20 +362,32 @@ const within = (state?: unknown, name?: unknown) => {
 };
 
 // The two members only a kernel written as styles has (scope-engine.ts hands it `kernelCss`).
-// nest("& > *"): the styles on other elements, relative to the kernel's class. It sorts after the element's own states.
+// nest("& > *"), nest(":root:has(&)"), nest(".x &"): a selector with `&`, the kernel's class. It sorts after the element's
+// own states. One complex selector, not a list. `own` when the subject is still the element: `&` in the last compound,
+// outside parentheses (`.x &`, `&.on`); then what it sets is the element's, for derived conflicts.
 const nest = (...args: unknown[]) => {
   const [selector] = args;
-  if (typeof selector !== "string" || !/^&\s*[>+~\s]/.test(selector))
+  const text = typeof selector === "string" ? selector.trim().replace(/\s+/g, " ") : "";
+  let depth = 0;
+  let own = false;
+  let list = false;
+  for (const ch of text)
+    if (ch === "(" || ch === "[") depth++;
+    else if (ch === ")" || ch === "]") depth--;
+    else if (depth) continue;
+    else if (ch === "&") own = true;
+    else if (ch === ",") list = true;
+    else if (" >+~".includes(ch)) own = false;
+  if (!text.includes("&") || list)
     throw fail(
-      `cssints: nest() takes a selector that starts with & and a combinator ("& > *", "& > * + *", "& p"), got ${Formatter.formatJson(selector)}`,
+      `cssints: nest() takes one selector with & (the kernel's class): "& > *", "& p", ":root:has(&)", ".x &", got ${Formatter.formatJson(selector)}`,
     );
-  const text = selector.trim().replace(/\s+/g, " ");
-  const exit = Effect.runSyncExit(checkSelector(`._${text.slice(1)}`));
+  const exit = Effect.runSyncExit(checkSelector(text.replaceAll("&", "._k")));
   if (Exit.isFailure(exit)) {
     const e = Cause.squash(exit.cause) as Error;
     throw new MacroError({ message: `cssints: nest(): ${e.message}`, cause: e, ...registry.at });
   }
-  return wrapper({ text, rank: 3000, nest: true });
+  return wrapper({ text, rank: 3000, nest: true, ...(own ? { own: true as const } : {}) });
 };
 
 // vars({ "--_gap": "1rem" }): custom properties, values unchecked as in a chain's `emit`. A keyframes() or positionTry()
@@ -513,8 +525,9 @@ const ruleOf = (cls: string, [prop, value, conds = [], fallbacks]: Decl): Rule =
   const wrap: string[] = [];
   const ranks: number[] = [];
   let before = "";
-  // the class, then the states and the nested selectors in the order they wrap: `.k:hover > *`, `.k > *:hover`
-  const sel = [`.${cls}`];
+  // the class, then the states and the nested selectors in the order they wrap: `.k:hover > *`, `.k > *:hover`; a nest()
+  // with `&` elsewhere takes what is built so far as its `&`: `:root:has(.k:hover)`, `:root:has(.k):hover`
+  let sel = `.${cls}`;
   let width = 0;
   for (const c of conds)
     if (c.text.startsWith("@")) {
@@ -522,7 +535,13 @@ const ruleOf = (cls: string, [prop, value, conds = [], fallbacks]: Decl): Rule =
       width = Math.max(width, c.rank);
     } else {
       if (c.ancestor) before += `${c.text} `;
-      else sel.push(c.nest ? c.text.slice(1) : c.text);
+      else if (!c.nest) sel += c.text;
+      else if (c.text.lastIndexOf("&") === 0) sel += c.text.slice(1);
+      else {
+        const amp = `${before}${sel}`;
+        sel = c.text.replaceAll("&", /[\s>+~]/.test(amp) ? `:is(${amp})` : amp);
+        before = "";
+      }
       ranks.push(c.rank);
     }
   const all = fallbacks ? `${value};${fallbacks.join(";")}` : value;
@@ -532,7 +551,7 @@ const ruleOf = (cls: string, [prop, value, conds = [], fallbacks]: Decl): Rule =
     cond: conds.length ? [width, ...ranks] : [],
     wrap,
     prop,
-    css: `${before}${sel.join("")}{${fallbacks ? [...fallbacks.toReversed(), value].map((v) => `${prop}:${v}`).join(";") : `${prop}:${value}`}}`,
+    css: `${before}${sel}{${fallbacks ? [...fallbacks.toReversed(), value].map((v) => `${prop}:${v}`).join(";") : `${prop}:${value}`}}`,
     tokens,
   };
 };
@@ -540,7 +559,7 @@ const ruleOf = (cls: string, [prop, value, conds = [], fallbacks]: Decl): Rule =
 // A kernel written as styles: its rules under the class `cls`, in the order of the sheet (fewer conditions first, then media
 // by width and pseudo-classes by place, a shorthand before its longhands); the declarations of one selector under the same
 // at-rules share a block. `props` are the properties it sets on the element, for the conflicts a member derives from them:
-// not its custom properties, nor what a `nest()` sets on other elements. `kernels` are the at-rules of the names it holds.
+// not its custom properties, nor what a `nest()` sets on another subject (`& > *`, `:root:has(&)`; `.x &` is the element). `kernels` are the at-rules of the names it holds.
 const kernelOf = (what: string, style: CssNode, cls: string) => {
   const warnings: KernelWarning[] = [];
   const decls = declsOf(what, style, true, undefined, warnings);
@@ -570,7 +589,7 @@ const kernelOf = (what: string, style: CssNode, cls: string) => {
     props: [
       ...new Set(
         decls.flatMap(([prop, , conds]) =>
-          prop.startsWith("--") || conds?.some((c) => c.nest) ? [] : [prop],
+          prop.startsWith("--") || conds?.some((c) => c.nest && !c.own) ? [] : [prop],
         ),
       ),
     ],

@@ -349,7 +349,12 @@ await kernelFails("nest", `css.nest("& > [x")(css.color("red"))`, /^cssints: nes
 await kernelFails(
   "own",
   `css.nest(":hover")(css.color("red"))`,
-  /^cssints: nest\(\) takes a selector that starts with & and a combinator/,
+  /^cssints: nest\(\) takes one selector with & \(the kernel's class\)/,
+);
+await kernelFails(
+  "list",
+  `css.nest("& > a, .x &")(css.color("red"))`,
+  /^cssints: nest\(\) takes one selector with &/,
 );
 await kernelFails("var", `css.vars({ gap: "1rem" })`, /^cssints: vars\(\) takes/);
 
@@ -397,6 +402,63 @@ await fails(
   /^cssints: sc-nest: kernel core sets display, animation-name \(this style also sets display\)$/,
   3,
   "sc-nest",
+);
+
+// `&` elsewhere in a nest() selector: what is built so far stands for it, so a condition around it reaches the element
+// (`:root:has(._k:hover)`) and one inside the subject; `:root:has(&)` styles the root, not the element, so it is left out
+// of derived conflicts, while `.x &` is the element's. A keyframes() made in the kernel names `--_x` as the kernel does,
+// and its name differs per scope, so two scopes with the same steps do not clash.
+const around = (name) =>
+  write(
+    `sc-around-${name}.ts`,
+    `import { scope } from "cssints/plugin";
+export const { m } = scope("sc-around-${name}", {
+  core: {
+    css: (css) => {
+      const clock = css.keyframes({ from: css.vars({ "--_p": "100%" }), to: css.vars({ "--_p": "0%" }) });
+      return [
+        css.backgroundPosition("var(--_p) 0"),
+        css.nest(":root:has(&)")(css.animation(clock, "1s infinite")),
+        css.hover(css.nest(":root:has(&)")(css.color("red"))),
+        css.nest(":root:has(&)")(css.focus(css.color("blue"))),
+        css.nest(".dark &")(css.opacity(0.5)),
+        css.nest("& > *")(css.nest(".x &")(css.margin(0))),
+      ];
+    },
+  },
+  m: { uses: ["core"], chain: {} },
+}).export();
+`,
+  );
+around("a");
+around("b");
+write(
+  "sc-around-use.ts",
+  `import { cn, animation, color } from "cssints" with { type: "cssints" };\nimport { m as a } from "./sc-around-a.ts" with { type: "cssints" };\nimport { m as b } from "./sc-around-b.ts" with { type: "cssints" };\nexport const x = cn(a(), animation("none"), color("red"));\nexport const y = b();\n`,
+);
+await code("sc-around-use.ts");
+const aroundCss = sheet("sc-around-use.ts");
+for (const s of ["a", "b"]) {
+  const k = `_sc-around-${s}-core`;
+  const kf = aroundCss.match(
+    new RegExp(`@keyframes (kf-[\\w-]+)\\{from\\{--sc-around-${s}-p:100%\\}to\\{--sc-around-${s}-p:0%\\}\\}`),
+  )?.[1];
+  assert.ok(kf, `the keyframes of ${s} name --sc-around-${s}-p\n${aroundCss}`);
+  assert.ok(
+    aroundCss.includes(
+      `.${k}{background-position:var(--sc-around-${s}-p) 0} :root:has(.${k}){animation:${kf} 1s infinite} .dark .${k}{opacity:0.5} :root:has(.${k}:hover){color:red} :root:has(.${k}):focus{color:blue} .x :is(.${k} > *){margin:0rem}`,
+    ),
+    aroundCss,
+  );
+}
+await fails(
+  write(
+    "sc-around-conflict.ts",
+    `import { cn, opacity } from "cssints" with { type: "cssints" };\nimport { m } from "./sc-around-a.ts" with { type: "cssints" };\nexport const a = cn(m(), opacity(1));\n`,
+  ),
+  /^cssints: sc-around-a: kernel core sets background-position, opacity \(this style also sets opacity\)$/,
+  3,
+  "sc-around-a",
 );
 
 // two kernels of one member have no order between them (the sheet prints kernels by key), so what they set on the
