@@ -1,10 +1,11 @@
 ---
 # cssints-tt24
 title: 'Docs site: theme settings (hue, light/dim/dark, text size and density, font and radii)'
-status: in-progress
+status: completed
 type: feature
+priority: normal
 created_at: 2026-10-09T12:50:59Z
-updated_at: 2026-10-09T12:50:59Z
+updated_at: 2026-10-09T13:14:18Z
 ---
 
 Asked by the user (2026-10-09). A settings panel on cssints.accio.blue like apps/sky's /settings, built on cssints tokens and themes, persisted in localStorage, applied before first paint.
