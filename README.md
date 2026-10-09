@@ -95,6 +95,24 @@ More in [docs/API.md](docs/API.md): property names and short names, `flex()` and
 
 `CSSINTS_TRACE=otlp bun run build` (or `dev`) sends a trace of every Vite hook, with the file of each module, to a local OpenTelemetry backend; unset, it costs nothing. How to start the backend in one `docker run`, and the spans: [docs/API.md](docs/API.md#debugging-traces-of-the-engine-cssints_trace-cssints-r2qq).
 
+## For agents
+
+`cssints` ships two [agent skills](https://agentskills.io) in its package, `skills/cssints` (writing styles: setup,
+`cn`/`cx`/`cv`, conditions, tokens and themes, the plugin packages, build errors) and `skills/cssints-plugin` (writing
+a plugin on `scope()`, with its tests). Install them into your agent's skills folder:
+
+```bash
+npx skills-npm                                # links the skills of every installed package that ships some
+npx skills add ./node_modules/cssints/skills  # or the skills CLI, for opencode, Claude Code, Codex, Cursor, ...
+```
+
+Until 0.1 is on npm, point `npx skills add` at `packages/cssints/skills` of this repository. Agents working on this
+repository get `.agents/skills/cssints-contributor` (also `.claude/skills`) with no install.
+
+`@cssints/mcp` is an MCP server with the build's own checks (`check_declaration`, `check_support`, `check_contrast`,
+`compile`, `search_docs`, `list_plugins`), in [packages/mcp](packages/mcp) with the config for opencode, Claude Code
+and Cursor. The skills use it when it is configured and work without it.
+
 ## Layout
 
 | Path | What |
