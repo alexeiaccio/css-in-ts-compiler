@@ -154,7 +154,7 @@ const candidates = Effect.fnUntraced(function* (model: Model, el: Element, only?
       rule: r,
       specificity: specs.reduce((m, x) => (cmpSpec(x, m) > 0 ? x : m)),
       matched: full.length > 0,
-      states: full.length ? [] : base.flatMap((x) => x.states),
+      states: base.flatMap((x) => x.states),
     });
   }
   // the at-rules, each on its own, for this element
