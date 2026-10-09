@@ -1,11 +1,11 @@
 ---
 # cssints-cpca
 title: 'placeholder(): image placeholders from dominant colours at build time'
-status: todo
+status: in-progress
 type: feature
 priority: low
 created_at: 2026-10-08T08:55:58Z
-updated_at: 2026-10-08T08:55:58Z
+updated_at: 2026-10-09T07:26:30Z
 parent: cssints-dk1q
 ---
 

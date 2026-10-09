@@ -1,11 +1,11 @@
 ---
 # cssints-ow16
 title: 'Importers: DTCG from Figma via tokens-studio sd-transforms and terrazzo'
-status: todo
+status: in-progress
 type: task
 priority: low
 created_at: 2026-10-08T08:55:58Z
-updated_at: 2026-10-08T08:55:58Z
+updated_at: 2026-10-09T07:26:31Z
 parent: cssints-dk1q
 ---
 

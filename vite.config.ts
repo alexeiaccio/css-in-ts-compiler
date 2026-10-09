@@ -11,7 +11,7 @@ const inputs = [
   "packages/cssints/test/fixtures/**",
   "packages/icons/test/fixtures/**",
   "packages/mise-en-mode/test/fixtures/**",
-  "packages/{fluid,layout,fonts,reset,tokens,gradient,motion,squircle,reveal,stuck,balance,masonry}/test/fixtures/**",
+  "packages/{fluid,layout,fonts,reset,tokens,gradient,motion,squircle,reveal,stuck,balance,masonry,placeholder,ramp,skeleton}/test/fixtures/**",
   "packages/cssints/test/pkg/**",
   "packages/css-grammar/bench/err.ts",
   "packages/cssints/bench/errors.ts",
@@ -89,6 +89,10 @@ const plainCode = [
   "packages/stuck/src/**",
   "packages/balance/src/**",
   "packages/masonry/src/**",
+  // tier 3: build-time assets and generators on scope()
+  "packages/placeholder/src/**",
+  "packages/ramp/src/**",
+  "packages/skeleton/src/**",
   // The apps are plain Solid and React; the tests, benches and generator scripts are node scripts.
   "apps/**",
   "**/test/**",

@@ -1,11 +1,11 @@
 ---
 # cssints-yb57
 title: 'ramp(): OKLCH palette generation into tokens, contrast-driven'
-status: todo
+status: in-progress
 type: feature
 priority: low
 created_at: 2026-10-08T08:55:58Z
-updated_at: 2026-10-08T08:55:58Z
+updated_at: 2026-10-09T07:26:31Z
 parent: cssints-dk1q
 ---
 
