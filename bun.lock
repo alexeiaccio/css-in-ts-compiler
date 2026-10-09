@@ -223,6 +223,21 @@
         "cssints": "^0.1.0",
       },
     },
+    "packages/ramp": {
+      "name": "@cssints/ramp",
+      "version": "0.1.0",
+      "dependencies": {
+        "culori": "^4.0.2",
+      },
+      "devDependencies": {
+        "@types/culori": "^4.0.0",
+        "cssints": "workspace:*",
+        "vite": "catalog:",
+      },
+      "peerDependencies": {
+        "cssints": "^0.1.0",
+      },
+    },
     "packages/reset": {
       "name": "@cssints/reset",
       "version": "0.1.0",
@@ -391,6 +406,8 @@
     "@cssints/mise-en-mode": ["@cssints/mise-en-mode@workspace:packages/mise-en-mode"],
 
     "@cssints/motion": ["@cssints/motion@workspace:packages/motion"],
+
+    "@cssints/ramp": ["@cssints/ramp@workspace:packages/ramp"],
 
     "@cssints/reset": ["@cssints/reset@workspace:packages/reset"],
 
