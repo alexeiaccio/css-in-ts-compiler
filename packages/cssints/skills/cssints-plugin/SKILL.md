@@ -98,9 +98,8 @@ can wrap a method.
 - **Value** `{ args, value, label? }`: returns a CSS value, not a class. `value` gets the parts as text (a token as
   its `var(--name)`). With a tuple or `arg<T>()` write `fn({ args, value })`. Return a Typed OM value to keep the
   type (`new CSSColorValue(...)`, `CSS.rem()`, `class X extends CSSStyleValue<"length">`, `CSSImageValue`, all from
-  `"cssints"` without the attribute in a plugin module); a string is opaque to the types and checked where it lands.
-  Annotate a string result `: string`: a template literal is inferred as its template type, which the property's
-  grammar rejects in the user's editor (`color(shade("red"))` then fails to type-check, though it builds).
+  `"cssints"` without the attribute in a plugin module); a string (a template literal too) is opaque to the types
+  and checked where it lands.
 - **`group: true`** on a chain or call member adds the group marker `_g-<scope>`, so
   `within(attr("data-stuck", "top", "~="), "<scope>")(...)` reads that element. One group per scope.
 - **Typed properties**: a key that starts with `-` and a grammar (`"-webkit-font-smoothing": "auto | antialiased"`)

@@ -431,6 +431,9 @@ type Label<K extends string, V> = V extends { label?: infer L }
     : K
   : K;
 
+// A string result (a literal, a template literal) is opaque as `string` is; a Typed OM value keeps its type.
+type Opaque<R> = R extends string ? string : R;
+
 type MemberOf<K extends string, V, A> =
   Kind<K, V> extends "chain"
     ? V extends { chain: infer M }
@@ -442,7 +445,7 @@ type MemberOf<K extends string, V, A> =
         : never
       : Kind<K, V> extends "value"
         ? V extends { args: infer D; value: (args: never) => infer R }
-          ? Callable<Label<K, V>, D, A, R>
+          ? Callable<Label<K, V>, D, A, Opaque<R>>
           : never
         : Kind<K, V> extends "prop"
           ? V extends infer G extends string
