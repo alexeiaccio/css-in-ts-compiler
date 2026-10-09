@@ -1,13 +1,12 @@
 ---
 # cssints-xifk
 title: 'MCP: browser inspector'
-status: draft
+status: in-progress
 type: feature
+priority: normal
 created_at: 2026-10-09T08:45:25Z
-updated_at: 2026-10-09T08:45:25Z
+updated_at: 2026-10-09T12:00:54Z
 parent: cssints-0phg
-blocked_by:
-    - cssints-cncb
 ---
 
 For an agent, what the devtools overlay shows a human: by selector on an open page, an element's cssints classes, the winner per property and its source. Reuse the overlay's Effect core (cssints-cncb) through Playwright.
