@@ -412,7 +412,7 @@ function App(props: {
  * @param {TransportApi & { root: string; build?: boolean }} transport the HMR channel, and the root of the app; in a build
  *   (`build`) the table comes from the static asset and the overlay opens at once
  */
-export function mount(transport: TransportApi & { root: string; build?: boolean }): void {
+export function mount(transport: TransportApi & { root: string; build?: boolean }) {
   if (document.querySelector(HOST)) return;
   const host = document.createElement(HOST);
   host.setAttribute("style", "all: initial");

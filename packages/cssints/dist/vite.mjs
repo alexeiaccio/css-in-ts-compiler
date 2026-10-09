@@ -353,58 +353,53 @@ const kb = (n) => `${(n / 1024).toFixed(1)} kB`;
 * @param {Map<string, DevSite[]>} callsOf the sites of each client module
 * @returns {Plugin} the plugin
 */
-const devtoolsBuildPlugin = (usedBy, callsOf) => {
-	let config;
-	return {
-		name: "cssints:devtools-build",
-		apply: "build",
-		configResolved(c) {
-			config = c;
-		},
-		transformIndexHtml: {
-			order: "pre",
-			handler: () => [{
-				tag: "script",
-				attrs: {
-					type: "module",
-					src: DEVTOOLS_ID
-				},
-				injectTo: "body"
-			}]
-		},
-		resolveId(id) {
-			if (id === "virtual:cssints/devtools") return RESOLVED;
-		},
-		load(id) {
-			if (id !== RESOLVED) return;
-			return Effect.runPromise(Effect.tryPromise(() => this.resolve("@cssints/devtools/overlay", void 0, { skipSelf: true })).pipe(Effect.orElseSucceed(() => null), Effect.map((overlay) => overlay ? loaderModule(overlay.id, config.base) : `console.warn("cssints: devtools is on, but @cssints/devtools/overlay is not installed: add @cssints/devtools to the devDependencies of the app");\n`)));
-		},
-		generateBundle(_, bundle) {
-			if (this.environment.name !== "client") return;
-			const chunks = Object.values(bundle).flatMap((f) => f.type === "chunk" ? [f] : []);
-			const loader = chunks.find((c) => c.code.includes(TABLE_FILE));
-			if (!loader) return;
-			const t = Effect.runSync(table(config.root, usedBy, callsOf));
-			const json = Formatter.formatJson({
-				...t,
-				root: "",
-				sites: t.sites.map((s) => ({
-					...s,
-					file: relative(config.root, s.file)
-				}))
-			});
-			const ref = this.emitFile({
-				type: "asset",
-				name: "cssints-devtools.json",
-				source: json
-			});
-			const file = this.getFileName(ref);
-			loader.code = loader.code.replace(TABLE_FILE, () => file);
-			const overlay = chunks.find((c) => c.isDynamicEntry && c.code.includes("cssints-devtools"));
-			this.info(`devtools: ${file} ${kb(Buffer.byteLength(json))} (${kb(gzipSync(json).length)} gzip)` + (overlay ? `, ${overlay.fileName} ${kb(Buffer.byteLength(overlay.code))} (${kb(gzipSync(overlay.code).length)} gzip), loaded on the first open` : ""));
-		}
-	};
-};
+const devtoolsBuildPlugin = (usedBy, callsOf) => ({
+	name: "cssints:devtools-build",
+	apply: "build",
+	transformIndexHtml: {
+		order: "pre",
+		handler: () => [{
+			tag: "script",
+			attrs: {
+				type: "module",
+				src: DEVTOOLS_ID
+			},
+			injectTo: "body"
+		}]
+	},
+	resolveId(id) {
+		if (id === "virtual:cssints/devtools") return RESOLVED;
+	},
+	load(id) {
+		if (id !== RESOLVED) return;
+		return Effect.runPromise(Effect.tryPromise(() => this.resolve("@cssints/devtools/overlay", void 0, { skipSelf: true })).pipe(Effect.orElseSucceed(() => null), Effect.map((overlay) => overlay ? loaderModule(overlay.id, this.environment.config.base) : `console.warn("cssints: devtools is on, but @cssints/devtools/overlay is not installed: add @cssints/devtools to the devDependencies of the app");\n`)));
+	},
+	generateBundle(_, bundle) {
+		if (this.environment.name !== "client") return;
+		const chunks = Object.values(bundle).flatMap((f) => f.type === "chunk" ? [f] : []);
+		const loader = chunks.find((c) => c.code.includes(TABLE_FILE));
+		if (!loader) return;
+		const { root } = this.environment.config;
+		const t = Effect.runSync(table(root, usedBy, callsOf));
+		const json = Formatter.formatJson({
+			...t,
+			root: "",
+			sites: t.sites.map((s) => ({
+				...s,
+				file: relative(root, s.file)
+			}))
+		});
+		const ref = this.emitFile({
+			type: "asset",
+			name: "cssints-devtools.json",
+			source: json
+		});
+		const file = this.getFileName(ref);
+		loader.code = loader.code.replace(TABLE_FILE, () => file);
+		const overlay = chunks.find((c) => c.isDynamicEntry && c.code.includes("cssints-devtools"));
+		this.info(`devtools: ${file} ${kb(Buffer.byteLength(json))} (${kb(gzipSync(json).length)} gzip)` + (overlay ? `, ${overlay.fileName} ${kb(Buffer.byteLength(overlay.code))} (${kb(gzipSync(overlay.code).length)} gzip), loaded on the first open` : ""));
+	}
+});
 //#endregion
 //#region src/trace.ts
 const mode = /^otlp(?::(.+))?$/.exec(Effect.runSync(Config.String("CSSINTS_TRACE").pipe(Config.withDefault(""))));

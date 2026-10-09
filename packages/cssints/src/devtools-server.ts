@@ -6,7 +6,7 @@ import { relative } from "node:path";
 import { gzipSync } from "node:zlib";
 
 import { Effect, Formatter } from "effect";
-import type { Plugin, ResolvedConfig, ViteDevServer } from "vite";
+import type { Plugin, ViteDevServer } from "vite";
 
 import { Registry } from "./registry.ts";
 import { LAYERS, layerStatements, renderSheet } from "./sheet.ts";
@@ -238,17 +238,10 @@ const kb = (n: number) => `${(n / 1024).toFixed(1)} kB`;
  * @param {Map<string, DevSite[]>} callsOf the sites of each client module
  * @returns {Plugin} the plugin
  */
-export const devtoolsBuildPlugin = (
-  usedBy: Map<string, string>,
-  callsOf: Map<string, DevSite[]>,
-): Plugin => {
-  let config: ResolvedConfig;
-  return {
+export const devtoolsBuildPlugin = (usedBy: Map<string, string>, callsOf: Map<string, DevSite[]>) =>
+  ({
     name: "cssints:devtools-build",
     apply: "build",
-    configResolved(c) {
-      config = c;
-    },
     transformIndexHtml: {
       order: "pre",
       handler: () => [
@@ -267,7 +260,7 @@ export const devtoolsBuildPlugin = (
           Effect.orElseSucceed(() => null),
           Effect.map((overlay) =>
             overlay
-              ? loaderModule(overlay.id, config.base)
+              ? loaderModule(overlay.id, this.environment.config.base)
               : `console.warn("cssints: devtools is on, but @cssints/devtools/overlay is not installed: add @cssints/devtools to the devDependencies of the app");\n`,
           ),
         ),
@@ -278,11 +271,12 @@ export const devtoolsBuildPlugin = (
       const chunks = Object.values(bundle).flatMap((f) => (f.type === "chunk" ? [f] : []));
       const loader = chunks.find((c) => c.code.includes(TABLE_FILE));
       if (!loader) return;
-      const t = Effect.runSync(table(config.root, usedBy, callsOf));
+      const { root } = this.environment.config;
+      const t = Effect.runSync(table(root, usedBy, callsOf));
       const json = Formatter.formatJson({
         ...t,
         root: "",
-        sites: t.sites.map((s) => ({ ...s, file: relative(config.root, s.file) })),
+        sites: t.sites.map((s) => ({ ...s, file: relative(root, s.file) })),
       });
       const ref = this.emitFile({ type: "asset", name: "cssints-devtools.json", source: json });
       const file = this.getFileName(ref);
@@ -295,5 +289,4 @@ export const devtoolsBuildPlugin = (
             : ""),
       );
     },
-  };
-};
+  }) satisfies Plugin;
