@@ -1,6 +1,10 @@
 // Every tool through an MCP client in-process (client.mjs), good and bad inputs, against fixtures/. Run: node test/tools.mjs
 import assert from "node:assert/strict";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 
+import { files } from "../src/docs.ts";
 import { connect } from "./client.mjs";
 
 const fixtures = `${import.meta.dirname}/fixtures`;
@@ -219,6 +223,23 @@ const readme = await call("search_docs", { query: "WCAG 1.4.4 zoom" });
 assert.ok(readme.results.some((r) => r.file.endsWith("packages/fluid/README.md")));
 assert.deepEqual((await call("search_docs", { query: "zzzqqqxx" })).results, []);
 assert.match((await call("search_docs", { query: "x", limit: 0 })).error, /Invalid parameters/);
+// installed in a project: docs/API.md of the cssints package (its prepack copies it in), then the READMEs
+{
+  const project = mkdtempSync(join(tmpdir(), "mcp-docs-"));
+  for (const f of ["cssints/docs/API.md", "cssints/README.md", "@cssints/fluid/README.md"]) {
+    mkdirSync(dirname(join(project, "node_modules", f)), { recursive: true });
+    writeFileSync(join(project, "node_modules", f), "# x\n");
+  }
+  assert.deepEqual(
+    files(project, false).map((f) => f.slice(project.length)),
+    [
+      "/node_modules/cssints/docs/API.md",
+      "/node_modules/cssints/README.md",
+      "/node_modules/@cssints/fluid/README.md",
+    ],
+  );
+  rmSync(project, { recursive: true, force: true });
+}
 const { plugins } = await call("list_plugins", {});
 const fluid = plugins.find((p) => p.name === "@cssints/fluid");
 assert.match(fluid.members, /fluid\(min, max/);

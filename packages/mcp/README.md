@@ -51,8 +51,9 @@ project root (the `root` argument, else the working directory) on its first call
 `vite.config` is loaded when it has one (its aliases, its `cssints()` options), else the plugin alone; the project's own
 `vite` and `cssints` are used when installed. Each call reads the module and what it imports again.
 
-Installed in a project, `search_docs` and `list_plugins` read the READMEs of `cssints` and `@cssints/*` in
-`node_modules`; run from this repository, they read docs/API.md, README.md and every package README.
+Installed in a project, `search_docs` reads `node_modules/cssints/docs/API.md` (the published cssints holds a copy, made
+by its `prepack`), the README of `cssints` and those of `@cssints/*`, and `list_plugins` those READMEs; run from this
+repository, they read docs/API.md, README.md and every package README.
 
 ## Install
 

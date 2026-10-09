@@ -143,7 +143,7 @@ Example: { "file": "src/Button.ts", "source": "import { css } from \\"cssints\\"
   .annotate(Tool.OpenWorld, false);
 
 const SearchDocs = Tool.make("search_docs", {
-  description: `Searches the cssints documentation (docs/API.md, README.md and the plugin packages' READMEs; in a project, the READMEs installed in node_modules) and answers the matching sections, best first: the file and line, the heading and its trail of parent headings, and a short excerpt. Use it to find how an API works or what an error means before reading the whole file at that line.
+  description: `Searches the cssints documentation (docs/API.md, README.md and the plugin packages' READMEs; in a project, the copies installed in node_modules: cssints/docs/API.md and the READMEs) and answers the matching sections, best first: the file and line, the heading and its trail of parent headings, and a short excerpt. Use it to find how an API works or what an error means before reading the whole file at that line.
 Example: { "query": "firstThatWorks fallback" } -> { "results": [{ "heading": "Fallbacks: \`firstThatWorks\` (decided 2026-10-01, cssints-bogz)", "file": ".../docs/API.md", "line": 379, "excerpt": "…" }] }`,
   parameters: Schema.Struct({
     query: Text(
