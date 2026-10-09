@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { basename, join, relative, resolve } from "node:path";
 
 import { browsers } from "@cssints/css-grammar/browsers";
 import { Cause, Effect, Exit, Formatter, Option, Predicate, Result, Schema } from "effect";
@@ -137,23 +137,43 @@ const vlq = (n: number) => {
   return s;
 };
 
-// Dev: a source map of the sheet. A line that holds a class points at the first css.* call that made it (`siteOf`: client
-// module -> class -> place), so with `css.devSourcemap` Chrome's Styles pane names that file and line beside the rule.
-const sheetMap = (text: string, siteOf: Map<string, Map<string, Loc>>) => {
+// A source map of the sheet: each selector that holds a class points at the first css.* call that made it (`siteOf`:
+// client module -> class -> place), any other selector or at-rule prelude maps nowhere. Dev: the sheet as cssints prints
+// it, so with `css.devSourcemap` Chrome's Styles pane names that file and line beside the rule. Build: the CSS asset as
+// Vite wrote it (Vite writes no CSS map in build), so bundle analysers attribute its bytes to the modules.
+const sheetMap = (
+  text: string,
+  siteOf: Map<string, Map<string, Loc>>,
+  source = (file: string) => file,
+) => {
   const first = new Map<string, [string, Loc]>();
-  for (const [file, at] of siteOf)
+  // by path, not by the order of the transforms, so two builds write the same map
+  for (const [file, at] of [...siteOf].sort(([a], [b]) => (a < b ? -1 : 1)))
     for (const [cls, loc] of at) if (!first.has(cls)) first.set(cls, [file, loc]);
   const sources: string[] = [];
   let prev = [0, 0, 0];
   const mappings = text.split("\n").map((l) => {
-    const hit = [...l.matchAll(/\.(_[\w-]+)/g)].map((m) => first.get(m[1]!)).find(Boolean);
-    if (!hit) return "";
-    const [file, { line, column }] = hit;
-    const src = sources.includes(file) ? sources.indexOf(file) : sources.push(file) - 1;
-    const seg = [src, line - 1, column];
-    const out = vlq(l.search(/\S/)) + seg.map((x, i) => vlq(x - prev[i]!)).join("");
-    prev = seg;
-    return out;
+    const segs: string[] = [];
+    let col = 0;
+    let mapped = false;
+    for (const m of l.matchAll(/(?<=^|[{};])\s*([^{};\s][^{};]*)(?=\{)/g)) {
+      const at = m.index + m[0].length - m[1]!.length;
+      const hit = [...m[1]!.matchAll(/\.(_[\w-]+)/g)].map((c) => first.get(c[1]!)).find(Boolean);
+      if (!hit && !mapped) continue; // a line starts unmapped
+      let out = vlq(at - col);
+      if (hit) {
+        const [file, { line, column }] = hit;
+        const name = source(file);
+        const src = sources.includes(name) ? sources.indexOf(name) : sources.push(name) - 1;
+        const seg = [src, line - 1, column];
+        out += seg.map((x, i) => vlq(x - prev[i]!)).join("");
+        prev = seg;
+      }
+      segs.push(out);
+      col = at;
+      mapped = !!hit;
+    }
+    return segs.join(",");
   });
   return { version: 3, sources, names: [], mappings: mappings.join(";") };
 };
@@ -191,7 +211,8 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
   const usedBy = new Map<string, string>(); // client module id -> its classes and @property rules, sorted, one a line
   const depsOf = new Map<string, Set<string>>(); // dependency file -> Set<client module id>
   const inflight = new Set<string>(); // client module ids inside transform: their deps are not in depsOf yet
-  const siteOf = new Map<string, Map<string, Loc>>(); // dev: client module id -> class -> its first site (sheetMap)
+  const siteOf = new Map<string, Map<string, Loc>>(); // dev, or build.sourcemap: client module id -> class -> its first site (sheetMap)
+  let buildMap: ResolvedConfig["build"]["sourcemap"] = false; // build.sourcemap of a build: the CSS assets get a map
 
   // The helpers below run at most a few times per module: untraced. The hook-level programs (transform,
   // clientTransform, evaluate, renderChunk, ...) are the traced boundaries.
@@ -285,7 +306,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     const { sites, runtimes } = parsed.sites.length
       ? yield* evaluate(runner!, id, recorded).pipe(Effect.ensuring(flushWarnings(warn, id)))
       : yield* Effect.sync(() => forget(id)).pipe(Effect.andThen(recorded(new Map())));
-    if (!build) {
+    if (!build || buildMap) {
       const at = new Map<string, Loc>();
       for (const [n, s] of parsed.sites.entries()) {
         const loc = lineCol(code, s.start);
@@ -449,6 +470,37 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     return null;
   });
 
+  // build.sourcemap: Vite emits CSS assets without a map, so each one that holds classes of the sheet gets one here, on its
+  // final text, as Vite does for JS (true: a `.map` file and a comment, "hidden": the file only, "inline": a data URL).
+  const emitMaps = Effect.fn("cssints.generateBundle")(function* (
+    ctx: Rollup.PluginContext,
+    bundle: Rollup.OutputBundle,
+    dir: string,
+  ) {
+    for (const asset of Object.values(bundle)) {
+      if (asset.type !== "asset" || !asset.fileName.endsWith(".css")) continue;
+      const text = Predicate.isString(asset.source)
+        ? asset.source
+        : new TextDecoder().decode(asset.source);
+      const at = resolve(dir, asset.fileName, "..");
+      const map = {
+        ...sheetMap(text, siteOf, (file) => relative(at, file.replace(/\?.*/, ""))),
+        file: basename(asset.fileName),
+      };
+      if (!map.sources.length) continue;
+      const json = Formatter.formatJson(map);
+      const url =
+        buildMap === "inline"
+          ? `data:application/json;base64,${Buffer.from(json).toString("base64")}`
+          : `${map.file}.map`;
+      if (buildMap !== "inline")
+        yield* Effect.sync(() =>
+          ctx.emitFile({ type: "asset", fileName: `${asset.fileName}.map`, source: json }),
+        );
+      if (buildMap !== "hidden") asset.source = `${text}\n/*# sourceMappingURL=${url} */`;
+    }
+  });
+
   // The end of a build: every contrast check again, over the themes of every module (a module that came after the check).
   const buildEnd = Effect.fn("cssints.buildEnd")(function* (warn: (w: string) => void) {
     yield* verifyChecks(() => true).pipe(
@@ -493,6 +545,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     api: { sheet: (ids?: string[]) => Effect.runSync(sheet(ids)) },
     configResolved(config: ResolvedConfig) {
       build = config.command === "build";
+      buildMap = build && !inner && config.build.sourcemap;
       root = config.root;
       cssPlugins = ["vite:css", "vite:css-post"].map((n) =>
         config.plugins.find((p) => p.name === n),
@@ -545,6 +598,20 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     },
     renderChunk(_, chunk) {
       return run(hook("vite.renderChunk", chunk.fileName, renderChunk(this, chunk)));
+    },
+    // After vite:css-post, which emits the CSS asset of a build without code splitting here.
+    generateBundle: {
+      order: "post",
+      handler(out, bundle) {
+        if (buildMap)
+          runSync(
+            hook(
+              "vite.generateBundle",
+              root,
+              emitMaps(this, bundle, resolve(root, out.dir ?? "dist")),
+            ),
+          );
+      },
     },
     // Before every plugin that compiles JSX (Solid's, a Babel one), wherever the user lists them.
     transform: {

@@ -11,7 +11,8 @@ an element with `hover()` and a media query in one layer. It cannot say _where_ 
 `<style>` with no source map. **Shipped: a dev source map of the sheet** (each class rule points at the first
 `css.*` call that made it; Chrome's Styles pane then names `Showcase.tsx:91` beside the rule, with
 `css: { devSourcemap: true }`). Readable class names and a `data-cssints` attribute are not worth it. Sonda sees
-the sheet as a 0-byte virtual module; CSS coverage works as is and reads 79 % of the demo's sheet as used.
+the sheet as a 0-byte virtual module (since cssints-vxfr the build sheet has a map too, section 4); CSS coverage
+works as is and reads 79 % of the demo's sheet as used.
 
 Hands-on, Chrome 155 through playwright-core 1.63, apps/demo's dev server and build. The scripts are throwaway
 (temp dir), the numbers below are their output.
@@ -75,8 +76,8 @@ call that used the surface, `._icons-mask` to `App.tsx:116`). That was checked b
 `devSourcemap`) but was not screenshotted, since a DevTools window cannot be driven from Playwright.
 
 Limits: a class is a hash of its declaration, so a rule shared by many calls points at the first one the server
-transformed (the order of the requests), not at all of them; the place is the site (`cn(...)`), not the argument
-inside it; token, theme and `@property` rules map nowhere (they have no class). Mapping them is a follow-up if
+transformed (since cssints-vxfr: the first module by path), not at all of them; the place is the site
+(`cn(...)`), not the argument inside it; token, theme and `@property` rules map nowhere (they have no class). Mapping them is a follow-up if
 anyone asks.
 
 Not done, and why:
@@ -91,10 +92,9 @@ Not done, and why:
 ## 3. The other tools
 
 - **Sonda** (bundle analyzer from source maps): on the demo build (`build.sourcemap`, `deep: true`) it lists
-  `virtual:cssints.css` at 0 bytes and the 9 kB CSS asset with no inputs, since the build sheet has no map back to
-  modules. It does show what cssints ships in JS: `parent-vars.mjs` 2.0 kB, `runtime.mjs` 0.6 kB and the two
-  fallback runtimes. A build map from the same `siteOf` data would let it attribute the sheet's bytes to the modules
-  that use them (follow-up).
+  `virtual:cssints.css` at 0 bytes, and the 9 kB CSS asset has no map back to modules (its Vite plugin does not
+  analyse CSS assets at all, section 4). It does show what cssints ships in JS: `parent-vars.mjs` 2.0 kB,
+  `runtime.mjs` 0.6 kB and the two fallback runtimes. **Since cssints-vxfr the build sheet has a map** (section 4).
 - **CSS coverage with Playwright** (`page.coverage.startCSSCoverage`, Chromium; @projectwallace/css-code-coverage
   for thresholds): works on the sheet as is. The demo's built sheet: 7 185 of 9 066 bytes used on load (79.3 %),
   80.5 % after hovering every button and a narrow viewport. With one global sheet per app, coverage per route is the
@@ -107,7 +107,43 @@ Not done, and why:
   LightningCSS drops every comment, so it does not apply. The question it answers (the resolved value at each
   element) is the Computed pane's.
 
+## 4. A source map of the build sheet (cssints-vxfr, 2026-10-09)
+
+**Vite drops CSS maps in a build.** In Vite 8 (vite-plus-core 1.0.0, `cssPostPlugin`) the `transform` of
+`vite:css-post` keeps only the CSS string of each module (`styles.set(id, css)`, `map: { mappings: "" }`);
+`renderChunk` joins the strings, `finalizeCss` (minify) returns a string and `emitFile` writes the asset with no map,
+whatever `build.sourcemap` or `css.devSourcemap` say (the latter is read in dev only). `vite build --sourcemap` on the
+demo writes `index-*.js.map` and no `.css.map`. So a map handed to `vite:css` in cssints' `renderChunk` would be
+dropped, and no map of cssints survives the pipeline.
+
+**The path taken: map the asset as written.** With `build.sourcemap` set, the client transform records `siteOf` in the
+build too (as in dev), and a `generateBundle` hook (`order: "post"`, after `vite:css-post`) runs the same `sheetMap` over
+each `.css` asset of the bundle: a segment at every selector, pointing at the first call of its first class (modules
+taken by path, so two builds write the same map), an unmapped segment at every other selector or at-rule prelude
+(`@layer`, `@property`, `:root`, `@keyframes` steps). It emits `<asset>.css.map` with paths relative to it and appends
+the comment (`"hidden"`: no comment, `"inline"`: a data URL). Since LightningCSS prints one rule per selector, the
+granularity it preserves is the rule, which is what the map needs; the dev map moved to the same per-selector
+segments (a minified line holds many rules). Without `build.sourcemap` nothing is recorded or emitted: the demo build
+is byte-identical to the one before the change.
+
+**Sonda (0.14.0) on apps/demo.** Its Vite plugin hands only chunks to its report (`writeBundle` passes `undefined`
+entrypoints for an asset, and `Report.generate` drops those), so a CSS asset never reaches its source-map analysis,
+map or not: an upstream gap. Fed to the same `Report` directly (`report.addAsset(css, [])`, a throwaway script), the
+demo's CSS asset:
+
+| input                       | before (no map) | with the map |
+| --------------------------- | --------------: | -----------: |
+| src/components/Showcase.tsx |               0 |      3 434 B |
+| src/App.tsx                 |               0 |      2 109 B |
+| src/components/Button.tsx   |               0 |        762 B |
+| src/components/Card.tsx     |               0 |        349 B |
+| [unassigned]                |               0 |      2 459 B |
+| asset                       |         9 066 B |      9 113 B |
+
+The unassigned bytes are the layer statements, tokens and `@property` rules, the keyframes and the kernels' at-rules;
+the 47 extra bytes are the comment. Same limit as in dev: a class shared by modules counts for one of them.
+
 ## Follow-ups
 
-Beans under cssints-dk1q: a source map of the build sheet (Sonda, per-module bytes), CSS coverage per route on
-apps/sky, and the four atomic-css-devtools gaps reported upstream with the repro sheets above.
+Beans under cssints-dk1q: a source map of the build sheet (Sonda, per-module bytes; done, section 4), CSS
+coverage per route on apps/sky, and the four atomic-css-devtools gaps reported upstream with the repro sheets above.

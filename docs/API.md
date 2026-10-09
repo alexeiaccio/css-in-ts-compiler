@@ -914,7 +914,9 @@ In dev the sheet has a source map: each rule with a class points at the first `c
 export default defineConfig({ plugins: [cssints()], css: { devSourcemap: true } });
 ```
 
-A class is a hash of its declaration, so a class that many calls share points at the first one the dev server transformed. The place is the whole site (`cn(...)`, `cx(...)`), not the argument inside it. Token, theme and `@property` rules carry no class and map nowhere. A build has no such map. Devtools that read the CSSOM (atomic-css-devtools) see the sheet as any other; what they miss is in docs/research/devtools.md.
+A class is a hash of its declaration, so a class that many calls share points at its first call in the module that comes first by path. The place is the whole site (`cn(...)`, `cx(...)`), not the argument inside it. Token, theme and `@property` rules carry no class and map nowhere.
+
+A build maps the sheet too, when the app asks for maps (`build: { sourcemap: true }`, `"hidden"` or `"inline"`, as for its JS): the CSS asset that holds the sheet gets `<file>.css.map` and a `sourceMappingURL` comment (`"hidden"`: the file only; `"inline"`: a data URL). Vite writes no CSS map in a build, so cssints maps the asset as written, after LightningCSS and the minify: each rule with a class points at its call, the rest maps nowhere. Bundle analysers read it to split the sheet's bytes by module (docs/research/devtools.md: Sonda). Without `build.sourcemap` nothing is recorded and the output is unchanged. Devtools that read the CSSOM (atomic-css-devtools) see the sheet as any other; what they miss is in docs/research/devtools.md.
 
 ### Debugging: traces of the engine (`CSSINTS_TRACE`, cssints-r2qq)
 
