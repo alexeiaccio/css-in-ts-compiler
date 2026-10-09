@@ -2,6 +2,10 @@
 
 The documentation site: pages from `README.md` and `docs/API.md`, built with Solid 2 and cssints. Commands are in `AGENTS.md`.
 
+## Playground
+
+`/playground` runs the engine in the browser: an editor, the CSS, the module as the plugin returns it, a live preview, errors at their position, the code in the URL hash. It is a lazy chunk and a worker (`src/playground/`); `plugin/playground.ts` makes what the engine imports from Node (SHA-1, `path`, `createRequire`, `browserslist`, the browser-compat data) and routes the parsers to their wasm builds. How and why: `docs/research/playground.md`. `node test/playground.mjs` compares it with the Node plugin.
+
 ## Deploy
 
 https://cssints.accio.blue is a Cloudflare Worker serving `dist/` as static assets, described by `alchemy.run.ts` (Alchemy v2, stage `prod`). The deploy state is in the Cloudflare account (`Cloudflare.state()`), so a local deploy and a CI deploy see the same resources.
