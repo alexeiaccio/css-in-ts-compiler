@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { stripVTControlCharacters } from "node:util";
 
 import { createLogger, createServer } from "vite";
 
@@ -39,7 +40,9 @@ const open = async (root) => {
       server.environments.client.moduleGraph.invalidateAll();
       warnings.length = 0;
       await server.environments.client.transformRequest("/wrap.ts");
-      return warnings.map((w) => w.split("\n")[0].replace(/^.*warning: /, ""));
+      return warnings.map((w) =>
+        stripVTControlCharacters(w.split("\n")[0]).replace(/^.*warning: /, ""),
+      );
     },
   };
 };

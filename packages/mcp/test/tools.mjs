@@ -100,7 +100,11 @@ const relative = await call("check_support", {
 assert.equal(relative.supported, false);
 assert.deepEqual(relative.lowered, []);
 // no query: the browserslist of the root (the fixtures': chrome 109)
-const rooted = await call("check_support", { property: "textWrap", value: "balance", root: fixtures });
+const rooted = await call("check_support", {
+  property: "textWrap",
+  value: "balance",
+  root: fixtures,
+});
 assert.deepEqual(
   rooted.lacking.map((w) => w.targets),
   ["chrome 109"],
@@ -153,7 +157,9 @@ const wrap = await call("compile", {
 });
 assert.deepEqual(
   wrap.warnings.map((w) => w.message),
-  ['text-wrap: the property in "balance" is not supported by chrome 109 (css.properties.text-wrap)'],
+  [
+    'text-wrap: the property in "balance" is not supported by chrome 109 (css.properties.text-wrap)',
+  ],
 );
 
 // a support warning at its call, and said by every compile (line-clamp: no target has it unprefixed)
@@ -166,14 +172,7 @@ for (let i = 0; i < 2; i++) {
   const { warnings } = await call("compile", clamp);
   assert.deepEqual(
     warnings.map((w) => [w.message.split(" is not")[0], w.line, w.column, w.location]),
-    [
-      [
-        'line-clamp: the property in "3"',
-        3,
-        18,
-        `${fixtures}/virtual/clamp.ts:3:18`,
-      ],
-    ],
+    [['line-clamp: the property in "3"', 3, 18, `${fixtures}/virtual/clamp.ts:3:18`]],
   );
 }
 

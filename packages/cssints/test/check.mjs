@@ -24,7 +24,10 @@ assert.equal(e._tag, "ContrastError");
 assert.equal(e.colour, "rgb(0 0 0 / 50%)");
 assert.match(e.message, /is translucent/);
 const current = await run(contrast("black", "currentColor"));
-assert.match(current.cause.reasons[0].error.message, /"currentColor" is not a colour the check can read/);
+assert.match(
+  current.cause.reasons[0].error.message,
+  /"currentColor" is not a colour the check can read/,
+);
 
 // loweredOf: what LightningCSS writes for the targets of a warning, or undefined where it leaves the value
 const old = await Effect.runPromise(targets("chrome 100"));
@@ -37,4 +40,6 @@ assert.match(await lower("color", "oklch(70% 0.2 330)"), /^#[0-9a-f]{6}$/);
 assert.equal(await lower("color", "oklch(from var(--x) l c h)"), undefined);
 assert.equal(await lower("text-wrap", "balance"), undefined);
 
-console.log("check: contrast as css.check.contrast computes it, loweredOf as a build drops warnings");
+console.log(
+  "check: contrast as css.check.contrast computes it, loweredOf as a build drops warnings",
+);

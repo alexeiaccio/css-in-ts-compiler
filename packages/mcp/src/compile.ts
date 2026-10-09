@@ -72,7 +72,9 @@ const open = Effect.fn("mcp.compile.open")(function* (root: string) {
             value: (w: string | Rollup.RollupLog) =>
               warnings.push(
                 located(
-                  Option.getOrElse(decodeThrown(w), () => ({ message: String(w) })),
+                  Option.getOrElse(decodeThrown(w), () => ({
+                    message: Predicate.isString(w) ? w : w.message,
+                  })),
                   file,
                 ),
               ),

@@ -42,8 +42,7 @@ const transform = async (file) => {
   await client.transformRequest(file.slice(root.length));
   return logs.splice(0);
 };
-const hotUpdate = (file) =>
-  main.hotUpdate.call({ environment: client }, { file, modules: [] });
+const hotUpdate = (file) => main.hotUpdate.call({ environment: client }, { file, modules: [] });
 
 // located: the file, the line (1-based) and the column (0-based) of the css.* call, as Vite's loc
 const [first, ...rest] = await transform(std);

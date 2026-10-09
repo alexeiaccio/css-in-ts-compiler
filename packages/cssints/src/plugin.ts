@@ -293,10 +293,14 @@ export default function cssints({
             : yield* Effect.tryPromise(() => readFile(at.file, "utf8")).pipe(
                 Effect.orElseSucceed(() => undefined),
               );
-      const loc = at && text !== undefined ? { file: at.file, ...lineCol(text, at.offset) } : undefined;
+      const loc =
+        at && text !== undefined ? { file: at.file, ...lineCol(text, at.offset) } : undefined;
       yield* Effect.sync(() => warn({ message, ...(file && { id: file }), ...(loc && { loc }) }));
     }
-    yield* warned(ws.map((w) => w.message), id);
+    yield* warned(
+      ws.map((w) => w.message),
+      id,
+    );
   });
 
   const clientTransform = Effect.fn("cssints.clientTransform")(function* (

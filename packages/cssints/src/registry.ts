@@ -252,7 +252,8 @@ export const warn = (state: RegistryState, key: string, message: string, at = st
 export const forgetWarnings = (files?: readonly string[]): void => {
   if (!files) return registry.warned.clear();
   const prefixes = files.map((f) => `${f}\0`);
-  for (const k of registry.warned) if (prefixes.some((p) => k.startsWith(p))) registry.warned.delete(k);
+  for (const k of registry.warned)
+    if (prefixes.some((p) => k.startsWith(p))) registry.warned.delete(k);
 };
 
 export const Registry = Context.Reference<RegistryState>("cssints/Registry", {

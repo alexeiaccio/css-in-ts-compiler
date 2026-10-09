@@ -78,7 +78,10 @@ declare global {
 // The default of every function below: the targets of the build in progress, else those of process.cwd(). On
 // globalThis, as cssints' registry: the Vite Module Runner evaluates its own copy of this module.
 const current = () => globalThis.__cssintsTargets ?? DEFAULT;
-/** Sets the targets the functions here default to (cssints: those of the Vite root, before each evaluation); `undefined`, those of process.cwd(). */
+/**
+ * Sets the targets the functions here default to (cssints: those of the Vite root, before each evaluation).
+ * @param {Target[] | undefined} ts the targets, or `undefined` for those of process.cwd()
+ */
 export const useTargets = (ts: Target[] | undefined): void => {
   globalThis.__cssintsTargets = ts;
 };
@@ -173,7 +176,7 @@ const reachOf = (p: string) => {
 const known = new WeakMap<Target[], Map<string, Warning[]>>();
 export function supportOf(p: string, v: string, ts: Target[] = current()): Warning[] {
   let byDecl = known.get(ts);
-  if (!byDecl) known.set(ts, (byDecl = new Map()));
+  if (!byDecl) known.set(ts, (byDecl = new Map<string, Warning[]>()));
   const key = `${p}\0${v}`;
   let out = byDecl.get(key);
   if (!out) byDecl.set(key, (out = compute(p, v, ts)));

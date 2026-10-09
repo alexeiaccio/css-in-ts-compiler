@@ -18,7 +18,7 @@ const readmes = (dir: string) =>
         .filter((f) => existsSync(f))
     : [];
 
-/** The files search_docs reads: those of this repository, else those installed under `root`. */
+// The files search_docs reads: those of this repository, else those installed under `root`.
 export const files = (root: string, repo = inRepo): string[] =>
   repo
     ? [join(REPO, "docs/API.md"), join(REPO, "README.md"), ...readmes(join(REPO, "packages"))]
