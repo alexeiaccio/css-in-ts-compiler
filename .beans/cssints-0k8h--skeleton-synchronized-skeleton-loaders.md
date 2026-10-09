@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: low
 created_at: 2026-10-08T08:55:58Z
-updated_at: 2026-10-09T07:36:29Z
+updated_at: 2026-10-09T07:38:47Z
 parent: cssints-dk1q
 ---
 
@@ -20,5 +20,5 @@ parent: cssints-dk1q
 - [x] kernel + chain
 - [x] fixture
 
-- [ ] browser test (sync phase, reduced motion)
+- [x] browser test (sync phase, reduced motion)
 - [ ] README

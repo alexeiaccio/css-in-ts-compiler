@@ -45,7 +45,10 @@ console.log(css);
 
 // a member is a class string: the markers of the two kernels, then the methods
 assert.match(transformed, /export const a = "_skeleton-core _skeleton-clock";/);
-assert.match(transformed, /export const b = "_skeleton-core _skeleton-clock _\w+ _\w+ _\w+ _\w+ _\w+";/);
+assert.match(
+  transformed,
+  /export const b = "_skeleton-core _skeleton-clock _\w+ _\w+ _\w+ _\w+ _\w+";/,
+);
 assert.ok(!transformed.includes("@cssints/skeleton"), transformed);
 
 // the clock: one registered, inherited percentage, animated on :root while a skeleton is in the document, and only
@@ -54,7 +57,10 @@ assert.ok(
   css.includes('@property --skeleton-p{syntax:"<percentage>";inherits:true;initial-value:100%}'),
   css,
 );
-assert.ok(css.includes("@keyframes _skeleton-clock{from{--skeleton-p:100%}to{--skeleton-p:0%}}"), css);
+assert.ok(
+  css.includes("@keyframes _skeleton-clock{from{--skeleton-p:100%}to{--skeleton-p:0%}}"),
+  css,
+);
 assert.ok(
   css.includes(
     "@media (prefers-reduced-motion: no-preference){:root:has(._skeleton-clock){animation:_skeleton-clock 1.5s ease-in-out infinite}}",
@@ -94,7 +100,10 @@ e = await failure("conflict-radius.ts");
 assert.match(e.message, /kernel core sets .* \(this style also sets border-top-left-radius\)$/);
 // a condition around the bare member: its kernels cannot be conditional
 e = await failure("hover-bare.ts");
-assert.match(e.message, /^cssints: :hover wraps _skeleton-core, the marker of kernel skeleton\.core/);
+assert.match(
+  e.message,
+  /^cssints: :hover wraps _skeleton-core, the marker of kernel skeleton\.core/,
+);
 assert.equal(e.loc?.line, 4);
 // the grammars of the methods, at build time
 e = await failure("bad-radius.ts");
