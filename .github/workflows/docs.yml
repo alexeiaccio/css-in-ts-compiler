@@ -1,6 +1,6 @@
-# The documentation site (apps/docs) on GitHub Pages: https://<owner>.github.io/<repo>/
-# The build needs no package build: Vite bundles the tracked packages/*/dist, and the twoslash hovers type-check the ts blocks
-# against packages/*/src.
+# Deploys apps/docs to Cloudflare (https://cssints.accio.blue) with Alchemy on every push to master that can change it.
+# Secrets: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (see apps/docs/README.md "Deploy"). The state is in the account
+# (Cloudflare.state()), shared with local deploys. The packages are not built: Vite bundles the tracked packages/*/dist.
 name: docs
 
 on:
@@ -16,43 +16,27 @@ on:
       - .github/workflows/docs.yml
   workflow_dispatch:
 
-permissions:
-  contents: read
-
 concurrency:
-  group: pages
+  group: docs-deploy
   cancel-in-progress: false
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version-file: package.json
-      # the site's plugin runs .ts files with node's type stripping
-      - uses: actions/setup-node@v4
+      # the docs plugin's worker runs .ts files with Node's type stripping
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
       - run: bun install --frozen-lockfile
-      - run: bun run build
+      - name: Deploy
         working-directory: apps/docs
+        run: bun alchemy deploy --stage prod --yes
         env:
-          DOCS_BASE: /${{ github.event.repository.name }}/
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: apps/docs/dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          CI: "true"
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
