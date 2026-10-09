@@ -57,13 +57,14 @@ assert.ok(
   css.includes('@property --skeleton-p{syntax:"<percentage>";inherits:true;initial-value:100%}'),
   css,
 );
-assert.ok(
-  css.includes("@keyframes _skeleton-clock{from{--skeleton-p:100%}to{--skeleton-p:0%}}"),
+// (a keyframes() name, with the scope's name since its steps set `--_p`)
+const clock = /@keyframes (kf-\w+-skeleton)\{from\{--skeleton-p:100%\}to\{--skeleton-p:0%\}\}/.exec(
   css,
-);
+)?.[1];
+assert.ok(clock, css);
 assert.ok(
   css.includes(
-    "@media (prefers-reduced-motion: no-preference){:root:has(._skeleton-clock){animation:_skeleton-clock 1.5s ease-in-out infinite}}",
+    `@media (prefers-reduced-motion: no-preference){:root:has(._skeleton-clock){animation:${clock} 1.5s ease-in-out infinite}}`,
   ),
   css,
 );

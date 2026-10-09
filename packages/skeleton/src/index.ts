@@ -37,10 +37,17 @@ export const { skeleton } = scope("skeleton", {
     ],
   },
   // the clock: one animation of `--_p` on `:root` while a skeleton is in the document; every skeleton inherits its value
+  // (it styles `:root`, not the skeleton, so it adds no conflicts)
   clock: {
-    css:
-      "@keyframes _skeleton-clock{from{--_p:100%}to{--_p:0%}}" +
-      "@media (prefers-reduced-motion: no-preference){:root:has(&){animation:_skeleton-clock 1.5s ease-in-out infinite}}",
+    css: (css) =>
+      css.media("(prefers-reduced-motion: no-preference)")(
+        css.nest(":root:has(&)")(
+          css.animation(
+            css.keyframes({ from: css.vars({ "--_p": "100%" }), to: css.vars({ "--_p": "0%" }) }),
+            "1.5s ease-in-out infinite",
+          ),
+        ),
+      ),
     atProperty: '@property --_p{syntax:"<percentage>";inherits:true;initial-value:100%}',
     requires: ["css.at-rules.property", "css.selectors.has"],
   },

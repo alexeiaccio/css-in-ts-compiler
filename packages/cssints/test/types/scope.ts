@@ -61,7 +61,9 @@ const x = scope("x", {
       css.nest("& > * + *")(css.marginTop("var(--_gap)")),
       css.nest("&>:last-child")(css.hover(css.color("red"))),
       css.vars({ "--_gap": "1rem", "--_n": 1, "--_kf": css.keyframes({ from: css.opacity(0) }) }),
-      // @ts-expect-error -- a nest() selector starts with & and a combinator
+      css.nest(":root:has(&)")(css.color("red")),
+      css.nest(".x &")(css.color("red")),
+      // @ts-expect-error -- a nest() selector has an &
       css.nest(":hover")(css.color("red")),
       // @ts-expect-error -- vars() takes custom properties
       css.vars({ gap: "1rem" }),
