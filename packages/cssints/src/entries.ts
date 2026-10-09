@@ -7,13 +7,7 @@ import { DERIVED, fallbackEntries, runtimeNames } from "./delivery.ts";
 import { usesDerived } from "./derived-data.ts";
 import { kernelEntries } from "./kernel.ts";
 import { Registry } from "./registry.ts";
-import {
-  closeNames,
-  globalEntries,
-  globalNames,
-  layerEntries,
-  themedEntries,
-} from "./sheet.ts";
+import { closeNames, globalEntries, globalNames, layerEntries, themedEntries } from "./sheet.ts";
 
 export const moduleEntries = Effect.fnUntraced(function* (
   id: string,
