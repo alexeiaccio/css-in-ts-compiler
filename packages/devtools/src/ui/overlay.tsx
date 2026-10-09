@@ -185,7 +185,14 @@ function Panel(props: { inspection: Inspection }) {
                   <span class={s.value}>{t.computed || "(not set)"}</span>
                   <span class={s.muted}>{t.path}</span>
                 </div>
-                <Show when={t.source}>
+                <Show
+                  when={t.source}
+                  fallback={
+                    <div class={cx(s.sub, s.muted)}>
+                      {t.registered ? "the initial value of its @property" : "not set by cssints"}
+                    </div>
+                  }
+                >
                   {(src) => (
                     <div class={cx(s.sub, s.muted)}>
                       from {src().wrap.join(" ")} {src().selector} {src().layer || "unlayered"} on{" "}

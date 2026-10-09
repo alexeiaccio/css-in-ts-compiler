@@ -179,7 +179,7 @@ Properties
 Tokens  --color-surface = #ffffff (color.surface)
 ```
 
-Keyboard: Esc closes, ↑ and ↓ walk to the parent and the first child with a class, ← and → the siblings. The source
+Keyboard: Esc closes, ↑ and ↓ walk to the parent and the first child, ← and → the siblings. The source
 link opens the file through Vite's `/__open-in-editor?file=path:line:column`.
 
 **Turning it on: opt-in, `cssints({ devtools: true })`, with `@cssints/devtools` as a dev dependency.** On by default

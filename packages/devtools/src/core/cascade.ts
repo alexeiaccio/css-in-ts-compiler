@@ -70,6 +70,8 @@ export interface TokenRow {
   path?: string;
   declared?: string;
   computed: string;
+  /** has an `@property` rule: with no source, its value is the initial one */
+  registered: boolean;
   /** the rule that sets it on the element or the nearest ancestor */
   source?: { selector: string; layer: string; wrap: readonly string[]; on: string };
 }
@@ -363,6 +365,7 @@ export const inspect = Effect.fn("devtools.inspect")(function* (model: Model, el
       name,
       ...(def ? { path: def.path, declared: def.value } : {}),
       computed: computed[i] ?? "",
+      registered: model.sheet.inherits.has(name),
       ...(source ? { source } : {}),
     });
   }
