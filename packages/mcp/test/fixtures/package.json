@@ -1,0 +1,8 @@
+{
+  "name": "mcp-fixtures",
+  "private": true,
+  "type": "module",
+  "browserslist": [
+    "chrome 109"
+  ]
+}

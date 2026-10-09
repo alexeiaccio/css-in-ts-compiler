@@ -1,0 +1,213 @@
+// The MCP server of cssints on effect/ai McpServer: the tools as a Toolkit with Schema-typed parameters, their handlers,
+// and `layer`, which needs a Stdio (NodeStdio in bin.ts, a test Stdio in test/tools.mjs).
+import { Effect, Layer, Logger, Schema } from "effect";
+import { McpProtocol, McpServer, Tool, Toolkit } from "effect/ai";
+
+import { checkDeclaration, checkSupport, ToolError } from "./check.ts";
+import { checkContrast } from "./contrast.ts";
+import { Compiler } from "./compile.ts";
+import { listPlugins, searchDocs } from "./docs.ts";
+
+const Failure = Schema.instanceOf(ToolError);
+const Text = (description: string) => Schema.String.annotate({ description });
+const Maybe = <S extends Schema.Top>(s: S) => Schema.optional(s);
+
+const CheckDeclaration = Tool.make("check_declaration", {
+  description: `Checks one CSS declaration the way a cssints build does (the grammar of the property, value ranges such as <length [0,∞]>, and the validity rules the specs state in prose). Answers ok, or the exact error message the build would print. Use it before writing a css.* call whose value you are not sure of.
+Example: { "property": "padding", "value": "-1rem" } -> { "ok": false, "message": "padding: unexpected \\"-1rem\\" in \\"-1rem\\", expected <length-percentage [0,∞]>" }`,
+  parameters: Schema.Struct({
+    property: Text(
+      "The property, camelCase as the cssints member (fontSize) or kebab-case (font-size)",
+    ),
+    value: Text('The value text, as in css.fontSize("1rem"): "1rem"'),
+  }),
+  success: Schema.Struct({
+    ok: Schema.Boolean,
+    property: Schema.String,
+    value: Schema.String,
+    message: Maybe(Schema.String),
+  }),
+  failure: Failure,
+})
+  .annotate(Tool.Readonly, true)
+  .annotate(Tool.Destructive, false)
+  .annotate(Tool.OpenWorld, false);
+
+const CheckSupport = Tool.make("check_support", {
+  description: `Which target browsers lack a CSS property, or the features in a value (keywords, functions), by MDN browser-compat-data: the support warnings of a cssints build, with the BCD key of each. Targets: a browserslist query, else the project's browserslist config (package.json "browserslist" or .browserslistrc from the working directory), as the plugin reads it. Use it to decide whether a feature needs a fallback (firstThatWorks).
+Example: { "property": "textWrap", "value": "balance", "query": "chrome 109" } -> { "supported": false, "lacking": [{ "feature": "text-wrap", "key": "css.properties.text-wrap", "targets": "chrome 109", ... }] }`,
+  parameters: Schema.Struct({
+    property: Text("The property, camelCase or kebab-case"),
+    value: Maybe(Text("A value: its keywords and functions are looked up too")),
+    query: Maybe(Text('A browserslist query, e.g. "defaults" or "safari >= 16"')),
+  }),
+  success: Schema.Struct({
+    property: Schema.String,
+    value: Maybe(Schema.String),
+    query: Schema.String,
+    targets: Schema.String,
+    known: Schema.Boolean.annotate({ description: "BCD has the property" }),
+    supported: Schema.Boolean,
+    lacking: Schema.Array(
+      Schema.Struct({
+        feature: Schema.String,
+        key: Schema.String,
+        targets: Schema.String,
+        message: Schema.String,
+      }),
+    ),
+    rule: Schema.String,
+  }),
+  failure: Failure,
+})
+  .annotate(Tool.Readonly, true)
+  .annotate(Tool.Destructive, false)
+  .annotate(Tool.OpenWorld, false);
+
+const CheckContrast = Tool.make("check_contrast", {
+  description: `The WCAG 2.x contrast ratio of two CSS colours, computed as css.check.contrast does in a build (any CSS colour syntax culori reads; outside sRGB is clipped; translucent colours are refused). The ratio is cut, not rounded, at two places, so 4.499 is "4.49". With min, says whether it passes (4.5 is WCAG AA for body text, 3 for large text).
+Example: { "foreground": "#777", "background": "white", "min": 4.5 } -> { "ok": false, "ratio": "4.47", "min": 4.5, "message": "contrast 4.47 is below 4.5" }`,
+  parameters: Schema.Struct({
+    foreground: Text("The text colour, e.g. oklch(40% 0.1 250)"),
+    background: Text("The background colour"),
+    min: Maybe(Schema.Finite.check(Schema.isBetween({ minimum: 1, maximum: 21 }))).annotate({
+      description: "The minimum ratio, 1 to 21",
+    }),
+  }),
+  success: Schema.Struct({
+    ok: Schema.Boolean,
+    ratio: Maybe(Schema.String),
+    min: Maybe(Schema.Finite),
+    message: Maybe(Schema.String),
+  }),
+  failure: Failure,
+})
+  .annotate(Tool.Readonly, true)
+  .annotate(Tool.Destructive, false)
+  .annotate(Tool.OpenWorld, false);
+
+const Located = Schema.Struct({
+  message: Schema.String,
+  file: Schema.String,
+  line: Maybe(Schema.Finite),
+  column: Maybe(Schema.Finite.annotate({ description: "1-based" })),
+  location: Schema.String.annotate({ description: "file:line:col" }),
+});
+
+const Compile = Tool.make("compile", {
+  description: `Compiles one module of a project through the real cssints Vite plugin, as the dev server does, and answers what it made: the class strings in the transformed code, the CSS the module adds to the sheet, the transformed code, and the build errors (file:line:col of the css.* call) and warnings. Give a file path, or source text with a filename (the file need not exist; relative imports resolve from it). The Vite server of a project starts on the first call (a few seconds) and is reused; the project's vite.config is loaded when it has one.
+Example: { "file": "src/Button.ts", "source": "import { css } from \\"cssints\\" with { type: \\"cssints\\" };\\nexport const b = css.padding(\\"1rem\\");" } -> { "ok": true, "classes": ["_1x2y3z"], "css": "@layer _.k, ...; @layer _.a{._1x2y3z{padding:1rem}}", ... }`,
+  parameters: Schema.Struct({
+    file: Text(
+      "The module's path, absolute or relative to root; with source, the filename it is compiled as",
+    ),
+    source: Maybe(Text("The module's text, instead of the file on disk")),
+    root: Maybe(
+      Text(
+        "The project root (where vite.config and package.json are); default: the server's working directory",
+      ),
+    ),
+  }),
+  success: Schema.Struct({
+    ok: Schema.Boolean,
+    file: Schema.String,
+    classes: Schema.Array(Schema.String),
+    css: Schema.String,
+    code: Schema.String,
+    errors: Schema.Array(Located),
+    warnings: Schema.Array(Schema.Struct({ file: Schema.String, message: Schema.String })),
+  }),
+  failure: Failure,
+})
+  .annotate(Tool.Readonly, true)
+  .annotate(Tool.Destructive, false)
+  .annotate(Tool.OpenWorld, false);
+
+const SearchDocs = Tool.make("search_docs", {
+  description: `Searches the cssints documentation (docs/API.md, README.md and the plugin packages' READMEs; in a project, the READMEs installed in node_modules) and answers the matching sections, best first: the file and line, the heading and its trail of parent headings, and a short excerpt. Use it to find how an API works or what an error means before reading the whole file at that line.
+Example: { "query": "firstThatWorks fallback" } -> { "results": [{ "heading": "Fallbacks: \`firstThatWorks\` (decided 2026-10-01, cssints-bogz)", "file": ".../docs/API.md", "line": 379, "excerpt": "…" }] }`,
+  parameters: Schema.Struct({
+    query: Text(
+      'Words to look for, e.g. "check.contrast themes"; sections that hold more of them rank first',
+    ),
+    limit: Maybe(Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 20 }))).annotate({
+      description: "How many sections, 1 to 20 (default 5)",
+    }),
+  }),
+  success: Schema.Struct({
+    sources: Schema.Array(Schema.String),
+    results: Schema.Array(
+      Schema.Struct({
+        file: Schema.String,
+        line: Schema.Finite,
+        heading: Schema.String,
+        path: Schema.String,
+        excerpt: Schema.String,
+      }),
+    ),
+  }),
+  failure: Failure,
+})
+  .annotate(Tool.Readonly, true)
+  .annotate(Tool.Destructive, false)
+  .annotate(Tool.OpenWorld, false);
+
+const ListPlugins = Tool.make("list_plugins", {
+  description: `Lists the cssints plugin packages (@cssints/fluid, layout, motion, ...): their members (what to import and call), what each does, and the README to read. Use it to find a ready-made plugin before writing a pattern by hand; import a plugin with the attribute, like cssints: import { fluid } from "@cssints/fluid" with { type: "cssints" }.
+Example: {} -> { "plugins": [{ "name": "@cssints/fluid", "members": "\`fluid(min, max, { from?, to?, zoom? })\`, ...", "description": "A \`clamp()\` that grows between two widths...", "readme": ".../packages/fluid/README.md" }, ...] }`,
+  success: Schema.Struct({
+    source: Schema.String,
+    plugins: Schema.Array(
+      Schema.Struct({
+        name: Schema.String,
+        members: Schema.String,
+        description: Schema.String,
+        readme: Schema.String,
+      }),
+    ),
+  }),
+  failure: Failure,
+})
+  .annotate(Tool.Readonly, true)
+  .annotate(Tool.Destructive, false)
+  .annotate(Tool.OpenWorld, false);
+
+export const tools = Toolkit.make(
+  CheckDeclaration,
+  CheckSupport,
+  CheckContrast,
+  Compile,
+  SearchDocs,
+  ListPlugins,
+);
+
+const handlers = tools
+  .toLayer(
+    Effect.gen(function* () {
+      const { compile } = yield* Compiler;
+      return tools.of({
+        check_declaration: ({ property, value }) => checkDeclaration(property, value),
+        check_support: ({ property, value, query }) => checkSupport(property, value, query),
+        check_contrast: ({ foreground, background, min }) =>
+          checkContrast(foreground, background, min),
+        compile: (input) => compile(input),
+        search_docs: ({ query, limit }) => searchDocs(query, limit),
+        list_plugins: () => listPlugins(),
+      });
+    }),
+  )
+  .pipe(Layer.provide(Compiler.layer));
+
+const stdio = McpServer.layerStdio({
+  name: "cssints",
+  version: "0.1.0",
+  protocols: [
+    McpProtocol.v2025_11_25,
+    McpProtocol.v2025_06_18,
+    McpProtocol.v2025_03_26,
+    McpProtocol.v2024_11_05,
+  ],
+}).pipe(Layer.provide(Layer.succeed(Logger.LogToStderr, true)));
+
+/** The server over stdio: provide a Stdio. Logs go to stderr; stdout is the protocol. */
+export const layer = Layer.mergeAll(McpServer.toolkit(tools).pipe(Layer.provide(handlers)), stdio);
