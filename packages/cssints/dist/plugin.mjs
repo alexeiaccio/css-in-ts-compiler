@@ -20,5 +20,11 @@ function scope(name, table) {
 * support warnings (`partial_implementation` lacks); empty when every target has them all. Build time, like `scope()`.
 */
 const lacking = (...keys) => engine().lacking(keys);
+/**
+* Tells the engine that the module being evaluated read the file at `path` (relative to the working directory): in dev, an
+* edit of the file runs that module again, as an edit of a module it imports does; in `vite build --watch`, it is a watched
+* file. Build time, like `scope()`: in a member's functions or in the plugin's own.
+*/
+const dependsOn = (path) => engine().dependsOn(path);
 //#endregion
-export { arg, fn, lacking, scope };
+export { arg, dependsOn, fn, lacking, scope };

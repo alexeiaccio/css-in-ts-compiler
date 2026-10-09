@@ -1,4 +1,4 @@
-import { A as Registry, C as RUNTIME_ID, D as runtimeNames, E as runtimeModule, F as HookError, I as MacroError, L as MemberError, N as registry, P as EvalError, R as SiteMissingError, S as DERIVED, T as fallbackEntries, a as LAYERS, b as kernelEntries, d as globalNames, f as layerEntries, g as themedEntries, i as keptImport, j as forget, l as closeNames, m as renderSheet, n as RUNTIME, o as addGlobal, p as layerStatements, r as instrument, s as addLayers, u as globalEntries, v as usesDerived } from "./instrument-Tso4tOWx.mjs";
+import { A as Registry, C as RUNTIME_ID, D as runtimeNames, E as runtimeModule, F as HookError, I as MacroError, L as MemberError, N as registry, P as EvalError, R as SiteMissingError, S as DERIVED, T as fallbackEntries, a as LAYERS, b as kernelEntries, d as globalNames, f as layerEntries, g as themedEntries, i as keptImport, j as forget, l as closeNames, m as renderSheet, n as RUNTIME, o as addGlobal, p as layerStatements, r as instrument, s as addLayers, u as globalEntries, v as usesDerived } from "./instrument-BMqsI0Gq.mjs";
 import { createRequire } from "node:module";
 import { Cause, Clock, Config, Effect, Exit, Formatter, Option, Predicate, Result, Schema, Semaphore } from "effect";
 import { createHash } from "node:crypto";
@@ -8,7 +8,7 @@ import MagicString from "magic-string";
 import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { browsers } from "@cssints/css-grammar/browsers";
-import { createServer, createServerModuleRunner, transformWithOxc } from "vite";
+import { createServer, createServerModuleRunner, normalizePath, transformWithOxc } from "vite";
 import { fileURLToPath } from "node:url";
 import { Window } from "happy-dom";
 import { ESModulesEvaluator, ssrModuleExportsKey } from "vite/module-runner";
@@ -160,6 +160,7 @@ const evaluateModule = Effect.fnUntraced(function* (runner, id) {
 	registry.sites.delete(id);
 	forget(id);
 	registry.at = void 0;
+	registry.files.clear();
 	registry.gen++;
 	clearApp(runner.evaluatedModules);
 	yield* Effect.tryPromise({
@@ -534,9 +535,10 @@ function cssints({ inner = false, devtools = false } = {}) {
 		yield* Effect.sync(() => ws.forEach(warn));
 		yield* warned(ws, file);
 	});
-	const clientTransform = Effect.fn("cssints.clientTransform")(function* (code, id, parsed, env, warn) {
+	const clientTransform = Effect.fn("cssints.clientTransform")(function* (code, id, parsed, env, warn, watch) {
 		const recorded = Effect.fnUntraced(function* (sites) {
 			let runtimes = [];
+			const files = parsed.sites.length ? [...(yield* Registry).files] : [];
 			if (parsed.sites.every((_, n) => sites.has(n))) {
 				const registry = yield* Registry;
 				const { rules, properties, themed } = registry;
@@ -561,10 +563,11 @@ function cssints({ inner = false, devtools = false } = {}) {
 			}
 			return {
 				sites,
-				runtimes
+				runtimes,
+				files
 			};
 		});
-		const { sites, runtimes } = parsed.sites.length ? yield* evaluate(runner, id, recorded).pipe(Effect.ensuring(flushWarnings(warn, id))) : yield* Effect.sync(() => forget(id)).pipe(Effect.andThen(recorded(/* @__PURE__ */ new Map())));
+		const { sites, runtimes, files } = parsed.sites.length ? yield* evaluate(runner, id, recorded).pipe(Effect.ensuring(flushWarnings(warn, id))) : yield* Effect.sync(() => forget(id)).pipe(Effect.andThen(recorded(/* @__PURE__ */ new Map())));
 		if (!build || buildMap) {
 			const at = /* @__PURE__ */ new Map();
 			for (const [n, s] of parsed.sites.entries()) {
@@ -596,6 +599,11 @@ function cssints({ inner = false, devtools = false } = {}) {
 			else ms.remove(decl.start, decl.end);
 		}
 		for (const dep of runnerDeps(env, id)) (depsOf.get(dep) ?? depsOf.set(dep, /* @__PURE__ */ new Set()).get(dep)).add(id);
+		for (const file of files) {
+			const dep = normalizePath(resolve(file));
+			(depsOf.get(dep) ?? depsOf.set(dep, /* @__PURE__ */ new Set()).get(dep)).add(id);
+			yield* Effect.sync(() => watch(dep));
+		}
 		return {
 			code: ms.toString(),
 			map: ms.generateMap({
@@ -638,7 +646,8 @@ function cssints({ inner = false, devtools = false } = {}) {
 			evaluator: new DomEvaluator()
 		});
 		inflight.add(id);
-		return yield* clientTransform(code, id, parsed, env, (w) => ctx.warn(w)).pipe(Effect.ensuring(Effect.sync(() => inflight.delete(id))));
+		const watch = (file) => build ? ctx.addWatchFile(file) : void server.watcher.add(file);
+		return yield* clientTransform(code, id, parsed, env, (w) => ctx.warn(w), watch).pipe(Effect.ensuring(Effect.sync(() => inflight.delete(id))));
 	});
 	const startServer = Effect.fn("cssints.buildStart")(function* () {
 		server = yield* Effect.tryPromise({
@@ -673,6 +682,8 @@ function cssints({ inner = false, devtools = false } = {}) {
 				cause
 			})
 		});
+		server = runner = void 0;
+		ownServer = false;
 	});
 	const renderChunk = Effect.fn("cssints.renderChunk")(function* (ctx, chunk) {
 		if (inner || !Object.hasOwn(chunk.modules, SHEET)) return null;

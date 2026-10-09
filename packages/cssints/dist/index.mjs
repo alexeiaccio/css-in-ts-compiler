@@ -1,4 +1,4 @@
-import { A as Registry, I as MacroError, L as MemberError, M as forgetKernels, N as registry, O as covers, _ as standIn, c as byOrder, h as requireLayer, k as relation, o as addGlobal, s as addLayers, t as CV_CALL, w as addRuntime, x as kernelWarnings, y as addKernel } from "./instrument-Tso4tOWx.mjs";
+import { A as Registry, I as MacroError, L as MemberError, M as forgetKernels, N as registry, O as covers, _ as standIn, c as byOrder, h as requireLayer, k as relation, o as addGlobal, s as addLayers, t as CV_CALL, w as addRuntime, x as kernelWarnings, y as addKernel } from "./instrument-BMqsI0Gq.mjs";
 import { createRequire } from "node:module";
 import { checkDeclarationNow, checkQuery, checkSelector, checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { browsers, lackingOf, messageOf, supportOf } from "@cssints/css-grammar/support";
@@ -1019,10 +1019,14 @@ function scope(name, table) {
 	return s;
 }
 const lacking$1 = (keys) => [...new Set(keys.flatMap((k) => lackingOf(k).map((t) => t.join(" "))))];
+const dependsOn = (path) => {
+	registry.files.add(path);
+};
 /** What the front (scope.ts) calls; macro.ts puts it in the registry. */
 const engine = {
 	scope,
-	lacking: lacking$1
+	lacking: lacking$1,
+	dependsOn
 };
 //#endregion
 //#region src/runtime.ts

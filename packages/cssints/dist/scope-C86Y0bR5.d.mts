@@ -2084,5 +2084,11 @@ declare function scope<const N extends string, const T extends Table>(name: N, t
  * support warnings (`partial_implementation` lacks); empty when every target has them all. Build time, like `scope()`.
  */
 declare const lacking: (...keys: BcdKey[]) => string[];
+/**
+ * Tells the engine that the module being evaluated read the file at `path` (relative to the working directory): in dev, an
+ * edit of the file runs that module again, as an edit of a module it imports does; in `vite build --watch`, it is a watched
+ * file. Build time, like `scope()`: in a member's functions or in the plugin's own.
+ */
+declare const dependsOn: (path: string) => void;
 //#endregion
-export { scope as _, Entry as a, Made as c, Scope as d, Table as f, lacking as g, fn as h, Css as i, Members as l, arg as m, ArgsDef as n, Impl as o, Typed as p, Chain as r, KernelDef as s, AliasesOf as t, Pending as u, Part as v, Style as y };
+export { lacking as _, Entry as a, Style as b, Made as c, Scope as d, Table as f, fn as g, dependsOn as h, Css as i, Members as l, arg as m, ArgsDef as n, Impl as o, Typed as p, Chain as r, KernelDef as s, AliasesOf as t, Pending as u, scope as v, Part as y };

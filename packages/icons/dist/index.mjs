@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { convertParsedSVG, getIconData, iconToHTML, iconToSVG, parseSVGContent, svgToURL } from "@iconify/utils";
-import { arg, scope } from "cssints/plugin";
+import { arg, dependsOn, scope } from "cssints/plugin";
 //#region src/index.ts
 const box = "display:inline-block;width:1em;height:1em";
 const mask = { css: `&{${box};background-color:currentColor;mask:var(--_svg) no-repeat center/100% 100%}` };
@@ -64,7 +64,9 @@ const files = (dir) => {
 		names: () => list().map((f) => f.slice(0, -4)),
 		get: (name) => {
 			if (!list().includes(`${name}.svg`)) return void 0;
-			const svg = parseSVGContent(readFileSync(join(abs, `${name}.svg`), "utf8"));
+			const file = join(abs, `${name}.svg`);
+			dependsOn(file);
+			const svg = parseSVGContent(readFileSync(file, "utf8"));
 			const icon = svg && convertParsedSVG(svg);
 			if (!icon) throw new Error(`cssints: icons: ${name}.svg is not an SVG with a viewBox`);
 			return icon;

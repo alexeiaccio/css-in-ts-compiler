@@ -36,7 +36,8 @@ const registry = globalThis.__cssints ??= {
 	tokens: 0,
 	warnings: [],
 	warned: /* @__PURE__ */ new Set(),
-	lowered: /* @__PURE__ */ new Map()
+	lowered: /* @__PURE__ */ new Map(),
+	files: /* @__PURE__ */ new Set()
 };
 const Registry = Context.Reference("cssints/Registry", { defaultValue: () => registry });
 const unuse = (entries, file) => {

@@ -170,6 +170,8 @@ interface RegistryState {
   warned: Set<string>;
   /** `property value feature targets` -> what LightningCSS lowers it to, or false (lowered.ts) */
   lowered: Map<string, string | false>;
+  /** the files the evaluation in progress read (`dependsOn`): dependencies of the module being evaluated (plugin.ts `depsOf`) */
+  files: Set<string>;
   at?: At;
   /** the site `tokens` is counting for: a call in a loop is one site that registers several tokens */
   site?: string;
