@@ -146,7 +146,7 @@ const NAMED_ARGS = /^(is|not|has|matches)$/i;
 // Specificity of one complex selector (not a list): `:where()` is 0, `:is()`, `:not()`, `:has()` their most specific argument.
 export const specificity = (sel: string): Spec => {
   let spec: Spec = [0, 0, 0];
-  for (let i = 0; i < sel.length;) {
+  for (let i = 0; i < sel.length; ) {
     const ch = sel[i]!;
     const rest = sel.slice(i + 1);
     if (ch === "#") {
@@ -188,7 +188,7 @@ const STRUCTURE =
 export const stripStates = (sel: string, within = false): { base: string; states: string[] } => {
   let base = "";
   const states: string[] = [];
-  for (let i = 0; i < sel.length;) {
+  for (let i = 0; i < sel.length; ) {
     const ch = sel[i]!;
     if (ch === "[") {
       const end = close(sel, i);
