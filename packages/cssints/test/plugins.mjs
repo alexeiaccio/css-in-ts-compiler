@@ -263,6 +263,20 @@ await failsAt(
   5,
 );
 await failsAt("fn-builtins-bad-clamp.ts", /clamp\(\) takes 3 arguments/, 5);
+// the bad argument is named like the type error does; the error is located at the site (sites know no argument offsets)
+await failsAt(
+  "fn-arg-light-dark.ts",
+  /^light-dark\(\): unexpected "1px" .* \(argument 2\) \("light-dark/,
+  7,
+);
+await failsAt(
+  "fn-arg-gradient.ts",
+  /^linear-gradient\(\): unexpected "banana" .* \(argument 3\)$/,
+  7,
+);
+await failsAt("fn-arg-oklch.ts", /^oklch\(\): unexpected "banana" .* \(argument 5\)$/, 7);
+await failsAt("fn-arg-few.ts", /^light-dark\(\): unexpected end .* \(after argument 1\)$/, 7);
+await failsAt("fn-arg-many.ts", /^light-dark\(\): unexpected end .* \(argument 3\)$/, 7);
 // a token is checked as a literal of its type: length + time is an error through two tokens
 await failsAt(
   "fn-math-bad-token.ts",

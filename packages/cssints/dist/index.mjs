@@ -527,22 +527,36 @@ const build = (member, name) => {
 			return String(p);
 		};
 		const texts = parts.map((p, i) => isGroup(p) ? p.map(atom).join(" ") : name === "var" && !i && p instanceof CSSTokenValue ? p.name : atom(p));
-		const value = `${name}(${texts.reduce((acc, t, i) => i ? `${acc}${OPERATORS.has(t) || OPERATORS.has(texts[i - 1]) ? " " : sep}${t}` : t, "")})`;
+		const join = (ts) => ts.reduce((acc, t, i) => i ? `${acc}${OPERATORS.has(t) || OPERATORS.has(ts[i - 1]) ? " " : sep}${t}` : t, "");
+		const value = `${name}(${join(texts)})`;
 		const first = parts[0];
 		if (name === "var") {
 			if (!registry.properties.has(texts[0] ?? "")) throw fail(`cssints: var() takes a token and an optional fallback, got ${Formatter.formatJson(texts[0])}`);
 			if (first instanceof CSSTokenValue && texts.length > 1) checkText(`var(${first.name}) fallback`, `<${first.syntax}>`, texts.slice(1).join(sep));
-		} else checkText(`${name}()`, grammar, value);
+		} else checkText(`${name}()`, grammar, value, math ? void 0 : () => argumentOf(name, grammar, texts, sep, join));
 		return new CSSFunctionValue(value);
 	};
 };
-const checkText = (label, grammar, text) => {
+const argumentOf = (name, grammar, texts, sep, join) => {
+	const fits = (s) => {
+		try {
+			checkValueNow(name, grammar, s);
+			return true;
+		} catch (e) {
+			if (!isDeclarationError(e)) throw e;
+			return false;
+		}
+	};
+	const i = texts.findIndex((t, n) => probed(join(texts.slice(0, n + 1)), registry.properties).some((h) => !fits(`${name}(${h}${OPERATORS.has(t) ? " " : sep}var(--x))`) && !fits(`${name}(${h})`)));
+	return !texts.length ? "" : i < 0 ? ` (after argument ${texts.length})` : ` (argument ${i + 1})`;
+};
+const checkText = (label, grammar, text, where) => {
 	for (const v of probed(text, registry.properties)) try {
 		checkValueNow(label, grammar, v);
 	} catch (e) {
 		if (!isDeclarationError(e)) throw e;
 		throw new MacroError({
-			message: `${e.message.replace(`, expected ${MATH}`, "")}${v === text ? "" : ` ("${text}" is checked as "${v}": a token stands for a value of its type)`}`,
+			message: `${e.message.replace(`, expected ${MATH}`, "")}${where?.() ?? ""}${v === text ? "" : ` ("${text}" is checked as "${v}": a token stands for a value of its type)`}`,
 			cause: e,
 			...registry.at
 		});
