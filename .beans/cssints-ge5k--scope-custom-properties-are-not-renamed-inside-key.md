@@ -5,11 +5,11 @@ status: in-progress
 type: bug
 priority: normal
 created_at: 2026-10-09T07:56:37Z
-updated_at: 2026-10-09T08:31:13Z
+updated_at: 2026-10-09T08:39:24Z
 ---
 
 Found by skeleton (cssints-0k8h, repro under "## Engine gaps"): `keyframes({ from: css.vars({ "--_p": "0%" }) })` inside a kernel prints `--_p`, while the kernel itself uses `--<scope>-p`, so the two name different properties.
 
 ## Todo
-- [ ] namespace `--_x` in keyframes() created in a scope's kernel styles
+- [x] namespace `--_x` in keyframes() created in a scope's kernel styles
 - [ ] skeleton's clock keyframes written through keyframes() instead of raw CSS

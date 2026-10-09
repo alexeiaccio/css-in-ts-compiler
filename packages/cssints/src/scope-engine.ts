@@ -229,7 +229,19 @@ class Compiler {
       );
       css = built.css;
       warnings = built.warnings.map((w) => ({ ...w, value: this.own(w.value) }));
-      if (built.kernels) this.atRules.set(key, built.kernels);
+      // keyframes() and positionTry() made by the kernel are named by their steps, before `--_x` is the scope's: those
+      // that hold one get the scope's name too (`kf-1a2b3c4d-skeleton`), so two scopes with the same steps do not clash
+      if (built.kernels)
+        this.atRules.set(
+          key,
+          built.kernels.map((r) => {
+            if (!r.css.includes("--_")) return r;
+            const name = r.key.slice(r.key.indexOf(" ") + 1);
+            const scoped = `${name}-${this.name}`;
+            css = css.replaceAll(name, scoped);
+            return { ...r, key: r.key.replace(name, scoped), css: this.own(r.css.replace(name, scoped)) };
+          }),
+        );
       this.sets.set(key, built.props);
       // what the kernel sets, and what meets it in a `cn()`: the member that uses it may not set those
       this.derived.set(key, {
