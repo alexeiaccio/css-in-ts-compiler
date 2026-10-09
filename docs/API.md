@@ -658,6 +658,22 @@ export const stuck = (...styles: Style[]) =>
 export const title = stuck(color("red"));
 ```
 
+- **`dependsOn(path)`** tells the engine that the module being evaluated read a file (an image, an SVG, a font; `path` relative to the working directory) (2026-10-09, cssints-04u8). Call it where the file is read, in a member's functions or in the plugin's own, before or after the read. The file becomes a dependency of the client module whose evaluation ran the call, as a module it imports is: in dev, an edit of the file runs that module again and the sheet changes, the module untouched; the dev server's watcher watches the file, outside the root too. In `vite build --watch` the file is a watched file (`addWatchFile`), so an edit builds again. `@cssints/placeholder`, `@cssints/icons` (`fs`) and `@cssints/fonts` (`fs`) call it for every file they read.
+
+```ts
+import { readFileSync } from "node:fs";
+
+import { color } from "cssints" with { type: "cssints" };
+import { dependsOn } from "cssints/plugin";
+
+export const swatch = (file: string) => {
+	dependsOn(file);
+	return color(readFileSync(file, "utf8").trim());
+};
+```
+
+A dependency is a file, not a directory: a file added to a directory is not seen. Vite's watcher skips `node_modules`, so a file there (a collection of `@iconify-json`, `@fontsource`) is not watched. An evaluation that fails records nothing: after a build error, edit the module or reload.
+
 - **Types.** `cssints/plugin` points at `author.ts` and `scope.ts`: the signatures and the type-level code (`Members`, `Chain`, `Expand`, the call checks) and no code that runs, because a program that imports a plugin must not need Node's types or a newer `lib`. The engine is `scope-engine.ts`; `macro.ts` registers it when the library loads.
 - **Not in 0.2:** `keyword` members, completions of keywords inside plugin grammar strings (the message still names the grammar), and a plugin that is a package of members you install other than `@cssints/icons`.
 
@@ -852,7 +868,8 @@ export const typo = mdi("clos"); // error: not an icon of mdi
 - **Names.** TypeScript cannot read a module type from a string, so the names of a collection come from the type argument: `icons<typeof import("@iconify-json/mdi/icons.json")>(…)` types `mdi(name)` as the icons and aliases of that collection, and a typo is an error in the editor. Without the type argument, and for `fs`, a name is any string. In every case a name that does not exist is a build error at the call, with the nearest name when it is close: `cssints: icons: no icon "hom" in iconify-json mdi, did you mean home?`.
 - **Mask or image.** An icon that paints with `currentColor` (every one-colour icon of a collection) gets the marker `_icons-mask` and takes the text `color`. Any other (a logo with its own colours) gets `_icons-image`, a background image. This is iconify's own rule. A non-square icon is centred on a square view box, so `width` and `height` set its size (`1em` by default).
 - **Cost.** The kernel is printed once. Each icon adds one class, and the same icon is the same class everywhere. The kernel has no `requires`: LightningCSS adds `-webkit-mask` for targets that have only the prefixed form.
-- **Not yet:** the iconify HTTP API (it would need a lockfile), names generated for `fs`, a name transform, and watching the SVG files in dev (a changed file needs a restart).
+- **Dev.** An edited SVG of `fs` updates the CSS of the modules that use it, without a touch or a restart (`dependsOn`, see "Plugins"; 2026-10-09, cssints-04u8). A new SVG in `dir` is not seen until the module runs again.
+- **Not yet:** the iconify HTTP API (it would need a lockfile), names generated for `fs`, and a name transform.
 
 ### Plugin packages (cssints-dk1q)
 

@@ -68,9 +68,8 @@ src/broken.png: …`, the decoder's message), a mode outside the grammar (`place
 
 ## Limits
 
-- **Not watched in dev.** The engine re-runs a module when its imports change, not when a file it read changes: after
-  editing an image, touch the module that calls `placeholder()` or restart the dev server (`@cssints/icons` has the same
-  limit for its SVG files).
+- In dev, an edited image updates the CSS of the modules that use it (`dependsOn` of `cssints/plugin`); a missing image
+  that you add after the build error needs an edit of the module or a reload.
 - The `gradient` value is a list of images, so it fits a property that takes a list (`background-image`, `mask-image`);
   a property that takes one `<image>` (`list-style-image`, `border-image-source`) rejects it at build time: use
   `thumbhash` there.

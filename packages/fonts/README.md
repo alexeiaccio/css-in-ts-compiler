@@ -114,7 +114,9 @@ export const heading = cn(body.family(), body.trim({ lineHeight: 1.2 }));
 - The trim is right for the web font. The fallback face matches ascent and descent, but not the cap height, so the
   trim is off by a little until the font loads.
 - Not yet: variable fonts (`@fontsource-variable/*`), remote providers (unifont, Google Fonts), the subsets option,
-  `font-display` other than `swap`, and watching the font files in dev (a changed file needs a restart).
+  and `font-display` other than `swap`.
+- In dev, an edited file of `fs` updates the CSS of the modules that use it (`dependsOn` of `cssints/plugin`). The files
+  of `fontsource` are in `node_modules`, which Vite does not watch.
 
 ```bash
 cd packages/fonts && bun run test   # fixtures through the engine (output, errors, warnings, a build), and the type test via bun run typecheck

@@ -134,6 +134,8 @@ lacks a key.
   runtime does not reach. Match keys exactly (the key is in parentheses at the end of the warning).
 - `lacking(...keys)` returns the build's targets that lack a key (`["firefox 140"]`, `[]` when none): emit fallback
   rules or styles only when needed (`stuck()` adds its attribute rules only then).
+- `dependsOn(path)`: call it for every file the plugin reads (an image, an SVG, a font). In dev an edit of the file
+  runs the modules that read it again; in `vite build --watch` it is a watched file.
 
 ## Errors
 

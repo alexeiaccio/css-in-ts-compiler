@@ -199,6 +199,8 @@ export interface RegistryState {
   warned: Set<string>;
   /** `property value feature targets` -> what LightningCSS lowers it to, or false (lowered.ts) */
   lowered: Map<string, string | false>;
+  /** the files the evaluation in progress read (`dependsOn`): dependencies of the module being evaluated (plugin.ts `depsOf`) */
+  files: Set<string>;
   at?: At;
   /** the site `tokens` is counting for: a call in a loop is one site that registers several tokens */
   site?: string;
@@ -228,6 +230,7 @@ export const registry: RegistryState = (globalThis.__cssints ??= {
   warnings: [],
   warned: new Set(),
   lowered: new Map(),
+  files: new Set(),
 });
 
 export const Registry = Context.Reference<RegistryState>("cssints/Registry", {

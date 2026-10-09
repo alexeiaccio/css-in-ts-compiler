@@ -644,5 +644,10 @@ const lacking = (keys: readonly string[]): string[] => [
   ...new Set(keys.flatMap((k) => lackingOf(k).map((t) => t.join(" ")))),
 ];
 
+// A file the evaluation in progress read: plugin.ts adds it to the dependencies of the module being evaluated.
+const dependsOn = (path: string): void => {
+  registry.files.add(path);
+};
+
 /** What the front (scope.ts) calls; macro.ts puts it in the registry. */
-export const engine = { scope, lacking };
+export const engine = { scope, lacking, dependsOn };

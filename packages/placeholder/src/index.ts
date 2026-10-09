@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { CSSImageValue } from "cssints";
-import { arg, fn, scope } from "cssints/plugin";
+import { arg, dependsOn, fn, scope } from "cssints/plugin";
 
 import { decode, gradients, thumbhash } from "./pixels.ts";
 
@@ -23,6 +23,7 @@ const fail = (message: string, cause?: unknown) => {
 
 const compute = (path: string, mode: Mode) => {
   let bytes: Uint8Array;
+  dependsOn(path);
   try {
     bytes = readFileSync(resolve(path));
   } catch (e) {

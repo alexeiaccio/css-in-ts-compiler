@@ -117,6 +117,7 @@ const evaluateModule = Effect.fnUntraced(function* (
   registry.sites.delete(id);
   forget(id);
   registry.at = undefined;
+  registry.files.clear();
   registry.gen++;
   clearApp(runner.evaluatedModules);
   yield* Effect.tryPromise({
