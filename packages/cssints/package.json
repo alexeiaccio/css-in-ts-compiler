@@ -6,7 +6,8 @@
   "license": "MIT",
   "files": [
     "dist",
-    "src"
+    "src",
+    "skills"
   ],
   "type": "module",
   "sideEffects": false,
