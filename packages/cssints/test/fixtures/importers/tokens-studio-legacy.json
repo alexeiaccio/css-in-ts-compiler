@@ -1,0 +1,13 @@
+{
+  "global": {
+    "Main": {
+      "0": { "value": "#ffffff", "type": "color" },
+      "500": { "value": "#141414", "type": "color" }
+    },
+    "Accent": {
+      "500": { "value": "#b380d4", "type": "color" }
+    }
+  },
+  "$themes": [],
+  "$metadata": { "tokenSetOrder": ["global"] }
+}

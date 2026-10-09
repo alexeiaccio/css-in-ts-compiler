@@ -1,0 +1,7 @@
+{
+  "global": {
+    "spacing": { "base": { "$type": "spacing", "$value": "8px" } }
+  },
+  "$themes": [],
+  "$metadata": { "tokenSetOrder": ["global"] }
+}

@@ -1,0 +1,3 @@
+{
+  "visibility": { "$type": "number", "$value": 0, "$extensions": { "com.figma.type": "boolean" } }
+}

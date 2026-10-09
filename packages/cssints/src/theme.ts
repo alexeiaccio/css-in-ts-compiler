@@ -165,6 +165,40 @@ const REF = /\{([^{}]+)\}/g;
 const IGNORED = new Set(["$description", "$extensions", "$deprecated"]);
 const kebab = (s: string) => s.replace(/([a-z\d])([A-Z])/g, "$1-$2").toLowerCase();
 
+// What the Figma tools write that is not DTCG (docs/API.md "Themes", JSON from Figma): an error, not a silent misreading.
+const RECIPE = "see docs/API.md, JSON from Figma";
+// Tokens Studio's own $type names, and the DTCG type each stands for
+const STUDIO_TYPES: Record<string, string> = {
+  spacing: "dimension",
+  sizing: "dimension",
+  borderRadius: "dimension",
+  borderWidth: "dimension",
+  fontSizes: "dimension",
+  letterSpacing: "dimension",
+  paragraphSpacing: "dimension",
+  paragraphIndent: "dimension",
+  fontWeights: "fontWeight",
+  lineHeights: "number",
+  opacity: "number",
+  boxShadow: "shadow",
+};
+// A token's $extensions that change what its $value means: a Tokens Studio colour modifier, a Figma boolean variable,
+// the other modes of a variable (TokensBrücke's `mode`, `com.figma` `modes`).
+const extensionError = (token: Record<string, unknown>, what: string): string | undefined => {
+  const ext = token["$extensions"];
+  if (!Predicate.isObject(ext)) return undefined;
+  const studio = ext["studio.tokens"];
+  if (Predicate.isObject(studio) && studio["modify"] !== undefined)
+    return `cssints: ${what} has a Tokens Studio colour modifier ($extensions["studio.tokens"].modify), which cssints does not apply: write the colour as CSS (color-mix(), a relative colour) or resolve it with @tokens-studio/sd-transforms first (${RECIPE})`;
+  if (ext["com.figma.type"] === "boolean")
+    return `cssints: ${what} is a Figma boolean variable (com.figma.type "boolean"), which has no CSS value: leave it out of the tokens`;
+  const figma = ext["com.figma"];
+  const modes = ext["mode"] ?? (Predicate.isObject(figma) ? figma["modes"] : undefined);
+  if (Predicate.isObject(modes) && Object.keys(modes).length > 1)
+    return `cssints: ${what} has modes in $extensions (${Object.keys(modes).join(", ")}), which createTokens does not read: export one file per mode (TokensBrücke: "Split modes into separate files"; Figma: Export modes) and pass the others to createGlobalTheme (${RECIPE})`;
+  return undefined;
+};
+
 const collect = Effect.fnUntraced(function* (
   node: Record<string, unknown>,
   path: string[],
@@ -180,6 +214,10 @@ const collect = Effect.fnUntraced(function* (
   const inherited = own ?? type;
   for (const [key, child] of Object.entries(node)) {
     if (key === "$type" || key === "$value" || IGNORED.has(key)) continue;
+    if (key === "$themes" || key === "$metadata")
+      return yield* fail(
+        `cssints: createTokens(): ${key} of ${here} is a Tokens Studio file: pass the token sets, in the W3C DTCG format (${RECIPE})`,
+      );
     if (key.startsWith("$"))
       return yield* fail(
         `cssints: createTokens(): ${key} of ${here} is not supported (${["$root", "$extends", "$ref"].join(", ")} are not, $description, $extensions and $deprecated are ignored)`,
@@ -193,12 +231,18 @@ const collect = Effect.fnUntraced(function* (
       return yield* fail(
         `cssints: createTokens(): ${at.join(".")} is a group or a token ({ $value }), got ${Formatter.formatJson(child)}`,
       );
+    if (typeof child["type"] === "string" && Object.hasOwn(child, "value"))
+      return yield* fail(
+        `cssints: createTokens(): ${at.join(".")} has value and type without $, the legacy format of Tokens Studio (and of TokensBrücke without "DTCG 2025.10 format"): export in the W3C DTCG format (${RECIPE})`,
+      );
     if (Object.hasOwn(child, "$value")) {
       const stray = Object.keys(child).filter((k) => !k.startsWith("$"));
       if (stray.length)
         return yield* fail(
           `cssints: createTokens(): ${at.join(".")} has a $value and so is a token; it cannot hold ${stray.join(", ")}`,
         );
+      const ext = extensionError(child, `createTokens(): ${at.join(".")}`);
+      if (ext) return yield* fail(ext);
       const t = child["$type"] ?? inherited;
       out.push({
         path: at,
@@ -275,7 +319,7 @@ export const createTokens = (...args: unknown[]): unknown =>
         if (done) return done;
         if (leaf.type !== undefined && !Object.hasOwn(DTCG_TYPES, leaf.type))
           return yield* fail(
-            `cssints: createTokens(): ${leaf.dotted} has $type "${leaf.type}", which has no token type (no @property syntax); supported: ${SUPPORTED}`,
+            `cssints: createTokens(): ${leaf.dotted} has $type "${leaf.type}", which has no token type (no @property syntax); supported: ${SUPPORTED}${Object.hasOwn(STUDIO_TYPES, leaf.type) ? ` ("${leaf.type}" is a Tokens Studio type: its DTCG type is "${STUDIO_TYPES[leaf.type]}")` : ""}`,
           );
         const own = leaf.type as DtcgType | undefined;
         const [, ref] =
@@ -304,6 +348,11 @@ export const createTokens = (...args: unknown[]): unknown =>
           if (own === undefined)
             return yield* fail(
               `cssints: createTokens(): ${leaf.dotted} is derived from other tokens and has no $type: give it one, or its group`,
+            );
+          // Tokens Studio math (`{spacing.base} * 2`): CSS has it in calc()
+          if (/^[^(]*\s[*/+-]\s/.test(leaf.value))
+            return yield* fail(
+              `cssints: createTokens(): ${leaf.dotted} value "${leaf.value}" is math outside calc() (Tokens Studio math): write "calc(${leaf.value})"`,
             );
           const refs: string[] = [];
           for (const [, ref] of leaf.value.matchAll(REF)) {
@@ -505,9 +554,17 @@ const theme = (at: At | undefined, args: unknown[]) =>
         values: Record<string, unknown>,
         path: string[],
       ): Effect.fn.Return<void, MacroError> {
-        for (const [key, v] of Object.entries(values)) {
-          const child = Object.hasOwn(node, key) ? node[key] : undefined;
+        for (const [key, given] of Object.entries(values)) {
+          // a DTCG file of another mode (Figma's per-mode export): `{ $value }` leaves, and `$type`, `$extensions`, ... beside them
+          if (key.startsWith("$")) continue;
+          const leaf = Predicate.isObject(given) && Object.hasOwn(given, "$value");
+          const v = leaf ? given["$value"] : given;
+          // the file's key `500` is the set's `_500`
+          const own = Object.hasOwn(node, key) ? key : accessOf(key);
+          const child = Object.hasOwn(node, own) ? node[own] : undefined;
           const dotted = [...path, key].join(".");
+          const ext = leaf ? extensionError(given, `createGlobalTheme(): ${dotted}`) : undefined;
+          if (ext) return yield* fail(ext);
           if (child instanceof CSSTokenValue) {
             const kind = registry.defs.get(child.name)!.kind;
             const text = yield* cssOf(set.types.get(child.name)!, v, dotted);
@@ -600,7 +657,7 @@ const theme = (at: At | undefined, args: unknown[]) =>
       }
 
       const stale = new Set(changed.keys());
-      for (let grew = true; grew; )
+      for (let grew = true; grew;)
         grew = set.aliases.some(
           (a) => a.targets.some((t) => stale.has(t)) && !stale.has(a.name) && !!stale.add(a.name),
         );
