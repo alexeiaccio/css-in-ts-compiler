@@ -1,11 +1,11 @@
 ---
 # cssints-ge5k
 title: Scope custom properties are not renamed inside keyframes() made in a kernel
-status: todo
+status: in-progress
 type: bug
 priority: normal
 created_at: 2026-10-09T07:56:37Z
-updated_at: 2026-10-09T07:56:37Z
+updated_at: 2026-10-09T08:31:13Z
 ---
 
 Found by skeleton (cssints-0k8h, repro under "## Engine gaps"): `keyframes({ from: css.vars({ "--_p": "0%" }) })` inside a kernel prints `--_p`, while the kernel itself uses `--<scope>-p`, so the two name different properties.

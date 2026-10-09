@@ -1,10 +1,11 @@
 ---
 # cssints-oj0c
 title: CSS coverage per route on apps/sky
-status: draft
+status: in-progress
 type: feature
+priority: normal
 created_at: 2026-10-09T07:45:40Z
-updated_at: 2026-10-09T07:45:40Z
+updated_at: 2026-10-09T08:31:13Z
 parent: cssints-dk1q
 ---
 

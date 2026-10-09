@@ -1,10 +1,11 @@
 ---
 # cssints-9xxs
 title: Report atomic-css-devtools gaps upstream
-status: draft
+status: in-progress
 type: task
+priority: normal
 created_at: 2026-10-09T07:45:40Z
-updated_at: 2026-10-09T07:45:40Z
+updated_at: 2026-10-09T08:31:13Z
 parent: cssints-dk1q
 ---
 
