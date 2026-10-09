@@ -82,14 +82,15 @@ interface Conflict {
 }
 //#endregion
 //#region src/scope.d.ts
-/** A selector of `nest()`: `&` (the kernel's class), then a combinator (`& > *`, `& > * + *`, `& p`); the build reads the rest. */
-type NestSelector<S extends string> = S extends `&${" " | ">" | "+" | "~"}${string}` ? S : `nest(): "${S}" does not start with & and a combinator`;
+/** A selector of `nest()`: one with `&`, the kernel's class (`& > *`, `& p`, `:root:has(&)`, `.x &`); the build reads the rest. */
+type NestSelector<S extends string> = S extends `${string}&${string}` ? S : `nest(): "${S}" has no &`;
 /** What only a kernel written as styles has, besides all of "cssints". */
 interface KernelCss {
   /**
-   * `nest("& > *")(flexGrow(1))`: the styles on other elements, relative to the kernel's class (`._k > *`). A condition
-   * inside applies to them (`& > *:hover`), one around it to the element (`._k:hover > *`). One condition. What it sets is
-   * not the element's, so a member's derived conflicts leave it out.
+   * `nest("& > *")(flexGrow(1))`: styles under a selector around the kernel's class (`._k > *`, `:root:has(._k)`). A
+   * condition inside applies to its subject (`& > *:hover`), one around it to the element (`._k:hover > *`,
+   * `:root:has(._k:hover)`). One condition. When the subject is another element (`&` not in the last compound), what it
+   * sets is not the element's, so a member's derived conflicts leave it out; `.x &` is the element's.
    */
   nest: <const S extends string>(selector: NestSelector<S>) => Wrap;
   /**

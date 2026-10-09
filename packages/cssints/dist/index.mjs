@@ -670,7 +670,17 @@ var Compiler = class {
 				...w,
 				value: this.own(w.value)
 			}));
-			if (built.kernels) this.atRules.set(key, built.kernels);
+			if (built.kernels) this.atRules.set(key, built.kernels.map((r) => {
+				if (!r.css.includes("--_")) return r;
+				const name = r.key.slice(r.key.indexOf(" ") + 1);
+				const scoped = `${name}-${this.name}`;
+				css = css.replaceAll(name, scoped);
+				return {
+					...r,
+					key: r.key.replace(name, scoped),
+					css: this.own(r.css.replace(name, scoped))
+				};
+			}));
 			this.sets.set(key, built.props);
 			this.derived.set(key, {
 				props: Object.keys(properties).filter((p) => built.props.some((k) => relation(p, k) !== "apart")),
@@ -1613,9 +1623,18 @@ const within = (state, name) => {
 };
 const nest = (...args) => {
 	const [selector] = args;
-	if (typeof selector !== "string" || !/^&\s*[>+~\s]/.test(selector)) throw fail(`cssints: nest() takes a selector that starts with & and a combinator ("& > *", "& > * + *", "& p"), got ${Formatter.formatJson(selector)}`);
-	const text = selector.trim().replace(/\s+/g, " ");
-	const exit = Effect.runSyncExit(checkSelector(`._${text.slice(1)}`));
+	const text = typeof selector === "string" ? selector.trim().replace(/\s+/g, " ") : "";
+	let depth = 0;
+	let own = false;
+	let list = false;
+	for (const ch of text) if (ch === "(" || ch === "[") depth++;
+	else if (ch === ")" || ch === "]") depth--;
+	else if (depth) continue;
+	else if (ch === "&") own = true;
+	else if (ch === ",") list = true;
+	else if (" >+~".includes(ch)) own = false;
+	if (!text.includes("&") || list) throw fail(`cssints: nest() takes one selector with & (the kernel's class): "& > *", "& p", ":root:has(&)", ".x &", got ${Formatter.formatJson(selector)}`);
+	const exit = Effect.runSyncExit(checkSelector(text.replaceAll("&", "._k")));
 	if (Exit.isFailure(exit)) {
 		const e = Cause.squash(exit.cause);
 		throw new MacroError({
@@ -1627,7 +1646,8 @@ const nest = (...args) => {
 	return wrapper({
 		text,
 		rank: 3e3,
-		nest: true
+		nest: true,
+		...own ? { own: true } : {}
 	});
 };
 const vars = (...args) => {
@@ -1712,14 +1732,20 @@ const ruleOf = (cls, [prop, value, conds = [], fallbacks]) => {
 	const wrap = [];
 	const ranks = [];
 	let before = "";
-	const sel = [`.${cls}`];
+	let sel = `.${cls}`;
 	let width = 0;
 	for (const c of conds) if (c.text.startsWith("@")) {
 		wrap.push(c.text);
 		width = Math.max(width, c.rank);
 	} else {
 		if (c.ancestor) before += `${c.text} `;
-		else sel.push(c.nest ? c.text.slice(1) : c.text);
+		else if (!c.nest) sel += c.text;
+		else if (c.text.lastIndexOf("&") === 0) sel += c.text.slice(1);
+		else {
+			const amp = `${before}${sel}`;
+			sel = c.text.replaceAll("&", /[\s>+~]/.test(amp) ? `:is(${amp})` : amp);
+			before = "";
+		}
 		ranks.push(c.rank);
 	}
 	const all = fallbacks ? `${value};${fallbacks.join(";")}` : value;
@@ -1729,7 +1755,7 @@ const ruleOf = (cls, [prop, value, conds = [], fallbacks]) => {
 		cond: conds.length ? [width, ...ranks] : [],
 		wrap,
 		prop,
-		css: `${before}${sel.join("")}{${fallbacks ? [...fallbacks.toReversed(), value].map((v) => `${prop}:${v}`).join(";") : `${prop}:${value}`}}`,
+		css: `${before}${sel}{${fallbacks ? [...fallbacks.toReversed(), value].map((v) => `${prop}:${v}`).join(";") : `${prop}:${value}`}}`,
 		tokens
 	};
 };
@@ -1760,7 +1786,7 @@ const kernelOf = (what, style, cls) => {
 	}
 	return {
 		css: blocks.map((b) => b.wrap.reduceRight((css, w) => `${w}{${css}}`, `${b.selector}{${b.body.join(";")}}`)).join(" "),
-		props: [...new Set(decls.flatMap(([prop, , conds]) => prop.startsWith("--") || conds?.some((c) => c.nest) ? [] : [prop]))],
+		props: [...new Set(decls.flatMap(([prop, , conds]) => prop.startsWith("--") || conds?.some((c) => c.nest && !c.own) ? [] : [prop]))],
 		kernels: style.kernels,
 		warnings
 	};

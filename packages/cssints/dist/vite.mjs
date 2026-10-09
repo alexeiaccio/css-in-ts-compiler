@@ -2,7 +2,7 @@ import { A as Registry, C as RUNTIME_ID, D as runtimeNames, E as runtimeModule, 
 import { createRequire } from "node:module";
 import { Cause, Clock, Config, Effect, Exit, Formatter, Option, Predicate, Result, Schema, Semaphore } from "effect";
 import { createHash } from "node:crypto";
-import { join, resolve } from "node:path";
+import { basename, join, relative, resolve } from "node:path";
 import { browserslistToTargets } from "lightningcss";
 import MagicString from "magic-string";
 import { readFileSync } from "node:fs";
@@ -296,9 +296,9 @@ const vlq = (n) => {
 	} while (v);
 	return s;
 };
-const sheetMap = (text, siteOf) => {
+const sheetMap = (text, siteOf, source = (file) => file) => {
 	const first = /* @__PURE__ */ new Map();
-	for (const [file, at] of siteOf) for (const [cls, loc] of at) if (!first.has(cls)) first.set(cls, [file, loc]);
+	for (const [file, at] of [...siteOf].sort(([a], [b]) => a < b ? -1 : 1)) for (const [cls, loc] of at) if (!first.has(cls)) first.set(cls, [file, loc]);
 	const sources = [];
 	let prev = [
 		0,
@@ -310,17 +310,30 @@ const sheetMap = (text, siteOf) => {
 		sources,
 		names: [],
 		mappings: text.split("\n").map((l) => {
-			const hit = [...l.matchAll(/\.(_[\w-]+)/g)].map((m) => first.get(m[1])).find(Boolean);
-			if (!hit) return "";
-			const [file, { line, column }] = hit;
-			const seg = [
-				sources.includes(file) ? sources.indexOf(file) : sources.push(file) - 1,
-				line - 1,
-				column
-			];
-			const out = vlq(l.search(/\S/)) + seg.map((x, i) => vlq(x - prev[i])).join("");
-			prev = seg;
-			return out;
+			const segs = [];
+			let col = 0;
+			let mapped = false;
+			for (const m of l.matchAll(/(?<=^|[{};])\s*([^{};\s][^{};]*)(?=\{)/g)) {
+				const at = m.index + m[0].length - m[1].length;
+				const hit = [...m[1].matchAll(/\.(_[\w-]+)/g)].map((c) => first.get(c[1])).find(Boolean);
+				if (!hit && !mapped) continue;
+				let out = vlq(at - col);
+				if (hit) {
+					const [file, { line, column }] = hit;
+					const name = source(file);
+					const seg = [
+						sources.includes(name) ? sources.indexOf(name) : sources.push(name) - 1,
+						line - 1,
+						column
+					];
+					out += seg.map((x, i) => vlq(x - prev[i])).join("");
+					prev = seg;
+				}
+				segs.push(out);
+				col = at;
+				mapped = !!hit;
+			}
+			return segs.join(",");
 		}).join(";")
 	};
 };
@@ -349,6 +362,7 @@ function cssints({ inner = false } = {}) {
 	const depsOf = /* @__PURE__ */ new Map();
 	const inflight = /* @__PURE__ */ new Set();
 	const siteOf = /* @__PURE__ */ new Map();
+	let buildMap = false;
 	const sheet = Effect.fnUntraced(function* (ids = [...usedBy.keys()]) {
 		return yield* renderSheet(ids.flatMap((id) => usedBy.get(id)?.split("\n") ?? []));
 	});
@@ -415,7 +429,7 @@ function cssints({ inner = false } = {}) {
 			};
 		});
 		const { sites, runtimes } = parsed.sites.length ? yield* evaluate(runner, id, recorded).pipe(Effect.ensuring(flushWarnings(warn, id))) : yield* Effect.sync(() => forget(id)).pipe(Effect.andThen(recorded(/* @__PURE__ */ new Map())));
-		if (!build) {
+		if (!build || buildMap) {
 			const at = /* @__PURE__ */ new Map();
 			for (const [n, s] of parsed.sites.entries()) {
 				const loc = lineCol(code, s.start);
@@ -535,6 +549,26 @@ function cssints({ inner = false } = {}) {
 		yield* via(cssPost, (yield* via(css, text).pipe(Effect.withSpan("cssints.lightningcss")))?.code ?? text).pipe(Effect.withSpan("cssints.cssPost"));
 		return null;
 	});
+	const emitMaps = Effect.fn("cssints.generateBundle")(function* (ctx, bundle, dir) {
+		for (const asset of Object.values(bundle)) {
+			if (asset.type !== "asset" || !asset.fileName.endsWith(".css")) continue;
+			const text = Predicate.isString(asset.source) ? asset.source : new TextDecoder().decode(asset.source);
+			const at = resolve(dir, asset.fileName, "..");
+			const map = {
+				...sheetMap(text, siteOf, (file) => relative(at, file.replace(/\?.*/, ""))),
+				file: basename(asset.fileName)
+			};
+			if (!map.sources.length) continue;
+			const json = Formatter.formatJson(map);
+			const url = buildMap === "inline" ? `data:application/json;base64,${Buffer.from(json).toString("base64")}` : `${map.file}.map`;
+			if (buildMap !== "inline") yield* Effect.sync(() => ctx.emitFile({
+				type: "asset",
+				fileName: `${asset.fileName}.map`,
+				source: json
+			}));
+			if (buildMap !== "hidden") asset.source = `${text}\n/*# sourceMappingURL=${url} */`;
+		}
+	});
 	const buildEnd = Effect.fn("cssints.buildEnd")(function* (warn) {
 		yield* verifyChecks(() => true).pipe(Effect.catch((e) => locate(e, "", "")), Effect.ensuring(flushWarnings(warn)));
 	});
@@ -563,6 +597,7 @@ function cssints({ inner = false } = {}) {
 		api: { sheet: (ids) => Effect.runSync(sheet(ids)) },
 		configResolved(config) {
 			build = config.command === "build";
+			buildMap = build && !inner && config.build.sourcemap;
 			root = config.root;
 			cssPlugins = ["vite:css", "vite:css-post"].map((n) => config.plugins.find((p) => p.name === n));
 		},
@@ -600,6 +635,12 @@ function cssints({ inner = false } = {}) {
 		},
 		renderChunk(_, chunk) {
 			return run(hook("vite.renderChunk", chunk.fileName, renderChunk(this, chunk)));
+		},
+		generateBundle: {
+			order: "post",
+			handler(out, bundle) {
+				if (buildMap) runSync(hook("vite.generateBundle", root, emitMaps(this, bundle, resolve(root, out.dir ?? "dist"))));
+			}
 		},
 		transform: {
 			order: "pre",
