@@ -320,6 +320,38 @@ css.createGlobalTheme(t, ".x", { radius: { md: "{hue.accent}" } }); // error: a 
 ```
 
 - **JSON input:** `createTokens` takes a DTCG file imported as JSON, `import tokens from "./tokens.json" with { type: "json" }`. The editor knows the tree (`t.color.bg`, and a wrong path is a type error) but not the types, since a JSON import widens `$type` to `string`: each token is a token of any type there, and its values, references and use in a property (and in `check.contrast`) are checked at build time.
+- **JSON from Figma** (cssints-ow16): the token file of a Figma tool is DTCG with a few additions, and createTokens reads what is DTCG in it:
+  - **Figma's own export** (Variables view, Export modes) writes one DTCG file per mode. The default mode's file is the tokens, and the file of another mode is a theme as it is: `createGlobalTheme(t, dark, darkJson)` takes `{ $value }` leaves and skips `$type`, `$description` and `$extensions` (`com.figma.*`, the root's `com.figma.modeName`); a key that starts with a digit (`500`) is the set's `_500`. A theme declares every token of the file, the unchanged ones too. Figma writes a FLOAT variable as a `number` token (`5`), which a length property does not take: `calc(t.radius, "*", "1px")`, or `$type: "dimension"` with a `{ value, unit }` in the file. A colour is `{ colorSpace: "srgb", components, alpha, hex }`, read as `color(srgb …)`.
+  - **TokensBrücke** with "DTCG 2025.10 format" is DTCG too. Its modes in `$extensions.mode` are not read: with "Split modes into separate files" each mode is a file, as above. Each file has the collection as its top-level key and refers across collections by it (`{Primitives.color.blue}`), so the files of all collections go into one createTokens: `createTokens({ ...primitives, ...semantic })`.
+  - **Tokens Studio** is not read directly: its legacy format has `value` and `type` without `$`, its own types (`spacing`, `fontSizes`, `borderRadius`, `boxShadow`, …), unitless dimensions, math (`{spacing.base} * 2`) and colour modifiers in `$extensions`. Style Dictionary with `@tokens-studio/sd-transforms` resolves all of that; a format of six lines writes the result as DTCG, which createTokens takes (checked with style-dictionary 5.6 and sd-transforms 2.0; the aliases are resolved to their values, and a theme is a second build over the sets of a theme of `$themes.json`):
+
+```js
+import StyleDictionary from "style-dictionary";
+import { register } from "@tokens-studio/sd-transforms";
+
+register(StyleDictionary);
+const DTCG = { fontSize: "dimension", lineHeight: "number", opacity: "number" }; // the types sd-transforms leaves
+StyleDictionary.registerFormat({
+	name: "cssints/dtcg",
+	format: ({ dictionary }) => {
+		const out = {};
+		for (const t of dictionary.allTokens) {
+			let group = out;
+			for (const key of t.path.slice(0, -1)) group = group[key] ??= {};
+			const type = t.$type ?? t.type;
+			group[t.path.at(-1)] = { $type: DTCG[type] ?? type, $value: t.$value ?? t.value };
+		}
+		return JSON.stringify(out, null, 2);
+	},
+});
+await new StyleDictionary({
+	source: ["tokens/**/*.json"],
+	preprocessors: ["tokens-studio"],
+	platforms: { cssints: { transformGroup: "tokens-studio", files: [{ destination: "tokens.json", format: "cssints/dtcg" }] } },
+}).buildAllPlatforms();
+```
+
+  - **Build errors** for what would be misread: `value`/`type` without `$` (`global.Main.0 has value and type without $, the legacy format of Tokens Studio …`), `$themes` or `$metadata` in the tree, a Tokens Studio type (the error names the DTCG type: `"spacing" is a Tokens Studio type: its DTCG type is "dimension"`), math outside `calc()` (`write "calc({spacing.base} * 2)"`), a Tokens Studio colour modifier (`$extensions["studio.tokens"].modify`), a Figma boolean (`com.figma.type: "boolean"` on a number), and more than one mode in `$extensions` (`mode`, or `modes` of `com.figma`). `string`, `boolean`, `fontFamily` and the composite types are errors as before (no token type), so leave them out of the file (Figma: a collection without them; TokensBrücke: no styles). Samples of each tool are in `packages/cssints/test/fixtures/importers`.
 - **The sheet:** token sets and themes are rules of layer `_.k`, after the global rules of `css.global()` and before the class layers. They set custom properties only, and no class does, so the layer order never decides between them; `_.k` is the lowest layer, so your own unlayered `--color-bg` rule wins over a theme. The `:root` rules of aliases come first, then themes under a condition, then themes under a selector, each in source order, so a selector theme beats a condition theme on the same element. A module has the rules of the tokens it uses, from wherever they were made, and of the tokens those are made of (the references of a derived token or of a theme value, through chains: a `hue.accent` that no class uses still gets its `@property` rule), and its own; import a theme module (`import "./theme.ts"`) to have all of it.
 - **`css.check.contrast(fg, bg, { min })`** computes the WCAG 2.x contrast ratio (`min` from 1 to 21) for the default values and for every theme that sets either token or one they are aliases of. It reads themes one at a time, except those of one selector: themes with the same selector (and scope) meet on one element, so they are read together, laid over each other in the order of the cascade (no layer first, then the declared layers in order, then source order). A viewer look that sets only the text colour is checked on the background of the app look under the same selector. Themes of different selectors, or a selector and a condition, are still read one at a time, not in their combinations. A value that is set at run time (a slider that sets `--hue-accent` on `<html>`) belongs to no theme and is checked at its default only; a theme per value would put each rule in the sheet and hold it to the thresholds of the other themes, since a check applies to every theme that touches its tokens, so measure a range outside the build (apps/sky `test/contrast.mjs`). A ratio below `min` is a build error that names the theme and both resolved values (the ratio is cut, not rounded: 4.499 is 4.49). A value the check cannot evaluate (`color-mix()`, a relative colour, `light-dark()`, `currentColor`, a system colour) or a translucent one is a warning that names the token; a build says it once, and a dev server says it again after each edit. A derived token (or a theme value with `{path}` references) is read in each theme by putting that theme's values, or the defaults, in place of its references, through a chain of derived tokens: a ratio when the result is a colour (`oklch(0.6 0.2 {hue.accent})`), a warning that names the theme when it is not (`color-mix()` over another token), and a theme that sets any token a checked colour depends on, directly, through an alias or through references, is checked. The colour library (culori, `culori/fn`: 27 kB minified, 9 kB gzipped) is build-only and never ships. The check runs when its module has run, and again at the end of a build over the themes of every module.
 
