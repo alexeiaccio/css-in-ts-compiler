@@ -25,6 +25,45 @@ declare class ImportError extends ImportError_base<{
   readonly offset: number;
 }> {}
 //#endregion
+//#region src/devtools-server.d.ts
+/** A `css.*` call of a client module: where it is (1-based line, 0-based column) and the class names it produced. */
+interface DevSite {
+  line: number;
+  column: number;
+  classes: string[];
+}
+/** What the dev server knows of a class: its rule as the sheet prints it, the tokens it reads, the plugin it belongs to. */
+interface ClassRecord {
+  kind: "class" | "marker" | "group";
+  layer: string;
+  /** the at-rule preludes around the rule, outermost first */
+  wrap: string[];
+  prop: string;
+  /** the style rule, `._x:hover{color:red}`; a marker's is its kernel's css */
+  css: string;
+  tokens: string[];
+  /** the scope of a member's class (`frame`), the kernel of a marker (`frame.core`) */
+  plugin?: string;
+  /** indexes into `DevTable.sites` */
+  sites: number[];
+}
+/** The payload of `cssints:devtools`. */
+interface DevTable {
+  root: string;
+  /** the sheet as `load()` of virtual:cssints.css renders it, before LightningCSS */
+  sheet: string;
+  /** top-level layers in rank order; the engine's are `_.k` to `_.e` */
+  layers: string[];
+  classes: Record<string, ClassRecord>;
+  sites: (DevSite & {
+    file: string;
+  })[];
+  tokens: Record<string, {
+    path: string;
+    value: string;
+  }>;
+}
+//#endregion
 //#region src/instrument.d.ts
 interface CssImports {
   locals: Set<string>;
@@ -64,7 +103,10 @@ export declare const renderSheet: (entries: Iterable<string>) => Effect.Effect<s
 export declare const targets: import("lightningcss").Targets;
 /** `build: { cssTarget }`, the browserslist query of the support warnings, so a minified build keeps `firstThatWorks` fallbacks. */
 export declare const cssTarget: string[];
-export default function cssints({ inner }?: {
+export default function cssints({ inner, devtools }?: {
   inner?: boolean;
+  /** Dev only: the inspector of @cssints/devtools in every page (Alt+Shift+C), which must be installed. */
+  devtools?: boolean;
 }): Plugin[];
 //#endregion
+export type { DevTable };

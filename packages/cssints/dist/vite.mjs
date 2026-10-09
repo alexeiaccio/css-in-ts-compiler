@@ -180,6 +180,141 @@ const evaluate = Effect.fn("cssints.evaluate")(function* (runner, id, whileLocke
 	return yield* evalLock.withPermit(evaluateModule(runner, id).pipe(Effect.flatMap(whileLocked)));
 });
 //#endregion
+//#region src/devtools-server.ts
+const DEVTOOLS_ID = "virtual:cssints/devtools";
+const RESOLVED = `\0${DEVTOOLS_ID}`;
+const SHEET$1 = "\0virtual:cssints.css";
+const GROUP = /^_g(-[\w-]+)?$/;
+const table = Effect.fn("cssints.devtoolsTable")(function* (root, usedBy, callsOf) {
+	const { rules, kernels, defs, scopes, layers } = yield* Registry;
+	const entries = [...new Set([...usedBy.values()].flatMap((s) => s.split("\n")))];
+	const sheet = yield* renderSheet(entries);
+	const classes = {};
+	for (const cls of entries) {
+		const r = rules.get(cls);
+		if (!r) continue;
+		const scope = r.prop.startsWith("--") ? [...scopes.keys()].find((s) => r.prop.startsWith(`--${s}-`)) : void 0;
+		classes[cls] = {
+			kind: "class",
+			layer: r.layer,
+			wrap: r.wrap,
+			prop: r.prop,
+			css: r.css,
+			tokens: r.tokens ?? [],
+			...scope ? { plugin: scope } : {},
+			sites: []
+		};
+	}
+	for (const [key, k] of kernels) for (const m of k.markers) classes[m] = {
+		kind: "marker",
+		layer: "_.k",
+		wrap: [],
+		prop: "",
+		css: k.kernel.css,
+		tokens: [],
+		plugin: key,
+		sites: []
+	};
+	const sites = [];
+	for (const [file, calls] of callsOf) {
+		if (!usedBy.has(file)) continue;
+		for (const call of calls) {
+			const known = call.classes.filter((c) => {
+				if (!classes[c] && GROUP.test(c)) classes[c] = {
+					kind: "group",
+					layer: "",
+					wrap: [],
+					prop: "",
+					css: "",
+					tokens: [],
+					sites: []
+				};
+				return !!classes[c];
+			});
+			if (!known.length) continue;
+			const n = sites.push({
+				file,
+				line: call.line,
+				column: call.column,
+				classes: known
+			}) - 1;
+			for (const c of known) classes[c].sites.push(n);
+		}
+	}
+	const tokens = {};
+	for (const [name, d] of defs) tokens[name] = {
+		path: d.path,
+		value: d.value
+	};
+	const statements = (before) => layerStatements([...layers.values()].flatMap((l) => l.before === before ? [l.names] : []));
+	const engine = LAYERS.slice(7, -1).split(", ");
+	const order = [
+		...statements(true).flat(),
+		...engine,
+		...statements(false).flat()
+	];
+	return {
+		root,
+		sheet,
+		layers: [...new Set(order)],
+		classes,
+		sites,
+		tokens
+	};
+});
+const entryModule = (overlay, root) => overlay ? `import { mount } from ${Formatter.formatJson(overlay)};
+const hot = import.meta.hot;
+mount({
+  root: ${Formatter.formatJson(root)},
+  request: () => hot.send("cssints:devtools:get"),
+  on: (event, listener) => hot.on(event, listener),
+});
+` : `console.warn("cssints: devtools is on, but @cssints/devtools/overlay is not installed (or not built): add @cssints/devtools to the devDependencies of the app");\n`;
+/**
+* The dev-only plugin of `cssints({ devtools: true })`: the overlay's entry in every HTML page, and the table on request.
+* `apply: "serve"`, so a build has none of it.
+* @param {Map<string, string>} usedBy the entries of each client module (plugin.ts)
+* @param {Map<string, DevSite[]>} callsOf the sites of each client module
+* @returns {Plugin} the plugin
+*/
+const devtoolsPlugin = (usedBy, callsOf) => {
+	let server;
+	const stale = () => Effect.sync(() => server?.environments.client.hot.send("cssints:devtools:stale"));
+	const entry = Effect.fn("cssints.devtoolsEntry")(function* (resolve) {
+		const overlay = yield* Effect.tryPromise(resolve).pipe(Effect.orElseSucceed(() => null));
+		return entryModule(overlay?.id, server?.config.root ?? "");
+	});
+	return {
+		name: "cssints:devtools",
+		apply: "serve",
+		configureServer(s) {
+			server = s;
+			s.environments.client.hot.on("cssints:devtools:get", (_, client) => client.send("cssints:devtools", Effect.runSync(table(s.config.root, usedBy, callsOf))));
+		},
+		transformIndexHtml: () => [{
+			tag: "script",
+			attrs: {
+				type: "module",
+				src: `/@id/${DEVTOOLS_ID}`
+			},
+			injectTo: "body"
+		}],
+		resolveId(id) {
+			if (id === "virtual:cssints/devtools") return RESOLVED;
+		},
+		load(id) {
+			if (id !== RESOLVED) return;
+			return Effect.runPromise(entry(() => this.resolve("@cssints/devtools/overlay", void 0, { skipSelf: true })));
+		},
+		transform: {
+			order: "post",
+			handler(_, id) {
+				if (this.environment.name === "client" && (id === SHEET$1 || callsOf.has(id))) Effect.runSync(stale());
+			}
+		}
+	};
+};
+//#endregion
 //#region src/trace.ts
 const mode = /^otlp(?::(.+))?$/.exec(Effect.runSync(Config.String("CSSINTS_TRACE").pipe(Config.withDefault(""))));
 const otlp = mode ? await import("./trace-otlp-CbKFDsn9.mjs").then((m) => m.start(mode[1] ?? "http://localhost:4318")) : void 0;
@@ -351,7 +486,7 @@ const locate = Effect.fn("cssints.locate")(function* (e, code, id) {
 	}
 	return yield* e;
 });
-function cssints({ inner = false } = {}) {
+function cssints({ inner = false, devtools = false } = {}) {
 	let server;
 	let ownServer = false;
 	let runner;
@@ -363,6 +498,7 @@ function cssints({ inner = false } = {}) {
 	const inflight = /* @__PURE__ */ new Set();
 	const siteOf = /* @__PURE__ */ new Map();
 	let buildMap = false;
+	const callsOf = /* @__PURE__ */ new Map();
 	const sheet = Effect.fnUntraced(function* (ids = [...usedBy.keys()]) {
 		return yield* renderSheet(ids.flatMap((id) => usedBy.get(id)?.split("\n") ?? []));
 	});
@@ -436,6 +572,10 @@ function cssints({ inner = false } = {}) {
 				for (const m of sites.get(n)?.matchAll(/_[\w-]+/g) ?? []) if (!at.has(m[0])) at.set(m[0], loc);
 			}
 			siteOf.set(id, at);
+			if (devtools) callsOf.set(id, parsed.sites.map((s, n) => ({
+				...lineCol(code, s.start),
+				classes: sites.get(n)?.match(/_[\w-]+/g) ?? []
+			})));
 		}
 		const ms = new MagicString(code);
 		if (runtimes.length) ms.prepend(runtimes.map((n) => `import ${Formatter.formatJson(RUNTIME_ID + n)};\n`).join(""));
@@ -584,7 +724,7 @@ function cssints({ inner = false } = {}) {
 		}));
 		return [...modules, ...affected];
 	});
-	return [{
+	const main = {
 		name: "cssints",
 		enforce: "pre",
 		config(user) {
@@ -651,7 +791,8 @@ function cssints({ inner = false } = {}) {
 		hotUpdate({ file, modules }) {
 			return runSync(hook("vite.hotUpdate", file, hotUpdate(this.environment, file, modules)));
 		}
-	}, {
+	};
+	const version = {
 		name: "cssints:sheet-version",
 		apply: "serve",
 		transform: {
@@ -660,7 +801,12 @@ function cssints({ inner = false } = {}) {
 				if (id === SHEET && this.environment.name === "client") return `${code}\nimport.meta.hot.send("cssints:sheet", ${Formatter.formatJson(hash(code))});`;
 			}
 		}
-	}];
+	};
+	return devtools && !inner ? [
+		main,
+		version,
+		devtoolsPlugin(usedBy, callsOf)
+	] : [main, version];
 }
 const callTransform = (plugin, ctx, code) => {
 	const t = plugin?.transform;
