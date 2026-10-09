@@ -1,11 +1,11 @@
 ---
 # cssints-p3d2
 title: 'Engine entry points for the MCP: contrast, lowering, located warnings, targets per root, shipped docs'
-status: todo
+status: in-progress
 type: task
 priority: low
 created_at: 2026-10-09T09:15:41Z
-updated_at: 2026-10-09T09:15:41Z
+updated_at: 2026-10-09T12:45:45Z
 ---
 
 Found by @cssints/mcp (cssints-w57u, "## Engine gaps"); each is worked around inside packages/mcp.

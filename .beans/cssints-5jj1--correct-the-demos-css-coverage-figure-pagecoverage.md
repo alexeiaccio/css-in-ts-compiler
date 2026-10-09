@@ -1,10 +1,11 @@
 ---
 # cssints-5jj1
 title: Correct the demo's CSS coverage figure (page.coverage counts whole @layer blocks)
-status: draft
+status: in-progress
 type: task
+priority: normal
 created_at: 2026-10-09T09:06:03Z
-updated_at: 2026-10-09T09:06:03Z
+updated_at: 2026-10-09T12:45:45Z
 parent: cssints-dk1q
 ---
 
