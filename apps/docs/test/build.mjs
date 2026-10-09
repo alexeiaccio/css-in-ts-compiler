@@ -23,6 +23,30 @@ assert.match(sheet, /\.twoslash \.twoslash-popup-container/);
 // the themes: the system's dark is the media query, a class beats it
 assert.match(sheet, /@media \(prefers-color-scheme: ?dark\)\{:root\{--color-bg:#0c0f15/);
 for (const mode of [".light", ".dark"]) assert.ok(sheet.includes(`${mode}{--color-bg:`), mode);
+// dim is a theme of its own after dark; the accent steps read the one hue, which no theme sets (the settings panel does, on <html>)
+assert.ok(sheet.indexOf(".dark{--color-bg:") < sheet.indexOf(".dim{--color-bg:"), "dim after dark");
+assert.match(sheet, /\.dim\{[^}]*--color-accent:oklch\(\.661 \.18 var\(--hue-accent\)\)/);
+assert.match(sheet, /:root\{[^}]*--color-accent:oklch\(\.555 \.21 var\(--hue-accent\)\)/);
+assert.ok(
+  !/--hue-accent:[^;}]/.test(sheet.replace(/@property[^}]*}/g, "")),
+  "no theme sets the hue",
+);
+// text size, density and corners: a theme per value that is not normal, each setting one scale that fontSize, space and radius read
+for (const [attr, value, scale, n] of [
+  ["text", "small", "font", ".875"],
+  ["text", "large", "font", "1.125"],
+  ["density", "compact", "space", ".75"],
+  ["density", "comfortable", "space", "1.25"],
+  ["radius", "sharp", "radius", "0"],
+  ["radius", "round", "radius", "2"],
+])
+  assert.match(sheet, new RegExp(`\\[data-${attr}=${value}\\]\\{--scale-${scale}:${n}[;}]`), value);
+assert.match(sheet, /--font-size-md:calc\(16px \* var\(--scale-font\)\)/);
+assert.match(sheet, /--space-lg:calc\(16px \* var\(--scale-space\)\)/);
+assert.match(sheet, /--radius-md:calc\(10px \* var\(--scale-radius\)\)/);
+// the font (no token type for a family): a global rule per stack
+assert.match(sheet, /\[data-font=serif\] body\{font-family:Georgia/);
+assert.match(sheet, /\[data-font=mono\] body\{font-family:"?SF Mono/);
 // the variables of the hovers read the site's colours
 assert.match(sheet, /--twoslash-popup-bg:var\(--color-bg-subtle\)/);
 // breakpoints: the sidebar at 900, the outline at 1200
@@ -90,6 +114,13 @@ for (const slug of slugs) {
   assert.ok(title.endsWith(" · cssints") && title.length > 12, `${slug}: ${title}`);
 }
 assert.ok(html.get("index.html").includes("<title>cssints</title>"));
+// the stored settings are applied by an inline script before the first paint, in every document (test/settings.mjs runs it)
+for (const [file, doc] of html)
+  assert.ok(
+    doc.indexOf("cssints-docs.settings") > 0 &&
+      doc.indexOf("cssints-docs.settings") < doc.indexOf('type="module"'),
+    `${file}: the settings script runs first`,
+  );
 assert.ok(js.length > slugs.length, "a chunk per page");
 
 // the prerender: the title, the description and the article are in the document, the app's root is hidden until it takes over
@@ -158,10 +189,31 @@ assert.equal(
 assert.equal(count(/shiki-themes github-light github-dark"/g) >= skipped, true);
 assert.equal(count(/twoslash-error-line/g), marked, "an error line for each `// error`");
 assert.ok(!all.includes(root), "no path of this machine in the pages");
+// the devtools (cssints({ devtools: "build" })): the entry holds the loader, the overlay is a chunk the page does not preload, the
+// table is a JSON asset of the calls with paths relative to the project
+const overlay = js.find((f) => f.isDynamicEntry && f.code.includes("data-cssints-probe"));
+const table = files.find((f) => /^assets\/cssints-devtools-.*\.json$/.test(f.fileName));
+assert.ok(overlay && table, "the overlay chunk and the table");
+assert.ok(!entry.code.includes("data-cssints-probe") && entry.code.includes(table.fileName));
+assert.ok(
+  !String(html.get("index.html")).includes(overlay.fileName),
+  "the overlay is not preloaded",
+);
+const calls = JSON.parse(String(table.source));
+assert.equal(calls.root, "");
+assert.ok(!String(table.source).includes(root), "no path of this machine in the table");
+assert.ok(
+  calls.sites.some((s) => /^src\/.+\.tsx?$/.test(s.file)),
+  "files of the project",
+);
+assert.ok(
+  calls.sites.every((s) => s.line > 0 && s.text.length),
+  "a line and the call's text",
+);
 const popups = count(/twoslash-popup-container/g);
 assert.ok(popups > 100, `${popups} popups`);
 
 console.log(
-  `docs build: ${css[0].fileName} ${sheet.length} bytes, entry ${entry.code.length} bytes, ${slugs.length + 1} pages, ${checked} blocks with ${popups} hovers (${marked} errors shown), ${skipped} plain`,
+  `docs build: devtools table ${table.source.length} bytes, overlay ${overlay.code.length} bytes (lazy); ${css[0].fileName} ${sheet.length} bytes, entry ${entry.code.length} bytes, ${slugs.length + 1} pages, ${checked} blocks with ${popups} hovers (${marked} errors shown), ${skipped} plain`,
 );
 process.exit(0);

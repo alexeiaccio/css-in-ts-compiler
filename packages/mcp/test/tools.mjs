@@ -1,6 +1,10 @@
 // Every tool through an MCP client in-process (client.mjs), good and bad inputs, against fixtures/. Run: node test/tools.mjs
 import assert from "node:assert/strict";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 
+import { files } from "../src/docs.ts";
 import { connect } from "./client.mjs";
 
 const fixtures = `${import.meta.dirname}/fixtures`;
@@ -75,6 +79,37 @@ assert.deepEqual(
   value.lacking.map((w) => [w.feature, w.key, w.targets]),
   [["grid", "css.properties.display.grid", "chrome 50"]],
 );
+// what LightningCSS lowers is supported through it, as a build drops that warning; with a var() inside it is not
+const oklch = await call("check_support", {
+  property: "color",
+  value: "oklch(70% 0.2 330)",
+  query: "chrome 100",
+});
+assert.equal(oklch.supported, true);
+assert.deepEqual(oklch.lacking, []);
+assert.deepEqual(
+  oklch.lowered.map((w) => [w.feature, w.targets]),
+  [["oklch()", "chrome 100"]],
+);
+assert.match(oklch.lowered[0].value, /^#[0-9a-f]{6}$/);
+const relative = await call("check_support", {
+  property: "color",
+  value: "oklch(from var(--x) l c h)",
+  query: "chrome 100",
+});
+assert.equal(relative.supported, false);
+assert.deepEqual(relative.lowered, []);
+// no query: the browserslist of the root (the fixtures': chrome 109)
+const rooted = await call("check_support", {
+  property: "textWrap",
+  value: "balance",
+  root: fixtures,
+});
+assert.deepEqual(
+  rooted.lacking.map((w) => w.targets),
+  ["chrome 109"],
+);
+assert.match(rooted.query, /found from .*fixtures/);
 const fine = await call("check_support", { property: "color", query: "chrome 120" });
 assert.equal(fine.supported, true);
 assert.equal(fine.known, true);
@@ -112,8 +147,34 @@ assert.equal(button.ok, true, JSON.stringify(button.errors));
 assert.equal(button.classes.length, 3);
 assert.match(button.css, /\{padding:1rem\}/);
 assert.match(button.code, /export const pad = "_\w+";/);
-// the fixtures' browserslist is not the server's (cwd): the warnings of the targets the plugin read at startup
 assert.ok(Array.isArray(button.warnings));
+
+// the plugin reads the browserslist of the project root, not of the server's working directory
+const wrap = await call("compile", {
+  file: "virtual/wrap.ts",
+  root: fixtures,
+  source: `import { css } from "cssints" with { type: "cssints" };\nexport const w = css.textWrap("balance");\n`,
+});
+assert.deepEqual(
+  wrap.warnings.map((w) => w.message),
+  [
+    'text-wrap: the property in "balance" is not supported by chrome 109 (css.properties.text-wrap)',
+  ],
+);
+
+// a support warning at its call, and said by every compile (line-clamp: no target has it unprefixed)
+const clamp = {
+  file: "virtual/clamp.ts",
+  root: fixtures,
+  source: `import { css } from "cssints" with { type: "cssints" };\n\nexport const c = css.lineClamp(3);\n`,
+};
+for (let i = 0; i < 2; i++) {
+  const { warnings } = await call("compile", clamp);
+  assert.deepEqual(
+    warnings.map((w) => [w.message.split(" is not")[0], w.line, w.column, w.location]),
+    [['line-clamp: the property in "3"', 3, 18, `${fixtures}/virtual/clamp.ts:3:18`]],
+  );
+}
 
 const bad = await call("compile", { file: "bad.ts", root: fixtures });
 assert.equal(bad.ok, false);
@@ -161,6 +222,23 @@ const readme = await call("search_docs", { query: "WCAG 1.4.4 zoom" });
 assert.ok(readme.results.some((r) => r.file.endsWith("packages/fluid/README.md")));
 assert.deepEqual((await call("search_docs", { query: "zzzqqqxx" })).results, []);
 assert.match((await call("search_docs", { query: "x", limit: 0 })).error, /Invalid parameters/);
+// installed in a project: docs/API.md of the cssints package (its prepack copies it in), then the READMEs
+{
+  const project = mkdtempSync(join(tmpdir(), "mcp-docs-"));
+  for (const f of ["cssints/docs/API.md", "cssints/README.md", "@cssints/fluid/README.md"]) {
+    mkdirSync(dirname(join(project, "node_modules", f)), { recursive: true });
+    writeFileSync(join(project, "node_modules", f), "# x\n");
+  }
+  assert.deepEqual(
+    files(project, false).map((f) => f.slice(project.length)),
+    [
+      "/node_modules/cssints/docs/API.md",
+      "/node_modules/cssints/README.md",
+      "/node_modules/@cssints/fluid/README.md",
+    ],
+  );
+  rmSync(project, { recursive: true, force: true });
+}
 const { plugins } = await call("list_plugins", {});
 const fluid = plugins.find((p) => p.name === "@cssints/fluid");
 assert.match(fluid.members, /fluid\(min, max/);

@@ -193,9 +193,9 @@ export interface RegistryState {
   gen: number;
   /** tokens created at the site being evaluated: two in one site get different private names */
   tokens: number;
-  /** support warnings not yet handed to Vite */
-  warnings: string[];
-  /** `property feature` keys already warned about in this build */
+  /** warnings not yet handed to Vite, each at the site that made it (`warn`) */
+  warnings: Warned[];
+  /** `file of the site \0 key` of the warnings said in this build; in dev, until that file is edited (`forgetWarnings`) */
   warned: Set<string>;
   /** `property value feature targets` -> what LightningCSS lowers it to, or false (lowered.ts) */
   lowered: Map<string, string | false>;
@@ -232,6 +232,29 @@ export const registry: RegistryState = (globalThis.__cssints ??= {
   lowered: new Map(),
   files: new Set(),
 });
+
+/** A warning and the site that made it, when there is one. */
+export interface Warned {
+  message: string;
+  at?: At | undefined;
+}
+
+// Records a warning once per `key` and file of its site (default: the site being evaluated), at that site: a build says
+// it once per file, and a dev server again only after that file is edited (plugin.ts `hotUpdate`).
+export const warn = (state: RegistryState, key: string, message: string, at = state.at): void => {
+  const k = `${at?.file ?? ""}\0${key}`;
+  if (state.warned.has(k)) return;
+  state.warned.add(k);
+  state.warnings.push({ message, at });
+};
+
+// Lets the warnings of the sites in `files` (all, without it) be said again.
+export const forgetWarnings = (files?: readonly string[]): void => {
+  if (!files) return registry.warned.clear();
+  const prefixes = files.map((f) => `${f}\0`);
+  for (const k of registry.warned)
+    if (prefixes.some((p) => k.startsWith(p))) registry.warned.delete(k);
+};
 
 export const Registry = Context.Reference<RegistryState>("cssints/Registry", {
   defaultValue: () => registry,

@@ -18,9 +18,13 @@ docs/API.md, "Debugging: the devtools overlay"; the design in docs/research/devt
 
 ## Rules
 
-- **Dev only.** `devtools: true` adds a plugin with `apply: "serve"`: an HTML script tag, the module
+- **Dev only, unless asked.** `devtools: true` adds a plugin with `apply: "serve"`: an HTML script tag, the module
   `virtual:cssints/devtools` and two HMR events (`cssints:devtools:get` → `cssints:devtools`, and
   `cssints:devtools:stale` after each transform). A build has none of it.
+- **In a build: `devtools: "build"`.** The table is a JSON asset, the overlay a chunk of its own, and the entry holds a loader
+  (a `cssints` button and Alt+Shift+C). The first open loads both; a call shows as `file:line` and its source, with no link
+  to an editor. The table has no path of the machine that built it. Sizes are logged by the build (this site: table 70 kB,
+  overlay 190 kB, the entry +0.85 kB).
 - **The data is the compiler's.** The table holds the sheet as the server renders it, each class's rule, plugin,
   tokens and sites, and the place of every call. The core parses the sheet; it never reads the page's CSSOM for
   cssints' rules.
@@ -55,6 +59,7 @@ Chrome, Firefox and WebKit, checked by `test:browsers` on apps/demo's dev server
 
 ```bash
 bun run test            # test/core.mjs (the cascade on happy-dom: hover vs media, @container, @supports, @scope,
-                        # an unlayered rule, frame's kernel, within(), grouping), test/build.mjs (nothing in a build)
+                        # an unlayered rule, frame's kernel, within(), grouping), test/build.mjs (nothing in a build
+                        # without the option; with "build": the table, the lazy chunk, the loader's size; apps/docs/test/browser.mjs opens it in Chrome)
 bun run test:browsers   # builds dist/overlay.js, then the demo in Chrome, Firefox and WebKit (test/browsers.mjs)
 ```

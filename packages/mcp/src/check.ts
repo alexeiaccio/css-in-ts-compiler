@@ -1,5 +1,5 @@
-// check_declaration and check_support: the engine's own entry points (css-grammar check.ts and support.ts), the ones a
-// build calls per declaration, so the answer is the build's message word for word.
+// check_declaration and check_support: the engine's own entry points (css-grammar check.ts and support.ts, cssints/check
+// loweredOf), the ones a build calls per declaration, so the answer is the build's message word for word.
 import { checkDeclaration as checkCore } from "@cssints/css-grammar/check";
 import {
   browsers,
@@ -9,6 +9,9 @@ import {
   targets,
   type Target,
 } from "@cssints/css-grammar/support";
+import { resolve } from "node:path";
+
+import { loweredOf } from "cssints/check";
 import { Data, Effect } from "effect";
 
 /** A tool could not answer (a bad browserslist query, a file it cannot read): `message` is what the agent sees. */
@@ -30,34 +33,43 @@ export const checkDeclaration = Effect.fn("mcp.checkDeclaration")(function* (
 });
 
 const RULE =
-  "As the build's support warnings: a BCD statement counts when it has no prefix, alternative name or flag, and a partial_implementation counts as supported. A build also drops a warning for what LightningCSS lowers for the targets (oklch() to a hex fallback): compile shows the warnings a build gives.";
+  "As the build's support warnings: a BCD statement counts when it has no prefix, alternative name or flag, and a partial_implementation counts as supported. What LightningCSS lowers for the lacking targets (oklch() to a hex fallback) is supported through it, as a build drops that warning: `lowered` holds what it writes. An inline style() never goes through LightningCSS and keeps the warning.";
 
 export const checkSupport = Effect.fn("mcp.checkSupport")(function* (
   property: string,
   value: string | undefined,
   query: string | undefined,
+  root: string | undefined,
 ) {
   const p = kebab(property);
   const v = value ?? "";
-  const ts: Target[] | undefined =
-    query === undefined
-      ? undefined
-      : yield* targets(query).pipe(Effect.mapError((e) => new ToolError({ message: e.message })));
-  const all = ts ?? (yield* targets().pipe(Effect.orElseSucceed(() => [])));
-  const found = yield* support(p, v, ts);
+  const from = resolve(root ?? process.cwd());
+  // a query, else the project's config, as the plugin reads it from its Vite root
+  const ts: Target[] = yield* targets(query, from).pipe(
+    Effect.mapError((e) => new ToolError({ message: e.message })),
+  );
+  const found = [];
+  for (const w of yield* support(p, v, ts))
+    found.push({ ...w, lowered: value === undefined ? undefined : yield* loweredOf(p, v, w) });
+  const lacking = found.filter((w) => w.lowered === undefined);
   return {
     property: p,
     ...(value === undefined ? {} : { value }),
-    query: query ?? "the browserslist config found from the working directory (else defaults)",
-    targets: browsers(all.map((t) => t.join(" "))),
+    query: query ?? `the browserslist config found from ${from} (else defaults)`,
+    targets: browsers(ts.map((t) => t.join(" "))),
     known: get(`css.properties.${p}`)?.__compat !== undefined,
-    supported: found.length === 0,
-    lacking: found.map((w) => ({
+    supported: lacking.length === 0,
+    lacking: lacking.map((w) => ({
       feature: w.feature,
       key: w.key,
       targets: browsers(w.lacking),
       message: messageOf(p, v, w),
     })),
+    lowered: found.flatMap((w) =>
+      w.lowered === undefined
+        ? []
+        : [{ feature: w.feature, key: w.key, targets: browsers(w.lacking), value: w.lowered }],
+    ),
     rule: RULE,
   };
 });

@@ -14,12 +14,16 @@ import { ToolError } from "./check.ts";
 
 type Vite = typeof import("vite");
 type Cssints = { default: () => Plugin[] };
+interface Api {
+  readonly sheet: (ids: string[]) => string;
+  /** cssints since cssints-p3d2: the next transform says every warning again */
+  readonly forgetWarnings?: () => void;
+}
 interface Session {
   readonly server: ViteDevServer;
-  readonly plugin: Plugin;
-  readonly sheet: (ids: string[]) => string;
+  readonly api: Api;
   readonly sources: Map<string, string>;
-  readonly warnings: { file: string; message: string }[];
+  readonly warnings: Located[];
 }
 
 interface Found {
@@ -39,16 +43,6 @@ const importFrom = <A>(root: string, spec: string) => {
   });
 };
 
-// What a dev server does after an edit of `file`: the plugin's hotUpdate (it says contrast warnings again, forgets what
-// the modules that depend on the file registered), outside an HMR update, so with a context of its environment only.
-const edited = (plugin: Plugin, client: ViteDevServer["environments"]["client"], file: string) => {
-  const hook = plugin.hotUpdate;
-  const handler = Predicate.isFunction(hook) ? hook : hook?.handler;
-  const ctx = { environment: client } as ThisParameterType<NonNullable<typeof handler>>;
-  const update = { file, modules: [] } as unknown as Parameters<NonNullable<typeof handler>>[0];
-  void handler?.call(ctx, update);
-};
-
 const open = Effect.fn("mcp.compile.open")(function* (root: string) {
   const vite = yield* importFrom<Vite>(root, "vite");
   const config = CONFIGS.some((c) => existsSync(join(root, c)));
@@ -56,7 +50,7 @@ const open = Effect.fn("mcp.compile.open")(function* (root: string) {
   const sources = new Map<string, string>();
   const warnings: Session["warnings"] = [];
   const found: Found = {};
-  // Source text for a file that need not exist; the plugin's warnings, kept with the file they belong to.
+  // Source text for a file that need not exist; the plugin's warnings, at the site the plugin gives (else the module).
   const mcp: Plugin = {
     name: "cssints-mcp",
     enforce: "pre",
@@ -75,8 +69,15 @@ const open = Effect.fn("mcp.compile.open")(function* (root: string) {
         const file = id.replace(/\?.*$/, "");
         const ctx = Object.create(this, {
           warn: {
-            value: (w: string | { message: string }) =>
-              warnings.push({ file, message: Predicate.isString(w) ? w : w.message }),
+            value: (w: string | Rollup.RollupLog) =>
+              warnings.push(
+                located(
+                  Option.getOrElse(decodeThrown(w), () => ({
+                    message: Predicate.isString(w) ? w : w.message,
+                  })),
+                  file,
+                ),
+              ),
           },
         }) as Rollup.TransformPluginContext;
         return handler.call(ctx, code, id, options);
@@ -116,8 +117,7 @@ const open = Effect.fn("mcp.compile.open")(function* (root: string) {
       message: `${root}: its Vite config has no cssints() plugin (cssints/vite)`,
     });
   }
-  const api = plugin.api as { sheet: Session["sheet"] };
-  return { server, plugin, sheet: api.sheet, sources, warnings } satisfies Session;
+  return { server, api: plugin.api as Api, sources, warnings } satisfies Session;
 });
 
 const CLASSES = /"(_[\w-]+(?: _[\w-]+)*)"/g;
@@ -146,14 +146,6 @@ export const located = (t: typeof Thrown.Type, file: string) => {
   };
 };
 
-// A support warning is said when its class is first registered (macro.ts: once per class per process, as a dev server
-// says it once), so a second compile of the same declaration would be silent. Kept per class: the classes whose rules in
-// the module's CSS hold the warning's `property:value`.
-// ponytail: matched by text in the sheet; a value the sheet prints otherwise than the warning loses its memo.
-const SUPPORT = /^([\w-]+): .* in "(.*)" is not supported by /;
-const rulesOf = (css: string, cls: string) =>
-  [...css.matchAll(new RegExp(`\\.${cls}(?![\\w-])[^{]*\\{([^}]*)\\}`, "g"))].map((m) => m[1]!);
-
 /** The Vite servers of the session, one per project root, closed when the session ends. */
 export class Compiler extends Context.Service<
   Compiler,
@@ -170,7 +162,6 @@ export class Compiler extends Context.Service<
     Effect.gen(function* () {
       const sessions = new Map<string, Session>();
       const lock = Semaphore.makeUnsafe(1);
-      const said = new Map<string, Set<string>>();
       yield* Effect.addFinalizer(() =>
         Effect.promise(() => Promise.all([...sessions.values()].map((s) => s.server.close()))),
       );
@@ -190,15 +181,15 @@ export class Compiler extends Context.Service<
         const file = resolve(root, input.file);
         if (input.source === undefined && !existsSync(file))
           return yield* new ToolError({ message: `${file} does not exist` });
-        const { server, plugin, sheet, sources, warnings } = yield* session(root);
+        const { server, api, sources, warnings } = yield* session(root);
         const inside = !relative(root, file).startsWith("..") && !isAbsolute(relative(root, file));
         const url = inside ? `/${relative(root, file)}` : `/@fs${file}`;
         const client = server.environments.client;
         const run = Effect.gen(function* () {
-          // As after an edit on a dev server: every module read again, warnings said again.
+          // Every module read again, and every warning said again (a build says each once per file).
           yield* Effect.sync(() => {
             for (const env of Object.values(server.environments)) env.moduleGraph.invalidateAll();
-            edited(plugin, client, file);
+            api.forgetWarnings?.();
             warnings.length = 0;
             if (input.source !== undefined) sources.set(file, input.source);
           });
@@ -214,19 +205,8 @@ export class Compiler extends Context.Service<
               }),
             ),
           );
-          const css = out.error ? "" : yield* Effect.sync(() => sheet([file]));
+          const css = out.error ? "" : yield* Effect.sync(() => api.sheet([file]));
           const classes = [...new Set([...out.code.matchAll(CLASSES)].map((m) => m[1]!))];
-          const fresh = warnings.splice(0);
-          const each = [...new Set(classes.flatMap((c) => c.split(" ")))];
-          for (const w of fresh) {
-            const m = SUPPORT.exec(w.message);
-            if (!m) continue;
-            for (const c of each)
-              if (rulesOf(css, c).some((r) => r.includes(`${m[1]}:${m[2]}`)))
-                (said.get(c) ?? said.set(c, new Set()).get(c)!).add(w.message);
-          }
-          const again = each.flatMap((c) => [...(said.get(c) ?? [])]);
-          const messages = new Set(fresh.map((w) => w.message));
           return {
             ok: !out.error,
             file,
@@ -234,12 +214,7 @@ export class Compiler extends Context.Service<
             css,
             code: out.code,
             errors: out.error ? [out.error] : [],
-            warnings: [
-              ...fresh,
-              ...[...new Set(again)].flatMap((message) =>
-                messages.has(message) ? [] : [{ file, message }],
-              ),
-            ],
+            warnings: warnings.splice(0),
           };
         });
         return yield* lock
@@ -251,18 +226,20 @@ export class Compiler extends Context.Service<
   );
 }
 
+export interface Located {
+  readonly message: string;
+  readonly file: string;
+  readonly line?: number | undefined;
+  readonly column?: number | undefined;
+  readonly location: string;
+}
+
 export interface CompileResult {
   readonly ok: boolean;
   readonly file: string;
   readonly classes: string[];
   readonly css: string;
   readonly code: string;
-  readonly errors: {
-    message: string;
-    file: string;
-    line?: number | undefined;
-    column?: number | undefined;
-    location: string;
-  }[];
-  readonly warnings: { file: string; message: string }[];
+  readonly errors: Located[];
+  readonly warnings: Located[];
 }

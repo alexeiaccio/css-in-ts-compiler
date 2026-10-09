@@ -26,6 +26,8 @@ import {
   left,
   letterSpacing,
   lineHeight,
+  margin,
+  maxHeight,
   marginBlock,
   marginBottom,
   marginInlineEnd,
@@ -159,6 +161,25 @@ export const site = cn(
   hover(textDecoration("underline")),
 );
 
+export const code = cn(fontFamily(mono), fontSize("11px"), overflowWrap("anywhere"));
+export const callText = cn(
+  code,
+  margin("0 0 4px"),
+  p(1),
+  maxHeight("120px"),
+  overflow("auto"),
+  bg("#0b1220"),
+  whiteSpace("pre-wrap"),
+);
+
+export const siteText = cn(
+  display("block"),
+  marginBottom("2px"),
+  color(accent),
+  fontFamily(mono),
+  fontSize("11px"),
+);
+
 export const classRow = cn(
   grid().templateColumns("auto 1fr auto").gap(2),
   paddingBlock("1px"),
@@ -167,7 +188,6 @@ export const classRow = cn(
 );
 export const off = opacity(0.5);
 export const muted = color(dim);
-export const code = cn(fontFamily(mono), fontSize("11px"), overflowWrap("anywhere"));
 
 export const chip = cn(
   display("inline-block"),

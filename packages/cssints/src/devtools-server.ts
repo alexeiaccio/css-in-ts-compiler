@@ -2,6 +2,9 @@
 // over Vite's HMR channel; the table is built from the plugin's own records at that moment: the entries of every client
 // module (`usedBy`, the sheet is rendered from them as `load()` does), the sites of each module (`callsOf`, recorded beside
 // `siteOf`) and the registry. After a client transform the overlay is told the table is stale, and asks again when it needs it.
+import { relative } from "node:path";
+import { gzipSync } from "node:zlib";
+
 import { Effect, Formatter } from "effect";
 import type { Plugin, ViteDevServer } from "vite";
 
@@ -13,6 +16,8 @@ export interface DevSite {
   line: number;
   column: number;
   classes: string[];
+  /** the source of the call, as written */
+  text: string;
 }
 
 /** What the dev server knows of a class: its rule as the sheet prints it, the tokens it reads, the plugin it belongs to. */
@@ -104,7 +109,7 @@ const table = Effect.fn("cssints.devtoolsTable")(function* (
         return !!classes[c];
       });
       if (!known.length) continue;
-      const n = sites.push({ file, line: call.line, column: call.column, classes: known }) - 1;
+      const n = sites.push({ ...call, file, classes: known }) - 1;
       for (const c of known) classes[c]!.sites.push(n);
     }
   }
@@ -188,3 +193,100 @@ export const devtoolsPlugin = (
     },
   };
 };
+
+// The table in the placeholder's place: the file name of the asset, known once every module is transformed.
+const TABLE_FILE = "__CSSINTS_DEVTOOLS_TABLE__";
+
+// The module a build puts in every page: a button and Alt+Shift+C, and nothing else. The first open loads the overlay (a chunk of
+// its own) and the table (a JSON asset), and hands them to `mount` as a transport that never says "stale".
+const loaderModule = (overlay: string, base: string) => `const key = (e) => {
+  if (e.altKey && e.shiftKey && e.code === "KeyC") {
+    e.preventDefault();
+    open();
+  }
+};
+const button = document.createElement("button");
+button.textContent = "cssints";
+button.title = "cssints devtools (Alt+Shift+C)";
+button.style.cssText = "position:fixed;right:12px;bottom:12px;z-index:2147483647;padding:4px 8px;border:1px solid #374151;border-radius:999px;background:#111827;color:#e5e7eb;font:11px ui-monospace,monospace;cursor:pointer;opacity:.75";
+button.onclick = () => open();
+const open = () => {
+  button.remove();
+  removeEventListener("keydown", key, true);
+  import(${Formatter.formatJson(overlay)}).then(({ mount }) => {
+    const listeners = {};
+    mount({
+      root: "",
+      build: true,
+      request: () => fetch(new URL(${Formatter.formatJson(base)} + "${TABLE_FILE}", document.baseURI))
+        .then((r) => r.json())
+        .then((table) => listeners["cssints:devtools"]?.(table)),
+      on: (event, listener) => { listeners[event] = listener; },
+    });
+  });
+};
+addEventListener("keydown", key, true);
+document.body.append(button);
+`;
+
+const kb = (n: number) => `${(n / 1024).toFixed(1)} kB`;
+
+/**
+ * The build side of `cssints({ devtools: "build" })`: the overlay in every page behind a button, the table as a JSON asset.
+ * Nothing loads until the first open. The files of the sites are relative to the root, so the asset holds no path of this machine.
+ * @param {Map<string, string>} usedBy the entries of each client module (plugin.ts)
+ * @param {Map<string, DevSite[]>} callsOf the sites of each client module
+ * @returns {Plugin} the plugin
+ */
+export const devtoolsBuildPlugin = (usedBy: Map<string, string>, callsOf: Map<string, DevSite[]>) =>
+  ({
+    name: "cssints:devtools-build",
+    apply: "build",
+    transformIndexHtml: {
+      order: "pre",
+      handler: () => [
+        { tag: "script", attrs: { type: "module", src: DEVTOOLS_ID }, injectTo: "body" },
+      ],
+    },
+    resolveId(id) {
+      if (id === DEVTOOLS_ID) return RESOLVED;
+    },
+    load(id) {
+      if (id !== RESOLVED) return;
+      return Effect.runPromise(
+        Effect.tryPromise(() =>
+          this.resolve("@cssints/devtools/overlay", undefined, { skipSelf: true }),
+        ).pipe(
+          Effect.orElseSucceed(() => null),
+          Effect.map((overlay) =>
+            overlay
+              ? loaderModule(overlay.id, this.environment.config.base)
+              : `console.warn("cssints: devtools is on, but @cssints/devtools/overlay is not installed: add @cssints/devtools to the devDependencies of the app");\n`,
+          ),
+        ),
+      );
+    },
+    generateBundle(_, bundle) {
+      if (this.environment.name !== "client") return;
+      const chunks = Object.values(bundle).flatMap((f) => (f.type === "chunk" ? [f] : []));
+      const loader = chunks.find((c) => c.code.includes(TABLE_FILE));
+      if (!loader) return;
+      const { root } = this.environment.config;
+      const t = Effect.runSync(table(root, usedBy, callsOf));
+      const json = Formatter.formatJson({
+        ...t,
+        root: "",
+        sites: t.sites.map((s) => ({ ...s, file: relative(root, s.file) })),
+      });
+      const ref = this.emitFile({ type: "asset", name: "cssints-devtools.json", source: json });
+      const file = this.getFileName(ref);
+      loader.code = loader.code.replace(TABLE_FILE, () => file);
+      const overlay = chunks.find((c) => c.isDynamicEntry && c.code.includes("cssints-devtools"));
+      this.info(
+        `devtools: ${file} ${kb(Buffer.byteLength(json))} (${kb(gzipSync(json).length)} gzip)` +
+          (overlay
+            ? `, ${overlay.fileName} ${kb(Buffer.byteLength(overlay.code))} (${kb(gzipSync(overlay.code).length)} gzip), loaded on the first open`
+            : ""),
+      );
+    },
+  }) satisfies Plugin;

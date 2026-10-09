@@ -6,7 +6,7 @@
 import { Effect } from "effect";
 
 import { MacroError } from "./errors.ts";
-import { type Check, registry, type RegistryState } from "./registry.ts";
+import { type Check, registry, type RegistryState, warn } from "./registry.ts";
 import { layerStatements } from "./sheet.ts";
 
 const VAR = /var\((--[^\s,)]+)\)/g;
@@ -60,11 +60,12 @@ const together = ({ themed, layers }: RegistryState) => {
 
 type Colours = typeof import("./color.ts");
 
-// The floor at two places, so that 4.499 does not read as the 4.5 it misses.
-const shown = (r: number) => (Math.floor(r * 100) / 100).toFixed(2);
-
 // The failures of a check, one message each, and the warnings; the warnings are recorded once per build.
-const verify = (check: Check, state: RegistryState, { luminance, ratio }: Colours): string[] => {
+const verify = (
+  check: Check,
+  state: RegistryState,
+  { luminance, ratio, shown }: Colours,
+): string[] => {
   const { fg, bg, min } = check;
   const path = (n: string) => state.defs.get(n)?.path ?? n;
   const affecting = affectedBy(state.defs, [fg, bg]);
@@ -85,13 +86,12 @@ const verify = (check: Check, state: RegistryState, { luminance, ratio }: Colour
     for (const p of pair)
       if (p.l.why !== undefined) {
         ok = false;
-        const key = `contrast ${p.name} ${p.text}`;
-        if (!state.warned.has(key)) {
-          state.warned.add(key);
-          state.warnings.push(
-            `cssints: contrast is not checked for ${path(p.name)} in ${label}: "${p.text}" ${p.l.why}`,
-          );
-        }
+        warn(
+          state,
+          `contrast ${p.name} ${p.text}`,
+          `cssints: contrast is not checked for ${path(p.name)} in ${label}: "${p.text}" ${p.l.why}`,
+          check.at,
+        );
       }
     if (!ok || f.l.lum === undefined || b.l.lum === undefined) continue;
     const r = ratio(f.l.lum, b.l.lum);

@@ -313,7 +313,7 @@ const program = Effect.fn("playground.compile")(function* (source: string) {
       return { sites, css, runtimes };
     });
   const { sites, css, runtimes } = yield* evaluate(runner(asBody(code.code, FILE)), FILE, recorded);
-  const warnings = (yield* Registry).warnings.splice(0);
+  const warnings = (yield* Registry).warnings.splice(0).map((w) => w.message);
 
   const ms = new MagicString(source);
   if (runtimes.length)
@@ -357,7 +357,7 @@ export const compile = async (source: string): Promise<Compiled> => {
   const exit = await Effect.runPromiseExit(program(source));
   if (Exit.isSuccess(exit)) return exit.value;
   const failure = Cause.squash(exit.cause);
-  const warnings = registry.warnings.splice(0);
+  const warnings = registry.warnings.splice(0).map((w) => w.message);
   return { ok: false, errors: [located(source, failure)], warnings };
 };
 

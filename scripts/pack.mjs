@@ -41,9 +41,15 @@ const published = { ...rest, ...overrides, ...(access && { publishConfig: { acce
 for (const [name, range] of Object.entries(published.dependencies ?? {}))
   if (range.startsWith("workspace:")) published.dependencies[name] = `^${siblings[name]}`;
 
+// The package's own `prepack` (cssints copies docs/API.md into docs/): npm would not run it in the stage, which has no scripts.
+if (manifest.scripts?.prepack)
+  execFileSync("npm", ["run", "prepack"], { cwd: pkgDir, stdio: "inherit" });
+
 const stage = mkdtempSync(join(tmpdir(), "cssints-pack-"));
 try {
   cpSync(join(pkgDir, "dist"), join(stage, "dist"), { recursive: true });
+  if (existsSync(join(pkgDir, "docs")))
+    cpSync(join(pkgDir, "docs"), join(stage, "docs"), { recursive: true });
   for (const f of ["README.md", "LICENSE"])
     if (existsSync(join(pkgDir, f))) cpSync(join(pkgDir, f), join(stage, f));
   writeFileSync(join(stage, "package.json"), JSON.stringify(published, null, 2) + "\n");

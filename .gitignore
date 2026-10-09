@@ -16,6 +16,9 @@ dist
 !packages/icons/dist/**
 !packages/mise-en-mode/dist/
 !packages/mise-en-mode/dist/**
+# the docs site's overlay: CI deploys it without a build
+!packages/devtools/dist/
+!packages/devtools/dist/**
 
 # code coverage
 coverage
@@ -46,6 +49,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # git worktrees
 .worktrees
+
+# docs/API.md, copied into the cssints package when it is packed (its "prepack" script)
+packages/cssints/docs/
 
 # packages/cssints/test/spec/harness.mjs temp apps
 packages/cssints/test/.tmp-*

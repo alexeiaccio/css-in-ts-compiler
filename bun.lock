@@ -84,6 +84,7 @@
         "solid-js": "2.0.0-rc.13",
       },
       "devDependencies": {
+        "@cssints/devtools": "workspace:*",
         "@iconify-json/ph": "^1.2.2",
         "@solidjs/vite-plugin": "3.0.0-next.47",
         "lightningcss": "^1.32.0",
@@ -249,14 +250,12 @@
         "@cssints/devtools": "workspace:*",
         "@effect/platform-node": "4.0.0",
         "cssints": "workspace:*",
-        "culori": "^4.0.2",
         "effect": "4.0.0",
         "playwright-core": "^1.63.0",
         "vite": "catalog:",
       },
       "devDependencies": {
         "@modelcontextprotocol/sdk": "^1.32.1",
-        "@types/culori": "^4.0.1",
       },
     },
     "packages/mise-en-mode": {

@@ -28,7 +28,7 @@ export default {
 import "virtual:cssints.css";
 ```
 
-`targets` and `cssTarget` come from the browserslist query of the support warnings: the `BROWSERSLIST` variable, else the standard config (`"browserslist"` in `package.json` or `.browserslistrc`, with the `BROWSERSLIST_ENV`, `NODE_ENV` or `production` section), else `defaults`. The config is looked up from `process.cwd()` and upward, once per process: the exports are computed when `vite.config.ts` is imported, before Vite's root is known, and the warnings read the same place. Run Vite from the app's directory (`vite <dir>` from elsewhere reads the config of the working directory). Vite's CSS minify reads `cssTarget`, not `targets`: without it the minifier merges the declarations of a `firstThatWorks` into the last one. Add `"types": ["vite/client"]` to `tsconfig.json` for the `virtual:` import.
+`targets` and `cssTarget` come from the browserslist query of the support warnings: the `BROWSERSLIST` variable, else the standard config (`"browserslist"` in `package.json` or `.browserslistrc`, with the `BROWSERSLIST_ENV`, `NODE_ENV` or `production` section), else `defaults`. The exports are computed when `vite.config.ts` is imported, before Vite's root is known, so they look the config up from `process.cwd()` and upward; the support warnings look it up from Vite's `root` (2026-10-09, cssints-p3d2). They are the same when Vite runs from the app's directory; with `vite <dir>` from elsewhere, give `targets` and `cssTarget` the app's config yourself. Vite's CSS minify reads `cssTarget`, not `targets`: without it the minifier merges the declarations of a `firstThatWorks` into the last one. Add `"types": ["vite/client"]` to `tsconfig.json` for the `virtual:` import.
 
 ### Frameworks
 

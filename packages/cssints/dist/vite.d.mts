@@ -1,36 +1,17 @@
 import { i as GlobalRule } from "./author-types-C1AhsnrT.mjs";
-import { i as RegistryState, n as At, r as LayersDecl } from "./node-DUhcO02F.mjs";
+import { n as ImportError, r as MacroError } from "./errors-D4ZbcwRo.mjs";
+import { i as RegistryState, n as At, r as LayersDecl } from "./node-EBJGMNcw.mjs";
 import { Effect } from "effect";
 import { ImportDeclaration } from "oxc-parser";
 import { Plugin } from "vite";
-//#region src/errors.d.ts
-declare const MacroError_base: new <A extends Record<string, any> = {}>(args: import("effect/Types").VoidIfEmpty<{ readonly [P in keyof A as P extends "_tag" ? never : P]: A[P]; }>) => import("effect/Cause").YieldableError & {
-  readonly _tag: "MacroError";
-} & Readonly<A>;
-/** A css.* call, cv(), or a value in it is wrong. `file`, `site` (index) and `offset` name the call site, when known. */
-declare class MacroError extends MacroError_base<{
-  readonly message: string;
-  readonly file?: string;
-  readonly site?: number;
-  readonly offset?: number;
-  readonly cause?: unknown;
-}> {}
-declare const ImportError_base: new <A extends Record<string, any> = {}>(args: import("effect/Types").VoidIfEmpty<{ readonly [P in keyof A as P extends "_tag" ? never : P]: A[P]; }>) => import("effect/Cause").YieldableError & {
-  readonly _tag: "ImportError";
-} & Readonly<A>;
-/** `import ... from "cssints"` without the attribute names something that only exists at build time. */
-declare class ImportError extends ImportError_base<{
-  readonly message: string;
-  readonly file: string;
-  readonly offset: number;
-}> {}
-//#endregion
 //#region src/devtools-server.d.ts
 /** A `css.*` call of a client module: where it is (1-based line, 0-based column) and the class names it produced. */
 interface DevSite {
   line: number;
   column: number;
   classes: string[];
+  /** the source of the call, as written */
+  text: string;
 }
 /** What the dev server knows of a class: its rule as the sheet prints it, the tokens it reads, the plugin it belongs to. */
 interface ClassRecord {
@@ -99,14 +80,20 @@ export declare const layerEntries: ({ layers }: RegistryState, file: string) => 
 export declare const renderSheet: (entries: Iterable<string>) => Effect.Effect<string, never, never>;
 //#endregion
 //#region src/plugin.d.ts
-/** LightningCSS targets (css.lightningcss.targets) from the browserslist query of the support warnings. */
+/**
+ * LightningCSS targets (css.lightningcss.targets) from the browserslist config of process.cwd(), read when vite.config.ts
+ * imports this module: the support warnings read the one of the Vite root, the same unless the root is elsewhere.
+ */
 export declare const targets: import("lightningcss").Targets;
-/** `build: { cssTarget }`, the browserslist query of the support warnings, so a minified build keeps `firstThatWorks` fallbacks. */
+/** `build: { cssTarget }`, the browserslist query of `targets`, so a minified build keeps `firstThatWorks` fallbacks. */
 export declare const cssTarget: string[];
 export default function cssints({ inner, devtools }?: {
   inner?: boolean;
-  /** Dev only: the inspector of @cssints/devtools in every page (Alt+Shift+C), which must be installed. */
-  devtools?: boolean;
+  /**
+   * The inspector of @cssints/devtools in every page (Alt+Shift+C), which must be installed. `true`: dev only; `"build"`:
+   * a build too, with the table as a static asset and the overlay in a chunk that loads on the first open.
+   */
+  devtools?: boolean | "build";
 }): Plugin[];
 //#endregion
 export type { DevTable };

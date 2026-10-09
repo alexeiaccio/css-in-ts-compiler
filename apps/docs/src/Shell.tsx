@@ -7,16 +7,14 @@ import { createEffect, createSignal, For, onSettled, useContext } from "solid-js
 import { DocsContext, url } from "./docs.ts";
 import { ph } from "./icons.ts" with { type: "cssints" };
 import { gtOutline, gtSidebar, reduced } from "./layout.ts" with { type: "cssints" };
-import { cycle, mode, next } from "./mode.ts";
-import { sans } from "./prose.ts" with { type: "cssints" };
 import { Search } from "./Search.tsx";
+import { SettingsPanel } from "./SettingsPanel.tsx";
 import { t } from "./theme.ts" with { type: "cssints" };
 
 const root: Style = css.cn(
   css.minHeight("100dvh"),
   css.bg(t.color.bg),
   css.color(t.color.text),
-  css.fontFamily(sans),
   css.fontSize(t.fontSize.md),
 );
 
@@ -59,11 +57,7 @@ const menuButton = css.cn(gtSidebar(css.display("none")));
 const icon = css.cn(css.width("20px"), css.height("20px"));
 const menuIcon = { list: css.cn(ph("list"), icon), x: css.cn(ph("x"), icon) };
 const playIcon = css.cn(ph("play-circle"), icon);
-const modeIcon = {
-  system: css.cn(ph("desktop"), icon),
-  light: css.cn(ph("sun"), icon),
-  dark: css.cn(ph("moon"), icon),
-};
+const settingsIcon = css.cn(ph("sliders-horizontal"), icon);
 
 // The sidebar is a drawer under the header (hidden from tab order while closed) until 900 px, then a sticky column.
 const side = css.cv({
@@ -167,20 +161,6 @@ const body = css.cn(
 
 const GROUPS = ["Guide", "Reference", "Packages", "Project"] as const;
 
-function ThemeToggle() {
-  return (
-    <button
-      type="button"
-      class={iconButton}
-      onClick={cycle}
-      aria-label={`Colour mode: ${mode()}. Switch to ${next[mode()]}.`}
-      title={`Colour mode: ${mode()}`}
-    >
-      <span class={modeIcon[mode()]} />
-    </button>
-  );
-}
-
 // The frame of every page: header (menu, brand, search, links), the sidebar of pages, and the page.
 export function Shell(props: { children?: JSX.Element }) {
   const { pages } = useContext(DocsContext);
@@ -217,7 +197,16 @@ export function Shell(props: { children?: JSX.Element }) {
         <a href={url("playground")} class={iconButton} aria-label="Playground" title="Playground">
           <span class={playIcon} />
         </a>
-        <ThemeToggle />
+        <button
+          type="button"
+          class={iconButton}
+          popovertarget="settings"
+          aria-label="Display settings"
+          title="Display settings"
+        >
+          <span class={settingsIcon} />
+        </button>
+        <SettingsPanel />
       </header>
       <div class={body}>
         <nav id="sidebar" class={side({ open: open() })} aria-label="Pages">

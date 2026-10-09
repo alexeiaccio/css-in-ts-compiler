@@ -76,6 +76,9 @@ reverse); trust the build's message and, with the MCP server, `check_declaration
 `cursor: "pointer" … is not supported by ios_saf … (css.properties.cursor)`: the value is valid, a browserslist target
 lacks it. It is a warning, not an error. Options: accept it, add a fallback (`firstThatWorks(wanted, fallback)`), or
 narrow the browserslist. The BCD key is in parentheses; `check_support` of the MCP server answers the same question.
+Vite shows the warning at the `css.*` call that made it (file, line, column, a code frame). A build says it once per
+file; a dev server again when that file is edited, not on every update. The targets are the browserslist of Vite's
+`root`.
 
 ## When an error has `(trace <id>)`
 

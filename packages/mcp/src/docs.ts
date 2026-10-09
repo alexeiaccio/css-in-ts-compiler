@@ -1,6 +1,6 @@
 // search_docs and list_plugins: the docs as markdown sections. Run from this repo, they read docs/API.md, README.md and
-// every package README; installed in a project, the READMEs of cssints and @cssints/* in its node_modules (docs/API.md
-// is not in the published cssints: an engine gap in cssints-w57u).
+// every package README; installed in a project, the same from its node_modules: cssints/docs/API.md (copied into the
+// package when it is packed), cssints/README.md and the READMEs of @cssints/*.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
@@ -18,10 +18,12 @@ const readmes = (dir: string) =>
         .filter((f) => existsSync(f))
     : [];
 
-const files = (root: string) =>
-  inRepo
+// The files search_docs reads: those of this repository, else those installed under `root`.
+export const files = (root: string, repo = inRepo): string[] =>
+  repo
     ? [join(REPO, "docs/API.md"), join(REPO, "README.md"), ...readmes(join(REPO, "packages"))]
     : [
+        join(root, "node_modules/cssints/docs/API.md"),
         join(root, "node_modules/cssints/README.md"),
         ...readmes(join(root, "node_modules/@cssints")),
       ].filter((f) => existsSync(f));

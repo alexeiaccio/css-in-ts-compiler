@@ -3,7 +3,15 @@ import { Effect } from "effect";
 import { Identifier } from "@mdn/browser-compat-data";
 //#region src/support.d.ts
 export type Target = [agent: string, version: string];
-export declare const targets: (query?: string | undefined) => Effect.Effect<Target[], BrowsersError, never>;
+export declare const targets: (query?: string | undefined, path?: string | undefined) => Effect.Effect<Target[], BrowsersError, never>;
+declare global {
+  var __cssintsTargets: Target[] | undefined;
+}
+/**
+ * Sets the targets the functions here default to (cssints: those of the Vite root, before each evaluation).
+ * @param {Target[] | undefined} ts the targets, or `undefined` for those of process.cwd()
+ */
+export declare const useTargets: (ts: Target[] | undefined) => void;
 export declare const get: (key: string) => Identifier | undefined;
 export interface Warning {
   feature: string;

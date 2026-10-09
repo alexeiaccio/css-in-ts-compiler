@@ -1,62 +1,9 @@
+import { d as MacroError, f as MemberError, o as warn, t as Registry, u as ImportError } from "./registry-n9JCX4pl.mjs";
 import { browsers, lacking, messageOf, supportOf } from "@cssints/css-grammar/support";
-import { Context, Data, Effect, Formatter, Predicate, Result, Schema } from "effect";
+import { Effect, Formatter, Predicate, Result, Schema } from "effect";
 import { longhands } from "@cssints/css-grammar/longhands";
 import { parseSync } from "oxc-parser";
 import MagicString from "magic-string";
-//#region src/errors.ts
-/** A css.* call, cv(), or a value in it is wrong. `file`, `site` (index) and `offset` name the call site, when known. */
-var MacroError = class extends Data.TaggedError("MacroError") {};
-/** A plugin member was called wrongly, or its styles conflict. `pluginName` is the member's name; the call site as in MacroError. */
-var MemberError = class extends Data.TaggedError("MemberError") {};
-/** `import ... from "cssints"` without the attribute names something that only exists at build time. */
-var ImportError = class extends Data.TaggedError("ImportError") {};
-/** Evaluating the module threw something that is not a MacroError, or did not finish in time. */
-var EvalError = class extends Data.TaggedError("EvalError") {};
-/** The module ran, but a site of it did not report a replacement. */
-var SiteMissingError = class extends Data.TaggedError("SiteMissingError") {};
-/** Vite refused something the plugin asked of it: the private server, the CSS pipeline. */
-var HookError = class extends Data.TaggedError("HookError") {};
-//#endregion
-//#region src/registry.ts
-const registry = globalThis.__cssints ??= {
-	sites: /* @__PURE__ */ new Map(),
-	rules: /* @__PURE__ */ new Map(),
-	globals: /* @__PURE__ */ new Map(),
-	layers: /* @__PURE__ */ new Map(),
-	kernels: /* @__PURE__ */ new Map(),
-	runtimes: /* @__PURE__ */ new Map(),
-	scopes: /* @__PURE__ */ new Map(),
-	userProps: /* @__PURE__ */ new Set(),
-	seen: /* @__PURE__ */ new Map(),
-	properties: /* @__PURE__ */ new Map(),
-	defs: /* @__PURE__ */ new Map(),
-	themed: /* @__PURE__ */ new Map(),
-	checks: /* @__PURE__ */ new Map(),
-	gen: 0,
-	tokens: 0,
-	warnings: [],
-	warned: /* @__PURE__ */ new Set(),
-	lowered: /* @__PURE__ */ new Map(),
-	files: /* @__PURE__ */ new Set()
-};
-const Registry = Context.Reference("cssints/Registry", { defaultValue: () => registry });
-const unuse = (entries, file) => {
-	for (const [k, e] of entries) if (e.users.delete(file) && !e.users.size) entries.delete(k);
-};
-const forgetKernels = (file) => {
-	for (const entries of [
-		registry.kernels,
-		registry.runtimes,
-		registry.globals,
-		registry.layers
-	]) unuse(entries, file);
-};
-const forget = (file) => {
-	forgetKernels(file);
-	for (const [k, t] of registry.themed) if (t.file === file) registry.themed.delete(k);
-	for (const [k, c] of registry.checks) if (c.at.file === file) registry.checks.delete(k);
-};
-//#endregion
 //#region src/leaves.ts
 const leaves = (p) => longhands[p] ?? [p];
 const width = (p) => leaves(p).length;
@@ -235,7 +182,8 @@ const VARS = /(--[\w-]+)\s*:|@property\s+(--[\w-]+)/g;
 * (`uncovered`); so is a declaration of a kernel written as styles that a target lacks (`kernelWarnings`), by the same rule.
 */
 const addKernel = Effect.fnUntraced(function* (kernel, markers, at, runtimes = []) {
-	const { kernels, warnings, warned } = yield* Registry;
+	const registry = yield* Registry;
+	const { kernels } = registry;
 	const fail = (message) => new MacroError({
 		message: `cssints: ${message}`,
 		...at
@@ -264,22 +212,15 @@ const addKernel = Effect.fnUntraced(function* (kernel, markers, at, runtimes = [
 			} : r;
 			const all = (yield* lacking(feature, void 0, exact)).map((t) => t.join(" "));
 			const off = yield* uncovered(feature, all, runtimes);
-			const w = `${key} ${feature}`;
-			if (off.length && !warned.has(w)) {
-				warned.add(w);
-				warnings.push(`kernel ${key} needs ${feature}, not supported by ${browsers([...off])}${exact ? " (a partial implementation counts as lacking)" : ""}`);
-			}
+			if (off.length) warn(registry, `${key} ${feature}`, `kernel ${key} needs ${feature}, not supported by ${browsers([...off])}${exact ? " (a partial implementation counts as lacking)" : ""}`, at);
 		}
 		for (const { prop, value, warning } of kernelWarnings.get(kernel) ?? []) {
 			const off = yield* uncovered(warning.key, warning.lacking, runtimes);
 			const w = `${prop} ${warning.key}${off.length < warning.lacking.length ? ` ${off.join()}` : ""}`;
-			if (off.length && !warned.has(w)) {
-				warned.add(w);
-				warnings.push(messageOf(prop, value, {
-					...warning,
-					lacking: [...off]
-				}));
-			}
+			if (off.length) warn(registry, w, messageOf(prop, value, {
+				...warning,
+				lacking: [...off]
+			}), at);
 		}
 	}
 	if (at) entry.users.add(at.file);
@@ -628,7 +569,7 @@ const refuses = (literal) => {
 	return Result.isFailure(tried) ? tried.failure : void 0;
 };
 const standIn = Effect.fnUntraced(function* (at, who, kind, literal, inherits, rooted) {
-	const { warned, warnings } = yield* Registry;
+	const registry = yield* Registry;
 	let why;
 	if (kind !== "color") why = "computes colours only";
 	else if (!inherits) why = "does not write tokens that do not inherit";
@@ -639,12 +580,8 @@ const standIn = Effect.fnUntraced(function* (at, who, kind, literal, inherits, r
 		yield* addDerived(at.file, [...new Set(ws.map((w) => w.key))]);
 		return true;
 	}
-	const key = `derived ${who} ${why}`;
-	if (!warned.has(key)) {
-		warned.add(key);
-		const lacking = browsers([...new Set(ws.flatMap((w) => w.lacking))]);
-		warnings.push(`${who}: "${literal}" stays at its static default${lacking ? ` in ${lacking}` : " in the older targets"}: the runtime for derived tokens ${why}`);
-	}
+	const lacking = browsers([...new Set(ws.flatMap((w) => w.lacking))]);
+	warn(registry, `derived ${who} ${why}`, `${who}: "${literal}" stays at its static default${lacking ? ` in ${lacking}` : " in the older targets"}: the runtime for derived tokens ${why}`, at);
 	return false;
 });
 const usesDerived = ({ defs, themed }, names) => [...names].some((n) => defs.get(n)?.poly !== void 0 || [...themed.values()].some((t) => t.theme?.poly?.has(n)));
@@ -981,4 +918,4 @@ const instrument = Effect.fn("cssints.instrument")(function* (code, id, client =
 	};
 });
 //#endregion
-export { Registry as A, RUNTIME_ID as C, runtimeNames as D, runtimeModule as E, HookError as F, MacroError as I, MemberError as L, forgetKernels as M, registry as N, covers as O, EvalError as P, SiteMissingError as R, DERIVED as S, fallbackEntries as T, standIn as _, LAYERS as a, kernelEntries as b, byOrder as c, globalNames as d, layerEntries as f, themedEntries as g, requireLayer as h, keptImport as i, forget as j, relation as k, closeNames as l, renderSheet as m, RUNTIME as n, addGlobal as o, layerStatements as p, instrument as r, addLayers as s, CV_CALL as t, globalEntries as u, usesDerived as v, addRuntime as w, kernelWarnings as x, addKernel as y };
+export { RUNTIME_ID as C, runtimeNames as D, runtimeModule as E, covers as O, DERIVED as S, fallbackEntries as T, standIn as _, LAYERS as a, kernelEntries as b, byOrder as c, globalNames as d, layerEntries as f, themedEntries as g, requireLayer as h, keptImport as i, relation as k, closeNames as l, renderSheet as m, RUNTIME as n, addGlobal as o, layerStatements as p, instrument as r, addLayers as s, CV_CALL as t, globalEntries as u, usesDerived as v, addRuntime as w, kernelWarnings as x, addKernel as y };

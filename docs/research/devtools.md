@@ -12,7 +12,8 @@ an element with `hover()` and a media query in one layer. It cannot say _where_ 
 `css.*` call that made it; Chrome's Styles pane then names `Showcase.tsx:91` beside the rule, with
 `css: { devSourcemap: true }`). Readable class names and a `data-cssints` attribute are not worth it. Sonda sees
 the sheet as a 0-byte virtual module (since cssints-vxfr the build sheet has a map too, section 4); CSS coverage
-works as is and reads 79 % of the demo's sheet as used.
+by rule usage puts 75 % of the demo's style-rule bytes in use on load (`page.coverage` reads 79 %, an artifact of
+`@layer` blocks: coverage.md).
 
 Hands-on, Chrome 155 through playwright-core 1.63, apps/demo's dev server and build. The scripts are throwaway
 (temp dir), the numbers below are their output.
@@ -96,8 +97,16 @@ Not done, and why:
   analyse CSS assets at all, section 4). It does show what cssints ships in JS: `parent-vars.mjs` 2.0 kB,
   `runtime.mjs` 0.6 kB and the two fallback runtimes. **Since cssints-vxfr the build sheet has a map** (section 4).
 - **CSS coverage with Playwright** (`page.coverage.startCSSCoverage`, Chromium; @projectwallace/css-code-coverage
-  for thresholds): works on the sheet as is. The demo's built sheet: 7 185 of 9 066 bytes used on load (79.3 %),
-  80.5 % after hovering every button and a narrow viewport. With one global sheet per app, coverage per route is the
+  for thresholds): reads 7 185 of 9 066 bytes of the demo's built sheet as used on load (79.3 %), 80.5 % after
+  hovering every button and a narrow viewport. **That figure is wrong** (cssints-5jj1): Chrome reports a used
+  `@layer` block as one range over all its rules, and `page.coverage` merges the ranges, so every rule of a layer
+  counts and the figure is just the share of bytes outside @property, @font-face and @keyframes
+  (docs/research/coverage.md, "Why not `page.coverage`"). Re-measured on 2026-10-09 by rule usage from CDP, as
+  apps/sky/test/coverage.mjs does: the demo's sheet is now 9 328 bytes, 160 style rules in 7 221 bytes; on load
+  138 rules and 5 433 bytes are used (86.3 % of the rules, 75.2 % of the bytes), and 149 rules and 6 056 bytes
+  (93.1 %, 83.9 %) after widths from 360 to 1600 px, hover on every button, link, input and label, 40 Tab presses,
+  a dark browser and reduced motion. `page.coverage` on the same sheet reads 81.0 %, against 82.9 % of non-@property
+  bytes. The demo is a showcase, so it uses most of its sheet. With one global sheet per app, coverage per route is the
   measure cssints lacks for the "one sheet" decision; apps/sky (five routes, one sheet) is where it would say
   something (follow-up).
 - **css-benchpress** (scales a CSS pattern until style/layout time crosses a threshold): its cases

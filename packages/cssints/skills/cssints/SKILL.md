@@ -43,7 +43,8 @@ export default {
 
 - The entry imports `"virtual:cssints.css"` once. `tsconfig.json` needs `"types": ["vite/client"]`.
 - `targets` and `cssTarget` come from the browserslist (`BROWSERSLIST`, else `package.json` / `.browserslistrc`, else
-  `defaults`), read from `process.cwd()`: run Vite from the app's folder. Support warnings read the same query.
+  `defaults`), read from `process.cwd()`: run Vite from the app's folder. Support warnings read the config of Vite's
+  `root`, and each is said at the `css.*` call that made it, once per file per build (in dev, again after an edit).
 - `devSourcemap: true` maps each class rule in Chrome's Styles pane to the call that made it; in a build,
   `build: { sourcemap: true }` (or `"hidden"`) maps the sheet asset too (bundle analysers split its bytes by module).
 

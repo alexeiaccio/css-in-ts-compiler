@@ -1,5 +1,7 @@
-import { A as Registry, C as RUNTIME_ID, D as runtimeNames, E as runtimeModule, F as HookError, I as MacroError, L as MemberError, N as registry, P as EvalError, R as SiteMissingError, S as DERIVED, T as fallbackEntries, a as LAYERS, b as kernelEntries, d as globalNames, f as layerEntries, g as themedEntries, i as keptImport, j as forget, l as closeNames, m as renderSheet, n as RUNTIME, o as addGlobal, p as layerStatements, r as instrument, s as addLayers, u as globalEntries, v as usesDerived } from "./instrument-BMqsI0Gq.mjs";
+import { a as registry, c as EvalError, d as MacroError, f as MemberError, i as forgetWarnings, l as HookError, n as forget, o as warn, p as SiteMissingError, t as Registry } from "./registry-n9JCX4pl.mjs";
+import { C as RUNTIME_ID, D as runtimeNames, E as runtimeModule, S as DERIVED, T as fallbackEntries, a as LAYERS, b as kernelEntries, d as globalNames, f as layerEntries, g as themedEntries, i as keptImport, l as closeNames, m as renderSheet, n as RUNTIME, o as addGlobal, p as layerStatements, r as instrument, s as addLayers, u as globalEntries, v as usesDerived } from "./instrument-Cclndlxs.mjs";
 import { createRequire } from "node:module";
+import { targets as targets$1, useTargets } from "@cssints/css-grammar/support";
 import { Cause, Clock, Config, Effect, Exit, Formatter, Option, Predicate, Result, Schema, Semaphore } from "effect";
 import { createHash } from "node:crypto";
 import { basename, join, relative, resolve } from "node:path";
@@ -7,11 +9,12 @@ import { browserslistToTargets } from "lightningcss";
 import MagicString from "magic-string";
 import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { browsers } from "@cssints/css-grammar/browsers";
+import { browsers as browsers$1 } from "@cssints/css-grammar/browsers";
 import { createServer, createServerModuleRunner, normalizePath, transformWithOxc } from "vite";
 import { fileURLToPath } from "node:url";
 import { Window } from "happy-dom";
 import { ESModulesEvaluator, ssrModuleExportsKey } from "vite/module-runner";
+import { gzipSync } from "node:zlib";
 //#region src/contrast.ts
 const VAR = /var\((--[^\s,)]+)\)/g;
 const valueOf = (state, name, values) => {
@@ -47,8 +50,7 @@ const together = ({ themed, layers }) => {
 	}
 	return groups.values();
 };
-const shown = (r) => (Math.floor(r * 100) / 100).toFixed(2);
-const verify = (check, state, { luminance, ratio }) => {
+const verify = (check, state, { luminance, ratio, shown }) => {
 	const { fg, bg, min } = check;
 	const path = (n) => state.defs.get(n)?.path ?? n;
 	const affecting = affectedBy(state.defs, [fg, bg]);
@@ -71,11 +73,7 @@ const verify = (check, state, { luminance, ratio }) => {
 		let ok = true;
 		for (const p of pair) if (p.l.why !== void 0) {
 			ok = false;
-			const key = `contrast ${p.name} ${p.text}`;
-			if (!state.warned.has(key)) {
-				state.warned.add(key);
-				state.warnings.push(`cssints: contrast is not checked for ${path(p.name)} in ${label}: "${p.text}" ${p.l.why}`);
-			}
+			warn(state, `contrast ${p.name} ${p.text}`, `cssints: contrast is not checked for ${path(p.name)} in ${label}: "${p.text}" ${p.l.why}`, check.at);
 		}
 		if (!ok || f.l.lum === void 0 || b.l.lum === void 0) continue;
 		const r = ratio(f.l.lum, b.l.lum);
@@ -86,7 +84,7 @@ const verify = (check, state, { luminance, ratio }) => {
 const verifyChecks = Effect.fnUntraced(function* (select) {
 	const checks = [...registry.checks.values()].filter(select);
 	if (!checks.length) return;
-	const colours = yield* Effect.promise(() => import("./color-BoS0LblL.mjs"));
+	const colours = yield* Effect.promise(() => import("./color-C208At51.mjs"));
 	for (const check of checks) {
 		const errors = verify(check, registry, colours);
 		if (errors.length) return yield* new MacroError({
@@ -155,8 +153,9 @@ const failureOf = (id, registry) => (e) => {
 		...at
 	});
 };
-const evaluateModule = Effect.fnUntraced(function* (runner, id) {
+const evaluateModule = Effect.fnUntraced(function* (runner, id, targets) {
 	const registry = yield* Registry;
+	useTargets(targets);
 	registry.sites.delete(id);
 	forget(id);
 	registry.at = void 0;
@@ -176,9 +175,12 @@ const evaluateModule = Effect.fnUntraced(function* (runner, id) {
 	yield* verifyChecks((c) => c.gen === registry.gen);
 	return registry.sites.get(id) ?? /* @__PURE__ */ new Map();
 });
-/** Evaluates `id` and runs `whileLocked` on its sites before the next evaluation may start (runner.qnt `rules`). */
-const evaluate = Effect.fn("cssints.evaluate")(function* (runner, id, whileLocked) {
-	return yield* evalLock.withPermit(evaluateModule(runner, id).pipe(Effect.flatMap(whileLocked)));
+/**
+* Evaluates `id` for the browser `targets` (default: those of process.cwd()) and runs `whileLocked` on its sites before
+* the next evaluation may start (runner.qnt `rules`).
+*/
+const evaluate = Effect.fn("cssints.evaluate")(function* (runner, id, whileLocked, targets) {
+	return yield* evalLock.withPermit(evaluateModule(runner, id, targets).pipe(Effect.flatMap(whileLocked)));
 });
 //#endregion
 //#region src/devtools-server.ts
@@ -234,9 +236,8 @@ const table = Effect.fn("cssints.devtoolsTable")(function* (root, usedBy, callsO
 			});
 			if (!known.length) continue;
 			const n = sites.push({
+				...call,
 				file,
-				line: call.line,
-				column: call.column,
 				classes: known
 			}) - 1;
 			for (const c of known) classes[c].sites.push(n);
@@ -315,6 +316,91 @@ const devtoolsPlugin = (usedBy, callsOf) => {
 		}
 	};
 };
+const TABLE_FILE = "__CSSINTS_DEVTOOLS_TABLE__";
+const loaderModule = (overlay, base) => `const key = (e) => {
+  if (e.altKey && e.shiftKey && e.code === "KeyC") {
+    e.preventDefault();
+    open();
+  }
+};
+const button = document.createElement("button");
+button.textContent = "cssints";
+button.title = "cssints devtools (Alt+Shift+C)";
+button.style.cssText = "position:fixed;right:12px;bottom:12px;z-index:2147483647;padding:4px 8px;border:1px solid #374151;border-radius:999px;background:#111827;color:#e5e7eb;font:11px ui-monospace,monospace;cursor:pointer;opacity:.75";
+button.onclick = () => open();
+const open = () => {
+  button.remove();
+  removeEventListener("keydown", key, true);
+  import(${Formatter.formatJson(overlay)}).then(({ mount }) => {
+    const listeners = {};
+    mount({
+      root: "",
+      build: true,
+      request: () => fetch(new URL(${Formatter.formatJson(base)} + "${TABLE_FILE}", document.baseURI))
+        .then((r) => r.json())
+        .then((table) => listeners["cssints:devtools"]?.(table)),
+      on: (event, listener) => { listeners[event] = listener; },
+    });
+  });
+};
+addEventListener("keydown", key, true);
+document.body.append(button);
+`;
+const kb = (n) => `${(n / 1024).toFixed(1)} kB`;
+/**
+* The build side of `cssints({ devtools: "build" })`: the overlay in every page behind a button, the table as a JSON asset.
+* Nothing loads until the first open. The files of the sites are relative to the root, so the asset holds no path of this machine.
+* @param {Map<string, string>} usedBy the entries of each client module (plugin.ts)
+* @param {Map<string, DevSite[]>} callsOf the sites of each client module
+* @returns {Plugin} the plugin
+*/
+const devtoolsBuildPlugin = (usedBy, callsOf) => ({
+	name: "cssints:devtools-build",
+	apply: "build",
+	transformIndexHtml: {
+		order: "pre",
+		handler: () => [{
+			tag: "script",
+			attrs: {
+				type: "module",
+				src: DEVTOOLS_ID
+			},
+			injectTo: "body"
+		}]
+	},
+	resolveId(id) {
+		if (id === "virtual:cssints/devtools") return RESOLVED;
+	},
+	load(id) {
+		if (id !== RESOLVED) return;
+		return Effect.runPromise(Effect.tryPromise(() => this.resolve("@cssints/devtools/overlay", void 0, { skipSelf: true })).pipe(Effect.orElseSucceed(() => null), Effect.map((overlay) => overlay ? loaderModule(overlay.id, this.environment.config.base) : `console.warn("cssints: devtools is on, but @cssints/devtools/overlay is not installed: add @cssints/devtools to the devDependencies of the app");\n`)));
+	},
+	generateBundle(_, bundle) {
+		if (this.environment.name !== "client") return;
+		const chunks = Object.values(bundle).flatMap((f) => f.type === "chunk" ? [f] : []);
+		const loader = chunks.find((c) => c.code.includes(TABLE_FILE));
+		if (!loader) return;
+		const { root } = this.environment.config;
+		const t = Effect.runSync(table(root, usedBy, callsOf));
+		const json = Formatter.formatJson({
+			...t,
+			root: "",
+			sites: t.sites.map((s) => ({
+				...s,
+				file: relative(root, s.file)
+			}))
+		});
+		const ref = this.emitFile({
+			type: "asset",
+			name: "cssints-devtools.json",
+			source: json
+		});
+		const file = this.getFileName(ref);
+		loader.code = loader.code.replace(TABLE_FILE, () => file);
+		const overlay = chunks.find((c) => c.isDynamicEntry && c.code.includes("cssints-devtools"));
+		this.info(`devtools: ${file} ${kb(Buffer.byteLength(json))} (${kb(gzipSync(json).length)} gzip)` + (overlay ? `, ${overlay.fileName} ${kb(Buffer.byteLength(overlay.code))} (${kb(gzipSync(overlay.code).length)} gzip), loaded on the first open` : ""));
+	}
+});
 //#endregion
 //#region src/entries.ts
 const moduleEntries = Effect.fnUntraced(function* (id, sites) {
@@ -417,8 +503,11 @@ const packagesOnCssints = (root) => Effect.sync(() => {
 	});
 });
 const hash = (s) => createHash("sha1").update(s).digest("hex").slice(0, 8);
-/** LightningCSS targets (css.lightningcss.targets) from the browserslist query of the support warnings. */
-const targets = browserslistToTargets(Effect.runSync(browsers()));
+/**
+* LightningCSS targets (css.lightningcss.targets) from the browserslist config of process.cwd(), read when vite.config.ts
+* imports this module: the support warnings read the one of the Vite root, the same unless the root is elsewhere.
+*/
+const targets = browserslistToTargets(Effect.runSync(browsers$1()));
 const ESBUILD = {
 	ios_saf: "ios",
 	ie: "ie",
@@ -428,8 +517,8 @@ const ESBUILD = {
 	firefox: "firefox",
 	safari: "safari"
 };
-/** `build: { cssTarget }`, the browserslist query of the support warnings, so a minified build keeps `firstThatWorks` fallbacks. */
-const cssTarget = Effect.runSync(browsers()).flatMap((t) => {
+/** `build: { cssTarget }`, the browserslist query of `targets`, so a minified build keeps `firstThatWorks` fallbacks. */
+const cssTarget = Effect.runSync(browsers$1()).flatMap((t) => {
 	const [agent, version] = t.split(" ");
 	return ESBUILD[agent] && /^\d/.test(version) ? [`${ESBUILD[agent]}${version.split("-")[0]}`] : [];
 });
@@ -521,6 +610,7 @@ function cssints({ inner = false, devtools = false } = {}) {
 	let runner;
 	let build = false;
 	let root = process.cwd();
+	let rootTargets;
 	let cssPlugins = [];
 	const usedBy = /* @__PURE__ */ new Map();
 	const depsOf = /* @__PURE__ */ new Map();
@@ -557,11 +647,23 @@ function cssints({ inner = false, devtools = false } = {}) {
 		}
 		return out;
 	};
-	const flushWarnings = Effect.fnUntraced(function* (warn, file) {
+	const flushWarnings = Effect.fnUntraced(function* (warn, id, code) {
 		const { warnings } = yield* Registry;
 		const ws = warnings.splice(0);
-		yield* Effect.sync(() => ws.forEach(warn));
-		yield* warned(ws, file);
+		for (const { message, at } of ws) {
+			const file = at?.file ?? id;
+			const text = at === void 0 ? void 0 : at.file === id ? code : yield* Effect.tryPromise(() => readFile(at.file, "utf8")).pipe(Effect.orElseSucceed(() => void 0));
+			const loc = at && text !== void 0 ? {
+				file: at.file,
+				...lineCol(text, at.offset)
+			} : void 0;
+			yield* Effect.sync(() => warn({
+				message,
+				...file && { id: file },
+				...loc && { loc }
+			}));
+		}
+		yield* warned(ws.map((w) => w.message), id);
 	});
 	const clientTransform = Effect.fn("cssints.clientTransform")(function* (code, id, parsed, env, warn, watch) {
 		const recorded = Effect.fnUntraced(function* (sites) {
@@ -578,8 +680,8 @@ function cssints({ inner = false, devtools = false } = {}) {
 				files
 			};
 		});
-		const { sites, runtimes, files } = parsed.sites.length ? yield* evaluate(runner, id, recorded).pipe(Effect.ensuring(flushWarnings(warn, id))) : yield* Effect.sync(() => forget(id)).pipe(Effect.andThen(recorded(/* @__PURE__ */ new Map())));
-		if (!build || buildMap) {
+		const { sites, runtimes, files } = parsed.sites.length ? yield* evaluate(runner, id, recorded, rootTargets).pipe(Effect.ensuring(flushWarnings(warn, id, code))) : yield* Effect.sync(() => forget(id)).pipe(Effect.andThen(recorded(/* @__PURE__ */ new Map())));
+		if (!build || buildMap || devtools === "build") {
 			const at = /* @__PURE__ */ new Map();
 			for (const [n, s] of parsed.sites.entries()) {
 				const loc = lineCol(code, s.start);
@@ -588,7 +690,8 @@ function cssints({ inner = false, devtools = false } = {}) {
 			siteOf.set(id, at);
 			if (devtools) callsOf.set(id, parsed.sites.map((s, n) => ({
 				...lineCol(code, s.start),
-				classes: sites.get(n)?.match(/_[\w-]+/g) ?? []
+				classes: sites.get(n)?.match(/_[\w-]+/g) ?? [],
+				text: code.slice(s.start, s.end)
 			})));
 		}
 		const ms = new MagicString(code);
@@ -736,8 +839,7 @@ function cssints({ inner = false, devtools = false } = {}) {
 	});
 	const hotUpdate = Effect.fn("cssints.hotUpdate")(function* (env, file, modules) {
 		if (env.name !== "client") return void 0;
-		const { warned } = yield* Registry;
-		yield* Effect.sync(() => warned.clear());
+		yield* Effect.sync(() => forgetWarnings([file]));
 		const graph = env.moduleGraph;
 		const affected = [.../* @__PURE__ */ new Set([...depsOf.get(file) ?? [], ...inflight])].flatMap((id) => graph.getModuleById(id) ?? []);
 		yield* Effect.sync(() => affected.forEach((m) => {
@@ -756,11 +858,15 @@ function cssints({ inner = false, devtools = false } = {}) {
 				ssr: { noExternal: names }
 			};
 		},
-		api: { sheet: (ids) => Effect.runSync(sheet(ids)) },
+		api: {
+			sheet: (ids) => Effect.runSync(sheet(ids)),
+			forgetWarnings: (files) => forgetWarnings(files)
+		},
 		configResolved(config) {
 			build = config.command === "build";
 			buildMap = build && !inner && config.build.sourcemap;
 			root = config.root;
+			if (!inner) rootTargets = Effect.runSync(targets$1(void 0, root));
 			cssPlugins = ["vite:css", "vite:css-post"].map((n) => config.plugins.find((p) => p.name === n));
 		},
 		configureServer(s) {
@@ -771,7 +877,9 @@ function cssints({ inner = false, devtools = false } = {}) {
 			});
 		},
 		buildStart() {
-			if (inner || server) return;
+			if (inner) return;
+			if (build) forgetWarnings();
+			if (server) return;
 			return run(hook("vite.buildStart", root, startServer()));
 		},
 		buildEnd() {
@@ -824,11 +932,18 @@ function cssints({ inner = false, devtools = false } = {}) {
 			}
 		}
 	};
-	return devtools && !inner ? [
+	if (!devtools || inner) return [main, version];
+	const dev = devtoolsPlugin(usedBy, callsOf);
+	return devtools === "build" ? [
 		main,
 		version,
-		devtoolsPlugin(usedBy, callsOf)
-	] : [main, version];
+		dev,
+		devtoolsBuildPlugin(usedBy, callsOf)
+	] : [
+		main,
+		version,
+		dev
+	];
 }
 const callTransform = (plugin, ctx, code) => {
 	const t = plugin?.transform;
