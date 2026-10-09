@@ -11,7 +11,8 @@ export interface Pixels {
   data: Uint8Array;
 }
 
-const starts = (bytes: Uint8Array, sig: number[], at = 0) => sig.every((b, i) => bytes[at + i] === b);
+const starts = (bytes: Uint8Array, sig: number[], at = 0) =>
+  sig.every((b, i) => bytes[at + i] === b);
 const ascii = (s: string) => [...s].map((c) => c.charCodeAt(0));
 
 // What a file is, by its first bytes (the extension may lie).
@@ -22,13 +23,18 @@ const kind = (bytes: Uint8Array) =>
       ? "jpeg"
       : starts(bytes, ascii("RIFF")) && starts(bytes, ascii("WEBP"), 8)
         ? "a WebP image"
-        : starts(bytes, ascii("ftyp"), 4) && /^(avif|avis)$/.test(String.fromCharCode(...bytes.slice(8, 12)))
+        : starts(bytes, ascii("ftyp"), 4) &&
+            /^(avif|avis)$/.test(String.fromCharCode(...bytes.slice(8, 12)))
           ? "an AVIF image"
           : starts(bytes, ascii("GIF8"))
             ? "a GIF image"
             : "not an image it knows";
 
-/** The RGBA pixels of a JPEG or PNG; anything else throws, naming what it is. */
+/**
+ * The RGBA pixels of a JPEG or PNG; anything else throws, naming what it is.
+ * @param {Uint8Array} bytes the file
+ * @returns {Pixels} its pixels
+ */
 export const decode = (bytes: Uint8Array): Pixels => {
   const k = kind(bytes);
   if (k === "png") {
@@ -60,6 +66,10 @@ const span = (i: number, n: number, size: number) => {
 /**
  * `img` averaged to `w` × `h` (a box filter over the pixels each cell covers), in linear light and weighted by alpha, so
  * a transparent pixel gives no colour.
+ * @param {Pixels} img the image
+ * @param {number} w the width of the result
+ * @param {number} h the height of the result
+ * @returns {Pixels} `w` × `h` cells
  */
 export const downsample = (img: Pixels, w: number, h: number): Pixels => {
   const data = new Uint8Array(w * h * 4);
@@ -92,11 +102,16 @@ const pct = (n: number) => (n ? `${Math.round(n * 100)}%` : "0");
 /**
  * unpic-placeholder's gradient: a radial gradient per cell of a `columns` × `rows` grid, at the cell's place and fading out
  * at 50%, brightest first (on top), over the image's average colour.
+ * @param {Pixels} img the image
+ * @param {number} columns the cells across
+ * @param {number} rows the cells down
+ * @returns {string} the layers, comma-separated (a `background-image` value)
  */
 export const gradients = (img: Pixels, columns: number, rows: number) => {
   const { data } = downsample(img, columns, rows);
   const cells = Array.from({ length: columns * rows }, (_, c) => c);
-  const luma = (c: number) => 0.299 * data[c * 4]! + 0.587 * data[c * 4 + 1]! + 0.114 * data[c * 4 + 2]!;
+  const luma = (c: number) =>
+    0.299 * data[c * 4]! + 0.587 * data[c * 4 + 1]! + 0.114 * data[c * 4 + 2]!;
   // ties are kept in grid order (sort is stable), so the output is the same on every build
   cells.sort((a, b) => luma(b) - luma(a));
   const layers = cells.map(
@@ -111,6 +126,8 @@ export const gradients = (img: Pixels, columns: number, rows: number) => {
  * The image's thumbhash (from a copy at most 100 px a side), rendered by thumbhash (32 px on the long side), averaged to
  * 16 px and written as a deflated PNG data URL: about 0.5 kB, where thumbhash's own `thumbHashToDataURL` (32 px, stored
  * uncompressed) is about 5 kB. The browser's smooth upscaling is the blur.
+ * @param {Pixels} img the image
+ * @returns {string} a `data:image/png;base64,…` URL
  */
 export const thumbhash = (img: Pixels) => {
   const fit = (p: Pixels, side: number) => {

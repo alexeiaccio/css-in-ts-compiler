@@ -30,12 +30,10 @@ assert.equal(hexOf(downsample(bw, 1, 1)), "bcbcbcff");
 const clear = image(2, 1, (x) => (x ? [0, 0, 255, 255] : [255, 0, 0, 0]));
 assert.equal(hexOf(downsample(clear, 1, 1)), "0000ff80");
 // a grid finer than the image repeats its pixels
-assert.deepEqual([0, 1, 2, 3].map((i) => hexOf(downsample(bw, 4, 1), i)), [
-  "000000ff",
-  "000000ff",
-  "ffffffff",
-  "ffffffff",
-]);
+assert.deepEqual(
+  [0, 1, 2, 3].map((i) => hexOf(downsample(bw, 4, 1), i)),
+  ["000000ff", "000000ff", "ffffffff", "ffffffff"],
+);
 // four quadrants: each cell of a 4 × 3 grid is one colour, brightest on top, laid out as the image is
 const RED = [255, 0, 0, 255];
 const BLUE = [0, 0, 255, 255];
@@ -62,7 +60,10 @@ assert.match(thumbhash(big), /^data:image\/png;base64,[A-Za-z0-9+/=]+$/);
 assert.equal(thumbhash(big), thumbhash(big));
 // formats by their first bytes, not the name
 const text = (s) => new TextEncoder().encode(s);
-assert.throws(() => decode(text("RIFF\0\0\0\0WEBPVP8 ")), /^Error: a WebP image: JPEG and PNG are read$/);
+assert.throws(
+  () => decode(text("RIFF\0\0\0\0WEBPVP8 ")),
+  /^Error: a WebP image: JPEG and PNG are read$/,
+);
 assert.throws(() => decode(text("\0\0\0\x1cftypavif")), /an AVIF image/);
 assert.throws(() => decode(text("GIF89a")), /a GIF image/);
 assert.throws(() => decode(text("<svg/>")), /not an image it knows/);
