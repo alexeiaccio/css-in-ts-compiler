@@ -657,7 +657,7 @@ const theme = (at: At | undefined, args: unknown[]) =>
       }
 
       const stale = new Set(changed.keys());
-      for (let grew = true; grew;)
+      for (let grew = true; grew; )
         grew = set.aliases.some(
           (a) => a.targets.some((t) => stale.has(t)) && !stale.has(a.name) && !!stale.add(a.name),
         );

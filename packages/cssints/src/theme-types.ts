@@ -122,9 +122,11 @@ type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
  * definition's value as text. A key that starts with a digit is read as `_<key>` (`t.space._2xs`).
  */
 export type Tokens<G, Inherited = undefined, Root = G> = {
-  readonly [
-    K in keyof G as K extends `$${string}` ? never : K extends `${Digit}${string}` ? `_${K}` : K
-  ]: G[K] extends {
+  readonly [K in keyof G as K extends `$${string}`
+    ? never
+    : K extends `${Digit}${string}`
+      ? `_${K}`
+      : K]: G[K] extends {
     readonly $value: infer V;
   }
     ? Token<KindOf<V, TypeOf<G[K], Inherited>, Root>, true, Text<V>>
