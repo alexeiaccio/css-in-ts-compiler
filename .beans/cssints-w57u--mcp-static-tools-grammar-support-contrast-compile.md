@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-09T08:45:25Z
-updated_at: 2026-10-09T09:04:09Z
+updated_at: 2026-10-09T09:13:52Z
 parent: cssints-0phg
 ---
 
@@ -18,4 +18,4 @@ parent: cssints-0phg
 - [x] compile a module (file path or source) through the plugin: classes, emitted CSS, errors and warnings with locations
 - [x] search docs/API.md, README and the plugin packages' READMEs; list plugin packages and their members
 - [ ] stdio transport, a bin, README with the config for opencode / Claude Code / Cursor
-- [ ] tests: each tool through an MCP client in-process
+- [x] tests: each tool through an MCP client in-process
