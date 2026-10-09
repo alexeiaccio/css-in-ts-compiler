@@ -41,6 +41,16 @@ for (const rule of [
 ])
   assert.ok(css.includes(rule), `${rule}\n${css}`);
 
+// Tokens Studio through Style Dictionary and sd-transforms (the recipe of docs/API.md): plain DTCG, which createTokens takes.
+await client.transformRequest("/fixtures/importers/tokens-studio-sd.ts");
+const sd = plugins[0].api.sheet([`${root}/fixtures/importers/tokens-studio-sd.ts`]);
+for (const rule of [
+  '@property --spacing-lg{syntax:"<length>";inherits:true;initial-value:16px}',
+  '@property --colors-red-light{syntax:"<color>";inherits:true;initial-value:rgb(80.549% 40.706% 40.706%)}',
+  '@property --weight-bold{syntax:"<number>";inherits:true;initial-value:700}',
+])
+  assert.ok(sd.includes(rule), `${rule}\n${sd}`);
+
 for (const [f, message] of [
   [
     "figma-boolean",
@@ -60,7 +70,7 @@ for (const [f, message] of [
   ],
   [
     "tokens-studio-dtcg",
-    /^cssints: createTokens\(\): \$themes of the root is a Tokens Studio file: pass the token sets/,
+    /^cssints: createTokens\(\): \$themes of the root is a Tokens Studio file: convert its token sets to DTCG/,
   ],
   [
     "tokens-studio-types",

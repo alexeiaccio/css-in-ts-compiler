@@ -14,3 +14,6 @@ Small samples of what Figma tooling exports, for `test/importers.mjs` (docs/API.
 - `tokens-studio-dtcg.json`, `tokens-studio-types.json`, `tokens-studio-modify.json`, `tokens-studio-math.json`:
   Tokens Studio in its W3C DTCG format: a single-file export, its own `$type` names, a colour modifier and math, after the
   examples of @tokens-studio/sd-transforms' README (https://github.com/tokens-studio/sd-transforms, MIT).
+- `tokens-studio-sd.source.json` → `tokens-studio-sd.json`: a Tokens Studio legacy set (unitless spacing, math, a
+  modifier, `rgba(<ref>, a)`, its type names) and what the recipe of docs/API.md writes from it (style-dictionary 5 and
+  @tokens-studio/sd-transforms 2, with the `cssints/dtcg` format there), 2026-10-09.

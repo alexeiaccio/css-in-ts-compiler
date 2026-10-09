@@ -216,7 +216,7 @@ const collect = Effect.fnUntraced(function* (
     if (key === "$type" || key === "$value" || IGNORED.has(key)) continue;
     if (key === "$themes" || key === "$metadata")
       return yield* fail(
-        `cssints: createTokens(): ${key} of ${here} is a Tokens Studio file: pass the token sets, in the W3C DTCG format (${RECIPE})`,
+        `cssints: createTokens(): ${key} of ${here} is a Tokens Studio file: convert its token sets to DTCG (${RECIPE})`,
       );
     if (key.startsWith("$"))
       return yield* fail(
@@ -233,7 +233,7 @@ const collect = Effect.fnUntraced(function* (
       );
     if (typeof child["type"] === "string" && Object.hasOwn(child, "value"))
       return yield* fail(
-        `cssints: createTokens(): ${at.join(".")} has value and type without $, the legacy format of Tokens Studio (and of TokensBrücke without "DTCG 2025.10 format"): export in the W3C DTCG format (${RECIPE})`,
+        `cssints: createTokens(): ${at.join(".")} has value and type without $, the legacy format of Tokens Studio (and of TokensBrücke without "DTCG 2025.10 format"): convert it to DTCG (${RECIPE})`,
       );
     if (Object.hasOwn(child, "$value")) {
       const stray = Object.keys(child).filter((k) => !k.startsWith("$"));
