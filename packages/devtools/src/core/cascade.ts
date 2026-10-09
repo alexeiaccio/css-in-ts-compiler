@@ -189,7 +189,7 @@ const candidates = Effect.fnUntraced(function* (model: Model, el: Element, only?
   });
 });
 
-const verdictOf = (o: Observed, winner: Candidate): Verdict => {
+const verdictOf = (o: Observed, winner: Candidate, root: string): Verdict => {
   const base = { prop: o.prop, computed: o.computed, expected: o.expected };
   if (o.computed === o.expected) return { ...base, status: "ok" };
   if (o.inline)
@@ -204,7 +204,7 @@ const verdictOf = (o: Observed, winner: Candidate): Verdict => {
     return {
       ...base,
       status: "mismatch",
-      reason: `${foreign.selector} { ${o.prop}: ${foreign.value}${foreign.important ? " !important" : ""} } in ${foreign.source} beats it: ${
+      reason: `${foreign.selector} { ${o.prop}: ${foreign.value}${foreign.important ? " !important" : ""} } in ${foreign.source.replace(`${root}/`, "")} beats it: ${
         foreign.layer
           ? `layer ${foreign.layer}`
           : "a rule outside every layer beats every layer, cssints' too"
@@ -276,7 +276,7 @@ export const inspect = Effect.fn("devtools.inspect")(function* (model: Model, el
   const rows: Row[] = [];
   for (const [c, ls] of won) {
     const verdicts = (yield* page.verify(el, c.decl.prop, c.decl.value, ls)).map((o) =>
-      verdictOf(o, c),
+      verdictOf(o, c, table.root),
     );
     rows.push({
       prop: c.decl.prop,

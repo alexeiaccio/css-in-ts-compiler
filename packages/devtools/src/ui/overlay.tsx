@@ -327,6 +327,7 @@ function App(props: {
             <button
               class={cx(s.button, picking() && s.pressed)}
               data-devtools="pick"
+              data-on={picking() ? "yes" : "no"}
               title="pick an element"
               onClick={() => setPicking(!picking())}
             >

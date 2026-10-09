@@ -39,6 +39,7 @@ import { mdi } from "./icons.ts" with { type: "cssints" };
 import { t } from "./theme.ts" with { type: "cssints" };
 import { Button } from "./components/Button.js";
 import { Card } from "./components/Card.js";
+import { Inspect } from "./components/Inspect.js";
 import { Showcase } from "./components/Showcase.js";
 
 // Layout styles
@@ -198,6 +199,11 @@ function App() {
         <div className={cx(marginTop("2rem"))}>
           <h2 className={cx(...h2)}>Feature tour</h2>
           <Showcase />
+        </div>
+
+        <div className={cx(marginTop("2rem"))}>
+          <h2 className={cx(...h2)}>Devtools cases</h2>
+          <Inspect />
         </div>
 
         <div className={cx(marginTop("2rem"))}>
