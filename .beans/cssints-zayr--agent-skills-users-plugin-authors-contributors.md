@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-09T08:45:25Z
-updated_at: 2026-10-09T09:04:41Z
+updated_at: 2026-10-09T09:09:32Z
 parent: cssints-0phg
 ---
 
@@ -15,7 +15,7 @@ Agent skills (SKILL.md format) for three audiences, grounded in docs/API.md, the
 - [x] decide where they live and how they install (shipped in the npm package for users and plugin authors; in the repo for contributors) — check the skills conventions of opencode, Claude Code and the skills npm/registry format
 - [x] cssints-user (as `cssints`): setup, cn/cx/cv, conditions, tokens and themes, plugin packages, reading build errors
 - [x] cssints-plugin-author (as `cssints-plugin`): scope(), kernels as styles, members, runtime/script/polyfills/requires, lacking(), errors, tests and test:browsers
-- [ ] cssints-contributor: the repo's rules (Effect, budgets, Quint/HMR, dist rebuilds, worktree agents without git stash)
+- [x] cssints-contributor: the repo's rules (Effect, budgets, Quint/HMR, dist rebuilds, worktree agents without git stash)
 - [ ] each skill checked by running a fresh agent on a small task with it
 
 ## Where the skills live and how they install
