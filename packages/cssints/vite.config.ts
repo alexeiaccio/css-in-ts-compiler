@@ -4,13 +4,14 @@ import { defineConfig } from "vite-plus";
 // In the repo the package runs from src/; dist/ is what a published install resolves.
 export default defineConfig({
   pack: [
-    // The build-time side: the macro library (index), the Vite plugin (vite) and the helpers of plugin authors (plugin),
-    // run by Node; and frame() and surface(), plugins written on those helpers.
+    // The build-time side: the macro library (index), the Vite plugin (vite), the helpers of plugin authors (plugin) and
+    // the engine's checks for tools (check), run by Node; and frame() and surface(), plugins written on those helpers.
     {
       entry: {
         index: "src/index.ts",
         vite: "src/plugin.ts",
         plugin: "src/author.ts",
+        check: "src/check.ts",
         frame: "src/frame.ts",
         surface: "src/surface.ts",
       },

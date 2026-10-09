@@ -996,6 +996,20 @@ The process must end the exporter or Node stays alive: `vite build` and `server.
 
 `packages/cssints/test/trace.mjs` (in `bun run test`) checks the spans, the file attribute and the error's trace id against an in-process collector. `node packages/cssints/test/trace-live.mjs` builds apps/sky and runs its HMR test traced, then reads both traces back through Jaeger's API (`GET /api/traces?service=cssints`) and prints span counts and the slowest hooks; it skips when no backend answers. Effect's DevTools (the VS Code extension, `effect/devtools`) is not wired: it needs the editor's extension listening, so neither a script nor an agent can read it.
 
+### Checks for tools: `cssints/check` (2026-10-09, cssints-p3d2)
+
+The engine's own checks, as functions, for a tool that answers as a build would (`@cssints/mcp`). Node only (culori, LightningCSS): nothing here reaches a browser, and user code has no reason to import it. Each returns an Effect.
+
+```ts
+import { contrast } from "cssints/check";
+import { Effect } from "effect";
+
+const { ratio, text } = await Effect.runPromise(contrast("#777", "white"));
+// ratio 4.478…, text "4.47": cut, not rounded, as the message of css.check.contrast prints it
+```
+
+- **`contrast(foreground, background)`** is the WCAG 2.x ratio of `css.check.contrast` (see Themes): culori reads the colour, one outside sRGB is clipped to it. A colour it cannot read (`currentColor`, a `var()`) or a translucent one fails with a `ContrastError` (`colour`, `message`).
+
 ### Browser support and what 0.1 does not have
 
 - **Types and checks for every property** are generated from [mdn-data](https://github.com/mdn/data) and @webref/css by `packages/css-grammar` (`bun run extract`), not written by hand, so a new property or function needs no change here. 536 members: 525 properties (every standard and experimental one, except the three shorthands above) and the 11 short names.

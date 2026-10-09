@@ -60,11 +60,12 @@ const together = ({ themed, layers }: RegistryState) => {
 
 type Colours = typeof import("./color.ts");
 
-// The floor at two places, so that 4.499 does not read as the 4.5 it misses.
-const shown = (r: number) => (Math.floor(r * 100) / 100).toFixed(2);
-
 // The failures of a check, one message each, and the warnings; the warnings are recorded once per build.
-const verify = (check: Check, state: RegistryState, { luminance, ratio }: Colours): string[] => {
+const verify = (
+  check: Check,
+  state: RegistryState,
+  { luminance, ratio, shown }: Colours,
+): string[] => {
   const { fg, bg, min } = check;
   const path = (n: string) => state.defs.get(n)?.path ?? n;
   const affecting = affectedBy(state.defs, [fg, bg]);
