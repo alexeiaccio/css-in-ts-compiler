@@ -32,7 +32,8 @@ docs/API.md, "Debugging: the devtools overlay"; the design in docs/research/devt
   the element by a probe sheet; states by `Element.matches`.
 - **A winner is checked, not claimed.** A childless clone in place gets the winner inline; when its computed value
   differs, the panel names the cause (inline style, a rule of another sheet, an unlayered rule, an animation) or marks
-  a layout-dependent value as unverified.
+  a layout-dependent value as unverified. A custom property is checked with its declaration as the page's sheet has
+  it, since a transformer (LightningCSS) reprints it and an unregistered one computes to its tokens as written.
 - **Isolated.** A custom element with a shadow root and its own cssints sheet, built ahead into `dist/overlay.js`
   (Solid, Effect and the core bundled): an app needs neither Solid nor a second CSS file. No tokens in its styles:
   `@property` is ignored inside a shadow root.
