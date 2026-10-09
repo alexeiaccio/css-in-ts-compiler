@@ -36,7 +36,7 @@ Example: { "property": "padding", "value": "-1rem" } -> { "ok": false, "message"
   .annotate(Tool.OpenWorld, false);
 
 const CheckSupport = Tool.make("check_support", {
-  description: `Which target browsers lack a CSS property, or the features in a value (keywords, functions), by MDN browser-compat-data: the support warnings of a cssints build, with the BCD key of each. Targets: a browserslist query, else the project's browserslist config (package.json "browserslist" or .browserslistrc from the working directory), as the plugin reads it. Use it to decide whether a feature needs a fallback (firstThatWorks).
+  description: `Which target browsers lack a CSS property, or the features in a value (keywords, functions), by MDN browser-compat-data: the support warnings of a cssints build, with the BCD key of each. Targets: a browserslist query, else the project's browserslist config (package.json "browserslist" or .browserslistrc from the working directory), as the plugin reads it. What LightningCSS lowers for the lacking targets (oklch() gets a hex fallback) counts as supported, as in a build, and is listed under lowered with the value it writes. Use it to decide whether a feature needs a fallback (firstThatWorks).
 Example: { "property": "textWrap", "value": "balance", "query": "chrome 109" } -> { "supported": false, "lacking": [{ "feature": "text-wrap", "key": "css.properties.text-wrap", "targets": "chrome 109", ... }] }`,
   parameters: Schema.Struct({
     property: Text("The property, camelCase or kebab-case"),
@@ -56,6 +56,16 @@ Example: { "property": "textWrap", "value": "balance", "query": "chrome 109" } -
         key: Schema.String,
         targets: Schema.String,
         message: Schema.String,
+      }),
+    ),
+    lowered: Schema.Array(
+      Schema.Struct({
+        feature: Schema.String,
+        key: Schema.String,
+        targets: Schema.String,
+        value: Schema.String.annotate({
+          description: "what LightningCSS writes for those targets, so a build does not warn",
+        }),
       }),
     ),
     rule: Schema.String,

@@ -75,6 +75,26 @@ assert.deepEqual(
   value.lacking.map((w) => [w.feature, w.key, w.targets]),
   [["grid", "css.properties.display.grid", "chrome 50"]],
 );
+// what LightningCSS lowers is supported through it, as a build drops that warning; with a var() inside it is not
+const oklch = await call("check_support", {
+  property: "color",
+  value: "oklch(70% 0.2 330)",
+  query: "chrome 100",
+});
+assert.equal(oklch.supported, true);
+assert.deepEqual(oklch.lacking, []);
+assert.deepEqual(
+  oklch.lowered.map((w) => [w.feature, w.targets]),
+  [["oklch()", "chrome 100"]],
+);
+assert.match(oklch.lowered[0].value, /^#[0-9a-f]{6}$/);
+const relative = await call("check_support", {
+  property: "color",
+  value: "oklch(from var(--x) l c h)",
+  query: "chrome 100",
+});
+assert.equal(relative.supported, false);
+assert.deepEqual(relative.lowered, []);
 const fine = await call("check_support", { property: "color", query: "chrome 120" });
 assert.equal(fine.supported, true);
 assert.equal(fine.known, true);

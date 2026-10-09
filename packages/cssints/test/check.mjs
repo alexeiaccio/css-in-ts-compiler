@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 
 import { Effect, Exit } from "effect";
 
-import { contrast } from "../src/check.ts";
+import { support, targets } from "@cssints/css-grammar/support";
+
+import { contrast, loweredOf } from "../src/check.ts";
 
 const run = (e) => Effect.runPromiseExit(e);
 
@@ -24,4 +26,15 @@ assert.match(e.message, /is translucent/);
 const current = await run(contrast("black", "currentColor"));
 assert.match(current.cause.reasons[0].error.message, /"currentColor" is not a colour the check can read/);
 
-console.log("check: contrast as css.check.contrast computes it");
+// loweredOf: what LightningCSS writes for the targets of a warning, or undefined where it leaves the value
+const old = await Effect.runPromise(targets("chrome 100"));
+const lower = async (p, v) => {
+  const [w] = await Effect.runPromise(support(p, v, old));
+  assert.ok(w, `${p}: ${v} warns for chrome 100`);
+  return Effect.runPromise(loweredOf(p, v, w));
+};
+assert.match(await lower("color", "oklch(70% 0.2 330)"), /^#[0-9a-f]{6}$/);
+assert.equal(await lower("color", "oklch(from var(--x) l c h)"), undefined);
+assert.equal(await lower("text-wrap", "balance"), undefined);
+
+console.log("check: contrast as css.check.contrast computes it, loweredOf as a build drops warnings");

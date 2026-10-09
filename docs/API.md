@@ -1001,14 +1001,22 @@ The process must end the exporter or Node stays alive: `vite build` and `server.
 The engine's own checks, as functions, for a tool that answers as a build would (`@cssints/mcp`). Node only (culori, LightningCSS): nothing here reaches a browser, and user code has no reason to import it. Each returns an Effect.
 
 ```ts
-import { contrast } from "cssints/check";
+import { support, targets } from "@cssints/css-grammar/support";
+import { contrast, loweredOf } from "cssints/check";
 import { Effect } from "effect";
 
 const { ratio, text } = await Effect.runPromise(contrast("#777", "white"));
 // ratio 4.478…, text "4.47": cut, not rounded, as the message of css.check.contrast prints it
+
+const [w] = await Effect.runPromise(
+	Effect.flatMap(targets("chrome 100"), (ts) => support("color", "oklch(70% 0.2 330)", ts)),
+);
+const hex = w && (await Effect.runPromise(loweredOf("color", "oklch(70% 0.2 330)", w)));
+// "#…": LightningCSS writes it for chrome 100, so a build does not warn
 ```
 
 - **`contrast(foreground, background)`** is the WCAG 2.x ratio of `css.check.contrast` (see Themes): culori reads the colour, one outside sRGB is clipped to it. A colour it cannot read (`currentColor`, a `var()`) or a translucent one fails with a `ContrastError` (`colour`, `message`).
+- **`loweredOf(property, value, warning)`** answers what a build asks before it says a support warning ("No warning for what LightningCSS lowers", under Errors): the value of the first declaration LightningCSS writes for the targets of the warning, or `undefined` when it leaves the feature in place (`text-wrap`, a `var()` inside the value). `warning` is one of `support()` of `@cssints/css-grammar/support`; a custom property is `--name`.
 
 ### Browser support and what 0.1 does not have
 
