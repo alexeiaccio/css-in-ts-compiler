@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -86,6 +86,7 @@ const reference = JSON.parse(
     },
   ),
 );
+rmSync(join(work, "cases.json"));
 assert.equal(reference.length, cases.length);
 
 // ---------- Chrome

@@ -9,10 +9,7 @@ import { kernelEntries } from "./kernel.ts";
 import { Registry } from "./registry.ts";
 import { closeNames, globalEntries, globalNames, layerEntries, themedEntries } from "./sheet.ts";
 
-export const moduleEntries = Effect.fnUntraced(function* (
-  id: string,
-  sites: Map<number, string>,
-): Effect.fn.Return<{ entries: string[]; runtimes: string[] }> {
+export const moduleEntries = Effect.fnUntraced(function* (id: string, sites: Map<number, string>) {
   const registry = yield* Registry;
   const { rules, properties, themed } = registry;
   const texts = [...sites.values()];
