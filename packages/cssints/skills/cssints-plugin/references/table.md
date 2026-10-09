@@ -29,7 +29,7 @@ kernel's class and `&(mod.key)` the class of a kernel of an embedded scope.
     css.animation("var(--_fade) 200ms"),
     css.hover(css.opacity(0.8)),
     css.media("(width >= 40rem)")(css.padding("1rem")),
-    css.nest("& > * + *")(css.marginInlineStart("var(--_gap)")), // children: & and a combinator
+    css.nest("& > * + *")(css.marginInlineStart("var(--_gap)")), // another subject: & anywhere
   ],
   requires: ["css.at-rules.property", { key: "css.types.color.oklch.relative_syntax", exact: true }],
 },
@@ -42,8 +42,8 @@ kernel's class and `&(mod.key)` the class of a kernel of an embedded scope.
 - Printed once in `_.k`, sorted by key (`<scope>.<entry>`), whatever the order of `uses`; at-rule kernels
   (`keyframes()`) before the kernel that names them. A styles kernel prints in the sheet's order (a shorthand before
   its longhands; fewer conditions first), so the order you write does not matter.
-- Not allowed in a styles kernel: `firstThatWorks()`, a member's marker (another plugin member), `nest()` with a
-  selector that does not start with `&` and a combinator.
+- Not allowed in a styles kernel: `firstThatWorks()`, a member's marker (another plugin member), `nest()` without an
+  `&` or with a selector list.
 - Build errors: two keys that declare one custom property, two keys that print one marker, two styles kernels of one
   member that set one element property.
 

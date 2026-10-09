@@ -59,18 +59,21 @@ A kernel is global CSS printed once in layer `_.k`, keyed to its marker class. W
 `css: (css) => [...]` gets the `css.*` members, checked by the grammar like a user's declarations, plus:
 
 - conditions: `css.hover(...)`, `css.media("(...)")(...)`, `attr()`, `within()`, `container()`, `supports()`;
-- `css.nest("& > *")(...)` for children (the selector starts with `&` and a combinator);
+- `css.nest(selector)(...)` for other elements: one complex selector with `&` (the kernel's class) anywhere:
+  `"& > *"`, `"& > * + *"`, `".dark &"`, `":root:has(&)"` (a list is an error);
 - `css.vars({ "--_gap": "1rem" })` for custom properties (values not checked);
-- `keyframes()`/`positionTry()` names as values (`css.vars({ "--_k": fade })`): their rules go with the kernel.
+- `keyframes()`/`positionTry()` names as values (`css.vars({ "--_k": fade })`): their rules go with the kernel; a
+  `css.keyframes({ from: css.vars({ "--_p": "100%" }) })` made in the kernel animates the scope's `--<scope>-p`.
 
 A styles kernel **derives its conflicts** (every property that meets one it sets, as `cn()` decides overlap) and its
 support warnings are **covered** by the `polyfills` of a runtime in the same `uses`. Raw CSS (`css: "&{...}"`) is still
 needed for:
 
-- a selector that does not start at the element: an ancestor (`:root:has(&)`, skeleton's clock), `[data-x] &`;
-- at-rules the styles cannot write: `@supports not (...)` blocks, `@container style(...)` alternation, `@font-face`,
-  `@keyframes` of custom properties with `--_x` (a gap: a `keyframes()` step made in a kernel keeps `--_p` unexpanded);
+- at-rules the styles cannot write: `@container style(...)` alternation (frame, surface), `&&` specificity tricks;
+- a value the grammar does not know yet (write it raw, with a test that fails once the grammar has it);
 - a declaration whose support warning nothing should cover and nothing should print (balance's `pretty()`).
+
+Runtime fallback CSS (`@supports not (...) { & {...} }`) is a raw string in the runtime entry, not a kernel.
 
 A raw kernel derives no conflicts and is not compared with others: list a `conflicts` entry. Two styles kernels of
 one member that set one element property are an error (`kernels zap and view both set animation, ...: write those in
@@ -109,7 +112,8 @@ can wrap a method.
 
 - **Derived** from styles kernels: `cn(stack(), display("grid"))` gives
   `layout: kernel stack-core sets display, flex-direction, gap (this style also sets display)`. Custom properties and
-  `nest()` rules are left out (a child's margin is not the element's).
+  `nest()` rules on another subject are left out (a child's margin is not the element's; `.dark &` and `&.on` are
+  the element and count).
 - **Explicit** `{ props: ["outline", /^outline-/], message: "ring() sets the outline: use its methods" }` in `uses`
   **replaces** what the kernels derive; `props: []` allows everything. Needed for raw kernels, and when a member
   emits a property its own kernel sets (the check reads the member's emits too).
