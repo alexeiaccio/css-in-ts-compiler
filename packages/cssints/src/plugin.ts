@@ -123,6 +123,41 @@ const lineCol = (text: string, offset: number) => {
   return { line, column: offset - lineStart };
 };
 
+type Loc = ReturnType<typeof lineCol>;
+const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+// One field of a source map segment, base64 VLQ.
+const vlq = (n: number) => {
+  let v = n < 0 ? (-n << 1) | 1 : n << 1;
+  let s = "";
+  do {
+    const d = v & 31;
+    v >>>= 5;
+    s += B64[v ? d | 32 : d];
+  } while (v);
+  return s;
+};
+
+// Dev: a source map of the sheet. A line that holds a class points at the first css.* call that made it (`siteOf`: client
+// module -> class -> place), so with `css.devSourcemap` Chrome's Styles pane names that file and line beside the rule.
+const sheetMap = (text: string, siteOf: Map<string, Map<string, Loc>>) => {
+  const first = new Map<string, [string, Loc]>();
+  for (const [file, at] of siteOf)
+    for (const [cls, loc] of at) if (!first.has(cls)) first.set(cls, [file, loc]);
+  const sources: string[] = [];
+  let prev = [0, 0, 0];
+  const mappings = text.split("\n").map((l) => {
+    const hit = [...l.matchAll(/\.(_[\w-]+)/g)].map((m) => first.get(m[1]!)).find(Boolean);
+    if (!hit) return "";
+    const [file, { line, column }] = hit;
+    const src = sources.includes(file) ? sources.indexOf(file) : sources.push(file) - 1;
+    const seg = [src, line - 1, column];
+    const out = vlq(l.search(/\S/)) + seg.map((x, i) => vlq(x - prev[i]!)).join("");
+    prev = seg;
+    return out;
+  });
+  return { version: 3, sources, names: [], mappings: mappings.join(";") };
+};
+
 // Gives a failure the `id` and `loc` of its call site. The site may be in another file than the one being
 // transformed (a helper module the evaluation loaded): that one is read from disk. Vite builds the code frame.
 const locate = Effect.fn("cssints.locate")(function* (
@@ -156,6 +191,7 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
   const usedBy = new Map<string, string>(); // client module id -> its classes and @property rules, sorted, one a line
   const depsOf = new Map<string, Set<string>>(); // dependency file -> Set<client module id>
   const inflight = new Set<string>(); // client module ids inside transform: their deps are not in depsOf yet
+  const siteOf = new Map<string, Map<string, Loc>>(); // dev: client module id -> class -> its first site (sheetMap)
 
   // The helpers below run at most a few times per module: untraced. The hook-level programs (transform,
   // clientTransform, evaluate, renderChunk, ...) are the traced boundaries.
@@ -249,6 +285,15 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     const { sites, runtimes } = parsed.sites.length
       ? yield* evaluate(runner!, id, recorded).pipe(Effect.ensuring(flushWarnings(warn, id)))
       : yield* Effect.sync(() => forget(id)).pipe(Effect.andThen(recorded(new Map())));
+    if (!build) {
+      const at = new Map<string, Loc>();
+      for (const [n, s] of parsed.sites.entries()) {
+        const loc = lineCol(code, s.start);
+        for (const m of sites.get(n)?.matchAll(/_[\w-]+/g) ?? [])
+          if (!at.has(m[0])) at.set(m[0], loc);
+      }
+      siteOf.set(id, at);
+    }
 
     const ms = new MagicString(code);
     // The runtime of every plugin member a site holds: a module that decides at load what it contains.
@@ -490,7 +535,11 @@ export default function cssints({ inner = false }: { inner?: boolean } = {}): Pl
     },
     // Build: the rules are known only once every module is transformed, so a placeholder until renderChunk.
     load(id) {
-      if (id === SHEET) return build ? LAYERS : runSync(hook("vite.load", id, sheet()));
+      if (id === SHEET) {
+        if (build) return LAYERS;
+        const code = runSync(hook("vite.load", id, sheet()));
+        return { code, map: sheetMap(code, siteOf) };
+      }
       if (id.startsWith(`\0${RUNTIME_ID}`))
         return runSync(runtimeModule(id.slice(RUNTIME_ID.length + 1)));
     },
