@@ -9,14 +9,26 @@
     />
     <title>cssints</title>
     <link rel="icon" href="data:," />
-    <!-- The stored mode, before the first paint (src/mode.ts): none is "system". -->
+    <!-- The stored settings, before the first paint (src/settings.ts apply()): no mode is "system". -->
     <script>
       (function () {
-        var m;
+        var s = {},
+          h = document.documentElement,
+          o = {
+            text: ["small", "large"],
+            density: ["compact", "comfortable"],
+            font: ["serif", "mono"],
+            radius: ["sharp", "round"],
+          };
         try {
-          m = localStorage.getItem("cssints-docs.mode");
+          s = JSON.parse(localStorage.getItem("cssints-docs.settings")) || {};
         } catch (e) {}
-        if (m === "light" || m === "dark") document.documentElement.classList.add(m);
+        if (s.mode === "light") h.classList.add("light");
+        if (s.mode === "dark" || s.mode === "dim") h.classList.add("dark");
+        if (s.mode === "dim") h.classList.add("dim");
+        for (var k in o) if (o[k].indexOf(s[k]) >= 0) h.dataset[k] = s[k];
+        if (Number.isInteger(s.hue) && s.hue >= 0 && s.hue < 360)
+          h.style.setProperty("--hue-accent", s.hue);
       })();
     </script>
   </head>

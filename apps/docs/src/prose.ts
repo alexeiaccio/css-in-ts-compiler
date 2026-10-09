@@ -37,6 +37,7 @@ import { t } from "./theme.ts" with { type: "cssints" };
 // .prose (layer _.k, below every class) that read the same tokens as the components.
 export const sans =
   'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+export const serif = 'Georgia, Cambria, "Times New Roman", Times, serif';
 export const mono = '"SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace';
 
 const p = ".prose";
