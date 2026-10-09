@@ -6,7 +6,7 @@ cssints is compile-time CSS-in-TypeScript. You write calls such as `css.flex().a
 - Conditions (`media`, `container`, `supports`, `hover`), variants (`cv`), design tokens and themes (`createTokens`, `createGlobalTheme`, `check.contrast`) are all build-time, and all typed.
 - LightningCSS optimizes the output. Browser support (`@mdn/browser-compat-data` against your browserslist) is reported as warnings, except for what LightningCSS lowers for those targets.
 
-Status: 0.1 is not published yet. Decisions and findings are in [docs/wayfinder.md](docs/wayfinder.md); the API reference is [docs/API.md](docs/API.md). Both are also a site with search and type hovers: [apps/docs](apps/docs) (`cd apps/docs && bun run dev`).
+Status: 0.1 is not published yet. Decisions and findings are in [docs/wayfinder.md](docs/wayfinder.md); the API reference is [docs/API.md](docs/API.md). Both are also a site with search and type hovers: [apps/docs](apps/docs) (`cd apps/docs && bun run dev`); published to GitHub Pages from master: <https://alexeiaccio.github.io/css-in-ts-compiler/>.
 
 ## Install
 
