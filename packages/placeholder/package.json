@@ -1,0 +1,54 @@
+{
+  "name": "@cssints/placeholder",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Image placeholders for cssints: a gradient of the dominant colours, or a thumbhash data URL, read from the image at build time",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "development": {
+        "types": "./src/index.ts",
+        "default": "./src/index.ts"
+      },
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      }
+    },
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "test": "node test/placeholder.mjs",
+    "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
+    "pack:tgz": "node ../../scripts/pack.mjs"
+  },
+  "dependencies": {
+    "jpeg-js": "^0.4.4",
+    "pngjs": "^7.0.0",
+    "thumbhash": "^0.1.1"
+  },
+  "devDependencies": {
+    "@types/pngjs": "^6.0.5",
+    "cssints": "workspace:*",
+    "vite": "catalog:"
+  },
+  "peerDependencies": {
+    "cssints": "^0.1.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
