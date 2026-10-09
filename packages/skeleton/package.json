@@ -1,0 +1,49 @@
+{
+  "name": "@cssints/skeleton",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Skeleton loaders for cssints whose shimmer is in phase across the page: one animation on :root, read by every skeleton",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "development": {
+        "types": "./src/index.ts",
+        "default": "./src/index.ts"
+      },
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      }
+    },
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "test": "node test/skeleton.mjs",
+    "test:browsers": "node test/browsers.mjs",
+    "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
+    "pack:tgz": "node ../../scripts/pack.mjs"
+  },
+  "devDependencies": {
+    "cssints": "workspace:*",
+    "vite": "catalog:"
+  },
+  "peerDependencies": {
+    "cssints": "^0.1.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
