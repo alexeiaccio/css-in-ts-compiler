@@ -40,27 +40,31 @@ interface Section {
   text: string;
 }
 
+interface Reading {
+  fenced: boolean;
+  current?: Section;
+}
+
 // Sections by heading, outside code fences; `path` is the trail of headings above.
 const sectionsOf = (file: string, text: string) => {
   const out: Section[] = [];
   const trail: string[] = [];
-  let fenced = false;
-  let current: Section | undefined;
+  const at: Reading = { fenced: false };
   text.split("\n").forEach((l, i) => {
-    if (/^\s*(```|~~~)/.test(l)) fenced = !fenced;
-    const h = fenced ? null : /^(#{1,6})\s+(.*)/.exec(l);
+    if (/^\s*(```|~~~)/.test(l)) at.fenced = !at.fenced;
+    const h = at.fenced ? null : /^(#{1,6})\s+(.*)/.exec(l);
     if (h) {
       trail.length = h[1]!.length - 1;
       trail[h[1]!.length - 1] = h[2]!;
-      current = {
+      at.current = {
         file,
         line: i + 1,
         heading: h[2]!,
         path: trail.filter(Boolean).join(" > "),
         text: "",
       };
-      out.push(current);
-    } else if (current) current.text += `${l}\n`;
+      out.push(at.current);
+    } else if (at.current) at.current.text += `${l}\n`;
   });
   return out;
 };
@@ -70,7 +74,8 @@ const count = (hay: string, term: string) => hay.split(term).length - 1;
 const excerpt = (text: string, terms: string[]) => {
   const flat = text.replace(/\s+/g, " ").trim();
   const lower = flat.toLowerCase();
-  const at = Math.max(0, Math.min(...terms.map((t) => lower.indexOf(t)).filter((i) => i >= 0)));
+  const found = terms.flatMap((t) => (lower.includes(t) ? [lower.indexOf(t)] : []));
+  const at = found.length ? Math.min(...found) : 0;
   const start = Math.max(0, at - 100);
   return `${start ? "…" : ""}${flat.slice(start, start + 320)}${start + 320 < flat.length ? "…" : ""}`;
 };
@@ -83,14 +88,13 @@ export const searchDocs = Effect.fn("mcp.searchDocs")(function* (
   const sections: Section[] = [];
   for (const f of files(process.cwd())) sections.push(...sectionsOf(f, yield* read(f)));
   const ranked = sections
-    .map((s) => {
+    .flatMap((s) => {
       const heading = s.path.toLowerCase();
       const body = s.text.toLowerCase();
-      const hits = terms.filter((t) => heading.includes(t) || body.includes(t));
+      const matched = terms.filter((t) => heading.includes(t) || body.includes(t)).length;
       const score = terms.reduce((n, t) => n + count(body, t) + 5 * count(heading, t), 0);
-      return { s, matched: hits.length, score };
+      return matched ? [{ s, matched, score }] : [];
     })
-    .filter((r) => r.matched > 0)
     .sort((a, b) => b.matched - a.matched || b.score - a.score);
   return {
     sources: files(process.cwd()),

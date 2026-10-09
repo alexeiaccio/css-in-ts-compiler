@@ -43,7 +43,7 @@ export const checkSupport = Effect.fn("mcp.checkSupport")(function* (
     query === undefined
       ? undefined
       : yield* targets(query).pipe(Effect.mapError((e) => new ToolError({ message: e.message })));
-  const all = ts ?? (yield* targets().pipe(Effect.orElseSucceed((): Target[] => [])));
+  const all = ts ?? (yield* targets().pipe(Effect.orElseSucceed(() => [])));
   const found = yield* support(p, v, ts);
   return {
     property: p,
