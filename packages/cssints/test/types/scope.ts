@@ -226,6 +226,39 @@ width(span("1px"));
 // @ts-expect-error a tuple written in place, without fn(), would type `value` as a grammar's parts
 scope("vbad", { v: { args: ["<color>", arg<boolean>()], value: () => "x" } });
 
+// a string result, a literal or a template literal, is opaque as a plain string is (cssints-izcy)
+const { shade, tpl, lit, lit2, both, om } = scope("vstr", {
+  om: fn({ args: [], value: () => new CSSColorValue("red") }),
+  shade: fn({
+    args: ["<color>", { "by?": "<percentage>", "dark?": arg<boolean>() }],
+    value: ([c, { by = "10%", dark }]) =>
+      `color-mix(in oklab, ${c}, ${dark ? "black" : "white"} ${by})`,
+  }),
+  tpl: { args: "<color>", value: ([c]) => `color-mix(in oklab, ${c}, white)` },
+  lit: { args: "<number>", value: () => "solid" },
+  lit2: fn({ args: [arg<number>()], value: () => "solid" }),
+  both: fn({
+    args: [arg<boolean>()],
+    value: ([b]) => (b ? "thick" : new CSSColorValue("red")),
+  }),
+}).export();
+export const sh: string = color(shade("red", { dark: true }));
+export const sh2: string = width(shade("red"));
+export const tp: string = color(tpl("red"));
+export const tp2: string = width(tpl("red"));
+export const li: string = color(lit(1));
+export const li2: string = width(lit(1));
+export const li3: string = color(lit2(1));
+export const bo: string | CSSColorValue = both(true);
+// a string or a Typed OM value: opaque, as `string | CSSColorValue` is
+export const bo2: string = width(both(true));
+// a Typed OM result alone keeps its type
+// @ts-expect-error a CSSColorValue is not a length
+width(om());
+export const om2: string = color(om());
+// @ts-expect-error the result is opaque: no longer the literal "solid"
+export const li4: "solid" = lit2(1);
+
 // what a call member's build returns: globals by content, declared layers, themes over the tokens it was given
 export const { looks } = scope("looks", {
   looks: { args: ["<custom-ident>", "$tokens"] },
