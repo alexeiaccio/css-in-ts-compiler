@@ -6,7 +6,7 @@
 import { Effect } from "effect";
 
 import { MacroError } from "./errors.ts";
-import { type Check, registry, type RegistryState } from "./registry.ts";
+import { type Check, registry, type RegistryState, warn } from "./registry.ts";
 import { layerStatements } from "./sheet.ts";
 
 const VAR = /var\((--[^\s,)]+)\)/g;
@@ -86,13 +86,12 @@ const verify = (
     for (const p of pair)
       if (p.l.why !== undefined) {
         ok = false;
-        const key = `contrast ${p.name} ${p.text}`;
-        if (!state.warned.has(key)) {
-          state.warned.add(key);
-          state.warnings.push(
-            `cssints: contrast is not checked for ${path(p.name)} in ${label}: "${p.text}" ${p.l.why}`,
-          );
-        }
+        warn(
+          state,
+          `contrast ${p.name} ${p.text}`,
+          `cssints: contrast is not checked for ${path(p.name)} in ${label}: "${p.text}" ${p.l.why}`,
+          check.at,
+        );
       }
     if (!ok || f.l.lum === undefined || b.l.lum === undefined) continue;
     const r = ratio(f.l.lum, b.l.lum);

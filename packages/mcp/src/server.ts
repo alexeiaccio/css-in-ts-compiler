@@ -127,7 +127,9 @@ Example: { "file": "src/Button.ts", "source": "import { css } from \\"cssints\\"
     css: Schema.String,
     code: Schema.String,
     errors: Schema.Array(Located),
-    warnings: Schema.Array(Schema.Struct({ file: Schema.String, message: Schema.String })),
+    warnings: Schema.Array(Located).annotate({
+      description: "every warning of the module and what it runs, each at the css.* call that made it",
+    }),
   }),
   failure: Failure,
 })

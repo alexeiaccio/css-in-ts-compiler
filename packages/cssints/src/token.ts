@@ -13,7 +13,7 @@ import { Effect, Formatter, Predicate } from "effect";
 import { MacroError } from "./errors.ts";
 import { type Decl, edge, fail, isNode } from "./lib.ts";
 import { fallbackOf } from "./lowered.ts";
-import { registry } from "./registry.ts";
+import { registry, warn } from "./registry.ts";
 
 export class CSSTokenValue extends CSSStyleValue {
   readonly name: string;
@@ -76,18 +76,17 @@ export const checkSyntaxFx = Effect.fnUntraced(function* (
   if (!ok) return yield* fail(`cssints: ${what} "${text}" is not a ${grammar}`);
   const prop = SUPPORT_PROPERTY[syntax];
   if (!prop) return;
-  const { warned, warnings } = registry;
   const ws = supportOf(prop, text).filter((w) => w.feature !== prop);
   const lacking = [...new Set(ws.flatMap((w) => w.lacking))];
   const lowered = ws.map((w) => variable && fallbackOf(variable, text, { ...w, lacking }));
   if (ws.length && lowered.every(Boolean)) return lowered[0] || undefined;
   for (const [i, w] of ws.entries()) {
-    const k = `${who} ${w.key}`;
-    if (warned.has(k) || lowered[i]) continue;
-    warned.add(k);
-    warnings.push(
-      `${who}: "${w.feature}" in "${text}" is not supported by ${browsers(w.lacking)} (${w.key})`,
-    );
+    if (!lowered[i])
+      warn(
+        registry,
+        `${who} ${w.key}`,
+        `${who}: "${w.feature}" in "${text}" is not supported by ${browsers(w.lacking)} (${w.key})`,
+      );
   }
   return undefined;
 });

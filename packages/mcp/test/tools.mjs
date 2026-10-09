@@ -132,8 +132,28 @@ assert.equal(button.ok, true, JSON.stringify(button.errors));
 assert.equal(button.classes.length, 3);
 assert.match(button.css, /\{padding:1rem\}/);
 assert.match(button.code, /export const pad = "_\w+";/);
-// the fixtures' browserslist is not the server's (cwd): the warnings of the targets the plugin read at startup
 assert.ok(Array.isArray(button.warnings));
+
+// a support warning at its call, and said by every compile (line-clamp: no target has it unprefixed)
+const clamp = {
+  file: "virtual/clamp.ts",
+  root: fixtures,
+  source: `import { css } from "cssints" with { type: "cssints" };\n\nexport const c = css.lineClamp(3);\n`,
+};
+for (let i = 0; i < 2; i++) {
+  const { warnings } = await call("compile", clamp);
+  assert.deepEqual(
+    warnings.map((w) => [w.message.split(" is not")[0], w.line, w.column, w.location]),
+    [
+      [
+        'line-clamp: the property in "3"',
+        3,
+        18,
+        `${fixtures}/virtual/clamp.ts:3:18`,
+      ],
+    ],
+  );
+}
 
 const bad = await call("compile", { file: "bad.ts", root: fixtures });
 assert.equal(bad.ok, false);

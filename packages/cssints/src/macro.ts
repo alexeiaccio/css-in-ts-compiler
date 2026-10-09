@@ -67,6 +67,7 @@ import {
   type RegistryState,
   type Plug,
   type Rule,
+  warn,
 } from "./registry.ts";
 import { CV_CALL } from "./instrument.ts";
 import { _cv as runtimeCv, type CvRuntimeConfig } from "./runtime.ts";
@@ -188,7 +189,7 @@ const declsOf = (
       );
     Result.getOrThrowWith(
       Result.try({
-        try: () => checkNow(d, true, registry, true, sink),
+        try: () => checkNow(d, registry, true, sink),
         catch: (e) =>
           isDeclarationError(e)
             ? new MacroError({
@@ -437,7 +438,7 @@ const globalRule = (selector?: unknown, ...styles: unknown[]) => {
       );
     Result.getOrThrowWith(
       Result.try({
-        try: () => checkNow(d, true, registry),
+        try: () => checkNow(d, registry),
         catch: (e) => (isDeclarationError(e) ? located(at)(e) : e),
       }),
       (e) => e,
@@ -598,20 +599,16 @@ const kernelOf = (what: string, style: CssNode, cls: string) => {
   };
 };
 
-// One declaration against the grammar, the prose rules and, once per class, browser support. Throws at the bad token (the
-// build-time twin of the type-level check) or at a prose rule. Support warnings are recorded once per property and BCD
-// feature per build, not once per value. A token in the value is checked as the literals of its type (`probed`).
-const checkValue = (
-  prop: string,
-  value: string,
-  fresh: boolean,
-  properties: RegistryState["properties"],
-) => {
+// One declaration against the grammar, the prose rules and browser support. Throws at the bad token (the build-time
+// twin of the type-level check) or at a prose rule. Support warnings are recorded once per file, property and BCD
+// feature per build (registry.ts `warn`), not once per value. A token in the value is checked as the literals of its
+// type (`probed`).
+const checkValue = (prop: string, value: string, properties: RegistryState["properties"]) => {
   let out: Warning[] = [];
   for (const v of probed(value, properties)) {
     const found = Result.getOrThrowWith(
       Result.try({
-        try: () => checkDeclarationNow(prop, v, fresh),
+        try: () => checkDeclarationNow(prop, v, true),
         catch: (e) => {
           if (v !== value && isDeclarationError(e))
             Object.assign(e, {
@@ -633,17 +630,16 @@ const checkValue = (
 // With a `sink` (a kernel's declarations), the warnings go there, unrecorded.
 const checkNow = (
   [prop, value, , fallbacks]: Decl,
-  fresh: boolean,
-  { warnings, warned, properties, userProps }: RegistryState,
+  registry: RegistryState,
   sheet = true,
   sink?: KernelWarning[],
 ) => {
+  const { properties, userProps } = registry;
   if (userProps.has(prop)) return; // a typed property of a scope checked its value against its own grammar
-  let found = checkValue(prop, value, fresh, properties);
+  let found = checkValue(prop, value, properties);
   if (fallbacks) {
     const lacking = [value, ...fallbacks].map(
-      (v, i) =>
-        new Set((i ? checkValue(prop, v, fresh, properties) : found).flatMap((w) => w.lacking)),
+      (v, i) => new Set((i ? checkValue(prop, v, properties) : found).flatMap((w) => w.lacking)),
     );
     found = found
       .map((w) => ({ ...w, lacking: w.lacking.filter((t) => lacking.every((s) => s.has(t))) }))
@@ -655,13 +651,13 @@ const checkNow = (
       continue;
     }
     const k = `${prop} ${w.key}${fallbacks ? ` ${w.lacking.join()}` : ""}`;
-    if (!warned.has(k) && !(sheet && loweredOf(prop, value, w))) {
-      warned.add(k);
-      warnings.push(
+    if (!(sheet && loweredOf(prop, value, w)))
+      warn(
+        registry,
+        k,
         messageOf(prop, value, w) +
           (fallbacks ? ", and no fallback of its firstThatWorks covers them" : ""),
       );
-    }
   }
 };
 
@@ -677,10 +673,9 @@ const classesNow = (
   const out: string[] = markers ? [...new Set(markers.map((m) => m[0]))] : [];
   for (const d of decls) {
     const cls = hashClass(d);
-    const fresh = !rules.has(cls);
-    checkNow(d, fresh, registry);
+    checkNow(d, registry);
     if (!out.includes(cls)) out.push(cls);
-    if (fresh) rules.set(cls, ruleOf(cls, d));
+    if (!rules.has(cls)) rules.set(cls, ruleOf(cls, d));
   }
   return out.join(" ");
 };
@@ -865,7 +860,7 @@ const inlineOf = Effect.fnUntraced(function* ({
   const registry = yield* Registry;
   return yield* Effect.try({
     try: () => {
-      for (const d of decls) checkNow(d, true, registry, false);
+      for (const d of decls) checkNow(d, registry, false);
       const entries = new Map([...sets, ...decls.map(([p, v]): [string, string] => [camel(p), v])]);
       return `{ ${[...entries].map(([k, v]) => `${k.startsWith("--") ? Formatter.formatJson(k) : k}: ${Formatter.formatJson(v)}`).join(", ")} }`;
     },
@@ -942,8 +937,9 @@ export const __unseen = (file: string, site: number): boolean =>
 
 // Ends a site: its value is recorded, or the failure is thrown into the module that is being evaluated.
 export function __site(at: At, value: unknown): unknown {
-  registry.at = undefined;
+  registry.at = at; // the support warnings of its classes are said here (registry.ts `warn`)
   const exit = Effect.runSyncExit(recordSite(at, value));
+  registry.at = undefined;
   if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
   return exit.value;
 }
