@@ -1,7 +1,8 @@
 // The core on the hard cases of docs/research/devtools.md, in Node: happy-dom gives the tree and Element.matches (states are
 // attributes here: `:hover` is `[data-hover]`), the test says which at-rules hold, and what the browser computes.
 //   @container, @supports, @scope looks, hover vs media in one layer (specificity), an unlayered user rule, kernels in
-//   _.k with custom properties (frame), within(), the grouping of classes by site, the table's decoding.
+//   _.k with custom properties (frame), a surface in a surface, within(), the grouping of classes by site, the table's
+//   decoding.
 import assert from "node:assert/strict";
 
 import { Effect, Exit, Layer } from "effect";
@@ -70,8 +71,8 @@ const page = Layer.succeed(
         }),
       ),
     custom: (el, names) => Effect.sync(() => names.map((n) => `computed(${n})`)),
-    verify: (el, prop, value, longhands) =>
-      Effect.sync(() => longhands.map((l) => observe(el, prop, value, l))),
+    verify: (el, prop, selector, value, longhands) =>
+      Effect.sync(() => longhands.map((l) => observe(el, prop, value, l, selector))),
   }),
 );
 
@@ -406,6 +407,99 @@ assert.deepEqual(stripStates("._k:hover > *"), { base: "._k > *", states: [":hov
   assert.deepEqual(row(r, "text-decoration").inactive[0].conditions, [
     { text: "within :hover", holds: false },
   ]);
+}
+
+// ---------- a surface in a surface: the step `--surface-d` is unregistered. On each surface its member class (_.a) beats
+// the kernel's `0` (_.k); a plain child inherits it from the nearest surface. verify gets the winner's selector, so the
+// page can find the declaration as it has it (a transformer reprints `0.04` as `.04`), and the value as written.
+{
+  const even = "@container (style(--surface-p: e)) or (not style(--surface-p))";
+  const odd = "@container style(--surface-p: o)";
+  const sheet = `@property --surface-e { syntax: "<color>"; inherits: true; initial-value: canvas; }
+@layer _.k {
+._surface-core { --surface-k: initial; --surface-d: 0; background-color: var(--surface-s); }
+${even} {
+  ._surface-core { --surface-p: o; --surface-s: oklch(from var(--surface-k, var(--surface-e)) calc(l + var(--surface-d)) c h); }
+}
+${odd} {
+  ._surface-core { --surface-p: e; --surface-s: oklch(from var(--surface-k, var(--surface-o)) calc(l + var(--surface-d)) c h); }
+}
+}
+@layer _.a {
+  ._lt{--surface-d:0.04}
+  ._k{--surface-k:  oklch( 0.9   0.02 90 ) }
+  ._ct{--surface-d:calc(0.03 * clamp(-1, (0.5636 - l) * 1e6, 1))}
+}`;
+  const marker = {
+    kind: "marker",
+    layer: "_.k",
+    wrap: [],
+    prop: "",
+    css: "",
+    tokens: [],
+    plugin: "surface.core",
+    sites: [],
+  };
+  const t = table(sheet, {
+    "_surface-core": marker,
+    _lt: cls("_.a", "", { plugin: "surface" }),
+    _k: cls("_.a", "", { plugin: "surface" }),
+    _ct: cls("_.a", "", { plugin: "surface" }),
+    _c: cls("_.a", "", { tokens: ["--surface-d"] }),
+  });
+  const seen = [];
+  observe = (el, prop, value, l, selector) => {
+    seen.push([selector, prop, value]);
+    return { prop: l, computed: "x", expected: "x", inline: "", foreign: [], animated: false };
+  };
+  const el = html(
+    '<div id="o" class="_surface-core _k _lt"><div id="t" class="_surface-core _ct"><p class="_c"></p></div></div>',
+  );
+  holds = new Set([odd]);
+  let r = await run(t, el);
+  assert.equal(row(r, "--surface-d").winner.selector, "._ct");
+  assert.deepEqual(
+    row(r, "--surface-d").overridden.map((c) => c.selector),
+    ["._surface-core"],
+  );
+  assert.equal(row(r, "--surface-p").winner.decl.value, "e");
+  assert.equal(row(r, "--surface-s").winner.wrap[0], odd);
+  assert.equal(
+    row(r, "--surface-k").winner.selector,
+    "._surface-core",
+    "the inner one has no base",
+  );
+  assert.ok(
+    seen.some(
+      ([s, p, v]) =>
+        s === "._ct" &&
+        p === "--surface-d" &&
+        v === "calc(0.03 * clamp(-1, (0.5636 - l) * 1e6, 1))",
+    ),
+  );
+  holds = new Set([even]);
+  seen.length = 0;
+  r = await run(t, document.querySelector("#o"));
+  assert.equal(row(r, "--surface-d").winner.selector, "._lt");
+  assert.equal(row(r, "--surface-p").winner.decl.value, "o");
+  assert.ok(
+    seen.some(([s, p, v]) => s === "._k" && p === "--surface-k" && v === "oklch( 0.9   0.02 90 )"),
+  );
+  assert.ok(row(r, "--surface-k").verdicts.every((v) => v.status === "ok"));
+  // a plain child: the step comes from the nearest surface's class
+  r = await run(t, document.querySelector("p"));
+  const d = r.tokens.find((x) => x.name === "--surface-d");
+  assert.deepEqual([d.source.selector, d.source.on], ["._ct", "div#t"]);
+  assert.equal(d.registered, false);
+  holds = new Set();
+  observe = (el, prop, value, l) => ({
+    prop: l,
+    computed: value,
+    expected: value,
+    inline: "",
+    foreign: [],
+    animated: false,
+  });
 }
 
 // ---------- a bad table is a TableError

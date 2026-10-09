@@ -207,7 +207,10 @@ computed value must equal the element's. When it does not, the panel says why in
 `style` on the element, a rule outside cssints' sheet that matches and sets the property (the CSSOM of the other sheets
 is walked for it; an unlayered rule beats every layer), or a running animation or transition; else "the browser
 computes X". Values that depend on the element's content (`width: auto`, `fr` tracks) are marked unverified when the
-clone differs.
+clone differs. A custom property's winner goes on the clone as the page's sheet has it (the last rule with the winner's
+selector whose at-rules hold), not as the table prints it: a transformer in between (Vite's LightningCSS) reprints
+values (`0.04` as `.04`, `1e6` as `1000000`, `oklch()` as a hex and a `lab()` under `@supports`), and an unregistered
+custom property computes to its tokens as written (cssints-g3u1).
 
 **UI sketch.** A corner button and a hotkey (Alt+Shift+C) toggle the overlay. Picking: the hovered element gets an
 outline and a label with its tag and cssints class count; a click selects it. The panel, docked to the right:

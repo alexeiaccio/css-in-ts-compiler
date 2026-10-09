@@ -75,17 +75,70 @@ const foreign = (el: Element, prop: string): Foreign[] => {
   return out;
 };
 
+const selectorText = (selector: string) =>
+  Result.getOrUndefined(
+    Result.try(() => {
+      const sheet = new CSSStyleSheet();
+      sheet.insertRule(`${selector} {}`);
+      const rule = sheet.cssRules[0];
+      return rule instanceof CSSStyleRule ? rule.selectorText : undefined;
+    }),
+  );
+
+// The winner's declaration of a custom property as the page has it. A transformer between the server and the page (Vite's
+// LightningCSS) reprints values, and an unregistered custom property computes to its tokens as written: `.04` is not
+// `0.04`. Among the page's rules with the winner's selector, the last whose at-rules hold for the element.
+const live = (el: Element, selector: string, prop: string) => {
+  const target = selectorText(selector);
+  if (target === undefined) return undefined;
+  const found: { wrap: string[]; value: string }[] = [];
+  const walk = (rules: CSSRuleList, wrap: string[]) => {
+    for (const r of rules) {
+      if (r instanceof CSSStyleRule) {
+        const value = r.style.getPropertyValue(prop);
+        if (value && r.selectorText === target) found.push({ wrap, value });
+      } else if (r instanceof CSSMediaRule)
+        walk(r.cssRules, [...wrap, `@media ${r.conditionText}`]);
+      else if (r instanceof CSSSupportsRule)
+        walk(r.cssRules, [...wrap, `@supports ${r.conditionText}`]);
+      else if (r instanceof CSSContainerRule)
+        walk(r.cssRules, [...wrap, `@container ${r.conditionText}`]);
+      // Firefox before 146 has no CSSScopeRule
+      else if (globalThis.CSSScopeRule && r instanceof CSSScopeRule)
+        walk(r.cssRules, [
+          ...wrap,
+          `@scope${r.start ? ` (${r.start})` : ""}${r.end ? ` to (${r.end})` : ""}`,
+        ]);
+      else if (r instanceof CSSGroupingRule) walk(r.cssRules, wrap);
+    }
+  };
+  const sheets = [...el.ownerDocument.styleSheets];
+  const own = sheets.filter(isCssints);
+  for (const sheet of own.length ? own : sheets) {
+    const rules = Result.getOrUndefined(Result.try(() => sheet.cssRules));
+    if (rules) walk(rules, []);
+  }
+  if (found.length < 2) return found[0]?.value;
+  const held = probe(
+    el,
+    found.map(({ wrap }) => ({ wrap })),
+  );
+  return found.findLast((_, i) => held[i])?.value ?? found.at(-1)!.value;
+};
+
 const VAR = /var\(\s*(--[\w-]+)/g;
 
 const verify = (
   el: Element,
   prop: string,
-  value: string,
+  selector: string,
+  declared: string,
   longhands: readonly string[],
 ): Observed[] => {
   const clone = el.cloneNode(false);
   if (!(clone instanceof Element) || !(clone instanceof HTMLElement || clone instanceof SVGElement))
     return [];
+  const value = (prop.startsWith("--") && live(el, selector, prop)) || declared;
   const cs = getComputedStyle(el);
   // the clone is not hovered or focused: the custom properties the value reads are copied from the element
   for (const [, name] of value.matchAll(VAR))
@@ -125,6 +178,7 @@ export const domPage = Layer.succeed(
         const cs = getComputedStyle(el);
         return names.map((n) => cs.getPropertyValue(n).trim());
       }),
-    verify: (el, prop, value, longhands) => Effect.sync(() => verify(el, prop, value, longhands)),
+    verify: (el, prop, selector, value, longhands) =>
+      Effect.sync(() => verify(el, prop, selector, value, longhands)),
   }),
 );
