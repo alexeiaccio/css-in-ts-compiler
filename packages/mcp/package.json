@@ -1,0 +1,58 @@
+{
+  "name": "@cssints/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An MCP server for cssints: check a declaration, browser support, contrast, compile a module, search the docs",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "bin": {
+    "cssints-mcp": "./src/bin.ts"
+  },
+  "exports": {
+    ".": {
+      "development": {
+        "types": "./src/server.ts",
+        "default": "./src/server.ts"
+      },
+      "types": "./dist/server.d.mts",
+      "default": "./dist/server.mjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "bin": {
+      "cssints-mcp": "./dist/bin.mjs"
+    },
+    "exports": {
+      ".": {
+        "types": "./dist/server.d.mts",
+        "default": "./dist/server.mjs"
+      }
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "test": "node test/tools.mjs && node test/stdio.mjs",
+    "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
+    "pack:tgz": "node ../../scripts/pack.mjs"
+  },
+  "dependencies": {
+    "@cssints/css-grammar": "workspace:*",
+    "@effect/platform-node": "4.0.0",
+    "cssints": "workspace:*",
+    "culori": "^4.0.2",
+    "effect": "4.0.0",
+    "vite": "catalog:"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@types/culori": "^4.0.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
