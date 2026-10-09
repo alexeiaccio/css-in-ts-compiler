@@ -4,7 +4,7 @@ import { useLocation } from "@solidjs/router";
 import type { JSX } from "@solidjs/web";
 import { createEffect, createSignal, For, onSettled, useContext } from "solid-js";
 
-import { DocsContext } from "./docs.ts";
+import { DocsContext, url } from "./docs.ts";
 import { ph } from "./icons.ts" with { type: "cssints" };
 import { gtOutline, gtSidebar, reduced } from "./layout.ts" with { type: "cssints" };
 import { cycle, mode, next } from "./mode.ts";
@@ -211,7 +211,7 @@ export function Shell(props: { children?: JSX.Element }) {
         >
           <span class={open() ? menuIcon.x : menuIcon.list} />
         </button>
-        <a href="/" class={brand}>
+        <a href={url("")} class={brand}>
           <span class={brandMark}>css</span>ints
         </a>
         <Search />
@@ -236,7 +236,7 @@ export function Shell(props: { children?: JSX.Element }) {
                   <For each={pages.filter((p) => p.group === group)}>
                     {(page) => (
                       <li>
-                        <a href={`/${page.slug}`} class={link}>
+                        <a href={url(page.slug)} class={link}>
                           {page.title}
                         </a>
                       </li>

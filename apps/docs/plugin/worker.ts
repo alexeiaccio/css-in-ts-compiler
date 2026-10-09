@@ -1,5 +1,5 @@
-import { parentPort } from "node:worker_threads";
+import { parentPort, workerData } from "node:worker_threads";
 
 import { buildPages } from "./markdown.ts";
 
-parentPort?.postMessage(await buildPages());
+parentPort?.postMessage(await buildPages(workerData as string));
