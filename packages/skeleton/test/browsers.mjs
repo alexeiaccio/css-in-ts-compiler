@@ -41,6 +41,9 @@ const text = (ext) =>
 const css = text(".css");
 const js = text(".js");
 assert.ok(css.includes(":root:has(._skeleton-clock)"), css);
+// the clock's keyframes, a keyframes() name: the control runs them on itself
+const clock = /@keyframes (kf-[\w-]+)/.exec(css)?.[1];
+assert.ok(clock, css);
 
 const modules = join(here, "../../../node_modules/.bun");
 const pw = readdirSync(modules).find((d) => d.startsWith("playwright-core@"));
@@ -68,16 +71,19 @@ const read = async (browser, reducedMotion) => {
   await page.waitForFunction(() => globalThis.skeletonClass);
   // A at load, B and the control 700ms later
   const mount = (boxes) =>
-    page.evaluate((boxes) => {
-      for (const [id, width, own] of boxes) {
-        const d = document.createElement("div");
-        d.id = id;
-        d.className = globalThis.skeletonClass;
-        d.style.width = `${width}px`;
-        if (own) d.style.animation = "_skeleton-clock 1.5s ease-in-out infinite";
-        document.body.append(d);
-      }
-    }, boxes);
+    page.evaluate(
+      ([boxes, clock]) => {
+        for (const [id, width, own] of boxes) {
+          const d = document.createElement("div");
+          d.id = id;
+          d.className = globalThis.skeletonClass;
+          d.style.width = `${width}px`;
+          if (own) d.style.animation = `${clock} 1.5s ease-in-out infinite`;
+          document.body.append(d);
+        }
+      },
+      [boxes, clock],
+    );
   await mount([["a", 600]]);
   await sleep(700);
   await mount([

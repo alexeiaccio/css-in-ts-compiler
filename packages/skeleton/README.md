@@ -21,7 +21,7 @@ export const card = cn(skeleton(), hover(skeleton().highlight("white")));
   initial-value: 100%;
 }
 @layer _.k {
-  @keyframes _skeleton-clock {
+  @keyframes kf-1a2b3c4d-skeleton {
     from {
       --skeleton-p: 100%;
     }
@@ -31,7 +31,7 @@ export const card = cn(skeleton(), hover(skeleton().highlight("white")));
   }
   @media (prefers-reduced-motion: no-preference) {
     :root:has(._skeleton-clock) {
-      animation: _skeleton-clock 1.5s ease-in-out infinite;
+      animation: kf-1a2b3c4d-skeleton 1.5s ease-in-out infinite;
     }
   }
   ._skeleton-core {
@@ -66,7 +66,10 @@ export const card = cn(skeleton(), hover(skeleton().highlight("white")));
 }
 ```
 
-`skeleton()` is `"_skeleton-core _skeleton-clock"`; each method adds one class.
+`skeleton()` is `"_skeleton-core _skeleton-clock"`; each method adds one class. Both kernels are written as styles, no raw
+CSS: the clock is `media("(prefers-reduced-motion: no-preference)")(nest(":root:has(&)")(animation(keyframes({ from:
+vars({ "--_p": "100%" }), to: vars({ "--_p": "0%" }) }), "1.5s ease-in-out infinite")))`, and only its `@property`
+registration is a string (`atProperty`). The keyframes name is a hash of the steps with the scope's name after it.
 
 ## How it stays in sync
 
