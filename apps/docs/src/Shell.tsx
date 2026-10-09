@@ -8,7 +8,7 @@ import { DocsContext, url } from "./docs.ts";
 import { ph } from "./icons.ts" with { type: "cssints" };
 import { gtOutline, gtSidebar, reduced } from "./layout.ts" with { type: "cssints" };
 import { Search } from "./Search.tsx";
-import { SettingsPanel } from "./Settings.tsx";
+import { SettingsPanel } from "./SettingsPanel.tsx";
 import { t } from "./theme.ts" with { type: "cssints" };
 
 const root: Style = css.cn(

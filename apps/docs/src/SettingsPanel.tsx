@@ -1,3 +1,4 @@
+import type { Style } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 import { createSignal } from "solid-js";
 
@@ -6,7 +7,7 @@ import { t } from "./theme.ts" with { type: "cssints" };
 
 // A popover under the header: the browser opens it from the button (popovertarget), closes it on Escape or a click outside,
 // and gives the focus back to the button; the panel follows the button in the document, so Tab goes into it.
-const panel = css.cn(
+const panel: Style = css.cn(
   css.position("fixed"),
   css.top(t.layout.headerHeight),
   css.right(t.space.lg),
