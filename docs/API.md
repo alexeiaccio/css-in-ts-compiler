@@ -871,6 +871,16 @@ createGlobalTheme(t, ".dark", { color: { brand: "#ef4444" } });
 - **Dev and HMR.** The package's files go through the engine like app files, one evaluation per module, and are served as `/node_modules/…/index.js` with the classes replaced. They are never watched, so a package does not change during `vite dev`: restart the server after reinstalling it.
 - A file of a package that does not carry the attribute is never parsed by the engine.
 
+### Debugging: from a class to its call (dev source map, cssints-0a3p)
+
+In dev the sheet has a source map: each rule with a class points at the first `css.*` call that made the class, so Chrome's Styles pane names that file and line beside `._tlfnko` and opens it in Sources. Vite drops CSS maps in dev unless you turn them on:
+
+```ts skip
+export default defineConfig({ plugins: [cssints()], css: { devSourcemap: true } });
+```
+
+A class is a hash of its declaration, so a class that many calls share points at the first one the dev server transformed. The place is the whole site (`cn(...)`, `cx(...)`), not the argument inside it. Token, theme and `@property` rules carry no class and map nowhere. A build has no such map. Devtools that read the CSSOM (atomic-css-devtools) see the sheet as any other; what they miss is in docs/research/devtools.md.
+
 ### Debugging: traces of the engine (`CSSINTS_TRACE`, cssints-r2qq)
 
 Opt-in. Set `CSSINTS_TRACE=otlp` (or `otlp:http://host:port`; the default is `http://localhost:4318`) before `vite dev` or `vite build`, and the plugin sends one trace per Vite hook to an OpenTelemetry backend over OTLP/HTTP (JSON). Unset, nothing is loaded and nothing runs: the hooks use Effect's own `runSync` and `runPromiseExit`, no tracer, no exporter, no HTTP client. The variable is read once, when the plugin loads.
