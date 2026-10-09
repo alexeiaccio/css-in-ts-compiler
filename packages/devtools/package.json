@@ -1,0 +1,45 @@
+{
+  "name": "@cssints/devtools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A dev overlay inspector for cssints: an element's classes by the call that made them, the cascade of the sheet, checked against the browser",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./overlay": "./dist/overlay.js",
+    "./core": {
+      "types": "./src/core/index.ts",
+      "default": "./src/core/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "vp build",
+    "test": "node test/core.mjs",
+    "test:browsers": "vp build && node test/browsers.mjs",
+    "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty"
+  },
+  "dependencies": {
+    "@cssints/css-grammar": "workspace:*",
+    "effect": "4.0.0"
+  },
+  "devDependencies": {
+    "@solidjs/vite-plugin": "3.0.0-next.47",
+    "@solidjs/web": "2.0.0-rc.13",
+    "cssints": "workspace:*",
+    "happy-dom": "^20.14.5",
+    "lightningcss": "^1.32.0",
+    "solid-js": "2.0.0-rc.13",
+    "vite": "catalog:"
+  },
+  "peerDependencies": {
+    "cssints": "^0.1.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

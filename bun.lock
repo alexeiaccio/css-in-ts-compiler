@@ -121,6 +121,26 @@
         "vite": "^8.3.0",
       },
     },
+    "packages/devtools": {
+      "name": "@cssints/devtools",
+      "version": "0.1.0",
+      "dependencies": {
+        "@cssints/css-grammar": "workspace:*",
+        "effect": "4.0.0",
+      },
+      "devDependencies": {
+        "@solidjs/vite-plugin": "3.0.0-next.47",
+        "@solidjs/web": "2.0.0-rc.13",
+        "cssints": "workspace:*",
+        "happy-dom": "^20.14.5",
+        "lightningcss": "^1.32.0",
+        "solid-js": "2.0.0-rc.13",
+        "vite": "catalog:",
+      },
+      "peerDependencies": {
+        "cssints": "^0.1.0",
+      },
+    },
     "packages/fluid": {
       "name": "@cssints/fluid",
       "version": "0.1.0",
@@ -418,6 +438,8 @@
     "@cssints/balance": ["@cssints/balance@workspace:packages/balance"],
 
     "@cssints/css-grammar": ["@cssints/css-grammar@workspace:packages/css-grammar"],
+
+    "@cssints/devtools": ["@cssints/devtools@workspace:packages/devtools"],
 
     "@cssints/fluid": ["@cssints/fluid@workspace:packages/fluid"],
 
