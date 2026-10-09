@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-09T07:45:40Z
-updated_at: 2026-10-09T08:43:53Z
+updated_at: 2026-10-09T08:46:28Z
 parent: cssints-dk1q
 ---
 
@@ -18,5 +18,5 @@ From cssints-0a3p (docs/research/devtools.md). The dev sheet maps each class rul
 - [x] Emit the map after Vite's CSS processing, only with build.sourcemap (true / hidden / inline)
 - [x] Test: build map, hidden, off (sheet-map.mjs)
 - [x] Demo build byte-identical without sourcemaps
-- [ ] Sonda on apps/demo
-- [ ] Docs: API.md, research/devtools.md, wayfinder.md
+- [x] Sonda on apps/demo
+- [x] Docs: API.md, research/devtools.md, wayfinder.md
