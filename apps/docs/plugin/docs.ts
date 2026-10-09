@@ -15,7 +15,7 @@ import { join } from "node:path";
 import { Worker } from "node:worker_threads";
 import type { Plugin } from "vite";
 
-import type { Page } from "./markdown.ts";
+import { type Page, summary } from "./markdown.ts";
 
 const root = join(import.meta.dirname, "../../..");
 const sources = ["README.md", "docs/API.md"].map((f) => join(root, f));
@@ -32,22 +32,6 @@ const buildPages = (base: string) =>
   });
 
 const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-
-// the first paragraph or item of some length outside the code blocks, as plain text (marked has escaped it, so it is safe in an
-// attribute), cut at a word; "" when there is none
-const summary = (html: string) => {
-  for (const m of html
-    .replace(/<pre[\s\S]*?<\/pre>/g, "")
-    .matchAll(/<(p|li)[^>]*>([\s\S]*?)<\/\1>/g)) {
-    const text = (m[2] ?? "")
-      .replace(/<[^>]+>/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (text.length >= 40)
-      return text.length > 160 ? `${text.slice(0, 160).replace(/\s\S*$/, "")}…` : text;
-  }
-  return "";
-};
 
 export default function docs(): Plugin {
   let pages: Promise<Page[]> | undefined;

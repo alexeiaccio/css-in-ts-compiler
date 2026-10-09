@@ -50,7 +50,8 @@ assert.match(sheet, /\[aria-current=page\]\{/);
 
 const js = files.filter((f) => f.fileName.endsWith(".js"));
 const entry = js.find((f) => f.isEntry);
-assert.ok(!/createTokens|css-grammar|toDecls/.test(entry.code), "no engine code in the client");
+// the search data names createTokens in prose (the tokens package page): look for the code, not the word
+assert.ok(!/createTokens\(|css-grammar|toDecls/.test(entry.code), "no engine code in the client");
 assert.ok(
   entry.code.length < 200_000,
   `the entry chunk holds no page (${entry.code.length} bytes)`,

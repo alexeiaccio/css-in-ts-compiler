@@ -12,8 +12,6 @@ import { sans } from "./prose.ts" with { type: "cssints" };
 import { Search } from "./Search.tsx";
 import { t } from "./theme.ts" with { type: "cssints" };
 
-export const REPO = "https://github.com/alexeiaccio/css-in-ts-compiler";
-
 const root: Style = css.cn(
   css.minHeight("100dvh"),
   css.bg(t.color.bg),
@@ -166,7 +164,7 @@ const body = css.cn(
   ),
 );
 
-const GROUPS = ["Guide", "Reference", "Project"] as const;
+const GROUPS = ["Guide", "Reference", "Packages", "Project"] as const;
 
 function ThemeToggle() {
   return (
@@ -215,15 +213,6 @@ export function Shell(props: { children?: JSX.Element }) {
           <span class={brandMark}>css</span>ints
         </a>
         <Search />
-        <a
-          href={REPO}
-          class={iconButton}
-          aria-label="cssints on GitHub"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <span class={css.cn(ph("github-logo"), icon)} />
-        </a>
         <ThemeToggle />
       </header>
       <div class={body}>

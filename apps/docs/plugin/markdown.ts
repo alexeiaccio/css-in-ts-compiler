@@ -1,6 +1,6 @@
 // README.md and docs/API.md to pages: split at the headings, highlight the code (Shiki, with twoslash hovers on the ts blocks) and
 // resolve the links between the two files. Node only (the Vite plugin calls it); the browser gets the result as data.
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, posix } from "node:path";
 import { rendererRich, transformerTwoslash } from "@shikijs/twoslash";
 import { Marked, type Token, type Tokens } from "marked";
@@ -8,7 +8,6 @@ import { createHighlighter } from "shiki";
 import ts from "typescript";
 
 const root = join(import.meta.dirname, "../../..");
-const REPO = "https://github.com/alexeiaccio/css-in-ts-compiler/blob/master/";
 
 export interface Entry {
   id: string;
@@ -22,11 +21,27 @@ export interface Page {
   titleHtml: string;
   /** the "(decided 2026-09-29, cssints-5dbi)" of a heading */
   meta: string;
-  group: "Guide" | "Reference" | "Project";
+  group: "Guide" | "Reference" | "Packages" | "Project";
   /** the headings and terms of the page, for the outline and the search */
   entries: Entry[];
   html: string;
 }
+
+// the first paragraph or item of some length outside the code blocks, as plain text (marked has escaped it, so it is safe in an
+// attribute), cut at a word; "" when there is none
+export const summary = (html: string) => {
+  for (const m of html
+    .replace(/<pre[\s\S]*?<\/pre>/g, "")
+    .matchAll(/<(p|li)[^>]*>([\s\S]*?)<\/\1>/g)) {
+    const text = (m[2] ?? "")
+      .replace(/<[^>]+>/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (text.length >= 40)
+      return text.length > 160 ? `${text.slice(0, 160).replace(/\s\S*$/, "")}…` : text;
+  }
+  return "";
+};
 
 const plain = (s: string) => s.replace(/`/g, "");
 const slug = (s: string) =>
@@ -54,9 +69,14 @@ const lead = (item: Tokens.ListItem) => {
     : undefined;
 };
 
+// the README of each package is one page of its own (the plugin packages, icons, tokens, devtools, mcp)
+const packages = readdirSync(join(root, "packages"))
+  .filter((name) => existsSync(join(root, "packages", name, "README.md")))
+  .sort();
 const files = [
   { path: "README.md", split: 2 },
   { path: "docs/API.md", split: 4 },
+  ...packages.map((name) => ({ path: `packages/${name}/README.md`, split: 1 })),
 ];
 const project = new Set(["Layout", "Development", "License"]);
 
@@ -108,7 +128,13 @@ export async function buildPages(base = "/"): Promise<Page[]> {
         }
     }
     const group: Page["group"] =
-      file === "docs/API.md" ? "Reference" : project.has(title) ? "Project" : "Guide";
+      file === "docs/API.md"
+        ? "Reference"
+        : file.startsWith("packages/")
+          ? "Packages"
+          : project.has(title)
+            ? "Project"
+            : "Guide";
     return {
       file,
       tokens,
@@ -134,15 +160,19 @@ export async function buildPages(base = "/"): Promise<Page[]> {
   }
   const apiSlug = pages.find((p) => p.file === "docs/API.md")!.page.slug;
 
-  // [text](../README.md), [text](docs/API.md#id), [text](wayfinder.md): the pages of this site, else the file on GitHub
+  // [text](../README.md), [text](docs/API.md#id): the pages of this site. A link to another file of the repository is its text:
+  // the repository is private, so a link to it would not open for a reader of the site.
   const href = (file: string, target: string) => {
     if (/^https?:|^#/.test(target)) return target;
     const [path = "", hash = ""] = target.split("#");
     const repoPath = posix.normalize(posix.join(dirname(file), path));
     if (repoPath === "README.md") return base;
+    const pkg = /^packages\/([^/]+)(\/README\.md)?$/.exec(repoPath)?.[1];
+    const readme = pkg && pages.find((p) => p.file === `packages/${pkg}/README.md`);
+    if (readme) return `${base}${readme.page.slug}${hash && `#${hash}`}`;
     if (repoPath === "docs/API.md")
       return `${base}${(hash && owner.get(hash)) || apiSlug}${hash && !tops.has(hash) ? `#${hash}` : ""}`;
-    return REPO + repoPath + (hash && `#${hash}`);
+    return undefined;
   };
 
   const highlighter = await createHighlighter({
@@ -188,7 +218,9 @@ declare namespace JSX {
         },
         code({ text, lang }) {
           const [language = "text", ...meta] = (lang ?? "").split(/\s+/);
-          const skip = meta.includes("skip") || !/^tsx?$/.test(language);
+          // the blocks of a package README are highlighted, not type-checked (docs.mjs checks API.md and README.md only)
+          const skip =
+            meta.includes("skip") || !/^tsx?$/.test(language) || file.startsWith("packages/");
           const out = highlighter.codeToHtml(text, {
             lang: highlighter.getLoadedLanguages().includes(language) ? language : "text",
             themes: { light: "github-light", dark: "github-dark" },
@@ -201,6 +233,7 @@ declare namespace JSX {
         },
         link({ href: target, tokens }) {
           const to = href(file, target);
+          if (to === undefined) return this.parser.parseInline(tokens);
           const external = /^https?:/.test(to);
           return `<a href="${to}"${external ? ' target="_blank" rel="noreferrer"' : ""}>${this.parser.parseInline(tokens)}</a>`;
         },
@@ -213,5 +246,22 @@ declare namespace JSX {
     });
     page.html = m.parser(tokens.slice(1));
   }
+  // The API reference's own page is its introduction: an index of the reference pages follows it, each with its first lines
+  // and the terms it covers, so the page says what is where.
+  const api = pages.find((p) => p.page.slug === apiSlug)!.page;
+  const items = pages
+    .filter((p) => p.page.group === "Reference" && p.page !== api)
+    .map(({ page }) => {
+      const terms = page.entries
+        .slice(0, 8)
+        .map(
+          (e) =>
+            `<a href="${base}${page.slug}#${e.id}">${e.text.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</a>`,
+        )
+        .join(", ");
+      return `<li><p><a href="${base}${page.slug}"><strong>${page.titleHtml}</strong></a>. ${summary(page.html)}</p>${terms && `<p>${terms}${page.entries.length > 8 ? ", …" : ""}</p>`}</li>`;
+    });
+  api.html += `<h2 id="contents">Contents</h2>\n<ul>${items.join("\n")}</ul>\n`;
+  api.entries.push({ id: "contents", text: "Contents", depth: 2 });
   return pages.map((p) => p.page);
 }

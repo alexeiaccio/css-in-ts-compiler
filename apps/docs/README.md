@@ -22,4 +22,5 @@ https://cssints.accio.blue is a Cloudflare Worker serving `dist/` as static asse
    - `CLOUDFLARE_ACCOUNT_ID`: `5968a0616879ef75c3c6759d0e2db561`
 
    Or with the GitHub CLI: `gh secret set CLOUDFLARE_API_TOKEN` (paste the token) and `gh secret set CLOUDFLARE_ACCOUNT_ID --body 5968a0616879ef75c3c6759d0e2db561`.
+
 3. **Check it.** GitHub → Actions → docs → Run workflow. The run ends with `{ url: 'https://cssints.accio.blue' }`. A 403 from Cloudflare names the missing permission.
