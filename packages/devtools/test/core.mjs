@@ -156,6 +156,7 @@ assert.deepEqual(stripStates("._k:hover > *"), { base: "._k > *", states: [":hov
     row(r, "color").overridden.map((c) => c.selector),
     ["._m"],
   );
+  assert.deepEqual(row(r, "color").winner.conditions, [{ text: ":hover", holds: true }]);
   el.removeAttribute("data-hover");
   r = await run(t, el);
   assert.equal(row(r, "color").winner.selector, "._m", "not hovered: the query");

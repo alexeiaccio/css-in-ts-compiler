@@ -135,7 +135,7 @@ mount({
   on: (event, listener) => hot.on(event, listener),
 });
 `
-    : `console.warn("cssints: devtools is on, but @cssints/devtools is not installed: add it to the devDependencies of the app");\n`;
+    : `console.warn("cssints: devtools is on, but @cssints/devtools/overlay is not installed (or not built): add @cssints/devtools to the devDependencies of the app");\n`;
 
 /**
  * The dev-only plugin of `cssints({ devtools: true })`: the overlay's entry in every HTML page, and the table on request.
