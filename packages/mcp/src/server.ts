@@ -5,6 +5,7 @@ import { McpProtocol, McpServer, Tool, Toolkit } from "effect/ai";
 
 import { checkDeclaration, checkSupport, ToolError } from "./check.ts";
 import { checkContrast } from "./contrast.ts";
+import { Compiler } from "./compile.ts";
 
 const Failure = Schema.instanceOf(ToolError);
 const Text = (description: string) => Schema.String.annotate({ description });
@@ -84,18 +85,59 @@ Example: { "foreground": "#777", "background": "white", "min": 4.5 } -> { "ok": 
   .annotate(Tool.Destructive, false)
   .annotate(Tool.OpenWorld, false);
 
-export const tools = Toolkit.make(CheckDeclaration, CheckSupport, CheckContrast);
+const Located = Schema.Struct({
+  message: Schema.String,
+  file: Schema.String,
+  line: Maybe(Schema.Finite),
+  column: Maybe(Schema.Finite.annotate({ description: "1-based" })),
+  location: Schema.String.annotate({ description: "file:line:col" }),
+});
 
-const handlers = tools.toLayer(
-  Effect.gen(function* () {
-    return tools.of({
-      check_declaration: ({ property, value }) => checkDeclaration(property, value),
-      check_support: ({ property, value, query }) => checkSupport(property, value, query),
-      check_contrast: ({ foreground, background, min }) =>
-        checkContrast(foreground, background, min),
-    });
+const Compile = Tool.make("compile", {
+  description: `Compiles one module of a project through the real cssints Vite plugin, as the dev server does, and answers what it made: the class strings in the transformed code, the CSS the module adds to the sheet, the transformed code, and the build errors (file:line:col of the css.* call) and warnings. Give a file path, or source text with a filename (the file need not exist; relative imports resolve from it). The Vite server of a project starts on the first call (a few seconds) and is reused; the project's vite.config is loaded when it has one.
+Example: { "file": "src/Button.ts", "source": "import { css } from \\"cssints\\" with { type: \\"cssints\\" };\\nexport const b = css.padding(\\"1rem\\");" } -> { "ok": true, "classes": ["_1x2y3z"], "css": "@layer _.k, ...; @layer _.a{._1x2y3z{padding:1rem}}", ... }`,
+  parameters: Schema.Struct({
+    file: Text(
+      "The module's path, absolute or relative to root; with source, the filename it is compiled as",
+    ),
+    source: Maybe(Text("The module's text, instead of the file on disk")),
+    root: Maybe(
+      Text(
+        "The project root (where vite.config and package.json are); default: the server's working directory",
+      ),
+    ),
   }),
-);
+  success: Schema.Struct({
+    ok: Schema.Boolean,
+    file: Schema.String,
+    classes: Schema.Array(Schema.String),
+    css: Schema.String,
+    code: Schema.String,
+    errors: Schema.Array(Located),
+    warnings: Schema.Array(Schema.Struct({ file: Schema.String, message: Schema.String })),
+  }),
+  failure: Failure,
+})
+  .annotate(Tool.Readonly, true)
+  .annotate(Tool.Destructive, false)
+  .annotate(Tool.OpenWorld, false);
+
+export const tools = Toolkit.make(CheckDeclaration, CheckSupport, CheckContrast, Compile);
+
+const handlers = tools
+  .toLayer(
+    Effect.gen(function* () {
+      const { compile } = yield* Compiler;
+      return tools.of({
+        check_declaration: ({ property, value }) => checkDeclaration(property, value),
+        check_support: ({ property, value, query }) => checkSupport(property, value, query),
+        check_contrast: ({ foreground, background, min }) =>
+          checkContrast(foreground, background, min),
+        compile: (input) => compile(input),
+      });
+    }),
+  )
+  .pipe(Layer.provide(Compiler.layer));
 
 const stdio = McpServer.layerStdio({
   name: "cssints",
