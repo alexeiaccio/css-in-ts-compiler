@@ -230,6 +230,7 @@
       },
       "dependencies": {
         "@cssints/css-grammar": "workspace:*",
+        "@cssints/devtools": "workspace:*",
         "@effect/platform-node": "4.0.0",
         "cssints": "workspace:*",
         "culori": "^4.0.2",

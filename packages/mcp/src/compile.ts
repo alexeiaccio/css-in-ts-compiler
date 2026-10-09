@@ -122,7 +122,7 @@ const open = Effect.fn("mcp.compile.open")(function* (root: string) {
 
 const CLASSES = /"(_[\w-]+(?: _[\w-]+)*)"/g;
 
-const Thrown = Schema.Struct({
+export const Thrown = Schema.Struct({
   message: Schema.String,
   loc: Schema.optional(
     Schema.Struct({
@@ -135,7 +135,7 @@ const Thrown = Schema.Struct({
 const decodeThrown = Schema.decodeUnknownOption(Thrown);
 
 // A build error as Vite hands it over: `loc` is the call site, its column 0-based (given here 1-based).
-const located = (t: typeof Thrown.Type, file: string) => {
+export const located = (t: typeof Thrown.Type, file: string) => {
   const at = t.loc
     ? { file: t.loc.file ?? file, line: t.loc.line, column: t.loc.column + 1 }
     : { file, line: undefined, column: undefined };

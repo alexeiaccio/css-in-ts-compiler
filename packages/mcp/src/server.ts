@@ -7,6 +7,7 @@ import { checkDeclaration, checkSupport, ToolError } from "./check.ts";
 import { checkContrast } from "./contrast.ts";
 import { Compiler } from "./compile.ts";
 import { listPlugins, searchDocs } from "./docs.ts";
+import { Live } from "./live.ts";
 
 const Failure = Schema.instanceOf(ToolError);
 const Text = (description: string) => Schema.String.annotate({ description });
@@ -172,6 +173,108 @@ Example: {} -> { "plugins": [{ "name": "@cssints/fluid", "members": "\`fluid(min
   .annotate(Tool.Destructive, false)
   .annotate(Tool.OpenWorld, false);
 
+const Url = Maybe(
+  Text(
+    "The app's dev server, default http://localhost:5173; its vite.config needs cssints({ devtools: true })",
+  ),
+);
+const Decl = Schema.Struct({
+  prop: Schema.String,
+  value: Schema.String,
+  important: Schema.Boolean,
+});
+const ClassInfo = {
+  class: Schema.String,
+  kind: Schema.Literals(["class", "marker", "group"]),
+  layer: Schema.String,
+  plugin: Maybe(
+    Schema.String.annotate({
+      description: "a member's scope (frame), or the kernel of a marker (frame.core)",
+    }),
+  ),
+  conditions: Schema.Array(Schema.String).annotate({
+    description: "the at-rules around the rule, then the states of its selector",
+  }),
+  css: Schema.String,
+  decls: Schema.Array(Decl),
+  tokens: Schema.Array(
+    Schema.Struct({ name: Schema.String, path: Maybe(Schema.String), value: Maybe(Schema.String) }),
+  ),
+};
+const SiteFields = {
+  file: Schema.String.annotate({ description: "relative to the app's root" }),
+  line: Schema.Finite,
+  column: Schema.Finite.annotate({ description: "1-based" }),
+  location: Schema.String.annotate({ description: "file:line:col of the css.* call" }),
+};
+
+const ExplainClass = Tool.make("explain_class", {
+  description: `Explains cssints class names of a running app (as seen in the DOM or the sheet): per class its declarations, the conditions it is under (@media, @container, @supports, @scope, :hover...), its layer, the plugin or kernel it belongs to, the tokens it reads with their values, and the css.* calls that made it (file:line). Asks the app's Vite dev server over its HMR websocket; the app needs cssints({ devtools: true }) in its vite.config. The first call fetches the modules the page reaches, so no browser has to be open.
+Example: { "classes": "_1r802m6" } -> { "classes": [{ "class": "_1r802m6", "layer": "_.b", "conditions": [":hover"], "decls": [{ "prop": "background-color", "value": "color-mix(...)" }], "sites": [{ "location": "src/components/Showcase.tsx:72:18" }] }] }`,
+  parameters: Schema.Struct({
+    classes: Text('One class or several, as in the class attribute: "_1r802m6 _pb21ov"'),
+    url: Url,
+  }),
+  success: Schema.Struct({
+    root: Schema.String,
+    classes: Schema.Array(
+      Schema.Struct({
+        ...ClassInfo,
+        sites: Schema.Array(Schema.Struct({ ...SiteFields, classes: Schema.Array(Schema.String) })),
+      }),
+    ),
+    unknown: Schema.Array(Schema.String).annotate({
+      description: "names that are not cssints classes the server has served",
+    }),
+  }),
+  failure: Failure,
+})
+  .annotate(Tool.Readonly, true)
+  .annotate(Tool.Destructive, false)
+  .annotate(Tool.OpenWorld, true);
+
+const ModuleStyles = Tool.make("module_styles", {
+  description: `The styles of one source file of a running app, as its dev server compiled them: each css.* call (file:line:col) with its classes, their declarations, conditions, layer and CSS. Asks the app's Vite dev server over its HMR websocket (cssints({ devtools: true }) in its vite.config); an edit is seen once the server has the new module, which the tool fetches again. Use compile instead when there is no dev server.
+Example: { "file": "src/components/Button.tsx" } -> { "sites": [{ "location": "src/components/Button.tsx:5:24", "classes": [{ "class": "_ijw0jd", "css": "._ijw0jd{background-color:var(--color-accent)}", ... }] }], "css": "..." }`,
+  parameters: Schema.Struct({
+    file: Text("The source file, absolute or relative to the app's root"),
+    url: Url,
+  }),
+  success: Schema.Struct({
+    file: Schema.String,
+    sites: Schema.Array(
+      Schema.Struct({ ...SiteFields, classes: Schema.Array(Schema.Struct(ClassInfo)) }),
+    ),
+    css: Schema.String,
+    note: Maybe(Schema.String),
+  }),
+  failure: Failure,
+})
+  .annotate(Tool.Readonly, true)
+  .annotate(Tool.Destructive, false)
+  .annotate(Tool.OpenWorld, true);
+
+const DevErrors = Tool.make("dev_errors", {
+  description: `The current build errors of a running app's dev server: the modules the page reaches are fetched again, and every transform error Vite sends over its HMR websocket is answered (message, file:line:col of the css.* call for a cssints error, the plugin, the code frame). Warnings and the page's runtime errors are not sent over that channel: notAvailable says so. Works on any Vite dev server, with or without cssints({ devtools: true }).
+Example: {} -> { "errors": [{ "message": "padding: unexpected \\"-1rem\\" ...", "location": "/app/src/Card.tsx:4:22", "plugin": "cssints" }], "notAvailable": "warnings: ..." }`,
+  parameters: Schema.Struct({ url: Url }),
+  success: Schema.Struct({
+    url: Schema.String,
+    errors: Schema.Array(
+      Schema.Struct({
+        ...Located.fields,
+        plugin: Maybe(Schema.String),
+        frame: Maybe(Schema.String),
+      }),
+    ),
+    notAvailable: Schema.String,
+  }),
+  failure: Failure,
+})
+  .annotate(Tool.Readonly, true)
+  .annotate(Tool.Destructive, false)
+  .annotate(Tool.OpenWorld, true);
+
 export const tools = Toolkit.make(
   CheckDeclaration,
   CheckSupport,
@@ -179,12 +282,16 @@ export const tools = Toolkit.make(
   Compile,
   SearchDocs,
   ListPlugins,
+  ExplainClass,
+  ModuleStyles,
+  DevErrors,
 );
 
 const handlers = tools
   .toLayer(
     Effect.gen(function* () {
       const { compile } = yield* Compiler;
+      const live = yield* Live;
       return tools.of({
         check_declaration: ({ property, value }) => checkDeclaration(property, value),
         check_support: ({ property, value, query }) => checkSupport(property, value, query),
@@ -193,10 +300,13 @@ const handlers = tools
         compile: (input) => compile(input),
         search_docs: ({ query, limit }) => searchDocs(query, limit),
         list_plugins: () => listPlugins(),
+        explain_class: ({ classes, url }) => live.explain(classes, url),
+        module_styles: ({ file, url }) => live.moduleStyles(file, url),
+        dev_errors: ({ url }) => live.errors(url),
       });
     }),
   )
-  .pipe(Layer.provide(Compiler.layer));
+  .pipe(Layer.provide(Layer.mergeAll(Compiler.layer, Live.layer)));
 
 const stdio = McpServer.layerStdio({
   name: "cssints",

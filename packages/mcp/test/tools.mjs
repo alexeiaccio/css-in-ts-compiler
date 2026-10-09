@@ -17,7 +17,10 @@ assert.deepEqual(tools.map((t) => t.name).sort(), [
   "check_declaration",
   "check_support",
   "compile",
+  "dev_errors",
+  "explain_class",
   "list_plugins",
+  "module_styles",
   "search_docs",
 ]);
 for (const t of tools) assert.match(t.description, /Example:/, t.name);
