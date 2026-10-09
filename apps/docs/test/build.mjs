@@ -23,6 +23,30 @@ assert.match(sheet, /\.twoslash \.twoslash-popup-container/);
 // the themes: the system's dark is the media query, a class beats it
 assert.match(sheet, /@media \(prefers-color-scheme: ?dark\)\{:root\{--color-bg:#0c0f15/);
 for (const mode of [".light", ".dark"]) assert.ok(sheet.includes(`${mode}{--color-bg:`), mode);
+// dim is a theme of its own after dark; the accent steps read the one hue, which no theme sets (the settings panel does, on <html>)
+assert.ok(sheet.indexOf(".dark{--color-bg:") < sheet.indexOf(".dim{--color-bg:"), "dim after dark");
+assert.match(sheet, /\.dim\{[^}]*--color-accent:oklch\(\.661 \.18 var\(--hue-accent\)\)/);
+assert.match(sheet, /:root\{[^}]*--color-accent:oklch\(\.555 \.21 var\(--hue-accent\)\)/);
+assert.ok(
+  !/--hue-accent:[^;}]/.test(sheet.replace(/@property[^}]*}/g, "")),
+  "no theme sets the hue",
+);
+// text size, density and corners: a theme per value that is not normal, each setting one scale that fontSize, space and radius read
+for (const [attr, value, scale, n] of [
+  ["text", "small", "font", ".875"],
+  ["text", "large", "font", "1.125"],
+  ["density", "compact", "space", ".75"],
+  ["density", "comfortable", "space", "1.25"],
+  ["radius", "sharp", "radius", "0"],
+  ["radius", "round", "radius", "2"],
+])
+  assert.match(sheet, new RegExp(`\\[data-${attr}=${value}\\]\\{--scale-${scale}:${n}[;}]`), value);
+assert.match(sheet, /--font-size-md:calc\(16px \* var\(--scale-font\)\)/);
+assert.match(sheet, /--space-lg:calc\(16px \* var\(--scale-space\)\)/);
+assert.match(sheet, /--radius-md:calc\(10px \* var\(--scale-radius\)\)/);
+// the font (no token type for a family): a global rule per stack
+assert.match(sheet, /\[data-font=serif\] body\{font-family:Georgia/);
+assert.match(sheet, /\[data-font=mono\] body\{font-family:"?SF Mono/);
 // the variables of the hovers read the site's colours
 assert.match(sheet, /--twoslash-popup-bg:var\(--color-bg-subtle\)/);
 // breakpoints: the sidebar at 900, the outline at 1200
@@ -72,6 +96,13 @@ for (const slug of slugs) {
   assert.ok(title.endsWith(" · cssints") && title.length > 12, `${slug}: ${title}`);
 }
 assert.ok(html.get("index.html").includes("<title>cssints</title>"));
+// the stored settings are applied by an inline script before the first paint, in every document (test/settings.mjs runs it)
+for (const [file, doc] of html)
+  assert.ok(
+    doc.indexOf("cssints-docs.settings") > 0 &&
+      doc.indexOf("cssints-docs.settings") < doc.indexOf('type="module"'),
+    `${file}: the settings script runs first`,
+  );
 assert.ok(js.length > slugs.length, "a chunk per page");
 
 // the prerender: the title, the description and the article are in the document, the app's root is hidden until it takes over

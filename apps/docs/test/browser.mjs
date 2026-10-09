@@ -1,7 +1,7 @@
 // The site on the dev server in Chrome (playwright-core from node_modules/.bun; skipped when Chrome is not installed). Every page of the
 // sidebar is opened: it must render its title and its text, and a page error, a console error, a failed request or Solid's
 // SETTLED_CLEANUP_UNOWNED (the dev build reports what the production one drops) fails the run. Then the parts: the links between the
-// pages and their anchors, the search, the colour mode (system and the toggle), the mobile menu, the type hovers. Screenshots go to
+// pages and their anchors, the search, the settings panel (keyboard, each setting, kept across a reload, Chrome's contrast over the hue), the mobile menu, the type hovers. Screenshots go to
 // test/out/ (ignored by git). Then the built site, as a static host serves it: each document holds its page (read with JavaScript off),
 // the app takes over with no frame that shows both or neither, and the links work. DOCS_BASE (see vite.config.ts) runs all of it
 // under that base path.
@@ -162,7 +162,7 @@ try {
   await home.locator("text=No headings match").waitFor({ state: "visible" });
   await home.keyboard.press("Escape");
 
-  // system dark, the toggle (system, light, dark), and what is stored
+  // system dark, then the settings panel: opened and closed by keyboard, each setting changes computed styles, all are kept
   const dark = await browser.newContext({
     colorScheme: "dark",
     viewport: { width: 1440, height: 900 },
@@ -171,24 +171,145 @@ try {
   await ready(night);
   assert.equal(await bg(night), "rgb(12, 15, 21)", "dark follows the system");
   await night.screenshot({ path: join(out, "basic-usage-dark.png") });
-  await night.click("button[aria-label^='Colour mode']");
-  await sleep(100);
-  assert.ok(await night.evaluate(() => document.documentElement.classList.contains("light")));
-  assert.equal(
-    await bg(night),
-    "rgb(255, 255, 255)",
-    "a page that asks for light is light on a dark system",
+  const gear = "button[aria-label='Display settings']";
+  const read = (fn, arg) => night.evaluate(fn, arg);
+  const style = (sel, prop) =>
+    read(([s, p]) => getComputedStyle(document.querySelector(s))[p], [sel, prop]);
+  const setting = (name, value) => night.check(`#settings input[name=${name}][value=${value}]`);
+  assert.equal(await night.locator("#settings").isVisible(), false, "the panel starts closed");
+  await night.focus(gear);
+  await night.keyboard.press("Enter");
+  await night.locator("#settings").waitFor({ state: "visible" });
+  await night.keyboard.press("Tab");
+  assert.ok(
+    await read(() => document.activeElement.closest("#settings") !== null),
+    "Tab goes into the panel",
   );
-  await night.click("button[aria-label^='Colour mode']");
-  assert.ok(await night.evaluate(() => document.documentElement.classList.contains("dark")));
+  await night.keyboard.press("Escape");
+  await night.locator("#settings").waitFor({ state: "hidden" });
+  assert.equal(await read(() => document.activeElement.ariaLabel), "Display settings");
+  await night.click(gear);
+  await night.locator("#settings").waitFor({ state: "visible" });
+  await night.screenshot({ path: join(out, "settings-dark.png") });
+
+  // the mode: a page that asks for light is light on a dark system; dim is dark with a lifted background
+  await setting("mode", "light");
+  assert.equal(await bg(night), "rgb(255, 255, 255)");
+  await setting("mode", "dim");
+  assert.equal(await bg(night), "rgb(26, 31, 43)");
+  assert.equal(await read(() => document.documentElement.className), "dark dim");
+  assert.equal(await style("html", "colorScheme"), "dark");
+  await night.screenshot({ path: join(out, "settings-dim.png") });
+  await setting("mode", "system");
+  assert.equal(await bg(night), "rgb(12, 15, 21)");
+  await setting("mode", "dark");
+
+  // the hue by keyboard: the derived accent colours move with it
+  const swatch = () => style("[data-testid=swatch-accent]", "backgroundColor");
+  const before = await swatch();
+  await night.focus("#settings input[type=range]");
+  await night.keyboard.press("Home");
+  await night.keyboard.press("ArrowRight");
+  assert.equal(await night.textContent("[data-testid=hue]"), "1");
+  assert.equal(
+    await read(() => document.documentElement.style.getPropertyValue("--hue-accent")),
+    "1",
+  );
+  assert.notEqual(await swatch(), before);
+  await night.locator("#settings input[type=range]").fill("120");
+  assert.match(await swatch(), /^oklch\(0\.661 0\.18 120\)$/);
+  await setting("mode", "light");
+  assert.match(await swatch(), /^oklch\(0\.555 0\.21 120\)$/);
+  await night.screenshot({ path: join(out, "settings-hue.png") });
+
+  // text size, density, font and corners, each against the computed style of the page
+  assert.equal(await style(".prose", "fontSize"), "16px");
+  await setting("text", "small");
+  assert.equal(await style(".prose", "fontSize"), "14px");
+  await setting("text", "large");
+  assert.equal(await style(".prose", "fontSize"), "18px");
+  const gap = () => style(".prose > * + *", "marginTop");
+  assert.equal(await gap(), "16px");
+  await setting("density", "compact");
+  assert.equal(await gap(), "12px");
+  await setting("density", "comfortable");
+  assert.equal(await gap(), "20px");
+  assert.match(await style("body", "fontFamily"), /^system-ui/);
+  await setting("font", "serif");
+  assert.match(await style("body", "fontFamily"), /^Georgia/);
+  await setting("font", "mono");
+  assert.match(await style("body", "fontFamily"), /Menlo/);
+  assert.equal(await style("#settings", "borderRadius"), "10px");
+  await setting("radius", "sharp");
+  assert.equal(await style("#settings", "borderRadius"), "0px");
+  await setting("radius", "round");
+  assert.equal(await style("#settings", "borderRadius"), "20px");
+  await night.screenshot({ path: join(out, "settings-all.png") });
+
+  // kept across a reload, before the app runs again (the panel reads the stored values back)
   await night.reload();
   await night.locator("main h1").waitFor({ state: "visible" });
-  assert.ok(
-    await night.evaluate(() => document.documentElement.classList.contains("dark")),
-    "the mode is kept",
+  assert.equal(await style(".prose", "fontSize"), "18px");
+  assert.equal(await style("#settings", "borderRadius"), "20px");
+  assert.equal(await read(() => document.documentElement.dataset.font), "mono");
+  await night.click(gear);
+  assert.ok(await night.isChecked("#settings input[name=density][value=comfortable]"));
+  assert.equal(await night.inputValue("#settings input[type=range]"), "120");
+  assert.equal(await read(() => document.documentElement.className), "light");
+
+  // Reset: every setting back to its default, the system's dark again
+  await night.click("#settings button");
+  assert.equal(await bg(night), "rgb(12, 15, 21)");
+  assert.equal(await style(".prose", "fontSize"), "16px");
+  assert.equal(await gap(), "16px");
+  assert.equal(
+    await read(() => document.documentElement.style.getPropertyValue("--hue-accent")),
+    "269",
   );
-  await night.click("button[aria-label^='Colour mode']");
-  assert.ok(await night.evaluate(() => !document.documentElement.classList.length), "system again");
+
+  // the contrast over the slider, measured in Chrome (test/contrast.mjs does the same with the engine's maths over every
+  // hue): a pixel of each colour, WCAG ratios; Chrome maps a colour outside sRGB where the engine clips, so a hair of margin
+  const worst = await read(() => {
+    const ctx = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+    const root = document.documentElement;
+    const lum = (css) => {
+      ctx.clearRect(0, 0, 1, 1);
+      ctx.fillStyle = css;
+      ctx.fillRect(0, 0, 1, 1);
+      const [r, g, b] = Array.from(ctx.getImageData(0, 0, 1, 1).data.slice(0, 3), (v) => {
+        const c = v / 255;
+        return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const ratio = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    const pairs = [
+      ["accent", "bg", 3],
+      ["link", "bg", 4.5],
+      ["link", "bg-subtle", 4.5],
+      ["on-accent", "accent", 4.5],
+      ["accent-strong", "accent-soft", 4.5],
+    ];
+    const out = {};
+    for (const mode of ["light", "dim", "dark"]) {
+      root.className = mode === "light" ? "light" : mode === "dim" ? "dark dim" : "dark";
+      for (let hue = 0; hue < 360; hue += 10) {
+        root.style.setProperty("--hue-accent", String(hue));
+        const cs = getComputedStyle(root);
+        for (const [fg, bg, min] of pairs) {
+          const r = ratio(
+            lum(cs.getPropertyValue(`--color-${fg}`)),
+            lum(cs.getPropertyValue(`--color-${bg}`)),
+          );
+          const key = `${fg}/${bg} ${mode}`;
+          if (!out[key] || r < out[key].r) out[key] = { r, hue, min };
+        }
+      }
+    }
+    return out;
+  });
+  for (const [key, { r, hue, min }] of Object.entries(worst))
+    assert.ok(r >= min - 0.1, `Chrome: ${key} is ${r.toFixed(2)} at hue ${hue}, under ${min}`);
   await night.close();
   await dark.close();
 
@@ -303,6 +424,40 @@ try {
       "Page not found",
     ]);
     await watched.close();
+
+    // stored settings are on the prerendered page before the app: the app's script is blocked, so only index.html's inline
+    // script can have set them, and the document is the static copy
+    const stored = JSON.stringify({
+      mode: "dim",
+      hue: 120,
+      text: "large",
+      density: "compact",
+      font: "serif",
+      radius: "round",
+    });
+    const early = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    await early.addInitScript((v) => localStorage.setItem("cssints-docs.settings", v), stored);
+    await early.route(/\/assets\/index-[^/]*\.js$/, (r) => r.abort());
+    const still = await early.newPage();
+    await still.goto(`${built}tokens/`);
+    await still.locator("#prerender h1").waitFor({ state: "visible" });
+    assert.deepEqual(
+      await still.evaluate(() => {
+        const cs = (s, p) => getComputedStyle(document.querySelector(s))[p];
+        return [
+          document.getElementById("root").hidden,
+          document.documentElement.className,
+          cs("html", "backgroundColor"),
+          cs("#prerender .prose", "fontSize"),
+          cs("body", "fontFamily").slice(0, 7),
+          cs("#prerender .prose > * + *", "marginTop"),
+          document.documentElement.style.getPropertyValue("--hue-accent"),
+        ];
+      }),
+      [true, "dark dim", "rgb(26, 31, 43)", "18px", "Georgia", "12px", "120"],
+    );
+    await still.screenshot({ path: join(out, "built-prerender-settings.png") });
+    await early.close();
   } finally {
     await site.close();
   }
@@ -312,6 +467,6 @@ try {
   await server.close();
 }
 console.log(
-  `docs browser (base ${prefix}): every page renders with no console error; links, search, modes, menu and hovers ok; the built pages read without JS and the app takes over cleanly`,
+  `docs browser (base ${prefix}): every page renders with no console error; links, search, the settings panel, menu and hovers ok; the built pages read without JS and the app takes over cleanly`,
 );
 process.exit(0);
