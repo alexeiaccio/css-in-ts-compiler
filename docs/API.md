@@ -871,6 +871,9 @@ More plugins on `scope()`, each a package of its own with its rules and limits i
 | [`@cssints/stuck`](../packages/stuck/README.md) | `sticky().top()`, `stuck(styles)`, `stuck("bottom")(styles)` | Styles inside a sticky element while it is stuck, by `@container scroll-state()`; for other targets an `IntersectionObserver` (delivered by the runtime) |
 | [`@cssints/balance`](../packages/balance/README.md) | `balance()`, `pretty()` | `text-wrap: balance` / `pretty`; for targets without balance a script balances the lines (delivered by the runtime) |
 | [`@cssints/masonry`](../packages/masonry/README.md) | `masonry().columns().gap()` | `display: grid-lanes`, else CSS `columns` (top to bottom per column) |
+| [`@cssints/placeholder`](../packages/placeholder/README.md) | `placeholder(path, { mode? })` | An `<image>` from a JPEG or PNG read at build time: a gradient of its colours laid out as the image, or a tiny thumbhash PNG |
+| [`@cssints/ramp`](../packages/ramp/README.md) | `ramp(base, { mode, steps \| ratios, background })`, `overrides(ramp)` | An OKLCH palette as DTCG data for `createTokens`; the contrast mode meets each ratio against its background |
+| [`@cssints/skeleton`](../packages/skeleton/README.md) | `skeleton().radius().color().highlight()` | Loading placeholders whose shimmer is in phase across the page (one clock on `:root`), static under reduced motion |
 
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 

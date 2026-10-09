@@ -1,4 +1,4 @@
-import { t as AliasesOf } from "./scope-D56n5604.mjs";
+import { t as AliasesOf } from "./scope-dsR19iqc.mjs";
 //#region src/surface.d.ts
 /**
  * `surface().color(t.color.canvas).lighten(0.06).ink()`: a background that follows from the surface around it, however

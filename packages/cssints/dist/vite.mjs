@@ -285,6 +285,45 @@ const lineCol = (text, offset) => {
 		column: offset - lineStart
 	};
 };
+const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const vlq = (n) => {
+	let v = n < 0 ? -n << 1 | 1 : n << 1;
+	let s = "";
+	do {
+		const d = v & 31;
+		v >>>= 5;
+		s += B64[v ? d | 32 : d];
+	} while (v);
+	return s;
+};
+const sheetMap = (text, siteOf) => {
+	const first = /* @__PURE__ */ new Map();
+	for (const [file, at] of siteOf) for (const [cls, loc] of at) if (!first.has(cls)) first.set(cls, [file, loc]);
+	const sources = [];
+	let prev = [
+		0,
+		0,
+		0
+	];
+	return {
+		version: 3,
+		sources,
+		names: [],
+		mappings: text.split("\n").map((l) => {
+			const hit = [...l.matchAll(/\.(_[\w-]+)/g)].map((m) => first.get(m[1])).find(Boolean);
+			if (!hit) return "";
+			const [file, { line, column }] = hit;
+			const seg = [
+				sources.includes(file) ? sources.indexOf(file) : sources.push(file) - 1,
+				line - 1,
+				column
+			];
+			const out = vlq(l.search(/\S/)) + seg.map((x, i) => vlq(x - prev[i])).join("");
+			prev = seg;
+			return out;
+		}).join(";")
+	};
+};
 const locate = Effect.fn("cssints.locate")(function* (e, code, id) {
 	const file = Predicate.hasProperty(e, "file") && e.file ? e.file : id;
 	if (Predicate.hasProperty(e, "offset") && e.offset !== void 0) {
@@ -309,6 +348,7 @@ function cssints({ inner = false } = {}) {
 	const usedBy = /* @__PURE__ */ new Map();
 	const depsOf = /* @__PURE__ */ new Map();
 	const inflight = /* @__PURE__ */ new Set();
+	const siteOf = /* @__PURE__ */ new Map();
 	const sheet = Effect.fnUntraced(function* (ids = [...usedBy.keys()]) {
 		return yield* renderSheet(ids.flatMap((id) => usedBy.get(id)?.split("\n") ?? []));
 	});
@@ -375,6 +415,14 @@ function cssints({ inner = false } = {}) {
 			};
 		});
 		const { sites, runtimes } = parsed.sites.length ? yield* evaluate(runner, id, recorded).pipe(Effect.ensuring(flushWarnings(warn, id))) : yield* Effect.sync(() => forget(id)).pipe(Effect.andThen(recorded(/* @__PURE__ */ new Map())));
+		if (!build) {
+			const at = /* @__PURE__ */ new Map();
+			for (const [n, s] of parsed.sites.entries()) {
+				const loc = lineCol(code, s.start);
+				for (const m of sites.get(n)?.matchAll(/_[\w-]+/g) ?? []) if (!at.has(m[0])) at.set(m[0], loc);
+			}
+			siteOf.set(id, at);
+		}
 		const ms = new MagicString(code);
 		if (runtimes.length) ms.prepend(runtimes.map((n) => `import ${Formatter.formatJson(RUNTIME_ID + n)};\n`).join(""));
 		if ([...sites.values()].some((r) => r.startsWith("__cv("))) ms.prepend(`import { _cv as __cv } from ${Formatter.formatJson(RUNTIME)};\n`);
@@ -540,7 +588,14 @@ function cssints({ inner = false } = {}) {
 			if (id.startsWith("virtual:cssints/runtime/")) return `\0${id}`;
 		},
 		load(id) {
-			if (id === SHEET) return build ? LAYERS : runSync(hook("vite.load", id, sheet()));
+			if (id === SHEET) {
+				if (build) return LAYERS;
+				const code = runSync(hook("vite.load", id, sheet()));
+				return {
+					code,
+					map: sheetMap(code, siteOf)
+				};
+			}
 			if (id.startsWith(`\0virtual:cssints/runtime/`)) return runSync(runtimeModule(id.slice(RUNTIME_ID.length + 1)));
 		},
 		renderChunk(_, chunk) {

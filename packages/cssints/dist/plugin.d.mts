@@ -1,3 +1,3 @@
-import { _ as scope, a as Entry, c as Made, d as Scope, f as Table, g as lacking, h as fn, i as Css, l as Members, m as arg, n as ArgsDef, o as Impl, p as Typed, r as Chain, s as KernelDef, u as Pending, v as Part, y as Style } from "./scope-D56n5604.mjs";
+import { _ as scope, a as Entry, c as Made, d as Scope, f as Table, g as lacking, h as fn, i as Css, l as Members, m as arg, n as ArgsDef, o as Impl, p as Typed, r as Chain, s as KernelDef, u as Pending, v as Part, y as Style } from "./scope-dsR19iqc.mjs";
 import { a as Kernel, i as GlobalRule, n as Conflict, o as Runtime, r as Decl, s as ThemeRule } from "./author-types-C1AhsnrT.mjs";
 export { type ArgsDef, type Chain, type Conflict, type Css, type Decl, type Entry, type GlobalRule, type Impl, type Kernel, type KernelDef, type Made, type Members, type Part, type Pending, type Runtime, type Scope, type Style, type Table, type ThemeRule, type Typed, arg, fn, lacking, scope };

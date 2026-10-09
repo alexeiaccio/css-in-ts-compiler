@@ -1123,6 +1123,31 @@ const IGNORED = /* @__PURE__ */ new Set([
 	"$deprecated"
 ]);
 const kebab = (s) => s.replace(/([a-z\d])([A-Z])/g, "$1-$2").toLowerCase();
+const RECIPE = "see docs/API.md, JSON from Figma";
+const STUDIO_TYPES = {
+	spacing: "dimension",
+	sizing: "dimension",
+	borderRadius: "dimension",
+	borderWidth: "dimension",
+	fontSizes: "dimension",
+	letterSpacing: "dimension",
+	paragraphSpacing: "dimension",
+	paragraphIndent: "dimension",
+	fontWeights: "fontWeight",
+	lineHeights: "number",
+	opacity: "number",
+	boxShadow: "shadow"
+};
+const extensionError = (token, what) => {
+	const ext = token["$extensions"];
+	if (!Predicate.isObject(ext)) return void 0;
+	const studio = ext["studio.tokens"];
+	if (Predicate.isObject(studio) && studio["modify"] !== void 0) return `cssints: ${what} has a Tokens Studio colour modifier ($extensions["studio.tokens"].modify), which cssints does not apply: write the colour as CSS (color-mix(), a relative colour) or resolve it with @tokens-studio/sd-transforms first (${RECIPE})`;
+	if (ext["com.figma.type"] === "boolean") return `cssints: ${what} is a Figma boolean variable (com.figma.type "boolean"), which has no CSS value: leave it out of the tokens`;
+	const figma = ext["com.figma"];
+	const modes = ext["mode"] ?? (Predicate.isObject(figma) ? figma["modes"] : void 0);
+	if (Predicate.isObject(modes) && Object.keys(modes).length > 1) return `cssints: ${what} has modes in $extensions (${Object.keys(modes).join(", ")}), which createTokens does not read: export one file per mode (TokensBrücke: "Split modes into separate files"; Figma: Export modes) and pass the others to createGlobalTheme (${RECIPE})`;
+};
 const collect = Effect.fnUntraced(function* (node, path, type, out) {
 	const here = path.join(".") || "the root";
 	const own = node["$type"];
@@ -1130,6 +1155,7 @@ const collect = Effect.fnUntraced(function* (node, path, type, out) {
 	const inherited = own ?? type;
 	for (const [key, child] of Object.entries(node)) {
 		if (key === "$type" || key === "$value" || IGNORED.has(key)) continue;
+		if (key === "$themes" || key === "$metadata") return yield* fail(`cssints: createTokens(): ${key} of ${here} is a Tokens Studio file: convert its token sets to DTCG (${RECIPE})`);
 		if (key.startsWith("$")) return yield* fail(`cssints: createTokens(): ${key} of ${here} is not supported (${[
 			"$root",
 			"$extends",
@@ -1138,9 +1164,12 @@ const collect = Effect.fnUntraced(function* (node, path, type, out) {
 		if (/[{}.]/.test(key)) return yield* fail(`cssints: createTokens(): the name "${key}" in ${here} has a { } or . (DTCG names cannot)`);
 		const at = [...path, key];
 		if (!Predicate.isObject(child)) return yield* fail(`cssints: createTokens(): ${at.join(".")} is a group or a token ({ $value }), got ${Formatter.formatJson(child)}`);
+		if (typeof child["type"] === "string" && Object.hasOwn(child, "value")) return yield* fail(`cssints: createTokens(): ${at.join(".")} has value and type without $, the legacy format of Tokens Studio (and of TokensBrücke without "DTCG 2025.10 format"): convert it to DTCG (${RECIPE})`);
 		if (Object.hasOwn(child, "$value")) {
 			const stray = Object.keys(child).filter((k) => !k.startsWith("$"));
 			if (stray.length) return yield* fail(`cssints: createTokens(): ${at.join(".")} has a $value and so is a token; it cannot hold ${stray.join(", ")}`);
+			const ext = extensionError(child, `createTokens(): ${at.join(".")}`);
+			if (ext) return yield* fail(ext);
 			const t = child["$type"] ?? inherited;
 			out.push({
 				path: at,
@@ -1179,7 +1208,7 @@ const createTokens = (...args) => edge(Effect.gen(function* () {
 	const resolve = Effect.fnUntraced(function* (leaf, stack) {
 		const done = resolved.get(leaf.dotted);
 		if (done) return done;
-		if (leaf.type !== void 0 && !Object.hasOwn(DTCG_TYPES, leaf.type)) return yield* fail(`cssints: createTokens(): ${leaf.dotted} has $type "${leaf.type}", which has no token type (no @property syntax); supported: ${SUPPORTED}`);
+		if (leaf.type !== void 0 && !Object.hasOwn(DTCG_TYPES, leaf.type)) return yield* fail(`cssints: createTokens(): ${leaf.dotted} has $type "${leaf.type}", which has no token type (no @property syntax); supported: ${SUPPORTED}${Object.hasOwn(STUDIO_TYPES, leaf.type) ? ` ("${leaf.type}" is a Tokens Studio type: its DTCG type is "${STUDIO_TYPES[leaf.type]}")` : ""}`);
 		const own = leaf.type;
 		const [, ref] = (typeof leaf.value === "string" ? ALIAS.exec(leaf.value.trim()) : null) ?? [];
 		let r;
@@ -1197,6 +1226,7 @@ const createTokens = (...args) => edge(Effect.gen(function* () {
 			};
 		} else if (typeof leaf.value === "string" && leaf.value.includes("{")) {
 			if (own === void 0) return yield* fail(`cssints: createTokens(): ${leaf.dotted} is derived from other tokens and has no $type: give it one, or its group`);
+			if (/^[^(]*\s[*/+-]\s/.test(leaf.value)) return yield* fail(`cssints: createTokens(): ${leaf.dotted} value "${leaf.value}" is math outside calc() (Tokens Studio math): write "calc(${leaf.value})"`);
 			const refs = [];
 			for (const [, ref] of leaf.value.matchAll(REF)) {
 				const target = byPath.get(ref);
@@ -1339,9 +1369,15 @@ const theme = (at, args) => edge(Effect.gen(function* () {
 	const poly = /* @__PURE__ */ new Map();
 	const refs = /* @__PURE__ */ new Map();
 	const walk = Effect.fnUntraced(function* (node, values, path) {
-		for (const [key, v] of Object.entries(values)) {
-			const child = Object.hasOwn(node, key) ? node[key] : void 0;
+		for (const [key, given] of Object.entries(values)) {
+			if (key.startsWith("$")) continue;
+			const leaf = Predicate.isObject(given) && Object.hasOwn(given, "$value");
+			const v = leaf ? given["$value"] : given;
+			const own = Object.hasOwn(node, key) ? key : accessOf(key);
+			const child = Object.hasOwn(node, own) ? node[own] : void 0;
 			const dotted = [...path, key].join(".");
+			const ext = leaf ? extensionError(given, `createGlobalTheme(): ${dotted}`) : void 0;
+			if (ext) return yield* fail(ext);
 			if (child instanceof CSSTokenValue) {
 				const kind = registry.defs.get(child.name).kind;
 				const text = yield* cssOf(set.types.get(child.name), v, dotted);
