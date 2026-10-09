@@ -138,6 +138,11 @@ export default function playgroundPlugin(): Plugin {
         const source = String(index.source)
           .replace(/<title>.*?<\/title>/, () => "<title>Playground · cssints</title>")
           .replace(
+            '<div id="root"></div>',
+            () =>
+              '<div id="root"></div><noscript>The playground runs the cssints engine in your browser and needs JavaScript.</noscript>',
+          )
+          .replace(
             /(name="description"\s+content=")[^"]*/,
             (_all, head: string) =>
               `${head}Run the cssints engine in your browser: edit a module, read its CSS and see it rendered.`,

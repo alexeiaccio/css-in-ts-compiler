@@ -180,7 +180,9 @@ try {
   assert.equal(style.color, "rgb(255, 255, 255)");
   assert.equal(style.background, "rgb(37, 99, 235)"); // bg(accent): #2563eb
   assert.equal(style.padding, "8px"); // p(2)
-  const sheet = await frame.locator("style").filter({ hasText: "@layer" }).textContent();
+  const sheet = await frame
+    .locator("style")
+    .evaluateAll((els) => els.map((e) => e.textContent).join("\n"));
   assert.match(sheet, /@layer _\.k, _\.a/);
 
   // the tabs hold the same text as the compile: the CSS, and the module with its sites replaced

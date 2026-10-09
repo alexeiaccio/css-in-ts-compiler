@@ -148,7 +148,13 @@ written(
   "<code>frame()</code>: concentric radius",
   "twoslash-popup-container",
 );
-for (const slug of slugs) {
+// /playground is not a page of the docs: its document is the shell, whose root is not hidden, and a note for those without JS
+const shell = html.get("playground/index.html");
+assert.ok(
+  shell.includes('<div id="root"></div>') && shell.includes("<noscript>"),
+  "the playground document",
+);
+for (const slug of slugs.filter((s) => s !== "playground")) {
   const doc = html.get(`${slug}/index.html`);
   assert.ok(
     doc.includes('<div id="prerender"><h1>') && doc.includes('<div id="root" hidden>'),
