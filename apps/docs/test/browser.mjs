@@ -55,7 +55,7 @@ const bg = (page) =>
 
 try {
   const desktop = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  const home = await open(desktop);
+  const home = await open(desktop, "overview");
   await ready(home);
   const hrefs = await home.$$eval("#sidebar a", (as) => as.map((a) => a.getAttribute("href")));
   assert.ok(hrefs.length >= 20, `${hrefs.length} pages in the sidebar`);
@@ -146,7 +146,7 @@ try {
   await home.screenshot({ path: join(out, "hover-light.png") });
 
   // search: "/" focuses it; words match headings and terms; Enter opens the first hit at its anchor
-  await home.goto(`${base}`);
+  await home.goto(`${base}overview`);
   await ready(home);
   await home.keyboard.press("/");
   await home.keyboard.type("frame");
@@ -344,9 +344,60 @@ try {
   await home.goto(`${base}basic-usage`);
   await ready(home);
   await home.screenshot({ path: join(out, "basic-usage-light.png") });
-  await home.goto(base);
+  await home.goto(`${base}overview`);
   await ready(home);
   await home.screenshot({ path: join(out, "overview-light.png") });
+
+  // the landing page: the whole width (no sidebar, no menu button), the showcase, links that open pages of the site, no
+  // sideways scroll at any width, and a screenshot light, dark and on a phone
+  const landing = async (context, name) => {
+    const page = await open(context);
+    await page.locator(".landing .showcase pre").first().waitFor({ state: "visible" });
+    const info = await page.evaluate(() => ({
+      title: document.title,
+      h1s: document.querySelectorAll("h1").length,
+      sidebar: document.querySelector("#sidebar")?.getBoundingClientRect().width,
+      menu: getComputedStyle(document.querySelector("button[aria-label=Menu]")).display,
+      logo: document.querySelector(".landing .hero img")?.naturalWidth,
+      panels: document.querySelectorAll(".landing figure").length,
+      features: document.querySelectorAll(".landing .features li").length,
+      overflow: document.documentElement.scrollWidth > innerWidth,
+      prerender: !!document.getElementById("prerender"),
+      links: [...document.querySelectorAll(".landing a")].map((a) => a.getAttribute("href")),
+    }));
+    assert.equal(info.title, "cssints");
+    assert.equal(info.h1s, 1, "one title");
+    assert.ok(!info.sidebar, "no sidebar on the landing page");
+    assert.equal(info.menu, "none", "no menu button on the landing page");
+    assert.ok(info.logo > 0, "the logo loads");
+    assert.deepEqual([info.panels, info.features], [3, 6]);
+    assert.ok(!info.overflow && !info.prerender, "no sideways scroll; the static copy is gone");
+    for (const link of info.links) {
+      assert.ok(link.startsWith(prefix), `${link} is outside ${prefix}`);
+      assert.ok(
+        anchors.has(slugOf(link).replace(/\/$/, "")) || slugOf(link) === "playground/",
+        link,
+      );
+    }
+    await page.screenshot({ path: join(out, `landing-${name}.png`), fullPage: true });
+    return page;
+  };
+  const sun = await landing(desktop, "light");
+  await sun.click(".landing .actions .primary");
+  await sun.waitForURL(/\/install\/?$/);
+  await sun.locator("main h1", { hasText: "Install" }).waitFor({ state: "visible" });
+  await sun.goBack();
+  await sun.locator(".landing").waitFor({ state: "visible" });
+  await sun.close();
+  const evening = await browser.newContext({
+    colorScheme: "dark",
+    viewport: { width: 1440, height: 900 },
+  });
+  await (await landing(evening, "dark")).close();
+  await evening.close();
+  const small = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  await (await landing(small, "mobile")).close();
+  await small.close();
 
   // the built site
   const dist = join(out, "dist");
@@ -385,7 +436,14 @@ try {
       requestAnimationFrame(tick);
     });
     const seen = [];
-    for (const path of ["tokens/", "tokens", "frame-concentric-radius#names", "", "no-such-page"]) {
+    for (const path of [
+      "tokens/",
+      "tokens",
+      "frame-concentric-radius#names",
+      "",
+      "overview/",
+      "no-such-page",
+    ]) {
       const page = await watched.newPage();
       page.on("pageerror", (e) => problems.push(`built ${path}: ${e}`));
       page.on(
@@ -420,6 +478,7 @@ try {
       "Tokens",
       "Tokens",
       "frame(): concentric radius",
+      "CSS in TypeScript, compiled away",
       "CSS-in-TS",
       "Page not found",
     ]);
