@@ -163,6 +163,9 @@ export async function buildPages(base = "/"): Promise<Page[]> {
   // [text](../README.md), [text](docs/API.md#id): the pages of this site. A link to another file of the repository is its text:
   // the repository is private, so a link to it would not open for a reader of the site.
   const href = (file: string, target: string) => {
+    // a page of this site that is no doc (/playground, /tui), by its public URL: a link of the site, under its base
+    const own = /^https:\/\/cssints\.dev\/([\w-]+)$/.exec(target)?.[1];
+    if (own) return `${base}${own}`;
     if (/^https?:|^#/.test(target)) return target;
     const [path = "", hash = ""] = target.split("#");
     const repoPath = posix.normalize(posix.join(dirname(file), path));

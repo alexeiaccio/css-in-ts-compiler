@@ -7,7 +7,7 @@
     "build": "vp build",
     "preview": "vp preview",
     "typecheck": "node scripts/tokens-types.mjs --check && tsgo -p tsconfig.json --noEmit && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
-    "test": "node test/search.mjs && node test/settings.mjs && node test/contrast.mjs && node test/build.mjs && node test/browser.mjs && node test/playground.mjs",
+    "test": "node test/search.mjs && node test/settings.mjs && node test/contrast.mjs && node test/build.mjs && node test/browser.mjs && node test/playground.mjs && node test/tui.mjs",
     "tokens:types": "node scripts/tokens-types.mjs",
     "deploy": "alchemy deploy --stage prod",
     "destroy": "alchemy destroy --stage prod"
@@ -20,8 +20,12 @@
     "solid-js": "2.0.0-rc.13"
   },
   "devDependencies": {
+    "@atcute/bluesky": "^4.0.22",
+    "@atcute/client": "^5.1.2",
+    "@bomb.sh/tty": "0.9.0",
     "@cssints/devtools": "workspace:*",
     "@cssints/rybitten": "workspace:*",
+    "@cssints/tui": "workspace:*",
     "@effect/platform-bun": "4.0.0",
     "@iconify-json/ph": "^1.2.2",
     "@oxc-parser/binding-wasm32-wasi": "0.149.0",
@@ -30,6 +34,7 @@
     "@solidjs/vite-plugin": "3.0.0-next.47",
     "alchemy": "2.0.0-beta.81",
     "effect": "4.0.0",
+    "ghostty-web": "0.4.0",
     "lightningcss": "^1.32.0",
     "lightningcss-wasm": "1.33.0",
     "magic-string": "^0.30.0",

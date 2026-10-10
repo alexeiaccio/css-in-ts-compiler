@@ -11,6 +11,7 @@ import {
   contrast,
   createSystemTheme,
   NOTIFY,
+  COLOURS,
   QUERY,
   type Report,
   type Role,
@@ -272,7 +273,10 @@ const nordText = system.solve(nord).values["color-text"];
 assert.equal(resolve(style).color, nordText, "every reply in: the theme of the palette");
 // a change notification: the queries again, and the new replies applied as they come
 follow.feed(bytes(`${ESC}[?997;2n`));
-assert.equal(written.at(-1), QUERY);
+assert.equal(written.at(-1), COLOURS, "the colours, not the scheme report (its reply would loop)");
+const asked = written.length;
+follow.feed(bytes(`${ESC}]11;rgb:ff/ff/ff${BEL}`));
+assert.equal(written.length, asked, "a reply asks nothing");
 follow.feed(bytes(`${ESC}]11;rgb:ff/ff/ff${BEL}${ESC}]10;rgb:00/00/00${BEL}`));
 assert.notEqual(resolve(style).color, nordText);
 assert.ok(contrast(resolve(style).color!, "#ffffff") >= 7);
