@@ -369,6 +369,19 @@ try {
     `${used}import { t } from "./tokens.ts" with { type: "cssints" };\nexport const card = cn(p(4), bg(t.color.surface));\nexport default () => <div className={card}>hello</div>;\n`,
   );
   await compiled();
+  // rename (double-click) and delete a file
+  await page.getByRole("button", { name: "Add a file" }).click();
+  await page.getByRole("textbox", { name: "File name" }).fill("extra");
+  await page.keyboard.press("Enter");
+  await page.getByRole("tab", { name: "extra.ts" }).dblclick();
+  await page.getByRole("textbox", { name: "Rename extra.ts" }).fill("other.ts");
+  await page.keyboard.press("Enter");
+  await page.getByRole("tab", { name: "other.ts" }).waitFor();
+  assert.equal(await page.getByRole("tab", { name: "extra.ts" }).count(), 0);
+  await page.getByRole("button", { name: "Delete other.ts" }).click();
+  assert.equal(await page.getByRole("tab", { name: "other.ts" }).count(), 0);
+  await page.getByRole("tab", { name: ENTRY }).click();
+  await compiled();
   const hash = await page.evaluate(() => location.hash);
 
   // a link opens with all the files
