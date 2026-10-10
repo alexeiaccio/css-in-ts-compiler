@@ -52,7 +52,7 @@ const channel = (x: number) =>
   Math.round(Math.min(1, Math.max(0, x)) * 255)
     .toString(16)
     .padStart(2, "0");
-const hex = (rgb: readonly number[]) => `#${rgb.map(channel).join("")}` as Hex;
+const hex = (rgb: readonly number[]) => `#${rgb.map(channel).join("")}` as const;
 
 /**
  * The sRGB hex colour of a hue in a cube.
