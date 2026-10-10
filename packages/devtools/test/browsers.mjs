@@ -51,6 +51,7 @@ const run = async (name) => {
   const page = await browser.newPage({ viewport: { width: 1300, height: 900 } });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
+  page.on("popup", (w) => w.on("pageerror", (e) => errors.push(`window: ${e.message}`)));
   await page.goto(url);
   await page.locator("[data-devtools=toggle]").click();
   await page.locator("[data-devtools=panel]").waitFor();
@@ -290,6 +291,47 @@ const run = async (name) => {
     (await win.locator("[data-devtools=element]").textContent()).startsWith(picked),
   );
   assert.ok(await win.locator("[data-devtools=properties]").count());
+  // the window walks the tree: the parent button and the arrow keys change the page's picked element
+  const walkTree = async (win) => {
+    const pickBtn = win.locator("[data-devtools=pick]");
+    const shown = (text) =>
+      until(`${name}: the window shows ${text}`, async () =>
+        (await win.locator("[data-devtools=element]").textContent()).includes(text),
+      );
+    const highlight = () =>
+      page.evaluate(() => {
+        const h = document
+          .querySelector("cssints-devtools")
+          .shadowRoot.querySelector("div[style*='width']");
+        return h.getBoundingClientRect().toJSON();
+      });
+    // the pointer left the page without a click: the window shows the hovered element, and ↑ goes from it
+    if ((await pickBtn.getAttribute("data-on")) === "no") await pickBtn.click();
+    await page.hover('[data-case="within"]', { position: { x: 2, y: 2 } });
+    await shown('data-case="within"');
+    await win.locator("[title^=parent]").click();
+    await shown('data-case="group"');
+    assert.equal(await pickBtn.getAttribute("data-on"), "no", `${name}: the walk ends picking`);
+    if ((await pickBtn.getAttribute("data-on")) === "no") await pickBtn.click();
+    await page.hover('[data-case="group"]', { position: { x: 2, y: 2 } });
+    await page.click('[data-case="group"]', { position: { x: 2, y: 2 } });
+    await shown('data-case="group"');
+    const groupBox = await highlight();
+    await win.locator("[title^=parent]").click();
+    await shown('data-demo="inspect"');
+    assert.notDeepEqual(await highlight(), groupBox, `${name}: the page highlights the parent`);
+    const walk = async (key, text) => {
+      await win.keyboard.press(key);
+      await shown(text);
+    };
+    await walk("ArrowDown", 'data-case="hover-md"');
+    await walk("ArrowRight", 'data-case="group"');
+    await walk("ArrowDown", 'data-case="within"');
+    await walk("ArrowUp", 'data-case="group"');
+    await walk("ArrowLeft", 'data-case="hover-md"');
+    await walk("ArrowUp", 'data-demo="inspect"');
+  };
+  await walkTree(win);
   // the choice persists: after a reload the next open puts the panel in a window again
   const closed = win.waitForEvent("close");
   await page.reload();
@@ -298,6 +340,15 @@ const run = async (name) => {
   await page.locator("[data-devtools=toggle]").click();
   win = await reopened;
   await win.locator("[data-devtools=panel]").waitFor();
+  await walkTree(win);
+  // docked and detached again: a second window works as the first
+  // the window closes under the call: its answer never comes
+  await win
+    .evaluate(() => document.querySelector("[data-devtools=detach]").click())
+    .catch(() => {});
+  await panel.waitFor();
+  win = await detach();
+  await walkTree(win);
   // closing the window docks the panel again, for good
   await win.close();
   await until(`${name}: docked`, async () => (await panel.getAttribute("data-detached")) === "no");
