@@ -52,7 +52,7 @@ export const split: Style = css.cn(
 );
 export const column: Style = css.cn(
   css.display("grid"),
-  css.gridTemplateRows("minmax(0, 1fr) auto"),
+  css.gridTemplateRows("auto minmax(0, 1fr) auto"),
   css.minHeight("0"),
   css.minWidth("0"),
   css.gap(t.space.sm),

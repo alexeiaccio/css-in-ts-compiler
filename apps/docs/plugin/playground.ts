@@ -7,6 +7,8 @@
 //   cssints-src/<file>     a file of packages/cssints/src, for the worker's own imports
 //   virtual:playground/data  the data the engine reads from disk: mdn-data's selectors, the CSS part of @mdn/browser-compat-data
 //                          cut to the browsers the support check knows, and the browserslist query of this site, resolved
+//   virtual:playground/packages  the plugin packages that run in a browser: their sources (lazy, as text), what they import from outside
+//   virtual:playground/types     the types the editor knows: the built .d.mts of cssints and css-grammar, the sources of those packages
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
@@ -52,6 +54,86 @@ const BROWSERS = new Set([
   "webview_android",
   "ie",
 ]);
+
+// The plugin packages a browser can run: no file, no network and no Node module at build time. Left out: @cssints/fonts (reads font
+// files from disk and downloads them), @cssints/icons (reads @iconify-json collections and .svg files from disk), @cssints/placeholder
+// (reads images from disk, SHA-1 of file bytes, PNG and JPEG codecs for Node).
+export const PLUGINS = [
+  "balance",
+  "fluid",
+  "gradient",
+  "layout",
+  "masonry",
+  "mise-en-mode",
+  "motion",
+  "ramp",
+  "reset",
+  "reveal",
+  "skeleton",
+  "squircle",
+  "stuck",
+];
+export const TOKEN_SETS = ["open-props", "radix", "flexoki", "reasonable-colors"];
+const packages = join(cssints, "..");
+// The sources of those packages, as files of a virtual project: id (a path) -> file on disk, and the names a module may import -> id.
+// A browser runs them as it runs a user's file (instrumented, TypeScript removed), as Node's runner runs them: they are not part of
+// the docs' build, which would transform them as the docs' own modules.
+const ID = "/node_modules/";
+const sourceFiles: Record<string, string> = {};
+const entries: Record<string, string> = {};
+const collect = (name: string, dir: string, file: string) => {
+  const id = `${ID}${name}/src/${file}`;
+  if (Object.hasOwn(sourceFiles, id)) return;
+  const path = join(dir, "src", file);
+  sourceFiles[id] = path;
+  for (const [, rel] of readFileSync(path, "utf8").matchAll(/from "\.\/([\w-]+\.ts)"/g))
+    collect(name, dir, rel!);
+};
+for (const n of PLUGINS) {
+  collect(`@cssints/${n}`, join(packages, n), "index.ts");
+  entries[`@cssints/${n}`] = `${ID}@cssints/${n}/src/index.ts`;
+}
+for (const n of TOKEN_SETS) {
+  collect("@cssints/tokens", join(packages, "tokens"), `${n}.ts`);
+  entries[`@cssints/tokens/${n}`] = `${ID}@cssints/tokens/src/${n}.ts`;
+}
+// what those sources import that is not one of them: bundled with the worker, found from the package that imports it
+const EXTERNALS = ["culori"];
+
+// The editor's types. cssints and css-grammar: what a user's TypeScript sees (the built declarations, followed from the entries
+// through their relative imports). The plugin packages: their sources, which are typed code. Paths are URIs of the same project.
+const URI = "file://";
+const ENTRIES = {
+  cssints: "types",
+  "cssints/plugin": "plugin-types",
+  "cssints/frame": "frame",
+  "cssints/surface": "surface",
+};
+const types = () => {
+  const files: Record<string, string> = {};
+  const declarations = (pkg: string, dir: string, name: string) => {
+    const file = `${URI}${ID}${pkg}/dist/${name}.d.mts`;
+    if (Object.hasOwn(files, file)) return;
+    const text = readFileSync(join(dir, "dist", `${name}.d.mts`), "utf8");
+    files[file] = text;
+    for (const [, local, other] of text.matchAll(
+      /from "\.\/([\w.-]+)\.mjs"|from "@cssints\/css-grammar\/([\w-]+)"/g,
+    ))
+      if (local) declarations(pkg, dir, local);
+      else declarations("@cssints/css-grammar", grammar, other!);
+  };
+  Object.values(ENTRIES).forEach((name) => declarations("cssints", cssints, name));
+  for (const [id, path] of Object.entries(sourceFiles))
+    files[`${URI}${id}`] = readFileSync(path, "utf8");
+  const paths: Record<string, string[]> = {
+    "@cssints/css-grammar/*": [`${URI}${ID}@cssints/css-grammar/dist/*.d.mts`],
+    ...Object.fromEntries(
+      Object.entries(ENTRIES).map(([k, v]) => [k, [`${URI}${ID}cssints/dist/${v}.d.mts`]]),
+    ),
+    ...Object.fromEntries(Object.entries(entries).map(([k, id]) => [k, [`${URI}${id}`]])),
+  };
+  return { files, paths };
+};
 
 interface Node {
   __compat?: { support: Record<string, unknown> };
@@ -101,6 +183,8 @@ export default function playgroundPlugin(): Plugin {
       // the wasm bindings find their .wasm and their worker by `new URL(..., import.meta.url)`: not through the optimizer
       return {
         optimizeDeps: {
+          // found late otherwise (a dynamic import of a virtual module), and a late dependency reloads the page
+          include: ["cssints > culori", "cssints > culori/fn"],
           exclude: [
             "@oxc-parser/binding-wasm32-wasi",
             "@oxc-transform/binding-wasm32-wasi",
@@ -116,6 +200,12 @@ export default function playgroundPlugin(): Plugin {
     },
     resolveId(id, importer) {
       if (id.startsWith("virtual:playground/")) return `\0${id}`;
+      if (id.startsWith("cssints-module:"))
+        return `${sourceFiles[id.slice("cssints-module:".length)]}?raw`;
+      if (id.startsWith("cssints-external:"))
+        return this.resolve(id.slice("cssints-external:".length), join(cssints, "src/color.ts"), {
+          skipSelf: true,
+        });
       if (id.startsWith("cssints-src/"))
         return join(cssints, "src", id.slice("cssints-src/".length));
       if (!inEngine(importer)) return undefined;
@@ -127,6 +217,21 @@ export default function playgroundPlugin(): Plugin {
     },
     load(id) {
       if (id === "\0virtual:playground/data") return data(root);
+      if (id === "\0virtual:playground/packages")
+        return [
+          `export const entries = ${JSON.stringify(entries)};`,
+          `export const sources = {${Object.keys(sourceFiles)
+            .map(
+              (k) =>
+                `${JSON.stringify(k)}: () => import(${JSON.stringify(`cssints-module:${k}`)}).then((m) => m.default)`,
+            )
+            .join(",")}};`,
+          `export const externals = {${EXTERNALS.map((n) => `${JSON.stringify(n)}: () => import(${JSON.stringify(`cssints-external:${n}`)})`).join(",")}};`,
+        ].join("\n");
+      if (id === "\0virtual:playground/types")
+        return Object.entries(types())
+          .map(([k, v]) => `export const ${k} = ${JSON.stringify(v)};`)
+          .join("\n");
     },
     // /playground has a document of its own, as every page has (plugin/docs.ts), so a static host finds it. This plugin is listed
     // before docs(): its post hook runs first and sees the shell, before the overview is written into it.
