@@ -295,7 +295,7 @@ checked again after rounding. The contrast maths is culori's `wcagLuminance` and
 
 A site keeps its default values and its static `themes` overlays (build-time themes need no run-time registration
 and no import order), and now also `vars`: the token of each colour prop set to a token, per state
-(`vars: { backgroundColor: "--color-bg", ":hover": { backgroundColor: "--color-hover" } }`). The run-time table
+(`vars: { backgroundColor: "color-bg", ":hover": { backgroundColor: "color-hover" } }`, named without `--`: a `--name` in a site would count as a token of the module for the web sheet). The run-time table
 is one shared map in `@cssints/tui`: `defineTheme(name, values, base)` registers a theme of token values over the
 static theme `base`, and `resolve` lays it over the site's props for every prop that has a token. `setTheme` and
 `onTheme` are unchanged; `defineTheme` of the theme in use is a theme change. Weighed and left: moving the static

@@ -434,9 +434,18 @@ const resolved = (text: string, values?: Map<string, string>): string => {
 
 // The object literal of a site: the props (the later entry of a key wins), its state overlays, and per theme (a theme
 // of a selector, by its name; one of a media query has no meaning here) what it changes.
+// `vars`: the token of each colour prop set to a lone token, for a theme of the run-time table (@cssints/tui defineTheme),
+// named without its `--`: a `--name` in a site's text would count as a token the module uses (entries.ts).
+const LONE = /^var\(--([\w-]+)\)$/;
 const replacement = (n: TuiNode): string => {
   const out: Props = {};
-  for (const [k, v, s, c] of n.__tui) put(out, s, k, c ? resolved(String(v)) : v);
+  const vars: Props = {};
+  for (const [k, v, s, c] of n.__tui) {
+    put(out, s, k, c ? resolved(String(v)) : v);
+    const token = c ? LONE.exec(String(v))?.[1] : undefined;
+    if (token) put(vars, s, k, token);
+    else if (c) delete (s ? ((vars[s] ?? {}) as Record<string, Value>) : vars)[k];
+  }
   const tokens = n.__tui.filter((e) => e[3] && String(e[1]).includes("var("));
   if (tokens.length) {
     const themes: Record<string, Props> = {};
@@ -452,6 +461,9 @@ const replacement = (n: TuiNode): string => {
     }
     if (Object.keys(themes).length) out.themes = themes as unknown as Record<string, Value>;
   }
+  for (const s of [":hover", ":focus", ":active"])
+    if (vars[s] && !Object.keys(vars[s]).length) delete vars[s];
+  if (Object.keys(vars).length) out.vars = vars as unknown as Record<string, Value>;
   return `(${Formatter.formatJson(out)})`; // parenthesized: an arrow function may return it
 };
 
