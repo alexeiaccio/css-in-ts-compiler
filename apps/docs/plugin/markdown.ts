@@ -139,7 +139,7 @@ export async function buildPages(base = "/"): Promise<Page[]> {
       file,
       tokens,
       page: {
-        slug: i === 0 ? "" : pageSlug(title),
+        slug: i === 0 ? "overview" : pageSlug(title),
         title: i === 0 ? "Overview" : plain(title),
         titleHtml: marked.parseInline(title) as string,
         meta: plain(meta),
@@ -166,7 +166,7 @@ export async function buildPages(base = "/"): Promise<Page[]> {
     if (/^https?:|^#/.test(target)) return target;
     const [path = "", hash = ""] = target.split("#");
     const repoPath = posix.normalize(posix.join(dirname(file), path));
-    if (repoPath === "README.md") return base;
+    if (repoPath === "README.md") return `${base}overview`;
     const pkg = /^packages\/([^/]+)(\/README\.md)?$/.exec(repoPath)?.[1];
     const readme = pkg && pages.find((p) => p.file === `packages/${pkg}/README.md`);
     if (readme) return `${base}${readme.page.slug}${hash && `#${hash}`}`;

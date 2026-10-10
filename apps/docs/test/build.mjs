@@ -8,6 +8,8 @@ import { join } from "node:path";
 
 import { build } from "vite";
 
+import { compile } from "../plugin/landing.ts";
+
 process.chdir(`${import.meta.dirname}/..`);
 const out = await build({ root: process.cwd(), logLevel: "warn", build: { write: false } });
 const files = [out].flat().flatMap((o) => o.output);
@@ -149,7 +151,7 @@ assert.match(
 );
 assert.match(written("install", "Install", "It needs Vite 8"), /^Not on npm yet/);
 assert.match(
-  written("", "CSS-in-TS", "cssints is compile-time CSS-in-TypeScript"),
+  written("overview", "CSS-in-TS", "cssints is compile-time CSS-in-TypeScript"),
   /^cssints is compile-time/,
 );
 written(
@@ -157,6 +159,43 @@ written(
   "<code>frame()</code>: concentric radius",
   "twoslash-popup-container",
 );
+// the landing page (plugin/landing.ts): the document of "/" holds it, and its showcase is what the engine makes of
+// src/landing/button.ts, compiled again here: the three panels read back from the html are the source, the module and the sheet
+const homeDoc = html.get("index.html");
+const landing = /<div id="prerender">(<div class="landing">[\s\S]*?)<nav aria-label="Pages">/.exec(
+  homeDoc,
+)?.[1];
+assert.ok(landing?.includes("<h1>CSS in TypeScript"), "the landing page is in the document of /");
+assert.ok(
+  !entry.code.includes("What you write, what you get"),
+  "the landing page is a chunk, not the entry",
+);
+const decode = (s) =>
+  s
+    .replace(/<[^>]+>/g, "")
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+const panels = Object.fromEntries(
+  [
+    ...landing.matchAll(/<figure><figcaption>(.*?)<\/figcaption>(<pre[\s\S]*?<\/pre>)<\/figure>/g),
+  ].map((m) => [m[1], decode(m[2])]),
+);
+const made = await compile();
+assert.equal(panels["button.ts"], made.source.trim(), "the source panel is the file");
+assert.equal(panels["The stylesheet"], made.css.trim(), "the sheet panel is the engine's output");
+assert.equal(
+  panels["The module in the bundle"],
+  made.code.trim(),
+  "the module panel is the engine's output",
+);
+assert.ok(made.css.includes("@layer _.a") && made.css.includes(":hover{"), "the sheet has rules");
+for (const cls of panels["The module in the bundle"].match(/_[a-z0-9]{5,8}\b/g))
+  assert.ok(panels["The stylesheet"].includes(`.${cls}`), `${cls} is in the sheet`);
+assert.match(landing, /<pre class="error"><code>color: unexpected "rebeccapurpel"/, "a real error");
+for (const href of ["install/", "playground/", "overview/"])
+  assert.ok(landing.includes(`href="${base}${href}"`), `the landing page links to ${href}`);
 // /playground is not a page of the docs: its document is the shell, whose root is not hidden, and a note for those without JS
 const shell = html.get("playground/index.html");
 assert.ok(

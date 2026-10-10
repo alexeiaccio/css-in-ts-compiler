@@ -185,6 +185,8 @@ export function Shell(props: { children?: JSX.Element }) {
   const { pages } = useContext(DocsContext);
   const [open, setOpen] = createSignal(false);
   const location = useLocation();
+  // the landing page is the whole width: no sidebar, no drawer
+  const home = () => location.pathname.replace(/\/$/, "") === url("").replace(/\/$/, "");
   createEffect(
     () => location.pathname,
     () => {
@@ -202,6 +204,7 @@ export function Shell(props: { children?: JSX.Element }) {
         <button
           type="button"
           class={css.cn(iconButton, menuButton)}
+          style={home() ? { display: "none" } : undefined}
           aria-label="Menu"
           aria-controls="sidebar"
           aria-expanded={open() ? "true" : "false"}
@@ -238,8 +241,8 @@ export function Shell(props: { children?: JSX.Element }) {
         </button>
         <SettingsPanel />
       </header>
-      <div class={body}>
-        <nav id="sidebar" class={side({ open: open() })} aria-label="Pages">
+      <div class={home() ? undefined : body}>
+        <nav id="sidebar" class={side({ open: open() })} aria-label="Pages" hidden={home()}>
           <For each={GROUPS}>
             {(group) => (
               <>

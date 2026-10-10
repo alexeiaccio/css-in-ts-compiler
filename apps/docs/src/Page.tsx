@@ -133,7 +133,7 @@ const START = [
 
 // The built pages carry their article as static html beside the hidden root (plugin/docs.ts): once the app has a page to show,
 // the static copy goes and the root appears in the same task.
-const reveal = () => {
+export const reveal = () => {
   document.getElementById("prerender")?.remove();
   document.getElementById("root")!.hidden = false;
 };
@@ -199,7 +199,7 @@ function Doc(props: { page: Meta }) {
           <p class={meta}>{props.page.meta}</p>
         </Show>
         <h1 class={title} innerHTML={props.page.titleHtml} />
-        <Show when={props.page.slug === ""}>
+        <Show when={props.page.slug === "overview"}>
           <nav class={start} aria-label="Start here">
             <For each={START}>
               {([slug, name, text]) => (
@@ -249,7 +249,7 @@ function NotFound() {
     <main class={main}>
       <h1 class={title}>Page not found</h1>
       <a href={url("")} class={card}>
-        <span class={cardTitle}>Back to the overview</span>
+        <span class={cardTitle}>Back to the home page</span>
       </a>
     </main>
   );
@@ -259,12 +259,7 @@ export default function Page(props: { slug: string }) {
   const { pages } = useContext(DocsContext);
   const page = createMemo(() => pages.find((p) => p.slug === props.slug));
   createEffect(
-    () =>
-      page()
-        ? props.slug === ""
-          ? "cssints"
-          : `${page()!.title} · cssints`
-        : "Not found · cssints",
+    () => (page() ? `${page()!.title} · cssints` : "Not found · cssints"),
     (name) => {
       document.title = name;
     },
