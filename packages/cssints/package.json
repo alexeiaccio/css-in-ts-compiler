@@ -130,11 +130,18 @@
   },
   "devDependencies": {
     "@jridgewell/trace-mapping": "^0.3.31",
+    "@opencode/client": "2.0.26",
     "@types/culori": "^4.0.1",
     "vite": "^8.3.0"
   },
   "peerDependencies": {
+    "@opencode/client": "^2.0.26",
     "vite": "^8.3.0"
+  },
+  "peerDependenciesMeta": {
+    "@opencode/client": {
+      "optional": true
+    }
   },
   "engines": {
     "node": ">=22"

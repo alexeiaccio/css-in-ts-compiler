@@ -4,9 +4,12 @@
 import "virtual:cssints.css";
 import { render } from "@solidjs/web";
 import { Effect, Exit, Stream, SubscriptionRef } from "effect";
-import { createMemo, createSignal, For, onCleanup, onSettled, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, onCleanup, onSettled, Show } from "solid-js";
 
 import {
+  ASKED,
+  type Asked,
+  buildPrompt,
   type Candidate,
   type Condition,
   domPage,
@@ -14,6 +17,7 @@ import {
   inspect,
   type Model,
   type Row,
+  relative,
   session,
   Transport,
   type TransportApi,
@@ -23,6 +27,13 @@ import * as s from "./styles.ts";
 // The sheet of the overlay, put in by the build (vite.config.ts) in place of this string.
 const SHEET = "__CSSINTS_DEVTOOLS_SHEET__";
 const HOST = "cssints-devtools";
+
+/** how the instruction last sent goes: the server's `Asked`, or `sending` before it answers */
+interface AskState {
+  status: string;
+  id?: string;
+  message?: string;
+}
 
 const cx = (...c: (string | false | undefined)[]) => c.filter(Boolean).join(" ");
 
@@ -35,9 +46,6 @@ const run = (model: Model, el: Element): Inspection | string => {
 const openInEditor = (file: string, line: number, column: number) =>
   // @effect-diagnostics-next-line globalFetch:off -- plain UI code: a fire-and-forget request to Vite's middleware
   void fetch(`/__open-in-editor?file=${encodeURIComponent(`${file}:${line}:${column + 1}`)}`);
-
-const relative = (root: string, file: string) =>
-  file.startsWith(`${root}/`) ? file.slice(root.length + 1) : file;
 
 const Conditions = (props: { of: readonly Condition[] }) => (
   <For each={props.of}>
@@ -240,6 +248,9 @@ function App(props: {
   host: Element;
   /** a build's overlay: open from the start, the sites are text (there is no editor to open them in) */
   build?: boolean;
+  /** only with `opencode` on in the dev server: sends an instruction about the picked element; `asked` is how it goes */
+  ask?: (prompt: string) => void;
+  asked: () => AskState | undefined;
 }) {
   const [open, setOpen] = createSignal(false);
   const [picking, setPicking] = createSignal(false);
@@ -247,18 +258,37 @@ function App(props: {
   const [selected, setSelected] = createSignal<Element>();
   const [tick, setTick] = createSignal(0);
   const target = () => (picking() ? (hovered() ?? selected()) : selected());
+  const [input, setInput] = createSignal<HTMLTextAreaElement>();
+  // the box keeps its text until the session exists, so that a missing service costs no retyping
+  createEffect(
+    () => props.asked()?.status,
+    (status) => {
+      const box = input();
+      if (status === "running" && box) box.value = "";
+    },
+  );
+  const send = () => {
+    const m = props.model();
+    const el = selected();
+    const text = input()?.value.trim();
+    const i = m && el?.isConnected ? run(m, el) : undefined;
+    if (text && el && typeof i === "object") props.ask?.(buildPrompt(i, el, text));
+  };
 
   const toggle = (on = !open()) => {
     setOpen(on);
     setPicking(on && !selected());
     props.setActive(on);
   };
-  const inspection = createMemo(() => {
-    tick();
-    const m = props.model();
-    const el = target();
-    return open() && m && el?.isConnected ? run(m, el) : undefined;
-  }, { equals: same });
+  const inspection = createMemo(
+    () => {
+      tick();
+      const m = props.model();
+      const el = target();
+      return open() && m && el?.isConnected ? run(m, el) : undefined;
+    },
+    { equals: same },
+  );
   const rect = createMemo(() => {
     tick();
     return open() ? target()?.getBoundingClientRect() : undefined;
@@ -290,6 +320,8 @@ function App(props: {
         else toggle(false);
         return;
       }
+      // arrows in the prompt box move its caret, not the selection
+      if (e.composedPath()[0] instanceof HTMLTextAreaElement) return;
       const el = selected();
       if (!el || picking()) return;
       const next =
@@ -405,6 +437,42 @@ function App(props: {
               {(i) => <Panel inspection={i()} build={props.build} />}
             </Show>
           </Show>
+          <Show when={props.ask && selected()}>
+            <div class={s.ask} data-devtools="ask">
+              <textarea
+                ref={setInput}
+                class={s.askInput}
+                data-devtools="ask-input"
+                rows="2"
+                placeholder="Ask OpenCode to change this element (Enter sends)"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+                    e.preventDefault();
+                    send();
+                  }
+                }}
+              />
+              <Show when={props.asked()}>
+                {(a) => (
+                  <div
+                    class={cx(
+                      s.sub,
+                      a().status === "completed"
+                        ? s.ok
+                        : a().status === "running" || a().status === "sending"
+                          ? s.muted
+                          : s.bad,
+                    )}
+                    data-devtools="ask-status"
+                    data-status={a().status}
+                    title={a().id}
+                  >
+                    {a().message ?? `${a().status}${a().id ? ` · ${a().id}` : ""}`}
+                  </div>
+                )}
+              </Show>
+            </div>
+          </Show>
         </aside>
       </Show>
     </>
@@ -434,6 +502,21 @@ export function mount(transport: TransportApi & { root: string; build?: boolean 
       Effect.sync(() => setModel(() => m)),
     ),
   );
+  // the answers of the dev server to the instruction last sent; one at a time, an older ref is ignored
+  const [asked, setAsked] = createSignal<AskState>();
+  const last = { ref: 0 };
+  const ask =
+    transport.ask &&
+    ((prompt: string) => {
+      setAsked({ status: "sending" });
+      last.ref += 1;
+      transport.ask?.(last.ref, prompt);
+    });
+  if (ask)
+    transport.on(ASKED, (data) => {
+      const a = data as Asked;
+      if (a.ref === last.ref) setAsked((prev) => ({ ...prev, ...a }));
+    });
   render(
     () => (
       <App
@@ -441,6 +524,8 @@ export function mount(transport: TransportApi & { root: string; build?: boolean 
         setActive={(on) => Effect.runSync(s.setActive(on))}
         host={host}
         build={transport.build}
+        ask={ask}
+        asked={asked}
       />
     ),
     root,

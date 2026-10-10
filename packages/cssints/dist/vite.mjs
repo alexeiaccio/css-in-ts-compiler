@@ -2,12 +2,12 @@ import { a as registry, c as EvalError, d as MacroError, f as MemberError, i as 
 import { C as RUNTIME_ID, D as runtimeNames, E as runtimeModule, S as DERIVED, T as fallbackEntries, a as LAYERS, b as kernelEntries, d as globalNames, f as layerEntries, g as themedEntries, i as keptImport, l as closeNames, m as renderSheet, n as RUNTIME, o as addGlobal, p as layerStatements, r as instrument, s as addLayers, u as globalEntries, v as usesDerived } from "./instrument-Cclndlxs.mjs";
 import { createRequire } from "node:module";
 import { targets as targets$1, useTargets } from "@cssints/css-grammar/support";
-import { Cause, Clock, Config, Effect, Exit, Formatter, Option, Predicate, Result, Schema, Semaphore } from "effect";
+import { Cause, Clock, Config, Data, Effect, Exit, Formatter, Option, Predicate, Result, Schema, Semaphore } from "effect";
 import { createHash } from "node:crypto";
-import { basename, join, relative, resolve } from "node:path";
+import { basename, join, relative, resolve, sep } from "node:path";
 import { browserslistToTargets } from "lightningcss";
 import MagicString from "magic-string";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { browsers as browsers$1 } from "@cssints/css-grammar/browsers";
 import { createServer, createServerModuleRunner, normalizePath, transformWithOxc } from "vite";
@@ -264,12 +264,79 @@ const table = Effect.fn("cssints.devtoolsTable")(function* (root, usedBy, callsO
 		tokens
 	};
 });
-const entryModule = (overlay, root) => overlay ? `import { mount } from ${Formatter.formatJson(overlay)};
+const ASK = "cssints:devtools:ask";
+const ASKED = "cssints:devtools:asked";
+const MAX_PROMPT = 16e3;
+const Asking = Schema.Struct({
+	ref: Schema.Finite,
+	prompt: Schema.String
+});
+var OpenCodeError = class extends Data.TaggedError("OpenCodeError") {};
+const workspace = (root) => root.split(sep).map((_, i, parts) => parts.slice(0, parts.length - i).join(sep) || sep).find((dir) => existsSync(join(dir, ".git"))) ?? root;
+const connect = Effect.fn("cssints.opencodeConnect")(function* () {
+	const unavailable = (message) => () => new OpenCodeError({
+		status: "unavailable",
+		message
+	});
+	const { OpenCode } = yield* Effect.tryPromise({
+		try: () => import("@opencode/client"),
+		catch: unavailable("opencode is on, but @opencode/client is not installed: add it to the devDependencies of the app")
+	});
+	const { Service } = yield* Effect.tryPromise({
+		try: () => import("@opencode/client/service"),
+		catch: unavailable("opencode is on, but @opencode/client is not installed: add it to the devDependencies of the app")
+	});
+	const service = yield* Effect.tryPromise({
+		try: () => Service.discover(),
+		catch: (e) => unavailable(Predicate.isError(e) ? e.message : String(e))()
+	});
+	if (!service) return yield* new OpenCodeError({
+		status: "unavailable",
+		message: "No OpenCode service is running. Start OpenCode (or `opencode serve --service`) and send again."
+	});
+	return OpenCode.make({
+		baseUrl: service.url,
+		headers: Service.headers(service)
+	});
+});
+const ask = Effect.fn("cssints.opencodeAsk")(function* (root, options, ref, prompt, say) {
+	const client = yield* connect();
+	const call = (f) => Effect.tryPromise({
+		try: f,
+		catch: (e) => new OpenCodeError({
+			status: "failed",
+			message: Predicate.isError(e) ? e.message : String(e)
+		})
+	});
+	const { id } = yield* call(() => client.session.create({
+		title: "cssints devtools: UI change",
+		...options.agent ? { agent: options.agent } : {},
+		location: { directory: workspace(root) }
+	}));
+	say({
+		ref,
+		status: "running",
+		id
+	});
+	yield* call(() => client.session.prompt({
+		sessionID: id,
+		text: prompt.slice(0, MAX_PROMPT),
+		...options.skills?.length ? { skills: options.skills.map((s) => ({ id: s })) } : {}
+	}));
+	yield* call(() => client.session.wait({ sessionID: id }));
+	const { outcome } = yield* call(() => client.session.get({ sessionID: id }));
+	say({
+		ref,
+		status: outcome === "succeeded" ? "completed" : outcome ?? "failed",
+		id
+	});
+});
+const entryModule = (overlay, root, opencode) => overlay ? `import { mount } from ${Formatter.formatJson(overlay)};
 const hot = import.meta.hot;
 mount({
   root: ${Formatter.formatJson(root)},
   request: () => hot.send("cssints:devtools:get"),
-  on: (event, listener) => hot.on(event, listener),
+  on: (event, listener) => hot.on(event, listener),${opencode ? `\n  ask: (ref, prompt) => hot.send("${ASK}", { ref, prompt }),` : ""}
 });
 ` : `console.warn("cssints: devtools is on, but @cssints/devtools/overlay is not installed (or not built): add @cssints/devtools to the devDependencies of the app");\n`;
 /**
@@ -277,14 +344,15 @@ mount({
 * `apply: "serve"`, so a build has none of it.
 * @param {Map<string, string>} usedBy the entries of each client module (plugin.ts)
 * @param {Map<string, DevSite[]>} callsOf the sites of each client module
+* @param {OpenCodeOptions | undefined} opencode set: the overlay's prompt box starts OpenCode sessions through this server
 * @returns {Plugin} the plugin
 */
-const devtoolsPlugin = (usedBy, callsOf) => {
+const devtoolsPlugin = (usedBy, callsOf, opencode) => {
 	let server;
 	const stale = () => Effect.sync(() => server?.environments.client.hot.send("cssints:devtools:stale"));
 	const entry = Effect.fn("cssints.devtoolsEntry")(function* (resolve) {
 		const overlay = yield* Effect.tryPromise(resolve).pipe(Effect.orElseSucceed(() => null));
-		return entryModule(overlay?.id, server?.config.root ?? "");
+		return entryModule(overlay?.id, server?.config.root ?? "", !!opencode);
 	});
 	return {
 		name: "cssints:devtools",
@@ -292,6 +360,17 @@ const devtoolsPlugin = (usedBy, callsOf) => {
 		configureServer(s) {
 			server = s;
 			s.environments.client.hot.on("cssints:devtools:get", (_, client) => client.send("cssints:devtools", Effect.runSync(table(s.config.root, usedBy, callsOf))));
+			if (opencode) s.environments.client.hot.on(ASK, (data) => {
+				const asking = Schema.decodeUnknownOption(Asking)(data);
+				if (Option.isNone(asking)) return;
+				const { ref, prompt } = asking.value;
+				const say = (asked) => s.environments.client.hot.send(ASKED, asked);
+				Effect.runFork(ask(s.config.root, opencode, ref, prompt, say).pipe(Effect.catchTag("OpenCodeError", (e) => Effect.sync(() => say({
+					ref,
+					status: e.status,
+					message: e.message
+				})))));
+			});
 		},
 		transformIndexHtml: () => [{
 			tag: "script",
@@ -604,7 +683,7 @@ const locate = Effect.fn("cssints.locate")(function* (e, code, id) {
 	}
 	return yield* e;
 });
-function cssints({ inner = false, devtools = false } = {}) {
+function cssints({ inner = false, devtools = false, opencode = false } = {}) {
 	let server;
 	let ownServer = false;
 	let runner;
@@ -943,7 +1022,7 @@ function cssints({ inner = false, devtools = false } = {}) {
 		}
 	};
 	if (!devtools || inner) return [main, version];
-	const dev = devtoolsPlugin(usedBy, callsOf);
+	const dev = devtoolsPlugin(usedBy, callsOf, opencode ? opencode === true ? {} : opencode : void 0);
 	return devtools === "build" ? [
 		main,
 		version,

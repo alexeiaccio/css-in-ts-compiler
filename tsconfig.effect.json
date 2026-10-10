@@ -9,6 +9,9 @@
       {
         "name": "@effect/language-service",
         "ignoreEffectSuggestionsInTscExitCode": false,
+        // @opencode/client (the devtools' OpenCode prompt box, an optional peer of cssints) pins effect 4.0.0-rc.112 for its own
+        // schemas; its Promise client shares no value with ours
+        "allowedDuplicatedPackages": ["effect"],
         "diagnosticSeverity": {
           "abortControllerInEffect": "error",
           "acquireReleaseDisposable": "error",

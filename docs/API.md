@@ -974,6 +974,39 @@ TOKENS
 - **How it gets the data.** Over Vite's HMR channel, no endpoint: the overlay asks for the table (`cssints:devtools:get`) and the server builds it from its own records: the sheet as it serves it, each class's rule, plugin and tokens, and the place of every call. After each transform the server says the table is stale, and an open overlay asks again.
 - **Nothing in a build, unless asked.** `devtools: true` adds a plugin with `apply: "serve"`; `vite build` has no entry, no script and no event of it (packages/devtools/test/build.mjs builds the demo with the option on and searches the output).
 - **In a build: `devtools: "build"`.** The same overlay on the built site, for a project whose code is public or whose readers want to see how a page is styled (this site has it on). The build writes the table once every module is transformed, as a JSON asset (`assets/cssints-devtools-<hash>.json`: the sheet, the classes, the tokens, the sites), puts the overlay in a chunk of its own, and adds a loader to the entry: a `cssints` button and Alt+Shift+C, under 1 kB. Nothing else loads until the first open; then the overlay and the table do, and the panel opens. The table is static, so there is no stale state and no update. A site is its file relative to the project, the line and the call's source, shown as text: there is no link to an editor, and none to a repository. This site's table is 70 kB (12 kB gzip), the overlay 190 kB (64 kB gzip), the entry grows by 0.85 kB (0.4 kB gzip). The option needs `@cssints/devtools` installed like the dev one; without it the page logs a warning in the console on the first open.
+- **Ask OpenCode: `opencode` (dev only, off by default, cssints-ro4k, 2026-10-10).** With a picked element the panel can have a prompt box: type a change, Enter sends. It is a second option, because it starts a coding agent in your repository and must be asked for by name:
+
+  ```ts skip
+  cssints({ devtools: true, opencode: true });
+  // or: opencode: { agent: "build", skills: ["cssints"] }
+  ```
+
+  The dev server, never the page, talks to the OpenCode V2 service that is running on the machine (the one `opencode serve --service` and the desktop app register; found with `Service.discover` of `@opencode/client`, so the page holds no address and no credentials). It creates a session in the workspace root (the nearest folder up from the Vite root with a `.git`), sends the prompt, waits for the session to end, and tells the overlay the status over the same HMR channel (`cssints:devtools:ask` from the page, `cssints:devtools:asked` back: no route that another origin could post to). The box shows `sending`, then `running · ses_…`, then `completed`, `failed` or `interrupted`; with no service running it says so and keeps your text. `@opencode/client` is an optional peer dependency: install it in the app (the message names it when it is missing). The prompt is made of cssints' own data, not source markers added to the markup, and is bounded (8 call sites, 24 properties, 3 beaten declarations each, 12 tokens, a call cut at 400 characters; the server cuts the whole at 16000):
+
+  ```text skip
+  Change the UI of the running app as the instruction says.
+  The styles are written with cssints: each `css.*` call below produced the classes of the element,
+  so edit those calls (or the markup that uses them), not the generated class names.
+
+  Instruction: make it bigger
+
+  Element: <p#p>
+  DOM path: html > body > p#p
+  Text: hello
+  Classes: _aasmd7 _1t8gqy5
+
+  Styled by (file:line, the call as written):
+  - main.ts:5
+    color("rebeccapurple")
+  - main.ts:5
+    p(2)
+
+  Properties now (the winner, then what it beat):
+  - color: rebeccapurple from ._aasmd7 (_.a)
+  - padding: 0.5rem from ._1t8gqy5 (_.a)
+  ```
+
+  A build has none of it: the server side is in the `apply: "serve"` plugin, and `devtools: "build"` with `opencode` on still gives a loader without a way to ask (the dormant box is part of the overlay chunk, about 1 kB). The idea and the V2 client calls follow brendonovich/vite-plugin-opencode (MIT).
 - **Its own styles do not touch yours.** The overlay is a custom element with a shadow root and its own cssints sheet, built with the package: the page's rules do not reach it, and its classes are not in your sheet or in the table.
 - **Limits.** The proximity of `@scope` is not ranked (no two looks set one property on one element), and a logical and a physical property (`margin-inline-start`, `margin-left`) are two properties, as `cn()` treats them; an element inside another shadow root is picked as its host; a page that Vite does not serve as HTML (server rendering) gets no entry.
 

@@ -29,14 +29,19 @@ import { verifyChecks } from "./contrast.ts";
 import { evaluate, DomEvaluator } from "./evaluate.ts";
 import { HookError, type PluginError, SiteMissingError } from "./errors.ts";
 import { CV_CALL, instrument, keptImport, RUNTIME, type Instrumented } from "./instrument.ts";
-import { type DevSite, devtoolsBuildPlugin, devtoolsPlugin } from "./devtools-server.ts";
+import {
+  type DevSite,
+  devtoolsBuildPlugin,
+  devtoolsPlugin,
+  type OpenCodeOptions,
+} from "./devtools-server.ts";
 import { RUNTIME_ID, runtimeModule } from "./delivery.ts";
 import { moduleEntries } from "./entries.ts";
 import { forget, forgetWarnings, Registry } from "./registry.ts";
 import { LAYERS, renderSheet } from "./sheet.ts";
 import { closeTrace, hook, runPromiseExit, runSync, warned } from "./trace.ts";
 
-export type { DevTable } from "./devtools-server.ts";
+export type { DevTable, OpenCodeOptions } from "./devtools-server.ts";
 export { instrument } from "./instrument.ts";
 export { addGlobal, addLayers, globalEntries, layerEntries, renderSheet } from "./sheet.ts";
 
@@ -202,6 +207,7 @@ const locate = Effect.fn("cssints.locate")(function* (
 export default function cssints({
   inner = false,
   devtools = false,
+  opencode = false,
 }: {
   inner?: boolean;
   /**
@@ -209,6 +215,12 @@ export default function cssints({
    * a build too, with the table as a static asset and the overlay in a chunk that loads on the first open.
    */
   devtools?: boolean | "build";
+  /**
+   * Dev only, with `devtools`: the overlay gets a prompt box for the picked element. The dev server (never the page) starts a
+   * session on the running OpenCode service, in the app's repository, with a prompt made of the element's call sites, cascade
+   * and tokens plus the instruction. Needs `@opencode/client` installed. Off by default; a build has none of it.
+   */
+  opencode?: boolean | OpenCodeOptions;
 } = {}): Plugin[] {
   let server: ViteDevServer | undefined; // dev server (dev) or a private one (build)
   let ownServer = false;
@@ -700,7 +712,11 @@ export default function cssints({
     },
   };
   if (!devtools || inner) return [main, version];
-  const dev = devtoolsPlugin(usedBy, callsOf);
+  const dev = devtoolsPlugin(
+    usedBy,
+    callsOf,
+    opencode ? (opencode === true ? {} : opencode) : undefined,
+  );
   return devtools === "build"
     ? [main, version, dev, devtoolsBuildPlugin(usedBy, callsOf)]
     : [main, version, dev];

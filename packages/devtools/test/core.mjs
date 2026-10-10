@@ -8,7 +8,14 @@ import assert from "node:assert/strict";
 import { Effect, Exit, Layer } from "effect";
 import { Window } from "happy-dom";
 
-import { inspect, toModel, Page, specificity, stripStates } from "../src/core/index.ts";
+import {
+  buildPrompt,
+  inspect,
+  toModel,
+  Page,
+  specificity,
+  stripStates,
+} from "../src/core/index.ts";
 
 const window = new Window();
 const document = window.document;
@@ -500,6 +507,63 @@ ${odd} {
     foreign: [],
     animated: false,
   });
+}
+
+// ---------- the prompt for OpenCode: the instruction, the call sites with their text, the winner and what it beat, the tokens;
+// every list is cut
+{
+  const sheet = `@layer _.b {
+  ._h:hover{color:red}
+  ._m{color:blue}
+}`;
+  const sites = [
+    {
+      file: "/app/src/Card.tsx",
+      line: 12,
+      column: 4,
+      classes: ["_h", "_m"],
+      text: 'color("blue").hover(color("red"))',
+    },
+    ...Array.from({ length: 12 }, (_, i) => ({
+      file: `/app/src/other${i}.ts`,
+      line: i + 1,
+      column: 0,
+      classes: [`_s${i}`],
+      text: "x".repeat(1000),
+    })),
+  ];
+  const t = table(sheet, {
+    _h: cls("_.b", "._h:hover{color:red}", { sites: [0] }),
+    _m: cls("_.b", "._m{color:blue}", { tokens: ["--color-bg"], sites: [0] }),
+    ...Object.fromEntries(
+      sites
+        .slice(1)
+        .map((_, i) => [`_s${i}`, cls("_.b", `._s${i}{color:blue}`, { sites: [i + 1] })]),
+    ),
+  });
+  t.sites = sites;
+  const el = html(
+    `<main><a id="t" class="_h _m ${sites
+      .slice(1)
+      .map((_, i) => `_s${i}`)
+      .join(" ")}" data-hover>Buy now</a></main>`,
+  );
+  holds = new Set();
+  const text = buildPrompt(await run(t, el), el, "  make it bigger ");
+  assert.match(text, /Instruction: make it bigger\n/);
+  assert.match(text, /Element: <a#t>/);
+  assert.match(text, /DOM path: html > body > main > a#t/);
+  assert.match(text, /Text: Buy now/);
+  assert.match(text, /- src\/Card\.tsx:12\n {2}color\("blue"\)\.hover\(color\("red"\)\)/);
+  assert.match(
+    text,
+    /- color: red from \._h:hover \(_\.b\); overridden: color: blue \._m \(_\.b\)/,
+  );
+  assert.match(text, /- --color-bg = computed\(--color-bg\) \(color\.bg\)/);
+  assert.match(text, /… and \d+ more/, "the sites are cut");
+  assert.ok(!text.includes("x".repeat(401)), "a call is cut");
+  assert.ok(text.length < 6000, `${text.length} characters`);
+  assert.ok(!text.includes("/app/"), "paths are relative to the root");
 }
 
 // ---------- a bad table is a TableError

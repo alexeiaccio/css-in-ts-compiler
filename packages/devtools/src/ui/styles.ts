@@ -212,3 +212,21 @@ export const bad = color("#fca5a5");
 export const unsure = color("#fcd34d");
 export const reason = cn(paddingInlineStart("12px"), color("#fca5a5"), fontSize("11px"));
 export const hint = cn(p(2), color(dim));
+
+export const ask = cn(
+  position("sticky"),
+  bottom("0"),
+  p(2),
+  bg(panelBg),
+  borderTop("1px solid", line),
+);
+export const askInput = cn(
+  display("block"),
+  width("100%"),
+  p(1),
+  border("1px solid", line),
+  borderRadius("4px"),
+  bg("#0b1220"),
+  color(ink),
+  font("inherit"),
+);

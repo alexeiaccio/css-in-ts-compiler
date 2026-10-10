@@ -38,11 +38,29 @@ docs/API.md, "Debugging: the devtools overlay"; the design in docs/research/devt
   (Solid, Effect and the core bundled): an app needs neither Solid nor a second CSS file. No tokens in its styles:
   `@property` is ignored inside a shadow root.
 
+## Ask OpenCode
+
+```ts
+// dev only, off by default; @opencode/client in the app's devDependencies
+cssints({ devtools: true, opencode: true });
+cssints({ devtools: true, opencode: { agent: "build", skills: ["cssints"] } });
+```
+
+With an element picked, the panel has a prompt box (Enter sends, Shift+Enter is a new line). The dev server starts a session
+on the running OpenCode V2 service (`Service.discover` of `@opencode/client`; the page never talks to it) in the nearest
+folder up from the Vite root that has a `.git`, with a prompt of `src/core/prompt.ts`: your instruction, the element (tag,
+DOM path, text, classes), the `css.*` calls that style it (`file:line` and the call's source), the winner of each property
+and what it beat, and the tokens it reads; every list is cut. The box then shows `running · <session id>`, and `completed`,
+`failed` or `interrupted`; with no service running it says so and keeps your text. The page and the server talk over the
+HMR channel (`cssints:devtools:ask`, `cssints:devtools:asked`), not a route. A build has none of it. The idea, and the
+calls to the V2 client, follow [brendonovich/vite-plugin-opencode](https://github.com/Brendonovich/vite-plugin-opencode)
+(MIT, Brendan Allan), which marks the markup with Babel and so needs no table; here the table is the context.
+
 ## Layout
 
 - `src/core`: Effect code, no overlay in it (an extension could host it): `table.ts` (the decoded table and its
   model), `css.ts` (sheet parser, specificity, states), `cascade.ts` (`inspect`), `page.ts` (the `Page` service),
-  `dom.ts` (its browser layer), `session.ts` (the protocol and the state).
+  `dom.ts` (its browser layer), `session.ts` (the protocol and the state), `prompt.ts` (the prompt for OpenCode).
 - `src/ui`: the Solid overlay (`overlay.tsx`, `mount`) and its cssints styles (`styles.ts`).
 
 ## Browsers
@@ -61,6 +79,7 @@ Chrome, Firefox and WebKit, checked by `test:browsers` on apps/demo's dev server
 ```bash
 bun run test            # test/core.mjs (the cascade on happy-dom: hover vs media, @container, @supports, @scope,
                         # an unlayered rule, frame's kernel, within(), grouping), test/build.mjs (nothing in a build
-                        # without the option; with "build": the table, the lazy chunk, the loader's size; apps/docs/test/browser.mjs opens it in Chrome)
-bun run test:browsers   # builds dist/overlay.js, then the demo in Chrome, Firefox and WebKit (test/browsers.mjs)
+                        # without the option; with "build": the table, the lazy chunk, the loader's size; apps/docs/test/browser.mjs opens it in Chrome),
+                        # test/opencode.mjs (the dev server and a fake OpenCode service: the prompt as sent, the agent, the directory, the status, no service)
+bun run test:browsers   # builds dist/overlay.js, then the demo in Chrome, Firefox and WebKit (test/browsers.mjs), then the prompt box in Chrome (test/ask-browser.mjs)
 ```
