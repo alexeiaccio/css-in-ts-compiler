@@ -39,6 +39,10 @@ for (const mode of [
 ])
   useMode(mode);
 
+// culori's parse with the modes above. Import it, not culori's own: the package has `"sideEffects": false`, so a bare
+// `import "./color.ts"` is dropped by the build and parse() would read nothing (cssints-649r).
+export const parseColor = (text: string): ReturnType<typeof parse> => parse(text);
+
 // The relative luminance of a CSS colour, or why it has none. A colour outside sRGB is clipped to it.
 export const luminance = (text: string) => {
   const c = parse(text);

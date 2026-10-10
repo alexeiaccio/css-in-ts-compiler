@@ -2,9 +2,6 @@
 // @cssints/tui/opentui puts it on a renderable (`<box {...use(s.card)} />`) and keeps it in step with the mouse, the
 // focus and the theme. Dark is the default theme, `light` the other one (setTheme). This module imports cssints/tui
 // only: the build evaluates it on a server without the app's aliases (cssints-qnif).
-// culori's colour modes, which cssints's dist/tui.mjs leaves out (cssints-649r): build time only, like every import
-// with the attribute.
-import "culori" with { type: "cssints" };
 import * as css from "cssints/tui" with { type: "cssints" };
 
 export const c = css.createTokens({

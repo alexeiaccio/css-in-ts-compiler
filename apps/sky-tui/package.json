@@ -20,7 +20,6 @@
   },
   "devDependencies": {
     "cssints": "workspace:*",
-    "culori": "^4.0.2",
     "vite": "catalog:",
     "vite-plugin-solid": "^2.11.10"
   }

@@ -2,10 +2,10 @@
 // engine (macro.ts `replacementOf`, through `registry.tui`) replaces a site that holds one by an object literal of props:
 // cells for lengths, `#rrggbb` for colours, `:hover`, `:focus` and `:active` overlays, and the values each theme changes.
 // Plain code like lib.ts: user code calls the builders in expressions; they throw a MacroError at the site.
-import { clampRgb, formatHex, formatHex8, parse } from "culori/fn";
+import { clampRgb, formatHex, formatHex8 } from "culori/fn";
 import { Formatter } from "effect";
 
-import "./color.ts"; // culori's colour modes
+import { parseColor as parse } from "./color.ts";
 import { together, valueOf } from "./contrast.ts";
 import { css as rgbOf, evaluate } from "./derived.ts";
 import { fail } from "./node.ts";
