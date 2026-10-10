@@ -86,7 +86,7 @@ export async function landing(base: string): Promise<string> {
 <img src="${base}logo.svg" alt="" width="96" height="96">
 <h1>CSS in TypeScript, compiled away</h1>
 <p class="lead">cssints turns typed style calls into atomic, content-hashed classes in one stylesheet when you build. The browser gets class names, not a styling library.</p>
-<div class="install">${code("npm install --save-dev cssints", "bash")}</div>
+<div class="install">${code("npm install --save-dev cssints@next", "bash")}</div>
 <p class="actions"><a class="primary" href="${base}install/">Get started</a><a href="${base}playground/">Try the playground</a><a href="${base}overview/">Read the docs</a></p>
 </section>
 <section class="showcase" aria-labelledby="showcase">
