@@ -6,7 +6,10 @@
     "jsxImportSource": "@solidjs/web",
     "types": ["vite/client", "node"],
     "allowArbitraryExtensions": true,
-    "paths": { "cssints-src/*": ["../../packages/cssints/src/*"] }
+    "paths": {
+      "cssints-src/*": ["../../packages/cssints/src/*"]
+    }
   },
-  "include": ["src", "plugin", "test", "vite.config.ts"]
+  "include": ["src", "plugin", "test", "vite.config.ts"],
+  "exclude": ["test/out"]
 }
