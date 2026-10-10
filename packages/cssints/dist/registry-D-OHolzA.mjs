@@ -65,7 +65,7 @@ const forgetKernels = (file) => {
 };
 const forget = (file) => {
 	forgetKernels(file);
-	for (const [k, t] of registry.themed) if (t.file === file) registry.themed.delete(k);
+	for (const themed of [registry.themed, registry.terminal?.themed ?? /* @__PURE__ */ new Map()]) for (const [k, t] of themed) if (t.file === file) themed.delete(k);
 	for (const [k, c] of registry.checks) if (c.at.file === file) registry.checks.delete(k);
 };
 //#endregion

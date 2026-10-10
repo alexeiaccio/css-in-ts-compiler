@@ -1,11 +1,35 @@
-import { a as registry } from "./registry-n9JCX4pl.mjs";
-import { O as fail, a as createTokens, i as createGlobalTheme } from "./theme-BGEbFAYh.mjs";
-import { g as evaluate, h as css } from "./sheet-CO7a-mdA.mjs";
-import { n as valueOf, t as together } from "./contrast-BUKVao74.mjs";
+import { a as registry } from "./registry-D-OHolzA.mjs";
+import { a as createTokens$1, i as createGlobalTheme$1, k as fail, s as sets } from "./theme-l5MIpKpC.mjs";
+import { g as evaluate, h as css } from "./sheet-CMy2k66R.mjs";
+import { n as valueOf, t as together } from "./contrast-BPggAw9_.mjs";
 import { n as parseColor } from "./color-BYIxVLlS.mjs";
 import { Formatter } from "effect";
 import { clampRgb, formatHex, formatHex8 } from "culori/fn";
 //#region src/tui.ts
+const terminal = registry.terminal ??= {
+	properties: /* @__PURE__ */ new Map(),
+	defs: /* @__PURE__ */ new Map(),
+	themed: /* @__PURE__ */ new Map()
+};
+const inTerminal = (f) => (...args) => {
+	const web = {
+		properties: registry.properties,
+		defs: registry.defs,
+		themed: registry.themed
+	};
+	Object.assign(registry, terminal);
+	try {
+		return f(...args);
+	} finally {
+		Object.assign(registry, web);
+	}
+};
+const createTokens = inTerminal((...args) => {
+	const root = createTokens$1(...args);
+	sets.get(root).terminal = true;
+	return root;
+});
+const createGlobalTheme = inTerminal(createGlobalTheme$1);
 const isTui = (v) => !!v && typeof v === "object" && Array.isArray(v.__tui);
 const node = (entries) => ({ __tui: entries });
 const say = (v) => typeof v === "string" ? `"${v}"` : Formatter.formatJson(v);
@@ -47,7 +71,7 @@ const VAR = /var\((--[\w-]+)\)/g;
 const colour = (prop, v) => {
 	const text = String(v);
 	for (const [, name] of text.matchAll(VAR)) {
-		const def = registry.defs.get(name);
+		const def = terminal.defs.get(name);
 		if (!def) throw fail(`cssints: ${prop}: ${name} is no token of createTokens`);
 		if (def.kind !== "color" && text === `var(${name})`) throw fail(`cssints: ${prop}: ${def.path} is a ${def.kind} token, not a colour`);
 	}
@@ -356,7 +380,7 @@ const put = (out, state, key, value) => {
 	else (out[state] ??= {})[key] = value;
 };
 const resolved = (text, values) => {
-	const flat = text.replace(VAR, (m, n) => valueOf(registry, n, values) ?? m);
+	const flat = text.replace(VAR, (m, n) => valueOf(terminal, n, values) ?? m);
 	const hex = hexOf(flat);
 	if (hex === void 0) throw fail(`cssints: ${say(text)} is ${say(flat)} here, not a colour a terminal can show`);
 	return hex;
@@ -374,7 +398,11 @@ const replacement = (n) => {
 	const tokens = n.__tui.filter((e) => e[3] && String(e[1]).includes("var("));
 	if (tokens.length) {
 		const themes = {};
-		for (const { label, values } of together(registry)) {
+		const all = together({
+			themed: terminal.themed,
+			layers: registry.layers
+		});
+		for (const { label, values } of all) {
 			if (label.startsWith("@")) continue;
 			const overlay = {};
 			for (const [k, v, s] of tokens) {

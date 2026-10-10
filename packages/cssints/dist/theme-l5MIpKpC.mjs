@@ -1,6 +1,6 @@
-import { a as registry, d as MacroError, f as MemberError, o as warn } from "./registry-n9JCX4pl.mjs";
-import { D as relation, E as covers, d as requireLayer, p as standIn } from "./sheet-CO7a-mdA.mjs";
-import { t as fallbackOf } from "./lowered-CeoXbm0P.mjs";
+import { a as registry, d as MacroError, f as MemberError, o as warn } from "./registry-D-OHolzA.mjs";
+import { D as relation, E as covers, d as requireLayer, p as standIn } from "./sheet-CMy2k66R.mjs";
+import { t as fallbackOf } from "./lowered-DOR84qdu.mjs";
 import { createRequire } from "node:module";
 import { checkSelector } from "@cssints/css-grammar/check";
 import { browsers, supportOf } from "@cssints/css-grammar/support";
@@ -757,7 +757,12 @@ const createTokens = (...args) => edge(Effect.gen(function* () {
 	}
 	return root;
 }));
-const tokensOf = (v) => Predicate.isObject(v) && sets.has(v) ? Formatter.formatJson(v) : void 0;
+const tokensOf = (v) => {
+	const set = Predicate.isObject(v) ? sets.get(v) : void 0;
+	if (!set) return void 0;
+	const text = Formatter.formatJson(v);
+	return set.terminal ? text.replaceAll("--", "-\\u002d") : text;
+};
 const DONE = Object.freeze({ __done: true });
 const isDone = (v) => v === DONE;
 const isCondition = (v) => typeof v === "function" && Predicate.hasProperty(v, "__cond") && Predicate.hasProperty(v, "cond");
@@ -903,4 +908,4 @@ const contrast = (...args) => edge(Effect.gen(function* () {
 }));
 const check = { contrast };
 //#endregion
-export { isNode as A, minWidth as C, camel as D, VAR as E, probed as M, fail as O, merged as S, toDecls as T, chainDecl as _, createTokens as a, hashClass as b, CSSTokenValue as c, token as d, CONTEXTS as f, carried as g, PSEUDOS as h, createGlobalTheme as i, node as j, failIn as k, isStyle as l, LAYER as m, addTheme as n, isDone as o, FUNCTIONS as p, check as r, tokensOf as s, DONE as t, style as u, checkVars as v, settled as w, isFallback as x, edge as y };
+export { failIn as A, merged as C, VAR as D, toDecls as E, node as M, probed as N, camel as O, isFallback as S, settled as T, carried as _, createTokens as a, edge as b, tokensOf as c, style as d, token as f, PSEUDOS as g, LAYER as h, createGlobalTheme as i, isNode as j, fail as k, CSSTokenValue as l, FUNCTIONS as m, addTheme as n, isDone as o, CONTEXTS as p, check as r, sets as s, DONE as t, isStyle as u, chainDecl as v, minWidth as w, hashClass as x, checkVars as y };

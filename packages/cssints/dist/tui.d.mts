@@ -1,15 +1,8 @@
-import "./node-CdhAGmF3.mjs";
-import "./lib-2OEIfPAE.mjs";
-import { CSSStyleValue } from "@cssints/css-grammar/values";
-import { Effect } from "effect";
-import { DtcgType } from "@cssints/css-grammar/token";
-//#region src/theme.d.ts
+//#region src/tui.d.ts
 export declare const createTokens: (...args: unknown[]) => unknown;
 export declare const createGlobalTheme: (...args: unknown[]) => Readonly<{
   __done: true;
 }>;
-//#endregion
-//#region src/tui.d.ts
 type State = "" | ":hover" | ":focus" | ":active";
 type Value = string | number | boolean;
 /** One prop: its key, its value (a colour is CSS text, resolved per theme at the site), and the state it is under. */

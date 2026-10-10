@@ -1,4 +1,4 @@
-import { d as MacroError, f as MemberError, o as warn, t as Registry } from "./registry-n9JCX4pl.mjs";
+import { d as MacroError, f as MemberError, o as warn, t as Registry } from "./registry-D-OHolzA.mjs";
 import { browsers, lacking, messageOf, supportOf } from "@cssints/css-grammar/support";
 import { Effect, Formatter, Result, Schema } from "effect";
 import { longhands } from "@cssints/css-grammar/longhands";

@@ -150,6 +150,8 @@ interface RegistryState {
   tui?: (value: {
     readonly __tui: unknown;
   }) => string | undefined;
+  /** the tokens and themes of cssints/tui (tui.ts): a namespace of their own, never in a sheet (cssints-0s1z) */
+  terminal?: Pick<RegistryState, "properties" | "defs" | "themed">;
   /** what the front of "cssints/plugin" calls (scope-engine.ts `engine`), set by macro.ts */
   engine?: object;
   /** the typed properties of scopes: checked by their own grammar when called, not by the engine */
