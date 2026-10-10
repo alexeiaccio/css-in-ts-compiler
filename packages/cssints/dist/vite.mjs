@@ -636,6 +636,13 @@ function cssints({ inner = false, devtools = false } = {}) {
 		usedBy.set(id, s);
 		yield* reloadSheet();
 	});
+	const drop = Effect.fnUntraced(function* (id) {
+		if (!usedBy.delete(id)) return;
+		forget(id);
+		siteOf.delete(id);
+		callsOf.delete(id);
+		yield* reloadSheet();
+	});
 	const runnerDeps = (env, id, out = /* @__PURE__ */ new Set(), seen = /* @__PURE__ */ new Set()) => {
 		const mod = env.moduleGraph.getModuleById(id);
 		if (!mod || seen.has(id)) return out;
@@ -745,7 +752,10 @@ function cssints({ inner = false, devtools = false } = {}) {
 	const transform = Effect.fn("cssints.transform")(function* (ctx, code, url) {
 		const id = url.replace(VERSION, "");
 		if (!FILE_RE.test(id)) return void 0;
-		if (!marked(code, id)) return ctx.environment.name === "ssr" && /[jt]sx$/.test(id) && !id.includes("node_modules") ? yield* inertJsx(code, id) : void 0;
+		if (!marked(code, id)) {
+			if (ctx.environment.name === "client") yield* drop(id);
+			return ctx.environment.name === "ssr" && /[jt]sx$/.test(id) && !id.includes("node_modules") ? yield* inertJsx(code, id) : void 0;
+		}
 		if (ctx.environment.name === "ssr") {
 			const out = yield* instrument(code, id, false);
 			return out && /x$/.test(id) ? yield* inertJsx(out.code, id) : out?.code;

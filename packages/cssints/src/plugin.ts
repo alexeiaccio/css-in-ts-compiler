@@ -251,6 +251,16 @@ export default function cssints({
     yield* reloadSheet();
   });
 
+  // A module that no longer imports cssints: what its last run left is forgotten as a re-run forgets it, and its rules
+  // leave the sheet (a module without the import is not transformed here, so nothing else would).
+  const drop = Effect.fnUntraced(function* (id: string) {
+    if (!usedBy.delete(id)) return;
+    forget(id);
+    siteOf.delete(id);
+    callsOf.delete(id);
+    yield* reloadSheet();
+  });
+
   const runnerDeps = (
     env: ViteDevServer["environments"]["ssr"],
     id: string,
@@ -403,6 +413,7 @@ export default function cssints({
     const id = url.replace(VERSION, "");
     if (!FILE_RE.test(id)) return undefined;
     if (!marked(code, id)) {
+      if (ctx.environment.name === "client") yield* drop(id);
       // The runner follows the imports of a module with sites, into components that have none: their JSX is inert as well.
       return ctx.environment.name === "ssr" && /[jt]sx$/.test(id) && !id.includes("node_modules")
         ? yield* inertJsx(code, id)
