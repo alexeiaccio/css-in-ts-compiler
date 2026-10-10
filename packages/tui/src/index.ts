@@ -98,7 +98,7 @@ export const resolve = (style: TuiShape, state: TuiState = {}, name = current): 
     if (state[s === ":hover" ? "hover" : s === ":focus" ? "focus" : "active"]) {
       own(out, style[s]);
       own(out, themed?.[s]);
-      tokens(vars?.[s] as Vars | undefined);
+      tokens(vars?.[s]);
     }
   return out;
 };

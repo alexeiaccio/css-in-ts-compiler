@@ -1,11 +1,11 @@
 ---
 # cssints-q1j3
 title: 'TUI: a system theme from the terminal''s palette'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-10T15:47:29Z
-updated_at: 2026-10-10T15:47:29Z
+updated_at: 2026-10-10T17:24:22Z
 parent: cssints-06ws
 blocked_by:
     - cssints-kotl
@@ -21,8 +21,8 @@ Idea: a `system` theme for cssints/tui built at run time from the terminal's own
 - API sketch: createTokens roles with `css.system({ hue: 'red', on: [t.bg, t.panel], contrast: 4.5 })` or a theme `createSystemTheme(t, rules)`; the runtime theme table this needs also answers the open question of inline vs one shared theme table (cssints-3ff7 shipped inline per-site values).
 
 ## Todo
-- [ ] research: what OpenTUI / @bomb.sh/tty already offer (OSC 4/10/11, scheme notifications); note in docs/research/tui.md
+- [x] research: what OpenTUI / @bomb.sh/tty already offer (OSC 4/10/11, scheme notifications); note in docs/research/tui.md
 - [ ] API for role tokens and the system theme; runtime theme table
-- [ ] solver (reversed contrast, OKLCH/OKHSL), unit tests on a few known palettes (Gruvbox dark, Catppuccin Latte, Nord)
+- [x] solver (reversed contrast, OKLCH/OKHSL), unit tests on a few known palettes (Gruvbox dark, Catppuccin Latte, Nord)
 - [ ] OSC queries + fallbacks + appearance change in both adapters
 - [ ] sky-tui uses `system` by default, `--light`/`--dark` keep working
