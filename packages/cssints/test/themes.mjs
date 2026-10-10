@@ -298,31 +298,40 @@ const first = (w) =>
   stripVTControlCharacters(w)
     .replace(/^.*?cssints:/, "cssints:")
     .split("\n")[0];
+// Each server below logs into its own list, and only the warnings of cssints count: a late log of another server of
+// this process, or one of Vite's own, cannot reach the assertion.
+const collector = () => {
+  const list = [];
+  const warn = (m) => void (stripVTControlCharacters(m).includes("cssints:") && list.push(m));
+  return { list, logger: { ...createLogger("warn"), warn } };
+};
 const tmpd = mkdtempSync(join(root, ".tmp-themes-dev-"));
 globalThis.__cssints.checks.clear();
 try {
   writeFileSync(join(tmpd, "tokens.ts"), derived);
-  warnings.length = 0;
+  const log = collector();
   const dev = await createServer({
     root: tmpd,
     configFile: false,
     logLevel: "warn",
-    customLogger,
-    server: { middlewareMode: true, hmr: { port: 24999 } },
+    customLogger: log.logger,
+    server: { middlewareMode: true, ws: false },
     plugins: cssints(),
   });
+  // FSEvents can report the write above to the watcher started after it: let that event pass first
+  await sleep(300);
   const devClient = dev.environments.client;
   await devClient.transformRequest("/tokens.ts");
-  assert.deepEqual(warnings.map(first), derivedWarning, "dev: a derived colour warns once");
-  const edited = Promise.withResolvers();
-  dev.watcher.once("change", edited.resolve);
+  assert.deepEqual(log.list.map(first), derivedWarning, "dev: a derived colour warns once");
+  // the edit is seen once hotUpdate has invalidated the module (it forgets the file's warnings first), not on a fixed sleep
   writeFileSync(join(tmpd, "tokens.ts"), `${derived}// edited\n`);
-  await edited.promise;
-  await sleep(500);
-  warnings.length = 0;
+  const mod = devClient.moduleGraph.getModuleById(join(tmpd, "tokens.ts"));
+  for (let i = 0; i < 200 && mod?.transformResult; i++) await sleep(50);
+  assert.equal(mod?.transformResult, null, "dev: the edit did not invalidate tokens.ts");
+  log.list.length = 0;
   await devClient.transformRequest("/tokens.ts");
   assert.deepEqual(
-    warnings.map(first),
+    log.list.map(first),
     derivedWarning,
     "dev: the warning shows again after an edit",
   );
@@ -385,16 +394,16 @@ css.createGlobalTheme(t, ".low", { late: { fg: "#aaa" } });
   w("a.ts", `import "./tokens.ts" with { type: "cssints" };\nexport const a = 1;\n`);
   w("b.ts", `import "./tokens.ts" with { type: "cssints" };\nexport const b = 1;\n`);
   w("main.ts", `import "./a.ts";\nimport "./b.ts";\nexport const x = 1;\n`);
-  warnings.length = 0;
+  const log = collector();
   await build({
     root: tmpb,
     configFile: false,
     logLevel: "warn",
-    customLogger,
+    customLogger: log.logger,
     plugins: cssints(),
     build: { write: false, rollupOptions: { input: join(tmpb, "main.ts") } },
   });
-  assert.deepEqual(warnings.map(first), derivedWarning, "build: a derived colour warns once");
+  assert.deepEqual(log.list.map(first), derivedWarning, "build: a derived colour warns once");
 } finally {
   rmSync(tmpb, { recursive: true, force: true });
 }
