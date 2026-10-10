@@ -4,10 +4,25 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 
-import { apply, BASE_HUE, defaults, KEY, load, OPTIONS, parse, save } from "../src/settings.ts";
-import tokens from "../src/tokens.json" with { type: "json" };
+import { CUBES, DEFAULT_HUE, HUES, IDS } from "../src/palettes.ts";
+import {
+  apply,
+  BASE_HUE,
+  defaults,
+  HUES as WHEEL_HUES,
+  KEY,
+  load,
+  OPTIONS,
+  parse,
+  save,
+  WHEEL,
+} from "../src/settings.ts";
 
-assert.equal(BASE_HUE, tokens.hue.accent.$value, "BASE_HUE is the hue of tokens.json");
+// the browser does not load palettes.ts, so the two lists are kept in step here
+assert.equal(BASE_HUE, DEFAULT_HUE, "BASE_HUE is the default hue of the palettes");
+assert.equal(WHEEL_HUES, HUES);
+assert.deepEqual(OPTIONS.palette, IDS);
+assert.deepEqual(WHEEL, CUBES);
 assert.equal(KEY, "cssints-docs.settings");
 for (const k of Object.keys(OPTIONS))
   assert.ok(OPTIONS[k].includes(defaults[k]), `${k}: the default is an option`);
@@ -20,6 +35,7 @@ for (const v of ["0", "null", "[]", '"dark"', "true", "42"])
   assert.deepEqual(parse(v), defaults, v);
 const all = {
   hue: 0,
+  palette: "flexoki",
   mode: "dim",
   text: "large",
   density: "compact",
@@ -27,14 +43,22 @@ const all = {
   radius: "sharp",
 };
 assert.deepEqual(parse(JSON.stringify(all)), all);
-assert.deepEqual(parse(JSON.stringify({ hue: 359, mode: "light" })), {
+assert.deepEqual(parse(JSON.stringify({ hue: 11, mode: "light" })), {
   ...defaults,
-  hue: 359,
+  hue: 11,
   mode: "light",
 });
-const bad = { hue: 360, mode: "blue", text: "huge", density: 1, font: null, radius: "square" };
+const bad = {
+  hue: 12,
+  palette: "neon",
+  mode: "blue",
+  text: "huge",
+  density: 1,
+  font: null,
+  radius: "square",
+};
 assert.deepEqual(parse(JSON.stringify(bad)), defaults);
-for (const hue of [-1, 360, 1.5, "90", null, NaN, Infinity])
+for (const hue of [-1, 12, 360, 1.5, "9", null, NaN, Infinity])
   assert.equal(parse(JSON.stringify({ hue, mode: "dark" })).hue, BASE_HUE, String(hue));
 assert.deepEqual(parse(JSON.stringify({ hue: 7, mode: "nope", text: "small" })), {
   ...defaults,
@@ -63,35 +87,32 @@ globalThis.localStorage = {
 assert.deepEqual(load(), defaults);
 save(all);
 
-// <html> as a test double: a class set, the data attributes and the custom properties
+// <html> as a test double: a class set and the data attributes
 const html = () => {
   const classes = new Set();
-  const props = {};
   return {
     classes,
-    props,
     dataset: {},
     classList: {
       add: (c) => classes.add(c),
       toggle: (c, on) => (on ? classes.add(c) : classes.delete(c)),
     },
-    style: { setProperty: (k, v) => (props[k] = String(v)) },
   };
 };
-// the page starts with no attribute, which the themes read as "normal"; an unset hue is the token's own
+// the page starts with no attribute, which the themes read as "normal", the first palette and its default hue
 const state = (el) => ({
   classes: [...el.classes].sort(),
   data: Object.fromEntries(
-    ["text", "density", "font", "radius"].map((k) => [k, el.dataset[k] ?? defaults[k]]),
+    ["palette", "text", "density", "font", "radius"].map((k) => [k, el.dataset[k] ?? defaults[k]]),
   ),
-  hue: el.props["--hue-accent"] ?? String(BASE_HUE),
+  hue: el.dataset.hue ?? String(BASE_HUE),
 });
 
 const root = html();
 apply(all, root);
 assert.deepEqual(state(root), {
   classes: ["dark", "dim"],
-  data: { text: "large", density: "compact", font: "serif", radius: "sharp" },
+  data: { palette: "flexoki", text: "large", density: "compact", font: "serif", radius: "sharp" },
   hue: "0",
 });
 apply({ ...defaults, mode: "light" }, root); // a mode replaces the one before it
@@ -138,8 +159,8 @@ const inputs = [
   JSON.stringify(bad),
   ...OPTIONS.mode.map((mode) => JSON.stringify({ mode })),
   ...["other", 1, null].map((mode) => JSON.stringify({ mode })),
-  ...[-1, 0, 1.5, "90", 269, 359, 360].map((hue) => JSON.stringify({ hue })),
-  ...["text", "density", "font", "radius"].flatMap((k) =>
+  ...[-1, 0, 1.5, "9", 9, 11, 12, 269].map((hue) => JSON.stringify({ hue })),
+  ...["palette", "text", "density", "font", "radius"].flatMap((k) =>
     [...OPTIONS[k], "other", 1].map((v) => JSON.stringify({ [k]: v })),
   ),
 ];

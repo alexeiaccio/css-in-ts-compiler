@@ -2,7 +2,17 @@ import type { Style } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 import { createSignal } from "solid-js";
 
-import { apply, defaults, load, OPTIONS, save, type Choice, type Settings } from "./settings.ts";
+import {
+  apply,
+  defaults,
+  HUES,
+  load,
+  OPTIONS,
+  save,
+  WHEEL,
+  type Choice,
+  type Settings,
+} from "./settings.ts";
 import { t } from "./theme.ts" with { type: "cssints" };
 
 // A popover under the header: the browser opens it from the button (popovertarget), closes it on Escape or a click outside,
@@ -70,12 +80,25 @@ const reset = css.cn(
 );
 
 const LABELS: Record<Choice, string> = {
+  palette: "Palette",
   mode: "Colour mode",
   text: "Text size",
   density: "Density",
   font: "Font",
   radius: "Corners",
 };
+
+const NAMES: Record<string, string> = {
+  "open-props": "Open Props",
+  "reasonable-colors": "Reasonable Colors",
+};
+const credits = css.cn(
+  css.margin("0", "0", t.space.lg),
+  css.fontSize(t.fontSize.xs),
+  css.color(t.color.textMedium),
+  css.lineHeight(t.lineHeight.snug),
+);
+const link = css.cn(css.color(t.color.link));
 
 export function SettingsPanel() {
   // Solid 2 reads the committed value until the next flush, so two changes in one task would build on a stale s(): keep the
@@ -88,8 +111,37 @@ export function SettingsPanel() {
     save(next);
     apply(next);
   };
+  const choice = (key: Choice) => (
+    <fieldset class={group}>
+      <legend class={legend}>{LABELS[key]}</legend>
+      <div class={row}>
+        {OPTIONS[key].map((value) => (
+          <label class={option}>
+            <input
+              type="radio"
+              class={control}
+              name={key}
+              value={value}
+              checked={s()[key] === value}
+              onChange={() => set({ [key]: value })}
+            />
+            {NAMES[value] ?? value}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
   return (
     <div id="settings" popover role="dialog" aria-label="Display settings" class={panel}>
+      {choice("palette")}
+      <p class={credits}>
+        Itten, Munsell and Albers are cubes of{" "}
+        <a class={link} href="https://rybitten.space/">
+          RYBitten
+        </a>{" "}
+        by meodai, read at build time by @cssints/rybitten. Radix, Flexoki, Open Props and
+        Reasonable Colors come from @cssints/tokens.
+      </p>
       <fieldset class={group}>
         <legend class={legend}>Accent hue</legend>
         <div class={row}>
@@ -97,9 +149,10 @@ export function SettingsPanel() {
             type="range"
             class={slider}
             min="0"
-            max="359"
+            max={HUES - 1}
             step="1"
             aria-label="Accent hue"
+            disabled={!WHEEL.includes(s().palette)}
             value={s().hue}
             onInput={(e) => set({ hue: e.currentTarget.valueAsNumber })}
           />
@@ -111,26 +164,7 @@ export function SettingsPanel() {
           ))}
         </div>
       </fieldset>
-      {(Object.keys(OPTIONS) as Choice[]).map((key) => (
-        <fieldset class={group}>
-          <legend class={legend}>{LABELS[key]}</legend>
-          <div class={row}>
-            {OPTIONS[key].map((value) => (
-              <label class={option}>
-                <input
-                  type="radio"
-                  class={control}
-                  name={key}
-                  value={value}
-                  checked={s()[key] === value}
-                  onChange={() => set({ [key]: value })}
-                />
-                {value}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      ))}
+      {(Object.keys(OPTIONS) as Choice[]).filter((k) => k !== "palette").map(choice)}
       <button type="button" class={reset} onClick={() => set(defaults)}>
         Reset
       </button>

@@ -8,6 +8,8 @@ import { join } from "node:path";
 
 import { build } from "vite";
 
+import { CUBES, DEFAULT_HUE, HUES, IDS, palettes } from "../src/palettes.ts";
+
 process.chdir(`${import.meta.dirname}/..`);
 const out = await build({ root: process.cwd(), logLevel: "warn", build: { write: false } });
 const files = [out].flat().flatMap((o) => o.output);
@@ -26,17 +28,61 @@ assert.match(sheet, /^@layer twoslash/);
 assert.ok(sheet.indexOf("@layer twoslash") < sheet.indexOf("@layer _.k"), "twoslash comes first");
 assert.match(sheet, /\.twoslash \.twoslash-popup-container/);
 
-// the themes: the system's dark is the media query, a class beats it
-assert.match(sheet, /@media \(prefers-color-scheme: ?dark\)\{:root\{--color-bg:#0c0f15/);
-for (const mode of [".light", ".dark"]) assert.ok(sheet.includes(`${mode}{--color-bg:`), mode);
-// dim is a theme of its own after dark; the accent steps read the one hue, which no theme sets (the settings panel does, on <html>)
-assert.ok(sheet.indexOf(".dark{--color-bg:") < sheet.indexOf(".dim{--color-bg:"), "dim after dark");
-assert.match(sheet, /\.dim\{[^}]*--color-accent:oklch\(\.661 \.18 var\(--hue-accent\)\)/);
-assert.match(sheet, /:root\{[^}]*--color-accent:oklch\(\.555 \.21 var\(--hue-accent\)\)/);
-assert.ok(
-  !/--hue-accent:[^;}]/.test(sheet.replace(/@property[^}]*}/g, "")),
-  "no theme sets the hue",
+// the themes: the system's dark is the media query, a class beats it; each mode points the colours at its group of pal
+assert.match(
+  sheet,
+  /@media \(prefers-color-scheme: ?dark\)\{:root\{--color-bg:var\(--pal-dark-bg\)/,
 );
+assert.match(sheet, /:root\{--color-bg:var\(--pal-light-bg\)/);
+for (const mode of ["light", "dark"])
+  assert.ok(sheet.includes(`.${mode}{--color-bg:var(--pal-${mode}-bg)`), mode);
+// dim is a theme of its own after dark, on the neutrals of its own
+assert.ok(sheet.indexOf(".dark{--color-bg:") < sheet.indexOf(".dim{--color-bg:"), "dim after dark");
+assert.match(
+  sheet,
+  /\.dim\{[^}]*--color-bg:var\(--pal-dim-bg\)[^}]*--color-accent:var\(--pal-dark-accent\)/,
+);
+// the palettes: the default is the values of pal (Itten's cube at its default hue), every palette is a theme of pal on a
+// data attribute, a cube also has a theme per step of the wheel that sets its accents only, and no theme sets a mode's colour
+const hex = (c) => c.replace(/^#(.)\1(.)\2(.)\3$/, "#$1$2$3");
+const start = palettes.itten(DEFAULT_HUE);
+for (const [mode, k] of [
+  ["light", "bg"],
+  ["light", "accent"],
+  ["dark", "bg"],
+  ["dim", "bg"],
+])
+  assert.ok(
+    sheet.includes(
+      `@property --pal-${mode}-${k}{syntax:"<color>";inherits:true;initial-value:${hex(start[mode][k])}`,
+    ),
+    `${mode} ${k}`,
+  );
+for (const id of IDS) {
+  const p = palettes[id](DEFAULT_HUE);
+  // the minifier drops the quotes of an identifier, not of a number
+  const theme = (palette, hue) => {
+    const sel = `:where([data-palette=${palette}]${hue === undefined ? "" : `[data-hue="${hue}"]`}){`;
+    const at = sheet.indexOf(sel);
+    return at < 0 ? undefined : sheet.slice(at, sheet.indexOf("}", at));
+  };
+  const body = theme(id);
+  assert.ok(body?.includes(`--pal-dim-bg:${hex(p.dim.bg)}`), `${id}: the palette's own theme`);
+  assert.ok(body.includes(`--pal-dark-link:${hex(p.dark.link)}`), `${id}: dark link`);
+  assert.equal(
+    theme(id, 0) !== undefined,
+    CUBES.includes(id),
+    `${id}: a theme per hue only for a cube`,
+  );
+  if (CUBES.includes(id))
+    for (let hue = 0; hue < HUES; hue++) {
+      const h = theme(id, hue);
+      const q = palettes[id](hue);
+      assert.ok(h?.includes(`--pal-light-accent:${hex(q.light.accent)}`), `${id} ${hue} light`);
+      assert.ok(h.includes(`--pal-dark-accent:${hex(q.dark.accent)}`), `${id} ${hue} dark`);
+      assert.ok(!h.includes("-bg"), `${id} ${hue}: the accents only`);
+    }
+}
 // text size, density and corners: a theme per value that is not normal, each setting one scale that fontSize, space and radius read
 for (const [attr, value, scale, n] of [
   ["text", "small", "font", ".875"],

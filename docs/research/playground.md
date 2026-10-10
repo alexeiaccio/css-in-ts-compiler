@@ -201,7 +201,7 @@ and a small collection could be a stub table; not built. Importing one is a loca
 scripts that a package delivers to the page (`reveal`'s observer, `stuck`'s) are named in the module (`import "virtual:cssints/runtime/..."`)
 and not run by the preview.
 
-The parity test runs the fixtures of the fourteen packages and of `tokens` that import only modules of the playground (63 cases, 0 differ,
+The parity test runs the fixtures of the fourteen packages and of `tokens` that import only modules of the playground (64 cases, 0 differ,
 the failures of the engine included: the same message, file, line and column), and projects of several files (a module of tokens, a plain
 module, a barrel, a directory and `..`, an error in the imported file, a package in a second file).
 
