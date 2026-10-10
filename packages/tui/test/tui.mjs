@@ -98,4 +98,21 @@ assert.ok(!built.includes("cssints"), built);
 assert.match(built, /"borderStyle": "rounded"/);
 mkdirSync(`${import.meta.dirname}/out`, { recursive: true });
 writeFileSync(`${import.meta.dirname}/out/card.mjs`, built);
+
+// The JSX of a component without sites stays the framework's in an SSR build (cssints-ybcm): no inert `__jsx` calls.
+const app = await build({
+  root,
+  configFile: false,
+  logLevel: "warn",
+  plugins: cssints(),
+  build: {
+    ssr: "main.tsx",
+    write: false,
+    minify: false,
+    rolldownOptions: { external: [/^react/] },
+  },
+});
+const appCode = [app].flat()[0].output[0].code;
+assert.ok(!appCode.includes("__jsx"), appCode);
+assert.match(appCode, /"borderStyle": "rounded"/);
 console.log("tui ok");

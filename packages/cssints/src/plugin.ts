@@ -404,7 +404,10 @@ export default function cssints({
     if (!FILE_RE.test(id)) return undefined;
     if (!marked(code, id)) {
       // The runner follows the imports of a module with sites, into components that have none: their JSX is inert as well.
-      return ctx.environment.name === "ssr" && /[jt]sx$/.test(id) && !id.includes("node_modules")
+      return ctx.environment.name === "ssr" &&
+        (inner || !build) &&
+        /[jt]sx$/.test(id) &&
+        !id.includes("node_modules")
         ? yield* inertJsx(code, id)
         : undefined;
     }
