@@ -5,60 +5,22 @@
 //   the status goes running (with the session id), then completed; no service is a message, not a crash; with the option
 //   off, the overlay's entry has no way to ask and the server ignores the event.
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { createServer as http } from "node:http";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
 import cssints from "cssints/vite";
 import { createServer } from "vite";
+
+import { startFake } from "./fake-opencode.mjs";
 
 const here = import.meta.dirname;
 const app = join(here, "fixtures/app");
 const repo = join(here, "../../.."); // the nearest folder up from the app with a .git (a file in a worktree)
 
 // ---------- the fake service
-const state = mkdtempSync(join(tmpdir(), "opencode-state-"));
-process.env.XDG_STATE_HOME = state;
-const registration = join(state, "opencode/service.json");
-const calls = [];
-let outcome = "succeeded";
-const fake = http(async (req, res) => {
-  let body = "";
-  for await (const chunk of req) body += chunk;
-  const url = new URL(req.url, "http://x");
-  calls.push({ method: req.method, path: url.pathname, body: body ? JSON.parse(body) : undefined });
-  const json = (data) => {
-    res.setHeader("content-type", "application/json");
-    res.end(JSON.stringify(data));
-  };
-  if (url.pathname === "/api/info") return json({ version: "2.0.26", pid: process.pid });
-  if (url.pathname === "/api/session" && req.method === "POST")
-    return json({ data: { id: "ses_fake1" } });
-  if (url.pathname.endsWith("/prompt")) return json({ data: { id: "msg_1" } });
-  if (url.pathname.endsWith("/wait")) {
-    await sleep(150);
-    res.statusCode = 204;
-    return res.end();
-  }
-  if (url.pathname === "/api/session/ses_fake1")
-    return json({ data: { id: "ses_fake1", outcome } });
-  res.statusCode = 404;
-  res.end();
-});
-await new Promise((resolve) => fake.listen(0, "127.0.0.1", resolve));
-const register = () => {
-  mkdirSync(dirname(registration), { recursive: true });
-  writeFileSync(
-    registration,
-    JSON.stringify({
-      url: `http://127.0.0.1:${fake.address().port}`,
-      pid: process.pid,
-      version: "2.0.26",
-    }),
-  );
-};
+const fake = await startFake();
+const { calls } = fake;
+const { register } = fake;
 
 // ---------- a dev server and a page that speaks to it
 const serve = async (opencode) => {
@@ -132,7 +94,7 @@ const PROMPT = [
   );
 
   // the agent did not finish: the status says so, with the session id
-  outcome = "failed";
+  fake.outcome("failed");
   t.asked.length = 0;
   t.ask(2, PROMPT);
   await t.until("failed", () => t.asked.some((a) => a.status === "failed"));
@@ -147,7 +109,7 @@ const PROMPT = [
   assert.equal(calls.length, before);
 
   // no service runs: a message that says what to do
-  rmSync(registration);
+  fake.unregister();
   t.asked.length = 0;
   t.ask(3, PROMPT);
   await t.until("unavailable", () => t.asked.length > 0);
@@ -172,5 +134,4 @@ const PROMPT = [
 }
 
 fake.close();
-rmSync(state, { recursive: true });
 console.log("devtools opencode ok");
