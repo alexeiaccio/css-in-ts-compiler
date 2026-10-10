@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import { targets as targets$1, useTargets } from "@cssints/css-grammar/support";
 import { Cause, Clock, Config, Data, Effect, Exit, Formatter, Option, Predicate, Result, Schema, Semaphore } from "effect";
 import { createHash } from "node:crypto";
-import { basename, dirname, join, relative, resolve } from "node:path";
+import { basename, join, relative, resolve, sep } from "node:path";
 import { browserslistToTargets } from "lightningcss";
 import MagicString from "magic-string";
 import { existsSync, readFileSync } from "node:fs";
@@ -272,16 +272,7 @@ const Asking = Schema.Struct({
 	prompt: Schema.String
 });
 var OpenCodeError = class extends Data.TaggedError("OpenCodeError") {};
-const reason = (e) => e instanceof Error ? e.message : String(e);
-const workspace = (root) => {
-	let dir = root;
-	while (!existsSync(join(dir, ".git"))) {
-		const up = dirname(dir);
-		if (up === dir) return root;
-		dir = up;
-	}
-	return dir;
-};
+const workspace = (root) => root.split(sep).map((_, i, parts) => parts.slice(0, parts.length - i).join(sep) || sep).find((dir) => existsSync(join(dir, ".git"))) ?? root;
 const connect = Effect.fn("cssints.opencodeConnect")(function* () {
 	const unavailable = (message) => () => new OpenCodeError({
 		status: "unavailable",
@@ -297,7 +288,7 @@ const connect = Effect.fn("cssints.opencodeConnect")(function* () {
 	});
 	const service = yield* Effect.tryPromise({
 		try: () => Service.discover(),
-		catch: (e) => unavailable(reason(e))()
+		catch: (e) => unavailable(Predicate.isError(e) ? e.message : String(e))()
 	});
 	if (!service) return yield* new OpenCodeError({
 		status: "unavailable",
@@ -314,7 +305,7 @@ const ask = Effect.fn("cssints.opencodeAsk")(function* (root, options, ref, prom
 		try: f,
 		catch: (e) => new OpenCodeError({
 			status: "failed",
-			message: reason(e)
+			message: Predicate.isError(e) ? e.message : String(e)
 		})
 	});
 	const { id } = yield* call(() => client.session.create({

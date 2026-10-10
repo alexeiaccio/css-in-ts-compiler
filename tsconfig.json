@@ -29,7 +29,9 @@
 		// Effect LSP plugin
 		"plugins": [
 			{
-				"name": "@effect/language-service"
+				"name": "@effect/language-service",
+				// @opencode/client (an optional peer of cssints, for the devtools' OpenCode prompt box) pins effect 4.0.0-rc.112
+				"allowedDuplicatedPackages": ["effect"]
 			}
 		]
 	}

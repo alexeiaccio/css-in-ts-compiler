@@ -1,6 +1,7 @@
 // A fake OpenCode V2 service for the tests: the registration file that Service.discover reads (under XDG_STATE_HOME), /api/info,
 // and the session calls the dev server makes (create, prompt, wait, get). `calls` records every request.
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { once } from "node:events";
 import { createServer as http } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -12,7 +13,7 @@ export const startFake = async () => {
   const registration = join(state, "opencode/service.json");
   const calls = [];
   let outcome = "succeeded";
-  const fake = http(async (req, res) => {
+  const handle = async (req, res) => {
     let body = "";
     for await (const chunk of req) body += chunk;
     const url = new URL(req.url, "http://x");
@@ -38,8 +39,10 @@ export const startFake = async () => {
       return json({ data: { id: "ses_fake1", outcome } });
     res.statusCode = 404;
     res.end();
-  });
-  await new Promise((resolve) => fake.listen(0, "127.0.0.1", resolve));
+  };
+  const fake = http((req, res) => void handle(req, res));
+  fake.listen(0, "127.0.0.1");
+  await once(fake, "listening");
   const register = () => {
     mkdirSync(dirname(registration), { recursive: true });
     writeFileSync(

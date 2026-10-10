@@ -258,18 +258,19 @@ function App(props: {
   const [selected, setSelected] = createSignal<Element>();
   const [tick, setTick] = createSignal(0);
   const target = () => (picking() ? (hovered() ?? selected()) : selected());
-  let input: HTMLTextAreaElement | undefined;
+  const [input, setInput] = createSignal<HTMLTextAreaElement>();
   // the box keeps its text until the session exists, so that a missing service costs no retyping
   createEffect(
     () => props.asked()?.status,
     (status) => {
-      if (status === "running" && input) input.value = "";
+      const box = input();
+      if (status === "running" && box) box.value = "";
     },
   );
   const send = () => {
     const m = props.model();
     const el = selected();
-    const text = input?.value.trim();
+    const text = input()?.value.trim();
     const i = m && el?.isConnected ? run(m, el) : undefined;
     if (text && el && typeof i === "object") props.ask?.(buildPrompt(i, el, text));
   };
@@ -439,7 +440,7 @@ function App(props: {
           <Show when={props.ask && selected()}>
             <div class={s.ask} data-devtools="ask">
               <textarea
-                ref={input}
+                ref={setInput}
                 class={s.askInput}
                 data-devtools="ask-input"
                 rows="2"
@@ -503,17 +504,18 @@ export function mount(transport: TransportApi & { root: string; build?: boolean 
   );
   // the answers of the dev server to the instruction last sent; one at a time, an older ref is ignored
   const [asked, setAsked] = createSignal<AskState>();
-  let ref = 0;
+  const last = { ref: 0 };
   const ask =
     transport.ask &&
     ((prompt: string) => {
       setAsked({ status: "sending" });
-      transport.ask?.(++ref, prompt);
+      last.ref += 1;
+      transport.ask?.(last.ref, prompt);
     });
   if (ask)
     transport.on(ASKED, (data) => {
       const a = data as Asked;
-      if (a.ref === ref) setAsked((prev) => ({ ...prev, ...a }));
+      if (a.ref === last.ref) setAsked((prev) => ({ ...prev, ...a }));
     });
   render(
     () => (

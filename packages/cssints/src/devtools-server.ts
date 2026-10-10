@@ -3,10 +3,10 @@
 // module (`usedBy`, the sheet is rendered from them as `load()` does), the sites of each module (`callsOf`, recorded beside
 // `siteOf`) and the registry. After a client transform the overlay is told the table is stale, and asks again when it needs it.
 import { existsSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
 import { gzipSync } from "node:zlib";
 
-import { Data, Effect, Formatter, Option, Schema } from "effect";
+import { Data, Effect, Formatter, Option, Predicate, Schema } from "effect";
 import type { Plugin, ViteDevServer } from "vite";
 
 import { Registry } from "./registry.ts";
@@ -144,23 +144,25 @@ const ASKED = "cssints:devtools:asked";
 const MAX_PROMPT = 16_000;
 const Asking = Schema.Struct({ ref: Schema.Finite, prompt: Schema.String });
 
+/** What the server tells the overlay (`cssints:devtools:asked`). */
+interface Asked {
+  ref: number;
+  status: string;
+  id?: string;
+  message?: string;
+}
+
 class OpenCodeError extends Data.TaggedError("OpenCodeError")<{
   readonly status: "unavailable" | "failed";
   readonly message: string;
 }> {}
 
-const reason = (e: unknown) => (e instanceof Error ? e.message : String(e));
-
 // The repository of the app is the workspace of the session: the nearest folder up from the Vite root with a `.git`.
-const workspace = (root: string) => {
-  let dir = root;
-  while (!existsSync(join(dir, ".git"))) {
-    const up = dirname(dir);
-    if (up === dir) return root;
-    dir = up;
-  }
-  return dir;
-};
+const workspace = (root: string) =>
+  root
+    .split(sep)
+    .map((_, i, parts) => parts.slice(0, parts.length - i).join(sep) || sep)
+    .find((dir) => existsSync(join(dir, ".git"))) ?? root;
 
 // The client of the running OpenCode V2 service (`opencode serve --service` registers one), found as OpenCode's own clients
 // find it. @cssints/devtools talks to it from here and never from the page: the page holds no address and no credentials.
@@ -181,7 +183,7 @@ const connect = Effect.fn("cssints.opencodeConnect")(function* () {
   });
   const service = yield* Effect.tryPromise({
     try: () => Service.discover(),
-    catch: (e) => unavailable(reason(e))(),
+    catch: (e) => unavailable(Predicate.isError(e) ? e.message : String(e))(),
   });
   if (!service)
     return yield* new OpenCodeError({
@@ -198,13 +200,17 @@ const ask = Effect.fn("cssints.opencodeAsk")(function* (
   options: OpenCodeOptions,
   ref: number,
   prompt: string,
-  say: (asked: { ref: number; status: string; id?: string; message?: string }) => void,
+  say: (asked: Asked) => void,
 ) {
   const client = yield* connect();
   const call = <A>(f: () => Promise<A>) =>
     Effect.tryPromise({
       try: f,
-      catch: (e) => new OpenCodeError({ status: "failed", message: reason(e) }),
+      catch: (e) =>
+        new OpenCodeError({
+          status: "failed",
+          message: Predicate.isError(e) ? e.message : String(e),
+        }),
     });
   const { id } = yield* call(() =>
     client.session.create({
@@ -272,11 +278,11 @@ export const devtoolsPlugin = (
       );
       // the HMR channel, not a route: it carries Vite's own token, so a page of another origin cannot start a session
       if (opencode)
-        s.environments.client.hot.on(ASK, (data: unknown) => {
+        s.environments.client.hot.on(ASK, (data) => {
           const asking = Schema.decodeUnknownOption(Asking)(data);
           if (Option.isNone(asking)) return;
           const { ref, prompt } = asking.value;
-          const say = (asked: object) => s.environments.client.hot.send(ASKED, asked);
+          const say = (asked: Asked) => s.environments.client.hot.send(ASKED, asked);
           Effect.runFork(
             ask(s.config.root, opencode, ref, prompt, say).pipe(
               Effect.catchTag("OpenCodeError", (e) =>

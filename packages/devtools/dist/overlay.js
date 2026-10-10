@@ -7466,12 +7466,18 @@ var Xb = (e) => new Yb(e), Zb = "~effect/Stream", Qb = (e) => F(e, Zb), $b = Xb,
 	}),
 	verify: (e, t, n, r, i) => Y(() => sS(e, t, n, r, i))
 })), lS = 8, uS = 24, dS = 3, fS = 12, pS = 400, mS = (e, t) => t.startsWith(`${e}/`) ? t.slice(e.length + 1) : t, hS = (e, t) => e.length > t ? `${e.slice(0, t)}…` : e, gS = (e) => (e ?? "").replace(/\s+/g, " ").trim(), _S = (e) => {
-	let t = [];
-	for (let n = e; n && t.length < 4; n = n.parentElement) t.unshift(`${n.localName}${n.id ? `#${n.id}` : ""}`);
-	return t.join(" > ");
+	let t = e.parentElement, n = t?.parentElement;
+	return [
+		n?.parentElement,
+		n,
+		t,
+		e
+	].flatMap((e) => e ? [`${e.localName}${e.id ? `#${e.id}` : ""}`] : []).join(" > ");
 }, vS = (e) => `${e.selector} (${e.layer || "unlayered"})`, yS = (e, t, n) => {
 	let { root: r } = e, i = e.groups.flatMap((e) => e.site ? [e.site] : []), a = [
-		"Change the UI of the running app as the instruction says. The styles are written with cssints: each `css.*` call below produced the classes of the element, so edit those calls (or the markup that uses them), not the generated class names.",
+		"Change the UI of the running app as the instruction says.",
+		"The styles are written with cssints: each `css.*` call below produced the classes of the element,",
+		"so edit those calls (or the markup that uses them), not the generated class names.",
 		"",
 		`Instruction: ${n.trim()}`,
 		"",
@@ -7833,20 +7839,21 @@ function BC(e) {
 }
 var VC = (e) => e.firstElementChild ?? void 0;
 function HC(e) {
-	let [t, n] = Or(!1), [r, i] = Or(!1), [a, o] = Or(), [s, c] = Or(), [l, u] = Or(0), d = () => r() ? a() ?? s() : s(), f;
+	let [t, n] = Or(!1), [r, i] = Or(!1), [a, o] = Or(), [s, c] = Or(), [l, u] = Or(0), d = () => r() ? a() ?? s() : s(), [f, p] = Or();
 	jr(() => e.asked()?.status, (e) => {
-		e === "running" && f && (f.value = "");
+		let t = f();
+		e === "running" && t && (t.value = "");
 	});
-	let p = () => {
-		let t = e.model(), n = s(), r = f?.value.trim(), i = t && n?.isConnected ? PC(t, n) : void 0;
+	let m = () => {
+		let t = e.model(), n = s(), r = f()?.value.trim(), i = t && n?.isConnected ? PC(t, n) : void 0;
 		r && n && typeof i == "object" && e.ask?.(yS(i, n, r));
-	}, m = (r = !t()) => {
+	}, h = (r = !t()) => {
 		n(r), i(r && !s()), e.setActive(r);
-	}, h = Dr(() => {
+	}, g = Dr(() => {
 		l();
 		let n = e.model(), r = d();
 		return t() && n && r?.isConnected ? PC(n, r) : void 0;
-	}, { equals: zC }), g = Dr(() => (l(), t() ? d()?.getBoundingClientRect() : void 0));
+	}, { equals: zC }), _ = Dr(() => (l(), t() ? d()?.getBoundingClientRect() : void 0));
 	return rr(() => {
 		let n = (t) => t.composedPath().includes(e.host), l = (e) => {
 			r() && !n(e) && e.target instanceof Element && e.target !== a() && o(e.target);
@@ -7854,12 +7861,12 @@ function HC(e) {
 			r() && !n(e) && e.target instanceof Element && (e.preventDefault(), e.stopPropagation(), c(e.target), i(!1));
 		}, f = (n) => {
 			if (n.altKey && n.shiftKey && n.code === "KeyC") {
-				n.preventDefault(), m();
+				n.preventDefault(), h();
 				return;
 			}
 			if (!t()) return;
 			if (n.key === "Escape") {
-				n.preventDefault(), r() && s() ? i(!1) : m(!1);
+				n.preventDefault(), r() && s() ? i(!1) : h(!1);
 				return;
 			}
 			if (n.composedPath()[0] instanceof HTMLTextAreaElement) return;
@@ -7872,23 +7879,23 @@ function HC(e) {
 			clearInterval(p), document.removeEventListener("pointermove", l, !0), document.removeEventListener("click", d, !0), window.removeEventListener("keydown", f, !0);
 		};
 	}), Zn(() => e.setActive(!1)), rr(() => {
-		e.build && m(!0);
+		e.build && h(!0);
 	}), [
 		(() => {
 			var e = EC();
-			return e._$$click = () => m(), O(() => j(jS), (t, n) => {
+			return e._$$click = () => h(), O(() => j(jS), (t, n) => {
 				A(e, t, n);
 			}), e;
 		})(),
 		D(Pr, {
 			get when() {
-				return g();
+				return _();
 			},
 			children: (e) => (() => {
 				var t = kC(), n = t.firstChild;
 				return M(n, (() => {
-					var e = Br(() => typeof h() == "object");
-					return () => e() ? h().element : "";
+					var e = Br(() => typeof g() == "object");
+					return () => e() ? g().element : "";
 				})()), O(() => ({
 					e: j(MS),
 					t: `${e().top}px`,
@@ -7906,11 +7913,11 @@ function HC(e) {
 				return t();
 			},
 			get children() {
-				var t = OC(), n = t.firstChild, a = n.firstChild, o = a.nextSibling, l = o.nextSibling, u = l.nextSibling, d = n.nextSibling, g = d.nextSibling;
+				var t = OC(), n = t.firstChild, a = n.firstChild, o = a.nextSibling, l = o.nextSibling, u = l.nextSibling, d = n.nextSibling, f = d.nextSibling;
 				return M(a, (() => {
-					var e = Br(() => typeof h() == "object");
-					return () => e() ? h().element : "pick an element";
-				})()), o._$$click = () => i(!r()), l._$$click = () => c((e) => e?.parentElement ?? e), u._$$click = () => m(!1), M(t, D(Pr, {
+					var e = Br(() => typeof g() == "object");
+					return () => e() ? g().element : "pick an element";
+				})()), o._$$click = () => i(!r()), l._$$click = () => c((e) => e?.parentElement ?? e), u._$$click = () => h(!1), M(t, D(Pr, {
 					get when() {
 						return e.model();
 					},
@@ -7923,13 +7930,13 @@ function HC(e) {
 					get children() {
 						return D(Pr, {
 							get when() {
-								return Br(() => typeof h() == "object")() ? h() : void 0;
+								return Br(() => typeof g() == "object")() ? g() : void 0;
 							},
 							get fallback() {
 								var e = mC();
 								return M(e, (() => {
-									var e = Br(() => typeof h() == "string");
-									return () => e() ? h() : "hover an element and click to pick it";
+									var e = Br(() => typeof g() == "string");
+									return () => e() ? g() : "hover an element and click to pick it";
 								})()), O(() => j(rC), (t, n) => {
 									A(e, t, n);
 								}), e;
@@ -7950,11 +7957,9 @@ function HC(e) {
 					},
 					get children() {
 						var t = DC(), n = t.firstChild;
-						n._$$keydown = (e) => {
-							e.key === "Enter" && !e.shiftKey && !e.isComposing && (e.preventDefault(), p());
-						};
-						var r = f;
-						return typeof r == "function" || Array.isArray(r) ? si(() => r, n) : f = n, M(t, D(Pr, {
+						return n._$$keydown = (e) => {
+							e.key === "Enter" && !e.shiftKey && !e.isComposing && (e.preventDefault(), m());
+						}, si(() => p, n), M(t, D(Pr, {
 							get when() {
 								return e.asked();
 							},
@@ -7975,7 +7980,7 @@ function HC(e) {
 							A(t, e, i?.e), A(n, r, i?.t);
 						}), t;
 					}
-				}), g), O(() => ({
+				}), f), O(() => ({
 					e: j(PS),
 					t: j(FS),
 					a: j(IS),
@@ -8000,12 +8005,12 @@ function UC(e) {
 	n.append(r, i), document.documentElement.append(t);
 	let a = jm(AS().pipe(bm(OS, e))), [o, s] = Or();
 	km(ox(vx(a.model), (e) => Y(() => s(() => e))));
-	let [c, l] = Or(), u = 0, d = e.ask && ((t) => {
-		l({ status: "sending" }), e.ask?.(++u, t);
+	let [c, l] = Or(), u = { ref: 0 }, d = e.ask && ((t) => {
+		l({ status: "sending" }), u.ref += 1, e.ask?.(u.ref, t);
 	});
 	d && e.on(DS, (e) => {
 		let t = e;
-		t.ref === u && l((e) => ({
+		t.ref === u.ref && l((e) => ({
 			...e,
 			...t
 		}));

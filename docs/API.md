@@ -984,7 +984,9 @@ TOKENS
   The dev server, never the page, talks to the OpenCode V2 service that is running on the machine (the one `opencode serve --service` and the desktop app register; found with `Service.discover` of `@opencode/client`, so the page holds no address and no credentials). It creates a session in the workspace root (the nearest folder up from the Vite root with a `.git`), sends the prompt, waits for the session to end, and tells the overlay the status over the same HMR channel (`cssints:devtools:ask` from the page, `cssints:devtools:asked` back: no route that another origin could post to). The box shows `sending`, then `running · ses_…`, then `completed`, `failed` or `interrupted`; with no service running it says so and keeps your text. `@opencode/client` is an optional peer dependency: install it in the app (the message names it when it is missing). The prompt is made of cssints' own data, not source markers added to the markup, and is bounded (8 call sites, 24 properties, 3 beaten declarations each, 12 tokens, a call cut at 400 characters; the server cuts the whole at 16000):
 
   ```text skip
-  Change the UI of the running app as the instruction says. The styles are written with cssints: each `css.*` call below produced the classes of the element, so edit those calls (or the markup that uses them), not the generated class names.
+  Change the UI of the running app as the instruction says.
+  The styles are written with cssints: each `css.*` call below produced the classes of the element,
+  so edit those calls (or the markup that uses them), not the generated class names.
 
   Instruction: make it bigger
 

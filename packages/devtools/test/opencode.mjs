@@ -5,6 +5,7 @@
 //   the status goes running (with the session id), then completed; no service is a message, not a crash; with the option
 //   off, the overlay's entry has no way to ask and the server ignores the event.
 import assert from "node:assert/strict";
+import { once } from "node:events";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
@@ -34,7 +35,7 @@ const serve = async (opencode) => {
   await server.listen();
   const url = server.resolvedUrls.local[0];
   const socket = new WebSocket(url.replace("http", "ws"), "vite-hmr");
-  await new Promise((resolve) => socket.addEventListener("open", resolve, { once: true }));
+  await once(socket, "open");
   const asked = [];
   socket.addEventListener("message", (e) => {
     const m = JSON.parse(e.data);

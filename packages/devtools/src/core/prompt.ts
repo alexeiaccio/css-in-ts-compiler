@@ -9,19 +9,25 @@ const BEATEN = 3;
 const TOKENS = 12;
 const CALL = 400;
 
-/** A file name relative to the root of the app, when it is under it. */
+/**
+ * A file name relative to the root of the app, when it is under it.
+ * @param {string} root the root of the app
+ * @param {string} file a file name
+ * @returns {string} the name under the root, or the name as given
+ */
 export const relative = (root: string, file: string) =>
   file.startsWith(`${root}/`) ? file.slice(root.length + 1) : file;
 
 const cut = (text: string, max: number) => (text.length > max ? `${text.slice(0, max)}…` : text);
 const flat = (text: string | null) => (text ?? "").replace(/\s+/g, " ").trim();
 
-// body > main#app > section > p, the last four ancestors
+// html > body > main > p: the element and its three nearest ancestors
 const domPath = (el: Element) => {
-  const path: string[] = [];
-  for (let e: Element | null = el; e && path.length < 4; e = e.parentElement)
-    path.unshift(`${e.localName}${e.id ? `#${e.id}` : ""}`);
-  return path.join(" > ");
+  const parent = el.parentElement;
+  const up2 = parent?.parentElement;
+  return [up2?.parentElement, up2, parent, el]
+    .flatMap((e) => (e ? [`${e.localName}${e.id ? `#${e.id}` : ""}`] : []))
+    .join(" > ");
 };
 
 const where = (c: Candidate) => `${c.selector} (${c.layer || "unlayered"})`;
@@ -33,11 +39,13 @@ const where = (c: Candidate) => `${c.selector} (${c.layer || "unlayered"})`;
  * @param {string} instruction what the user asked for
  * @returns {string} the text to send to the agent
  */
-export const buildPrompt = (inspection: Inspection, el: Element, instruction: string): string => {
+export const buildPrompt = (inspection: Inspection, el: Element, instruction: string) => {
   const { root } = inspection;
   const sites = inspection.groups.flatMap((g) => (g.site ? [g.site] : []));
   const lines = [
-    "Change the UI of the running app as the instruction says. The styles are written with cssints: each `css.*` call below produced the classes of the element, so edit those calls (or the markup that uses them), not the generated class names.",
+    "Change the UI of the running app as the instruction says.",
+    "The styles are written with cssints: each `css.*` call below produced the classes of the element,",
+    "so edit those calls (or the markup that uses them), not the generated class names.",
     "",
     `Instruction: ${instruction.trim()}`,
     "",
