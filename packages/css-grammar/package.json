@@ -1,9 +1,14 @@
 {
   "name": "@cssints/css-grammar",
   "version": "0.1.0",
-  "private": true,
   "description": "Type-level and runtime recognizer of CSS values over mdn-data grammars (the engine of cssints)",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexeiaccio/css-in-ts-compiler.git",
+    "directory": "packages/css-grammar"
+  },
+  "homepage": "https://cssints.accio.blue",
   "files": [
     "dist",
     "src",
@@ -28,7 +33,8 @@
         "types": "./dist/*.d.mts",
         "default": "./dist/*.mjs"
       }
-    }
+    },
+    "directory": ".publish"
   },
   "scripts": {
     "build": "vp pack",
@@ -40,7 +46,8 @@
     "longhands": "node scripts/longhands.mjs",
     "diff": "node test/diff.ts",
     "diff:support": "node test/diff-support.ts",
-    "pack:tgz": "node ../../scripts/pack.mjs"
+    "pack:tgz": "node ../../scripts/pack.mjs",
+    "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1"
   },
   "dependencies": {
     "@mdn/browser-compat-data": "8.1.3",

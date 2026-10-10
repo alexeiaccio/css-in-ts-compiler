@@ -68,9 +68,17 @@ export interface TuiLayer extends TuiProps {
   ":focus"?: TuiProps;
   ":active"?: TuiProps;
 }
-/** What a terminal style compiles to: its props, state overlays, and what each theme (by name) changes. */
+type ColourKey = "color" | "backgroundColor" | "borderColor" | "caretColor";
+/** The token (`color-bg` for `var(--color-bg)`) of each colour prop set to one, per state: what a run-time theme sets. */
+export interface TuiVars extends Partial<Record<ColourKey, string>> {
+  ":hover"?: Partial<Record<ColourKey, string>>;
+  ":focus"?: Partial<Record<ColourKey, string>>;
+  ":active"?: Partial<Record<ColourKey, string>>;
+}
+/** What a terminal style compiles to: its props, state overlays, what each theme (by name) changes, its tokens. */
 export interface TuiShape extends TuiLayer {
   themes?: Record<string, TuiLayer>;
+  vars?: TuiVars;
 }
 /** What every member of cssints/tui returns. Only members make one (`cn()` takes no object literal). */
 export type TuiStyle = TuiShape & {

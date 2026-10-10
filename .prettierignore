@@ -34,3 +34,6 @@ apps/docs/src/tokens.d.json.ts
 packages/css-grammar/out
 # The order of the export conditions is meaningful ("development" before "types"); the formatter sorts the keys.
 packages/*/package.json
+# The publishable copy of a package (scripts/stage.mjs) and the API.md that cssints's prepack copies in.
+**/.publish
+packages/cssints/docs

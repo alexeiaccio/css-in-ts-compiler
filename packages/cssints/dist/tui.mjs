@@ -361,9 +361,16 @@ const resolved = (text, values) => {
 	if (hex === void 0) throw fail(`cssints: ${say(text)} is ${say(flat)} here, not a colour a terminal can show`);
 	return hex;
 };
+const LONE = /^var\(--([\w-]+)\)$/;
 const replacement = (n) => {
 	const out = {};
-	for (const [k, v, s, c] of n.__tui) put(out, s, k, c ? resolved(String(v)) : v);
+	const vars = {};
+	for (const [k, v, s, c] of n.__tui) {
+		put(out, s, k, c ? resolved(String(v)) : v);
+		const token = c ? LONE.exec(String(v))?.[1] : void 0;
+		if (token) put(vars, s, k, token);
+		else if (c) delete (s ? vars[s] ?? {} : vars)[k];
+	}
 	const tokens = n.__tui.filter((e) => e[3] && String(e[1]).includes("var("));
 	if (tokens.length) {
 		const themes = {};
@@ -379,6 +386,12 @@ const replacement = (n) => {
 		}
 		if (Object.keys(themes).length) out.themes = themes;
 	}
+	for (const s of [
+		":hover",
+		":focus",
+		":active"
+	]) if (vars[s] && !Object.keys(vars[s]).length) delete vars[s];
+	if (Object.keys(vars).length) out.vars = vars;
 	return `(${Formatter.formatJson(out)})`;
 };
 registry.tui = (v) => isTui(v) ? replacement(v) : void 0;
