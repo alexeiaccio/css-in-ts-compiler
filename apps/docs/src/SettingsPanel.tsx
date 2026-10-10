@@ -89,6 +89,7 @@ const LABELS: Record<Choice, string> = {
 };
 
 const NAMES: Record<string, string> = {
+  cssints: "cssints (logo)",
   "open-props": "Open Props",
   "reasonable-colors": "Reasonable Colors",
 };

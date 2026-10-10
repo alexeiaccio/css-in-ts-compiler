@@ -47,7 +47,7 @@ assert.match(
 // the palettes: the default is the values of pal (Itten's cube at its default hue), every palette is a theme of pal on a
 // data attribute, a cube also has a theme per step of the wheel that sets its accents only, and no theme sets a mode's colour
 const hex = (c) => c.replace(/^#(.)\1(.)\2(.)\3$/, "#$1$2$3");
-const start = palettes.itten(DEFAULT_HUE);
+const start = palettes.cssints(DEFAULT_HUE);
 for (const [mode, k] of [
   ["light", "bg"],
   ["light", "accent"],

@@ -9,7 +9,16 @@ export const BASE_HUE = 9;
 // the palettes whose accent follows the hue: the cubes of RYBitten; the others are sets with one accent
 export const WHEEL: readonly string[] = ["itten", "munsell", "albers"];
 export const OPTIONS = {
-  palette: ["itten", "munsell", "albers", "radix", "flexoki", "open-props", "reasonable-colors"],
+  palette: [
+    "cssints",
+    "itten",
+    "munsell",
+    "albers",
+    "radix",
+    "flexoki",
+    "open-props",
+    "reasonable-colors",
+  ],
   mode: ["system", "light", "dim", "dark"],
   text: ["small", "normal", "large"],
   density: ["compact", "normal", "comfortable"],
@@ -21,7 +30,7 @@ export type Settings = { hue: number } & { [K in Choice]: (typeof OPTIONS)[K][nu
 
 export const defaults: Settings = {
   hue: BASE_HUE,
-  palette: "itten",
+  palette: "cssints",
   mode: "system",
   text: "normal",
   density: "normal",

@@ -34,6 +34,7 @@ export interface Palette {
 
 /** The ids of the settings panel, in its order. */
 export const IDS = [
+  "cssints",
   "itten",
   "munsell",
   "albers",
@@ -202,8 +203,61 @@ const reasonableLight = {
   link: "azure.4",
 } satisfies Roles;
 
+// ---- cssints: the logo. The neutrals are tinted with its purple (#663399, hue 303 in OKLCH), the accent is its TypeScript blue
+// (#3178C6) as it is on light paper; the dark modes take it lighter (as the wordmark does), and the steps that must read as text
+// are found by contrast like the cubes' are.
+const TS = "#3178c6";
+const logo = (): Palette => {
+  const light: Record<Neutral, Hex> = {
+    bg: "#fefdff",
+    bgSubtle: "#f7f5fa",
+    bgMuted: "#eeebf5",
+    border: "#e5e0ed",
+    borderStrong: "#cdc5d9",
+    textLow: "#685e76",
+    textMedium: "#494057",
+    text: "#1c1426",
+  };
+  const dark: Record<Neutral, Hex> = {
+    bg: "#110d17",
+    bgSubtle: "#18131f",
+    bgMuted: "#241e2e",
+    border: "#312a3c",
+    borderStrong: "#4c435a",
+    textLow: "#a399b3",
+    textMedium: "#bfb6ce",
+    text: "#ede9f2",
+  };
+  const dim: Record<Neutral, Hex> = {
+    bg: "#211b29",
+    bgSubtle: "#292333",
+    bgMuted: "#362e42",
+    border: "#443b51",
+    borderStrong: "#5d526d",
+    textLow: "#b0a5c0",
+    textMedium: "#c8bfd7",
+    text: "#f0edf5",
+  };
+  const soft = step(ramp(TS, { mode: "lightness", steps: 1, lightness: [0.95, 0.95] }));
+  const darkSoft = step(ramp(TS, { mode: "lightness", steps: 1, lightness: [0.27, 0.27] }));
+  return {
+    light: {
+      ...light,
+      accent: TS,
+      accentSoft: soft,
+      accentStrong: contrast(TS, soft, 4.6),
+      link: contrast(TS, light.bgSubtle, 4.6),
+      onAccent: onAccent(TS),
+    },
+    // the papers an accent reads worst on in the dark modes are dim's
+    dark: { ...dark, ...accents("#5b9be0", dim.bgSubtle, 0.27), accentSoft: darkSoft },
+    dim,
+  };
+};
+
 /** A palette at a hue (a step of the wheel, 0 to HUES - 1); the sets of tokens have one accent and ignore it. */
 export const palettes: Record<Id, (hue: number) => Palette> = {
+  cssints: logo,
   itten: (hue) => cube("itten", hue),
   munsell: (hue) => cube("munsell", hue),
   albers: (hue) => cube("albers", hue),

@@ -56,7 +56,8 @@ const bg = (page) =>
   page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor);
 // "#rrggbb" as Chrome prints a computed colour
 const rgb = (hex) => `rgb(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(", ")})`;
-const itten = palettes.itten(DEFAULT_HUE);
+// the default palette is the logo's (cssints)
+const start = palettes.cssints(DEFAULT_HUE);
 
 try {
   const desktop = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -174,7 +175,7 @@ try {
   });
   const night = await open(dark, "basic-usage");
   await ready(night);
-  assert.equal(await bg(night), rgb(itten.dark.bg), "dark follows the system");
+  assert.equal(await bg(night), rgb(start.dark.bg), "dark follows the system");
   await night.screenshot({ path: join(out, "basic-usage-dark.png") });
   const gear = "button[aria-label='Display settings']";
   const read = (fn, arg) => night.evaluate(fn, arg);
@@ -199,21 +200,24 @@ try {
 
   // the mode: a page that asks for light is light on a dark system; dim is dark with a lifted background
   await setting("mode", "light");
-  assert.equal(await bg(night), rgb(itten.light.bg));
+  assert.equal(await bg(night), rgb(start.light.bg));
   await setting("mode", "dim");
-  assert.equal(await bg(night), rgb(itten.dim.bg));
+  assert.equal(await bg(night), rgb(start.dim.bg));
   assert.equal(await read(() => document.documentElement.className), "dark dim");
   assert.equal(await style("html", "colorScheme"), "dark");
   await night.screenshot({ path: join(out, "settings-dim.png") });
   await setting("mode", "system");
-  assert.equal(await bg(night), rgb(itten.dark.bg));
+  assert.equal(await bg(night), rgb(start.dark.bg));
   await setting("mode", "dark");
 
   // the hue by keyboard: a step of the wheel, and the accent of that step in the cube (build time, palettes.ts)
   const swatch = () => style("[data-testid=swatch-accent]", "backgroundColor");
   const slider = "#settings input[type=range]";
+  assert.equal(await swatch(), rgb(start.dark.accent), "the logo's accent");
+  assert.equal(await night.locator(slider).isDisabled(), true, "the logo palette has one accent");
+  await setting("palette", "itten");
   const before = await swatch();
-  assert.equal(before, rgb(itten.dark.accent));
+  assert.equal(before, rgb(palettes.itten(DEFAULT_HUE).dark.accent));
   await night.focus(slider);
   await night.keyboard.press("Home");
   await night.keyboard.press("ArrowRight");
@@ -299,11 +303,11 @@ try {
 
   // Reset: every setting back to its default, the system's dark again
   await night.click("#settings button");
-  assert.equal(await bg(night), rgb(itten.dark.bg));
+  assert.equal(await bg(night), rgb(start.dark.bg));
   assert.equal(await style(".prose", "fontSize"), "16px");
   assert.equal(await gap(), "16px");
   assert.equal(await read(() => document.documentElement.dataset.hue), String(DEFAULT_HUE));
-  assert.equal(await read(() => document.documentElement.dataset.palette), "itten");
+  assert.equal(await read(() => document.documentElement.dataset.palette), "cssints");
 
   // the contrast of every palette at every hue, measured in Chrome on the built themes (test/contrast.mjs does the same with the
   // engine's maths on the data): a pixel of each colour, WCAG ratios, the floors of test/contrast.mjs

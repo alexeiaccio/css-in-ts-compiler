@@ -8,13 +8,13 @@ import type { Colors } from "./palettes.ts";
 import tokens from "./tokens.json" with { type: "json" };
 
 // tokens.json is the light theme and the default of every token; the page follows the system (see "system" below). The colours
-// of tokens.json point at the group `pal`, the colours of the three modes of the palette in use: it starts as Itten's cube at its
-// default hue, and a palette theme (below) sets it.
+// of tokens.json point at the group `pal`, the colours of the three modes of the palette in use: it starts as the logo palette
+// (cssints), and a palette theme (below) sets it.
 const leaves = <K extends string>(c: Record<K, Hex>) =>
   Object.fromEntries(Object.entries(c).map(([k, $value]) => [k, { $value }])) as {
     [P in K]: { $value: Hex };
   };
-const start = palettes.itten(DEFAULT_HUE);
+const start = palettes.cssints(DEFAULT_HUE);
 export const t = createTokens({
   ...tokens,
   pal: {
