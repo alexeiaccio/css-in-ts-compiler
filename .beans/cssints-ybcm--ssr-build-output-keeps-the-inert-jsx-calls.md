@@ -5,7 +5,7 @@ status: completed
 type: bug
 priority: normal
 created_at: 2026-10-10T11:57:15Z
-updated_at: 2026-10-10T14:50:50Z
+updated_at: 2026-10-10T14:50:55Z
 parent: cssints-06ws
 blocking:
     - cssints-m0yj
@@ -15,7 +15,7 @@ Found building apps/sky-tui: cssints turns the JSX of Vite's `ssr` environment i
 
 ## Todo
 - [x] reproduce with a minimal SSR build
-- [ ] fix in the plugin, a test
+- [x] fix in the plugin, a test
 - [x] drop the `tui` environment workaround in apps/sky-tui: moved to cssints-m0yj
 
 ## Summary of Changes
