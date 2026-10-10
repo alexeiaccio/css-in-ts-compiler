@@ -1,10 +1,11 @@
 ---
 # cssints-ci7n
 title: 'Plugin option to exclude modules: a plugin package cannot be bundled into another Vite project'
-status: todo
+status: in-progress
 type: feature
+priority: normal
 created_at: 2026-10-10T14:39:03Z
-updated_at: 2026-10-10T14:39:03Z
+updated_at: 2026-10-10T15:48:39Z
 ---
 
 Found by cssints-avlz (2026-10-10). `isSite` in packages/cssints/src/plugin.ts (around line 56) treats any module outside node_modules whose code mentions "cssints" as a site module (`code.includes(RUNTIME) && (!id.includes("node_modules") || ATTRIBUTE.test(code))`). So a workspace plugin package (or the engine's own sources) that a Vite project bundles as code (apps/docs bundling packages/*/src for the playground) is transformed by that project's cssints plugin and fails with ImportError; the playground worked around it by loading the packages as raw text.
