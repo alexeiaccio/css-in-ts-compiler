@@ -1,9 +1,14 @@
 {
   "name": "@cssints/tokens",
   "version": "0.1.0",
-  "private": true,
   "description": "Token sets for cssints as DTCG data: open-props, Radix colors, Flexoki, Reasonable Colors",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexeiaccio/css-in-ts-compiler.git",
+    "directory": "packages/tokens"
+  },
+  "homepage": "https://cssints.accio.blue",
   "files": [
     "dist",
     "src"
@@ -63,14 +68,16 @@
         "types": "./dist/reasonable-colors.d.mts",
         "default": "./dist/reasonable-colors.mjs"
       }
-    }
+    },
+    "directory": ".publish"
   },
   "scripts": {
     "build": "vp pack",
     "generate": "node scripts/generate.ts && vp fmt src",
     "test": "node test/tokens.mjs",
     "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
-    "pack:tgz": "node ../../scripts/pack.mjs"
+    "pack:tgz": "node ../../scripts/pack.mjs",
+    "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1"
   },
   "devDependencies": {
     "@radix-ui/colors": "3.0.0",

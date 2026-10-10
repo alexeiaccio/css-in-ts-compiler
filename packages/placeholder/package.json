@@ -1,9 +1,14 @@
 {
   "name": "@cssints/placeholder",
   "version": "0.1.0",
-  "private": true,
   "description": "Image placeholders for cssints: a gradient of the dominant colours, or a thumbhash data URL, read from the image at build time",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexeiaccio/css-in-ts-compiler.git",
+    "directory": "packages/placeholder"
+  },
+  "homepage": "https://cssints.accio.blue",
   "files": [
     "dist",
     "src"
@@ -27,13 +32,15 @@
         "default": "./dist/index.mjs"
       }
     },
-    "access": "public"
+    "access": "public",
+    "directory": ".publish"
   },
   "scripts": {
     "build": "vp pack",
     "test": "node test/placeholder.mjs",
     "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
-    "pack:tgz": "node ../../scripts/pack.mjs"
+    "pack:tgz": "node ../../scripts/pack.mjs",
+    "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1"
   },
   "dependencies": {
     "jpeg-js": "^0.4.4",

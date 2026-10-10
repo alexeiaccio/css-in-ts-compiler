@@ -9,6 +9,11 @@
 	"scripts": {
 		"prepare": "effect-language-service patch && effect-tsgo patch --typescript",
 		"build": "vp run -r build",
+		"build:packages": "vp run --filter \"./packages/*\" build",
+		"changeset": "changeset",
+		"version-packages": "changeset version && bun install --lockfile-only",
+		"release:check": "bun run build:packages && node scripts/release.mjs",
+		"release": "bun run build:packages && node scripts/release.mjs && changeset publish --tag next",
 		"dev": "vp run -r --parallel dev",
 		"test": "vp run -r --cache test",
 		"bench": "vp run -r bench",
@@ -21,6 +26,7 @@
 		"fmt:check": "vp fmt --check"
 	},
 	"devDependencies": {
+		"@changesets/cli": "^3.0.3",
 		"@effect/language-service": "^0.87.3",
 		"@effect/tsgo": "^0.48.0",
 		"@types/bun": "^1.3.10",
@@ -28,6 +34,7 @@
 		"@typescript/native": "npm:typescript@7.0.2",
 		"@typescript/native-preview": "^7.0.0-dev.20260212.1",
 		"eslint-plugin-playwright": "^2.5.1",
+		"semver": "^7.8.5",
 		"typescript": "^5.9.3",
 		"vite": "catalog:",
 		"vite-plus": "catalog:"

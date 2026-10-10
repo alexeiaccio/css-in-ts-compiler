@@ -1,9 +1,14 @@
 {
   "name": "@cssints/fonts",
   "version": "0.1.0",
-  "private": true,
   "description": "Fonts for cssints: @font-face rules with a metric-matched fallback face, and cap-height trimming",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexeiaccio/css-in-ts-compiler.git",
+    "directory": "packages/fonts"
+  },
+  "homepage": "https://cssints.accio.blue",
   "files": [
     "dist",
     "src"
@@ -27,13 +32,15 @@
         "default": "./dist/index.mjs"
       }
     },
-    "access": "public"
+    "access": "public",
+    "directory": ".publish"
   },
   "scripts": {
     "build": "vp pack",
     "test": "node test/fonts.mjs",
     "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
-    "pack:tgz": "node ../../scripts/pack.mjs"
+    "pack:tgz": "node ../../scripts/pack.mjs",
+    "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1"
   },
   "dependencies": {
     "fontkitten": "^1.0.3"

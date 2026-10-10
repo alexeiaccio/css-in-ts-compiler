@@ -5,6 +5,8 @@ node_modules
 out
 dist
 *.tgz
+# the publishable copy of a package (scripts/stage.mjs)
+.publish
 
 # The four publishable packages are consumed over git: their exports default to
 # dist (src is the `development` condition), so the built dist is tracked.
