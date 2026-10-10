@@ -1,10 +1,11 @@
 ---
 # cssints-332g
 title: 'OpenTUI adapter: a renderable cannot change its style after attach'
-status: todo
+status: in-progress
 type: feature
+priority: normal
 created_at: 2026-10-10T17:41:18Z
-updated_at: 2026-10-10T17:41:18Z
+updated_at: 2026-10-10T18:39:09Z
 parent: cssints-06ws
 ---
 
