@@ -1,0 +1,45 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@4.0.1/schema.json",
+  "changelog": "@changesets/cli/changelog",
+  "commit": false,
+  "fixed": [
+    [
+      "cssints",
+      "@cssints/balance",
+      "@cssints/css-grammar",
+      "@cssints/devtools",
+      "@cssints/fluid",
+      "@cssints/fonts",
+      "@cssints/gradient",
+      "@cssints/icons",
+      "@cssints/layout",
+      "@cssints/masonry",
+      "@cssints/mcp",
+      "@cssints/mise-en-mode",
+      "@cssints/motion",
+      "@cssints/placeholder",
+      "@cssints/ramp",
+      "@cssints/reset",
+      "@cssints/reveal",
+      "@cssints/skeleton",
+      "@cssints/squircle",
+      "@cssints/stuck",
+      "@cssints/tokens",
+      "@cssints/tui"
+    ]
+  ],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "master",
+  "updateInternalDependencies": "patch",
+  "ignore": [
+    "cssints-demo",
+    "cssints-docs",
+    "cssints-sky",
+    "cssints-sky-tui",
+    "@cssints/ai-automation"
+  ],
+  "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
+    "onlyUpdatePeerDependentsWhenOutOfRange": true
+  }
+}

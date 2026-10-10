@@ -1,0 +1,43 @@
+# Releases the 22 packages to npm with Changesets (RELEASING.md). On every push to master:
+#   - changesets present: opens or updates the "Version Packages" pull request (changeset version, bun.lock refreshed);
+#   - none (the version PR was merged): builds, checks and stages the packages (scripts/release.mjs), then publishes the
+#     versions that are not on npm yet with `changeset publish --tag next`, and pushes the git tags.
+# Publishing uses npm trusted publishing (OIDC): no token. Each package must name this file, release.yml, as its trusted
+# publisher on npmjs.com (RELEASING.md). The repository is private, so npm adds no provenance.
+name: release
+
+on:
+  push:
+    branches: [master]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # the version commit, the tags
+      pull-requests: write # the "Version Packages" pull request
+      id-token: write # npm trusted publishing
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      # trusted publishing needs npm 11.5.1 or later
+      - run: npm install -g npm@^11.5.1
+      - run: bun install --frozen-lockfile
+      # builds the packages, stages them into .publish and checks the manifests and the files; nothing is published
+      - run: bun run release:check
+      - uses: changesets/action@v2.1.2
+        with:
+          version-script: bun run version-packages
+          publish-script: bun run release:publish
+          create-github-releases: false

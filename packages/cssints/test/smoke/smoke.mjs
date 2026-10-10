@@ -86,9 +86,10 @@ for (const t of Object.values(tarballs)) {
     list.every(
       (f) =>
         ["package.json", "LICENSE", "README.md", "docs/API.md"].includes(f) ||
-        f.startsWith("dist/"),
+        f.startsWith("dist/") ||
+        f.startsWith("skills/"),
     ),
-    `${t.split("/").pop()} ships dist/ only (plus package.json, LICENSE, README, docs/API.md)`,
+    `${t.split("/").pop()} ships dist/ only (plus package.json, LICENSE, README, docs/API.md, skills/)`,
   );
   ok(
     !list.some((f) => /\.tsx?$/.test(f) && !f.endsWith(".d.ts")),
