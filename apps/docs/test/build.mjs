@@ -142,6 +142,11 @@ assert.ok(
   !/monaco|MonacoEnvironment|transformSync|binding-wasm32|lightningcss_node/.test(entry.code),
   "no playground code in the entry chunk",
 );
+// the TUI page (src/tui/): ghostty-web, @bomb.sh/tty, both their .wasm and sky's fixtures are lazy too
+assert.ok(
+  !/ghostty|createTerm|whats-hot|Ron Filipkowski/.test(entry.code),
+  "no TUI code in the entry chunk",
+);
 const names = files.map((f) => f.fileName);
 for (const part of [
   /^assets\/worker-.*\.js$/,
@@ -151,6 +156,9 @@ for (const part of [
   /^assets\/parser\.wasm32-wasi-.*\.wasm$/,
   /^assets\/transform\.wasm32-wasi-.*\.wasm$/,
   /^assets\/lightningcss_node-.*\.wasm$/,
+  /^assets\/Tui-.*\.js$/,
+  /^assets\/ghostty-vt-.*\.wasm$/,
+  /^assets\/bomb-tty-.*\.wasm$/,
 ])
   assert.ok(
     names.some((n) => part.test(n)),
@@ -267,7 +275,13 @@ assert.ok(
   shell.includes('<div id="root"></div>') && shell.includes("<noscript>"),
   "the playground document",
 );
-for (const slug of slugs.filter((s) => s !== "playground")) {
+for (const app of ["playground", "tui"])
+  assert.match(
+    html.get(`${app}/index.html`),
+    /<div id="root"><\/div><noscript>/,
+    `the ${app} document`,
+  );
+for (const slug of slugs.filter((s) => s !== "playground" && s !== "tui")) {
   const doc = html.get(`${slug}/index.html`);
   assert.ok(
     doc.includes('<div id="prerender"><h1>') && doc.includes('<div id="root" hidden>'),

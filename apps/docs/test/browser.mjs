@@ -95,6 +95,7 @@ try {
   for (const [from, link] of links) {
     assert.ok(link.startsWith(prefix), `${from}: link ${link} is outside ${prefix}`);
     const [slug = "", hash] = slugOf(link).split("#");
+    if (slug === "playground" || slug === "tui") continue; // pages of their own, not docs (test/tui.mjs)
     const ids = anchors.get(slug);
     assert.ok(ids, `${from}: link to ${link}, which is no page`);
     assert.ok(!hash || ids.has(hash), `${from}: link to ${link}, which has no such anchor`);

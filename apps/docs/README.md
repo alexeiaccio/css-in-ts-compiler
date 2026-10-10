@@ -6,6 +6,10 @@ The documentation site: pages from `README.md` and `docs/API.md`, built with Sol
 
 `/playground` runs the engine in the browser: Monaco with the TypeScript worker and the types of cssints (hover, completion, type errors of the open file), several files that import each other (`import { t } from "./tokens.ts" with { type: "cssints" }`), the plugin packages that run without Node (`@cssints/fluid`, `layout`, `motion`, `tokens/*`, ...; not `fonts`, `icons`, `placeholder`, which read files), the CSS, the module as the plugin returns it, a live preview, errors at their position, all the files in the URL hash. It is a lazy chunk and three workers (`src/playground/`); `plugin/playground.ts` makes what the engine imports from Node (SHA-1, `path`, `createRequire`, `browserslist`, the browser-compat data), routes the parsers to their wasm builds, and collects the types and the sources of the packages. How and why: `docs/research/playground.md`. `node test/playground.mjs` compares it with the Node plugin (224 cases) and drives the page in Chrome.
 
+## TUI
+
+`/tui` is a live terminal: ghostty-web (Ghostty's emulator compiled to WASM) runs sky's home feed and thread on `@bomb.sh/tty`, with the styles and the system theme of `apps/sky-tui` and the posts of sky's recorded fixtures (no request). Keys and the mouse work. The page plays the terminal's side (`src/tui/host.ts`): it answers the app's colour queries from the display settings and reports their changes, so the terminal theme follows the palette and the mode. A lazy chunk and two `.wasm` files (`src/tui/`, `plugin/tui.ts`). `node test/tui.mjs` drives it in Chrome. OpenTUI is not shown: it is native Zig loaded over `bun:ffi`.
+
 ## Deploy
 
 https://cssints.dev is a Cloudflare Worker serving `dist/` as static assets, described by `alchemy.run.ts` (Alchemy v2, stage `prod`). The deploy state is in the Cloudflare account (`Cloudflare.state()`), so a local deploy and a CI deploy see the same resources.

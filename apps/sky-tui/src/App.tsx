@@ -9,10 +9,8 @@ import { createEffect, createResource, createSignal, For, Match, Show, Switch } 
 import { createStore } from "solid-js/store";
 
 import { homeScreen, threadScreen } from "../../sky/src/api.ts";
-import type { ThreadNode } from "../../sky/src/api.ts";
 import { FEEDS } from "../../sky/src/home/feeds.ts";
-import { branches, goneText, moreLabel } from "../../sky/src/thread/model.ts";
-import type { Branch } from "../../sky/src/thread/model.ts";
+import { type Row, rowsOf } from "./model.ts";
 import { Note, Post } from "./Post.tsx";
 import * as s from "./styles.ts";
 
@@ -178,40 +176,6 @@ function HomeScreen(props: { home: Home; open: (t: Target) => void }) {
 }
 
 // ---- thread ----------------------------------------------------------------------------------
-type Row =
-  | { kind: "post"; post: PostView; depth: number; focus?: boolean }
-  | { kind: "note"; text: string; depth: number; open?: PostView };
-
-const nodeRow = (n: ThreadNode, depth: number, focus = false): Row =>
-  n.kind === "post"
-    ? { kind: "post", post: n.post, depth, focus }
-    : { kind: "note", text: goneText[n.why], depth };
-
-// The replies as rows, indented by level; a branch cut at the depth limit ends in a "Show N more" row that opens its post.
-const flat = (bs: Branch[], depth: number): Row[] =>
-  bs.flatMap((b) => [
-    nodeRow(b.node, depth),
-    ...flat(b.replies, depth + 1),
-    ...(b.more && b.node.kind === "post"
-      ? [
-          {
-            kind: "note",
-            text: moreLabel(b.more.count),
-            depth: depth + 1,
-            open: b.node.post,
-          } as Row,
-        ]
-      : []),
-  ]);
-
-export function rowsOf(t: Awaited<ReturnType<typeof threadScreen>>): Row[] {
-  return [
-    ...t.parents.map((p) => nodeRow(p, 0)),
-    nodeRow(t.root, 0, true),
-    ...(t.root.kind === "post" ? flat(branches(t.root.replies), 1) : []),
-  ];
-}
-
 function ThreadScreen(props: { target: Target; open: (t: Target) => void; back: () => void }) {
   const [thread] = createResource(
     () => props.target,
