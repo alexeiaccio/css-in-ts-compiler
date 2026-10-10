@@ -1,14 +1,8 @@
 import { a as Kernel } from "./author-types-C1AhsnrT.mjs";
 import { n as cx } from "./runtime-CTvuM-Hm.mjs";
-import { n as At, t as CssNode } from "./node-EBJGMNcw.mjs";
+import { n as At, t as CssNode } from "./node-CdhAGmF3.mjs";
+import { t as Fallback } from "./lib-2OEIfPAE.mjs";
 import { CSS, CSSColorValue, CSSImageValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
-import { Effect } from "effect";
-//#region src/lib.d.ts
-/** What firstThatWorks() builds: its values as text, the wanted one first. */
-interface Fallback {
-  __fallback: string[];
-}
-//#endregion
 //#region src/macro.d.ts
 export declare const firstThatWorks: (...values: unknown[]) => Fallback;
 export declare class CSSAtRuleValue extends CSSStyleValue {

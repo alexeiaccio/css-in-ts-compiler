@@ -1,5 +1,7 @@
-import { a as registry, c as EvalError, d as MacroError, f as MemberError, i as forgetWarnings, l as HookError, n as forget, o as warn, p as SiteMissingError, t as Registry } from "./registry-n9JCX4pl.mjs";
-import { C as RUNTIME_ID, D as runtimeNames, E as runtimeModule, S as DERIVED, T as fallbackEntries, a as LAYERS, b as kernelEntries, d as globalNames, f as layerEntries, g as themedEntries, i as keptImport, l as closeNames, m as renderSheet, n as RUNTIME, o as addGlobal, p as layerStatements, r as instrument, s as addLayers, u as globalEntries, v as usesDerived } from "./instrument-Cclndlxs.mjs";
+import { c as EvalError, d as MacroError, f as MemberError, i as forgetWarnings, l as HookError, n as forget, p as SiteMissingError, t as Registry } from "./registry-n9JCX4pl.mjs";
+import { C as fallbackEntries, T as runtimeNames, a as closeNames, b as DERIVED, c as layerEntries, f as themedEntries, l as layerStatements, m as usesDerived, n as addGlobal, o as globalEntries, r as addLayers, s as globalNames, t as LAYERS, u as renderSheet, v as kernelEntries, w as runtimeModule, x as RUNTIME_ID } from "./sheet-CO7a-mdA.mjs";
+import { i as keptImport, n as RUNTIME, r as instrument } from "./instrument-Bdtk2INz.mjs";
+import { r as verifyChecks } from "./contrast-CZ8N3rna.mjs";
 import { createRequire } from "node:module";
 import { targets as targets$1, useTargets } from "@cssints/css-grammar/support";
 import { Cause, Clock, Config, Data, Effect, Exit, Formatter, Option, Predicate, Result, Schema, Semaphore } from "effect";
@@ -15,85 +17,6 @@ import { fileURLToPath } from "node:url";
 import { Window } from "happy-dom";
 import { ESModulesEvaluator, ssrModuleExportsKey } from "vite/module-runner";
 import { gzipSync } from "node:zlib";
-//#region src/contrast.ts
-const VAR = /var\((--[^\s,)]+)\)/g;
-const valueOf = (state, name, values) => {
-	const def = state.defs.get(name);
-	const text = values?.get(name) ?? def?.template;
-	return text === void 0 ? def?.value : text.replace(VAR, (m, n) => state.defs.has(n) ? valueOf(state, n, values) : m);
-};
-const affectedBy = (defs, names, out = /* @__PURE__ */ new Set()) => {
-	for (const n of names) if (!out.has(n)) {
-		out.add(n);
-		affectedBy(defs, defs.get(n)?.refs ?? [], out);
-	}
-	return out;
-};
-const together = ({ themed, layers }) => {
-	const side = (before) => layerStatements([...layers.values()].flatMap((l) => l.before === before ? [l.names] : [])).flat();
-	const order = [
-		...side(true),
-		"",
-		...side(false)
-	];
-	const rank = (layer) => order.indexOf(layer ?? "");
-	const groups = /* @__PURE__ */ new Map();
-	for (const t of [...themed.values()].sort((a, b) => rank(a.layer) - rank(b.layer) || (a.key < b.key ? -1 : 1))) {
-		if (!t.theme) continue;
-		const { label, scope, values } = t.theme;
-		const key = `${label}\t${scope ?? ""}`;
-		const group = groups.get(key) ?? groups.set(key, {
-			label,
-			values: /* @__PURE__ */ new Map()
-		}).get(key);
-		for (const [n, v] of values) group.values.set(n, v);
-	}
-	return groups.values();
-};
-const verify = (check, state, { luminance, ratio, shown }) => {
-	const { fg, bg, min } = check;
-	const path = (n) => state.defs.get(n)?.path ?? n;
-	const affecting = affectedBy(state.defs, [fg, bg]);
-	const subjects = [{ label: "the default values" }];
-	for (const { label, values } of together(state)) if ([...values.keys()].some((n) => affecting.has(n))) subjects.push({
-		label: `theme ${label}`,
-		values
-	});
-	const errors = [];
-	for (const { label, values } of subjects) {
-		const pair = [fg, bg].map((n) => {
-			const text = valueOf(state, n, values) ?? "";
-			return {
-				name: n,
-				text,
-				l: luminance(text)
-			};
-		});
-		const [f, b] = pair;
-		let ok = true;
-		for (const p of pair) if (p.l.why !== void 0) {
-			ok = false;
-			warn(state, `contrast ${p.name} ${p.text}`, `cssints: contrast is not checked for ${path(p.name)} in ${label}: "${p.text}" ${p.l.why}`, check.at);
-		}
-		if (!ok || f.l.lum === void 0 || b.l.lum === void 0) continue;
-		const r = ratio(f.l.lum, b.l.lum);
-		if (r < min) errors.push(`cssints: contrast ${shown(r)} is below ${min}: ${path(fg)} ${f.text} on ${path(bg)} ${b.text}, in ${label}`);
-	}
-	return errors;
-};
-const verifyChecks = Effect.fnUntraced(function* (select) {
-	const checks = [...registry.checks.values()].filter(select);
-	if (!checks.length) return;
-	const colours = yield* Effect.promise(() => import("./color-C208At51.mjs"));
-	for (const check of checks) {
-		const errors = verify(check, registry, colours);
-		if (errors.length) return yield* new MacroError({
-			message: errors.join("\n"),
-			...check.at
-		});
-	}
-});
-//#endregion
 //#region src/evaluate.ts
 var DomEvaluator = class extends ESModulesEvaluator {
 	win = Object.assign(new Window(), { __jsx: () => null });
@@ -833,9 +756,9 @@ function cssints({ inner = false, devtools = false, opencode = false } = {}) {
 		if (!FILE_RE.test(id)) return void 0;
 		if (!marked(code, id)) {
 			if (ctx.environment.name === "client") yield* drop(id);
-			return ctx.environment.name === "ssr" && /[jt]sx$/.test(id) && !id.includes("node_modules") ? yield* inertJsx(code, id) : void 0;
+			return ctx.environment.name === "ssr" && (inner || !build) && /[jt]sx$/.test(id) && !id.includes("node_modules") ? yield* inertJsx(code, id) : void 0;
 		}
-		if (ctx.environment.name === "ssr") {
+		if (ctx.environment.name === "ssr" && (inner || !build)) {
 			const out = yield* instrument(code, id, false);
 			return out && /x$/.test(id) ? yield* inertJsx(out.code, id) : out?.code;
 		}
