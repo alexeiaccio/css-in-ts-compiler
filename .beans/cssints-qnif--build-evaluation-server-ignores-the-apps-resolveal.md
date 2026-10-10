@@ -1,10 +1,11 @@
 ---
 # cssints-qnif
 title: Build evaluation server ignores the app's resolve.alias
-status: todo
+status: completed
 type: bug
+priority: normal
 created_at: 2026-10-10T15:55:38Z
-updated_at: 2026-10-10T15:55:38Z
+updated_at: 2026-10-10T17:08:43Z
 parent: cssints-06ws
 ---
 
@@ -25,5 +26,9 @@ Workaround in sky-tui: styles.ts imports only `cssints/tui`; the runtime calls (
 
 ## Todo
 
-- [ ] pass the user's resolve options (alias, conditions) to the build's evaluation server, or document that a style module's imports resolve without them
-- [ ] a fixture with an aliased import in a style module, built
+- [x] pass the user's resolve options (alias, conditions) to the build's evaluation server, or document that a style module's imports resolve without them
+- [x] a fixture with an aliased import in a style module, built
+
+## Summary of Changes
+
+plugin.ts keeps the app's resolve options in configResolved and starts the build's evaluation server with them: `resolve.alias` and the `conditions`/`externalConditions` of the app's `ssr` environment, the environment a dev server evaluates in. test/build-resolve.mjs (fixtures/alias: an alias and a package with a custom export condition) builds a style module that imports both and checks that dev and build make the same rules; before the fix the build failed with `Cannot find module '@space'`. Not passed: define, other plugins, dedupe, noExternal (an app's `ssr.noExternal: true` would inline everything into the runner). sky-tui: styles.ts lost its 'imports only cssints/tui' note; after cssints-5vnf it needs no runtime import. docs/API.md TUI 'Opt-in' says it.

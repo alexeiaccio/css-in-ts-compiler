@@ -39,8 +39,6 @@ the terminal supports OSC 22).
   `Post.tsx` resolves the props and follows the theme through a signal.
 - A focused box draws `focusedBorderColor`, not the `:focus` border colour (cssints-pkpg): `Row`
   sets `focusedBorderColor` from the style.
-- The build evaluates style modules without the app's aliases (cssints-qnif): `styles.ts` imports
-  only `cssints/tui`.
 
 ## Limits
 
