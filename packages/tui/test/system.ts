@@ -42,18 +42,18 @@ const c = {
   ) as Record<string, string>,
 };
 const t = c.color;
-const panels = [t.bg!, t.card!, t.hover!];
+const panels = [t.bg, t.card, t.hover];
 const roles = {
   color: {
     bg: { surface: true },
-    card: { surface: true, on: [t.bg!], contrast: 1.1 },
-    hover: { surface: true, on: [t.bg!], contrast: 1.25 },
+    card: { surface: true, on: [t.bg], contrast: 1.1 },
+    hover: { surface: true, on: [t.bg], contrast: 1.25 },
     text: { hue: "fg", on: panels, contrast: 7 },
     muted: { hue: "brightBlack", on: panels, contrast: 4.5 },
-    border: { hue: "brightBlack", on: [t.bg!, t.card!], contrast: 1.6 },
-    accent: { hue: "blue", on: [t.bg!, t.card!], contrast: 3 },
+    border: { hue: "brightBlack", on: [t.bg, t.card], contrast: 1.6 },
+    accent: { hue: "blue", on: [t.bg, t.card], contrast: 3 },
     link: { hue: "blue", on: panels, contrast: 4.5 },
-    onAccent: { hue: "fg", on: [t.accent!], contrast: 4.5, ansi: 15 },
+    onAccent: { hue: "fg", on: [t.accent], contrast: 4.5, ansi: 15 },
     error: { hue: "red", on: panels, contrast: 4.5 },
     success: { hue: "green", on: panels, contrast: 4.5 },
     warning: { hue: "yellow", on: panels, contrast: 4.5 },
@@ -102,13 +102,13 @@ for (const [label, [report, appearance]] of Object.entries(PALETTES)) {
   const v = solved.values;
   assert.equal(v["color-bg"], report.bg, `${label}: bg is the terminal's`);
   for (const [key, role] of Object.entries(roles.color) as [string, Role][]) {
-    const got = v[`color-${key}`]!;
+    const got = v[`color-${key}`];
     assert.match(got, /^#[0-9a-f]{6}$/, `${label} ${key}`);
     const hue = role.hue ?? (role.surface ? "bg" : "fg");
     const source =
       hue === "bg" ? report.bg! : hue === "fg" ? report.fg! : report.ansi![SLOTS.indexOf(hue)]!;
     for (const on of (role.on ?? []) as string[]) {
-      const r = contrast(got, v[nameOf(on)]!);
+      const r = contrast(got, v[nameOf(on)]);
       if (role.surface)
         assert.ok(
           Math.abs(r - role.contrast!) < 0.06,
@@ -124,19 +124,19 @@ for (const [label, [report, appearance]] of Object.entries(PALETTES)) {
   console.log(label, JSON.stringify(v));
 }
 
-const [gruvbox] = PALETTES["Gruvbox dark"]!;
+const [gruvbox] = PALETTES["Gruvbox dark"];
 const g = system.solve(gruvbox).values;
 // Gruvbox's dark red misses 4.5:1 on its background: it becomes lighter; its foreground passes and is kept
 assert.ok(contrast(gruvbox.ansi![1]!, gruvbox.bg!) < 4.5);
-assert.ok(lch(g["color-error"]!).l > lch(gruvbox.ansi![1]!).l, "the red is lighter");
+assert.ok(lch(g["color-error"]).l > lch(gruvbox.ansi![1]!).l, "the red is lighter");
 assert.equal(g["color-text"], gruvbox.fg, "a source that passes is kept");
 // a pastel moved darker keeps its chroma (Pi's Catppuccin Frappé case)
 const pink = "#f4b8e4"; // Catppuccin Frappé's magenta, on a light background
 const pastel = createSystemTheme(
   c,
-  { color: { bg: { surface: true }, accent: { hue: "magenta", on: [t.bg!], contrast: 4.5 } } },
+  { color: { bg: { surface: true }, accent: { hue: "magenta", on: [t.bg], contrast: 4.5 } } },
   {},
-).solve({ bg: "#ffffff", ansi: [...Array<undefined>(5), pink] }).values["color-accent"]!;
+).solve({ bg: "#ffffff", ansi: [...Array<undefined>(5), pink] }).values["color-accent"];
 assert.ok(contrast(pastel, "#ffffff") >= 4.5);
 assert.ok(lch(pastel).c <= lch(pink).c + 0.004, `${pastel} is no more vivid than ${pink}`);
 
@@ -145,9 +145,9 @@ assert.ok(lch(pastel).c <= lch(pink).c + 0.004, `${pastel} is no more vivid than
 const app = createSystemTheme(c, roles, { hues: { blue: "#3b9cf0", fg: "#e6e9ec" } });
 const bgOnly = app.solve({ bg: "#ffffff" });
 assert.equal(bgOnly.appearance, "light");
-assert.ok(contrast(bgOnly.values["color-link"]!, "#ffffff") >= 4.5);
-assert.ok(hueGap(lch(bgOnly.values["color-link"]!).h!, lch("#3b9cf0").h!) < 6, "the app's blue");
-assert.ok(contrast(bgOnly.values["color-text"]!, "#ffffff") >= 7, "the app's light text, darkened");
+assert.ok(contrast(bgOnly.values["color-link"], "#ffffff") >= 4.5);
+assert.ok(hueGap(lch(bgOnly.values["color-link"]).h!, lch("#3b9cf0").h!) < 6, "the app's blue");
+assert.ok(contrast(bgOnly.values["color-text"], "#ffffff") >= 7, "the app's light text, darkened");
 // nothing: ANSI indices where the renderer draws them, else no values (the static theme of the appearance)
 const none = system.solve({}, { indexed: true, colorfgbg: "" });
 assert.deepEqual(none, {
@@ -179,13 +179,13 @@ assert.equal(system.solve({ scheme: "light" }).base, "light");
 
 // the roles are checked
 assert.throws(
-  () => createSystemTheme(c, { color: { text: { on: [t.card!], contrast: 4.5 } } }),
+  () => createSystemTheme(c, { color: { text: { on: [t.card], contrast: 4.5 } } }),
   /color-text sits on color-card, which has no role/,
 );
 assert.throws(
   () =>
     createSystemTheme(c, {
-      color: { card: { surface: true, on: [t.hover!] }, hover: { surface: true, on: [t.card!] } },
+      color: { card: { surface: true, on: [t.hover] }, hover: { surface: true, on: [t.card] } },
     }),
   /a cycle of on/,
 );
@@ -235,7 +235,7 @@ const style = {
   ":hover": { color: "#333333" },
   vars: { color: "color-text", ":hover": { color: "color-link" } },
 };
-const latte = system.apply(PALETTES["Catppuccin Latte"]![0]);
+const latte = system.apply(PALETTES["Catppuccin Latte"][0]);
 setTheme("system");
 assert.deepEqual(resolve(style), { color: latte.values["color-text"], backgroundColor: "#222222" });
 assert.equal(resolve(style, { hover: true }).color, latte.values["color-link"]);
@@ -258,7 +258,7 @@ assert.equal(
   "#111111",
   "nothing yet: the static theme (no indexed colour in bomb.sh)",
 );
-const [nord] = PALETTES.Nord!;
+const [nord] = PALETTES.Nord;
 const answers =
   `${ESC}]10;rgb:d8/de/e9${BEL}${ESC}]11;rgb:2e/34/40${BEL}` +
   nord.ansi!.map((hex, i) => `${ESC}]4;${i};${hex}${ST}`).join("") +

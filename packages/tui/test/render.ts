@@ -179,7 +179,7 @@ const answer = (n: string) => {
 const reply = (text: string) => {
   let out = "";
   // oxlint-disable-next-line no-control-regex
-  for (const [, n] of text.matchAll(/\x1b\](10|11|4;\d+);\?/g)) out += answer(n!);
+  for (const [, n] of text.matchAll(/\x1b\](10|11|4;\d+);\?/g)) out += answer(n);
   if (out) setTimeout(() => stdin.emit("data", Buffer.from(out)), 1);
 };
 const host = sys.renderer as unknown as {
@@ -213,7 +213,7 @@ try {
   const onMode = once(sys.renderer, "theme_mode");
   const stop = await followSystemTheme(sys.renderer, theme, { wait: 5000 });
   assert.equal(theme.name, "system");
-  const red = theme.solve({ ...colours }).values["color-error"]!;
+  const red = theme.solve({ ...colours }).values["color-error"];
   assert.equal(hex(text.fg), red, "the terminal's red, made readable on its background");
   assert.equal(hex(text.bg), "#282828", "the terminal's background");
   assert.ok(contrast(red, "#282828") >= 4.5);
