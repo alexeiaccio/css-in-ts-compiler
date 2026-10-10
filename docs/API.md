@@ -892,6 +892,7 @@ More plugins on `scope()`, each a package of its own with its rules and limits i
 | [`@cssints/masonry`](../packages/masonry/README.md) | `masonry().columns().gap()` | `display: grid-lanes`, else CSS `columns` (top to bottom per column) |
 | [`@cssints/placeholder`](../packages/placeholder/README.md) | `placeholder(path, { mode? })` | An `<image>` from a JPEG or PNG read at build time: a gradient of its colours laid out as the image, or a tiny thumbhash PNG |
 | [`@cssints/ramp`](../packages/ramp/README.md) | `ramp(base, { mode, steps \| ratios, background })`, `overrides(ramp)` | An OKLCH palette as DTCG data for `createTokens`; the contrast mode meets each ratio against its background |
+| [`@cssints/rybitten`](../packages/rybitten/README.md) | `color(hue, { cube })`, `wheel(steps, { cube })`, `shades(hue, lightness)`, `overrides(group)` | RYBitten's red-yellow-blue colours (36 historical cubes) as DTCG data for `createTokens`: a hue, a wheel of hues, a hue at several lightnesses |
 | [`@cssints/skeleton`](../packages/skeleton/README.md) | `skeleton().radius().color().highlight()` | Loading placeholders whose shimmer is in phase across the page (one clock on `:root`), static under reduced motion |
 
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)

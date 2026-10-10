@@ -187,11 +187,11 @@ relative files it imports) in a virtual module as lazy text; the worker loads th
 Node's runner does (its sites are recorded and never rendered, as in Node, where only the user's modules are transformed for the client),
 removes the types and runs it with the others. Bundling them with the docs would have run the docs' own cssints plugin over them (it
 transforms every module that mentions `cssints`, and rendered their rules into the docs' sheet). What they import from outside, `culori`
-(gradient, ramp), is bundled with the worker.
+(gradient, ramp) and `rybitten` (rybitten), is bundled with the worker.
 
 | Runs in the browser | Why |
 |---|---|
-| `balance`, `fluid`, `gradient`, `layout`, `masonry`, `mise-en-mode`, `motion`, `ramp`, `reset`, `reveal`, `skeleton`, `squircle`, `stuck`, and the four sets of `tokens` | pure at build time: arithmetic, colour maths (culori), `scope()` members |
+| `balance`, `fluid`, `gradient`, `layout`, `masonry`, `mise-en-mode`, `motion`, `ramp`, `reset`, `reveal`, `rybitten`, `skeleton`, `squircle`, `stuck`, and the four sets of `tokens` | pure at build time: arithmetic, colour maths (culori, rybitten), `scope()` members |
 | `@cssints/icons` | reads `@iconify-json/<collection>/icons.json` (megabytes: ph is 4.5 MB) through `createRequire` and `fs`, and `.svg` files from a directory |
 | `@cssints/fonts` | reads font files from disk (fontkitten) and downloads them |
 | `@cssints/placeholder` | reads image files, SHA-1 of their bytes, PNG and JPEG codecs for Node |
@@ -201,7 +201,7 @@ and a small collection could be a stub table; not built. Importing one is a loca
 scripts that a package delivers to the page (`reveal`'s observer, `stuck`'s) are named in the module (`import "virtual:cssints/runtime/..."`)
 and not run by the preview.
 
-The parity test runs the fixtures of the thirteen packages and of `tokens` that import only modules of the playground (63 cases, 0 differ,
+The parity test runs the fixtures of the fourteen packages and of `tokens` that import only modules of the playground (63 cases, 0 differ,
 the failures of the engine included: the same message, file, line and column), and projects of several files (a module of tokens, a plain
 module, a barrel, a directory and `..`, an error in the imported file, a package in a second file).
 

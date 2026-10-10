@@ -12,7 +12,7 @@ packages/css-grammar   type-level recognizer (src/css.ts) + runtime twin (src/tw
 tools/ai-automation    the oxlint plugin `automation/*` (Effect, core and anti-slop rules), the added-lines diff-check, vendor/anti-slop (MIT, UPSTREAM.md); its tests run through `vp test run`
 packages/icons         @cssints/icons: icons() on cssints/plugin scope() (iconify-json and fs providers); test/: fixtures, icons.mjs, types/
 packages/mise-en-mode  @cssints/mise-en-mode: look(tokens, expression, source, overrides, { scope? }), a scope() call member (no types file), looks as themes in the layers app < author < viewer on data-mode scopes; test/: fixtures, mise-en-mode.mjs, types/
-packages/fluid, layout, fonts, reset, gradient, motion, squircle, reveal, stuck, balance, masonry, placeholder, ramp, skeleton
+packages/fluid, layout, fonts, reset, gradient, motion, squircle, reveal, stuck, balance, masonry, placeholder, ramp, rybitten, skeleton
                        plugin packages on scope() (docs/API.md "Plugin packages"), each laid out as mise-en-mode: src/index.ts, README.md, test/<name>.mjs, fixtures/, types/
 packages/mcp           @cssints/mcp: the MCP server (bin cssints-mcp, stdio) on effect/ai McpServer: check_declaration, check_support, check_contrast, compile, search_docs, list_plugins;
                        on a running dev server with devtools: true (live.ts, Vite's HMR websocket): explain_class, module_styles, dev_errors; in Chromium (browser.ts, playwright-core, the devtools core injected): inspect_element, why_property;

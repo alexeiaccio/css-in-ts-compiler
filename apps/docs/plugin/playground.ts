@@ -69,6 +69,7 @@ export const PLUGINS = [
   "ramp",
   "reset",
   "reveal",
+  "rybitten",
   "skeleton",
   "squircle",
   "stuck",
@@ -98,7 +99,7 @@ for (const n of TOKEN_SETS) {
   entries[`@cssints/tokens/${n}`] = `${ID}@cssints/tokens/src/${n}.ts`;
 }
 // what those sources import that is not one of them: bundled with the worker, found from the package that imports it
-const EXTERNALS = ["culori"];
+const EXTERNALS = ["culori", "rybitten", "rybitten/cubes"];
 
 // The editor's types. cssints and css-grammar: what a user's TypeScript sees (the built declarations, followed from the entries
 // through their relative imports). The plugin packages: their sources, which are typed code. Paths are URIs of the same project.
@@ -184,7 +185,7 @@ export default function playgroundPlugin(): Plugin {
       return {
         optimizeDeps: {
           // found late otherwise (a dynamic import of a virtual module), and a late dependency reloads the page
-          include: ["cssints > culori", "cssints > culori/fn"],
+          include: ["cssints > culori", "cssints > culori/fn", "@cssints/rybitten > rybitten"],
           exclude: [
             "@oxc-parser/binding-wasm32-wasi",
             "@oxc-transform/binding-wasm32-wasi",
@@ -202,10 +203,13 @@ export default function playgroundPlugin(): Plugin {
       if (id.startsWith("virtual:playground/")) return `\0${id}`;
       if (id.startsWith("cssints-module:"))
         return `${sourceFiles[id.slice("cssints-module:".length)]}?raw`;
-      if (id.startsWith("cssints-external:"))
-        return this.resolve(id.slice("cssints-external:".length), join(cssints, "src/color.ts"), {
-          skipSelf: true,
-        });
+      if (id.startsWith("cssints-external:")) {
+        const name = id.slice("cssints-external:".length);
+        const from = name.startsWith("rybitten")
+          ? join(packages, "rybitten/src/index.ts")
+          : join(cssints, "src/color.ts");
+        return this.resolve(name, from, { skipSelf: true });
+      }
       if (id.startsWith("cssints-src/"))
         return join(cssints, "src", id.slice("cssints-src/".length));
       if (!inEngine(importer)) return undefined;
