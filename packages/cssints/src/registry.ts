@@ -175,6 +175,8 @@ export interface RegistryState {
       cls: string,
     ) => { css: string; props: string[]; kernels?: Kernel[]; warnings: KernelWarning[] };
   };
+  /** the replacement of a site that holds a node of cssints/tui (tui.ts), set when that module loads */
+  tui?: (value: { readonly __tui: unknown }) => string | undefined;
   /** what the front of "cssints/plugin" calls (scope-engine.ts `engine`), set by macro.ts */
   engine?: object;
   /** the typed properties of scopes: checked by their own grammar when called, not by the engine */

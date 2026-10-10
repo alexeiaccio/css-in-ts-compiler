@@ -66,6 +66,14 @@
       "development": "./src/check.ts",
       "types": "./dist/check.d.mts",
       "default": "./dist/check.mjs"
+    },
+    "./tui": {
+      "development": {
+        "types": "./src/tui-types.ts",
+        "default": "./src/tui.ts"
+      },
+      "types": "./dist/tui-types.d.mts",
+      "default": "./dist/tui.mjs"
     }
   },
   "publishConfig": {
@@ -103,6 +111,10 @@
       "./check": {
         "types": "./dist/check.d.mts",
         "default": "./dist/check.mjs"
+      },
+      "./tui": {
+        "types": "./dist/tui-types.d.mts",
+        "default": "./dist/tui.mjs"
       }
     }
   },

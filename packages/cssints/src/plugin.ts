@@ -427,11 +427,16 @@ export default function cssints({
     if (!marked(code, id)) {
       if (ctx.environment.name === "client") yield* drop(id);
       // The runner follows the imports of a module with sites, into components that have none: their JSX is inert as well.
-      return ctx.environment.name === "ssr" && /[jt]sx$/.test(id) && !id.includes("node_modules")
+      return ctx.environment.name === "ssr" &&
+        (inner || !build) &&
+        /[jt]sx$/.test(id) &&
+        !id.includes("node_modules")
         ? yield* inertJsx(code, id)
         : undefined;
     }
-    if (ctx.environment.name === "ssr") {
+    // The ssr environment is where sites are evaluated: the dev server's, and the private server of a build (`inner`). The
+    // ssr environment of a build (`vite build --ssr`, a terminal app for Bun) is an output, transformed as a client.
+    if (ctx.environment.name === "ssr" && (inner || !build)) {
       const out = yield* instrument(code, id, false);
       return out && /x$/.test(id) ? yield* inertJsx(out.code, id) : out?.code;
     }

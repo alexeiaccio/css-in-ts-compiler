@@ -1046,6 +1046,51 @@ const { ratio, text } = await Effect.runPromise(contrast("#777", "white"));
 - **`contrast(foreground, background)`** is the WCAG 2.x ratio of `css.check.contrast` (see Themes): culori reads the colour, one outside sRGB is clipped to it. A colour it cannot read (`currentColor`, a `var()`) or a translucent one fails with a `ContrastError` (`colour`, `message`).
 - **`loweredOf(property, value, warning)`** answers what a build asks before it says a support warning ("No warning for what LightningCSS lowers", under Errors): the value of the first declaration LightningCSS writes for the targets of the warning, or `undefined` when it leaves the feature in place (`text-wrap`, a `var()` inside the value). `warning` is one of `support()` of `@cssints/css-grammar/support`; a custom property is `--name`. For `color: oklch(70% 0.2 330)` and chrome 100 it is a hex colour, so a build does not warn.
 
+### TUI: `cssints/tui` (decided 2026-10-10, cssints-3ff7)
+
+A terminal app writes its styles with `cssints/tui`, and the same Vite plugin compiles them to **prop objects** for terminal renderables, not to classes: there is no sheet and no cascade. `@cssints/tui` applies them (states, the mouse pointer, the caret, themes); its first adapter is [OpenTUI](https://opentui.com). The design, the full property table and what is out of scope are in [research/tui.md](research/tui.md).
+
+```ts
+import * as css from "cssints/tui" with { type: "cssints" };
+
+const t = css.createTokens({ color: { $type: "color", bg: { $value: "#1e1e2e" }, accent: { $value: "#89b4fa" } } });
+css.createGlobalTheme(t, "light", { color: { bg: "#eff1f5", accent: "#1e66f5" } });
+
+export const button = css.cn(
+	css.border("rounded", "#585b70"),
+	css.p(0, 1),
+	css.width(12),
+	css.bg(t.color.bg),
+	css.cursor("pointer"),
+	css.hover(css.borderColor(t.color.accent)),
+	css.active(css.borderStyle("double")),
+);
+css.width("10rem"); // error: a terminal counts cells
+css.boxShadow("0 0 1px red"); // error: no such member in a terminal
+css.color("blu"); // error: not a colour
+```
+
+```ts skip
+export const button = { border: true, borderStyle: "rounded", borderColor: "#585b70", paddingTop: 0, paddingRight: 1, paddingBottom: 0, paddingLeft: 1, width: 12, backgroundColor: "#1e1e2e", cursor: "pointer", ":hover": { borderColor: "#89b4fa" }, ":active": { border: true, borderStyle: "double" }, themes: { light: { backgroundColor: "#eff1f5", ":hover": { borderColor: "#1e66f5" } } } };
+```
+
+```tsx skip
+import { attach, setTheme, use } from "@cssints/tui/opentui";
+
+<box {...use(button)}><text>Save</text></box>; // Solid or React: the spread is a ref that calls attach
+attach(new BoxRenderable(renderer, {}), button); // core
+setTheme("light");
+```
+
+- **Opt-in** is the import: an attributed import of `cssints/tui` gives the terminal members; a site that holds one of their values becomes an object literal. A web module is untouched (its sites never reach the terminal case), and one file may hold both. A Bun app is an SSR build (`vite build --ssr`), or a build of an environment of its own: the plugin replaces the sites in the `ssr` environment of a build too, since it evaluates them on a server of its own.
+- **Members** are the properties a terminal has: `color`, `backgroundColor`/`bg`, `borderColor`, `border(style, color?)`, `borderStyle` (`solid`, `double`, `rounded`, `heavy`, `none`), `fontWeight` (`bold`, `normal`, `lighter` for dim), `fontStyle`, `textDecoration`, `textAlign`, padding and margin (with `p`, `m` and the side names), `gap`, sizes, flex (Yoga), `position` and its edges, `overflow`, `display` (`flex`, `none`), `opacity`, `zIndex`, `cursor`, `caretShape`, `caretColor`, `caretAnimation`, and `cn`, `hover`, `focus`, `active`, `createTokens`, `createGlobalTheme`. Any other property is not a member, so a type error.
+- **Cells.** A number is a cell (columns across, rows down); `N%` is of the parent; `auto` where Yoga takes it. A CSS length is a type error and a build error (`cssints: width: a terminal counts cells: write a number, not "10rem"`): no unit is converted.
+- **Colours** are checked by the web's `color` grammar in the types, read at build time and written as `#rrggbb` (`#rrggbbaa` when translucent). `currentColor`, system colours and `light-dark()` are build errors.
+- **`cn()`** merges in argument order (a later prop wins). States wrap styles and do not nest; the runtime lays `:hover`, then `:focus`, then `:active` over the props.
+- **Themes.** A theme is named by its selector argument (`"light"`). Every colour token is resolved at build time, per theme, aliases and derived tokens included; the site holds the default values and, under `themes`, what each theme changes. `setTheme(name)` swaps them on every attached renderable; `""` is the default. A theme under `media()` is not read.
+- **The adapter.** `attach(renderable, style)` sets the props (`color` is OpenTUI's `fg`, the text attributes are the bits of `attributes`, the caret is an editable's `cursorStyle` and `cursorColor`), follows `over`/`out`, `down`/`up` and `focused`/`blurred`, and sets the mouse pointer of `cursor` on over and `default` on out. A prop the renderable lacks is not set. `resolve(style, state, theme)` of `@cssints/tui` is the renderer-neutral part, for other adapters.
+- **Cost.** A colour member costs what the same web member costs in the types (the `color` grammar); `bench/tui.ts` is 184k instantiations (tsc) for 16 calls and a token set. No terminal HMR in this version.
+
 ### Browser support and what 0.1 does not have
 
 - **Types and checks for every property** are generated from [mdn-data](https://github.com/mdn/data) and @webref/css by `packages/css-grammar` (`bun run extract`), not written by hand, so a new property or function needs no change here. 536 members: 525 properties (every standard and experimental one, except the three shorthands above) and the 11 short names.
