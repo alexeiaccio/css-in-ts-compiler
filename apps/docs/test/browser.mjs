@@ -423,6 +423,9 @@ try {
       features: document.querySelectorAll("[data-landing] [data-features] li").length,
       overflow: document.documentElement.scrollWidth > innerWidth,
       prerender: !!document.getElementById("prerender"),
+      hero: document.querySelector("[data-hero]").getBoundingClientRect().toJSON(),
+      header: document.querySelector("header").getBoundingClientRect().bottom,
+      width: document.documentElement.clientWidth,
       links: [...document.querySelectorAll("[data-landing] a")].map((a) => a.getAttribute("href")),
     }));
     assert.equal(info.title, "cssints");
@@ -432,6 +435,12 @@ try {
     assert.ok(info.logo > 0, "the logo loads");
     assert.deepEqual([info.panels, info.features], [3, 6]);
     assert.ok(!info.overflow && !info.prerender, "no sideways scroll; the static copy is gone");
+    // the hero is full-bleed: right under the header and as wide as the page (its glow and the shader fill it)
+    assert.deepEqual(
+      [info.hero.top, info.hero.left, info.hero.width],
+      [info.header, 0, info.width],
+      "the hero spans the page under the header",
+    );
     for (const link of info.links) {
       assert.ok(link.startsWith(prefix), `${link} is outside ${prefix}`);
       assert.ok(
@@ -445,9 +454,17 @@ try {
       const canvas = page.locator("[data-hero] canvas");
       await canvas.waitFor({ state: "attached" });
       assert.equal(await canvas.evaluate((c) => c.parentElement.ariaHidden), "true", "aria-hidden");
+      const layer = await canvas.evaluate((c) => c.parentElement.getBoundingClientRect().toJSON());
+      assert.deepEqual(
+        [layer.top, layer.left, layer.width],
+        [info.hero.top, 0, info.width],
+        "the shader fills the hero",
+      );
       // a mode change recolours it: no error follows (problems is checked at the end)
-      await page.evaluate(() => document.documentElement.classList.toggle("dark"));
-      await sleep(300);
+      for (let i = 0; i < 2; i++) {
+        await page.evaluate(() => document.documentElement.classList.toggle("dark"));
+        await sleep(300);
+      }
     }
     await page.screenshot({ path: join(out, `landing-${name}.png`), fullPage: true });
     return page;

@@ -6,13 +6,13 @@ import type { Style } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 import type { ShaderInstance } from "shaders/js";
 
-// behind the hero's content (the hero isolates its stacking context), faded out at the edges like the glow under it
+// behind the hero's content (the hero isolates its stacking context), faded out at the foot
 const layerClass: Style = css.cn(
   css.position("absolute"),
   css.inset("0"),
   css.zIndex(-1),
   css.pointerEvents("none"),
-  css.maskImage("radial-gradient(ellipse closest-side at 50% 50%, #000 45%, transparent)"),
+  css.maskImage("linear-gradient(#000 55%, transparent)"),
 );
 const canvasClass = css.cn(
   css.display("block"),

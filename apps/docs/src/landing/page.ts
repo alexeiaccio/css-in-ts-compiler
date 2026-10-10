@@ -23,13 +23,18 @@ export interface LandingData {
 const ring = css.focusVisible(css.outline("2px solid", t.color.accent), css.outlineOffset("2px"));
 
 const root: Style = css.cn(
-  css.maxWidth("1120px"),
-  css.marginInline("auto"),
-  css.padding(t.space._3xl, t.space.lg),
+  css.display("flex"),
+  css.flexDirection("column"),
+  css.lineHeight(t.lineHeight.relaxed),
+);
+// the hero spans the page, right under the header; what follows is a column of 1120 px
+const column = css.cn(css.maxWidth("1120px"), css.marginInline("auto"), css.minWidth("0"));
+const rest = css.cn(
+  column,
+  css.padding("clamp(48px, 10vw, 96px)", t.space.lg, t.space._3xl),
   css.display("flex"),
   css.flexDirection("column"),
   css.gap("clamp(48px, 10vw, 96px)"),
-  css.lineHeight(t.lineHeight.relaxed),
 );
 const heading = css.cn(css.margin("0"), css.lineHeight(t.lineHeight.tight));
 const h2 = css.cn(heading, css.fontSize(t.fontSize._2xl), css.letterSpacing("-0.01em"));
@@ -43,20 +48,23 @@ const inlineCode = css.cn(
   css.borderRadius(t.radius.xs),
 );
 
-// the hero: logo, pitch, install line and two ways in, on a glow of the accent; the shader (shader.ts) is a canvas behind them
+// the hero: its glow (and the shader, shader.ts) fills the width; the logo, pitch, install line and two ways in sit in a column
 const hero = css.cn(
   css.position("relative"),
   css.isolation("isolate"),
-  css.minWidth("0"),
+  css.paddingBlock(t.space._2xl),
+  css.paddingInline(t.space.lg),
+  css.backgroundImage(
+    "radial-gradient(ellipse 60% 70% at 50% 0%, var(--color-accent-soft), transparent)",
+  ),
+);
+const heroColumn = css.cn(
+  column,
   css.display("flex"),
   css.flexDirection("column"),
   css.alignItems("center"),
   css.gap(t.space.lg),
   css.textAlign("center"),
-  css.paddingBlock(t.space._2xl),
-  css.backgroundImage(
-    "radial-gradient(ellipse 60% 70% at 50% 0%, var(--color-accent-soft), transparent)",
-  ),
 );
 const logo = css.cn(css.borderRadius(t.radius.lg), css.boxShadow("0 8px 32px var(--color-shadow)"));
 const h1 = css.cn(
@@ -262,13 +270,16 @@ export function landing(d: LandingData): string {
   const code = (s: string) => `<code class="${inlineCode}">${s}</code>`;
   return `<div class="${root}" data-landing>
 <section class="${hero}" data-hero>
+<div class="${heroColumn}">
 <img class="${logo}" src="${d.base}logo.svg" alt="" width="96" height="96">
 <p class="${status}"><span class="${tag}">Alpha</span> 0.1 is on npm under ${code("next")}; the API can still change</p>
 <h1 class="${h1}">CSS in TypeScript, compiled away</h1>
 <p class="${lead}">cssints turns typed style calls into atomic, content-hashed classes in one stylesheet when you build. The browser gets class names, not a styling library.</p>
 <div class="${install}">${block(d.install, installPre)}</div>
 <p class="${actions}"><a class="${primary}" href="${d.base}install/" data-primary>Get started</a><a class="${secondary}" href="${d.base}playground/">Try the playground</a><a class="${secondary}" href="${d.base}overview/">Read the docs</a></p>
+</div>
 </section>
+<div class="${rest}">
 <section class="${showcase}" aria-labelledby="showcase">
 <h2 class="${h2}" id="showcase">What you write, what you get</h2>
 <p class="${text}">This is the compiler's output, made when this site was built: the file on the left went through the same plugin as your code.</p>
@@ -326,5 +337,6 @@ ${feature(
 <h2 class="${h2}">Try it on your own styles</h2>
 <p class="${actions}"><a class="${primary}" href="${d.base}install/">Install</a><a class="${secondary}" href="${d.base}api-reference/">API reference</a><a class="${secondary}" href="${d.base}authoring-surface/">Write styles</a></p>
 </section>
+</div>
 </div>`;
 }
