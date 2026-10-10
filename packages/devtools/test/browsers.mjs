@@ -261,6 +261,58 @@ const run = async (name) => {
   await page.locator("[data-devtools=dock][data-dock=right]").click();
   assert.ok(Math.abs((await box(panel)).width - sized.left) <= 1, `${name}: the width persists`);
 
+  // detach: the panel moves into a window of its own, the page keeps picking and the window follows, closing it re-docks
+  const detach = async () => {
+    const opened = page.waitForEvent("popup");
+    await page.locator("[data-devtools=detach]").click();
+    const w = await opened;
+    await w.locator("[data-devtools=panel]").waitFor();
+    return w;
+  };
+  let win = await detach();
+  assert.equal(await win.locator("[data-devtools=panel]").getAttribute("data-detached"), "yes");
+  assert.equal(await page.locator("[data-devtools=panel]").count(), 0, `${name}: not in the page`);
+  assert.ok(await win.evaluate(() => getComputedStyle(document.body).margin === "0px"));
+  const winBox = await win
+    .locator("[data-devtools=panel]")
+    .evaluate((el) => el.getBoundingClientRect().toJSON());
+  assert.ok(winBox.width > 300 && winBox.left === 0 && winBox.top === 0, JSON.stringify(winBox));
+  // a pick in the page shows up in the window; the window's buttons work (the pick button is on after a reload)
+  const pickBtn = win.locator("[data-devtools=pick]");
+  await pickBtn.click();
+  assert.equal(await pickBtn.getAttribute("data-on"), "no");
+  await pickBtn.click();
+  assert.equal(await pickBtn.getAttribute("data-on"), "yes");
+  await page.mouse.move(650, 450);
+  await page.mouse.click(650, 450);
+  const picked = await page.evaluate(() => document.elementFromPoint(650, 450).localName);
+  await until(`${name}: the window follows ${picked}`, async () =>
+    (await win.locator("[data-devtools=element]").textContent()).startsWith(picked),
+  );
+  assert.ok(await win.locator("[data-devtools=properties]").count());
+  // the choice persists: after a reload the next open puts the panel in a window again
+  const closed = win.waitForEvent("close");
+  await page.reload();
+  await closed;
+  const reopened = page.waitForEvent("popup");
+  await page.locator("[data-devtools=toggle]").click();
+  win = await reopened;
+  await win.locator("[data-devtools=panel]").waitFor();
+  // closing the window docks the panel again, for good
+  await win.close();
+  await until(`${name}: docked`, async () => (await panel.getAttribute("data-detached")) === "no");
+  await page.reload();
+  await page.locator("[data-devtools=toggle]").click();
+  await panel.waitFor();
+  assert.equal(await panel.getAttribute("data-detached"), "no", `${name}: docked stays`);
+  // a blocked pop-up: a message, and the panel stays docked
+  await page.evaluate(() => {
+    window.open = () => null;
+  });
+  await page.locator("[data-devtools=detach]").click();
+  await page.locator("[data-devtools=blocked]").waitFor();
+  assert.equal(await panel.getAttribute("data-detached"), "no");
+
   // Esc closes
   await page.keyboard.press("Escape");
   await until("closed", async () => (await page.locator("[data-devtools=panel]").count()) === 0);
