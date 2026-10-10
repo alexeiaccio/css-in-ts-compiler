@@ -103,24 +103,15 @@ function createHome() {
 }
 type Home = ReturnType<typeof createHome>;
 
-// The active tab and the others are two styles: a renderable keeps the style it was attached with (cssints-332g), so
-// the tab is made again when it turns active.
+// The active tab and the others are two styles: use() with an accessor swaps them on the same renderable.
 function Tab(props: { name: string; index: number; active: boolean; onSelect: () => void }) {
-  const label = () => ` ${props.index + 1} ${props.name} `;
-  const down = (e: MouseEvent) => e.button === 0 && props.onSelect();
   return (
-    <Show
-      when={props.active}
-      fallback={
-        <text {...use(s.tab)} onMouseDown={down}>
-          {label()}
-        </text>
-      }
+    <text
+      {...use(() => (props.active ? s.tabActive : s.tab))}
+      onMouseDown={(e: MouseEvent) => e.button === 0 && props.onSelect()}
     >
-      <text {...use(s.tabActive)} onMouseDown={down}>
-        {label()}
-      </text>
-    </Show>
+      {` ${props.index + 1} ${props.name} `}
+    </text>
   );
 }
 

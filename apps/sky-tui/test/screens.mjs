@@ -71,7 +71,7 @@ const settle = async () => {
 };
 // waitForFrame counts render passes, not time: a lone ESC waits for the parser's timeout, a fetch for its promise
 const until = async (pred, ms = 3000) => {
-  for (const end = Date.now() + ms; Date.now() < end; ) {
+  for (const end = Date.now() + ms; Date.now() < end;) {
     await settle();
     const f = captureCharFrame();
     if (pred(f)) return f;
@@ -91,6 +91,23 @@ const fgAt = (x, y) => {
 // the border colour of a card as drawn (its left edge): the accent on the selected one
 const borderOf = (id) => fgAt(row(id).x, row(id).y + 1);
 const bgOf = (id) => row(id).backgroundColor.toInts().join(",");
+// the colour drawn at the first cell of `text` on the screen (the colour of a span)
+const fgOf = (text) => {
+  const lines = captureCharFrame().split("\n");
+  const y = lines.findIndex((l) => l.includes(text));
+  assert.ok(y >= 0, `${text} is on the screen`);
+  return fgAt(lines[y].indexOf(text), y);
+};
+// the tabs of the bar, and the background drawn behind a tab's label
+const tabs = () => renderer.root.getChildren()[0].getChildren()[0].getChildren().slice(1);
+const bgAt = (x, y) => {
+  let col = 0;
+  for (const span of captureSpans().lines[y].spans) {
+    if (x < col + span.width) return span.bg.toInts().join(",");
+    col += span.width;
+  }
+};
+const tabBg = (label) => bgAt(captureCharFrame().split("\n")[0].indexOf(label), 0);
 
 try {
   // ---- the feed --------------------------------------------------------------------------------
@@ -156,6 +173,9 @@ try {
   assert.equal(borderOf("post-0-10"), selectedBorder, "back home, the selection kept");
 
   // ---- tab switches the feed -----------------------------------------------------------------
+  const [, scienceTab] = tabs();
+  assert.equal(tabBg("1 Discover"), "59,156,240,255", "the active tab: the accent");
+  assert.notEqual(tabBg("2 Science"), "59,156,240,255");
   mockInput.pressTab();
   const shownScience = science.feed.filter((i) => api.postVerdict(i.post) !== "hide");
   const sci = shownScience[0].post;
@@ -165,6 +185,10 @@ try {
     "at://did:plc:jfhpnnst6flqway4eaeqzj2a/app.bsky.feed.generator/for-science",
   );
   assert.ok(row("post-1-0") && !row("post-0-0"), "the Science feed replaced Discover");
+  // one renderable per tab, restyled when it turns active (cssints-332g)
+  assert.equal(tabs()[1], scienceTab, "the same renderable");
+  assert.equal(tabBg("2 Science"), "59,156,240,255", "Science is the active tab now");
+  assert.notEqual(tabBg("1 Discover"), "59,156,240,255", "Discover is back to the plain tab");
 
   // ---- the mouse: over highlights a row, a click opens it ------------------------------------
   await settle();
@@ -244,6 +268,12 @@ try {
       .parent.getChildren()
       .find((r) => r.focused).id;
   assert.equal(borderOf(selected()), `${rgb(solved["color-accent"])},255`, "the accent from blue");
+  // spans (use() on text nodes): the title and an author name, from the solved palette
+  const sciName = shownScience
+    .map((i) => i.post.author.displayName || i.post.author.handle)
+    .find((n) => captureCharFrame().includes(`│ ${n}`));
+  assert.equal(fgAt(1, 0), `${rgb(solved["color-accent"])},255`, "the title span");
+  assert.equal(fgOf(sciName), `${rgb(solved["color-text"])},255`, "the author name span");
   // the terminal turns light: a mode 2031 notification, OpenTUI asks OSC 10/11 again, then the palette
   colours = LATTE;
   const changed = once(renderer, "palette");
@@ -260,6 +290,9 @@ try {
     "rebuilt for the light palette",
   );
   assert.equal(borderOf(selected()), `${rgb(solved["color-accent"])},255`);
+  // the system theme rebuilt under the same name reaches the spans too
+  assert.equal(fgAt(1, 0), `${rgb(solved["color-accent"])},255`, "the title span, light");
+  assert.equal(fgOf(sciName), `${rgb(solved["color-text"])},255`, "the author name span, light");
 } finally {
   renderer.destroy();
 }
