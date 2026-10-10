@@ -28,21 +28,31 @@ import * as css from "cssints/tui" with { type: "cssints" };
 import * as css from "cssints/tui" with { type: "cssints" };
 
 export const button = css.cn(
-	css.border("rounded", "#585b70"),
-	css.p(0, 1),
-	css.color("#cdd6f4"),
-	css.cursor("pointer"),
-	css.hover(css.bg("#313244"), css.borderColor("#89b4fa")),
-	css.active(css.fontWeight("bold")),
+  css.border("rounded", "#585b70"),
+  css.p(0, 1),
+  css.color("#cdd6f4"),
+  css.cursor("pointer"),
+  css.hover(css.bg("#313244"), css.borderColor("#89b4fa")),
+  css.active(css.fontWeight("bold")),
 );
 ```
 
 compiles to (the site is replaced by this literal, nothing of `cssints/tui` ships):
 
 ```js
-export const button = { border: true, borderStyle: "rounded", borderColor: "#585b70", paddingTop: 0, paddingRight: 1,
-  paddingBottom: 0, paddingLeft: 1, color: "#cdd6f4", cursor: "pointer",
-  ":hover": { backgroundColor: "#313244", borderColor: "#89b4fa" }, ":active": { bold: true } };
+export const button = {
+  border: true,
+  borderStyle: "rounded",
+  borderColor: "#585b70",
+  paddingTop: 0,
+  paddingRight: 1,
+  paddingBottom: 0,
+  paddingLeft: 1,
+  color: "#cdd6f4",
+  cursor: "pointer",
+  ":hover": { backgroundColor: "#313244", borderColor: "#89b4fa" },
+  ":active": { bold: true, dim: false },
+};
 ```
 
 and is used through the adapter:
@@ -50,46 +60,49 @@ and is used through the adapter:
 ```tsx
 import { use } from "@cssints/tui/opentui";
 
-<box {...use(button)}><text>Save</text></box>;        // Solid: spread props, `ref` wires the states
-new BoxRenderable(renderer, use(button)).               // core: same object; or attach(box, button)
+<box {...use(button)}>
+  <text>Save</text>
+</box>; // Solid (or React): the spread is a `ref`
+attach(new BoxRenderable(renderer, {}), button); // core
 ```
 
-`use(style)` returns the OpenTUI props of the current theme and no state, plus `ref`. On the instance it wires
-`onMouseOver/Out` (`:hover`, and `cursor`), `onMouseDown/Up` (`:active`) and the `focused`/`blurred` events
-(`:focus`), and sets the changed props on the renderable when a state or the theme changes. `attach(renderable,
-style)` is the same for a renderable you made yourself.
+`attach(renderable, style)` sets the props of the style (current theme, no state) on the renderable, and keeps them
+in step: it hooks the renderable's mouse events (`over`/`out` for `:hover` and `cursor`, `down`/`up` for `:active`;
+handlers of your own, `onMouseOver`, still run) and its `focused`/`blurred` events (`:focus`), and listens to the
+theme. It sets only what changed, and gives a prop back its own value when no state sets it any more. `use(style)` is
+`{ ref }` that calls `attach`: Solid calls a `ref` of a spread when it makes the renderable, before the first frame.
 
 ## Property mapping
 
 Neutral key = what the compiled object holds; OpenTUI = what the adapter sets.
 
-| `css.*` member | values (types and build) | neutral key | OpenTUI |
-| --- | --- | --- | --- |
-| `color` | `<color>`, a colour token | `color` | `fg` |
-| `backgroundColor`, `bg` | `<color>`, a colour token | `backgroundColor` | `backgroundColor` (box), `bg` (text) |
-| `fontWeight` | `bold`, `normal`, `lighter` (dim) | `bold`, `dim` | `attributes` bits |
-| `fontStyle` | `italic`, `normal` | `italic` | `attributes` |
-| `textDecoration`, `textDecorationLine` | `underline`, `line-through`, both, `none` | `underline`, `strikethrough` | `attributes` |
-| `textAlign` | `left`, `center`, `right` | `textAlign` | `textAlign` |
-| `border` | style, then colour, each optional | `border`, `borderStyle`, `borderColor` | same |
-| `borderStyle` | `solid` (single), `double`, `rounded`, `heavy`, `none` | `border`, `borderStyle` | same |
-| `borderColor` | `<color>`, a colour token | `borderColor` | same |
-| `padding`, `p`, `margin`, `m` | 1 to 4 cells (margin: or `auto`) | the four longhands | same |
-| `paddingTop` … `marginLeft`, `pt pr pb pl mt mr mb ml`, `paddingInline/Block`, `marginInline/Block` | cells | longhands | same |
-| `gap`, `rowGap`, `columnGap` | cells or `N%` | same | same |
-| `width`, `height`, `min*`, `max*`, `flexBasis` | cells, `N%`, `auto` | same | same |
-| `flexDirection`, `flexWrap`, `justifyContent`, `alignItems`, `alignSelf` | Yoga's keywords | same | same |
-| `flexGrow`, `flexShrink` | `<number>` | same | same |
-| `position` | `relative`, `absolute` | same | same |
-| `top`, `right`, `bottom`, `left` | cells, `N%`, `auto` | same | same |
-| `overflow` | `visible`, `hidden`, `scroll` | same | same |
-| `display` | `flex`, `none` | `visible` | `visible` |
-| `opacity` | `<number>` 0 to 1 | same | same |
-| `zIndex` | integer | same | same |
-| `cursor` | the CSS cursor keywords OpenTUI sends over OSC 22 | `cursor` | `renderer.setMousePointer` on over, `"default"` on out |
-| `caretShape` | `auto`, `bar`, `block`, `underscore` | `caretShape` | `cursorStyle.style` (`default`, `line`, `block`, `underline`) |
-| `caretColor` | `<color>` | `caretColor` | `cursorColor` |
-| `caretAnimation` | `auto` (blinks), `manual` (steady) | `caretAnimation` | `cursorStyle.blinking` |
+| `css.*` member                                                                                      | values (types and build)                               | neutral key                            | OpenTUI                                                       |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------- | ------------------------------------------------------------- |
+| `color`                                                                                             | `<color>`, a colour token                              | `color`                                | `fg`                                                          |
+| `backgroundColor`, `bg`                                                                             | `<color>`, a colour token                              | `backgroundColor`                      | `backgroundColor` (box), `bg` (text)                          |
+| `fontWeight`                                                                                        | `bold`, `normal`, `lighter` (dim)                      | `bold`, `dim`                          | `attributes` bits                                             |
+| `fontStyle`                                                                                         | `italic`, `normal`                                     | `italic`                               | `attributes`                                                  |
+| `textDecoration`, `textDecorationLine`                                                              | `underline`, `line-through`, both, `none`              | `underline`, `strikethrough`           | `attributes`                                                  |
+| `textAlign`                                                                                         | `left`, `center`, `right`                              | `textAlign`                            | `textAlign`                                                   |
+| `border`                                                                                            | a style, then an optional colour                       | `border`, `borderStyle`, `borderColor` | same                                                          |
+| `borderStyle`                                                                                       | `solid` (single), `double`, `rounded`, `heavy`, `none` | `border`, `borderStyle`                | same                                                          |
+| `borderColor`                                                                                       | `<color>`, a colour token                              | `borderColor`                          | same                                                          |
+| `padding`, `p`, `margin`, `m`                                                                       | 1 to 4 cells (margin: or `auto`)                       | the four longhands                     | same                                                          |
+| `paddingTop` … `marginLeft`, `pt pr pb pl mt mr mb ml`, `paddingInline/Block`, `marginInline/Block` | cells                                                  | longhands                              | same                                                          |
+| `gap`, `rowGap`, `columnGap`                                                                        | cells or `N%`                                          | same                                   | same                                                          |
+| `width`, `height`, `min*`, `max*`, `flexBasis`                                                      | cells, `N%`, `auto`                                    | same                                   | same                                                          |
+| `flexDirection`, `flexWrap`, `justifyContent`, `alignItems`, `alignSelf`                            | Yoga's keywords                                        | same                                   | same                                                          |
+| `flexGrow`, `flexShrink`                                                                            | `<number>`                                             | same                                   | same                                                          |
+| `position`                                                                                          | `relative`, `absolute`                                 | same                                   | same                                                          |
+| `top`, `right`, `bottom`, `left`                                                                    | cells, `N%`, `auto`                                    | same                                   | same                                                          |
+| `overflow`                                                                                          | `visible`, `hidden`, `scroll`                          | same                                   | same                                                          |
+| `display`                                                                                           | `flex`, `none`                                         | `visible`                              | `visible`                                                     |
+| `opacity`                                                                                           | `<number>` 0 to 1                                      | same                                   | same                                                          |
+| `zIndex`                                                                                            | integer                                                | same                                   | same                                                          |
+| `cursor`                                                                                            | the CSS cursor keywords OpenTUI sends over OSC 22      | `cursor`                               | `renderer.setMousePointer` on over, `"default"` on out        |
+| `caretShape`                                                                                        | `auto`, `bar`, `block`, `underscore`                   | `caretShape`                           | `cursorStyle.style` (`default`, `line`, `block`, `underline`) |
+| `caretColor`                                                                                        | `<color>`                                              | `caretColor`                           | `cursorColor`                                                 |
+| `caretAnimation`                                                                                    | `auto` (blinks), `manual` (steady)                     | `caretAnimation`                       | `cursorStyle.blinking`                                        |
 
 - **Cells.** A number is a cell: a column for widths and horizontal edges, a row for heights and vertical edges, as
   Yoga in OpenTUI counts them. A percentage is of the parent. A CSS length (`2rem`, `10px`, `1em`, `5ch`) is a type
@@ -113,9 +126,8 @@ Neutral key = what the compiled object holds; OpenTUI = what the adapter sets.
   `attr()`, `within()`) are not members.
 - The runtime merges: base, then the theme, then `:hover`, `:focus`, `:active` that are on, in that order (the web's
   order of those pseudo-classes, so `:active` wins).
-- `:hover` follows `onMouseOver`/`onMouseOut` (OpenTUI's top hit target, so a child under the pointer takes the hover
-  from its parent unless it bubbles), `:active` `onMouseDown`/`onMouseUp` (and `out`), `:focus` the renderable's
-  `focused`/`blurred` events. A box needs `focusable: true` to take focus; that is a renderable option, not a style.
+- `:hover` follows `over`/`out` (OpenTUI's top hit target; the events bubble, so a box keeps its hover while the
+  pointer is on a child), `:active` `down`/`up` (and `out`), `:focus` the renderable's `focused`/`blurred` events. A box needs `focusable: true` to take focus; that is a renderable option, not a style.
 - **Cursors.** `cursor` is set with `renderer.setMousePointer(value)` on over and back to `"default"` on out. The
   caret properties go to the focused editable's `cursorStyle` and `cursorColor` (Input, Textarea); OpenTUI itself then
   calls `setCursorStyle` while it has focus.
@@ -123,21 +135,26 @@ Neutral key = what the compiled object holds; OpenTUI = what the adapter sets.
 ## Themes
 
 - `css.createTokens(...)` and `css.createGlobalTheme(tokens, name, overrides)` are re-exported by `cssints/tui` with
-  their web types and checks. A theme's second argument is its name (`"dark"`, a valid type selector); a `media()`
-  condition is a build error in a terminal file (no media there).
+  their web types and checks. A theme's second argument is its name (`"dark"`, a valid type selector); a theme under
+  `media()` is not read by terminal styles (a terminal has no media queries).
 - A terminal has no custom properties, so a token is resolved at build time: the site holds the default value and,
-  under `themes`, what each theme changes (`{ backgroundColor: "#1e1e2e", themes: { light: { backgroundColor:
-  "#eff1f5" } } }`), states included. The themes are those registered when the site runs: import the theme module
+  under `themes`, what each theme changes, states included: `{ backgroundColor: "#1e1e2e", themes: { light: {
+backgroundColor: "#eff1f5" } } }`. Aliases, derived tokens (`color-mix()` over a token) and references in a theme
+  are resolved per theme, as `check.contrast` reads them. The themes are those registered when the site runs: import the theme module
   first, as on the web.
-- `setTheme(name)` of `@cssints/tui` swaps the resolved values of every attached renderable; `""` is the default.
+- `setTheme(name)` of `@cssints/tui` (also exported by `/opentui`) sets the values of that theme on every attached
+  renderable; `""` is the default.
 
 ## Packages
 
 - **`cssints/tui`** (packages/cssints/src/tui.ts and tui-types.ts): the build-time members and their types. Plain
   code like lib.ts (user code calls the builders in expressions).
-- **`@cssints/tui`** (packages/tui): `resolve(style, state, theme)`, `setTheme`, `onTheme` (renderer-neutral, no
-  imports) and `@cssints/tui/opentui` (`use`, `attach`). A separate package because the engine must not depend on
-  `@opentui/core`, and the second adapter goes beside this one.
+- **`@cssints/tui`** (packages/tui): `resolve(style, state, theme)`, `theme`, `setTheme`, `onTheme` (renderer-neutral,
+  no imports) and `@cssints/tui/opentui` (`attach`, `use`, `props`). A separate package because the engine must not
+  depend on `@opentui/core`, and the second adapter goes beside this one.
+- **Tests** are in packages/tui: `test/tui.mjs` (Node: fixtures through a dev transform and an SSR build, the build
+  errors), `test/render.ts` (Bun: the built styles on OpenTUI's test renderer, a simulated hover, press, theme switch and
+  focus), `test/types/tui.ts` (what the types accept and reject).
 
 ## Out of scope in v1
 

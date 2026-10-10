@@ -1,0 +1,67 @@
+{
+  "name": "@cssints/tui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "cssints in a terminal: the runtime of cssints/tui styles (states, cursors, themes) and its OpenTUI adapter",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "development": {
+        "types": "./src/index.ts",
+        "default": "./src/index.ts"
+      },
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    },
+    "./opentui": {
+      "development": {
+        "types": "./src/opentui.ts",
+        "default": "./src/opentui.ts"
+      },
+      "types": "./dist/opentui.d.mts",
+      "default": "./dist/opentui.mjs"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "./opentui": {
+        "types": "./dist/opentui.d.mts",
+        "default": "./dist/opentui.mjs"
+      }
+    },
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "test": "node --conditions=development test/tui.mjs && bun test/render.ts",
+    "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
+    "pack:tgz": "node ../../scripts/pack.mjs"
+  },
+  "devDependencies": {
+    "@opentui/core": "0.5.17",
+    "cssints": "workspace:*",
+    "vite": "catalog:"
+  },
+  "peerDependencies": {
+    "@opentui/core": ">=0.5.17",
+    "cssints": "^0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@opentui/core": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
