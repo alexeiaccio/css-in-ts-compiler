@@ -411,18 +411,18 @@ try {
   // sideways scroll at any width, and a screenshot light, dark and on a phone
   const landing = async (context, name) => {
     const page = await open(context);
-    await page.locator(".landing .panels").waitFor({ state: "visible" });
+    await page.locator("[data-landing] [data-panels]").waitFor({ state: "visible" });
     const info = await page.evaluate(() => ({
       title: document.title,
       h1s: document.querySelectorAll("h1").length,
       sidebar: document.querySelector("#sidebar")?.getBoundingClientRect().width,
       menu: getComputedStyle(document.querySelector("button[aria-label=Menu]")).display,
-      logo: document.querySelector(".landing .hero img")?.naturalWidth,
-      panels: document.querySelectorAll(".landing figure").length,
-      features: document.querySelectorAll(".landing .features li").length,
+      logo: document.querySelector("[data-landing] [data-hero] img")?.naturalWidth,
+      panels: document.querySelectorAll("[data-landing] figure").length,
+      features: document.querySelectorAll("[data-landing] [data-features] li").length,
       overflow: document.documentElement.scrollWidth > innerWidth,
       prerender: !!document.getElementById("prerender"),
-      links: [...document.querySelectorAll(".landing a")].map((a) => a.getAttribute("href")),
+      links: [...document.querySelectorAll("[data-landing] a")].map((a) => a.getAttribute("href")),
     }));
     assert.equal(info.title, "cssints");
     assert.equal(info.h1s, 1, "one title");
@@ -442,11 +442,11 @@ try {
     return page;
   };
   const sun = await landing(desktop, "light");
-  await sun.click(".landing .actions .primary");
+  await sun.click("[data-landing] [data-primary]");
   await sun.waitForURL(/\/install\/?$/);
   await sun.locator("main h1", { hasText: "Install" }).waitFor({ state: "visible" });
   await sun.goBack();
-  await sun.locator(".landing").waitFor({ state: "visible" });
+  await sun.locator("[data-landing]").waitFor({ state: "visible" });
   await sun.close();
   const evening = await browser.newContext({
     colorScheme: "dark",
@@ -480,6 +480,8 @@ try {
     assert.equal(await bare.locator("#root").isVisible(), false, "the empty root is hidden");
     await bare.click(`#prerender nav a[href='${prefix}tokens/']`);
     assert.equal(await bare.textContent("h1"), "Tokens", "a link is another document");
+    await bare.goto(built);
+    const staticLanding = await bare.locator("[data-landing]").evaluate((e) => e.outerHTML);
     await plain.close();
 
     // JavaScript on: the app takes over. At every frame the page is the static copy or the app, never both and never neither
@@ -525,6 +527,15 @@ try {
         `built ${path}: a frame shows both or neither`,
       );
       seen.push(await page.textContent("h1"));
+      if (path === "") {
+        // the app renders the string of the document, so the swap changes nothing (but the shader's canvas, which it adds)
+        const live = await page.evaluate(() => {
+          const copy = document.querySelector("[data-landing]").cloneNode(true);
+          copy.querySelectorAll("canvas").forEach((c) => c.remove());
+          return copy.outerHTML;
+        });
+        assert.equal(live, staticLanding, "the landing page of the app is the prerendered one");
+      }
       if (path === "tokens/") {
         await page.click(`#sidebar a[href='${prefix}install']`);
         await page.waitForURL(/\/install$/);
