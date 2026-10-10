@@ -893,6 +893,15 @@ const replacementOf = Effect.fnUntraced(function* (
   if (typeof value === "string") return Formatter.formatJson(value); // a value member that computes text
   const inert = inertOf(value);
   if (inert !== undefined) return inert;
+  // a style of cssints/tui (tui.ts): an object literal of terminal props
+  if (registry.tui && Predicate.hasProperty(value, "__tui"))
+    return yield* Effect.try({
+      try: () => registry.tui!(value),
+      catch: (e) => {
+        if (e instanceof MacroError) return e;
+        throw e; // a bug, not a user error: a defect
+      },
+    });
   if (isPluginValue(value)) return undefined;
   return yield* new MacroError({
     message: `cssints: site ${at.site} in ${at.file} did not produce a css.*, cv(), style(), condition or Typed OM value`,

@@ -5,7 +5,8 @@ import { defineConfig } from "vite-plus";
 export default defineConfig({
   pack: [
     // The build-time side: the macro library (index), the Vite plugin (vite), the helpers of plugin authors (plugin) and
-    // the engine's checks for tools (check), run by Node; and frame() and surface(), plugins written on those helpers.
+    // the engine's checks for tools (check), run by Node; frame() and surface(), plugins written on those helpers; and the
+    // members of a terminal (tui), in one config so that they share the engine's modules (theme.ts's token sets).
     {
       entry: {
         index: "src/index.ts",
@@ -14,6 +15,7 @@ export default defineConfig({
         check: "src/check.ts",
         frame: "src/frame.ts",
         surface: "src/surface.ts",
+        tui: "src/tui.ts",
       },
       platform: "node",
       format: "esm",
@@ -40,7 +42,11 @@ export default defineConfig({
     // What user code sees (the "types" condition): members, theme types, and the css-grammar types they reach.
     // Declarations only: the types of types.ts and of author.ts (cssints/plugin), generated from the code.
     {
-      entry: { types: "src/types.ts", "plugin-types": "src/author.ts" },
+      entry: {
+        types: "src/types.ts",
+        "plugin-types": "src/author.ts",
+        "tui-types": "src/tui-types.ts",
+      },
       platform: "neutral",
       format: "esm",
       fixedExtension: true,

@@ -3,7 +3,11 @@ import { defineConfig } from "vite-plus";
 import { allRules, profiles } from "./tools/ai-automation/src/profiles.ts";
 
 // Out of scope: docs/archive is old; a research prototype is throwaway code that reruns a finding.
-const outOfScope = ["docs/archive/**", "docs/research/sublayers-proto/**", "docs/research/plugin-api-proto/**"];
+const outOfScope = [
+  "docs/archive/**",
+  "docs/research/sublayers-proto/**",
+  "docs/research/plugin-api-proto/**",
+];
 
 // Not linted: inputs of the plugin tests (import build-time members that only exist after the plugin rewrote the
 // import, and some are invalid on purpose), and the bench files whose type errors budget.mjs expects.
@@ -11,7 +15,7 @@ const inputs = [
   "packages/cssints/test/fixtures/**",
   "packages/icons/test/fixtures/**",
   "packages/mise-en-mode/test/fixtures/**",
-  "packages/{fluid,layout,fonts,reset,tokens,gradient,motion,squircle,reveal,stuck,balance,masonry,placeholder,ramp,skeleton,devtools,mcp}/test/fixtures/**",
+  "packages/{fluid,layout,fonts,reset,tokens,gradient,motion,squircle,reveal,stuck,balance,masonry,placeholder,ramp,skeleton,devtools,mcp,tui}/test/fixtures/**",
   "packages/cssints/test/pkg/**",
   "packages/css-grammar/bench/err.ts",
   "packages/cssints/bench/errors.ts",
@@ -66,6 +70,10 @@ const plainCode = [
   "packages/cssints/src/node.ts",
   // The css functions (`css.calc(...)`): sync builders that user code calls in expressions, built from the generated list.
   "packages/cssints/src/functions.ts",
+  // The members of cssints/tui: sync builders that user code calls in expressions, like lib.ts's.
+  "packages/cssints/src/tui.ts",
+  // @cssints/tui: the runtime of a terminal app (states, themes) and its OpenTUI adapter, called from renderables' events.
+  "packages/tui/src/**",
   // The front of cssints/plugin: signatures with generics and one-line bodies (the engine is scope-engine.ts).
   "packages/cssints/src/scope.ts",
   // scope() and the members it makes (chain, call, value): sync builders that user code calls in expressions, like lib.ts's.
@@ -125,7 +133,7 @@ export default defineConfig({
       { files: ["**/*.mjs"], rules: Object.fromEntries(noUnsafe.map((r) => [r, "off"])) },
       // Type tests call what does not exist on purpose (`@ts-expect-error`), and that call is `any`.
       {
-        files: ["packages/cssints/test/types/**"],
+        files: ["packages/cssints/test/types/**", "packages/tui/test/types/**"],
         rules: Object.fromEntries(noUnsafe.map((r) => [r, "off"])),
       },
       // The type-level recognizer: `any` in conditional types is the idiom (unchanged by the port).

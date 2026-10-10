@@ -408,7 +408,9 @@ export default function cssints({
         ? yield* inertJsx(code, id)
         : undefined;
     }
-    if (ctx.environment.name === "ssr") {
+    // The ssr environment is where sites are evaluated: the dev server's, and the private server of a build (`inner`). The
+    // ssr environment of a build (`vite build --ssr`, a terminal app for Bun) is an output, transformed as a client.
+    if (ctx.environment.name === "ssr" && (inner || !build)) {
       const out = yield* instrument(code, id, false);
       return out && /x$/.test(id) ? yield* inertJsx(out.code, id) : out?.code;
     }
