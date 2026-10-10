@@ -54,14 +54,16 @@ interface Placement {
   w: number;
   h: number;
 }
-const load = (): Placement => {
-  let v: Partial<Placement> | null = null;
+const read = () => {
   try {
-    v = JSON.parse(localStorage.getItem(KEY) ?? "null") as Partial<Placement> | null;
+    return JSON.parse(localStorage.getItem(KEY) ?? "null") as Partial<Placement> | null;
   } catch {
-    // no storage, or not ours: the defaults
+    return null; // no storage, or not ours: the defaults
   }
-  const size = (n: unknown, d: number) => (typeof n === "number" && n >= MIN ? n : d);
+};
+const load = () => {
+  const v = read();
+  const size = (n: number | undefined, d: number) => (typeof n === "number" && n >= MIN ? n : d);
   return {
     dock: DOCKS.find((d) => d === v?.dock) ?? "right",
     w: size(v?.w, 440),
