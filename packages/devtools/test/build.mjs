@@ -32,6 +32,9 @@ for (const f of files) {
     "cssints-devtools",
     "__open-in-editor",
     "data-cssints-probe",
+    '"cssints:devtools:ask"',
+    "Ask OpenCode",
+    "@opencode",
   ])
     assert.ok(!text.includes(needle), `${f} holds ${needle}`);
 }
@@ -39,18 +42,28 @@ rmSync(outDir, { recursive: true });
 console.log(`devtools build ok: ${files.length} files, none of it`);
 
 const app = join(import.meta.dirname, "fixtures/app");
-const output = async (devtools) => {
+const output = async (devtools, opencode) => {
   const out = await build({
     root: app,
     configFile: false,
     logLevel: "silent",
-    plugins: [cssints(devtools ? { devtools } : {})],
+    plugins: [cssints(devtools ? { devtools, ...(opencode ? { opencode } : {}) } : {})],
     build: { write: false },
   });
   return [out].flat().flatMap((o) => o.output);
 };
 const plain = await output(undefined);
 const withTools = await output("build");
+// opencode is a dev option: a build, even with devtools on, has no way to ask and no client of the service
+for (const mode of [true, "build"]) {
+  const files = await output(mode, { agent: "build" });
+  for (const f of files) {
+    const text = String(f.type === "chunk" ? f.code : f.source);
+    for (const needle of ['"cssints:devtools:ask"', "@opencode", "ses_"])
+      assert.ok(!text.includes(needle), `${f.fileName} (devtools: ${mode}) holds ${needle}`);
+  }
+}
+console.log("devtools opencode build ok: no way to ask in a build, with the option on");
 const entryOf = (files) => files.find((f) => f.type === "chunk" && f.isEntry);
 assert.ok(
   !plain.some((f) => f.fileName.includes("cssints-devtools")),

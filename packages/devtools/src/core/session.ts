@@ -6,11 +6,25 @@ import { toModel, type Model } from "./table.ts";
 
 export const TABLE = "cssints:devtools";
 export const STALE = "cssints:devtools:stale";
+/** the browser asks the dev server to start an OpenCode session: `{ ref, prompt }` */
+export const ASK = "cssints:devtools:ask";
+/** the dev server tells how that session goes: an `Asked` */
+export const ASKED = "cssints:devtools:asked";
+
+/** `unavailable`: no OpenCode service runs (or its client is not installed); `message` says what to do. */
+export interface Asked {
+  readonly ref: number;
+  readonly status: "running" | "completed" | "failed" | "interrupted" | "unavailable";
+  readonly id?: string;
+  readonly message?: string;
+}
 
 export interface TransportApi {
   /** asks the server for the table (`cssints:devtools:get`); it answers with TABLE */
   readonly request: () => void;
   readonly on: (event: string, listener: (data: unknown) => void) => void;
+  /** only when the server has `opencode` on: sends a prompt, the answers come as ASKED; the overlay shows its prompt box if it is set */
+  readonly ask?: (ref: number, prompt: string) => void;
 }
 
 export class Transport extends Context.Service<Transport, TransportApi>()(

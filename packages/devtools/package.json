@@ -24,7 +24,7 @@
   },
   "scripts": {
     "build": "vp build",
-    "test": "node test/core.mjs && node test/build.mjs",
+    "test": "node test/core.mjs && node test/opencode.mjs && node test/build.mjs",
     "test:browsers": "vp build && node test/browsers.mjs",
     "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty"
   },
