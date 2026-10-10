@@ -1,6 +1,6 @@
 // The OpenTUI adapter of cssints/tui styles (docs/research/tui.md): sets the props of a style on a renderable and keeps
 // them in step with its states (`over`/`out`, `down`/`up`, `focused`/`blurred`), the mouse pointer and the theme.
-import type { MouseEvent, Renderable } from "@opentui/core";
+import type { MouseEvent, Renderable, TextNodeRenderable } from "@opentui/core";
 import type { TuiProps, TuiShape } from "cssints/tui";
 
 import { onTheme, resolve, type TuiState } from "./index.ts";
@@ -51,18 +51,20 @@ export const props = (
 };
 
 type Hooked = Renderable & { onMouseEvent(event: MouseEvent): void };
+type Node = Renderable | TextNodeRenderable;
 
 /**
  * Sets the props of `style` on `r` and keeps them up to date: `:hover` from `over` to `out`, `:active` from `down` to
  * `up` (or `out`), `:focus` while it has focus (a box needs `focusable: true`), and the theme of `setTheme`. The mouse
  * pointer is the style's `cursor` on `over`, `default` again on `out`. Handlers of your own (`onMouseOver`) still run.
- * A focused renderable draws its `focused*` colours (`focusedBorderColor` of a box): they follow the style too.
+ * A focused renderable draws its `focused*` colours (`focusedBorderColor` of a box): they follow the style too. A text
+ * node (`<span>`, `<a>`) has no mouse events and no focus: it takes the props and the theme, not the states.
  *
- * @param {Renderable} r a renderable of OpenTUI
+ * @param {Renderable | TextNodeRenderable} r a renderable or a text node of OpenTUI
  * @param {TuiShape} style a style of cssints/tui
- * @returns {Renderable} `r`
+ * @returns {Renderable | TextNodeRenderable} `r`
  */
-export const attach = <R extends Renderable>(r: R, style: TuiShape): R => {
+export const attach = <R extends Node>(r: R, style: TuiShape): R => {
   const state: TuiState = {};
   const target = r as unknown as Record<string, unknown>;
   const saved = new Map<string, unknown>(); // the renderable's own value of each prop the style has set
@@ -88,6 +90,18 @@ export const attach = <R extends Renderable>(r: R, style: TuiShape): R => {
     state[key] = on;
     return true;
   };
+  const stop = onTheme(apply);
+  if (!("onMouseEvent" in r)) {
+    // a text node: @opentui/solid destroys what it removes, and nothing is emitted
+    const end = r.destroyRecursively.bind(r);
+    r.destroyRecursively = () => {
+      stop();
+      for (const child of r.getChildren()) child.destroyRecursively();
+      end();
+    };
+    apply();
+    return r;
+  }
   const hooked = r as unknown as Hooked;
   const own = hooked.onMouseEvent.bind(r);
   hooked.onMouseEvent = (event) => {
@@ -95,22 +109,21 @@ export const attach = <R extends Renderable>(r: R, style: TuiShape): R => {
     if (event.type === "over") {
       changed = set("hover", true);
       const cursor = resolve(style, { ...state, hover: true }).cursor;
-      if (cursor) r.ctx.setMousePointer(cursor);
+      if (cursor) hooked.ctx.setMousePointer(cursor);
       pointer = !!cursor;
     } else if (event.type === "out") {
       changed = set("hover", false);
       changed = set("active", false) || changed;
-      if (pointer) r.ctx.setMousePointer("default");
+      if (pointer) hooked.ctx.setMousePointer("default");
       pointer = false;
     } else if (event.type === "down") changed = set("active", true);
     else if (event.type === "up") changed = set("active", false);
     if (changed || pointer) apply();
     own(event);
   };
-  r.on("focused", () => set("focus", true) && apply());
-  r.on("blurred", () => set("focus", false) && apply());
-  const stop = onTheme(apply);
-  r.once("destroyed", stop);
+  hooked.on("focused", () => set("focus", true) && apply());
+  hooked.on("blurred", () => set("focus", false) && apply());
+  hooked.once("destroyed", stop);
   apply();
   return r;
 };
@@ -122,7 +135,7 @@ export const attach = <R extends Renderable>(r: R, style: TuiShape): R => {
  * @param {TuiShape} style a style of cssints/tui
  * @returns {object} `{ ref }`
  */
-export const use = (style: TuiShape): { ref: (r: Renderable | null) => void } => ({
+export const use = (style: TuiShape): { ref: (r: Node | null) => void } => ({
   ref: (r) => {
     if (r) attach(r, style);
   },

@@ -2,10 +2,9 @@
 // own), the counts. The model is apps/sky's: the same choices as the web card, drawn here.
 import type { AppBskyFeedDefs } from "@atcute/bluesky";
 import type { Facet } from "@atcute/bluesky-richtext-segmenter";
-import { onTheme, type TuiShape } from "@cssints/tui";
-import { attach, props, resolve, theme, use } from "@cssints/tui/opentui";
+import { attach, use } from "@cssints/tui/opentui";
 import type { BoxRenderable, MouseEvent } from "@opentui/core";
-import { createEffect, createSignal, For, type JSX, Match, Show, Switch } from "solid-js";
+import { createEffect, For, type JSX, Match, Show, Switch } from "solid-js";
 
 import type { Quote } from "../../sky/src/api.ts";
 import { postVerdict } from "../../sky/src/api.ts";
@@ -25,26 +24,19 @@ import * as s from "./styles.ts";
 
 type PostView = AppBskyFeedDefs.PostView;
 
-// A <span> is a text node, not a renderable, so `use()` cannot attach to it (cssints-5vnf): its props are resolved here
-// and follow the theme through a signal.
-const [current, setCurrent] = createSignal(theme());
-onTheme(setCurrent);
-export const span = (style: TuiShape) =>
-  props(resolve(style, {}, current()), (k) => k !== "backgroundColor");
-
 export function RichText(props: { text: string; facets?: Facet<Feature>[] }) {
   return (
     <text {...use(s.body)}>
       <For each={parts(props.text, props.facets)}>
         {(p) =>
           p.link ? (
-            <a href={p.link} style={span(s.link)}>
+            <a href={p.link} {...use(s.link)}>
               {p.text}
             </a>
           ) : p.mention || p.tag ? (
-            <span style={span(s.tag)}>{p.text}</span>
+            <span {...use(s.tag)}>{p.text}</span>
           ) : (
-            <span style={span(s.body)}>{p.text}</span>
+            <span {...use(s.body)}>{p.text}</span>
           )
         }
       </For>
@@ -83,8 +75,8 @@ function QuoteBox(props: { quote: Quote }) {
           {(q) => (
             <>
               <text {...use(s.body)}>
-                <span style={span(s.name)}>{q().author.displayName || q().author.handle}</span>
-                <span style={span(s.meta)}>
+                <span {...use(s.name)}>{q().author.displayName || q().author.handle}</span>
+                <span {...use(s.meta)}>
                   {` @${q().author.handle} · ${ago(recordOf(q()).createdAt ?? q().indexedAt)}`}
                 </span>
               </text>
@@ -152,10 +144,8 @@ export function Post(props: CardProps) {
     <Row id={props.id} selected={props.selected} depth={props.depth} onOpen={props.onOpen}>
       <Show when={props.reason}>{(r) => <text {...use(s.muted)}>{r()}</text>}</Show>
       <text {...use(s.body)} wrapMode="none" truncate>
-        <span style={span(s.name)}>
-          {props.post.author.displayName || props.post.author.handle}
-        </span>
-        <span style={span(s.meta)}>
+        <span {...use(s.name)}>{props.post.author.displayName || props.post.author.handle}</span>
+        <span {...use(s.meta)}>
           {` @${props.post.author.handle}`}
           {props.focus ? "" : ` · ${ago(rec().createdAt ?? props.post.indexedAt)}`}
         </span>
@@ -181,8 +171,8 @@ export function Post(props: CardProps) {
           <For each={stats(props.post)}>
             {(x) => (
               <>
-                <span style={span(s.name)}>{x.n}</span>
-                <span style={span(s.meta)}>{` ${x.label}   `}</span>
+                <span {...use(s.name)}>{x.n}</span>
+                <span {...use(s.meta)}>{` ${x.label}   `}</span>
               </>
             )}
           </For>

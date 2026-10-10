@@ -3,7 +3,14 @@
 // the mouse pointer. Run: bun test/render.ts (after node test/tui.mjs)
 import assert from "node:assert/strict";
 
-import { BoxRenderable, InputRenderable, type RGBA, rgbToHex, TextRenderable } from "@opentui/core";
+import {
+  BoxRenderable,
+  InputRenderable,
+  type RGBA,
+  rgbToHex,
+  TextNodeRenderable,
+  TextRenderable,
+} from "@opentui/core";
 import { createTestRenderer } from "@opentui/core/testing";
 
 import type { TuiShape } from "../src/index.ts";
@@ -124,6 +131,28 @@ try {
   await renderOnce();
   assert.equal(drawn(row.x, row.y + 1).fg, "#585b70");
 
+  // a text node (<span>, <a>: no mouse events, no focus): the props and the theme (cssints-5vnf)
+  const line = new TextRenderable(renderer, { position: "absolute", top: 3, content: "" });
+  const link = new TextNodeRenderable({});
+  link.add("Link");
+  use(styles.label).ref(link);
+  line.add(link);
+  renderer.root.add(line);
+  await renderOnce();
+  assert.equal(link.attributes, 1 | 8);
+  assert.equal(drawn(line.x, line.y).fg, "#cdd6f4");
+  setTheme("light");
+  await renderOnce();
+  assert.equal(drawn(line.x, line.y).fg, "#4c4f69");
+  setTheme("");
+  await renderOnce();
+  assert.equal(drawn(line.x, line.y).fg, "#cdd6f4");
+  // as @opentui/solid removes it: the theme no longer reaches it
+  line.remove(link);
+  link.destroyRecursively();
+  setTheme("light");
+  assert.equal(hex(link.fg!), "#cdd6f4");
+  setTheme("");
   console.log("render ok");
 } finally {
   renderer.destroy();

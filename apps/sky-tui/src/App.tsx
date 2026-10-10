@@ -13,7 +13,7 @@ import type { ThreadNode } from "../../sky/src/api.ts";
 import { FEEDS } from "../../sky/src/home/feeds.ts";
 import { branches, goneText, moreLabel } from "../../sky/src/thread/model.ts";
 import type { Branch } from "../../sky/src/thread/model.ts";
-import { Note, Post, span } from "./Post.tsx";
+import { Note, Post } from "./Post.tsx";
 import * as s from "./styles.ts";
 
 type PostView = AppBskyFeedDefs.PostView;
@@ -103,8 +103,8 @@ function createHome() {
 }
 type Home = ReturnType<typeof createHome>;
 
-// The active tab and the others are two styles: a renderable keeps the style it was attached with, so the tab is made
-// again when it turns active.
+// The active tab and the others are two styles: a renderable keeps the style it was attached with (cssints-332g), so
+// the tab is made again when it turns active.
 function Tab(props: { name: string; index: number; active: boolean; onSelect: () => void }) {
   const label = () => ` ${props.index + 1} ${props.name} `;
   const down = (e: MouseEvent) => e.button === 0 && props.onSelect();
@@ -145,7 +145,7 @@ function HomeScreen(props: { home: Home; open: (t: Target) => void }) {
     <>
       <box {...use(s.bar)}>
         <text>
-          <span style={span(s.title)}>sky</span>
+          <span {...use(s.title)}>sky</span>
         </text>
         <For each={FEEDS}>
           {(f, i) => (
@@ -246,8 +246,8 @@ function ThreadScreen(props: { target: Target; open: (t: Target) => void; back: 
     <>
       <box {...use(s.bar)}>
         <text>
-          <span style={span(s.title)}>sky</span>
-          <span style={span(s.meta)}> · Thread (esc: back)</span>
+          <span {...use(s.title)}>sky</span>
+          <span {...use(s.meta)}> · Thread (esc: back)</span>
         </text>
       </box>
       <scrollbox {...use(s.list)} renderBefore={keepInView}>

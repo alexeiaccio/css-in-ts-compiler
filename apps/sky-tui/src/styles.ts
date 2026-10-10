@@ -81,7 +81,7 @@ export const quote = css.cn(
 export const body = css.color(c.color.text);
 export const muted = css.color(c.color.muted);
 
-// Spans: `<span style={span(s.name)}>` (Post.tsx), not `use()`.
+// Spans: `<span {...use(s.name)}>`, the props and the theme (a text node has no states).
 export const title = css.cn(css.color(c.color.accent), css.fontWeight("bold"));
 export const name = css.cn(css.color(c.color.text), css.fontWeight("bold"));
 export const meta = css.color(c.color.muted);
