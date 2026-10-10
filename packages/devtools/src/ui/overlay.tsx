@@ -63,7 +63,7 @@ const read = () => {
     return null; // no storage, or not ours: the defaults
   }
 };
-const load = (): Placement => {
+const load = () => {
   const v = read();
   const size = (n: number | undefined, d: number) => (typeof n === "number" && n >= MIN ? n : d);
   return {
