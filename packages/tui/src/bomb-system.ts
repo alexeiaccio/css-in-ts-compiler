@@ -3,7 +3,7 @@
 // `input.scan()` sees them. bomb.sh has no indexed colour: a terminal that reports nothing keeps the static theme.
 // @effect-diagnostics globalTimers:off -- plain run-time code of a terminal app (plainCode): a timer, no Effect
 import { setTheme } from "./index.ts";
-import { NOTIFY, QUERY, type Report, scan, type SystemTheme, UNNOTIFY } from "./system.ts";
+import { COLOURS, NOTIFY, QUERY, type Report, scan, type SystemTheme, UNNOTIFY } from "./system.ts";
 
 /** A system theme fed by the bytes of stdin. */
 export interface SystemFollower {
@@ -60,7 +60,9 @@ export const followSystemTheme = (
       for (const [i, hex] of replies.ansi) report.ansi[i] = hex;
       if (replies.scheme) {
         report.scheme = replies.scheme;
-        if (done) options.write(QUERY); // a notification of a change: the colours again
+        // a notification of a change: the colours again. Not the scheme report: its reply is the same sequence as a
+        // notification, and asking for it here would loop with a terminal that answers it
+        if (done) options.write(COLOURS);
       }
       const complete = report.fg && report.bg && report.ansi.filter(Boolean).length === 16;
       if (found && done) apply();

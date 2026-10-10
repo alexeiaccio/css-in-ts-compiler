@@ -349,13 +349,14 @@ export const createSystemTheme = <T extends object>(
 
 // ---------- the terminal's replies
 
-/** OSC 10 and 11 (the default colours), OSC 4 for the 16 ANSI colours, and the colour-scheme report (`CSI ? 996 n`). */
-export const QUERY = [
+/** OSC 10 and 11 (the default colours) and OSC 4 for the 16 ANSI colours. */
+export const COLOURS = [
   "\x1b]10;?\x1b\\",
   "\x1b]11;?\x1b\\",
   ...SLOTS.map((_, i) => `\x1b]4;${i};?\x1b\\`),
-  "\x1b[?996n",
 ].join("");
+/** The colours and the colour-scheme report (`CSI ? 996 n`). */
+export const QUERY = `${COLOURS}\x1b[?996n`;
 /** Mode 2031 on: the terminal sends `CSI ? 997 ; 1|2 n` when its palette changes. */
 export const NOTIFY = "\x1b[?2031h";
 /** Mode 2031 off. */
