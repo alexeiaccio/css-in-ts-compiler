@@ -4,11 +4,12 @@ import { defineConfig } from "vite-plus";
 
 import docs from "./plugin/docs.ts";
 import playground from "./plugin/playground.ts";
+import tui from "./plugin/tui.ts";
 
 // DOCS_BASE is the path the site is served under: "/css-in-ts-compiler/" on GitHub Pages (.github/workflows/docs.yml), "/" otherwise
 export default defineConfig({
   base: process.env.DOCS_BASE || "/",
-  plugins: [cssints({ devtools: "build" }), solid(), playground(), docs()],
+  plugins: [cssints({ devtools: "build" }), solid(), playground(), tui(), docs()],
   css: { transformer: "lightningcss", lightningcss: { targets } },
   build: { cssMinify: "lightningcss", cssTarget, chunkSizeWarningLimit: 1000 },
 });

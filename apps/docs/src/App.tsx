@@ -7,6 +7,8 @@ import { Shell } from "./Shell.tsx";
 
 // The playground is its own chunk: the engine and its parsers load when the page opens, never with the docs.
 const Playground = lazy(() => import("./playground/Playground.tsx"));
+// The TUI page too: ghostty-web, @bomb.sh/tty and sky's fixtures load when it opens.
+const Tui = lazy(() => import("./tui/Tui.tsx"));
 
 // One route per page: the slug is the path ("" is the landing page); an unknown slug is the not-found page.
 const Router = createRouter({
@@ -18,6 +20,14 @@ const Router = createRouter({
       component: () => (
         <Loading fallback={<p>Loading the playground…</p>}>
           <Playground />
+        </Loading>
+      ),
+    },
+    {
+      path: "/tui",
+      component: () => (
+        <Loading fallback={<p>Loading the terminal…</p>}>
+          <Tui />
         </Loading>
       ),
     },
