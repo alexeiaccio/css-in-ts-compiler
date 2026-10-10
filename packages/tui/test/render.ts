@@ -26,7 +26,7 @@ const { renderer, mockMouse, renderOnce, captureCharFrame, captureSpans } = setu
 // the colours drawn at a cell
 const drawn = (x: number, y: number) => {
   let col = 0;
-  for (const span of captureSpans().lines[y]!.spans) {
+  for (const span of captureSpans().lines[y].spans) {
     if (x < col + span.width) return { fg: hex(span.fg), bg: hex(span.bg) };
     col += span.width;
   }
