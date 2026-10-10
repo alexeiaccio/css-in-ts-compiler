@@ -15,6 +15,8 @@ import { pathToFileURL } from "node:url";
 
 import { build, createServer, preview } from "vite";
 
+import { CUBES, DEFAULT_HUE, HUES, IDS, palettes } from "../src/palettes.ts";
+
 const root = join(import.meta.dirname, "..");
 const out = join(import.meta.dirname, "out");
 mkdirSync(out, { recursive: true });
@@ -52,6 +54,9 @@ const ready = (page) =>
   page.waitForFunction(() => document.querySelector(".prose")?.childElementCount);
 const bg = (page) =>
   page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor);
+// "#rrggbb" as Chrome prints a computed colour
+const rgb = (hex) => `rgb(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(", ")})`;
+const itten = palettes.itten(DEFAULT_HUE);
 
 try {
   const desktop = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -169,7 +174,7 @@ try {
   });
   const night = await open(dark, "basic-usage");
   await ready(night);
-  assert.equal(await bg(night), "rgb(12, 15, 21)", "dark follows the system");
+  assert.equal(await bg(night), rgb(itten.dark.bg), "dark follows the system");
   await night.screenshot({ path: join(out, "basic-usage-dark.png") });
   const gear = "button[aria-label='Display settings']";
   const read = (fn, arg) => night.evaluate(fn, arg);
@@ -194,33 +199,65 @@ try {
 
   // the mode: a page that asks for light is light on a dark system; dim is dark with a lifted background
   await setting("mode", "light");
-  assert.equal(await bg(night), "rgb(255, 255, 255)");
+  assert.equal(await bg(night), rgb(itten.light.bg));
   await setting("mode", "dim");
-  assert.equal(await bg(night), "rgb(26, 31, 43)");
+  assert.equal(await bg(night), rgb(itten.dim.bg));
   assert.equal(await read(() => document.documentElement.className), "dark dim");
   assert.equal(await style("html", "colorScheme"), "dark");
   await night.screenshot({ path: join(out, "settings-dim.png") });
   await setting("mode", "system");
-  assert.equal(await bg(night), "rgb(12, 15, 21)");
+  assert.equal(await bg(night), rgb(itten.dark.bg));
   await setting("mode", "dark");
 
-  // the hue by keyboard: the derived accent colours move with it
+  // the hue by keyboard: a step of the wheel, and the accent of that step in the cube (build time, palettes.ts)
   const swatch = () => style("[data-testid=swatch-accent]", "backgroundColor");
+  const slider = "#settings input[type=range]";
   const before = await swatch();
-  await night.focus("#settings input[type=range]");
+  assert.equal(before, rgb(itten.dark.accent));
+  await night.focus(slider);
   await night.keyboard.press("Home");
   await night.keyboard.press("ArrowRight");
   assert.equal(await night.textContent("[data-testid=hue]"), "1");
-  assert.equal(
-    await read(() => document.documentElement.style.getPropertyValue("--hue-accent")),
-    "1",
-  );
+  assert.equal(await read(() => document.documentElement.dataset.hue), "1");
+  assert.equal(await swatch(), rgb(palettes.itten(1).dark.accent));
   assert.notEqual(await swatch(), before);
-  await night.locator("#settings input[type=range]").fill("120");
-  assert.match(await swatch(), /^oklch\(0\.661 0\.18 120\)$/);
+  await night.locator(slider).fill("4");
+  assert.equal(await swatch(), rgb(palettes.itten(4).dark.accent));
   await setting("mode", "light");
-  assert.match(await swatch(), /^oklch\(0\.555 0\.21 120\)$/);
+  assert.equal(await swatch(), rgb(palettes.itten(4).light.accent));
   await night.screenshot({ path: join(out, "settings-hue.png") });
+
+  // the palette: a whole theme in each mode. A cube of RYBitten has the wheel, a set of @cssints/tokens one accent (the slider is
+  // off); the neutrals and the accent are the palette's, in light, dim and dark
+  await setting("palette", "munsell");
+  assert.equal(await bg(night), rgb(palettes.munsell(4).light.bg));
+  assert.equal(await swatch(), rgb(palettes.munsell(4).light.accent));
+  await night.locator(slider).fill("8");
+  assert.equal(await swatch(), rgb(palettes.munsell(8).light.accent));
+  await setting("mode", "dim");
+  assert.equal(await bg(night), rgb(palettes.munsell(8).dim.bg));
+  assert.equal(await swatch(), rgb(palettes.munsell(8).dark.accent));
+  await night.screenshot({ path: join(out, "settings-munsell-dim.png") });
+  await setting("palette", "flexoki");
+  assert.equal(await night.locator(slider).isDisabled(), true, "a set has one accent");
+  assert.equal(await bg(night), rgb(palettes.flexoki(0).dim.bg));
+  await setting("mode", "dark");
+  assert.equal(await bg(night), rgb(palettes.flexoki(0).dark.bg));
+  assert.equal(await swatch(), rgb(palettes.flexoki(0).dark.accent));
+  await setting("mode", "light");
+  assert.equal(await bg(night), rgb(palettes.flexoki(0).light.bg));
+  await night.screenshot({ path: join(out, "settings-flexoki.png") });
+  await setting("palette", "radix");
+  assert.equal(await bg(night), rgb(palettes.radix(0).light.bg));
+  await setting("palette", "albers");
+  assert.equal(await night.locator(slider).isDisabled(), false, "a cube has the wheel");
+  assert.equal(await swatch(), rgb(palettes.albers(8).light.accent), "the hue was kept");
+  assert.match(await night.textContent("#settings"), /RYBitten/, "the cubes are credited");
+  assert.equal(
+    await night.getAttribute("#settings a[href='https://rybitten.space/']", "href"),
+    "https://rybitten.space/",
+  );
+  await night.screenshot({ path: join(out, "settings-albers.png") });
 
   // text size, density, font and corners, each against the computed style of the page
   assert.equal(await style(".prose", "fontSize"), "16px");
@@ -254,62 +291,80 @@ try {
   assert.equal(await read(() => document.documentElement.dataset.font), "mono");
   await night.click(gear);
   assert.ok(await night.isChecked("#settings input[name=density][value=comfortable]"));
-  assert.equal(await night.inputValue("#settings input[type=range]"), "120");
+  assert.equal(await night.inputValue(slider), "8");
+  assert.equal(await read(() => document.documentElement.dataset.palette), "albers");
+  assert.ok(await night.isChecked("#settings input[name=palette][value=albers]"));
   assert.equal(await read(() => document.documentElement.className), "light");
+  assert.equal(await swatch(), rgb(palettes.albers(8).light.accent));
 
   // Reset: every setting back to its default, the system's dark again
   await night.click("#settings button");
-  assert.equal(await bg(night), "rgb(12, 15, 21)");
+  assert.equal(await bg(night), rgb(itten.dark.bg));
   assert.equal(await style(".prose", "fontSize"), "16px");
   assert.equal(await gap(), "16px");
-  assert.equal(
-    await read(() => document.documentElement.style.getPropertyValue("--hue-accent")),
-    "269",
-  );
+  assert.equal(await read(() => document.documentElement.dataset.hue), String(DEFAULT_HUE));
+  assert.equal(await read(() => document.documentElement.dataset.palette), "itten");
 
-  // the contrast over the slider, measured in Chrome (test/contrast.mjs does the same with the engine's maths over every
-  // hue): a pixel of each colour, WCAG ratios; Chrome maps a colour outside sRGB where the engine clips, so a hair of margin
-  const worst = await read(() => {
-    const ctx = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
-    const root = document.documentElement;
-    const lum = (css) => {
-      ctx.clearRect(0, 0, 1, 1);
-      ctx.fillStyle = css;
-      ctx.fillRect(0, 0, 1, 1);
-      const [r, g, b] = Array.from(ctx.getImageData(0, 0, 1, 1).data.slice(0, 3), (v) => {
-        const c = v / 255;
-        return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-      });
-      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    };
-    const ratio = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-    const pairs = [
-      ["accent", "bg", 3],
-      ["link", "bg", 4.5],
-      ["link", "bg-subtle", 4.5],
-      ["on-accent", "accent", 4.5],
-      ["accent-strong", "accent-soft", 4.5],
-    ];
-    const out = {};
-    for (const mode of ["light", "dim", "dark"]) {
-      root.className = mode === "light" ? "light" : mode === "dim" ? "dark dim" : "dark";
-      for (let hue = 0; hue < 360; hue += 10) {
-        root.style.setProperty("--hue-accent", String(hue));
-        const cs = getComputedStyle(root);
-        for (const [fg, bg, min] of pairs) {
-          const r = ratio(
-            lum(cs.getPropertyValue(`--color-${fg}`)),
-            lum(cs.getPropertyValue(`--color-${bg}`)),
-          );
-          const key = `${fg}/${bg} ${mode}`;
-          if (!out[key] || r < out[key].r) out[key] = { r, hue, min };
+  // the contrast of every palette at every hue, measured in Chrome on the built themes (test/contrast.mjs does the same with the
+  // engine's maths on the data): a pixel of each colour, WCAG ratios, the floors of test/contrast.mjs
+  const wheel = [...CUBES];
+  const worst = await read(
+    ({ ids, wheel, hues }) => {
+      const ctx = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+      const root = document.documentElement;
+      const lum = (css) => {
+        ctx.clearRect(0, 0, 1, 1);
+        ctx.fillStyle = css;
+        ctx.fillRect(0, 0, 1, 1);
+        const [r, g, b] = Array.from(ctx.getImageData(0, 0, 1, 1).data.slice(0, 3), (v) => {
+          const c = v / 255;
+          return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      };
+      const ratio = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+      const pairs = [
+        ...["bg", "bg-subtle", "bg-muted"].flatMap((bg) => [
+          ["text", bg, 7],
+          ["text-medium", bg, 4.5],
+        ]),
+        ["text-low", "bg", 4.5],
+        ["text-low", "bg-subtle", 4.5],
+        ["accent", "bg", 3],
+        ["accent", "bg-subtle", 3],
+        ["link", "bg", 4.5],
+        ["link", "bg-subtle", 4.5],
+        ["on-accent", "accent", 4.5],
+        ["accent-strong", "accent-soft", 4.5],
+      ];
+      const out = {};
+      let n = 0;
+      for (const id of ids) {
+        root.dataset.palette = id;
+        for (const mode of ["light", "dim", "dark"]) {
+          root.className = mode === "light" ? "light" : mode === "dim" ? "dark dim" : "dark";
+          for (let hue = 0; hue < (wheel.includes(id) ? hues : 1); hue++) {
+            root.dataset.hue = String(hue);
+            const cs = getComputedStyle(root);
+            for (const [fg, bg, min] of pairs) {
+              const r = ratio(
+                lum(cs.getPropertyValue(`--color-${fg}`)),
+                lum(cs.getPropertyValue(`--color-${bg}`)),
+              );
+              const key = `${id} ${fg}/${bg} ${mode}`;
+              n++;
+              if (!out[key] || r < out[key].r) out[key] = { r, hue, min };
+            }
+          }
         }
       }
-    }
-    return out;
-  });
-  for (const [key, { r, hue, min }] of Object.entries(worst))
-    assert.ok(r >= min - 0.1, `Chrome: ${key} is ${r.toFixed(2)} at hue ${hue}, under ${min}`);
+      return { out, n };
+    },
+    { ids: [...IDS], wheel, hues: HUES },
+  );
+  for (const [key, { r, hue, min }] of Object.entries(worst.out))
+    assert.ok(r >= min - 0.01, `Chrome: ${key} is ${r.toFixed(2)} at hue ${hue}, under ${min}`);
+  assert.ok(worst.n >= 1680, `${worst.n} pairs measured in Chrome`);
   await night.close();
   await dark.close();
 
@@ -530,7 +585,8 @@ try {
     // script can have set them, and the document is the static copy
     const stored = JSON.stringify({
       mode: "dim",
-      hue: 120,
+      palette: "flexoki",
+      hue: 4,
       text: "large",
       density: "compact",
       font: "serif",
@@ -552,10 +608,20 @@ try {
           cs("#prerender .prose", "fontSize"),
           cs("body", "fontFamily").slice(0, 7),
           cs("#prerender .prose > * + *", "marginTop"),
-          document.documentElement.style.getPropertyValue("--hue-accent"),
+          document.documentElement.dataset.palette,
+          document.documentElement.dataset.hue,
         ];
       }),
-      [true, "dark dim", "rgb(26, 31, 43)", "18px", "Georgia", "12px", "120"],
+      [
+        true,
+        "dark dim",
+        rgb(palettes.flexoki(0).dim.bg),
+        "18px",
+        "Georgia",
+        "12px",
+        "flexoki",
+        "4",
+      ],
     );
     await still.screenshot({ path: join(out, "built-prerender-settings.png") });
     await early.close();

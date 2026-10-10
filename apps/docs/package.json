@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@cssints/devtools": "workspace:*",
+    "@cssints/rybitten": "workspace:*",
     "@effect/platform-bun": "4.0.0",
     "@iconify-json/ph": "^1.2.2",
     "@oxc-parser/binding-wasm32-wasi": "0.149.0",
