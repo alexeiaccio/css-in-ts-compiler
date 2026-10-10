@@ -2,8 +2,10 @@
 // own), the counts. The model is apps/sky's: the same choices as the web card, drawn here.
 import type { AppBskyFeedDefs } from "@atcute/bluesky";
 import type { Facet } from "@atcute/bluesky-richtext-segmenter";
-import type { MouseEvent } from "@opentui/core";
-import { For, Match, Show, Switch } from "solid-js";
+import { onTheme, type TuiShape } from "@cssints/tui";
+import { attach, props, resolve, theme, use } from "@cssints/tui/opentui";
+import type { BoxRenderable, MouseEvent } from "@opentui/core";
+import { createEffect, createSignal, For, type JSX, Match, Show, Switch } from "solid-js";
 
 import type { Quote } from "../../sky/src/api.ts";
 import { postVerdict } from "../../sky/src/api.ts";
@@ -23,19 +25,26 @@ import * as s from "./styles.ts";
 
 type PostView = AppBskyFeedDefs.PostView;
 
+// A <span> is a text node, not a renderable, so `use()` cannot attach to it (cssints-5vnf): its props are resolved here
+// and follow the theme through a signal.
+const [current, setCurrent] = createSignal(theme());
+onTheme(setCurrent);
+export const span = (style: TuiShape) =>
+  props(resolve(style, {}, current()), (k) => k !== "backgroundColor");
+
 export function RichText(props: { text: string; facets?: Facet<Feature>[] }) {
   return (
-    <text style={s.body()}>
+    <text {...use(s.body)}>
       <For each={parts(props.text, props.facets)}>
         {(p) =>
           p.link ? (
-            <a href={p.link} style={s.link()}>
+            <a href={p.link} style={span(s.link)}>
               {p.text}
             </a>
           ) : p.mention || p.tag ? (
-            <span style={s.tag()}>{p.text}</span>
+            <span style={span(s.tag)}>{p.text}</span>
           ) : (
-            <span style={s.body()}>{p.text}</span>
+            <span style={span(s.body)}>{p.text}</span>
           )
         }
       </For>
@@ -68,14 +77,14 @@ const gone = {
 
 function QuoteBox(props: { quote: Quote }) {
   return (
-    <box style={s.quote()}>
+    <box {...use(s.quote)}>
       <Switch>
         <Match when={props.quote.kind === "post" && props.quote.post}>
           {(q) => (
             <>
-              <text style={s.body()}>
-                <span style={s.name()}>{q().author.displayName || q().author.handle}</span>
-                <span style={s.meta()}>
+              <text {...use(s.body)}>
+                <span style={span(s.name)}>{q().author.displayName || q().author.handle}</span>
+                <span style={span(s.meta)}>
                   {` @${q().author.handle} · ${ago(recordOf(q()).createdAt ?? q().indexedAt)}`}
                 </span>
               </text>
@@ -83,16 +92,16 @@ function QuoteBox(props: { quote: Quote }) {
                 {(text) => <RichText text={text()} facets={recordOf(q()).facets} />}
               </Show>
               <Show when={quoteMedia(q())}>
-                {(m) => <text style={s.placeholder()}>{mediaText(m())}</text>}
+                {(m) => <text {...use(s.muted)}>{mediaText(m())}</text>}
               </Show>
             </>
           )}
         </Match>
         <Match when={props.quote.kind === "hidden"}>
-          <text style={s.placeholder()}>{gone.hidden}</text>
+          <text {...use(s.muted)}>{gone.hidden}</text>
         </Match>
         <Match when={props.quote.kind === "gone" && props.quote.why}>
-          {(why) => <text style={s.placeholder()}>{gone[why()]}</text>}
+          {(why) => <text {...use(s.muted)}>{gone[why()]}</text>}
         </Match>
       </Switch>
     </box>
@@ -109,60 +118,81 @@ export interface CardProps {
   onOpen: () => void;
 }
 
-export function Post(props: CardProps) {
-  const h = s.hoverable();
-  const rec = () => recordOf(props.post);
-  const embed = () => embedParts(props.post);
-  const down = (e: MouseEvent) => {
-    if (e.button === 0) props.onOpen();
+// A row of a list: the selected one has the keyboard focus (the :focus of its style), indented by its depth; a row that
+// opens something has the hover and the pointer of s.card.
+function Row(props: {
+  id: string;
+  selected: boolean;
+  depth?: number;
+  onOpen?: () => void;
+  children: JSX.Element;
+}) {
+  const style = props.onOpen ? s.card : s.row;
+  const ref = (r: BoxRenderable) => {
+    attach(r, style);
+    // a focused box draws focusedBorderColor, not borderColor (cssints-pkpg)
+    createEffect(() => {
+      r.focusedBorderColor = resolve(style, { focus: true }, current()).borderColor!;
+    });
+    createEffect(() => (props.selected ? r.focus() : r.blur()));
   };
   return (
     <box
       id={props.id}
-      style={s.card({ selected: props.selected, hovered: h.hovered() }, props.depth)}
-      onMouseOver={h.over}
-      onMouseOut={h.out}
-      onMouseDown={down}
+      ref={ref}
+      focusable
+      marginLeft={Math.min(props.depth ?? 0, 6) * 2}
+      onMouseDown={(e: MouseEvent) => e.button === 0 && props.onOpen?.()}
     >
-      <Show when={props.reason}>{(r) => <text style={s.muted()}>{r()}</text>}</Show>
-      <text style={s.body()} wrapMode="none" truncate>
-        <span style={s.name()}>{props.post.author.displayName || props.post.author.handle}</span>
-        <span style={s.meta()}>
+      {props.children}
+    </box>
+  );
+}
+
+export function Post(props: CardProps) {
+  const rec = () => recordOf(props.post);
+  const embed = () => embedParts(props.post);
+  return (
+    <Row id={props.id} selected={props.selected} depth={props.depth} onOpen={props.onOpen}>
+      <Show when={props.reason}>{(r) => <text {...use(s.muted)}>{r()}</text>}</Show>
+      <text {...use(s.body)} wrapMode="none" truncate>
+        <span style={span(s.name)}>
+          {props.post.author.displayName || props.post.author.handle}
+        </span>
+        <span style={span(s.meta)}>
           {` @${props.post.author.handle}`}
           {props.focus ? "" : ` · ${ago(rec().createdAt ?? props.post.indexedAt)}`}
         </span>
       </text>
       <Show
         when={postVerdict(props.post) !== "warn"}
-        fallback={<text style={s.placeholder()}>[content warning]</text>}
+        fallback={<text {...use(s.muted)}>[content warning]</text>}
       >
         <Show when={rec().text}>{(text) => <RichText text={text()} facets={rec().facets} />}</Show>
-        <Show when={embed().media}>
-          {(m) => <text style={s.placeholder()}>{mediaText(m())}</text>}
-        </Show>
+        <Show when={embed().media}>{(m) => <text {...use(s.muted)}>{mediaText(m())}</text>}</Show>
         <Show when={embed().quote}>{(q) => <QuoteBox quote={q()} />}</Show>
       </Show>
       <Show
         when={props.focus}
         fallback={
-          <text style={s.muted()}>
+          <text {...use(s.muted)}>
             {`↩ ${count(props.post.replyCount) || 0}   ⟲ ${count(props.post.repostCount) || 0}   ♥ ${count(props.post.likeCount) || 0}`}
           </text>
         }
       >
-        <text style={s.muted()}>{fullTime(rec().createdAt ?? props.post.indexedAt)}</text>
-        <text style={s.muted()}>
+        <text {...use(s.muted)}>{fullTime(rec().createdAt ?? props.post.indexedAt)}</text>
+        <text {...use(s.muted)}>
           <For each={stats(props.post)}>
             {(x) => (
               <>
-                <span style={s.num()}>{x.n}</span>
-                <span style={s.meta()}>{` ${x.label}   `}</span>
+                <span style={span(s.name)}>{x.n}</span>
+                <span style={span(s.meta)}>{` ${x.label}   `}</span>
               </>
             )}
           </For>
         </text>
       </Show>
-    </box>
+    </Row>
   );
 }
 
@@ -174,19 +204,9 @@ export function Note(props: {
   depth?: number;
   onOpen?: () => void;
 }) {
-  const h = s.hoverable();
   return (
-    <box
-      id={props.id}
-      style={s.card(
-        { selected: props.selected, hovered: !!props.onOpen && h.hovered() },
-        props.depth,
-      )}
-      onMouseOver={props.onOpen && h.over}
-      onMouseOut={props.onOpen && h.out}
-      onMouseDown={(e: MouseEvent) => e.button === 0 && props.onOpen?.()}
-    >
-      <text style={s.placeholder()}>{props.text}</text>
-    </box>
+    <Row id={props.id} selected={props.selected} depth={props.depth} onOpen={props.onOpen}>
+      <text {...use(s.muted)}>{props.text}</text>
+    </Row>
   );
 }

@@ -2,6 +2,7 @@
 // the arrows move the selection, enter opens it, tab and shift-tab (or 1-3) switch the feed, t switches the theme, q quits.
 // The mouse: a click opens a row, the wheel scrolls, the row under the pointer is highlighted.
 import type { AppBskyFeedDefs } from "@atcute/bluesky";
+import { setTheme, theme, use } from "@cssints/tui/opentui";
 import type { KeyEvent, MouseEvent, ScrollBoxRenderable } from "@opentui/core";
 import { useKeyboard, useRenderer } from "@opentui/solid";
 import { createEffect, createResource, createSignal, For, Match, Show, Switch } from "solid-js";
@@ -12,7 +13,7 @@ import type { ThreadNode } from "../../sky/src/api.ts";
 import { FEEDS } from "../../sky/src/home/feeds.ts";
 import { branches, goneText, moreLabel } from "../../sky/src/thread/model.ts";
 import type { Branch } from "../../sky/src/thread/model.ts";
-import { Note, Post } from "./Post.tsx";
+import { Note, Post, span } from "./Post.tsx";
 import * as s from "./styles.ts";
 
 type PostView = AppBskyFeedDefs.PostView;
@@ -102,17 +103,24 @@ function createHome() {
 }
 type Home = ReturnType<typeof createHome>;
 
+// The active tab and the others are two styles: a renderable keeps the style it was attached with, so the tab is made
+// again when it turns active.
 function Tab(props: { name: string; index: number; active: boolean; onSelect: () => void }) {
-  const h = s.hoverable();
+  const label = () => ` ${props.index + 1} ${props.name} `;
+  const down = (e: MouseEvent) => e.button === 0 && props.onSelect();
   return (
-    <text
-      style={s.tab({ active: props.active, hovered: h.hovered(), selected: false })}
-      onMouseOver={h.over}
-      onMouseOut={h.out}
-      onMouseDown={(e: MouseEvent) => e.button === 0 && props.onSelect()}
+    <Show
+      when={props.active}
+      fallback={
+        <text {...use(s.tab)} onMouseDown={down}>
+          {label()}
+        </text>
+      }
     >
-      {` ${props.index + 1} ${props.name} `}
-    </text>
+      <text {...use(s.tabActive)} onMouseDown={down}>
+        {label()}
+      </text>
+    </Show>
   );
 }
 
@@ -135,9 +143,9 @@ function HomeScreen(props: { home: Home; open: (t: Target) => void }) {
   if (!feed().items.length) void props.home.load(active());
   return (
     <>
-      <box style={s.bar()}>
+      <box {...use(s.bar)}>
         <text>
-          <span style={s.title()}>sky</span>
+          <span style={span(s.title)}>sky</span>
         </text>
         <For each={FEEDS}>
           {(f, i) => (
@@ -145,7 +153,7 @@ function HomeScreen(props: { home: Home; open: (t: Target) => void }) {
           )}
         </For>
       </box>
-      <scrollbox style={s.list()} renderBefore={keepInView}>
+      <scrollbox {...use(s.list)} renderBefore={keepInView}>
         <Show when={feed().error}>
           {(e) => <Note id="error" text={`Could not load the feed: ${e()}`} selected={false} />}
         </Show>
@@ -236,13 +244,13 @@ function ThreadScreen(props: { target: Target; open: (t: Target) => void; back: 
   const keepInView = follow(() => `row-${sel()}`);
   return (
     <>
-      <box style={s.bar()}>
+      <box {...use(s.bar)}>
         <text>
-          <span style={s.title()}>sky</span>
-          <span style={s.meta()}> · Thread (esc: back)</span>
+          <span style={span(s.title)}>sky</span>
+          <span style={span(s.meta)}> · Thread (esc: back)</span>
         </text>
       </box>
-      <scrollbox style={s.list()} renderBefore={keepInView}>
+      <scrollbox {...use(s.list)} renderBefore={keepInView}>
         <Switch>
           <Match when={thread.loading}>
             <Note id="loading" text="Loading…" selected={false} />
@@ -294,14 +302,14 @@ export function App() {
   const back = () => setStack((x) => x.slice(0, -1));
   useKeyboard((k) => {
     if (k.name === "q") renderer.destroy();
-    if (k.name === "t") s.toggleMode();
+    if (k.name === "t") setTheme(theme() === "light" ? "" : "light");
   });
   return (
-    <box style={s.screen()}>
+    <box {...use(s.screen)}>
       <Show when={stack().at(-1)} keyed fallback={<HomeScreen home={home} open={open} />}>
         {(t) => <ThreadScreen target={t} open={open} back={back} />}
       </Show>
-      <text style={s.footer()} wrapMode="none" truncate>
+      <text {...use(s.footer)} wrapMode="none" truncate>
         j/k move · enter open · tab feed · esc back · t theme · q quit
       </text>
     </box>
