@@ -33,7 +33,11 @@ await server.close();
 assert.match(dev, /padding:3px/, dev);
 assert.match(dev, /color:(?:rebeccapurple|#639)\b/, dev);
 
-const out = await build({ ...config, plugins: cssints(), build: { write: false, minify: false } });
+const out = await build({
+  ...config,
+  plugins: cssints(),
+  build: { write: false, minify: false, rollupOptions: { input: `${root}/main.ts` } },
+});
 const files = [out].flat()[0].output;
 const sheet = files.find((f) => f.fileName.endsWith(".css"))?.source;
 assert.match(String(sheet), /padding:3px/, String(sheet));
