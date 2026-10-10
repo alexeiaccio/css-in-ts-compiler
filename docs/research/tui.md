@@ -194,6 +194,116 @@ pointer ST`) when the innermost hovered element with a `cursor` changes, and `de
 What does not map is left out at run time, not rejected at build time: the build cannot tell which adapter a style
 goes to. Transitions are not a `cssints/tui` member; bomb.sh's `transition` is the last argument of `ui.open`.
 
+## The system theme (cssints-q1j3, 2026-10-10)
+
+A theme computed at run time from the terminal's own colours, after
+[Pi's system theme](https://earendil.com/posts/system-theme/): the app keeps its tokens and its static themes, and a
+`system` theme gives each colour token a value from the terminal's palette, placed by contrast rules.
+
+### What the renderers report
+
+- **OpenTUI** (0.5.17) does the queries itself. `renderer.getPalette({ size: 16 })` writes OSC 4 for the 16 ANSI
+  colours and OSC 10/11 (and 12 to 19), and resolves with `TerminalColors` (`palette`, `defaultForeground`,
+  `defaultBackground`, each `#rrggbb` or `null`). It first checks with OSC `4;0;?` and gives up after 300 ms, and
+  returns `null`s at once when stdin or stdout is not a TTY. The native renderer turns on mode 2031 and queries OSC
+  10/11 at start: `renderer.themeMode` is `"dark"`, `"light"` (from the OSC 11 background) or `null`. On a
+  `CSI ? 997 ; 1|2 n` notification it queries OSC 10/11 again, clears its palette cache and emits `theme_mode` when
+  the mode changed. It consumes those sequences: an app never sees them, and it does not send `CSI ? 996 n`.
+  A colour prop takes an `RGBA`, and `RGBA.fromIndex(n)` and `RGBA.defaultForeground()`/`defaultBackground()`
+  are drawn by the terminal (SGR 3x/9x/38;5 and 39/49), so an indexed colour can be passed.
+- **@bomb.sh/tty** (0.9) has no query and no palette. `createInput().scan()` reports keys, the mouse, resize and
+  cursor position reports, not OSC replies or `CSI ? 997 n`. A colour is a packed `rgba()` number: no indexed
+  colour, no "terminal default". So the adapter writes the queries itself and takes the replies out of the bytes of
+  stdin before `input.scan()` sees them.
+
+### The API
+
+Roles are written beside the tokens, at run time (a module the app imports, not a cssints module): a role is a
+**hue source** (an ANSI slot, or the terminal's `fg`/`bg`) and **contrast rules** against the tokens it sits on.
+
+```ts
+import { createSystemTheme } from "@cssints/tui/system";
+
+import { c } from "./styles.ts"; // createTokens of cssints/tui
+
+export const system = createSystemTheme(
+  c,
+  {
+    color: {
+      bg: { surface: true }, // the terminal's background
+      card: { surface: true, on: [c.color.bg], contrast: 1.1 }, // a panel: 1.1:1 from bg
+      text: { hue: "fg", on: [c.color.bg, c.color.card], contrast: 7 },
+      accent: { hue: "blue", on: [c.color.bg, c.color.card], contrast: 3 },
+      error: { hue: "red", on: [c.color.bg, c.color.card], contrast: 4.5 },
+    },
+  },
+  { themes: { light: "light" } }, // a token without a role: its value in this static theme
+);
+```
+
+```ts
+// OpenTUI
+const renderer = await createCliRenderer(options);
+await followSystemTheme(renderer, system); // queries, waits at most 100 ms, sets "system"
+
+// @bomb.sh/tty
+const follow = followSystemTheme(system, { write: (s) => process.stdout.write(s) });
+process.stdin.on("data", (b) => handle(input.scan(follow.feed(b)).events));
+await follow.ready;
+```
+
+- `createSystemTheme(tokens, roles, options?)` checks the roles (an `on` that is no role, a cycle) and returns a
+  theme; `theme.solve(report)` gives the values of every role for a terminal report (`{ fg?, bg?, ansi?, scheme? }`)
+  and is what the tests call. `followSystemTheme` (in `@cssints/tui/opentui` and `@cssints/tui/bomb`) feeds it.
+- **A role.** `hue`: `"fg"`, `"bg"` or an ANSI name (`black` … `white`, `brightBlack` … `brightWhite`); the default is
+  `"fg"`, and `"bg"` for a surface. `on`: the tokens it sits on. `contrast`: the WCAG 2 ratio. A text role is moved
+  only when its source misses a rule, and then to the lightness of the strictest one; a `surface` is placed at
+  exactly `contrast` from its first `on` (toward the foreground), or is the terminal's background without one. `ansi`:
+  the colour index (or `"default"`) to draw when the terminal reports nothing.
+- `options.hues`: the app's own colour per slot, used for a slot the terminal did not report (default: a neutral
+  xterm-like palette). `options.themes`: the static theme whose values the tokens without a role keep, per
+  appearance (default `""`). `options.name`: `"system"`.
+
+### The solver
+
+For each role, in the order of `on`: the source colour in OKHSL and OKLCH. If the source meets every rule it is kept.
+Otherwise the target luminance is the reversed WCAG ratio, `(Y + 0.05) · k − 0.05` above or `(Y + 0.05) / k − 0.05`
+below each surface, the strictest one taken, on the side of the source (the other side when that one is out of
+reach). OKHSL lightness is bisected to that luminance at the source's hue and saturation, the saturation scaled by
+a bell (`√(4l(1 − l))`, relative to the source's) so near-black panels get a hint of colour, and the OKLCH chroma
+capped at the source's: a pastel moved darker never becomes more vivid (Pi's Catppuccin Frappé bug). The hex is
+checked again after rounding. The contrast maths is culori's `wcagLuminance` and the ratio of `check.contrast`.
+
+### Fallbacks and appearance
+
+| The terminal reports      | The theme                                                                                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| bg (and fg) and ANSI 0–15 | every role from its slot, placed for the real background                                                                                               |
+| bg only                   | the app's hues (`options.hues`), placed for the real background                                                                                        |
+| nothing                   | OpenTUI: ANSI indices and the terminal's default colours, drawn by the terminal. bomb.sh: the static theme of the appearance (no indexed colour there) |
+
+- **Light or dark**: from the reported background (darker than the foreground, or luminance under 0.18 without
+  one); else the terminal's colour-scheme report (`CSI ? 996 n` → `CSI ? 997 ; 1 n` dark, `2` light; bomb.sh only,
+  OpenTUI's `themeMode` stands for it there); then `COLORFGBG` (its last field: 0–6 and 8 dark); then dark.
+- **Timing**: the queries go out at start; `followSystemTheme` resolves after the replies or 100 ms, whichever is
+  first, with the fallback in place; a late reply rebuilds the theme when it comes.
+- **Appearance changes**: mode 2031 (`CSI ? 2031 h`) asks for `CSI ? 997 ; n n` on a palette change; then the
+  queries go out again and the theme is rebuilt. OpenTUI does this itself (`theme_mode`), bomb.sh's follower on the
+  notification in its bytes.
+
+### The theme table (decided)
+
+A site keeps its default values and its static `themes` overlays (build-time themes need no run-time registration
+and no import order), and now also `vars`: the token of each colour prop set to a token, per state
+(`vars: { backgroundColor: "--color-bg", ":hover": { backgroundColor: "--color-hover" } }`). The run-time table
+is one shared map in `@cssints/tui`: `defineTheme(name, values, base)` registers a theme of token values over the
+static theme `base`, and `resolve` lays it over the site's props for every prop that has a token. `setTheme` and
+`onTheme` are unchanged; `defineTheme` of the theme in use is a theme change. Weighed and left: moving the static
+themes into the table too (the theme module's sites would have to register at run time, before any style resolves,
+and every site would lose its self-contained values); a token value `css.system(...)` inside `createTokens` (the
+rules would be build-time code, but the palette is only known at run time). A prop with a colour that is not a lone
+token (`color-mix()` over one) keeps its static value.
+
 ## Packages
 
 - **`cssints/tui`** (packages/cssints/src/tui.ts and tui-types.ts): the build-time members and their types. Plain
