@@ -42,6 +42,11 @@ assert.deepEqual(card.button, {
       ":hover": { backgroundColor: "#f1f2f6", borderColor: "#1e66f5" },
     },
   },
+  // the tokens of the colour props, for a theme of the run-time table (defineTheme)
+  vars: {
+    backgroundColor: "color-bg",
+    ":hover": { backgroundColor: "color-hover", borderColor: "color-accent" },
+  },
 });
 assert.deepEqual(card.label, {
   color: "#cdd6f4",
@@ -50,6 +55,7 @@ assert.deepEqual(card.label, {
   underline: true,
   strikethrough: false,
   themes: { light: { color: "#4c4f69" } },
+  vars: { color: "color-fg" },
 });
 assert.deepEqual(card.field, {
   caretShape: "bar",

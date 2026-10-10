@@ -22,6 +22,7 @@ import type { TuiProps, TuiShape } from "cssints/tui";
 import { resolve, type TuiState } from "./index.ts";
 
 export { onTheme, resolve, setTheme, theme, type TuiState } from "./index.ts";
+export { followSystemTheme, type SystemFollower } from "./bomb-system.ts";
 
 /** The options of `open(id, options)`. */
 export type OpenProps = Omit<OpenElement, "directive" | "id">;

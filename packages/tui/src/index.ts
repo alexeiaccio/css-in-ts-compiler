@@ -1,5 +1,6 @@
 // The renderer-neutral runtime of cssints/tui styles (docs/research/tui.md): the props of a style in a state and a theme,
-// and the theme in use. An adapter (./opentui.ts) sets what `resolve` gives on its renderables. Plain, no imports.
+// the theme in use, and the run-time theme table (`defineTheme`, which the system theme fills: ./system.ts). An adapter
+// (./opentui.ts, ./bomb.ts) sets what `resolve` gives on its renderables. Plain, no imports.
 import type { TuiLayer, TuiProps, TuiShape } from "cssints/tui";
 
 export type { TuiProps, TuiShape } from "cssints/tui";
@@ -16,11 +17,16 @@ const STATES = [":hover", ":focus", ":active"] as const;
 const own = (out: Record<string, unknown>, layer: TuiLayer | undefined) => {
   if (layer)
     for (const [k, v] of Object.entries(layer))
-      if (k !== "themes" && !k.startsWith(":")) out[k] = v;
+      if (k !== "themes" && k !== "vars" && !k.startsWith(":")) out[k] = v;
 };
+
+/** The token of each colour prop set to one, per state, as a site of cssints/tui holds it. */
+type Vars = Record<string, string | Record<string, string> | undefined>;
+type Shape = TuiShape & { vars?: Vars };
 
 let current = "";
 const listeners = new Set<(name: string) => void>();
+const table = new Map<string, { values: Record<string, string>; base: string }>();
 
 /**
  * The theme in use.
@@ -38,6 +44,20 @@ export const setTheme = (name: string): void => {
   if (name === current) return;
   current = name;
   for (const l of listeners) l(name);
+};
+
+/**
+ * Registers (or replaces) a theme of the run-time table: the value of each token, by name (`color-bg` for `var(--color-bg)`), laid over
+ * the static theme `base` (`""`: the default values) for every prop a site set to that token. A token it leaves out
+ * keeps the value of `base`. When `name` is the theme in use, every attached renderable is resolved again.
+ *
+ * @param {string} name the theme, for `setTheme(name)`
+ * @param {Record<string, string>} values a colour (`#rrggbb`, `ansi:N` or `default`) per token name
+ * @param {string} base a name of `createGlobalTheme(tokens, name, ...)`, `""` for the default values
+ */
+export const defineTheme = (name: string, values: Record<string, string>, base = ""): void => {
+  table.set(name, { values, base });
+  if (name === current) for (const l of listeners) l(name);
 };
 
 /**
@@ -61,14 +81,24 @@ export const onTheme = (fn: (name: string) => void): (() => void) => {
  * @returns {TuiProps} the props, renderer-neutral
  */
 export const resolve = (style: TuiShape, state: TuiState = {}, name = current): TuiProps => {
-  const themed = name ? style.themes?.[name] : undefined;
+  const run = table.get(name);
+  const base = run ? run.base : name;
+  const themed = base ? style.themes?.[base] : undefined;
+  const vars = (style as Shape).vars;
   const out: Record<string, unknown> = {};
+  const tokens = (layer: Vars | undefined) => {
+    if (run && layer)
+      for (const [k, v] of Object.entries(layer))
+        if (typeof v === "string" && Object.hasOwn(run.values, v)) out[k] = run.values[v];
+  };
   own(out, style);
   own(out, themed);
+  tokens(vars);
   for (const s of STATES)
     if (state[s === ":hover" ? "hover" : s === ":focus" ? "focus" : "active"]) {
       own(out, style[s]);
       own(out, themed?.[s]);
+      tokens(vars?.[s]);
     }
   return out;
 };

@@ -40,6 +40,7 @@ export const button = {
   ":hover": { borderColor: "#89b4fa" },
   ":active": { border: true, borderStyle: "double" },
   themes: { light: { backgroundColor: "#eff1f5", ":hover": { borderColor: "#1e66f5" } } },
+  vars: { backgroundColor: "color-bg", ":hover": { borderColor: "color-accent" } }, // for a run-time theme
 };
 ```
 
@@ -71,6 +72,58 @@ setTheme("light"); // every attached renderable
   no states: put `:hover` on the `<text>` around it.
 - `resolve(style, state, theme)` of `@cssints/tui` is the renderer-neutral part: the props of a style in a state and a
   theme, for another adapter.
+
+## The system theme
+
+A theme computed at run time from the terminal's own colours: each colour token is a role, a hue source (an ANSI
+colour, or the terminal's `fg`/`bg`) and contrast rules against the tokens it sits on.
+
+```ts
+// theme.ts: run time, not a cssints module
+import { createSystemTheme } from "@cssints/tui/system";
+
+import { t } from "./styles.ts";
+
+export const system = createSystemTheme(
+  t,
+  {
+    color: {
+      bg: { surface: true }, // the terminal's background
+      card: { surface: true, on: [t.color.bg], contrast: 1.1 }, // a panel 1.1:1 from it
+      text: { hue: "fg", on: [t.color.bg, t.color.card], contrast: 7 },
+      accent: { hue: "blue", on: [t.color.bg, t.color.card], contrast: 3 },
+    },
+  },
+  { hues: { blue: "#89b4fa" }, themes: { light: "light" } },
+);
+```
+
+```ts
+// OpenTUI
+import { followSystemTheme } from "@cssints/tui/opentui";
+
+const renderer = await createCliRenderer();
+await followSystemTheme(renderer, system); // the palette, or 100 ms; sets the theme "system"
+```
+
+- **A role.** `hue` (default `fg`, `bg` for a surface), `on` (tokens with a role), `contrast` (WCAG 2). A text role
+  keeps its source colour when it meets every rule, else takes the lightness of the strictest one: the reversed
+  WCAG ratio, bisected in OKHSL at the source's hue and saturation (the saturation falls off toward black and white),
+  the OKLCH chroma capped at the source's, so a colour can move but never get more vivid. A `surface` sits at exactly
+  `contrast` from its first `on`, toward the foreground. `ansi`: the index (or `"default"`) to draw when the terminal
+  reports nothing.
+- **What the terminal reports.** Its background, foreground and ANSI colours: every role from its colour, placed for
+  the real background. Its background only: the app's hues (`options.hues`). Nothing: on OpenTUI, ANSI indices and the
+  terminal's default colours (`ansi:4`, `default`, which the adapter turns into `RGBA.fromIndex` and
+  `RGBA.defaultForeground`); on bomb.sh (no indexed colour) the static theme of the appearance.
+- **Light or dark:** the background (darker than the foreground), else the colour-scheme report (`CSI ? 997 ; 1|2 n`,
+  or OpenTUI's `themeMode`), else `COLORFGBG`, else dark. `options.themes` names the static theme under each: a token
+  without a role keeps its value.
+- **Changes.** OpenTUI turns on mode 2031 and emits `theme_mode` and `palette`; the follower rebuilds on both. On
+  bomb.sh the follower writes `CSI ? 2031 h` and queries again on a notification; `stop()` turns it off.
+- `theme.solve(report)` gives the values of a report (`{ fg, bg, ansi, scheme }`) without applying them;
+  `defineTheme(name, values, base)` of `@cssints/tui` is the run-time table it fills (a colour per token name,
+  `color-bg` for `var(--color-bg)`), for a theme of your own.
 
 ## @bomb.sh/tty
 
@@ -117,6 +170,15 @@ process.stdout.write(ui.reset()); // on exit: the default pointer and caret
   They are left out at run time; the build cannot tell, since the same style may go to OpenTUI.
 - Transitions are not a cssints/tui member: give bomb.sh's `transition` as the last argument of `ui.open` and render
   again while `animating`.
+- The system theme: `followSystemTheme(system, { write })` writes the queries (OSC 10, 11, 4, `CSI ? 996 n`, mode
+  2031); pass each chunk of stdin through `follow.feed(bytes)`, which takes the replies out and returns the rest for
+  `input.scan()` (bomb.sh's parser does not report OSC replies). `await follow.ready`: the replies or 100 ms.
+
+```ts
+const follow = followSystemTheme(system, { write: (s) => process.stdout.write(s) });
+process.stdin.on("data", (bytes) => dispatch(input.scan(follow.feed(bytes)).events));
+await follow.ready;
+```
 
 ## Limits
 
@@ -130,7 +192,9 @@ The adapter is for [OpenTUI](https://opentui.com) (MIT). No code of it is copied
 ## Tests
 
 ```bash
-bun run test        # node test/tui.mjs (the plugin: dev transform, SSR build, errors), bun test/render.ts (OpenTUI's test renderer),
+bun run test        # node test/system.ts (the solver on Gruvbox dark, Catppuccin Latte and Nord, the fallbacks, the replies
+                    # as bytes, the bomb.sh follower), node test/tui.mjs (the plugin: dev transform, SSR build, errors),
+                    # bun test/render.ts (OpenTUI's test renderer; the system theme on a fake terminal that answers OSC 4/10/11),
                     # node test/bomb.ts (bomb.sh's renderer at 30x8, the cells read back from its output)
 bun run example     # examples/bomb.ts: a list with hover, press and click, `t` swaps the theme, `q` quits
 bun run typecheck   # src and test/types/tui.ts (what the types reject)

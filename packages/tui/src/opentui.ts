@@ -1,11 +1,12 @@
 // The OpenTUI adapter of cssints/tui styles (docs/research/tui.md): sets the props of a style on a renderable and keeps
 // them in step with its states (`over`/`out`, `down`/`up`, `focused`/`blurred`), the mouse pointer and the theme.
-import type { MouseEvent, Renderable, TextNodeRenderable } from "@opentui/core";
+import { type MouseEvent, type Renderable, type TextNodeRenderable, RGBA } from "@opentui/core";
 import type { TuiProps, TuiShape } from "cssints/tui";
 
 import { onTheme, resolve, type TuiState } from "./index.ts";
 
 export { resolve, setTheme, theme, type TuiState } from "./index.ts";
+export { followSystemTheme, reportOf } from "./opentui-system.ts";
 
 // TextAttributes of @opentui/core
 const BITS = { bold: 1, dim: 2, italic: 4, underline: 8, strikethrough: 128 } as const;
@@ -18,6 +19,15 @@ const FOCUSED = [
   ["backgroundColor", "focusedBackgroundColor"],
   ["textColor", "focusedTextColor"],
 ] as const;
+// A colour of a run-time theme the terminal draws (the system theme's fallback): an ANSI index, or its default colour.
+const drawn = (v: unknown, bg: boolean) =>
+  v === "default"
+    ? bg
+      ? RGBA.defaultBackground()
+      : RGBA.defaultForeground()
+    : typeof v === "string" && v.startsWith("ansi:")
+      ? RGBA.fromIndex(Number(v.slice(5)))
+      : v;
 
 /**
  * The OpenTUI props of a style (`has` tells which props the renderable has: a box takes `backgroundColor`, a text `bg`):
@@ -36,9 +46,12 @@ export const props = (
   let bits: number | undefined;
   for (const [k, v] of Object.entries(p)) {
     if (Object.hasOwn(BITS, k)) bits = (bits ?? 0) | (v ? BITS[k as keyof typeof BITS] : 0);
-    else if (k === "color") out[has("fg") || !has("textColor") ? "fg" : "textColor"] = v;
-    else if (k === "backgroundColor") out[has("backgroundColor") ? "backgroundColor" : "bg"] = v;
-    else if (k === "caretColor") out.cursorColor = v;
+    else if (k === "color")
+      out[has("fg") || !has("textColor") ? "fg" : "textColor"] = drawn(v, false);
+    else if (k === "backgroundColor")
+      out[has("backgroundColor") ? "backgroundColor" : "bg"] = drawn(v, true);
+    else if (k === "caretColor") out.cursorColor = drawn(v, false);
+    else if (k === "borderColor") out.borderColor = drawn(v, false);
     else if (k !== "cursor" && k !== "caretShape" && k !== "caretAnimation") out[k] = v;
   }
   if (bits !== undefined) out.attributes = bits;

@@ -1,7 +1,10 @@
 // The OpenTUI adapter on OpenTUI's test renderer (Bun): the built styles of test/tui.mjs (out/card.mjs) on a box and a
 // text, then a simulated mouse over, press, out, a theme switch and focus, read back from the renderables, the frame and
-// the mouse pointer. Run: bun test/render.ts (after node test/tui.mjs)
+// the mouse pointer; then the system theme on a fake terminal. Run: bun test/render.ts (after node test/tui.mjs)
 import assert from "node:assert/strict";
+import { once } from "node:events";
+import { Readable } from "node:stream";
+import { setTimeout as sleep } from "node:timers/promises";
 
 import {
   BoxRenderable,
@@ -14,7 +17,8 @@ import {
 import { createTestRenderer } from "@opentui/core/testing";
 
 import type { TuiShape } from "../src/index.ts";
-import { attach, setTheme, use } from "../src/opentui.ts";
+import { attach, followSystemTheme, props, reportOf, setTheme, use } from "../src/opentui.ts";
+import { contrast, createSystemTheme } from "../src/system.ts";
 
 const built = "./out/card.mjs"; // written by test/tui.mjs
 const styles = (await import(built)) as Record<"button" | "label" | "field" | "row", TuiShape>;
@@ -156,4 +160,95 @@ try {
   console.log("render ok");
 } finally {
   renderer.destroy();
+}
+
+// ---- the system theme: a renderer on a fake terminal that answers OSC 4, 10 and 11, and a change to a light palette
+const stdin = Object.assign(new Readable({ read() {} }), { isTTY: true, setRawMode: () => {} });
+const sys = await createTestRenderer({ width: 30, height: 4, stdin: stdin as never });
+let colours = {
+  fg: "#ebdbb2",
+  bg: "#282828",
+  ansi: "#282828 #cc241d #98971a #d79921 #458588 #b16286 #689d6a #a89984 #928374 #fb4934 #b8bb26 #fabd2f #83a598 #d3869b #8ec07c #ebdbb2".split(
+    " ",
+  ),
+};
+const answer = (n: string) => {
+  const c = n === "10" ? colours.fg : n === "11" ? colours.bg : colours.ansi[Number(n.slice(2))];
+  return c ? `\x1b]${n};rgb:${c.slice(1, 3)}/${c.slice(3, 5)}/${c.slice(5, 7)}\x07` : "";
+};
+const reply = (text: string) => {
+  let out = "";
+  // oxlint-disable-next-line no-control-regex
+  for (const [, n] of text.matchAll(/\x1b\](10|11|4;\d+);\?/g)) out += answer(n!);
+  if (out) setTimeout(() => stdin.emit("data", Buffer.from(out)), 1);
+};
+const host = sys.renderer as unknown as {
+  writeOut: (chunk: unknown, ...rest: unknown[]) => boolean;
+};
+const writeOut = host.writeOut.bind(sys.renderer);
+host.writeOut = (chunk, ...rest) => {
+  reply(String(chunk));
+  return writeOut(chunk, ...rest);
+};
+try {
+  const t = {
+    color: { bg: "var(--color-bg)", text: "var(--color-text)", error: "var(--color-error)" },
+  };
+  const panels = [t.color.bg];
+  const theme = createSystemTheme(t, {
+    color: {
+      bg: { surface: true },
+      text: { hue: "fg", on: panels, contrast: 7 },
+      error: { hue: "red", on: panels, contrast: 4.5 },
+    },
+  });
+  const style = {
+    color: "#ffffff",
+    backgroundColor: "#000000",
+    vars: { color: "color-error", backgroundColor: "color-bg" },
+  } as TuiShape;
+  const text = attach(new TextRenderable(sys.renderer, { content: "error" }), style);
+  sys.renderer.root.add(text);
+  // nothing reported yet: the terminal's own colours, by index
+  const onMode = once(sys.renderer, "theme_mode");
+  const stop = await followSystemTheme(sys.renderer, theme, { wait: 5000 });
+  assert.equal(theme.name, "system");
+  const red = theme.solve({ ...colours }).values["color-error"]!;
+  assert.equal(hex(text.fg), red, "the terminal's red, made readable on its background");
+  assert.equal(hex(text.bg), "#282828", "the terminal's background");
+  assert.ok(contrast(red, "#282828") >= 4.5);
+  assert.deepEqual(await onMode, ["dark"]);
+  // the terminal turns light: a 2031 notification, then OpenTUI's own OSC 10/11 query, answered here
+  colours = {
+    fg: "#4c4f69",
+    bg: "#eff1f5",
+    ansi: "#5c5f77 #d20f39 #40a02b #df8e1d #1e66f5 #ea76cb #179299 #acb0be #6c6f85 #d20f39 #40a02b #df8e1d #1e66f5 #ea76cb #179299 #bcc0cc".split(
+      " ",
+    ),
+  };
+  const light = once(sys.renderer, "palette");
+  stdin.emit("data", Buffer.from("\x1b[?997;2n"));
+  await sleep(20);
+  stdin.emit("data", Buffer.from(answer("10") + answer("11")));
+  await light;
+  await sys.renderOnce();
+  assert.equal(hex(text.bg), "#eff1f5", "rebuilt for the light palette");
+  assert.equal(hex(text.fg), theme.solve({ ...colours }).values["color-error"]);
+  stop();
+  // the fallback: ANSI indices and the default colours, drawn by the terminal
+  const drawn = props({ color: "ansi:1", backgroundColor: "default", borderColor: "default" });
+  assert.equal((drawn.fg as RGBA).intent, "indexed");
+  assert.equal((drawn.fg as RGBA).slot, 1);
+  assert.equal((drawn.backgroundColor as RGBA).intent, "default");
+  assert.equal((drawn.borderColor as RGBA).intent, "default");
+  assert.deepEqual(reportOf(undefined, "light"), {
+    fg: undefined,
+    bg: undefined,
+    ansi: [],
+    scheme: "light",
+  });
+  setTheme("");
+  console.log("system theme on OpenTUI ok");
+} finally {
+  sys.renderer.destroy();
 }

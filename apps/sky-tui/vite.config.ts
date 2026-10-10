@@ -20,6 +20,7 @@ export default defineConfig({
       { find: /^solid-js\/store$/, replacement: "solid-js/store/dist/store.js" },
       { find: /^@cssints\/tui$/, replacement: tui("index.ts") },
       { find: /^@cssints\/tui\/opentui$/, replacement: tui("opentui.ts") },
+      { find: /^@cssints\/tui\/system$/, replacement: tui("system.ts") },
     ],
   },
   ssr: { noExternal: true, external: ["@opentui/core"] },
