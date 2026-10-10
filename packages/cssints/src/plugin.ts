@@ -214,7 +214,7 @@ export default function cssints({
   inner?: boolean;
   /**
    * Files the plugin leaves alone, in Vite's filter style (`createFilter`: a picomatch glob, a RegExp or an array of them;
-   * a relative glob is read from the Vite root). Today's rule stays: a file outside node_modules that mentions "cssints" is
+   * a relative glob is read from the working directory). Today's rule stays: a file outside node_modules that mentions "cssints" is
    * a site module, so a package of plugins or the engine's own sources that a project bundles as code is excluded here.
    */
   exclude?: string | RegExp | ReadonlyArray<string | RegExp>;
@@ -230,12 +230,13 @@ export default function cssints({
    */
   opencode?: boolean | OpenCodeOptions;
 } = {}): Plugin[] {
+  // an empty list would match everything as `include`
+  const excluded = [exclude ?? []].flat().length ? createFilter(exclude) : () => false;
   let server: ViteDevServer | undefined; // dev server (dev) or a private one (build)
   let ownServer = false;
   let runner: ModuleRunner | undefined; // private runner with DOM bindings; server.environments.ssr.runner stays untouched
   let build = false;
   let root = process.cwd();
-  let excluded = (_id: string) => false; // `exclude`, made when the root is known
   let rootTargets: Target[] | undefined; // the browserslist config of `root`: the support checks of every evaluation
   let cssPlugins: (Plugin | undefined)[] = []; // vite:css, vite:css-post: in build they take the sheet in renderChunk
   const usedBy = new Map<string, string>(); // client module id -> its classes and @property rules, sorted, one a line
@@ -626,11 +627,6 @@ export default function cssints({
       build = config.command === "build";
       buildMap = build && !inner && config.build.sourcemap;
       root = config.root;
-      if (exclude !== undefined && [exclude].flat().length) {
-        // an empty list would match everything as `include`
-        const matches = createFilter(exclude, undefined, { resolve: root });
-        excluded = (id) => matches(id);
-      }
       if (!inner) rootTargets = Effect.runSync(targetsOf(undefined, root));
       cssPlugins = ["vite:css", "vite:css-post"].map((n) =>
         config.plugins.find((p) => p.name === n),

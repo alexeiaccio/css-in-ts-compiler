@@ -43,7 +43,7 @@ try {
       },
     });
   for (const none of [undefined, []]) await assert.rejects(bundle(none), /without the attribute/);
-  for (const exclude of ["**/lib/**", /pkg\.ts$/, ["lib/*.ts"]]) {
+  for (const exclude of ["**/lib/**", /pkg\.ts$/, ["**/lib/*.ts"]]) {
     const out = await bundle(exclude);
     const code = [out]
       .flat()

@@ -933,7 +933,7 @@ A file outside `node_modules` is a site module when its code mentions `cssints` 
 cssints({ exclude: ["**/packages/*/src/**", /\/vendor\//] });
 ```
 
-- **Vite's filter style.** `string | RegExp | ReadonlyArray<string | RegExp>`, read as `createFilter` reads `exclude`: a picomatch glob (a relative one from the Vite root) or a RegExp, matched on the module's file. There is no `include`: the rule of the attribute and of the mention already says which files are sites, and a list of the files to keep would only repeat it.
+- **Vite's filter style.** `string | RegExp | ReadonlyArray<string | RegExp>`, read as `createFilter` reads `exclude`: a picomatch glob (a relative one from the working directory) or a RegExp, matched on the module's file. There is no `include`: the rule of the attribute and of the mention already says which files are sites, and a list of the files to keep would only repeat it.
 - **Nothing changes without it.** The default is no file excluded, so an app, a plugin package's own tests and the packages in `node_modules` behave as before, and a build pays one empty check per module. The attribute is not made the only marker: that would turn the forgotten-attribute error into a `css` that is `undefined` in the browser.
 - **An excluded file stays plain code.** If it also carries `with { type: "cssints" }` imports, it is not evaluated either; exclude only files that are not sites.
 
