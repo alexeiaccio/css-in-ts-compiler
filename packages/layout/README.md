@@ -122,3 +122,9 @@ center | baseline | stretch`, `side` is `left | right`. Tokens go where a length
 ```bash
 cd packages/layout && bun run test   # fixtures through the engine (output, conflicts, build errors), and the type test via bun run typecheck
 ```
+
+## Credits
+
+The primitives are those of [Every Layout](https://every-layout.dev) (Heydon Pickering and Andy Bell) and
+[smolcss](https://smolcss.dev) (Stephanie Eckles); the switcher is Heydon Pickering's Flexbox Holy Albatross. The CSS is
+written here as styles of `scope()`; no code is copied.

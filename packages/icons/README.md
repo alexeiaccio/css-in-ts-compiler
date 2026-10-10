@@ -16,3 +16,10 @@ export const mdi = icons<typeof import("@iconify-json/mdi/icons.json")>({
 ```bash
 cd packages/icons && bun run test   # fixtures through the engine, and the type test
 ```
+
+## Credits
+
+Icons come from [Iconify](https://iconify.design) data: `@iconify/utils` (MIT, Vjacheslav Trushkin) does the parsing.
+The collections (`@iconify-json/*`) are your dependency and are not shipped with this package. Each collection has its
+own license (in its package, `info.license`: Material Design Icons is Apache-2.0, Phosphor is MIT), and the CSS that
+`icons()` prints holds the icons you use: keep the notice that your collection asks for.

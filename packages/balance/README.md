@@ -76,3 +76,10 @@ cd packages/balance && bun run test            # fixtures through the engine (ke
 cd packages/balance && bun run typecheck       # and the type test
 cd packages/balance && bun run test:browsers   # Chrome, Firefox and WebKit through playwright-core
 ```
+
+## Credits
+
+The idea is [nytimes/text-balancer](https://github.com/nytimes/text-balancer) (Apache-2.0, The New York Times
+Company) and [react-wrap-balancer](https://github.com/shuding/react-wrap-balancer) (MIT, Shu Ding): find the narrowest
+width that keeps the line count by a binary search, and again when the parent resizes. The script is written here; no
+code is copied.

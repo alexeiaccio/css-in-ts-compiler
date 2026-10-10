@@ -62,3 +62,8 @@ export const hero = fontSize(fluid("1rem", "4rem")); // build error: fails WCAG 
 ```bash
 cd packages/fluid && bun run test   # fixtures through the engine (output, errors), and the type test via bun run typecheck
 ```
+
+## Credits
+
+The WCAG 1.4.4 check follows [fluid-tailwind](https://github.com/barvian/fluid-tailwind) (MIT, Maxwell Barvian).
+The check is written here; no code is copied.

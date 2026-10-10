@@ -138,3 +138,8 @@ the build adds the grey defaults under `@supports not`, and only then.
 cd packages/skeleton && bun run test           # fixtures through the engine (output, conflicts, errors); bun run typecheck for the type test
 cd packages/skeleton && bun run test:browsers  # the phase and reduced motion in Chrome, Firefox and WebKit
 ```
+
+## Credits
+
+The shared clock follows [sync-skeleton](https://github.com/crutchcorn/sync-skeleton) (MIT, Corbin Crutchley). The
+CSS is written here; no code is copied.

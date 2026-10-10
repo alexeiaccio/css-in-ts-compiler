@@ -81,3 +81,9 @@ src/broken.png: …`, the decoder's message), a mode outside the grammar (`place
 cd packages/placeholder && bun run test        # colour extraction on synthetic pixels, fixtures through the engine (output, errors)
 cd packages/placeholder && bun run typecheck   # and the type test, test/types/placeholder.ts
 ```
+
+## Credits
+
+The gradient layout follows [unpic-placeholder](https://github.com/ascorbic/unpic-placeholder) (MIT, Matt Kane).
+The thumbhash mode uses [thumbhash](https://github.com/evanw/thumbhash) (MIT, Evan Wallace), [jpeg-js](https://github.com/jpeg-js/jpeg-js)
+(BSD-3-Clause) and [pngjs](https://github.com/pngjs/pngjs) (MIT), dependencies. No code is copied.

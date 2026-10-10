@@ -85,3 +85,10 @@ steps(4)", expected linear | <cubic-bezier-easing-function> | <integer> | end of
 cd packages/gradient && bun run test        # the stop math, fixtures through the engine (output, errors)
 cd packages/gradient && bun run typecheck   # and the type test, test/types/gradient.ts
 ```
+
+## Credits
+
+The stops follow [postcss-easing-gradients](https://github.com/larsenwork/postcss-easing-gradients) and
+[easing-coordinates](https://github.com/larsenwork/easing-coordinates) (MIT, Andreas Larsen): the easing curve sampled
+into colour stops. The code is written here; no code is copied. Colours are mixed with [culori](https://culorijs.org)
+(MIT, Dan Burzo), a dependency.

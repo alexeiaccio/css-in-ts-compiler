@@ -93,3 +93,9 @@ cd packages/stuck && bun run test            # fixtures through the engine (outp
 cd packages/stuck && bun run typecheck       # the type test
 cd packages/stuck && bun run test:browsers   # Chrome, Firefox and WebKit through playwright-core
 ```
+
+## Credits
+
+The fallback follows [bramus/sticky-observer](https://github.com/bramus/sticky-observer) (MIT, Bramus Van Damme): an
+IntersectionObserver whose root is shrunk by the element's inset plus 1px. The observer is written here; no code is
+copied.

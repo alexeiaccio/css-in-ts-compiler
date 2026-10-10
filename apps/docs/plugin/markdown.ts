@@ -78,7 +78,7 @@ const files = [
   { path: "docs/API.md", split: 4 },
   ...packages.map((name) => ({ path: `packages/${name}/README.md`, split: 1 })),
 ];
-const project = new Set(["Layout", "Development", "License"]);
+const project = new Set(["Layout", "Development", "Credits", "License"]);
 
 // DOCS_HOVERS=0 skips the type-check of the ts blocks (the part of the build that takes ~15 s) while the styles are being worked on
 const hovers = process.env.DOCS_HOVERS !== "0";

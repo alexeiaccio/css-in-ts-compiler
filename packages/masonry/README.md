@@ -100,3 +100,8 @@ method, and the build checks it again. A method in `media()` or another conditio
 cd packages/masonry && bun run test   # fixtures through the engine (output for both kinds of targets, conflicts, build errors, a build), and the type test via bun run typecheck
 bun run test:browsers                 # Chrome, Firefox and WebKit through playwright-core: items pack with no row gaps
 ```
+
+## Credits
+
+The layout is CSS Grid Layout Module Level 3 (the W3C CSS Working Group), `display: grid-lanes` as WebKit ships
+it. Nothing is copied.

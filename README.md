@@ -145,6 +145,35 @@ cd apps/docs && bun run dev   # the documentation site, on the pages of README.m
 
 See [AGENTS.md](AGENTS.md) for the layout, commands and code style.
 
+## Credits
+
+cssints is MIT. It stands on other people's work; this is what we took, from whom, and under which license. A package that copies data or code carries the upstream notice (a Credits or Licenses section of its README, or `THIRD_PARTY_NOTICES.md`).
+
+### Data and code that ships
+
+| Where | What | From | License |
+|---|---|---|---|
+| [@cssints/tokens](packages/tokens/README.md) | the Open Props, Radix Colors, Flexoki and Reasonable Colors sets | [Open Props](https://github.com/argyleink/open-props) (Adam Argyle), [Radix Colors](https://github.com/radix-ui/colors), [Flexoki](https://github.com/kepano/flexoki) (Steph Ango), [Reasonable Colors](https://github.com/matthewhowell/reasonable-colors) (Matthew Howell) | MIT, notices in its README |
+| [@cssints/css-grammar](packages/css-grammar/THIRD_PARTY_NOTICES.md) | the CSS syntax strings (`src/mdn.ts`, `keywords.ts`, `functions.ts`), also in the types of `cssints` | [mdn-data](https://github.com/mdn/data); the numeric ranges it omits from [@webref/css](https://github.com/w3c/webref) | CC0-1.0; MIT (W3C) |
+| @cssints/css-grammar | browser support warnings, read from the package (not copied) | [@mdn/browser-compat-data](https://github.com/mdn/browser-compat-data) | CC0-1.0 |
+| [@cssints/fonts](packages/fonts/README.md) | the latin character weights and the metrics of Arial, Times New Roman and Courier New | [Capsize](https://github.com/seek-oss/capsize) (SEEK) | MIT, notice in its README |
+| [@cssints/icons](packages/icons/README.md) | nothing: the collections are your dependency | [Iconify](https://iconify.design) `@iconify-json/*` | each collection's own |
+| `tools/ai-automation/vendor` | lint rules, not published | [dmmulroy/anti-slop](https://github.com/dmmulroy/anti-slop) (Dillon Mulroy) | MIT, `LICENSE` and `UPSTREAM.md` |
+| [apps/sky](apps/sky/NOTICE.md) | layout and token values; Inter; Phosphor icons | Mu and `@bsky.app/alf` (Bluesky Social PBC), [Inter](https://github.com/rsms/inter), [Phosphor](https://phosphoricons.com) | MIT; OFL-1.1; MIT |
+| apps/demo | Material Design Icons (`@iconify-json/mdi`) | Pictogrammers | Apache-2.0 |
+
+### Ideas and designs
+
+No code is copied from these; each package README says which part follows which.
+
+- **Plugin packages.** [Every Layout](https://every-layout.dev) and [smolcss](https://smolcss.dev) (layout), [nytimes/text-balancer](https://github.com/nytimes/text-balancer) and [react-wrap-balancer](https://github.com/shuding/react-wrap-balancer) (balance), [fluid-tailwind](https://github.com/barvian/fluid-tailwind) (fluid), [postcss-easing-gradients](https://github.com/larsenwork/postcss-easing-gradients) (gradient), [tailwindcss-motion](https://github.com/romboHQ/tailwindcss-motion) and [tailwindcss-animate](https://github.com/jamiebuilds/tailwindcss-animate) (motion), [the supersonic plugin](https://github.com/the-illarionov/the-supersonic-plugin-for-scroll-based-animation) and [lax.js](https://github.com/alexfoxy/lax.js) (reveal), [sync-skeleton](https://github.com/crutchcorn/sync-skeleton) (skeleton), [bramus/sticky-observer](https://github.com/bramus/sticky-observer) (stuck), [unpic-placeholder](https://github.com/ascorbic/unpic-placeholder) and [ThumbHash](https://github.com/evanw/thumbhash) (placeholder), [nutelch](https://github.com/meodai/nutelch) and [Leonardo](https://github.com/adobe/leonardo) (ramp), the resets of Josh Comeau, Jake Lazaroff, Vale and Andy Bell (reset), [Mise en Mode](https://standard.mode.place) and its Mode Contract (mise-en-mode), [brendonovich/vite-plugin-opencode](https://github.com/Brendonovich/vite-plugin-opencode) (the prompt box of devtools).
+- **The engine.** The comparisons in [docs/research](docs/research) record what we took from [StyleX](https://stylexjs.com), [vanilla-extract](https://vanilla-extract.style), [Tailwind CSS](https://tailwindcss.com), [Tokenami](https://tokenami.com), [SugarCube](https://sugarcube.sh) and the [React Spectrum](https://react-spectrum.adobe.com) style macros; the first spark was [Haz's post](https://bsky.app/profile/haz.dev/post/3mebm2mx6jk27) on a CSS framework in TypeScript. Tokens follow the [Design Tokens Community Group](https://www.designtokens.org) format.
+- **apps/sky** follows the look of Mu and the hue slider of Witchsky.
+
+### Built on
+
+[Effect](https://effect.website), [Vite](https://vite.dev) and Vite+, [OXC](https://oxc.rs), [LightningCSS](https://lightningcss.dev) (MPL-2.0; its wasm build runs in the playground), [culori](https://culorijs.org), [TypeScript](https://www.typescriptlang.org) and TypeScript Go, [Bun](https://bun.sh), [Solid](https://www.solidjs.com), [OpenTUI](https://opentui.com), [Shiki](https://shiki.style), [Monaco Editor](https://microsoft.github.io/monaco-editor/), [Playwright](https://playwright.dev), [fast-check](https://fast-check.dev), [Quint](https://quint-lang.org), [atcute](https://github.com/mary-ext/atcute), and [Beans](https://github.com/hmans/beans) for the tickets. Phosphor icons (MIT) are on this site through `@iconify-json/ph`. Every dependency keeps its own license; none is copied into the repository.
+
 ## License
 
 MIT

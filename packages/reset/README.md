@@ -102,3 +102,10 @@ reset({ media: true, prose: true });
 ```bash
 cd packages/reset && bun run test   # fixtures through the engine (the order of the sheet, the flags), and the type test via bun run typecheck
 ```
+
+## Credits
+
+The base follows what [Josh Comeau](https://www.joshwcomeau.com/css/custom-css-reset/),
+[Jake Lazaroff](https://jakelazaroff.com/words/my-modern-css-reset/) and [Vale](https://vale.rocks/posts/css-reset)
+publish; `role="list"` and the flow rule are [Andy Bell's](https://piccalil.li/blog/my-favourite-3-lines-of-css/). The
+declarations are those that these resets share. They are written here, as globals of `scope()`; no file is copied.
