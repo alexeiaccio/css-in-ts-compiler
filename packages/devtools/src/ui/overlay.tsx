@@ -284,7 +284,14 @@ function Panel(props: { inspection: Inspection; build?: boolean }) {
   );
 }
 
-const firstChild = (el: Element) => el.firstElementChild ?? undefined;
+// the arrow keys and the parent button walk the tree from the element the panel shows
+const parent = (el: Element) => el.parentElement;
+const STEPS = new Map<string, (el: Element) => Element | null>([
+  ["ArrowUp", parent],
+  ["ArrowDown", (el) => el.firstElementChild],
+  ["ArrowLeft", (el) => el.previousElementSibling],
+  ["ArrowRight", (el) => el.nextElementSibling],
+]);
 
 function App(props: {
   model: () => Model | undefined;
@@ -383,6 +390,15 @@ function App(props: {
     if (!on) closeWin();
     else if (place().detached && !win()) detach();
   };
+  // from the element the panel shows (the hovered one while picking: the pointer may have left the page for the window)
+  const go = (step: (el: Element) => Element | null) => {
+    const el = target();
+    const next = el && step(el);
+    if (!next || next === props.host) return false;
+    setSelected(next);
+    setPicking(false);
+    return true;
+  };
   const key = (e: KeyboardEvent) => {
     if (e.altKey && e.shiftKey && e.code === "KeyC") {
       e.preventDefault();
@@ -398,22 +414,10 @@ function App(props: {
     }
     // arrows in the prompt box move its caret, not the selection
     if ((e.composedPath()[0] as Element | undefined)?.localName === "textarea") return;
-    const el = selected();
-    if (!el || picking()) return;
-    const next =
-      e.key === "ArrowUp"
-        ? (el.parentElement ?? undefined)
-        : e.key === "ArrowDown"
-          ? firstChild(el)
-          : e.key === "ArrowLeft"
-            ? (el.previousElementSibling ?? undefined)
-            : e.key === "ArrowRight"
-              ? (el.nextElementSibling ?? undefined)
-              : undefined;
-    if (next && next !== props.host) {
-      e.preventDefault();
-      setSelected(next);
-    }
+    // the page keeps its arrows while it picks; in the window they walk from the hovered element
+    if (picking() && e.view === window) return;
+    const step = STEPS.get(e.key);
+    if (step && go(step)) e.preventDefault();
   };
   createEffect(win, (w) => {
     w?.addEventListener("keydown", key, true);
@@ -523,11 +527,7 @@ function App(props: {
               </button>
             )}
           </For>
-          <button
-            class={s.button}
-            title="parent (↑)"
-            onClick={() => setSelected((el) => el?.parentElement ?? el)}
-          >
+          <button class={s.button} title="parent (↑)" onClick={() => go(parent)}>
             ↑
           </button>
           <button
