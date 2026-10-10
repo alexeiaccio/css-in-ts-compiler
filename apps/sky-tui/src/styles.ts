@@ -1,24 +1,28 @@
-// Every style of the app, as plain OpenTUI props: each export is a function of the theme (and of a row's state) that
-// returns the `style` object of one element. Passed as `style={...}`, the object is reapplied when the theme changes; an
-// object sets every key it may have changed (the binding writes the keys it gets and never clears the others). When
-// cssints' TUI target lands (cssints-m0yj), this module is the one to rewrite.
-import type { BoxOptions, MousePointerStyle, TextOptions } from "@opentui/core";
-import { useRenderer } from "@opentui/solid";
-import { createSignal } from "solid-js";
+// Every style of the app, on cssints/tui: the plugin compiles each site to a prop object at build time, and
+// @cssints/tui/opentui puts it on a renderable (`<box {...use(s.card)} />`) and keeps it in step with the mouse, the
+// focus and the theme. Dark is the default theme, `light` the other one (setTheme). This module imports cssints/tui
+// only: the build evaluates it on a server without the app's aliases (cssints-qnif).
+// culori's colour modes, which cssints's dist/tui.mjs leaves out (cssints-649r): build time only, like every import
+// with the attribute.
+import "culori" with { type: "cssints" };
+import * as css from "cssints/tui" with { type: "cssints" };
 
-const palettes = {
-  dark: {
-    bg: "#101316",
-    card: "#171b20",
-    hover: "#222831",
-    text: "#e6e9ec",
-    muted: "#8b98a5",
-    border: "#323a44",
-    accent: "#3b9cf0",
-    link: "#5cb0ff",
-    onAccent: "#ffffff",
+export const c = css.createTokens({
+  color: {
+    $type: "color",
+    bg: { $value: "#101316" },
+    card: { $value: "#171b20" },
+    hover: { $value: "#222831" },
+    text: { $value: "#e6e9ec" },
+    muted: { $value: "#8b98a5" },
+    border: { $value: "#323a44" },
+    accent: { $value: "#3b9cf0" },
+    link: { $value: "#5cb0ff" },
+    onAccent: { $value: "#ffffff" },
   },
-  light: {
+});
+css.createGlobalTheme(c, "light", {
+  color: {
     bg: "#f3f5f7",
     card: "#ffffff",
     hover: "#e8eef4",
@@ -27,85 +31,63 @@ const palettes = {
     border: "#cfd8df",
     accent: "#1170cf",
     link: "#0b62bd",
-    onAccent: "#ffffff",
   },
-};
-export type Mode = keyof typeof palettes;
-export const [mode, setMode] = createSignal<Mode>("dark");
-export const toggleMode = () => setMode((m) => (m === "dark" ? "light" : "dark"));
-const c = () => palettes[mode()];
-
-type Box = Partial<BoxOptions>;
-type Text = Partial<TextOptions>;
-// A span takes colours and attributes only.
-interface Span {
-  fg?: string;
-  bg?: string;
-  bold?: boolean;
-  underline?: boolean;
-}
-
-export interface RowState {
-  selected: boolean;
-  hovered: boolean;
-}
-
-export const screen = (): Box => ({
-  flexDirection: "column",
-  width: "100%",
-  height: "100%",
-  backgroundColor: c().bg,
 });
-export const bar = (): Box => ({
-  flexDirection: "row",
-  flexShrink: 0,
-  gap: 2,
-  paddingX: 1,
-  backgroundColor: c().card,
-});
-export const tab = (s: RowState & { active: boolean }): Text => ({
-  fg: s.active ? c().onAccent : s.hovered ? c().text : c().muted,
-  bg: s.active ? c().accent : s.hovered ? c().hover : c().card,
-});
-export const title = (): Span => ({ fg: c().accent, bold: true });
-export const list = (): Box => ({ flexGrow: 1, backgroundColor: c().bg });
-export const footer = (): Text => ({ fg: c().muted, bg: c().card, flexShrink: 0, paddingX: 1 });
 
-// A post card: the selected one has the accent border, the one under the pointer a lighter background.
-export const card = (s: RowState, depth = 0): Box => ({
-  flexDirection: "column",
-  flexShrink: 0,
-  border: true,
-  borderStyle: "rounded",
-  borderColor: s.selected ? c().accent : c().border,
-  backgroundColor: s.hovered ? c().hover : c().card,
-  paddingX: 1,
-  marginLeft: Math.min(depth, 6) * 2,
-});
-export const quote = (): Box => ({
-  flexDirection: "column",
-  border: true,
-  borderStyle: "single",
-  borderColor: c().border,
-  paddingX: 1,
-});
-export const body = (): Text => ({ fg: c().text, wrapMode: "word" });
-export const muted = (): Text => ({ fg: c().muted, wrapMode: "word" });
-export const name = (): Span => ({ fg: c().text, bold: true });
-export const meta = (): Span => ({ fg: c().muted });
-export const link = (): Span => ({ fg: c().link, underline: true });
-export const tag = (): Span => ({ fg: c().link });
-export const num = (): Span => ({ fg: c().text, bold: true });
-export const placeholder = (): Text => ({ fg: c().muted });
+export const screen = css.cn(
+  css.flexDirection("column"),
+  css.width("100%"),
+  css.height("100%"),
+  css.bg(c.color.bg),
+);
+export const bar = css.cn(
+  css.flexDirection("row"),
+  css.flexShrink(0),
+  css.gap(2),
+  css.p(0, 1),
+  css.bg(c.color.card),
+);
+export const tab = css.cn(
+  css.color(c.color.muted),
+  css.bg(c.color.card),
+  css.cursor("pointer"),
+  css.hover(css.color(c.color.text), css.bg(c.color.hover)),
+);
+export const tabActive = css.cn(
+  css.color(c.color.onAccent),
+  css.bg(c.color.accent),
+  css.cursor("pointer"),
+);
+export const list = css.cn(css.flexGrow(1), css.bg(c.color.bg));
+export const footer = css.cn(
+  css.color(c.color.muted),
+  css.bg(c.color.card),
+  css.flexShrink(0),
+  css.p(0, 1),
+);
 
-// Hover for a clickable element: a signal for its style, the pointer cursor while it is under the mouse.
-// `over` and `out` bubble from the children, and moving onto a child sends `out` then `over`: the last one wins.
-export function hoverable() {
-  const renderer = useRenderer();
-  const [hovered, setHovered] = createSignal(false);
-  const pointer = (on: boolean, style: MousePointerStyle) => () => {
-    setHovered(on);
-    renderer.setMousePointer(style);
-  };
-  return { hovered, over: pointer(true, "pointer"), out: pointer(false, "default") } as const;
-}
+// A row of a list: the selected one has the keyboard focus and the accent border.
+export const row = css.cn(
+  css.flexDirection("column"),
+  css.flexShrink(0),
+  css.border("rounded", c.color.border),
+  css.bg(c.color.card),
+  css.p(0, 1),
+  css.focus(css.borderColor(c.color.accent)),
+);
+// A row that opens something: a lighter background and the pointer under the mouse.
+export const card = css.cn(row, css.cursor("pointer"), css.hover(css.bg(c.color.hover)));
+export const quote = css.cn(
+  css.flexDirection("column"),
+  css.border("solid", c.color.border),
+  css.p(0, 1),
+);
+export const body = css.color(c.color.text);
+export const muted = css.color(c.color.muted);
+
+// Spans: `<span style={span(s.name)}>` (Post.tsx), not `use()`.
+export const title = css.cn(css.color(c.color.accent), css.fontWeight("bold"));
+export const name = css.cn(css.color(c.color.text), css.fontWeight("bold"));
+export const meta = css.color(c.color.muted);
+export const link = css.cn(css.color(c.color.link), css.textDecoration("underline"));
+export const tag = css.color(c.color.link);

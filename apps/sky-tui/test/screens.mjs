@@ -38,7 +38,7 @@ const api = await import("../../sky/src/api.ts");
 const W = 100;
 const H = 40;
 const setup = await testRender(App, { ...options, width: W, height: H });
-const { renderer, mockInput, mockMouse, renderOnce, captureCharFrame } = setup;
+const { renderer, mockInput, mockMouse, renderOnce, captureCharFrame, captureSpans } = setup;
 const settle = async () => {
   for (let i = 0; i < 4; i++) {
     await renderOnce();
@@ -56,8 +56,16 @@ const until = async (pred, ms = 3000) => {
 };
 // the renderable of a row, by the id the app gives it
 const row = (id) => renderer.root.findDescendantById(id);
-// the border colour of a card: the accent on the selected one
-const borderOf = (id) => row(id).borderColor.toInts().join(",");
+// the colour drawn at a cell
+const fgAt = (x, y) => {
+  let col = 0;
+  for (const span of captureSpans().lines[y].spans) {
+    if (x < col + span.width) return span.fg.toInts().join(",");
+    col += span.width;
+  }
+};
+// the border colour of a card as drawn (its left edge): the accent on the selected one
+const borderOf = (id) => fgAt(row(id).x, row(id).y + 1);
 const bgOf = (id) => row(id).backgroundColor.toInts().join(",");
 
 try {
@@ -79,11 +87,13 @@ try {
 
   // ---- j/k move the selection ----------------------------------------------------------------
   const selectedBorder = borderOf("post-0-0");
+  assert.equal(selectedBorder, "59,156,240,255", "the accent border");
   assert.notEqual(selectedBorder, borderOf("post-0-1"), "the first card is selected");
   await mockInput.typeText("j");
   await settle();
   assert.equal(borderOf("post-0-1"), selectedBorder, "j selects the next card");
   assert.notEqual(borderOf("post-0-0"), selectedBorder);
+  assert.ok(row("post-0-1").focused && !row("post-0-0").focused, "the selected card has the focus");
   await mockInput.typeText("jjk");
   await settle();
   assert.equal(borderOf("post-0-2"), selectedBorder, "j, j, k: the third card");
@@ -173,6 +183,10 @@ try {
   await mockInput.typeText("t");
   await settle();
   assert.notEqual(bgOf("post-1-0"), dark, "t switches the theme");
+  assert.equal(bgOf("post-1-0"), "255,255,255,255", "the light card");
+  await mockInput.typeText("t");
+  await settle();
+  assert.equal(bgOf("post-1-0"), dark, "t again: the dark theme");
 } finally {
   renderer.destroy();
 }
