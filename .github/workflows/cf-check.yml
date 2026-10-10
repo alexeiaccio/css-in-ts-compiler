@@ -1,0 +1,22 @@
+# Temporary: which Cloudflare API calls the CI token may make (status codes only). Delete after the docs deploy works.
+name: cf-check
+on: workflow_dispatch
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          T: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          A: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          c() { printf '%s %s\n' "$(curl -s -o /tmp/r -w '%{http_code}' -H "Authorization: Bearer $T" "https://api.cloudflare.com/client/v4/$1")" "$1"; grep -o '"message":"[^"]*"' /tmp/r | head -2; }
+          c user/tokens/verify
+          for z in cssints.dev accio.blue; do
+            id=$(curl -s -H "Authorization: Bearer $T" "https://api.cloudflare.com/client/v4/zones?name=$z" | grep -o '"id":"[0-9a-f]\{32\}"' | head -1 | cut -d'"' -f4)
+            echo "zone $z = ${id:-none}"
+            [ -n "$id" ] && c "zones/$id/rulesets/phases/http_request_dynamic_redirect/entrypoint"
+            [ -n "$id" ] && c "zones/$id/dns_records?per_page=1"
+            [ -n "$id" ] && c "zones/$id/workers/routes"
+          done
+          c "accounts/$A/workers/domains"
+          c "accounts/$A/workers/scripts?per_page=1"
