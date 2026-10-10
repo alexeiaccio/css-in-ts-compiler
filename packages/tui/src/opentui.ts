@@ -11,11 +11,18 @@ export { resolve, setTheme, theme, type TuiState } from "./index.ts";
 const BITS = { bold: 1, dim: 2, italic: 4, underline: 8, strikethrough: 128 } as const;
 const ALL = 1 | 2 | 4 | 8 | 128;
 const SHAPE = { auto: "default", bar: "line", block: "block", underscore: "underline" } as const;
+// What a renderable draws while it has the focus in place of a prop (a box while a descendant has it too): kept on the
+// prop's value, which is the :focus one while it is focused (cssints-pkpg)
+const FOCUSED = [
+  ["borderColor", "focusedBorderColor"],
+  ["backgroundColor", "focusedBackgroundColor"],
+  ["textColor", "focusedTextColor"],
+] as const;
 
 /**
  * The OpenTUI props of a style (`has` tells which props the renderable has: a box takes `backgroundColor`, a text `bg`):
- * `color` is `fg`, the text attributes are the bits of `attributes`, the caret is `cursorStyle` and `cursorColor`
- * (Input, Textarea). `cursor` is not a prop: `attach` sets the mouse pointer.
+ * `color` is `fg` (`textColor` on an editable or a select), the text attributes are the bits of `attributes`, the
+ * caret is `cursorStyle` and `cursorColor` (Input, Textarea). `cursor` is not a prop: `attach` sets the mouse pointer.
  *
  * @param {TuiProps} p the props of `resolve()`
  * @param {Function} has whether the renderable has a prop
@@ -29,7 +36,7 @@ export const props = (
   let bits: number | undefined;
   for (const [k, v] of Object.entries(p)) {
     if (Object.hasOwn(BITS, k)) bits = (bits ?? 0) | (v ? BITS[k as keyof typeof BITS] : 0);
-    else if (k === "color") out.fg = v;
+    else if (k === "color") out[has("fg") || !has("textColor") ? "fg" : "textColor"] = v;
     else if (k === "backgroundColor") out[has("backgroundColor") ? "backgroundColor" : "bg"] = v;
     else if (k === "caretColor") out.cursorColor = v;
     else if (k !== "cursor" && k !== "caretShape" && k !== "caretAnimation") out[k] = v;
@@ -49,6 +56,7 @@ type Hooked = Renderable & { onMouseEvent(event: MouseEvent): void };
  * Sets the props of `style` on `r` and keeps them up to date: `:hover` from `over` to `out`, `:active` from `down` to
  * `up` (or `out`), `:focus` while it has focus (a box needs `focusable: true`), and the theme of `setTheme`. The mouse
  * pointer is the style's `cursor` on `over`, `default` again on `out`. Handlers of your own (`onMouseOver`) still run.
+ * A focused renderable draws its `focused*` colours (`focusedBorderColor` of a box): they follow the style too.
  *
  * @param {Renderable} r a renderable of OpenTUI
  * @param {TuiShape} style a style of cssints/tui
@@ -62,6 +70,7 @@ export const attach = <R extends Renderable>(r: R, style: TuiShape): R => {
   let pointer = false;
   const apply = () => {
     const next = props(resolve(style, state), (k) => k in r);
+    for (const [from, to] of FOCUSED) if (Object.hasOwn(next, from)) next[to] = next[from];
     const attrs = next.attributes as number | undefined;
     for (const k of new Set([...saved.keys(), ...Object.keys(next)])) {
       if (!(k in r)) continue;

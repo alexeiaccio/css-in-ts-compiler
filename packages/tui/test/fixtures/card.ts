@@ -24,6 +24,13 @@ export const field = css.cn(
   css.caretAnimation("manual"),
   css.focus(css.bg("#45475a")),
 );
+// a row of a list: the accent border while it has the focus
+export const row = css.cn(
+  css.border("rounded", "#585b70"),
+  css.width(10),
+  css.height(3),
+  css.focus(css.borderColor(t.color.accent)),
+);
 export const layout = css.cn(
   css.flexDirection("row"),
   css.gap(1),

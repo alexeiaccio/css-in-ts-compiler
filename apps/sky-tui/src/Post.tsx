@@ -130,10 +130,6 @@ function Row(props: {
   const style = props.onOpen ? s.card : s.row;
   const ref = (r: BoxRenderable) => {
     attach(r, style);
-    // a focused box draws focusedBorderColor, not borderColor (cssints-pkpg)
-    createEffect(() => {
-      r.focusedBorderColor = resolve(style, { focus: true }, current()).borderColor!;
-    });
     createEffect(() => (props.selected ? r.focus() : r.blur()));
   };
   return (

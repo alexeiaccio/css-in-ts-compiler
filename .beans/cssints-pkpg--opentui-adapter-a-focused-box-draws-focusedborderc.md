@@ -1,10 +1,11 @@
 ---
 # cssints-pkpg
 title: 'OpenTUI adapter: a focused box draws focusedBorderColor, not the :focus borderColor'
-status: todo
+status: completed
 type: bug
+priority: normal
 created_at: 2026-10-10T16:03:52Z
-updated_at: 2026-10-10T16:03:52Z
+updated_at: 2026-10-10T17:34:28Z
 parent: cssints-06ws
 ---
 
@@ -20,5 +21,9 @@ Workaround in sky-tui (src/Post.tsx Row): an effect sets `r.focusedBorderColor` 
 
 ## Todo
 
-- [ ] the adapter keeps focusedBorderColor in step with the style
-- [ ] a test on the drawn border of a focused box
+- [x] the adapter keeps focusedBorderColor in step with the style
+- [x] a test on the drawn border of a focused box
+
+## Summary of Changes
+
+attach() (packages/tui/src/opentui.ts) mirrors, on every apply, the style's borderColor, backgroundColor and textColor into focusedBorderColor, focusedBackgroundColor and focusedTextColor where the renderable has them (Box; Input/Textarea, Select, TabSelect). They take the value of the current state, so a focused box draws its :focus border, a box whose descendant has the focus draws its own border (CSS :focus, not :focus-within), and a theme switch reaches them. A prop the style does not set keeps OpenTUI's own focused value. Same bug on an Input: the :focus background was set on backgroundColor but drawn from focusedBackgroundColor; also fixed. props(): `color` is `textColor` on a renderable that has textColor and no fg (an editable, a select), where it was dropped. test/render.ts reads the drawn colours (captureSpans): the input's focused background, a focusable row's border unfocused, focused, focused in the light theme, blurred; before the fix it drew #00aaff. sky-tui: Row's focusedBorderColor effect is gone; screens.mjs still checks the drawn accent border. docs/API.md 'The adapter' says it.

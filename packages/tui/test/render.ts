@@ -10,12 +10,21 @@ import type { TuiShape } from "../src/index.ts";
 import { attach, setTheme, use } from "../src/opentui.ts";
 
 const built = "./out/card.mjs"; // written by test/tui.mjs
-const styles = (await import(built)) as Record<"button" | "label" | "field", TuiShape>;
+const styles = (await import(built)) as Record<"button" | "label" | "field" | "row", TuiShape>;
 
 const hex = (c: RGBA) => rgbToHex(c).slice(0, 7);
 
-const setup = await createTestRenderer({ width: 30, height: 8 });
-const { renderer, mockMouse, renderOnce, captureCharFrame } = setup;
+const setup = await createTestRenderer({ width: 30, height: 12 });
+const { renderer, mockMouse, renderOnce, captureCharFrame, captureSpans } = setup;
+// the colours drawn at a cell
+const drawn = (x: number, y: number) => {
+  let col = 0;
+  for (const span of captureSpans().lines[y]!.spans) {
+    if (x < col + span.width) return { fg: hex(span.fg), bg: hex(span.bg) };
+    col += span.width;
+  }
+  throw new Error(`no cell at ${x}, ${y}`);
+};
 const pointers: string[] = [];
 const setPointer = renderer.setMousePointer.bind(renderer);
 renderer.setMousePointer = (s) => {
@@ -88,9 +97,33 @@ try {
   input.focus();
   await renderOnce();
   assert.equal(hex(input.backgroundColor), "#45475a");
+  // as drawn: an editable draws focusedBackgroundColor while it has the focus (cssints-pkpg)
+  assert.equal(drawn(input.x, input.y).bg, "#45475a");
   input.blur();
   await renderOnce();
   assert.notEqual(hex(input.backgroundColor), "#45475a");
+  assert.notEqual(drawn(input.x, input.y).bg, "#45475a");
+
+  // a focused box draws focusedBorderColor: the adapter keeps it on the :focus border colour, theme included
+  // (cssints-pkpg; OpenTUI's own is #00aaff)
+  const row = attach(
+    new BoxRenderable(renderer, { position: "absolute", top: 8, focusable: true }),
+    styles.row,
+  );
+  renderer.root.add(row);
+  await renderOnce();
+  assert.equal(drawn(row.x, row.y + 1).fg, "#585b70");
+  row.focus();
+  await renderOnce();
+  assert.equal(drawn(row.x, row.y + 1).fg, "#89b4fa");
+  setTheme("light");
+  await renderOnce();
+  assert.equal(drawn(row.x, row.y + 1).fg, "#1e66f5");
+  setTheme("");
+  row.blur();
+  await renderOnce();
+  assert.equal(drawn(row.x, row.y + 1).fg, "#585b70");
+
   console.log("render ok");
 } finally {
   renderer.destroy();

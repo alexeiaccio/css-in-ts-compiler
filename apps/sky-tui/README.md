@@ -37,8 +37,6 @@ the terminal supports OSC 22).
 
 - `<span>` and `<a>` are text nodes, and `use()` throws on them (cssints-5vnf): `span(style)` in
   `Post.tsx` resolves the props and follows the theme through a signal.
-- A focused box draws `focusedBorderColor`, not the `:focus` border colour (cssints-pkpg): `Row`
-  sets `focusedBorderColor` from the style.
 
 ## Limits
 
