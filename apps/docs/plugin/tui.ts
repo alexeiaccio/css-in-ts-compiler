@@ -3,12 +3,10 @@
 //   @bomb.sh/tty's esm/wasm.js   unpacks its WASM with node:zlib's brotliDecompressSync at load: unpacked here at build time
 //                                into a .wasm asset, which the browser fetches and compiles, with no brotli decoder
 //   @cssints/tui[/bomb|/system]  the sources (the package has no dist in the repository)
-//   apps/sky-tui/src/styles.ts   built ahead into prop objects by plugin/tui-styles.ts, in a process of its own
 //   @atcute/client               from apps/sky's api.ts: src/tui/fixtures.ts, the real client with a fetch handler that
 //                                answers from sky's recorded fixtures, so the page makes no request
-import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import type { Plugin } from "vite";
 
@@ -20,7 +18,6 @@ const TUI: Record<string, string> = {
   "@cssints/tui/bomb": "bomb.ts",
   "@cssints/tui/system": "system.ts",
 };
-const styles = join(import.meta.dirname, "../../sky-tui/src/styles.ts");
 
 // The bytes the module would unpack: its own code up to the compile call, run in Node.
 const unpack = async (file: string): Promise<Buffer> => {
@@ -36,7 +33,6 @@ const unpack = async (file: string): Promise<Buffer> => {
 };
 
 export default function tuiPlugin(): Plugin {
-  let built = "";
   let cache = "";
   return {
     name: "docs:tui",
@@ -45,13 +41,9 @@ export default function tuiPlugin(): Plugin {
     config: () => ({ optimizeDeps: { exclude: ["@bomb.sh/tty", "ghostty-web"] } }),
     configResolved(config) {
       cache = join(config.root, "node_modules/.cache/tui");
-      execFileSync(process.execPath, [join(import.meta.dirname, "tui-styles.ts"), cache], {
-        stdio: "inherit",
-      });
-      built = join(cache, "styles.mjs");
+      mkdirSync(cache, { recursive: true });
     },
     resolveId(id, importer) {
-      if (importer && id.startsWith(".") && join(dirname(importer), id) === styles) return built;
       if (Object.hasOwn(TUI, id)) return join(tui, TUI[id]!);
       if (id === "@atcute/client" && importer === api) return fixtures;
       return undefined;
