@@ -2,7 +2,7 @@
   "name": "@cssints/tui",
   "version": "0.1.0",
   "private": true,
-  "description": "cssints in a terminal: the runtime of cssints/tui styles (states, cursors, themes) and its OpenTUI adapter",
+  "description": "cssints in a terminal: the runtime of cssints/tui styles (states, cursors, themes) and its OpenTUI and @bomb.sh/tty adapters",
   "license": "MIT",
   "files": [
     "dist",
@@ -26,6 +26,14 @@
       },
       "types": "./dist/opentui.d.mts",
       "default": "./dist/opentui.mjs"
+    },
+    "./bomb": {
+      "development": {
+        "types": "./src/bomb.ts",
+        "default": "./src/bomb.ts"
+      },
+      "types": "./dist/bomb.d.mts",
+      "default": "./dist/bomb.mjs"
     }
   },
   "publishConfig": {
@@ -37,26 +45,36 @@
       "./opentui": {
         "types": "./dist/opentui.d.mts",
         "default": "./dist/opentui.mjs"
+      },
+      "./bomb": {
+        "types": "./dist/bomb.d.mts",
+        "default": "./dist/bomb.mjs"
       }
     },
     "access": "public"
   },
   "scripts": {
     "build": "vp pack",
-    "test": "node --conditions=development test/tui.mjs && bun test/render.ts",
+    "test": "node --conditions=development test/tui.mjs && bun test/render.ts && node test/bomb.ts",
+    "example": "node examples/run.mjs",
     "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
     "pack:tgz": "node ../../scripts/pack.mjs"
   },
   "devDependencies": {
+    "@bomb.sh/tty": "0.9.0",
     "@opentui/core": "0.5.17",
     "cssints": "workspace:*",
     "vite": "catalog:"
   },
   "peerDependencies": {
+    "@bomb.sh/tty": ">=0.9.0",
     "@opentui/core": ">=0.5.17",
     "cssints": "^0.1.0"
   },
   "peerDependenciesMeta": {
+    "@bomb.sh/tty": {
+      "optional": true
+    },
     "@opentui/core": {
       "optional": true
     }

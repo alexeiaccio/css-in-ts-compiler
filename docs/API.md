@@ -1048,7 +1048,7 @@ const { ratio, text } = await Effect.runPromise(contrast("#777", "white"));
 
 ### TUI: `cssints/tui` (decided 2026-10-10, cssints-3ff7)
 
-A terminal app writes its styles with `cssints/tui`, and the same Vite plugin compiles them to **prop objects** for terminal renderables, not to classes: there is no sheet and no cascade. `@cssints/tui` applies them (states, the mouse pointer, the caret, themes); its first adapter is [OpenTUI](https://opentui.com). The design, the full property table and what is out of scope are in [research/tui.md](research/tui.md).
+A terminal app writes its styles with `cssints/tui`, and the same Vite plugin compiles them to **prop objects** for terminal renderables, not to classes: there is no sheet and no cascade. `@cssints/tui` applies them (states, the mouse pointer, the caret, themes); its adapters are [OpenTUI](https://opentui.com) and [@bomb.sh/tty](https://bomb.sh/docs/tty/api/). The design, the full property table and what is out of scope are in [research/tui.md](research/tui.md).
 
 ```ts
 import * as css from "cssints/tui" with { type: "cssints" };
@@ -1089,6 +1089,18 @@ setTheme("light");
 - **`cn()`** merges in argument order (a later prop wins). States wrap styles and do not nest; the runtime lays `:hover`, then `:focus`, then `:active` over the props.
 - **Themes.** A theme is named by its selector argument (`"light"`). Every colour token is resolved at build time, per theme, aliases and derived tokens included; the site holds the default values and, under `themes`, what each theme changes. `setTheme(name)` swaps them on every attached renderable; `""` is the default. A theme under `media()` is not read.
 - **The adapter.** `attach(renderable, style)` sets the props (`color` is OpenTUI's `fg`, the text attributes are the bits of `attributes`, the caret is an editable's `cursorStyle` and `cursorColor`), follows `over`/`out`, `down`/`up` and `focused`/`blurred`, and sets the mouse pointer of `cursor` on over and `default` on out. A prop the renderable lacks is not set. `resolve(style, state, theme)` of `@cssints/tui` is the renderer-neutral part, for other adapters.
+- **The bomb.sh adapter** (cssints-kotl, 2026-10-10). `@cssints/tui/bomb` is for [@bomb.sh/tty](https://bomb.sh/docs/tty/api/), where a frame is a list of ops: `createTracker()` gives `ui.open(id, style, extra?)` and `ui.text(content, style, id?, extra?)`, the ops with the options of the style in the state of that element id, and `ui.render(term, build, { pointer })`, which reads the frame's `pointerenter`/`pointerleave` events and a press of `pointer.down`, draws the frame again when a state changed, and adds the OSC 22 pointer of `cursor` and the caret (DECSCUSR, OSC 12) of the element of `ui.focus(id)`; `ui.reset()` gives them back on exit. Sizes are `fixed`, `percent`, `fit`, and `grow` for `flexGrow`; `rounded` is a corner radius; `double` and `heavy` are drawn single; margins, `flexShrink`, `flexBasis`, `flexWrap`, `alignSelf`, `opacity` and `space-*` are not drawn (the table is in research/tui.md). `openProps(props)` and `textProps(props)` are the plain mapping of `resolve()`.
+
+```ts skip
+import { close, createTerm } from "@bomb.sh/tty";
+import { createTracker } from "@cssints/tui/bomb";
+
+const term = await createTerm({ width: 80, height: 24 });
+const ui = createTracker();
+const build = () => [ui.open("save", button), ui.text("Save", label, "save"), close()];
+process.stdout.write(ui.render(term, build, { pointer: { x, y, down } }).output);
+```
+
 - **Cost.** A colour member costs what the same web member costs in the types (the `color` grammar); `bench/tui.ts` is 184k instantiations (tsc) for 16 calls and a token set. No terminal HMR in this version.
 
 ### Browser support and what 0.1 does not have

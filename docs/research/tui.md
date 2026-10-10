@@ -145,20 +145,72 @@ backgroundColor: "#eff1f5" } } }`. Aliases, derived tokens (`color-mix()` over a
 - `setTheme(name)` of `@cssints/tui` (also exported by `/opentui`) sets the values of that theme on every attached
   renderable; `""` is the default.
 
+## The @bomb.sh/tty adapter (cssints-kotl, 2026-10-10)
+
+`@bomb.sh/tty` 0.9 (Clay compiled to WASM) draws a frame from a list of ops and returns the pointer events of that
+frame; there are no renderables to attach to. So `@cssints/tui/bomb` maps a style, resolved in the state of its
+element id, to the options of `open()` and `text()`, and `createTracker()` keeps the states between frames:
+
+```ts
+const ui = createTracker();
+const build = () => [ui.open("save", button), ui.text("Save", label, "save"), close()];
+process.stdout.write(ui.render(term, build, { pointer: { x, y, down } }).output);
+```
+
+- **States.** `pointerenter` turns `:hover` on and `pointerleave` turns it off (Clay reports an element and its
+  ancestors). bomb.sh has no press event, so `:active` is read from `pointer.down`: when it becomes true, the hovered
+  elements are active until the release (`pointerclick`) or a leave. `:focus` is the id of `ui.focus(id)`. The events
+  of a frame come after it is drawn, so `ui.render` draws it again when a state changed: a hover shows at once.
+- **Pointer and caret.** No setting of bomb.sh sets the mouse pointer, so the tracker writes OSC 22 (`ESC ] 22 ;
+pointer ST`) when the innermost hovered element with a `cursor` changes, and `default` when there is none. The caret
+  of the focused element is DECSCUSR (`ESC [ n SP q`: `block` 1/2, `underscore` 3/4, `bar` 5/6, blinking/steady by
+  `caretAnimation`; `auto` 0) and OSC 12 for `caretColor`; bomb.sh places and shows the caret where a `text()` op has
+  `caret: offset`. `ui.reset()` writes OSC 22 `default`, DECSCUSR 0 and OSC 112.
+- **Output views.** `term.render().output` is a view of the WASM memory that the next render reuses, so the tracker
+  copies it before it renders the second time (found by the test: the first frame was overwritten).
+
+| neutral key                                                                                                | bomb.sh                                                                                                               |
+| ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `width`, `height`                                                                                          | number: `fixed(n)`; `N%`: `percent(N / 100)`; `auto`: `fit()`                                                         |
+| `flexGrow` > 0                                                                                             | `grow()` on each axis without a size (Clay grows per axis, not along the parent's main axis)                          |
+| `minWidth`, `maxWidth`, `minHeight`, `maxHeight`                                                           | the min and max of `fit` or `grow` (cells only; ignored on a `fixed` or `percent` axis)                               |
+| `flexDirection`                                                                                            | `direction`: `row` `ltr`, `column` `ttb`; `-reverse` is drawn forward                                                 |
+| `paddingTop` … `paddingLeft`                                                                               | `layout.padding` (cells only)                                                                                         |
+| `gap`, `rowGap`, `columnGap`                                                                               | `layout.gap`: `rowGap` in a column, `columnGap` in a row, else `gap` (cells only)                                     |
+| `justifyContent`, `alignItems`                                                                             | `alignX`/`alignY` by the direction: `flex-start` left/top, `center`, `flex-end` right/bottom                          |
+| `textAlign` (on a box)                                                                                     | `alignX` when `justifyContent`/`alignItems` set none                                                                  |
+| `backgroundColor`                                                                                          | `bg` of `open()` and of `text()`, `rgba()`                                                                            |
+| `border`, `borderColor`                                                                                    | `border: { color, top: 1, right: 1, bottom: 1, left: 1 }`; no `borderColor`: the style's `color`, else white          |
+| `borderStyle`                                                                                              | `rounded`: `cornerRadius` 1 on each corner; `solid`; `double` and `heavy` are drawn single (bomb.sh has one line set) |
+| `overflow`                                                                                                 | `hidden`, `scroll`: `clip` on both axes (no scroll offset)                                                            |
+| `position: absolute`, `top`, `right`, `bottom`, `left`, `zIndex`                                           | `floating` on the parent, at the corner of the edges given (`left`/`top` first), offset by them; `zIndex` only there  |
+| `display: none` (`visible: false`)                                                                         | `fixed(0)` on both axes, clipped, no border (the element stays in the frame, so its id keeps its events)              |
+| `color`                                                                                                    | `color` of `text()`                                                                                                   |
+| `bold`, `dim`, `italic`, `underline`, `strikethrough`                                                      | the bits 1, 2, 4, 8, 64 of `attrs` (SGR 1, 2, 3, 4, 9)                                                                |
+| `cursor`                                                                                                   | OSC 22 while hovered                                                                                                  |
+| `caretShape`, `caretAnimation`, `caretColor`                                                               | DECSCUSR and OSC 12 while focused                                                                                     |
+| `margin*`, `flexShrink`, `flexBasis`, `flexWrap`, `alignSelf`, `opacity`, `space-*`, `stretch`, `baseline` | not drawn: Clay has no such option; a margin is a parent with padding                                                 |
+
+What does not map is left out at run time, not rejected at build time: the build cannot tell which adapter a style
+goes to. Transitions are not a `cssints/tui` member; bomb.sh's `transition` is the last argument of `ui.open`.
+
 ## Packages
 
 - **`cssints/tui`** (packages/cssints/src/tui.ts and tui-types.ts): the build-time members and their types. Plain
   code like lib.ts (user code calls the builders in expressions).
 - **`@cssints/tui`** (packages/tui): `resolve(style, state, theme)`, `theme`, `setTheme`, `onTheme` (renderer-neutral,
-  no imports) and `@cssints/tui/opentui` (`attach`, `use`, `props`). A separate package because the engine must not
-  depend on `@opentui/core`, and the second adapter goes beside this one.
+  no imports), `@cssints/tui/opentui` (`attach`, `use`, `props`) and `@cssints/tui/bomb` (`createTracker`,
+  `openProps`, `textProps`, `rgbaOf`). A separate package because the engine must not depend on `@opentui/core` or
+  `@bomb.sh/tty` (both optional peers).
 - **Tests** are in packages/tui: `test/tui.mjs` (Node: fixtures through a dev transform and an SSR build, the build
   errors), `test/render.ts` (Bun: the built styles on OpenTUI's test renderer, a simulated hover, press, theme switch and
-  focus), `test/types/tui.ts` (what the types accept and reject).
+  focus), `test/bomb.ts` (Node: the built styles in a bomb.sh frame at 30x8, its ANSI output read back as cells, a
+  pointer move, press and release, a theme switch, focus and the caret), `test/types/tui.ts` (what the types accept
+  and reject). `examples/bomb.ts` is a list on bomb.sh (`bun run example`).
 
 ## Out of scope in v1
 
 Terminal HMR; inheritance of text styles; per-side borders (`borderTop`), titles and custom border characters (use
 the renderable's options); `calc()` and units; `cv()` variants and `firstThatWorks()` on terminal styles;
 `media()`, `container()`, `supports()`, `attr()`, `within()`, `group()`; transitions and animation; colour depth
-downgrade (OpenTUI and the terminal do it); the bomb.sh adapter (cssints-kotl).
+downgrade (OpenTUI and the terminal do it).
