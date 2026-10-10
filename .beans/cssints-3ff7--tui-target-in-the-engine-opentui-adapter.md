@@ -5,7 +5,7 @@ status: in-progress
 type: feature
 priority: normal
 created_at: 2026-10-10T11:34:51Z
-updated_at: 2026-10-10T12:03:18Z
+updated_at: 2026-10-10T12:07:03Z
 parent: cssints-06ws
 ---
 
@@ -14,6 +14,6 @@ Design note docs/research/tui.md, then the engine target: what css.* means in a 
 ## Todo
 - [x] docs/research/tui.md: property mapping, units, states, themes, what is rejected
 - [x] engine target and its types
-- [ ] OpenTUI adapter (box/text props, states, theme switch)
+- [x] OpenTUI adapter (box/text props, states, theme switch)
 - [x] tests (fixtures, type tests, a render snapshot under Bun)
-- [ ] docs/API.md section, wayfinder entry
+- [x] docs/API.md section, wayfinder entry

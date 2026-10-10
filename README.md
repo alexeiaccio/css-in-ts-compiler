@@ -89,6 +89,10 @@ export const Row = ({ wide, on }: { wide?: boolean; on?: boolean }) => (
 }
 ```
 
+### In a terminal
+
+`import * as css from "cssints/tui" with { type: "cssints" }` gives the members a terminal has (cells, colours, borders, flex, states, `cursor`), and the plugin compiles them to prop objects for [OpenTUI](https://opentui.com) renderables instead of classes; `@cssints/tui` applies their states and themes: [packages/tui](packages/tui/README.md), docs/API.md "TUI".
+
 More in [docs/API.md](docs/API.md): property names and short names, `flex()` and `grid()` chains, conditions and layers, tokens and themes, `cx`, `cn` and `cv`, and the errors you can get.
 
 ## Debugging
