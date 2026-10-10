@@ -67,5 +67,7 @@ try {
   rmSync(tmp, { recursive: true, force: true });
   await server.close();
 }
-console.log("dev drop: a module that loses its cssints import loses its rules, and gets them back ok");
+console.log(
+  "dev drop: a module that loses its cssints import loses its rules, and gets them back ok",
+);
 process.exit(0);
