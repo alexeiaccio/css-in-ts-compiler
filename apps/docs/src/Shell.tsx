@@ -44,14 +44,14 @@ const wordCss = css.color(css.lightDark("#663399", "#a77bd6"));
 const wordIn = css.color(css.lightDark("#00877b", "#00ffe8"));
 const wordTs = css.color(css.lightDark("#3178c6", "#5b9be0"));
 const alpha = css.cn(
-  css.padding("1px", t.space.sm),
-  css.border(t.border.width, "solid", t.color.border),
-  css.borderRadius("999px"),
-  css.fontSize(t.fontSize.xs),
-  css.fontWeight(t.fontWeight.medium),
+  css.alignSelf("flex-start"),
+  css.marginLeft("-5px"),
+  css.marginTop("2px"),
+  css.fontSize("10px"),
+  css.fontWeight(t.fontWeight.semiBold),
+  css.lineHeight(1),
   css.color(t.color.textMedium),
-  css.textTransform("uppercase"),
-  css.letterSpacing("0.06em"),
+  css.letterSpacing("0.04em"),
 );
 const logo = css.cn(css.width("28px"), css.height("28px"), css.flexShrink(0));
 
@@ -235,9 +235,9 @@ export function Shell(props: { children?: JSX.Element }) {
             <span class={wordIn}>in</span>
             <span class={wordTs}>ts</span>
           </span>
-          <span class={alpha} title="0.1, alpha: the API can still change">
+          <sup class={alpha} title="0.1, alpha: the API can still change">
             alpha
-          </span>
+          </sup>
         </a>
         <Search />
         <a href={url("playground")} class={iconButton} aria-label="Playground" title="Playground">
