@@ -1,9 +1,10 @@
 import { a as registry } from "./registry-n9JCX4pl.mjs";
 import { O as fail, a as createTokens, i as createGlobalTheme } from "./theme-BGEbFAYh.mjs";
 import { g as evaluate, h as css } from "./sheet-CO7a-mdA.mjs";
-import { n as valueOf, t as together } from "./contrast-CZ8N3rna.mjs";
+import { n as valueOf, t as together } from "./contrast-BUKVao74.mjs";
+import { n as parseColor } from "./color-BYIxVLlS.mjs";
 import { Formatter } from "effect";
-import { clampRgb, formatHex, formatHex8, parse } from "culori/fn";
+import { clampRgb, formatHex, formatHex8 } from "culori/fn";
 //#region src/tui.ts
 const isTui = (v) => !!v && typeof v === "object" && Array.isArray(v.__tui);
 const node = (entries) => ({ __tui: entries });
@@ -28,7 +29,7 @@ const keyword = (...words) => (prop, v) => {
 	throw fail(`cssints: ${prop}: unexpected ${say(v)}, expected ${words.join(" | ")}`);
 };
 const hexOf = (text) => {
-	let c = parse(text);
+	let c = parseColor(text);
 	if (!c && /\b(?:color-mix|from)\b/.test(text)) {
 		let rgb;
 		try {
@@ -36,7 +37,7 @@ const hexOf = (text) => {
 		} catch {
 			rgb = void 0;
 		}
-		c = rgb === void 0 ? void 0 : parse(rgb);
+		c = rgb === void 0 ? void 0 : parseColor(rgb);
 	}
 	if (!c) return void 0;
 	const clipped = clampRgb(c);

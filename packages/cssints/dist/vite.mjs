@@ -1,7 +1,7 @@
 import { c as EvalError, d as MacroError, f as MemberError, i as forgetWarnings, l as HookError, n as forget, p as SiteMissingError, t as Registry } from "./registry-n9JCX4pl.mjs";
 import { C as fallbackEntries, T as runtimeNames, a as closeNames, b as DERIVED, c as layerEntries, f as themedEntries, l as layerStatements, m as usesDerived, n as addGlobal, o as globalEntries, r as addLayers, s as globalNames, t as LAYERS, u as renderSheet, v as kernelEntries, w as runtimeModule, x as RUNTIME_ID } from "./sheet-CO7a-mdA.mjs";
 import { i as keptImport, n as RUNTIME, r as instrument } from "./instrument-Bdtk2INz.mjs";
-import { r as verifyChecks } from "./contrast-CZ8N3rna.mjs";
+import { r as verifyChecks } from "./contrast-BUKVao74.mjs";
 import { createRequire } from "node:module";
 import { targets as targets$1, useTargets } from "@cssints/css-grammar/support";
 import { Cause, Clock, Config, Data, Effect, Exit, Formatter, Option, Predicate, Result, Schema, Semaphore } from "effect";
@@ -615,6 +615,7 @@ function cssints({ inner = false, exclude, devtools = false, opencode = false } 
 	let root = process.cwd();
 	let rootTargets;
 	let cssPlugins = [];
+	let resolveOf = {};
 	const usedBy = /* @__PURE__ */ new Map();
 	const depsOf = /* @__PURE__ */ new Map();
 	const inflight = /* @__PURE__ */ new Set();
@@ -788,6 +789,7 @@ function cssints({ inner = false, exclude, devtools = false, opencode = false } 
 					hmr: false
 				},
 				optimizeDeps: { noDiscovery: true },
+				...resolveOf,
 				plugins: [cssints({
 					inner: true,
 					exclude
@@ -883,6 +885,14 @@ function cssints({ inner = false, exclude, devtools = false, opencode = false } 
 			buildMap = build && !inner && config.build.sourcemap;
 			root = config.root;
 			if (!inner) rootTargets = Effect.runSync(targets$1(void 0, root));
+			const ssr = config.environments.ssr?.resolve;
+			resolveOf = {
+				resolve: { alias: config.resolve.alias },
+				...ssr && { environments: { ssr: { resolve: {
+					conditions: ssr.conditions,
+					externalConditions: ssr.externalConditions
+				} } } }
+			};
 			cssPlugins = ["vite:css", "vite:css-post"].map((n) => config.plugins.find((p) => p.name === n));
 		},
 		configureServer(s) {

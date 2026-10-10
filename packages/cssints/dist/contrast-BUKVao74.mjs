@@ -70,7 +70,7 @@ const verify = (check, state, { luminance, ratio, shown }) => {
 const verifyChecks = Effect.fnUntraced(function* (select) {
 	const checks = [...registry.checks.values()].filter(select);
 	if (!checks.length) return;
-	const colours = yield* Effect.promise(() => import("./color-C208At51.mjs"));
+	const colours = yield* Effect.promise(() => import("./color-C8OzjAeg.mjs"));
 	for (const check of checks) {
 		const errors = verify(check, registry, colours);
 		if (errors.length) return yield* new MacroError({

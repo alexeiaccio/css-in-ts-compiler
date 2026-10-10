@@ -16,6 +16,7 @@ for (const mode of [
 	modeXyz50,
 	modeXyz65
 ]) useMode(mode);
+const parseColor = (text) => parse(text);
 const luminance = (text) => {
 	const c = parse(text);
 	if (!c) return { why: "is not a colour the check can read" };
@@ -25,4 +26,4 @@ const luminance = (text) => {
 const ratio = (a, b) => (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
 const shown = (r) => (Math.floor(r * 100) / 100).toFixed(2);
 //#endregion
-export { ratio as n, shown as r, luminance as t };
+export { shown as i, parseColor as n, ratio as r, luminance as t };
