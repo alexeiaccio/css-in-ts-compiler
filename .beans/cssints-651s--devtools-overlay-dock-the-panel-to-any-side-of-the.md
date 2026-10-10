@@ -1,10 +1,11 @@
 ---
 # cssints-651s
 title: 'Devtools overlay: dock the panel to any side of the page'
-status: in-progress
+status: completed
 type: feature
+priority: normal
 created_at: 2026-10-10T17:49:21Z
-updated_at: 2026-10-10T17:49:21Z
+updated_at: 2026-10-10T18:35:49Z
 ---
 
 Asked by the user (2026-10-10): the devtools overlay panel can be attached to different sides of the page.
