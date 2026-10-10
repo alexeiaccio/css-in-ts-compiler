@@ -12,8 +12,7 @@ export default Alchemy.Stack(
       command: "bun run build",
       outdir: "dist",
       assets: { notFoundHandling: "404-page" },
-      // the old address answers with a 301 to the new one (a redirect rule in its zone, before the Worker)
-      domain: { name: "cssints.dev", redirects: ["cssints.accio.blue"] },
+      domain: "cssints.dev",
     });
     return { url: site.url };
   }),

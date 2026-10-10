@@ -19,7 +19,7 @@ https://cssints.dev is a Cloudflare Worker serving `dist/` as static assets, des
    - Account → **Workers Scripts: Edit**
    - Account → **Secrets Store: Edit** (Alchemy reads its state-store token through a Secrets Store binding; `Read` is not enough)
    - Account → **Account Settings: Read**
-   - Zone → **Workers Routes: Edit**, **DNS: Edit**, **Zone: Read**, for the zones `cssints.dev` (the site) and `accio.blue` (the old address, a 301 to the new one)
+   - Zone → **Workers Routes: Edit**, **DNS: Edit**, **Zone: Read**, for the zone `cssints.dev`
    - Account resources: the account `5968a0616879ef75c3c6759d0e2db561`.
 2. **Add the secrets.** GitHub → the repository → Settings → Secrets and variables → Actions → New repository secret:
    - `CLOUDFLARE_API_TOKEN`: the token from step 1
