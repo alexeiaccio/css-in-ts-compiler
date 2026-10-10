@@ -1,11 +1,11 @@
 ---
 # cssints-xy37
 title: 'Flaky: themes.mjs ''a derived colour warns once'' in a full run'
-status: in-progress
+status: completed
 type: bug
 priority: low
 created_at: 2026-10-10T16:36:30Z
-updated_at: 2026-10-10T19:45:38Z
+updated_at: 2026-10-10T20:07:26Z
 ---
 
 packages/cssints test/themes.mjs:397 'build: a derived colour warns once' failed once inside a full `bun run test` of packages/cssints (integ/tui worktree, busy machine) and passed alone and on the next full run. Probably the per-file-per-build warning de-duplication (cssints-p3d2) racing with another build in the same process, or timing. Reproduce with repeated full runs.
@@ -17,3 +17,14 @@ packages/cssints test/themes.mjs:397 'build: a derived colour warns once' failed
 - [x] Harden themes.mjs
 - [x] depends-on.mjs: wait on events, not fixed sleeps
 - [x] Runs after the fix
+
+## Summary of Changes
+
+Not reproduced in the original form. Tried: themes.mjs 20 runs alone, 30 under 14 busy loops (8 cores), 18 in parallel, and 2 full `bun run test` chains under 10 busy loops; all green. No engine bug found in the warning path: `warn()` de-duplicates on `file \0 key` in the process-wide `registry.warned`, which only `buildStart` (build) and `hotUpdate` (dev, client env) clear; only the outer plugin flushes `registry.warnings`, the inner evaluation server never does.
+
+Hardened against what the code shows can break the assertions (test-only):
+- Every server of themes.mjs shared one `warnings` array through one customLogger. The first server is never closed, and Vite logs on its own (port in use, the dep scan). The derived-colour checks now use their own logger per server, and they count only the lines that contain `cssints:`.
+- The dev twin waited for the first watcher `change`. A probe showed that FSEvents reports the write made just before the watcher started (10 of 15 fresh servers got a stray `change`), so that wait could end early. Then a fixed 500 ms sleep followed. The test now waits for hotUpdate to invalidate tokens.ts (with a 10 s cap). The server uses `ws: false` in place of the fixed HMR port 24999, which collides between parallel worktrees.
+- depends-on.mjs: the `vite build --watch` part slept 500 ms and wrote once. A write made before rollup watches the file is lost. It now waits for the built sheet (30 s cap) and writes again until a build sees the edit. Note: two runs at the same time share `test/out/swatch.txt`, so a parallel run of depends-on.mjs fails by design.
+
+After the fix: themes.mjs 30/30 under 10 busy loops, depends-on.mjs 6/6 under 10 busy loops, the full `bun run test` 2/2, typecheck clean.
