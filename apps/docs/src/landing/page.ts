@@ -48,7 +48,7 @@ const inlineCode = css.cn(
   css.borderRadius(t.radius.xs),
 );
 
-// the hero: its glow (and the shader, shader.ts) fills the width; the logo, pitch, install line and two ways in sit in a column
+// the hero: its glow fills the width; the logo, pitch, install line and two ways in sit in a column
 const hero = css.cn(
   css.position("relative"),
   css.isolation("isolate"),
