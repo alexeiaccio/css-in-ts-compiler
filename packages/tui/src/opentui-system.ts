@@ -2,8 +2,7 @@
 // (`renderer.getPalette`: OSC 4, 10, 11), follows mode 2031 and emits `theme_mode` and `palette`; this feeds them to the
 // theme. OpenTUI draws ANSI indices, so a terminal that reports nothing gets `ansi:N` and `default` colours.
 // @effect-diagnostics asyncFunction:off -- plain run-time code of a terminal app (plainCode), no Effect
-import { setTimeout as sleep } from "node:timers/promises";
-
+// @effect-diagnostics globalTimers:off -- plain run-time code of a terminal app (plainCode): a timer, no Effect
 import type { CliRenderer, TerminalColors, ThemeMode } from "@opentui/core";
 
 import { setTheme } from "./index.ts";
@@ -61,6 +60,9 @@ export const followSystemTheme = async (
   renderer.once("destroy", stop);
   apply();
   setTheme(theme.name);
-  await Promise.race([query(), sleep(options.wait ?? 100, undefined, { ref: false })]);
+  const waited = Promise.withResolvers<void>();
+  const timer = setTimeout(waited.resolve, options.wait ?? 100);
+  await Promise.race([query(), waited.promise]);
+  clearTimeout(timer);
   return stop;
 };

@@ -2,6 +2,7 @@
 import * as css from "cssints/tui";
 
 import { attach, resolve, setTheme, use } from "../../src/opentui.ts";
+import { createSystemTheme } from "../../src/system.ts";
 
 const t = css.createTokens({ color: { $type: "color", fg: { $value: "#cdd6f4" } } });
 css.createGlobalTheme(t, "light", { color: { fg: "#4c4f69" } });
@@ -48,3 +49,20 @@ css.cursor("hand");
 css.hover("_abc" as string & { readonly __cssints: "style" });
 // @ts-expect-error a theme sets tokens that exist
 css.createGlobalTheme(t, "dark", { color: { nope: "#000" } });
+
+// the roles of a system theme: a role per colour token, `on` takes colour tokens
+const s = css.createTokens({
+  color: { $type: "color", bg: { $value: "#000" }, fg: { $value: "#fff" } },
+  size: { $type: "dimension", gap: { $value: "1px" } },
+});
+export const system = createSystemTheme(s, {
+  color: { bg: { surface: true }, fg: { hue: "brightBlue", on: [s.color.bg], contrast: 4.5 } },
+});
+// @ts-expect-error a hue is an ANSI name, fg or bg
+createSystemTheme(s, { color: { fg: { hue: "purple" } } });
+// @ts-expect-error a token that is no colour has no role
+createSystemTheme(s, { size: { gap: { contrast: 3 } } });
+// @ts-expect-error `on` takes colour tokens
+createSystemTheme(s, { color: { fg: { on: [s.size.gap] } } });
+// @ts-expect-error a role of a token that does not exist
+createSystemTheme(s, { color: { nope: {} } });

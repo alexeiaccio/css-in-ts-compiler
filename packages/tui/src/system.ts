@@ -47,12 +47,14 @@ export type Slot = (typeof SLOTS)[number];
 export type Hue = Slot | "fg" | "bg";
 export type Appearance = "dark" | "light";
 
+/** A colour token of `createTokens` (its text at run time: `var(--name)`). */
+export type ColourToken = string | { readonly "~token": "color" };
 /** A colour token as a role of the system theme. */
 export interface Role {
   /** The hue source (default `"fg"`, `"bg"` for a surface). */
   hue?: Hue;
   /** The tokens it sits on (each must have a role). */
-  on?: readonly string[];
+  on?: readonly ColourToken[];
   /** The WCAG 2 ratio against each of `on`: the least for text, the exact one (to the first) for a surface. */
   contrast?: number;
   /** A background: placed at `contrast` from its first `on`, toward the foreground; the terminal's background without. */
@@ -61,7 +63,13 @@ export interface Role {
   ansi?: number | "default";
 }
 /** The roles of a token set, in its shape: a role per colour token, any left out. */
-export type Roles<T> = { [K in keyof T]?: T[K] extends string ? Role : Roles<T[K]> };
+export type Roles<T> = {
+  [K in keyof T]?: T[K] extends ColourToken
+    ? Role
+    : T[K] extends { readonly "~token": unknown }
+      ? never
+      : Roles<T[K]>;
+};
 
 /** What a terminal reported: `#rrggbb` colours (`undefined` or `null`: no answer) and its colour scheme. */
 export interface Report {

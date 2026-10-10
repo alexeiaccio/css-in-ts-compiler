@@ -107,7 +107,7 @@ for (const [label, [report, appearance]] of Object.entries(PALETTES)) {
     const hue = role.hue ?? (role.surface ? "bg" : "fg");
     const source =
       hue === "bg" ? report.bg! : hue === "fg" ? report.fg! : report.ansi![SLOTS.indexOf(hue)]!;
-    for (const on of role.on ?? []) {
+    for (const on of (role.on ?? []) as string[]) {
       const r = contrast(got, v[nameOf(on)]!);
       if (role.surface)
         assert.ok(
