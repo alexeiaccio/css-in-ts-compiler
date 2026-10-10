@@ -71,6 +71,9 @@ for (const bg of [t.color.bg, t.color.bgSubtle]) check.contrast(t.color.textLow,
 check.contrast(t.color.link, t.color.bg, { min: 4.5 });
 check.contrast(t.color.link, t.color.bgSubtle, { min: 4.5 });
 check.contrast(t.color.accentStrong, t.color.accentSoft, { min: 4.5 });
+// the landing hero's shader (src/landing/shader.ts) runs from bg to accentSoft behind its text
+check.contrast(t.color.text, t.color.accentSoft, { min: 4.5 });
+check.contrast(t.color.textMedium, t.color.accentSoft, { min: 4.5 });
 // accent is a fill, a border and the focus ring: 3 is the floor for graphics (WCAG 1.4.11)
 check.contrast(t.color.accent, t.color.bg, { min: 3 });
 check.contrast(t.color.onAccent, t.color.accent, { min: 4.5 });

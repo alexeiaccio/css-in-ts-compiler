@@ -69,7 +69,7 @@ async function withServer<T>(
   }
 }
 
-export const compile = () => withServer(async (_, made) => made);
+export const compile = () => withServer((_, made) => Promise.resolve(made));
 
 // `base` ends with a slash, as in plugin/docs.ts: the data of the page, and the html this server makes of it
 export async function landing(base: string): Promise<{ data: LandingData; html: string }> {

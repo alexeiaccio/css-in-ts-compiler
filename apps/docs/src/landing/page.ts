@@ -1,6 +1,7 @@
 // The landing page (/) as one html string. plugin/landing.ts calls landing(data) on a Vite server of its own for the document of
 // "/", and the virtual module virtual:docs/landing calls it with the same data for the app, so the two strings are equal. The
 // classes are css.cn of the cssints plugin, atomic and hashed from their content: the same module gives the same names in both.
+import type { Style } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 
 import { gtSidebar } from "../layout.ts" with { type: "cssints" };
@@ -21,7 +22,7 @@ export interface LandingData {
 
 const ring = css.focusVisible(css.outline("2px solid", t.color.accent), css.outlineOffset("2px"));
 
-const root = css.cn(
+const root: Style = css.cn(
   css.maxWidth("1120px"),
   css.marginInline("auto"),
   css.padding(t.space._3xl, t.space.lg),

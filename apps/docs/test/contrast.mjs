@@ -35,6 +35,9 @@ const pairs = [
   { fg: "link", bg: "bgSubtle", min: 4.5 },
   { fg: "onAccent", bg: "accent", min: 4.5 },
   { fg: "accentStrong", bg: "accentSoft", min: 4.5 },
+  // the landing hero's shader runs from bg to accentSoft behind its text (src/landing/shader.ts)
+  { fg: "text", bg: "accentSoft", min: 4.5 },
+  { fg: "textMedium", bg: "accentSoft", min: 4.5 },
 ];
 
 // the modes point at the group pal, and tokens.json (the light default) at the same names

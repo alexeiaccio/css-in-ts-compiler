@@ -438,6 +438,16 @@ try {
         link,
       );
     }
+    // the shader (src/landing/shader.ts) is there when Chrome has WebGPU, behind the hero and hidden from assistive technology;
+    // without it the page is the same, so this holds either way
+    if (await page.evaluate(() => !!navigator.gpu)) {
+      const canvas = page.locator("[data-hero] canvas");
+      await canvas.waitFor({ state: "attached" });
+      assert.equal(await canvas.evaluate((c) => c.parentElement.ariaHidden), "true", "aria-hidden");
+      // a mode change recolours it: no error follows (problems is checked at the end)
+      await page.evaluate(() => document.documentElement.classList.toggle("dark"));
+      await sleep(300);
+    }
     await page.screenshot({ path: join(out, `landing-${name}.png`), fullPage: true });
     return page;
   };
@@ -457,6 +467,22 @@ try {
   const small = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
   await (await landing(small, "mobile")).close();
   await small.close();
+  // no shader, and no error, when the browser asks for less motion or has no WebGPU: the hero keeps its radial gradient
+  for (const { why, options, init } of [
+    { why: "reduced motion", options: { reducedMotion: "reduce" }, init: () => {} },
+    { why: "no WebGPU", options: {}, init: () => delete Navigator.prototype.gpu },
+  ]) {
+    const context = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      ...options,
+    });
+    await context.addInitScript(init);
+    const page = await open(context);
+    await page.locator("[data-landing] [data-panels]").waitFor({ state: "visible" });
+    await sleep(1500);
+    assert.equal(await page.locator("[data-hero] canvas").count(), 0, `no shader: ${why}`);
+    await context.close();
+  }
 
   // the built site
   const dist = join(out, "dist");
@@ -528,10 +554,10 @@ try {
       );
       seen.push(await page.textContent("h1"));
       if (path === "") {
-        // the app renders the string of the document, so the swap changes nothing (but the shader's canvas, which it adds)
+        // the app renders the string of the document, so the swap changes nothing (but the shader's layer, which it adds)
         const live = await page.evaluate(() => {
           const copy = document.querySelector("[data-landing]").cloneNode(true);
-          copy.querySelectorAll("canvas").forEach((c) => c.remove());
+          copy.querySelector("[data-shader]")?.remove();
           return copy.outerHTML;
         });
         assert.equal(live, staticLanding, "the landing page of the app is the prerendered one");
