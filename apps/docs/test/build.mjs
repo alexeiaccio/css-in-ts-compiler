@@ -195,7 +195,7 @@ assert.match(
   written("tokens", "Tokens", "A token is a Typed OM value whose"),
   /^A token is a Typed OM value/,
 );
-assert.match(written("install", "Install", "It needs Vite 8"), /^Not on npm yet/);
+assert.match(written("install", "Install", "cssints needs Vite 8"), /^cssints needs Vite 8/);
 assert.match(
   written("overview", "CSS-in-TS", "cssints is compile-time CSS-in-TypeScript"),
   /^cssints is compile-time/,

@@ -8,11 +8,23 @@ cssints is compile-time CSS-in-TypeScript. You write calls such as `css.flex().a
 - Conditions (`media`, `container`, `supports`, `hover`), variants (`cv`), design tokens and themes (`createTokens`, `createGlobalTheme`, `check.contrast`) are all build-time, and all typed.
 - LightningCSS optimizes the output. Browser support (`@mdn/browser-compat-data` against your browserslist) is reported as warnings, except for what LightningCSS lowers for those targets.
 
-Status: 0.1 is not published yet. Decisions and findings are in [docs/wayfinder.md](docs/wayfinder.md); the API reference is [docs/API.md](docs/API.md). Both are also a site with search and type hovers: [apps/docs](apps/docs) (`cd apps/docs && bun run dev`); deployed to Cloudflare with Alchemy: <https://cssints.dev>.
+> **Alpha.** 0.1 is on npm under the `next` tag. The API can still change between minor versions, the plugin packages
+> may move, and some browsers and frameworks are checked less than others (docs/API.md, "Browser support and what 0.1
+> does not have"). Pin the version, and report what breaks.
+
+Decisions and findings are in [docs/wayfinder.md](docs/wayfinder.md); the API reference is [docs/API.md](docs/API.md). Both are also a site with search and type hovers: [apps/docs](apps/docs) (`cd apps/docs && bun run dev`); deployed to Cloudflare with Alchemy: <https://cssints.dev>.
 
 ## Install
 
-Not on npm yet. In this repo `cssints` is a workspace package (`apps/demo` depends on `"cssints": "workspace:*"`). It needs Vite 8 (Vite+ works too) and, for the plugin, Node with type stripping (22.18 or later).
+```bash
+npm install --save-dev cssints@next vite@8   # or: bun add -d cssints@next vite@8, pnpm add -D cssints@next vite@8
+```
+
+cssints needs Vite 8 (Vite+ works too) and Node 22.18 or later (the plugin runs your modules with type stripping). It is a
+dev dependency: nothing of it ships except `cx` and the few lines behind `cv`. The plugin packages are installed the same
+way, each beside `cssints` (`npm install --save-dev @cssints/fluid@next`); the list is on the
+[plugin packages](docs/API.md#plugin-packages-cssints-dk1q) page. In this repository `cssints` is a workspace package
+(`"cssints": "workspace:*"`).
 
 ```ts
 // vite.config.ts
@@ -112,8 +124,7 @@ npx skills-npm                                # links the skills of every instal
 npx skills add ./node_modules/cssints/skills  # or the skills CLI, for opencode, Claude Code, Codex, Cursor, ...
 ```
 
-Until 0.1 is on npm, point `npx skills add` at `packages/cssints/skills` of this repository. Agents working on this
-repository get `.agents/skills/cssints-contributor` (also `.claude/skills`) with no install.
+Agents working on this repository get `.agents/skills/cssints-contributor` (also `.claude/skills`) with no install.
 
 `@cssints/mcp` is an MCP server with the build's own checks (`check_declaration`, `check_support`, `check_contrast`,
 `compile`, `search_docs`, `list_plugins`), in [packages/mcp](packages/mcp) with the config for opencode, Claude Code

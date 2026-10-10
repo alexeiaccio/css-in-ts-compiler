@@ -39,6 +39,7 @@ import {
   tabSize,
   textAlign,
   textDecoration,
+  textTransform,
   textWrap,
   transition,
   whiteSpace,
@@ -103,6 +104,31 @@ global(
   fontSize(t.fontSize.lg),
   color(t.color.textMedium),
   textWrap("balance"),
+);
+// the alpha notice: a pill above the headline
+global(
+  `${l} .status`,
+  display("inline-flex"),
+  alignItems("center"),
+  gap(t.space.sm),
+  margin("0"),
+  padding(t.space.xs, t.space.md, t.space.xs, t.space.xs),
+  border(t.border.width, "solid", t.color.border),
+  borderRadius("999px"),
+  bg(t.color.bg),
+  fontSize(t.fontSize.sm),
+  color(t.color.textMedium),
+);
+global(
+  `${l} .status span`,
+  padding("2px", t.space.sm),
+  borderRadius("999px"),
+  bg(t.color.accent),
+  color(t.color.onAccent),
+  fontSize(t.fontSize.xs),
+  fontWeight(t.fontWeight.semiBold),
+  textTransform("uppercase"),
+  letterSpacing("0.06em"),
 );
 global(`${l} .install`, maxWidth("100%"), textAlign("left"));
 global(`${l} .install pre`, paddingBlock(t.space.md), paddingInline(t.space.xl));

@@ -84,6 +84,7 @@ export async function landing(base: string): Promise<string> {
   return `<div class="landing">
 <section class="hero">
 <img src="${base}logo.svg" alt="" width="96" height="96">
+<p class="status"><span>Alpha</span> 0.1 is on npm under <code>next</code>; the API can still change</p>
 <h1>CSS in TypeScript, compiled away</h1>
 <p class="lead">cssints turns typed style calls into atomic, content-hashed classes in one stylesheet when you build. The browser gets class names, not a styling library.</p>
 <div class="install">${code("npm install --save-dev cssints@next", "bash")}</div>

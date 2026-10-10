@@ -43,6 +43,16 @@ const brand = css.cn(
 const wordCss = css.color(css.lightDark("#663399", "#a77bd6"));
 const wordIn = css.color(css.lightDark("#00877b", "#00ffe8"));
 const wordTs = css.color(css.lightDark("#3178c6", "#5b9be0"));
+const alpha = css.cn(
+  css.padding("1px", t.space.sm),
+  css.border(t.border.width, "solid", t.color.border),
+  css.borderRadius("999px"),
+  css.fontSize(t.fontSize.xs),
+  css.fontWeight(t.fontWeight.medium),
+  css.color(t.color.textMedium),
+  css.textTransform("uppercase"),
+  css.letterSpacing("0.06em"),
+);
 const logo = css.cn(css.width("28px"), css.height("28px"), css.flexShrink(0));
 
 const iconButton = css.cn(
@@ -224,6 +234,9 @@ export function Shell(props: { children?: JSX.Element }) {
             <span class={wordCss}>css</span>
             <span class={wordIn}>in</span>
             <span class={wordTs}>ts</span>
+          </span>
+          <span class={alpha} title="0.1, alpha: the API can still change">
+            alpha
           </span>
         </a>
         <Search />
