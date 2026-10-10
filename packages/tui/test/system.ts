@@ -5,15 +5,18 @@ import assert from "node:assert/strict";
 
 import { converter, parse } from "culori/fn";
 
-import { defineTheme, resolve, setTheme } from "../src/index.ts";
+import { followSystemTheme } from "../src/bomb-system.ts";
+import { defineTheme, resolve, setTheme, theme } from "../src/index.ts";
 import {
   contrast,
   createSystemTheme,
+  NOTIFY,
   QUERY,
   type Report,
   type Role,
   scan,
   SLOTS,
+  UNNOTIFY,
 } from "../src/system.ts";
 
 const oklch = converter("oklch");
@@ -240,4 +243,46 @@ defineTheme("system", {}, "light");
 assert.equal(resolve(style).color, "#eeeeee", "a token it leaves out: the static theme under it");
 setTheme("");
 assert.equal(resolve(style).color, "#111111");
+// ---------- the bomb.sh follower: the queries out, the replies taken from stdin's bytes
+const bytes = (s: string) => Uint8Array.from(s, (ch) => ch.charCodeAt(0));
+const written: string[] = [];
+const follow = followSystemTheme(system, {
+  write: (s) => written.push(s),
+  wait: 50,
+  colorfgbg: "",
+});
+assert.deepEqual(written, [QUERY + NOTIFY]);
+assert.equal(theme(), "system");
+assert.equal(
+  resolve(style).color,
+  "#111111",
+  "nothing yet: the static theme (no indexed colour in bomb.sh)",
+);
+const [nord] = PALETTES.Nord!;
+const answers =
+  `${ESC}]10;rgb:d8/de/e9${BEL}${ESC}]11;rgb:2e/34/40${BEL}` +
+  nord.ansi!.map((hex, i) => `${ESC}]4;${i};${hex}${ST}`).join("") +
+  `${ESC}[?997;1n`;
+const split = answers.length >> 1;
+// the replies arrive with a key, cut in two chunks
+assert.deepEqual([...follow.feed(bytes(`a${answers.slice(0, split)}`))], [97]);
+assert.deepEqual([...follow.feed(bytes(`${answers.slice(split)}é`))], [...bytes("é")]);
+await follow.ready;
+const nordText = system.solve(nord).values["color-text"];
+assert.equal(resolve(style).color, nordText, "every reply in: the theme of the palette");
+// a change notification: the queries again, and the new replies applied as they come
+follow.feed(bytes(`${ESC}[?997;2n`));
+assert.equal(written.at(-1), QUERY);
+follow.feed(bytes(`${ESC}]11;rgb:ff/ff/ff${BEL}${ESC}]10;rgb:00/00/00${BEL}`));
+assert.notEqual(resolve(style).color, nordText);
+assert.ok(contrast(resolve(style).color!, "#ffffff") >= 7);
+follow.stop();
+assert.equal(written.at(-1), UNNOTIFY);
+// a terminal that does not answer: ready after `wait`, the static theme of COLORFGBG's appearance
+defineTheme("system", {});
+const silent = followSystemTheme(system, { write: () => {}, wait: 10, colorfgbg: "0;15" });
+await silent.ready;
+assert.equal(resolve(style).color, "#eeeeee", "light by COLORFGBG: the light theme");
+silent.stop();
+setTheme("");
 console.log("system ok");
