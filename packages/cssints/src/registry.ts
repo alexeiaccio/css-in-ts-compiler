@@ -177,6 +177,8 @@ export interface RegistryState {
   };
   /** the replacement of a site that holds a node of cssints/tui (tui.ts), set when that module loads */
   tui?: (value: { readonly __tui: unknown }) => string | undefined;
+  /** the tokens and themes of cssints/tui (tui.ts): a namespace of their own, never in a sheet (cssints-0s1z) */
+  terminal?: Pick<RegistryState, "properties" | "defs" | "themed">;
   /** what the front of "cssints/plugin" calls (scope-engine.ts `engine`), set by macro.ts */
   engine?: object;
   /** the typed properties of scopes: checked by their own grammar when called, not by the engine */
@@ -276,6 +278,7 @@ export const forgetKernels = (file: string): void => {
 // What `file` left of its kernels, token sets, themes and checks is dropped when it is about to run again, or has no site any more.
 export const forget = (file: string): void => {
   forgetKernels(file);
-  for (const [k, t] of registry.themed) if (t.file === file) registry.themed.delete(k);
+  for (const themed of [registry.themed, registry.terminal?.themed ?? new Map<string, Themed>()])
+    for (const [k, t] of themed) if (t.file === file) themed.delete(k);
   for (const [k, c] of registry.checks) if (c.at.file === file) registry.checks.delete(k);
 };

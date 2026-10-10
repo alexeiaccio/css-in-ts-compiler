@@ -136,7 +136,8 @@ Neutral key = what the compiled object holds; OpenTUI = what the adapter sets.
 
 - `css.createTokens(...)` and `css.createGlobalTheme(tokens, name, overrides)` are re-exported by `cssints/tui` with
   their web types and checks. A theme's second argument is its name (`"dark"`, a valid type selector); a theme under
-  `media()` is not read by terminal styles (a terminal has no media queries).
+  `media()` is not read by terminal styles (a terminal has no media queries). They run on tables of their own
+  (cssints-0s1z): a terminal token is never in a sheet, and a web token of the same name in one build is another one.
 - A terminal has no custom properties, so a token is resolved at build time: the site holds the default value and,
   under `themes`, what each theme changes, states included: `{ backgroundColor: "#1e1e2e", themes: { light: {
 backgroundColor: "#eff1f5" } } }`. Aliases, derived tokens (`color-mix()` over a token) and references in a theme

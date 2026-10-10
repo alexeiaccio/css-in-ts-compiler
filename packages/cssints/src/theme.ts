@@ -155,6 +155,8 @@ export interface TokenSet {
   types: Map<string, DtcgType>;
   /** the tokens that stay live on others: `css` is the value with `var(--target)` for each reference */
   aliases: { name: string; targets: string[]; css: string }[];
+  /** a set of cssints/tui (tui.ts): its tokens are no sheet's */
+  terminal?: true;
 }
 // every group of every token set, by object: a subtree is a token set too
 export const sets = new WeakMap<object, TokenSet>();
@@ -451,9 +453,15 @@ export const createTokens = (...args: unknown[]): unknown =>
     }),
   );
 
-// The text a site of createTokens leaves on the client: the tokens by path, as `var(--name)` strings.
-export const tokensOf = (v: unknown): string | undefined =>
-  Predicate.isObject(v) && sets.has(v) ? Formatter.formatJson(v) : undefined;
+// The text a site of createTokens leaves on the client: the tokens by path, as `var(--name)` strings. A terminal set's
+// `--` is written `-\u002d`: a `--name` in a site's text counts as a token the module uses (entries.ts), and would pull
+// a web token of that name, its @property rule and its themes, into the sheet.
+export const tokensOf = (v: unknown): string | undefined => {
+  const set = Predicate.isObject(v) ? sets.get(v) : undefined;
+  if (!set) return undefined;
+  const text = Formatter.formatJson(v);
+  return set.terminal ? text.replaceAll("--", "-\\u002d") : text;
+};
 
 // ---------- createGlobalTheme
 
