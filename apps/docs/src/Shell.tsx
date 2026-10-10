@@ -38,7 +38,11 @@ const brand = css.cn(
   css.marginRight(t.space.sm),
   css.flexShrink(0),
 );
-const brandMark = css.cn(css.color(t.color.accent));
+// The wordmark in the logo's colours (#663399, #00FFE8, #3178C6), each taken lighter or darker where the page would hide it
+// (the cyan on white, the purple and the blue on the dark page).
+const wordCss = css.color(css.lightDark("#663399", "#a77bd6"));
+const wordIn = css.color(css.lightDark("#00877b", "#00ffe8"));
+const wordTs = css.color(css.lightDark("#3178c6", "#5b9be0"));
 const logo = css.cn(css.width("28px"), css.height("28px"), css.flexShrink(0));
 
 const iconButton = css.cn(
@@ -193,9 +197,17 @@ export function Shell(props: { children?: JSX.Element }) {
           <span class={open() ? menuIcon.x : menuIcon.list} />
         </button>
         <a href={url("")} class={brand}>
-          <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" class={logo} width="28" height="28" />
+          <img
+            src={`${import.meta.env.BASE_URL}logo.svg`}
+            alt=""
+            class={logo}
+            width="28"
+            height="28"
+          />
           <span>
-            <span class={brandMark}>css</span>ints
+            <span class={wordCss}>css</span>
+            <span class={wordIn}>in</span>
+            <span class={wordTs}>ts</span>
           </span>
         </a>
         <Search />
