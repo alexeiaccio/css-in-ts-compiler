@@ -5,7 +5,7 @@ status: completed
 type: feature
 priority: normal
 created_at: 2026-10-10T15:47:29Z
-updated_at: 2026-10-10T18:11:53Z
+updated_at: 2026-10-10T18:13:07Z
 parent: cssints-06ws
 blocked_by:
     - cssints-kotl
@@ -25,7 +25,7 @@ Idea: a `system` theme for cssints/tui built at run time from the terminal's own
 - [x] API for role tokens and the system theme; runtime theme table
 - [x] solver (reversed contrast, OKLCH/OKHSL), unit tests on a few known palettes (Gruvbox dark, Catppuccin Latte, Nord)
 - [x] OSC queries + fallbacks + appearance change in both adapters
-- [ ] sky-tui uses `system` by default, `--light`/`--dark` keep working
+- [x] sky-tui uses `system` by default, `--light`/`--dark` keep working
 
 ## Summary of Changes
 
