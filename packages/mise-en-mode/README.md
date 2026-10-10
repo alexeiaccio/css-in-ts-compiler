@@ -73,3 +73,9 @@ aliases are re-derived and contrast sees them. Aspects are the groups of the tok
 ```bash
 cd packages/mise-en-mode && bun run test   # fixtures through the engine (output, errors, contrast), and the type test via bun run typecheck
 ```
+
+## Credits
+
+Mise en Mode is an open style standard on AT Protocol (<https://standard.mode.place>), and the Mode Contract is its
+rules: `data-mode` scopes, the layers `app < author < viewer`, aspects. This package is an implementation of the
+contract on `scope()`; no code of the standard's site is copied.

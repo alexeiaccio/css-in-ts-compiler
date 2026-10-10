@@ -74,6 +74,12 @@ Chrome, Firefox and WebKit, checked by `test:browsers` on apps/demo's dev server
 - A page that Vite does not serve as HTML (server rendering) gets no entry.
 - The panel re-inspects every 600 ms while open: each pass adds and removes a probe `<style>` and attribute.
 
+## Credits
+
+The prompt box that starts an OpenCode session follows
+[brendonovich/vite-plugin-opencode](https://github.com/Brendonovich/vite-plugin-opencode) (MIT, Brendan Allan): the idea and
+the calls to the V2 client. No code is copied. The overlay is built with [Solid](https://www.solidjs.com) (MIT).
+
 ## Tests
 
 ```bash

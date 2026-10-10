@@ -125,3 +125,10 @@ fade-in | ...`, `motion.duration: unexpected "-1s" in "-1s", expected <time [0s,
 ```bash
 cd packages/motion && bun run test   # fixtures through the engine (output, conflicts, errors); bun run typecheck for the type test
 ```
+
+## Credits
+
+The design (presets that only set custom properties, one kernel over `keyframes()`), the preset names and the
+medium sizes (25%, 0.5, 5px) follow [tailwindcss-motion](https://github.com/romboHQ/tailwindcss-motion) (MIT, Rombo
+Limited) and [tailwindcss-animate](https://github.com/jamiebuilds/tailwindcss-animate) (MIT, Jamie Kyle). No code is
+copied.

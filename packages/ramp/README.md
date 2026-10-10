@@ -146,3 +146,10 @@ What a contrast ramp promises, exactly:
 cd packages/ramp && bun run test        # the ramp maths, then a fixture through the engine (check.contrast passes, a tight pair fails)
 cd packages/ramp && bun run typecheck   # the type test (test/types/ramp.ts)
 ```
+
+## Credits
+
+Two ideas, written here: the chroma relative to the sRGB gamut from [nutelch](https://github.com/meodai/nutelch) (MIT,
+David Aerne), and the search for a lightness that meets a contrast ratio from [Leonardo](https://github.com/adobe/leonardo)
+(Apache-2.0, Adobe). The colour maths is [culori](https://culorijs.org) (MIT, Dan Burzo), a dependency. No code is
+copied.

@@ -121,3 +121,30 @@ export const heading = cn(body.family(), body.trim({ lineHeight: 1.2 }));
 ```bash
 cd packages/fonts && bun run test   # fixtures through the engine (output, errors, warnings, a build), and the type test via bun run typecheck
 ```
+
+## Credits
+
+Copied, with the notice below:
+
+- The characters and weights of the average width (`xWidthAvg`): the latin table of
+  [`@capsizecss/unpack`](https://github.com/seek-oss/capsize) (MIT, SEEK).
+- The metrics of Arial, Times New Roman and Courier New from `@capsizecss/metrics` (MIT, SEEK).
+
+Followed, not copied: the fallback face and the trim formulas of `@capsizecss/core` (the test checks the numbers
+against it), and [fontaine](https://github.com/unjs/fontaine) (MIT, Daniel Roe) for the fallback face. The font files
+are read with [fontkitten](https://github.com/delucis/fontkitten) (MIT), a dependency.
+
+The MIT notice of Capsize, Copyright (c) 2021 SEEK:
+
+> Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+> documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
+> rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit
+> persons to whom the Software is furnished to do so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+> Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+> WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+> COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+> OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

@@ -71,6 +71,10 @@ setTheme("light"); // every attached renderable
 No terminal HMR, no inheritance of text styles, no per-side borders or titles (the renderable's own options), no
 units or `calc()`. See "Out of scope" in docs/research/tui.md.
 
+## Credits
+
+The adapter is for [OpenTUI](https://opentui.com) (MIT). No code of it is copied.
+
 ## Tests
 
 ```bash

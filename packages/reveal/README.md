@@ -133,3 +133,9 @@ expected fade-in | ...`, `reveal.range: unexpected "sideways" in "entry 0% sidew
 cd packages/reveal && bun run test            # fixtures through the engine (output by targets, runtime module, conflicts, errors)
 cd packages/reveal && bun run test:browsers   # Chrome, Firefox and WebKit through playwright-core
 ```
+
+## Credits
+
+In the spirit of [the supersonic plugin](https://github.com/the-illarionov/the-supersonic-plugin-for-scroll-based-animation)
+(MIT, Alex Illarionov) and [lax.js](https://github.com/alexfoxy/lax.js) (MIT, Alex Fox). The presets are
+[@cssints/motion](../motion/README.md)'s. No code is copied.

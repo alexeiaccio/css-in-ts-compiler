@@ -100,3 +100,8 @@ cd packages/squircle && bun run test            # fixtures through the engine (o
 cd packages/squircle && bun run typecheck       # and the type test (test/types)
 cd packages/squircle && bun run test:browsers   # Chrome, Firefox and WebKit through playwright-core
 ```
+
+## Credits
+
+The curve is the superellipse of CSS Borders and Box Decorations Level 4 (`corner-shape: squircle`). The mask is drawn
+here; nothing is copied.

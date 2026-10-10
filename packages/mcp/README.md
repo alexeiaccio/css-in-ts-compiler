@@ -105,6 +105,12 @@ claude mcp add cssints -- npx cssints-mcp
 
 In this repository, use `node packages/mcp/src/bin.ts` as the command (Node 22.18 or later runs the TypeScript sources).
 
+## Credits
+
+The server speaks the [Model Context Protocol](https://modelcontextprotocol.io) and is built on `effect/ai`. The
+checks are those of the build: [mdn-data](https://github.com/mdn/data) and [browser-compat-data](https://github.com/mdn/browser-compat-data)
+(both CC0-1.0), through `@cssints/css-grammar`.
+
 ## Development
 
 ```sh
