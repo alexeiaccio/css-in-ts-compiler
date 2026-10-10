@@ -6,7 +6,7 @@
 // Checks per package: the staged manifest has no `private`, no `workspace:` and no `development` condition; the license,
 // the repository (exactly the URL of the trusted publisher) and the access are set; every file that `exports` and `bin`
 // name exists; a sibling's range is met by the sibling's version; the tarball holds only dist/, docs/, skills/,
-// README, LICENSE and package.json (and src/core when `files` names it), never a test or a fixture. Over the whole
+// README, LICENSE, THIRD_PARTY_NOTICES.md and package.json (and src/core when `files` names it), never a test or a fixture. Over the whole
 // repository: the tracked dist/ folders equal a fresh build.
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
@@ -71,7 +71,7 @@ for (const dir of packageDirs) {
 
   const [{ files, size }] = JSON.parse(run("npm", ["pack", "--dry-run", "--json"], dest));
   const paths = files.map((f) => f.path);
-  const allowed = /^(package\.json|README\.md|LICENSE|(dist|docs|skills)\/.+)$/;
+  const allowed = /^(package\.json|README\.md|LICENSE|THIRD_PARTY_NOTICES\.md|(dist|docs|skills)\/.+)$/;
   for (const p of paths) {
     if (/^src\/core\//.test(p) && published.files.includes("src/core")) continue;
     if (!allowed.test(p)) bad(`${p} does not belong in the tarball`);
