@@ -180,13 +180,16 @@ try {
 
   // ---- the theme -----------------------------------------------------------------------------
   const dark = bgOf("post-1-0");
+  assert.equal(fgAt(1, 0), "59,156,240,255", "the title, a <span> with use()");
   await mockInput.typeText("t");
   await settle();
   assert.notEqual(bgOf("post-1-0"), dark, "t switches the theme");
   assert.equal(bgOf("post-1-0"), "255,255,255,255", "the light card");
+  assert.equal(fgAt(1, 0), "17,112,207,255", "the title's light accent");
   await mockInput.typeText("t");
   await settle();
   assert.equal(bgOf("post-1-0"), dark, "t again: the dark theme");
+  assert.equal(fgAt(1, 0), "59,156,240,255");
 } finally {
   renderer.destroy();
 }

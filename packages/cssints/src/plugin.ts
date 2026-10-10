@@ -17,6 +17,7 @@ import {
   createServer,
   createServerModuleRunner,
   type EnvironmentModuleNode,
+  type InlineConfig,
   normalizePath,
   type Plugin,
   type ResolvedConfig,
@@ -239,6 +240,7 @@ export default function cssints({
   let root = process.cwd();
   let rootTargets: Target[] | undefined; // the browserslist config of `root`: the support checks of every evaluation
   let cssPlugins: (Plugin | undefined)[] = []; // vite:css, vite:css-post: in build they take the sheet in renderChunk
+  let resolveOf: Pick<InlineConfig, "resolve" | "environments"> = {}; // the app's, for the evaluation server of a build
   const usedBy = new Map<string, string>(); // client module id -> its classes and @property rules, sorted, one a line
   const depsOf = new Map<string, Set<string>>(); // dependency file -> Set<client module id>
   const inflight = new Set<string>(); // client module ids inside transform: their deps are not in depsOf yet
@@ -486,6 +488,7 @@ export default function cssints({
           // The scan would follow every import, attributed ones too, into build-time code (node:fs, plugin helpers).
           server: { middlewareMode: true, watch: null, hmr: false },
           optimizeDeps: { noDiscovery: true },
+          ...resolveOf,
           plugins: [cssints({ inner: true, exclude })],
         }),
       catch: (cause) =>
@@ -628,6 +631,19 @@ export default function cssints({
       buildMap = build && !inner && config.build.sourcemap;
       root = config.root;
       if (!inner) rootTargets = Effect.runSync(targetsOf(undefined, root));
+      // A dev server evaluates in its ssr environment, so with the app's aliases and conditions; a build's private server
+      // gets them too (cssints-qnif).
+      const ssr = config.environments.ssr?.resolve;
+      resolveOf = {
+        resolve: { alias: config.resolve.alias },
+        ...(ssr && {
+          environments: {
+            ssr: {
+              resolve: { conditions: ssr.conditions, externalConditions: ssr.externalConditions },
+            },
+          },
+        }),
+      };
       cssPlugins = ["vite:css", "vite:css-post"].map((n) =>
         config.plugins.find((p) => p.name === n),
       );

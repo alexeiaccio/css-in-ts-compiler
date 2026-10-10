@@ -62,7 +62,13 @@ setTheme("light"); // every attached renderable
   `caretShape`, `caretColor` and `caretAnimation` are the `cursorStyle` and `cursorColor` of an Input or a Textarea.
 - `color` is OpenTUI's `fg`; `backgroundColor` is `backgroundColor` on a box and `bg` on a text; the text attributes
   (`fontWeight`, `fontStyle`, `textDecoration`) are the bits of `attributes`. A prop the renderable does not have is
-  not set, so a text style on a box does nothing: put it on the `<text>`.
+  not set, so a text style on a box does nothing: put it on the `<text>`. On an editable or a select, `color` is
+  `textColor`.
+- A focused renderable draws colours of its own: `focusedBorderColor` on a box (also while a descendant has the
+  focus), `focusedBackgroundColor` and `focusedTextColor` on an editable or a select. Each one follows the style's
+  colour in the current state, so a focused box draws its `:focus` border.
+- A text node (`<span>`, `<a>`, `<b>`) takes the props and the theme. It has no mouse events and no focus, so it has
+  no states: put `:hover` on the `<text>` around it.
 - `resolve(style, state, theme)` of `@cssints/tui` is the renderer-neutral part: the props of a style in a state and a
   theme, for another adapter.
 

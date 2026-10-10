@@ -1,10 +1,11 @@
 ---
 # cssints-649r
 title: 'dist/tui.mjs drops culori''s colour modes: every terminal colour fails in a build'
-status: todo
+status: completed
 type: bug
+priority: normal
 created_at: 2026-10-10T16:00:21Z
-updated_at: 2026-10-10T16:00:21Z
+updated_at: 2026-10-10T16:56:47Z
 parent: cssints-06ws
 ---
 
@@ -25,5 +26,9 @@ Workaround in sky-tui: `import "culori" with { type: "cssints" };` in src/styles
 
 ## Todo
 
-- [ ] keep the colour modes in dist/tui.mjs
-- [ ] a test of cssints/tui against the dist
+- [x] keep the colour modes in dist/tui.mjs
+- [x] a test of cssints/tui against the dist
+
+## Summary of Changes
+
+color.ts exports parseColor (culori's parse after the modes are registered), and tui.ts imports it instead of a bare `import "./color.ts"`: a used binding keeps the module, and with it its useMode() loop, in dist/tui.mjs whatever sideEffects says. No sideEffects list (chunk names are hashed). test/tui-dist.mjs (in `bun run test`) runs `vp pack` into a temporary node_modules/cssints and builds a cssints/tui style module with the plugin and members of that dist; it fails on the old source with the MacroError of the bean. sky-tui: the `import "culori" with { type: "cssints" }` workaround and its culori devDependency are gone. The tracked dist must be rebuilt on master before sky-tui builds again (it consumes cssints's dist).

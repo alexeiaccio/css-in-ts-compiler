@@ -30,19 +30,13 @@ the terminal supports OSC 22).
   (`<box {...use(s.bar)}>`), which follows the mouse, the focus and the theme. `t` and `--light`
   call `setTheme`.
 - The selected row has the keyboard focus (`focusable`, `focus()`), so its accent border is the
-  `:focus` of its style. The active tab is a second style: a renderable keeps the style it was
-  attached with, so the tab is made again when it turns active.
+  `:focus` of its style, as drawn. `<span>` and `<a>` take their style with `use()` too: the props
+  and the theme (a text node has no mouse events and no focus, so no states).
 
 ### Workarounds (bugs in cssints-06ws)
 
-- `<span>` and `<a>` are text nodes, and `use()` throws on them (cssints-5vnf): `span(style)` in
-  `Post.tsx` resolves the props and follows the theme through a signal.
-- A focused box draws `focusedBorderColor`, not the `:focus` border colour (cssints-pkpg): `Row`
-  sets `focusedBorderColor` from the style.
-- `cssints/dist/tui.mjs` leaves out culori's colour modes (cssints-649r): `styles.ts` imports
-  `culori` with `{ type: "cssints" }`, at build time only.
-- The build evaluates style modules without the app's aliases (cssints-qnif): `styles.ts` imports
-  only `cssints/tui`.
+- A renderable keeps the style it was attached with (cssints-332g): the active tab is a second
+  style, and `Tab` in `App.tsx` makes the tab again (`<Show>`) when it turns active.
 
 ## Limits
 

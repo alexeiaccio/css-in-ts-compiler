@@ -3,19 +3,35 @@
 // the mouse pointer. Run: bun test/render.ts (after node test/tui.mjs)
 import assert from "node:assert/strict";
 
-import { BoxRenderable, InputRenderable, type RGBA, rgbToHex, TextRenderable } from "@opentui/core";
+import {
+  BoxRenderable,
+  InputRenderable,
+  type RGBA,
+  rgbToHex,
+  TextNodeRenderable,
+  TextRenderable,
+} from "@opentui/core";
 import { createTestRenderer } from "@opentui/core/testing";
 
 import type { TuiShape } from "../src/index.ts";
 import { attach, setTheme, use } from "../src/opentui.ts";
 
 const built = "./out/card.mjs"; // written by test/tui.mjs
-const styles = (await import(built)) as Record<"button" | "label" | "field", TuiShape>;
+const styles = (await import(built)) as Record<"button" | "label" | "field" | "row", TuiShape>;
 
 const hex = (c: RGBA) => rgbToHex(c).slice(0, 7);
 
-const setup = await createTestRenderer({ width: 30, height: 8 });
-const { renderer, mockMouse, renderOnce, captureCharFrame } = setup;
+const setup = await createTestRenderer({ width: 30, height: 12 });
+const { renderer, mockMouse, renderOnce, captureCharFrame, captureSpans } = setup;
+// the colours drawn at a cell
+const drawn = (x: number, y: number) => {
+  let col = 0;
+  for (const span of captureSpans().lines[y]!.spans) {
+    if (x < col + span.width) return { fg: hex(span.fg), bg: hex(span.bg) };
+    col += span.width;
+  }
+  throw new Error(`no cell at ${x}, ${y}`);
+};
 const pointers: string[] = [];
 const setPointer = renderer.setMousePointer.bind(renderer);
 renderer.setMousePointer = (s) => {
@@ -88,9 +104,55 @@ try {
   input.focus();
   await renderOnce();
   assert.equal(hex(input.backgroundColor), "#45475a");
+  // as drawn: an editable draws focusedBackgroundColor while it has the focus (cssints-pkpg)
+  assert.equal(drawn(input.x, input.y).bg, "#45475a");
   input.blur();
   await renderOnce();
   assert.notEqual(hex(input.backgroundColor), "#45475a");
+  assert.notEqual(drawn(input.x, input.y).bg, "#45475a");
+
+  // a focused box draws focusedBorderColor: the adapter keeps it on the :focus border colour, theme included
+  // (cssints-pkpg; OpenTUI's own is #00aaff)
+  const row = attach(
+    new BoxRenderable(renderer, { position: "absolute", top: 8, focusable: true }),
+    styles.row,
+  );
+  renderer.root.add(row);
+  await renderOnce();
+  assert.equal(drawn(row.x, row.y + 1).fg, "#585b70");
+  row.focus();
+  await renderOnce();
+  assert.equal(drawn(row.x, row.y + 1).fg, "#89b4fa");
+  setTheme("light");
+  await renderOnce();
+  assert.equal(drawn(row.x, row.y + 1).fg, "#1e66f5");
+  setTheme("");
+  row.blur();
+  await renderOnce();
+  assert.equal(drawn(row.x, row.y + 1).fg, "#585b70");
+
+  // a text node (<span>, <a>: no mouse events, no focus): the props and the theme (cssints-5vnf)
+  const line = new TextRenderable(renderer, { position: "absolute", top: 3, content: "" });
+  const link = new TextNodeRenderable({});
+  link.add("Link");
+  use(styles.label).ref(link);
+  line.add(link);
+  renderer.root.add(line);
+  await renderOnce();
+  assert.equal(link.attributes, 1 | 8);
+  assert.equal(drawn(line.x, line.y).fg, "#cdd6f4");
+  setTheme("light");
+  await renderOnce();
+  assert.equal(drawn(line.x, line.y).fg, "#4c4f69");
+  setTheme("");
+  await renderOnce();
+  assert.equal(drawn(line.x, line.y).fg, "#cdd6f4");
+  // as @opentui/solid removes it: the theme no longer reaches it
+  line.remove(link);
+  link.destroyRecursively();
+  setTheme("light");
+  assert.equal(hex(link.fg!), "#cdd6f4");
+  setTheme("");
   console.log("render ok");
 } finally {
   renderer.destroy();
