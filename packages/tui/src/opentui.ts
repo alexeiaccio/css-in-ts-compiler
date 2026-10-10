@@ -65,6 +65,8 @@ export const props = (
 
 type Hooked = Renderable & { onMouseEvent(event: MouseEvent): void };
 type Node = Renderable | TextNodeRenderable;
+// the restyle of each attached renderable: attach() on one again swaps its style
+const attached = new WeakMap<Node, (style: TuiShape) => void>();
 
 /**
  * Sets the props of `style` on `r` and keeps them up to date: `:hover` from `over` to `out`, `:active` from `down` to
@@ -72,12 +74,19 @@ type Node = Renderable | TextNodeRenderable;
  * pointer is the style's `cursor` on `over`, `default` again on `out`. Handlers of your own (`onMouseOver`) still run.
  * A focused renderable draws its `focused*` colours (`focusedBorderColor` of a box): they follow the style too. A text
  * node (`<span>`, `<a>`) has no mouse events and no focus: it takes the props and the theme, not the states.
+ * On a renderable it has attached already, it swaps the style (cssints-332g): the states, the theme and the hooks stay,
+ * a prop only the old style set goes back to the renderable's own value, and the pointer follows the new `cursor`.
  *
  * @param {Renderable | TextNodeRenderable} r a renderable or a text node of OpenTUI
  * @param {TuiShape} style a style of cssints/tui
  * @returns {Renderable | TextNodeRenderable} `r`
  */
 export const attach = <R extends Node>(r: R, style: TuiShape): R => {
+  const again = attached.get(r);
+  if (again) {
+    again(style);
+    return r;
+  }
   const state: TuiState = {};
   const target = r as unknown as Record<string, unknown>;
   const saved = new Map<string, unknown>(); // the renderable's own value of each prop the style has set
@@ -105,6 +114,10 @@ export const attach = <R extends Node>(r: R, style: TuiShape): R => {
   };
   const stop = onTheme(apply);
   if (!("onMouseEvent" in r)) {
+    attached.set(r, (next) => {
+      style = next;
+      apply();
+    });
     // a text node: @opentui/solid destroys what it removes, and nothing is emitted
     const end = r.destroyRecursively.bind(r);
     r.destroyRecursively = () => {
@@ -137,19 +150,30 @@ export const attach = <R extends Node>(r: R, style: TuiShape): R => {
   hooked.on("focused", () => set("focus", true) && apply());
   hooked.on("blurred", () => set("focus", false) && apply());
   hooked.once("destroyed", stop);
+  attached.set(r, (next) => {
+    style = next;
+    if (state.hover) {
+      const cursor = resolve(style, state).cursor;
+      if (cursor || pointer) hooked.ctx.setMousePointer(cursor ?? "default");
+      pointer = !!cursor;
+    }
+    apply();
+  });
   apply();
   return r;
 };
 
 /**
  * Props to spread on an OpenTUI element of Solid or React: `<box {...use(card)} />`. The `ref` attaches the style
- * (`attach`) when the renderable is made, before its first frame.
+ * (`attach`) when the renderable is made, before its first frame. A style that changes is an accessor,
+ * `use(() => (active() ? a : b))`: Solid calls a ref in a render effect, so the signals it reads run it again, and each
+ * run swaps the style (React calls the new ref of each render). The adapter imports no framework.
  *
- * @param {TuiShape} style a style of cssints/tui
+ * @param {TuiShape | Function} style a style of cssints/tui, or a function that returns one
  * @returns {object} `{ ref }`
  */
-export const use = (style: TuiShape): { ref: (r: Node | null) => void } => ({
+export const use = (style: TuiShape | (() => TuiShape)): { ref: (r: Node | null) => void } => ({
   ref: (r) => {
-    if (r) attach(r, style);
+    if (r) attach(r, typeof style === "function" ? style() : style);
   },
 });

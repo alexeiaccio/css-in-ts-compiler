@@ -135,6 +135,48 @@ try {
   await renderOnce();
   assert.equal(drawn(row.x, row.y + 1).fg, "#585b70");
 
+  // restyle (cssints-332g): attach again (or use() with an accessor, re-run by the framework) swaps the style; the
+  // states, the theme and the hooks stay, what only the old style set goes back to OpenTUI's own value
+  let current = styles.button;
+  const swap = new BoxRenderable(renderer, {
+    position: "absolute",
+    top: 8,
+    left: 15,
+    focusable: true,
+  });
+  const own0 = { bg: hex(swap.backgroundColor), focused: hex(swap.focusedBorderColor) };
+  const ref = use(() => current).ref;
+  ref(swap);
+  renderer.root.add(swap);
+  await renderOnce();
+  setTheme("light");
+  await mockMouse.moveTo(swap.x + 2, swap.y + 1);
+  swap.focus();
+  await renderOnce();
+  assert.equal(hex(swap.backgroundColor), "#f1f2f6", "button, hovered, light");
+  assert.equal(pointers.at(-1), "pointer");
+  current = styles.row;
+  ref(swap); // as Solid re-runs the ref when the accessor's signals change
+  await renderOnce();
+  assert.equal(hex(swap.backgroundColor), own0.bg, "row sets no background: OpenTUI's own");
+  assert.equal(swap.width, 10, "row's width");
+  assert.equal(pointers.at(-1), "default", "row has no cursor: the pointer goes back");
+  assert.equal(drawn(swap.x, swap.y + 1).fg, "#1e66f5", "focused: row's :focus border, light");
+  assert.equal(swap.listenerCount("focused"), 1, "the hooks are not stacked");
+  attach(swap, styles.button);
+  await renderOnce();
+  assert.equal(hex(swap.backgroundColor), "#f1f2f6", "button again, still hovered and light");
+  assert.equal(pointers.at(-1), "pointer");
+  assert.equal(hex(swap.focusedBorderColor), "#1e66f5", "button's :hover border, drawn focused");
+  setTheme("");
+  swap.blur();
+  await mockMouse.moveTo(25, 0);
+  await renderOnce();
+  assert.equal(hex(swap.backgroundColor), "#1e1e2e");
+  assert.equal(pointers.at(-1), "default");
+  assert.notEqual(own0.focused, "#1e66f5");
+  swap.destroyRecursively();
+
   // a text node (<span>, <a>: no mouse events, no focus): the props and the theme (cssints-5vnf)
   const line = new TextRenderable(renderer, { position: "absolute", top: 3, content: "" });
   const link = new TextNodeRenderable({});
@@ -209,6 +251,13 @@ try {
   } as TuiShape;
   const text = attach(new TextRenderable(sys.renderer, { content: "error" }), style);
   sys.renderer.root.add(text);
+  // a text node (<span>) on the same style: the theme rebuilt under the same name reaches it too
+  const line = new TextRenderable(sys.renderer, { position: "absolute", top: 2, content: "" });
+  const span = new TextNodeRenderable({});
+  span.add("span");
+  use(style).ref(span);
+  line.add(span);
+  sys.renderer.root.add(line);
   // nothing reported yet: the terminal's own colours, by index
   const onMode = once(sys.renderer, "theme_mode");
   const stop = await followSystemTheme(sys.renderer, theme, { wait: 5000 });
@@ -217,6 +266,7 @@ try {
   assert.equal(hex(text.fg), red, "the terminal's red, made readable on its background");
   assert.equal(hex(text.bg), "#282828", "the terminal's background");
   assert.ok(contrast(red, "#282828") >= 4.5);
+  assert.equal(hex(span.fg!), red, "the span: the solved palette");
   assert.deepEqual(await onMode, ["dark"]);
   // the terminal turns light: a 2031 notification, then OpenTUI's own OSC 10/11 query, answered here
   colours = {
@@ -234,6 +284,8 @@ try {
   await sys.renderOnce();
   assert.equal(hex(text.bg), "#eff1f5", "rebuilt for the light palette");
   assert.equal(hex(text.fg), theme.solve({ ...colours }).values["color-error"]);
+  assert.equal(hex(span.fg!), hex(text.fg), "the span, rebuilt for the light palette");
+  assert.equal(hex(span.bg!), "#eff1f5");
   stop();
   // the fallback: ANSI indices and the default colours, drawn by the terminal
   const drawn = props({ color: "ansi:1", backgroundColor: "default", borderColor: "default" });
