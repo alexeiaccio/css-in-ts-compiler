@@ -2,10 +2,11 @@
 // over Vite's HMR channel; the table is built from the plugin's own records at that moment: the entries of every client
 // module (`usedBy`, the sheet is rendered from them as `load()` does), the sites of each module (`callsOf`, recorded beside
 // `siteOf`) and the registry. After a client transform the overlay is told the table is stale, and asks again when it needs it.
-import { relative } from "node:path";
+import { existsSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
 import { gzipSync } from "node:zlib";
 
-import { Effect, Formatter } from "effect";
+import { Data, Effect, Formatter, Option, Schema } from "effect";
 import type { Plugin, ViteDevServer } from "vite";
 
 import { Registry } from "./registry.ts";
@@ -129,15 +130,111 @@ const table = Effect.fn("cssints.devtoolsTable")(function* (
   } satisfies DevTable;
 });
 
+/** `cssints({ devtools: true, opencode })`: the OpenCode session the overlay's prompt box starts. */
+export interface OpenCodeOptions {
+  /** the agent of the session (OpenCode's default for a new session otherwise) */
+  agent?: string;
+  /** the ids of OpenCode skills the prompt loads */
+  skills?: string[];
+}
+
+const ASK = "cssints:devtools:ask";
+const ASKED = "cssints:devtools:asked";
+// the browser builds a bounded prompt (@cssints/devtools core/prompt.ts); the server bounds it once more
+const MAX_PROMPT = 16_000;
+const Asking = Schema.Struct({ ref: Schema.Finite, prompt: Schema.String });
+
+class OpenCodeError extends Data.TaggedError("OpenCodeError")<{
+  readonly status: "unavailable" | "failed";
+  readonly message: string;
+}> {}
+
+const reason = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
+// The repository of the app is the workspace of the session: the nearest folder up from the Vite root with a `.git`.
+const workspace = (root: string) => {
+  let dir = root;
+  while (!existsSync(join(dir, ".git"))) {
+    const up = dirname(dir);
+    if (up === dir) return root;
+    dir = up;
+  }
+  return dir;
+};
+
+// The client of the running OpenCode V2 service (`opencode serve --service` registers one), found as OpenCode's own clients
+// find it. @cssints/devtools talks to it from here and never from the page: the page holds no address and no credentials.
+const connect = Effect.fn("cssints.opencodeConnect")(function* () {
+  const unavailable = (message: string) => () =>
+    new OpenCodeError({ status: "unavailable", message });
+  const { OpenCode } = yield* Effect.tryPromise({
+    try: () => import("@opencode/client"),
+    catch: unavailable(
+      "opencode is on, but @opencode/client is not installed: add it to the devDependencies of the app",
+    ),
+  });
+  const { Service } = yield* Effect.tryPromise({
+    try: () => import("@opencode/client/service"),
+    catch: unavailable(
+      "opencode is on, but @opencode/client is not installed: add it to the devDependencies of the app",
+    ),
+  });
+  const service = yield* Effect.tryPromise({
+    try: () => Service.discover(),
+    catch: (e) => unavailable(reason(e))(),
+  });
+  if (!service)
+    return yield* new OpenCodeError({
+      status: "unavailable",
+      message:
+        "No OpenCode service is running. Start OpenCode (or `opencode serve --service`) and send again.",
+    });
+  return OpenCode.make({ baseUrl: service.url, headers: Service.headers(service) });
+});
+
+// One prompt: a session in the workspace, the prompt, then the outcome. `say` tells the overlay each step.
+const ask = Effect.fn("cssints.opencodeAsk")(function* (
+  root: string,
+  options: OpenCodeOptions,
+  ref: number,
+  prompt: string,
+  say: (asked: { ref: number; status: string; id?: string; message?: string }) => void,
+) {
+  const client = yield* connect();
+  const call = <A>(f: () => Promise<A>) =>
+    Effect.tryPromise({
+      try: f,
+      catch: (e) => new OpenCodeError({ status: "failed", message: reason(e) }),
+    });
+  const { id } = yield* call(() =>
+    client.session.create({
+      title: "cssints devtools: UI change",
+      ...(options.agent ? { agent: options.agent } : {}),
+      location: { directory: workspace(root) },
+    }),
+  );
+  say({ ref, status: "running", id });
+  yield* call(() =>
+    client.session.prompt({
+      sessionID: id,
+      text: prompt.slice(0, MAX_PROMPT),
+      ...(options.skills?.length ? { skills: options.skills.map((s) => ({ id: s })) } : {}),
+    }),
+  );
+  yield* call(() => client.session.wait({ sessionID: id }));
+  const { outcome } = yield* call(() => client.session.get({ sessionID: id }));
+  say({ ref, status: outcome === "succeeded" ? "completed" : (outcome ?? "failed"), id });
+});
+
 // The module the page loads: the overlay of @cssints/devtools, connected to this server.
-const entryModule = (overlay: string | undefined, root: string) =>
+const entryModule = (overlay: string | undefined, root: string, opencode: boolean) =>
   overlay
     ? `import { mount } from ${Formatter.formatJson(overlay)};
 const hot = import.meta.hot;
 mount({
   root: ${Formatter.formatJson(root)},
   request: () => hot.send("cssints:devtools:get"),
-  on: (event, listener) => hot.on(event, listener),
+  on: (event, listener) => hot.on(event, listener),${opencode ? `\n  ask: (ref, prompt) => hot.send("${ASK}", { ref, prompt }),` : ""}
 });
 `
     : `console.warn("cssints: devtools is on, but @cssints/devtools/overlay is not installed (or not built): add @cssints/devtools to the devDependencies of the app");\n`;
@@ -147,11 +244,13 @@ mount({
  * `apply: "serve"`, so a build has none of it.
  * @param {Map<string, string>} usedBy the entries of each client module (plugin.ts)
  * @param {Map<string, DevSite[]>} callsOf the sites of each client module
+ * @param {OpenCodeOptions | undefined} opencode set: the overlay's prompt box starts OpenCode sessions through this server
  * @returns {Plugin} the plugin
  */
 export const devtoolsPlugin = (
   usedBy: Map<string, string>,
   callsOf: Map<string, DevSite[]>,
+  opencode?: OpenCodeOptions,
 ): Plugin => {
   let server: ViteDevServer | undefined;
   // the overlay debounces these: a cold page load transforms every module once
@@ -161,7 +260,7 @@ export const devtoolsPlugin = (
     resolve: () => Promise<{ id: string } | null>,
   ) {
     const overlay = yield* Effect.tryPromise(resolve).pipe(Effect.orElseSucceed(() => null));
-    return entryModule(overlay?.id, server?.config.root ?? "");
+    return entryModule(overlay?.id, server?.config.root ?? "", !!opencode);
   });
   return {
     name: "cssints:devtools",
@@ -171,6 +270,21 @@ export const devtoolsPlugin = (
       s.environments.client.hot.on("cssints:devtools:get", (_, client) =>
         client.send("cssints:devtools", Effect.runSync(table(s.config.root, usedBy, callsOf))),
       );
+      // the HMR channel, not a route: it carries Vite's own token, so a page of another origin cannot start a session
+      if (opencode)
+        s.environments.client.hot.on(ASK, (data: unknown) => {
+          const asking = Schema.decodeUnknownOption(Asking)(data);
+          if (Option.isNone(asking)) return;
+          const { ref, prompt } = asking.value;
+          const say = (asked: object) => s.environments.client.hot.send(ASKED, asked);
+          Effect.runFork(
+            ask(s.config.root, opencode, ref, prompt, say).pipe(
+              Effect.catchTag("OpenCodeError", (e) =>
+                Effect.sync(() => say({ ref, status: e.status, message: e.message })),
+              ),
+            ),
+          );
+        });
     },
     transformIndexHtml: () => [
       { tag: "script", attrs: { type: "module", src: `/@id/${DEVTOOLS_ID}` }, injectTo: "body" },

@@ -44,6 +44,13 @@ interface DevTable {
     value: string;
   }>;
 }
+/** `cssints({ devtools: true, opencode })`: the OpenCode session the overlay's prompt box starts. */
+interface OpenCodeOptions {
+  /** the agent of the session (OpenCode's default for a new session otherwise) */
+  agent?: string;
+  /** the ids of OpenCode skills the prompt loads */
+  skills?: string[];
+}
 //#endregion
 //#region src/instrument.d.ts
 interface CssImports {
@@ -87,13 +94,19 @@ export declare const renderSheet: (entries: Iterable<string>) => Effect.Effect<s
 export declare const targets: import("lightningcss").Targets;
 /** `build: { cssTarget }`, the browserslist query of `targets`, so a minified build keeps `firstThatWorks` fallbacks. */
 export declare const cssTarget: string[];
-export default function cssints({ inner, devtools }?: {
+export default function cssints({ inner, devtools, opencode }?: {
   inner?: boolean;
   /**
    * The inspector of @cssints/devtools in every page (Alt+Shift+C), which must be installed. `true`: dev only; `"build"`:
    * a build too, with the table as a static asset and the overlay in a chunk that loads on the first open.
    */
   devtools?: boolean | "build";
+  /**
+   * Dev only, with `devtools`: the overlay gets a prompt box for the picked element. The dev server (never the page) starts a
+   * session on the running OpenCode service, in the app's repository, with a prompt made of the element's call sites, cascade
+   * and tokens plus the instruction. Needs `@opencode/client` installed. Off by default; a build has none of it.
+   */
+  opencode?: boolean | OpenCodeOptions;
 }): Plugin[];
 //#endregion
-export type { DevTable };
+export type { DevTable, OpenCodeOptions };
