@@ -607,12 +607,12 @@ const locate = Effect.fn("cssints.locate")(function* (e, code, id) {
 	return yield* e;
 });
 function cssints({ inner = false, exclude, devtools = false, opencode = false } = {}) {
+	const excluded = [exclude ?? []].flat().length ? createFilter(exclude) : () => false;
 	let server;
 	let ownServer = false;
 	let runner;
 	let build = false;
 	let root = process.cwd();
-	let excluded = (_id) => false;
 	let rootTargets;
 	let cssPlugins = [];
 	const usedBy = /* @__PURE__ */ new Map();
@@ -882,10 +882,6 @@ function cssints({ inner = false, exclude, devtools = false, opencode = false } 
 			build = config.command === "build";
 			buildMap = build && !inner && config.build.sourcemap;
 			root = config.root;
-			if (exclude !== void 0 && [exclude].flat().length) {
-				const matches = createFilter(exclude, void 0, { resolve: root });
-				excluded = (id) => matches(id);
-			}
 			if (!inner) rootTargets = Effect.runSync(targets$1(void 0, root));
 			cssPlugins = ["vite:css", "vite:css-post"].map((n) => config.plugins.find((p) => p.name === n));
 		},

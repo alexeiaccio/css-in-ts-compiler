@@ -98,7 +98,7 @@ export default function cssints({ inner, exclude, devtools, opencode }?: {
   inner?: boolean;
   /**
    * Files the plugin leaves alone, in Vite's filter style (`createFilter`: a picomatch glob, a RegExp or an array of them;
-   * a relative glob is read from the Vite root). Today's rule stays: a file outside node_modules that mentions "cssints" is
+   * a relative glob is read from the working directory). Today's rule stays: a file outside node_modules that mentions "cssints" is
    * a site module, so a package of plugins or the engine's own sources that a project bundles as code is excluded here.
    */
   exclude?: string | RegExp | ReadonlyArray<string | RegExp>;
