@@ -14,7 +14,7 @@ const VAR = /var\((--[^\s,)]+)\)/g;
 // The value of a token where `values` (a theme's) sets some: the theme's text or the token's template, with the value
 // of each token it refers to put in place of its `var()`, recursively (the theme's own value, else the base).
 export const valueOf = (
-  state: RegistryState,
+  state: Pick<RegistryState, "defs">,
   name: string,
   values?: Map<string, string>,
 ): string | undefined => {
@@ -38,7 +38,7 @@ const affectedBy = (defs: RegistryState["defs"], names: string[], out = new Set<
 // order the cascade ranks them: the layers declared before the engine's, no layer (`_.k`), the layers declared after, each
 // in order, then source order. A viewer's look that sets only the text colour is checked against the background of the
 // app's look.
-export const together = ({ themed, layers }: RegistryState) => {
+export const together = ({ themed, layers }: Pick<RegistryState, "themed" | "layers">) => {
   const side = (before: boolean) =>
     layerStatements(
       [...layers.values()].flatMap((l) => (l.before === before ? [l.names] : [])),

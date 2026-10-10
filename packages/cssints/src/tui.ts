@@ -9,9 +9,33 @@ import { parseColor as parse } from "./color.ts";
 import { together, valueOf } from "./contrast.ts";
 import { css as rgbOf, evaluate } from "./derived.ts";
 import { fail } from "./node.ts";
-import { registry } from "./registry.ts";
+import { registry, type RegistryState } from "./registry.ts";
+import { createGlobalTheme as webTheme, createTokens as webTokens, sets } from "./theme.ts";
 
-export { createGlobalTheme, createTokens } from "./theme.ts";
+// The tokens and themes of a terminal (cssints-0s1z): the web's createTokens and createGlobalTheme, run on tables of
+// their own, so a web token of the same name in the build is another token, and no terminal one reaches a sheet.
+const terminal: NonNullable<RegistryState["terminal"]> = (registry.terminal ??= {
+  properties: new Map(),
+  defs: new Map(),
+  themed: new Map(),
+});
+const inTerminal =
+  <R>(f: (...args: unknown[]) => R) =>
+  (...args: unknown[]): R => {
+    const web = { properties: registry.properties, defs: registry.defs, themed: registry.themed };
+    Object.assign(registry, terminal);
+    try {
+      return f(...args);
+    } finally {
+      Object.assign(registry, web);
+    }
+  };
+export const createTokens = inTerminal((...args) => {
+  const root = webTokens(...args);
+  sets.get(root as object)!.terminal = true;
+  return root;
+});
+export const createGlobalTheme = inTerminal(webTheme);
 
 type State = "" | ":hover" | ":focus" | ":active";
 type Value = string | number | boolean;
@@ -83,7 +107,7 @@ const VAR = /var\((--[\w-]+)\)/g;
 const colour = (prop: string, v: unknown): Value => {
   const text = String(v);
   for (const [, name] of text.matchAll(VAR)) {
-    const def = registry.defs.get(name!);
+    const def = terminal.defs.get(name!);
     if (!def) throw fail(`cssints: ${prop}: ${name} is no token of createTokens`);
     if (def.kind !== "color" && text === `var(${name})`)
       throw fail(`cssints: ${prop}: ${def.path} is a ${def.kind} token, not a colour`);
@@ -425,7 +449,7 @@ const put = (out: Props, state: State, key: string, value: Value) => {
 
 // The colour of an entry where `values` (a theme's) sets some tokens: each var() resolved, then read as hex.
 const resolved = (text: string, values?: Map<string, string>): string => {
-  const flat = text.replace(VAR, (m, n: string) => valueOf(registry, n, values) ?? m);
+  const flat = text.replace(VAR, (m, n: string) => valueOf(terminal, n, values) ?? m);
   const hex = hexOf(flat);
   if (hex === undefined)
     throw fail(`cssints: ${say(text)} is ${say(flat)} here, not a colour a terminal can show`);
@@ -449,7 +473,8 @@ const replacement = (n: TuiNode): string => {
   const tokens = n.__tui.filter((e) => e[3] && String(e[1]).includes("var("));
   if (tokens.length) {
     const themes: Record<string, Props> = {};
-    for (const { label, values } of together(registry)) {
+    const all = together({ themed: terminal.themed, layers: registry.layers });
+    for (const { label, values } of all) {
       if (label.startsWith("@")) continue;
       const overlay: Props = {};
       for (const [k, v, s] of tokens) {

@@ -21,6 +21,9 @@ const code = async (f) => (await server.environments.client.transformRequest(`/$
 // the exported literals of a transformed module, evaluated
 const exportsOf = async (f) => import(`data:text/javascript,${encodeURIComponent(await code(f))}`);
 
+// Web tokens of the same names first (cssints-0s1z): terminal tokens are not the sheet's, so no @property clash, and
+// the web ones change neither the terminal values nor their themes (`.dark` stays out of card.button's).
+const web = await code("web.ts");
 const card = await exportsOf("card.ts");
 assert.deepEqual(card.button, {
   border: true,
@@ -80,6 +83,16 @@ assert.deepEqual(card.lit(), { color: "#ed7665" });
 const text = await code("card.ts");
 assert.ok(!text.includes("cssints"), text);
 assert.equal(plugins[0].api.sheet([`${root}/card.ts`]).includes("._"), false);
+// the terminal modules add no CSS at all: no @property, no :root rule, no theme (theme.ts as a client module too: its
+// token set ships as `var(--color-bg)` strings, which name no web token here)
+await code("theme.ts");
+const tuiSheet = plugins[0].api.sheet([`${root}/card.ts`, `${root}/theme.ts`]);
+assert.ok(!/--color|@property|light/.test(tuiSheet), tuiSheet);
+// the web module keeps its own @property rules and theme
+assert.match(web, /"_[\w-]+ _[\w-]+"/);
+const webSheet = plugins[0].api.sheet([`${root}/web.ts`]);
+assert.match(webSheet, /@property --color-bg\{[^}]*initial-value:\s*(#fff\b|#ffffff|white)/);
+assert.match(webSheet, /\.dark\{[^}]*--color-bg:\s*(#000\b|#000000|black)/);
 
 const fails = async (f, message) => {
   await assert.rejects(code(f), message);
@@ -88,6 +101,11 @@ await fails("bad-px.ts", /width: a terminal counts cells: write a number, not "1
 await fails("bad-color.ts", /color: "currentColor" is not a colour a terminal can show/);
 await fails("bad-nest.ts", /:hover wraps :focus: terminal states do not nest/);
 await fails("bad-mix.ts", /cn\(\) takes styles of cssints\/tui, got "red"/);
+// two terminal modules with one token name and two values: an error, as on the web (the web token of web.ts is not one)
+await fails(
+  "bad-clash.ts",
+  /--color-bg is already declared with another @property, in test\/fixtures\/theme\.ts/,
+);
 await server.close();
 
 // An SSR build, as a Bun app is built: the sites are replaced there too (the plugin evaluates them on its own server).
