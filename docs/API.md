@@ -1071,7 +1071,7 @@ css.color("blu"); // error: not a colour
 ```
 
 ```ts skip
-export const button = { border: true, borderStyle: "rounded", borderColor: "#585b70", paddingTop: 0, paddingRight: 1, paddingBottom: 0, paddingLeft: 1, width: 12, backgroundColor: "#1e1e2e", cursor: "pointer", ":hover": { borderColor: "#89b4fa" }, ":active": { border: true, borderStyle: "double" }, themes: { light: { backgroundColor: "#eff1f5", ":hover": { borderColor: "#1e66f5" } } } };
+export const button = { border: true, borderStyle: "rounded", borderColor: "#585b70", paddingTop: 0, paddingRight: 1, paddingBottom: 0, paddingLeft: 1, width: 12, backgroundColor: "#1e1e2e", cursor: "pointer", ":hover": { borderColor: "#89b4fa" }, ":active": { border: true, borderStyle: "double" }, themes: { light: { backgroundColor: "#eff1f5", ":hover": { borderColor: "#1e66f5" } } }, vars: { backgroundColor: "color-bg", ":hover": { borderColor: "color-accent" } } };
 ```
 
 ```tsx skip
@@ -1101,7 +1101,31 @@ const build = () => [ui.open("save", button), ui.text("Save", label, "save"), cl
 process.stdout.write(ui.render(term, build, { pointer: { x, y, down } }).output);
 ```
 
-- **Cost.** A colour member costs what the same web member costs in the types (the `color` grammar); `bench/tui.ts` is 184k instantiations (tsc) for 16 calls and a token set. No terminal HMR in this version.
+- **The system theme** (cssints-q1j3, 2026-10-10). A theme computed at run time from the terminal's own colours, after [Pi's](https://earendil.com/posts/system-theme/). `createSystemTheme(tokens, roles, options?)` of `@cssints/tui/system` makes each colour token a **role**: a hue source (`hue`: an ANSI name, `black` … `brightWhite`, or the terminal's `fg`/`bg`) and contrast rules (`on`: the tokens it sits on, `contrast`: the WCAG 2 ratio). A text role keeps its source colour when it meets every rule, else takes the lightness of the strictest one (the reversed WCAG ratio, bisected in OKHSL at the source's hue and saturation, the saturation falling off toward black and white, the OKLCH chroma capped at the source's); a `surface` is placed at exactly `contrast` from its first `on`, toward the foreground, or is the terminal's background without one. `followSystemTheme` of each adapter asks the terminal (OSC 10, 11 and 4 for the 16 colours, the colour-scheme report), sets the theme with the fallback at once, resolves after the replies or 100 ms, applies a late reply when it comes, and rebuilds on an appearance change (mode 2031). Light or dark: the reported background, else the scheme report (`CSI ? 997 n`; OpenTUI's `themeMode`), else `COLORFGBG`, else dark. A terminal that reports its background only gets the app's hues (`options.hues`) placed for it; one that reports nothing gets ANSI indices and its default colours on OpenTUI (`ansi:N`, `default`, drawn by the terminal; a role's `ansi` picks the index), and the static theme of its appearance on bomb.sh, which has no indexed colour. A token without a role keeps the value of the static theme `options.themes[appearance]`.
+
+```ts skip
+// theme.ts: run time, not a cssints module
+import { createSystemTheme } from "@cssints/tui/system";
+import { t } from "./styles.ts";
+
+export const system = createSystemTheme(t, {
+	color: {
+		bg: { surface: true },
+		card: { surface: true, on: [t.color.bg], contrast: 1.1 },
+		text: { hue: "fg", on: [t.color.bg, t.color.card], contrast: 7 },
+		accent: { hue: "blue", on: [t.color.bg, t.color.card], contrast: 3 },
+	},
+}, { themes: { light: "light" } });
+
+// OpenTUI: renderer.getPalette() and its theme_mode event
+await followSystemTheme(await createCliRenderer(), system);
+// @bomb.sh/tty: the queries are written, the replies taken out of stdin before input.scan()
+const follow = followSystemTheme(system, { write: (s) => process.stdout.write(s) });
+process.stdin.on("data", (bytes) => dispatch(input.scan(follow.feed(bytes)).events));
+```
+
+- **The theme table** (cssints-q1j3). A site holds, besides its values and static `themes`, `vars`: the token of each colour prop set to a lone token (`vars: { backgroundColor: "color-bg" }`, the name without `--`). `defineTheme(name, values, base)` of `@cssints/tui` registers a run-time theme: a colour per token name, laid over the static theme `base` for every prop with a token; `setTheme(name)` selects it, and `defineTheme` of the theme in use resolves every attached renderable again. The system theme is one; static themes stay inline, since they need no registration and no import order. A colour that is not a lone token (`color-mix()` over one) keeps its static value.
+- **Cost.** A colour member costs what the same web member costs in the types (the `color` grammar); `bench/tui.ts` is 184k instantiations (tsc) for 16 calls and a token set. No terminal HMR in this version. The system theme brings culori's rgb, oklab, oklch and okhsl modes to the app (45 kB unminified in sky-tui's bundle).
 
 ### Browser support and what 0.1 does not have
 

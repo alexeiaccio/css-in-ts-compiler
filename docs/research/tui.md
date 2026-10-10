@@ -308,13 +308,15 @@ token (`color-mix()` over one) keeps its static value.
 
 - **`cssints/tui`** (packages/cssints/src/tui.ts and tui-types.ts): the build-time members and their types. Plain
   code like lib.ts (user code calls the builders in expressions).
-- **`@cssints/tui`** (packages/tui): `resolve(style, state, theme)`, `theme`, `setTheme`, `onTheme` (renderer-neutral,
-  no imports), `@cssints/tui/opentui` (`attach`, `use`, `props`) and `@cssints/tui/bomb` (`createTracker`,
-  `openProps`, `textProps`, `rgbaOf`). A separate package because the engine must not depend on `@opentui/core` or
+- **`@cssints/tui`** (packages/tui): `resolve(style, state, theme)`, `theme`, `setTheme`, `onTheme`, `defineTheme`
+  (renderer-neutral, no imports), `@cssints/tui/system` (`createSystemTheme`, `scan`, `QUERY`, `contrast`; culori),
+  `@cssints/tui/opentui` (`attach`, `use`, `props`, `followSystemTheme`) and `@cssints/tui/bomb` (`createTracker`,
+  `openProps`, `textProps`, `rgbaOf`, `followSystemTheme`). A separate package because the engine must not depend on `@opentui/core` or
   `@bomb.sh/tty` (both optional peers).
-- **Tests** are in packages/tui: `test/tui.mjs` (Node: fixtures through a dev transform and an SSR build, the build
+- **Tests** are in packages/tui: `test/system.ts` (Node: the solver on Gruvbox dark, Catppuccin Latte and Nord, the
+  fallbacks, the appearance, the replies as bytes, the bomb.sh follower, the run-time table), `test/tui.mjs` (Node: fixtures through a dev transform and an SSR build, the build
   errors), `test/render.ts` (Bun: the built styles on OpenTUI's test renderer, a simulated hover, press, theme switch and
-  focus), `test/bomb.ts` (Node: the built styles in a bomb.sh frame at 30x8, its ANSI output read back as cells, a
+  focus; the system theme on a fake terminal that answers OSC 4/10/11, then turns light), `test/bomb.ts` (Node: the built styles in a bomb.sh frame at 30x8, its ANSI output read back as cells, a
   pointer move, press and release, a theme switch, focus and the caret), `test/types/tui.ts` (what the types accept
   and reject). `examples/bomb.ts` is a list on bomb.sh (`bun run example`).
 
