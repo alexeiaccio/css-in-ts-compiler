@@ -192,6 +192,75 @@ const run = async (name) => {
   assert.equal(r.status, "ok", r.text);
   assert.notEqual(r.computed, r.value);
 
+  // docks: the panel hugs its side, picking still works beside it, the grip resizes it, Esc closes it and the button
+  // opens it again where it was; the last choice and both sizes survive a reload
+  const panel = page.locator("[data-devtools=panel]");
+  const box = (loc) => loc.evaluate((el) => el.getBoundingClientRect().toJSON());
+  const vw = 1300;
+  const vh = 900;
+  const grow = { right: [-1, 0], left: [1, 0], top: [0, 1], bottom: [0, -1] };
+  const sized = {};
+  for (const d of ["right", "left", "top", "bottom"]) {
+    await page.locator(`[data-devtools=dock][data-dock=${d}]`).click();
+    await until(`${name}: dock ${d}`, async () => (await panel.getAttribute("data-dock")) === d);
+    const b = await box(panel);
+    const horizontal = d === "left" || d === "right";
+    const hugs = {
+      right: b.right === vw,
+      left: b.left === 0,
+      top: b.top === 0,
+      bottom: b.bottom === vh,
+    };
+    assert.ok(hugs[d], `${name} ${d}: ${JSON.stringify(b)}`);
+    assert.equal(horizontal ? b.height : b.width, horizontal ? vh : vw, `${name} ${d}: span`);
+
+    // the page beside the panel is still picked: a click on what is under the pointer there
+    const free = {
+      right: [200, 450],
+      left: [vw - 200, 450],
+      top: [650, vh - 100],
+      bottom: [650, 100],
+    }[d];
+    const tag = await page.evaluate(([x, y]) => document.elementFromPoint(x, y).localName, free);
+    if ((await page.locator("[data-devtools=pick]").getAttribute("data-on")) === "no")
+      await page.locator("[data-devtools=pick]").click();
+    await page.mouse.move(...free);
+    await page.mouse.click(...free);
+    await until(`${name} ${d}: picked ${tag}`, async () =>
+      (await page.locator("[data-devtools=element]").textContent()).startsWith(tag),
+    );
+
+    // 100 px inwards from the grip
+    const g = await box(page.locator("[data-devtools=grip]"));
+    const [dx, dy] = grow[d];
+    const x = g.x + g.width / 2;
+    const y = g.y + g.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 100 * dx, y + 100 * dy, { steps: 5 });
+    await page.mouse.up();
+    const side = horizontal ? "width" : "height";
+    const after = (await box(panel))[side];
+    assert.ok(Math.abs(after - b[side] - 100) <= 1, `${name} ${d}: ${b[side]} -> ${after}`);
+    sized[d] = after;
+
+    await page.keyboard.press("Escape");
+    await until(`${name} ${d}: closed`, async () => (await panel.count()) === 0);
+    await page.locator("[data-devtools=toggle]").click();
+    await panel.waitFor();
+    assert.equal(await panel.getAttribute("data-dock"), d);
+  }
+  await page.reload();
+  await page.locator("[data-devtools=toggle]").click();
+  await panel.waitFor();
+  assert.equal(await panel.getAttribute("data-dock"), "bottom", `${name}: the dock persists`);
+  assert.ok(
+    Math.abs((await box(panel)).height - sized.bottom) <= 1,
+    `${name}: the height persists`,
+  );
+  await page.locator("[data-devtools=dock][data-dock=right]").click();
+  assert.ok(Math.abs((await box(panel)).width - sized.left) <= 1, `${name}: the width persists`);
+
   // Esc closes
   await page.keyboard.press("Escape");
   await until("closed", async () => (await page.locator("[data-devtools=panel]").count()) === 0);
