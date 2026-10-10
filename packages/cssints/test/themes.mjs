@@ -298,11 +298,12 @@ const first = (w) =>
   stripVTControlCharacters(w)
     .replace(/^.*?cssints:/, "cssints:")
     .split("\n")[0];
-// Each server below logs into its own list: a late log of an earlier server in this process (an HMR update, the dep
-// optimizer) cannot reach the assertion.
+// Each server below logs into its own list, and only the warnings of cssints count: a late log of another server of
+// this process, or one of Vite's own, cannot reach the assertion.
 const collector = () => {
   const list = [];
-  return { list, logger: { ...createLogger("warn"), warn: (m) => list.push(m) } };
+  const warn = (m) => void (stripVTControlCharacters(m).includes("cssints:") && list.push(m));
+  return { list, logger: { ...createLogger("warn"), warn } };
 };
 const tmpd = mkdtempSync(join(root, ".tmp-themes-dev-"));
 globalThis.__cssints.checks.clear();
@@ -317,7 +318,7 @@ try {
     server: { middlewareMode: true, ws: false },
     plugins: cssints(),
   });
-  // macOS reports the write above to a watcher started just after it: let that event pass before the first transform
+  // FSEvents can report the write above to the watcher started after it: let that event pass first
   await sleep(300);
   const devClient = dev.environments.client;
   await devClient.transformRequest("/tokens.ts");
