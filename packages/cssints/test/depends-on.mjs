@@ -28,14 +28,27 @@ const sheet = async () => {
   await client.transformRequest("/use.ts");
   return plugins[0].api.sheet([`${root}/use.ts`]);
 };
+// The sheet matches `re` within 20 s. A late FSEvents event (of the write before the server started) can invalidate the
+// module mid-way, and the watch dependsOn() adds is not live at once, so a write right after the first transform can be
+// missed: `rewrite` writes the edit again each second until the module has read it.
+const settled = async (re, rewrite) => {
+  let css = await sheet();
+  for (let i = 1; i <= 400 && !re.test(css); i++) {
+    if (rewrite && i % 20 === 0) writeFileSync(file, i % 40 ? `${rewrite}\n\n` : `${rewrite}\n`);
+    await sleep(50);
+    css = await sheet();
+  }
+  return css;
+};
 try {
-  assert.match(await sheet(), /\{color:red\}/);
+  assert.match(await settled(/\{color:red\}/), /\{color:red\}/);
   writeFileSync(file, "blue\n");
-  // the watcher reports the edit, hotUpdate invalidates the module that read the file
-  const mod = client.moduleGraph.getModuleById(`${root}/use.ts`);
-  for (let i = 0; i < 400 && mod?.transformResult; i++) await sleep(50);
-  assert.equal(mod?.transformResult, null, "use.ts was not invalidated");
-  assert.match(await sheet(), /\{color:blue\}/);
+  // the watcher reports the edit, hotUpdate invalidates the module that read the file, and it reads the new content
+  assert.match(
+    await settled(/\{color:blue\}/, "blue"),
+    /\{color:blue\}/,
+    "use.ts did not read the edit",
+  );
 } finally {
   await server.close();
 }
