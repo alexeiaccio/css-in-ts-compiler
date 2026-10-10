@@ -36,12 +36,8 @@ the terminal supports OSC 22).
   gets the `light` theme under it; a terminal that answers nothing draws its own ANSI colours.
 - The selected row has the keyboard focus (`focusable`, `focus()`), so its accent border is the
   `:focus` of its style, as drawn. `<span>` and `<a>` take their style with `use()` too: the props
-  and the theme (a text node has no mouse events and no focus, so no states).
-
-### Workarounds (bugs in cssints-06ws)
-
-- A renderable keeps the style it was attached with (cssints-332g): the active tab is a second
-  style, and `Tab` in `App.tsx` makes the tab again (`<Show>`) when it turns active.
+  and the theme (a text node has no mouse events and no focus, so no states). A tab is one
+  `<text>` whose style follows `props.active`: `use(() => (props.active ? s.tabActive : s.tab))`.
 
 ## Limits
 
@@ -57,9 +53,9 @@ bun run typecheck
 
 `test/screens.mjs` imports the built `dist/main.js` under Bun and renders it on OpenTUI's test
 renderer (100x40), with apps/sky's recorded fixtures in place of the network. It checks the feed,
-`j`/`k` (the focus and the border as drawn), `enter` and `esc`, `tab`, a mouse over a row (the
+`j`/`k` (the focus and the border as drawn), `enter` and `esc`, `tab` (the active tab restyled, the same renderable), a mouse over a row (the
 highlight and the pointer) and a click, the wheel, and the theme both ways; then the system
 theme on a fake terminal (a TTY stdin, and each OSC 4/10/11 query answered with Gruvbox dark):
-the card, the background and the accent border from the palette, and after a mode 2031
+the card, the background, the accent border and two spans (the title, an author name) from the palette, and after a mode 2031
 notification and Catppuccin Latte's replies, the light ones. If Bun
 is not installed, the Bun part is skipped with a message.

@@ -50,6 +50,7 @@ import { attach, setTheme, use } from "@cssints/tui/opentui";
 <box {...use(button)}>
   <text>Save</text>
 </box>; // Solid or React
+<text {...use(() => (active() ? tabActive : tab))}>Home</text>; // a style that changes
 attach(new BoxRenderable(renderer, {}), button); // core
 setTheme("light"); // every attached renderable
 ```
@@ -68,6 +69,10 @@ setTheme("light"); // every attached renderable
 - A focused renderable draws colours of its own: `focusedBorderColor` on a box (also while a descendant has the
   focus), `focusedBackgroundColor` and `focusedTextColor` on an editable or a select. Each one follows the style's
   colour in the current state, so a focused box draws its `:focus` border.
+- `attach` on a renderable it has attached swaps the style: the states, the theme and the hooks stay, a prop only the
+  old style set goes back to the renderable's own value, and under the mouse the pointer follows the new `cursor`.
+  `use(() => style)` re-reads the accessor each time the ref runs: Solid runs a ref in a render effect, so a signal
+  the accessor reads swaps the style; React calls the new ref of each render.
 - A text node (`<span>`, `<a>`, `<b>`) takes the props and the theme. It has no mouse events and no focus, so it has
   no states: put `:hover` on the `<text>` around it.
 - `resolve(style, state, theme)` of `@cssints/tui` is the renderer-neutral part: the props of a style in a state and a
