@@ -1,4 +1,4 @@
-// The documentation site on Cloudflare at cssints.accio.blue: `bun run build` in this directory, dist/ served as Worker static assets.
+// The documentation site on Cloudflare at cssints.dev: `bun run build` in this directory, dist/ served as Worker static assets.
 // bun run deploy (alchemy deploy); credentials from `bun alchemy profile edit --add Cloudflare` (CI: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID); state in the account (Cloudflare.state()), shared by local and CI deploys.
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
@@ -12,7 +12,8 @@ export default Alchemy.Stack(
       command: "bun run build",
       outdir: "dist",
       assets: { notFoundHandling: "404-page" },
-      domain: "cssints.accio.blue",
+      // the old address answers with a 301 to the new one (a redirect rule in its zone, before the Worker)
+      domain: { name: "cssints.dev", redirects: ["cssints.accio.blue"] },
     });
     return { url: site.url };
   }),

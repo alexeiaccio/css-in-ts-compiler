@@ -60,7 +60,7 @@ for (const dir of packageDirs) {
     published.repository?.directory !== `packages/${dir.split("/").pop()}`
   )
     bad(`repository must be ${REPOSITORY} with the directory of the package`);
-  if (published.homepage !== "https://cssints.accio.blue") bad("homepage");
+  if (published.homepage !== "https://cssints.dev") bad("homepage");
   if (published.publishConfig?.access !== "public") bad("publishConfig.access is not public");
   for (const t of [...targets(published.exports), ...targets(published.bin)])
     if (!exists(dest, t)) bad(`${String(t)} is named by exports or bin and is not in the package`);

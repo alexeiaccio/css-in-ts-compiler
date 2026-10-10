@@ -1608,3 +1608,7 @@ The TUI epic (cssints-06ws) wanted Pi's system theme (earendil.com/posts/system-
 ## The devtools panel docks to any side (cssints-651s)
 
 Four buttons in the panel header dock it right (default), left, top or bottom; a strip on its inner edge resizes it (at least 200 px, an 80 px strip of the page always left, capped by `min(Npx, 100vw|100vh)` in CSS); the dock and both sizes persist in `localStorage["cssints-devtools:dock"]`. The page is not pushed aside: the panel covers its side, and picking beside it, the highlight and the fab work in every dock, in dev and in the `"build"` overlay. Floating (drag-to-move) and a shortcut were left out. +3.5 kB in `dist/overlay.js`. `test/browsers.mjs` checks each dock, a pick beside the panel, a drag and a reload in Chrome, Firefox and WebKit.
+
+## The docs site moves to cssints.dev (2026-10-10)
+
+The user bought cssints.dev on Cloudflare (same account). `alchemy.run.ts` now has `domain: { name: "cssints.dev", redirects: ["cssints.accio.blue"] }`: the site is served at https://cssints.dev, and the old address answers with a 301 that keeps the path and the query (a redirect rule in the old zone, before the Worker). Deployed from the laptop; every reference to the old address (README, AGENTS.md, the package homepages, the release check, the workflow) points at the new one. The CI token needs zone permissions for cssints.dev too (apps/docs/README.md).

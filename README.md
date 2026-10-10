@@ -1,6 +1,6 @@
 # CSS-in-TS
 
-<img src="https://cssints.accio.blue/logo.svg" alt="" width="96" height="96">
+<img src="https://cssints.dev/logo.svg" alt="" width="96" height="96">
 
 cssints is compile-time CSS-in-TypeScript. You write calls such as `css.flex().alignItems("center")`. A Vite plugin runs them at build time and replaces each one with atomic, content-hashed class names in `@layer`s. Nothing of the styling code ships to the browser except `cx` and the few lines behind `cv`, which join class names.
 
@@ -8,7 +8,7 @@ cssints is compile-time CSS-in-TypeScript. You write calls such as `css.flex().a
 - Conditions (`media`, `container`, `supports`, `hover`), variants (`cv`), design tokens and themes (`createTokens`, `createGlobalTheme`, `check.contrast`) are all build-time, and all typed.
 - LightningCSS optimizes the output. Browser support (`@mdn/browser-compat-data` against your browserslist) is reported as warnings, except for what LightningCSS lowers for those targets.
 
-Status: 0.1 is not published yet. Decisions and findings are in [docs/wayfinder.md](docs/wayfinder.md); the API reference is [docs/API.md](docs/API.md). Both are also a site with search and type hovers: [apps/docs](apps/docs) (`cd apps/docs && bun run dev`); deployed to Cloudflare with Alchemy: <https://cssints.accio.blue>.
+Status: 0.1 is not published yet. Decisions and findings are in [docs/wayfinder.md](docs/wayfinder.md); the API reference is [docs/API.md](docs/API.md). Both are also a site with search and type hovers: [apps/docs](apps/docs) (`cd apps/docs && bun run dev`); deployed to Cloudflare with Alchemy: <https://cssints.dev>.
 
 ## Install
 

@@ -1,4 +1,4 @@
-# Deploys apps/docs to Cloudflare (https://cssints.accio.blue) with Alchemy on every push to master that can change it.
+# Deploys apps/docs to Cloudflare (https://cssints.dev) with Alchemy on every push to master that can change it.
 # Secrets: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (see apps/docs/README.md "Deploy"). The state is in the account
 # (Cloudflare.state()), shared with local deploys. The packages are not built: Vite bundles the tracked packages/*/dist.
 name: docs

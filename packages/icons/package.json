@@ -8,7 +8,7 @@
     "url": "git+https://github.com/alexeiaccio/css-in-ts-compiler.git",
     "directory": "packages/icons"
   },
-  "homepage": "https://cssints.accio.blue",
+  "homepage": "https://cssints.dev",
   "files": [
     "dist",
     "src"
