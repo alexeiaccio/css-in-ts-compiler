@@ -12,7 +12,7 @@ import MagicString from "magic-string";
 import { existsSync, readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { browsers as browsers$1 } from "@cssints/css-grammar/browsers";
-import { createServer, createServerModuleRunner, normalizePath, transformWithOxc } from "vite";
+import { createFilter, createServer, createServerModuleRunner, normalizePath, transformWithOxc } from "vite";
 import { fileURLToPath } from "node:url";
 import { Window } from "happy-dom";
 import { ESModulesEvaluator, ssrModuleExportsKey } from "vite/module-runner";
@@ -606,12 +606,13 @@ const locate = Effect.fn("cssints.locate")(function* (e, code, id) {
 	}
 	return yield* e;
 });
-function cssints({ inner = false, devtools = false, opencode = false } = {}) {
+function cssints({ inner = false, exclude, devtools = false, opencode = false } = {}) {
 	let server;
 	let ownServer = false;
 	let runner;
 	let build = false;
 	let root = process.cwd();
+	let excluded = (_id) => false;
 	let rootTargets;
 	let cssPlugins = [];
 	const usedBy = /* @__PURE__ */ new Map();
@@ -753,7 +754,7 @@ function cssints({ inner = false, devtools = false, opencode = false } = {}) {
 	});
 	const transform = Effect.fn("cssints.transform")(function* (ctx, code, url) {
 		const id = url.replace(VERSION, "");
-		if (!FILE_RE.test(id)) return void 0;
+		if (!FILE_RE.test(id) || excluded(id)) return void 0;
 		if (!marked(code, id)) {
 			if (ctx.environment.name === "client") yield* drop(id);
 			return ctx.environment.name === "ssr" && (inner || !build) && /[jt]sx$/.test(id) && !id.includes("node_modules") ? yield* inertJsx(code, id) : void 0;
@@ -787,7 +788,10 @@ function cssints({ inner = false, devtools = false, opencode = false } = {}) {
 					hmr: false
 				},
 				optimizeDeps: { noDiscovery: true },
-				plugins: [cssints({ inner: true })]
+				plugins: [cssints({
+					inner: true,
+					exclude
+				})]
 			}),
 			catch: (cause) => new HookError({
 				hook: "buildStart",
@@ -878,6 +882,10 @@ function cssints({ inner = false, devtools = false, opencode = false } = {}) {
 			build = config.command === "build";
 			buildMap = build && !inner && config.build.sourcemap;
 			root = config.root;
+			if (exclude !== void 0 && [exclude].flat().length) {
+				const matches = createFilter(exclude, void 0, { resolve: root });
+				excluded = (id) => matches(id);
+			}
 			if (!inner) rootTargets = Effect.runSync(targets$1(void 0, root));
 			cssPlugins = ["vite:css", "vite:css-post"].map((n) => config.plugins.find((p) => p.name === n));
 		},

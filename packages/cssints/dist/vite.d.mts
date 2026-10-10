@@ -94,8 +94,14 @@ export declare const renderSheet: (entries: Iterable<string>) => Effect.Effect<s
 export declare const targets: import("lightningcss").Targets;
 /** `build: { cssTarget }`, the browserslist query of `targets`, so a minified build keeps `firstThatWorks` fallbacks. */
 export declare const cssTarget: string[];
-export default function cssints({ inner, devtools, opencode }?: {
+export default function cssints({ inner, exclude, devtools, opencode }?: {
   inner?: boolean;
+  /**
+   * Files the plugin leaves alone, in Vite's filter style (`createFilter`: a picomatch glob, a RegExp or an array of them;
+   * a relative glob is read from the Vite root). Today's rule stays: a file outside node_modules that mentions "cssints" is
+   * a site module, so a package of plugins or the engine's own sources that a project bundles as code is excluded here.
+   */
+  exclude?: string | RegExp | ReadonlyArray<string | RegExp>;
   /**
    * The inspector of @cssints/devtools in every page (Alt+Shift+C), which must be installed. `true`: dev only; `"build"`:
    * a build too, with the table as a static asset and the overlay in a chunk that loads on the first open.
