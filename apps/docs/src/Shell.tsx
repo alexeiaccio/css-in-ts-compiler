@@ -30,6 +30,7 @@ const header = css.cn(
 );
 
 const brand = css.cn(
+  css.flex().alignItems("center").gap(2),
   css.fontSize(t.fontSize.lg),
   css.fontWeight(t.fontWeight.bold),
   css.color(t.color.text),
@@ -38,6 +39,7 @@ const brand = css.cn(
   css.flexShrink(0),
 );
 const brandMark = css.cn(css.color(t.color.accent));
+const logo = css.cn(css.width("28px"), css.height("28px"), css.flexShrink(0));
 
 const iconButton = css.cn(
   css.flex().alignItems("center").justifyContent("center"),
@@ -191,7 +193,10 @@ export function Shell(props: { children?: JSX.Element }) {
           <span class={open() ? menuIcon.x : menuIcon.list} />
         </button>
         <a href={url("")} class={brand}>
-          <span class={brandMark}>css</span>ints
+          <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" class={logo} width="28" height="28" />
+          <span>
+            <span class={brandMark}>css</span>ints
+          </span>
         </a>
         <Search />
         <a href={url("playground")} class={iconButton} aria-label="Playground" title="Playground">

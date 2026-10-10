@@ -1,5 +1,7 @@
 # CSS-in-TS
 
+<img src="https://cssints.accio.blue/logo.svg" alt="" width="96" height="96">
+
 cssints is compile-time CSS-in-TypeScript. You write calls such as `css.flex().alignItems("center")`. A Vite plugin runs them at build time and replaces each one with atomic, content-hashed class names in `@layer`s. Nothing of the styling code ships to the browser except `cx` and the few lines behind `cv`, which join class names.
 
 - Values are checked against the spec grammars (mdn-data) in the types and again at build time. A typo is an error in the editor and in the build.
