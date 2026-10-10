@@ -13,13 +13,13 @@ import {
   count,
   embedParts,
   fullTime,
-  hostOf,
   parts,
   quoteMedia,
   recordOf,
   stats,
 } from "../../sky/src/post/model.ts";
-import type { Feature, Media } from "../../sky/src/post/model.ts";
+import type { Feature } from "../../sky/src/post/model.ts";
+import { goneQuote, mediaText } from "./model.ts";
 import * as s from "./styles.ts";
 
 type PostView = AppBskyFeedDefs.PostView;
@@ -44,29 +44,6 @@ export function RichText(props: { text: string; facets?: Facet<Feature>[] }) {
   );
 }
 
-// One media embed as a line of text: no pictures in a terminal.
-export const mediaText = (m: Media) => {
-  switch (m.kind) {
-    case "images":
-    case "gallery": {
-      const n = m.tiles.length + (m.kind === "gallery" ? m.more : 0);
-      const alt = m.tiles.find((t) => t.alt)?.alt;
-      return `[${n === 1 ? "image" : `${n} images`}${alt ? `: ${alt}` : ""}]`;
-    }
-    case "video":
-      return `[${m.gif ? "gif" : "video"}${m.alt ? `: ${m.alt}` : ""}]`;
-    case "external":
-      return `[link: ${m.title || m.uri} - ${hostOf(m.uri)}]`;
-  }
-};
-
-const gone = {
-  hidden: "Post hidden",
-  blocked: "Blocked post",
-  detached: "The author removed this post from the quote",
-  notFound: "Post not found",
-};
-
 function QuoteBox(props: { quote: Quote }) {
   return (
     <box {...use(s.quote)}>
@@ -90,10 +67,10 @@ function QuoteBox(props: { quote: Quote }) {
           )}
         </Match>
         <Match when={props.quote.kind === "hidden"}>
-          <text {...use(s.muted)}>{gone.hidden}</text>
+          <text {...use(s.muted)}>{goneQuote.hidden}</text>
         </Match>
         <Match when={props.quote.kind === "gone" && props.quote.why}>
-          {(why) => <text {...use(s.muted)}>{gone[why()]}</text>}
+          {(why) => <text {...use(s.muted)}>{goneQuote[why()]}</text>}
         </Match>
       </Switch>
     </box>
