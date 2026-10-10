@@ -13,7 +13,10 @@ export default defineConfig({ plugins: [cssints({ devtools: true })] });
 ```
 
 Alt+Shift+C or the `cssints` button (bottom right) opens it. Hover previews an element, a click picks it; ↑ parent,
-↓ first child, ← → siblings; Esc stops picking, then closes. The panel and the cascade rule are described in
+↓ first child, ← → siblings; Esc stops picking, then closes. The four buttons in the panel header (◧ ⬒ ⬓ ◨) dock it
+left, top, bottom or right (the default); drag the strip on its inner edge to resize it (at least 200 px, and a strip of
+the page stays). The side and the two sizes are kept in `localStorage` (`cssints-devtools:dock`) per origin. The panel
+covers the page beside it, and picking works on the rest of the page; the page is not pushed aside. The panel and the cascade rule are described in
 docs/API.md, "Debugging: the devtools overlay"; the design in docs/research/devtools.md, "Our devtools".
 
 ## Rules
@@ -72,6 +75,8 @@ Chrome, Firefox and WebKit, checked by `test:browsers` on apps/demo's dev server
 - `@scope` proximity is not ranked; a logical and a physical property are two properties.
 - An element inside another shadow root is picked as its host.
 - A page that Vite does not serve as HTML (server rendering) gets no entry.
+- The panel does not float and has no shortcut to switch the dock; it covers the page where it sits, so an element under
+  it is picked from the arrow keys or after a dock to another side.
 - The panel re-inspects every 600 ms while open: each pass adds and removes a probe `<style>` and attribute.
 
 ## Tests
@@ -81,5 +86,5 @@ bun run test            # test/core.mjs (the cascade on happy-dom: hover vs medi
                         # an unlayered rule, frame's kernel, within(), grouping), test/build.mjs (nothing in a build
                         # without the option; with "build": the table, the lazy chunk, the loader's size; apps/docs/test/browser.mjs opens it in Chrome),
                         # test/opencode.mjs (the dev server and a fake OpenCode service: the prompt as sent, the agent, the directory, the status, no service)
-bun run test:browsers   # builds dist/overlay.js, then the demo in Chrome, Firefox and WebKit (test/browsers.mjs), then the prompt box in Chrome (test/ask-browser.mjs)
+bun run test:browsers   # builds dist/overlay.js, then the demo in Chrome, Firefox and WebKit (test/browsers.mjs; each dock: the panel on its side, a pick beside it, a drag of the grip, the button after Esc, the dock and sizes after a reload), then the prompt box in Chrome (test/ask-browser.mjs)
 ```

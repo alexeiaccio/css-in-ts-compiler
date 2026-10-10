@@ -7,6 +7,7 @@ import {
   borderColor,
   borderLeft,
   borderRadius,
+  borderRight,
   borderTop,
   bottom,
   boxSizing,
@@ -22,6 +23,7 @@ import {
   fontWeight,
   global,
   grid,
+  height,
   hover,
   left,
   letterSpacing,
@@ -47,6 +49,7 @@ import {
   textDecoration,
   textTransform,
   top,
+  touchAction,
   whiteSpace,
   width,
   zIndex,
@@ -98,21 +101,26 @@ export const tag = cn(
   whiteSpace("nowrap"),
 );
 
+// the size along the dock axis is inline (overlay.tsx): the user drags it
 export const panel = cn(
   position("fixed"),
-  top("0"),
-  right("0"),
-  bottom("0"),
-  width("min(440px, 100vw)"),
   zIndex(2147483647),
   overflow("auto"),
   bg(panelBg),
   color(ink),
-  borderLeft("1px solid", line),
   fontFamily("system-ui, sans-serif"),
   fontSize("12px"),
   lineHeight("1.45"),
 );
+export const dockRight = cn(top("0"), right("0"), bottom("0"), borderLeft("1px solid", line));
+export const dockLeft = cn(top("0"), left("0"), bottom("0"), borderRight("1px solid", line));
+export const dockTop = cn(top("0"), left("0"), right("0"), borderBottom("1px solid", line));
+export const dockBottom = cn(bottom("0"), left("0"), right("0"), borderTop("1px solid", line));
+
+// the strip on the panel's inner edge that resizes it; its offset from the page edge is inline
+const grip = cn(position("fixed"), zIndex(2147483647), touchAction("none"));
+export const gripX = cn(grip, top("0"), bottom("0"), width("6px"), cursor("ew-resize"));
+export const gripY = cn(grip, left("0"), right("0"), height("6px"), cursor("ns-resize"));
 
 export const bar = cn(
   flex().alignItems("center").gap(2),

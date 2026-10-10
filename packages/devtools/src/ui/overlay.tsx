@@ -37,6 +37,45 @@ interface AskState {
 
 const cx = (...c: (string | false | undefined)[]) => c.filter(Boolean).join(" ");
 
+// where the panel sits and how big it is along that axis, kept per origin
+const DOCKS = ["left", "top", "bottom", "right"] as const;
+type Dock = (typeof DOCKS)[number];
+const ICON: Record<Dock, string> = { left: "◧", top: "⬒", bottom: "⬓", right: "◨" };
+const PANEL: Record<Dock, string> = {
+  left: s.dockLeft,
+  top: s.dockTop,
+  bottom: s.dockBottom,
+  right: s.dockRight,
+};
+const KEY = "cssints-devtools:dock";
+const MIN = 200;
+interface Placement {
+  dock: Dock;
+  w: number;
+  h: number;
+}
+const load = (): Placement => {
+  let v: Partial<Placement> | null = null;
+  try {
+    v = JSON.parse(localStorage.getItem(KEY) ?? "null") as Partial<Placement> | null;
+  } catch {
+    // no storage, or not ours: the defaults
+  }
+  const size = (n: unknown, d: number) => (typeof n === "number" && n >= MIN ? n : d);
+  return {
+    dock: DOCKS.find((d) => d === v?.dock) ?? "right",
+    w: size(v?.w, 440),
+    h: size(v?.h, 320),
+  };
+};
+const save = (p: Placement) => {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(p));
+  } catch {
+    // storage is off: the choice lasts until the reload
+  }
+};
+
 const run = (model: Model, el: Element): Inspection | string => {
   // @effect-diagnostics-next-line strictEffectProvide:off -- the UI's edge: the one place the core meets the page
   const exit = Effect.runSyncExit(inspect(model, el).pipe(Effect.provide(domPage)));
@@ -257,6 +296,33 @@ function App(props: {
   const [hovered, setHovered] = createSignal<Element>();
   const [selected, setSelected] = createSignal<Element>();
   const [tick, setTick] = createSignal(0);
+  const [place, setPlace] = createSignal(load());
+  const horizontal = () => place().dock === "left" || place().dock === "right";
+  const moveTo = (dock: Dock) => {
+    setPlace((p) => ({ ...p, dock }));
+    save(place());
+  };
+  // the grip is captured by the pointer, so the page does not see the drag; the size is cut to leave a strip of page
+  const resize = (e: PointerEvent & { currentTarget: HTMLElement }) => {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+    const { dock } = place();
+    const v = {
+      left: e.clientX,
+      top: e.clientY,
+      right: innerWidth - e.clientX,
+      bottom: innerHeight - e.clientY,
+    };
+    const n = Math.round(
+      Math.max(MIN, Math.min(v[dock], (horizontal() ? innerWidth : innerHeight) - 80)),
+    );
+    setPlace((p) => (horizontal() ? { ...p, w: n } : { ...p, h: n }));
+  };
+  // the grip sits on the panel's inner edge: that far from the page's edge, 3 px of it on the panel
+  const edge = () => {
+    const { dock, w, h } = place();
+    const at = horizontal() ? `calc(min(${w}px, 100vw) - 3px)` : `calc(min(${h}px, 100vh) - 3px)`;
+    return Object.fromEntries(DOCKS.map((d) => [d, d === dock ? at : ""]));
+  };
   const target = () => (picking() ? (hovered() ?? selected()) : selected());
   const [input, setInput] = createSignal<HTMLTextAreaElement>();
   // the box keeps its text until the session exists, so that a missing service costs no retyping
@@ -384,7 +450,16 @@ function App(props: {
         )}
       </Show>
       <Show when={open()}>
-        <aside class={s.panel} data-devtools="panel">
+        <aside
+          class={cx(s.panel, PANEL[place().dock])}
+          data-devtools="panel"
+          data-dock={place().dock}
+          style={
+            horizontal()
+              ? { width: `min(${place().w}px, 100vw)`, height: "" }
+              : { height: `min(${place().h}px, 100vh)`, width: "" }
+          }
+        >
           <div class={s.bar}>
             <span class={s.title} data-devtools="element">
               {typeof inspection() === "object"
@@ -400,6 +475,19 @@ function App(props: {
             >
               pick
             </button>
+            <For each={DOCKS}>
+              {(d) => (
+                <button
+                  class={cx(s.button, place().dock === d && s.pressed)}
+                  data-devtools="dock"
+                  data-dock={d}
+                  title={`dock ${d}`}
+                  onClick={() => moveTo(d)}
+                >
+                  {ICON[d]}
+                </button>
+              )}
+            </For>
             <button
               class={s.button}
               title="parent (↑)"
@@ -474,6 +562,17 @@ function App(props: {
             </div>
           </Show>
         </aside>
+        <div
+          class={horizontal() ? s.gripX : s.gripY}
+          data-devtools="grip"
+          style={edge()}
+          onPointerDown={(e) => {
+            e.currentTarget.setPointerCapture(e.pointerId);
+            e.preventDefault();
+          }}
+          onPointerMove={resize}
+          onPointerUp={() => save(place())}
+        />
       </Show>
     </>
   );
