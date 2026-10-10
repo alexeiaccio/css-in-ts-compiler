@@ -29,8 +29,6 @@ Hardened against what the code shows can break the assertions (test-only):
 
 After the fix: themes.mjs 30/30 under 10 busy loops, depends-on.mjs 6/6 under 10 busy loops, the full `bun run test` 2/2, typecheck clean.
 
-## Summary of Changes
-Not an engine bug: both tests raced the file watcher and shared state, on a busy macOS machine.
-- themes.mjs: each server logs into its own collector that keeps only the warnings of cssints (a late log of another server in the same process, or one of Vite's, used to reach the assertion); a pause after the dev server starts lets the FSEvents event of the earlier write pass; the edit check waits on hotUpdate's invalidation instead of a fixed sleep; no HMR port (ws: false).
-- depends-on.mjs: the dev part waits on the sheet itself and writes the edit again each second until the module has read it (a late FSEvents event could invalidate the module first, and the watch dependsOn() adds is not live at once, so a write right after the first transform was missed); the build --watch part waits on each build's result and rewrites until a build sees the edit.
-- Runs after the fix: themes.mjs 15/15, depends-on.mjs 40/40, the full packages/cssints test 2/2.
+## Follow-up
+
+The dev part of depends-on.mjs still failed about 1 run in 25 (the module never read the edit within 20 s): a late FSEvents event of the write before the server started can invalidate the module first, and the watch dependsOn() adds is not live at once, so a write right after the first transform was missed. It now waits on the sheet itself and writes the edit again each second until the module has read it. After that: depends-on.mjs 40/40, the full packages/cssints test 2/2.
