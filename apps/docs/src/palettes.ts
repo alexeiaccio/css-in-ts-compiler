@@ -209,7 +209,7 @@ export const palettes: Record<Id, (hue: number) => Palette> = {
   albers: (hue) => cube("albers", hue),
   radix: set(radixLight, radixDark, {
     light: radix,
-    dark: { ...radix, accent: "indigo.11", accentStrong: "indigo.12" },
+    dark: radix,
     dim: {
       bg: "gray.2",
       bgSubtle: "gray.3",
