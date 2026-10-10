@@ -1,14 +1,14 @@
 // The page's side of the compile worker: one worker, started on the first compile, ended and started again when a compile takes
 // longer than the limit (user code that loops at build time). A message sent while the worker still loads its wasm would be
 // dropped (its handler is set after its imports ran), so a compile waits for the worker's `ready`.
-import type { Compiled } from "./compile.ts";
+import type { Compiled, Files } from "./compile.ts";
 
-export type { Compiled, Diagnostic } from "./compile.ts";
+export type { Compiled, Diagnostic, Files } from "./compile.ts";
 
 const LIMIT = 15_000;
 
 export interface Engine {
-  compile: (source: string) => Promise<Compiled>;
+  compile: (files: Files) => Promise<Compiled>;
   /** the body of the function that gives `cx` and `_cv` to the preview */
   runtime: () => Promise<string>;
   stop: () => void;
@@ -23,7 +23,7 @@ interface Reply {
 
 const failure = (message: string): Compiled => ({
   ok: false,
-  errors: [{ message, line: 1, column: 1, frame: "" }],
+  errors: [{ file: "", message, line: 1, column: 1, frame: "" }],
   warnings: [],
 });
 
@@ -52,7 +52,7 @@ export const start = (): Engine => {
   };
 
   return {
-    compile: async (source) => {
+    compile: async (files) => {
       const { worker, runtime } = current ?? open();
       await runtime;
       const id = next++;
@@ -72,7 +72,7 @@ export const start = (): Engine => {
           waiting.delete(id);
           resolve(c);
         });
-        worker.postMessage({ id, source });
+        worker.postMessage({ id, files });
       });
     },
     runtime: () => (current ?? open()).runtime,

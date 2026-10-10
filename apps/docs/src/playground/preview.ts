@@ -1,13 +1,16 @@
 // The preview: a sandboxed iframe (no same-origin access: the code in it is the user's) with the sheet, a hyperscript `h` for
-// the JSX the compile left, and the module run as the body of a function (compile.ts `asBody`). The module's default export, else
-// `App`, else its first function, is called with no props and what it returns is put in the page. A failure goes to the parent as
-// a message.
+// the JSX the compile left, and the files run as the bodies of functions (compile.ts `asBody`), each once, by its id. The entry's
+// default export, else `App`, else its first function, is called with no props and what it returns is put in the page. A failure
+// goes to the parent as a message.
+
+import type { Output } from "./compile.ts";
 
 const safe = (json: string) => json.replace(/</g, "\\u003c");
 
 export const previewDocument = (
   css: string,
-  body: string,
+  files: Record<string, Output>,
+  entry: string,
   runtime: string,
 ): string => `<!doctype html>
 <meta charset="utf-8">
@@ -38,13 +41,13 @@ try {
     return el;
   };
   const Fragment = (p) => p.children;
-  const imports = new Map();
+  const bodies = ${safe(JSON.stringify(Object.fromEntries(Object.entries(files).map(([n, o]) => [`/${n}`, o.body]))))};
   const runtime = await new AsyncFunction("__imp", ${safe(JSON.stringify(runtime))})(() => ({}));
-  const exports = await new AsyncFunction("__imp", "h", "Fragment", ${safe(JSON.stringify(body))})(
-    (name) => (name === "cssints" ? runtime : {}),
-    h,
-    Fragment,
-  );
+  const loaded = {};
+  const load = (id) =>
+    (loaded[id] ??= new AsyncFunction("__imp", "h", "Fragment", bodies[id])(imp, h, Fragment));
+  const imp = (name) => (name.startsWith("/") ? load(name) : name === "cssints" ? runtime : {});
+  const exports = await load(${safe(JSON.stringify(`/${entry}`))});
   const main = exports.default ?? exports.App ?? Object.values(exports).find((v) => typeof v === "function");
   if (typeof main !== "function") send({ empty: true });
   else {

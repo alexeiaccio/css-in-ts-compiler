@@ -4,7 +4,7 @@ The documentation site: pages from `README.md` and `docs/API.md`, built with Sol
 
 ## Playground
 
-`/playground` runs the engine in the browser: an editor, the CSS, the module as the plugin returns it, a live preview, errors at their position, the code in the URL hash. It is a lazy chunk and a worker (`src/playground/`); `plugin/playground.ts` makes what the engine imports from Node (SHA-1, `path`, `createRequire`, `browserslist`, the browser-compat data) and routes the parsers to their wasm builds. How and why: `docs/research/playground.md`. `node test/playground.mjs` compares it with the Node plugin.
+`/playground` runs the engine in the browser: Monaco with the TypeScript worker and the types of cssints (hover, completion, type errors of the open file), several files that import each other (`import { t } from "./tokens.ts" with { type: "cssints" }`), the plugin packages that run without Node (`@cssints/fluid`, `layout`, `motion`, `tokens/*`, ...; not `fonts`, `icons`, `placeholder`, which read files), the CSS, the module as the plugin returns it, a live preview, errors at their position, all the files in the URL hash. It is a lazy chunk and three workers (`src/playground/`); `plugin/playground.ts` makes what the engine imports from Node (SHA-1, `path`, `createRequire`, `browserslist`, the browser-compat data), routes the parsers to their wasm builds, and collects the types and the sources of the packages. How and why: `docs/research/playground.md`. `node test/playground.mjs` compares it with the Node plugin (224 cases) and drives the page in Chrome.
 
 ## Deploy
 

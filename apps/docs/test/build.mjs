@@ -11,8 +11,14 @@ import { build } from "vite";
 process.chdir(`${import.meta.dirname}/..`);
 const out = await build({ root: process.cwd(), logLevel: "warn", build: { write: false } });
 const files = [out].flat().flatMap((o) => o.output);
-const css = files.filter((f) => f.fileName.endsWith(".css"));
+const allCss = files.filter((f) => f.fileName.endsWith(".css"));
+// the site's one sheet; the other files are the CSS of Monaco, which only /playground loads
+const css = allCss.filter((f) => String(f.source).includes("@layer _.k"));
 assert.equal(css.length, 1);
+assert.ok(
+  allCss.filter((f) => f !== css[0]).every((f) => String(f.source).includes(".monaco-")),
+  "no other CSS than Monaco's",
+);
 const sheet = String(css[0].source);
 
 // the stylesheet of the hovers is a layer of its own, declared before the engine's, so the site's rules win over it
@@ -82,14 +88,17 @@ assert.ok(
 );
 assert.ok(!entry.code.includes("shiki-themes"), "the entry chunk holds no code block");
 
-// the playground (src/playground/): the engine, the wasm, the editor and the page are lazy, the entry holds a route and a link
+// the playground (src/playground/): the engine, the wasm, Monaco with its TypeScript worker and the page are lazy, the entry holds
+// a route and a link
 assert.ok(
-  !/cm-editor|transformSync|binding-wasm32|lightningcss_node/.test(entry.code),
+  !/monaco|MonacoEnvironment|transformSync|binding-wasm32|lightningcss_node/.test(entry.code),
   "no playground code in the entry chunk",
 );
 const names = files.map((f) => f.fileName);
 for (const part of [
   /^assets\/worker-.*\.js$/,
+  /^assets\/ts\.worker-.*\.js$/,
+  /^assets\/editor\.worker-.*\.js$/,
   /^assets\/Playground-.*\.js$/,
   /^assets\/parser\.wasm32-wasi-.*\.wasm$/,
   /^assets\/transform\.wasm32-wasi-.*\.wasm$/,

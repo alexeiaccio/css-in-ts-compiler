@@ -5,6 +5,10 @@ module and sees its CSS and the page? Answer: **go**. It was built (apps/docs `/
 browser engine give the same result for the README example and 153 fixtures (155 cases): 65 compile to the same sheet, classes and
 warnings, and 90 fail with the same message, line and column (the fixtures that must fail, and a syntax error). Everything below was measured with a spike and then with the real build, not guessed.
 
+Follow-up (cssints-avlz, 2026-10-10): the editor is Monaco with the TypeScript worker and the types of cssints, the playground has several files,
+and the plugin packages that run without Node are in its module table. 224 cases now (the 63 fixtures of those packages, five projects of
+several files), 0 differ. See "Editor" and "Plugin packages".
+
 ## What in the engine is Node or Vite
 
 By file (`packages/cssints/src`, `packages/css-grammar/src`). "Host" means code that only the Vite plugin runs; the browser has its
@@ -88,8 +92,10 @@ sent to a module worker before its imports finish is lost, so the page waits for
   the plugin made a DOM for them; the test skips the three fixtures that do.
 - **`Buffer`**: LightningCSS's glue (`napi-wasm`) checks `globalThis.Buffer` and hands out views of wasm memory that the next call
   reuses: the shim's `Buffer` is a `Uint8Array`, and the output is decoded at once from a copy.
-- **files**: one module, `playground.tsx`. A relative import is a located error. Multi-file means a map of files in the same function
-  runner; not built.
+- **files**: several (cssints-avlz). A file is a name and a text; a relative import (`./tokens.ts`, `../tokens.ts`, with or without the
+  extension, `index.ts`) is the id of another file, and the runner gives each file as the body of a function, once per evaluation, as the
+  Module Runner does. Each file with a cssints import is evaluated as the plugin would transform it (its own sites, its own entries); the
+  sheet is the entries of all of them. An error is located in the file that has it, also when another file imported that one.
 - **Effect**: nothing to abstract; `effect` runs in a worker as it does in Node. The `Registry` is process-global, which in a worker
   means worker-global: each compile is an edit of the same module (`forget(id)`, `warned.clear()`), as the plugin's `hotUpdate` does.
 
@@ -106,6 +112,20 @@ sent to a module worker before its imports finish is lost, so the page waits for
 | transform wasm | 3.25 MB | 1.09 MB | 723 KB | at `/playground` |
 | LightningCSS wasm | 15.8 MB | 3.75 MB | 1.98 MB | at `/playground` |
 | **Playground, all** | **~25 MB** | **~5.9 MB** | **~3.45 MB** | first visit only; the host caches the hashed files |
+
+Since cssints-avlz (Monaco instead of CodeMirror; the entry is measured against the same tree without the change):
+
+| Asset | Raw | gzip | brotli | Loaded |
+|---|---|---|---|---|
+| docs entry (JS + CSS) | 154.3 KB (+0.1) | 50.0 KB (+0.0) | 44.6 KB (+0.0) | always |
+| `Playground` chunk (the page, the types of cssints and the sources of the packages as text) | 1.37 MB | 307 KB | 211 KB (was 141 with CodeMirror) | at `/playground` |
+| `editor.api` (Monaco's core) | 2.61 MB | 682 KB | 538 KB | at `/playground` |
+| `tsMode` (the TypeScript features of Monaco) | 658 KB | 165 KB | 134 KB | at `/playground` |
+| `ts.worker` (the TypeScript compiler, the `lib.*.d.ts` files) | 6.61 MB | 1.42 MB | 1018 KB | at `/playground` |
+| `editor.worker` | 297 KB | 91 KB | 72 KB | at `/playground` |
+| codicon font and the CSS of Monaco (3 files) | 321 KB | 101 KB | 90 KB | at `/playground` |
+| `worker` (the engine) | 3.34 MB | 331 KB | 206 KB | at `/playground` |
+| **Playground, all** | **~35 MB** | **~8.2 MB** | **~5.25 MB** | first visit only (was ~3.45 MB brotli: +1.9 MB, Monaco and TypeScript) |
 
 Time, on localhost with the built site (`vite preview`): first compile 1.2 s (WebKit), 1.5 s (Firefox), 2.1 s (Chrome) after the
 navigation, that is the load, the worker, three wasm compiles and the first build; the first build alone is 0.45-0.7 s. A later compile
@@ -124,11 +144,66 @@ of the README example is 6-14 ms in Chrome, 9-28 ms in Firefox and WebKit. On a 
 
 ## Editor
 
-CodeMirror 6 (JavaScript with JSX and TypeScript, 140 KB brotli with the page), coloured with the site's own variables, with the
-engine's errors as marks at the position. **Monaco with TypeScript types is not acceptable here**: the TypeScript compiler in a
-worker is several MB more (not measured), and the types of `cssints` are the type-level grammar, which is the slowest thing the project has (the docs
-already type-check its code blocks at build time, in 15 s, for hovers). The errors that matter here are the build's own, which the
-playground gives with their positions, in 10 ms.
+Monaco 0.57 (cssints-avlz) with the TypeScript language service in a worker, replacing CodeMirror 6. Only what a playground uses is
+imported (the editor core, hover, suggest, parameter hints, brackets, copy and paste, the TypeScript contribution), not `editor.main` with its
+80 languages. The types are extra libs of a virtual project, made at build time (`virtual:playground/types`): the **built declarations**
+(`dist/*.d.mts`) of `cssints` and `@cssints/css-grammar`, followed from the entries (`cssints`, `cssints/plugin`, `cssints/frame`,
+`cssints/surface`) through their relative imports (844 KB raw), and the **sources** of the plugin packages (`src/index.ts` and what it imports,
+which is typed code; no declarations are tracked for them). `paths` maps the module names to those files. An import of `effect`, `vite` or
+`oxc-parser` inside a declaration has no types and is `any`, which no user line sees. A user file is a model at `file:///<name>`, so
+`./tokens.ts` resolves between them, and the files that are not open are part of the program (eager model sync).
+
+**The type-level grammar in the browser.** Measured on the built site (`vite preview`, Chrome, localhost, one core of a laptop):
+
+| | time |
+|---|---|
+| first diagnostics of the README example (TypeScript worker starts, builds the program, checks the file) | 0.9-1.1 s of check; the status shows `Types: ok · 1100 ms`. 4.6 s after the navigation on a cold cache (the engine's first compile 1.5 s of it), 2.7 s warm |
+| the same file after an edit (the program is warm) | 430-510 ms |
+| a module of 40 styles, 7 declarations each (280 type-level checks) | 700-780 ms |
+
+So a full check of the open file is under a second, and the grammar is usable. It is kept so by what the page does, not by the types: the
+language service is in its own worker (typing never waits for it); Monaco's own validation is off and the page asks for the diagnostics of
+**the open file only**, 400 ms after the last edit, and drops an answer that an edit made old; the time is shown (`Types: ok · 430 ms`,
+`Types: checking…` while it waits). The engine's errors (build errors, with their position) come in 10-50 ms and do not wait for the
+types; where both fail at the same place, both are shown (they say the same words, the types use the twin's messages). A type error in a file
+that is not open shows when that file is opened. What is not solved: a module of thousands of declarations would pass the second, and the
+check is of the whole file, not of the line that changed.
+
+**What it costs to download** (brotli, first visit, on top of the engine): `ts.worker` (the TypeScript compiler and the `lib.*.d.ts` files)
+1018 KB, the editor core 538 KB, `tsMode` (the language features) 134 KB, Monaco's own worker 72 KB, the codicon font 66 KB, its
+CSS 24 KB, the types and sources of the packages ~100 KB in the page's chunk. CodeMirror's 140 KB are gone. The page in all: 5.25 MB brotli
+(3.45 MB before), 1.9 MB of it Monaco and TypeScript. Nothing of it is in the docs entry.
+
+**Setup notes.** Monaco 0.57's package exports map `monaco-editor/<path>` to `esm/vs/<path>.js`, so imports have no `esm/vs`; its two
+workers are modules of their own (`ts.worker.ts`, `editor.worker.ts`, one import each) built like the compile worker. The language service asks
+for its worker before it is set up on the first model: the first check tries again after a pause. `moduleResolution: bundler` is a number
+(100): Monaco's enum names only node and classic. JSX is `preserve` with a global `JSX` namespace of `any` (the preview has its own `h`), so
+only the types of cssints are checked in a tag.
+
+## Plugin packages
+
+They are files of the playground, not part of its bundle. Each package of the list in `plugin/playground.ts` has its `src/*.ts` (and the
+relative files it imports) in a virtual module as lazy text; the worker loads the text when a file imports the package, instruments it as
+Node's runner does (its sites are recorded and never rendered, as in Node, where only the user's modules are transformed for the client),
+removes the types and runs it with the others. Bundling them with the docs would have run the docs' own cssints plugin over them (it
+transforms every module that mentions `cssints`, and rendered their rules into the docs' sheet). What they import from outside, `culori`
+(gradient, ramp), is bundled with the worker.
+
+| Runs in the browser | Why |
+|---|---|
+| `balance`, `fluid`, `gradient`, `layout`, `masonry`, `mise-en-mode`, `motion`, `ramp`, `reset`, `reveal`, `skeleton`, `squircle`, `stuck`, and the four sets of `tokens` | pure at build time: arithmetic, colour maths (culori), `scope()` members |
+| `@cssints/icons` | reads `@iconify-json/<collection>/icons.json` (megabytes: ph is 4.5 MB) through `createRequire` and `fs`, and `.svg` files from a directory |
+| `@cssints/fonts` | reads font files from disk (fontkitten) and downloads them |
+| `@cssints/placeholder` | reads image files, SHA-1 of their bytes, PNG and JPEG codecs for Node |
+
+The three that do not run need files, which a browser has not. `icons` with the `fs` provider could read the `.svg` files of the playground,
+and a small collection could be a stub table; not built. Importing one is a located error that lists the modules there are. The runtime
+scripts that a package delivers to the page (`reveal`'s observer, `stuck`'s) are named in the module (`import "virtual:cssints/runtime/..."`)
+and not run by the preview.
+
+The parity test runs the fixtures of the thirteen packages and of `tokens` that import only modules of the playground (63 cases, 0 differ,
+the failures of the engine included: the same message, file, line and column), and projects of several files (a module of tokens, a plain
+module, a barrel, a directory and `..`, an error in the imported file, a package in a second file).
 
 ## Decision and plan
 
@@ -136,15 +211,17 @@ playground gives with their positions, in 10 ms.
 
 1. `entries.ts` out of `plugin.ts` (engine, behaviour-preserving).
 2. `apps/docs/plugin/playground.ts`, the shims, `compile.ts` (the host), `worker.ts`/`client.ts` (the page's side), `preview.ts`.
-3. `/playground`: CodeMirror, the CSS, the CSS as LightningCSS ships it, the module as the plugin returns it, the JS the preview runs, a
-   live preview, located errors (marks, a message and a code frame), the code in the URL hash (`#code=`, deflate and base64url).
+3. `/playground`: CodeMirror (Monaco since cssints-avlz, below), the CSS, the CSS as LightningCSS ships it, the module as the plugin returns it, the JS the preview runs, a
+   live preview, located errors (marks, a message and a code frame), the code in the URL hash (`#code=`, deflate and base64url; since
+   cssints-avlz `#files=`, the JSON of all the files, and `#code=` still opens).
 4. `test/playground.mjs`: parity with Node for the README example and every fixture of `packages/cssints/test/fixtures` that imports only
    `cssints` (153; 2 skipped for the DOM, plus the README example and a syntax error: 155 cases), then the page in Chrome.
 
 Left, in order of value:
 
-- Multi-file (a file list; relative imports in the function runner), and the plugin packages (`@cssints/fluid`, `layout`, ...) in the module table.
 - LightningCSS on demand (2 MB brotli): `lowered.ts` async, or load the wasm after the first compile and rerun.
+- Monaco after the first paint: the page could show the code in a plain element and mount Monaco (2 MB brotli) when it has arrived.
 - A picker of targets (the BCD is already whole for the 12 browsers).
 - A real DOM for the evaluator in the worker (a small stub of `document`/`window`), if a module needs it.
+- `@cssints/icons` over the playground's `.svg` files and a small collection; the declarations of the packages (`dist`) for the types, when they are tracked.
 - Run the three engine builds (`dist/`) in the playground instead of `src/` when the docs consume the package over git.
