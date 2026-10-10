@@ -36,26 +36,23 @@ export interface Options {
   readonly lightness?: number;
 }
 
-const fail = (why: string): never => {
+const fail = (why: string) => {
   throw new Error(`@cssints/rybitten: ${why}`);
 };
 
-const cubeOf = (cube: string | ColorCube = "itten"): ColorCube =>
+const cubeOf = (cube: string | ColorCube = "itten") =>
   typeof cube === "string"
     ? (cubes.get(cube)?.cube ?? fail(`no cube "${cube}" in RYBitten's cubes`))
     : cube;
 
-const unit = (x: number, what: string): number =>
+const unit = (x: number, what: string) =>
   x >= 0 && x <= 1 ? x : fail(`${what} is from 0 to 1, got ${x}`);
 
-const hex = (rgb: readonly number[]): Hex =>
-  `#${rgb
-    .map((x) =>
-      Math.round(Math.min(1, Math.max(0, x)) * 255)
-        .toString(16)
-        .padStart(2, "0"),
-    )
-    .join("")}`;
+const channel = (x: number) =>
+  Math.round(Math.min(1, Math.max(0, x)) * 255)
+    .toString(16)
+    .padStart(2, "0");
+const hex = (rgb: readonly number[]) => `#${rgb.map(channel).join("")}` as Hex;
 
 /**
  * The sRGB hex colour of a hue in a cube.
@@ -63,7 +60,7 @@ const hex = (rgb: readonly number[]): Hex =>
  * @param {Options} options the cube, saturation and lightness
  * @returns {Hex} `#rrggbb`
  */
-export const color = (hue: number, options: Options = {}): Hex => {
+export const color = (hue: number, options: Options = {}) => {
   const { cube, saturation = 1, lightness = 0.5 } = options;
   if (!Number.isFinite(hue)) fail(`hue is a number of degrees, got ${hue}`);
   return hex(
@@ -76,7 +73,7 @@ export const color = (hue: number, options: Options = {}): Hex => {
   );
 };
 
-const group = <K extends string>(colors: readonly Hex[]): Palette<K> =>
+const group = <K extends string>(colors: readonly Hex[]) =>
   Object.fromEntries([
     ["$type", "color"],
     ...colors.map((c, i) => [String(i + 1), { $value: c }]),
@@ -91,9 +88,11 @@ const group = <K extends string>(colors: readonly Hex[]): Palette<K> =>
 export const wheel = <const N extends number>(
   steps: N,
   { from = 0, ...options }: Options & { readonly from?: number } = {},
-): Palette<Keys<N>> => {
+) => {
   if (!Number.isInteger(steps) || steps < 1) fail(`steps is a whole number from 1, got ${steps}`);
-  return group(Array.from({ length: steps }, (_, i) => color(from + (360 * i) / steps, options)));
+  return group<Keys<N>>(
+    Array.from({ length: steps }, (_, i) => color(from + (360 * i) / steps, options)),
+  );
 };
 
 /**
@@ -107,15 +106,14 @@ export const shades = <const R extends readonly number[]>(
   hue: number,
   lightness: R,
   options: Omit<Options, "lightness"> = {},
-): Palette<Keys<R["length"]>> =>
-  group(lightness.map((l) => color(hue, { ...options, lightness: l })));
+) => group<Keys<R["length"]>>(lightness.map((l) => color(hue, { ...options, lightness: l })));
 
 /**
  * A group as the overrides of a theme: `createGlobalTheme(t.wheel, dark, overrides(wheel(12, { cube: "munsell" })))`.
  * @param {Palette<K>} p a group of `wheel` or `shades`
  * @returns {PaletteOverrides<K>} its steps as `{ _1: hex, … }`
  */
-export const overrides = <K extends string>(p: Palette<K>): PaletteOverrides<K> =>
+export const overrides = <K extends string>(p: Palette<K>) =>
   Object.fromEntries(
     Object.entries(p).flatMap(([k, v]: [string, unknown]) =>
       k === "$type" ? [] : [[`_${k}`, (v as { $value: Hex }).$value]],

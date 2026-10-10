@@ -109,6 +109,8 @@ finds the step with the ratio you need (the docs site does this for its accent, 
 - **No harmonies.** A complement is `hue + 180`, a triad `+ 120`: `color(h + 180)`, or the steps of a `wheel(3)`.
 - **The editor shows `` `#${string}` ``.** A value is computed when the module runs, so its type is a hex string, not the
   literal (as for @cssints/ramp). The steps are known (`t.hue._13` of a twelve-step wheel is a type error).
+- **Type cost.** A step is a `` `#${string}` `` token like a step of @cssints/ramp: the whole type test (a wheel of twelve, a
+  run of four, their overrides in a theme) is 0.19 M instantiations in tsgo, as many as the type test of ramp.
 - **No runtime.** A hue picked in the browser needs one of the steps built ahead (the docs site builds a theme per step of
   a twelve-hue wheel and switches them with an attribute) or `rybitten` itself in the page, which this package does not ship.
 
