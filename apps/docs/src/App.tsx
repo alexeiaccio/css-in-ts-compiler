@@ -1,17 +1,18 @@
 import { createRouter, defineRoute } from "@solidjs/router";
 import { lazy, Loading } from "solid-js";
 
+import Landing from "./Landing.tsx";
 import Page from "./Page.tsx";
 import { Shell } from "./Shell.tsx";
 
 // The playground is its own chunk: the engine and its parsers load when the page opens, never with the docs.
 const Playground = lazy(() => import("./playground/Playground.tsx"));
 
-// One route per page: the slug is the path ("" is the overview); an unknown slug is the not-found page.
+// One route per page: the slug is the path ("" is the landing page); an unknown slug is the not-found page.
 const Router = createRouter({
   base: import.meta.env.BASE_URL.replace(/\/$/, ""),
   routes: [
-    { path: "/", component: () => <Page slug="" /> },
+    { path: "/", component: Landing },
     {
       path: "/playground",
       component: () => (

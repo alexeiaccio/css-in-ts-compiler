@@ -15,6 +15,7 @@ import { join } from "node:path";
 import { Worker } from "node:worker_threads";
 import type { Plugin } from "vite";
 
+import { landing } from "./landing.ts";
 import { type Page, summary } from "./markdown.ts";
 
 const root = join(import.meta.dirname, "../../..");
@@ -35,8 +36,10 @@ const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
 export default function docs(): Plugin {
   let pages: Promise<Page[]> | undefined;
+  let home: Promise<string> | undefined;
   let base = "/";
   const get = () => (pages ??= buildPages(base));
+  const getHome = () => (home ??= landing(base));
   return {
     name: "docs",
     enforce: "pre",
@@ -45,6 +48,7 @@ export default function docs(): Plugin {
     },
     buildStart() {
       void get();
+      void getHome();
     },
     configureServer(server) {
       void get(); // start the type-check now, not at the first request
@@ -68,6 +72,8 @@ export default function docs(): Plugin {
         );
         return `@layer twoslash {\n${css}\n}`;
       }
+      if (id === "\0virtual:docs/landing")
+        return `export default ${JSON.stringify(await getHome())};`;
       if (!id.startsWith("\0virtual:docs")) return;
       const all = await get();
       if (id === "\0virtual:docs") {
@@ -75,7 +81,7 @@ export default function docs(): Plugin {
         const loaders = all.map(
           (p, i) => `${JSON.stringify(p.slug)}: () => import("${pageId(i)}")`,
         );
-        return `export const pages = ${JSON.stringify(meta)};\nexport const html = { ${loaders.join(", ")} };`;
+        return `export const pages = ${JSON.stringify(meta)};\nexport const html = { ${loaders.join(", ")} };\nexport const landing = () => import("virtual:docs/landing");`;
       }
       return `export default ${JSON.stringify(all[Number(id.split("/").pop())]?.html)};`;
     },
@@ -87,8 +93,9 @@ export default function docs(): Plugin {
         if (index?.type !== "asset") return;
         const shell = String(index.source);
         const all = await get();
+        const list = `<nav aria-label="Pages"><ul><li><a href="${base}">cssints</a></li>${all.map((p) => `<li><a href="${base}${p.slug}/">${p.titleHtml}</a></li>`).join("")}</ul></nav>`;
         // function replacers: the html has `$` in it
-        const document = (page: Page) =>
+        const document = (page: Pick<Page, "slug" | "title" | "html">, article: string) =>
           shell
             .replace(
               /<title>.*?<\/title>/,
@@ -99,11 +106,18 @@ export default function docs(): Plugin {
             )
             .replace(
               '<div id="root"></div>',
-              () =>
-                `<div id="prerender"><h1>${page.titleHtml}</h1><div class="prose">${page.html}</div><nav aria-label="Pages"><ul>${all.map((p) => `<li><a href="${base}${p.slug && `${p.slug}/`}">${p.titleHtml}</a></li>`).join("")}</ul></nav></div><div id="root" hidden></div>`,
+              () => `<div id="prerender">${article}${list}</div><div id="root" hidden></div>`,
             );
-        for (const page of all) {
-          const source = document(page);
+        const home = await getHome();
+        const pagesOut = [
+          { slug: "", title: "cssints", html: home, article: home },
+          ...all.map((p) => ({
+            ...p,
+            article: `<h1>${p.titleHtml}</h1><div class="prose">${p.html}</div>`,
+          })),
+        ];
+        for (const page of pagesOut) {
+          const source = document(page, page.article);
           assert(source !== shell, "the shell has no #root to prerender into");
           if (page.slug === "") index.source = source;
           else this.emitFile({ type: "asset", fileName: `${page.slug}/index.html`, source });
