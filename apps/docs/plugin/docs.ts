@@ -36,7 +36,7 @@ const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
 export default function docs(): Plugin {
   let pages: Promise<Page[]> | undefined;
-  let home: Promise<string> | undefined;
+  let home: ReturnType<typeof landing> | undefined;
   let base = "/";
   const get = () => (pages ??= buildPages(base));
   const getHome = () => (home ??= landing(base));
@@ -73,7 +73,7 @@ export default function docs(): Plugin {
         return `@layer twoslash {\n${css}\n}`;
       }
       if (id === "\0virtual:docs/landing")
-        return `export default ${JSON.stringify(await getHome())};`;
+        return `import { landing } from "/src/landing/page.ts";\nexport default landing(${JSON.stringify((await getHome()).data)});`;
       if (!id.startsWith("\0virtual:docs")) return;
       const all = await get();
       if (id === "\0virtual:docs") {
@@ -108,7 +108,7 @@ export default function docs(): Plugin {
               '<div id="root"></div>',
               () => `<div id="prerender">${article}${list}</div><div id="root" hidden></div>`,
             );
-        const home = await getHome();
+        const home = (await getHome()).html;
         const pagesOut = [
           { slug: "", title: "cssints", html: home, article: home },
           ...all.map((p) => ({

@@ -412,18 +412,21 @@ try {
   // sideways scroll at any width, and a screenshot light, dark and on a phone
   const landing = async (context, name) => {
     const page = await open(context);
-    await page.locator(".landing .panels").waitFor({ state: "visible" });
+    await page.locator("[data-landing] [data-panels]").waitFor({ state: "visible" });
     const info = await page.evaluate(() => ({
       title: document.title,
       h1s: document.querySelectorAll("h1").length,
       sidebar: document.querySelector("#sidebar")?.getBoundingClientRect().width,
       menu: getComputedStyle(document.querySelector("button[aria-label=Menu]")).display,
-      logo: document.querySelector(".landing .hero img")?.naturalWidth,
-      panels: document.querySelectorAll(".landing figure").length,
-      features: document.querySelectorAll(".landing .features li").length,
+      logo: document.querySelector("[data-landing] [data-hero] img")?.naturalWidth,
+      panels: document.querySelectorAll("[data-landing] figure").length,
+      features: document.querySelectorAll("[data-landing] [data-features] li").length,
       overflow: document.documentElement.scrollWidth > innerWidth,
       prerender: !!document.getElementById("prerender"),
-      links: [...document.querySelectorAll(".landing a")].map((a) => a.getAttribute("href")),
+      hero: document.querySelector("[data-hero]").getBoundingClientRect().toJSON(),
+      header: document.querySelector("header").getBoundingClientRect().bottom,
+      width: document.documentElement.clientWidth,
+      links: [...document.querySelectorAll("[data-landing] a")].map((a) => a.getAttribute("href")),
     }));
     assert.equal(info.title, "cssints");
     assert.equal(info.h1s, 1, "one title");
@@ -432,6 +435,12 @@ try {
     assert.ok(info.logo > 0, "the logo loads");
     assert.deepEqual([info.panels, info.features], [3, 6]);
     assert.ok(!info.overflow && !info.prerender, "no sideways scroll; the static copy is gone");
+    // the hero is full-bleed: right under the header and as wide as the page (its glow and the shader fill it)
+    assert.deepEqual(
+      [info.hero.top, info.hero.left, info.hero.width],
+      [info.header, 0, info.width],
+      "the hero spans the page under the header",
+    );
     for (const link of info.links) {
       assert.ok(link.startsWith(prefix), `${link} is outside ${prefix}`);
       assert.ok(
@@ -439,15 +448,33 @@ try {
         link,
       );
     }
+    // the shader (src/landing/shader.ts) is there when Chrome has WebGPU, behind the hero and hidden from assistive technology;
+    // without it the page is the same, so this holds either way
+    if (await page.evaluate(() => !!navigator.gpu)) {
+      const canvas = page.locator("[data-hero] canvas");
+      await canvas.waitFor({ state: "attached" });
+      assert.equal(await canvas.evaluate((c) => c.parentElement.ariaHidden), "true", "aria-hidden");
+      const layer = await canvas.evaluate((c) => c.parentElement.getBoundingClientRect().toJSON());
+      assert.deepEqual(
+        [layer.top, layer.left, layer.width],
+        [info.hero.top, 0, info.width],
+        "the shader fills the hero",
+      );
+      // a mode change recolours it: no error follows (problems is checked at the end)
+      for (let i = 0; i < 2; i++) {
+        await page.evaluate(() => document.documentElement.classList.toggle("dark"));
+        await sleep(300);
+      }
+    }
     await page.screenshot({ path: join(out, `landing-${name}.png`), fullPage: true });
     return page;
   };
   const sun = await landing(desktop, "light");
-  await sun.click(".landing .actions .primary");
+  await sun.click("[data-landing] [data-primary]");
   await sun.waitForURL(/\/install\/?$/);
   await sun.locator("main h1", { hasText: "Install" }).waitFor({ state: "visible" });
   await sun.goBack();
-  await sun.locator(".landing").waitFor({ state: "visible" });
+  await sun.locator("[data-landing]").waitFor({ state: "visible" });
   await sun.close();
   const evening = await browser.newContext({
     colorScheme: "dark",
@@ -458,6 +485,22 @@ try {
   const small = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
   await (await landing(small, "mobile")).close();
   await small.close();
+  // no shader, and no error, when the browser asks for less motion or has no WebGPU: the hero keeps its radial gradient
+  for (const { why, options, init } of [
+    { why: "reduced motion", options: { reducedMotion: "reduce" }, init: () => {} },
+    { why: "no WebGPU", options: {}, init: () => delete Navigator.prototype.gpu },
+  ]) {
+    const context = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      ...options,
+    });
+    await context.addInitScript(init);
+    const page = await open(context);
+    await page.locator("[data-landing] [data-panels]").waitFor({ state: "visible" });
+    await sleep(1500);
+    assert.equal(await page.locator("[data-hero] canvas").count(), 0, `no shader: ${why}`);
+    await context.close();
+  }
 
   // the built site
   const dist = join(out, "dist");
@@ -481,6 +524,8 @@ try {
     assert.equal(await bare.locator("#root").isVisible(), false, "the empty root is hidden");
     await bare.click(`#prerender nav a[href='${prefix}tokens/']`);
     assert.equal(await bare.textContent("h1"), "Tokens", "a link is another document");
+    await bare.goto(built);
+    const staticLanding = await bare.locator("[data-landing]").evaluate((e) => e.outerHTML);
     await plain.close();
 
     // JavaScript on: the app takes over. At every frame the page is the static copy or the app, never both and never neither
@@ -526,6 +571,15 @@ try {
         `built ${path}: a frame shows both or neither`,
       );
       seen.push(await page.textContent("h1"));
+      if (path === "") {
+        // the app renders the string of the document, so the swap changes nothing (but the shader's layer, which it adds)
+        const live = await page.evaluate(() => {
+          const copy = document.querySelector("[data-landing]").cloneNode(true);
+          copy.querySelector("[data-shader]")?.remove();
+          return copy.outerHTML;
+        });
+        assert.equal(live, staticLanding, "the landing page of the app is the prerendered one");
+      }
       if (path === "tokens/") {
         await page.click(`#sidebar a[href='${prefix}install']`);
         await page.waitForURL(/\/install$/);

@@ -216,10 +216,14 @@ written(
 // the landing page (plugin/landing.ts): the document of "/" holds it, and its showcase is what the engine makes of
 // src/landing/button.ts, compiled again here: the three panels read back from the html are the source, the module and the sheet
 const homeDoc = html.get("index.html");
-const landing = /<div id="prerender">(<div class="landing">[\s\S]*?)<nav aria-label="Pages">/.exec(
-  homeDoc,
-)?.[1];
-assert.ok(landing?.includes("<h1>CSS in TypeScript"), "the landing page is in the document of /");
+const landing =
+  /<div id="prerender">(<div class="[^"]*" data-landing>[\s\S]*?)<nav aria-label="Pages">/.exec(
+    homeDoc,
+  )?.[1];
+assert.ok(
+  landing?.includes("CSS in TypeScript, compiled away</h1>"),
+  "the landing page is in the document of /",
+);
 assert.ok(
   !entry.code.includes("What you write, what you get"),
   "the landing page is a chunk, not the entry",
@@ -233,7 +237,9 @@ const decode = (s) =>
     .replace(/&amp;/g, "&");
 const panels = Object.fromEntries(
   [
-    ...landing.matchAll(/<figure><figcaption>(.*?)<\/figcaption>(<pre[\s\S]*?<\/pre>)<\/figure>/g),
+    ...landing.matchAll(
+      /<figure[^>]*><figcaption[^>]*>(.*?)<\/figcaption>(<pre[\s\S]*?<\/pre>)<\/figure>/g,
+    ),
   ].map((m) => [m[1], decode(m[2])]),
 );
 const made = await compile();
@@ -247,7 +253,20 @@ assert.equal(
 assert.ok(made.css.includes("@layer _.a") && made.css.includes(":hover{"), "the sheet has rules");
 for (const cls of panels["The module in the bundle"].match(/_[a-z0-9]{5,8}\b/g))
   assert.ok(panels["The stylesheet"].includes(`.${cls}`), `${cls} is in the sheet`);
-assert.match(landing, /<pre class="error"><code>color: unexpected "rebeccapurpel"/, "a real error");
+assert.match(
+  landing,
+  /<pre [^>]*data-error><code>color: unexpected "rebeccapurpel"/,
+  "a real error",
+);
+// its own classes are cssints classes (content-hashed, made by the same module in the prerender and in the build), all in the sheet
+const classes = new Set(
+  [...landing.matchAll(/ class="([^"]*)"/g)]
+    .flatMap((m) => m[1].split(" "))
+    .filter((c) => c[0] === "_"),
+);
+assert.ok(classes.size > 80, `the landing page has cssints classes (${classes.size})`);
+for (const cls of classes)
+  assert.ok(sheet.includes(`.${cls}`), `${cls} of the landing page is in the sheet`);
 for (const href of ["install/", "playground/", "overview/"])
   assert.ok(landing.includes(`href="${base}${href}"`), `the landing page links to ${href}`);
 // /playground is not a page of the docs: its document is the shell, whose root is not hidden, and a note for those without JS

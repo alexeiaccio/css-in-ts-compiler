@@ -1,12 +1,16 @@
-// The landing page (/) as one html string, made at build time like the pages of the markdown: plugin/docs.ts serves it as a
-// virtual module and writes it into the document of "/". The showcase is the compiler's own output: src/landing/button.ts goes
-// through the cssints plugin on a Vite server of its own (as packages/mcp compiles a module), and the module it makes, its
-// stylesheet and the error of a misspelt value are highlighted with Shiki. Styles: src/landing-styles.ts, global rules under .landing.
+// The landing page (/), made at build time like the pages of the markdown. The showcase is the compiler's own output:
+// src/landing/button.ts goes through the cssints plugin on a Vite server of its own (as packages/mcp compiles a module), and the
+// module it makes, its stylesheet and the error of a misspelt value are highlighted with Shiki. That is the data of landing() in
+// src/landing/page.ts, a cssints module whose classes are css.cn: plugin/docs.ts writes the string this server makes of it into
+// the document of "/", and the virtual module virtual:docs/landing calls landing() with the same data in the build, so the
+// app renders the same string and the classes are in the build's sheet.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import cssints from "cssints/vite";
 import { createHighlighter } from "shiki";
-import { createServer } from "vite";
+import { createServer, type ViteDevServer } from "vite";
+
+import type { LandingData } from "../src/landing/page.ts";
 
 const root = join(import.meta.dirname, "..");
 const button = join(root, "src/landing/button.ts");
@@ -22,7 +26,10 @@ export interface Compiled {
   error: string;
 }
 
-export async function compile(): Promise<Compiled> {
+// `use` runs while the server is up
+async function withServer<T>(
+  use: (server: ViteDevServer, made: Compiled) => Promise<T>,
+): Promise<T> {
   const plugins = cssints();
   const server = await createServer({
     root,
@@ -50,102 +57,50 @@ export async function compile(): Promise<Compiled> {
       () => "",
       (e: Error) => e.message.split("\n")[0]!,
     );
-    return {
+    return await use(server, {
       source: readFileSync(button, "utf8"),
       // the dev server names the runtime by a path of this machine; a build bundles it
       code: code.replace(/^(import .* from )"[^"]*";/m, '$1"cssints/browser";'),
       css: api.sheet([button]),
       error,
-    };
+    });
   } finally {
     await server.close();
   }
 }
 
-const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+export const compile = () => withServer((_, made) => Promise.resolve(made));
 
-// `base` ends with a slash, as in plugin/docs.ts
-export async function landing(base: string): Promise<string> {
-  const [c, highlighter] = await Promise.all([
-    compile(),
-    createHighlighter({ themes: ["github-light", "github-dark"], langs: ["ts", "css", "bash"] }),
-  ]);
-  if (!c.error) throw new Error("the misspelt colour of src/landing compiled");
-  const code = (text: string, lang: string) =>
-    highlighter.codeToHtml(text.trim(), {
-      lang,
-      themes: { light: "github-light", dark: "github-dark" },
-      defaultColor: false,
-    });
-  const panel = (name: string, body: string) =>
-    `<figure><figcaption>${name}</figcaption>${body}</figure>`;
-  const feature = (title: string, text: string, href: string, link: string, extra = "") =>
-    `<li><h3>${title}</h3><p>${text}</p>${extra}<a href="${base}${href}">${link}</a></li>`;
-  return `<div class="landing">
-<section class="hero">
-<img src="${base}logo.svg" alt="" width="96" height="96">
-<p class="status"><span>Alpha</span> 0.1 is on npm under <code>next</code>; the API can still change</p>
-<h1>CSS in TypeScript, compiled away</h1>
-<p class="lead">cssints turns typed style calls into atomic, content-hashed classes in one stylesheet when you build. The browser gets class names, not a styling library.</p>
-<div class="install">${code("npm install --save-dev cssints@next", "bash")}</div>
-<p class="actions"><a class="primary" href="${base}install/">Get started</a><a href="${base}playground/">Try the playground</a><a href="${base}overview/">Read the docs</a></p>
-</section>
-<section class="showcase" aria-labelledby="showcase">
-<h2 id="showcase">What you write, what you get</h2>
-<p>This is the compiler's output, made when this site was built: the file on the left went through the same plugin as your code.</p>
-<div class="panels">
-${panel("button.ts", code(c.source, "ts"))}
-<div class="outputs">
-${panel("The module in the bundle", code(c.code, "ts"))}
-${panel("The stylesheet", code(c.css, "css"))}
-</div>
-</div>
-</section>
-<section class="features" aria-labelledby="features">
-<h2 id="features">Why cssints</h2>
-<ul>
-${feature(
-  "Typed values, checked twice",
-  "Every value is checked against the spec grammars of mdn-data: in the editor through the types, and again in the build. A typo is an error, with the file and the line.",
-  "errors/",
-  "The errors you can get",
-  `<pre class="error"><code>${escape(c.error)}</code></pre>`,
-)}
-${feature(
-  "Nothing of it at runtime",
-  "Each call is replaced by a class string. Only <code>cx</code> and the few lines behind <code>cv</code> ship, and they just join class names.",
-  "without-runtime/",
-  "Without runtime",
-)}
-${feature(
-  "Tokens, themes, contrast",
-  "Typed design tokens, themes on a class or a media query, and <code>check.contrast</code>, which fails the build when text is hard to read.",
-  "tokens/",
-  "Tokens and themes",
-)}
-${feature(
-  "Plugins on one small API",
-  "Fluid type, layout, fonts, reset, gradients, motion, masonry, icons and more: plugin packages that run at build time too.",
-  "plugin-packages/",
-  "Plugin packages",
-)}
-${feature(
-  "Devtools and agents",
-  "An overlay in the dev server shows the cascade of any element, and an MCP server lets your coding agent check a value or compile a module.",
-  "cssints-devtools/",
-  "The devtools",
-)}
-${feature(
-  "A playground in the page",
-  "The real engine in a web worker, over wasm builds of oxc and LightningCSS, beside Monaco with the types of cssints. Nothing to install.",
-  "playground/",
-  "Open the playground",
-)}
-</ul>
-</section>
-<section class="closing">
-<h2>Try it on your own styles</h2>
-<p class="actions"><a class="primary" href="${base}install/">Install</a><a href="${base}api-reference/">API reference</a><a href="${base}authoring-surface/">Write styles</a></p>
-</section>
-</div>`;
+// `base` ends with a slash, as in plugin/docs.ts: the data of the page, and the html this server makes of it
+export async function landing(base: string): Promise<{ data: LandingData; html: string }> {
+  const highlighter = createHighlighter({
+    themes: ["github-light", "github-dark"],
+    langs: ["ts", "css", "bash"],
+  });
+  return withServer(async (server, c) => {
+    if (!c.error) throw new Error("the misspelt colour of src/landing compiled");
+    const h = await highlighter;
+    const code = (text: string, lang: string) =>
+      h.codeToHtml(text.trim(), {
+        lang,
+        themes: { light: "github-light", dark: "github-dark" },
+        defaultColor: false,
+      });
+    const data: LandingData = {
+      base,
+      install: code("npm install --save-dev cssints@next", "bash"),
+      source: code(c.source, "ts"),
+      code: code(c.code, "ts"),
+      css: code(c.css, "css"),
+      error: c.error,
+    };
+    // the ssr environment of the plugin evaluates sites (its cn() is a node there); the client's transform is what a build ships:
+    // class strings, and no import left, so the module runs from a data URL
+    const { code: page } =
+      (await server.environments.client.transformRequest("/src/landing/page.ts"))!;
+    const { landing } = (await import(`data:text/javascript,${encodeURIComponent(page)}`)) as {
+      landing: (d: LandingData) => string;
+    };
+    return { data, html: landing(data) };
+  });
 }
