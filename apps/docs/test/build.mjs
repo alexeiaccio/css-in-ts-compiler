@@ -11,8 +11,14 @@ import { build } from "vite";
 process.chdir(`${import.meta.dirname}/..`);
 const out = await build({ root: process.cwd(), logLevel: "warn", build: { write: false } });
 const files = [out].flat().flatMap((o) => o.output);
-const css = files.filter((f) => f.fileName.endsWith(".css"));
+const allCss = files.filter((f) => f.fileName.endsWith(".css"));
+// the site's one sheet; the other files are the CSS of Monaco, which only /playground loads
+const css = allCss.filter((f) => String(f.source).includes("@layer _.k"));
 assert.equal(css.length, 1);
+assert.ok(
+  allCss.filter((f) => f !== css[0]).every((f) => String(f.source).includes(".monaco-")),
+  "no other CSS than Monaco's",
+);
 const sheet = String(css[0].source);
 
 // the stylesheet of the hovers is a layer of its own, declared before the engine's, so the site's rules win over it
