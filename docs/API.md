@@ -925,6 +925,18 @@ createGlobalTheme(t, ".dark", { color: { brand: "#ef4444" } });
 - **Dev and HMR.** The package's files go through the engine like app files, one evaluation per module, and are served as `/node_modules/…/index.js` with the classes replaced. They are never watched, so a package does not change during `vite dev`: restart the server after reinstalling it.
 - A file of a package that does not carry the attribute is never parsed by the engine.
 
+### Leaving files alone: `exclude` (decided 2026-10-10, cssints-ci7n)
+
+A file outside `node_modules` is a site module when its code mentions `cssints` (a name, a comment, `cssints/plugin`), with or without the attribute: that is how a forgotten attribute is found and told as an error. So the source of a plugin package, or of the engine, that a project bundles as code is also read as a site module, and fails (`import { CSSStyleValue } from "cssints"` is "without the attribute"). `exclude` names such files; the plugin does not transform, evaluate or drop them, in a build, on the dev server and in the private server of a build.
+
+```ts skip
+cssints({ exclude: ["**/packages/*/src/**", /\/vendor\//] });
+```
+
+- **Vite's filter style.** `string | RegExp | ReadonlyArray<string | RegExp>`, read as `createFilter` reads `exclude`: a picomatch glob (a relative one from the Vite root) or a RegExp, matched on the module's file. There is no `include`: the rule of the attribute and of the mention already says which files are sites, and a list of the files to keep would only repeat it.
+- **Nothing changes without it.** The default is no file excluded, so an app, a plugin package's own tests and the packages in `node_modules` behave as before, and a build pays one empty check per module. The attribute is not made the only marker: that would turn the forgotten-attribute error into a `css` that is `undefined` in the browser.
+- **An excluded file stays plain code.** If it also carries `with { type: "cssints" }` imports, it is not evaluated either; exclude only files that are not sites.
+
 ### Debugging: from a class to its call (dev source map, cssints-0a3p)
 
 In dev the sheet has a source map: each rule with a class points at the first `css.*` call that made the class, so Chrome's Styles pane names that file and line beside `._tlfnko` and opens it in Sources. Vite drops CSS maps in dev unless you turn them on:

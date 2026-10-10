@@ -13,6 +13,7 @@ import { Cause, Effect, Exit, Formatter, Option, Predicate, Result, Schema } fro
 import { browserslistToTargets } from "lightningcss";
 import MagicString from "magic-string";
 import {
+  createFilter,
   createServer,
   createServerModuleRunner,
   type EnvironmentModuleNode,
@@ -206,10 +207,17 @@ const locate = Effect.fn("cssints.locate")(function* (
 
 export default function cssints({
   inner = false,
+  exclude,
   devtools = false,
   opencode = false,
 }: {
   inner?: boolean;
+  /**
+   * Files the plugin leaves alone, in Vite's filter style (`createFilter`: a picomatch glob, a RegExp or an array of them;
+   * a relative glob is read from the Vite root). Today's rule stays: a file outside node_modules that mentions "cssints" is
+   * a site module, so a package of plugins or the engine's own sources that a project bundles as code is excluded here.
+   */
+  exclude?: string | RegExp | ReadonlyArray<string | RegExp>;
   /**
    * The inspector of @cssints/devtools in every page (Alt+Shift+C), which must be installed. `true`: dev only; `"build"`:
    * a build too, with the table as a static asset and the overlay in a chunk that loads on the first open.
@@ -227,6 +235,7 @@ export default function cssints({
   let runner: ModuleRunner | undefined; // private runner with DOM bindings; server.environments.ssr.runner stays untouched
   let build = false;
   let root = process.cwd();
+  let excluded = (_id: string) => false; // `exclude`, made when the root is known
   let rootTargets: Target[] | undefined; // the browserslist config of `root`: the support checks of every evaluation
   let cssPlugins: (Plugin | undefined)[] = []; // vite:css, vite:css-post: in build they take the sheet in renderChunk
   const usedBy = new Map<string, string>(); // client module id -> its classes and @property rules, sorted, one a line
@@ -423,7 +432,7 @@ export default function cssints({
   ) {
     // Vite serves a dependency's file as `…/index.mjs?v=<hash>`; the engine knows it by its file.
     const id = url.replace(VERSION, "");
-    if (!FILE_RE.test(id)) return undefined;
+    if (!FILE_RE.test(id) || excluded(id)) return undefined;
     if (!marked(code, id)) {
       if (ctx.environment.name === "client") yield* drop(id);
       // The runner follows the imports of a module with sites, into components that have none: their JSX is inert as well.
@@ -476,7 +485,7 @@ export default function cssints({
           // The scan would follow every import, attributed ones too, into build-time code (node:fs, plugin helpers).
           server: { middlewareMode: true, watch: null, hmr: false },
           optimizeDeps: { noDiscovery: true },
-          plugins: [cssints({ inner: true })],
+          plugins: [cssints({ inner: true, exclude })],
         }),
       catch: (cause) =>
         new HookError({
@@ -617,6 +626,11 @@ export default function cssints({
       build = config.command === "build";
       buildMap = build && !inner && config.build.sourcemap;
       root = config.root;
+      if (exclude !== undefined && [exclude].flat().length) {
+        // an empty list would match everything as `include`
+        const matches = createFilter(exclude, undefined, { resolve: root });
+        excluded = (id) => matches(id);
+      }
       if (!inner) rootTargets = Effect.runSync(targetsOf(undefined, root));
       cssPlugins = ["vite:css", "vite:css-post"].map((n) =>
         config.plugins.find((p) => p.name === n),
