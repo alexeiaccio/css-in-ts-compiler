@@ -127,7 +127,7 @@ Neutral key = what the compiled object holds; OpenTUI = what the adapter sets.
 - The runtime merges: base, then the theme, then `:hover`, `:focus`, `:active` that are on, in that order (the web's
   order of those pseudo-classes, so `:active` wins).
 - `:hover` follows `over`/`out` (OpenTUI's top hit target; the events bubble, so a box keeps its hover while the
-  pointer is on a child), `:active` `down`/`up` (and `out`), `:focus` the renderable's `focused`/`blurred` events. A box needs `focusable: true` to take focus; that is a renderable option, not a style.
+  pointer is on a child), `:active` `down`/`up` (and `out`), `:focus` the renderable's `focused`/`blurred` events. A box needs `focusable: true` to take focus; that is a renderable option, not a style. A focused renderable draws its `focused*` colours (`focusedBorderColor` of a box), so the adapter keeps them on the style's colours in the current state (cssints-pkpg). A text node (`<span>`) takes the props and the theme only: it has no events (cssints-5vnf).
 - **Cursors.** `cursor` is set with `renderer.setMousePointer(value)` on over and back to `"default"` on out. The
   caret properties go to the focused editable's `cursorStyle` and `cursorColor` (Input, Textarea); OpenTUI itself then
   calls `setCursorStyle` while it has focus.
