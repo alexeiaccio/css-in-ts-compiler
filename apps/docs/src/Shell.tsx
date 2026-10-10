@@ -161,6 +161,19 @@ const body = css.cn(
   ),
 );
 
+const footer = css.cn(
+  css.maxWidth("1440px"),
+  css.marginInline("auto"),
+  css.padding(t.space.lg),
+  css.fontSize(t.fontSize.sm),
+  css.color(t.color.textLow),
+);
+const footerLink = css.cn(
+  css.color(t.color.textMedium),
+  css.hover(css.color(t.color.text)),
+  css.focusVisible(css.outline("2px solid", t.color.accent)),
+);
+
 const GROUPS = ["Guide", "Reference", "Packages", "Project"] as const;
 
 // The frame of every page: header (menu, brand, search, links), the sidebar of pages, and the page.
@@ -193,7 +206,13 @@ export function Shell(props: { children?: JSX.Element }) {
           <span class={open() ? menuIcon.x : menuIcon.list} />
         </button>
         <a href={url("")} class={brand}>
-          <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" class={logo} width="28" height="28" />
+          <img
+            src={`${import.meta.env.BASE_URL}logo.svg`}
+            alt=""
+            class={logo}
+            width="28"
+            height="28"
+          />
           <span>
             <span class={brandMark}>css</span>ints
           </span>
@@ -237,6 +256,12 @@ export function Shell(props: { children?: JSX.Element }) {
         <div class={backdrop({ open: open() })} onClick={() => setOpen(false)} />
         {props.children}
       </div>
+      <footer class={footer}>
+        MIT license ·{" "}
+        <a href={url("credits")} class={footerLink}>
+          Credits
+        </a>
+      </footer>
     </div>
   );
 }
