@@ -1,0 +1,25 @@
+{
+  "name": "cssints-sky-tui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vp build",
+    "start": "bun dist/main.js",
+    "typecheck": "tsgo -p tsconfig.json --noEmit && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
+    "test": "node test/build.mjs"
+  },
+  "dependencies": {
+    "@atcute/bluesky": "^4.0.22",
+    "@atcute/bluesky-richtext-segmenter": "3.0.2",
+    "@atcute/client": "^5.1.2",
+    "@atcute/lexicons": "^2.1.1",
+    "@opentui/core": "0.5.17",
+    "@opentui/solid": "0.5.17",
+    "solid-js": "1.9.12"
+  },
+  "devDependencies": {
+    "cssints": "workspace:*",
+    "vite": "catalog:",
+    "vite-plugin-solid": "^2.11.10"
+  }
+}
