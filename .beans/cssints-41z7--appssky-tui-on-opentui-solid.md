@@ -14,5 +14,5 @@ apps/sky-tui: Vite SSR build with vite-plugin-solid (universal, @opentui/solid),
 ## Todo
 - [ ] build pipeline (vite build -> bun run) and the cssints plugin in it
 - [x] feed with tabs, post card, thread, navigation
-- [ ] tests (recorded fixtures, buffer snapshot)
+- [x] tests (recorded fixtures, buffer snapshot)
 - [ ] AGENTS.md layout line, wayfinder entry
