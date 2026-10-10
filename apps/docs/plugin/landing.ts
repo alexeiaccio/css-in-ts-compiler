@@ -1,7 +1,7 @@
 // The landing page (/) as one html string, made at build time like the pages of the markdown: plugin/docs.ts serves it as a
 // virtual module and writes it into the document of "/". The showcase is the compiler's own output: src/landing/button.ts goes
 // through the cssints plugin on a Vite server of its own (as packages/mcp compiles a module), and the module it makes, its
-// stylesheet and the error of a misspelt value are highlighted with Shiki. Styles: src/landing.ts, global rules under .landing.
+// stylesheet and the error of a misspelt value are highlighted with Shiki. Styles: src/landing-styles.ts, global rules under .landing.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import cssints from "cssints/vite";

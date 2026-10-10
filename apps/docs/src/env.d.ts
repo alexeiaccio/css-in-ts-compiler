@@ -1,6 +1,7 @@
 declare module "virtual:docs" {
   export const pages: import("./docs.ts").Docs["pages"];
   export const html: import("./docs.ts").Docs["html"];
+  export const landing: import("./docs.ts").Docs["landing"];
 }
 declare module "virtual:playground/data" {
   export const selectors: Record<string, unknown>;

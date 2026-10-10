@@ -352,7 +352,7 @@ try {
   // sideways scroll at any width, and a screenshot light, dark and on a phone
   const landing = async (context, name) => {
     const page = await open(context);
-    await page.locator(".landing .showcase pre").first().waitFor({ state: "visible" });
+    await page.locator(".landing .panels").waitFor({ state: "visible" });
     const info = await page.evaluate(() => ({
       title: document.title,
       h1s: document.querySelectorAll("h1").length,

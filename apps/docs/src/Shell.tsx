@@ -169,7 +169,7 @@ export function Shell(props: { children?: JSX.Element }) {
   const [open, setOpen] = createSignal(false);
   const location = useLocation();
   // the landing page is the whole width: no sidebar, no drawer
-  const home = () => location.pathname === "/";
+  const home = () => location.pathname.replace(/\/$/, "") === url("").replace(/\/$/, "");
   createEffect(
     () => location.pathname,
     () => {
