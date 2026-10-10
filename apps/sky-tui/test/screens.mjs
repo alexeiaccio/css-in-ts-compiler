@@ -1,8 +1,10 @@
 // The built app (dist/main.js) on OpenTUI's test renderer, against apps/sky's recorded fixtures: the feed, j/k, enter into a
 // thread and esc back, tab to the next feed, a mouse over a row and a click. fetch is replaced before the bundle loads (atcute
-// takes it then), so nothing reaches the network. Runs under Bun (OpenTUI's core needs it): `bun test/screens.mjs`.
+// takes it then), so nothing reaches the network; then the system theme from a fake terminal's palette. Runs under Bun (OpenTUI's core needs it): `bun test/screens.mjs`.
 import assert from "node:assert/strict";
+import { once } from "node:events";
 import { readFileSync } from "node:fs";
+import { Readable } from "node:stream";
 import { setTimeout as sleep } from "node:timers/promises";
 
 const fixture = (name) =>
@@ -32,12 +34,34 @@ globalThis.fetch = (url) => {
   );
 };
 
-const { App, testRender, options } = await import("../dist/main.js");
+const { App, followSystemTheme, system, testRender, options } = await import("../dist/main.js");
 const api = await import("../../sky/src/api.ts");
+
+// A fake terminal: stdin is a TTY, and each OSC 4, 10 and 11 query the renderer writes is answered from `colours`.
+const stdin = Object.assign(new Readable({ read() {} }), { isTTY: true, setRawMode: () => {} });
+const GRUVBOX = {
+  fg: "#ebdbb2",
+  bg: "#282828",
+  ansi: "#282828 #cc241d #98971a #d79921 #458588 #b16286 #689d6a #a89984 #928374 #fb4934 #b8bb26 #fabd2f #83a598 #d3869b #8ec07c #ebdbb2".split(
+    " ",
+  ),
+};
+const LATTE = {
+  fg: "#4c4f69",
+  bg: "#eff1f5",
+  ansi: "#5c5f77 #d20f39 #40a02b #df8e1d #1e66f5 #ea76cb #179299 #acb0be #6c6f85 #d20f39 #40a02b #df8e1d #1e66f5 #ea76cb #179299 #bcc0cc".split(
+    " ",
+  ),
+};
+let colours = GRUVBOX;
+const answer = (n) => {
+  const c = n === "10" ? colours.fg : n === "11" ? colours.bg : colours.ansi[Number(n.slice(2))];
+  return c ? `\x1b]${n};rgb:${c.slice(1, 3)}/${c.slice(3, 5)}/${c.slice(5, 7)}\x07` : "";
+};
 
 const W = 100;
 const H = 40;
-const setup = await testRender(App, { ...options, width: W, height: H });
+const setup = await testRender(App, { ...options, width: W, height: H, stdin });
 const { renderer, mockInput, mockMouse, renderOnce, captureCharFrame, captureSpans } = setup;
 const settle = async () => {
   for (let i = 0; i < 4; i++) {
@@ -187,8 +211,54 @@ try {
   await mockInput.typeText("t");
   await settle();
   assert.equal(bgOf("post-1-0"), dark, "t again: the dark theme");
+
+  // ---- the system theme, from the fake terminal's palette -----------------------------------
+  const writeOut = renderer.writeOut.bind(renderer);
+  renderer.writeOut = (chunk, ...rest) => {
+    // oxlint-disable-next-line no-control-regex
+    const replies = [...String(chunk).matchAll(/\x1b\](10|11|4;\d+);\?/g)].map((m) => answer(m[1]));
+    if (replies.length) setTimeout(() => stdin.emit("data", Buffer.from(replies.join(""))), 1);
+    return writeOut(chunk, ...rest);
+  };
+  const rgb = (hex) => [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16)).join(",");
+  await followSystemTheme(renderer, system, { wait: 3000 });
+  await settle();
+  let solved = system.solve(colours).values;
+  assert.equal(
+    bgOf("post-1-0"),
+    `${rgb(solved["color-card"])},255`,
+    "the card from the terminal's bg",
+  );
+  assert.equal(
+    renderer.root.getChildren()[0].backgroundColor.toInts().slice(0, 3).join(","),
+    rgb(solved["color-bg"]),
+    "the screen is the terminal's background",
+  );
+  // the selected card's border: Gruvbox's blue, made to stand out 3:1 on the panels
+  const selected = () =>
+    renderer.root
+      .findDescendantById("post-1-0")
+      .parent.getChildren()
+      .find((r) => r.focused).id;
+  assert.equal(borderOf(selected()), `${rgb(solved["color-accent"])},255`, "the accent from blue");
+  // the terminal turns light: a mode 2031 notification, OpenTUI asks OSC 10/11 again, then the palette
+  colours = LATTE;
+  const changed = once(renderer, "palette");
+  stdin.emit("data", Buffer.from("\x1b[?997;2n"));
+  await sleep(20);
+  stdin.emit("data", Buffer.from(answer("10") + answer("11")));
+  await changed;
+  await settle();
+  solved = system.solve(colours).values;
+  assert.equal(system.solve(colours).appearance, "light");
+  assert.equal(
+    bgOf("post-1-0"),
+    `${rgb(solved["color-card"])},255`,
+    "rebuilt for the light palette",
+  );
+  assert.equal(borderOf(selected()), `${rgb(solved["color-accent"])},255`);
 } finally {
   renderer.destroy();
 }
-console.log("sky-tui screens: feed, j/k, thread, tabs, mouse and theme ok");
+console.log("sky-tui screens: feed, j/k, thread, tabs, mouse, theme and system theme ok");
 process.exit(0);

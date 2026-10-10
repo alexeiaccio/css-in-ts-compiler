@@ -5,7 +5,7 @@ apps/sky in a terminal: the home feed with its tabs, the post card and the threa
 
 ```bash
 bun run build          # vp build: dist/main.js, one file
-bun run start          # bun dist/main.js (add --light for the light theme)
+bun run start          # bun dist/main.js: the terminal's own colours (--light, --dark: the app's themes)
 ```
 
 Keys: `j`/`k` or the arrows move the selection, `enter` opens a thread, `esc` goes back, `tab` and
@@ -29,6 +29,11 @@ the terminal supports OSC 22).
   The components put them on renderables with `use()` of `@cssints/tui/opentui`
   (`<box {...use(s.bar)}>`), which follows the mouse, the focus and the theme. `t` and `--light`
   call `setTheme`.
+- `src/system.ts` is the default theme, the system theme of `@cssints/tui/system`: each token is
+  a role (`text` from the terminal's foreground at 7:1 on the panels, `accent` from its blue at
+  3:1, `card` 1.1:1 from its background, ...), solved from the palette OpenTUI reads
+  (`followSystemTheme` in `main.tsx`, before the first frame, at most 100 ms). A light terminal
+  gets the `light` theme under it; a terminal that answers nothing draws its own ANSI colours.
 - The selected row has the keyboard focus (`focusable`, `focus()`), so its accent border is the
   `:focus` of its style. The active tab is a second style: a renderable keeps the style it was
   attached with, so the tab is made again when it turns active.
@@ -59,5 +64,8 @@ bun run typecheck
 `test/screens.mjs` imports the built `dist/main.js` under Bun and renders it on OpenTUI's test
 renderer (100x40), with apps/sky's recorded fixtures in place of the network. It checks the feed,
 `j`/`k` (the focus and the border as drawn), `enter` and `esc`, `tab`, a mouse over a row (the
-highlight and the pointer) and a click, the wheel, and the theme both ways. If Bun
+highlight and the pointer) and a click, the wheel, and the theme both ways; then the system
+theme on a fake terminal (a TTY stdin, and each OSC 4/10/11 query answered with Gruvbox dark):
+the card, the background and the accent border from the palette, and after a mode 2031
+notification and Catppuccin Latte's replies, the light ones. If Bun
 is not installed, the Bun part is skipped with a message.

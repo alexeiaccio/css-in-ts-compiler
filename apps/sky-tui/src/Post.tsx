@@ -26,11 +26,15 @@ import * as s from "./styles.ts";
 type PostView = AppBskyFeedDefs.PostView;
 
 // A <span> is a text node, not a renderable, so `use()` cannot attach to it (cssints-5vnf): its props are resolved here
-// and follow the theme through a signal.
-const [current, setCurrent] = createSignal(theme());
+// and follow the theme through a signal (never equal: the system theme is rebuilt under the same name).
+const [current, setCurrent] = createSignal(theme(), { equals: false });
 onTheme(setCurrent);
 export const span = (style: TuiShape) =>
   props(resolve(style, {}, current()), (k) => k !== "backgroundColor");
+// the :focus border as OpenTUI takes it (an ANSI index of the system theme's fallback included)
+const focusBorder = (style: TuiShape) =>
+  props(resolve(style, { focus: true }, current()))
+    .borderColor as BoxRenderable["focusedBorderColor"];
 
 export function RichText(props: { text: string; facets?: Facet<Feature>[] }) {
   return (
@@ -132,7 +136,7 @@ function Row(props: {
     attach(r, style);
     // a focused box draws focusedBorderColor, not borderColor (cssints-pkpg)
     createEffect(() => {
-      r.focusedBorderColor = resolve(style, { focus: true }, current()).borderColor!;
+      r.focusedBorderColor = focusBorder(style);
     });
     createEffect(() => (props.selected ? r.focus() : r.blur()));
   };
