@@ -399,6 +399,22 @@
         "cssints": "^0.1.0",
       },
     },
+    "packages/tui": {
+      "name": "@cssints/tui",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@opentui/core": "0.5.17",
+        "cssints": "workspace:*",
+        "vite": "catalog:",
+      },
+      "peerDependencies": {
+        "@opentui/core": ">=0.5.17",
+        "cssints": "^0.1.0",
+      },
+      "optionalPeers": [
+        "@opentui/core",
+      ],
+    },
     "tools/ai-automation": {
       "name": "@cssints/ai-automation",
       "version": "0.1.0",
@@ -576,6 +592,8 @@
     "@cssints/stuck": ["@cssints/stuck@workspace:packages/stuck"],
 
     "@cssints/tokens": ["@cssints/tokens@workspace:packages/tokens"],
+
+    "@cssints/tui": ["@cssints/tui@workspace:packages/tui"],
 
     "@distilled.cloud/acme": ["@distilled.cloud/acme@1.0.0-rc.13", "", { "dependencies": { "@distilled.cloud/core": "1.0.0-rc.13" }, "peerDependencies": { "effect": "^4.0.0" } }, "sha512-3rmzH125jQxk0zpCvXGNEybSaqpAolyCX+8LWDDrXf+wIKs67GflkJyQLjOOh0lKARe29hdUZGgqEbbvpp0LNA=="],
 

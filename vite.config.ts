@@ -134,7 +134,10 @@ export default defineConfig({
       // Type tests call what does not exist on purpose (`@ts-expect-error`), and that call is `any`.
       {
         files: ["packages/cssints/test/types/**", "packages/tui/test/types/**"],
-        rules: Object.fromEntries(noUnsafe.map((r) => [r, "off"])),
+        rules: {
+          ...Object.fromEntries(noUnsafe.map((r) => [r, "off"])),
+          "import/namespace": "off",
+        },
       },
       // The type-level recognizer: `any` in conditional types is the idiom (unchanged by the port).
       {
