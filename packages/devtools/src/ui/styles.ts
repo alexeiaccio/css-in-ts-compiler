@@ -58,7 +58,7 @@ import {
 const ink = "#e5e7eb";
 const dim = "#9ca3af";
 const line = "#374151";
-const panelBg = "#111827";
+export const panelBg = "#111827";
 const accent = "#60a5fa";
 const mono = "ui-monospace, SFMono-Regular, Menlo, monospace";
 
@@ -115,6 +115,7 @@ export const panel = cn(
 export const dockRight = cn(top("0"), right("0"), bottom("0"), borderLeft("1px solid", line));
 export const dockLeft = cn(top("0"), left("0"), bottom("0"), borderRight("1px solid", line));
 export const dockTop = cn(top("0"), left("0"), right("0"), borderBottom("1px solid", line));
+export const dockWindow = cn(top("0"), left("0"), right("0"), bottom("0"));
 export const dockBottom = cn(bottom("0"), left("0"), right("0"), borderTop("1px solid", line));
 
 // the strip on the panel's inner edge that resizes it; its offset from the page edge is inline

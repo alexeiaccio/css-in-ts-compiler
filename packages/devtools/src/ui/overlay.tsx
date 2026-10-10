@@ -2,7 +2,7 @@
 // element's cssints classes by the call that made them, the winner per property with what it beat, and its tokens.
 // Esc closes, the arrow keys walk the tree. It lives in a shadow root with its own sheet (built ahead, see vite.config.ts).
 import "virtual:cssints.css";
-import { render } from "@solidjs/web";
+import { Portal, render } from "@solidjs/web";
 import { Effect, Exit, Stream, SubscriptionRef } from "effect";
 import { createEffect, createMemo, createSignal, For, onCleanup, onSettled, Show } from "solid-js";
 
@@ -53,6 +53,8 @@ interface Placement {
   dock: Dock;
   w: number;
   h: number;
+  /** the panel lives in a window of its own (opened again on the next open, if the browser lets it) */
+  detached: boolean;
 }
 const read = () => {
   try {
@@ -61,13 +63,14 @@ const read = () => {
     return null; // no storage, or not ours: the defaults
   }
 };
-const load = () => {
+const load = (): Placement => {
   const v = read();
   const size = (n: number | undefined, d: number) => (typeof n === "number" && n >= MIN ? n : d);
   return {
     dock: DOCKS.find((d) => d === v?.dock) ?? "right",
     w: size(v?.w, 440),
     h: size(v?.h, 320),
+    detached: v?.detached === true,
   };
 };
 const save = (p: Placement) => {
@@ -300,9 +303,39 @@ function App(props: {
   const [tick, setTick] = createSignal(0);
   const [place, setPlace] = createSignal(load());
   const horizontal = () => place().dock === "left" || place().dock === "right";
+  const [win, setWin] = createSignal<Window>();
+  const [blocked, setBlocked] = createSignal(false);
+  const closeWin = () => {
+    win()?.close();
+    setWin(undefined);
+  };
+  const keep = (p: Partial<Placement>) => {
+    const next = { ...place(), ...p };
+    setPlace(next); // a write shows after the flush: save the value, not place()
+    save(next);
+  };
+  // the window is same-origin (about:blank), so the panel is rendered by this very Solid tree into its body (a Portal): the
+  // signals, the picking and the highlight stay in the page, and the panel follows them live
+  const detach = () => {
+    const w = window.open("", "cssints-devtools", "popup,width=520,height=760");
+    setBlocked(!w);
+    if (!w) return;
+    const style = w.document.createElement("style");
+    style.textContent = SHEET;
+    w.document.title = "cssints devtools";
+    w.document.head.replaceChildren(style);
+    w.document.body.replaceChildren();
+    w.document.body.style.cssText = `margin: 0; background: ${s.panelBg}`;
+    setWin(w);
+    keep({ detached: true });
+  };
+  const redock = () => {
+    closeWin();
+    keep({ detached: false });
+  };
   const moveTo = (dock: Dock) => {
-    setPlace((p) => ({ ...p, dock }));
-    save(place());
+    closeWin();
+    keep({ dock, detached: false });
   };
   // the grip is captured by the pointer, so the page does not see the drag; the size is cut to leave a strip of page
   const resize = (e: PointerEvent & { currentTarget: HTMLElement }) => {
@@ -347,7 +380,45 @@ function App(props: {
     setOpen(on);
     setPicking(on && !selected());
     props.setActive(on);
+    if (!on) closeWin();
+    else if (place().detached && !win()) detach();
   };
+  const key = (e: KeyboardEvent) => {
+    if (e.altKey && e.shiftKey && e.code === "KeyC") {
+      e.preventDefault();
+      toggle();
+      return;
+    }
+    if (!open()) return;
+    if (e.key === "Escape") {
+      e.preventDefault();
+      if (picking() && selected()) setPicking(false);
+      else toggle(false);
+      return;
+    }
+    // arrows in the prompt box move its caret, not the selection
+    if ((e.composedPath()[0] as Element | undefined)?.localName === "textarea") return;
+    const el = selected();
+    if (!el || picking()) return;
+    const next =
+      e.key === "ArrowUp"
+        ? (el.parentElement ?? undefined)
+        : e.key === "ArrowDown"
+          ? firstChild(el)
+          : e.key === "ArrowLeft"
+            ? (el.previousElementSibling ?? undefined)
+            : e.key === "ArrowRight"
+              ? (el.nextElementSibling ?? undefined)
+              : undefined;
+    if (next && next !== props.host) {
+      e.preventDefault();
+      setSelected(next);
+    }
+  };
+  createEffect(win, (w) => {
+    w?.addEventListener("keydown", key, true);
+    return () => w?.removeEventListener("keydown", key, true);
+  });
   const inspection = createMemo(
     () => {
       tick();
@@ -375,54 +446,177 @@ function App(props: {
       setSelected(e.target);
       setPicking(false);
     };
-    const key = (e: KeyboardEvent) => {
-      if (e.altKey && e.shiftKey && e.code === "KeyC") {
-        e.preventDefault();
-        toggle();
-        return;
-      }
-      if (!open()) return;
-      if (e.key === "Escape") {
-        e.preventDefault();
-        if (picking() && selected()) setPicking(false);
-        else toggle(false);
-        return;
-      }
-      // arrows in the prompt box move its caret, not the selection
-      if (e.composedPath()[0] instanceof HTMLTextAreaElement) return;
-      const el = selected();
-      if (!el || picking()) return;
-      const next =
-        e.key === "ArrowUp"
-          ? (el.parentElement ?? undefined)
-          : e.key === "ArrowDown"
-            ? firstChild(el)
-            : e.key === "ArrowLeft"
-              ? (el.previousElementSibling ?? undefined)
-              : e.key === "ArrowRight"
-                ? (el.nextElementSibling ?? undefined)
-                : undefined;
-      if (next && next !== props.host) {
-        e.preventDefault();
-        setSelected(next);
-      }
-    };
     // @effect-diagnostics-next-line globalTimers:off -- plain UI code: re-inspect while open (hover, resize, a query)
-    const timer = setInterval(() => open() && setTick((n) => n + 1), 600);
+    const timer = setInterval(() => {
+      if (win()?.closed) redock();
+      if (open()) setTick((n) => n + 1);
+    }, 600);
     document.addEventListener("pointermove", move, true);
     document.addEventListener("click", click, true);
     window.addEventListener("keydown", key, true);
+    window.addEventListener("pagehide", closeWin);
     return () => {
       clearInterval(timer);
       document.removeEventListener("pointermove", move, true);
       document.removeEventListener("click", click, true);
       window.removeEventListener("keydown", key, true);
+      window.removeEventListener("pagehide", closeWin);
     };
   });
-  onCleanup(() => props.setActive(false));
+  onCleanup(() => {
+    props.setActive(false);
+    closeWin();
+  });
   onSettled(() => {
     if (props.build) toggle(true);
   });
+
+  const Docked = () => (
+    <>
+      <aside
+        class={cx(s.panel, win() ? s.dockWindow : PANEL[place().dock])}
+        data-devtools="panel"
+        data-dock={place().dock}
+        data-detached={win() ? "yes" : "no"}
+        style={
+          win()
+            ? { width: "", height: "" }
+            : horizontal()
+              ? { width: `min(${place().w}px, 100vw)`, height: "" }
+              : { height: `min(${place().h}px, 100vh)`, width: "" }
+        }
+      >
+        <div class={s.bar}>
+          <span class={s.title} data-devtools="element">
+            {typeof inspection() === "object"
+              ? (inspection() as Inspection).element
+              : "pick an element"}
+          </span>
+          <button
+            class={cx(s.button, picking() && s.pressed)}
+            data-devtools="pick"
+            data-on={picking() ? "yes" : "no"}
+            title="pick an element"
+            onClick={() => setPicking(!picking())}
+          >
+            pick
+          </button>
+          <button
+            class={cx(s.button, win() && s.pressed)}
+            data-devtools="detach"
+            data-on={win() ? "yes" : "no"}
+            title={win() ? "dock back" : "detach into a window"}
+            onClick={() => (win() ? redock() : detach())}
+          >
+            ⧉
+          </button>
+          <For each={DOCKS}>
+            {(d) => (
+              <button
+                class={cx(s.button, place().dock === d && s.pressed)}
+                data-devtools="dock"
+                data-dock={d}
+                title={`dock ${d}`}
+                onClick={() => moveTo(d)}
+              >
+                {ICON[d]}
+              </button>
+            )}
+          </For>
+          <button
+            class={s.button}
+            title="parent (↑)"
+            onClick={() => setSelected((el) => el?.parentElement ?? el)}
+          >
+            ↑
+          </button>
+          <button
+            class={s.button}
+            data-devtools="close"
+            title="close (Esc)"
+            onClick={() => toggle(false)}
+          >
+            ×
+          </button>
+        </div>
+        <Show when={blocked() && !win()}>
+          <div class={s.reason} data-devtools="blocked">
+            The browser blocked the window. Allow pop-ups for this site and press ⧉ again.
+          </div>
+        </Show>
+        <Show
+          when={props.model()}
+          fallback={
+            <div class={s.hint}>
+              {props.build ? "loading the table…" : "waiting for the dev server…"}
+            </div>
+          }
+        >
+          <Show
+            when={typeof inspection() === "object" ? (inspection() as Inspection) : undefined}
+            fallback={
+              <div class={s.hint}>
+                {typeof inspection() === "string"
+                  ? inspection()
+                  : "hover an element and click to pick it"}
+              </div>
+            }
+          >
+            {(i) => <Panel inspection={i()} build={props.build} />}
+          </Show>
+        </Show>
+        <Show when={props.ask && selected()}>
+          <div class={s.ask} data-devtools="ask">
+            <textarea
+              ref={setInput}
+              class={s.askInput}
+              data-devtools="ask-input"
+              rows="2"
+              placeholder="Ask OpenCode to change this element (Enter sends)"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+                  e.preventDefault();
+                  send();
+                }
+              }}
+            />
+            <Show when={props.asked()}>
+              {(a) => (
+                <div
+                  class={cx(
+                    s.sub,
+                    a().status === "completed"
+                      ? s.ok
+                      : a().status === "running" || a().status === "sending"
+                        ? s.muted
+                        : s.bad,
+                  )}
+                  data-devtools="ask-status"
+                  data-status={a().status}
+                  title={a().id}
+                >
+                  {a().message ?? `${a().status}${a().id ? ` · ${a().id}` : ""}`}
+                </div>
+              )}
+            </Show>
+          </div>
+        </Show>
+      </aside>
+      <Show when={!win()}>
+        <div
+          class={horizontal() ? s.gripX : s.gripY}
+          data-devtools="grip"
+          style={edge()}
+          onPointerDown={(e) => {
+            e.currentTarget.setPointerCapture(e.pointerId);
+            e.preventDefault();
+          }}
+          onPointerMove={resize}
+          onPointerUp={() => save(place())}
+        />
+      </Show>
+    </>
+  );
 
   return (
     <>
@@ -452,129 +646,13 @@ function App(props: {
         )}
       </Show>
       <Show when={open()}>
-        <aside
-          class={cx(s.panel, PANEL[place().dock])}
-          data-devtools="panel"
-          data-dock={place().dock}
-          style={
-            horizontal()
-              ? { width: `min(${place().w}px, 100vw)`, height: "" }
-              : { height: `min(${place().h}px, 100vh)`, width: "" }
-          }
-        >
-          <div class={s.bar}>
-            <span class={s.title} data-devtools="element">
-              {typeof inspection() === "object"
-                ? (inspection() as Inspection).element
-                : "pick an element"}
-            </span>
-            <button
-              class={cx(s.button, picking() && s.pressed)}
-              data-devtools="pick"
-              data-on={picking() ? "yes" : "no"}
-              title="pick an element"
-              onClick={() => setPicking(!picking())}
-            >
-              pick
-            </button>
-            <For each={DOCKS}>
-              {(d) => (
-                <button
-                  class={cx(s.button, place().dock === d && s.pressed)}
-                  data-devtools="dock"
-                  data-dock={d}
-                  title={`dock ${d}`}
-                  onClick={() => moveTo(d)}
-                >
-                  {ICON[d]}
-                </button>
-              )}
-            </For>
-            <button
-              class={s.button}
-              title="parent (↑)"
-              onClick={() => setSelected((el) => el?.parentElement ?? el)}
-            >
-              ↑
-            </button>
-            <button
-              class={s.button}
-              data-devtools="close"
-              title="close (Esc)"
-              onClick={() => toggle(false)}
-            >
-              ×
-            </button>
-          </div>
-          <Show
-            when={props.model()}
-            fallback={
-              <div class={s.hint}>
-                {props.build ? "loading the table…" : "waiting for the dev server…"}
-              </div>
-            }
-          >
-            <Show
-              when={typeof inspection() === "object" ? (inspection() as Inspection) : undefined}
-              fallback={
-                <div class={s.hint}>
-                  {typeof inspection() === "string"
-                    ? inspection()
-                    : "hover an element and click to pick it"}
-                </div>
-              }
-            >
-              {(i) => <Panel inspection={i()} build={props.build} />}
-            </Show>
-          </Show>
-          <Show when={props.ask && selected()}>
-            <div class={s.ask} data-devtools="ask">
-              <textarea
-                ref={setInput}
-                class={s.askInput}
-                data-devtools="ask-input"
-                rows="2"
-                placeholder="Ask OpenCode to change this element (Enter sends)"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
-                    e.preventDefault();
-                    send();
-                  }
-                }}
-              />
-              <Show when={props.asked()}>
-                {(a) => (
-                  <div
-                    class={cx(
-                      s.sub,
-                      a().status === "completed"
-                        ? s.ok
-                        : a().status === "running" || a().status === "sending"
-                          ? s.muted
-                          : s.bad,
-                    )}
-                    data-devtools="ask-status"
-                    data-status={a().status}
-                    title={a().id}
-                  >
-                    {a().message ?? `${a().status}${a().id ? ` · ${a().id}` : ""}`}
-                  </div>
-                )}
-              </Show>
-            </div>
-          </Show>
-        </aside>
-        <div
-          class={horizontal() ? s.gripX : s.gripY}
-          data-devtools="grip"
-          style={edge()}
-          onPointerDown={(e) => {
-            e.currentTarget.setPointerCapture(e.pointerId);
-            e.preventDefault();
-          }}
-          onPointerMove={resize}
-          onPointerUp={() => save(place())}
-        />
+        <Show when={win()} fallback={<Docked />}>
+          {(w) => (
+            <Portal mount={w().document.body}>
+              <Docked />
+            </Portal>
+          )}
+        </Show>
       </Show>
     </>
   );
