@@ -1,11 +1,11 @@
 ---
 # cssints-kotl
 title: 'TUI target: @bomb.sh/tty adapter'
-status: todo
+status: in-progress
 type: feature
 priority: low
 created_at: 2026-10-10T11:34:51Z
-updated_at: 2026-10-10T11:34:51Z
+updated_at: 2026-10-10T15:46:15Z
 parent: cssints-06ws
 blocked_by:
     - cssints-3ff7
