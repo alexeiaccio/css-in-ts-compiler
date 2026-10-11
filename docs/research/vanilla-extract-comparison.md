@@ -354,7 +354,7 @@ Our token format follows the design tokens standard:
 
 ```typescript
 // Our approach - explicit composition
-const combined = cx(baseStyles, variantStyles);
+const combined = cn(baseStyles, variantStyles);
 
 // Vanilla-extract - merge in component
 className={stylex(styles.base, styles.variant)}

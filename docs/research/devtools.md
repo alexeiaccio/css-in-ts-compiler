@@ -85,7 +85,7 @@ Not done, and why:
 
 - **Readable class names in dev** (`_color-1hu9sys`): the Styles pane already prints the declaration beside the
   class, so a name repeats what is shown; it would make dev and build classes differ (HMR tests, hydration of a
-  server-rendered page, `cx` strings in tests).
+  server-rendered page, class strings joined by `cn` in tests).
 - **A `data-cssints` attribute**: cssints does not own the JSX, so it would need a transform per framework, and
   it says the same as the map.
 - **A JSON class map endpoint**: the map carries the same data to the tool that needs it (the browser).

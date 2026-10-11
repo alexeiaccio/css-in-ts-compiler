@@ -103,7 +103,7 @@ const failureOf = (id: string, registry: RegistryState) => (e: unknown) => {
   const name = m?.[1] ?? m?.[2];
   return new MacroError({
     message: name
-      ? `cssints: css arguments must be known at build time: \`${name}\` is not defined where the call is evaluated (a parameter, a prop or state). Use cx(on && p(4)), a cv variant, or a token in a style prop`
+      ? `cssints: css arguments must be known at build time: \`${name}\` is not defined where the call is evaluated (a parameter, a prop or state). Use cn(base, on && p(4)), a cv variant, or a token in a style prop`
       : message,
     cause: e,
     ...at,
@@ -118,6 +118,7 @@ const evaluateModule = Effect.fnUntraced(function* (
   const registry = yield* Registry;
   useTargets(targets); // the build's, for every support check of this evaluation
   registry.sites.delete(id);
+  registry.nodes.delete(id);
   forget(id);
   registry.at = undefined;
   registry.files.clear();

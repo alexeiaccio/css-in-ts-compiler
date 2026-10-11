@@ -183,7 +183,7 @@ const SPACING = /^(padding|margin|inset|gap|row-gap|column-gap)(-|$)/;
 const decl = (prop: string, name: string, args: unknown[]): Decl => {
   if (!args.length) throw fail(`cssints: ${name}() expects a value`);
   if (args.some(isNode))
-    throw fail(`cssints: ${name}() takes values, not styles; merge styles with cn(...) or cx(...)`);
+    throw fail(`cssints: ${name}() takes values, not styles; merge styles with cn(...)`);
   // A fallback inside several parts repeats the whole declaration with each of its values: one per declaration.
   for (const a of args) if (typeof a === "string") checkVars(name, a);
   const [fb, extra] = args.filter(isFallback);
@@ -349,6 +349,39 @@ export function settled(
   return { drops: out, compound };
 }
 
+/** A part of a `cn()` with runtime arguments: a declaration, where its argument stands, and whether it may be inactive. */
+export interface CxPart {
+  at: number;
+  decl: Decl;
+  conditional: boolean;
+}
+
+// The classes each class of a `cn()` with runtime arguments drops while it is active (class -> classes, as pairs). Of two
+// parts, the later one replaces the earlier when it covers its property under the same conditions; a pair of static
+// parts is merged already. Two properties that overlap without containment between parts that can be active together
+// are an error, as in merged().
+export function dropsOf(parts: CxPart[]) {
+  const out = new Map<string, string[]>();
+  const under = (d: Decl) => (d[2] ?? []).map((c) => c.text).join(" > ");
+  for (const o of parts)
+    for (const n of parts) {
+      if (n.at <= o.at || !(n.conditional || o.conditional) || under(n.decl) !== under(o.decl))
+        continue;
+      const r = relation(o.decl[0], n.decl[0]);
+      if (r === "overlap")
+        throw fail(
+          `cssints: cn() ${o.decl[0]} and ${n.decl[0]} overlap without one containing the other${under(n.decl) ? ` (under ${under(n.decl)})` : ""}, and may be active together, so the sheet cannot order them: set one of them, or the longhands`,
+        );
+      const cls = hashClass(o.decl);
+      const by = hashClass(n.decl);
+      if (r !== "apart" && covers(n.decl[0], o.decl[0]) && cls !== by) {
+        const gone = out.get(by) ?? out.set(by, []).get(by)!;
+        if (!gone.includes(cls)) gone.push(cls);
+      }
+    }
+  return [...out].map(([by, gone]) => [by, gone.join(" ")]);
+}
+
 export function toDecls(member: string, args: unknown[]): Decl[] {
   if (member === "cn") {
     if (!args.every(isNode))
@@ -369,10 +402,7 @@ export const chainNames = (ctx: string) =>
 
 // .method(...) on a style: only container properties of flex() / grid(); plain styles do not chain.
 export function chainDecl(ctx: string | undefined, method: string, args: unknown[]): Decl {
-  if (!ctx)
-    throw fail(
-      `cssints: plain styles do not chain (.${method}); merge them with cn(...) or cx(...)`,
-    );
+  if (!ctx) throw fail(`cssints: plain styles do not chain (.${method}); merge them with cn(...)`);
   const i = chainNames(ctx).indexOf(method);
   if (i < 0)
     throw fail(`cssints: ${ctx}() has no .${method}(); it chains ${chainNames(ctx).join(", ")}`);

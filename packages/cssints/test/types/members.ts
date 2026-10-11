@@ -1,5 +1,4 @@
 // What user code sees of the property members: `tsgo -p tsconfig.json` checks this file (`bun run typecheck`).
-import { cx } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 import {
   alignItems,
@@ -92,9 +91,9 @@ export const numbers: Style[] = [
   opacity(n),
 ];
 
-// A member is a class string: className, cx, cn, and a string.
+// A member is a class string: className, cn, and a string.
 export const cls: string = p(1);
-export const joined: string = cx(p(1), color("red"), on && bg("red"), [width("1px")]);
+export const joined: string = css.cn(p(1), color("red"), on && bg("red"), [width("1px")]);
 export const merged: Style = css.cn(p(1), color("red"));
 
 // @ts-expect-error a keyword that is not in the grammar

@@ -2,7 +2,7 @@
 
 Asked by the user (2026-10-11): generated groups of exports, by Baseline status and by spec. A group exports the members of
 `cssints` that have its features, and refuses a value outside them, in the editor and in the build, with a message that names
-the group. Members that name no CSS feature (`cn`, `cv`, `cx`, tokens, themes, `check`, …) are in every group.
+the group. Members that name no CSS feature (`cn`, `cv`, tokens, themes, `check`, …) are in every group.
 
 This note is the research and the design. The user's text is in `docs/API.md` ("Export groups").
 
@@ -156,7 +156,7 @@ word becomes the message. `B` is a type literal the generated module declares fo
 
 The plugin treats `cssints/<id>` (a group, or `limited-availability`) like `cssints`: the attribute makes its bindings site roots;
 without the attribute it is the same located error (`imports build-time display from "cssints/widely-available" without the
-attribute`); `cx` stays a runtime import. `instrument.ts` rewrites it to `const { … } = __group0("widely-available")` instead of
+attribute`); `cx` is gone from every group, as from `cssints` (importing it from a group is the same migration error; the SVG property is `css.cx`). `instrument.ts` rewrites it to `const { … } = __group0("widely-available")` instead of
 `__css0`. `__group(id)` (`macro.ts` → `group.ts`) is `css` behind a `Proxy`:
 
 - a **tied** name (a property, function, pseudo-class, `media`, …) that the group lacks is a function that throws when **called**,

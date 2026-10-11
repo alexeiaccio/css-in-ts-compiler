@@ -1,5 +1,9 @@
 //#region src/runtime.ts
-const cx = (...a) => a.flat(Infinity).filter(Boolean).join(" ");
+function _cx(drops, ...a) {
+	const on = a.flat(Infinity).filter(Boolean).join(" ").split(" ");
+	const gone = drops.flatMap(([by, c]) => on.includes(by) ? c.split(" ") : []);
+	return on.filter((c) => c && !gone.includes(c)).join(" ");
+}
 function _cv(config) {
 	return (props = {}) => {
 		const out = [config.base];
@@ -18,4 +22,4 @@ function _cv(config) {
 	};
 }
 //#endregion
-export { _cv, cx };
+export { _cv, _cx };

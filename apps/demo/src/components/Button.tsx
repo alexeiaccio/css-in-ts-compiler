@@ -1,4 +1,3 @@
-import { cx } from "cssints";
 import {
   display,
   alignItems,
@@ -15,6 +14,7 @@ import {
   height,
   hover,
   width,
+  cn,
 } from "cssints" with { type: "cssints" };
 
 const base = [
@@ -81,7 +81,7 @@ export function Button({
 
   return (
     <button
-      className={cx(...base, ...variantClasses, ...sizeClasses, fullWidth && width("100%"))}
+      className={cn(...base, ...variantClasses, ...sizeClasses, fullWidth && width("100%"))}
       onClick={onClick}
       disabled={disabled}
     >

@@ -54,7 +54,7 @@ export type Carry = Pick<
 
 // What a plain style does when a method is chained on it.
 const plain = (method: string): never => {
-  throw fail(`cssints: plain styles do not chain (.${method}); merge them with cn(...) or cx(...)`);
+  throw fail(`cssints: plain styles do not chain (.${method}); merge them with cn(...)`);
 };
 
 // A style node. Chaining a method on it calls `chain(name, args, self)`, which makes the next node (flex() and grid(),

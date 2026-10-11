@@ -1,7 +1,6 @@
 // Where the type error of a bad part lands: on that argument, with the message of the whole value. Each call is
 // split over lines so `@ts-expect-error` (which covers the next line only) proves the place: an error anywhere else
 // leaves the directive unused and the error itself standing.
-import { cx } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 import {
   border,
@@ -108,7 +107,11 @@ flex(
   // @ts-expect-error a bad part of the shorthand
   "red",
 );
-export const ok = cx(padding("1px", "2px"), border("1px", "solid", accent), transition("a", "1s"));
+export const ok = css.cn(
+  padding("1px", "2px"),
+  border("1px", "solid", accent),
+  transition("a", "1s"),
+);
 
 css.media(
   "(width >= 40rem)",

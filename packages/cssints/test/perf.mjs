@@ -47,8 +47,7 @@ function gen(n, dir) {
     const sp = ["xs", "sm", "md", "lg", "xl"][i % 5];
     w(
       `src/components/${name}.tsx`,
-      `import { cx } from "cssints";
-import { css, cn, cv, CSS, display, alignItems, gap, p, bg, color, borderRadius, fontSize, fontWeight, border } from "cssints" with { type: "cssints" };
+      `import { css, cn, cv, CSS, display, alignItems, gap, p, bg, color, borderRadius, fontSize, fontWeight, border } from "cssints" with { type: "cssints" };
 import { colors } from "../tokens/colors";
 import { radius, space } from "../tokens/space";
 import { size, weight } from "../tokens/type";
@@ -67,9 +66,9 @@ const box = cv({
 export function ${name}({ loud = false }: { loud?: boolean }) {
   const hover = css.opacity("0.${(i % 9) + 1}");
   return (
-    <div className={cx(...root, loud && hover)}>
-      <h2 className={cx(title)}>${name}</h2>
-      <p className={cx(body, ...muted, inset)}>{box({ tone: loud ? "loud" : "plain" })}</p>
+    <div className={cn(...root, loud && hover)}>
+      <h2 className={cn(title)}>${name}</h2>
+      <p className={cn(body, ...muted, inset)}>{box({ tone: loud ? "loud" : "plain" })}</p>
       ${child ? `<${child} loud={!loud} />` : ""}
     </div>
   );

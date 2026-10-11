@@ -74,7 +74,7 @@ Then the plugin's client step: replace each site by its class string (`MagicStri
 
 The compile runs in a **dedicated worker**: the wasm threads, the engine's 3.5 MB and a build-time `while (true)` cost a worker, not
 the page; the page ends the worker after 15 s and starts another. The preview is a sandboxed iframe (no same-origin access) that gets
-the sheet, a 25-line hyperscript `h` for the JSX that remains, `cx` and `cv`'s `_cv`, and runs the module's default export, `App`, or
+the sheet, a 25-line hyperscript `h` for the JSX that remains, `_cx` and `_cv`, and runs the module's default export, `App`, or
 first function.
 
 Order matters in one place: the parser's wasm loader has a top-level `await`, `macro.ts` imports the parser (through

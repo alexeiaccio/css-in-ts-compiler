@@ -224,7 +224,7 @@ class="bg-primary"  // No compile-time checking
 ### 3. Composition
 
 ```typescript
-const styles = cx({ color: "red" }, { padding: "1rem" });
+const styles = cn({ color: "red" }, { padding: "1rem" });
 ```
 
 ### 4. Runtime Registry

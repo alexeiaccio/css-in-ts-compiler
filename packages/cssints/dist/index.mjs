@@ -1,8 +1,8 @@
-import { a as registry, d as MacroError, f as MemberError, o as warn, r as forgetKernels, t as Registry } from "./registry-D-OHolzA.mjs";
-import { A as fail, C as isFallback, D as toDecls, E as settled, M as isNode, N as node, O as VAR, P as probed, S as hashClass, T as minWidth, _ as PSEUDOS, a as createTokens, b as checkVars, c as tokensOf, d as style, f as token, g as PROPS, h as LAYER, i as createGlobalTheme, j as failIn, k as camel, l as CSSTokenValue, m as FUNCTIONS, n as addTheme, o as isDone, p as CONTEXTS, r as check$1, t as DONE, u as isStyle, v as carried, w as merged, x as edge, y as chainDecl } from "./theme-DGapS4lP.mjs";
-import { D as relation, S as addRuntime, _ as addKernel, i as byOrder, n as addGlobal, r as addLayers, y as kernelWarnings } from "./sheet-BGF_ZI5e.mjs";
-import { n as loweredOf } from "./lowered-DOR84qdu.mjs";
-import { a as groups$1, t as CV_CALL } from "./instrument-CSSasHX6.mjs";
+import { a as registry, d as MacroError, f as MemberError, o as warn, r as forgetKernels, t as Registry } from "./registry-CTumHB8p.mjs";
+import { A as camel, C as hashClass, D as settled, E as minWidth, F as probed, M as failIn, N as isNode, O as toDecls, P as node, S as edge, T as merged, _ as PSEUDOS, a as createTokens, b as checkVars, c as tokensOf, d as style, f as token, g as PROPS, h as LAYER, i as createGlobalTheme, j as fail, k as VAR, l as CSSTokenValue, m as FUNCTIONS, n as addTheme, o as isDone, p as CONTEXTS, r as check$1, t as DONE, u as isStyle, v as carried, w as isFallback, x as dropsOf, y as chainDecl } from "./theme-BsP2E4LB.mjs";
+import { D as relation, S as addRuntime, _ as addKernel, i as byOrder, n as addGlobal, r as addLayers, y as kernelWarnings } from "./sheet-BKsMTa0c.mjs";
+import { n as loweredOf } from "./lowered-D2KusPLp.mjs";
+import { n as CX_CALL, s as groups$1, t as CV_CALL } from "./instrument-gCazujmb.mjs";
 import { checkDeclarationNow, checkQuery, checkSelector, checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { lackingOf, messageOf } from "@cssints/css-grammar/support";
 import { CSS, CSSColorValue, CSSImageValue, CSSStyleValue, CSSStyleValue as CSSStyleValue$1, CSSUnitValue } from "@cssints/css-grammar/values";
@@ -30,7 +30,7 @@ const OPERATORS = /* @__PURE__ */ new Set([
 	"*",
 	"/"
 ]);
-const isGroup = (p) => Array.isArray(p);
+const isGroup$1 = (p) => Array.isArray(p);
 const build = (member, name) => {
 	const { sep, math } = functions[name];
 	const grammar = math ? MATH : `<${name}()>`;
@@ -40,7 +40,7 @@ const build = (member, name) => {
 			else if (typeof p !== "number" && !(p instanceof CSSStyleValue$1)) throw fail(`cssints: ${member}() takes strings, numbers and Typed OM values (tokens, other calls), got ${Formatter.formatJson(p)}`);
 			return String(p);
 		};
-		const texts = parts.map((p, i) => isGroup(p) ? p.map(atom).join(" ") : name === "var" && !i && p instanceof CSSTokenValue ? p.name : atom(p));
+		const texts = parts.map((p, i) => isGroup$1(p) ? p.map(atom).join(" ") : name === "var" && !i && p instanceof CSSTokenValue ? p.name : atom(p));
 		const join = (ts) => ts.reduce((acc, t, i) => i ? `${acc}${OPERATORS.has(t) || OPERATORS.has(ts[i - 1]) ? " " : sep}${t}` : t, "");
 		const value = `${name}(${join(texts)})`;
 		const first = parts[0];
@@ -227,7 +227,7 @@ const check = (plugin, label, grammar, value) => {
 };
 const valueOf = (plugin, label, args, spacing = false) => {
 	if (!args.length) throw failIn(plugin, `cssints: ${label}() expects a value`);
-	if (args.some(isNode)) throw failIn(plugin, `cssints: ${label}() takes values, not styles; merge styles with cn(...) or cx(...)`);
+	if (args.some(isNode)) throw failIn(plugin, `cssints: ${label}() takes values, not styles; merge styles with cn(...)`);
 	const [only] = args;
 	return spacing && args.length === 1 && typeof only === "number" ? `${only * .25}rem` : args.join(" ");
 };
@@ -640,7 +640,11 @@ const engine = {
 };
 //#endregion
 //#region src/runtime.ts
-const cx = (...a) => a.flat(Infinity).filter(Boolean).join(" ");
+function _cx(drops, ...a) {
+	const on = a.flat(Infinity).filter(Boolean).join(" ").split(" ");
+	const gone = drops.flatMap(([by, c]) => on.includes(by) ? c.split(" ") : []);
+	return on.filter((c) => c && !gone.includes(c)).join(" ");
+}
 function _cv(config) {
 	return (props = {}) => {
 		const out = [config.base];
@@ -730,9 +734,9 @@ const keyframes = (steps) => {
 };
 const positionTryProp = member("positionTry");
 const positionTry = (...args) => args.length === 1 && isNode(args[0]) ? atRule("position-try", "--pt-", blockOf("positionTry()", args[0], POSITION_TRY)) : positionTryProp(...args);
-const cn = (...args) => {
-	const decls = toDecls("cn", args);
-	return node(decls, carried(args));
+const cn = (...all) => {
+	const args = all.filter(Boolean);
+	return node(toDecls("cn", args), carried(args));
 };
 const flex = member("flex");
 const grid = member("grid");
@@ -1114,6 +1118,37 @@ const cv = (config) => {
 	};
 	return Object.assign((props) => (built[0] ??= build())(props), { __cv: config });
 };
+const isGroup = (v) => Predicate.hasProperty(v, "__cnGroup");
+const headOf = Effect.fnUntraced(function* ({ __cnGroup: { statics, parts } }, at) {
+	const { nodes } = yield* Registry;
+	const merged = cn(...statics.map(([, s]) => s));
+	const where = /* @__PURE__ */ new Map();
+	for (const [pos, s] of statics) if (isNode(s)) for (const d of s.__cssints) where.set(d, pos);
+	const all = nodes.get(at.file) ?? nodes.set(at.file, /* @__PURE__ */ new Map()).get(at.file);
+	all.set(at.site, merged.__cssints);
+	const drops = yield* Effect.try({
+		try: () => dropsOf([...merged.__cssints.map((decl) => ({
+			at: where.get(decl),
+			decl,
+			conditional: false
+		})), ...parts.flatMap(([pos, site]) => (all.get(site) ?? []).map((decl) => ({
+			at: pos,
+			decl,
+			conditional: true
+		})))]),
+		catch: (e) => {
+			if (e instanceof MacroError) return e;
+			throw e;
+		}
+	});
+	const classes = yield* classesOf(merged, at);
+	return `${CX_CALL}${Formatter.formatJson(drops)}, ${classes ? `${Formatter.formatJson(classes)}, ` : ""}`;
+});
+const __cnGroup = (statics, parts) => ({ __cnGroup: {
+	statics,
+	parts
+} });
+const __nocn = () => void 0;
 const named = {
 	cn,
 	firstThatWorks,
@@ -1175,6 +1210,7 @@ const isPluginValue = Predicate.isObjectKeyword;
 const replacementOf = Effect.fnUntraced(function* (at, value) {
 	if (isNode(value)) return Formatter.formatJson(yield* classesOf(value, at));
 	if (isCv(value)) return `${CV_CALL}${yield* cvOf(value.__cv, at)})`;
+	if (isGroup(value)) return yield* headOf(value, at);
 	if (isStyle(value)) return yield* inlineOf(value);
 	const tokens = tokensOf(value);
 	if (tokens !== void 0) return tokens;
@@ -1197,6 +1233,10 @@ const recordSite = Effect.fnUntraced(function* (at, value) {
 	const { sites } = yield* Registry;
 	const replacement = yield* replacementOf(at, value).pipe(Effect.mapError(located(at)));
 	if (replacement === void 0) return value;
+	if (isNode(value)) {
+		const { nodes } = yield* Registry;
+		(nodes.get(at.file) ?? nodes.set(at.file, /* @__PURE__ */ new Map()).get(at.file)).set(at.site, value.__cssints);
+	}
 	if (!sites.has(at.file)) sites.set(at.file, /* @__PURE__ */ new Map());
 	sites.get(at.file).set(at.site, replacement);
 	return value;
@@ -1226,4 +1266,4 @@ function __site(at, value) {
 	return exit.value;
 }
 //#endregion
-export { CSS, CSSAtRuleValue, CSSColorValue, CSSImageValue, CSSStyleValue, CSSUnitValue, __at, __group, __site, __unseen, cn, css, cv, cx, firstThatWorks, flex, grid, keyframes, positionTry };
+export { CSS, CSSAtRuleValue, CSSColorValue, CSSImageValue, CSSStyleValue, CSSUnitValue, __at, __cnGroup, __group, __nocn, __site, __unseen, _cv, _cx, cn, css, cv, firstThatWorks, flex, grid, keyframes, positionTry };

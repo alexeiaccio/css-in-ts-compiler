@@ -36,10 +36,10 @@ const at = (decl) => {
   const column = lines[line - 1].search(/\S/);
   return originalPositionFor(new TraceMap(map), { line, column });
 };
-// css.p(4) first appears in `const pad = css.p(4);` (line 4), css.m(2) in `cx(css.p(4), on && css.m(2))` (line 8)
+// css.p(4) first appears in `const pad = css.p(4);` (line 3), css.m(2) in `css.cn(css.p(4), on && css.m(2))` (line 7)
 for (const [decl, line, column] of [
-  ["padding: 1rem", 4, 12],
-  ["margin: .5rem", 8, 59],
+  ["padding: 1rem", 3, 12],
+  ["margin: .5rem", 7, 63],
 ]) {
   const pos = at(decl);
   assert.match(pos.source ?? "", /fixtures\/risk5\.ts$/, `${decl}: ${JSON.stringify(pos)}`);
@@ -81,14 +81,14 @@ assert.ok(
   trace.sources.some((s) => s.endsWith("src/components/Showcase.tsx")),
   trace.sources,
 );
-// a class rule maps to the call that made it (`padding("2rem")` in App.tsx); a token (`:root`, `@property`) maps nowhere
+// a class rule maps to the call that made it (the `cn(` of App.tsx that holds `padding("2rem")`); a token (`:root`, `@property`) maps nowhere
 const rule = on.css.indexOf("{padding:2rem}");
 const selector = on.css.lastIndexOf("}", rule) + 1;
 const pos = originalPositionFor(trace, { line: 1, column: selector });
 const src = readFileSync(resolve(demo, "dist/assets", pos.source), "utf8").split("\n")[
   pos.line - 1
 ];
-assert.match(src.slice(pos.column), /^[\w.]+\(.*2rem/, `${pos.source}:${pos.line}: ${src}`);
+assert.match(src.slice(pos.column), /^cn\(/, `${pos.source}:${pos.line}: ${src}`);
 assert.equal(
   originalPositionFor(trace, { line: 1, column: on.css.indexOf("@property") }).source,
   null,

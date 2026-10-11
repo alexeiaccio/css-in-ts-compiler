@@ -1,6 +1,6 @@
 //#region src/runtime.d.ts
 export type ClassValue = string | false | null | undefined | 0 | ClassValue[];
-export declare const cx: (...a: ClassValue[]) => string;
+export declare function _cx(drops: [string, string][], ...a: ClassValue[]): string;
 export interface CvRuntimeConfig {
   base: string;
   variants: Record<string, Record<string, string>>;

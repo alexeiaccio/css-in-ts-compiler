@@ -31,7 +31,7 @@ export default defineConfig({
       dts: true,
       clean: true,
     },
-    // The parts that ship to browsers: cx and _cv (runtime), and the engine that plugin runtimes configure
+    // The parts that ship to browsers: _cx and _cv (runtime), and the engine that plugin runtimes configure
     // (parent-vars) and derived tokens (derived), only ever imported by `virtual:cssints/runtime/<name>`. No imports.
     {
       entry: {

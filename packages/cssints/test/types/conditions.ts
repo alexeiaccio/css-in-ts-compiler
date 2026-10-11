@@ -1,5 +1,4 @@
 // What user code sees of the condition wrappers: `tsgo -p tsconfig.json` checks this file (`bun run typecheck`).
-import { cx } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 import { hover, media, p, supports } from "cssints" with { type: "cssints" };
 
@@ -9,8 +8,8 @@ const { sm, lg } = media({ sm: "(width >= 30rem)", lg: "(width >= 60rem)" });
 const narrow = css.container("sidebar (width < 30rem)");
 const grid = supports("(display: grid)");
 
-// Wrappers take styles and return styles, so they nest and mix with cx.
-export const ok: string = cx(
+// Wrappers take styles and return styles, so they nest and mix with cn.
+export const ok: string = css.cn(
   p(2),
   md(p(4)),
   md(css.pl("8ch"), hover(css.bg("#eee"))),

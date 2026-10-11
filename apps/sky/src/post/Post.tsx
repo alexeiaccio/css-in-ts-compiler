@@ -1,4 +1,3 @@
-import { cx } from "cssints";
 import {
   alignSelf,
   bg,
@@ -188,7 +187,7 @@ export function Post(props: { post: AppBskyFeedDefs.PostView; focus?: boolean })
           </div>
           <div class={body}>
             <div class={guard}>
-              <div class={cx(content, covered() && blurred)} inert={covered()}>
+              <div class={cn(content, covered() && blurred)} inert={covered()}>
                 <Show when={recordOf(props.post).text}>
                   {(text) => <RichText text={text()} facets={recordOf(props.post).facets} />}
                 </Show>

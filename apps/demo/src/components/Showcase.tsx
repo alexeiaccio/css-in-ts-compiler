@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { cx } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 import {
   CSS,
@@ -39,7 +38,7 @@ const hasGrid = supports("(display: grid)");
 // A length token, read by a class.
 const radius = token.length("8px", "radius");
 
-// cn merges at build time into one class string: no cx, nothing at runtime.
+// cn merges at build time into one class string, nothing at runtime unless an argument is a runtime value (`compact && "compact"` below).
 const panel = cn(
   p(4),
   pt(6),
@@ -154,7 +153,7 @@ const badge = cv({
 export function Showcase() {
   const [compact, setCompact] = useState(false);
   return (
-    <section data-demo="showcase" className={cx(stack(3), compact && "compact")}>
+    <section data-demo="showcase" className={cn(stack(3), compact && "compact")}>
       <p data-demo="names" className={names}>
         Short names and numbers: p(4), pt(6), m(0), opacity(0.9)
       </p>
@@ -167,7 +166,7 @@ export function Showcase() {
       </ul>
 
       <div data-demo="grid" className={columns}>
-        <div className={cx(cell, wide)}>grid(), spans 2 columns from 40rem</div>
+        <div className={cn(cell, wide)}>grid(), spans 2 columns from 40rem</div>
         <div className={cell}>1 column, 2 from 40rem</div>
         <div className={cell}>3 from 60rem</div>
       </div>
@@ -180,10 +179,10 @@ export function Showcase() {
       </div>
 
       <div data-demo="container" className={chips}>
-        <div data-box="narrow" className={cx(cardBox, cardBoxNarrow)}>
+        <div data-box="narrow" className={cn(cardBox, cardBoxNarrow)}>
           <p className={cardBody}>container query, 16rem</p>
         </div>
-        <div data-box="wide" className={cx(cardBox, cardBoxWide)}>
+        <div data-box="wide" className={cn(cardBox, cardBoxWide)}>
           <p className={cardBody}>container query, 32rem</p>
         </div>
       </div>

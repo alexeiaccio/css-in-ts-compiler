@@ -3,7 +3,6 @@
 // layer that beats cssints' classes, a look confined to a subtree (@scope), and a surface in a surface (unregistered custom
 // properties, which LightningCSS reprints: `0.04` is `.04` in the page).
 import "./inspect.css";
-import { cx } from "cssints";
 import {
   bg,
   cn,
@@ -42,7 +41,7 @@ export function Inspect() {
           underlined while the row is hovered
         </span>
       </div>
-      <p data-case="unlayered" className={cx(color("#dc2626"), "mine")}>
+      <p data-case="unlayered" className={cn(color("#dc2626"), "mine")}>
         a rule of inspect.css outside every layer beats the class
       </p>
       <div data-case="scope-root">

@@ -1,4 +1,3 @@
-import { cx } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 
 export const t = css.createTokens({
@@ -24,7 +23,7 @@ css.createGlobalTheme(t, css.container("card (width < 30rem)"), {
 });
 css.createGlobalTheme(t, "[data-tight]", { gap: { md: "4px" } });
 
-export const box = cx(
+export const box = css.cn(
   css.color(t.th.fg),
   css.bg(t.th.bg),
   css.padding(t.gap.md),

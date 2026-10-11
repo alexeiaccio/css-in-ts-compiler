@@ -8,7 +8,6 @@ export {
   CSSStyleValue,
   CSSUnitValue,
   cv,
-  cx,
   firstThatWorks,
   global,
   group,

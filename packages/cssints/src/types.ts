@@ -13,11 +13,12 @@ import type {
 } from "@cssints/css-grammar/values";
 
 import type { Alt, Check, Fallback, Part, Style } from "./parts.ts";
+import type { ClassValue } from "./runtime.ts";
 import type { layers } from "./theme-types.ts";
 
 export * from "./members.ts";
 export * from "./theme-types.ts";
-export { cx, type ClassValue } from "./runtime.ts";
+export type { ClassValue } from "./runtime.ts";
 export type { Fallback, Part, Style };
 
 /** One property: parts are checked against its mdn grammar; `R` is what the call gives (a chain method: the chain). */
@@ -60,7 +61,13 @@ export interface CvConfig<V extends Record<string, Record<string, Style>>> {
   compoundVariants?: (CvProps<NoInfer<V>> & { class: Style })[];
 }
 
-export declare const cn: (...styles: Style[]) => Style;
+/**
+ * Merges styles into one class string. What is known at build time merges (the later property wins); a runtime value
+ * (`on && p(4)`, `props.class`, a state call) is joined when the code runs, and a style in it replaces the classes it
+ * overrides while it is active.
+ */
+export declare function cn(...styles: Style[]): Style;
+export declare function cn(...parts: ClassValue[]): string;
 /** The name of a `keyframes()` rule: a `<custom-ident>` for `animation` and `animationName`. */
 export interface Keyframes extends CSSStyleValue<"custom-ident"> {
   readonly "~keyframes": true;

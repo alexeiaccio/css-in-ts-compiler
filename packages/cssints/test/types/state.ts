@@ -1,5 +1,4 @@
 // What user code sees of css.global(), attr(), within() and group(): `tsgo -p tsconfig.json` checks this file.
-import { cx } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 import {
   attr,
@@ -30,7 +29,7 @@ global("a", css.color("blu"));
 global("a", "color: red");
 
 // attr: a name, or a name and a string value and an operator; a wrapper like hover.
-export const ok: string = cx(
+export const ok: string = css.cn(
   attr("aria-current", "page")(css.color("red")),
   attr("disabled")(css.opacity(0.5)),
   attr("href", "https", "^=")(css.color("blue")),
@@ -48,7 +47,7 @@ attr("a", 1);
 // within: the state of a marked ancestor.
 export const row: string = css.cn(group(), p(2));
 export const named: string = group("row");
-export const link: string = cx(
+export const link: string = css.cn(
   within(hover)(css.color("red")),
   within(hover, "row")(css.color("red")),
   within(attr("aria-expanded", "true"), "row")(p(1)),

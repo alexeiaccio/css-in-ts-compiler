@@ -158,7 +158,7 @@ Generates:
 | **Build tool**        | Babel plugin                 | Vite plugin (oxc)            |
 | **Type safety**       | Full TypeScript              | Full TypeScript              |
 | **Runtime cost**      | Zero (when static)           | Zero (when static)           |
-| **Style composition** | Via `className` merging      | Via `cx()`                   |
+| **Style composition** | Via `className` merging      | Via `cn()`                   |
 
 ---
 
@@ -261,7 +261,7 @@ Our approach follows W3C Design Tokens spec:
 
 ```typescript
 // Our approach
-const composed = cx(baseStyles, variantStyles, conditionalStyles);
+const composed = cn(baseStyles, variantStyles, conditionalStyles);
 
 // StyleX - merge classNames
 className={stylex(styles.base, variant && styles.variant)}

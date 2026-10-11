@@ -64,7 +64,7 @@ const measure = (page) =>
         y: r.y,
         w: r.width,
         h: r.height,
-        cx: r.x + r.width / 2,
+        midX: r.x + r.width / 2,
         cy: r.y + r.height / 2,
       };
     };
@@ -121,8 +121,8 @@ function lines(m, where) {
     if (c.lines.length === 2) {
       const [v, e] = c.lines;
       near(
-        v.cx,
-        c.parentAvatar.cx,
+        v.midX,
+        c.parentAvatar.midX,
         `${where}: the vertical line runs through the parent's avatar (${c.text})`,
       );
       if (c.avatar)
@@ -142,8 +142,8 @@ function lines(m, where) {
     } else if (c.lines.length === 1) {
       const [d] = c.lines;
       const next = m.info[i + 1];
-      near(d.cx, c.avatar.cx, `${where}: a parent's line is at its avatar`);
-      near(d.cx, next.avatar.cx, `${where}: and at the next card's avatar`);
+      near(d.midX, c.avatar.midX, `${where}: a parent's line is at its avatar`);
+      near(d.midX, next.avatar.midX, `${where}: and at the next card's avatar`);
       near(d.y, c.card.y + c.card.h, `${where}: it starts at the card`);
       near(d.y + d.h, next.card.y, `${where}: it ends at the next card`);
       downs++;
@@ -151,7 +151,7 @@ function lines(m, where) {
   });
   for (const b of m.buttons) {
     const [v, e] = b.lines;
-    near(v.cx, b.parentAvatar.cx, `${where}: the button hangs on the parent's avatar line`);
+    near(v.midX, b.parentAvatar.midX, `${where}: the button hangs on the parent's avatar line`);
     near(e.cy, b.box.cy, `${where}: its elbow is at the button's middle`);
     near(e.x + e.w, b.box.x, `${where}: the elbow ends at the button`);
   }

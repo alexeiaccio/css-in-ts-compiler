@@ -1,7 +1,7 @@
-import { c as EvalError, d as MacroError, f as MemberError, i as forgetWarnings, l as HookError, n as forget, p as SiteMissingError, t as Registry } from "./registry-D-OHolzA.mjs";
-import { C as fallbackEntries, T as runtimeNames, a as closeNames, b as DERIVED, c as layerEntries, f as themedEntries, l as layerStatements, m as usesDerived, n as addGlobal, o as globalEntries, r as addLayers, s as globalNames, t as LAYERS, u as renderSheet, v as kernelEntries, w as runtimeModule, x as RUNTIME_ID } from "./sheet-BGF_ZI5e.mjs";
-import { i as keptImport, n as RUNTIME, r as instrument } from "./instrument-CSSasHX6.mjs";
-import { r as verifyChecks } from "./contrast-D06kzroS.mjs";
+import { c as EvalError, d as MacroError, f as MemberError, i as forgetWarnings, l as HookError, n as forget, p as SiteMissingError, t as Registry } from "./registry-CTumHB8p.mjs";
+import { C as fallbackEntries, T as runtimeNames, a as closeNames, b as DERIVED, c as layerEntries, f as themedEntries, l as layerStatements, m as usesDerived, n as addGlobal, o as globalEntries, r as addLayers, s as globalNames, t as LAYERS, u as renderSheet, v as kernelEntries, w as runtimeModule, x as RUNTIME_ID } from "./sheet-BKsMTa0c.mjs";
+import { a as runtimeImport, i as instrument, o as writeSite } from "./instrument-gCazujmb.mjs";
+import { r as verifyChecks } from "./contrast-DhK69Xak.mjs";
 import { createRequire } from "node:module";
 import { targets as targets$1, useTargets } from "@cssints/css-grammar/support";
 import { Cause, Clock, Config, Data, Effect, Exit, Formatter, Option, Predicate, Result, Schema, Semaphore } from "effect";
@@ -71,7 +71,7 @@ const failureOf = (id, registry) => (e) => {
 	const m = e instanceof ReferenceError ? /^(?:(\S+) is not defined|Cannot access '(\S+)' before initialization)$/.exec(e.message) : null;
 	const name = m?.[1] ?? m?.[2];
 	return new MacroError({
-		message: name ? `cssints: css arguments must be known at build time: \`${name}\` is not defined where the call is evaluated (a parameter, a prop or state). Use cx(on && p(4)), a cv variant, or a token in a style prop` : message,
+		message: name ? `cssints: css arguments must be known at build time: \`${name}\` is not defined where the call is evaluated (a parameter, a prop or state). Use cn(base, on && p(4)), a cv variant, or a token in a style prop` : message,
 		cause: e,
 		...at
 	});
@@ -80,6 +80,7 @@ const evaluateModule = Effect.fnUntraced(function* (runner, id, targets) {
 	const registry = yield* Registry;
 	useTargets(targets);
 	registry.sites.delete(id);
+	registry.nodes.delete(id);
 	forget(id);
 	registry.at = void 0;
 	registry.files.clear();
@@ -707,7 +708,7 @@ function cssints({ inner = false, exclude, devtools = false, opencode = false } 
 		}
 		const ms = new MagicString(code);
 		if (runtimes.length) ms.prepend(runtimes.map((n) => `import ${Formatter.formatJson(RUNTIME_ID + n)};\n`).join(""));
-		if ([...sites.values()].some((r) => r.startsWith("__cv("))) ms.prepend(`import { _cv as __cv } from ${Formatter.formatJson(RUNTIME)};\n`);
+		ms.prepend(runtimeImport(sites.values()));
 		for (const [n, s] of parsed.sites.entries()) {
 			const replacement = sites.get(n);
 			if (replacement === void 0) return yield* new SiteMissingError({
@@ -716,13 +717,9 @@ function cssints({ inner = false, exclude, devtools = false, opencode = false } 
 				site: n,
 				offset: s.start
 			});
-			ms.overwrite(s.start, s.end, replacement);
+			writeSite(ms, s, replacement);
 		}
-		for (const decl of parsed.imp.decls) {
-			const kept = keptImport(decl, code);
-			if (kept) ms.overwrite(decl.start, decl.end, kept);
-			else ms.remove(decl.start, decl.end);
-		}
+		for (const decl of parsed.imp.decls) ms.remove(decl.start, decl.end);
 		for (const dep of runnerDeps(env, id)) (depsOf.get(dep) ?? depsOf.set(dep, /* @__PURE__ */ new Set()).get(dep)).add(id);
 		for (const file of files) {
 			const dep = normalizePath(resolve(file));

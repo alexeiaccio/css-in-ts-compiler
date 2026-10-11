@@ -2,7 +2,7 @@
 
 <img src="https://cssints.dev/logo.svg" alt="" width="96" height="96">
 
-cssints is compile-time CSS-in-TypeScript. You write calls such as `css.flex().alignItems("center")`. A Vite plugin runs them at build time and replaces each one with atomic, content-hashed class names in `@layer`s. Nothing of the styling code ships to the browser except `cx` and the few lines behind `cv`, which join class names.
+cssints is compile-time CSS-in-TypeScript. You write calls such as `css.flex().alignItems("center")`. A Vite plugin runs them at build time and replaces each one with atomic, content-hashed class names in `@layer`s. Nothing of the styling code ships to the browser except a few lines that join class names: for a `cn()` with runtime arguments and for `cv`.
 
 - Values are checked against the spec grammars (mdn-data) in the types and again at build time. A typo is an error in the editor and in the build.
 - Conditions (`media`, `container`, `supports`, `hover`), variants (`cv`), design tokens and themes (`createTokens`, `createGlobalTheme`, `check.contrast`) are all build-time, and all typed.
@@ -21,7 +21,7 @@ npm install --save-dev cssints@next vite@8   # or: bun add -d cssints@next vite@
 ```
 
 cssints needs Vite 8 (Vite+ works too) and Node 22.18 or later (the plugin runs your modules with type stripping). It is a
-dev dependency: nothing of it ships except `cx` and the few lines behind `cv`. The plugin packages are installed the same
+dev dependency: nothing of it ships except the few lines behind `cn` with runtime arguments and `cv`. The plugin packages are installed the same
 way, each beside `cssints` (`npm install --save-dev @cssints/fluid@next`); the list is on the
 [plugin packages](docs/API.md#plugin-packages-cssints-dk1q) page. In this repository `cssints` is a workspace package
 (`"cssints": "workspace:*"`).
@@ -60,10 +60,9 @@ export default {
 };
 ```
 
-`tsconfig.json` is Solid's: `"jsx": "preserve"`, `"jsxImportSource": "@solidjs/web"`, `"types": ["vite/client"]`. Solid's `class` takes a string, an object or an array, so `cx` is not needed: `class={[card, on() && p(4)]}` and `class={badge({ tone: tone() })}` work as in React. A site's arguments are still build-time values, so a signal goes in the condition or in a `cv` variant, not in `p(n())`. Under `vite dev` an edit of a component replaces it and resets its state below it (Solid's refresh); an edit of a style changes the class strings and the sheet with no reload.
+`tsconfig.json` is Solid's: `"jsx": "preserve"`, `"jsxImportSource": "@solidjs/web"`, `"types": ["vite/client"]`. Solid's `class` takes a string, an object or an array, so `cn` is not needed for the join: `class={[card, on() && p(4)]}` and `class={badge({ tone: tone() })}` work as in React. A site's arguments are still build-time values, so a signal goes in the condition or in a `cv` variant, not in `p(n())`. Under `vite dev` an edit of a component replaces it and resets its state below it (Solid's refresh); an edit of a style changes the class strings and the sheet with no reload.
 
 ```tsx
-import { cx } from "cssints";
 import { bg, color, cn, cv, flex, hover, media, p, style, token } from "cssints" with { type: "cssints" };
 
 const md = media("(width >= 40rem)");
@@ -75,13 +74,13 @@ const button = cv({
 });
 
 export const Row = ({ wide, on }: { wide?: boolean; on?: boolean }) => (
-	<div className={cx(flex().alignItems("center").gap(2), on && p(1))} style={style(token.set(accent, "#dc2626"))}>
+	<div className={cn(flex().alignItems("center").gap(2), on && p(1))} style={style(token.set(accent, "#dc2626"))}>
 		<button className={button({ wide })}>Save</button>
 	</div>
 );
 ```
 
-`with { type: "cssints" }` marks what runs at build time. The plugin replaces each call with a class string, so the browser gets `cx("_1s47490 _1ob5z5m _g2iyum", on && "_lqk467")` and `button` is a call of the runtime with `{ base: "_1t8gqy5 ...", ... }`, so it never sees `flex()`. `virtual:cssints.css` is one sheet with every rule once, sorted by layer, then condition, then shorthand before longhand, then class name:
+`with { type: "cssints" }` marks what runs at build time. The plugin replaces each call with a class string, so the browser gets `__cx([], "_1s47490 _1ob5z5m _g2iyum", on && "_lqk467")` and `button` is a call of the runtime with `{ base: "_1t8gqy5 ...", ... }`, so it never sees `flex()`. `virtual:cssints.css` is one sheet with every rule once, sorted by layer, then condition, then shorthand before longhand, then class name:
 
 ```css
 @layer _.k, _.a, _.b, _.c, _.d, _.e;
@@ -107,7 +106,7 @@ export const Row = ({ wide, on }: { wide?: boolean; on?: boolean }) => (
 
 `import * as css from "cssints/tui" with { type: "cssints" }` gives the members a terminal has (cells, colours, borders, flex, states, `cursor`), and the plugin compiles them to prop objects for [OpenTUI](https://opentui.com) renderables instead of classes; `@cssints/tui` applies their states and themes: [packages/tui](packages/tui/README.md), docs/API.md "TUI".
 
-More in [docs/API.md](docs/API.md): property names and short names, `flex()` and `grid()` chains, conditions and layers, tokens and themes, `cx`, `cn` and `cv`, and the errors you can get.
+More in [docs/API.md](docs/API.md): property names and short names, `flex()` and `grid()` chains, conditions and layers, tokens and themes, `cn` and `cv`, and the errors you can get.
 
 ## Debugging
 
@@ -116,7 +115,7 @@ More in [docs/API.md](docs/API.md): property names and short names, `flex()` and
 ## For agents
 
 `cssints` ships two [agent skills](https://agentskills.io) in its package, `skills/cssints` (writing styles: setup,
-`cn`/`cx`/`cv`, conditions, tokens and themes, the plugin packages, build errors) and `skills/cssints-plugin` (writing
+`cn`/`cv`, conditions, tokens and themes, the plugin packages, build errors) and `skills/cssints-plugin` (writing
 a plugin on `scope()`, with its tests). Install them into your agent's skills folder:
 
 ```bash

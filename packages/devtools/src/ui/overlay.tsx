@@ -5,6 +5,7 @@ import "virtual:cssints.css";
 import { Portal, render } from "@solidjs/web";
 import { Effect, Exit, Stream, SubscriptionRef } from "effect";
 import { createEffect, createMemo, createSignal, For, onCleanup, onSettled, Show } from "solid-js";
+import { cn } from "cssints" with { type: "cssints" };
 
 import {
   ASKED,
@@ -34,8 +35,6 @@ interface AskState {
   id?: string;
   message?: string;
 }
-
-const cx = (...c: (string | false | undefined)[]) => c.filter(Boolean).join(" ");
 
 // where the panel sits and how big it is along that axis, kept per origin
 const DOCKS = ["left", "top", "bottom", "right"] as const;
@@ -95,7 +94,7 @@ const Conditions = (props: { of: readonly Condition[] }) => (
   <For each={props.of}>
     {(c) => (
       <span
-        class={cx(s.chip, c.holds && s.holds)}
+        class={cn(s.chip, c.holds && s.holds)}
         title={c.holds ? "holds now" : "does not hold now"}
       >
         {c.text}
@@ -119,7 +118,7 @@ function PropRow(props: { row: Row }) {
         <span class={s.propName}>{props.row.prop}</span>
         <Show
           when={props.row.winner}
-          fallback={<span class={cx(s.value, s.muted)}>nothing applies now</span>}
+          fallback={<span class={cn(s.value, s.muted)}>nothing applies now</span>}
         >
           {(w) => (
             <span class={s.value} data-winner={w().selector} data-value={w().decl.value}>
@@ -148,7 +147,7 @@ function PropRow(props: { row: Row }) {
         )}
       </Show>
       <Show when={props.row.lost.length}>
-        <div class={cx(s.sub, s.muted)}>
+        <div class={cn(s.sub, s.muted)}>
           except {props.row.lost.map((l) => `${l.prop} (${l.by.selector})`).join(", ")}
         </div>
       </Show>
@@ -164,7 +163,7 @@ function PropRow(props: { row: Row }) {
       </For>
       <For each={props.row.inactive}>
         {(c) => (
-          <div class={cx(s.sub, s.off)} data-inactive={c.selector}>
+          <div class={cn(s.sub, s.off)} data-inactive={c.selector}>
             {c.decl.prop}: {c.decl.value} <span class={s.muted}>{where(c)}</span>{" "}
             <Conditions of={c.conditions} />
           </div>
@@ -172,7 +171,7 @@ function PropRow(props: { row: Row }) {
       </For>
       <For each={props.row.verdicts.filter((v) => v.reason)}>
         {(v) => (
-          <div class={v.status === "mismatch" ? s.reason : cx(s.sub, s.unsure)}>{v.reason}</div>
+          <div class={v.status === "mismatch" ? s.reason : cn(s.sub, s.unsure)}>{v.reason}</div>
         )}
       </For>
     </div>
@@ -224,7 +223,7 @@ function Panel(props: { inspection: Inspection; build?: boolean }) {
               </Show>
               <For each={g.classes}>
                 {(c) => (
-                  <div class={cx(s.classRow, !c.active && s.off)} data-class={c.cls}>
+                  <div class={cn(s.classRow, !c.active && s.off)} data-class={c.cls}>
                     <span>.{c.cls}</span>
                     <span>
                       {c.kind === "marker"
@@ -263,13 +262,13 @@ function Panel(props: { inspection: Inspection; build?: boolean }) {
                 <Show
                   when={t.source}
                   fallback={
-                    <div class={cx(s.sub, s.muted)}>
+                    <div class={cn(s.sub, s.muted)}>
                       {t.registered ? "the initial value of its @property" : "not set by cssints"}
                     </div>
                   }
                 >
                   {(src) => (
-                    <div class={cx(s.sub, s.muted)}>
+                    <div class={cn(s.sub, s.muted)}>
                       from {src().wrap.join(" ")} {src().selector} {src().layer || "unlayered"} on{" "}
                       {src().on}
                     </div>
@@ -478,7 +477,7 @@ function App(props: {
   const Docked = () => (
     <>
       <aside
-        class={cx(s.panel, win() ? s.dockWindow : PANEL[place().dock])}
+        class={cn(s.panel, win() ? s.dockWindow : PANEL[place().dock])}
         data-devtools="panel"
         data-dock={place().dock}
         data-detached={win() ? "yes" : "no"}
@@ -497,7 +496,7 @@ function App(props: {
               : "pick an element"}
           </span>
           <button
-            class={cx(s.button, picking() && s.pressed)}
+            class={cn(s.button, picking() && s.pressed)}
             data-devtools="pick"
             data-on={picking() ? "yes" : "no"}
             title="pick an element"
@@ -506,7 +505,7 @@ function App(props: {
             pick
           </button>
           <button
-            class={cx(s.button, win() && s.pressed)}
+            class={cn(s.button, win() && s.pressed)}
             data-devtools="detach"
             data-on={win() ? "yes" : "no"}
             title={win() ? "dock back" : "detach into a window"}
@@ -517,7 +516,7 @@ function App(props: {
           <For each={DOCKS}>
             {(d) => (
               <button
-                class={cx(s.button, place().dock === d && s.pressed)}
+                class={cn(s.button, place().dock === d && s.pressed)}
                 data-devtools="dock"
                 data-dock={d}
                 title={`dock ${d}`}
@@ -583,7 +582,7 @@ function App(props: {
             <Show when={props.asked()}>
               {(a) => (
                 <div
-                  class={cx(
+                  class={cn(
                     s.sub,
                     a().status === "completed"
                       ? s.ok

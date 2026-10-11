@@ -12,13 +12,7 @@ import { entries, externals, sources } from "virtual:playground/packages";
 import { RUNTIME_ID } from "cssints-src/delivery.ts";
 import { moduleEntries } from "cssints-src/entries.ts";
 import { evaluate } from "cssints-src/evaluate.ts";
-import {
-  CV_CALL,
-  type Instrumented,
-  instrument,
-  keptImport,
-  RUNTIME,
-} from "cssints-src/instrument.ts";
+import { type Instrumented, instrument, runtimeImport, writeSite } from "cssints-src/instrument.ts";
 import { forget, Registry, registry } from "cssints-src/registry.ts";
 import runtimeSource from "cssints-src/runtime.ts?raw";
 import { renderSheet } from "cssints-src/sheet.ts";
@@ -433,14 +427,9 @@ const program = Effect.fn("playground.compile")(function* (files: Files) {
         ms.prepend(
           runtimes.map((n) => `import ${Formatter.formatJson(RUNTIME_ID + n)};\n`).join(""),
         );
-      if ([...sites.values()].some((r) => r.startsWith(CV_CALL)))
-        ms.prepend(`import { _cv as __cv } from ${Formatter.formatJson(RUNTIME)};\n`);
-      for (const [n, s] of site.sites.entries()) ms.overwrite(s.start, s.end, sites.get(n)!);
-      for (const decl of site.imp.decls) {
-        const kept = keptImport(decl, source);
-        if (kept) ms.overwrite(decl.start, decl.end, kept);
-        else ms.remove(decl.start, decl.end);
-      }
+      ms.prepend(runtimeImport(sites.values()));
+      for (const [n, s] of site.sites.entries()) writeSite(ms, s, sites.get(n)!);
+      for (const decl of site.imp.decls) ms.remove(decl.start, decl.end);
       module = ms.toString();
       for (const m of module.matchAll(/"(_[\w-]+(?: _[\w-]+)*)"/g))
         m[1]!.split(" ").forEach((c) => classes.add(c));
@@ -479,7 +468,7 @@ export const compile = async (files: Files): Promise<Compiled> => {
 
 /**
  * The runtime of the client, for the preview.
- * @returns {string} the body of a function of `__imp` that returns the exports of cssints/runtime: `cx` and `_cv`
+ * @returns {string} the body of a function of `__imp` that returns the exports of cssints/runtime: `_cx` and `_cv`
  */
 export const runtimeBody = (): string =>
   asBody(strip(runtimeSource, "h", "runtime.ts").code, "runtime.js");

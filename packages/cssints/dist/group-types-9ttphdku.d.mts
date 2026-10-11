@@ -1,4 +1,4 @@
-import { $p as Fn, Qp as CheckMath, Xp as Arg, Zp as CheckFn, am as Fallback, cm as Text, em as Result, om as Part, rm as Check, sm as Style, tm as Text$1 } from "./theme-types-DDT3Y9_E.mjs";
+import { $p as Fn, Qp as CheckMath, Xp as Arg, Zp as CheckFn, am as Fallback, cm as Text, em as Result, om as Part, rm as Check, sm as Style, tm as Text$1 } from "./theme-types-Bqv0Ggz_.mjs";
 import { properties } from "@cssints/css-grammar/mdn";
 import { CSSStyleValue } from "@cssints/css-grammar/values";
 import { QueryKind, ValidQuery } from "@cssints/css-grammar/query";
