@@ -324,7 +324,7 @@ assert.equal(count(/twoslash-error-line/g), marked, "an error line for each `// 
 assert.ok(!all.includes(root), "no path of this machine in the pages");
 // the result of each page's example (plugin/examples.ts): a sandboxed frame right under the link, in the document and in the
 // page's chunk, with the project rendered, its sheet and the reset; every class of the markup is in the frame's own sheet; the
-// entry holds none of it
+// entry holds none of it. The Code tab beside it holds the files of the project (no script: radio inputs)
 const unescape = (s) =>
   s
     .replace(/&lt;/g, "<")
@@ -335,11 +335,32 @@ assert.ok(projects.length > 30, `${projects.length} examples`);
 for (const slug of projects) {
   const doc = html.get(`${slug}/index.html`);
   assert.ok(doc, `${slug}: a page for the example`);
-  const frame =
-    /<div class="example"><p><span>Result<\/span><a href="[^"]*playground#example=[^"]*">Open in playground<\/a><\/p><iframe title="Result" sandbox="allow-scripts" srcdoc="([^"]*)"><\/iframe><\/div>/.exec(
+  const panel =
+    /<div class="example"><input type="radio" class="tab-result"[^>]*checked><input type="radio" class="tab-code"[^>]*><p><span><label[^>]*>Result<\/label><label[^>]*>Code<\/label><\/span><a href="[^"]*playground#example=[^"]*">Open in playground<\/a><\/p><div class="pane-result"><iframe title="Result" sandbox="allow-scripts" srcdoc="([^"]*)"><\/iframe><\/div><div class="pane-code">([\s\S]*?)<\/div><\/div>\n/.exec(
       doc,
     );
-  assert.ok(frame, `${slug}: the result frame under the link`);
+  assert.ok(panel, `${slug}: the tabs, and the result frame under the link`);
+  const frame = panel;
+  // the Code tab: each file of the project, highlighted with the page's themes, a switcher label and a radio each, the entry first
+  const names = readdirSync(join(root, "apps/docs/examples", slug))
+    .filter((f) => /\.tsx?$/.test(f))
+    .sort((a, b) => Number(/^index\./.test(b)) - Number(/^index\./.test(a)) || a.localeCompare(b));
+  assert.equal(
+    panel[2].match(/<pre class="shiki shiki-themes github-light github-dark"/g)?.length,
+    names.length,
+    `${slug}: a block for each file`,
+  );
+  assert.equal(
+    panel[2].match(/<input type="radio"/g)?.length,
+    names.length,
+    `${slug}: a radio for each file`,
+  );
+  assert.deepEqual(
+    [...panel[2].matchAll(/<label for="[^"]*">([^<]*)<\/label>/g)].map((m) => m[1]),
+    names,
+    `${slug}: the switcher`,
+  );
+  assert.ok(panel[2].includes("reset"), `${slug}: the code calls reset()`);
   const srcdoc = unescape(frame[1]);
   const sheet = /<style>([\s\S]*?)<\/style>/.exec(srcdoc)?.[1] ?? "";
   const body = /<div id="root">([\s\S]*)<\/div>\n<script>/.exec(srcdoc)?.[1] ?? "";
