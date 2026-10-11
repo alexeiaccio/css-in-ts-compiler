@@ -9,6 +9,7 @@ import { CSSStyleValue } from "@cssints/css-grammar/values";
 import { Result } from "effect";
 
 import { MemberError } from "./errors.ts";
+import { inGroup } from "./group.ts";
 import { kernelWarnings } from "./kernel.ts";
 import { relation } from "./leaves.ts";
 import { camel, type Carry, failIn, isNode, node, probed, type CssNode } from "./node.ts";
@@ -647,4 +648,4 @@ const dependsOn = (path: string): void => {
 };
 
 /** What the front (scope.ts) calls; macro.ts puts it in the registry. */
-export const engine = { scope, lacking, dependsOn };
+export const engine = { scope, lacking, dependsOn, inGroup };

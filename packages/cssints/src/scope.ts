@@ -531,6 +531,7 @@ export interface Engine {
   scope(name: string, table: object): unknown;
   lacking(keys: readonly string[]): string[];
   dependsOn(path: string): void;
+  inGroup(group: string, property: string, value: string): boolean;
 }
 /** The engine, once the library is loaded (the prepended import of every module with sites loads it before any plugin module runs). */
 export const engine = (): Engine => {
@@ -568,3 +569,12 @@ export const lacking = (...keys: BcdKey[]): string[] => engine().lacking(keys);
  * file. Build time, like `scope()`: in a member's functions or in the plugin's own.
  */
 export const dependsOn = (path: string): void => engine().dependsOn(path);
+
+/**
+ * Whether a declaration is in an export group (`cssints/widely-available`, `baseline-2022/with-downstream`, ...): the group
+ * has the property and the value holds no word the group bans. A property cssints has no member for (a custom property, a
+ * vendor-prefixed one) is in every group. A plugin that has a variant per group emits only what passes. Build time, like
+ * `scope()`; an unknown group is an error.
+ */
+export const inGroup = (group: string, property: string, value: string): boolean =>
+  engine().inGroup(group, property, value);

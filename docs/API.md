@@ -695,6 +695,15 @@ export const swatch = (file: string) => {
 
 A dependency is a file, not a directory: a file added to a directory is not seen. Vite's watcher skips `node_modules`, so a file there (a collection of `@iconify-json`, `@fontsource`) is not watched. An evaluation that fails records nothing: after a build error, edit the module or reload.
 
+- **`inGroup(group, property, value)`** says whether a declaration is in an export group (`widely-available`, `baseline-2022/with-downstream`, `css-grid-2`, ...; see "Export groups"): the group has the property, and the value holds no word it bans (a keyword of that property, a function, a unit). It is the scan that `cssints/<group>` runs on a call, from the same data (2026-10-11, cssints-l5z5). A property cssints has no member for (a custom property, `-webkit-text-size-adjust`) names no feature of the data and is in every group; `limited-availability` is everything; an unknown group is an error. A plugin that has a variant per group emits only what passes (`@cssints/reset/widely-available`). The data covers properties, keywords, functions, units and the pseudo-classes without arguments, not a selector as a whole: `:where()`, `::backdrop`, attribute selectors and combinators are not checked. Build time, like `scope()`:
+
+```ts
+import { inGroup } from "cssints/plugin";
+
+const keep = (group: string, decls: [string, string][]) => decls.filter(([p, v]) => inGroup(group, p, v));
+export const heading = keep("widely-available", [["text-wrap", "balance"], ["overflow-wrap", "break-word"]]); // overflow-wrap only
+```
+
 - **Types.** `cssints/plugin` points at `author.ts` and `scope.ts`: the signatures and the type-level code (`Members`, `Chain`, `Expand`, the call checks) and no code that runs, because a program that imports a plugin must not need Node's types or a newer `lib`. The engine is `scope-engine.ts`; `macro.ts` registers it when the library loads.
 - **Not in 0.2:** `keyword` members, completions of keywords inside plugin grammar strings (the message still names the grammar), and a plugin that is a package of members you install other than `@cssints/icons`.
 

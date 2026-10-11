@@ -135,6 +135,8 @@ lacks a key.
   rules or styles only when needed (`stuck()` adds its attribute rules only then).
 - `dependsOn(path)`: call it for every file the plugin reads (an image, an SVG, a font). In dev an edit of the file
   runs the modules that read it again; in `vite build --watch` it is a watched file.
+- `inGroup(group, property, value)`: is a declaration in an export group (`widely-available`, `baseline-2022`, ...)?
+  A plugin with a variant per group emits only what passes (`@cssints/reset/widely-available`). Selectors are not checked.
 
 ## Errors
 

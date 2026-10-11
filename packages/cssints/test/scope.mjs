@@ -300,6 +300,46 @@ assert.match(
   /export const a = "chrome 120, firefox 128";/,
 );
 
+// inGroup(): the scan of cssints/<group>, from the same data; a property cssints has no member for is in every group
+write(
+  "sc-ingroup.ts",
+  `import { inGroup, scope } from "cssints/plugin";
+export const { ing, nope } = scope("sc-ingroup", {
+  ing: { args: [], value: () => [
+    inGroup("widely-available", "text-wrap", "balance"),
+    inGroup("newly-available", "text-wrap", "balance"),
+    inGroup("newly-available", "text-wrap", "pretty"),
+    inGroup("widely-available", "overflow-wrap", "break-word"),
+    inGroup("widely-available", "text-size-adjust", "none"),
+    inGroup("widely-available", "-webkit-text-size-adjust", "none"),
+    inGroup("widely-available", "--x", "calc(1px)"),
+    inGroup("limited-availability", "text-wrap", "pretty"),
+    inGroup("baseline-2019", "margin-block-start", "1em"),
+    inGroup("baseline-2020/with-downstream", "margin-block-start", "1em"),
+  ].join() },
+  nope: { args: [], value: () => String(inGroup("nope", "color", "red")) },
+}).export();
+`,
+);
+assert.match(
+  await code(
+    write(
+      "sc-ingroup-use.ts",
+      `import { ing } from "./sc-ingroup.ts" with { type: "cssints" };\nexport const a = ing();\n`,
+    ),
+  ),
+  /export const a = "false,true,false,true,false,true,true,true,false,true";/,
+);
+await fails(
+  write(
+    "sc-ingroup-bad.ts",
+    `import { nope } from "./sc-ingroup.ts" with { type: "cssints" };\n\nexport const a = nope();\n`,
+  ),
+  /^cssints: no export group cssints\/nope$/,
+  3,
+  "sc-ingroup",
+);
+
 // overrides are checked by the theme path, at the call site
 await assert.rejects(
   code(

@@ -57,6 +57,8 @@ const compile = (id: string): Compiled => {
   };
 };
 
+const of = (id: string) => compiled.get(id) ?? compiled.set(id, compile(id)).get(id)!;
+
 // The first banned word of `text`: the property's keywords (or the words of a query), a function, a number with a unit.
 const hit = (c: Compiled, own: Set<string> | undefined, text: string) =>
   text.match(WORDS)?.find((w) => own?.has(w) || c.fn.has(w) || c.unit?.test(w));
@@ -120,7 +122,7 @@ const wrap = (c: Compiled, name: string, member: unknown): unknown => {
  */
 export const groupOf = (css: Record<string, unknown>, id: string): Record<string, unknown> => {
   if (id === "limited-availability") return css;
-  const c = compiled.get(id) ?? compiled.set(id, compile(id)).get(id)!;
+  const c = of(id);
   return new Proxy(css, {
     get: (t, k) => {
       if (typeof k !== "string") return Reflect.get(t, k) as unknown;
@@ -131,4 +133,20 @@ export const groupOf = (css: Record<string, unknown>, id: string): Record<string
       return wrap(c, k, t[k]);
     },
   });
+};
+
+// The CSS properties cssints has a member for: any other (a custom or a vendor-prefixed one) names no feature of the data.
+const KNOWN = new Set(Object.values(PROPS));
+
+/**
+ * Whether a declaration is in an export group: the group has the property, and the value holds no word it bans.
+ * @param {string} id the group: `widely-available`, `baseline-2022/with-downstream`, `css-grid-2`, ...
+ * @param {string} property the CSS name: `text-wrap`
+ * @param {string} value the value as written: `balance`
+ * @returns {boolean} true for a property cssints has no member for (`--x`, `-webkit-text-size-adjust`)
+ */
+export const inGroup = (id: string, property: string, value: string): boolean => {
+  if (id === "limited-availability") return true;
+  const c = of(id);
+  return (c.props.has(property) || !KNOWN.has(property)) && !hit(c, c.kw.get(property), value);
 };
