@@ -8,7 +8,7 @@ cssints is compile-time CSS-in-TypeScript. You write calls such as `css.flex().a
 - Conditions (`media`, `container`, `supports`, `hover`), variants (`cv`), design tokens and themes (`createTokens`, `createGlobalTheme`, `check.contrast`) are all build-time, and all typed.
 - LightningCSS optimizes the output. Browser support (`@mdn/browser-compat-data` against your browserslist) is reported as warnings, except for what LightningCSS lowers for those targets.
 
-> **Alpha.** 0.1 is on npm under the `next` tag. The API can still change between minor versions, the plugin packages
+> **Alpha.** cssints is on npm at 0.x. The API can still change between minor versions, the plugin packages
 > may move, and some browsers and frameworks are checked less than others (docs/API.md, "Browser support and what 0.1
 > does not have"). Pin the version, and report what breaks.
 
@@ -17,12 +17,12 @@ Decisions and findings are in [docs/wayfinder.md](docs/wayfinder.md); the API re
 ## Install
 
 ```bash
-npm install --save-dev cssints@next vite@8   # or: bun add -d cssints@next vite@8, pnpm add -D cssints@next vite@8
+npm install --save-dev cssints vite@8   # or: bun add -d cssints vite@8, pnpm add -D cssints vite@8
 ```
 
 cssints needs Vite 8 (Vite+ works too) and Node 22.18 or later (the plugin runs your modules with type stripping). It is a
 dev dependency: nothing of it ships except the few lines behind `cn` with runtime arguments and `cv`. The plugin packages are installed the same
-way, each beside `cssints` (`npm install --save-dev @cssints/fluid@next`); the list is on the
+way, each beside `cssints` (`npm install --save-dev @cssints/fluid`); the list is on the
 [plugin packages](docs/API.md#plugin-packages-cssints-dk1q) page. In this repository `cssints` is a workspace package
 (`"cssints": "workspace:*"`).
 

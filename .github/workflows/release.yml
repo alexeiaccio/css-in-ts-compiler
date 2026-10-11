@@ -1,7 +1,7 @@
 # Releases the 22 packages to npm with Changesets (RELEASING.md). On every push to master:
 #   - changesets present: opens or updates the "Version Packages" pull request (changeset version, bun.lock refreshed);
 #   - none (the version PR was merged): builds, checks and stages the packages (scripts/release.mjs), then publishes the
-#     versions that are not on npm yet with `changeset publish --tag next`, and pushes the git tags.
+#     versions that are not on npm yet with `changeset publish` (dist-tag latest), and pushes the git tags.
 # Publishing uses npm trusted publishing (OIDC): no token. Each package must name this file, release.yml, as its trusted
 # publisher on npmjs.com (RELEASING.md). The repository is private, so npm adds no provenance.
 name: release

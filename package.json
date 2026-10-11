@@ -13,7 +13,7 @@
 		"changeset": "changeset",
 		"version-packages": "changeset version && bun install --lockfile-only",
 		"release:check": "bun run build:packages && node scripts/release.mjs",
-		"release:publish": "changeset publish --tag next",
+		"release:publish": "changeset publish",
 		"release": "bun run release:check && bun run release:publish",
 		"dev": "vp run -r --parallel dev",
 		"test": "vp run -r --cache test",

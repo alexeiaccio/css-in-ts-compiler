@@ -6,4 +6,6 @@ set -e
 for p in $(node -e 'console.log(require("./.changeset/config.json").fixed[0].join(" "))'); do
   echo "$p"
   npm trust github "$p" --file release.yml --repo alexeiaccio/css-in-ts-compiler --allow-publish --yes
+  # releases go to latest since 0.2.0: the next tag of 0.1.0 would point at the old API
+  npm dist-tag rm "$p" next 2>/dev/null || true
 done

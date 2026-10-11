@@ -88,7 +88,7 @@ export async function landing(base: string): Promise<{ data: LandingData; html: 
       });
     const data: LandingData = {
       base,
-      install: code("npm install --save-dev cssints@next", "bash"),
+      install: code("npm install --save-dev cssints", "bash"),
       source: code(c.source, "ts"),
       code: code(c.code, "ts"),
       css: code(c.css, "css"),

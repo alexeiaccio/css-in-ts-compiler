@@ -1,12 +1,12 @@
 # Releasing
 
-Twenty-two packages go to npm: `cssints` and the 21 `@cssints/*` packages in `packages/`. They share one version (Changesets `fixed` group) and go out under the dist-tag `next`. The apps and `tools/` stay private. The first release (0.1.0) is run by hand on a laptop. Every later release is run by CI (`.github/workflows/release.yml`) with npm trusted publishing: no token.
+Twenty-two packages go to npm: `cssints` and the 21 `@cssints/*` packages in `packages/`. They share one version (Changesets `fixed` group) and go out under the dist-tag `latest` (0.1.0 went out under `next`; from 0.2.0 on, `latest`). The apps and `tools/` stay private. The first release (0.1.0) is run by hand on a laptop. Every later release is run by CI (`.github/workflows/release.yml`) with npm trusted publishing: no token.
 
 ## Decisions (cssints-6tnn, 2026-10-10)
 
-- **The publish command is `changeset publish`, on a staged copy of each package.** Changesets calls `npm` for a bun workspace. `npm pack` and `npm publish` keep `workspace:*` in the manifest, ignore `publishConfig.exports`, and ship `src/` and the `development` export condition. `bun pm pack` replaces `workspace:*` (with the exact version, `0.1.0`, not `^0.1.0`) but also keeps `development`, `src/` and the top-level `exports`. So `scripts/stage.mjs` builds the published copy into `packages/<name>/.publish` (git-ignored): the manifest with `publishConfig` laid over it, `workspace:` turned into `^<version>`, no scripts, no `devDependencies`, only `dist/`, `docs/`, `skills/`, README and LICENSE. Each package says `publishConfig.directory: ".publish"`, and `changeset publish` sends that directory (`npm publish <dir> --access public --tag next`).
+- **The publish command is `changeset publish`, on a staged copy of each package.** Changesets calls `npm` for a bun workspace. `npm pack` and `npm publish` keep `workspace:*` in the manifest, ignore `publishConfig.exports`, and ship `src/` and the `development` export condition. `bun pm pack` replaces `workspace:*` (with the exact version, `0.1.0`, not `^0.1.0`) but also keeps `development`, `src/` and the top-level `exports`. So `scripts/stage.mjs` builds the published copy into `packages/<name>/.publish` (git-ignored): the manifest with `publishConfig` laid over it, `workspace:` turned into `^<version>`, no scripts, no `devDependencies`, only `dist/`, `docs/`, `skills/`, README and LICENSE. Each package says `publishConfig.directory: ".publish"`, and `changeset publish` sends that directory (`npm publish <dir> --access public`).
 - **One version for all 23 (`fixed`).** Twenty-one packages have `cssints` as a peer (`^0.1.0`, and on 0.x a caret stops at the next minor), `cssints` depends on `css-grammar`, and they change together (a new engine member, a new plugin API). With one number, "which plugin works with which cssints" has one answer, and every release publishes all 23, which is also what the 2-day rule of trusted publishing needs (below). The cost: a package without changes gets a version with an empty entry. Independent versions would need a compatibility table.
-- **The tag is `next`, not a prerelease version.** The versions are plain (`0.1.0`, `0.1.1`) and `release:publish` passes `--tag next`. Changesets' prerelease mode would make `0.1.1-next.0` and cannot publish plain versions under `next`. To move to `latest` later, see "Moving to latest".
+- **The tag is `latest` (since 0.2.0, 2026-10-11).** 0.1.0 went out under `next`, and npm put `latest` on it too (the first publish of a package always does). With 0.2.0 removing `cx`, `npm install cssints` without a tag would have kept the old API, so releases publish to `latest` (`release:publish` is `changeset publish`) and the alpha is said by the 0.x version and the docs. `scripts/trust.sh` also drops the stale `next` tags. Changesets' prerelease mode (`0.2.0-next.0`) was not wanted.
 - **Peer ranges stay loose.** `onlyUpdatePeerDependentsWhenOutOfRange` in `.changeset/config.json`: a patch does not change `cssints: ^0.1.0` in the plugins, a minor (0.2.0) does.
 - **Every package has a `prepublishOnly` guard** that fails: a plain `npm publish` in a package directory would send the repository manifest (`workspace:*`, `src`). Staged copies have no scripts, so the guard does not touch the real publish.
 - **No provenance.** The repository is private, and npm makes no provenance for a private repository, even with trusted publishing.
@@ -85,13 +85,9 @@ Then, per package, Settings, Publishing access: "Require two-factor authenticati
 
 1. In a branch that changes a package, run `bun run changeset`: pick the packages (any one bumps all 23), the bump (`patch` or `minor`; on 0.x a breaking change is a `minor`) and write one line for the changelog. Commit the file in `.changeset/` with the change. `bunx changeset --empty` is for a change that releases nothing.
 2. Merge to master. The `release` workflow opens or updates the pull request "Version Packages": `changeset version` (versions, `CHANGELOG.md` files, peer ranges) and `bun install --lockfile-only` (bun.lock records the workspace versions).
-3. Merge that pull request. The workflow runs on master with no changesets left: `bun install --frozen-lockfile`, `bun run release:check` (build, stage, check, dist freshness), then `changeset publish --tag next` through trusted publishing, then pushes the tags.
+3. Merge that pull request. The workflow runs on master with no changesets left: `bun install --frozen-lockfile`, `bun run release:check` (build, stage, check, dist freshness), then `changeset publish` through trusted publishing, then pushes the tags.
 
 Checks run with the token of the Actions bot do not start on the version pull request; start them by hand if you want them.
-
-## Moving to latest
-
-When the line is ready for `latest`: from the laptop (or, with "Allow npm dist-tag" on the trusted publisher, from CI), `npm dist-tag add cssints@<version> latest` for each package, and change `release:publish` in `package.json` to `changeset publish` (no `--tag`).
 
 ## When something fails
 

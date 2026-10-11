@@ -235,7 +235,7 @@ export function Shell(props: { children?: JSX.Element }) {
             <span class={wordIn}>in</span>
             <span class={wordTs}>ts</span>
           </span>
-          <sup class={alpha} title="0.1, alpha: the API can still change">
+          <sup class={alpha} title="0.x, alpha: the API can still change">
             alpha
           </sup>
         </a>
