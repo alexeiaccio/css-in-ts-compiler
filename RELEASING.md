@@ -84,7 +84,7 @@ Then, per package, Settings, Publishing access: "Require two-factor authenticati
 ## Later releases, from CI
 
 1. In a branch that changes a package, run `bun run changeset`: pick the packages (any one bumps all 23), the bump (`patch` or `minor`; on 0.x a breaking change is a `minor`) and write one line for the changelog. Commit the file in `.changeset/` with the change. `bunx changeset --empty` is for a change that releases nothing.
-2. Merge to master. The `release` workflow opens or updates the pull request "Version Packages": `changeset version` (versions, `CHANGELOG.md` files, peer ranges) and `bun install --lockfile-only` (bun.lock records the workspace versions).
+2. Merge to master. The `release` workflow opens or updates the pull request "Version Packages": `changeset version` (versions, `CHANGELOG.md` files, peer ranges), the release's entry at the top of the root `CHANGELOG.md` (`scripts/changelog.mjs`, from the changesets' summaries: for a breaking change, add the migration in that pull request before merging it) and `bun install --lockfile-only` (bun.lock records the workspace versions).
 3. Merge that pull request. The workflow runs on master with no changesets left: `bun install --frozen-lockfile`, `bun run release:check` (build, stage, check, dist freshness), then `changeset publish` through trusted publishing, then pushes the tags.
 
 Checks run with the token of the Actions bot do not start on the version pull request; start them by hand if you want them.

@@ -11,7 +11,7 @@
 		"build": "vp run -r build",
 		"build:packages": "vp run --filter \"./packages/*\" build",
 		"changeset": "changeset",
-		"version-packages": "changeset version && bun install --lockfile-only",
+		"version-packages": "node scripts/changelog.mjs && bun install --lockfile-only",
 		"release:check": "bun run build:packages && node scripts/release.mjs",
 		"release:publish": "changeset publish",
 		"release": "bun run release:check && bun run release:publish",

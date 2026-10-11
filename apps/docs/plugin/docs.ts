@@ -19,7 +19,7 @@ import { landing } from "./landing.ts";
 import { type Page, summary } from "./markdown.ts";
 
 const root = join(import.meta.dirname, "../../..");
-const sources = ["README.md", "docs/API.md"].map((f) => join(root, f));
+const sources = ["README.md", "docs/API.md", "CHANGELOG.md"].map((f) => join(root, f));
 const pageId = (i: number) => `virtual:docs/${i}`;
 
 // The type-check of the ts blocks takes ~15 s of one thread; in a worker it does not hold up the rest of the build (cssints gives a
