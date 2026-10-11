@@ -2,9 +2,9 @@ import { createSignal, For, onSettled, Show } from "solid-js";
 
 import { type Compiled, type Files, start } from "./client.ts";
 import { type Editor, mount } from "./editor.ts";
-import example from "./example.txt?raw";
+import { ids, load } from "./examples.ts";
 import { previewDocument } from "./preview.ts";
-import { decode, encode } from "./share.ts";
+import { decode, encode, exampleOf } from "./share.ts";
 import * as s from "./styles.ts";
 
 type Tab = "preview" | "css" | "shipped" | "module" | "js";
@@ -17,7 +17,23 @@ const TABS: [Tab, string][] = [
 ];
 
 const DELAY = 300;
-const ENTRY = "playground.tsx";
+// the project the page opens with: a slice of csssky (apps/docs/examples/csssky)
+const DEFAULT = "csssky";
+// what a project that does not call reset() gets in the preview, made by the plugin package itself
+const RESET = {
+  "reset.ts": 'import { reset } from "@cssints/reset" with { type: "cssints" };\nreset();\n',
+};
+// the class of <html> that csssky's themes (and any `.dark` of a project) read, from the display settings of this site
+const modeClass = () => {
+  const c = document.documentElement.classList;
+  return c.contains("dim")
+    ? "dim"
+    : c.contains("dark")
+      ? "dark"
+      : c.contains("light")
+        ? "light"
+        : "";
+};
 
 // The page: an editor, the engine in a worker (client.ts), and what it made. The code is in the URL hash, so a link is a share.
 export default function Playground() {
@@ -27,8 +43,12 @@ export default function Playground() {
   const [doc, setDoc] = createSignal("");
   const [problem, setProblem] = createSignal("");
   const [copied, setCopied] = createSignal(false);
-  const [files, setFiles] = createSignal<Files>({ [ENTRY]: example });
-  const [active, setActive] = createSignal(ENTRY);
+  const [files, setFiles] = createSignal<Files>({});
+  const [active, setActive] = createSignal("");
+  const [project, setProject] = createSignal("");
+  // the preview has no reset() in the project: it gets the reset of @cssints/reset in a layer below, unless this is off
+  const [bare, setBare] = createSignal(false);
+  const [base, setBase] = createSignal(true);
   const [naming, setNaming] = createSignal<{ from?: string; value: string }>();
   const [types, setTypes] = createSignal("");
   const engine = start();
@@ -37,11 +57,26 @@ export default function Playground() {
   let editor: Editor | undefined;
   let version = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let resetCss: Promise<string> | undefined;
+  let shown: { r: Extract<Compiled, { ok: true }>; runtime: string; reset: string } | undefined;
+
+  // a signal set here is read after the next flush: the switch passes its value
+  const show = (on = base()) => {
+    if (!shown) return;
+    const { r, runtime } = shown;
+    const bare = !/@layer reset\b/.test(r.css);
+    setBare(bare);
+    setDoc(
+      previewDocument(r.css, r.files, r.entry, runtime, bare && on ? shown.reset : "", modeClass()),
+    );
+  };
 
   const run = async (all: Files) => {
     const mine = ++version;
     setStatus("Compiling…");
     const t0 = performance.now();
+    resetCss ??= engine.compile(RESET).then((c) => (c.ok ? c.css : ""));
+    const reset = await resetCss;
     const r = await engine.compile(all);
     if (mine !== version) return;
     setResult(r);
@@ -52,7 +87,10 @@ export default function Playground() {
         ? `Compiled in ${Math.round(performance.now() - t0)} ms · ${r.classes.length} classes`
         : `${r.errors.length} error${r.errors.length === 1 ? "" : "s"}`,
     );
-    if (r.ok) setDoc(previewDocument(r.css, r.files, r.entry, await engine.runtime()));
+    if (r.ok) {
+      shown = { r, runtime: await engine.runtime(), reset };
+      show();
+    }
     history.replaceState(null, "", `${location.pathname}${location.search}#${await encode(all)}`);
   };
 
@@ -79,11 +117,17 @@ export default function Playground() {
         setProblem(e.data.playground.error);
     };
     window.addEventListener("message", message);
+    // the display settings are classes of <html>: a mode changed there is the preview's too
+    const modes = new MutationObserver(() => show());
+    modes.observe(document.documentElement, { attributeFilter: ["class"] });
     void (async () => {
-      const all = (await decode(location.hash)) ?? files();
+      const id = exampleOf(location.hash) ?? (location.hash ? "" : DEFAULT);
+      const all = (await decode(location.hash)) ?? (await load(id || DEFAULT)) ?? {};
+      const first = Object.keys(all)[0]!;
+      setProject(id);
       setFiles(all);
-      setActive(Object.keys(all)[0]!);
-      editor = mount(host!, all, active(), {
+      setActive(first);
+      editor = mount(host!, all, first, {
         change: (name, text) => changed({ ...files(), [name]: text }),
         checked: (errors, ms) =>
           setTypes(
@@ -93,6 +137,7 @@ export default function Playground() {
       await run(all);
     })();
     return () => {
+      modes.disconnect();
       window.removeEventListener("message", message);
       clearTimeout(timer);
       editor?.destroy();
@@ -105,7 +150,13 @@ export default function Playground() {
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
-  const reset = () => update({ [ENTRY]: example }, ENTRY);
+  // a project of apps/docs/examples replaces the files (what was edited is gone: Copy link first)
+  const open = async (id: string) => {
+    const all = await load(id || DEFAULT);
+    if (!all) return;
+    setProject(id || DEFAULT);
+    update(all, Object.keys(all)[0]);
+  };
   const commit = () => {
     const n = naming();
     setNaming(undefined);
@@ -141,7 +192,23 @@ export default function Playground() {
         <span class={s.status} role="status">
           {status()} · <span data-types>{types()}</span>
         </span>
-        <button type="button" class={s.button} onClick={reset}>
+        <select
+          class={s.button}
+          aria-label="Example"
+          onChange={(e) => void open(e.currentTarget.value)}
+        >
+          <option value="" selected={project() === ""} hidden>
+            Your files
+          </option>
+          <For each={ids}>
+            {(id) => (
+              <option value={id} selected={project() === id}>
+                {id}
+              </option>
+            )}
+          </For>
+        </select>
+        <button type="button" class={s.button} onClick={() => void open(project())}>
           Reset
         </button>
         <button type="button" class={s.button} onClick={() => void share()}>
@@ -243,6 +310,22 @@ export default function Playground() {
                 </button>
               )}
             </For>
+            <Show when={bare()}>
+              <label
+                class={s.base}
+                title="The project does not call reset(); the preview applies it"
+              >
+                <input
+                  type="checkbox"
+                  checked={base()}
+                  onChange={(e) => {
+                    setBase(e.currentTarget.checked);
+                    show(e.currentTarget.checked);
+                  }}
+                />{" "}
+                Apply @cssints/reset
+              </label>
+            </Show>
           </div>
           <div class={s.pane} role="tabpanel">
             <Show

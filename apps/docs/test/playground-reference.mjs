@@ -61,6 +61,9 @@ const write = (name, text) => {
 
 // An edit as a dev server sees it: the files are read again, what depends on them is forgotten, the warnings are said again.
 const edit = (files) => {
+  // a case is a project of its own: the tokens of the one before are gone, as in a fresh server
+  globalThis.__cssints?.properties.clear();
+  globalThis.__cssints?.defs.clear();
   for (const [name, text] of Object.entries(files)) write(name, text);
   for (const env of Object.values(server.environments)) env.moduleGraph.invalidateAll();
   for (const name of Object.keys(files))

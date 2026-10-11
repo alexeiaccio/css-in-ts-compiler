@@ -1,5 +1,6 @@
 // The files in the URL hash: `#files=<deflate-raw of the JSON of {name: text}, base64url>`, so a link holds the whole playground and
-// no server does. An older link, `#code=<the one file, deflated>`, still opens.
+// no server does. An older link, `#code=<the one file, deflated>`, still opens. `#example=<id>` names a project of
+// apps/docs/examples, which the page loads: the link of a docs page to its example (plugin/markdown.ts) is short.
 import type { Files } from "./compile.ts";
 
 const KEY = "files=";
@@ -52,3 +53,18 @@ export const decode = async (hash: string): Promise<Files | undefined> => {
     return undefined;
   }
 };
+
+/**
+ * The hash that opens an example project.
+ * @param {string} id the directory of apps/docs/examples
+ * @returns {string} `example=` and the id
+ */
+export const exampleHash = (id: string): string => `example=${id}`;
+
+/**
+ * The example a hash names.
+ * @param {string} hash `location.hash`
+ * @returns {string | undefined} the id, or undefined when the hash names none
+ */
+export const exampleOf = (hash: string): string | undefined =>
+  /^#example=([\w-]+)$/.exec(hash)?.[1];

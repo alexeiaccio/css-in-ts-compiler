@@ -255,10 +255,13 @@ const idOf = (name: string) => `/${name}`;
 const nameFrom = (id: string) => id.slice(1);
 let previous: string[] = [];
 
-// Each compile is an edit of the files: what they left in the registry is dropped, as the plugin's hotUpdate does.
+// Each compile is an edit of the files: what they left in the registry is dropped, as the plugin's hotUpdate does. The tokens of
+// the last compile go too: a file that is renamed or gone (another project) must not keep a name for the next one.
 const edit = (ids: string[]) => {
   registry.warned.clear();
   registry.warnings.length = 0;
+  registry.properties.clear();
+  registry.defs.clear();
   for (const id of new Set([...previous, ...ids])) forget(id);
   previous = ids;
 };

@@ -7,6 +7,8 @@ import { Marked, type Token, type Tokens } from "marked";
 import { createHighlighter } from "shiki";
 import ts from "typescript";
 
+import { exampleHash } from "../src/playground/share.ts";
+
 const root = join(import.meta.dirname, "../../..");
 
 export interface Entry {
@@ -79,6 +81,8 @@ const files = [
   ...packages.map((name) => ({ path: `packages/${name}/README.md`, split: 1 })),
   { path: "CHANGELOG.md", split: 1 },
 ];
+// the pages that have an example project (apps/docs/examples/<slug>/, test/playground.mjs lists the pages that have none)
+const examples = new Set(readdirSync(join(root, "apps/docs/examples")));
 const project = new Set(["Layout", "Development", "Credits", "License", "Changelog"]);
 
 // DOCS_HOVERS=0 skips the type-check of the ts blocks (the part of the build that takes ~15 s) while the styles are being worked on
@@ -249,6 +253,8 @@ declare namespace JSX {
       },
     });
     page.html = m.parser(tokens.slice(1));
+    if (examples.has(page.slug))
+      page.html = `<p><a href="${base}playground#${exampleHash(page.slug)}">Open in playground</a></p>\n${page.html}`;
   }
   // The API reference's own page is its introduction: an index of the reference pages follows it, each with its first lines
   // and the terms it covers, so the page says what is where.
