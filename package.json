@@ -18,7 +18,7 @@
 		"dev": "vp run -r --parallel dev",
 		"test": "vp run -r --cache test",
 		"bench": "vp run -r bench",
-		"typecheck": "vp run --filter \"./packages/*\" --filter \"./tools/*\" --filter ./apps/demo --filter ./apps/sky --filter ./apps/sky-tui --filter ./apps/docs typecheck",
+		"typecheck": "vp run --filter \"./packages/*\" --filter \"./tools/*\" --filter ./apps/demo --filter ./apps/csssky --filter ./apps/csssky-tui --filter ./apps/docs typecheck",
 		"diff:check": "node tools/ai-automation/scripts/diff-check/src/main.ts --config tools/ai-automation/scripts/diff-check/diff-check.config.json",
 		"check": "vp check && bun run typecheck",
 		"lint": "vp lint",

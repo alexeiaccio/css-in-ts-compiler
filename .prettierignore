@@ -8,8 +8,8 @@ packages/cssints/test/fixtures
 packages/icons/test/fixtures
 packages/mise-en-mode/test/fixtures
 
-# Recorded API responses (apps/sky/scripts/record-fixtures.mjs), kept compact.
-apps/sky/test/fixtures
+# Recorded API responses (apps/csssky/scripts/record-fixtures.mjs), kept compact.
+apps/csssky/test/fixtures
 
 # Written by docs/research/sublayers-proto (node run.mjs, node audit.mjs).
 docs/research/sublayers-proto/fixtures
@@ -31,7 +31,7 @@ packages/cssints/src/members.ts
 tools/ai-automation/vendor
 # Throwaway drafts of the plugin API designs (cssints-<map>); not formatted.
 docs/research/plugin-api-proto
-apps/sky/src/tokens.d.json.ts
+apps/csssky/src/tokens.d.json.ts
 apps/docs/src/tokens.d.json.ts
 # Scratch output of css-grammar scripts (git-ignored).
 packages/css-grammar/out

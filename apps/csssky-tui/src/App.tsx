@@ -8,8 +8,8 @@ import { useKeyboard, useRenderer } from "@opentui/solid";
 import { createEffect, createResource, createSignal, For, Match, Show, Switch } from "solid-js";
 import { createStore } from "solid-js/store";
 
-import { homeScreen, threadScreen } from "../../sky/src/api.ts";
-import { FEEDS } from "../../sky/src/home/feeds.ts";
+import { homeScreen, threadScreen } from "../../csssky/src/api.ts";
+import { FEEDS } from "../../csssky/src/home/feeds.ts";
 import { type Row, rowsOf } from "./model.ts";
 import { Note, Post } from "./Post.tsx";
 import * as s from "./styles.ts";

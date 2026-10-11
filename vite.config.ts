@@ -152,7 +152,7 @@ export default defineConfig({
       {
         files: [
           "apps/demo/**",
-          "apps/sky/**",
+          "apps/csssky/**",
           "packages/cssints/test/**",
           "packages/cssints/bench/**",
         ],

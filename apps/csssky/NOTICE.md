@@ -1,6 +1,6 @@
 # Notices
 
-apps/sky is a demo of cssints. It is not Bluesky and not Mu, and uses none of their names, logos or images.
+apps/csssky is a demo of cssints. It is not Bluesky and not Mu, and uses none of their names, logos or images.
 
 - **Mu** (the Eurosky fork of the Bluesky social app) and **@bsky.app/alf**, MIT, Copyright 2023-2026 Bluesky Social PBC:
   the layout, the spacing, type, radius and breakpoint values, and the neutral and accent ramps in `src/tokens.json`. The
@@ -9,7 +9,7 @@ apps/sky is a demo of cssints. It is not Bluesky and not Mu, and uses none of th
 - **Inter**, SIL Open Font License 1.1, Copyright 2016 The Inter Project Authors: `public/fonts/inter`, with `OFL.txt`.
   <https://github.com/rsms/inter>
 - **Phosphor Icons**, MIT, Copyright (c) 2023 Phosphor Icons, through `@iconify-json/ph`. <https://phosphoricons.com>
-- **atcute** (0BSD) for the AT Protocol client, **Solid** (MIT), **OpenTUI** (MIT, apps/sky-tui).
+- **atcute** (0BSD) for the AT Protocol client, **Solid** (MIT), **OpenTUI** (MIT, apps/csssky-tui).
 
 The MIT notice of Mu, @bsky.app/alf and Phosphor Icons:
 

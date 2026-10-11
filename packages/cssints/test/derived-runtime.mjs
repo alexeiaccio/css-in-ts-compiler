@@ -57,7 +57,7 @@ const colour = () =>
 
 // ---------- the templates of sky, at every hue
 const tokens = JSON.parse(
-  readFileSync(new URL("../../../apps/sky/src/tokens.json", import.meta.url), "utf8"),
+  readFileSync(new URL("../../../apps/csssky/src/tokens.json", import.meta.url), "utf8"),
 );
 const accent = tokens.color.accent.$value; // oklch(0.637 0.203 {hue.accent})
 const onAccent = tokens.color.onAccent.$value;

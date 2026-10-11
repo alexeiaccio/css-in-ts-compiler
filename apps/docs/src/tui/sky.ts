@@ -1,4 +1,4 @@
-// sky's home feed and thread on @bomb.sh/tty, styled by apps/sky-tui's styles.ts through @cssints/tui/bomb: the same styles
+// sky's home feed and thread on @bomb.sh/tty, styled by apps/csssky-tui's styles.ts through @cssints/tui/bomb: the same styles
 // and models as the OpenTUI app (sky's api.ts, post and thread models, sky-tui's rows), drawn as a frame of ops. It does no
 // I/O: bytes in (`input`), bytes out (`write`), as in a terminal; the page wires them to ghostty-web (host.ts).
 // Keys: j/k or the arrows move the selection, tab and shift-tab (or 1-3) switch the feed, enter opens a post, esc goes back.
@@ -26,8 +26,8 @@ import {
 } from "@cssints/tui/bomb";
 import type { TuiShape } from "@cssints/tui";
 
-import { homeScreen, postVerdict, threadScreen } from "../../../sky/src/api.ts";
-import { FEEDS } from "../../../sky/src/home/feeds.ts";
+import { homeScreen, postVerdict, threadScreen } from "../../../csssky/src/api.ts";
+import { FEEDS } from "../../../csssky/src/home/feeds.ts";
 import {
   ago,
   count,
@@ -36,10 +36,10 @@ import {
   quoteMedia,
   recordOf,
   stats,
-} from "../../../sky/src/post/model.ts";
-import { goneQuote, mediaText, type Row, rowsOf } from "../../../sky-tui/src/model.ts";
-import * as s from "../../../sky-tui/src/styles.ts";
-import { system } from "../../../sky-tui/src/system.ts";
+} from "../../../csssky/src/post/model.ts";
+import { goneQuote, mediaText, type Row, rowsOf } from "../../../csssky-tui/src/model.ts";
+import * as s from "../../../csssky-tui/src/styles.ts";
+import { system } from "../../../csssky-tui/src/system.ts";
 
 type PostView = AppBskyFeedDefs.PostView;
 type Layout = NonNullable<OpenProps["layout"]>;

@@ -2,7 +2,7 @@
 // `bun run test`: it needs the backend, and skips (exit 0) when it is not there.
 //   docker run -d --rm --name cssints-jaeger -p 16686:16686 -p 4318:4318 jaegertracing/all-in-one:latest
 //   node test/trace-live.mjs            JAEGER=http://localhost:16686 CSSINTS_OTLP=http://localhost:4318
-// Builds apps/sky and runs its HMR test (a style edit, a component edit), both traced, then reads the traces back
+// Builds apps/csssky and runs its HMR test (a style edit, a component edit), both traced, then reads the traces back
 // through Jaeger's HTTP API and prints the span counts and the slowest spans of each.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -10,7 +10,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 const jaeger = process.env.JAEGER ?? "http://localhost:16686";
 const otlp = process.env.CSSINTS_OTLP ?? "http://localhost:4318";
-const sky = `${import.meta.dirname}/../../../apps/sky`;
+const sky = `${import.meta.dirname}/../../../apps/csssky`;
 
 const reachable = await fetch(`${jaeger}/api/services`).then(
   (r) => r.ok,

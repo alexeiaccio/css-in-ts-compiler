@@ -3,7 +3,7 @@
 //   @bomb.sh/tty's esm/wasm.js   unpacks its WASM with node:zlib's brotliDecompressSync at load: unpacked here at build time
 //                                into a .wasm asset, which the browser fetches and compiles, with no brotli decoder
 //   @cssints/tui[/bomb|/system]  the sources (the package has no dist in the repository)
-//   @atcute/client               from apps/sky's api.ts: src/tui/fixtures.ts, the real client with a fetch handler that
+//   @atcute/client               from apps/csssky's api.ts: src/tui/fixtures.ts, the real client with a fetch handler that
 //                                answers from sky's recorded fixtures, so the page makes no request
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -11,7 +11,7 @@ import { join } from "node:path";
 import type { Plugin } from "vite";
 
 const tui = join(import.meta.dirname, "../../../packages/tui/src");
-const api = join(import.meta.dirname, "../../sky/src/api.ts");
+const api = join(import.meta.dirname, "../../csssky/src/api.ts");
 const fixtures = join(import.meta.dirname, "../src/tui/fixtures.ts");
 const TUI: Record<string, string> = {
   "@cssints/tui": "index.ts",

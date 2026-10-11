@@ -1,12 +1,12 @@
-// What the screens draw, as plain data over apps/sky's models: the rows of a thread and an embed as a line of text. No
+// What the screens draw, as plain data over apps/csssky's models: the rows of a thread and an embed as a line of text. No
 // renderer here: the docs' /tui page (apps/docs/src/tui/, @bomb.sh/tty in a browser) draws the same rows.
 import type { AppBskyFeedDefs } from "@atcute/bluesky";
 
-import type { threadScreen, ThreadNode } from "../../sky/src/api.ts";
-import { hostOf } from "../../sky/src/post/model.ts";
-import type { Media } from "../../sky/src/post/model.ts";
-import { branches, goneText, moreLabel } from "../../sky/src/thread/model.ts";
-import type { Branch } from "../../sky/src/thread/model.ts";
+import type { threadScreen, ThreadNode } from "../../csssky/src/api.ts";
+import { hostOf } from "../../csssky/src/post/model.ts";
+import type { Media } from "../../csssky/src/post/model.ts";
+import { branches, goneText, moreLabel } from "../../csssky/src/thread/model.ts";
+import type { Branch } from "../../csssky/src/thread/model.ts";
 
 type PostView = AppBskyFeedDefs.PostView;
 

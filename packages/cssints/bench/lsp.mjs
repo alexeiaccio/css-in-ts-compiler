@@ -1,12 +1,12 @@
 // Editor latency: time to diagnostics on a demo file after an edit, over tsgo's language server (stdio).
 // node bench/lsp.mjs [file relative to apps/demo] — not part of the budget (wall time varies by machine).
-// APP=sky node bench/lsp.mjs [file relative to apps/sky]: the same on sky (default file src/Shell.tsx).
+// APP=csssky node bench/lsp.mjs [file relative to apps/csssky]: the same on sky (default file src/Shell.tsx).
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const root = `${import.meta.dirname}/../../..`;
-const sky = process.env.APP === "sky";
+const sky = process.env.APP === "csssky";
 const demo = `${root}/apps/${sky ? "sky" : "demo"}`;
 const file = `${demo}/${process.argv[2] ?? (sky ? "src/Shell.tsx" : "src/components/Button.tsx")}`;
 const uri = pathToFileURL(file).href;

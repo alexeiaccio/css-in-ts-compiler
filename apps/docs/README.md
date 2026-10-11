@@ -8,7 +8,7 @@ The documentation site: pages from `README.md` and `docs/API.md`, built with Sol
 
 ## TUI
 
-`/tui` is a live terminal: ghostty-web (Ghostty's emulator compiled to WASM) runs sky's home feed and thread on `@bomb.sh/tty`, with the styles and the system theme of `apps/sky-tui` and the posts of sky's recorded fixtures (no request). Keys and the mouse work. The page plays the terminal's side (`src/tui/host.ts`): it answers the app's colour queries from the display settings and reports their changes, so the terminal theme follows the palette and the mode. A lazy chunk and two `.wasm` files (`src/tui/`, `plugin/tui.ts`). `node test/tui.mjs` drives it in Chrome. OpenTUI is not shown: it is native Zig loaded over `bun:ffi`.
+`/tui` is a live terminal: ghostty-web (Ghostty's emulator compiled to WASM) runs csssky's home feed and thread on `@bomb.sh/tty`, with the styles and the system theme of `apps/csssky-tui` and the posts of csssky's recorded fixtures (no request). Keys and the mouse work. The page plays the terminal's side (`src/tui/host.ts`): it answers the app's colour queries from the display settings and reports their changes, so the terminal theme follows the palette and the mode. A lazy chunk and two `.wasm` files (`src/tui/`, `plugin/tui.ts`). `node test/tui.mjs` drives it in Chrome. OpenTUI is not shown: it is native Zig loaded over `bun:ffi`.
 
 ## Deploy
 

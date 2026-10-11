@@ -18,6 +18,45 @@
         "vite-plus": "catalog:",
       },
     },
+    "apps/csssky": {
+      "name": "csssky",
+      "dependencies": {
+        "@atcute/bluesky": "^4.0.22",
+        "@atcute/bluesky-richtext-segmenter": "3.0.2",
+        "@atcute/client": "^5.1.2",
+        "@atcute/lexicons": "^2.1.1",
+        "@cssints/icons": "workspace:*",
+        "@solidjs/router": "2.0.0-next.35",
+        "@solidjs/web": "2.0.0-rc.13",
+        "cssints": "workspace:*",
+        "solid-js": "2.0.0-rc.13",
+      },
+      "devDependencies": {
+        "@cssints/devtools": "workspace:*",
+        "@iconify-json/ph": "^1.2.2",
+        "@solidjs/vite-plugin": "3.0.0-next.47",
+        "lightningcss": "^1.32.0",
+        "vite": "catalog:",
+      },
+    },
+    "apps/csssky-tui": {
+      "name": "csssky-tui",
+      "dependencies": {
+        "@atcute/bluesky": "^4.0.22",
+        "@atcute/bluesky-richtext-segmenter": "3.0.2",
+        "@atcute/client": "^5.1.2",
+        "@atcute/lexicons": "^2.1.1",
+        "@cssints/tui": "workspace:*",
+        "@opentui/core": "0.5.17",
+        "@opentui/solid": "0.5.17",
+        "solid-js": "1.9.12",
+      },
+      "devDependencies": {
+        "cssints": "workspace:*",
+        "vite": "catalog:",
+        "vite-plugin-solid": "^2.11.10",
+      },
+    },
     "apps/demo": {
       "name": "cssints-demo",
       "dependencies": {
@@ -69,45 +108,6 @@
         "shiki": "^3.0.0",
         "typescript": "^5.9.3",
         "vite": "catalog:",
-      },
-    },
-    "apps/sky": {
-      "name": "cssints-sky",
-      "dependencies": {
-        "@atcute/bluesky": "^4.0.22",
-        "@atcute/bluesky-richtext-segmenter": "3.0.2",
-        "@atcute/client": "^5.1.2",
-        "@atcute/lexicons": "^2.1.1",
-        "@cssints/icons": "workspace:*",
-        "@solidjs/router": "2.0.0-next.35",
-        "@solidjs/web": "2.0.0-rc.13",
-        "cssints": "workspace:*",
-        "solid-js": "2.0.0-rc.13",
-      },
-      "devDependencies": {
-        "@cssints/devtools": "workspace:*",
-        "@iconify-json/ph": "^1.2.2",
-        "@solidjs/vite-plugin": "3.0.0-next.47",
-        "lightningcss": "^1.32.0",
-        "vite": "catalog:",
-      },
-    },
-    "apps/sky-tui": {
-      "name": "cssints-sky-tui",
-      "dependencies": {
-        "@atcute/bluesky": "^4.0.22",
-        "@atcute/bluesky-richtext-segmenter": "3.0.2",
-        "@atcute/client": "^5.1.2",
-        "@atcute/lexicons": "^2.1.1",
-        "@cssints/tui": "workspace:*",
-        "@opentui/core": "0.5.17",
-        "@opentui/solid": "0.5.17",
-        "solid-js": "1.9.12",
-      },
-      "devDependencies": {
-        "cssints": "workspace:*",
-        "vite": "catalog:",
-        "vite-plugin-solid": "^2.11.10",
       },
     },
     "packages/balance": {
@@ -1493,9 +1493,9 @@
 
     "cssints-docs": ["cssints-docs@workspace:apps/docs"],
 
-    "cssints-sky": ["cssints-sky@workspace:apps/sky"],
+    "csssky": ["csssky@workspace:apps/csssky"],
 
-    "cssints-sky-tui": ["cssints-sky-tui@workspace:apps/sky-tui"],
+    "csssky-tui": ["csssky-tui@workspace:apps/csssky-tui"],
 
     "csstype": ["csstype@3.2.3", "", {}, "sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ=="],
 
@@ -2221,7 +2221,7 @@
 
     "css-tree/mdn-data": ["mdn-data@2.0.30", "", {}, "sha512-GaqWWShW4kv/G9IEucWScBx9G1/vsFZZJUO+tD26M8J8z3Kw5RDQjaoZe03YAClgeS/SWPOcb4nkFBTEi5DUEA=="],
 
-    "cssints-sky-tui/solid-js": ["solid-js@1.9.12", "", { "dependencies": { "csstype": "^3.1.0", "seroval": "~1.5.0", "seroval-plugins": "~1.5.0" } }, "sha512-QzKaSJq2/iDrWR1As6MHZQ8fQkdOBf8GReYb7L5iKwMGceg7HxDcaOHk0at66tNgn9U2U7dXo8ZZpLIAmGMzgw=="],
+    "csssky-tui/solid-js": ["solid-js@1.9.12", "", { "dependencies": { "csstype": "^3.1.0", "seroval": "~1.5.0", "seroval-plugins": "~1.5.0" } }, "sha512-QzKaSJq2/iDrWR1As6MHZQ8fQkdOBf8GReYb7L5iKwMGceg7HxDcaOHk0at66tNgn9U2U7dXo8ZZpLIAmGMzgw=="],
 
     "eslint/ajv": ["ajv@6.15.0", "", { "dependencies": { "fast-deep-equal": "^3.1.1", "fast-json-stable-stringify": "^2.0.0", "json-schema-traverse": "^0.4.1", "uri-js": "^4.2.2" } }, "sha512-fgFx7Hfoq60ytK2c7DhnF8jIvzYgOMxfugjLOSMHjLIPgenqa7S7oaagATUq99mV6IYvN2tRmC0wnTYX6iPbMw=="],
 
@@ -2285,9 +2285,9 @@
 
     "@solidjs/compiler-wasm32-wasi/@emnapi/core/@emnapi/wasi-threads": ["@emnapi/wasi-threads@1.2.3", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-ELEBe8PsLvvJ6QMr0zLt8ffvOHW/dc1m3CEzNMg7aJUv3bMaoDtw2TXyDAwkYBuroxxuHEwhRTLJSe5sya547g=="],
 
-    "cssints-sky-tui/solid-js/seroval": ["seroval@1.5.6", "", {}, "sha512-rVQVWjjSvlINzaQPZH5JFqsqEsIWdTxY3iJZCnTL/5gQbXIRooVZKI60tVCkOVfzcRPejboxO2t0P89dg5mQaA=="],
+    "csssky-tui/solid-js/seroval": ["seroval@1.5.6", "", {}, "sha512-rVQVWjjSvlINzaQPZH5JFqsqEsIWdTxY3iJZCnTL/5gQbXIRooVZKI60tVCkOVfzcRPejboxO2t0P89dg5mQaA=="],
 
-    "cssints-sky-tui/solid-js/seroval-plugins": ["seroval-plugins@1.5.6", "", { "peerDependencies": { "seroval": "^1.0" } }, "sha512-HXuLAX2pu/UByPpaeo/TaMfvMIi+1QqIoPJYCcAtU8QkVNwgR6MPlGuCQTErV1JwraaMbYaWVIBX7mppzGLATQ=="],
+    "csssky-tui/solid-js/seroval-plugins": ["seroval-plugins@1.5.6", "", { "peerDependencies": { "seroval": "^1.0" } }, "sha512-HXuLAX2pu/UByPpaeo/TaMfvMIi+1QqIoPJYCcAtU8QkVNwgR6MPlGuCQTErV1JwraaMbYaWVIBX7mppzGLATQ=="],
 
     "eslint/ajv/json-schema-traverse": ["json-schema-traverse@0.4.1", "", {}, "sha512-xbbCH5dCYU5T8LcEhhuh7HJ88HXuW3qsI3Y0zOZFKfZEHcpWiHU/Jxzk629Brsab/mMiHQti9wMP+845RPe3Vg=="],
 

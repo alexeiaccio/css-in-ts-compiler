@@ -1,4 +1,4 @@
-// The built app (dist/main.js) on OpenTUI's test renderer, against apps/sky's recorded fixtures: the feed, j/k, enter into a
+// The built app (dist/main.js) on OpenTUI's test renderer, against apps/csssky's recorded fixtures: the feed, j/k, enter into a
 // thread and esc back, tab to the next feed, a mouse over a row and a click. fetch is replaced before the bundle loads (atcute
 // takes it then), so nothing reaches the network; then the system theme from a fake terminal's palette. Runs under Bun (OpenTUI's core needs it): `bun test/screens.mjs`.
 import assert from "node:assert/strict";
@@ -8,7 +8,7 @@ import { Readable } from "node:stream";
 import { setTimeout as sleep } from "node:timers/promises";
 
 const fixture = (name) =>
-  JSON.parse(readFileSync(`${import.meta.dirname}/../../sky/test/fixtures/${name}.json`, "utf8"));
+  JSON.parse(readFileSync(`${import.meta.dirname}/../../csssky/test/fixtures/${name}.json`, "utf8"));
 const discover = fixture("home-discover-1");
 const science = fixture("home-science-1");
 const thread = fixture("thread");
@@ -35,7 +35,7 @@ globalThis.fetch = (url) => {
 };
 
 const { App, followSystemTheme, system, testRender, options } = await import("../dist/main.js");
-const api = await import("../../sky/src/api.ts");
+const api = await import("../../csssky/src/api.ts");
 
 // A fake terminal: stdin is a TTY, and each OSC 4, 10 and 11 query the renderer writes is answered from `colours`.
 const stdin = Object.assign(new Readable({ read() {} }), { isTTY: true, setRawMode: () => {} });

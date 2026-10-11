@@ -46,7 +46,7 @@ import "virtual:cssints.css";
 
 ### Frameworks
 
-Any framework that builds JSX through a Vite plugin works; the engine evaluates your modules itself, so it does not care what the plugin makes of JSX, nor in which order the plugins are listed. `apps/sky` is the Solid 2 app (`solid-js` and `@solidjs/web` 2.0.0-rc.13, `@solidjs/vite-plugin` 3.0.0-next.47):
+Any framework that builds JSX through a Vite plugin works; the engine evaluates your modules itself, so it does not care what the plugin makes of JSX, nor in which order the plugins are listed. `apps/csssky` is the Solid 2 app (`solid-js` and `@solidjs/web` 2.0.0-rc.13, `@solidjs/vite-plugin` 3.0.0-next.47):
 
 ```ts skip
 // vite.config.ts
@@ -169,7 +169,7 @@ cssints is MIT. It stands on other people's work; this is what we took, from who
 | [@cssints/fonts](packages/fonts/README.md) | the latin character weights and the metrics of Arial, Times New Roman and Courier New | [Capsize](https://github.com/seek-oss/capsize) (SEEK) | MIT, notice in its README |
 | [@cssints/icons](packages/icons/README.md) | nothing: the collections are your dependency | [Iconify](https://iconify.design) `@iconify-json/*` | each collection's own |
 | `tools/ai-automation/vendor` | lint rules, not published | [dmmulroy/anti-slop](https://github.com/dmmulroy/anti-slop) (Dillon Mulroy) | MIT, `LICENSE` and `UPSTREAM.md` |
-| [apps/sky](apps/sky/NOTICE.md) | layout and token values; Inter; Phosphor icons | Mu and `@bsky.app/alf` (Bluesky Social PBC), [Inter](https://github.com/rsms/inter), [Phosphor](https://phosphoricons.com) | MIT; OFL-1.1; MIT |
+| [apps/csssky](apps/csssky/NOTICE.md) | layout and token values; Inter; Phosphor icons | Mu and `@bsky.app/alf` (Bluesky Social PBC), [Inter](https://github.com/rsms/inter), [Phosphor](https://phosphoricons.com) | MIT; OFL-1.1; MIT |
 | apps/demo | Material Design Icons (`@iconify-json/mdi`) | Pictogrammers | Apache-2.0 |
 
 ### Ideas and designs
@@ -178,7 +178,7 @@ No code is copied from these; each package README says which part follows which.
 
 - **Plugin packages.** [Every Layout](https://every-layout.dev) and [smolcss](https://smolcss.dev) (layout), [nytimes/text-balancer](https://github.com/nytimes/text-balancer) and [react-wrap-balancer](https://github.com/shuding/react-wrap-balancer) (balance), [fluid-tailwind](https://github.com/barvian/fluid-tailwind) (fluid), [postcss-easing-gradients](https://github.com/larsenwork/postcss-easing-gradients) (gradient), [tailwindcss-motion](https://github.com/romboHQ/tailwindcss-motion) and [tailwindcss-animate](https://github.com/jamiebuilds/tailwindcss-animate) (motion), [the supersonic plugin](https://github.com/the-illarionov/the-supersonic-plugin-for-scroll-based-animation) and [lax.js](https://github.com/alexfoxy/lax.js) (reveal), [sync-skeleton](https://github.com/crutchcorn/sync-skeleton) (skeleton), [bramus/sticky-observer](https://github.com/bramus/sticky-observer) (stuck), [unpic-placeholder](https://github.com/ascorbic/unpic-placeholder) and [ThumbHash](https://github.com/evanw/thumbhash) (placeholder), [nutelch](https://github.com/meodai/nutelch) and [Leonardo](https://github.com/adobe/leonardo) (ramp), the resets of Josh Comeau, Jake Lazaroff, Vale and Andy Bell (reset), [Mise en Mode](https://standard.mode.place) and its Mode Contract (mise-en-mode), [brendonovich/vite-plugin-opencode](https://github.com/Brendonovich/vite-plugin-opencode) (the prompt box of devtools).
 - **The engine.** The comparisons in [docs/research](docs/research) record what we took from [StyleX](https://stylexjs.com), [vanilla-extract](https://vanilla-extract.style), [Tailwind CSS](https://tailwindcss.com), [Tokenami](https://tokenami.com), [SugarCube](https://sugarcube.sh) and the [React Spectrum](https://react-spectrum.adobe.com) style macros; the first spark was [Haz's post](https://bsky.app/profile/haz.dev/post/3mebm2mx6jk27) on a CSS framework in TypeScript. Tokens follow the [Design Tokens Community Group](https://www.designtokens.org) format.
-- **apps/sky** follows the look of Mu and the hue slider of Witchsky.
+- **apps/csssky** follows the look of Mu and the hue slider of Witchsky.
 
 ### Built on
 

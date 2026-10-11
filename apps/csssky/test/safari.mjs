@@ -1,4 +1,4 @@
-// apps/sky built with its default targets, read in Chrome (the reference), in the WebKit builds of Safari 17 and 18 and in the
+// apps/csssky built with its default targets, read in Chrome (the reference), in the WebKit builds of Safari 17 and 18 and in the
 // real Safari on this Mac (cssints-7gq2; not in `test`: needs the builds below, and Safari's remote automation). Per engine:
 //   - the decisions: does the browser have style queries (then `data-cssints-poly` stays off, else the frame/surface runtime
 //     must be on) and does it parse every probe literal of the derived tokens (then nothing is written on <html>, else the

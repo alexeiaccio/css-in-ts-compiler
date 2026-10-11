@@ -80,7 +80,7 @@ try {
 
   // the feed: the tabs and a post of the recorded Discover page
   const discover = JSON.parse(
-    readFileSync(join(root, "../sky/test/fixtures/home-discover-1.json"), "utf8"),
+    readFileSync(join(root, "../csssky/test/fixtures/home-discover-1.json"), "utf8"),
   );
   const first = discover.feed[0].post.author;
   const name = (first.displayName || first.handle).slice(0, 12);
@@ -109,7 +109,7 @@ try {
 
   // tab: the Science feed
   const science = JSON.parse(
-    readFileSync(join(root, "../sky/test/fixtures/home-science-1.json"), "utf8"),
+    readFileSync(join(root, "../csssky/test/fixtures/home-science-1.json"), "utf8"),
   ).feed[0].post.author;
   await page.keyboard.press("Tab");
   const sname = (science.displayName || science.handle).slice(0, 12);

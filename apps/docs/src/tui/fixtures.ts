@@ -1,9 +1,9 @@
-// @atcute/client as apps/sky's api.ts sees it on the /tui page (plugin/tui.ts): the real client, with a fetch handler that
-// answers from sky's recorded fixtures (apps/sky/test/fixtures), so the screen loads its feeds and threads with no request.
+// @atcute/client as apps/csssky's api.ts sees it on the /tui page (plugin/tui.ts): the real client, with a fetch handler that
+// answers from sky's recorded fixtures (apps/csssky/test/fixtures), so the screen loads its feeds and threads with no request.
 // A feed has one recorded page; a thread is the recorded one, or the post alone (its replies were not recorded).
-import discover from "../../../sky/test/fixtures/home-discover-1.json";
-import science from "../../../sky/test/fixtures/home-science-1.json";
-import thread from "../../../sky/test/fixtures/thread.json";
+import discover from "../../../csssky/test/fixtures/home-discover-1.json";
+import science from "../../../csssky/test/fixtures/home-science-1.json";
+import thread from "../../../csssky/test/fixtures/thread.json";
 
 export * from "@atcute/client";
 

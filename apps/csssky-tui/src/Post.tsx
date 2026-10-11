@@ -1,13 +1,13 @@
 // The post card in cells: author, text with its facets, the embed as text (media placeholders, the quote in a box of its
-// own), the counts. The model is apps/sky's: the same choices as the web card, drawn here.
+// own), the counts. The model is apps/csssky's: the same choices as the web card, drawn here.
 import type { AppBskyFeedDefs } from "@atcute/bluesky";
 import type { Facet } from "@atcute/bluesky-richtext-segmenter";
 import { attach, use } from "@cssints/tui/opentui";
 import type { BoxRenderable, MouseEvent } from "@opentui/core";
 import { createEffect, For, type JSX, Match, Show, Switch } from "solid-js";
 
-import type { Quote } from "../../sky/src/api.ts";
-import { postVerdict } from "../../sky/src/api.ts";
+import type { Quote } from "../../csssky/src/api.ts";
+import { postVerdict } from "../../csssky/src/api.ts";
 import {
   ago,
   count,
@@ -17,8 +17,8 @@ import {
   quoteMedia,
   recordOf,
   stats,
-} from "../../sky/src/post/model.ts";
-import type { Feature } from "../../sky/src/post/model.ts";
+} from "../../csssky/src/post/model.ts";
+import type { Feature } from "../../csssky/src/post/model.ts";
 import { goneQuote, mediaText } from "./model.ts";
 import * as s from "./styles.ts";
 

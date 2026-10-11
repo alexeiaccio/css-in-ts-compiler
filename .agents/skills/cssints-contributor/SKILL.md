@@ -2,7 +2,7 @@
 name: cssints-contributor
 description: >-
   Work on the cssints monorepo itself (the engine in packages/cssints, the type-level grammar in
-  packages/css-grammar, the @cssints/* plugin packages, apps/demo, apps/sky, apps/docs): its commands, the Effect
+  packages/css-grammar, the @cssints/* plugin packages, apps/demo, apps/csssky, apps/docs): its commands, the Effect
   rules and their plainCode exceptions, hot paths and perf.mjs, type budgets (bench/budget.mjs), the Quint model of
   HMR, the tracked dist/ folders, the docs house style (docs/API.md, docs/wayfinder.md), beans, and parallel agents in
   git worktrees. Load it before you change code, tests, benches or docs in this repository, or when you work in a

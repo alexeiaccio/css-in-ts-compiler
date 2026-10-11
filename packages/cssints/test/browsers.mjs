@@ -25,7 +25,7 @@ const here = import.meta.dirname;
 const modules = join(here, "../../../node_modules/.bun");
 const pw = readdirSync(modules).find((d) => d.startsWith("playwright-core@"));
 // PW=<an older playwright-core's index.mjs> with PLAYWRIGHT_BROWSERS_PATH drives an older browser (plugins-proto/README.md,
-// "Old browsers"; apps/sky/test/safari.mjs for the WebKit builds of Safari 17 and 18). A browser without style queries (found
+// "Old browsers"; apps/csssky/test/safari.mjs for the WebKit builds of Safari 17 and 18). A browser without style queries (found
 // by the probe's own test, below) runs only the builds that ship the runtime, and the probe must switch it on by itself.
 const { chromium, firefox, webkit } = await import(
   process.env.PW ?? pathToFileURL(join(modules, pw, "node_modules/playwright-core/index.mjs")).href

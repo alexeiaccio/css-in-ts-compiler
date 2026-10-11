@@ -36,8 +36,8 @@
   "ignore": [
     "cssints-demo",
     "cssints-docs",
-    "cssints-sky",
-    "cssints-sky-tui",
+    "csssky",
+    "csssky-tui",
     "@cssints/ai-automation"
   ],
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {

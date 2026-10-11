@@ -1,6 +1,6 @@
-# sky-tui
+# csssky-tui
 
-apps/sky in a terminal: the home feed with its tabs, the post card and the thread, on
+apps/csssky in a terminal: the home feed with its tabs, the post card and the thread, on
 [OpenTUI](https://opentui.com) and Solid. It reads the public Bluesky AppView, with no login.
 
 ```bash
@@ -15,13 +15,13 @@ the terminal supports OSC 22).
 
 ## How it is built
 
-- `@opentui/solid` needs solid-js 1.9.12, so this app has its own solid-js, not sky's 2.0 rc.
+- `@opentui/solid` needs solid-js 1.9.12, so this app has its own solid-js, not csssky's 2.0 rc.
 - `vite.config.ts`: a plain SSR build (`build.ssr: "src/main.tsx"`), vite-plugin-solid with
   `generate: "universal"` and `moduleName: "@opentui/solid"`, and `solid-js` aliased to its client
   build (the copy that `@opentui/solid` imports). Everything is bundled except `@opentui/core`,
   which loads a native library. `@cssints/tui` is aliased to its source: it has no `dist/` in the
   repository.
-- Shared with apps/sky by relative import, with no Solid in them: `src/api.ts`,
+- Shared with apps/csssky by relative import, with no Solid in them: `src/api.ts`,
   `src/post/model.ts`, `src/thread/model.ts`, `src/home/feeds.ts`.
 - `src/styles.ts` holds every style, written with `cssints/tui`: the colour tokens
   (`createTokens`, dark by default) and the `light` theme (`createGlobalTheme`), `css.hover()`,
@@ -52,7 +52,7 @@ bun run typecheck
 ```
 
 `test/screens.mjs` imports the built `dist/main.js` under Bun and renders it on OpenTUI's test
-renderer (100x40), with apps/sky's recorded fixtures in place of the network. It checks the feed,
+renderer (100x40), with apps/csssky's recorded fixtures in place of the network. It checks the feed,
 `j`/`k` (the focus and the border as drawn), `enter` and `esc`, `tab` (the active tab restyled, the same renderable), a mouse over a row (the
 highlight and the pointer) and a click, the wheel, and the theme both ways; then the system
 theme on a fake terminal (a TTY stdin, and each OSC 4/10/11 query answered with Gruvbox dark):
