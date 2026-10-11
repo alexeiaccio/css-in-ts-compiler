@@ -11,7 +11,7 @@
 //   virtual:playground/types     the types the editor knows: the built .d.mts of cssints and css-grammar, the sources of those packages
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
+import { dirname, join, posix } from "node:path";
 import type { Plugin } from "vite";
 
 const here = createRequire(import.meta.url);
@@ -111,10 +111,12 @@ const ENTRIES = {
   "cssints/frame": "frame",
   "cssints/surface": "surface",
   ...Object.fromEntries(
-    readdirSync(join(cssints, "dist/groups")).map((f) => [
-      `cssints/${f.replace(/\.d\.mts$/, "")}`,
-      `groups/${f.replace(/\.d\.mts$/, "")}`,
-    ]),
+    readdirSync(join(cssints, "dist/groups"), { recursive: true, encoding: "utf8" })
+      .filter((f) => f.endsWith(".d.mts"))
+      .map((f) => [
+        `cssints/${f.replace(/\.d\.mts$/, "")}`,
+        `groups/${f.replace(/\.d\.mts$/, "")}`,
+      ]),
   ),
 };
 const types = () => {
@@ -125,9 +127,9 @@ const types = () => {
     const text = readFileSync(join(dir, "dist", `${name}.d.mts`), "utf8");
     files[file] = text;
     for (const [, local, other] of text.matchAll(
-      /(?:from|import) "\.\.?\/([\w.-]+)\.mjs"|from "@cssints\/css-grammar\/([\w-]+)"/g,
+      /(?:from|import) "(\.\.?\/[\w./-]+)\.mjs"|from "@cssints\/css-grammar\/([\w-]+)"/g,
     ))
-      if (local) declarations(pkg, dir, local);
+      if (local) declarations(pkg, dir, posix.join(posix.dirname(name), local));
       else declarations("@cssints/css-grammar", grammar, other!);
   };
   Object.values(ENTRIES).forEach((name) => declarations("cssints", cssints, name));

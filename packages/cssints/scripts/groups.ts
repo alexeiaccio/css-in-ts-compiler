@@ -6,8 +6,9 @@ import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "nod
 
 import { functions } from "@cssints/css-grammar/functions";
 import { properties, syntaxes } from "@cssints/css-grammar/mdn";
-import { get as bcd, tokenKey } from "@cssints/css-grammar/support";
+import { get as bcd, lackingOf, tokenKey, type Target } from "@cssints/css-grammar/support";
 import { parseGrammar, type Node } from "@cssints/css-grammar/twin-core";
+import { getAllVersions, getCompatibleVersions } from "baseline-browser-mapping";
 import { features } from "web-features";
 
 import { BUILDERS, chainNames, CONTEXTS, FUNCTIONS, PROPS, PSEUDOS } from "../src/lib.ts";
@@ -109,19 +110,21 @@ const SUPPORTS = {
 // nearest listed ancestor's (a value of a property is part of the property's feature), no ancestor: limited availability
 interface Info {
   level: 0 | 1 | 2; // 0 widely available (Baseline high), 1 newly available (low), 2 limited availability
+  year: number; // the year of baseline_low_date, Infinity when the key is not Baseline
   dis: boolean; // discouraged
 }
-const LIMITED: Info = { level: 2, dis: false };
+const LIMITED: Info = { level: 2, year: Infinity, dis: false };
 const listed = new Map<string, Info>();
 for (const f of Object.values(features)) {
   if (f.kind !== "feature") continue;
   for (const k of f.compat_features ?? []) {
     if (!k.startsWith("css.")) continue;
-    const b = (f.status.by_compat_key?.[k] ?? f.status).baseline;
+    const { baseline: b, baseline_low_date: low } = f.status.by_compat_key?.[k] ?? f.status;
     const level = b === "high" ? 0 : b === "low" ? 1 : 2;
     const old = listed.get(k);
     listed.set(k, {
       level: Math.max(old?.level ?? 0, level) as 0 | 1 | 2,
+      year: Math.max(old?.year ?? 0, low ? Number(low.replace("≤", "").slice(0, 4)) : Infinity),
       dis: (old?.dis ?? false) || !!f.discouraged,
     });
   }
@@ -208,9 +211,38 @@ const mediaKeys = Object.keys(bcd("css.at-rules.media") ?? {}).filter((k) =>
   /^[a-z][a-z0-9-]*$/.test(k),
 );
 
-const baseline = (out: (i: Info) => boolean) => {
+// A downstream group also needs every key supported, by BCD, in each downstream browser at the minimum version that
+// baseline-browser-mapping gives for the group's target (docs/research/groups.md). The same rule as the support warnings
+// (lackingOf: no prefix, no flag; a key BCD does not know, or a browser it lacks, lacks nothing). UC and QQ are not in BCD:
+// they are Blink, and the mapping names the Chromium version of each build, so they are checked as Chrome at that version.
+const AGENT = new Map([
+  ["opera", "opera"],
+  ["opera_android", "op_mob"],
+  ["samsunginternet_android", "samsung"],
+  ["webview_android", "android"],
+]);
+const ENGINE = new Map(
+  (
+    getAllVersions({ includeDownstreamBrowsers: true, suppressWarnings: true }) as {
+      browser: string;
+      version: string;
+      engine_version?: string;
+    }[]
+  ).map((v) => [`${v.browser} ${v.version}`, v.engine_version ?? ""]),
+);
+const downstream = (target: Parameters<typeof getCompatibleVersions>[0]) =>
+  getCompatibleVersions({ ...target, includeDownstreamBrowsers: true, suppressWarnings: true })
+    .filter((v) => AGENT.has(v.browser) || v.browser === "uc_android" || v.browser === "qq_android")
+    .map(
+      (v) =>
+        (AGENT.has(v.browser)
+          ? [AGENT.get(v.browser)!, v.version]
+          : ["chrome", ENGINE.get(`${v.browser} ${v.version}`)!]) satisfies Target,
+    );
+
+const baseline = (out: (i: Info) => boolean, down?: Target[]) => {
   const g = empty();
-  const ok = (key: string) => !out(info(key));
+  const ok = (key: string) => !out(info(key)) && (!down || !lackingOf(key, down).length);
   for (const p of propNames) if (ok(`css.properties.${p}`)) g.props.add(p);
   for (const f of fnNames) {
     const keys = fnKeys(f);
@@ -353,13 +385,49 @@ const fromSpec = (id: string) => {
 // ---- the output
 const lengthOf = (g: Group) => g.props.size + g.fns.size + g.sels.size + g.at.size;
 const groups = new Map<string, { kind: "baseline" | "spec"; title: string; g: Group }>();
-const BASELINE: [string, string, (i: Info) => boolean][] = [
-  ["widely-available", "Baseline widely available (high)", (i) => i.level > 0],
-  ["newly-available", "Baseline newly available (low) and widely available", (i) => i.level > 1],
-  ["not-discouraged", "everything web-features does not discourage", (i) => i.dis],
+// "widely available" is a date in baseline-browser-mapping: web-features 3.42.0 was published on 2026-10-09
+const AS_OF = "2026-10-09";
+const YEARS = [...listed.values()].flatMap((i) => (Number.isFinite(i.year) ? [i.year] : []));
+const [FIRST, LAST] = [Math.min(...YEARS), Math.max(...YEARS)];
+type Def = [
+  id: string,
+  title: string,
+  out: (i: Info) => boolean,
+  target?: Parameters<typeof downstream>[0],
 ];
-for (const [id, title, out] of BASELINE)
+const BASELINE: Def[] = [
+  [
+    "widely-available",
+    "Baseline widely available (high)",
+    (i) => i.level > 0,
+    { widelyAvailableOnDate: AS_OF },
+  ],
+  [
+    "newly-available",
+    "Baseline newly available (low) and widely available",
+    (i) => i.level > 1,
+    { targetYear: LAST },
+  ],
+  ["not-discouraged", "everything web-features does not discourage", (i) => i.dis],
+  ...Array.from({ length: LAST - FIRST + 1 }, (_, n) => {
+    const y = FIRST + n;
+    return [
+      `baseline-${y}`,
+      `Baseline ${y}: what was newly available by the end of ${y}`,
+      (i: Info) => i.year > y,
+      { targetYear: y },
+    ] satisfies Def;
+  }),
+];
+for (const [id, title, out, target] of BASELINE) {
   groups.set(id, { kind: "baseline", title, g: baseline(out) });
+  if (target)
+    groups.set(`${id}/with-downstream`, {
+      kind: "baseline",
+      title: `${title}, and in the downstream browsers`,
+      g: baseline(out, downstream(target)),
+    });
+}
 for (const s of specs) {
   const g = fromSpec(s.id);
   if (lengthOf(g)) groups.set(s.id, { kind: "spec", title: s.title, g });
@@ -435,18 +503,35 @@ ${data.join("\n")}
 
 // ---- the declarations of each subpath
 const lit = (s: string[]) => (s.length ? s.map((x) => JSON.stringify(x)).join(" | ") : "never");
-const decl = (id: string, g: Group, title: string) => {
+// A with-downstream group has the members of its Baseline group but a few, and a few more banned words. Where a member is
+// typed by the same bans in both (the same functions and units, and for its own part the same keywords or query words),
+// the group re-exports the member of the Baseline group instead of declaring it again: names, not declarations. Such a
+// member says "is not in cssints/<the Baseline group>" for a token that both ban, which is true of both.
+const dep = (g: Group, m: string, p?: string) =>
+  p
+    ? list(g.kw.get(p) ?? [])
+    : m === "media" || m === "container" || m === "supports"
+      ? list(g[m])
+      : "";
+const decl = (id: string, g: Group, title: string, base?: { id: string; g: Group }) => {
+  const up = "../".repeat(id.split("/").length);
   const names = new Set(membersOf(g));
   const kw = sorted(g.kw)
     .map(([p, ws]) => `${JSON.stringify(p)}: ${lit([...ws].sort())}`)
     .join("; ");
+  const same = base && list(g.fn) === list(base.g.fn) && list(g.unit) === list(base.g.unit);
   const lines: string[] = [];
+  const reused: string[] = [];
+  const add = (m: string, text: string, p?: string) =>
+    same && membersOf(base.g).includes(m) && dep(g, m, p) === dep(base.g, m, p)
+      ? reused.push(m)
+      : lines.push(text);
   for (const [m, p] of Object.entries(PROPS).sort(([a], [b]) => (a < b ? -1 : 1))) {
     if (!names.has(m) || BUILDERS.has(m) || m === "positionTry") continue;
-    lines.push(`export declare const ${m}: P<${JSON.stringify(p)}>;`);
+    add(m, `export declare const ${m}: P<${JSON.stringify(p)}>;`, p);
   }
   for (const m of [...names].filter((n) => n in PSEUDOS).sort())
-    lines.push(`export declare const ${m}: StateWrap;`);
+    add(m, `export declare const ${m}: StateWrap;`);
   for (const m of [...names].filter((n) => n in FUNCTIONS).sort()) {
     const f = FUNCTIONS[m]!;
     const { sep, math } = functions[f as keyof typeof functions] as { sep: string; math?: string };
@@ -455,7 +540,8 @@ const decl = (id: string, g: Group, title: string) => {
       : f === "var"
         ? "VarCall"
         : `GFn<B, ${JSON.stringify(f)}, ${JSON.stringify(sep)}>`;
-    lines.push(
+    add(
+      m,
       m === "var"
         ? `declare const _var: ${type};\nexport { _var as var };`
         : `export declare const ${m}: ${type};`,
@@ -463,13 +549,16 @@ const decl = (id: string, g: Group, title: string) => {
   }
   for (const m of ["media", "container", "supports"])
     if (names.has(m))
-      lines.push(
+      add(
+        m,
         `export declare const ${m}: GCondition<B, ${JSON.stringify(m)}, ${m === "supports" ? "Wrap" : "QueryWrap"}>;`,
       );
-  if (names.has("keyframes")) lines.push(`export { keyframes } from "../types.ts";`);
+  if (names.has("keyframes")) lines.push(`export { keyframes } from "${up}types.ts";`);
   if (names.has("positionTry"))
-    lines.push(
+    add(
+      "positionTry",
       `export declare const positionTry: ((style: Style) => PositionTry) & P<"position-try">;`,
+      "position-try",
     );
   for (const c of ["flex", "grid"]) {
     if (!g.props.has(c)) continue;
@@ -479,6 +568,7 @@ const decl = (id: string, g: Group, title: string) => {
       `export declare const ${c}: GLayout<B, ${JSON.stringify(c)}, Pick<${M}, ${lit(own)}>>;`,
     );
   }
+  if (reused.length) lines.push(`export { ${reused.join(", ")} } from "../${base!.id}.ts";`);
   const ban = `{ id: ${JSON.stringify(id)}; kw: ${kw ? `{ ${kw} }` : "Record<never, never>"}; fn: ${lit([...g.fn].sort())}; unit: ${lit([...g.unit].sort())}; media: ${lit([...g.media].sort())}; container: ${lit([...g.container].sort())}; supports: ${lit([...g.supports].sort())} }`;
   const body = lines.join("\n");
   const has = (n: string) => new RegExp(`\\b${n}\\b`).test(body);
@@ -486,20 +576,45 @@ const decl = (id: string, g: Group, title: string) => {
   const used = (n: string) => has(n) || (n === "GProp" && withP);
   // only what the file uses: a generated file is linted like any other
   const from = (file: string, names: string[]) =>
-    names.some(used) ? `import type { ${names.filter(used).join(", ")} } from "${file}";\n` : "";
+    names.some(used)
+      ? `import type { ${names.filter(used).join(", ")} } from "${up}${file}";\n`
+      : "";
   const hasB = withP || /<B,/.test(body);
   return `// Generated by scripts/groups.ts from ${sources}. Do not edit.
 // cssints/${id}: ${title}.
-${from("../members.ts", ["FlexMethods", "GridMethods"])}${from("../group-types.ts", ["GCondition", "GFn", "GLayout", "GMath", "GProp"])}${withP ? 'import type { properties } from "@cssints/css-grammar/mdn";\n' : ""}${from("../function-types.ts", ["VarCall"])}${from("../types.ts", ["PositionTry", "QueryWrap", "StateWrap", "Style", "Wrap"])}
-export * from "../group-common.ts";
+${from("members.ts", ["FlexMethods", "GridMethods"])}${from("group-types.ts", ["GCondition", "GFn", "GLayout", "GMath", "GProp"])}${withP ? 'import type { properties } from "@cssints/css-grammar/mdn";\n' : ""}${from("function-types.ts", ["VarCall"])}${from("types.ts", ["PositionTry", "QueryWrap", "StateWrap", "Style", "Wrap"])}
+export * from "${up}group-common.ts";
 ${hasB ? `\ntype B = ${ban};\n` : ""}${withP ? "type P<K extends keyof typeof properties> = GProp<B, K>;\n" : ""}
 ${body}
 `;
 };
+// A Baseline group with the same members and bans as an earlier one (Baseline 2026 is newly available) is that group.
+const twin = new Map<string, string>();
+const aliasOf = (id: string, g: Group) => {
+  if (groups.get(id)!.kind !== "baseline") return undefined;
+  const key = JSON.stringify([
+    membersOf(g),
+    sorted(g.kw).map(([p, ws]) => [p, list(ws)]),
+    ...[g.fn, g.unit, g.media, g.container, g.supports].map(list),
+  ]);
+  const first = twin.get(key) ?? twin.set(key, id).get(key)!;
+  return first === id ? undefined : first;
+};
 rmSync(`${here}/../src/groups`, { recursive: true, force: true });
 mkdirSync(`${here}/../src/groups`);
-for (const [id, { title, g }] of groups)
-  writeFileSync(`${here}/../src/groups/${id}.ts`, decl(id, g, title));
+for (const [id, { title, g }] of groups) {
+  mkdirSync(`${here}/../src/groups/${id}`.replace(/\/[^/]*$/, ""), { recursive: true });
+  const alias = aliasOf(id, g);
+  const down = id.endsWith("/with-downstream")
+    ? groups.get(id.replace("/with-downstream", ""))
+    : undefined;
+  writeFileSync(
+    `${here}/../src/groups/${id}.ts`,
+    alias
+      ? `// Generated by scripts/groups.ts. Do not edit.\n// cssints/${id}: ${title}; the same members and bans as cssints/${alias}.\nexport * from "${"../".repeat(id.split("/").length - 1) || "./"}${alias}.ts";\n`
+      : decl(id, g, title, down && { id: id.replace("/with-downstream", ""), g: down.g }),
+  );
+}
 // the whole of cssints, by its Baseline name
 writeFileSync(
   `${here}/../src/groups/limited-availability.ts`,

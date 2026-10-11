@@ -8,6 +8,13 @@ import * as limited from "cssints/limited-availability" with { type: "cssints" }
 import * as not from "cssints/not-discouraged" with { type: "cssints" };
 import * as wide from "cssints/widely-available" with { type: "cssints" };
 import * as newly from "cssints/newly-available" with { type: "cssints" };
+import * as down from "cssints/widely-available/with-downstream" with { type: "cssints" };
+import * as newlyDown from "cssints/newly-available/with-downstream" with { type: "cssints" };
+import * as y2020 from "cssints/baseline-2020" with { type: "cssints" };
+import * as y2020Down from "cssints/baseline-2020/with-downstream" with { type: "cssints" };
+import * as y2023 from "cssints/baseline-2023" with { type: "cssints" };
+import * as y2024 from "cssints/baseline-2024" with { type: "cssints" };
+import * as y2026 from "cssints/baseline-2026" with { type: "cssints" };
 
 // what a group has works as in "cssints"
 export const ok: string[] = [
@@ -91,3 +98,45 @@ export const more: string[] = [newly.display("grid"), newly.anchorName("--a"), n
 newly.backgroundImage("element(#a)");
 // @ts-expect-error blink is discouraged
 not.textDecorationLine("blink");
+
+// with-downstream: widely available, and in Opera, Opera Mobile, Samsung Internet and Android WebView at the versions of
+// baseline-browser-mapping. What the downstream browsers lack is refused there and only there.
+export const downstream: string[] = [
+  wide.inlineSize("fit-content"),
+  wide.maskImage("none"),
+  down.inlineSize("10rem"),
+  down.display("grid"),
+  down.cn(down.hover(down.color("red"))),
+  newlyDown.display("grid"),
+];
+// @ts-expect-error fit-content is not in Opera Mobile (or Samsung Internet) at the minimum versions
+down.inlineSize("fit-content");
+// @ts-expect-error a member the downstream browsers lack
+down.maskImage("none");
+// @ts-expect-error contrast-color() is limited availability, in both
+down.color("contrast-color(red)");
+// @ts-expect-error prefers-contrast is not in the downstream browsers
+down.media("(prefers-contrast: more)");
+// @ts-expect-error newly available is checked against the downstream browsers too
+newlyDown.scrollbarWidth("thin");
+// the same value is fine one group up
+void newly.scrollbarWidth("thin");
+
+// Baseline years: what was newly available by the end of the year
+export const years: string[] = [
+  y2020.display("grid"),
+  y2020.clipPath("border-box"),
+  y2023.color("color-mix(in oklab, red, blue)"),
+  y2024.color("light-dark(white, black)"),
+  y2026.anchorName("--a"),
+  y2020Down.display("grid"),
+];
+// @ts-expect-error color-mix() became Baseline in 2023
+y2020.color("color-mix(in oklab, red, blue)");
+void y2024.lightDark("white", "black");
+// @ts-expect-error light-dark() became Baseline in 2024
+y2023.color("light-dark(white, black)");
+// @ts-expect-error light-dark() is not a member of Baseline 2023
+void y2023.lightDark;
+// @ts-expect-error border-box of clip-path is in Baseline 2020, not in its downstream browsers
+y2020Down.clipPath("border-box");

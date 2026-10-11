@@ -4,7 +4,9 @@ import { defineConfig } from "vite-plus";
 
 // the export groups (scripts/groups.ts): one declaration module per subpath `cssints/<id>`
 const groups = Object.fromEntries(
-  readdirSync("src/groups").map((f) => [`groups/${f.replace(/\.ts$/, "")}`, `src/groups/${f}`]),
+  readdirSync("src/groups", { recursive: true, encoding: "utf8" })
+    .filter((f) => f.endsWith(".ts"))
+    .map((f) => [`groups/${f.replace(/\.ts$/, "")}`, `src/groups/${f}`]),
 );
 
 // `vp pack` writes dist/, which `bun run pack:tgz` stages into a tarball (see publishConfig in package.json).
