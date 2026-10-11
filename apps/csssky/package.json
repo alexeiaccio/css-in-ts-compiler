@@ -25,6 +25,7 @@
     "@atcute/client": "^5.1.2",
     "@atcute/lexicons": "^2.1.1",
     "@cssints/icons": "workspace:*",
+    "@cssints/reset": "workspace:*",
     "@solidjs/router": "2.0.0-next.35",
     "@solidjs/web": "2.0.0-rc.13",
     "cssints": "workspace:*",

@@ -11,6 +11,7 @@
   "dependencies": {
     "@cssints/icons": "workspace:*",
     "@cssints/mise-en-mode": "workspace:*",
+    "@cssints/reset": "workspace:*",
     "cssints": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
