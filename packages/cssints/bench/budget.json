@@ -4,51 +4,51 @@
     "tsgo": 0
   },
   "errors.ts": {
-    "tsc": 310613,
-    "tsgo": 318725
+    "tsc": 322932,
+    "tsgo": 331320
   },
   "frame.ts": {
-    "tsc": 199716,
-    "tsgo": 216858
+    "tsc": 199827,
+    "tsgo": 216252
   },
   "functions.ts": {
-    "tsc": 428112,
-    "tsgo": 439495
+    "tsc": 428229,
+    "tsgo": 440216
   },
   "groups.ts": {
-    "tsc": 934353,
-    "tsgo": 946712
+    "tsc": 935214,
+    "tsgo": 948963
   },
   "palette.ts": {
-    "tsc": 65784,
-    "tsgo": 73149
+    "tsc": 66531,
+    "tsgo": 72254
   },
   "plugins-defs.ts": {
-    "tsc": 56562,
-    "tsgo": 65901
+    "tsc": 55391,
+    "tsgo": 64212
   },
   "plugins.ts": {
-    "tsc": 76647,
-    "tsgo": 86987
+    "tsc": 77044,
+    "tsgo": 87921
   },
   "state.ts": {
-    "tsc": 212463,
-    "tsgo": 222040
+    "tsc": 216858,
+    "tsgo": 226587
   },
   "surface.ts": {
-    "tsc": 360256,
-    "tsgo": 382433
+    "tsc": 360367,
+    "tsgo": 382094
   },
   "tui.ts": {
-    "tsc": 184399,
-    "tsgo": 193608
+    "tsc": 184481,
+    "tsgo": 193704
   },
   "unused.ts": {
-    "tsc": 47015,
-    "tsgo": 51842
+    "tsc": 46297,
+    "tsgo": 51992
   },
   "users.ts": {
-    "tsc": 919954,
-    "tsgo": 930897
+    "tsc": 960498,
+    "tsgo": 971667
   }
 }
