@@ -75,8 +75,8 @@ export const downsample = (img: Pixels, w: number, h: number): Pixels => {
   const data = new Uint8Array(w * h * 4);
   for (let cy = 0; cy < h; cy++) {
     const [y0, y1] = span(cy, h, img.height);
-    for (let cx = 0; cx < w; cx++) {
-      const [x0, x1] = span(cx, w, img.width);
+    for (const mx of Array(w).keys()) {
+      const [x0, x1] = span(mx, w, img.width);
       let [r, g, b, a] = [0, 0, 0, 0];
       for (let y = y0; y < y1; y++)
         for (let x = x0; x < x1; x++) {
@@ -87,7 +87,7 @@ export const downsample = (img: Pixels, w: number, h: number): Pixels => {
           b += LINEAR[img.data[i + 2]!]! * alpha;
           a += alpha;
         }
-      const c = (cy * w + cx) * 4;
+      const c = (cy * w + mx) * 4;
       if (a) data.set([toSrgb(r / a), toSrgb(g / a), toSrgb(b / a)], c);
       data[c + 3] = Math.round((a / ((y1 - y0) * (x1 - x0))) * 255);
     }
