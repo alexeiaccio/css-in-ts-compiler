@@ -1,6 +1,6 @@
 {
   "name": "@cssints/tokens",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Token sets for cssints as DTCG data: open-props, Radix colors, Flexoki, Reasonable Colors",
   "license": "MIT",
   "repository": {
@@ -87,7 +87,7 @@
     "vite": "catalog:"
   },
   "peerDependencies": {
-    "cssints": "^0.1.0"
+    "cssints": "^0.2.0"
   },
   "engines": {
     "node": ">=22"
