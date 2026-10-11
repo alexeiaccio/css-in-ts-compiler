@@ -183,7 +183,7 @@ const tokenKeys = (owners: string[], types: string[], k: string, fn: boolean) =>
  * @param {boolean} fn whether `k` is a function
  * @returns {string | undefined} the key, or `undefined` when BCD has none
  */
-export const tokenKey = (p: string, k: string, fn: boolean): string | undefined => {
+export const tokenKey = (p: string, k: string, fn: boolean) => {
   const [types, owners] = reachOf(p);
   return tokenKeys(owners, types, k, fn).find((x) => get(x)?.__compat);
 };
