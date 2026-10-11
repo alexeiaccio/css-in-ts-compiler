@@ -5,7 +5,7 @@ status: in-progress
 type: task
 priority: normal
 created_at: 2026-10-11T19:49:58Z
-updated_at: 2026-10-11T19:51:37Z
+updated_at: 2026-10-11T19:53:42Z
 ---
 
 User (2026-10-11): the reset is needed everywhere and in the examples.
@@ -16,3 +16,5 @@ User (2026-10-11): the reset is needed everywhere and in the examples.
 - [ ] tests green (docs, playground, csssky, demo build)
 
 - [ ] (user, 2026-10-11) the examples' theme matches the site's: the Result frames and the playground preview take the site's mode (light/dim/dark) AND palette: the frame's canvas (background, text colour, font) from the site's current tokens, passed in and updated on a settings change; examples that set a background without a text colour (the reason the frame was kept white) set both, so nothing is unreadable in any mode
+
+- [ ] (user, 2026-10-11) every example's Result panel on a docs page has tabs: Result and Code (read-only: each file of the project, highlighted at build time with Shiki like the page's blocks, a file switcher for several files; no editor, no JS beyond the tab switch, readable without JS e.g. details/radio)
