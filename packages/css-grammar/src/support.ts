@@ -170,6 +170,24 @@ const reachOf = (p: string) => {
   return r;
 };
 
+const tokenKeys = (owners: string[], types: string[], k: string, fn: boolean) => [
+  ...owners.map((q) => `css.properties.${q}.${fn ? `${k}_function` : k}`),
+  ...(fn ? owners.map((q) => `css.properties.${q}.${k}`) : []),
+  ...(fn ? [`css.types.${k}`] : []),
+  ...types.map((t) => `css.types.${t}.${k}`),
+];
+/**
+ * The BCD key of a keyword or function in a value of a property, by the lookup above.
+ * @param {string} p the property
+ * @param {string} k the keyword, or the name of the function
+ * @param {boolean} fn whether `k` is a function
+ * @returns {string | undefined} the key, or `undefined` when BCD has none
+ */
+export const tokenKey = (p: string, k: string, fn: boolean): string | undefined => {
+  const [types, owners] = reachOf(p);
+  return tokenKeys(owners, types, k, fn).find((x) => get(x)?.__compat);
+};
+
 // The answer for a list of targets is a function of `p: v`, and a build asks the same declarations again (every
 // evaluation of a module that imports the theme): once per declaration and list. Callers read the warnings, none
 // changes them.
@@ -196,12 +214,7 @@ function compute(p: string, v: string, ts: Target[]): Warning[] {
     const rel = tok === "from" ? /([a-z-]+)\(\s*$/.exec(code.slice(0, index))?.[1] : undefined;
     const keys = rel
       ? [`css.types.color.${rel}.relative_syntax`]
-      : [
-          ...owners.map((q) => `css.properties.${q}.${fn ? `${k}_function` : k}`),
-          ...(fn ? owners.map((q) => `css.properties.${q}.${k}`) : []),
-          ...(fn ? [`css.types.${k}`] : []),
-          ...types.map((t) => `css.types.${t}.${k}`),
-        ];
+      : tokenKeys(owners, types, k, !!fn);
     const key = keys.find((x) => get(x)?.__compat);
     if (key) found.push([fn ? `${k}()` : k, key]);
   }
