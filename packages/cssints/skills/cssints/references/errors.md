@@ -7,11 +7,12 @@ contrast, ranges in some positions, `supports()` property names. The messages be
 
 ## Imports and build-time values
 
-| Message                                                                                                                  | Meaning and fix                                                                                                                                                                                                |
-| ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `<file> imports build-time p from "cssints" without the attribute. Import it as: … with { type: "cssints" }`             | Every member but `cx` runs at build time. Add `with { type: "cssints" }` to that import (keep `cx` in a plain import, or in the same one).                                                                     |
-| `css arguments must be known at build time: n is not defined where the call is evaluated (a parameter, a prop or state)` | The call reads a runtime value. Make the styles at build time and choose at runtime: `cx(on && p(4))`, a `cv()` variant, or a token set in `style={...}`. Also when a local shadows a global (`open`, `name`). |
-| `imports _cv from "cssints", which is gone`                                                                              | Old code: `cv({ ... })` is the function now. Drop `_cv(` and its closing bracket.                                                                                                                              |
+| Message                                                                                                                  | Meaning and fix                                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<file> imports build-time p from "cssints" without the attribute. Import it as: … with { type: "cssints" }`             | Every member runs at build time. Add `with { type: "cssints" }` to that import.                                                                                                                                      |
+| `css arguments must be known at build time: n is not defined where the call is evaluated (a parameter, a prop or state)` | The call reads a runtime value. Make the styles at build time and choose at runtime: `cn(base, on && p(4))`, a `cv()` variant, or a token set in `style={...}`. Also when a local shadows a global (`open`, `name`). |
+| `imports cx from "cssints", which is gone: cn(...) takes runtime values now`                                             | Old code: `cx(a, on && b)` is `cn(a, on && b)` now (cn from `"cssints" with { type: "cssints" }`). `cx(p(4), p(2))` kept both; `cn` keeps `p(2)`.                                                                    |
+| `imports _cv from "cssints", which is gone`                                                                              | Old code: `cv({ ... })` is the function now. Drop `_cv(` and its closing bracket.                                                                                                                                    |
 
 ## Grammar errors
 
@@ -36,7 +37,7 @@ reverse); trust the build's message and, with the MCP server, `check_declaration
 | Message                                                                    | Fix                                                                                          |
 | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | `flex() has no .padding(); it chains direction, wrap, flow, alignItems, …` | A chain has only its container properties. Merge the rest: `cn(flex().gap(2), p(4))`.        |
-| `plain styles do not chain (.gap); merge them with cn(...) or cx(...)`     | `flex("1")` (with an argument) is the shorthand property, a plain style.                     |
+| `plain styles do not chain (.gap); merge them with cn(...)`                | `flex("1")` (with an argument) is the shorthand property, a plain style.                     |
 | `sticky().top() is used twice` (and other members: a method is used once)  | Each method of a chain once. Under a condition, a second chain is fine: `hover(x().y(...))`. |
 
 ## Conflicts
@@ -49,7 +50,7 @@ reverse); trust the build's message and, with the MCP server, `check_declaration
 | `layout: kernel stack-core sets display, flex-direction, gap (this style also sets display)`                        | A plugin member and a property its kernel sets, in one `cn()`. Use the member's method (`stack().gap(4)`), or drop the property.            |
 | `frame: frame() sets padding, margin, border-radius and the border: use its methods (this style also sets padding)` | The same, with the plugin's own message.                                                                                                    |
 
-`cx()` joins strings at runtime and checks nothing: a conflict across `cx()` arguments is not reported.
+A runtime argument of `cn()` is joined at runtime; a style in it replaces what it overrides, and `props.class` is only appended, so a conflict with it is not reported.
 
 ## Conditions
 

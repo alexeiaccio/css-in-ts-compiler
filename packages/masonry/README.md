@@ -82,7 +82,7 @@ method, and the build checks it again. A method in `media()` or another conditio
   `grid-template-columns`, `gap`, `row-gap`, `column-gap`, `columns`, `column-width` or `column-count` is a build error
   at the call:
   `cssints: masonry: kernel lanes sets display, grid-template-columns, gap, columns (this style also sets display)`.
-  Padding, sizes and colours do not conflict. Conflicts across `cx()` are not seen, as for any plugin.
+  Padding, sizes and colours do not conflict. Conflicts with an opaque runtime string in `cn()` are not seen, as for any plugin.
 
 ## Limits
 

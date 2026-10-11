@@ -304,7 +304,7 @@ className = "text-red-500"; // Could conflict
 
 ```typescript
 // Our approach - explicit composition
-const styles = cx(baseStyles, variantStyles, conditional && extraStyles);
+const styles = cn(baseStyles, variantStyles, conditional && extraStyles);
 
 // Tailwind - class string merging
 className={`base ${variant} ${conditional && 'extra'}`}

@@ -3,7 +3,7 @@ name: cssints
 description: >-
   Write, review and fix styles in a project that uses cssints, the CSS-in-TypeScript compiler (a Vite plugin that
   runs css.* calls at build time and replaces them with atomic class strings). Load it when code imports from
-  "cssints" with { type: "cssints" }, uses cn(), cx(), cv(), css.* members, media()/hover()/container()/within(),
+  "cssints" with { type: "cssints" }, uses cn(), cv(), css.* members, media()/hover()/container()/within(),
   createTokens, createGlobalTheme, check.contrast, or an @cssints/* package (layout, motion, fluid, fonts, reset,
   tokens, icons, ...), and when a build fails with a "cssints:" message such as "must be known at build time",
   "without the attribute", "unexpected ... expected <...>", "overlap without one containing the other" or
@@ -15,7 +15,7 @@ description: >-
 Every `css.*` call runs at build time in Vite's Module Runner and is replaced by a class string. The values are
 checked against the CSS grammars (mdn-data) twice: in the types, where the call is, and again by the build, with the
 file and the place of the call. One sheet, `virtual:cssints.css`, holds every rule once, in `@layer`s. The browser
-gets class strings, `cx` and the few lines behind `cv`. The reference is `docs/API.md` of the cssints repository; the
+gets class strings and the few lines behind `cn` with runtime arguments and `cv`. The reference is `docs/API.md` of the cssints repository; the
 parts below are what you need most of the time.
 
 If the cssints MCP server is configured, prefer it for checks: `check_declaration` (is this value valid, and the
@@ -51,7 +51,6 @@ export default {
 ## The import attribute
 
 ```ts
-import { cx } from "cssints"; // runtime: the only member without the attribute
 import { cn, cv, hover, media, p } from "cssints" with { type: "cssints" }; // build time
 import * as css from "cssints" with { type: "cssints" }; // the same, as a namespace
 import { stack } from "./stack.ts" with { type: "cssints" }; // your own helper module, run at build time
@@ -68,7 +67,7 @@ import { stack } from "./stack.ts" with { type: "cssints" }; // your own helper 
 where the call is evaluated`. The types do not catch it. Choose at runtime between styles made at build time:
 
 ```tsx
-<div className={cx(base, on && p(4))} />          // a condition: cx skips falsy values
+<div className={cn(base, on && p(4))} />          // a condition: cn joins it at runtime, p(4) is a class already
 <button className={button({ size })} />            // a cv() variant
 <div style={style(token.set(accent, "#dc2626"))} /> // a token set inline (static values)
 <div style={{ "--accent": value }} />              // a dynamic value: a plain style prop
@@ -93,12 +92,16 @@ the run does not reach (`false && p(4)`, a branch) still gets its class string.
 - `firstThatWorks("100dvh", "100vh")` is a value with fallbacks in one class.
 - `keyframes({ from: opacity(0), to: opacity(1) })` returns a name for `animation(fade, "200ms")`.
 
-## Merging: cn, cx, cv
+## Merging: cn, cv
 
 - `cn(...)` merges at build time into one string; the later of one property wins (`cn(p(4), p(2))` is `p(2)`). A
   longhand beats its shorthand whatever the order. Two properties that overlap without one containing the other
   (`borderTop` and `borderColor`, `marginLeft` and `marginInline`) are a build error: set one, or the longhands.
-- `cx(...)` joins strings at runtime (skips falsy values, flattens arrays; no clsx objects). It sees no conflicts.
+- `cn(...)` takes runtime values too: `cn(base, on && p(4), props.class)`. An argument that names a parameter, a prop
+  or state, a string, or a call of something that is not a `css.*` member is joined at runtime (falsy values skipped,
+  arrays flattened; no clsx objects); the styles in it are class strings made at build time, and while a style
+  is active it replaces the classes it overrides (`cn(p(2), on && p(4))` is `p-4` when `on`, else `p-2`). A class
+  string such as `props.class` is only appended. `cx` is gone: importing it is a build error.
 - `cv({ base, variants, defaultVariants, compoundVariants })` is the function you call; props are typed. A variant
   wins over the base, a compound (`{ size: "lg", tone: "loud", class: p(6) }`) over both. Values are `css.*` styles,
   never CSS strings.
@@ -157,7 +160,7 @@ DTCG JSON, Figma exports, references `{color.accent}`, derived values and layers
 ## Plugin packages: which one
 
 Import them with the attribute, except `@cssints/tokens` and `@cssints/ramp` (plain data for `createTokens`). A
-member returns a class string (or a value) that goes into `cn()`/`cx()`. Details and gotchas:
+member returns a class string (or a value) that goes into `cn()`. Details and gotchas:
 [references/plugins.md](references/plugins.md).
 
 | Need                                        | Package                                                      |
@@ -191,8 +194,8 @@ the call. The common ones, with fixes: [references/errors.md](references/errors.
 
 ## Rules of thumb
 
-- Make every style at module level or in a helper module; choose between them at runtime with `cx`, `cv` or tokens.
-- Prefer `cn()` to `cx()` when the parts are fixed: it is checked for conflicts and leaves nothing at runtime.
+- Make every style at module level or in a helper module; choose between them at runtime with `cn(base, on && p(4))`, `cv` or tokens.
+- A `cn()` with no runtime argument is checked for conflicts and leaves nothing at runtime; keep what is fixed in it.
 - Prefer a token and a theme to a second style for each colour mode.
 - Write `check.contrast` for each text/background pair you use; it checks every theme.
 - A support warning is not an error: the value works where the targets have it. LightningCSS lowers what it can

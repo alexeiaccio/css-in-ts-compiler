@@ -607,7 +607,7 @@ Better interoperability with design tools.
 
 ```typescript
 // Explicit composition
-const composed = cx(baseStyles, variantStyles, conditionalStyles);
+const composed = cn(baseStyles, variantStyles, conditionalStyles);
 
 // React Spectrum relies on style merging
 className={styleFn(props)}
@@ -774,7 +774,7 @@ Our approach excels at:
 
 - **Simpler class names** - Component-scoped, readable names
 - **W3C DTCG compliance** - Industry-standard token format
-- **Composition API** - Explicit `cx()` for style merging
+- **Composition API** - Explicit `cn()` for style merging
 - **Registry pattern** - Runtime access to styles for SSR/hydration
 - **Simpler build setup** - Single Vite plugin, less complexity
 - **Deterministic hashing** - Content-based hashes, no version drift

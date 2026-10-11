@@ -102,7 +102,7 @@ center | baseline | stretch`, `side` is `left | right`. Tokens go where a length
 - **Conflicts.** A `cn()` that holds a primitive and a property its core sets is a build error at the call, derived from
   the kernel: `cn(stack(), display("grid"))` is
   `cssints: layout: kernel stack-core sets display, flex-direction, gap (this style also sets display)`, and `cn(autoGrid(), rowGap("1rem"))` fails as well (a longhand of `gap`). Padding, sizes and
-  colours do not conflict, nor do the properties the kernel sets on the children (`cn(switcher(), flexGrow(0))` is fine). Conflicts across `cx()` are not seen, as for any plugin.
+  colours do not conflict, nor do the properties the kernel sets on the children (`cn(switcher(), flexGrow(0))` is fine). Conflicts with an opaque runtime string in `cn()` are not seen, as for any plugin.
 - **No leak into nested primitives.** The defaults are set on every primitive, so a `stack()` inside a `stack().gap(8)`
   has a gap of 1rem, not 2rem.
 - **The children.** `sidebar()` sizes its first and last child (the first is the sidebar, or the last with

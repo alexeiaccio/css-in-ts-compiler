@@ -14,7 +14,7 @@ description: >-
 A plugin is a module that exports the members of `scope(name, table).build(impl).export()` from `cssints/plugin`.
 The table says what the plugin has; the members are typed from it (no types file). User code imports the plugin with
 `with { type: "cssints" }`; there is no registration. In user code a member is a class string (or a CSS value), so it
-goes into `cn()`, `cx()` and conditions. Everything runs at build time in Vite's Module Runner. Read the user skill
+goes into `cn()` and conditions. Everything runs at build time in Vite's Module Runner. Read the user skill
 `cssints` first for the styles themselves; the full reference is the "Plugins" section of `docs/API.md`.
 
 If the cssints MCP server is configured, prefer `compile` to see a fixture's classes, sheet, errors and warnings,
