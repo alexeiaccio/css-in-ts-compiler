@@ -40,3 +40,6 @@ packages/*/package.json
 # The publishable copy of a package (scripts/stage.mjs) and the API.md that cssints's prepack copies in.
 **/.publish
 packages/cssints/docs
+
+# The README's example, as the README has it (tabs): apps/docs/test/playground.mjs holds the two equal.
+apps/docs/examples/install

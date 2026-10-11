@@ -10,8 +10,10 @@ const outOfScope = [
 ];
 
 // Not linted: inputs of the plugin tests (import build-time members that only exist after the plugin rewrote the
-// import, and some are invalid on purpose), and the bench files whose type errors budget.mjs expects.
+// import, and some are invalid on purpose), the bench files whose type errors budget.mjs expects, and the example projects of the
+// docs' playground (files the playground compiles: its editor type-checks them, with a JSX of its own).
 const inputs = [
+  "apps/docs/examples/**",
   "packages/cssints/test/fixtures/**",
   "packages/icons/test/fixtures/**",
   "packages/mise-en-mode/test/fixtures/**",
