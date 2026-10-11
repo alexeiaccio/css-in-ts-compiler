@@ -116,6 +116,7 @@ const compile$1 = (id) => {
 		}
 	};
 };
+const of = (id) => compiled$1.get(id) ?? compiled$1.set(id, compile$1(id)).get(id);
 const hit = (c, own, text) => text.match(WORDS)?.find((w) => own?.has(w) || c.fn.has(w) || c.unit?.test(w));
 const said = (w) => w.endsWith("(") ? `${w.slice(0, -1)}()` : w;
 const refuse = (c, label, w) => fail(`cssints: ${label}: "${said(w)}" is not in cssints/${c.id}`);
@@ -165,7 +166,7 @@ const wrap = (c, name, member) => {
 */
 const groupOf = (css, id) => {
 	if (id === "limited-availability") return css;
-	const c = compiled$1.get(id) ?? compiled$1.set(id, compile$1(id)).get(id);
+	const c = of(id);
 	return new Proxy(css, { get: (t, k) => {
 		if (typeof k !== "string") return Reflect.get(t, k);
 		if (TIED.has(k) && !c.members.has(k)) return () => {
@@ -173,6 +174,19 @@ const groupOf = (css, id) => {
 		};
 		return wrap(c, k, t[k]);
 	} });
+};
+const KNOWN = new Set(Object.values(PROPS));
+/**
+* Whether a declaration is in an export group: the group has the property, and the value holds no word it bans.
+* @param {string} id the group: `widely-available`, `baseline-2022/with-downstream`, `css-grid-2`, ...
+* @param {string} property the CSS name: `text-wrap`
+* @param {string} value the value as written: `balance`
+* @returns {boolean} true for a property cssints has no member for (`--x`, `-webkit-text-size-adjust`)
+*/
+const inGroup = (id, property, value) => {
+	if (id === "limited-availability") return true;
+	const c = of(id);
+	return (c.props.has(property) || !KNOWN.has(property)) && !hit(c, c.kw.get(property), value);
 };
 //#endregion
 //#region src/scope-engine.ts
@@ -636,7 +650,8 @@ const dependsOn = (path) => {
 const engine = {
 	scope,
 	lacking: lacking$1,
-	dependsOn
+	dependsOn,
+	inGroup
 };
 //#endregion
 //#region src/runtime.ts

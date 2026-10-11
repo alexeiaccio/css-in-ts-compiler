@@ -373,5 +373,12 @@ export declare const lacking: (...keys: BcdKey[]) => string[];
  * file. Build time, like `scope()`: in a member's functions or in the plugin's own.
  */
 export declare const dependsOn: (path: string) => void;
+/**
+ * Whether a declaration is in an export group (`cssints/widely-available`, `baseline-2022/with-downstream`, ...): the group
+ * has the property and the value holds no word the group bans. A property cssints has no member for (a custom property, a
+ * vendor-prefixed one) is in every group. A plugin that has a variant per group emits only what passes. Build time, like
+ * `scope()`; an unknown group is an error.
+ */
+export declare const inGroup: (group: string, property: string, value: string) => boolean;
 //#endregion
 export type { ArgsDef, Chain, Conflict, Css, Decl, Entry, GlobalRule, Impl, Kernel, KernelDef, Made, Members, Part, Pending, Runtime, Scope, Style, Table, ThemeRule, Typed };
