@@ -1,5 +1,4 @@
 // What user code sees of tokens: `tsgo -p tsconfig.json` checks this file (`bun run typecheck`).
-import { cx } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 import {
   animation,
@@ -39,7 +38,7 @@ color(muted);
 padding(gap, gap);
 // Tokens compose with conditions and with the other members.
 const md = media("(width >= 40rem)");
-export const inConditions: string = cx(
+export const inConditions: string = css.cn(
   color(blue),
   md(color(muted), padding(gap, "1rem")),
   hover(border("1px solid", blue)),

@@ -130,10 +130,7 @@ export const valueOf = (
 ): string => {
   if (!args.length) throw failIn(plugin, `cssints: ${label}() expects a value`);
   if (args.some(isNode))
-    throw failIn(
-      plugin,
-      `cssints: ${label}() takes values, not styles; merge styles with cn(...) or cx(...)`,
-    );
+    throw failIn(plugin, `cssints: ${label}() takes values, not styles; merge styles with cn(...)`);
   const [only] = args;
   return spacing && args.length === 1 && typeof only === "number"
     ? `${only * 0.25}rem`

@@ -1,8 +1,13 @@
 // The only code that ships to the browser. No imports: plain, dependency-free, no Effect.
 export type ClassValue = string | false | null | undefined | 0 | ClassValue[];
 
-export const cx = (...a: ClassValue[]): string =>
-  (a as unknown[]).flat(Infinity).filter(Boolean).join(" ");
+// What the plugin puts in place of a `cn(...)` with runtime arguments (user code never names it): the classes joined,
+// without those that an active class `drops` (it sets the same property under the same conditions, and comes later).
+export function _cx(drops: [string, string][], ...a: ClassValue[]): string {
+  const on = (a as unknown[]).flat(Infinity).filter(Boolean).join(" ").split(" ");
+  const gone = drops.flatMap(([by, c]) => (on.includes(by) ? c.split(" ") : []));
+  return on.filter((c) => c && !gone.includes(c)).join(" ");
+}
 
 export interface CvRuntimeConfig {
   base: string;

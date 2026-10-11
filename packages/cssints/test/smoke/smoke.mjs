@@ -178,8 +178,7 @@ export const t = createTokens({ color: { $type: "color", brand: { $value: "#3b82
 );
 put(
   "src/Button.tsx",
-  `import { cx } from "cssints";
-import { bg, cn, color, cv, hover, media, p } from "cssints" with { type: "cssints" };
+  `import { bg, cn, color, cv, hover, media, p } from "cssints" with { type: "cssints" };
 
 import { frame } from "cssints/frame" with { type: "cssints" };
 import { surface } from "cssints/surface" with { type: "cssints" };
@@ -198,7 +197,7 @@ const button = cv({
 
 export function Button({ busy }: { busy?: boolean }) {
   return (
-    <button className={cx(button(), busy && p(9))}>
+    <button className={cn(button(), busy && p(9))}>
       <span className={cn(frame().radius("4px").padding(1), surface().lighten(0.06).ink())}>smoke</span>
     </button>
   );
@@ -439,7 +438,7 @@ ok(
 );
 ok(
   bundled.some((s) => s.endsWith("cssints/dist/runtime.mjs")),
-  "the browser runtime is in the bundle (cx and the cv runtime)",
+  "the browser runtime is in the bundle (_cx and the cv runtime)",
 );
 ok(
   bundled.some((s) => s.endsWith("cssints/dist/parent-vars.mjs")) &&

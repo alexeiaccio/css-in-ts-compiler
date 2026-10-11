@@ -1,5 +1,4 @@
 // What user code sees of flex(), grid() and cv(): `tsgo -p tsconfig.json` checks this file (`bun run typecheck`).
-import { cx } from "cssints";
 import * as css from "cssints" with { type: "cssints" };
 import {
   cn,
@@ -27,7 +26,7 @@ export const cols: Style = grid()
   .autoFlow("row dense")
   .placeItems("center");
 export const areas: Style = css.grid().templateAreas('"a b" "c d"').justifyItems("start");
-export const merged: string = cx(
+export const merged: string = css.cn(
   row,
   cols,
   css.cn(flex().gap(2), p(1)),
@@ -108,5 +107,5 @@ cv({ base: "padding: 1rem" });
 cv({ variants: { size: { sm: "_abc" } } });
 // @ts-expect-error a variant is a style, not a list
 cv({ variants: { size: { sm: [p(1)] } } });
-// @ts-expect-error cx gives a runtime string, not a build-time style
-cv({ base: cx(p(1)) });
+// @ts-expect-error a runtime string is not a build-time style
+cv({ base: css.cn(p(1), "x") });

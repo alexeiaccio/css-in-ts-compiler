@@ -1,4 +1,3 @@
-import { cx } from "cssints";
 import {
   alignItems,
   animation,
@@ -181,4 +180,4 @@ export const button = cv({
   defaultVariants: { size: "md", tone: "primary" },
 });
 
-export const className = cx(...base, ...spacing, ...layouts, ...conditions, merged);
+export const className = cn(...base, ...spacing, ...layouts, ...conditions, merged);

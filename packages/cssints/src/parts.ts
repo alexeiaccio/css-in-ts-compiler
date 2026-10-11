@@ -12,7 +12,7 @@ export interface Fallback<V extends readonly Alt[] = readonly Alt[]> {
 }
 /** A value part: a string, a Typed OM value, a `firstThatWorks`, or a lone number (the spacing scale in spacing properties). */
 export type Part = string | number | CSSStyleValue | Fallback;
-/** What every member returns: a class string. It is a string (`className`, `cx`), but only members make one. */
+/** What every member returns: a class string. It is a string (`className`), but only members make one. */
 export type Style = string & { readonly __cssints: "style" };
 
 // A part is text for the recognizer; a Typed OM value is the sentinel `⟨type⟩` (css.ts). A lone number is a spacing

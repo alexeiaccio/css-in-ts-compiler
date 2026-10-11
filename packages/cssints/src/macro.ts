@@ -31,6 +31,7 @@ import {
   merged,
   chainDecl,
   CONTEXTS,
+  dropsOf,
   edge,
   fail,
   hashClass,
@@ -69,7 +70,7 @@ import {
   type Rule,
   warn,
 } from "./registry.ts";
-import { CV_CALL } from "./instrument.ts";
+import { CV_CALL, CX_CALL } from "./instrument.ts";
 import { _cv as runtimeCv, type CvRuntimeConfig } from "./runtime.ts";
 import {
   addTheme,
@@ -239,9 +240,10 @@ export const positionTry = (...args: unknown[]) =>
     ? atRule("position-try", "--pt-", blockOf("positionTry()", args[0], POSITION_TRY))
     : positionTryProp(...args);
 
-export const cn = (...args: unknown[]) => {
-  const decls = toDecls("cn", args);
-  return node(decls, carried(args as CssNode[]));
+// What is known at build time merges; `false`, null and undefined are no style (`dev && p(1)` with a build-time `dev`).
+export const cn = (...all: unknown[]) => {
+  const args = all.filter(Boolean);
+  return node(toDecls("cn", args), carried(args as CssNode[]));
 };
 export const flex = member("flex");
 export const grid = member("grid");
@@ -802,6 +804,46 @@ export const cv = (config: CvConfig) => {
   );
 };
 
+/** What __group(...) is while a module is evaluated: the static arguments of a cn() with runtime ones, and its parts. */
+interface Group {
+  __group: { statics: [number, unknown][]; parts: [number, number][] };
+}
+const isGroup = (v: unknown): v is Group => Predicate.hasProperty(v, "__group");
+
+// The head of the `__cx(` call the plugin writes in place of a cn() with runtime arguments: the classes each conditional
+// class drops, then the merged static arguments as class strings. The parts are the sites inside the runtime arguments.
+const groupOf = Effect.fnUntraced(function* ({ __group: { statics, parts } }: Group, at: At) {
+  const { nodes } = yield* Registry;
+  const merged = cn(...statics.map(([, s]) => s));
+  const where = new Map<Decl, number>();
+  for (const [pos, s] of statics) if (isNode(s)) for (const d of s.__cssints) where.set(d, pos);
+  const all = nodes.get(at.file) ?? nodes.set(at.file, new Map()).get(at.file)!;
+  all.set(at.site, merged.__cssints);
+  const drops = yield* Effect.try({
+    try: () =>
+      dropsOf([
+        ...merged.__cssints.map((decl) => ({ at: where.get(decl)!, decl, conditional: false })),
+        ...parts.flatMap(([pos, site]) =>
+          (all.get(site) ?? []).map((decl) => ({ at: pos, decl, conditional: true })),
+        ),
+      ]),
+    catch: (e) => {
+      if (e instanceof MacroError) return e;
+      throw e; // a bug, not a user error: a defect
+    },
+  });
+  const classes = yield* classesOf(merged, at);
+  return `${CX_CALL}${Formatter.formatJson(drops)}, ${classes ? `${Formatter.formatJson(classes)}, ` : ""}`;
+});
+
+// A `cn(...)` with runtime arguments, as the module is evaluated: the static arguments, each with where it stands in the
+// source, and the sites inside the runtime ones. The plugin writes its head (groupOf) and keeps the runtime arguments.
+export const __group = (statics: [number, unknown][], parts: [number, number][]) => ({
+  __group: { statics, parts },
+});
+// What the call of a cn() with runtime arguments is at the top level of the module, where it runs once, at load.
+export const __nocn = () => undefined;
+
 // Any name besides these (css.p, css.alignItems) is a property. Named imports of build-time members come from
 // here too: the plugin rewrites them to destructure `css`, so the property list stays derived from the grammar.
 const named: Record<string, unknown> = {
@@ -883,6 +925,7 @@ const replacementOf = Effect.fnUntraced(function* (
 ): Effect.fn.Return<string | undefined, Invalid | MacroError | MemberError> {
   if (isNode(value)) return Formatter.formatJson(yield* classesOf(value, at));
   if (isCv(value)) return `${CV_CALL}${yield* cvOf(value.__cv, at)})`;
+  if (isGroup(value)) return yield* groupOf(value, at);
   if (isStyle(value)) return yield* inlineOf(value);
   const tokens = tokensOf(value);
   if (tokens !== undefined) return tokens;
@@ -917,6 +960,14 @@ const recordSite = Effect.fnUntraced(function* (
   const { sites } = yield* Registry;
   const replacement = yield* replacementOf(at, value).pipe(Effect.mapError(located(at)));
   if (replacement === undefined) return value;
+  // the declarations of a style, for the cn() with runtime arguments around it (groupOf)
+  if (isNode(value)) {
+    const { nodes } = yield* Registry;
+    (nodes.get(at.file) ?? nodes.set(at.file, new Map()).get(at.file)!).set(
+      at.site,
+      value.__cssints,
+    );
+  }
   if (!sites.has(at.file)) sites.set(at.file, new Map());
   sites.get(at.file)!.set(at.site, replacement);
   return value;

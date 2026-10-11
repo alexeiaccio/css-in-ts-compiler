@@ -30,7 +30,7 @@ import type { ModuleRunner } from "vite/module-runner";
 import { verifyChecks } from "./contrast.ts";
 import { evaluate, DomEvaluator } from "./evaluate.ts";
 import { HookError, type PluginError, SiteMissingError } from "./errors.ts";
-import { CV_CALL, instrument, keptImport, RUNTIME, type Instrumented } from "./instrument.ts";
+import { instrument, runtimeImport, RUNTIME, type Instrumented, writeSite } from "./instrument.ts";
 import {
   type DevSite,
   devtoolsBuildPlugin,
@@ -378,9 +378,8 @@ export default function cssints({
     // The runtime of every plugin member a site holds: a module that decides at load what it contains.
     if (runtimes.length)
       ms.prepend(runtimes.map((n) => `import ${Formatter.formatJson(RUNTIME_ID + n)};\n`).join(""));
-    // A cv() site is a call of the runtime: its import is the plugin's, not the user's.
-    if ([...sites.values()].some((r) => r.startsWith(CV_CALL)))
-      ms.prepend(`import { _cv as __cv } from ${Formatter.formatJson(RUNTIME)};\n`);
+    // A cv() site and a cn() with runtime arguments are calls of the runtime: its import is the plugin's, not the user's.
+    ms.prepend(runtimeImport(sites.values()));
     for (const [n, s] of parsed.sites.entries()) {
       const replacement = sites.get(n);
       if (replacement === undefined)
@@ -390,14 +389,10 @@ export default function cssints({
           site: n,
           offset: s.start,
         });
-      ms.overwrite(s.start, s.end, replacement);
+      writeSite(ms, s, replacement);
     }
-    // Build-time imports are gone from the client; runtime ones (cx) stay.
-    for (const decl of parsed.imp.decls) {
-      const kept = keptImport(decl, code);
-      if (kept) ms.overwrite(decl.start, decl.end, kept);
-      else ms.remove(decl.start, decl.end);
-    }
+    // Build-time imports are gone from the client.
+    for (const decl of parsed.imp.decls) ms.remove(decl.start, decl.end);
 
     // Before the result is returned, so before Vite caches it (runner.qnt `depsOfKnown`); in flight, `inflight` stands in.
     for (const dep of runnerDeps(env, id))

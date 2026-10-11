@@ -9,7 +9,7 @@ const LIMIT = 15_000;
 
 export interface Engine {
   compile: (files: Files) => Promise<Compiled>;
-  /** the body of the function that gives `cx` and `_cv` to the preview */
+  /** the body of the function that gives `_cx` and `_cv` to the preview */
   runtime: () => Promise<string>;
   stop: () => void;
 }

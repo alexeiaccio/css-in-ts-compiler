@@ -10,7 +10,7 @@ const server = await createServer({
   plugins: [cssints()],
 });
 const r = await server.environments.client.transformRequest("/fixtures/risk5.ts");
-const line = r.code.split("\n").findIndex((l) => l.includes('cx("_lwugp7"')) + 1;
+const line = r.code.split("\n").findIndex((l) => l.includes("__cx(")) + 1;
 const col = r.code.split("\n")[line - 1].indexOf('"_lwugp7"');
 console.log(
   "generated",
