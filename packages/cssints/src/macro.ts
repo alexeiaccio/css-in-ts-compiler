@@ -53,6 +53,7 @@ import {
 import { addRuntime } from "./delivery.ts";
 import { fns } from "./functions.ts";
 import { addKernel } from "./kernel.ts";
+import { groupOf } from "./group.ts";
 import { engine } from "./scope-engine.ts";
 import { addGlobal, addLayers, byOrder } from "./sheet.ts";
 import { loweredOf } from "./lowered.ts";
@@ -832,6 +833,8 @@ export const css = new Proxy(named, {
   get: (t, k) => (Object.hasOwn(t, k) ? t[k as string] : member(String(k))),
 });
 named.css = css;
+// The members of an export group (instrument.ts rewrites an import of `cssints/<group>` to a call of this).
+export const __group = (id: string) => groupOf(css, id);
 const kernelCss = new Proxy(
   { ...named, nest, vars },
   { get: (t, k) => (Object.hasOwn(t, k) ? t[k as keyof typeof t] : member(String(k))) },

@@ -910,4 +910,4 @@ const contrast = (...args) => edge(Effect.gen(function* () {
 }));
 const check = { contrast };
 //#endregion
-export { failIn as A, merged as C, VAR as D, toDecls as E, node as M, probed as N, camel as O, isFallback as S, settled as T, carried as _, createTokens as a, edge as b, tokensOf as c, style as d, token as f, PSEUDOS as g, LAYER as h, createGlobalTheme as i, isNode as j, fail as k, CSSTokenValue as l, FUNCTIONS as m, addTheme as n, isDone as o, CONTEXTS as p, check as r, sets as s, DONE as t, isStyle as u, chainDecl as v, minWidth as w, hashClass as x, checkVars as y };
+export { fail as A, isFallback as C, toDecls as D, settled as E, isNode as M, node as N, VAR as O, probed as P, hashClass as S, minWidth as T, PSEUDOS as _, createTokens as a, checkVars as b, tokensOf as c, style as d, token as f, PROPS as g, LAYER as h, createGlobalTheme as i, failIn as j, camel as k, CSSTokenValue as l, FUNCTIONS as m, addTheme as n, isDone as o, CONTEXTS as p, check as r, sets as s, DONE as t, isStyle as u, carried as v, merged as w, edge as x, chainDecl as y };

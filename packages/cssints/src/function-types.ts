@@ -265,3 +265,5 @@ export type VarCall = <const K extends TokenType, const F extends string = never
     | ValidSyntax<Syntax<K>, F>
     | CSSStyleValue<(typeof TOKEN_TYPES)[K]["sentinels"][number] | `${string}()`>,
 ) => CSSStyleValue<(typeof TOKEN_TYPES)[K]["sentinels"][number]>;
+// for the members of an export group (group-types.ts)
+export type { Text as FnText, Result as MathResult };

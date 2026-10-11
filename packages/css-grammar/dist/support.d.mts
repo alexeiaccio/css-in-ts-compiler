@@ -20,6 +20,14 @@ export interface Warning {
 }
 export declare const lackingOf: (key: string, ts?: Target[], exact?: boolean) => Target[];
 export declare const lacking: (key: string, ts?: Target[] | undefined, exact?: boolean | undefined) => Effect.Effect<Target[], never, never>;
+/**
+ * The BCD key of a keyword or function in a value of a property, by the lookup above.
+ * @param {string} p the property
+ * @param {string} k the keyword, or the name of the function
+ * @param {boolean} fn whether `k` is a function
+ * @returns {string | undefined} the key, or `undefined` when BCD has none
+ */
+export declare const tokenKey: (p: string, k: string, fn: boolean) => string | undefined;
 export declare function supportOf(p: string, v: string, ts?: Target[]): Warning[];
 export declare function browsers(lacking: string[]): string;
 export declare const support: (p: string, v: string, ts?: Target[] | undefined) => Effect.Effect<Warning[], never, never>;

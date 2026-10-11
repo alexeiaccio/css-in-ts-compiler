@@ -1,0 +1,46 @@
+import { A as Wrap, C as Keyframes, D as QueryWrap, F as cv, H as style, I as firstThatWorks, J as cx, K as within, L as global, M as cn, O as StateWrap, R as group, S as CvValue, T as PositionTry, W as token, _ as CSSStyleValue, a as DtcgUnit, am as Fallback, b as CvConfig, c as Tokens, d as createTokens, f as layers, g as CSSImageValue, h as CSSColorValue, i as DtcgShadow, j as attr, k as Steps, l as check, m as CSS, n as DtcgColor, o as DtcgValue, om as Part, p as AttrOp, q as ClassValue, r as DtcgCubicBezier, s as Overrides, sm as Style, t as CheckOverrides, u as createGlobalTheme, v as CSSUnitValue, x as CvProps } from "../theme-types-DDT3Y9_E.mjs";
+import { a as GProp, n as GFn } from "../group-types-BFUA45A7.mjs";
+import "../group-common-CgsvgmDD.mjs";
+import { properties } from "@cssints/css-grammar/mdn";
+//#region src/groups/css-fonts-4.d.ts
+type B = {
+  id: "css-fonts-4";
+  kw: {
+    "font-size-adjust": "cap-height" | "ch-width" | "ex-height" | "from-font" | "ic-height" | "ic-width";
+  };
+  fn: never;
+  unit: never;
+  media: never;
+  container: never;
+  supports: never;
+};
+type P<K extends keyof typeof properties> = GProp<B, K>;
+export declare const font: P<"font">;
+export declare const fontFamily: P<"font-family">;
+export declare const fontFeatureSettings: P<"font-feature-settings">;
+export declare const fontKerning: P<"font-kerning">;
+export declare const fontLanguageOverride: P<"font-language-override">;
+export declare const fontOpticalSizing: P<"font-optical-sizing">;
+export declare const fontPalette: P<"font-palette">;
+export declare const fontSize: P<"font-size">;
+export declare const fontSizeAdjust: P<"font-size-adjust">;
+export declare const fontStyle: P<"font-style">;
+export declare const fontSynthesis: P<"font-synthesis">;
+export declare const fontSynthesisPosition: P<"font-synthesis-position">;
+export declare const fontSynthesisSmallCaps: P<"font-synthesis-small-caps">;
+export declare const fontSynthesisStyle: P<"font-synthesis-style">;
+export declare const fontSynthesisWeight: P<"font-synthesis-weight">;
+export declare const fontVariant: P<"font-variant">;
+export declare const fontVariantAlternates: P<"font-variant-alternates">;
+export declare const fontVariantCaps: P<"font-variant-caps">;
+export declare const fontVariantEastAsian: P<"font-variant-east-asian">;
+export declare const fontVariantEmoji: P<"font-variant-emoji">;
+export declare const fontVariantLigatures: P<"font-variant-ligatures">;
+export declare const fontVariantNumeric: P<"font-variant-numeric">;
+export declare const fontVariantPosition: P<"font-variant-position">;
+export declare const fontVariationSettings: P<"font-variation-settings">;
+export declare const fontWeight: P<"font-weight">;
+export declare const fontWidth: P<"font-width">;
+export declare const paletteMix: GFn<B, "palette-mix", ", ">;
+//#endregion
+export { type AttrOp, type CSS, type CSSColorValue, type CSSImageValue, type CSSStyleValue, type CSSUnitValue, CheckOverrides, type ClassValue, type CvConfig, type CvProps, type CvValue, DtcgColor, DtcgCubicBezier, DtcgShadow, DtcgUnit, DtcgValue, type Fallback, type Keyframes, Overrides, type Part, type PositionTry, type QueryWrap, type StateWrap, type Steps, type Style, Tokens, type Wrap, attr, check, cn, createGlobalTheme, createTokens, cv, cx, firstThatWorks, global, group, layers, style, token, within };

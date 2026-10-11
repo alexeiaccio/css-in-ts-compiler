@@ -77,6 +77,23 @@ const reachOf = (p) => {
 	}
 	return r;
 };
+const tokenKeys = (owners, types, k, fn) => [
+	...owners.map((q) => `css.properties.${q}.${fn ? `${k}_function` : k}`),
+	...fn ? owners.map((q) => `css.properties.${q}.${k}`) : [],
+	...fn ? [`css.types.${k}`] : [],
+	...types.map((t) => `css.types.${t}.${k}`)
+];
+/**
+* The BCD key of a keyword or function in a value of a property, by the lookup above.
+* @param {string} p the property
+* @param {string} k the keyword, or the name of the function
+* @param {boolean} fn whether `k` is a function
+* @returns {string | undefined} the key, or `undefined` when BCD has none
+*/
+const tokenKey = (p, k, fn) => {
+	const [types, owners] = reachOf(p);
+	return tokenKeys(owners, types, k, fn).find((x) => get(x)?.__compat);
+};
 const known = /* @__PURE__ */ new WeakMap();
 function supportOf(p, v, ts = current()) {
 	let byDecl = known.get(ts);
@@ -95,12 +112,7 @@ function compute(p, v, ts) {
 	for (const { 0: tok, 1: fn, index } of code.matchAll(/(?<![\w.#-])-?[A-Za-z_][\w-]*(\()?/g)) {
 		const k = fn ? tok.slice(0, -1) : tok;
 		const rel = tok === "from" ? /([a-z-]+)\(\s*$/.exec(code.slice(0, index))?.[1] : void 0;
-		const key = (rel ? [`css.types.color.${rel}.relative_syntax`] : [
-			...owners.map((q) => `css.properties.${q}.${fn ? `${k}_function` : k}`),
-			...fn ? owners.map((q) => `css.properties.${q}.${k}`) : [],
-			...fn ? [`css.types.${k}`] : [],
-			...types.map((t) => `css.types.${t}.${k}`)
-		]).find((x) => get(x)?.__compat);
+		const key = (rel ? [`css.types.color.${rel}.relative_syntax`] : tokenKeys(owners, types, k, !!fn)).find((x) => get(x)?.__compat);
 		if (key) found.push([fn ? `${k}()` : k, key]);
 	}
 	if (/"[^"]*"|'[^']*'/.test(v)) {
@@ -145,4 +157,4 @@ const message = Effect.fn("support.message")(function* (p, v, w) {
 	return yield* Effect.sync(() => messageOf(p, v, w));
 });
 //#endregion
-export { browsers, get, lacking, lackingOf, message, messageOf, support, supportOf, targets, useTargets };
+export { browsers, get, lacking, lackingOf, message, messageOf, support, supportOf, targets, tokenKey, useTargets };

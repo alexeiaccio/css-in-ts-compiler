@@ -78,6 +78,8 @@ const plainCode = [
   "packages/cssints/src/scope.ts",
   // scope() and the members it makes (chain, call, value): sync builders that user code calls in expressions, like lib.ts's.
   "packages/cssints/src/scope-engine.ts",
+  // The members of an export group (cssints/widely-available, ...): the css.* members, checked for the tokens the group bans.
+  "packages/cssints/src/group.ts",
   // The twin's lexer and recognizer, per declaration.
   "packages/css-grammar/src/twin-core.ts",
   // @cssints/icons and @cssints/mise-en-mode: sync scope() members, which user code calls in an expression.
