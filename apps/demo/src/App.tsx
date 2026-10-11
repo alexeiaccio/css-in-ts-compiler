@@ -2,13 +2,12 @@
  * CSS-in-TS Demo App
  *
  * The 0.1 features, one place each:
- * - property functions and short names, flex() chains, cx(), media() and hover(), firstThatWorks() (this file);
+ * - property functions and short names, flex() chains, cn(), media() and hover(), firstThatWorks() (this file);
  * - cv() variants and createTokens() tokens (Card, Button, theme.ts);
  * - icons from a collection: mdi("close") (icons.ts, @cssints/icons);
  * - grid(), container(), supports(), pseudo-class wrappers, cn(), typed parts, math, selector themes (Showcase).
  */
 
-import { cx } from "cssints";
 import {
   firstThatWorks,
   flex,
@@ -34,6 +33,7 @@ import {
   style,
   token,
   transition,
+  cn,
 } from "cssints" with { type: "cssints" };
 import { mdi } from "./icons.ts" with { type: "cssints" };
 import { t } from "./theme.ts" with { type: "cssints" };
@@ -96,7 +96,7 @@ function App() {
   return (
     <div
       data-demo="page"
-      className={cx(
+      className={cn(
         ...page,
         padding("2rem"),
         minHeight(firstThatWorks("100dvh", "100vh")),
@@ -104,9 +104,9 @@ function App() {
         fontFamily("system-ui, -apple-system, sans-serif"),
       )}
     >
-      <div className={cx(...container)}>
-        <h1 className={cx(...h1)}>CSS-in-TS Demo</h1>
-        <p className={cx(...subtitle)}>Type-safe CSS with build-time atomic class generation</p>
+      <div className={cn(...container)}>
+        <h1 className={cn(...h1)}>CSS-in-TS Demo</h1>
+        <p className={cn(...subtitle)}>Type-safe CSS with build-time atomic class generation</p>
 
         <Card
           title="Button Variants"
@@ -114,18 +114,18 @@ function App() {
           footer={
             <>
               <Button variant="outline" size="sm">
-                <span className={cx(mdi("close"), marginRight("0.25rem"))} />
+                <span className={cn(mdi("close"), marginRight("0.25rem"))} />
                 Cancel
               </Button>
               <Button variant="primary" size="sm">
-                <span className={cx(mdi("content-save"), marginRight("0.25rem"))} />
+                <span className={cn(mdi("content-save"), marginRight("0.25rem"))} />
                 Save
               </Button>
             </>
           }
         >
-          <div className={cx(...column)}>
-            <div className={cx(...row)}>
+          <div className={cn(...column)}>
+            <div className={cn(...row)}>
               <Button variant="primary" size="sm">
                 Primary Small
               </Button>
@@ -136,7 +136,7 @@ function App() {
                 Primary Large
               </Button>
             </div>
-            <div className={cx(...row)}>
+            <div className={cn(...row)}>
               <Button variant="secondary">Secondary</Button>
               <Button variant="outline">Outline</Button>
               <Button variant="ghost">Ghost</Button>
@@ -149,7 +149,7 @@ function App() {
           </div>
         </Card>
 
-        <div className={cx(marginTop("1.5rem"))}>
+        <div className={cn(marginTop("1.5rem"))}>
           <Card
             variant="destructive"
             size="sm"
@@ -160,9 +160,9 @@ function App() {
           </Card>
         </div>
 
-        <div className={cx(...infoSection)}>
-          <h2 className={cx(...infoH2)}>How It Works</h2>
-          <ul className={cx(...infoList)}>
+        <div className={cn(...infoSection)}>
+          <h2 className={cn(...infoH2)}>How It Works</h2>
+          <ul className={cn(...infoList)}>
             <li>
               <strong>1. CSS Functions:</strong> Import property functions like{" "}
               <code>display()</code>, <code>p()</code>, <code>bg()</code>
@@ -172,7 +172,7 @@ function App() {
               atomic CSS classes
             </li>
             <li>
-              <strong>3. Class Merging:</strong> Use <code>cx()</code> to compose multiple class
+              <strong>3. Class Merging:</strong> Use <code>cn()</code> to compose multiple class
               names
             </li>
             <li>
@@ -182,42 +182,42 @@ function App() {
           </ul>
         </div>
 
-        <div className={cx(marginTop("2rem"))}>
-          <h2 className={cx(...h2)}>Tokens</h2>
-          <div className={cx(...row)}>
-            <p data-swatch="default" className={cx(...swatch)}>
+        <div className={cn(marginTop("2rem"))}>
+          <h2 className={cn(...h2)}>Tokens</h2>
+          <div className={cn(...row)}>
+            <p data-swatch="default" className={cn(...swatch)}>
               The accent token
             </p>
             <div style={style(token.set(accent, "#dc2626"))}>
-              <p data-swatch="set" className={cx(...swatch)}>
+              <p data-swatch="set" className={cn(...swatch)}>
                 The same class, accent set in a style prop
               </p>
             </div>
           </div>
         </div>
 
-        <div className={cx(marginTop("2rem"))}>
-          <h2 className={cx(...h2)}>Feature tour</h2>
+        <div className={cn(marginTop("2rem"))}>
+          <h2 className={cn(...h2)}>Feature tour</h2>
           <Showcase />
         </div>
 
-        <div className={cx(marginTop("2rem"))}>
-          <h2 className={cx(...h2)}>Devtools cases</h2>
+        <div className={cn(marginTop("2rem"))}>
+          <h2 className={cn(...h2)}>Devtools cases</h2>
           <Inspect />
         </div>
 
-        <div className={cx(marginTop("2rem"))}>
-          <h2 className={cx(...h2)}>Key Features</h2>
-          <div className={cx(...featureGrid)}>
+        <div className={cn(marginTop("2rem"))}>
+          <h2 className={cn(...h2)}>Key Features</h2>
+          <div className={cn(...featureGrid)}>
             {[
               { title: "Zero Runtime", desc: "CSS generated at build time" },
               { title: "Type Safety", desc: "Full TypeScript inference" },
               { title: "Atomic CSS", desc: "Minimal bundle, maximum reuse" },
               { title: "Build-Time", desc: "The plugin evaluates the calls at build time" },
             ].map((feature) => (
-              <div key={feature.title} className={cx(...featureCard)}>
-                <h3 className={cx(...featureTitle)}>{feature.title}</h3>
-                <p className={cx(...featureDesc)}>{feature.desc}</p>
+              <div key={feature.title} className={cn(...featureCard)}>
+                <h3 className={cn(...featureTitle)}>{feature.title}</h3>
+                <p className={cn(...featureDesc)}>{feature.desc}</p>
               </div>
             ))}
           </div>

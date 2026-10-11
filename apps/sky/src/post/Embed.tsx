@@ -1,4 +1,3 @@
-import { cx } from "cssints";
 import {
   aspectRatio,
   bg,
@@ -117,7 +116,7 @@ const more = cn(
 function Tiles(props: { media: Media & { tiles: Tile[] } }) {
   const n = () => gridOf(props.media);
   return (
-    <div class={cx(box, grid({ n: n() }))}>
+    <div class={cn(box, grid({ n: n() }))}>
       <For each={props.media.tiles}>
         {(tile, i) => (
           <a
@@ -220,7 +219,7 @@ const play = cn(
 function Video(props: { media: Media & { kind: "video" }; href: string }) {
   return (
     <a
-      class={cx(box, block)}
+      class={cn(box, block)}
       href={props.href}
       target="_blank"
       rel="noopener noreferrer"

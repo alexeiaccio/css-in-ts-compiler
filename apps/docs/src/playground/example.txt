@@ -1,4 +1,3 @@
-import { cx } from "cssints";
 import { bg, color, cn, cv, flex, hover, media, p, style, token } from "cssints" with { type: "cssints" };
 
 const md = media("(width >= 40rem)");
@@ -10,7 +9,7 @@ const button = cv({
 });
 
 export const Row = ({ wide, on }: { wide?: boolean; on?: boolean }) => (
-	<div className={cx(flex().alignItems("center").gap(2), on && p(1))} style={style(token.set(accent, "#dc2626"))}>
+	<div className={cn(flex().alignItems("center").gap(2), on && p(1))} style={style(token.set(accent, "#dc2626"))}>
 		<button className={button({ wide })}>Save</button>
 	</div>
 );

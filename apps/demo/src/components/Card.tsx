@@ -1,4 +1,3 @@
-import { cx } from "cssints";
 import {
   bg,
   border,
@@ -57,12 +56,12 @@ export type CardProps = {
 export function Card({ variant, size, title, description, children, footer }: CardProps) {
   return (
     <div className={root({ variant: variant ?? "default", size: size ?? "md" })}>
-      <div className={cx(...headerSlot)}>
-        <h3 className={cx(...titleSlot)}>{title}</h3>
-        {description && <p className={cx(...descSlot)}>{description}</p>}
+      <div className={cn(...headerSlot)}>
+        <h3 className={cn(...titleSlot)}>{title}</h3>
+        {description && <p className={cn(...descSlot)}>{description}</p>}
       </div>
-      <div className={cx(...contentSlot)}>{children}</div>
-      {footer && <div className={cx(...footerSlot)}>{footer}</div>}
+      <div className={cn(...contentSlot)}>{children}</div>
+      {footer && <div className={cn(...footerSlot)}>{footer}</div>}
     </div>
   );
 }

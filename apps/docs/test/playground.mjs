@@ -43,7 +43,7 @@ for (const text of ["", "ünïcode ✓ 日本語", "playground.tsx:0:0", "𝒳 e
 
 // ---------- the cases
 const readme = readFileSync(join(repo, "README.md"), "utf8");
-const example = /```tsx\n(import \{ cx \} from "cssints";[\s\S]*?)\n```/.exec(readme)?.[1];
+const example = /```tsx\n(import \{ bg, color, cn, cv[\s\S]*?)\n```/.exec(readme)?.[1];
 assert.ok(example, "the README has the example");
 assert.equal(
   readFileSync(join(root, "src/playground/example.txt"), "utf8"),
@@ -275,7 +275,10 @@ try {
     reference[0].css.trim(),
   );
   await page.getByRole("tab", { name: "Module" }).click();
-  assert.match(await page.locator("[role=tabpanel] pre").textContent(), /cx\("_\w+ _\w+ _\w+"/);
+  assert.match(
+    await page.locator("[role=tabpanel] pre").textContent(),
+    /__cx\(\[\], "_\w+ _\w+ _\w+"/,
+  );
   await page.getByRole("tab", { name: "Shipped CSS" }).click();
   assert.match(await page.locator("[role=tabpanel] pre").textContent(), /@layer _\.k/);
 

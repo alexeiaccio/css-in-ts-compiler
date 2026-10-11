@@ -303,7 +303,7 @@ ${feature(
 )}
 ${feature(
   "Nothing of it at runtime",
-  `Each call is replaced by a class string. Only ${code("cx")} and the few lines behind ${code("cv")} ship, and they just join class names.`,
+  `Each call is replaced by a class string. Only the few lines behind ${code("cn")} with runtime arguments and ${code("cv")} ship, and they just join class names.`,
   "without-runtime/",
   "Without runtime",
 )}
