@@ -91,7 +91,46 @@ reset({ media: true, prose: true });
 - **Once.** Each block is a global rule identified by its text: `reset()` in two modules, or `reset()` and
   `reset({ media: true })`, print the base once.
 
+## Baseline variants
+
+`@cssints/reset` is the whole reset. `@cssints/reset/<group>` is the same call with the declarations of a
+[Baseline group of cssints](../../docs/API.md) only (`inGroup` of `cssints/plugin`, from the group data of cssints):
+`widely-available`, `newly-available`, `baseline-2015` to `baseline-2026` (what was Baseline at the end of that year), and
+each of them `/with-downstream` (also checked against Opera, Samsung Internet, Android WebView, UC and QQ). A
+declaration whose property or value the group does not have is left out, and a rule left with no declaration goes.
+`limited-availability` is everything, as `@cssints/reset`. `not-discouraged` has no variant: it bans three properties and
+four keywords that the reset does not use. A name that is no Baseline group is a type error.
+
+```ts
+import { reset } from "@cssints/reset/widely-available" with { type: "cssints" };
+
+reset({ media: true, prose: true });
+```
+
+What each variant drops (written by `node test/reset.mjs --write`, checked by `bun run test`):
+
+<!-- variants -->
+
+| Dropped                                                                                                                                                                  | Variants                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| nothing                                                                                                                                                                  | `limited-availability`                                                                                                                                                                                                                                         |
+| `text-size-adjust: none`, `text-wrap: balance`, `text-wrap: pretty`                                                                                                      | `widely-available`, `widely-available/with-downstream`, `baseline-2020`, `baseline-2020/with-downstream`, `baseline-2021`, `baseline-2021/with-downstream`, `baseline-2022`, `baseline-2022/with-downstream`, `baseline-2023`, `baseline-2023/with-downstream` |
+| `text-size-adjust: none`, `text-wrap: pretty`                                                                                                                            | `newly-available`, `newly-available/with-downstream`, `baseline-2024`, `baseline-2024/with-downstream`, `baseline-2025`, `baseline-2025/with-downstream`, `baseline-2026`, `baseline-2026/with-downstream`                                                     |
+| `text-size-adjust: none`, `overflow-wrap: break-word`, `text-wrap: balance`, `text-wrap: pretty`, `margin-block-start: 1em`, `max-inline-size: 100%`, `block-size: auto` | `baseline-2015`, `baseline-2015/with-downstream`, `baseline-2016`, `baseline-2016/with-downstream`, `baseline-2017`, `baseline-2017/with-downstream`                                                                                                           |
+| `text-size-adjust: none`, `text-wrap: balance`, `text-wrap: pretty`, `margin-block-start: 1em`, `max-inline-size: 100%`, `block-size: auto`                              | `baseline-2018`, `baseline-2018/with-downstream`, `baseline-2019`, `baseline-2019/with-downstream`                                                                                                                                                             |
+
+<!-- /variants -->
+
+A dropped declaration is not replaced. `text-wrap: balance` and `pretty` are progressive: without them a heading wraps
+as it always did. The unprefixed `text-size-adjust` is only for browsers that do not read `-webkit-text-size-adjust`,
+which every variant keeps (a property cssints has no member for is in every group).
+
 ## Limits
+
+- **The selectors are not checked.** The group data has the pseudo-classes without arguments (`:hover`), and no
+  functional pseudo-class (`:where()`, `:not()`), pseudo-element (`::before`, `::backdrop`), attribute selector or
+  combinator. A variant keeps every selector as written, so `baseline-2015` to `baseline-2020` keep rules with `:where()`
+  (Baseline 2021) and `:not()` with a selector list, and drop only their declarations.
 
 - `reset` is a contract name: a `layers("reset")` without `before`, or another plugin that declares `reset` after the
   engine's layers, is a build error.
@@ -100,7 +139,8 @@ reset({ media: true, prose: true });
   that call it, and leaves with them.
 
 ```bash
-cd packages/reset && bun run test   # fixtures through the engine (the order of the sheet, the flags), and the type test via bun run typecheck
+cd packages/reset && bun run test   # fixtures through the engine (the order of the sheet, the flags, each variant), and the type test via bun run typecheck
+cd packages/reset && bun run variants   # rewrite src/groups after a bun run groups in packages/cssints
 ```
 
 ## Credits

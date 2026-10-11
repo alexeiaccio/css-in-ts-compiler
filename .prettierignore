@@ -20,6 +20,7 @@ packages/css-grammar/src/css.ts
 packages/css-grammar/src/mdn.ts
 packages/cssints/src/groups-data.ts
 packages/cssints/src/groups
+packages/reset/src/groups
 packages/css-grammar/src/functions.ts
 packages/css-grammar/src/keywords.ts
 packages/css-grammar/src/longhands.ts

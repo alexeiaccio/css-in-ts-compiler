@@ -910,7 +910,7 @@ More plugins on `scope()`, each a package of its own with its rules and limits i
 | [`@cssints/fluid`](../packages/fluid/README.md) | `fluid(min, max, { from?, to?, zoom? })`, `fluid.container(...)` | A `clamp()` that grows between two widths, computed at build time; a range that fails WCAG 1.4.4 is a build error |
 | [`@cssints/layout`](../packages/layout/README.md) | `stack()`, `cluster()`, `sidebar()`, `switcher()`, `cover()`, `autoGrid()` | Every Layout primitives as chain members |
 | [`@cssints/fonts`](../packages/fonts/README.md) | `font(family, { provider, ... })` → `.family()`, `.trim()` | `@font-face` and a metric-matched fallback face; cap-height trimming by `text-box`, else capsize's margins |
-| [`@cssints/reset`](../packages/reset/README.md) | `reset({ media?, prose? })` | A modern reset in a top-level `@layer reset` declared before the engine's, below every style |
+| [`@cssints/reset`](../packages/reset/README.md) | `reset({ media?, prose? })` | A modern reset in a top-level `@layer reset` declared before the engine's, below every style; `@cssints/reset/<baseline group>` keeps only the declarations of that group |
 | [`@cssints/tokens`](../packages/tokens/README.md) | `/open-props`, `/radix`, `/flexoki`, `/reasonable-colors` | DTCG data for `createTokens` |
 | [`@cssints/gradient`](../packages/gradient/README.md) | `gradient(kind, direction, from, to, easing?, stops?)` | Eased colour stops mixed in oklab at build time |
 | [`@cssints/motion`](../packages/motion/README.md) | `motion().preset().duration().delay().easing()` | Animation presets over `keyframes()`, with reduced motion |
