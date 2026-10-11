@@ -31,6 +31,8 @@ export const standIn = Effect.fnUntraced(function* (
   rooted: boolean,
 ): Effect.fn.Return<boolean> {
   const registry = yield* Registry;
+  // a terminal token (tui.ts runs on its own tables) reaches no browser: no runtime, no warning (cssints-ti8v)
+  if (registry.defs === registry.terminal?.defs) return false;
   let why: string | undefined;
   if (kind !== "color") why = "computes colours only";
   else if (!inherits) why = "does not write tokens that do not inherit";

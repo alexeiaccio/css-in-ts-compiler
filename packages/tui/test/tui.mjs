@@ -85,7 +85,9 @@ assert.ok(!text.includes("cssints"), text);
 assert.equal(plugins[0].api.sheet([`${root}/card.ts`]).includes("._"), false);
 // the terminal modules add no CSS at all: no @property, no :root rule, no theme (theme.ts as a client module too: its
 // token set ships as `var(--color-bg)` strings, which name no web token here)
-await code("theme.ts");
+// and no browser runtime: the derived token color.hover (resolved above as #303140) registers none (cssints-ti8v)
+assert.ok(!(await code("theme.ts")).includes("runtime/derived"));
+assert.ok(!text.includes("runtime/derived"), text);
 const tuiSheet = plugins[0].api.sheet([`${root}/card.ts`, `${root}/theme.ts`]);
 assert.ok(!/--color|@property|light/.test(tuiSheet), tuiSheet);
 // the web module keeps its own @property rules and theme
