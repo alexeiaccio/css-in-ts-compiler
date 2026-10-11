@@ -205,6 +205,45 @@ The parity test runs the fixtures of the fourteen packages and of `tokens` that 
 the failures of the engine included: the same message, file, line and column), and projects of several files (a module of tokens, a plain
 module, a barrel, a directory and `..`, an error in the imported file, a package in a second file).
 
+## Examples, and the reset in the preview (cssints-1fq0)
+
+**Example projects.** `apps/docs/examples/<id>/` holds one project per docs page: files of TypeScript, the entry named `index.ts(x)`, the
+others by name. `<id>` is the slug of the page; `csssky` is the project the playground opens with. The page's side is `examples.ts`
+(`import.meta.glob` with `?raw`: a chunk per file, loaded when a project opens, only the list of ids is in the playground's chunk).
+`plugin/markdown.ts` writes an "Open in playground" link at the top of each page that has a directory, with the URL `playground#example=<slug>`
+(`share.ts` makes and reads it: the link is short, and the page's first run replaces the hash with `#files=`, so Copy link is the full share).
+The docs' entry chunk is not touched by it: the link is in the page's html, which is a chunk of its own. The files are not linted or
+type-checked with the docs (`vite.config.ts` `inputs`): they are the playground's input, and Monaco checks the open one.
+`test/playground.mjs` runs each one through the Node plugin and the worker (the same sheet, classes and warnings, no error), and lists the
+pages that have none, with the reason: nothing a browser could run (a repository map, thanks, a licence, release notes, the dev
+server's tools, an option of the Vite plugin) or the module reads files (`icons`, `fonts`, `placeholder`).
+
+**csssky as the default.** `examples/csssky` is a slice of apps/csssky: its tokens and themes (`theme.ts`, cut to what the slice reads, with the
+dim and dark overrides), the breakpoints, the shell, the feed, the post card with its link card, and six posts of `discover.json` as the data
+file `posts.ts` (the API's facets are byte ranges: `model.ts` cuts the text by them). The styles are csssky's, line for line. What changed is
+Solid: `For`, `Show`, `Switch` are `.map` and `&&`, there are no signals (the preview runs a component once), `class` is what `h` takes, and
+the icons (`@cssints/icons` reads files) are characters. Left out: moderation, images, avatars (they are remote), the quote, the focus look.
+A helper module that takes parameters (`stack(gap)`) cannot be a file here: the playground evaluates every file, and the call inside the
+function has no `gap`; the examples use constants.
+
+**The reset in the preview.** A real project calls `reset()`: the entry of csssky does (`@cssints/reset` runs in the browser: it is one of the
+fourteen), so the layer is in the sheet and the CSS tab. A snippet that does not (a docs page's example) would have drawn on the browser's own
+margins, which no project has. Chosen: the preview applies the reset of the package as a layer below the sheet, made by compiling `reset()`
+once in the worker (no copy of the rules to keep in step), and says so with a switch under the preview ("Apply @cssints/reset", on), which
+is there only when the sheet has no `@layer reset`. Not chosen: adding `reset()` to every compile (the CSS tab would show what the code
+does not say), and a note with no switch (the reader could not see the difference). The page's own rules of the frame (a 16 px margin and a
+font) moved into the lowest layer, `@layer preview`, so a project's `global("body", margin("0"))` and the reset both win over them; before,
+they were unlayered and won.
+
+**What else changed in the preview.** `h` sets a style object with `setProperty`, so `style(token.set(accent, "#dc2626"))` (a custom
+property) works: the README example's button was blue in the preview, and is red, as the code says. The frame gets the display settings'
+`light`, `dim` or `dark` class on its `<html>`, which csssky's themes read (`:root.dim`), and follows a change.
+
+**An engine finding.** The registry kept the `@property` of a token after its file was gone, so opening a second project whose file of another
+name declared `--color-accent` with another value failed ("already declared with another @property, in theme.ts"). Each compile of the
+playground clears the tokens of the last one (`compile.ts` `edit`). The same stale state is in a dev server that renames a file; the
+engine is unchanged.
+
 ## Decision and plan
 
 **Go.** Done in this ticket:

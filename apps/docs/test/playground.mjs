@@ -1,22 +1,30 @@
 // The playground: the engine in a browser worker makes what the Node engine makes. The README example, every fixture of
 // packages/cssints/test/fixtures that imports only "cssints" (and its plugin modules), the fixtures of the plugin packages that run
-// in a browser, and projects of several files go through the real plugin in Node (test/playground-reference.mjs, a child
-// process) and through the worker in Chrome: the same sheet, the same classes, the same located error. Then the page: Monaco loads
-// with the types of cssints, a hover shows a type, a type error is marked, files are added and switched, the preview renders with
-// no console error, an error is marked in the editor, the hash holds all the files and gives them back. (Skipped without Chrome,
-// like browser.mjs.)
+// in a browser, projects of several files and every example project of apps/docs/examples (one per docs page, and csssky's slice)
+// go through the real plugin in Node (test/playground-reference.mjs, a child process) and through the worker in Chrome: the same
+// sheet, the same classes, the same located error, and no error in an example. Every page has an example, but the pages that
+// cannot have one (listed here). Then the page: it opens csssky's slice with the reset of the project in the preview, a project
+// without reset() gets the reset of @cssints/reset (a switch), the picker and the link of a docs page open an example, Monaco
+// loads with the types of cssints, a hover shows a type, a type error is marked, files are added and switched, the preview renders
+// with no console error, an error is marked in the editor, the hash holds all the files and gives them back. (Skipped without
+// Chrome, like browser.mjs.)
 //   node test/playground.mjs
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 
 import { createServer } from "vite";
 
 import { PLUGINS, TOKEN_SETS } from "../plugin/playground.ts";
 import { createHash as sha1 } from "../src/playground/shims/crypto.ts";
+
+// the pages are listed without the type-check of their code blocks (read when plugin/markdown.ts loads)
+process.env.DOCS_HOVERS = "0";
+const { buildPages } = await import("../plugin/markdown.ts");
 
 const root = join(import.meta.dirname, "..");
 const repo = join(root, "../..");
@@ -45,11 +53,77 @@ for (const text of ["", "ünïcode ✓ 日本語", "playground.tsx:0:0", "𝒳 e
 const readme = readFileSync(join(repo, "README.md"), "utf8");
 const example = /```tsx\n(import \{ bg, color, cn, cv[\s\S]*?)\n```/.exec(readme)?.[1];
 assert.ok(example, "the README has the example");
-assert.equal(
-  readFileSync(join(root, "src/playground/example.txt"), "utf8"),
-  `${example}\n`,
-  "example.txt is the README's example",
+
+// ---------- the examples: a project per docs page, csssky's slice, the README's example (the Install page's)
+const examples = join(root, "examples");
+const entryFirst = (a, b) =>
+  Number(/^index\./.test(b)) - Number(/^index\./.test(a)) || a.localeCompare(b);
+const projects = Object.fromEntries(
+  readdirSync(examples).map((id) => [
+    id,
+    Object.fromEntries(
+      readdirSync(join(examples, id))
+        .sort(entryFirst)
+        .map((n) => [n, readFileSync(join(examples, id, n), "utf8")]),
+    ),
+  ]),
 );
+assert.equal(
+  projects.install["index.tsx"],
+  `${example}\n`,
+  "the Install page's example is the README's",
+);
+// the pages with no example, and why: nothing a browser could run or show
+const SKIP = {
+  layout: "a map of the repository",
+  development: "commands for contributors",
+  credits: "a list of thanks",
+  license: "a licence text",
+  changelog: "release notes",
+  debugging: "needs a dev server and a tracing backend",
+  "for-agents": "installs agent skills",
+  "api-reference": "the index of the reference pages",
+  "plugin-packages": "a table of packages",
+  "icons-cssints-icons": "reads icon files from disk",
+  "publishing-a-library": "a package.json and a build",
+  "leaving-files-alone-exclude": "an option of the Vite plugin",
+  "debugging-from-a-class-to-its-call": "the dev server's source map",
+  "debugging-the-devtools-overlay": "the dev server's overlay",
+  "debugging-traces-of-the-engine": "a tracing backend",
+  "checks-for-tools-cssints-check": "a function for tools that call the engine",
+  "tui-cssints-tui": "draws in a terminal, not in a page",
+  "export-groups-cssints-widely-available-cssints-css-grid-2":
+    "the playground has no export groups",
+  "cssints-devtools": "the dev overlay",
+  "cssints-fonts": "reads and downloads font files",
+  "cssints-icons": "reads icon files from disk",
+  "cssints-mcp": "a server for agents",
+  "cssints-placeholder": "reads image files from disk",
+  "cssints-tui": "draws in a terminal, not in a page",
+};
+const pages = await buildPages("/");
+const missing = pages.filter(
+  (p) => !Object.hasOwn(projects, p.slug) && !Object.hasOwn(SKIP, p.slug),
+);
+assert.deepEqual(
+  missing.map((p) => p.slug),
+  [],
+  "every page has an example, or is skipped here",
+);
+assert.deepEqual(
+  Object.keys(SKIP).filter(
+    (slug) => Object.hasOwn(projects, slug) || !pages.some((p) => p.slug === slug),
+  ),
+  [],
+  "a skipped page is a page and has no example",
+);
+assert.deepEqual(
+  Object.keys(projects).filter((id) => id !== "csssky" && !pages.some((p) => p.slug === id)),
+  [],
+  "every example is a page's (or csssky's)",
+);
+for (const [id, files] of Object.entries(projects))
+  assert.match(Object.keys(files)[0], /^index\.tsx?$/, `${id}: the entry is index.ts(x)`);
 
 // fixtures that import "cssints" and the modules of the playground only
 const known = `cssints(/frame|/surface|/plugin)?|@cssints/(${PLUGINS.join("|")}|tokens/(${TOKEN_SETS.join("|")}))`;
@@ -66,7 +140,7 @@ const alone = (dir) =>
 const fixtures = join(repo, "packages/cssints/test/fixtures");
 // What the worker cannot do: the evaluator of Node gives a module a DOM (happy-dom), a worker has none.
 const DOM = new Set(["dom-side-effect.ts", "runtime-global-ok.ts", "runtime-globals-ok.ts"]);
-const ENTRY = "playground.tsx";
+const ENTRY = "index.tsx";
 const one = (name, source) => ({ name, files: { [ENTRY]: source } });
 const project = (name, files) => ({ name, files });
 const used = 'import { bg, cn, p } from "cssints" with { type: "cssints" };\n';
@@ -80,6 +154,7 @@ const plugins = PLUGINS.flatMap((n) =>
 );
 const cases = [
   one("README example", example),
+  ...Object.entries(projects).map(([id, files]) => project(`example ${id}`, files)),
   ...alone(fixtures)
     .filter((f) => !DOM.has(f.name))
     .map((f) => one(f.name, f.source)),
@@ -145,7 +220,6 @@ const browser = await chromium.launch({ channel: "chrome" }).catch((e) => {
   console.log(`playground: skipped, Chrome did not start (${String(e).split("\n")[0]})`);
   process.exit(0);
 });
-process.env.DOCS_HOVERS = "0";
 const server = await createServer({ root, logLevel: "error", server: { port: 0 } });
 await server.listen();
 const base = server.resolvedUrls.local[0];
@@ -173,7 +247,59 @@ try {
   await page.locator(".monaco-editor").waitFor();
   await types(/Types: ok/);
   console.log(
-    `playground: Monaco and the first type check of the README example, ${Date.now() - t0} ms from the navigation (${(await page.locator("[data-types]").textContent()).trim()})`,
+    `playground: Monaco and the first type check of csssky's slice, ${Date.now() - t0} ms from the navigation (${(await page.locator("[data-types]").textContent()).trim()})`,
+  );
+
+  // the page opens csssky's slice, which calls reset() itself: the sheet has the layer, the preview adds none of its own
+  const sky = page.frameLocator("iframe[title=Preview]");
+  await sky.getByRole("article").filter({ hasText: "Art & Nature" }).waitFor();
+  assert.equal(await sky.locator("article").count(), 6, "six posts, from the fixtures");
+  assert.equal(
+    await page.getByLabel("Apply @cssints/reset").count(),
+    0,
+    "no switch: the project resets",
+  );
+  assert.deepEqual(
+    await page
+      .getByRole("tab")
+      .evaluateAll((els) => els.map((e) => e.textContent).filter((t) => /\.tsx?$/.test(t))),
+    [
+      "index.tsx",
+      "feed.tsx",
+      "layout.ts",
+      "model.ts",
+      "post.tsx",
+      "posts.ts",
+      "shell.tsx",
+      "theme.ts",
+    ],
+  );
+  const skySheet = await sky
+    .locator("style")
+    .evaluateAll((els) => els.map((e) => e.textContent).join("\n"));
+  assert.match(skySheet, /@layer reset \{/);
+  assert.equal(await sky.locator("body").evaluate((el) => getComputedStyle(el).margin), "0px");
+  // the display settings reach the preview: csssky's `.dim` theme, on <html> of the page, is on the preview's too
+  await page.evaluate(() => document.documentElement.classList.add("dark", "dim"));
+  await sky.locator("html.dim").waitFor();
+  assert.equal(
+    await sky.locator("html").evaluate((el) => getComputedStyle(el).backgroundColor),
+    "rgb(26, 26, 26)",
+  );
+  await page.evaluate(() => document.documentElement.classList.remove("dark", "dim"));
+  await sky.locator("html:not(.dim)").waitFor();
+  await page.screenshot({ path: join(out, "playground-csssky.png") });
+
+  // the example projects the page loads are the files on disk, the entry first
+  const loaded = await page.evaluate(async () => {
+    const { ids, load } = await import("/src/playground/examples.ts");
+    return Object.fromEntries(
+      await Promise.all(ids.map(async (id) => [id, Object.entries(await load(id))])),
+    );
+  });
+  assert.deepEqual(
+    loaded,
+    Object.fromEntries(Object.entries(projects).map(([id, f]) => [id, Object.entries(f)])),
   );
 
   // parity: every case, in order, through the worker of the page
@@ -229,6 +355,15 @@ try {
     `playground: ${cases.length} cases, ${failed} fail in both, ${different.length} differ`,
   );
   assert.deepEqual(different, []);
+  assert.deepEqual(
+    cases.flatMap((c, i) =>
+      c.name.startsWith("example ") && !results[i].ok
+        ? [`${c.name}: ${results[i].errors[0].message}`]
+        : [],
+    ),
+    [],
+    "no example has an error",
+  );
   assert.ok(failed > 5 && failed < results.length - 5, "both outcomes are covered");
   const syntax = results[cases.findIndex((c) => c.name === "syntax error")];
   assert.ok(!syntax.ok && syntax.errors[0].line === 2, "a syntax error is located");
@@ -252,7 +387,11 @@ try {
     ],
   );
 
-  // the page: the preview of the README example
+  // the picker opens the Install page's example, the README's: a project that does not call reset() gets the reset of
+  // @cssints/reset in the preview, in a layer below the page's own rules, and a switch says so
+  await page.getByLabel("Example").selectOption("install");
+  await page.getByRole("tab", { name: "index.tsx" }).waitFor();
+  await compiled();
   const frame = page.frameLocator("iframe[title=Preview]");
   const save = frame.getByRole("button", { name: "Save" });
   await save.waitFor();
@@ -261,12 +400,32 @@ try {
     return { color: c.color, background: c.backgroundColor, padding: c.paddingTop };
   });
   assert.equal(style.color, "rgb(255, 255, 255)");
-  assert.equal(style.background, "rgb(37, 99, 235)"); // bg(accent): #2563eb
+  assert.equal(style.background, "rgb(220, 38, 38)"); // bg(accent), which the row's style sets to #dc2626 (it is #2563eb otherwise)
   assert.equal(style.padding, "8px"); // p(2)
   const sheet = await frame
     .locator("style")
     .evaluateAll((els) => els.map((e) => e.textContent).join("\n"));
   assert.match(sheet, /@layer _\.k, _\.a/);
+  const apply = page.getByLabel("Apply @cssints/reset");
+  assert.ok(await apply.isChecked());
+  assert.match(sheet, /@layer reset \{/);
+  // the frame is a new document after each change of the switch: read it until it is the one that was asked for
+  const margin = async (want) => {
+    for (let i = 0; i < 100; i++) {
+      const got = await frame
+        .locator("body")
+        .evaluate((el) => getComputedStyle(el).margin)
+        .catch(() => "");
+      if (got === want) return;
+      await sleep(100);
+    }
+    assert.equal(await frame.locator("body").evaluate((el) => getComputedStyle(el).margin), want);
+  };
+  await margin("0px");
+  await apply.uncheck();
+  await margin("16px"); // the page's own margin, with nothing below it
+  await apply.check();
+  await margin("0px");
 
   // the tabs hold the same text as the compile: the CSS, and the module with its sites replaced
   await page.getByRole("tab", { name: "CSS", exact: true }).click();
@@ -423,6 +582,22 @@ try {
   assert.match(await page.locator("body").textContent(), /took more than 15 seconds/);
   await type('import { p } from "cssints" with { type: "cssints" };\nexport const a = p(4);\n');
   await compiled();
+
+  // a docs page links to its example, and the playground opens it with all its files
+  const docs = await context.newPage();
+  docs.on("pageerror", (e) => problems.push(`pageerror: ${e}`));
+  await docs.goto(`${base}themes`);
+  const link = docs.getByRole("link", { name: "Open in playground" });
+  assert.match(await link.getAttribute("href"), /\/playground#example=themes$/);
+  await link.waitFor();
+  await docs.screenshot({ path: join(out, "docs-example-link.png") });
+  await link.click();
+  await docs.getByRole("tab", { name: "theme.ts" }).waitFor();
+  await docs.getByRole("tab", { name: "index.tsx" }).waitFor();
+  assert.equal(await docs.getByLabel("Example").inputValue(), "themes");
+  await docs.frameLocator("iframe[title=Preview]").getByText("Brand theme").waitFor();
+  await docs.screenshot({ path: join(out, "playground-from-docs.png") });
+  await docs.close();
 
   await page.screenshot({ path: join(out, "playground.png") });
   assert.deepEqual(problems, []);
