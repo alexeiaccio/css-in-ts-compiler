@@ -1,0 +1,42 @@
+import { A as Wrap, C as Keyframes, D as QueryWrap, F as cv, H as style, I as firstThatWorks, K as within, L as global, M as cn, O as StateWrap, R as group, S as CvValue, T as PositionTry, W as token, _ as CSSStyleValue, a as DtcgUnit, am as Fallback, b as CvConfig, c as Tokens, d as createTokens, f as layers, g as CSSImageValue, h as CSSColorValue, i as DtcgShadow, j as attr, k as Steps, l as check, m as CSS, n as DtcgColor, o as DtcgValue, om as Part, p as AttrOp, q as ClassValue, r as DtcgCubicBezier, s as Overrides, sm as Style, t as CheckOverrides, u as createGlobalTheme, v as CSSUnitValue, x as CvProps } from "../theme-types-Bqv0Ggz_.mjs";
+import { a as GProp } from "../group-types-9ttphdku.mjs";
+import "../group-common-9zpBxfUF.mjs";
+import { properties } from "@cssints/css-grammar/mdn";
+//#region src/groups/css-scroll-snap-1.d.ts
+type B = {
+  id: "css-scroll-snap-1";
+  kw: Record<never, never>;
+  fn: never;
+  unit: never;
+  media: never;
+  container: never;
+  supports: never;
+};
+type P<K extends keyof typeof properties> = GProp<B, K>;
+export declare const scrollMargin: P<"scroll-margin">;
+export declare const scrollMarginBlock: P<"scroll-margin-block">;
+export declare const scrollMarginBlockEnd: P<"scroll-margin-block-end">;
+export declare const scrollMarginBlockStart: P<"scroll-margin-block-start">;
+export declare const scrollMarginBottom: P<"scroll-margin-bottom">;
+export declare const scrollMarginInline: P<"scroll-margin-inline">;
+export declare const scrollMarginInlineEnd: P<"scroll-margin-inline-end">;
+export declare const scrollMarginInlineStart: P<"scroll-margin-inline-start">;
+export declare const scrollMarginLeft: P<"scroll-margin-left">;
+export declare const scrollMarginRight: P<"scroll-margin-right">;
+export declare const scrollMarginTop: P<"scroll-margin-top">;
+export declare const scrollPadding: P<"scroll-padding">;
+export declare const scrollPaddingBlock: P<"scroll-padding-block">;
+export declare const scrollPaddingBlockEnd: P<"scroll-padding-block-end">;
+export declare const scrollPaddingBlockStart: P<"scroll-padding-block-start">;
+export declare const scrollPaddingBottom: P<"scroll-padding-bottom">;
+export declare const scrollPaddingInline: P<"scroll-padding-inline">;
+export declare const scrollPaddingInlineEnd: P<"scroll-padding-inline-end">;
+export declare const scrollPaddingInlineStart: P<"scroll-padding-inline-start">;
+export declare const scrollPaddingLeft: P<"scroll-padding-left">;
+export declare const scrollPaddingRight: P<"scroll-padding-right">;
+export declare const scrollPaddingTop: P<"scroll-padding-top">;
+export declare const scrollSnapAlign: P<"scroll-snap-align">;
+export declare const scrollSnapStop: P<"scroll-snap-stop">;
+export declare const scrollSnapType: P<"scroll-snap-type">;
+//#endregion
+export { type AttrOp, type CSS, type CSSColorValue, type CSSImageValue, type CSSStyleValue, type CSSUnitValue, CheckOverrides, type ClassValue, type CvConfig, type CvProps, type CvValue, DtcgColor, DtcgCubicBezier, DtcgShadow, DtcgUnit, DtcgValue, type Fallback, type Keyframes, Overrides, type Part, type PositionTry, type QueryWrap, type StateWrap, type Steps, type Style, Tokens, type Wrap, attr, check, cn, createGlobalTheme, createTokens, cv, firstThatWorks, global, group, layers, style, token, within };

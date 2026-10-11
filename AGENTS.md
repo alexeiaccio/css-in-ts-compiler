@@ -60,6 +60,7 @@ cd packages/cssints && node test/trace.mjs   # CSSINTS_TRACE=otlp against an in-
                                               # (docker run -d --rm -p 16686:16686 -p 4318:4318 jaegertracing/all-in-one; skips without it). Debug any build: CSSINTS_TRACE=otlp bun run build
 cd packages/cssints && node bench/lsp.mjs     # editor latency on the demo's Button.tsx over tsgo's language server
 cd packages/cssints && bun run members        # regenerate src/members.ts (the names of "cssints" in user code)
+cd packages/cssints && bun run groups         # regenerate src/groups/<id>.ts and src/groups-data.ts (cssints/widely-available, cssints/css-grid-2, ...: web-features, @webref/css 6, BCD); then bun run build
 bun run typecheck                             # per package: tsgo -p tsconfig.json --noEmit + effect-tsgo diagnostics (every one an error, tsconfig.effect.json); tools/ai-automation: tsgo; apps/demo, apps/sky and apps/docs: tsgo and tsc 5.9
 bun run diff:check                            # the lines added since master, linted by the anti-slop rules, plus key-file changes (bun.lock, vite.config.ts, ...); exit 1 on a warning
 cd packages/tui && bun run test               # the system theme (node test/system.ts), cssints/tui through the plugin (node --conditions=development test/tui.mjs), the OpenTUI adapter under Bun (test/render.ts), the bomb.sh adapter (node test/bomb.ts)

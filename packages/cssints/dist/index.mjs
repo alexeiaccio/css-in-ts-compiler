@@ -1,8 +1,8 @@
 import { a as registry, d as MacroError, f as MemberError, o as warn, r as forgetKernels, t as Registry } from "./registry-CTumHB8p.mjs";
-import { A as fail, C as isFallback, D as toDecls, E as settled, M as isNode, N as node, O as VAR, P as probed, S as hashClass, T as minWidth, _ as carried, a as createTokens, b as dropsOf, c as tokensOf, d as style, f as token, g as PSEUDOS, h as LAYER, i as createGlobalTheme, j as failIn, k as camel, l as CSSTokenValue, m as FUNCTIONS, n as addTheme, o as isDone, p as CONTEXTS, r as check$1, t as DONE, u as isStyle, v as chainDecl, w as merged, x as edge, y as checkVars } from "./theme-BaBywXBp.mjs";
+import { A as camel, C as hashClass, D as settled, E as minWidth, F as probed, M as failIn, N as isNode, O as toDecls, P as node, S as edge, T as merged, _ as PSEUDOS, a as createTokens, b as checkVars, c as tokensOf, d as style, f as token, g as PROPS, h as LAYER, i as createGlobalTheme, j as fail, k as VAR, l as CSSTokenValue, m as FUNCTIONS, n as addTheme, o as isDone, p as CONTEXTS, r as check$1, t as DONE, u as isStyle, v as carried, w as isFallback, x as dropsOf, y as chainDecl } from "./theme-BsP2E4LB.mjs";
 import { D as relation, S as addRuntime, _ as addKernel, i as byOrder, n as addGlobal, r as addLayers, y as kernelWarnings } from "./sheet-BKsMTa0c.mjs";
 import { n as loweredOf } from "./lowered-D2KusPLp.mjs";
-import { n as CX_CALL, t as CV_CALL } from "./instrument-Bvz7j9OR.mjs";
+import { n as CX_CALL, s as groups$1, t as CV_CALL } from "./instrument-gCazujmb.mjs";
 import { checkDeclarationNow, checkQuery, checkSelector, checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { lackingOf, messageOf } from "@cssints/css-grammar/support";
 import { CSS, CSSColorValue, CSSImageValue, CSSStyleValue, CSSStyleValue as CSSStyleValue$1, CSSUnitValue } from "@cssints/css-grammar/values";
@@ -78,6 +78,102 @@ const checkText = (label, grammar, text, where) => {
 };
 /** The members of `css` that are functions, by name. */
 const fns = Object.fromEntries(Object.entries(FUNCTIONS).map(([member, name]) => [member, build(member, name)]));
+//#endregion
+//#region src/group.ts
+const CONDITIONS = [
+	"media",
+	"container",
+	"supports"
+];
+const TIED = /* @__PURE__ */ new Set([
+	...Object.keys(PROPS),
+	...Object.keys(FUNCTIONS),
+	...Object.keys(PSEUDOS),
+	...CONDITIONS,
+	"keyframes",
+	"positionTry"
+]);
+const WORDS = /[^ ,)/:;"'<>=+*[\]{}!#%.⟨⟩&|\n\t(]+\(?/g;
+const words = (s) => new Set(s ? s.split(" ") : []);
+const groups = new Map(Object.entries(groups$1));
+const compiled$1 = /* @__PURE__ */ new Map();
+const compile$1 = (id) => {
+	const g = groups.get(id);
+	if (!g) throw fail(`cssints: no export group cssints/${id}`);
+	const members = words(g.members);
+	const units = g.ban.unit ? g.ban.unit.split(" ") : [];
+	return {
+		id,
+		members,
+		props: new Set([...members].flatMap((m) => PROPS[m] ? [PROPS[m]] : [])),
+		kw: new Map(Object.entries(g.ban.kw).map(([p, ws]) => [p, words(ws)])),
+		fn: new Set((g.ban.fn ? g.ban.fn.split(" ") : []).map((f) => `${f}(`)),
+		unit: units.length ? new RegExp(`^[0-9]+(?:e[0-9]+)?(?:${units.toSorted((a, b) => b.length - a.length).join("|")})$`) : void 0,
+		query: {
+			media: words(g.ban.media),
+			container: words(g.ban.container),
+			supports: words(g.ban.supports)
+		}
+	};
+};
+const hit = (c, own, text) => text.match(WORDS)?.find((w) => own?.has(w) || c.fn.has(w) || c.unit?.test(w));
+const said = (w) => w.endsWith("(") ? `${w.slice(0, -1)}()` : w;
+const refuse = (c, label, w) => fail(`cssints: ${label}: "${said(w)}" is not in cssints/${c.id}`);
+const guard = (c, n) => {
+	for (const [prop, value, , fallbacks] of n.__cssints) {
+		const own = c.kw.get(prop);
+		for (const v of fallbacks ? [value, ...fallbacks] : [value]) {
+			const w = hit(c, own, v);
+			if (w) throw refuse(c, prop, w);
+		}
+	}
+	return n;
+};
+const chained = (c, n) => new Proxy(n, { get: (t, k) => {
+	const v = Reflect.get(t, k);
+	if (typeof k !== "string" || k in t || typeof v !== "function") return v;
+	return (...args) => {
+		const next = guard(c, v(...args));
+		const prop = next.__cssints.at(-1)?.[0];
+		if (prop && !c.props.has(prop)) throw fail(`cssints: ${prop} is not in cssints/${c.id} (.${k}())`);
+		return chained(c, next);
+	};
+} });
+const texts = (q) => typeof q === "string" ? [q] : q && typeof q === "object" ? Object.values(q).flatMap(texts) : [];
+const wrap = (c, name, member) => {
+	const fn = member;
+	if (CONDITIONS.includes(name)) return (...qs) => {
+		const kind = name;
+		for (const q of qs.flatMap(texts)) {
+			const w = hit(c, c.query[kind], q);
+			if (w) throw refuse(c, `@${kind}`, w);
+		}
+		return fn(...qs);
+	};
+	if (!(name in PROPS) || typeof member !== "function") return member;
+	return (...args) => {
+		const made = fn(...args);
+		if (!isNode(made)) return made;
+		return name in CONTEXTS ? chained(c, guard(c, made)) : guard(c, made);
+	};
+};
+/**
+* The members of an export group.
+* @param {Record<string, unknown>} css `css` of macro.ts, passed in so that this file imports no engine module
+* @param {string} id the group: `widely-available`, `css-grid-2`, ...
+* @returns {Record<string, unknown>} `css` with the members of the group, as they are, and the ones it has not throwing, naming the group, when called
+*/
+const groupOf = (css, id) => {
+	if (id === "limited-availability") return css;
+	const c = compiled$1.get(id) ?? compiled$1.set(id, compile$1(id)).get(id);
+	return new Proxy(css, { get: (t, k) => {
+		if (typeof k !== "string") return Reflect.get(t, k);
+		if (TIED.has(k) && !c.members.has(k)) return () => {
+			throw fail(`cssints: ${k} is not in cssints/${id}`);
+		};
+		return wrap(c, k, t[k]);
+	} });
+};
 //#endregion
 //#region src/scope-engine.ts
 const NAME$1 = /^[a-z][a-z0-9-]*$/;
@@ -1022,8 +1118,8 @@ const cv = (config) => {
 	};
 	return Object.assign((props) => (built[0] ??= build())(props), { __cv: config });
 };
-const isGroup = (v) => Predicate.hasProperty(v, "__group");
-const groupOf = Effect.fnUntraced(function* ({ __group: { statics, parts } }, at) {
+const isGroup = (v) => Predicate.hasProperty(v, "__cnGroup");
+const headOf = Effect.fnUntraced(function* ({ __cnGroup: { statics, parts } }, at) {
 	const { nodes } = yield* Registry;
 	const merged = cn(...statics.map(([, s]) => s));
 	const where = /* @__PURE__ */ new Map();
@@ -1048,7 +1144,7 @@ const groupOf = Effect.fnUntraced(function* ({ __group: { statics, parts } }, at
 	const classes = yield* classesOf(merged, at);
 	return `${CX_CALL}${Formatter.formatJson(drops)}, ${classes ? `${Formatter.formatJson(classes)}, ` : ""}`;
 });
-const __group = (statics, parts) => ({ __group: {
+const __cnGroup = (statics, parts) => ({ __cnGroup: {
 	statics,
 	parts
 } });
@@ -1079,6 +1175,7 @@ const named = {
 };
 const css = new Proxy(named, { get: (t, k) => Object.hasOwn(t, k) ? t[k] : member(String(k)) });
 named.css = css;
+const __group = (id) => groupOf(css, id);
 const kernelCss = new Proxy({
 	...named,
 	nest,
@@ -1113,7 +1210,7 @@ const isPluginValue = Predicate.isObjectKeyword;
 const replacementOf = Effect.fnUntraced(function* (at, value) {
 	if (isNode(value)) return Formatter.formatJson(yield* classesOf(value, at));
 	if (isCv(value)) return `${CV_CALL}${yield* cvOf(value.__cv, at)})`;
-	if (isGroup(value)) return yield* groupOf(value, at);
+	if (isGroup(value)) return yield* headOf(value, at);
 	if (isStyle(value)) return yield* inlineOf(value);
 	const tokens = tokensOf(value);
 	if (tokens !== void 0) return tokens;
@@ -1169,4 +1266,4 @@ function __site(at, value) {
 	return exit.value;
 }
 //#endregion
-export { CSS, CSSAtRuleValue, CSSColorValue, CSSImageValue, CSSStyleValue, CSSUnitValue, __at, __group, __nocn, __site, __unseen, _cv, _cx, cn, css, cv, firstThatWorks, flex, grid, keyframes, positionTry };
+export { CSS, CSSAtRuleValue, CSSColorValue, CSSImageValue, CSSStyleValue, CSSUnitValue, __at, __cnGroup, __group, __nocn, __site, __unseen, _cv, _cx, cn, css, cv, firstThatWorks, flex, grid, keyframes, positionTry };

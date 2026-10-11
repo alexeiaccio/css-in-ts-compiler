@@ -17,7 +17,7 @@ export type Style = string & { readonly __cssints: "style" };
 
 // A part is text for the recognizer; a Typed OM value is the sentinel `⟨type⟩` (css.ts). A lone number is a spacing
 // step (`⟨length⟩`) in the properties lib.ts scales, and a CSS <number> everywhere else. A style is no value.
-type Text<P> = P extends Style
+export type Text<P> = P extends Style
   ? "⟨style⟩"
   : P extends string
     ? P extends ""

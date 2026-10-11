@@ -1,4 +1,11 @@
+import { readdirSync } from "node:fs";
+
 import { defineConfig } from "vite-plus";
+
+// the export groups (scripts/groups.ts): one declaration module per subpath `cssints/<id>`
+const groups = Object.fromEntries(
+  readdirSync("src/groups").map((f) => [`groups/${f.replace(/\.ts$/, "")}`, `src/groups/${f}`]),
+);
 
 // `vp pack` writes dist/, which `bun run pack:tgz` stages into a tarball (see publishConfig in package.json).
 // In the repo the package runs from src/; dist/ is what a published install resolves.
@@ -40,12 +47,13 @@ export default defineConfig({
       clean: false,
     },
     // What user code sees (the "types" condition): members, theme types, and the css-grammar types they reach.
-    // Declarations only: the types of types.ts and of author.ts (cssints/plugin), generated from the code.
+    // Declarations only: the types of types.ts, of author.ts (cssints/plugin) and of the export groups (cssints/<id>).
     {
       entry: {
         types: "src/types.ts",
         "plugin-types": "src/author.ts",
         "tui-types": "src/tui-types.ts",
+        ...groups,
       },
       platform: "neutral",
       format: "esm",

@@ -32,14 +32,15 @@ interface CvConfig {
 export declare const cv: (config: CvConfig) => ((props?: Record<string, string | boolean | undefined>) => string) & {
   __cv: CvConfig;
 };
-export declare const __group: (statics: [number, unknown][], parts: [number, number][]) => {
-  __group: {
+export declare const __cnGroup: (statics: [number, unknown][], parts: [number, number][]) => {
+  __cnGroup: {
     statics: [number, unknown][];
     parts: [number, number][];
   };
 };
 export declare const __nocn: () => undefined;
 export declare const css: Record<string, unknown>;
+export declare const __group: (id: string) => Record<string, unknown>;
 export declare function __at(file: string, site: number, offset: number): At;
 export declare const __unseen: (file: string, site: number) => boolean;
 export declare function __site(at: At, value: unknown): unknown;

@@ -58,6 +58,15 @@ assert.ok(out.c(false, false).includes(hover));
 assert.match(await fails("cn-runtime-arg.ts"), /must be known at build time: `n` is not defined/);
 assert.match(await fails("cn-runtime-overlap.ts"), /padding-inline and padding-left overlap/);
 
+// cn from an export group has runtime arguments too, and cx is gone from the groups as well
+const grouped = await code("cn-group-runtime.ts");
+assert.match(grouped, /^import \{ _cx as __cx \} from /);
+assert.match(grouped, /__cx\(\[\["_\w+", "_\w+"\]\], "_\w+", on && "_\w+", props\.class\)/);
+assert.match(
+  await fails("cx-gone-group.ts"),
+  /imports cx from "cssints\/widely-available", which is gone/,
+);
+
 // cx is gone, imported with the attribute or without
 for (const f of ["cx-gone.ts", "cx-gone-attr.ts"])
   assert.match(

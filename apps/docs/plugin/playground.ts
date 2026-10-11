@@ -9,7 +9,7 @@
 //                          cut to the browsers the support check knows, and the browserslist query of this site, resolved
 //   virtual:playground/packages  the plugin packages that run in a browser: their sources (lazy, as text), what they import from outside
 //   virtual:playground/types     the types the editor knows: the built .d.mts of cssints and css-grammar, the sources of those packages
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import type { Plugin } from "vite";
@@ -104,11 +104,18 @@ const EXTERNALS = ["culori", "rybitten", "rybitten/cubes"];
 // The editor's types. cssints and css-grammar: what a user's TypeScript sees (the built declarations, followed from the entries
 // through their relative imports). The plugin packages: their sources, which are typed code. Paths are URIs of the same project.
 const URI = "file://";
+// plus an entry per export group, `cssints/widely-available`, `cssints/css-grid-2`, ... (docs/research/groups.md)
 const ENTRIES = {
   cssints: "types",
   "cssints/plugin": "plugin-types",
   "cssints/frame": "frame",
   "cssints/surface": "surface",
+  ...Object.fromEntries(
+    readdirSync(join(cssints, "dist/groups")).map((f) => [
+      `cssints/${f.replace(/\.d\.mts$/, "")}`,
+      `groups/${f.replace(/\.d\.mts$/, "")}`,
+    ]),
+  ),
 };
 const types = () => {
   const files: Record<string, string> = {};
@@ -118,7 +125,7 @@ const types = () => {
     const text = readFileSync(join(dir, "dist", `${name}.d.mts`), "utf8");
     files[file] = text;
     for (const [, local, other] of text.matchAll(
-      /from "\.\/([\w.-]+)\.mjs"|from "@cssints\/css-grammar\/([\w-]+)"/g,
+      /(?:from|import) "\.\.?\/([\w.-]+)\.mjs"|from "@cssints\/css-grammar\/([\w-]+)"/g,
     ))
       if (local) declarations(pkg, dir, local);
       else declarations("@cssints/css-grammar", grammar, other!);

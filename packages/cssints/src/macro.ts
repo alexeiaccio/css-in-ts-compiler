@@ -54,6 +54,7 @@ import {
 import { addRuntime } from "./delivery.ts";
 import { fns } from "./functions.ts";
 import { addKernel } from "./kernel.ts";
+import { groupOf } from "./group.ts";
 import { engine } from "./scope-engine.ts";
 import { addGlobal, addLayers, byOrder } from "./sheet.ts";
 import { loweredOf } from "./lowered.ts";
@@ -804,15 +805,15 @@ export const cv = (config: CvConfig) => {
   );
 };
 
-/** What __group(...) is while a module is evaluated: the static arguments of a cn() with runtime ones, and its parts. */
+/** What __cnGroup(...) is while a module is evaluated: the static arguments of a cn() with runtime ones, and its parts. */
 interface Group {
-  __group: { statics: [number, unknown][]; parts: [number, number][] };
+  __cnGroup: { statics: [number, unknown][]; parts: [number, number][] };
 }
-const isGroup = (v: unknown): v is Group => Predicate.hasProperty(v, "__group");
+const isGroup = (v: unknown): v is Group => Predicate.hasProperty(v, "__cnGroup");
 
 // The head of the `__cx(` call the plugin writes in place of a cn() with runtime arguments: the classes each conditional
 // class drops, then the merged static arguments as class strings. The parts are the sites inside the runtime arguments.
-const groupOf = Effect.fnUntraced(function* ({ __group: { statics, parts } }: Group, at: At) {
+const headOf = Effect.fnUntraced(function* ({ __cnGroup: { statics, parts } }: Group, at: At) {
   const { nodes } = yield* Registry;
   const merged = cn(...statics.map(([, s]) => s));
   const where = new Map<Decl, number>();
@@ -837,9 +838,9 @@ const groupOf = Effect.fnUntraced(function* ({ __group: { statics, parts } }: Gr
 });
 
 // A `cn(...)` with runtime arguments, as the module is evaluated: the static arguments, each with where it stands in the
-// source, and the sites inside the runtime ones. The plugin writes its head (groupOf) and keeps the runtime arguments.
-export const __group = (statics: [number, unknown][], parts: [number, number][]) => ({
-  __group: { statics, parts },
+// source, and the sites inside the runtime ones. The plugin writes its head (headOf) and keeps the runtime arguments.
+export const __cnGroup = (statics: [number, unknown][], parts: [number, number][]) => ({
+  __cnGroup: { statics, parts },
 });
 // What the call of a cn() with runtime arguments is at the top level of the module, where it runs once, at load.
 export const __nocn = () => undefined;
@@ -874,6 +875,8 @@ export const css = new Proxy(named, {
   get: (t, k) => (Object.hasOwn(t, k) ? t[k as string] : member(String(k))),
 });
 named.css = css;
+// The members of an export group (instrument.ts rewrites an import of `cssints/<group>` to a call of this).
+export const __group = (id: string) => groupOf(css, id);
 const kernelCss = new Proxy(
   { ...named, nest, vars },
   { get: (t, k) => (Object.hasOwn(t, k) ? t[k as keyof typeof t] : member(String(k))) },
@@ -925,7 +928,7 @@ const replacementOf = Effect.fnUntraced(function* (
 ): Effect.fn.Return<string | undefined, Invalid | MacroError | MemberError> {
   if (isNode(value)) return Formatter.formatJson(yield* classesOf(value, at));
   if (isCv(value)) return `${CV_CALL}${yield* cvOf(value.__cv, at)})`;
-  if (isGroup(value)) return yield* groupOf(value, at);
+  if (isGroup(value)) return yield* headOf(value, at);
   if (isStyle(value)) return yield* inlineOf(value);
   const tokens = tokensOf(value);
   if (tokens !== undefined) return tokens;
@@ -960,7 +963,7 @@ const recordSite = Effect.fnUntraced(function* (
   const { sites } = yield* Registry;
   const replacement = yield* replacementOf(at, value).pipe(Effect.mapError(located(at)));
   if (replacement === undefined) return value;
-  // the declarations of a style, for the cn() with runtime arguments around it (groupOf)
+  // the declarations of a style, for the cn() with runtime arguments around it (headOf)
   if (isNode(value)) {
     const { nodes } = yield* Registry;
     (nodes.get(at.file) ?? nodes.set(at.file, new Map()).get(at.file)!).set(

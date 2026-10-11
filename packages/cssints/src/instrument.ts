@@ -12,6 +12,7 @@ import MagicString from "magic-string";
 import { Effect, Formatter, Predicate } from "effect";
 
 import { ImportError } from "./errors.ts";
+import { groups } from "./groups-data.ts";
 
 export const RUNTIME = "cssints";
 // A cv() site and a cn() with runtime arguments become calls of the runtime; the plugin imports them as `__cv` and
@@ -28,6 +29,13 @@ const rootIdent = (n: Node): string | null =>
         ? rootIdent(n.callee)
         : null;
 
+// "cssints", or one of its export groups (docs/research/groups.md): `cssints/widely-available`, `cssints/css-grid-2`, ...
+// and `cssints/limited-availability`, which is "cssints" itself.
+const isCssints = (source: string) =>
+  source === RUNTIME ||
+  (source.startsWith(`${RUNTIME}/`) &&
+    (Object.hasOwn(groups, source.slice(RUNTIME.length + 1)) ||
+      source === `${RUNTIME}/limited-availability`));
 // Real exports of the eval-time library: a module that only runs at build time (a plugin's) may import them plainly.
 // The client's "cssints" has none of them, so there they need the attribute, and a constructor becomes its CSS text.
 const TYPED_OM = new Set([
@@ -66,11 +74,11 @@ const findCssImport = Effect.fnUntraced(function* (
   const decls: ImportDeclaration[] = [];
   for (const s of program.body) {
     if (s.type !== "ImportDeclaration") continue;
-    const old = s.source.value === RUNTIME && s.specifiers.find((x) => importedName(x) === "_cv");
-    const gone = s.source.value === RUNTIME && s.specifiers.find((x) => importedName(x) === "cx");
+    const old = isCssints(s.source.value) && s.specifiers.find((x) => importedName(x) === "_cv");
+    const gone = isCssints(s.source.value) && s.specifiers.find((x) => importedName(x) === "cx");
     if (gone)
       return yield* new ImportError({
-        message: `cssints: ${id} imports cx from "cssints", which is gone: cn(...) takes runtime values now. Write cn(base, on && p(4)) with cn from "cssints" with { type: "cssints" }; for the SVG property, css.cx(...)`,
+        message: `cssints: ${id} imports cx from "${s.source.value}", which is gone: cn(...) takes runtime values now. Write cn(base, on && p(4)) with cn from "cssints" with { type: "cssints" }; for the SVG property, css.cx(...)`,
         file: id,
         offset: gone.start,
       });
@@ -83,7 +91,7 @@ const findCssImport = Effect.fnUntraced(function* (
     if (isSiteImport(s)) {
       decls.push(s);
       s.specifiers.forEach((x) => locals.add(x.local.name));
-    } else if (s.source.value === RUNTIME && s.importKind !== "type") {
+    } else if (isCssints(s.source.value) && s.importKind !== "type") {
       // a type import is erased: `import type { CvProps } from "cssints"`
       const bad = s.specifiers.filter(
         (x) =>
@@ -95,7 +103,7 @@ const findCssImport = Effect.fnUntraced(function* (
       const fix =
         bad[0]!.type === "ImportNamespaceSpecifier" ? names[0] : `{ ${names.join(", ")} }`;
       return yield* new ImportError({
-        message: `cssints: ${id} imports build-time ${names.join(", ")} from "cssints" without the attribute. Import it as: import ${fix} from "cssints" with { type: "cssints" }`,
+        message: `cssints: ${id} imports build-time ${names.join(", ")} from "${s.source.value}" without the attribute. Import it as: import ${fix} from "${s.source.value}" with { type: "cssints" }`,
         file: id,
         offset: s.start,
       });
@@ -323,7 +331,7 @@ export const instrument = Effect.fn("cssints.instrument")(function* (
   const { program } = parseSync(id, code);
   const imp = yield* findCssImport(program, code, id, client);
   if (!imp) return null;
-  const sources = imp.decls.filter((d) => d.source.value === RUNTIME);
+  const sources = imp.decls.filter((d) => isCssints(d.source.value));
   const cn = new Set<string>();
   const spaces = new Set<string>();
   for (const d of sources)
@@ -356,7 +364,7 @@ export const instrument = Effect.fn("cssints.instrument")(function* (
       });
       if (!s.inFn) ms.overwrite(s.group.callee.start, s.group.callee.end, "__nocn");
       hoisted.push(
-        `${site}__group([${statics.join(", ")}], ${Formatter.formatJson(s.group.parts)}));`,
+        `${site}__cnGroup([${statics.join(", ")}], ${Formatter.formatJson(s.group.parts)}));`,
       );
     } else if (s.inFn) {
       // A local the site names stays in the temporal dead zone there: reading it is a located error, never the
@@ -373,19 +381,26 @@ export const instrument = Effect.fn("cssints.instrument")(function* (
   });
   // cssints members are properties of `css` (macro.ts): named imports destructure it.
   imp.decls.forEach((d, i) => {
-    if (d.source.value !== RUNTIME) return;
+    const from = String(d.source.value);
+    if (!isCssints(from)) return;
     const ns = d.specifiers.find((x) => x.type === "ImportNamespaceSpecifier");
     const bind = ns
       ? ns.local.name
       : `{ ${d.specifiers.map((x) => `${Formatter.formatJson(importedName(x))}: ${x.local.name}`).join(", ")} }`;
+    // a group has its own members: the ones of `css` that it has, and the checks of its tokens (group.ts)
+    const id = from.slice(RUNTIME.length + 1);
+    const source =
+      id && id !== "limited-availability"
+        ? `__group${i}(${Formatter.formatJson(id)})`
+        : `__css${i}`;
     ms.overwrite(
       d.start,
       d.end,
-      `import { css as __css${i} } from ${Formatter.formatJson(RUNTIME)}; const ${bind} = __css${i};`,
+      `import { css as __css${i}, __group as __group${i} } from ${Formatter.formatJson(RUNTIME)}; const ${bind} = ${source};`,
     );
   });
   ms.prepend(
-    `import { __at, __group, __nocn, __site, __unseen } from ${Formatter.formatJson(RUNTIME)};\n`,
+    `import { __at, __cnGroup, __nocn, __site, __unseen } from ${Formatter.formatJson(RUNTIME)};\n`,
   );
   if (hoisted.length)
     ms.append(`\nexport function __cssints_hoisted() {\n${hoisted.join("\n")}\n}\n`);

@@ -1163,6 +1163,29 @@ process.stdin.on("data", (bytes) => dispatch(input.scan(follow.feed(bytes)).even
 - **Live in the browser** (cssints-ey13, 2026-10-11). [The TUI page](https://cssints.dev/tui) of this site runs apps/sky-tui's styles on `@cssints/tui/bomb` in a real terminal: Ghostty's emulator compiled to WebAssembly (ghostty-web) draws sky's feed and thread from its recorded fixtures, with keys and the mouse. The page is the terminal: it answers the system theme's queries (OSC 10, 11, 4, `CSI ? 996 n`) from the site's display settings and reports a change of them (mode 2031), so the theme is solved again as the palette or the mode changes. OpenTUI is not shown: its renderer is native Zig over `bun:ffi`. On a change notification, `followSystemTheme` of `@cssints/tui/bomb` asks the colours again (`COLOURS` of `@cssints/tui/system`), not the scheme report: its reply is the same sequence as a notification, and asking it looped with a terminal that answers it.
 - **Cost.** A colour member costs what the same web member costs in the types (the `color` grammar); `bench/tui.ts` is 184k instantiations (tsc) for 16 calls and a token set. No terminal HMR in this version. The system theme brings culori's rgb, oklab, oklch and okhsl modes to the app (45 kB unminified in sky-tui's bundle).
 
+### Export groups: `cssints/widely-available`, `cssints/css-grid-2`, … (decided 2026-10-11, cssints-n7z3)
+
+A group is a subpath of `cssints` that exports the members of `cssints` which a set of CSS features has, and refuses a value that holds a feature outside the set. It is the same import (`with { type: "cssints" }`), the same members, the same classes:
+
+```ts
+import { color, display, media } from "cssints/widely-available" with { type: "cssints" };
+
+export const card = [display("grid"), color("rebeccapurple"), media("(width >= 40rem)")(color("black"))];
+
+display("grid-lanes"); // error: display: "grid-lanes" is not in cssints/widely-available
+color("light-dark(white, black)"); // error: color: "light-dark()" is not in cssints/widely-available
+media("(prefers-reduced-data: reduce)"); // error: @media: "prefers-reduced-data" is not in cssints/widely-available
+```
+
+- **Baseline groups** (web-features 3.42, the status of each BCD key): `widely-available` is Baseline high, `newly-available` is high and low, `limited-availability` is everything (it is `cssints` itself, under its Baseline name) and `not-discouraged` is everything web-features does not mark `discouraged` (`clip`, the `page-break-*` aliases, `ime-mode`, `word-break: break-word`, `text-decoration-line: blink`, device media features). A feature web-features does not know is limited availability.
+- **Spec groups** are named by the W3C shortname that @webref/css uses: `cssints/css-grid-2`, `cssints/css-color-4`, `cssints/mediaqueries-4`, `cssints/selectors-4`, … (92 of them). A group holds what the spec defines, and **a level includes the levels of its series before it**: `css-color-5` has what Color 3, 4 and 5 define, `css-color-4` has Color 3 and 4. A level is a delta (Color 5 over Color 4) or a rewrite (Media Queries 4 over 3), and "I write for Color 5" means both. What only a later level defines is refused: `css-color-4` has no `colorMix` and refuses `color-mix()`, `mediaqueries-4` refuses `prefers-color-scheme`. A group has the properties, functions, pseudo-class wrappers and conditions its spec defines, so `display` is in `css-display-4` and `gridTemplateColumns` in `css-grid-2`: import from several groups in one file.
+- **What is a member:** the properties (and their short names), the functions, the pseudo-class wrappers, `media`, `container`, `supports`, `keyframes` and `positionTry`. Everything else (`cn`, `cv`, `firstThatWorks`, `token`, `createTokens`, `createGlobalTheme`, `check`, `style`, `global`, `layers`, `attr`, `within`, `group`, the Typed OM values) is in every group. A group has no `css` object: write `import * as css from "cssints/widely-available"`.
+- **What is refused**, in the types (an error on the argument) and in the build (an error at the call), with the same words: a keyword of the property, a function (as a call of a member, or as text, in a `firstThatWorks` too), a unit (`10rch`), a media feature, a `scroll-state()` or `style()` container query and a `selector()` support query, and a property, function or condition the group does not have (`flex().gap()` is checked as `gap`). A value that is not valid CSS is still the usual error.
+- **What is not:** the types a spec only references (`<color>` in `accent-color` is any colour of any group), a feature of a module that is not in the series of the group (`css-ui-4`'s `accentColor` takes `color-mix()` as text), and what nothing attributes to a feature: the grammar of a value that no BCD key names is not narrowed. A function with no BCD key counts as limited availability. A keyword of `cursor` has the status of `cursor` (web-features counts it limited for iOS Safari, which has no pointer).
+- **Cost:** a program that does not import a group pays nothing. In one that does, a call costs about 250 instantiations more (a 105-call bench: +2.9%), and the 96 declaration files add 340 KB to `dist/` (about 240 KB of `src/groups`, the tarball gains about 100 KB gzip).
+
+`bun run groups` (in `packages/cssints`) regenerates `src/groups/<id>.ts` and `src/groups-data.ts` from web-features, @webref/css 6 (one file per level; 8 keeps the latest level of a series only) and BCD. Research and numbers: [research/groups.md](research/groups.md).
+
 ### Browser support and what 0.1 does not have
 
 - **Types and checks for every property** are generated from [mdn-data](https://github.com/mdn/data) and @webref/css by `packages/css-grammar` (`bun run extract`), not written by hand, so a new property or function needs no change here. 536 members: 525 properties (every standard and experimental one, except the three shorthands above) and the 11 short names.
