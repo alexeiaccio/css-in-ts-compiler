@@ -254,7 +254,8 @@ declare namespace JSX {
     });
     page.html = m.parser(tokens.slice(1));
     if (examples.has(page.slug))
-      page.html = `<p><a href="${base}playground#${exampleHash(page.slug)}">Open in playground</a></p>\n${page.html}`;
+      // the comment is where plugin/docs.ts puts the example's result (plugin/examples.ts)
+      page.html = `<div class="example"><p><span>Result</span><a href="${base}playground#${exampleHash(page.slug)}">Open in playground</a></p><!--result--></div>\n${page.html}`;
   }
   // The API reference's own page is its introduction: an index of the reference pages follows it, each with its first lines
   // and the terms it covers, so the page says what is where.

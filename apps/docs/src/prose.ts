@@ -11,16 +11,20 @@ import {
   fontSize,
   fontWeight,
   global,
+  height,
+  justifyContent,
   lineHeight,
   margin,
   marginTop,
   maxWidth,
   media,
+  overflow,
   overflowWrap,
   overflowX,
   padding,
   paddingBottom,
   paddingLeft,
+  resize,
   tabSize,
   textAlign,
   textDecoration,
@@ -29,6 +33,7 @@ import {
   transform,
   verticalAlign,
   whiteSpace,
+  width,
 } from "cssints" with { type: "cssints" };
 
 import { t } from "./theme.ts" with { type: "cssints" };
@@ -111,6 +116,34 @@ global(
   tabSize(2),
 );
 global(`${p} > pre code`, bg("transparent"), padding("0"), fontSize("inherit"));
+
+// the result of a page's example (plugin/examples.ts): its link, and the sandboxed frame of the rendered project
+global(
+  `${p} .example`,
+  border(t.border.width, "solid", t.color.border),
+  borderRadius(t.radius.md),
+  overflow("hidden"),
+);
+global(
+  `${p} .example > p`,
+  margin("0"),
+  display("flex"),
+  justifyContent("space-between"),
+  padding(t.space.sm, t.space.md),
+  bg(t.color.bgSubtle),
+  borderBottom(t.border.width, "solid", t.color.border),
+  fontSize(t.fontSize.sm),
+);
+global(`${p} .example > p > span`, color(t.color.textMedium), fontWeight(t.fontWeight.semiBold));
+global(
+  `${p} .example iframe`,
+  display("block"),
+  width("100%"),
+  height("18rem"),
+  bg("white"),
+  border("0", "none"),
+  resize("vertical"),
+);
 
 global(`${p} table`, borderCollapse("collapse"), display("block"), overflowX("auto"));
 global(

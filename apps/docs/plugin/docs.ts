@@ -24,13 +24,41 @@ const pageId = (i: number) => `virtual:docs/${i}`;
 
 // The type-check of the ts blocks takes ~15 s of one thread; in a worker it does not hold up the rest of the build (cssints gives a
 // module 30 s to evaluate, and counts the time it waited).
-const buildPages = (base: string) =>
+const inWorker = <T>(file: string, workerData?: string) =>
   // oxlint-disable-next-line promise/avoid-new -- a worker has no promise form
-  new Promise<Page[]>((resolve, reject) => {
-    const worker = new Worker(new URL("./worker.ts", import.meta.url), { workerData: base });
+  new Promise<T>((resolve, reject) => {
+    const worker = new Worker(new URL(file, import.meta.url), { workerData });
     worker.once("message", resolve);
     worker.once("error", reject);
   });
+// the results of the examples (plugin/examples.ts) are put where markdown.ts left their place
+const buildPages = async (base: string) => {
+  const [pages, frames] = await Promise.all([
+    inWorker<Page[]>("./worker.ts", base),
+    inWorker<Record<string, string>>("./examples-worker.ts"),
+  ]);
+  return pages.map((p) => ({
+    ...p,
+    html: p.html.replace("<!--result-->", () => frames[p.slug] ?? ""),
+  }));
+};
+
+// The result frames of a page (plugin/examples.ts) are sandboxed: they cannot read the page. Each asks for the display mode when it
+// loads, and every frame is told again when the settings change the class of <html> (dim is dark with a class of its own,
+// settings.ts; the frame gets the one name, the class its project's themes read, as the playground's preview does). It is in the
+// page's own chunk, not a module they share: a shared chunk would be listed in the entry's preload map.
+const FRAMES = `if (!globalThis.__resultFrames) {
+  globalThis.__resultFrames = true;
+  const frames = () => document.querySelectorAll(".example iframe");
+  const tell = (w) => {
+    const c = document.documentElement.classList;
+    w?.postMessage({ mode: c.contains("dim") ? "dim" : c.contains("dark") ? "dark" : c.contains("light") ? "light" : "" }, "*");
+  };
+  addEventListener("message", (e) => e.data === "cssints:mode" && tell(e.source));
+  new MutationObserver(() => frames().forEach((f) => tell(f.contentWindow))).observe(document.documentElement, { attributeFilter: ["class"] });
+  frames().forEach((f) => tell(f.contentWindow));
+}
+`;
 
 const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
@@ -83,7 +111,8 @@ export default function docs(): Plugin {
         );
         return `export const pages = ${JSON.stringify(meta)};\nexport const html = { ${loaders.join(", ")} };\nexport const landing = () => import("virtual:docs/landing");`;
       }
-      return `export default ${JSON.stringify(all[Number(id.split("/").pop())]?.html)};`;
+      const html = all[Number(id.split("/").pop())]?.html;
+      return `${html?.includes(' class="example"') ? FRAMES : ""}export default ${JSON.stringify(html)};`;
     },
     // after Vite's own HTML plugin has emitted index.html
     generateBundle: {
