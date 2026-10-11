@@ -1,7 +1,7 @@
-import { c as EvalError, d as MacroError, f as MemberError, i as forgetWarnings, l as HookError, n as forget, p as SiteMissingError, t as Registry } from "./registry-CTumHB8p.mjs";
-import { C as fallbackEntries, T as runtimeNames, a as closeNames, b as DERIVED, c as layerEntries, f as themedEntries, l as layerStatements, m as usesDerived, n as addGlobal, o as globalEntries, r as addLayers, s as globalNames, t as LAYERS, u as renderSheet, v as kernelEntries, w as runtimeModule, x as RUNTIME_ID } from "./sheet-BKsMTa0c.mjs";
-import { a as runtimeImport, i as instrument, o as writeSite } from "./instrument-B-SD-16-.mjs";
-import { r as verifyChecks } from "./contrast-DhK69Xak.mjs";
+import { c as EvalError, d as MacroError, f as MemberError, i as forgetWarnings, l as HookError, n as forget, p as SiteMissingError, t as Registry } from "./registry-BUSEO32-.mjs";
+import { C as fallbackEntries, T as runtimeNames, a as closeNames, b as DERIVED, c as layerEntries, f as themedEntries, l as layerStatements, m as usesDerived, n as addGlobal, o as globalEntries, r as addLayers, s as globalNames, t as LAYERS, u as renderSheet, v as kernelEntries, w as runtimeModule, x as RUNTIME_ID } from "./sheet-BeHdq4xt.mjs";
+import { a as runtimeImport, i as instrument, o as writeSite } from "./instrument-Bg2yhV0s.mjs";
+import { r as verifyChecks } from "./contrast-B49XCnVX.mjs";
 import { createRequire } from "node:module";
 import { targets as targets$1, useTargets } from "@cssints/css-grammar/support";
 import { Cause, Clock, Config, Data, Effect, Exit, Formatter, Option, Predicate, Result, Schema, Semaphore } from "effect";
@@ -852,8 +852,12 @@ function cssints({ inner = false, exclude, devtools = false, opencode = false } 
 	const buildEnd = Effect.fn("cssints.buildEnd")(function* (warn) {
 		yield* verifyChecks(() => true).pipe(Effect.catch((e) => locate(e, "", "")), Effect.ensuring(flushWarnings(warn)));
 	});
-	const hotUpdate = Effect.fn("cssints.hotUpdate")(function* (env, file, modules) {
+	const hotUpdate = Effect.fn("cssints.hotUpdate")(function* (env, file, modules, type) {
 		if (env.name !== "client") return void 0;
+		if (type === "delete") {
+			yield* Effect.sync(() => forget(file));
+			yield* drop(file);
+		}
 		yield* Effect.sync(() => forgetWarnings([file]));
 		const graph = env.moduleGraph;
 		const affected = [.../* @__PURE__ */ new Set([...depsOf.get(file) ?? [], ...inflight])].flatMap((id) => graph.getModuleById(id) ?? []);
@@ -941,8 +945,8 @@ function cssints({ inner = false, exclude, devtools = false, opencode = false } 
 				return run(hook("vite.transform", id, transform(this, code, id).pipe(Effect.catch((e) => locate(e, code, id))), this.environment.name));
 			}
 		},
-		hotUpdate({ file, modules }) {
-			return runSync(hook("vite.hotUpdate", file, hotUpdate(this.environment, file, modules)));
+		hotUpdate({ file, modules, type }) {
+			return runSync(hook("vite.hotUpdate", file, hotUpdate(this.environment, file, modules, type)));
 		}
 	};
 	const version = {

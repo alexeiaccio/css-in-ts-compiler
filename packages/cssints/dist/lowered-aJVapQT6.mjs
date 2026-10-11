@@ -1,4 +1,4 @@
-import { a as registry } from "./registry-CTumHB8p.mjs";
+import { a as registry } from "./registry-BUSEO32-.mjs";
 import { Result } from "effect";
 import { browserslistToTargets, transform } from "lightningcss";
 //#region src/lowered.ts
