@@ -85,7 +85,9 @@ assert.ok(!text.includes("cssints"), text);
 assert.equal(plugins[0].api.sheet([`${root}/card.ts`]).includes("._"), false);
 // the terminal modules add no CSS at all: no @property, no :root rule, no theme (theme.ts as a client module too: its
 // token set ships as `var(--color-bg)` strings, which name no web token here)
-await code("theme.ts");
+// and no browser runtime: the derived token color.hover (resolved above as #303140) registers none (cssints-ti8v)
+assert.ok(!(await code("theme.ts")).includes("runtime/derived"));
+assert.ok(!text.includes("runtime/derived"), text);
 const tuiSheet = plugins[0].api.sheet([`${root}/card.ts`, `${root}/theme.ts`]);
 assert.ok(!/--color|@property|light/.test(tuiSheet), tuiSheet);
 // the web module keeps its own @property rules and theme
@@ -105,6 +107,19 @@ await fails("bad-mix.ts", /cn\(\) takes styles of cssints\/tui, got "red"/);
 await fails(
   "bad-clash.ts",
   /--color-bg is already declared with another @property, in test\/fixtures\/theme\.ts/,
+);
+// a token set of one createTokens given to the other createGlobalTheme (cssints-v872): an error at the call, naming the import
+const failsAtCall = (f, message) =>
+  assert.rejects(code(f), (e) => {
+    assert.match(e.message, message);
+    assert.equal(e.file, `${root}/${f}`);
+    assert.equal(e.loc.line, 6);
+    return true;
+  });
+await failsAtCall("bad-web-set.ts", /web tokens of "cssints".*createGlobalTheme of "cssints"/);
+await failsAtCall(
+  "bad-tui-set.ts",
+  /terminal tokens of "cssints\/tui".*createGlobalTheme of "cssints\/tui"/,
 );
 await server.close();
 

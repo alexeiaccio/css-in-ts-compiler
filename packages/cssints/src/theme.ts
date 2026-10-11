@@ -515,6 +515,14 @@ const theme = (at: At | undefined, args: unknown[]) =>
         return yield* fail(
           "cssints: createGlobalTheme(tokens, condition | selector, overrides, { layer, scope }?) takes tokens of createTokens, a media() or container() condition or a selector, the values to set, and optionally a declared top-level layer and a selector to scope them to",
         );
+      // cssints/tui runs this on its own tables (tui.ts): a set of the other createTokens has no token there (cssints-v872)
+      const terminal = registry.defs === registry.terminal?.defs;
+      if (!!set.terminal !== terminal)
+        return yield* fail(
+          set.terminal
+            ? `cssints: createGlobalTheme(): these are terminal tokens of "cssints/tui": theme them with the createGlobalTheme of "cssints/tui"`
+            : `cssints: createGlobalTheme(): these are web tokens of "cssints": theme them with the createGlobalTheme of "cssints", or make them with the createTokens of "cssints/tui"`,
+        );
       if (layer !== undefined) yield* requireLayer(layer, at);
       if (scope !== undefined) {
         if (typeof condition !== "string")
