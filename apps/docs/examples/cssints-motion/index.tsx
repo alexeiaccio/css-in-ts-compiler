@@ -1,5 +1,8 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import { bg, borderRadius, cn, color, flex, hover, p } from "cssints" with { type: "cssints" };
 import { motion } from "@cssints/motion" with { type: "cssints" };
+
+reset();
 
 // motion() names a preset (a keyframes with its defaults); the methods change the duration, the delay and the easing. The
 // keyframes are written once however many elements use them.

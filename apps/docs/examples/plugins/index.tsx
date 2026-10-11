@@ -1,6 +1,9 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import { bg, borderRadius, cn, color, flex, p } from "cssints" with { type: "cssints" };
 
 import { ring } from "./ring.ts" with { type: "cssints" };
+
+reset();
 
 // The plugin is imported with the attribute, like cssints: no registration, no type augmentation. Its members return class strings.
 const field = cn(

@@ -1,3 +1,4 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import {
   bg,
   cn,
@@ -10,6 +11,8 @@ import {
   width,
 } from "cssints" with { type: "cssints" };
 import { squircle } from "@cssints/squircle" with { type: "cssints" };
+
+reset();
 
 // squircle() rounds a corner with a superellipse, as app icons are: corner-shape where the browser has it, a clip-path where it
 // does not. The radius is a length; a condition can change it.

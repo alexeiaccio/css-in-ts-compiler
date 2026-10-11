@@ -235,6 +235,10 @@ does not say), and a note with no switch (the reader could not see the differenc
 font) moved into the lowest layer, `@layer preview`, so a project's `global("body", margin("0"))` and the reset both win over them; before,
 they were unlayered and won.
 
+**Changed (cssints-isry, 2026-10-11): the code is the one source.** The implicit layer and its switch are gone, from the preview and from the Result
+frames of the docs pages. Every example's entry calls `reset()` itself (the README example, the Install page's, included), so the CSS tab and the frame show
+what the code says; a project written without the call has no reset, as in a real app, and draws on the page's 16 px margin.
+
 **What else changed in the preview.** `h` sets a style object with `setProperty`, so `style(token.set(accent, "#dc2626"))` (a custom
 property) works: the README example's button was blue in the preview, and is red, as the code says. The frame gets the display settings'
 `light`, `dim` or `dark` class on its `<html>`, which csssky's themes read (`:root.dim`), and follows a change.

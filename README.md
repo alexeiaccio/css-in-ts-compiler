@@ -40,7 +40,12 @@ export default {
 ```ts
 // the entry, once
 import "virtual:cssints.css";
+import { reset } from "@cssints/reset" with { type: "cssints" };
+
+reset();
 ```
+
+`reset()` is the recommended start: [`@cssints/reset`](packages/reset/README.md) is a small modern reset in a layer below every style, so any style of yours beats it. A project without the call has none, as in any app.
 
 `targets` and `cssTarget` come from the browserslist query of the support warnings: the `BROWSERSLIST` variable, else the standard config (`"browserslist"` in `package.json` or `.browserslistrc`, with the `BROWSERSLIST_ENV`, `NODE_ENV` or `production` section), else `defaults`. The exports are computed when `vite.config.ts` is imported, before Vite's root is known, so they look the config up from `process.cwd()` and upward; the support warnings look it up from Vite's `root` (2026-10-09, cssints-p3d2). They are the same when Vite runs from the app's directory; with `vite <dir>` from elsewhere, give `targets` and `cssTarget` the app's config yourself. Vite's CSS minify reads `cssTarget`, not `targets`: without it the minifier merges the declarations of a `firstThatWorks` into the last one. Add `"types": ["vite/client"]` to `tsconfig.json` for the `virtual:` import.
 
@@ -63,7 +68,10 @@ export default {
 `tsconfig.json` is Solid's: `"jsx": "preserve"`, `"jsxImportSource": "@solidjs/web"`, `"types": ["vite/client"]`. Solid's `class` takes a string, an object or an array, so `cn` is not needed for the join: `class={[card, on() && p(4)]}` and `class={badge({ tone: tone() })}` work as in React. A site's arguments are still build-time values, so a signal goes in the condition or in a `cv` variant, not in `p(n())`. Under `vite dev` an edit of a component replaces it and resets its state below it (Solid's refresh); an edit of a style changes the class strings and the sheet with no reload.
 
 ```tsx
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import { bg, color, cn, cv, flex, hover, media, p, style, token } from "cssints" with { type: "cssints" };
+
+reset();
 
 const md = media("(width >= 40rem)");
 const accent = token.color("#2563eb", "accent");
@@ -80,7 +88,7 @@ export const Row = ({ wide, on }: { wide?: boolean; on?: boolean }) => (
 );
 ```
 
-`with { type: "cssints" }` marks what runs at build time. The plugin replaces each call with a class string, so the browser gets `__cx([], "_1s47490 _1ob5z5m _g2iyum", on && "_lqk467")` and `button` is a call of the runtime with `{ base: "_1t8gqy5 ...", ... }`, so it never sees `flex()`. `virtual:cssints.css` is one sheet with every rule once, sorted by layer, then condition, then shorthand before longhand, then class name:
+`with { type: "cssints" }` marks what runs at build time. The plugin replaces each call with a class string, so the browser gets `__cx([], "_1s47490 _1ob5z5m _g2iyum", on && "_lqk467")` and `button` is a call of the runtime with `{ base: "_1t8gqy5 ...", ... }`, so it never sees `flex()`. `virtual:cssints.css` is one sheet with every rule once, sorted by layer, then condition, then shorthand before longhand, then class name (the `@layer reset { ... }` block of `reset()` comes first and is left out here):
 
 ```css
 @layer _.k, _.a, _.b, _.c, _.d, _.e;

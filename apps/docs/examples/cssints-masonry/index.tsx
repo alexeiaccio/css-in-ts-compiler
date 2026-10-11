@@ -1,5 +1,8 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import { borderRadius, cn, color, flex, fontWeight, p } from "cssints" with { type: "cssints" };
 import { masonry } from "@cssints/masonry" with { type: "cssints" };
+
+reset();
 
 // masonry() is CSS grid-lanes where the browser has it and a small runtime where it does not. Tiles of different heights pack
 // into columns of the given width.

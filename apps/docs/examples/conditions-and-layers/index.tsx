@@ -1,6 +1,9 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import * as css from "cssints" with { type: "cssints" };
 
 import { dark, hasGrid, narrow, tablet, wide } from "./conditions.ts" with { type: "cssints" };
+
+reset();
 
 // The shelf is a container: its cards react to its width. The preview's width decides the media queries.
 const shelf = css.cn(css.containerType("inline-size"), css.containerName("shelf"), css.p(3));

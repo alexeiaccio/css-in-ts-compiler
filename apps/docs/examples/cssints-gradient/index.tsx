@@ -1,3 +1,4 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import {
   backgroundImage,
   bg,
@@ -9,6 +10,8 @@ import {
   p,
 } from "cssints" with { type: "cssints" };
 import { gradient } from "@cssints/gradient" with { type: "cssints" };
+
+reset();
 
 // gradient(kind, direction, from, to, easing, stops) writes the stops of an eased gradient: no band where a plain two-colour
 // gradient ends in a hard edge.

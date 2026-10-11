@@ -101,13 +101,6 @@ export const tab = css.cv({
     },
   },
 });
-export const base: Style = css.cn(
-  css.marginLeft("auto"),
-  css.alignSelf("center"),
-  css.fontSize(t.fontSize.sm),
-  css.color(t.color.textMedium),
-  css.cursor("pointer"),
-);
 export const code: Style = css.cn(
   css.margin("0"),
   css.padding(t.space.md),

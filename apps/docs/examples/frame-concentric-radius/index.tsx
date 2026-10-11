@@ -1,5 +1,8 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import * as css from "cssints" with { type: "cssints" };
 import { frame } from "cssints/frame" with { type: "cssints" };
+
+reset();
 
 const radius = css.token.length("12px", "radius-lg");
 

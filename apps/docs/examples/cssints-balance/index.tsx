@@ -1,3 +1,4 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import {
   cn,
   color,
@@ -8,6 +9,8 @@ import {
   p,
 } from "cssints" with { type: "cssints" };
 import { balance, pretty } from "@cssints/balance" with { type: "cssints" };
+
+reset();
 
 // balance() evens the lines of a headline; pretty() keeps a paragraph from ending on one lonely word. Both use text-wrap where
 // the browser has it and ship a small runtime where it does not.

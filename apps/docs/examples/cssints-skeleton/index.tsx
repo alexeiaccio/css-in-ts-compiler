@@ -1,5 +1,8 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import { cn, flex, height, hover, p, width } from "cssints" with { type: "cssints" };
 import { skeleton } from "@cssints/skeleton" with { type: "cssints" };
+
+reset();
 
 // skeleton() is a shimmering placeholder; it respects prefers-reduced-motion. The size is yours.
 const line = cn(skeleton(), height("1em"), width("12rem"));

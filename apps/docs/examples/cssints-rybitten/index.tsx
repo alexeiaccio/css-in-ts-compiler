@@ -1,6 +1,9 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import { bg, check, cn, color, flex, p } from "cssints" with { type: "cssints" };
 
 import { t } from "./tokens.ts" with { type: "cssints" };
+
+reset();
 
 check.contrast(t.paper._3, t.paper._1, { min: 12 }); // the ink on the paper, light and dark
 

@@ -1,6 +1,9 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import * as css from "cssints" with { type: "cssints" };
 
 import "./base.ts" with { type: "cssints" };
+
+reset();
 
 // attr() styles an attribute state; group() marks an ancestor and within() reads its state.
 const nav = css.cn(css.flex().direction("column").gap(1), css.p(3), css.maxWidth("22rem"));

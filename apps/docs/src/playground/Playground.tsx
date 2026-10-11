@@ -19,10 +19,6 @@ const TABS: [Tab, string][] = [
 const DELAY = 300;
 // the project the page opens with: a slice of csssky (apps/docs/examples/csssky)
 const DEFAULT = "csssky";
-// what a project that does not call reset() gets in the preview, made by the plugin package itself
-const RESET = {
-  "reset.ts": 'import { reset } from "@cssints/reset" with { type: "cssints" };\nreset();\n',
-};
 // the class of <html> that csssky's themes (and any `.dark` of a project) read, from the display settings of this site
 const modeClass = () => {
   const c = document.documentElement.classList;
@@ -46,9 +42,6 @@ export default function Playground() {
   const [files, setFiles] = createSignal<Files>({});
   const [active, setActive] = createSignal("");
   const [project, setProject] = createSignal("");
-  // the preview has no reset() in the project: it gets the reset of @cssints/reset in a layer below, unless this is off
-  const [bare, setBare] = createSignal(false);
-  const [base, setBase] = createSignal(true);
   const [naming, setNaming] = createSignal<{ from?: string; value: string }>();
   const [types, setTypes] = createSignal("");
   const engine = start();
@@ -57,26 +50,18 @@ export default function Playground() {
   let editor: Editor | undefined;
   let version = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let resetCss: Promise<string> | undefined;
-  let shown: { r: Extract<Compiled, { ok: true }>; runtime: string; reset: string } | undefined;
+  let shown: { r: Extract<Compiled, { ok: true }>; runtime: string } | undefined;
 
-  // a signal set here is read after the next flush: the switch passes its value
-  const show = (on = base()) => {
+  const show = () => {
     if (!shown) return;
     const { r, runtime } = shown;
-    const bare = !/@layer reset\b/.test(r.css);
-    setBare(bare);
-    setDoc(
-      previewDocument(r.css, r.files, r.entry, runtime, bare && on ? shown.reset : "", modeClass()),
-    );
+    setDoc(previewDocument(r.css, r.files, r.entry, runtime, modeClass()));
   };
 
   const run = async (all: Files) => {
     const mine = ++version;
     setStatus("Compiling…");
     const t0 = performance.now();
-    resetCss ??= engine.compile(RESET).then((c) => (c.ok ? c.css : ""));
-    const reset = await resetCss;
     const r = await engine.compile(all);
     if (mine !== version) return;
     setResult(r);
@@ -88,7 +73,7 @@ export default function Playground() {
         : `${r.errors.length} error${r.errors.length === 1 ? "" : "s"}`,
     );
     if (r.ok) {
-      shown = { r, runtime: await engine.runtime(), reset };
+      shown = { r, runtime: await engine.runtime() };
       show();
     }
     history.replaceState(null, "", `${location.pathname}${location.search}#${await encode(all)}`);
@@ -310,22 +295,6 @@ export default function Playground() {
                 </button>
               )}
             </For>
-            <Show when={bare()}>
-              <label
-                class={s.base}
-                title="The project does not call reset(); the preview applies it"
-              >
-                <input
-                  type="checkbox"
-                  checked={base()}
-                  onChange={(e) => {
-                    setBase(e.currentTarget.checked);
-                    show(e.currentTarget.checked);
-                  }}
-                />{" "}
-                Apply @cssints/reset
-              </label>
-            </Show>
           </div>
           <div class={s.pane} role="tabpanel">
             <Show

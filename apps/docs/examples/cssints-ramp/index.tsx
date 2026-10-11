@@ -1,6 +1,9 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import { bg, check, cn, color, flex, fontSize, p } from "cssints" with { type: "cssints" };
 
 import { t } from "./tokens.ts" with { type: "cssints" };
+
+reset();
 
 // The steps hold their ratios in light and in dark: the build checks the two that carry text.
 check.contrast(t.blue._3, t.bg, { min: 3 }); // borders, large text

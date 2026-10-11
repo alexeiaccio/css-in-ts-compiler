@@ -1,3 +1,4 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import { bg, cn, p } from "cssints" with { type: "cssints" };
 import {
   autoGrid,
@@ -6,6 +7,8 @@ import {
   stack,
   switcher,
 } from "@cssints/layout" with { type: "cssints" };
+
+reset();
 
 // The layouts of every-layout.dev as members: stack (vertical rhythm), cluster (a wrapping row), sidebar (two columns that stack
 // when narrow), switcher (a row that becomes a column under a width) and autoGrid (as many columns as fit).

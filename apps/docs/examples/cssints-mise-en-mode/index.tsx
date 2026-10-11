@@ -1,6 +1,9 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import { bg, borderRadius, cn, color, flex, p } from "cssints" with { type: "cssints" };
 
 import { t } from "./tokens.ts" with { type: "cssints" };
+
+reset();
 
 const panel = cn(
   bg(t.color.bg),
