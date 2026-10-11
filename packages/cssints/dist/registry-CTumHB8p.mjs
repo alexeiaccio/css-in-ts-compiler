@@ -18,6 +18,7 @@ var ContrastError = class extends Data.TaggedError("ContrastError") {};
 //#region src/registry.ts
 const registry = globalThis.__cssints ??= {
 	sites: /* @__PURE__ */ new Map(),
+	nodes: /* @__PURE__ */ new Map(),
 	rules: /* @__PURE__ */ new Map(),
 	globals: /* @__PURE__ */ new Map(),
 	layers: /* @__PURE__ */ new Map(),

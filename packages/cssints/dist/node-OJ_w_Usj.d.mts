@@ -124,6 +124,8 @@ interface Check {
 interface RegistryState {
   /** file -> site index -> replacement expression */
   sites: Map<string, Map<number, string>>;
+  /** file -> site index -> the declarations of the style it produced: what a cn() with runtime arguments settles (macro.ts `groupOf`) */
+  nodes: Map<string, Map<number, Decl[]>>;
   /** class -> rule; one entry per class across all modules */
   rules: Map<string, Rule>;
   /** `layer<TAB>css` -> a global rule: in the sheet of the modules that carry it, in layer _.k unless it names a layer (sheet.ts `addGlobal`) */

@@ -1,4 +1,4 @@
-import { $p as Part, Xp as Check, d as createTokens, u as createGlobalTheme } from "./theme-types-DHdtTZhz.mjs";
+import { $p as Part, Xp as Check, d as createTokens, u as createGlobalTheme } from "./theme-types-C8JqsZGG.mjs";
 //#region src/tui-types.d.ts
 type Percent = `${number}%`;
 /** A number of cells (columns across, rows down) or a percentage of the parent. */

@@ -1,6 +1,6 @@
 import { a as Kernel } from "./author-types-C1AhsnrT.mjs";
-import { n as cx } from "./runtime-CTvuM-Hm.mjs";
-import { n as At, t as CssNode } from "./node-CyDM31HZ.mjs";
+import { n as _cv, r as _cx } from "./runtime-Dt4Tm0Q7.mjs";
+import { n as At, t as CssNode } from "./node-OJ_w_Usj.mjs";
 import { CSS, CSSColorValue, CSSImageValue, CSSStyleValue, CSSUnitValue } from "@cssints/css-grammar/values";
 import { Effect } from "effect";
 //#region src/lib.d.ts
@@ -19,7 +19,7 @@ export declare class CSSAtRuleValue extends CSSStyleValue {
 }
 export declare const keyframes: (steps: unknown) => CSSAtRuleValue;
 export declare const positionTry: (...args: unknown[]) => CSSAtRuleValue | CssNode;
-export declare const cn: (...args: unknown[]) => CssNode;
+export declare const cn: (...all: unknown[]) => CssNode;
 export declare const flex: (...args: unknown[]) => CssNode;
 export declare const grid: (...args: unknown[]) => CssNode;
 type Styles = Record<string, Record<string, unknown>>;
@@ -32,9 +32,16 @@ interface CvConfig {
 export declare const cv: (config: CvConfig) => ((props?: Record<string, string | boolean | undefined>) => string) & {
   __cv: CvConfig;
 };
+export declare const __group: (statics: [number, unknown][], parts: [number, number][]) => {
+  __group: {
+    statics: [number, unknown][];
+    parts: [number, number][];
+  };
+};
+export declare const __nocn: () => undefined;
 export declare const css: Record<string, unknown>;
 export declare function __at(file: string, site: number, offset: number): At;
 export declare const __unseen: (file: string, site: number) => boolean;
 export declare function __site(at: At, value: unknown): unknown;
 //#endregion
-export { CSS, CSSColorValue, CSSImageValue, CSSStyleValue, CSSUnitValue, cx };
+export { CSS, CSSColorValue, CSSImageValue, CSSStyleValue, CSSUnitValue, _cv, _cx };

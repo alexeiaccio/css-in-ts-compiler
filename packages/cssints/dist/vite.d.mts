@@ -1,8 +1,9 @@
 import { i as GlobalRule } from "./author-types-C1AhsnrT.mjs";
 import { n as ImportError, r as MacroError } from "./errors-D4ZbcwRo.mjs";
-import { i as RegistryState, n as At, r as LayersDecl } from "./node-CyDM31HZ.mjs";
+import { i as RegistryState, n as At, r as LayersDecl } from "./node-OJ_w_Usj.mjs";
 import { Effect } from "effect";
 import { ImportDeclaration } from "oxc-parser";
+import MagicString from "magic-string";
 import { Plugin } from "vite";
 //#region src/devtools-server.d.ts
 /** A `css.*` call of a client module: where it is (1-based line, 0-based column) and the class names it produced. */
@@ -57,11 +58,26 @@ interface CssImports {
   locals: Set<string>;
   decls: ImportDeclaration[];
 }
+/** A `cn(...)` with runtime arguments: the call is the runtime's `__cx`, which gets the runtime arguments. */
+interface SiteGroup {
+  callee: {
+    start: number;
+    end: number;
+  };
+  args: {
+    start: number;
+    end: number;
+    runtime: boolean;
+  }[];
+  /** `[offset, site]` of the sites inside the runtime arguments, in source order: the parts that may or may not be active */
+  parts: [number, number][];
+}
 interface Site {
   start: number;
   end: number;
   inFn: boolean;
   locals: Set<string>;
+  group?: SiteGroup;
 }
 interface Instrumented {
   code: string;

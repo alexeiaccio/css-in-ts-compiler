@@ -1,6 +1,6 @@
-import { a as registry, d as MacroError, f as MemberError, o as warn } from "./registry-D-OHolzA.mjs";
-import { D as relation, E as covers, d as requireLayer, p as standIn } from "./sheet-BGF_ZI5e.mjs";
-import { t as fallbackOf } from "./lowered-DOR84qdu.mjs";
+import { a as registry, d as MacroError, f as MemberError, o as warn } from "./registry-CTumHB8p.mjs";
+import { D as relation, E as covers, d as requireLayer, p as standIn } from "./sheet-BKsMTa0c.mjs";
+import { t as fallbackOf } from "./lowered-D2KusPLp.mjs";
 import { createRequire } from "node:module";
 import { checkSelector } from "@cssints/css-grammar/check";
 import { browsers, supportOf } from "@cssints/css-grammar/support";
@@ -14,7 +14,7 @@ import { DTCG_TYPES, TOKEN_TYPES, grammarOf } from "@cssints/css-grammar/token";
 import { matches } from "@cssints/css-grammar/twin";
 //#region src/node.ts
 const plain = (method) => {
-	throw fail(`cssints: plain styles do not chain (.${method}); merge them with cn(...) or cx(...)`);
+	throw fail(`cssints: plain styles do not chain (.${method}); merge them with cn(...)`);
 };
 const node = (decls, { markers, kernels, globals, themes, layers, plugs, bare } = {}, chain = (name) => plain(name)) => new Proxy({
 	__cssints: decls,
@@ -166,7 +166,7 @@ function checkVars(where, text) {
 const SPACING = /^(padding|margin|inset|gap|row-gap|column-gap)(-|$)/;
 const decl = (prop, name, args) => {
 	if (!args.length) throw fail(`cssints: ${name}() expects a value`);
-	if (args.some(isNode)) throw fail(`cssints: ${name}() takes values, not styles; merge styles with cn(...) or cx(...)`);
+	if (args.some(isNode)) throw fail(`cssints: ${name}() takes values, not styles; merge styles with cn(...)`);
 	for (const a of args) if (typeof a === "string") checkVars(name, a);
 	const [fb, extra] = args.filter(isFallback);
 	if (extra) throw fail(`cssints: ${name}() takes one firstThatWorks(...) per declaration`);
@@ -280,6 +280,22 @@ function settled(base, variants, compounds = []) {
 		})
 	};
 }
+function dropsOf(parts) {
+	const out = /* @__PURE__ */ new Map();
+	const under = (d) => (d[2] ?? []).map((c) => c.text).join(" > ");
+	for (const o of parts) for (const n of parts) {
+		if (n.at <= o.at || !(n.conditional || o.conditional) || under(n.decl) !== under(o.decl)) continue;
+		const r = relation(o.decl[0], n.decl[0]);
+		if (r === "overlap") throw fail(`cssints: cn() ${o.decl[0]} and ${n.decl[0]} overlap without one containing the other${under(n.decl) ? ` (under ${under(n.decl)})` : ""}, and may be active together, so the sheet cannot order them: set one of them, or the longhands`);
+		const cls = hashClass(o.decl);
+		const by = hashClass(n.decl);
+		if (r !== "apart" && covers(n.decl[0], o.decl[0]) && cls !== by) {
+			const gone = out.get(by) ?? out.set(by, []).get(by);
+			if (!gone.includes(cls)) gone.push(cls);
+		}
+	}
+	return [...out].map(([by, gone]) => [by, gone.join(" ")]);
+}
 function toDecls(member, args) {
 	if (member === "cn") {
 		if (!args.every(isNode)) throw fail(`cssints: cn() takes css.* values only, got ${JSON.stringify(args.filter((a) => !isNode(a)))}`);
@@ -292,7 +308,7 @@ function toDecls(member, args) {
 }
 const chainNames = (ctx) => CONTEXTS[ctx].map((p) => camel(p.startsWith(`${ctx}-`) ? p.slice(ctx.length + 1) : p));
 function chainDecl(ctx, method, args) {
-	if (!ctx) throw fail(`cssints: plain styles do not chain (.${method}); merge them with cn(...) or cx(...)`);
+	if (!ctx) throw fail(`cssints: plain styles do not chain (.${method}); merge them with cn(...)`);
 	const i = chainNames(ctx).indexOf(method);
 	if (i < 0) throw fail(`cssints: ${ctx}() has no .${method}(); it chains ${chainNames(ctx).join(", ")}`);
 	return decl(CONTEXTS[ctx][i], method, args);
@@ -910,4 +926,4 @@ const contrast = (...args) => edge(Effect.gen(function* () {
 }));
 const check = { contrast };
 //#endregion
-export { failIn as A, merged as C, VAR as D, toDecls as E, node as M, probed as N, camel as O, isFallback as S, settled as T, carried as _, createTokens as a, edge as b, tokensOf as c, style as d, token as f, PSEUDOS as g, LAYER as h, createGlobalTheme as i, isNode as j, fail as k, CSSTokenValue as l, FUNCTIONS as m, addTheme as n, isDone as o, CONTEXTS as p, check as r, sets as s, DONE as t, isStyle as u, chainDecl as v, minWidth as w, hashClass as x, checkVars as y };
+export { fail as A, isFallback as C, toDecls as D, settled as E, isNode as M, node as N, VAR as O, probed as P, hashClass as S, minWidth as T, carried as _, createTokens as a, dropsOf as b, tokensOf as c, style as d, token as f, PSEUDOS as g, LAYER as h, createGlobalTheme as i, failIn as j, camel as k, CSSTokenValue as l, FUNCTIONS as m, addTheme as n, isDone as o, CONTEXTS as p, check as r, sets as s, DONE as t, isStyle as u, chainDecl as v, merged as w, edge as x, checkVars as y };

@@ -1,5 +1,5 @@
-import { s as ContrastError } from "./registry-D-OHolzA.mjs";
-import { t as fallbackOf } from "./lowered-DOR84qdu.mjs";
+import { s as ContrastError } from "./registry-CTumHB8p.mjs";
+import { t as fallbackOf } from "./lowered-D2KusPLp.mjs";
 import { i as shown, r as ratio, t as luminance } from "./color-BYIxVLlS.mjs";
 import { Effect } from "effect";
 //#region src/check.ts
