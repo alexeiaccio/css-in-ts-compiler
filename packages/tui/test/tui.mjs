@@ -106,6 +106,19 @@ await fails(
   "bad-clash.ts",
   /--color-bg is already declared with another @property, in test\/fixtures\/theme\.ts/,
 );
+// a token set of one createTokens given to the other createGlobalTheme (cssints-v872): an error at the call, naming the import
+const failsAtCall = (f, message) =>
+  assert.rejects(code(f), (e) => {
+    assert.match(e.message, message);
+    assert.equal(e.file, `${root}/${f}`);
+    assert.equal(e.loc.line, 6);
+    return true;
+  });
+await failsAtCall("bad-web-set.ts", /web tokens of "cssints".*createGlobalTheme of "cssints"/);
+await failsAtCall(
+  "bad-tui-set.ts",
+  /terminal tokens of "cssints\/tui".*createGlobalTheme of "cssints\/tui"/,
+);
 await server.close();
 
 // An SSR build, as a Bun app is built: the sites are replaced there too (the plugin evaluates them on its own server).
