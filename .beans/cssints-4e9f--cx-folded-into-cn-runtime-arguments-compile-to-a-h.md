@@ -29,3 +29,9 @@ Design (agreed): cn(...) arguments known at build time merge as today; arguments
 - **Rewritten:** cssints tests, fixtures, bench, skills, API.md (runtime section: one function), README, AGENTS.md, demo, sky (Post, Embed), docs site (example.txt, playground test, landing text), devtools overlay (own `cx` helper became `cn`), layout and masonry READMEs, docs/research. placeholder's local variable `cx` renamed. dist of cssints and the devtools overlay rebuilt.
 - **Tests.** fixtures cn-runtime, cn-static, cn-runtime-arg, cn-runtime-overlap, cx-gone, cx-gone-attr; test/cn-runtime.mjs (runs the emitted code on the real runtime); runtime.mjs for `_cx`; type tests; docs.mjs; sheet-map expects the `cn(` that holds a rule. Green: cssints test, root test, typecheck, lint 0/0, fmt for the files touched, diff:check, bench, docs.mjs, apps/docs, apps/sky (+ test:posts, test:thread), devtools.
 - **Known limits.** A style held in a variable inside a runtime argument (`on && blurred`) is opaque: appended, never settled. The sheet map of a rule made inside a static `cn(...)` points at the `cn(` call, no longer at the single property call.
+
+## Merge with export groups (cssints-n7z3)
+
+- instrument.ts keeps `isCssints` (groups); `RUNTIME_ONLY`, `isRuntime` and `keptImport` are gone. The `cx` migration error fires for an import from `cssints` or any group subpath; `cn` detection and the `__cx` import work for `cn` imported from a group (`fixtures/cn-group-runtime.ts`, `cx-gone-group.ts`).
+- The eval-time helpers of the cn split are `__cnGroup` and `headOf` (master's `__group` and `groupOf` are the group proxy). `cx` is out of `group-common.ts`; `bun run groups` leaves the generated files as they were (the SVG property `cx` stays a member of the groups that define it). `_cx` is a plain runtime export, not a member.
+- bench: users.ts is 960428 on master against a budget of 919954 (+4.4%, inside the 1.1 tolerance); this branch is 960498 (+70).
