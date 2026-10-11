@@ -1,5 +1,5 @@
 import { a as registry, d as MacroError, f as MemberError, o as warn } from "./registry-D-OHolzA.mjs";
-import { D as relation, E as covers, d as requireLayer, p as standIn } from "./sheet-CMy2k66R.mjs";
+import { D as relation, E as covers, d as requireLayer, p as standIn } from "./sheet-BGF_ZI5e.mjs";
 import { t as fallbackOf } from "./lowered-DOR84qdu.mjs";
 import { createRequire } from "node:module";
 import { checkSelector } from "@cssints/css-grammar/check";
@@ -791,6 +791,8 @@ const theme = (at, args) => edge(Effect.gen(function* () {
 	const wanted = Predicate.isObject(options) ? options.scope : void 0;
 	const scope = typeof wanted === "string" ? wanted.trim() : void 0;
 	if (!at || !set || args.length < 3 || args.length > 4 || !Predicate.isObject(overrides) || args.length === 4 && (!Predicate.isObject(options) || asked !== void 0 && layer === void 0 || wanted !== void 0 && scope === void 0)) return yield* fail("cssints: createGlobalTheme(tokens, condition | selector, overrides, { layer, scope }?) takes tokens of createTokens, a media() or container() condition or a selector, the values to set, and optionally a declared top-level layer and a selector to scope them to");
+	const terminal = registry.defs === registry.terminal?.defs;
+	if (!!set.terminal !== terminal) return yield* fail(set.terminal ? `cssints: createGlobalTheme(): these are terminal tokens of "cssints/tui": theme them with the createGlobalTheme of "cssints/tui"` : `cssints: createGlobalTheme(): these are web tokens of "cssints": theme them with the createGlobalTheme of "cssints", or make them with the createTokens of "cssints/tui"`);
 	if (layer !== void 0) yield* requireLayer(layer, at);
 	if (scope !== void 0) {
 		if (typeof condition !== "string") return yield* fail("cssints: createGlobalTheme(): a scope goes with a selector, not a condition");

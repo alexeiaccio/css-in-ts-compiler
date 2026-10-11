@@ -572,6 +572,7 @@ const refuses = (literal) => {
 };
 const standIn = Effect.fnUntraced(function* (at, who, kind, literal, inherits, rooted) {
 	const registry = yield* Registry;
+	if (registry.defs === registry.terminal?.defs) return false;
 	let why;
 	if (kind !== "color") why = "computes colours only";
 	else if (!inherits) why = "does not write tokens that do not inherit";
