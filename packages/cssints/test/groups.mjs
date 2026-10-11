@@ -12,16 +12,30 @@ import cssints from "../src/plugin.ts";
 
 // The declarations (what TypeScript reads) and the data (what the build reads) come from one run of scripts/groups.ts.
 const tied = new Set([...Object.keys(PROPS), ...Object.keys(FUNCTIONS), ...Object.keys(PSEUDOS)]);
-for (const [id, g] of Object.entries(groups)) {
+// The names a declaration module exports: its own declarations, the ones it re-exports by name (a with-downstream group takes
+// what it shares with its Baseline group) and, for a group the same as another, the other's.
+const declaredBy = (id) => {
   const text = readFileSync(`${import.meta.dirname}/../src/groups/${id}.ts`, "utf8");
-  const declared = new Set(
-    [...text.matchAll(/^export declare const (\w+):/gm)]
-      .map((m) => m[1])
-      .concat(
-        [...text.matchAll(/^export \{ _var as var \}/gm)].length ? ["var"] : [],
-        [...text.matchAll(/^export \{ keyframes \}/gm)].length ? ["keyframes"] : [],
-      ),
+  const names = new Set([...text.matchAll(/^export declare const (\w+):/gm)].map((m) => m[1]));
+  for (const [, list, from] of text.matchAll(/^export \{ ([^}]*) \} from "([^"]*)";/gm))
+    if (!from.endsWith("types.ts"))
+      for (const n of list.split(", ")) {
+        const base = declaredBy(from.replace(/^(\.\.?\/)+/, "").replace(/\.ts$/, ""));
+        assert.ok(base.has(n), `${id}: re-exports ${n}, which ${from} lacks`);
+        names.add(n);
+      }
+  if (/^export \{ _var as var \}/m.test(text)) names.add("var");
+  if (/^export \{ keyframes \}/m.test(text)) names.add("keyframes");
+  const alias = /^export \* from "(\.[^"]*)";/m.exec(
+    text.replace(/export \* from "[^"]*group-common.ts";/, ""),
   );
+  if (alias)
+    for (const n of declaredBy(alias[1].replace(/^(\.\.?\/)+/, "").replace(/\.ts$/, "")))
+      names.add(n);
+  return names;
+};
+for (const [id, g] of Object.entries(groups)) {
+  const declared = declaredBy(id);
   const members = new Set(g.members.split(" "));
   for (const m of members) assert.ok(declared.has(m), `${id}: ${m} is a member but not declared`);
   for (const m of declared) assert.ok(members.has(m), `${id}: ${m} is declared but not a member`);
@@ -74,6 +88,29 @@ assert.match(spec, /color-mix\(in oklab,red,blue\)|color-mix\(in oklab, red, blu
 assert.match(spec, /grid-template-rows:subgrid/);
 assert.match(spec, /display:grid-lanes/);
 
+// The downstream groups and the Baseline years: a value is in a downstream group when the downstream browsers have it at the
+// minimum versions of baseline-browser-mapping, and in baseline-YYYY when it was newly available by the end of YYYY.
+await client.transformRequest("/fixtures/groups-years.ts");
+const years = sheet("fixtures/groups-years.ts");
+for (const rule of [
+  "clip-path:border-box",
+  "color-mix(in oklab",
+  "light-dark(",
+  "inline-size:fit-content",
+  "inline-size:10rem",
+])
+  assert.ok(years.includes(rule), `${rule} missing in\n${years}`);
+for (const [id, g] of Object.entries(groups).filter(([id]) => id.endsWith("/with-downstream"))) {
+  const base = groups[id.replace("/with-downstream", "")];
+  const out = (a, b) => a.split(" ").filter((x) => x && !b.split(" ").includes(x));
+  assert.deepEqual(out(g.members, base.members), [], `${id} has a member its Baseline group lacks`);
+  for (const k of ["fn", "unit", "media"])
+    assert.deepEqual(out(base.ban[k], g.ban[k]), [], `${id} lets a ${k} its Baseline group bans`);
+}
+assert.ok(
+  Object.hasOwn(groups, "baseline-2015") && Object.hasOwn(groups, "baseline-2026/with-downstream"),
+);
+
 // Out of the group: an error at the call, naming the group.
 const bad = [
   ["kw", /^cssints: display: "grid-lanes" is not in cssints\/widely-available/, 2],
@@ -85,6 +122,23 @@ const bad = [
   ["chain", /^cssints: align-items: "anchor-center" is not in cssints\/widely-available/, 2],
   ["spec", /^cssints: color: "color-mix\(\)" is not in cssints\/css-color-4/, 2],
   ["mq", /^cssints: @media: "prefers-color-scheme" is not in cssints\/mediaqueries-4/, 2],
+  [
+    "downstream",
+    /^cssints: inline-size: "fit-content" is not in cssints\/widely-available\/with-downstream/,
+    2,
+  ],
+  [
+    "downstream-member",
+    /^cssints: maskImage is not in cssints\/widely-available\/with-downstream/,
+    2,
+  ],
+  ["year", /^cssints: color: "color-mix\(\)" is not in cssints\/baseline-2022/, 2],
+  ["year-member", /^cssints: lightDark is not in cssints\/baseline-2023/, 2],
+  [
+    "year-down",
+    /^cssints: clip-path: "border-box" is not in cssints\/baseline-2020\/with-downstream/,
+    2,
+  ],
   ["discouraged", /^cssints: text-decoration-line: "blink" is not in cssints\/not-discouraged/, 2],
 ];
 for (const [name, message, line] of bad) {
