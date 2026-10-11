@@ -3,6 +3,7 @@ import { createSignal, For, onSettled, Show } from "solid-js";
 import { type Compiled, type Files, start } from "./client.ts";
 import { type Editor, mount } from "./editor.ts";
 import { ids, load } from "./examples.ts";
+import { canvas } from "./hyper.ts";
 import { previewDocument } from "./preview.ts";
 import { decode, encode, exampleOf } from "./share.ts";
 import * as s from "./styles.ts";
@@ -19,17 +20,6 @@ const TABS: [Tab, string][] = [
 const DELAY = 300;
 // the project the page opens with: a slice of csssky (apps/docs/examples/csssky)
 const DEFAULT = "csssky";
-// the class of <html> that csssky's themes (and any `.dark` of a project) read, from the display settings of this site
-const modeClass = () => {
-  const c = document.documentElement.classList;
-  return c.contains("dim")
-    ? "dim"
-    : c.contains("dark")
-      ? "dark"
-      : c.contains("light")
-        ? "light"
-        : "";
-};
 
 // The page: an editor, the engine in a worker (client.ts), and what it made. The code is in the URL hash, so a link is a share.
 export default function Playground() {
@@ -55,7 +45,7 @@ export default function Playground() {
   const show = () => {
     if (!shown) return;
     const { r, runtime } = shown;
-    setDoc(previewDocument(r.css, r.files, r.entry, runtime, modeClass()));
+    setDoc(previewDocument(r.css, r.files, r.entry, runtime, canvas()));
   };
 
   const run = async (all: Files) => {
@@ -102,9 +92,9 @@ export default function Playground() {
         setProblem(e.data.playground.error);
     };
     window.addEventListener("message", message);
-    // the display settings are classes of <html>: a mode changed there is the preview's too
+    // the display settings are classes and data attributes of <html>: a mode or a palette changed there is the preview's too
     const modes = new MutationObserver(() => show());
-    modes.observe(document.documentElement, { attributeFilter: ["class"] });
+    modes.observe(document.documentElement, { attributes: true });
     void (async () => {
       const id = exampleOf(location.hash) ?? (location.hash ? "" : DEFAULT);
       const all = (await decode(location.hash)) ?? (await load(id || DEFAULT)) ?? {};

@@ -14,6 +14,7 @@ export const A = (props: { roomy?: boolean }) => (
       justifyContent("center"),
       css.minHeight("5rem"),
       css.bg("#eef2ff"),
+      css.color("#0f172a"),
       props.roomy && p(8),
     )}
   >
@@ -27,6 +28,7 @@ export const B = (props: { roomy?: boolean }) => (
       css.flex().alignItems("center").justifyContent("center"),
       css.minHeight("5rem"),
       css.bg("#ecfdf5"),
+      css.color("#0f172a"),
       props.roomy && css.p(8),
     )}
   >

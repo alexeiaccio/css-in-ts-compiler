@@ -1,5 +1,6 @@
 // README.md and docs/API.md to pages: split at the headings, highlight the code (Shiki, with twoslash hovers on the ts blocks) and
 // resolve the links between the two files. Node only (the Vite plugin calls it); the browser gets the result as data.
+import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, posix } from "node:path";
 import { rendererRich, transformerTwoslash } from "@shikijs/twoslash";
@@ -187,6 +188,31 @@ export async function buildPages(base = "/"): Promise<Page[]> {
     themes: ["github-light", "github-dark"],
     langs: ["ts", "tsx", "css", "bash"],
   });
+  // The panel of a page's example: the tabs Result and Code, radio inputs that the styles of src/prose.ts read (no script), and the
+  // files of the project highlighted as the blocks of the page are, the entry first, with a switcher (prose.ts has rules for six).
+  // The comment is where plugin/docs.ts puts the example's result (plugin/examples.ts).
+  const panel = (slug: string) => {
+    const dir = join(root, "apps/docs/examples", slug);
+    const names = readdirSync(dir)
+      .filter((f) => /\.tsx?$/.test(f))
+      .sort(
+        (a, b) => Number(/^index\./.test(b)) - Number(/^index\./.test(a)) || a.localeCompare(b),
+      );
+    assert(names.length <= 6, `${slug}: ${names.length} files, the styles have a switcher for six`);
+    const id = `ex-${slug}`;
+    const code = names.map((n) =>
+      highlighter.codeToHtml(readFileSync(join(dir, n), "utf8").trimEnd(), {
+        lang: n.endsWith("x") ? "tsx" : "ts",
+        themes: { light: "github-light", dark: "github-dark" },
+        defaultColor: false,
+      }),
+    );
+    const radios = names.map(
+      (_, i) => `<input type="radio" name="${id}-file" id="${id}-f${i}"${i ? "" : " checked"}>`,
+    );
+    const labels = names.map((n, i) => `<label for="${id}-f${i}">${n}</label>`);
+    return `<div class="example"><input type="radio" class="tab-result" name="${id}" id="${id}-result" checked><input type="radio" class="tab-code" name="${id}" id="${id}-code"><p><span><label for="${id}-result">Result</label><label for="${id}-code">Code</label></span><a href="${base}playground#${exampleHash(slug)}">Open in playground</a></p><div class="pane-result"><!--result--></div><div class="pane-code">${radios.join("")}<div>${labels.join("")}</div>${code.join("")}</div></div>`;
+  };
   // twoslash type-checks a ts block as docs.mjs does: the workspace "cssints" (customConditions: development), `prop` and a JSX
   // with any tag declared in a file of their own. The collections of the icons block are not dependencies of cssints.
   const twoslash = transformerTwoslash({
@@ -253,9 +279,7 @@ declare namespace JSX {
       },
     });
     page.html = m.parser(tokens.slice(1));
-    if (examples.has(page.slug))
-      // the comment is where plugin/docs.ts puts the example's result (plugin/examples.ts)
-      page.html = `<div class="example"><p><span>Result</span><a href="${base}playground#${exampleHash(page.slug)}">Open in playground</a></p><!--result--></div>\n${page.html}`;
+    if (examples.has(page.slug)) page.html = `${panel(page.slug)}\n${page.html}`;
   }
   // The API reference's own page is its introduction: an index of the reference pages follows it, each with its first lines
   // and the terms it covers, so the page says what is where.

@@ -1,5 +1,5 @@
 import { reset } from "@cssints/reset" with { type: "cssints" };
-import { bg, cn, p } from "cssints" with { type: "cssints" };
+import { bg, cn, color, p } from "cssints" with { type: "cssints" };
 import {
   autoGrid,
   cluster,
@@ -17,7 +17,7 @@ const toolbar = cluster().gap(2).justify("space-between");
 const split = sidebar().width("12rem").content("60%").gap(4);
 const buttons = switcher().threshold("24rem");
 const cards = autoGrid().min("9rem").gap(3);
-const box = cn(p(3), bg("#e0e7ff"));
+const box = cn(p(3), bg("#e0e7ff"), color("#0f172a"));
 
 export default function App() {
   return (

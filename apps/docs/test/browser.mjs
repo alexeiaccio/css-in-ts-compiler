@@ -530,6 +530,16 @@ try {
     assert.ok((await bare.textContent(".prose")).length > 1000, "the article is in the document");
     assert.ok((await bare.getAttribute("meta[name=description]", "content")).length > 40);
     assert.equal(await bare.locator("#root").isVisible(), false, "the empty root is hidden");
+    // the example's tabs work with no script (radio inputs): Code shows a file, the switcher shows the other
+    const tabs = bare.locator("#prerender .example");
+    assert.equal(await tabs.locator(".pane-code").isVisible(), false, "Result first");
+    await tabs.getByText("Code", { exact: true }).click();
+    assert.equal(await tabs.locator(".pane-result").isVisible(), false);
+    assert.match(await tabs.locator(".pane-code pre:visible").textContent(), /^import /);
+    await tabs.getByText("stack.ts", { exact: true }).click();
+    assert.match(await tabs.locator(".pane-code pre:visible").textContent(), /export const stack/);
+    await tabs.getByText("Result", { exact: true }).click();
+    assert.equal(await tabs.locator(".pane-result").isVisible(), true);
     await bare.click(`#prerender nav a[href='${prefix}tokens/']`);
     assert.equal(await bare.textContent("h1"), "Tokens", "a link is another document");
     await bare.goto(built);

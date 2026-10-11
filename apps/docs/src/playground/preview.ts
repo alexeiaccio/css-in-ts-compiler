@@ -2,11 +2,14 @@
 // the JSX the compile left, and the files run as the bodies of functions (compile.ts `asBody`), each once, by its id. The entry's
 // default export, else `App`, else its first function, is called with no props and what it returns is put in the page. A failure
 // goes to the parent as a message. The page's own rules (a margin and a font) are in the lowest layer, so the project's rules win
-// over them, the reset's too: a project without reset() has none. `mode` is the class of <html> that the project's themes read
-// (`light`, `dim`, `dark` or none).
+// over them, the reset's too: a project without reset() has none. `site` is what the frame takes from the docs site (`canvas` of
+// hyper.ts): the mode, the class of <html> that the project's themes read (`light`, `dim`, `dark` or none), and the canvas, as
+// custom properties of <html> that the page's rule reads.
 
 import type { Output } from "./compile.ts";
-import { attrs, main } from "./hyper.ts";
+import { attrs, canvasCss, main } from "./hyper.ts";
+
+const quoted = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 
 const safe = (json: string) => json.replace(/</g, "\\u003c");
 
@@ -15,11 +18,16 @@ export const previewDocument = (
   files: Record<string, Output>,
   entry: string,
   runtime: string,
-  mode = "",
+  site: Record<string, string> = {},
 ): string => `<!doctype html>
-<html class="${mode}">
+<html class="${quoted(site["mode"] ?? "")}" style="${quoted(
+  Object.entries(site)
+    .filter(([k]) => k !== "mode")
+    .map(([k, v]) => `--canvas-${k}:${v}`)
+    .join(";"),
+)}">
 <meta charset="utf-8">
-<style>@layer preview;${css.replace(/<\/style/gi, "<\\/style")}@layer preview{body{margin:16px;font:16px system-ui,sans-serif}}</style>
+<style>@layer preview;${css.replace(/<\/style/gi, "<\\/style")}${canvasCss}</style>
 <div id="root"></div>
 <script type="module">
 const send = (message) => parent.postMessage({ playground: message }, "*");

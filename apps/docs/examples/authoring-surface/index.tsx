@@ -15,6 +15,7 @@ const panel = css.cn(
   css.border("1px solid", "#d4d8e1"),
   css.borderRadius("12px"),
   css.bg("#fafbfd"),
+  css.color("#0f172a"),
 );
 const person = css.cn(row, css.minHeight("3rem"));
 const avatar = css.cn(
@@ -22,6 +23,7 @@ const avatar = css.cn(
   css.height("2.5rem"),
   css.borderRadius("50%"),
   css.bg("#c7d2fe"),
+  css.color("#1e1b4b"),
   css.flex().alignItems("center").justifyContent("center"),
   css.fontWeight(700),
 );
@@ -33,6 +35,7 @@ const grid = css.cn(
 const cell = css.cn(
   css.p(2),
   css.bg("white"),
+  css.color("#0f172a"),
   css.border("1px solid", "#e5e7eb"),
   css.opacity(0.9),
 );

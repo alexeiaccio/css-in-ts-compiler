@@ -5,7 +5,13 @@ reset();
 
 // A value that a browser in your browserslist lacks is a warning, not an error: it appears under the editor, with the BCD feature.
 // Text that balances, a colour in OKLCH, anchor names and the standard line-clamp are all newer than the default targets.
-const article = css.cn(css.maxWidth("34rem"), css.p(6), css.flex().direction("column").gap(3));
+const article = css.cn(
+  css.maxWidth("34rem"),
+  css.p(6),
+  css.flex().direction("column").gap(3),
+  css.bg("white"),
+  css.color("#0f172a"),
+);
 const title = css.cn(
   css.margin("0"),
   css.fontSize("2rem"),

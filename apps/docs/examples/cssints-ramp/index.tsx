@@ -13,9 +13,9 @@ const page = cn(bg(t.bg), p(4), flex().direction("column").gap(3));
 const text = cn(color(t.blue._4), fontSize("1.125rem"));
 const steps = flex().gap(2);
 const swatches = [
-  cn(bg(t.blue._1), p(4)),
-  cn(bg(t.blue._2), p(4)),
-  cn(bg(t.blue._3), p(4)),
+  cn(bg(t.blue._1), p(4), color("#0f172a")),
+  cn(bg(t.blue._2), p(4), color("#0f172a")),
+  cn(bg(t.blue._3), p(4), color("#0f172a")),
   cn(bg(t.blue._4), p(4), color("white")),
   cn(bg(t.blue._5), p(4), color("white")),
 ];

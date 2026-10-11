@@ -2,8 +2,9 @@
 // engine's registry is process-global and this clears it between projects. Every project goes through the cssints plugin on one
 // private Vite server (as plugin/landing.ts does): its modules are written out with their imports linked and run in Node, the
 // default export is rendered to html by plugin/h.ts, and that html with the project's sheet (the reset is what the code calls)
-// is a document for a sandboxed iframe (srcdoc). The document has one script: it asks the page for the display mode and puts it
-// on <html> as the class the project's themes read.
+// is a document for a sandboxed iframe (srcdoc). The document has one script: it asks the page for the display mode and the canvas
+// (the site's background, text colour and font) and puts them on <html>: the mode as the class the project's themes read, the
+// canvas as custom properties that a rule of the lowest layer reads (hyper.ts).
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join, relative } from "node:path";
@@ -11,6 +12,8 @@ import { pathToFileURL } from "node:url";
 import cssints, { targets } from "cssints/vite";
 import { transform } from "lightningcss";
 import { createServer } from "vite";
+
+import { canvasCss } from "../src/playground/hyper.ts";
 
 const root = join(import.meta.dirname, "..");
 const examples = join(root, "examples");
@@ -22,7 +25,7 @@ const SKIP = new Set(["csssky"]);
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 const url = (file: string) => `/${relative(root, file)}`;
 
-const script = `addEventListener("message",(e)=>{if(e.source===parent)document.documentElement.className=e.data.mode});parent.postMessage("cssints:mode","*")`;
+const script = `addEventListener("message",(e)=>{if(e.source!==parent)return;const r=document.documentElement,d=e.data;r.className=d.mode;for(const k in d)if(k!=="mode")r.style.setProperty("--canvas-"+k,d[k])});parent.postMessage("cssints:mode","*")`;
 const page = (css: string, body: string) => `<!doctype html>
 <html>
 <meta charset="utf-8">
@@ -122,9 +125,7 @@ export async function results(): Promise<Record<string, string>> {
       );
       const sheet = transform({
         filename: "example.css",
-        code: Buffer.from(
-          `@layer preview;${css}@layer preview{body{margin:16px;font:16px system-ui,sans-serif}}`,
-        ),
+        code: Buffer.from(`@layer preview;${css}${canvasCss}`),
         minify: true,
         targets,
       }).code.toString();

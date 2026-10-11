@@ -6,24 +6,31 @@ import {
   borderRadius,
   boxShadow,
   color,
+  cursor,
   display,
   fontFamily,
   fontSize,
   fontWeight,
+  gap,
   global,
   height,
   justifyContent,
   lineHeight,
   margin,
   marginTop,
+  maxHeight,
   maxWidth,
   media,
+  opacity,
+  outline,
+  outlineOffset,
   overflow,
   overflowWrap,
   overflowX,
   padding,
   paddingBottom,
   paddingLeft,
+  position,
   resize,
   tabSize,
   textAlign,
@@ -117,15 +124,87 @@ global(
 );
 global(`${p} > pre code`, bg("transparent"), padding("0"), fontSize("inherit"));
 
-// the result of a page's example (plugin/examples.ts): its link, and the sandboxed frame of the rendered project
+// the panel of a page's example (plugin/markdown.ts): the tabs Result and Code are radio inputs, so they work without scripts (the
+// input comes first, the label that shows it, then the panes that follow it); the Result is the sandboxed frame of the rendered
+// project (plugin/examples.ts), the Code a file of the project, highlighted at build time, with a switcher when there are several
+const e = `${p} .example`;
+const files = [1, 2, 3, 4, 5, 6];
+// one rule for each set of declarations, over the selectors that share it (a site that is not a call of global() would stay in the
+// entry's code as a class string)
+const pick = (i: number, state: string, rest: string) =>
+  `${e} .pane-code > input:nth-of-type(${i}):${state} ~ ${rest}:nth-of-type(${i})`;
 global(
-  `${p} .example`,
+  e,
+  position("relative"),
   border(t.border.width, "solid", t.color.border),
   borderRadius(t.radius.md),
   overflow("hidden"),
 );
 global(
-  `${p} .example > p`,
+  `${e} > input, ${e} .pane-code > input`,
+  position("absolute"),
+  opacity("0"),
+  width("1px"),
+  height("1px"),
+);
+global(`${e} .pane-code, ${e} .pane-code > pre`, display("none"));
+global(
+  [`${e} > .tab-code:checked ~ .pane-code`, ...files.map((i) => pick(i, "checked", "pre"))].join(
+    ", ",
+  ),
+  display("block"),
+);
+global(`${e} > .tab-code:checked ~ .pane-result`, display("none"));
+global(`${e} > p > span`, display("flex"), gap(t.space.xs));
+global(
+  `${e} > p > span label, ${e} .pane-code > div label`,
+  padding(t.space.xs, t.space.md),
+  borderRadius(t.radius.sm),
+  color(t.color.textMedium),
+  cursor("pointer"),
+);
+global(`${e} > p > span label`, fontWeight(t.fontWeight.semiBold));
+global(`${e} .pane-code > div label`, fontFamily(mono));
+global(
+  [
+    `${e} > .tab-result:checked ~ p label:first-child`,
+    `${e} > .tab-code:checked ~ p label:last-child`,
+    ...files.map((i) => pick(i, "checked", "div label")),
+  ].join(", "),
+  bg(t.color.accentSoft),
+  color(t.color.accentStrong),
+);
+global(
+  [
+    `${e} > .tab-result:focus-visible ~ p label:first-child`,
+    `${e} > .tab-code:focus-visible ~ p label:last-child`,
+    ...files.map((i) => pick(i, "focus-visible", "div label")),
+  ].join(", "),
+  outline("2px solid", t.color.accent),
+  outlineOffset("1px"),
+);
+global(
+  `${e} .pane-code > div`,
+  display("flex"),
+  gap(t.space.xs),
+  padding(t.space.xs, t.space.md),
+  borderBottom(t.border.width, "solid", t.color.border),
+  fontSize(t.fontSize.sm),
+);
+global(
+  `${e} pre`,
+  margin("0"),
+  padding(t.space.lg),
+  maxHeight("18rem"),
+  overflow("auto"),
+  bg(t.color.bgSubtle),
+  fontSize(t.fontSize.sm),
+  lineHeight(t.lineHeight.relaxed),
+  tabSize(2),
+);
+global(`${e} pre code`, bg("transparent"), padding("0"), fontSize("inherit"));
+global(
+  `${e} > p`,
   margin("0"),
   display("flex"),
   justifyContent("space-between"),
@@ -134,13 +213,12 @@ global(
   borderBottom(t.border.width, "solid", t.color.border),
   fontSize(t.fontSize.sm),
 );
-global(`${p} .example > p > span`, color(t.color.textMedium), fontWeight(t.fontWeight.semiBold));
 global(
-  `${p} .example iframe`,
+  `${e} iframe`,
   display("block"),
   width("100%"),
   height("18rem"),
-  bg("white"),
+  bg(t.color.bg),
   border("0", "none"),
   resize("vertical"),
 );

@@ -16,6 +16,7 @@ import { Worker } from "node:worker_threads";
 import type { Plugin } from "vite";
 
 import { landing } from "./landing.ts";
+import { canvas } from "../src/playground/hyper.ts";
 import { type Page, summary } from "./markdown.ts";
 
 const root = join(import.meta.dirname, "../../..");
@@ -43,19 +44,18 @@ const buildPages = async (base: string) => {
   }));
 };
 
-// The result frames of a page (plugin/examples.ts) are sandboxed: they cannot read the page. Each asks for the display mode when it
-// loads, and every frame is told again when the settings change the class of <html> (dim is dark with a class of its own,
-// settings.ts; the frame gets the one name, the class its project's themes read, as the playground's preview does). It is in the
-// page's own chunk, not a module they share: a shared chunk would be listed in the entry's preload map.
+// The result frames of a page (plugin/examples.ts) are sandboxed: they cannot read the page. Each asks for the display mode and
+// the canvas when it loads, and every frame is told again when the settings change the classes or the data attributes of <html>
+// (`canvas` of hyper.ts: the mode, as the class its project's themes read, and the site's background, text colour and font, read
+// off the page, as the playground's preview takes them). It is in the page's own chunk, not a module they share: a shared chunk
+// would be listed in the entry's preload map.
 const FRAMES = `if (!globalThis.__resultFrames) {
   globalThis.__resultFrames = true;
   const frames = () => document.querySelectorAll(".example iframe");
-  const tell = (w) => {
-    const c = document.documentElement.classList;
-    w?.postMessage({ mode: c.contains("dim") ? "dim" : c.contains("dark") ? "dark" : c.contains("light") ? "light" : "" }, "*");
-  };
+  const canvas = ${canvas.toString()};
+  const tell = (w) => w?.postMessage(canvas(), "*");
   addEventListener("message", (e) => e.data === "cssints:mode" && tell(e.source));
-  new MutationObserver(() => frames().forEach((f) => tell(f.contentWindow))).observe(document.documentElement, { attributeFilter: ["class"] });
+  new MutationObserver(() => frames().forEach((f) => tell(f.contentWindow))).observe(document.documentElement, { attributes: true });
   frames().forEach((f) => tell(f.contentWindow));
 }
 `;

@@ -14,6 +14,7 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 
 import { createServer } from "vite";
@@ -473,6 +474,28 @@ try {
   await page.getByRole("tab", { name: "Preview" }).click();
   const two = page.frameLocator("iframe[title=Preview]").getByText("hello");
   await two.waitFor();
+  // the preview takes the site's canvas (its background and font), and follows a change of the settings
+  const canvasOf = () =>
+    two.evaluate((el) => {
+      const cs = getComputedStyle(el.ownerDocument.documentElement);
+      return [cs.backgroundColor, getComputedStyle(el.ownerDocument.body).fontFamily];
+    });
+  const siteCanvas = () =>
+    page.evaluate(() => [
+      getComputedStyle(document.documentElement).backgroundColor,
+      getComputedStyle(document.body).fontFamily,
+    ]);
+  assert.deepEqual(await canvasOf(), await siteCanvas(), "the preview has the site's canvas");
+  await page.evaluate(() => (document.documentElement.dataset.palette = "flexoki"));
+  await page.evaluate(() => document.documentElement.classList.add("dark"));
+  await two.waitFor();
+  for (let i = 0; i < 100 && String(await canvasOf()) !== String(await siteCanvas()); i++)
+    await sleep(100);
+  assert.deepEqual(await canvasOf(), await siteCanvas(), "and follows the palette and the mode");
+  await page.evaluate(() => {
+    document.documentElement.dataset.palette = "cssints";
+    document.documentElement.classList.remove("dark");
+  });
   // no reset() in this project, so none in the preview: the page's own margin
   assert.equal(await two.evaluate((el) => getComputedStyle(el.ownerDocument.body).margin), "16px");
   assert.equal(

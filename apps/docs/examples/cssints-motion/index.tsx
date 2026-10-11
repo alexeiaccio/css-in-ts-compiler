@@ -17,6 +17,7 @@ const leaving = cn(
   motion().preset("fade-out").duration("2s"),
   p(3),
   bg("#fecaca"),
+  color("#0f172a"),
   borderRadius("10px"),
 );
 const tile = cn(
@@ -24,6 +25,7 @@ const tile = cn(
   hover(motion().duration("1s")),
   p(3),
   bg("#bfdbfe"),
+  color("#0f172a"),
   borderRadius("10px"),
 );
 

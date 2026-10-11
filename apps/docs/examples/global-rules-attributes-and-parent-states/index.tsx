@@ -12,8 +12,7 @@ const row = css.cn(
   css.flex().alignItems("center").justifyContent("space-between"),
   css.padding("0.5rem", "0.75rem"),
   css.borderRadius("8px"),
-  css.color("#475569"),
-  css.hover(css.bg("#f1f5f9")),
+  css.hover(css.cn(css.bg("#f1f5f9"), css.color("#0f172a"))),
   css.attr(
     "aria-current",
     "page",
