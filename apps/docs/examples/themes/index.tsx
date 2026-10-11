@@ -1,6 +1,9 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import * as css from "cssints" with { type: "cssints" };
 
 import { t } from "./theme.ts" with { type: "cssints" };
+
+reset();
 
 // The second panel has the class "brand": the theme moves the accent, and the link and the hover colour (derived from it) follow.
 const panel = css.cn(

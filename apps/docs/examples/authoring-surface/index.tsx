@@ -1,7 +1,10 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import * as css from "cssints" with { type: "cssints" };
 import { CSS } from "cssints" with { type: "cssints" };
 
 import { page, row, stack } from "./stack.ts" with { type: "cssints" };
+
+reset();
 
 // Names are the CSS properties in camelCase, plus a few short ones (p, m, bg). A bare number is a step of 0.25rem in padding,
 // margin, gap and inset, and a plain number elsewhere. flex() and grid() chain their container properties.

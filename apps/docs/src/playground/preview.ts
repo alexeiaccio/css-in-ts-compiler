@@ -2,8 +2,8 @@
 // the JSX the compile left, and the files run as the bodies of functions (compile.ts `asBody`), each once, by its id. The entry's
 // default export, else `App`, else its first function, is called with no props and what it returns is put in the page. A failure
 // goes to the parent as a message. The page's own rules (a margin and a font) are in the lowest layer, so the project's rules win
-// over them, the reset's too. `base` is the reset of @cssints/reset for a project that does not call it. `mode` is the class of
-// <html> that the project's themes read (`light`, `dim`, `dark` or none).
+// over them, the reset's too: a project without reset() has none. `mode` is the class of <html> that the project's themes read
+// (`light`, `dim`, `dark` or none).
 
 import type { Output } from "./compile.ts";
 import { attrs, main } from "./hyper.ts";
@@ -15,12 +15,11 @@ export const previewDocument = (
   files: Record<string, Output>,
   entry: string,
   runtime: string,
-  base = "",
   mode = "",
 ): string => `<!doctype html>
 <html class="${mode}">
 <meta charset="utf-8">
-<style>@layer preview;${(base + css).replace(/<\/style/gi, "<\\/style")}@layer preview{body{margin:16px;font:16px system-ui,sans-serif}}</style>
+<style>@layer preview;${css.replace(/<\/style/gi, "<\\/style")}@layer preview{body{margin:16px;font:16px system-ui,sans-serif}}</style>
 <div id="root"></div>
 <script type="module">
 const send = (message) => parent.postMessage({ playground: message }, "*");

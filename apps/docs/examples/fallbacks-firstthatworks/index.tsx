@@ -1,3 +1,4 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import {
   bg,
   cn,
@@ -9,6 +10,8 @@ import {
   p,
   token,
 } from "cssints" with { type: "cssints" };
+
+reset();
 
 const brand = token.color("#0057b8", "brand");
 

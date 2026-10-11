@@ -1,4 +1,7 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import * as css from "cssints" with { type: "cssints" };
+
+reset();
 
 // A value that a browser in your browserslist lacks is a warning, not an error: it appears under the editor, with the BCD feature.
 // Text that balances, a colour in OKLCH, anchor names and the standard line-clamp are all newer than the default targets.

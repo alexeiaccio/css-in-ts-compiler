@@ -3,8 +3,8 @@
 // in a browser, projects of several files and every example project of apps/docs/examples (one per docs page, and csssky's slice)
 // go through the real plugin in Node (test/playground-reference.mjs, a child process) and through the worker in Chrome: the same
 // sheet, the same classes, the same located error, and no error in an example. Every page has an example, but the pages that
-// cannot have one (listed here). Then the page: it opens csssky's slice with the reset of the project in the preview, a project
-// without reset() gets the reset of @cssints/reset (a switch), the picker and the link of a docs page open an example, Monaco
+// cannot have one (listed here). Then the page: it opens csssky's slice with the reset its code calls, the Install page's example
+// calls it too, a project without reset() has none (the preview adds nothing), the picker and the link of a docs page open an example, Monaco
 // loads with the types of cssints, a hover shows a type, a type error is marked, files are added and switched, the preview renders
 // with no console error, an error is marked in the editor, the hash holds all the files and gives them back. (Skipped without
 // Chrome, like browser.mjs.)
@@ -14,7 +14,6 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 
 import { createServer } from "vite";
@@ -51,7 +50,9 @@ for (const text of ["", "ünïcode ✓ 日本語", "playground.tsx:0:0", "𝒳 e
 
 // ---------- the cases
 const readme = readFileSync(join(repo, "README.md"), "utf8");
-const example = /```tsx\n(import \{ bg, color, cn, cv[\s\S]*?)\n```/.exec(readme)?.[1];
+const example = /```tsx\n(import \{ reset \} from "@cssints\/reset"[\s\S]*?)\n```/.exec(
+  readme,
+)?.[1];
 assert.ok(example, "the README has the example");
 
 // ---------- the examples: a project per docs page, csssky's slice, the README's example (the Install page's)
@@ -250,15 +251,11 @@ try {
     `playground: Monaco and the first type check of csssky's slice, ${Date.now() - t0} ms from the navigation (${(await page.locator("[data-types]").textContent()).trim()})`,
   );
 
-  // the page opens csssky's slice, which calls reset() itself: the sheet has the layer, the preview adds none of its own
+  // the page opens csssky's slice, which calls reset() itself: the sheet has the layer
   const sky = page.frameLocator("iframe[title=Preview]");
   await sky.getByRole("article").filter({ hasText: "Art & Nature" }).waitFor();
   assert.equal(await sky.locator("article").count(), 6, "six posts, from the fixtures");
-  assert.equal(
-    await page.getByLabel("Apply @cssints/reset").count(),
-    0,
-    "no switch: the project resets",
-  );
+  assert.equal(await page.getByLabel("Apply @cssints/reset").count(), 0, "no switch for the reset");
   assert.deepEqual(
     await page
       .getByRole("tab")
@@ -387,8 +384,8 @@ try {
     ],
   );
 
-  // the picker opens the Install page's example, the README's: a project that does not call reset() gets the reset of
-  // @cssints/reset in the preview, in a layer below the page's own rules, and a switch says so
+  // the picker opens the Install page's example, the README's: it calls reset(), so the sheet has the layer and the page's own
+  // margin is below it
   await page.getByLabel("Example").selectOption("install");
   await page.getByRole("tab", { name: "index.tsx" }).waitFor();
   await compiled();
@@ -406,26 +403,9 @@ try {
     .locator("style")
     .evaluateAll((els) => els.map((e) => e.textContent).join("\n"));
   assert.match(sheet, /@layer _\.k, _\.a/);
-  const apply = page.getByLabel("Apply @cssints/reset");
-  assert.ok(await apply.isChecked());
   assert.match(sheet, /@layer reset \{/);
-  // the frame is a new document after each change of the switch: read it until it is the one that was asked for
-  const margin = async (want) => {
-    for (let i = 0; i < 100; i++) {
-      const got = await frame
-        .locator("body")
-        .evaluate((el) => getComputedStyle(el).margin)
-        .catch(() => "");
-      if (got === want) return;
-      await sleep(100);
-    }
-    assert.equal(await frame.locator("body").evaluate((el) => getComputedStyle(el).margin), want);
-  };
-  await margin("0px");
-  await apply.uncheck();
-  await margin("16px"); // the page's own margin, with nothing below it
-  await apply.check();
-  await margin("0px");
+  assert.equal(await page.getByLabel("Apply @cssints/reset").count(), 0, "no switch for the reset");
+  assert.equal(await frame.locator("body").evaluate((el) => getComputedStyle(el).margin), "0px");
 
   // the tabs hold the same text as the compile: the CSS, and the module with its sites replaced
   await page.getByRole("tab", { name: "CSS", exact: true }).click();
@@ -493,6 +473,8 @@ try {
   await page.getByRole("tab", { name: "Preview" }).click();
   const two = page.frameLocator("iframe[title=Preview]").getByText("hello");
   await two.waitFor();
+  // no reset() in this project, so none in the preview: the page's own margin
+  assert.equal(await two.evaluate((el) => getComputedStyle(el.ownerDocument.body).margin), "16px");
   assert.equal(
     await two.evaluate((el) => getComputedStyle(el).backgroundColor),
     "rgb(255, 255, 255)",

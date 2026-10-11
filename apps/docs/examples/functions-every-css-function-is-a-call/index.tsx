@@ -1,6 +1,9 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import * as css from "cssints" with { type: "cssints" };
 
 import { t } from "./tokens.ts" with { type: "cssints" };
+
+reset();
 
 // Every CSS function is a call that takes parts and checks them against the function's grammar: a token is a part, and a length
 // cannot be multiplied by a length or added to a time (the build says so).

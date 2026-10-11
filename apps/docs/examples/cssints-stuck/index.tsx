@@ -1,3 +1,4 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import {
   bg,
   borderBottom,
@@ -9,6 +10,8 @@ import {
   p,
 } from "cssints" with { type: "cssints" };
 import { sticky, stuck } from "@cssints/stuck" with { type: "cssints" };
+
+reset();
 
 // sticky() is position: sticky; stuck(...) styles the same element's descendants while it is stuck, with no scroll listener.
 const header = cn(sticky().top("0"), bg("white"), p(3), borderBottom("1px solid transparent"));

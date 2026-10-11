@@ -1,3 +1,4 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import {
   bg,
   cn,
@@ -9,6 +10,8 @@ import {
   padding,
 } from "cssints" with { type: "cssints" };
 import { fluid } from "@cssints/fluid" with { type: "cssints" };
+
+reset();
 
 // fluid(min, max) is a clamp() between two sizes over the width of the viewport (20rem to 80rem unless told). The build refuses a
 // range that fails WCAG 1.4.4, where zooming the text to 200% would not make it larger.

@@ -1,4 +1,7 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import { bg, color, cn, cv, flex, hover, media, p, style, token } from "cssints" with { type: "cssints" };
+
+reset();
 
 const md = media("(width >= 40rem)");
 const accent = token.color("#2563eb", "accent");

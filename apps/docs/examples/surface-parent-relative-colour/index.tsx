@@ -1,5 +1,8 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import * as css from "cssints" with { type: "cssints" };
 import { surface } from "cssints/surface" with { type: "cssints" };
+
+reset();
 
 const canvas = css.token.color("#2b3a67", "canvas");
 

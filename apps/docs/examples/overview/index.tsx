@@ -1,3 +1,4 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import {
   bg,
   borderRadius,
@@ -16,6 +17,8 @@ import {
 } from "cssints" with { type: "cssints" };
 
 import { t } from "./theme.ts" with { type: "cssints" };
+
+reset();
 
 // What cssints is, in one screen: calls that look like CSS, checked against the spec, compiled to atomic classes.
 global("body", bg(t.color.bg), color(t.color.text), margin("0"));

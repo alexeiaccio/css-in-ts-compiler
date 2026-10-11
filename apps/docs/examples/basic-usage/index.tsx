@@ -1,5 +1,8 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import { alignItems, cn, display, justifyContent, p } from "cssints" with { type: "cssints" };
 import * as css from "cssints" with { type: "cssints" };
+
+reset();
 
 // Two spellings of one thing: a property per call, or a layout context. A runtime argument (a prop) stays a choice made in the
 // browser; every call inside it is still a class made at build time. See the Module tab for what ships.

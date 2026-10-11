@@ -1,4 +1,7 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import * as css from "cssints" with { type: "cssints" };
+
+reset();
 
 // Every argument of cn() is known at build time, so the whole call is one class string and no runtime is imported: open the
 // Module tab and look for `import`.

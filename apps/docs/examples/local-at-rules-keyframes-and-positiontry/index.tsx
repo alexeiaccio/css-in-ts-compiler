@@ -1,4 +1,7 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import * as css from "cssints" with { type: "cssints" };
+
+reset();
 
 // keyframes() writes the at-rule next to the styles that use it and returns its name; the rule goes into the sheet of the module.
 const fade = css.keyframes({ from: css.opacity(0), to: css.opacity(1) });

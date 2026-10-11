@@ -1,4 +1,7 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import * as css from "cssints" with { type: "cssints" };
+
+reset();
 
 // A token is a typed value that prints as var(--name). A name makes it settable; without one it is private to the file.
 const brand = css.token.color("#2563eb", "brand");

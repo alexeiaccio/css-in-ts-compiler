@@ -1,9 +1,9 @@
 // The result of each docs page's example (apps/docs/examples/<slug>/), made at build time, in a worker of its own because the
 // engine's registry is process-global and this clears it between projects. Every project goes through the cssints plugin on one
 // private Vite server (as plugin/landing.ts does): its modules are written out with their imports linked and run in Node, the
-// default export is rendered to html by plugin/h.ts, and that html with the project's sheet (and the reset of @cssints/reset, as
-// the playground's preview adds it to a project that does not call reset()) is a document for a sandboxed iframe (srcdoc). The
-// document has one script: it asks the page for the display mode and puts it on <html> as the class the project's themes read.
+// default export is rendered to html by plugin/h.ts, and that html with the project's sheet (the reset is what the code calls)
+// is a document for a sandboxed iframe (srcdoc). The document has one script: it asks the page for the display mode and puts it
+// on <html> as the class the project's themes read.
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join, relative } from "node:path";
@@ -15,7 +15,6 @@ import { createServer } from "vite";
 const root = join(import.meta.dirname, "..");
 const examples = join(root, "examples");
 const packages = join(root, "../../packages");
-const RESET = join(examples, "reset.ts");
 const EMPTY = "export {};\n";
 // csssky's slice is the playground's default project, not a page
 const SKIP = new Set(["csssky"]);
@@ -49,9 +48,7 @@ const link = (code: string, h: string) =>
  * @returns {Promise<Record<string, string>>} the `<iframe>` of each project, by its directory
  */
 export async function results(): Promise<Record<string, string>> {
-  const texts = new Map([
-    [RESET, 'import { reset } from "@cssints/reset" with { type: "cssints" };\nreset();\n'],
-  ]);
+  const texts = new Map<string, string>();
   const plugins = cssints();
   const server = await createServer({
     root,
@@ -76,7 +73,6 @@ export async function results(): Promise<Record<string, string>> {
       {
         name: "examples",
         enforce: "pre",
-        resolveId: (id) => (id === url(RESET) ? RESET : undefined),
         load: (id) => texts.get(id),
       },
       ...plugins,
@@ -103,10 +99,6 @@ export async function results(): Promise<Record<string, string>> {
       await compile(files);
     };
 
-    await compile([RESET]);
-    const reset = api.sheet([RESET]);
-    await retire([RESET]);
-
     const { render } = (await import(pathToFileURL(join(import.meta.dirname, "h.ts")).href)) as {
       render: (exports: Record<string, unknown>) => string;
     };
@@ -131,7 +123,7 @@ export async function results(): Promise<Record<string, string>> {
       const sheet = transform({
         filename: "example.css",
         code: Buffer.from(
-          `@layer preview;${/@layer reset\b/.test(css) ? "" : reset}${css}@layer preview{body{margin:16px;font:16px system-ui,sans-serif}}`,
+          `@layer preview;${css}@layer preview{body{margin:16px;font:16px system-ui,sans-serif}}`,
         ),
         minify: true,
         targets,

@@ -1,5 +1,8 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import { bg, borderRadius, cn, flex, hover, p } from "cssints" with { type: "cssints" };
 import { reveal } from "@cssints/reveal" with { type: "cssints" };
+
+reset();
 
 // reveal() animates an element as it scrolls into view (scroll-driven animations, with a small runtime where a target lacks
 // them). A preset names the effect; range says which part of the scroll it plays over.

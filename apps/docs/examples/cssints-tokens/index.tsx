@@ -1,3 +1,4 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import {
   bg,
   border,
@@ -10,6 +11,8 @@ import {
 } from "cssints" with { type: "cssints" };
 
 import { op, rx } from "./tokens.ts" with { type: "cssints" };
+
+reset();
 
 const card = cn(
   flex().direction("column").gap(op.size._3),

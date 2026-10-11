@@ -1,6 +1,9 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import { bg, cn, flex, p } from "cssints" with { type: "cssints" };
 
 import { button } from "./button.tsx";
+
+reset();
 
 // cn() merges at build time what it can; a runtime argument (a prop) stays a choice made when the code runs, and the later
 // part replaces the earlier one it overrides: `p(4)` replaces `p(2)` while `roomy` is true.

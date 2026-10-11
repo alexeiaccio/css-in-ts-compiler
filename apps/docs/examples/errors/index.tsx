@@ -1,3 +1,4 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import {
   bg,
   cn,
@@ -12,6 +13,8 @@ import {
   WebkitBoxOrient,
   WebkitLineClamp,
 } from "cssints" with { type: "cssints" };
+
+reset();
 
 // Teasers of three lines. The WebKit box is the way that works in every engine today and is quiet; the standard lineClamp()
 // is a member too, and the build warns for the targets that lack it: the warning appears under the editor, with its place.

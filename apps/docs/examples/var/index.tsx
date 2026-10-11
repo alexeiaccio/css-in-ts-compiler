@@ -1,4 +1,7 @@
+import { reset } from "@cssints/reset" with { type: "cssints" };
 import * as css from "cssints" with { type: "cssints" };
+
+reset();
 
 // A token is its var() already. css.var(token, fallback) adds a fallback, checked as a value of the token's type.
 const t = css.createTokens({
