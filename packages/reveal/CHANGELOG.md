@@ -1,0 +1,10 @@
+# @cssints/reveal
+
+## 0.2.0
+
+### Patch Changes
+
+- Updated dependencies [94d1f4f]
+- Updated dependencies
+  - cssints@0.2.0
+  - @cssints/motion@0.2.0
