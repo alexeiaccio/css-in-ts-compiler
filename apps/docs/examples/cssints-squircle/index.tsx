@@ -18,13 +18,19 @@ reset();
 // does not. The radius is a length; a condition can change it.
 const icon = cn(
   squircle().radius("24px"),
-  bg("tomato"),
+  bg("crimson"),
   color("white"),
   width("6rem"),
   height("6rem"),
   fontSize("2rem"),
 );
-const card = cn(squircle(), hover(squircle().radius("2rem")), bg("#e0e7ff"), p(6));
+const card = cn(
+  squircle(),
+  hover(squircle().radius("2rem")),
+  bg("#e0e7ff"),
+  color("#0f172a"),
+  p(6),
+);
 const center = flex().alignItems("center").justifyContent("center");
 
 export default function App() {

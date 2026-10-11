@@ -17,9 +17,13 @@ reset();
 // range that fails WCAG 1.4.4, where zooming the text to 200% would not make it larger.
 const page = cn(maxWidth("48rem"), margin("0", "auto"), padding(fluid("1rem", "2rem")));
 const title = cn(fontSize(fluid("1.75rem", "3.5rem")), margin("0"));
-const lead = cn(fontSize(fluid("1rem", "1.375rem")), color("#475569"));
+const lead = cn(fontSize(fluid("1rem", "1.375rem")));
 // against the inline size of the nearest container instead of the viewport
-const card = cn(padding(fluid.container("1rem", "2rem", { to: "40rem" })), bg("#e0e7ff"));
+const card = cn(
+  padding(fluid.container("1rem", "2rem", { to: "40rem" })),
+  bg("#e0e7ff"),
+  color("#0f172a"),
+);
 
 export default function App() {
   return (

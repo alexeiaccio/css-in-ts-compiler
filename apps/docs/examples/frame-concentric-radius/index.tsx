@@ -26,7 +26,7 @@ const small = css.cn(frame().radius(radius).padding(2), css.bg("#e0e7ff"));
 
 export default function App() {
   return (
-    <div className={css.cn(css.p(4), css.bg("#f1f5f9"))}>
+    <div className={css.cn(css.p(4), css.bg("#f1f5f9"), css.color("#0f172a"))}>
       <div className={card}>
         <label className={field}>
           <input

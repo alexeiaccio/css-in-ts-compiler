@@ -1,11 +1,11 @@
 import { reset } from "@cssints/reset" with { type: "cssints" };
-import { cn, color, maxWidth, p } from "cssints" with { type: "cssints" };
+import { cn, maxWidth, p } from "cssints" with { type: "cssints" };
 
 // reset({ media?, prose? }) writes a layer below every other style. prose: true gives the elements without a class the rhythm of
 // rendered Markdown; media: true makes images and video blocks that do not overflow.
 reset({ media: true, prose: true });
 
-const article = cn(maxWidth("34rem"), p(6), color("#1f2937"));
+const article = cn(maxWidth("34rem"), p(6));
 
 export default function App() {
   return (

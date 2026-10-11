@@ -1,13 +1,5 @@
 import { reset } from "@cssints/reset" with { type: "cssints" };
-import {
-  cn,
-  color,
-  fontSize,
-  fontWeight,
-  margin,
-  maxWidth,
-  p,
-} from "cssints" with { type: "cssints" };
+import { cn, fontSize, fontWeight, margin, maxWidth, p } from "cssints" with { type: "cssints" };
 import { balance, pretty } from "@cssints/balance" with { type: "cssints" };
 
 reset();
@@ -16,7 +8,7 @@ reset();
 // the browser has it and ship a small runtime where it does not.
 const column = cn(maxWidth("30rem"), p(6));
 const title = cn(balance(), fontSize("2rem"), fontWeight(800), margin("0"));
-const lead = cn(pretty(), color("#475569"), margin("1rem", "0", "0"));
+const lead = cn(pretty(), margin("1rem", "0", "0"));
 
 export default function App() {
   return (

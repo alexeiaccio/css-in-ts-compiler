@@ -1,16 +1,17 @@
 import { reset } from "@cssints/reset" with { type: "cssints" };
-import { bg, borderRadius, cn, flex, hover, p } from "cssints" with { type: "cssints" };
+import { bg, borderRadius, cn, color, flex, hover, p } from "cssints" with { type: "cssints" };
 import { reveal } from "@cssints/reveal" with { type: "cssints" };
 
 reset();
 
 // reveal() animates an element as it scrolls into view (scroll-driven animations, with a small runtime where a target lacks
 // them). A preset names the effect; range says which part of the scroll it plays over.
-const fade = cn(reveal(), p(6), bg("#e0e7ff"), borderRadius("12px"));
+const fade = cn(reveal(), p(6), bg("#e0e7ff"), color("#0f172a"), borderRadius("12px"));
 const card = cn(
   reveal().preset("slide-in-up").range("entry 0% entry 100%").duration("500ms").easing("linear"),
   p(6),
   bg("#dbeafe"),
+  color("#0f172a"),
   borderRadius("12px"),
 );
 const tile = cn(
@@ -18,6 +19,7 @@ const tile = cn(
   hover(reveal().duration("1s")),
   p(6),
   bg("#fce7f3"),
+  color("#0f172a"),
   borderRadius("12px"),
 );
 
