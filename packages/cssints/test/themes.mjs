@@ -390,6 +390,7 @@ css.createGlobalTheme(t, ".low", { late: { fg: "#aaa" } });
 
   // The same derived colour checked in a module that two others import: one warning for the build, not one per pass or module.
   globalThis.__cssints.warned.clear(); // the dev server above warned in this process
+  globalThis.__cssints.checks.clear(); // and the build above left the check of a.ts, whose tokens this build replaces
   w("tokens.ts", derived);
   w("a.ts", `import "./tokens.ts" with { type: "cssints" };\nexport const a = 1;\n`);
   w("b.ts", `import "./tokens.ts" with { type: "cssints" };\nexport const b = 1;\n`);

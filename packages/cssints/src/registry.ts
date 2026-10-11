@@ -278,10 +278,16 @@ export const forgetKernels = (file: string): void => {
     unuse(entries, file);
 };
 
-// What `file` left of its kernels, token sets, themes and checks is dropped when it is about to run again, or has no site any more.
+// What `file` left of its kernels, tokens, token sets, themes and checks is dropped when it is about to run again, or has no site any more.
 export const forget = (file: string): void => {
   forgetKernels(file);
-  for (const themed of [registry.themed, registry.terminal?.themed ?? new Map<string, Themed>()])
-    for (const [k, t] of themed) if (t.file === file) themed.delete(k);
+  for (const s of [registry, registry.terminal ?? registry]) {
+    for (const [k, p] of s.properties)
+      if (p.file === file) {
+        s.properties.delete(k);
+        s.defs.delete(k);
+      }
+    for (const [k, t] of s.themed) if (t.file === file) s.themed.delete(k);
+  }
   for (const [k, c] of registry.checks) if (c.at.file === file) registry.checks.delete(k);
 };

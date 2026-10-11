@@ -586,8 +586,14 @@ export default function cssints({
     env: { name: string; moduleGraph: ViteDevServer["environments"]["client"]["moduleGraph"] },
     file: string,
     modules: EnvironmentModuleNode[],
+    type: "create" | "update" | "delete",
   ) {
     if (env.name !== "client") return undefined;
+    // A file that is gone leaves the sheet and the registry (its tokens, themes, kernels): no module will run it again.
+    if (type === "delete") {
+      yield* Effect.sync(() => forget(file));
+      yield* drop(file);
+    }
     // A build says a warning once per file of its site; a dev server, which has no end, again once that file is edited
     // (and the modules that run it are transformed again): not on every update of an unrelated module.
     yield* Effect.sync(() => forgetWarnings([file]));
@@ -721,8 +727,10 @@ export default function cssints({
         );
       },
     },
-    hotUpdate({ file, modules }) {
-      return runSync(hook("vite.hotUpdate", file, hotUpdate(this.environment, file, modules)));
+    hotUpdate({ file, modules, type }) {
+      return runSync(
+        hook("vite.hotUpdate", file, hotUpdate(this.environment, file, modules, type)),
+      );
     },
   };
   // After import analysis: the sheet module tells the server which version it runs (see configureServer).
