@@ -3,7 +3,7 @@
 // under the base path (DOCS_BASE, "/" by default), and a type hover on every ts block that docs.mjs checks.
 // The working directory is the project, as in a user's build: icons() reads @iconify-json/* from it.
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { build } from "vite";
@@ -322,6 +322,50 @@ assert.equal(
 assert.equal(count(/shiki-themes github-light github-dark"/g) >= skipped, true);
 assert.equal(count(/twoslash-error-line/g), marked, "an error line for each `// error`");
 assert.ok(!all.includes(root), "no path of this machine in the pages");
+// the result of each page's example (plugin/examples.ts): a sandboxed frame right under the link, in the document and in the
+// page's chunk, with the project rendered, its sheet and the reset; every class of the markup is in the frame's own sheet; the
+// entry holds none of it
+const unescape = (s) =>
+  s
+    .replace(/&lt;/g, "<")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, "&");
+const projects = readdirSync(join(root, "apps/docs/examples")).filter((d) => d !== "csssky");
+assert.ok(projects.length > 30, `${projects.length} examples`);
+for (const slug of projects) {
+  const doc = html.get(`${slug}/index.html`);
+  assert.ok(doc, `${slug}: a page for the example`);
+  const frame =
+    /<div class="example"><p><span>Result<\/span><a href="[^"]*playground#example=[^"]*">Open in playground<\/a><\/p><iframe title="Result" sandbox="allow-scripts" srcdoc="([^"]*)"><\/iframe><\/div>/.exec(
+      doc,
+    );
+  assert.ok(frame, `${slug}: the result frame under the link`);
+  const srcdoc = unescape(frame[1]);
+  const sheet = /<style>([\s\S]*?)<\/style>/.exec(srcdoc)?.[1] ?? "";
+  const body = /<div id="root">([\s\S]*)<\/div>\n<script>/.exec(srcdoc)?.[1] ?? "";
+  assert.ok(body.length > 20 && !body.includes("[object"), `${slug}: the project is rendered`);
+  assert.ok(sheet.includes("@layer reset") || /\*,:before/.test(sheet), `${slug}: the reset`);
+  const used = new Set(
+    [...body.matchAll(/ class="([^"]*)"/g)]
+      .flatMap((m) => m[1].split(" "))
+      .filter((c) => c[0] === "_"),
+  );
+  assert.ok(used.size > 0, `${slug}: classes of cssints in the markup`);
+  for (const cls of used)
+    assert.ok(
+      new RegExp(`\\.${cls}(?![\\w-])`).test(sheet),
+      `${slug}: ${cls} is in the frame's sheet`,
+    );
+  assert.ok(srcdoc.includes("cssints:mode"), `${slug}: the frame asks for the mode`);
+  const chunk = js.find(
+    (f) => f.code.includes(`playground#example=${slug}"`) && f.code.includes("srcdoc="),
+  );
+  assert.ok(chunk, `${slug}: the frame is in the page's chunk`);
+}
+assert.ok(
+  !entry.code.includes("srcdoc") && !entry.code.includes("cssints:mode"),
+  "the entry has no result frame",
+);
 // the devtools (cssints({ devtools: "build" })): the entry holds the loader, the overlay is a chunk the page does not preload, the
 // table is a JSON asset of the calls with paths relative to the project
 const overlay = js.find((f) => f.isDynamicEntry && f.code.includes("data-cssints-probe"));

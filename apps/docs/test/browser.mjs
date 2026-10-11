@@ -211,6 +211,48 @@ try {
   assert.equal(await bg(night), rgb(start.dark.bg));
   await setting("mode", "dark");
 
+  // the result of the page's example (plugin/examples.ts): a sandboxed frame that renders the project with no console error (the
+  // `problems` listener sees the frame's too), cannot read the page, and takes the display mode as the class of its <html>, which
+  // a project's themes read (on the themes page `.light` beats the system's dark)
+  const result = await (await night.$(".example iframe")).contentFrame();
+  await result.locator("#root:not(:empty)").waitFor();
+  assert.equal(await night.getAttribute(".example iframe", "sandbox"), "allow-scripts");
+  assert.equal(
+    await result.evaluate(() => {
+      try {
+        return parent.document.title;
+      } catch {
+        return "blocked";
+      }
+    }),
+    "blocked",
+    "the frame cannot read the page",
+  );
+  assert.equal(
+    await night.textContent(".example a[href*='playground#example=basic-usage']"),
+    "Open in playground",
+  );
+  const frameMode = async (name) => {
+    await setting("mode", name);
+    await result.waitForFunction((c) => document.documentElement.className === c, name);
+  };
+  await frameMode("light");
+  await night.locator(".example").screenshot({ path: join(out, "result-light.png") });
+  await frameMode("dim");
+  await frameMode("dark");
+  await night.locator(".example").screenshot({ path: join(out, "result-dark.png") });
+  // what a project's own themes do with it: the themes example is dark on a dark system, and light with the class `light`
+  const themed = await open(await browser.newContext({ colorScheme: "dark" }), "themes");
+  const panel = await (await themed.waitForSelector(".example iframe")).contentFrame();
+  const panelBg = () => panel.$eval("section", (e) => getComputedStyle(e).backgroundColor);
+  await panel.waitForFunction(() => document.querySelector("section"));
+  assert.equal(await panelBg(), "rgb(11, 11, 15)", "dark on a dark system");
+  await themed.evaluate(() => document.documentElement.classList.add("light"));
+  await panel.waitForFunction(() => document.documentElement.className === "light");
+  assert.equal(await panelBg(), "rgb(255, 255, 255)", "the frame follows the mode");
+  await themed.screenshot({ path: join(out, "result-themes.png") });
+  await themed.context().close();
+
   // the hue by keyboard: a step of the wheel, and the accent of that step in the cube (build time, palettes.ts)
   const swatch = () => style("[data-testid=swatch-accent]", "backgroundColor");
   const slider = "#settings input[type=range]";
@@ -558,6 +600,15 @@ try {
       "CSS-in-TS",
       "Page not found",
     ]);
+    // the built page's frame follows the mode too (the code that tells it is in the page's chunk)
+    const sky = await watched.newPage();
+    await sky.goto(`${built}install`);
+    await sky.locator(".example iframe").waitFor();
+    const skyFrame = await (await sky.$(".example iframe")).contentFrame();
+    await skyFrame.locator("#root:not(:empty)").waitFor();
+    await sky.evaluate(() => document.documentElement.classList.add("dark", "dim"));
+    await skyFrame.waitForFunction(() => document.documentElement.className === "dim");
+    await sky.close();
     // the devtools: the page asks for nothing of them until the first open, then the overlay and the table load, and a pick shows its calls
     const tools = await watched.newPage();
     const loaded = [];
@@ -644,6 +695,9 @@ try {
         "4",
       ],
     );
+    // the result of the example is in the static copy too: a frame with its project rendered, no script of the page needed
+    const staticFrame = await (await still.$("#prerender .example iframe")).contentFrame();
+    await staticFrame.locator("#root:not(:empty)").waitFor();
     await still.screenshot({ path: join(out, "built-prerender-settings.png") });
     await early.close();
   } finally {
