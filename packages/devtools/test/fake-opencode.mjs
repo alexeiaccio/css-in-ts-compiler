@@ -13,6 +13,8 @@ export const startFake = async () => {
   const registration = join(state, "opencode/service.json");
   const calls = [];
   let outcome = "succeeded";
+  // the sessions that exist: a new one is ses_fake1; the others stand for sessions that /cssints-devtools attached
+  const sessions = new Set(["ses_fake1", "ses_attached"]);
   const handle = async (req, res) => {
     let body = "";
     for await (const chunk of req) body += chunk;
@@ -35,8 +37,8 @@ export const startFake = async () => {
       res.statusCode = 204;
       return res.end();
     }
-    if (url.pathname === "/api/session/ses_fake1")
-      return json({ data: { id: "ses_fake1", outcome } });
+    const known = url.pathname.match(/^\/api\/session\/(ses_\w+)$/)?.[1];
+    if (known && sessions.has(known)) return json({ data: { id: known, outcome } });
     res.statusCode = 404;
     res.end();
   };
@@ -62,6 +64,7 @@ export const startFake = async () => {
     register,
     unregister: () => rmSync(registration, { force: true }),
     outcome: (value) => (outcome = value),
+    forget: (id) => sessions.delete(id),
     close: () => {
       fake.close();
       rmSync(state, { recursive: true });

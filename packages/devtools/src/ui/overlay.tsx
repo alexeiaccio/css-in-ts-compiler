@@ -406,9 +406,12 @@ function App(props: {
   };
   const link = () => props.linked();
   const linkState = () => (link() ? (link()?.connected ? "connected" : "disconnected") : "unknown");
+  const attached = () => props.linked()?.session;
   const sessionText = () => {
-    const id = props.asked()?.id;
-    return id ? `session · ${id.length > 14 ? `${id.slice(0, 14)}…` : id}` : "no session yet";
+    const id = attached();
+    return id
+      ? `attached session ${id.length > 14 ? `${id.slice(0, 14)}…` : id}`
+      : "no session attached: a prompt starts a new one";
   };
 
   const toggle = (on = !open()) => {
@@ -649,10 +652,10 @@ function App(props: {
                 {(k) => (
                   <Show
                     when={k().connected}
-                    fallback={`Not connected. Start OpenCode (or run \`opencode serve --service\`); this server finds it by itself. Sessions open in ${k().directory}. @opencode/client must be in the devDependencies of the app.${k().message ? ` ${k().message}` : ""}`}
+                    fallback={`Not connected. Start OpenCode (or run \`opencode serve --service\`) and run /cssints-devtools in a session to attach it to this server; the server finds OpenCode by itself. Without a session a prompt opens a new one in ${k().directory}. @opencode/client must be in the devDependencies of the app.${k().message ? ` ${k().message}` : ""}`}
                   >
                     {`connected to ${k().url} · `}
-                    <span data-devtools="ask-session" title={props.asked()?.id}>
+                    <span data-devtools="ask-session" title={attached()}>
                       {sessionText()}
                     </span>
                     <Show when={props.asked()}>

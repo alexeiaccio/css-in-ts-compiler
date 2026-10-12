@@ -30,6 +30,8 @@ export interface Linked {
   readonly url?: string;
   /** the folder the sessions open in */
   readonly directory: string;
+  /** the session `/cssints-devtools` attached to this dev server: prompts go there, none starts a new one */
+  readonly session?: string;
   readonly message?: string;
 }
 

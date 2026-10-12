@@ -80,6 +80,11 @@
       "types": "./dist/tui-types.d.mts",
       "default": "./dist/tui.mjs"
     },
+    "./devtools-link": {
+      "development": "./src/devtools-link.ts",
+      "types": "./dist/devtools-link.d.mts",
+      "default": "./dist/devtools-link.mjs"
+    },
     "./*": {
       "development": {
         "types": "./src/groups/*.ts",
@@ -128,6 +133,10 @@
       "./tui": {
         "types": "./dist/tui-types.d.mts",
         "default": "./dist/tui.mjs"
+      },
+      "./devtools-link": {
+        "types": "./dist/devtools-link.d.mts",
+        "default": "./dist/devtools-link.mjs"
       },
       "./*": {
         "types": "./dist/groups/*.d.mts",
