@@ -463,11 +463,13 @@ export default function cssints({
     // No runner HMR: its full-reload re-imports would run outside the evaluation lock.
     // Stack traces are mapped when an error makes one: Vite's default turns on Node's source map cache, which reads the map
     // of every module body at load (~3 ms each).
-    runner ??= createServerModuleRunner(env, {
-      hmr: false,
-      sourcemapInterceptor: "prepareStackTrace",
-      evaluator: new DomEvaluator(),
-    });
+    if (!runner || runner.isClosed())
+      // closed by a timeout (evaluate.ts)
+      runner = createServerModuleRunner(env, {
+        hmr: false,
+        sourcemapInterceptor: "prepareStackTrace",
+        evaluator: new DomEvaluator(),
+      });
     inflight.add(id);
     // dependsOn() files: watched by rollup in `vite build --watch`, by the dev server's watcher in dev (ctx.addWatchFile
     // there would make the file an import of the client module).

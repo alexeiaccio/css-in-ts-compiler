@@ -211,7 +211,8 @@ const reference = JSON.parse(
       cwd,
       encoding: "utf8",
       maxBuffer: 1 << 28,
-      env: { ...process.env, NODE_NO_WARNINGS: "1" },
+      // a busy machine: 150 cases in one process, and the limit of one module (30 s) is for a user's code
+      env: { ...process.env, NODE_NO_WARNINGS: "1", CSSINTS_EVAL_TIMEOUT: "120000" },
     },
   ),
 );

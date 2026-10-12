@@ -1248,6 +1248,10 @@ The process must end the exporter or Node stays alive: `vite build` and `server.
 
 `packages/cssints/test/trace.mjs` (in `bun run test`) checks the spans, the file attribute and the error's trace id against an in-process collector. `node packages/cssints/test/trace-live.mjs` builds apps/csssky and runs its HMR test traced, then reads both traces back through Jaeger's API (`GET /api/traces?service=cssints`) and prints span counts and the slowest hooks; it skips when no backend answers. Effect's DevTools (the VS Code extension, `effect/devtools`) is not wired: it needs the editor's extension listening, so neither a script nor an agent can read it.
 
+### Debugging: the limit of an evaluation (`CSSINTS_EVAL_TIMEOUT`, cssints-joex)
+
+A module is evaluated with all it imports in at most 30 seconds, else the build fails with `cssints: evaluating <file> took more than 30 seconds`. The engine cannot stop the code, so it closes the Module Runner: the evaluation ends at the next module it would load, and the next evaluation starts on a new runner. `CSSINTS_EVAL_TIMEOUT=<milliseconds>` changes the limit (read once, when the plugin loads); it is for tests that run on a busy machine, and the default is the one for your code.
+
 ### Checks for tools: `cssints/check` (2026-10-09, cssints-p3d2)
 
 The engine's own checks, as functions, for a tool that answers as a build would (`@cssints/mcp`). Node only (culori, LightningCSS): nothing here reaches a browser, and user code has no reason to import it. Each returns an Effect.
