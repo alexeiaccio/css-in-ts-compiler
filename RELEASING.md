@@ -1,6 +1,6 @@
 # Releasing
 
-Twenty-two packages go to npm: `cssints` and the 21 `@cssints/*` packages in `packages/`. They share one version (Changesets `fixed` group) and go out under the dist-tag `latest` (0.1.0 went out under `next`; from 0.2.0 on, `latest`). The apps and `tools/` stay private. The first release (0.1.0) is run by hand on a laptop. Every later release is run by CI (`.github/workflows/release.yml`) with npm trusted publishing: no token.
+Twenty-three packages go to npm: `cssints` and the 22 `@cssints/*` packages in `packages/` (the published versions: <https://npmx.dev/package/cssints>, and `/package/@cssints/reset` and so on; the trusted publisher settings are on npmjs.com). They share one version (Changesets `fixed` group) and go out under the dist-tag `latest` (0.1.0 went out under `next`; from 0.2.0 on, `latest`). The apps and `tools/` stay private. The first release (0.1.0) is run by hand on a laptop. Every later release is run by CI (`.github/workflows/release.yml`) with npm trusted publishing: no token.
 
 ## Decisions (cssints-6tnn, 2026-10-10)
 

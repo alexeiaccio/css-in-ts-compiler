@@ -455,4 +455,4 @@ The key difference: **Tokenami optimizes for clean HTML with CSS variables, we o
 
 - [Tokenami GitHub](https://github.com/tokenami/tokenami)
 - [Tokenami Documentation](https://tokenami.com)
-- [Tokenami NPM](https://www.npmjs.com/package/@tokenami/css)
+- [Tokenami NPM](https://npmx.dev/package/@tokenami/css)

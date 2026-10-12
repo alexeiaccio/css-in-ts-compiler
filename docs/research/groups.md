@@ -108,7 +108,7 @@ import as `cssints`).
 
 The user (2026-10-11) meant by "fallback" the `/with-downstream` of [browserslist-config-baseline](https://github.com/web-platform-dx/browserslist-config-baseline) (0.5.0):
 the Baseline set, also checked against the Chromium downstream browsers at the minimum versions of
-[baseline-browser-mapping](https://www.npmjs.com/package/baseline-browser-mapping) (bbm). That package offers three targets, and each is a group here, with and without
+[baseline-browser-mapping](https://npmx.dev/package/baseline-browser-mapping) (bbm). That package offers three targets, and each is a group here, with and without
 `/with-downstream`:
 
 | Group                                   | Target in bbm                                                                                                        |
