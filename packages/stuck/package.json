@@ -1,6 +1,6 @@
 {
   "name": "@cssints/stuck",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Style a sticky element while it is stuck: @container scroll-state(stuck) natively, an IntersectionObserver fallback",
   "license": "MIT",
   "repository": {
@@ -64,7 +64,7 @@
     "vite": "catalog:"
   },
   "peerDependencies": {
-    "cssints": "^0.2.0"
+    "cssints": "^0.3.0"
   },
   "engines": {
     "node": ">=22"
