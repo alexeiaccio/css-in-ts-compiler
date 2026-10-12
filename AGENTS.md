@@ -32,7 +32,7 @@ apps/csssky            Solid 2 app on the plugin (solid-js 2.0.0-rc.13, @solidjs
 apps/csssky-tui        csssky in a terminal: OpenTUI + Solid 1.9 (@opentui/solid 0.5.17), Vite SSR build (universal Solid) to dist/main.js run by Bun; reuses csssky's api.ts, post and thread models by relative import;
                        src/model.ts (the thread rows and the embed text, no renderer: the docs' /tui page draws them on bomb.sh), src/App.tsx (home feed with tabs, thread, keys and mouse), Post.tsx (the card), styles.ts (every style on cssints/tui: tokens, the light theme, hover/focus, cursor; put on renderables by `use()` of @cssints/tui/opentui);
                        test/build.mjs (the build check, then under Bun test/screens.mjs: csssky's fixtures on OpenTUI's test renderer)
-apps/docs              the documentation site (Solid 2, cssints, Shiki + twoslash): pages from README.md and docs/API.md at build time (plugin/markdown.ts, plugin/docs.ts, a virtual module of chunks), a client router, search over the headings, a display settings popover (palette: three RYBitten cubes with a twelve-step hue wheel and four @cssints/tokens sets, built ahead by src/palettes.ts; light/dim/dark/system, text size, density, font, corners; tokens and themes, applied before the first paint), styled with cssints (tokens, themes, check.contrast, frame, surface, global); SPA with a document per URL, each prerendered (the page's title, description and article written into the shell at build time, the app swaps it for its own root), under `DOCS_BASE` (default `/`); `/` is a landing page (plugin/landing.ts makes its html at build time, the showcase being what the cssints plugin makes of src/landing/button.ts; src/landing/page.ts is that html as `css.cn` classes, one source for the prerender and the app; src/Landing.tsx), the README is `/overview`; `/playground` (lazy, src/playground/): the engine itself in a worker over wasm builds of oxc and LightningCSS, Monaco with the TypeScript worker and the types of cssints, several files, the plugin packages that run without Node (plugin/playground.ts answers what the engine imports from Node and collects the types and the sources, docs/research/playground.md); it opens a slice of csssky (examples/csssky) and has one example project per docs page (examples/<slug>/, the entry index.ts(x); plugin/markdown.ts writes the "Open in playground" link, `#example=<slug>`, and under it the page's Result: plugin/examples.ts, in a worker, runs each project through the Node plugin on one private server and plugin/h.ts (a string `h`, sharing src/playground/hyper.ts with the preview's) renders its default export into a sandboxed `srcdoc` iframe with the sheet, plugin/docs.ts puts it on the page, and the page's chunk tells it the display mode and the canvas: the site's current background, text colour and font, read off the page, in every palette; the panel has the tabs Result and Code, the files of the project highlighted at build time, radio inputs, no script), every example's entry calls `reset()` (the code is the one source: neither the preview nor the Result adds a reset); `/tui` (lazy, src/tui/): a live terminal, ghostty-web (Ghostty's emulator in WASM) running csssky's feed and thread on @bomb.sh/tty with apps/csssky-tui's styles and system theme, posts from csssky's fixtures, the page answering the terminal's colour queries from the display settings (host.ts); plugin/tui.ts unpacks bomb.sh's WASM at build time, points ghostty-web at its .wasm file and answers csssky's fetches from the fixtures; `alchemy.run.ts` deploys it to Cloudflare as Worker static assets at cssints.dev (`bun run deploy`; CI: `.github/workflows/docs.yml`, secrets in apps/docs/README.md);
+apps/docs              the documentation site (Solid 2, cssints, Shiki + twoslash): pages from README.md and docs/API.md at build time (plugin/markdown.ts, plugin/docs.ts, a virtual module of chunks), a client router, search over the headings, a display settings popover (palette: three RYBitten cubes with a twelve-step hue wheel and four @cssints/tokens sets, built ahead by src/palettes.ts; light/dim/dark/system, text size, density, font, corners; tokens and themes, applied before the first paint), styled with cssints (tokens, themes, check.contrast, frame, surface, global); SPA with a document per URL, each prerendered (the page's title, description and article written into the shell at build time, the app swaps it for its own root), under `DOCS_BASE` (default `/`); `/` is a landing page (plugin/landing.ts makes its html at build time, the showcase being what the cssints plugin makes of src/landing/button.ts; src/landing/page.ts is that html as `css.cn` classes, one source for the prerender and the app; src/Landing.tsx), the README is `/overview`; `/playground` (lazy, src/playground/): the engine itself in a worker over wasm builds of oxc and LightningCSS, Monaco with the TypeScript worker and the types of cssints, several files, a Format button (and Shift+Alt+F: oxfmt's formatter as wasm, @wasm-fmt/oxc_fmt, its own chunk fetched at the first use; JS and TS files), the plugin packages that run without Node (plugin/playground.ts answers what the engine imports from Node and collects the types and the sources, docs/research/playground.md); it opens a slice of csssky (examples/csssky) and has one example project per docs page (examples/<slug>/, the entry index.ts(x); plugin/markdown.ts writes the "Open in playground" link, `#example=<slug>`, and under it the page's Result: plugin/examples.ts, in a worker, runs each project through the Node plugin on one private server and plugin/h.ts (a string `h`, sharing src/playground/hyper.ts with the preview's) renders its default export into a sandboxed `srcdoc` iframe with the sheet, plugin/docs.ts puts it on the page, and the page's chunk tells it the display mode and the canvas: the site's current background, text colour and font, read off the page, in every palette; the panel has the tabs Result and Code, the files of the project highlighted at build time, radio inputs, no script), every example's entry calls `reset()` (the code is the one source: neither the preview nor the Result adds a reset); `/tui` (lazy, src/tui/): a live terminal, ghostty-web (Ghostty's emulator in WASM) running csssky's feed and thread on @bomb.sh/tty with apps/csssky-tui's styles and system theme, posts from csssky's fixtures, the page answering the terminal's colour queries from the display settings (host.ts); plugin/tui.ts unpacks bomb.sh's WASM at build time, points ghostty-web at its .wasm file and answers csssky's fetches from the fixtures; `alchemy.run.ts` deploys it to Cloudflare as Worker static assets at cssints.dev (`bun run deploy`; CI: `.github/workflows/docs.yml`, secrets in apps/docs/README.md);
                        test/search.mjs, settings.mjs (the store and the pre-paint script), contrast.mjs (every palette, hue and mode), build.mjs (sheet, chunks, a hover on every block docs.mjs checks, a result frame and a Code tab on every example page), browser.mjs (every page in Chrome, screenshots in test/out/), frames.mjs (every example frame in light and dark, two palettes: no text below 3:1 against its background, the canvas follows the site, the Code tab), playground.mjs (the browser engine against the Node plugin on the README example, the fixtures of cssints and of the plugin packages, projects of several files and every example project, a page for each docs page or its reason not to, then the page in Chrome: csssky by default, the reset, the picker, the link of a docs page, Monaco, a hover, a type error, files), tui.mjs (/tui in Chrome: the feed from the fixtures read back from ghostty-web's buffer, j/k and the focused border, tab, enter/esc, hover and pointer, a palette and a mode of the settings recolouring the cells)
 README.md              what cssints is, setup, a short example
 CHANGELOG.md           one entry per release of the 23 packages (a page of the docs site, /changelog): written by scripts/changelog.mjs from the changesets at `bun run version-packages`; breaking changes get a migration by hand
@@ -127,7 +127,7 @@ Other deps:
 - **What counts is `vp fmt --check`**: 2 spaces, 100 columns, double quotes, semicolons, trailing commas, parens on arrow functions (oxfmt defaults)
 - The `fmt` block of the root `vite.config.ts` states exactly these values. vite-plus 1.0.0 does not read that block; if a later version does, nothing changes. Import sorting is not applied.
 - **Skipped by the formatter** (`.prettierignore`): the generated `members.ts`, `mdn.ts`, `keywords.ts` and `longhands.ts`, `css.ts`, the test fixtures, docs/archive, `.beans`, tools/ai-automation/vendor
-- The code blocks in docs/API.md use tabs and are not formatted
+- The code blocks of the markdown files (`ts`, `tsx`, `css`, `json` fences; README.md, docs/API.md, the package READMEs) are formatted by `vp fmt` as well (oxfmt formats embedded code in markdown), and so are the example projects of apps/docs; a fragment that does not parse (a block with `{ ... }` for a gap) is left as written. A line ending in `// error` stays on its line; docs.mjs fails otherwise
 
 ### TypeScript Configuration
 
@@ -205,21 +205,21 @@ Example:
 
 ```typescript
 export class FileError extends Data.TaggedError("FileError")<{
-	readonly path: string;
-	readonly operation: "read" | "write" | "delete";
-	readonly message: string;
+  readonly path: string;
+  readonly operation: "read" | "write" | "delete";
+  readonly message: string;
 }> {}
 
 const program = Effect.gen(function* () {
-	return yield* Effect.try({
-		try: () => riskyOperation(),
-		catch: (error) =>
-			new FileError({
-				path: "file.txt",
-				operation: "write",
-				message: error instanceof Error ? error.message : String(error),
-			}),
-	});
+  return yield* Effect.try({
+    try: () => riskyOperation(),
+    catch: (error) =>
+      new FileError({
+        path: "file.txt",
+        operation: "write",
+        message: error instanceof Error ? error.message : String(error),
+      }),
+  });
 });
 ```
 
@@ -257,15 +257,15 @@ Use `Effect.gen()` for imperative-style effect composition with `yield*`:
 import { Effect, Console, Data } from "effect";
 
 Effect.gen(function* () {
-	yield* Console.log("Starting conversion...");
-	yield* Console.log("Reading file...");
+  yield* Console.log("Starting conversion...");
+  yield* Console.log("Reading file...");
 
-	const data = yield* readFile("input.json");
-	const schema = yield* convertToSchema(data);
-	const code = yield* generateCode(schema);
+  const data = yield* readFile("input.json");
+  const schema = yield* convertToSchema(data);
+  const code = yield* generateCode(schema);
 
-	yield* writeFile("output.ts", code);
-	yield* Console.log("✓ Complete");
+  yield* writeFile("output.ts", code);
+  yield* Console.log("✓ Complete");
 });
 ```
 
@@ -273,11 +273,11 @@ Effect.gen(function* () {
 
 ```typescript
 Effect.gen(function* () {
-	// Always return to ensure TypeScript knows code won't continue
-	return yield* new FileError({
-		path: "file.txt",
-		reason: "Read failed",
-	});
+  // Always return to ensure TypeScript knows code won't continue
+  return yield* new FileError({
+    path: "file.txt",
+    reason: "Read failed",
+  });
 });
 ```
 
@@ -289,20 +289,22 @@ Effect.gen(function* () {
 import { Effect, Console, Data } from "effect";
 
 // ✅ DO - Named function returning Effect
-export const readFile = Effect.fn("readFile")(function* (path: string): Effect.Effect<string, ReadError> {
-	yield* Console.log(`Reading: ${path}`);
-	return yield* Effect.try({
-		try: () => readFileSync(path, "utf-8"),
-		catch: (error) => new ReadError({ path, reason: error.message }),
-	});
+export const readFile = Effect.fn("readFile")(function* (
+  path: string,
+): Effect.Effect<string, ReadError> {
+  yield* Console.log(`Reading: ${path}`);
+  return yield* Effect.try({
+    try: () => readFileSync(path, "utf-8"),
+    catch: (error) => new ReadError({ path, reason: error.message }),
+  });
 });
 
 // ❌ DON'T - Function that returns Effect.gen
 export const readFile = function* (path: string): Effect.Effect<string, ReadError> {
-	return Effect.gen(function* () {
-		// Less readable, worse stack traces
-		// Do NOT do this
-	});
+  return Effect.gen(function* () {
+    // Less readable, worse stack traces
+    // Do NOT do this
+  });
 };
 ```
 
@@ -320,13 +322,13 @@ import { Data } from "effect";
 
 // ✅ DO - Data.TaggedError("Tag")<{ fields }>; `message` is what the user sees
 export class ReadError extends Data.TaggedError("ReadError")<{
-	readonly path: string;
-	readonly message: string;
+  readonly path: string;
+  readonly message: string;
 }> {}
 
 export class ParseError extends Data.TaggedError("ParseError")<{
-	readonly input: string;
-	readonly message: string;
+  readonly input: string;
+  readonly message: string;
 }> {}
 
 // ❌ DON'T - Data.TaggedErrorClass (it does not exist in this beta) or Schema fields
@@ -338,10 +340,10 @@ export class ParseError extends Data.TaggedError("ParseError")<{
 import { Console } from "effect";
 
 Effect.gen(function* () {
-	yield* Console.log("🔄 Starting process");
-	yield* Console.info("ℹ️  Additional context");
-	yield* Console.warn("⚠️  Warning: deprecated feature");
-	yield* Console.error("❌ Error:", error);
+  yield* Console.log("🔄 Starting process");
+  yield* Console.info("ℹ️  Additional context");
+  yield* Console.warn("⚠️  Warning: deprecated feature");
+  yield* Console.error("❌ Error:", error);
 });
 ```
 
@@ -351,14 +353,14 @@ Effect.gen(function* () {
 import { Effect } from "effect";
 
 const parseJson = (content: string) =>
-	Effect.try({
-		try: () => JSON.parse(content) as unknown,
-		catch: (error) =>
-			new ParseError({
-				input: content.slice(0, 100),
-				message: error instanceof Error ? error.message : "Parse failed",
-			}),
-	});
+  Effect.try({
+    try: () => JSON.parse(content) as unknown,
+    catch: (error) =>
+      new ParseError({
+        input: content.slice(0, 100),
+        message: error instanceof Error ? error.message : "Parse failed",
+      }),
+  });
 ```
 
 #### Pattern: Effect.catchTag() for Error Recovery
@@ -367,8 +369,8 @@ const parseJson = (content: string) =>
 import { Effect } from "effect";
 
 const program = riskyOperation().pipe(
-	Effect.catchTag("ParseError", () => Effect.succeed(defaultValue)),
-	Effect.catch((error) => Effect.logError(`Unexpected error: ${error}`)),
+  Effect.catchTag("ParseError", () => Effect.succeed(defaultValue)),
+  Effect.catch((error) => Effect.logError(`Unexpected error: ${error}`)),
 );
 ```
 
@@ -380,24 +382,28 @@ For complex modules requiring dependency injection, use `Context.Service` (a val
 import { Context, Effect, Layer } from "effect";
 
 export class FileService extends Context.Service<
-	FileService,
-	{
-		read: (path: string) => Effect.Effect<string, ReadError>;
-	}
+  FileService,
+  {
+    read: (path: string) => Effect.Effect<string, ReadError>;
+  }
 >()("cssints/file-service") {
-	static readonly layer = Layer.effect(
-		FileService,
-		Effect.gen(function* () {
-			const read = Effect.fn("FileService.read")(function* (path: string) {
-				return yield* Effect.try({
-					try: () => readFileSync(path, "utf-8"),
-					catch: (error) => new ReadError({ path, message: error instanceof Error ? error.message : String(error) }),
-				});
-			});
+  static readonly layer = Layer.effect(
+    FileService,
+    Effect.gen(function* () {
+      const read = Effect.fn("FileService.read")(function* (path: string) {
+        return yield* Effect.try({
+          try: () => readFileSync(path, "utf-8"),
+          catch: (error) =>
+            new ReadError({
+              path,
+              message: error instanceof Error ? error.message : String(error),
+            }),
+        });
+      });
 
-			return FileService.of({ read });
-		}),
-	);
+      return FileService.of({ read });
+    }),
+  );
 }
 ```
 
@@ -406,15 +412,15 @@ export class FileService extends Context.Service<
 ```typescript
 // CLI scripts
 Effect.runPromiseExit(program).then((exit) => {
-	if (exit._tag === "Failure") {
-		Console.error("❌ Failed:", exit.cause);
-		process.exit(1);
-	}
+  if (exit._tag === "Failure") {
+    Console.error("❌ Failed:", exit.cause);
+    process.exit(1);
+  }
 });
 
 // Library functions (let caller handle errors)
 export function run(): Effect.Effect<void, Error> {
-	return Effect.runPromise(program);
+  return Effect.runPromise(program);
 }
 ```
 
@@ -425,7 +431,7 @@ An exported engine function returns an Effect, even a small one. What user code 
 ```typescript
 // ✅ DO - an Effect at the boundary
 function toUpperCase(str: string): Effect.Effect<string> {
-	return Effect.sync(() => str.toUpperCase());
+  return Effect.sync(() => str.toUpperCase());
 }
 
 // ✅ DO - plain code inside a hot path or a sync builder (hashClass, camel, the twin's lexer)
@@ -458,7 +464,7 @@ Effect rules as errors on Effect code: the whole effect profile (no `try/catch`,
 `in` and `typeof`. Which rules are on and which are off, with counts, is in tools/ai-automation/README.md.
 
 Plain code by design is exempt through the `plainCode` override of `vite.config.ts` (a reason each): browser runtimes, the Typed OM
-values, the sync css.* builders and class hash of lib.ts, the twin's recognizer, @cssints/icons, @cssints/mise-en-mode, the apps, tests, benches and scripts.
+values, the sync css.\* builders and class hash of lib.ts, the twin's recognizer, @cssints/icons, @cssints/mise-en-mode, the apps, tests, benches and scripts.
 Add a file there when it joins that list, not a disable comment.
 
 The Effect language service runs with every diagnostic as an error (tsconfig.effect.json, extended by cssints, css-grammar, icons and mise-en-mode);

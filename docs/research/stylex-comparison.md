@@ -22,20 +22,20 @@ StyleX uses `defineVars` to create theme variables:
 import { defineVars, createTheme } from "@stylexjs/themes";
 
 const tokens = defineVars({
-	colors: {
-		primary: "#3b82f6",
-		secondary: "#6366f1",
-	},
-	spacing: {
-		small: "4px",
-		medium: "8px",
-		large: "16px",
-	},
-	fontSizes: {
-		small: "12px",
-		medium: "14px",
-		large: "18px",
-	},
+  colors: {
+    primary: "#3b82f6",
+    secondary: "#6366f1",
+  },
+  spacing: {
+    small: "4px",
+    medium: "8px",
+    large: "16px",
+  },
+  fontSizes: {
+    small: "12px",
+    medium: "14px",
+    large: "18px",
+  },
 });
 ```
 
@@ -43,14 +43,14 @@ Generates CSS variables:
 
 ```css
 :root {
-	--colors-primary: #3b82f6;
-	--colors-secondary: #6366f1;
-	--spacing-small: 4px;
-	--spacing-medium: 8px;
-	--spacing-large: 16px;
-	--fontSizes-small: 12px;
-	--fontSizes-medium: 14px;
-	--fontSizes-large: 18px;
+  --colors-primary: #3b82f6;
+  --colors-secondary: #6366f1;
+  --spacing-small: 4px;
+  --spacing-medium: 8px;
+  --spacing-large: 16px;
+  --fontSizes-small: 12px;
+  --fontSizes-medium: 14px;
+  --fontSizes-large: 18px;
 }
 ```
 
@@ -59,14 +59,14 @@ Generates CSS variables:
 ```typescript
 // tokens.ts
 const defaultTokens = {
-	color: {
-		primary: { $value: "#3b82f6", $type: "color" },
-		secondary: { $value: "#6366f1", $type: "color" },
-	},
-	spacing: {
-		small: { $value: "4px", $type: "dimension" },
-		medium: { $value: "8px", $type: "dimension" },
-	},
+  color: {
+    primary: { $value: "#3b82f6", $type: "color" },
+    secondary: { $value: "#6366f1", $type: "color" },
+  },
+  spacing: {
+    small: { $value: "4px", $type: "dimension" },
+    medium: { $value: "8px", $type: "dimension" },
+  },
 };
 ```
 
@@ -87,16 +87,16 @@ StyleX transforms style objects into atomic CSS classes:
 import { stylex } from "@stylexjs/stylex";
 
 const styles = stylex.create({
-	button: {
-		backgroundColor: "primary",
-		padding: "8px 16px",
-		borderRadius: "4px",
-	},
-	container: {
-		display: "flex",
-		flexDirection: "column",
-		gap: "8px",
-	},
+  button: {
+    backgroundColor: "primary",
+    padding: "8px 16px",
+    borderRadius: "4px",
+  },
+  container: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  },
 });
 ```
 
@@ -104,22 +104,22 @@ Generates:
 
 ```css
 .x1p7d1qz {
-	background-color: var(--colors-primary);
+  background-color: var(--colors-primary);
 }
 .x1iumqq1 {
-	padding: 8px 16px;
+  padding: 8px 16px;
 }
 .x1avfquk {
-	border-radius: 4px;
+  border-radius: 4px;
 }
 .xs7x2ga {
-	display: flex;
+  display: flex;
 }
 .x1r1m6x3 {
-	flex-direction: column;
+  flex-direction: column;
 }
 .x1ipk5nv {
-	gap: 8px;
+  gap: 8px;
 }
 ```
 
@@ -129,9 +129,9 @@ Each unique CSS declaration becomes its own atomic class. Multiple elements shar
 
 ```typescript
 const button = style("button", {
-	backgroundColor: "primary",
-	padding: "8px 16px",
-	borderRadius: "4px",
+  backgroundColor: "primary",
+  padding: "8px 16px",
+  borderRadius: "4px",
 });
 ```
 
@@ -139,9 +139,9 @@ Generates:
 
 ```css
 .button__a1b2c3d4 {
-	background-color: var(--colors-primary);
-	padding: 8px 16px;
-	border-radius: 4px;
+  background-color: var(--colors-primary);
+  padding: 8px 16px;
+  border-radius: 4px;
 }
 ```
 
@@ -170,13 +170,13 @@ StyleX breaks every CSS declaration into its own class:
 
 ```css
 .x1p7d1qz {
-	background-color: var(--colors-primary);
+  background-color: var(--colors-primary);
 }
 .x1iumqq1 {
-	padding: 8px 16px;
+  padding: 8px 16px;
 }
 .x1avfquk {
-	border-radius: 4px;
+  border-radius: 4px;
 }
 ```
 
@@ -213,12 +213,12 @@ StyleX guarantees no specificity conflicts:
 
 ```typescript
 const tokens = defineVars({
-	colors: { primary: "blue" },
+  colors: { primary: "blue" },
 });
 
 // Use in styles
 const button = stylex.create({
-	backgroundColor: tokens.colors.primary,
+  backgroundColor: tokens.colors.primary,
 });
 ```
 
@@ -226,17 +226,17 @@ const button = stylex.create({
 
 ```typescript
 const [themeClass, vars] = createTheme(
-	{
-		colors: { primary: "blue" },
-	},
-	"themeName",
+  {
+    colors: { primary: "blue" },
+  },
+  "themeName",
 );
 
 const darkTheme = createTheme(
-	{
-		colors: { primary: "lightblue" },
-	},
-	"darkTheme",
+  {
+    colors: { primary: "lightblue" },
+  },
+  "darkTheme",
 );
 ```
 
@@ -295,7 +295,7 @@ style("button", { color: "red" }, { atomic: true });
 ```typescript
 // Proposed
 const tokens = defineVars({
-	colors: { primary: "#3b82f6" },
+  colors: { primary: "#3b82f6" },
 });
 ```
 
@@ -304,14 +304,14 @@ const tokens = defineVars({
 ```typescript
 // Proposed
 const [lightTheme, vars] = createTheme({
-	colors: { primary: "blue" },
+  colors: { primary: "blue" },
 });
 
 const [darkTheme] = createTheme(
-	{
-		colors: { primary: "lightblue" },
-	},
-	"dark",
+  {
+    colors: { primary: "lightblue" },
+  },
+  "dark",
 );
 ```
 

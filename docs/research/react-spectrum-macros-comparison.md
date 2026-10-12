@@ -63,10 +63,10 @@ The macro detects whether styles are static or dynamic:
 
 ```typescript
 const staticStyle = style({
-	backgroundColor: {
-		default: "primary",
-		":hover": "secondary",
-	},
+  backgroundColor: {
+    default: "primary",
+    ":hover": "secondary",
+  },
 });
 
 // Returns: " -m1a2b3c4 -m1hover4d5e6"
@@ -76,10 +76,10 @@ const staticStyle = style({
 
 ```typescript
 const dynamicStyle = style({
-	backgroundColor: {
-		default: "primary",
-		isFocusVisible: "focus-ring",
-	},
+  backgroundColor: {
+    default: "primary",
+    isFocusVisible: "focus-ring",
+  },
 });
 
 // Returns: (props) => ` -m1a2b3c4${props.isFocusVisible ? ' -m1focus4d5e6' : ''}`
@@ -103,10 +103,10 @@ Example breakdown:
 
 ```typescript
 style({
-	backgroundColor: {
-		default: "primary",
-		":hover": "secondary",
-	},
+  backgroundColor: {
+    default: "primary",
+    ":hover": "secondary",
+  },
 });
 ```
 
@@ -128,16 +128,16 @@ Macros emit CSS assets via the macro context:
 
 ```typescript
 export function style(this: MacroContext | void, styleObj) {
-	// ... compile styles ...
+  // ... compile styles ...
 
-	if (this && typeof this.addAsset === "function") {
-		this.addAsset({
-			type: "css",
-			content: css, // Generated CSS string
-		});
-	}
+  if (this && typeof this.addAsset === "function") {
+    this.addAsset({
+      type: "css",
+      content: css, // Generated CSS string
+    });
+  }
 
-	return classNameString;
+  return classNameString;
 }
 ```
 
@@ -155,12 +155,12 @@ React Spectrum supports three types of conditions:
 
 ```typescript
 style({
-	backgroundColor: {
-		default: "primary",
-		":hover": "secondary",
-		"@media (prefers-color-scheme: dark)": "dark-primary",
-		":focus-visible": "focus-ring",
-	},
+  backgroundColor: {
+    default: "primary",
+    ":hover": "secondary",
+    "@media (prefers-color-scheme: dark)": "dark-primary",
+    ":focus-visible": "focus-ring",
+  },
 });
 ```
 
@@ -168,29 +168,29 @@ Generated CSS:
 
 ```css
 @layer _.a {
-	.-m1a2b3c4 {
-		background-color: var(--color-primary);
-	}
+  .-m1a2b3c4 {
+    background-color: var(--color-primary);
+  }
 }
 
 @layer _.b {
-	.-m1hover4d5e6:hover {
-		background-color: var(--color-secondary);
-	}
+  .-m1hover4d5e6:hover {
+    background-color: var(--color-secondary);
+  }
 }
 
 @layer _.b._dark {
-	@media (prefers-color-scheme: dark) {
-		.-m1dark5e6f7 {
-			background-color: var(--color-dark-primary);
-		}
-	}
+  @media (prefers-color-scheme: dark) {
+    .-m1dark5e6f7 {
+      background-color: var(--color-dark-primary);
+    }
+  }
 }
 
 @layer _.c {
-	.-m1focus4d5e6:focus-visible {
-		background-color: var(--color-focus-ring);
-	}
+  .-m1focus4d5e6:focus-visible {
+    background-color: var(--color-focus-ring);
+  }
 }
 ```
 
@@ -198,14 +198,14 @@ Generated CSS:
 
 ```typescript
 style({
-	outlineStyle: {
-		default: "none",
-		isFocusVisible: "solid",
-	},
-	outlineColor: {
-		default: "focus-ring",
-		forcedColors: "Highlight",
-	},
+  outlineStyle: {
+    default: "none",
+    isFocusVisible: "solid",
+  },
+  outlineColor: {
+    default: "focus-ring",
+    forcedColors: "Highlight",
+  },
 });
 
 // Returns function: (props) => `...${props.isFocusVisible ? ' -o2solid' : ''}...`
@@ -215,13 +215,13 @@ style({
 
 ```typescript
 style({
-	padding: {
-		default: "medium",
-		size: {
-			small: "small",
-			large: "large",
-		},
-	},
+  padding: {
+    default: "medium",
+    size: {
+      small: "small",
+      large: "large",
+    },
+  },
 });
 
 // Returns function: (props) => `...${props.size === 'small' ? ' -p3small' : ''}...`
@@ -254,20 +254,20 @@ Shorthands expand to multiple CSS properties:
 
 ```typescript
 const theme = {
-	shorthands: {
-		padding: ["paddingTop", "paddingBottom", "paddingLeft", "paddingRight"],
-		margin: (value) => ({
-			marginTop: value,
-			marginBottom: value,
-			marginStart: value,
-			marginEnd: value,
-		}),
-	},
+  shorthands: {
+    padding: ["paddingTop", "paddingBottom", "paddingLeft", "paddingRight"],
+    margin: (value) => ({
+      marginTop: value,
+      marginBottom: value,
+      marginStart: value,
+      marginEnd: value,
+    }),
+  },
 };
 
 style({
-	padding: "medium",
-	// Expands to: paddingTop, paddingBottom, paddingLeft, paddingRight
+  padding: "medium",
+  // Expands to: paddingTop, paddingBottom, paddingLeft, paddingRight
 });
 ```
 
@@ -293,17 +293,17 @@ Multiple syntaxes for arbitrary values:
 
 ```typescript
 style({
-	// CSS variable reference
-	color: "--my-color",
+  // CSS variable reference
+  color: "--my-color",
 
-	// Arbitrary value in brackets
-	padding: "[20px]",
+  // Arbitrary value in brackets
+  padding: "[20px]",
 
-	// CSS functions
-	width: "calc(100% - 20px)",
+  // CSS functions
+  width: "calc(100% - 20px)",
 
-	// CSS wide keywords
-	color: "inherit",
+  // CSS wide keywords
+  color: "inherit",
 });
 ```
 
@@ -348,10 +348,10 @@ Inject arbitrary CSS with custom layers:
 import { raw } from "@react-spectrum/s2/style" with { type: "macro" };
 
 const customClass = raw(
-	`
+  `
   background: linear-gradient(to right, red, blue);
 `,
-	"_.custom",
+  "_.custom",
 );
 ```
 
@@ -365,36 +365,36 @@ Themes define properties with type mappings and condition sets:
 
 ```typescript
 const theme = {
-	properties: {
-		// Simple mapping
-		color: {
-			primary: "var(--color-primary)",
-			secondary: "var(--color-secondary)",
-		},
+  properties: {
+    // Simple mapping
+    color: {
+      primary: "var(--color-primary)",
+      secondary: "var(--color-secondary)",
+    },
 
-		// Array of allowed values
-		display: ["block", "flex", "grid", "none"],
+    // Array of allowed values
+    display: ["block", "flex", "grid", "none"],
 
-		// Custom Property class
-		backgroundColor: new MappedProperty("background-color", {
-			primary: "var(--color-primary)",
-			// ...
-		}),
-	},
+    // Custom Property class
+    backgroundColor: new MappedProperty("background-color", {
+      primary: "var(--color-primary)",
+      // ...
+    }),
+  },
 
-	conditions: {
-		// CSS conditions
-		":hover": ":hover",
-		"@media (prefers-color-scheme: dark)": "@media (prefers-color-scheme: dark)",
+  conditions: {
+    // CSS conditions
+    ":hover": ":hover",
+    "@media (prefers-color-scheme: dark)": "@media (prefers-color-scheme: dark)",
 
-		// Media query aliases
-		dark: "@media (prefers-color-scheme: dark)",
-		light: "@media (prefers-color-scheme: light)",
-	},
+    // Media query aliases
+    dark: "@media (prefers-color-scheme: dark)",
+    light: "@media (prefers-color-scheme: light)",
+  },
 
-	shorthands: {
-		padding: ["paddingTop", "paddingBottom", "paddingLeft", "paddingRight"],
-	},
+  shorthands: {
+    padding: ["paddingTop", "paddingBottom", "paddingLeft", "paddingRight"],
+  },
 };
 ```
 
@@ -408,10 +408,10 @@ type StyleProps = ThemeProperties<SpectrumTheme>;
 
 // Usage is fully type-checked
 const buttonStyle = style<StyleProps>({
-	backgroundColor: "primary", // ✅ Valid
-	padding: "medium", // ✅ Valid
-	display: "flex", // ✅ Valid
-	display: "invalid", // ❌ TypeScript error
+  backgroundColor: "primary", // ✅ Valid
+  padding: "medium", // ✅ Valid
+  display: "flex", // ✅ Valid
+  display: "invalid", // ❌ TypeScript error
 });
 ```
 
@@ -448,18 +448,18 @@ Automatic optimization based on condition types:
 ```typescript
 // Static - returns string at build time
 const staticStyle = style({
-	color: {
-		default: "primary",
-		":hover": "secondary",
-	},
+  color: {
+    default: "primary",
+    ":hover": "secondary",
+  },
 });
 
 // Dynamic - returns function for runtime props
 const dynamicStyle = style({
-	color: {
-		default: "primary",
-		isFocusVisible: "focus-ring",
-	},
+  color: {
+    default: "primary",
+    isFocusVisible: "focus-ring",
+  },
 });
 ```
 
@@ -480,17 +480,17 @@ Support for three condition types in one API:
 
 ```typescript
 style({
-	color: {
-		default: "primary", // Default
-		":hover": "secondary", // CSS pseudo-class
-		"@media (prefers-color-scheme: dark)": "dark", // CSS media query
-		isFocusVisible: "focus-ring", // Runtime boolean
-		size: {
-			// Variant condition
-			small: "small-text",
-			large: "large-text",
-		},
-	},
+  color: {
+    default: "primary", // Default
+    ":hover": "secondary", // CSS pseudo-class
+    "@media (prefers-color-scheme: dark)": "dark", // CSS media query
+    isFocusVisible: "focus-ring", // Runtime boolean
+    size: {
+      // Variant condition
+      small: "small-text",
+      large: "large-text",
+    },
+  },
 });
 ```
 
@@ -503,8 +503,8 @@ type StyleProps = ThemeProperties<SpectrumTheme>;
 
 // Full autocomplete and type checking
 const styleFn = style<StyleProps>({
-	backgroundColor: "primary", // ✅ Auto-completes
-	invalidProp: "value", // ❌ TypeScript error
+  backgroundColor: "primary", // ✅ Auto-completes
+  invalidProp: "value", // ❌ TypeScript error
 });
 ```
 
@@ -514,9 +514,9 @@ Automatic expansion of shorthands to longhands:
 
 ```typescript
 const theme = {
-	shorthands: {
-		padding: ["paddingTop", "paddingBottom", "paddingLeft", "paddingRight"],
-	},
+  shorthands: {
+    padding: ["paddingTop", "paddingBottom", "paddingLeft", "paddingRight"],
+  },
 };
 
 style({ padding: "medium" });
@@ -529,8 +529,8 @@ Properties can reference other properties:
 
 ```typescript
 style({
-	"--shadow-color": { type: "color", value: "primary" },
-	boxShadow: "self(--shadow-color)",
+  "--shadow-color": { type: "color", value: "primary" },
+  boxShadow: "self(--shadow-color)",
 });
 ```
 
@@ -575,12 +575,12 @@ export default { plugins: [macros.rollup()] };
 ```css
 /* React Spectrum */
 .-m1a2b3c4 {
-	background-color: var(--color-primary);
+  background-color: var(--color-primary);
 }
 
 /* Our approach */
 .button__a1b2c3d4 {
-	background-color: var(--color-primary);
+  background-color: var(--color-primary);
 }
 ```
 
@@ -591,13 +591,13 @@ More readable, component-scoped names.
 ```typescript
 // Our approach follows Design Tokens Community Group spec
 const tokens = {
-	color: {
-		primary: {
-			$value: "#3b82f6",
-			$type: "color",
-			$description: "Brand primary color",
-		},
-	},
+  color: {
+    primary: {
+      $value: "#3b82f6",
+      $type: "color",
+      $description: "Brand primary color",
+    },
+  },
 };
 ```
 
@@ -627,14 +627,14 @@ Runtime registry for:
 ```typescript
 // Our approach - single Vite plugin
 export default {
-	plugins: [cssInTsCompiler()],
+  plugins: [cssInTsCompiler()],
 };
 
 // React Spectrum - unplugin + macro system
 import macros from "unplugin-parcel-macros";
 export default {
-	plugins: [macros.vite()],
-	// Plus configure macro system...
+  plugins: [macros.vite()],
+  // Plus configure macro system...
 };
 ```
 
@@ -660,10 +660,10 @@ style({ color: "red" });
 ```typescript
 // Proposed
 style("button", {
-	color: "red",
-	"@layer higher": {
-		color: "blue", // Always wins via layer ordering
-	},
+  color: "red",
+  "@layer higher": {
+    color: "blue", // Always wins via layer ordering
+  },
 });
 ```
 
@@ -672,14 +672,14 @@ style("button", {
 ```typescript
 // Proposed - detect static vs dynamic
 const staticStyle = style({
-	color: "red", // Static, returns string
+  color: "red", // Static, returns string
 });
 
 const dynamicStyle = style({
-	color: {
-		default: "red",
-		isHover: "blue", // Dynamic, returns function
-	},
+  color: {
+    default: "red",
+    isHover: "blue", // Dynamic, returns function
+  },
 });
 ```
 
@@ -688,9 +688,9 @@ const dynamicStyle = style({
 ```typescript
 // Proposed
 const theme = {
-	shorthands: {
-		padding: ["paddingTop", "paddingBottom", "paddingLeft", "paddingRight"],
-	},
+  shorthands: {
+    padding: ["paddingTop", "paddingBottom", "paddingLeft", "paddingRight"],
+  },
 };
 
 style("button", { padding: "medium" });
@@ -702,17 +702,17 @@ style("button", { padding: "medium" });
 ```typescript
 // Proposed
 style("button", {
-	color: {
-		default: "red",
-		":hover": "blue", // CSS condition
-		"@media (min-width: 768px)": "green", // Media query
-		isFocus: "yellow", // Runtime prop
-		size: {
-			// Variant
-			small: "blue",
-			large: "red",
-		},
-	},
+  color: {
+    default: "red",
+    ":hover": "blue", // CSS condition
+    "@media (min-width: 768px)": "green", // Media query
+    isFocus: "yellow", // Runtime prop
+    size: {
+      // Variant
+      small: "blue",
+      large: "red",
+    },
+  },
 });
 ```
 
@@ -721,8 +721,8 @@ style("button", {
 ```typescript
 // Proposed
 style("button", {
-	"--shadow-color": "primary",
-	boxShadow: "self(--shadow-color)",
+  "--shadow-color": "primary",
+  boxShadow: "self(--shadow-color)",
 });
 ```
 
@@ -743,7 +743,7 @@ const fadeIn = keyframes(`
 type StyleProps = InferTokenTypes<typeof tokens>;
 
 const buttonStyle = style<StyleProps>("button", {
-	color: "primary", // Auto-completes from tokens
+  color: "primary", // Auto-completes from tokens
 });
 ```
 
@@ -752,8 +752,8 @@ const buttonStyle = style<StyleProps>("button", {
 ```typescript
 // Proposed
 style("button", {
-	width: "[calc(100% - 20px)]", // Arbitrary value
-	color: "--my-var", // CSS variable
+  width: "[calc(100% - 20px)]", // Arbitrary value
+  color: "--my-var", // CSS variable
 });
 ```
 

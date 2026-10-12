@@ -75,6 +75,12 @@ assert.equal(
   `${example}\n`,
   "the Install page's example is the README's",
 );
+// the Format button's formatter prints what `vp fmt` printed in these files (the projects are formatted by it)
+const { format } = await import("@wasm-fmt/oxc_fmt/node");
+for (const [id, files] of Object.entries(projects))
+  for (const [name, text] of Object.entries(files))
+    if (/\.tsx?$/.test(name))
+      assert.equal(format(text, name, { lineWidth: 100 }), text, `${id}/${name} as oxfmt has it`);
 // the pages with no example, and why: nothing a browser could run or show
 const SKIP = {
   layout: "a map of the repository",
@@ -236,6 +242,8 @@ try {
     if (m.type() === "error") problems.push(`console: ${m.text()}`);
   });
   page.on("response", (r) => r.status() >= 400 && problems.push(`${r.status()} ${r.url()}`));
+  const wasms = [];
+  page.on("request", (r) => /oxc_fmt.*\.wasm$/.test(r.url()) && wasms.push(r.url()));
   const compiled = () =>
     page
       .locator("[role=status]")
@@ -433,6 +441,9 @@ try {
       /\(alias\) cv<.*wide.*CvConfig/.test(h.textContent),
     ),
   );
+  // the hover is tall on a formatted file and would cover the editor's centre, where `type` clicks
+  await page.mouse.move(1300, 450);
+  await page.locator(".monaco-hover:visible").waitFor({ state: "hidden" });
 
   // an edit is compiled, marked where it fails, and kept in the hash
   // the edit, and the end of the build it starts (the hash is written after each one)
@@ -451,6 +462,46 @@ try {
   await page.waitForFunction(() => document.querySelector(".squiggly-error"));
   assert.match(await page.locator("body").textContent(), /padding: unexpected .red./);
   assert.match(await page.evaluate(() => location.hash), /^#files=/);
+  await type('import { p } from "cssints" with { type: "cssints" };\nexport const a = p(4);\n');
+  await compiled();
+  await types(/Types: ok/);
+
+  // Format: oxfmt's formatter as wasm, fetched at the first use (not before), the file as `vp fmt` prints it, in one edit (one undo
+  // takes it back); Shift+Alt+F does the same; a file that does not parse is left as it is, with a note
+  const messy =
+    'import {p,bg}   from "cssints" with {type:"cssints"}\nexport const a = p(4)\nexport const b = bg("red");   \n';
+  const tidy =
+    'import { p, bg } from "cssints" with { type: "cssints" };\nexport const a = p(4);\nexport const b = bg("red");\n';
+  const source = async () =>
+    (
+      await page.evaluate(async () =>
+        (await import("/src/playground/share.ts")).decode(location.hash),
+      )
+    )[ENTRY];
+  const formatted = async (act) => {
+    const before = await page.evaluate(() => location.hash);
+    await act();
+    await page.waitForFunction((h) => location.hash !== h, before, { timeout: 40_000 });
+  };
+  await type(messy);
+  assert.equal(await source(), messy);
+  assert.deepEqual(wasms, [], "the formatter is not fetched before it is used");
+  await formatted(() => page.getByRole("button", { name: "Format" }).click());
+  assert.equal(await source(), tidy, "the button formats the file");
+  assert.equal(wasms.length, 1, "the formatter was fetched once, on the click");
+  await page.locator(".monaco-editor .view-lines").click();
+  await formatted(() => page.keyboard.press("ControlOrMeta+z"));
+  assert.equal(await source(), messy, "one undo takes the whole format back");
+  await formatted(() => page.keyboard.press("Shift+Alt+F"));
+  assert.equal(await source(), tidy, "Shift+Alt+F formats the file");
+  assert.equal(wasms.length, 1, "and the formatter is fetched once");
+  await type("export const a = ;\n");
+  await page.getByRole("button", { name: "Format" }).click();
+  await page
+    .locator("[role=status]")
+    .filter({ hasText: /Format: / })
+    .waitFor();
+  assert.equal(await source(), "export const a = ;\n", "a file that does not parse is not touched");
   await type('import { p } from "cssints" with { type: "cssints" };\nexport const a = p(4);\n');
   await compiled();
   await types(/Types: ok/);

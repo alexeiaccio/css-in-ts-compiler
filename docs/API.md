@@ -34,11 +34,22 @@ import { alignItems, cn, justifyContent, p } from "cssints" with { type: "cssint
 import * as css from "cssints" with { type: "cssints" };
 
 export const A = () => (
-	<div className={cn(css.display("flex"), alignItems("center"), justifyContent("center"), prop && p(4))}>Hello, world!</div>
+  <div
+    className={cn(
+      css.display("flex"),
+      alignItems("center"),
+      justifyContent("center"),
+      prop && p(4),
+    )}
+  >
+    Hello, world!
+  </div>
 );
 // or with a layout context
 export const B = () => (
-	<div className={cn(css.flex().alignItems("center").justifyContent("center"), prop && css.p(4))}>Hello, world!</div>
+  <div className={cn(css.flex().alignItems("center").justifyContent("center"), prop && css.p(4))}>
+    Hello, world!
+  </div>
 );
 ```
 
@@ -47,7 +58,9 @@ Output for `A`:
 ```tsx skip
 import { _cx as __cx } from "cssints";
 
-export const A = () => <div className={__cx([], "_1s47490 _1ob5z5m _cn8dee", prop && "_lwugp7")}>Hello, world!</div>;
+export const A = () => (
+  <div className={__cx([], "_1s47490 _1ob5z5m _cn8dee", prop && "_lwugp7")}>Hello, world!</div>
+);
 ```
 
 The static arguments of `cn` are one class string; `prop && p(4)` depends on a runtime value, so it stays an argument of the runtime call, and the `p(4)` in it is already its class.
@@ -55,10 +68,18 @@ The static arguments of `cn` are one class string; `prop && p(4)` depends on a r
 ```css
 @layer _.k, _.a, _.b, _.c, _.d, _.e;
 @layer _.a {
-	._lwugp7 { padding: 1rem; }
-	._1ob5z5m { align-items: center; }
-	._1s47490 { display: flex; }
-	._cn8dee { justify-content: center; }
+  ._lwugp7 {
+    padding: 1rem;
+  }
+  ._1ob5z5m {
+    align-items: center;
+  }
+  ._1s47490 {
+    display: flex;
+  }
+  ._cn8dee {
+    justify-content: center;
+  }
 }
 ```
 
@@ -73,7 +94,11 @@ The static arguments of `cn` are one class string; `prop && p(4)` depends on a r
 ```tsx
 import * as css from "cssints" with { type: "cssints" };
 
-export const C = () => <div className={css.cn(css.flex().alignItems("center").justifyContent("center"), css.p(4))}>Hello, world!</div>;
+export const C = () => (
+  <div className={css.cn(css.flex().alignItems("center").justifyContent("center"), css.p(4))}>
+    Hello, world!
+  </div>
+);
 ```
 
 Output:
@@ -99,13 +124,20 @@ const narrow = css.container("sidebar (width < 30rem)");
 const grid = css.supports("(display: grid)");
 
 export const styles = css.cn(
-	css.p(2),
-	md(css.pl("8ch"), css.pt(4)),
-	css.hover(css.bg("#eee")),
-	md(css.hover(css.bg("#ddd"))),
-	prop && lg(css.p(8)),
+  css.p(2),
+  md(css.pl("8ch"), css.pt(4)),
+  css.hover(css.bg("#eee")),
+  md(css.hover(css.bg("#ddd"))),
+  prop && lg(css.p(8)),
 );
-export const forms = css.cn(dark(css.bg("#111")), narrow(css.m(0)), grid(css.display("grid")), tablet(css.m(1)), wide(css.m(2)), sm(css.m(3)));
+export const forms = css.cn(
+  dark(css.bg("#111")),
+  narrow(css.m(0)),
+  grid(css.display("grid")),
+  tablet(css.m(1)),
+  wide(css.m(2)),
+  sm(css.m(3)),
+);
 ```
 
 - **Pseudo-classes** are ready-made wrappers named after the selector: `hover`, `focus`, `focusVisible`, `active`, `disabled`, and so on: 49 of them, from mdn-data `selectors.json` (standard pseudo-classes without arguments). Functional ones (`:nth-child()`) are not wrappers.
@@ -121,22 +153,34 @@ Output of `styles`; each form in `forms` gives one more rule in `_.b` (`dark`, `
 
 ```css
 @layer _.a {
-	._1t8gqy5 { padding: 0.5rem; }
+  ._1t8gqy5 {
+    padding: 0.5rem;
+  }
 }
 @layer _.b {
-	._16f8jrr:hover { background-color: #eee; }
-	@media (width >= 40rem) {
-		._1q848uz { padding-top: 1rem; }
-		._t70zhd { padding-left: 8ch; }
-	}
-	@media (width >= 60rem) {
-		._1khcbr2 { padding: 2rem; }
-	}
+  ._16f8jrr:hover {
+    background-color: #eee;
+  }
+  @media (width >= 40rem) {
+    ._1q848uz {
+      padding-top: 1rem;
+    }
+    ._t70zhd {
+      padding-left: 8ch;
+    }
+  }
+  @media (width >= 60rem) {
+    ._1khcbr2 {
+      padding: 2rem;
+    }
+  }
 }
 @layer _.c {
-	@media (width >= 40rem) {
-		._ronnd2:hover { background-color: #ddd; }
-	}
+  @media (width >= 40rem) {
+    ._ronnd2:hover {
+      background-color: #ddd;
+    }
+  }
 }
 ```
 
@@ -159,12 +203,15 @@ css.global("a", css.hover(css.color("red"))); // global() takes media(), contain
 // an attribute state, and the state of a marked ancestor
 export const row = css.cn(css.group(), css.p(2));
 export const link = css.cn(
-	css.color("gray"),
-	css.attr("aria-current", "page")(css.color("blue")),
-	css.within(css.hover)(css.textDecoration("underline")),
+  css.color("gray"),
+  css.attr("aria-current", "page")(css.color("blue")),
+  css.within(css.hover)(css.textDecoration("underline")),
 );
 export const icon = css.attr("href", ".pdf", "$=")(css.opacity(0.8));
-export const nested = css.cn(css.group("card"), css.within(css.focusVisible, "card")(css.outline("2px solid")));
+export const nested = css.cn(
+  css.group("card"),
+  css.within(css.focusVisible, "card")(css.outline("2px solid")),
+);
 css.attr("a b"); // error: a name has no space
 css.attr("a", "x", "!="); // error: not an operator
 css.within(css.media("(width >= 40rem)")); // error: a media query is not a state
@@ -181,15 +228,36 @@ css.within(css.media("(width >= 40rem)")); // error: a media query is not a stat
 
 ```css
 @layer _.k {
-	*, *::before, *::after{box-sizing:border-box}
-	body{margin:8px}
-	:root{color-scheme:light}@media (prefers-color-scheme: dark){:root{color-scheme:dark}}
-	a[href^='http'] > b{color:red}
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 8px;
+  }
+  :root {
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+    }
+  }
+  a[href^="http"] > b {
+    color: red;
+  }
 }
 @layer _.b {
-	:where(._g:hover) ._72037{text-decoration:underline}
-	._fc1pxh[aria-current="page"]{color:blue}
-	._pl3vkk[href$=".pdf"]{opacity:0.8}
+  :where(._g:hover) ._72037 {
+    text-decoration: underline;
+  }
+  ._fc1pxh[aria-current="page"] {
+    color: blue;
+  }
+  ._pl3vkk[href$=".pdf"] {
+    opacity: 0.8;
+  }
 }
 ```
 
@@ -215,9 +283,9 @@ css.token.set(muted, "red"); // error: private tokens cannot be set
 
 ```css
 @property --color-primary {
-	syntax: "<color>";
-	inherits: true;
-	initial-value: blue;
+  syntax: "<color>";
+  inherits: true;
+  initial-value: blue;
 }
 ```
 
@@ -234,14 +302,14 @@ Tokens come from an inline DTCG-shaped `const` object. Every leaf is a token (se
 import * as css from "cssints" with { type: "cssints" };
 
 const t = css.createTokens({
-	color: {
-		$type: "color",
-		bg: { $value: "#ffffff" },
-		fg: { $value: "#111827" },
-		accent: { $value: "oklch(62% 0.19 259)" },
-		link: { $value: "{color.accent}" },
-	},
-	space: { $type: "dimension", md: { $value: "16px" } },
+  color: {
+    $type: "color",
+    bg: { $value: "#ffffff" },
+    fg: { $value: "#111827" },
+    accent: { $value: "oklch(62% 0.19 259)" },
+    link: { $value: "{color.accent}" },
+  },
+  space: { $type: "dimension", md: { $value: "16px" } },
 });
 
 const dark = css.media("(prefers-color-scheme: dark)");
@@ -251,7 +319,9 @@ css.createGlobalTheme(t.color, css.container("(width < 30rem)"), { bg: "#eee" })
 
 css.check.contrast(t.color.fg, t.color.bg, { min: 4.5 });
 
-export const A = () => <div className={css.cn(css.bg(t.color.bg), css.color(t.color.fg), css.p(t.space.md))} />;
+export const A = () => (
+  <div className={css.cn(css.bg(t.color.bg), css.color(t.color.fg), css.p(t.space.md))} />
+);
 css.createGlobalTheme(t, dark, { color: { nope: "red" } }); // error: no token at this path
 css.createGlobalTheme(t, css.hover, { color: { bg: "red" } }); // error: a pseudo-class is not a theme condition
 ```
@@ -279,7 +349,12 @@ import * as css from "cssints" with { type: "cssints" };
 css.layers("app", "author", "viewer");
 const t = css.createTokens({ color: { $type: "color", bg: { $value: "#fff" } } });
 css.createGlobalTheme(t, '[data-mode="dark"]', { color: { bg: "#000" } }, { layer: "viewer" });
-css.createGlobalTheme(t, '[data-mode="hero"]', { color: { bg: "#123" } }, { layer: "author", scope: "article.post" });
+css.createGlobalTheme(
+  t,
+  '[data-mode="hero"]',
+  { color: { bg: "#123" } },
+  { layer: "author", scope: "article.post" },
+);
 css.createGlobalTheme(t, ".x", { color: { bg: "#000" } }, { scope: "a[href" }); // error: unbalanced brackets in the scope
 css.layers(); // error: a declaration has a name
 css.layers("reset", { before: true }); // @layer reset; before @layer _.k, _.a, …;
@@ -294,11 +369,11 @@ css.layers("reset", { before: true }); // @layer reset; before @layer _.k, _.a, 
 import * as css from "cssints" with { type: "cssints" };
 
 export const t = css.createTokens({
-	color: {
-		$type: "color",
-		accent: { $value: "#2563eb" },
-		hover: { $value: "color-mix(in oklab, {color.accent}, black 15%)" },
-	},
+  color: {
+    $type: "color",
+    accent: { $value: "#2563eb" },
+    hover: { $value: "color-mix(in oklab, {color.accent}, black 15%)" },
+  },
 });
 css.createGlobalTheme(t, ".brand", { color: { accent: "#db2777" } }); // hover follows
 ```
@@ -309,12 +384,15 @@ css.createGlobalTheme(t, ".brand", { color: { accent: "#db2777" } }); // hover f
 import * as css from "cssints" with { type: "cssints" };
 
 export const t = css.createTokens({
-	hue: { $type: "number", accent: { $value: 345 } },
-	radius: { $type: "dimension", sm: { $value: "4px" }, md: { $value: "8px" } },
-	color: { $type: "color", accent: { $value: "oklch(0.6 0.2 {hue.accent})" } },
+  hue: { $type: "number", accent: { $value: 345 } },
+  radius: { $type: "dimension", sm: { $value: "4px" }, md: { $value: "8px" } },
+  color: { $type: "color", accent: { $value: "oklch(0.6 0.2 {hue.accent})" } },
 });
 css.createGlobalTheme(t, ".square", { radius: { md: "{radius.sm}" } });
-css.createGlobalTheme(t, ".dim", { hue: { accent: 12 }, color: { accent: "oklch(0.7 0.1 {hue.accent})" } });
+css.createGlobalTheme(t, ".dim", {
+  hue: { accent: 12 },
+  color: { accent: "oklch(0.7 0.1 {hue.accent})" },
+});
 css.createGlobalTheme(t, ".x", { radius: { md: "{hue.accent}" } }); // error: a number, not a length
 ```
 
@@ -331,26 +409,31 @@ import { register } from "@tokens-studio/sd-transforms";
 register(StyleDictionary);
 const DTCG = { fontSize: "dimension", lineHeight: "number", opacity: "number" }; // the types sd-transforms leaves
 StyleDictionary.registerFormat({
-	name: "cssints/dtcg",
-	format: ({ dictionary }) => {
-		const out = {};
-		for (const t of dictionary.allTokens) {
-			let group = out;
-			for (const key of t.path.slice(0, -1)) group = group[key] ??= {};
-			const type = t.$type ?? t.type;
-			group[t.path.at(-1)] = { $type: DTCG[type] ?? type, $value: t.$value ?? t.value };
-		}
-		return JSON.stringify(out, null, 2);
-	},
+  name: "cssints/dtcg",
+  format: ({ dictionary }) => {
+    const out = {};
+    for (const t of dictionary.allTokens) {
+      let group = out;
+      for (const key of t.path.slice(0, -1)) group = group[key] ??= {};
+      const type = t.$type ?? t.type;
+      group[t.path.at(-1)] = { $type: DTCG[type] ?? type, $value: t.$value ?? t.value };
+    }
+    return JSON.stringify(out, null, 2);
+  },
 });
 await new StyleDictionary({
-	source: ["tokens/**/*.json"],
-	preprocessors: ["tokens-studio"],
-	platforms: { cssints: { transformGroup: "tokens-studio", files: [{ destination: "tokens.json", format: "cssints/dtcg" }] } },
+  source: ["tokens/**/*.json"],
+  preprocessors: ["tokens-studio"],
+  platforms: {
+    cssints: {
+      transformGroup: "tokens-studio",
+      files: [{ destination: "tokens.json", format: "cssints/dtcg" }],
+    },
+  },
 }).buildAllPlatforms();
 ```
 
-  - **Build errors** for what would be misread: `value`/`type` without `$` (`global.Main.0 has value and type without $, the legacy format of Tokens Studio …`), `$themes` or `$metadata` in the tree, a Tokens Studio type (the error names the DTCG type: `"spacing" is a Tokens Studio type: its DTCG type is "dimension"`), math outside `calc()` (`write "calc({spacing.base} * 2)"`), a Tokens Studio colour modifier (`$extensions["studio.tokens"].modify`), a Figma boolean (`com.figma.type: "boolean"` on a number), and more than one mode in `$extensions` (`mode`, or `modes` of `com.figma`). `string`, `boolean`, `fontFamily` and the composite types are errors as before (no token type), so leave them out of the file (Figma: a collection without them; TokensBrücke: no styles). Samples of each tool are in `packages/cssints/test/fixtures/importers`.
+- **Build errors** for what would be misread: `value`/`type` without `$` (`global.Main.0 has value and type without $, the legacy format of Tokens Studio …`), `$themes` or `$metadata` in the tree, a Tokens Studio type (the error names the DTCG type: `"spacing" is a Tokens Studio type: its DTCG type is "dimension"`), math outside `calc()` (`write "calc({spacing.base} * 2)"`), a Tokens Studio colour modifier (`$extensions["studio.tokens"].modify`), a Figma boolean (`com.figma.type: "boolean"` on a number), and more than one mode in `$extensions` (`mode`, or `modes` of `com.figma`). `string`, `boolean`, `fontFamily` and the composite types are errors as before (no token type), so leave them out of the file (Figma: a collection without them; TokensBrücke: no styles). Samples of each tool are in `packages/cssints/test/fixtures/importers`.
 - **The sheet:** token sets and themes are rules of layer `_.k`, after the global rules of `css.global()` and before the class layers. They set custom properties only, and no class does, so the layer order never decides between them; `_.k` is the lowest layer, so your own unlayered `--color-bg` rule wins over a theme. The `:root` rules of aliases come first, then themes under a condition, then themes under a selector, each in source order, so a selector theme beats a condition theme on the same element. A module has the rules of the tokens it uses, from wherever they were made, and of the tokens those are made of (the references of a derived token or of a theme value, through chains: a `hue.accent` that no class uses still gets its `@property` rule), and its own; import a theme module (`import "./theme.ts"`) to have all of it.
 - **`css.check.contrast(fg, bg, { min })`** computes the WCAG 2.x contrast ratio (`min` from 1 to 21) for the default values and for every theme that sets either token or one they are aliases of. It reads themes one at a time, except those of one selector: themes with the same selector (and scope) meet on one element, so they are read together, laid over each other in the order of the cascade (no layer first, then the declared layers in order, then source order). A viewer look that sets only the text colour is checked on the background of the app look under the same selector. Themes of different selectors, or a selector and a condition, are still read one at a time, not in their combinations. A value that is set at run time (a slider that sets `--hue-accent` on `<html>`) belongs to no theme and is checked at its default only; a theme per value would put each rule in the sheet and hold it to the thresholds of the other themes, since a check applies to every theme that touches its tokens, so measure a range outside the build (apps/csssky `test/contrast.mjs`). A ratio below `min` is a build error that names the theme and both resolved values (the ratio is cut, not rounded: 4.499 is 4.49). A value the check cannot evaluate (`color-mix()`, a relative colour, `light-dark()`, `currentColor`, a system colour) or a translucent one is a warning that names the token; a build says it once, and a dev server says it again after each edit. A derived token (or a theme value with `{path}` references) is read in each theme by putting that theme's values, or the defaults, in place of its references, through a chain of derived tokens: a ratio when the result is a colour (`oklch(0.6 0.2 {hue.accent})`), a warning that names the theme when it is not (`color-mix()` over another token), and a theme that sets any token a checked colour depends on, directly, through an alias or through references, is checked. The colour library (culori, `culori/fn`: 27 kB minified, 9 kB gzipped) is build-only and never ships. The check runs when its module has run, and again at the end of a build over the themes of every module.
 
@@ -358,18 +441,39 @@ Output (the `@property` rules of `space-md` and `color-fg` are not shown):
 
 ```css
 @layer _.k, _.a, _.b, _.c, _.d, _.e;
-@property --color-accent { syntax: "<color>"; inherits: true; initial-value: oklch(62% 0.19 259); }
-@property --color-bg { syntax: "<color>"; inherits: true; initial-value: #ffffff; }
-@property --color-link { syntax: "<color>"; inherits: true; initial-value: oklch(62% 0.19 259); }
+@property --color-accent {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: oklch(62% 0.19 259);
+}
+@property --color-bg {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #ffffff;
+}
+@property --color-link {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: oklch(62% 0.19 259);
+}
 @layer _.k {
-	:root { --color-link: var(--color-accent); }
-	@media (prefers-color-scheme: dark) {
-		:root { --color-bg: #0b0b0f; --color-fg: #f3f4f6; }
-	}
-	@container (width < 30rem) {
-		:where(*) { --color-bg: #eee; }
-	}
-	.light { --color-bg: #fff; }
+  :root {
+    --color-link: var(--color-accent);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-bg: #0b0b0f;
+      --color-fg: #f3f4f6;
+    }
+  }
+  @container (width < 30rem) {
+    :where(*) {
+      --color-bg: #eee;
+    }
+  }
+  .light {
+    --color-bg: #fff;
+  }
 }
 ```
 
@@ -403,10 +507,25 @@ export const d = minHeight(firstThatWorks("100dvh", "100vhh")); // error: the fa
 `keyframes()` and `positionTry()` define an at-rule next to the styles that use it and return its name, a typed value that fits where the grammar wants a name.
 
 ```ts
-import { animation, cn, hover, keyframes, margin, opacity, positionTry, positionTryFallbacks, top, transform } from "cssints" with { type: "cssints" };
+import {
+  animation,
+  cn,
+  hover,
+  keyframes,
+  margin,
+  opacity,
+  positionTry,
+  positionTryFallbacks,
+  top,
+  transform,
+} from "cssints" with { type: "cssints" };
 
 export const fade = keyframes({ from: opacity(0), to: opacity(1) });
-export const wiggle = keyframes({ from: transform("rotate(0deg)"), "50%": cn(transform("rotate(8deg)"), opacity(0.5)), to: transform("rotate(0deg)") });
+export const wiggle = keyframes({
+  from: transform("rotate(0deg)"),
+  "50%": cn(transform("rotate(8deg)"), opacity(0.5)),
+  to: transform("rotate(0deg)"),
+});
 export const above = positionTry(cn(top("anchor(bottom)"), margin(2)));
 
 export const a = animation(fade, "200ms", "ease-out");
@@ -427,11 +546,23 @@ export const f = positionTryFallbacks(fade); // error: a keyframes name is not a
 
 ```css
 @layer _.k {
-	@keyframes kf-0e6af964{from{opacity:0}to{opacity:1}}
-	@position-try --pt-23965b44{top:anchor(bottom);margin:0.5rem}
+  @keyframes kf-0e6af964 {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @position-try --pt-23965b44 {
+    top: anchor(bottom);
+    margin: 0.5rem;
+  }
 }
 @layer _.a {
-	._44ecsn{animation:kf-0e6af964 200ms ease-out}
+  ._44ecsn {
+    animation: kf-0e6af964 200ms ease-out;
+  }
 }
 ```
 
@@ -444,15 +575,21 @@ export const f = positionTryFallbacks(fade); // error: a keyframes name is not a
 import { bg, cn, hover, p } from "cssints" with { type: "cssints" };
 
 export const box = (props: { on: boolean; class?: string }) =>
-	cn(p(2), bg("white"), props.on && p(4), hover(bg("#eee")), props.class);
-export const row = (kind: "a" | "b", items: boolean[]) => cn(p(1), kind === "a" ? p(2) : bg("red"), items.map((x) => x && p(3)));
+  cn(p(2), bg("white"), props.on && p(4), hover(bg("#eee")), props.class);
+export const row = (kind: "a" | "b", items: boolean[]) =>
+  cn(
+    p(1),
+    kind === "a" ? p(2) : bg("red"),
+    items.map((x) => x && p(3)),
+  );
 export const bad = (n: number) => cn(p(2), p(n)); // the build refuses it: css arguments must be known at build time
 ```
 
 ```tsx skip
 import { _cx as __cx } from "cssints";
 
-export const box = (props) => __cx([["_lwugp7", "_1t8gqy5"]], "_1t8gqy5 _1ebepn0 _16f8jrr", props.on && "_lwugp7", props.class);
+export const box = (props) =>
+  __cx([["_lwugp7", "_1t8gqy5"]], "_1t8gqy5 _1ebepn0 _16f8jrr", props.on && "_lwugp7", props.class);
 ```
 
 - **What is a runtime argument.** One that needs a binding the build does not have: it names a parameter, a prop, a signal or any other local of the function or block around the call (`on && p(4)`, `cond ? a : b`, `state() && p(4)`, `props.class`, `items.map(...)`), or a string or template literal, or a call of something that is not a `css.*` member (`button({ size })`, a `cv` result: a class string at build time too). Everything else is known at build time, a module `const` too, and merges. A spread (`...list`) is judged by what it spreads. Strings, `false`, `null`, `undefined` and `0` are skipped, arrays are flattened; there are no clsx-style objects (`cond && style`). A `false`, `null` or `undefined` that is known at build time (`dev && p(4)` with a module `const dev = false`) is no style and is skipped there.
@@ -467,13 +604,13 @@ export const box = (props) => __cx([["_lwugp7", "_1t8gqy5"]], "_1t8gqy5 _1ebepn0
 import { cn, cv, fontSize, opacity, p } from "cssints" with { type: "cssints" };
 
 const button = cv({
-	base: cn(p(2), fontSize("1rem")),
-	variants: {
-		size: { sm: p(1), lg: cn(p(4), fontSize("1.25rem")) },
-		disabled: { true: opacity(0.5), false: opacity(1) },
-	},
-	defaultVariants: { size: "sm", disabled: false },
-	compoundVariants: [{ size: "lg", disabled: true, class: opacity(0.3) }],
+  base: cn(p(2), fontSize("1rem")),
+  variants: {
+    size: { sm: p(1), lg: cn(p(4), fontSize("1.25rem")) },
+    disabled: { true: opacity(0.5), false: opacity(1) },
+  },
+  defaultVariants: { size: "sm", disabled: false },
+  compoundVariants: [{ size: "lg", disabled: true, class: opacity(0.3) }],
 });
 
 export const classes = () => button({ size: "lg" }); // "_lwugp7 _z6yj9k _1t0bw2x"
@@ -527,13 +664,19 @@ css.supports("(display: grdi)"); // @supports: unexpected "grdi" in "(display: g
 - Clamping text to N lines is the WebKit box, in every engine today: `display("-webkit-box")` (the `display` grammar takes `-webkit-box` and `-webkit-inline-box`), `WebkitBoxOrient("vertical")` and `WebkitLineClamp(N)`, with `overflow("hidden")`. The three are quiet: BCD files them under prefixed standard names, which the support lookup does not follow. LightningCSS passes them through and adds nothing. The standard `lineClamp(N)` (css-overflow-4) is a member too, and warns for the default targets: no engine ships it unprefixed (Chrome 154 rejects it) and LightningCSS does not prefix it.
 
 ```ts
-import { cn, display, overflow, WebkitBoxOrient, WebkitLineClamp } from "cssints" with { type: "cssints" };
+import {
+  cn,
+  display,
+  overflow,
+  WebkitBoxOrient,
+  WebkitLineClamp,
+} from "cssints" with { type: "cssints" };
 
 export const clamp2 = cn(
-	display("-webkit-box"),
-	WebkitBoxOrient("vertical"),
-	WebkitLineClamp(2),
-	overflow("hidden"),
+  display("-webkit-box"),
+  WebkitBoxOrient("vertical"),
+  WebkitLineClamp(2),
+  overflow("hidden"),
 );
 ```
 
@@ -549,32 +692,40 @@ import { cn, p } from "cssints" with { type: "cssints" };
 import { scope } from "cssints/plugin";
 
 export const { ring, dot, webkitFontSmoothing } = scope("ring", {
-	// a local syntax name: `<width>` in a grammar of this scope (it does not leak into mdn's names)
-	width: "<length [0,∞]> | thin | thick",
-	// a kernel: global CSS, once. `&` is the class the engine mints for it, `--_w` is the custom property `--ring-w`
-	"#core": {
-		css: "& { outline: var(--_w) solid var(--_c); outline-offset: 2px }",
-		atProperty: '@property --_w { syntax: "<length>"; inherits: false; initial-value: 2px; }',
-		requires: ["css.at-rules.property"],
-	},
-	"#noOutline": { props: ["outline", /^outline-/], message: "ring() sets the outline: use its methods" },
-	// a chain member, like flex(): a call gives the marker and the kernel, each method emits custom properties
-	ring: {
-		uses: ["core", "noOutline"],
-		chain: {
-			width: { args: "<width>", spacing: true, emit: (v) => [["--_w", v]] },
-			color: { args: "<color>", emit: (v) => [["--_c", v]] },
-		},
-	},
-	// a property of your own, typed by its grammar (it is not in mdn-data); the key starts with `-`
-	"-webkit-font-smoothing": "auto | none | antialiased | subpixel-antialiased",
-	// a call member: its function is the entry of the same name in build()
-	dot: { args: "small | large" },
+  // a local syntax name: `<width>` in a grammar of this scope (it does not leak into mdn's names)
+  width: "<length [0,∞]> | thin | thick",
+  // a kernel: global CSS, once. `&` is the class the engine mints for it, `--_w` is the custom property `--ring-w`
+  "#core": {
+    css: "& { outline: var(--_w) solid var(--_c); outline-offset: 2px }",
+    atProperty: '@property --_w { syntax: "<length>"; inherits: false; initial-value: 2px; }',
+    requires: ["css.at-rules.property"],
+  },
+  "#noOutline": {
+    props: ["outline", /^outline-/],
+    message: "ring() sets the outline: use its methods",
+  },
+  // a chain member, like flex(): a call gives the marker and the kernel, each method emits custom properties
+  ring: {
+    uses: ["core", "noOutline"],
+    chain: {
+      width: { args: "<width>", spacing: true, emit: (v) => [["--_w", v]] },
+      color: { args: "<color>", emit: (v) => [["--_c", v]] },
+    },
+  },
+  // a property of your own, typed by its grammar (it is not in mdn-data); the key starts with `-`
+  "-webkit-font-smoothing": "auto | none | antialiased | subpixel-antialiased",
+  // a call member: its function is the entry of the same name in build()
+  dot: { args: "small | large" },
 })
-	.build({ dot: (size) => ({ decls: [["--_size", size === "small" ? "4px" : "8px"]] }) })
-	.export();
+  .build({ dot: (size) => ({ decls: [["--_size", size === "small" ? "4px" : "8px"]] }) })
+  .export();
 
-export const card = cn(p(2), ring().width("thin").color("red"), webkitFontSmoothing("antialiased"), dot("small"));
+export const card = cn(
+  p(2),
+  ring().width("thin").color("red"),
+  webkitFontSmoothing("antialiased"),
+  dot("small"),
+);
 export const twice = ring().width("1px").width("2px"); // error: a method is used once
 export const wrong = ring().width("red"); // error: not a width
 export const bad = webkitFontSmoothing("bold"); // error: not in the grammar
@@ -598,15 +749,15 @@ import { scope } from "cssints/plugin";
 
 // A member that sets tokens in a look: `mode(t, "dark", { color: { bg: "#000" } })` is `[data-mode="dark"] { --color-bg: #000 }` in @layer viewer
 export const { mode } = scope("mode", {
-	layers: { layers: ["app", "viewer"] },
-	mode: { args: ["$tokens", "<custom-ident>", "$overrides"], uses: ["layers"] },
+  layers: { layers: ["app", "viewer"] },
+  mode: { args: ["$tokens", "<custom-ident>", "$overrides"], uses: ["layers"] },
 })
-	.build({
-		mode: (tokens, name, overrides) => ({
-			themes: [{ tokens, overrides, selector: `[data-mode="${name}"]`, layer: "viewer" }],
-		}),
-	})
-	.export();
+  .build({
+    mode: (tokens, name, overrides) => ({
+      themes: [{ tokens, overrides, selector: `[data-mode="${name}"]`, layer: "viewer" }],
+    }),
+  })
+  .export();
 ```
 
 - **Conditions in a kernel written as styles.** `hover` and the other pseudo-classes, `attr()`, `within()`, `media()`, `container()` and `supports()` wrap the kernel's styles as they wrap a user's: `css.hover(css.opacity(0.8))`, `css.media("(width >= 40rem)")(css.padding("1rem"))`. The rules are printed under the kernel's class, in layer `_.k`, in the order of the sheet (fewer conditions first, then queries by width and pseudo-classes by place, a shorthand before its longhands), so the order the author writes them in does not matter; the declarations of one selector share a block. At most four conditions, as everywhere.
@@ -616,15 +767,15 @@ import { cn, paddingLeft } from "cssints" with { type: "cssints" };
 import { scope } from "cssints/plugin";
 
 export const { chip } = scope("chip", {
-	core: {
-		css: (css) => [
-			css.padding("var(--_p)"),
-			css.border("1px solid"),
-			css.hover(css.opacity(0.8)),
-			css.media("(width >= 40rem)")(css.padding("1rem")),
-		],
-	},
-	chip: { uses: ["core"], chain: { padding: { args: "<length>", emit: (v) => [["--_p", v]] } } },
+  core: {
+    css: (css) => [
+      css.padding("var(--_p)"),
+      css.border("1px solid"),
+      css.hover(css.opacity(0.8)),
+      css.media("(width >= 40rem)")(css.padding("1rem")),
+    ],
+  },
+  chip: { uses: ["core"], chain: { padding: { args: "<length>", emit: (v) => [["--_p", v]] } } },
 }).export();
 
 // layer _.k: ._chip-core{border:1px solid;padding:var(--chip-p)} ._chip-core:hover{opacity:0.8} @media (width >= 40rem){._chip-core{padding:1rem}}
@@ -642,15 +793,15 @@ import { scope } from "cssints/plugin";
 const fade = keyframes({ from: opacity(0) });
 
 export const { row } = scope("row", {
-	core: {
-		css: (css) => [
-			css.vars({ "--_gap": "1rem", "--_fade": fade }),
-			css.display("flex"),
-			css.animation("var(--_fade) 200ms"),
-			css.nest("& > * + *")(css.marginInlineStart("var(--_gap)")),
-		],
-	},
-	row: { uses: ["core"], chain: { gap: { args: "<length>", emit: (v) => [["--_gap", v]] } } },
+  core: {
+    css: (css) => [
+      css.vars({ "--_gap": "1rem", "--_fade": fade }),
+      css.display("flex"),
+      css.animation("var(--_fade) 200ms"),
+      css.nest("& > * + *")(css.marginInlineStart("var(--_gap)")),
+    ],
+  },
+  row: { uses: ["core"], chain: { gap: { args: "<length>", emit: (v) => [["--_gap", v]] } } },
 }).export();
 
 // layer _.k: @keyframes kf-…{from{opacity:0}} ._row-core{animation:var(--row-fade) 200ms;--row-gap:1rem;--row-fade:kf-…;display:flex} ._row-core > * + *{margin-inline-start:var(--row-gap)}
@@ -672,10 +823,10 @@ import { lacking } from "cssints/plugin";
 
 const old = lacking("css.at-rules.container.scroll-state_queries").length > 0; // ["firefox 140"] or []
 export const stuck = (...styles: Style[]) =>
-	cn(
-		container("scroll-state(stuck: top)")(...styles),
-		...(old ? [within(attr("data-stuck", "top", "~="), "stuck")(...styles)] : []),
-	);
+  cn(
+    container("scroll-state(stuck: top)")(...styles),
+    ...(old ? [within(attr("data-stuck", "top", "~="), "stuck")(...styles)] : []),
+  );
 export const title = stuck(color("red"));
 ```
 
@@ -688,8 +839,8 @@ import { color } from "cssints" with { type: "cssints" };
 import { dependsOn } from "cssints/plugin";
 
 export const swatch = (file: string) => {
-	dependsOn(file);
-	return color(readFileSync(file, "utf8").trim());
+  dependsOn(file);
+  return color(readFileSync(file, "utf8").trim());
 };
 ```
 
@@ -700,8 +851,12 @@ A dependency is a file, not a directory: a file added to a directory is not seen
 ```ts
 import { inGroup } from "cssints/plugin";
 
-const keep = (group: string, decls: [string, string][]) => decls.filter(([p, v]) => inGroup(group, p, v));
-export const heading = keep("widely-available", [["text-wrap", "balance"], ["overflow-wrap", "break-word"]]); // overflow-wrap only
+const keep = (group: string, decls: [string, string][]) =>
+  decls.filter(([p, v]) => inGroup(group, p, v));
+export const heading = keep("widely-available", [
+  ["text-wrap", "balance"],
+  ["overflow-wrap", "break-word"],
+]); // overflow-wrap only
 ```
 
 - **Types.** `cssints/plugin` points at `author.ts` and `scope.ts`: the signatures and the type-level code (`Members`, `Chain`, `Expand`, the call checks) and no code that runs, because a program that imports a plugin must not need Node's types or a newer `lib`. The engine is `scope-engine.ts`; `macro.ts` registers it when the library loads.
@@ -715,9 +870,9 @@ Every CSS function that mdn-data has a grammar for is a member of `css` and a na
 import * as css from "cssints" with { type: "cssints" };
 
 const t = css.createTokens({
-	color: { $type: "color", accent: { $value: "oklch(62% 0.19 259)" }, bg: { $value: "white" } },
-	space: { $type: "dimension", sm: { $value: "8px" }, md: { $value: "16px" } },
-	time: { $type: "duration", fast: { $value: "100ms" } },
+  color: { $type: "color", accent: { $value: "oklch(62% 0.19 259)" }, bg: { $value: "white" } },
+  space: { $type: "dimension", sm: { $value: "8px" }, md: { $value: "16px" } },
+  time: { $type: "duration", fast: { $value: "100ms" } },
 });
 
 export const a = css.width(css.calc(t.space.md, "*", 2)); // width: calc(var(--space-md) * 2)
@@ -727,7 +882,9 @@ export const d = css.maxWidth(css.min("48rem", "100%"));
 export const e = css.color(css.lightDark("white", t.color.bg)); // color: light-dark(white, var(--color-bg))
 export const f = css.color(css.colorMix("in oklab", t.color.accent, "black 15%"));
 export const g = css.color(css.oklch(0.7, 0.1, 200, "/", 0.5)); // color: oklch(0.7 0.1 200 / 0.5)
-export const h = css.backgroundImage(css.linearGradient("to right", [t.color.accent, "25%"], "blue"));
+export const h = css.backgroundImage(
+  css.linearGradient("to right", [t.color.accent, "25%"], "blue"),
+);
 export const i = css.transitionTimingFunction(css.cubicBezier(0.1, 0.7, 1, 0.1));
 export const img = css.backgroundImage(css.url('"a.png"')); // url("a.png"): the quotes are yours
 export const j = css.transform(css.translateFn(t.space.md, 0), css.rotateFn("10deg"));
@@ -752,8 +909,8 @@ A token is its `var()` already, so `var(--name)` is not written. `css.var(token,
 import * as css from "cssints" with { type: "cssints" };
 
 const t = css.createTokens({
-	color: { $type: "color", accent: { $value: "red" } },
-	space: { $type: "dimension", sm: { $value: "8px" } },
+  color: { $type: "color", accent: { $value: "red" } },
+  space: { $type: "dimension", sm: { $value: "8px" } },
 });
 
 export const a = css.padding(css.var(t.space.sm, "4px")); // padding: var(--space-sm, 4px)
@@ -772,11 +929,11 @@ import { scope } from "cssints/plugin";
 
 // `args` is the grammar of the parts, joined by a space: `value` gets each one as text, a token as its var(--name).
 export const { tint, step } = scope("units", {
-	tint: {
-		args: "<color> <percentage>",
-		value: ([color, share]) => new CSSColorValue(`color-mix(in oklab, ${color}, white ${share})`),
-	},
-	step: { args: "<number>", value: ([n]) => `${Number(n) * 4}px` },
+  tint: {
+    args: "<color> <percentage>",
+    value: ([color, share]) => new CSSColorValue(`color-mix(in oklab, ${color}, white ${share})`),
+  },
+  step: { args: "<number>", value: ([n]) => `${Number(n) * 4}px` },
 }).export();
 
 tint("red", "20%");
@@ -791,11 +948,12 @@ step(2);
 import { arg, fn, scope } from "cssints/plugin";
 
 export const { shade } = scope("shades", {
-	shade: fn({
-		args: ["<color>", { "by?": "<percentage>", "dark?": arg<boolean>() }],
-		label: "tint.shade",
-		value: ([color, { by = "10%", dark }]) => `color-mix(in oklab, ${color}, ${dark ? "black" : "white"} ${by})`,
-	}),
+  shade: fn({
+    args: ["<color>", { "by?": "<percentage>", "dark?": arg<boolean>() }],
+    label: "tint.shade",
+    value: ([color, { by = "10%", dark }]) =>
+      `color-mix(in oklab, ${color}, ${dark ? "black" : "white"} ${by})`,
+  }),
 }).export();
 
 shade("red");
@@ -820,10 +978,17 @@ import { frame } from "cssints/frame" with { type: "cssints" };
 const radius = css.token.length("12px", "radius-lg");
 
 // radius 24px, padding 16px, border 1px: the field inside gets 24 - 16 - 1 = 7px
-export const card = css.cn(frame().radius("1.5rem").padding(4).border("1px"), css.bg("white"), css.borderColor("#9ca3af"));
+export const card = css.cn(
+  frame().radius("1.5rem").padding(4).border("1px"),
+  css.bg("white"),
+  css.borderColor("#9ca3af"),
+);
 export const field = css.cn(frame().padding(2).border("1px"), css.borderColor("#9ca3af"));
 // a token is a length; a condition just sets the custom property, and the whole subtree follows
-export const panel = css.cn(frame().radius(radius).padding(2), css.media("(width >= 40rem)")(frame().padding(6)));
+export const panel = css.cn(
+  frame().radius(radius).padding(2),
+  css.media("(width >= 40rem)")(frame().padding(6)),
+);
 
 export const noNumber = frame().radius(4); // error: a bare number is a spacing step in padding and margin only
 export const noPercent = frame().padding("5%"); // error: a length, not a percentage
@@ -859,7 +1024,7 @@ export const noValue = surface().ink("black"); // error: ink() takes no value
 export const own = surface().radius("4px"); // error: a surface chains its own methods only
 ```
 
-- **Methods**, each once and in any order: `color(<color> | token)` is an absolute base (without it the base is the nearest surface around, or `Canvas` for the outermost); `lighten(step)`, `darken(step)` and `contrast(step)` move the lightness of the base by a `<number [0,1]>`, and only one of the three goes in a chain; `ink()` sets the text colour to black or white by the lightness of the surface (above 0.5636 black, else white). `contrast` moves *away* from the parent: a light parent is darkened, a dark one lightened. The base may be a relative colour (`oklch(from var(--brand) l c h)`).
+- **Methods**, each once and in any order: `color(<color> | token)` is an absolute base (without it the base is the nearest surface around, or `Canvas` for the outermost); `lighten(step)`, `darken(step)` and `contrast(step)` move the lightness of the base by a `<number [0,1]>`, and only one of the three goes in a chain; `ink()` sets the text colour to black or white by the lightness of the surface (above 0.5636 black, else white). `contrast` moves _away_ from the parent: a light parent is darkened, a dark one lightened. The base may be a relative colour (`oklch(from var(--brand) l c h)`).
 - **Build errors** (at the call site): a step outside 0 to 1, a bad colour, a method used twice or with another step, and a `cn()` that holds `surface()` and `background` or `background-color`, `bg()` included (`cssints: surface: surface() sets the background colour: use its methods (this style also sets background-color)`). `backgroundImage`, `color` and the border colours do not conflict. Conflicts with an opaque runtime string in `cn()` are not seen, as for any plugin.
 - **What it emits:** the class `_surface-core` and one class per method (`._x{--surface-d:0.06}`, in `_.a`, or `_.b` inside a condition: a `hover()` or a media query moves every surface below). The kernel `surface.core` (about 1 kB minified with its registrations and fallback, once, in `_.k`) is two `@container style(--surface-p: ...)` rules that alternate two registered `<color>` properties, `--surface-e` and `--surface-o`, because a property cannot read itself; the step `--surface-d` is not registered, since it may contain `l`, which only means something inside `oklch(from …)`. Its names are `--surface-*`; frame's are `--frame-*`, so a frame and a surface can be one element, or nest in each other, with no collision.
 - **Not a contrast guarantee.** A lightness threshold of 0.5636 gives 4.6:1 at the worst on greys, but 3.7:1 on 3 000 random chromatic colours (research, Chrome). `ink()` on a saturated surface can fall short of WCAG AA. For a ratio, declare the colours as tokens and use `css.check.contrast` (see Themes): it checks the declared pair at build time, which the kernel cannot do because it never sees the parent.
@@ -876,8 +1041,8 @@ import { icons } from "@cssints/icons" with { type: "cssints" };
 
 // icons.ts: a build-time module (it runs while the build runs, and never reaches the browser)
 export const mdi = icons<typeof import("@iconify-json/mdi/icons.json")>({
-	provider: "iconify-json",
-	collection: "mdi",
+  provider: "iconify-json",
+  collection: "mdi",
 });
 export const brand = icons({ provider: "fs", dir: "src/icons" });
 
@@ -889,9 +1054,17 @@ export const typo = mdi("clos"); // error: not an icon of mdi
 
 ```css
 /* kernel icons.mask, layer _.k; LightningCSS adds -webkit-mask for your targets */
-._icons-mask { display: inline-block; width: 1em; height: 1em; background-color: currentColor; mask: var(--icons-svg) no-repeat center / 100% 100%; }
+._icons-mask {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  background-color: currentColor;
+  mask: var(--icons-svg) no-repeat center / 100% 100%;
+}
 /* the only per-icon rule */
-._x1 { --icons-svg: url("data:image/svg+xml,%3Csvg …"); }
+._x1 {
+  --icons-svg: url("data:image/svg+xml,%3Csvg …");
+}
 ```
 
 - **`icons({ provider: "iconify-json", collection })`** reads `@iconify-json/<collection>/icons.json` from the `node_modules` of the working directory, while the module runs. **`icons({ provider: "fs", dir })`** reads `<dir>/<name>.svg` (`dir` is relative to the working directory; the SVG needs a `viewBox`). The result is a function of the icon name: `mdi("home")` is a style that goes into `cn()` and the conditions like any member. Call `icons()` in a module of its own, imported with the attribute, as above.
@@ -905,24 +1078,24 @@ export const typo = mdi("clos"); // error: not an icon of mdi
 
 More plugins on `scope()`, each a package of its own with its rules and limits in its README. Import them with the attribute, like `cssints`.
 
-| Package | Members | What it does |
-|---|---|---|
-| [`@cssints/fluid`](../packages/fluid/README.md) | `fluid(min, max, { from?, to?, zoom? })`, `fluid.container(...)` | A `clamp()` that grows between two widths, computed at build time; a range that fails WCAG 1.4.4 is a build error |
-| [`@cssints/layout`](../packages/layout/README.md) | `stack()`, `cluster()`, `sidebar()`, `switcher()`, `cover()`, `autoGrid()` | Every Layout primitives as chain members |
-| [`@cssints/fonts`](../packages/fonts/README.md) | `font(family, { provider, ... })` → `.family()`, `.trim()` | `@font-face` and a metric-matched fallback face; cap-height trimming by `text-box`, else capsize's margins |
-| [`@cssints/reset`](../packages/reset/README.md) | `reset({ media?, prose? })` | A modern reset in a top-level `@layer reset` declared before the engine's, below every style; `@cssints/reset/<baseline group>` keeps only the declarations of that group |
-| [`@cssints/tokens`](../packages/tokens/README.md) | `/open-props`, `/radix`, `/flexoki`, `/reasonable-colors` | DTCG data for `createTokens` |
-| [`@cssints/gradient`](../packages/gradient/README.md) | `gradient(kind, direction, from, to, easing?, stops?)` | Eased colour stops mixed in oklab at build time |
-| [`@cssints/motion`](../packages/motion/README.md) | `motion().preset().duration().delay().easing()` | Animation presets over `keyframes()`, with reduced motion |
-| [`@cssints/squircle`](../packages/squircle/README.md) | `squircle().radius()` | `corner-shape: squircle`, else a CSS `mask` of the same shape |
-| [`@cssints/reveal`](../packages/reveal/README.md) | `reveal().preset().range().duration().easing()` | motion's entrance presets on `animation-timeline: view()`; for other targets a script plays it once on entry (delivered by the runtime) |
-| [`@cssints/stuck`](../packages/stuck/README.md) | `sticky().top()`, `stuck(styles)`, `stuck("bottom")(styles)` | Styles inside a sticky element while it is stuck, by `@container scroll-state()`; for other targets an `IntersectionObserver` (delivered by the runtime) |
-| [`@cssints/balance`](../packages/balance/README.md) | `balance()`, `pretty()` | `text-wrap: balance` / `pretty`; for targets without balance a script balances the lines (delivered by the runtime) |
-| [`@cssints/masonry`](../packages/masonry/README.md) | `masonry().columns().gap()` | `display: grid-lanes`, else CSS `columns` (top to bottom per column) |
-| [`@cssints/placeholder`](../packages/placeholder/README.md) | `placeholder(path, { mode? })` | An `<image>` from a JPEG or PNG read at build time: a gradient of its colours laid out as the image, or a tiny thumbhash PNG |
-| [`@cssints/ramp`](../packages/ramp/README.md) | `ramp(base, { mode, steps \| ratios, background })`, `overrides(ramp)` | An OKLCH palette as DTCG data for `createTokens`; the contrast mode meets each ratio against its background |
-| [`@cssints/rybitten`](../packages/rybitten/README.md) | `color(hue, { cube })`, `wheel(steps, { cube })`, `shades(hue, lightness)`, `overrides(group)` | RYBitten's red-yellow-blue colours (36 historical cubes) as DTCG data for `createTokens`: a hue, a wheel of hues, a hue at several lightnesses |
-| [`@cssints/skeleton`](../packages/skeleton/README.md) | `skeleton().radius().color().highlight()` | Loading placeholders whose shimmer is in phase across the page (one clock on `:root`), static under reduced motion |
+| Package                                                     | Members                                                                                        | What it does                                                                                                                                                              |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`@cssints/fluid`](../packages/fluid/README.md)             | `fluid(min, max, { from?, to?, zoom? })`, `fluid.container(...)`                               | A `clamp()` that grows between two widths, computed at build time; a range that fails WCAG 1.4.4 is a build error                                                         |
+| [`@cssints/layout`](../packages/layout/README.md)           | `stack()`, `cluster()`, `sidebar()`, `switcher()`, `cover()`, `autoGrid()`                     | Every Layout primitives as chain members                                                                                                                                  |
+| [`@cssints/fonts`](../packages/fonts/README.md)             | `font(family, { provider, ... })` → `.family()`, `.trim()`                                     | `@font-face` and a metric-matched fallback face; cap-height trimming by `text-box`, else capsize's margins                                                                |
+| [`@cssints/reset`](../packages/reset/README.md)             | `reset({ media?, prose? })`                                                                    | A modern reset in a top-level `@layer reset` declared before the engine's, below every style; `@cssints/reset/<baseline group>` keeps only the declarations of that group |
+| [`@cssints/tokens`](../packages/tokens/README.md)           | `/open-props`, `/radix`, `/flexoki`, `/reasonable-colors`                                      | DTCG data for `createTokens`                                                                                                                                              |
+| [`@cssints/gradient`](../packages/gradient/README.md)       | `gradient(kind, direction, from, to, easing?, stops?)`                                         | Eased colour stops mixed in oklab at build time                                                                                                                           |
+| [`@cssints/motion`](../packages/motion/README.md)           | `motion().preset().duration().delay().easing()`                                                | Animation presets over `keyframes()`, with reduced motion                                                                                                                 |
+| [`@cssints/squircle`](../packages/squircle/README.md)       | `squircle().radius()`                                                                          | `corner-shape: squircle`, else a CSS `mask` of the same shape                                                                                                             |
+| [`@cssints/reveal`](../packages/reveal/README.md)           | `reveal().preset().range().duration().easing()`                                                | motion's entrance presets on `animation-timeline: view()`; for other targets a script plays it once on entry (delivered by the runtime)                                   |
+| [`@cssints/stuck`](../packages/stuck/README.md)             | `sticky().top()`, `stuck(styles)`, `stuck("bottom")(styles)`                                   | Styles inside a sticky element while it is stuck, by `@container scroll-state()`; for other targets an `IntersectionObserver` (delivered by the runtime)                  |
+| [`@cssints/balance`](../packages/balance/README.md)         | `balance()`, `pretty()`                                                                        | `text-wrap: balance` / `pretty`; for targets without balance a script balances the lines (delivered by the runtime)                                                       |
+| [`@cssints/masonry`](../packages/masonry/README.md)         | `masonry().columns().gap()`                                                                    | `display: grid-lanes`, else CSS `columns` (top to bottom per column)                                                                                                      |
+| [`@cssints/placeholder`](../packages/placeholder/README.md) | `placeholder(path, { mode? })`                                                                 | An `<image>` from a JPEG or PNG read at build time: a gradient of its colours laid out as the image, or a tiny thumbhash PNG                                              |
+| [`@cssints/ramp`](../packages/ramp/README.md)               | `ramp(base, { mode, steps \| ratios, background })`, `overrides(ramp)`                         | An OKLCH palette as DTCG data for `createTokens`; the contrast mode meets each ratio against its background                                                               |
+| [`@cssints/rybitten`](../packages/rybitten/README.md)       | `color(hue, { cube })`, `wheel(steps, { cube })`, `shades(hue, lightness)`, `overrides(group)` | RYBitten's red-yellow-blue colours (36 historical cubes) as DTCG data for `createTokens`: a hue, a wheel of hues, a hue at several lightnesses                            |
+| [`@cssints/skeleton`](../packages/skeleton/README.md)       | `skeleton().radius().color().highlight()`                                                      | Loading placeholders whose shimmer is in phase across the page (one clock on `:root`), static under reduced motion                                                        |
 
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 
@@ -1050,6 +1223,7 @@ TOKENS
   ```
 
   A build has none of it: the server side is in the `apply: "serve"` plugin, and `devtools: "build"` with `opencode` on still gives a loader without a way to ask (the dormant box is part of the overlay chunk, about 1 kB). The idea and the V2 client calls follow brendonovich/vite-plugin-opencode (MIT).
+
 - **Its own styles do not touch yours.** The overlay is a custom element with a shadow root and its own cssints sheet, built with the package: the page's rules do not reach it, and its classes are not in your sheet or in the table.
 - **Limits.** The proximity of `@scope` is not ranked (no two looks set one property on one element), and a logical and a physical property (`margin-inline-start`, `margin-left`) are two properties, as `cn()` treats them; an element inside another shadow root is picked as its host; a page that Vite does not serve as HTML (server rendering) gets no entry.
 
@@ -1096,17 +1270,19 @@ A terminal app writes its styles with `cssints/tui`, and the same Vite plugin co
 ```ts
 import * as css from "cssints/tui" with { type: "cssints" };
 
-const t = css.createTokens({ color: { $type: "color", bg: { $value: "#1e1e2e" }, accent: { $value: "#89b4fa" } } });
+const t = css.createTokens({
+  color: { $type: "color", bg: { $value: "#1e1e2e" }, accent: { $value: "#89b4fa" } },
+});
 css.createGlobalTheme(t, "light", { color: { bg: "#eff1f5", accent: "#1e66f5" } });
 
 export const button = css.cn(
-	css.border("rounded", "#585b70"),
-	css.p(0, 1),
-	css.width(12),
-	css.bg(t.color.bg),
-	css.cursor("pointer"),
-	css.hover(css.borderColor(t.color.accent)),
-	css.active(css.borderStyle("double")),
+  css.border("rounded", "#585b70"),
+  css.p(0, 1),
+  css.width(12),
+  css.bg(t.color.bg),
+  css.cursor("pointer"),
+  css.hover(css.borderColor(t.color.accent)),
+  css.active(css.borderStyle("double")),
 );
 css.width("10rem"); // error: a terminal counts cells
 css.boxShadow("0 0 1px red"); // error: no such member in a terminal
@@ -1114,13 +1290,30 @@ css.color("blu"); // error: not a colour
 ```
 
 ```ts skip
-export const button = { border: true, borderStyle: "rounded", borderColor: "#585b70", paddingTop: 0, paddingRight: 1, paddingBottom: 0, paddingLeft: 1, width: 12, backgroundColor: "#1e1e2e", cursor: "pointer", ":hover": { borderColor: "#89b4fa" }, ":active": { border: true, borderStyle: "double" }, themes: { light: { backgroundColor: "#eff1f5", ":hover": { borderColor: "#1e66f5" } } }, vars: { backgroundColor: "color-bg", ":hover": { borderColor: "color-accent" } } };
+export const button = {
+  border: true,
+  borderStyle: "rounded",
+  borderColor: "#585b70",
+  paddingTop: 0,
+  paddingRight: 1,
+  paddingBottom: 0,
+  paddingLeft: 1,
+  width: 12,
+  backgroundColor: "#1e1e2e",
+  cursor: "pointer",
+  ":hover": { borderColor: "#89b4fa" },
+  ":active": { border: true, borderStyle: "double" },
+  themes: { light: { backgroundColor: "#eff1f5", ":hover": { borderColor: "#1e66f5" } } },
+  vars: { backgroundColor: "color-bg", ":hover": { borderColor: "color-accent" } },
+};
 ```
 
 ```tsx skip
 import { attach, setTheme, use } from "@cssints/tui/opentui";
 
-<box {...use(button)}><text>Save</text></box>; // Solid or React: the spread is a ref that calls attach
+<box {...use(button)}>
+  <text>Save</text>
+</box>; // Solid or React: the spread is a ref that calls attach
 <text {...use(() => (active() ? tabActive : tab))}>Home</text>; // a style that changes: an accessor
 attach(new BoxRenderable(renderer, {}), button); // core
 setTheme("light");
@@ -1153,14 +1346,18 @@ process.stdout.write(ui.render(term, build, { pointer: { x, y, down } }).output)
 import { createSystemTheme } from "@cssints/tui/system";
 import { t } from "./styles.ts";
 
-export const system = createSystemTheme(t, {
-	color: {
-		bg: { surface: true },
-		card: { surface: true, on: [t.color.bg], contrast: 1.1 },
-		text: { hue: "fg", on: [t.color.bg, t.color.card], contrast: 7 },
-		accent: { hue: "blue", on: [t.color.bg, t.color.card], contrast: 3 },
-	},
-}, { themes: { light: "light" } });
+export const system = createSystemTheme(
+  t,
+  {
+    color: {
+      bg: { surface: true },
+      card: { surface: true, on: [t.color.bg], contrast: 1.1 },
+      text: { hue: "fg", on: [t.color.bg, t.color.card], contrast: 7 },
+      accent: { hue: "blue", on: [t.color.bg, t.color.card], contrast: 3 },
+    },
+  },
+  { themes: { light: "light" } },
+);
 
 // OpenTUI: renderer.getPalette() and its theme_mode event
 await followSystemTheme(await createCliRenderer(), system);
@@ -1180,7 +1377,11 @@ A group is a subpath of `cssints` that exports the members of `cssints` which a 
 ```ts
 import { color, display, media } from "cssints/widely-available" with { type: "cssints" };
 
-export const card = [display("grid"), color("rebeccapurple"), media("(width >= 40rem)")(color("black"))];
+export const card = [
+  display("grid"),
+  color("rebeccapurple"),
+  media("(width >= 40rem)")(color("black")),
+];
 
 display("grid-lanes"); // error: display: "grid-lanes" is not in cssints/widely-available
 color("light-dark(white, black)"); // error: color: "light-dark()" is not in cssints/widely-available

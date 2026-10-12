@@ -108,6 +108,7 @@ export default function Playground() {
           setTypes(
             `Types: ${errors ? `${errors} error${errors === 1 ? "" : "s"}` : "ok"} · ${ms} ms`,
           ),
+        formatted: setStatus,
       });
       await run(all);
     })();
@@ -185,6 +186,14 @@ export default function Playground() {
         </select>
         <button type="button" class={s.button} onClick={() => void open(project())}>
           Reset
+        </button>
+        <button
+          type="button"
+          class={s.button}
+          title="Format the file with oxfmt (Shift+Alt+F)"
+          onClick={() => void editor?.format()}
+        >
+          Format
         </button>
         <button type="button" class={s.button} onClick={() => void share()}>
           {copied() ? "Link copied" : "Copy link"}

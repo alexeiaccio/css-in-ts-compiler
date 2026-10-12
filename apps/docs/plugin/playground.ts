@@ -194,7 +194,12 @@ export default function playgroundPlugin(): Plugin {
       return {
         optimizeDeps: {
           // found late otherwise (a dynamic import of a virtual module), and a late dependency reloads the page
-          include: ["cssints > culori", "cssints > culori/fn", "@cssints/rybitten > rybitten"],
+          include: [
+            "cssints > culori",
+            "cssints > culori/fn",
+            "@cssints/rybitten > rybitten",
+            "@wasm-fmt/oxc_fmt/web",
+          ],
           exclude: [
             "@oxc-parser/binding-wasm32-wasi",
             "@oxc-transform/binding-wasm32-wasi",

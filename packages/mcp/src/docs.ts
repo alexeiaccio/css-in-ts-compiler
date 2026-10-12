@@ -114,7 +114,7 @@ const decodeManifest = Schema.decodeUnknownOption(
   Schema.fromJsonString(Schema.Struct({ description: Schema.optional(Schema.String) })),
 );
 
-const ROW = /^\| \[`(@cssints\/[\w-]+)`\]\(([^)]+)\) \| (.*?) \| (.*?) \|$/;
+const ROW = /^\| \[`(@cssints\/[\w-]+)`\]\(([^)]+)\) +\| (.*?) +\| (.*?) +\|$/;
 
 export const listPlugins = Effect.fn("mcp.listPlugins")(function* () {
   if (inRepo) {

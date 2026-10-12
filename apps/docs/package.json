@@ -34,6 +34,7 @@
     "@oxc-transform/binding-wasm32-wasi": "0.149.0",
     "@shikijs/twoslash": "^3.0.0",
     "@solidjs/vite-plugin": "3.0.0-next.47",
+    "@wasm-fmt/oxc_fmt": "0.2.9",
     "alchemy": "2.0.0-beta.81",
     "effect": "4.0.0",
     "ghostty-web": "0.4.0",

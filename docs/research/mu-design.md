@@ -242,13 +242,13 @@ storage means defaults. `apply()` writes the mode and the flags as classes on `<
 Floors: 4.5 for small text, 3 for large text (18.66 px bold and up), icons and fills. `onAccent`, `link` and `accentStrong` carry small
 text and hold 4.5; `accent` on `bg` is the brand mark (20.6 px bold), the focus ring, the tab underline and the fills, so 3.
 
-| Pair (worst over the slider)   | floor | light              | dim                | dark               |
-| ------------------------------ | ----- | ------------------ | ------------------ | ------------------ |
-| `accent` on `bg`               | 3     | 2.76 (at -155)     | 4.59 (at 4)        | 5.54 (at 4)        |
-| `link` on `bg`                 | 4.5   | 5.61 (at -155)     | 5.90 (at 6)        | 7.12 (at 6)        |
-| `onAccent` on `accent`         | 4.5   | 5.54 (at 4)        | 5.54 (at 4)        | 5.54 (at 4)        |
-| `onAccent` on `accentHover`    | 4.5   | 4.44 (at 4)        | 7.12 (at 6)        | 7.12 (at 6)        |
-| `accentStrong` on `accentSoft` | 4.5   | 4.61 (at -154)     | 4.90 (at -114)     | 4.90 (at -114)     |
+| Pair (worst over the slider)   | floor | light          | dim            | dark           |
+| ------------------------------ | ----- | -------------- | -------------- | -------------- |
+| `accent` on `bg`               | 3     | 2.76 (at -155) | 4.59 (at 4)    | 5.54 (at 4)    |
+| `link` on `bg`                 | 4.5   | 5.61 (at -155) | 5.90 (at 6)    | 7.12 (at 6)    |
+| `onAccent` on `accent`         | 4.5   | 5.54 (at 4)    | 5.54 (at 4)    | 5.54 (at 4)    |
+| `onAccent` on `accentHover`    | 4.5   | 4.44 (at 4)    | 7.12 (at 6)    | 7.12 (at 6)    |
+| `accentStrong` on `accentSoft` | 4.5   | 4.61 (at -154) | 4.90 (at -114) | 4.90 (at -114) |
 
 Before (white `onAccent`, Mu's primary_500 link and primary_700 strong): `onAccent` on `accent` 2.76 in all three modes (at -155), `link` on `bg`
 2.76 in light, `accentStrong` on `accentSoft` 3.69 in light (at -154). Two exceptions remain, both known and held both ways by the sweep: `accent` on

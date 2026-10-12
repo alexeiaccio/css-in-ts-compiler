@@ -23,6 +23,7 @@ import {
 import { files as lib, paths } from "virtual:playground/types";
 
 import type { Diagnostic, Files } from "./client.ts";
+import { format as oxfmt, formats } from "./format.ts";
 
 // the workers are modules of their own (ts.worker.ts, editor.worker.ts: one import each), built as the compile worker is
 self.MonacoEnvironment = {
@@ -65,6 +66,8 @@ export interface Editor {
   set: (files: Files, active: string) => void;
   /** the errors of the last compile, at their positions; none clears them */
   diagnose: (errors: Diagnostic[]) => void;
+  /** formats the open file (also Shift+Alt+F): one edit, so one undo takes it back */
+  format: () => Promise<void>;
   destroy: () => void;
 }
 
@@ -89,7 +92,8 @@ const dark = () => getComputedStyle(document.documentElement).colorScheme.starts
  * @param {HTMLElement} parent where it goes
  * @param {Files} files the files
  * @param {string} active the name of the file shown
- * @param {object} on what happens: `change` after an edit of a file, `checked` after the type check of the open file
+ * @param {object} on what happens: `change` after an edit of a file, `checked` after the type check of the open file, `formatted`
+ * with what the formatter said when it did not change the file
  * @returns {Editor} the editor
  */
 export const mount = (
@@ -99,6 +103,7 @@ export const mount = (
   on: {
     change: (name: string, text: string) => void;
     checked: (errors: number, ms: number) => void;
+    formatted: (note: string) => void;
   },
 ): Editor => {
   const editor = monaco.editor.create(parent, {
@@ -190,8 +195,52 @@ export const mount = (
   };
   set(files, active);
 
+  const format = async () => {
+    const model = editor.getModel();
+    if (!model) return;
+    const before = model.getValue();
+    if (!formats(model.uri.path))
+      return on.formatted("Format: JavaScript and TypeScript files only");
+    let after;
+    try {
+      after = await oxfmt(before, model.uri.path);
+    } catch (e) {
+      return on.formatted(`Format: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    // typed while the formatter ran: leave it
+    if (model.isDisposed() || model.getValue() !== before || after === before) return;
+    // only the middle changes, so the cursor and the scroll stay where they were
+    let from = 0;
+    while (from < before.length && before[from] === after[from]) from++;
+    let end = 0;
+    while (
+      end < before.length - from &&
+      end < after.length - from &&
+      before[before.length - 1 - end] === after[after.length - 1 - end]
+    )
+      end++;
+    editor.pushUndoStop();
+    editor.executeEdits("format", [
+      {
+        range: monaco.Range.fromPositions(
+          model.getPositionAt(from),
+          model.getPositionAt(before.length - end),
+        ),
+        text: after.slice(from, after.length - end),
+      },
+    ]);
+    editor.pushUndoStop();
+  };
+  editor.addAction({
+    id: "cssints.format",
+    label: "Format file",
+    keybindings: [monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF],
+    run: format,
+  });
+
   return {
     set,
+    format,
     diagnose: (errors) => {
       for (const [name, model] of models)
         monaco.editor.setModelMarkers(

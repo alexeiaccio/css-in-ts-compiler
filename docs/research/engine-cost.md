@@ -44,17 +44,17 @@ Per evaluation, ms (build, medians of the per-run means; the first evaluation is
 
 | modules | first eval | eval median before → after | library self | user self | fetch (user + lib) |
 | ------: | ---------: | -------------------------: | -----------: | --------: | -----------------: |
-|     200 |  426 → 248 |                13.4 → 4.6 |    4.0 → 0.7 | 6.9 → 2.5 |    4.3 → 2.7 |
-|     500 |  517 → 412 |                14.4 → 6.4 |    3.9 → 0.3 | 8.0 → 4.1 |    4.6 → 3.8 |
+|     200 |  426 → 248 |                 13.4 → 4.6 |    4.0 → 0.7 | 6.9 → 2.5 |          4.3 → 2.7 |
+|     500 |  517 → 412 |                 14.4 → 6.4 |    3.9 → 0.3 | 8.0 → 4.1 |          4.6 → 3.8 |
 
 Per transform, warm (seq, 500 modules), ms:
 
-| step                                                    | before | after |
-| ------------------------------------------------------- | -----: | ----: |
+| step                                                          |  before |   after |
+| ------------------------------------------------------------- | ------: | ------: |
 | instrument (oxc parse + MagicString; runs twice: ssr, client) | 0.15 ×2 | 0.15 ×2 |
-| evaluate (lock → `runner.import`)                       |   12.6 |   4.7 |
-| replace (sites, imports, CSS, source map)               |   ~0.4 |  ~0.4 |
-| whole client transform                                  |   13.1 |   5.1 |
+| evaluate (lock → `runner.import`)                             |    12.6 |     4.7 |
+| replace (sites, imports, CSS, source map)                     |    ~0.4 |    ~0.4 |
+| whole client transform                                        |    13.1 |     5.1 |
 
 Dev cold start and build cost roughly `n × (eval + 1 ms)`. Before the change that was about 18 ms per
 module; after, about 9 ms. The lock allows no parallelism.

@@ -4,11 +4,11 @@ Spike for cssints-kotg. Numbers are instantiations from `bun run bench` (tsgo / 
 editor latency is `node bench/lsp.mjs` and `node bench/complete.mjs` over tsgo's language server. Machine noise on the
 latency runs is about ±30 %, so a latency is only quoted to the tens of milliseconds.
 
-| bench item (cssints)   | master          | question 1      | questions 1 + 2 |
-| ---------------------- | --------------- | --------------- | --------------- |
-| users.ts (valid calls) | 759 073 / 752 897 | 791 217 / 784 649 (+4.2 %) | 801 820 / 795 192 (+5.6 %) |
-| unused.ts (all members, no call) | 38 630 / 34 140 | 41 545 / 36 922 (+3 k) | 41 781 / 37 126 (+3.1 k) |
-| errors.ts (12 bad calls, new) | not measured | 290 k tsgo | 303 k tsgo / 298 k tsc |
+| bench item (cssints)             | master            | question 1                 | questions 1 + 2            |
+| -------------------------------- | ----------------- | -------------------------- | -------------------------- |
+| users.ts (valid calls)           | 759 073 / 752 897 | 791 217 / 784 649 (+4.2 %) | 801 820 / 795 192 (+5.6 %) |
+| unused.ts (all members, no call) | 38 630 / 34 140   | 41 545 / 36 922 (+3 k)     | 41 781 / 37 126 (+3.1 k)   |
+| errors.ts (12 bad calls, new)    | not measured      | 290 k tsgo                 | 303 k tsgo / 298 k tsc     |
 
 The css-grammar items move by at most 126 instantiations (their empty baseline by +2.2 k: the new `Furthest` alias is
 checked once per program, so its budget was updated).

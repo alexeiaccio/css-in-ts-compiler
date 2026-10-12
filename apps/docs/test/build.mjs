@@ -139,7 +139,9 @@ assert.ok(!entry.code.includes("shiki-themes"), "the entry chunk holds no code b
 // the playground (src/playground/): the engine, the wasm, Monaco with its TypeScript worker and the page are lazy, the entry holds
 // a route and a link
 assert.ok(
-  !/monaco|MonacoEnvironment|transformSync|binding-wasm32|lightningcss_node/.test(entry.code),
+  !/monaco|MonacoEnvironment|transformSync|binding-wasm32|lightningcss_node|oxc_fmt/.test(
+    entry.code,
+  ),
   "no playground code in the entry chunk",
 );
 // the TUI page (src/tui/): ghostty-web, @bomb.sh/tty, both their .wasm and sky's fixtures are lazy too
@@ -156,6 +158,8 @@ for (const part of [
   /^assets\/parser\.wasm32-wasi-.*\.wasm$/,
   /^assets\/transform\.wasm32-wasi-.*\.wasm$/,
   /^assets\/lightningcss_node-.*\.wasm$/,
+  /^assets\/oxc_fmt_web-.*\.js$/, // the Format button's chunk and wasm, fetched at its first use
+  /^assets\/oxc_fmt_bg-.*\.wasm$/,
   /^assets\/Tui-.*\.js$/,
   /^assets\/ghostty-vt-.*\.wasm$/,
   /^assets\/bomb-tty-.*\.wasm$/,

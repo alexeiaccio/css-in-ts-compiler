@@ -31,9 +31,9 @@ way, each beside `cssints` (`npm install --save-dev @cssints/fluid`); the list i
 import cssints, { cssTarget, targets } from "cssints/vite";
 
 export default {
-	plugins: [cssints()],
-	css: { transformer: "lightningcss", lightningcss: { targets } },
-	build: { cssMinify: "lightningcss", cssTarget },
+  plugins: [cssints()],
+  css: { transformer: "lightningcss", lightningcss: { targets } },
+  build: { cssMinify: "lightningcss", cssTarget },
 };
 ```
 
@@ -59,9 +59,9 @@ import solid from "@solidjs/vite-plugin";
 import cssints, { cssTarget, targets } from "cssints/vite";
 
 export default {
-	plugins: [cssints(), solid()],
-	css: { transformer: "lightningcss", lightningcss: { targets } },
-	build: { cssMinify: "lightningcss", cssTarget },
+  plugins: [cssints(), solid()],
+  css: { transformer: "lightningcss", lightningcss: { targets } },
+  build: { cssMinify: "lightningcss", cssTarget },
 };
 ```
 
@@ -69,7 +69,18 @@ export default {
 
 ```tsx
 import { reset } from "@cssints/reset" with { type: "cssints" };
-import { bg, color, cn, cv, flex, hover, media, p, style, token } from "cssints" with { type: "cssints" };
+import {
+  bg,
+  color,
+  cn,
+  cv,
+  flex,
+  hover,
+  media,
+  p,
+  style,
+  token,
+} from "cssints" with { type: "cssints" };
 
 reset();
 
@@ -77,14 +88,17 @@ const md = media("(width >= 40rem)");
 const accent = token.color("#2563eb", "accent");
 
 const button = cv({
-	base: cn(p(2), color("white"), bg(accent), hover(bg("#1d4ed8"))),
-	variants: { wide: { true: md(p(4)) } },
+  base: cn(p(2), color("white"), bg(accent), hover(bg("#1d4ed8"))),
+  variants: { wide: { true: md(p(4)) } },
 });
 
 export const Row = ({ wide, on }: { wide?: boolean; on?: boolean }) => (
-	<div className={cn(flex().alignItems("center").gap(2), on && p(1))} style={style(token.set(accent, "#dc2626"))}>
-		<button className={button({ wide })}>Save</button>
-	</div>
+  <div
+    className={cn(flex().alignItems("center").gap(2), on && p(1))}
+    style={style(token.set(accent, "#dc2626"))}
+  >
+    <button className={button({ wide })}>Save</button>
+  </div>
 );
 ```
 
@@ -92,20 +106,42 @@ export const Row = ({ wide, on }: { wide?: boolean; on?: boolean }) => (
 
 ```css
 @layer _.k, _.a, _.b, _.c, _.d, _.e;
-@property --accent{syntax:"<color>";inherits:true;initial-value:#2563eb}
+@property --accent {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #2563eb;
+}
 @layer _.a {
-  ._1t8gqy5{padding:0.5rem}
-  ._lqk467{padding:0.25rem}
-  ._g2iyum{gap:0.5rem}
-  ._17xzvrh{background-color:var(--accent)}
-  ._1binn6n{color:white}
-  ._1ob5z5m{align-items:center}
-  ._1s47490{display:flex}
+  ._1t8gqy5 {
+    padding: 0.5rem;
+  }
+  ._lqk467 {
+    padding: 0.25rem;
+  }
+  ._g2iyum {
+    gap: 0.5rem;
+  }
+  ._17xzvrh {
+    background-color: var(--accent);
+  }
+  ._1binn6n {
+    color: white;
+  }
+  ._1ob5z5m {
+    align-items: center;
+  }
+  ._1s47490 {
+    display: flex;
+  }
 }
 @layer _.b {
-  ._1tsjws2:hover{background-color:#1d4ed8}
+  ._1tsjws2:hover {
+    background-color: #1d4ed8;
+  }
   @media (width >= 40rem) {
-    ._tdcza3{padding:1rem}
+    ._tdcza3 {
+      padding: 1rem;
+    }
   }
 }
 ```
@@ -139,15 +175,15 @@ and Cursor. The skills use it when it is configured and work without it.
 
 ## Layout
 
-| Path | What |
-|---|---|
-| `packages/cssints` | Vite plugin (`cssints/vite`) on the Vite Module Runner, and the `cssints` library |
-| `packages/css-grammar` | Type-level recognizer and its runtime twin over mdn-data grammars, Typed OM values, browser support and prose rules |
-| `packages/icons` | `@cssints/icons`: icons from iconify JSON collections or SVG folders, a mask style with no runtime |
-| `packages/mise-en-mode` | `@cssints/mise-en-mode`: looks as themes in the layers app < author < viewer, on `data-mode` scopes, checked against the tokens and by `check.contrast` |
-| `apps/demo` | React demo of every 0.1 feature |
-| `apps/docs` | The documentation site: this file and `docs/API.md` as pages, with search and type hovers (`cd apps/docs && bun run dev`) |
-| `docs/research`, `docs/archive` | Comparisons with other libraries; outdated plans |
+| Path                            | What                                                                                                                                                    |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/cssints`              | Vite plugin (`cssints/vite`) on the Vite Module Runner, and the `cssints` library                                                                       |
+| `packages/css-grammar`          | Type-level recognizer and its runtime twin over mdn-data grammars, Typed OM values, browser support and prose rules                                     |
+| `packages/icons`                | `@cssints/icons`: icons from iconify JSON collections or SVG folders, a mask style with no runtime                                                      |
+| `packages/mise-en-mode`         | `@cssints/mise-en-mode`: looks as themes in the layers app < author < viewer, on `data-mode` scopes, checked against the tokens and by `check.contrast` |
+| `apps/demo`                     | React demo of every 0.1 feature                                                                                                                         |
+| `apps/docs`                     | The documentation site: this file and `docs/API.md` as pages, with search and type hovers (`cd apps/docs && bun run dev`)                               |
+| `docs/research`, `docs/archive` | Comparisons with other libraries; outdated plans                                                                                                        |
 
 ## Development
 
@@ -169,16 +205,16 @@ cssints is MIT. It stands on other people's work; this is what we took, from who
 
 ### Data and code that ships
 
-| Where | What | From | License |
-|---|---|---|---|
-| [@cssints/tokens](packages/tokens/README.md) | the Open Props, Radix Colors, Flexoki and Reasonable Colors sets | [Open Props](https://github.com/argyleink/open-props) (Adam Argyle), [Radix Colors](https://github.com/radix-ui/colors), [Flexoki](https://github.com/kepano/flexoki) (Steph Ango), [Reasonable Colors](https://github.com/matthewhowell/reasonable-colors) (Matthew Howell) | MIT, notices in its README |
-| [@cssints/css-grammar](packages/css-grammar/THIRD_PARTY_NOTICES.md) | the CSS syntax strings (`src/mdn.ts`, `keywords.ts`, `functions.ts`), also in the types of `cssints` | [mdn-data](https://github.com/mdn/data); the numeric ranges it omits from [@webref/css](https://github.com/w3c/webref) | CC0-1.0; MIT (W3C) |
-| @cssints/css-grammar | browser support warnings, read from the package (not copied) | [@mdn/browser-compat-data](https://github.com/mdn/browser-compat-data) | CC0-1.0 |
-| [@cssints/fonts](packages/fonts/README.md) | the latin character weights and the metrics of Arial, Times New Roman and Courier New | [Capsize](https://github.com/seek-oss/capsize) (SEEK) | MIT, notice in its README |
-| [@cssints/icons](packages/icons/README.md) | nothing: the collections are your dependency | [Iconify](https://iconify.design) `@iconify-json/*` | each collection's own |
-| `tools/ai-automation/vendor` | lint rules, not published | [dmmulroy/anti-slop](https://github.com/dmmulroy/anti-slop) (Dillon Mulroy) | MIT, `LICENSE` and `UPSTREAM.md` |
-| [apps/csssky](apps/csssky/NOTICE.md) | layout and token values; Inter; Phosphor icons | Mu and `@bsky.app/alf` (Bluesky Social PBC), [Inter](https://github.com/rsms/inter), [Phosphor](https://phosphoricons.com) | MIT; OFL-1.1; MIT |
-| apps/demo | Material Design Icons (`@iconify-json/mdi`) | Pictogrammers | Apache-2.0 |
+| Where                                                               | What                                                                                                 | From                                                                                                                                                                                                                                                                         | License                          |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| [@cssints/tokens](packages/tokens/README.md)                        | the Open Props, Radix Colors, Flexoki and Reasonable Colors sets                                     | [Open Props](https://github.com/argyleink/open-props) (Adam Argyle), [Radix Colors](https://github.com/radix-ui/colors), [Flexoki](https://github.com/kepano/flexoki) (Steph Ango), [Reasonable Colors](https://github.com/matthewhowell/reasonable-colors) (Matthew Howell) | MIT, notices in its README       |
+| [@cssints/css-grammar](packages/css-grammar/THIRD_PARTY_NOTICES.md) | the CSS syntax strings (`src/mdn.ts`, `keywords.ts`, `functions.ts`), also in the types of `cssints` | [mdn-data](https://github.com/mdn/data); the numeric ranges it omits from [@webref/css](https://github.com/w3c/webref)                                                                                                                                                       | CC0-1.0; MIT (W3C)               |
+| @cssints/css-grammar                                                | browser support warnings, read from the package (not copied)                                         | [@mdn/browser-compat-data](https://github.com/mdn/browser-compat-data)                                                                                                                                                                                                       | CC0-1.0                          |
+| [@cssints/fonts](packages/fonts/README.md)                          | the latin character weights and the metrics of Arial, Times New Roman and Courier New                | [Capsize](https://github.com/seek-oss/capsize) (SEEK)                                                                                                                                                                                                                        | MIT, notice in its README        |
+| [@cssints/icons](packages/icons/README.md)                          | nothing: the collections are your dependency                                                         | [Iconify](https://iconify.design) `@iconify-json/*`                                                                                                                                                                                                                          | each collection's own            |
+| `tools/ai-automation/vendor`                                        | lint rules, not published                                                                            | [dmmulroy/anti-slop](https://github.com/dmmulroy/anti-slop) (Dillon Mulroy)                                                                                                                                                                                                  | MIT, `LICENSE` and `UPSTREAM.md` |
+| [apps/csssky](apps/csssky/NOTICE.md)                                | layout and token values; Inter; Phosphor icons                                                       | Mu and `@bsky.app/alf` (Bluesky Social PBC), [Inter](https://github.com/rsms/inter), [Phosphor](https://phosphoricons.com)                                                                                                                                                   | MIT; OFL-1.1; MIT                |
+| apps/demo                                                           | Material Design Icons (`@iconify-json/mdi`)                                                          | Pictogrammers                                                                                                                                                                                                                                                                | Apache-2.0                       |
 
 ### Ideas and designs
 
