@@ -119,7 +119,7 @@
     },
     "packages/balance": {
       "name": "@cssints/balance",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "devDependencies": {
         "cssints": "workspace:*",
         "vite": "catalog:",
@@ -130,7 +130,7 @@
     },
     "packages/css-grammar": {
       "name": "@cssints/css-grammar",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "@mdn/browser-compat-data": "8.1.3",
         "browserslist": "4.29.1",
@@ -145,7 +145,7 @@
     },
     "packages/cssints": {
       "name": "cssints",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "@cssints/css-grammar": "workspace:*",
         "culori": "^4.0.2",
@@ -175,7 +175,7 @@
     },
     "packages/devtools": {
       "name": "@cssints/devtools",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "@cssints/css-grammar": "workspace:*",
         "effect": "4.0.0",
@@ -195,7 +195,7 @@
     },
     "packages/fluid": {
       "name": "@cssints/fluid",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "devDependencies": {
         "cssints": "workspace:*",
         "vite": "catalog:",
@@ -206,7 +206,7 @@
     },
     "packages/fonts": {
       "name": "@cssints/fonts",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "fontkitten": "^1.0.3",
       },
@@ -223,7 +223,7 @@
     },
     "packages/gradient": {
       "name": "@cssints/gradient",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "culori": "^4.0.2",
       },
@@ -238,7 +238,7 @@
     },
     "packages/icons": {
       "name": "@cssints/icons",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "@iconify/utils": "^3.0.0",
       },
@@ -253,7 +253,7 @@
     },
     "packages/layout": {
       "name": "@cssints/layout",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "devDependencies": {
         "cssints": "workspace:*",
         "vite": "catalog:",
@@ -264,7 +264,7 @@
     },
     "packages/masonry": {
       "name": "@cssints/masonry",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "devDependencies": {
         "cssints": "workspace:*",
         "vite": "catalog:",
@@ -275,7 +275,7 @@
     },
     "packages/mcp": {
       "name": "@cssints/mcp",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "bin": {
         "cssints-mcp": "./src/bin.ts",
       },
@@ -295,7 +295,7 @@
     },
     "packages/mise-en-mode": {
       "name": "@cssints/mise-en-mode",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "devDependencies": {
         "cssints": "workspace:*",
         "vite": "catalog:",
@@ -306,7 +306,7 @@
     },
     "packages/motion": {
       "name": "@cssints/motion",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "devDependencies": {
         "cssints": "workspace:*",
         "vite": "catalog:",
@@ -317,7 +317,7 @@
     },
     "packages/placeholder": {
       "name": "@cssints/placeholder",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "jpeg-js": "^0.4.4",
         "pngjs": "^7.0.0",
@@ -334,7 +334,7 @@
     },
     "packages/ramp": {
       "name": "@cssints/ramp",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "culori": "^4.0.2",
       },
@@ -349,7 +349,7 @@
     },
     "packages/reset": {
       "name": "@cssints/reset",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "devDependencies": {
         "cssints": "workspace:*",
         "vite": "catalog:",
@@ -360,7 +360,7 @@
     },
     "packages/reveal": {
       "name": "@cssints/reveal",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "@cssints/motion": "workspace:*",
       },
@@ -374,7 +374,7 @@
     },
     "packages/rybitten": {
       "name": "@cssints/rybitten",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "rybitten": "1.3.0",
       },
@@ -388,7 +388,7 @@
     },
     "packages/skeleton": {
       "name": "@cssints/skeleton",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "devDependencies": {
         "cssints": "workspace:*",
         "vite": "catalog:",
@@ -399,7 +399,7 @@
     },
     "packages/squircle": {
       "name": "@cssints/squircle",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "devDependencies": {
         "cssints": "workspace:*",
         "vite": "catalog:",
@@ -410,7 +410,7 @@
     },
     "packages/stuck": {
       "name": "@cssints/stuck",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "devDependencies": {
         "cssints": "workspace:*",
         "vite": "catalog:",
@@ -421,7 +421,7 @@
     },
     "packages/tokens": {
       "name": "@cssints/tokens",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "devDependencies": {
         "@radix-ui/colors": "3.0.0",
         "cssints": "workspace:*",
@@ -435,7 +435,7 @@
     },
     "packages/tui": {
       "name": "@cssints/tui",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "culori": "^4.0.2",
       },
