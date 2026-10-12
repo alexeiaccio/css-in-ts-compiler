@@ -248,9 +248,11 @@ global(
   media("(prefers-color-scheme: dark)")(color("var(--shiki-dark)")),
 );
 
-// twoslash: the popups are placed by hovers.ts; the arrow would point at the wrong place
+// twoslash: the popups are placed by hovers.ts; the arrow would point at the wrong place. They are fixed from the start: an
+// absolute one, though invisible, is part of the <pre>'s scrollable area and left a blank scroll under the code
 global(
   ".twoslash .twoslash-popup-container",
+  position("fixed"),
   transform("none"),
   fontFamily(mono),
   fontSize(t.fontSize.sm),
