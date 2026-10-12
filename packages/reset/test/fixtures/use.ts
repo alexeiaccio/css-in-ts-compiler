@@ -1,4 +1,5 @@
 import {
+  border,
   createGlobalTheme,
   createTokens,
   global,
@@ -17,3 +18,4 @@ const t = createTokens({ color: { $type: "color", bg: { $value: "#ffffff" } } })
 createGlobalTheme(t, '[data-mode="dark"]', { color: { bg: "#000000" } }, { layer: "app" });
 global("body", margin("1rem"));
 export const card = p(2);
+export const edge = border("1px solid red");

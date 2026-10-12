@@ -36,6 +36,15 @@ assert.equal(css.match(/^@layer reset \{$/gm).length, 3, "base once (two calls),
 assert.ok(!css.includes("  @layer reset"), "not nested in _.k");
 
 assert.ok(css.includes("*, *::before, *::after { box-sizing: border-box } * { margin: 0 }"), css);
+// a button has no border in the base (the rule has no specificity: :where), and an author border is in a layer above it
+const buttons =
+  ':where(button, input[type="button"], input[type="submit"], input[type="reset"]) { border: 0 }';
+assert.ok(css.includes(buttons), css);
+assert.ok(
+  css.indexOf(buttons) < css.indexOf("@layer _.a {"),
+  "the reset is below the class layers",
+);
+assert.match(css, /@layer _\.\w \{\n {2}\.\w+\{border:1px solid red\}/, css);
 assert.ok(css.includes(":where(img, picture, video, canvas, svg) { display: block;"), css);
 assert.ok(css.includes(":not([class]) { margin-block-start: 1em }"), css);
 
@@ -82,7 +91,7 @@ console.log(`variants: ${variants.size}`);
 
 // the full reset is limited-availability, and every variant has a subset of it
 const full = declarations(css);
-assert.equal(full.length, 19, "the full reset has 19 declarations");
+assert.equal(full.length, 20, "the full reset has 20 declarations");
 assert.deepEqual(variants.get("limited-availability"), full);
 for (const [id, kept] of variants) {
   assert.ok(
@@ -103,8 +112,10 @@ assert.deepEqual(files.toSorted(), [...variants.keys()].toSorted());
 // what is kept and dropped
 const has = (id, d) => variants.get(id).includes(d);
 const prefixed = "html { -webkit-text-size-adjust: none }";
-for (const id of variants.keys())
+for (const id of variants.keys()) {
   assert.ok(has(id, prefixed), `${id}: the prefixed property is not in the data`);
+  assert.ok(has(id, buttons), `${id}: border is in every group`);
+}
 assert.ok(!has("widely-available", "html { text-size-adjust: none }"));
 assert.ok(!has("widely-available", ":where(p) { text-wrap: pretty }"), "the rule is gone");
 assert.ok(!has("widely-available", ":where(h1, h2, h3, h4, h5, h6) { text-wrap: balance }"));
