@@ -3,7 +3,7 @@
 import { fileURLToPath } from "node:url";
 
 import { type Target, useTargets } from "@cssints/css-grammar/support";
-import { Effect, Predicate, Semaphore } from "effect";
+import { Config, Effect, Predicate, Semaphore } from "effect";
 import { Window } from "happy-dom";
 import {
   ESModulesEvaluator,
@@ -46,6 +46,9 @@ export class DomEvaluator extends ESModulesEvaluator {
 // an older source or reuses exports computed from one, and no other evaluation touches the registry meanwhile.
 // Process-global, like the registry. Invariants and interleavings: spec/runner.qnt.
 const evalLock = Semaphore.makeUnsafe(1);
+
+// How long one module may take to evaluate, with all it imports: 30 s; CSSINTS_EVAL_TIMEOUT (milliseconds, read once) is for tests.
+const LIMIT = Effect.runSync(Config.Int("CSSINTS_EVAL_TIMEOUT").pipe(Config.withDefault(30_000)));
 
 // Drops every app module from the runner; keeps the library (index.ts and all it imports: css-grammar). The
 // library imports no app module, so its exports never depend on app sources, and the model (runner.qnt) has
@@ -131,13 +134,19 @@ const evaluateModule = Effect.fnUntraced(function* (
   }).pipe(
     Effect.withSpan("cssints.runner.import", { attributes: { file: id } }),
     Effect.timeoutOrElse({
-      duration: "30 seconds",
+      duration: LIMIT,
+      // The import itself cannot be stopped: closing the runner makes it fail at the next module it fetches, so it
+      // registers nothing in the evaluations that follow. The plugin makes a new runner.
       orElse: () =>
-        Effect.fail(
-          new EvalError({
-            file: id,
-            message: `cssints: evaluating ${id} took more than 30 seconds`,
-          }),
+        Effect.promise(() => runner.close()).pipe(
+          Effect.andThen(
+            Effect.fail(
+              new EvalError({
+                file: id,
+                message: `cssints: evaluating ${id} took more than ${LIMIT / 1000} seconds`,
+              }),
+            ),
+          ),
         ),
     }),
   );
