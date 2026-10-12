@@ -10,13 +10,13 @@ Every macro engine we built fails on the same thing: **arguments are passed to t
 
 ## Our approaches
 
-| # | Where | Parse | Eval | Bundler | LOC | State | Killer problem |
-|---|---|---|---|---|---|---|---|
-| 1 | this repo, `cssints` + postprocessor (Mar 2026) | none, Parcel `with {type:"cssints"}` | Parcel macros (never wired) | Parcel only | ~2k + Effect | postprocessor works on placeholder at-rules; no bundler integration ever landed | Parcel-only; `@atomic` placeholder CSS is a second language |
-| 2 | `../oxc-macro` (Apr 2026) | Rust NAPI (oxc visitor) | Node worker pool, loads macro module, calls export with `argsText` | Vite via unplugin | ~2.5k + Rust 850 | works for literals; detoured into Edge.js/WASIX sandbox; last commit "poop" | args are source text; sandbox rabbit hole; NAPI build per platform |
-| 3 | `../tsdown-macro` (Apr 2026) | `rolldown/utils` parseSync (no NAPI) | same worker pool | rolldown/tsdown | ~1.2k | smallest working one; demo was `apps/tsdown-demo` (deleted) | args are source text; rolldown only; no HMR story |
-| 4 | `../macros` (27 Apr 2026) | Rust `macro-core` (oxc) | QuickJS via rquickjs, Node VM "later" | unplugin + VFS | Rust 630 + TS ~400 | parser + evaluator + VFS + one integration test; spec is 2k lines (polyfills, csskit typegen, VFS, 3 plugins) | QuickJS cannot import npm packages, so `cssints` itself cannot run in it; spec is 10x the code |
-| 5 | this repo, `lightningcss-napi` + `css-syntax` | own Rust bindings to LightningCSS, AST schema gen | n/a | n/a | large | builds; typed AST | duplicating what `lightningcss` npm already exposes; maintenance sink |
+| #   | Where                                           | Parse                                             | Eval                                                               | Bundler           | LOC                | State                                                                                                         | Killer problem                                                                                 |
+| --- | ----------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------ | ----------------- | ------------------ | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| 1   | this repo, `cssints` + postprocessor (Mar 2026) | none, Parcel `with {type:"cssints"}`              | Parcel macros (never wired)                                        | Parcel only       | ~2k + Effect       | postprocessor works on placeholder at-rules; no bundler integration ever landed                               | Parcel-only; `@atomic` placeholder CSS is a second language                                    |
+| 2   | `../oxc-macro` (Apr 2026)                       | Rust NAPI (oxc visitor)                           | Node worker pool, loads macro module, calls export with `argsText` | Vite via unplugin | ~2.5k + Rust 850   | works for literals; detoured into Edge.js/WASIX sandbox; last commit "poop"                                   | args are source text; sandbox rabbit hole; NAPI build per platform                             |
+| 3   | `../tsdown-macro` (Apr 2026)                    | `rolldown/utils` parseSync (no NAPI)              | same worker pool                                                   | rolldown/tsdown   | ~1.2k              | smallest working one; demo was `apps/tsdown-demo` (deleted)                                                   | args are source text; rolldown only; no HMR story                                              |
+| 4   | `../macros` (27 Apr 2026)                       | Rust `macro-core` (oxc)                           | QuickJS via rquickjs, Node VM "later"                              | unplugin + VFS    | Rust 630 + TS ~400 | parser + evaluator + VFS + one integration test; spec is 2k lines (polyfills, csskit typegen, VFS, 3 plugins) | QuickJS cannot import npm packages, so `cssints` itself cannot run in it; spec is 10x the code |
+| 5   | this repo, `lightningcss-napi` + `css-syntax`   | own Rust bindings to LightningCSS, AST schema gen | n/a                                                                | n/a               | large              | builds; typed AST                                                                                             | duplicating what `lightningcss` npm already exposes; maintenance sink                          |
 
 What is worth keeping from all of this:
 
@@ -59,15 +59,15 @@ Gaps versus our target:
 
 A library built on wyw-in-js, not an engine. Public API: `css({})`, `keyframes`, `recipe`, `slotRecipe`, `createTokenContract`/`createTheme`/`assignVars`, `cx`. Processors live in `processors/*.ts` (~2.5k LOC) plus a `preeval-runtime` for static semantics.
 
-| | dx-styles | our target |
-|---|---|---|
-| Authoring | object literal, `csstype` keys | composable functions `css.flex(css.items("center"))` |
-| Class model | one semantic class per `css()` call, `{displayName}_{slug}` | atomic, content hash, shared across files |
-| Specificity | source order, nested selectors literal-only | `@layer _.a.._.e` by condition depth |
-| Dynamic | `assignVars()` only (custom properties) | same idea (`token.set`) plus `hover(prop)` |
-| Tokens | typed contract + themes, `@property` no | `@property` per token |
-| Post-CSS | stylis, recommends Vite lightningcss | LightningCSS |
-| Engine | wyw-in-js | none yet |
+|             | dx-styles                                                   | our target                                           |
+| ----------- | ----------------------------------------------------------- | ---------------------------------------------------- |
+| Authoring   | object literal, `csstype` keys                              | composable functions `css.flex(css.items("center"))` |
+| Class model | one semantic class per `css()` call, `{displayName}_{slug}` | atomic, content hash, shared across files            |
+| Specificity | source order, nested selectors literal-only                 | `@layer _.a.._.e` by condition depth                 |
+| Dynamic     | `assignVars()` only (custom properties)                     | same idea (`token.set`) plus `hover(prop)`           |
+| Tokens      | typed contract + themes, `@property` no                     | `@property` per token                                |
+| Post-CSS    | stylis, recommends Vite lightningcss                        | LightningCSS                                         |
+| Engine      | wyw-in-js                                                   | none yet                                             |
 
 Reuse from dx-styles: its processor structure (`processors/shared.ts`, manifests, explain artifact) is the best available worked example of a non-trivial wyw processor. Its `recipe()` overlaps `cv()`; ours already exists, keep ours. Do not build on dx-styles itself: its class model is the opposite of atomic and the API is object-shaped.
 
@@ -101,20 +101,20 @@ node run.mjs fixtures/risk1-vars.ts
 cd app && npx vite build && node hmr.mjs
 ```
 
-| Risk | Case | Result |
-|---|---|---|
-| 1 | `css.p(4)` | works |
-| 1 | Composition via variables, `css.flex(center, pad)` | works with `eval.strategy: "execute"` |
-| 1 | One inline nested call, `css.flex(css.items("center"))` | works if the `cssints` runtime computes values at eval time |
-| 1 | Two inline nested calls, or chains `css.flex().items(..)` | broken in wyw, see problem 1 |
-| 1 | Namespace import `import * as css` | needs a tag per member in `package.json` |
-| 2 | Imported tokens, `css.p(space.md)`, `css.m(space.lg * 2)` | works |
-| 3 | Same atomic rule emitted from two files | works, appears once in the built CSS |
-| 3 | Every rule in `@layer _.a`, `cssints/layers.css` imported first | works, layer order holds after LightningCSS |
-| 4 | Edit `tokens.ts` in dev, one dependent file | works |
-| 4 | Edit `tokens.ts` in dev, two dependent files | broken in wyw, see problem 3 |
-| 5 | `css.cn(pad, gap)` | folds to `"_lwugp7 _g2iyum"` |
-| 5 | `cx(css.p(4), on && css.m(2))` | becomes `cx("_lwugp7", on && "_1worulw")` |
+| Risk | Case                                                            | Result                                                      |
+| ---- | --------------------------------------------------------------- | ----------------------------------------------------------- |
+| 1    | `css.p(4)`                                                      | works                                                       |
+| 1    | Composition via variables, `css.flex(center, pad)`              | works with `eval.strategy: "execute"`                       |
+| 1    | One inline nested call, `css.flex(css.items("center"))`         | works if the `cssints` runtime computes values at eval time |
+| 1    | Two inline nested calls, or chains `css.flex().items(..)`       | broken in wyw, see problem 1                                |
+| 1    | Namespace import `import * as css`                              | needs a tag per member in `package.json`                    |
+| 2    | Imported tokens, `css.p(space.md)`, `css.m(space.lg * 2)`       | works                                                       |
+| 3    | Same atomic rule emitted from two files                         | works, appears once in the built CSS                        |
+| 3    | Every rule in `@layer _.a`, `cssints/layers.css` imported first | works, layer order holds after LightningCSS                 |
+| 4    | Edit `tokens.ts` in dev, one dependent file                     | works                                                       |
+| 4    | Edit `tokens.ts` in dev, two dependent files                    | broken in wyw, see problem 3                                |
+| 5    | `css.cn(pad, gap)`                                              | folds to `"_lwugp7 _g2iyum"`                                |
+| 5    | `cx(css.p(4), on && css.m(2))`                                  | becomes `cx("_lwugp7", on && "_1worulw")`                   |
 
 ### How the processor works
 
@@ -159,16 +159,16 @@ How it works, per file that imports `cssints`:
 3. **Replace.** Each site span becomes its class string literal. Rules go to a virtual `cssints.css` module keyed by content hash. Dependencies from the runner module graph are remembered, and `hotUpdate` returns the importing modules when one of them changes.
 4. **Build.** The plugin starts a private middleware-mode dev server for the runner. Same as vanilla-extract with vite-node.
 
-| Case | wyw 2.5.1 | Module Runner |
-|---|---|---|
-| `css.p(4)`, variables, imported tokens | works | works |
-| Two inline nested calls, chains `css.flex().items()`, `css.flex.items()` | broken | works |
-| Namespace import | tag per member | works |
-| Same rule from two files, `@layer` order | works | works |
-| HMR, two files depend on one token file | one stays stale | both fresh, both orders |
-| `cn` folds, `cx` stays at runtime | works | works |
-| Dependency touching `document` at top level (`fixtures/risk6.ts`) | shaker removes it | fails, `document is not defined` |
-| 7 fixtures in one process, rough | 1.9 s for 5 files in separate processes | 0.3 s |
+| Case                                                                     | wyw 2.5.1                               | Module Runner                    |
+| ------------------------------------------------------------------------ | --------------------------------------- | -------------------------------- |
+| `css.p(4)`, variables, imported tokens                                   | works                                   | works                            |
+| Two inline nested calls, chains `css.flex().items()`, `css.flex.items()` | broken                                  | works                            |
+| Namespace import                                                         | tag per member                          | works                            |
+| Same rule from two files, `@layer` order                                 | works                                   | works                            |
+| HMR, two files depend on one token file                                  | one stays stale                         | both fresh, both orders          |
+| `cn` folds, `cx` stays at runtime                                        | works                                   | works                            |
+| Dependency touching `document` at top level (`fixtures/risk6.ts`)        | shaker removes it                       | fails, `document is not defined` |
+| 7 fixtures in one process, rough                                         | 1.9 s for 5 files in separate processes | 0.3 s                            |
 
 The timing is not a fair comparison. wyw spawns an eval child process per harness run, and both numbers are for tiny files.
 
@@ -219,13 +219,13 @@ Policy. Each property becomes an **argument tuple type**, not a single value typ
 
 Coverage, mdn-data 2.27.1, 635 non-obsolete standard properties:
 
-| | Count | Share |
-|---|---|---|
-| Typed as bounded argument tuples | 557 | 87.7% |
-| of which a plain single-value union | 353 | |
-| of which contain a `string` or `CustomIdent` escape | 9 | |
-| Not typed | 78 | 12.3% |
-| Current `cssints` members typed (of 42) | 35 | |
+|                                                     | Count | Share |
+| --------------------------------------------------- | ----- | ----- |
+| Typed as bounded argument tuples                    | 557   | 87.7% |
+| of which a plain single-value union                 | 353   |       |
+| of which contain a `string` or `CustomIdent` escape | 9     |       |
+| Not typed                                           | 78    | 12.3% |
+| Current `cssints` members typed (of 42)             | 35    |       |
 
 What is not typed and why. Lists of multi-slot items (`transition`, `box-shadow`, `font-family`, `mask-*`, `animation-range`): 21. `||` or `&&` over multi-slot parts (`flex`, `text-decoration`, `column-rule`, `aspect-ratio`): 16. `grid-*` line and track lists: 12. `background`, `mask`, `animation`, `cursor`, `content`, `place-*` (too many shapes): the rest. Every one of these is a shorthand or a list whose natural API is a constructor: `shadow(...)`, `transition(...)`, `fontFamily(...)`. That is the hand-written part, about 20 functions, and it matches the plan from before.
 
@@ -247,7 +247,7 @@ The API this gives:
 
 ```ts
 declare const padding: PropertyFn<"padding">;
-padding("1rem 2rem");       // ok
+padding("1rem 2rem"); // ok
 padding("1rem 2rem 3rem 4rem 5rem");
 // Argument of type '"1rem 2rem 3rem 4rem 5rem"' is not assignable to parameter of type
 // '"padding: \"1rem 2rem 3rem 4rem 5rem\" does not match <'padding-top'>{1,4}"'
@@ -259,12 +259,12 @@ Probe results, `probe.ts`, 24 expected matches and 10 expected rejections, all c
 
 Cost, tsc 5.9, `--extendedDiagnostics`:
 
-| Check | Instantiations | Check time |
-|---|---|---|
-| one `padding()` call | 10 k | 0.14 s |
-| one `color()` call, the largest grammar (148 named colors) | 98 k | 0.27 s |
-| 100 calls over 10 properties | 183 k | 0.5 s |
-| 200 calls over 10 properties | 197 k | 0.5 s |
+| Check                                                      | Instantiations | Check time |
+| ---------------------------------------------------------- | -------------- | ---------- |
+| one `padding()` call                                       | 10 k           | 0.14 s     |
+| one `color()` call, the largest grammar (148 named colors) | 98 k           | 0.27 s     |
+| 100 calls over 10 properties                               | 183 k          | 0.5 s      |
+| 200 calls over 10 properties                               | 197 k          | 0.5 s      |
 
 Grammar parsing is paid once per property per tsc run and cached. The marginal cost is about 140 instantiations per call. For comparison, the whole generated-types approach checks 557 types in 0.6 s, so this is the same order.
 
@@ -288,12 +288,12 @@ This is the approach to continue with. The value stays CSS, the grammar stays md
 
 Both are in the repo: `typescript@5.9.3` and `@typescript/native-preview@7.0.0-dev.20260316`. Same files, `--extendedDiagnostics`, wall time from `time`:
 
-| Check | tsc instantiations | tsc check | tsc wall | tsgo instantiations | tsgo check | tsgo wall |
-|---|---|---|---|---|---|---|
-| one `padding()` | 10 k | 0.15 s | 0.60 s | 12 k | 0.012 s | 0.11 s |
-| one `color()` | 98 k | 0.27 s | 0.65 s | 99 k | 0.074 s | 0.15 s |
-| 100 calls | 183 k | 0.36 s | 0.75 s | 185 k | 0.118 s | 0.20 s |
-| 200 calls | 198 k | 0.36 s | 0.76 s | 199 k | 0.116 s | 0.28 s |
+| Check           | tsc instantiations | tsc check | tsc wall | tsgo instantiations | tsgo check | tsgo wall |
+| --------------- | ------------------ | --------- | -------- | ------------------- | ---------- | --------- |
+| one `padding()` | 10 k               | 0.15 s    | 0.60 s   | 12 k                | 0.012 s    | 0.11 s    |
+| one `color()`   | 98 k               | 0.27 s    | 0.65 s   | 99 k                | 0.074 s    | 0.15 s    |
+| 100 calls       | 183 k              | 0.36 s    | 0.75 s   | 185 k               | 0.118 s    | 0.20 s    |
+| 200 calls       | 198 k              | 0.36 s    | 0.76 s   | 199 k               | 0.116 s    | 0.28 s    |
 
 tsgo checks the same types 3 to 4 times faster with identical results and identical error text. The probe passes on both. Instantiation counts match, so the type-level design is not tsgo-specific; tsgo just makes the fixed cost negligible. Note `tsgo` needs `--ignoreConfig` when files are passed on the command line next to a `tsconfig.json`.
 
@@ -327,11 +327,11 @@ Where it fits. It answers the open question about brands inside strings. Typed O
 
 The layering this produces:
 
-| Layer | Standard | Ours |
-|---|---|---|
+| Layer   | Standard                                   | Ours                                |
+| ------- | ------------------------------------------ | ----------------------------------- |
 | Grammar | mdn-data value definition syntax, verbatim | type-level recognizer, runtime twin |
-| Values | CSS Typed OM | constructors and `toString()` |
-| Build | Vite Module Runner | instrument, evaluate, replace |
+| Values  | CSS Typed OM                               | constructors and `toString()`       |
+| Build   | Vite Module Runner                         | instrument, evaluate, replace       |
 
 Only the recognizer is invented.
 
@@ -346,11 +346,11 @@ Only the recognizer is invented.
 - Runtime: the furthest failing leaf wins. Its position is where the value went wrong. Its labels are what the grammar expected there, named by the outermost `<type>` so the message says `<color>` and not 148 color names. A remainder left over when the grammar ends counts as expecting `end of value`.
 - Types: the shortest remainder is the furthest point reached. Every remainder is a suffix of the value, so the shortest is the one that every other remainder ends with. This check is a one-line distributive conditional.
 
-| Value | Types say | Twin says |
-|---|---|---|
-| `border("1px solud")` | `unexpected "solud" in "1px solud", grammar <line-width> \|\| <line-style> \|\| <color>` | `unexpected "solud" ..., expected <line-style> \| <color> \| end of value` |
-| `padding("1rem 2rem 3rem 4rem 5rem")` | `unexpected "5rem" ...` | `unexpected "5rem" ..., expected end of value` |
-| `padding(-space.md)` | not visible to types | `unexpected "-1rem" ..., expected <length-percentage [0,∞]>` |
+| Value                                 | Types say                                                                                | Twin says                                                                  |
+| ------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `border("1px solud")`                 | `unexpected "solud" in "1px solud", grammar <line-width> \|\| <line-style> \|\| <color>` | `unexpected "solud" ..., expected <line-style> \| <color> \| end of value` |
+| `padding("1rem 2rem 3rem 4rem 5rem")` | `unexpected "5rem" ...`                                                                  | `unexpected "5rem" ..., expected end of value`                             |
+| `padding(-space.md)`                  | not visible to types                                                                     | `unexpected "-1rem" ..., expected <length-percentage [0,∞]>`               |
 
 **Cost of the better type message.** A plain false branch made tsc run `Consume` over the generic `S` once per property, which added 21 k instantiations for each property. `NoInfer` and the indexed-object trick did not help, and the indexed-object trick also broke inference (`S` widened to `string`). Wrapping the message in `S extends string ? ... : never` keeps it deferred. The result is +5 k per property and nothing per call. 200 calls went from 198 k to 209 k instantiations (tsc 0.39 s, tsgo 0.13 s).
 
@@ -389,6 +389,7 @@ Modules evaluated for CSS extraction can now touch the DOM at load time, for exa
 The plugin runs its own Module Runner (`createServerModuleRunner(ssr, { evaluator })`), and the `DomEvaluator` passes every happy-dom window property that Node lacks (`document`, `window`, `HTMLElement`, …) into the module body as a local binding. They never go on the real `globalThis`, so Vite, React and the app's own SSR runner still run in plain Node. `server.environments.ssr.runner` is not changed.
 
 Two alternatives were rejected:
+
 - Setting globals only while `runner.import` runs. Code that checks for a browser once at load time, such as react-dom's `canUseDOM`, could run inside that window and keep the wrong answer. Concurrent imports would also race.
 - Prepending bindings when instrumenting. That changes real SSR modules too.
 
@@ -411,14 +412,14 @@ Known limit: dependencies in `node_modules` load through Node's own `import()` a
 
 What Chrome found, sorted by cause:
 
-| Cause | Examples | Where it goes |
-|---|---|---|
-| Comma omission rule (CSS Values 4 §2.6) missing everywhere | `background: red` rejected, `", red"` accepted | bug, before function arguments |
-| `<custom-ident>` too loose | `font-family: "a" "b"` accepted | bug |
-| mdn-data lacks spec ranges | negative `flex-grow`, `gap`, `line-height`, `border-width` accepted | compare with `@webref/css` |
-| Opaque functions stop at the first `)` | `light-dark(red, light-dark(red, blue) currentColor` accepted | function arguments |
-| Browser support, not grammar | `fit-content()` on width, `anchor-center`, `match-parent`, `run-in` | draft: warnings from browser-compat-data |
-| Prose rules outside the grammar | `transition` with `none` in a list, generic family as an unquoted family name | same draft |
+| Cause                                                      | Examples                                                                      | Where it goes                            |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------- |
+| Comma omission rule (CSS Values 4 §2.6) missing everywhere | `background: red` rejected, `", red"` accepted                                | bug, before function arguments           |
+| `<custom-ident>` too loose                                 | `font-family: "a" "b"` accepted                                               | bug                                      |
+| mdn-data lacks spec ranges                                 | negative `flex-grow`, `gap`, `line-height`, `border-width` accepted           | compare with `@webref/css`               |
+| Opaque functions stop at the first `)`                     | `light-dark(red, light-dark(red, blue) currentColor` accepted                 | function arguments                       |
+| Browser support, not grammar                               | `fit-content()` on width, `anchor-center`, `match-parent`, `run-in`           | draft: warnings from browser-compat-data |
+| Prose rules outside the grammar                            | `transition` with `none` in a list, generic family as an unquoted family name | same draft                               |
 
 The comma bug shows the limit of the self-check. The generator and both recognizers read the grammar the same wrong way, so they agreed with each other. Only an outside judge could see it.
 
@@ -481,13 +482,14 @@ Some values that Chrome rejects are valid by the grammar, for two reasons.
 
 After merging with the grammar fixes, 66 generated values are accepted by the twin and rejected by Chrome 154:
 
-| Explained by | Values |
-|---|---|
-| a support warning | 27 |
-| a prose rule | 14 |
-| nothing yet | 25 |
+| Explained by      | Values |
+| ----------------- | ------ |
+| a support warning | 27     |
+| a prose rule      | 14     |
+| nothing yet       | 25     |
 
 The 25 include:
+
 - BCD gaps (`run-in`).
 - A BCD–Chrome disagreement (`align-items: anchor-center`).
 - Ranges missing inside newly generated function arguments (`steps(-94)`, a negative `box-shadow` blur).
@@ -498,20 +500,22 @@ The demo builds with one noisy warning: `cursor: pointer` on iOS Safari, where B
 
 `diff-support.ts` now gives a reason for every value that the twin accepts and Chrome 154 rejects. The same holds on seeds 1–8, 99, 123, 555 and 1000.
 
-| Reason | Values |
-|---|---|
-| support warning | 27 |
-| prose rule | 24 |
-| known, not ours | 11 |
-| unexplained | 0 |
+| Reason          | Values |
+| --------------- | ------ |
+| support warning | 27     |
+| prose rule      | 24     |
+| known, not ours | 11     |
+| unexplained     | 0      |
 
 New prose rules:
+
 - `calc-size()` arguments must be lengths or percentages, checked by a small calc type checker.
 - `steps()` needs at least 1 step, or 2 with `jump-none`.
 - `anchor-size()` is allowed only in sizing, inset and margin properties.
 - `transition` cannot have two negative times, and cannot put an easing keyword before `steps()`.
 
 The known list (`KNOWN` in `diff-support.ts`):
+
 - BCD has no `display: run-in` or `inline-list-item`.
 - mdn-data and BCD keep `align-items: anchor-center`, which the spec allows only on `justify-self` and `align-self`.
 - The mdn-data `box-shadow` grammar cannot carry webref's non-negative blur range.
@@ -520,6 +524,7 @@ The known list (`KNOWN` in `diff-support.ts`):
 Both parsers now enforce `!` (the group must not be empty), so `image()` fails. That check costs about 1.1 k in the fixed baseline and nothing per call.
 
 Support warnings are quieter:
+
 - A target that lacks the whole property gets one property warning.
 - Values are also looked up under longhands reached through `<'q'>`.
 - Each warning prints once per build.
@@ -531,6 +536,7 @@ Support warnings are quieter:
 We had claimed the engine's HMR was correct by construction. It was not.
 
 **The model.** `packages/cssints/test/spec/runner.qnt` (~200 lines) models the plugin in a dev server. Its state holds:
+
 - file versions and the ssr module graph;
 - runner fetches in flight and the runner cache;
 - the process-global registry and `depsOf`;
@@ -539,12 +545,14 @@ We had claimed the engine's HMR was correct by construction. It was not.
 Each step is one stretch of JS between awaits, so concurrent requests interleave. The main invariant `servedFresh` says that once nothing is in flight, every client module serves classes from the current sources. `readsOwnSites` and `depsOfKnown` guard the registry and the wyw failure mode.
 
 **Two real races in the old plugin**, both reproduced against a real dev server in `spec/race.mjs`:
+
 1. A token edit during a module's first transform was lost, because `depsOf` did not know the module yet.
 2. After two quick saves, transforms joined the runner's own HMR fetch of the older source.
 
 The wyw bug (only the first importer updates) cannot happen here: `depsOfKnown` holds in both versions.
 
 **The fix:**
+
 - Evaluations are serialized with a semaphore and start from a cleared runner.
 - The runner's HMR is off.
 - `hotUpdate` also invalidates transforms in flight.
@@ -556,7 +564,8 @@ The cost is that every transform re-evaluates the cssints library. After the fix
 ### Value constructors are sites
 
 `new CSSColorValue(...)` and a top-level `CSS.rem(1)` are now instrumented like `css.*` calls. At build time they evaluate to objects, as before, so the twin checks real values. In the client the call is replaced by its CSS text: `export const accent = "#3b82f6"`, `const gap = "1rem"`. This closed two gaps:
-- A top-level `CSS.rem(1)` used to fail with "site did not produce a css.* value".
+
+- A top-level `CSS.rem(1)` used to fail with "site did not produce a css.\* value".
 - A token module that only did `new CSSColorValue(...)` had no sites, so it passed through untouched. Its `import { CSSColorValue } from "cssints"` then pulled `macro.mjs`, with the twin and BCD, into the client.
 
 Values used at runtime are strings in the client. `toString()` gives the same text, but `.value` and `.unit` are gone there.
@@ -565,14 +574,14 @@ Values used at runtime are strings in the client. `toString()` gives the same te
 
 The spikes became workspace packages in one bun workspace. The old approaches were deleted; they are in git history before this change.
 
-| Now | Was |
-|---|---|
-| `packages/cssints` (`src/`: plugin and library, `test/`: fixtures, spec, hmr app) | `spikes/runner` |
-| `packages/css-grammar` (`src/`, `test/`, `bench/`, `scripts/extract.mjs`) | `spikes/typelevel` |
-| `apps/demo` | `spikes/runner/app-react` |
-| `packages/variants` | `packages/cssints-variants` |
-| `docs/research/`, `docs/archive/` | `docs/*.md`, `docs/superpowers/` |
-| deleted | `packages/lightningcss-napi`, old `packages/cssints` (Parcel), `apps/demo` (oxc-macro), `apps/tsdown-demo`, `spikes/typegen` |
+| Now                                                                               | Was                                                                                                                          |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `packages/cssints` (`src/`: plugin and library, `test/`: fixtures, spec, hmr app) | `spikes/runner`                                                                                                              |
+| `packages/css-grammar` (`src/`, `test/`, `bench/`, `scripts/extract.mjs`)         | `spikes/typelevel`                                                                                                           |
+| `apps/demo`                                                                       | `spikes/runner/app-react`                                                                                                    |
+| `packages/variants`                                                               | `packages/cssints-variants`                                                                                                  |
+| `docs/research/`, `docs/archive/`                                                 | `docs/*.md`, `docs/superpowers/`                                                                                             |
+| deleted                                                                           | `packages/lightningcss-napi`, old `packages/cssints` (Parcel), `apps/demo` (oxc-macro), `apps/tsdown-demo`, `spikes/typegen` |
 
 `@cssints/css-grammar` exports its sources directly (`@cssints/css-grammar/twin` → `src/twin.ts`); `macro.mjs` imports it by name instead of `../../typelevel/`. Budgets and the `mdn.ts` output did not change.
 
@@ -585,6 +594,7 @@ StyleX, Panda, Tailwind v4 and UnoCSS each ship one global stylesheet and sort e
 In our demo build, LightningCSS minify on the output file already removes rules repeated across modules (85 → 70) and keeps the `@layer` order, as long as `layers.css` comes first. Per-module CSS cannot fix order inside one layer. Two breakpoints in `_.c`, or `p(4)` and `pl(2)` in `_.a`, resolve by the order Vite joins modules.
 
 Recommendation: one global sorted virtual sheet. Sort by:
+
 1. layer;
 2. condition (min-width ascending, then pseudo order);
 3. shorthand before longhand;
@@ -633,6 +643,7 @@ The demo's CSS is byte-identical after the migration. `grid().templateColumns(..
 The CSS output is one stylesheet, `virtual:cssints.css`, imported once from the app entry. It replaces `layers.css` and the per-module CSS modules. The plugin records each module's classes, and the sheet is their union, so every rule appears once.
 
 Rules are sorted by:
+
 1. layer;
 2. condition, a slot that stays empty until conditions land;
 3. shorthand before longhand, by the number of leaf longhands in mdn-data `computed`, so `border` comes before `border-top`;
@@ -657,6 +668,7 @@ DTCG 2025.10 has no constraints and no math. It is a static format: types, alias
 Ariakit's Tailwind plugin does not use `contrast-color()`. It derives layers with relative colours and `calc`. Text contrast comes from a WCAG table computed in JS when the plugin is built, and CSS picks a row with style queries. That needs about Chrome 138, Firefox 151 and Safari 18, and only `ak-ink` claims AA.
 
 For us:
+
 - The compiler can check what is static: value types, alias graphs, theme completeness, and the contrast of token pairs in each theme.
 - Derived values (`calc`, `color-mix`, relative colour) and anything that depends on the DOM stay in CSS.
 - `@property` initial values must be computationally independent, so aliases need a flattened literal plus a live `var()` declaration.
@@ -676,6 +688,7 @@ The old `oxlintrc.json` was named without the dot, so oxlint never read it. With
 With every non-obsolete mdn property the grammar has 636 properties and 256 syntaxes: 66.5 KB, 15.5 KB gzip. All 892 grammars parse.
 
 What breaks today:
+
 - Unit range bounds (`<time [0s,∞]>`) make the twin reject every `animation-duration`, `transition-duration` and `font-style oblique` value.
 - The open repetition `#{2,}` breaks the types and the generator.
 - 15 referenced types have no syntax and no primitive (`url`, `zero`, `resolution`, `flex`, …). 88 properties reach one of them, so `url(a.png)` and `1fr` fail.
@@ -690,10 +703,10 @@ Decision: ship every standard and experimental property at once, with nonstandar
 
 Ariakit's parent-relative colour and concentric radius come down to two small kernels. A compiler can emit each once, and per-site classes then only set custom properties.
 
-| Kernel | Size, minified | Ariakit | Floor (Chrome / Firefox / Safari) |
-|---|---|---|---|
-| Frame: radius, padding, border, margin | 40 lines, 667 bytes | about 4 KB | 111 / 151 / 18 |
-| Surface: lighten, darken, contrast against the parent | 29 lines, 434 bytes | about 12 KB | 122 / 151 / 18 |
+| Kernel                                                | Size, minified      | Ariakit     | Floor (Chrome / Firefox / Safari) |
+| ----------------------------------------------------- | ------------------- | ----------- | --------------------------------- |
+| Frame: radius, padding, border, margin                | 40 lines, 667 bytes | about 4 KB  | 111 / 151 / 18                    |
+| Surface: lighten, darken, contrast against the parent | 29 lines, 434 bytes | about 12 KB | 122 / 151 / 18                    |
 
 The frame kernel gives the same radii as Ariakit on a nested tree. Both were checked in Chrome at three depths.
 
@@ -706,6 +719,7 @@ Decision: not in 0.1. Later, an opt-in module: `frame()` first, then `surface()`
 CSS Parser Extensions is one person's explainer, with no spec draft and no implementation, so we plan on nothing native. cssints does not need it: the compiler knows every class it emits, so a runtime polyfill does not have to parse CSS.
 
 **Prototype.** The runtime for `frame()` and `surface()` on browsers without style queries is 730 B gzip (the container-query polyfill is 9.8 kB). It copies each parent's computed value into a custom property.
+
 - **Correctness.** It matched the style-query version on 2088 values in Chrome 154, Firefox 155 and WebKit 26.6, across three depths, class toggles, inserts, `:hover` and a media query.
 - **Cost.** About 10× the style-query CSS on 5 000 nested elements (about 120 ms in Chrome), but about 2 ms for a small change, so it ships only when a browserslist target needs it.
 - **Floor.** Frames drop to Chrome 99, Firefox 128 and Safari 16.4. Surfaces gain only Firefox 128–150, because relative colour still sets their floor.
@@ -728,6 +742,7 @@ The exceptions are what user code calls in expressions: the `css.*` builders, th
 **Errors.** A failing `css.*` call reaches Vite as a tagged error with `loc`, so the overlay points at the user's call (`fixtures/invalid.ts` line 6, column 17). `cv()` became lazy, so its config is checked at its site.
 
 **Tooling:**
+
 - User code gets types from `src/types.ts` and the generated `src/members.ts`.
 - `bun run typecheck` runs `tsgo` plus `effect-tsgo diagnostics` in each package. `@effect/tsgo` 0.45 patches native TypeScript 7 in `prepare`, which takes over `.bin/tsc`, so the TypeScript 5.9 checks call it by path.
 - `vp pack` builds both packages.
@@ -751,6 +766,7 @@ Wrappers take styles and return styles, and they nest: `media(q)` (as a string, 
 ## Every standard property (cssints-lmru)
 
 The grammar holds every standard and experimental mdn-data property, 529 in all, and the cssints members follow it: 536 properties plus 49 pseudo-classes. To get there, the twin, the generator and the types learned:
+
 - ranges with units;
 - open repetition `{A,}`;
 - the missing primitives (`url`, `zero`, `resolution`, `flex`, `ident`, `hash-token`, `declaration-value`, `intrinsic-size-keyword`);
@@ -759,6 +775,7 @@ The grammar holds every standard and experimental mdn-data property, 529 in all,
 `AnyOrder` stops when a part failed. That took `font-variant: "none"` from 4.3 M instantiations and TS2589 to about 50 k. An unused table still costs 0.
 
 **Against Chrome 154.** 16 731 of 18 215 values agree (91.8%). There are 0 unexplained twin-accepts rows, down from 826:
+
 - 128 became prose rules and 17 support lookups;
 - the rest are in KNOWN with their upstream cause: mdn-data stale or wider than the spec (324), BCD gaps (206), spec grammar as written (73), Chrome differs (71), `linear()` (7).
 
@@ -767,12 +784,14 @@ Types and twin agree on all 4232 sampled rows. Numeric ranges are skipped there,
 **`<declaration>` in types.** When merged with conditions, `<declaration>` inside `supports()` and container `style()` alternated over all 529 properties: 581 k instantiations for 16 queries and 1.23 M for 7 `supports()` calls. The types now take a `<declaration>` as balanced tokens, and the twin checks the real declaration at build time. That brings them to 100 k and 27 k. `supports("(display: grdi)")` is now a build error, not a type error; `cases-queries.ts` lists it under `runtimeOnlyQueries`.
 
 **Open:**
+
 - The reverse direction (Chrome accepts, the twin rejects), mostly stale mdn-data grammars such as `image-orientation: none` and `tab-size: 3.5`; a follow-up could prefer the webref property grammar where mdn-data is stale.
 - `attr(x type(<length>))`.
 
 ## Tokens (cssints-79xr)
 
 `css.token.<type>(initial, name?)` gives a Typed OM value whose text is `var(--name)`, so it fits typed parts and single-part properties.
+
 - **Checking values.** The twin knows no `var()`, so a value that uses a token is checked with each token swapped for a literal of its type.
 - **Names.** A named token can be set. An unnamed one is private, with a `--_<hash of file and site>` variable, and setting it is a type error and a build error.
 - **`@property`.** Each token adds one `@property` rule to the global sheet, after the layer statement and outside the layers, deduplicated across modules. A clash is a build error at the second declaration.
@@ -782,6 +801,7 @@ Types and twin agree on all 4232 sampled rows. Numeric ranges are skipped there,
 **A spec rule that changed the design.** `@property initial-value` must be computationally independent, and Chrome drops the rule when it is `1rem`, `1em` or `1ch`. So a font-relative initial value is a build error, and API.md now writes `16px`.
 
 **Left out for now:**
+
 - `resolution`, `url` and `image`, whose grammars were missing when the branch started; they landed with cssints-lmru.
 - Typed-part sentinels for `integer`, `angle`, `time` and `custom-ident` in `css.ts`.
 
@@ -792,6 +812,7 @@ In the demo, one token is read by a class and set in a `style` prop, and both we
 `<color>` accepts relative colour (`oklch(from var(--x) l c h)`), `contrast-color(<color>)`, `if()` and `var()`. The `from` forms and `if()` come verbatim from @webref/css, which has css-color-5 and css-values-5; mdn-data 2.27.1 has neither. The few overrides are documented in `extract.mjs`: `contrast-color( <color> )` from css-color-5, `<custom-property-name>` and `--x : <declaration-value>` in `<declaration>`.
 
 **Twin.** The twin checks what the grammars do not carry:
+
 - Channel keywords exist only inside the colour function that has a `from`.
 - `calc()` or `var()` may stand for a number there, and `calc()` is type-checked against its position, so `calc(h + 30deg)` is rejected, as in Chrome.
 - `if()` branches go through the same condition grammars as `@media` and `@supports`.
@@ -801,18 +822,21 @@ In the demo, one token is read by a class and set in a `style` prop, and both we
 **Chrome and BCD.** Chrome 154 agrees on every generated value (91.4% overall, since mutants with `var()` or `if()` always pass in Chrome). The BCD lookups for `contrast-color`, `if` and `relative_syntax` warn for Firefox and Safari targets.
 
 **Limits:**
+
 - `if()` and `var()` exist only in `<color>`. A value-level pending-substitution rule is the general fix.
 - `min()`, `max()`, `clamp()` and nested `calc()` in channel positions are not accepted yet.
 
 ## Typed public surface (cssints-v63t)
 
 User code gets the grammar check on every property call. Each of the 536 members is generated as `Prop<"property">`: a variadic function that checks its parts against the mdn grammar through `Valid` and returns a branded class string, `Style`.
+
 - **Parts:** strings, Typed OM values, and a lone number, which is a spacing step in `padding*`, `margin*`, `gap*` and `inset*` and a `<number>` elsewhere. A `Style` passed as a part is a type error, matching the build-time error.
 - **Chains:** `flex()` and `grid()` chain methods are typed with their properties.
 - **Only `Style` accepted:** `cv` config values, `cn`, `style` and the condition wrappers take only `Style`, so `cv({ base: "padding: 1rem" })` is a type error.
 - **Demo:** it type-checks with tsgo and tsc 5.9 (`bun run typecheck`) and needed no fixes.
 
 **Cost.**
+
 - The demo check goes from 171 k to 554 k instantiations (tsc), and from 0.22 s to 0.36 s (tsgo).
 - About 100 calls cost 710 k (`packages/cssints/bench/users.ts`, budgeted).
 - An edit to `Button.tsx` gets diagnostics in about 200 ms over tsgo's language server (`bench/lsp.mjs`).
@@ -820,6 +844,7 @@ User code gets the grammar check on every property call. Each of the 536 members
 - Shipping `.d.ts` instead of `.ts` sources would spare users' `skipLibCheck` builds; that belongs to publishing.
 
 **Limits.**
+
 - The error lands on the first argument of a call, not on the bad part.
 - `calc()`, `min()`, `max()` and `clamp()` are not in the recognizer yet: `width("calc(100% - 2rem)")` fails in types and at build time alike.
 
@@ -828,6 +853,7 @@ User code gets the grammar check on every property call. Each of the 536 members
 `createTokens` turns inline DTCG-shaped data into named tokens. `$type` is inherited through groups. `color`, `dimension`, `number`, `duration` and `fontWeight` map to token types, and other DTCG types are rejected with the list of supported ones. Aliases get the flattened literal in `@property` and stay live as `var()` on `:root`, with cycles and type mismatches as build errors.
 
 `createGlobalTheme` re-declares the overridden tokens, and the aliases that depend on them, under:
+
 - a media condition, on `:root`;
 - a container condition, on `:where(*)`, because `:root` never matches a container query (checked in Chrome);
 - or a selector.
@@ -835,12 +861,14 @@ User code gets the grammar check on every property call. Each of the 536 members
 Token and theme rules sit in `_.k`. They set custom properties only, so site classes still win. A module also carries the rules of every token it uses, because attributed imports are stripped from the client and the theme module would otherwise never reach the sheet.
 
 `css.check.contrast` computes WCAG 2.x for the defaults and for each theme that affects the pair, at module evaluation and again at build end.
+
 - Below `min` is a build error that names the theme and both values.
 - Values it cannot read (`color-mix()`, `currentColor`, translucent colours) are warnings.
 
 The colour maths is `culori/fn` (9.4 kB gzip) and is loaded only at build time; none of it is in the bundle. The demo has a dark theme checked in Chrome with `emulateMedia`. Perf and the Quint invariants are unchanged.
 
 **Open:**
+
 - `rem` dimensions are rejected, since `@property` needs a computationally independent initial value. A fix would flatten `rem` to `px` in `@property` and keep the live `rem` on `:root`.
 - Themes are checked one at a time, not in combination.
 - Theme selectors are not grammar-checked.
@@ -850,6 +878,7 @@ The colour maths is `culori/fn` (9.4 kB gzip) and is loaded only at build time; 
 `calc()`, `min()`, `max()`, `clamp()` and the rest of the CSS Values 4 family (`round`, `mod`, `rem`, trigonometric functions, `pow`, `sqrt`, `hypot`, `log`, `exp`, `abs`, `sign`) are accepted wherever a `<number>`, `<integer>`, `<length>`, `<percentage>`, `<length-percentage>`, `<angle>`, `<time>` or `<resolution>` is.
 
 **Twin.** The twin checks each call with one typed parser (`mathScan`) that follows the §10.7 type rules. It replaces the old `calcType` and serves calc-size() and relative-colour channels as well.
+
 - `calc(100% - 2rem)` is a length-percentage.
 - `calc(1px + 2s)` and `min(1px, 2%)` for a plain `<length>` are build errors, and the message says why ("cannot add length and time").
 
@@ -866,6 +895,7 @@ The demo uses `width("calc(100% - 2rem)")`, and the sheet test asserts it.
 Token types now cover every `@property` syntax type we support, `resolution`, `url` and `image` included. Chrome accepts a sample `initial-value` for each, through `CSS.registerProperty` and in a real stylesheet.
 
 Every token fits the typed parts of its own type and no others. Two exceptions are deliberate:
+
 - `⟨integer⟩` also fits `<number>`;
 - `⟨url⟩` also fits `<image>`.
 
@@ -882,6 +912,7 @@ All four are live in Chrome or Safari per BCD. `-webkit-overflow-scrolling` was 
 ## JSDoc on generated members (cssints-7pv1)
 
 Every generated member carries a one-line JSDoc, so the editor hover explains the value. It holds:
+
 - the property's grammar (from `mdn.ts`, so the enforced ranges show);
 - the first version of Chrome, Edge, Firefox, Safari, iOS Safari and Chrome Android that supports it without a prefix or flag (BCD, through the lookup in `support.ts`);
 - an MDN link.
@@ -893,6 +924,7 @@ Pseudo-class wrappers get the support row and the link. tsgo's hover does not sh
 `bun run build` followed by `bun run pack:tgz`, in `packages/cssints` and in `packages/css-grammar`, produces two tarballs with only `dist/` (`.mjs` and `.d.mts`): cssints is 32 kB and css-grammar is 61 kB. The workspace still runs from sources: the top-level `exports` point at `src/*.ts`, and the published `exports` live in `publishConfig`. npm ignores that field, so `scripts/pack.mjs` stages `dist` with a merged manifest (`workspace:*` becomes `^0.1.0`) and runs `npm pack` on it.
 
 `bun run test:smoke` is the release check. It installs the tarballs with npm into a fresh Vite 8 and React app, builds it with plain `vite`, and asserts:
+
 - the CSS is right;
 - the only library code in the client bundle is the browser runtime;
 - tsgo and tsc 5.9 type-check the app, with `color("blu")` still an error.
@@ -912,6 +944,7 @@ Both npm names were unclaimed on 2026-09-30, but the `@cssints` scope must be cr
 - **Demo:** a feature tour covering every 0.1 feature, checked in Chrome with 51 checks at 500, 800 and 1200 px, in dark mode, with hover, active, focus-visible and a token set in `style`.
 
 **Engine limits found, now documented and ticketed:**
+
 - An unreached top-level `css` call fails: `false && p(4)` gives "site N was not evaluated".
 - A top-level `_cv(...)` call fails at build time.
 - A runtime value in a `css` call fails with "n is not defined", while the types accept it.
@@ -926,15 +959,16 @@ We compared each of the 529 properties by behaviour against Chrome 154. webref a
 
 The twin parses 1401 of 1403 webref grammars; the two failures are typos in webref.
 
-| Variant | Agreement with Chrome | Chrome accepts, twin rejects | Budget |
-|---|---|---|---|
-| mdn-data (today) | 88.6% | 2300 | as is |
-| webref for 47 properties | 90.0% | 1499 | +0.5% |
-| webref everywhere | 84.6% | 1508 | +11 to +14% |
+| Variant                  | Agreement with Chrome | Chrome accepts, twin rejects | Budget      |
+| ------------------------ | --------------------- | ---------------------------- | ----------- |
+| mdn-data (today)         | 88.6%                 | 2300                         | as is       |
+| webref for 47 properties | 90.0%                 | 1499                         | +0.5%       |
+| webref everywhere        | 84.6%                 | 1508                         | +11 to +14% |
 
 Switching everything would add draft syntax that Chrome rejects (171 properties), break curated cases and blow the budget.
 
 **Recommendation: switch per property.** Take webref's grammar for a property when all of these hold:
+
 1. both sources have it;
 2. its closure parses and resolves;
 3. the two grammars differ on a sample;
@@ -963,6 +997,7 @@ The intermittent mbt failure (the tokens-fetch mismatch) did not survive the `ra
 ## Pending substitution: var(), env(), if() in any property value (cssints-xrzv)
 
 A `var()`, `env()` or `if()` may stand anywhere in any property value. This removes the "only in `<color>`" limit of cssints-gcuz. Each call stands for zero or more component values, commas included, and the rest of the value is still checked:
+
 - `padding: var(--a) 2px` and `margin: var(--a)` pass;
 - `padding: var(--a) red` and `border: 1px var(--x) solud` are errors.
 
@@ -973,6 +1008,7 @@ Chrome accepts all of these, so we are stricter on purpose.
 **Scope.** `env()` is included, because it is the same kind of substitution function. `attr()` is not: outside `content` it is typed. A call is checked by shape only; its fallback, its `if()` branch values and the `env()` name are not checked against the position. Tokens are unchanged, and the types follow the same rule.
 
 **Cost:**
+
 - +2–3% on the instantiation budgets;
 - +6 k fixed when the sources are checked, and 0 from the published `.d.mts` with `skipLibCheck`;
 - +16% on values made of calls.
@@ -986,17 +1022,18 @@ Chrome 154 agreement is 91.4%, as before.
 `extract.mjs` reads `packages/css-grammar/scripts/webref-properties.json` by default and takes webref's grammar for the 45 properties listed there. `WEBREF=none` gives mdn-data alone, byte for byte as before. `bun run webref` applies the rule, with Chrome as the judge, and rewrites the list in about a minute. Run it, then `bun run extract`, after a bump of Chrome, @webref/css, mdn-data or the twin.
 
 Re-measured on the current twin, the list is 45, not 47:
+
 - `all` and `z-index` left, because CSS-wide keywords are exempt;
 - `flex` left, because its grammar text is the same in both sources;
 - `pointer-events` joined.
 
 Five small hand overrides live in `extract.mjs` (`image-orientation`, `column-rule-width`, `column-rule`, `zoom`, `outline-color`), and the script re-checks them against Chrome on every run.
 
-| | Before | After |
-|---|---|---|
-| Chrome agreement | 91.4% | 92.2% |
-| diff-support rows | 1317 | 1155 |
-| KNOWN rows | 588 | 477 |
+|                   | Before | After |
+| ----------------- | ------ | ----- |
+| Chrome agreement  | 91.4%  | 92.2% |
+| diff-support rows | 1317   | 1155  |
+| KNOWN rows        | 588    | 477   |
 
 Ten obsolete KNOWN entries were removed. Budgets moved by at most 0.4%, and the demo build is byte-identical.
 
@@ -1035,6 +1072,7 @@ Both parts ship. Findings, numbers and the shapes that were tried and dropped ar
 **Completions inside strings, with limits.** The editor offers the keywords that start with the word under the cursor: `display("fl…")` offers `flex`, `flow` and `flow-root`. This works in later parts and in empty parts too. The keywords come from a generated table (`src/keywords.ts`, written by `bun run extract`), bucketed by first letter, so the recogniser budget is untouched.
 
 Limits:
+
 - it offers keywords from the whole grammar, not only those that fit at that point;
 - it stops once the string is valid;
 - it looks only at the last word;
@@ -1232,6 +1270,7 @@ The warnings were never lost in the logger: a derived `color-mix()` colour warne
 The data layer is small: `@atcute/client` 5.1, `@atcute/bluesky` 4.0 and the richtext segmenter, no login and no identity resolver (`getProfile`, `getAuthorFeed`, `getPostThread` take a handle from the URL). Everything the three screens need works without auth on `public.api.bsky.app`: a feed generator such as Discover, author feeds with five filters, threads, profiles. `searchPosts` is blocked there by a CDN 403 (it works on `api.bsky.app`), so search stays out of the first version. Details, the endpoint table and a type-checked data-layer sketch are in `docs/research/atproto-data.md`.
 
 Three things need app code:
+
 - **Moderation:** about 17% of Discover posts come from accounts that asked not to be shown logged out, and adult posts arrive labelled, not removed. A rule of about 25 lines (trust only the Bluesky mod service and the author; hide adult labels) agrees with `@atcute/bluesky-moderation` on 10 822 posts.
 - **Paging:** Discover's cursor grows until a 414 after about 21 pages, and moderation shortens pages, so keep loading while a cursor exists.
 - **Solid 2 (rc.13):** an async `createStore(fn)` is the first page under `<Loading>`, a plain `loadMore()` appends; a store write in the same tick as a source change drops the re-run, and signal writes are invisible until the flush. The helper in the doc avoids both.
@@ -1257,6 +1296,7 @@ The settings live at `/settings` (a route and a nav item; the right rail is hidd
 ## sky: post card and embeds (cssints-n3xy)
 
 The card, every embed (images, gallery, external link, quote incl. not found/blocked/detached/hidden, quote with media, video as a poster) and the moderation states (tombstone, blur with "Show anyway") are in `apps/sky/src/post/`, shown on `/dev/posts` (dev only) from 15 recorded posts and on the home screen's first Discover page. Measured in Chrome:
+
 - **`frame()`:** card / quote / media in the quote are concentric with only the card's radius written: 20 / 11 / 6 px at a 360 px card, 20 / 7 / 2 px at 600 px (a wide card pads 12 px instead of 8, and the nested radii follow).
 - **`surface()`:** OKLCH lightness feed 0.940, card 0.980, quote 0.950 in light; 0.248, 0.288, 0.318 in dark (`contrast()` darkens a light card's quote and lightens a dark one's).
 - **`container("post (width >= 28rem)")`:** avatar beside or above the text, three images as a banner plus two or three columns, gallery in two or four columns.
@@ -1295,7 +1335,7 @@ LightningCSS passes `line-clamp` through untouched for every target (no `-webkit
 
 ## sky: text on the accent picks black or white (cssints-2jzr)
 
-`color.onAccent` is a derived relative colour reading the accent's luminance (via `lab(from color(from … srgb-linear …))`): white under CIE L* 49.4, black over it, where both tie at 4.58. OKLCH `l` as first sketched cannot work: the accent's `l` is the same at every hue, so it would never move with the slider, and any `l` threshold leaves a gap where neither holds 4.5. Mu's pink accent is light enough that the label is black at all 361 positions (worst 5.54; white was 3.79 at pink, 2.76 at worst). In light, `link` now uses `accentStrong` (L 0.47 instead of 0.525), so links and the rail note hold 4.5 at every hue. `accent` on white stays below 3 at cyan-green hues in light: a documented exception for large text and graphics. `check.contrast` cannot read a relative colour, so `test/contrast.mjs` holds the pair; Chrome agrees with the model at 361 hues and 65 other accents.
+`color.onAccent` is a derived relative colour reading the accent's luminance (via `lab(from color(from … srgb-linear …))`): white under CIE L\* 49.4, black over it, where both tie at 4.58. OKLCH `l` as first sketched cannot work: the accent's `l` is the same at every hue, so it would never move with the slider, and any `l` threshold leaves a gap where neither holds 4.5. Mu's pink accent is light enough that the label is black at all 361 positions (worst 5.54; white was 3.79 at pink, 2.76 at worst). In light, `link` now uses `accentStrong` (L 0.47 instead of 0.525), so links and the rail note hold 4.5 at every hue. `accent` on white stays below 3 at cyan-green hues in light: a documented exception for large text and graphics. `check.contrast` cannot read a relative colour, so `test/contrast.mjs` holds the pair; Chrome agrees with the model at 361 hues and 65 other accents.
 
 ## Support warnings read the browserslist config and ask LightningCSS (cssints-fxzg)
 
@@ -1351,7 +1391,7 @@ Asked by the user. `tools/ai-automation` (from effects-of-atmosphere) is a bun w
 
 ## Effect checks in the last five engine files (cssints-6nqy)
 
-After the mise-en-mode session committed, `macro.ts` and `author.ts` moved to the engine's Effect replacements, `lib.ts` (the sync css.* builders and the class hash) joined `plainCode`, and the temporary `inFlight` overrides left vite.config.ts and tsconfig.effect.json: `vp lint` is 0 errors and 0 warnings, the Effect language service reports nothing. `trace-otlp.ts` silences `unstableApiUsage` for the file (OTLP and FetchHttpClient are unstable in effect 4.0.0). perf.mjs, measured in one worktree for both sides, is within noise (median 14.5 vs 13–15 ms per eval); a worktree with its own install measures about twice slower than the main checkout, so A/B runs must share one. The subagent's session broke twice on a harness error and the coordinator finished the ticket.
+After the mise-en-mode session committed, `macro.ts` and `author.ts` moved to the engine's Effect replacements, `lib.ts` (the sync css.\* builders and the class hash) joined `plainCode`, and the temporary `inFlight` overrides left vite.config.ts and tsconfig.effect.json: `vp lint` is 0 errors and 0 warnings, the Effect language service reports nothing. `trace-otlp.ts` silences `unstableApiUsage` for the file (OTLP and FetchHttpClient are unstable in effect 4.0.0). perf.mjs, measured in one worktree for both sides, is within noise (median 14.5 vs 13–15 ms per eval); a worktree with its own install measures about twice slower than the main checkout, so A/B runs must share one. The subagent's session broke twice on a harness error and the coordinator finished the ticket.
 
 ## Plugin API step 1: engine seams (cssints-0v30)
 
@@ -1389,7 +1429,7 @@ The earlier note (rem read as px on the first style pass under a container query
 
 Decided by the user against the coordinator's advice: `createTokens` leaves are getters, `t.color.accent()` returns the token, groups stay plain objects (themes, `check.contrast`, `look`, scope `$tokens` take the set); `token.<type>()` stays a value. The token type carries the definition's `$value` as text, `Token<K, S, V = string>` (a covariant phantom `"~value"`), inferred and shown on hover: an alias carries its `{path}` string (a theme can change the target), a number or unit value its CSS text, a colour object or a JSON import (sky) `string`; V is `:root`'s definition, themes override it. An uncalled getter is a type error on the argument (`TokenGetter` is a `Part` only to report `⟨uncalled-token-getter⟩`) and a located build error (`call it, as in t.color.base()`). Sky's instantiations +0.4%, editor latency unchanged under equal load. The merge with cv() missed one bracket access (`t.space["2xs"]`); the build error named it. Known red on master since the user's "ship built dist" commits (2026-10-05): `bench/errors.ts` 13 errors vs 12 and "tighten" rows (benches without the `development` condition read the cheaper dist types), and `vp fmt --check` on four package.json files; `dist/` is tracked, so every source change rebuilds and commits it.
 
-## Token getters reverted; the value in the type stays; digit keys read as _2xs (cssints-tdiu)
+## Token getters reverted; the value in the type stays; digit keys read as \_2xs (cssints-tdiu)
 
 The user looked at a sky hover and saw what the coordinator had warned: sky's tokens come from `tokens.json`, and TypeScript widens a JSON import's values to `string`, so the getter showed the union of every kind and a template string, and `()` on every use bought nothing. The getters are reverted (`d7ef4db`, a revert of the merge; cv() untouched). Kept: `Token<K, S, V>` with the definition's value as text, which shows on hover for `const` token objects (demo, packages, tests) and is `string` for JSON. Added: a key that starts with a digit is read as `_` and the key (`t.space._2xs`, `t.fontSize._2xl`), so no bracket access; overrides of a theme follow the set (`{ space: { _2xs: "3px" } }`), while the variable (`--space-2xs`), `{space.2xs}` references and the DTCG data keep the key; `2xs` and `_2xs` in one group is a build error. Real hover values for JSON tokens would need a generated `.d.ts` beside the JSON or a `tokens.ts`, at a type cost to re-measure (cssints-lfoi bought sky's 10.1M → 2.4M instantiations by not having literals).
 
@@ -1405,38 +1445,31 @@ A JSON import widens every value to `string`, so a sky token showed every kind a
 
 Every function with an mdn-data grammar (110) is a `css` member and named import, generated from `functions.json` and the `name()` syntaxes (`extract.mjs` writes `css-grammar/src/functions.ts`, `scripts/members.ts` the types), not written one by one: `css.calc(t.space.md, "*", 2)`, `css.lightDark("white", t.color.bg)`, `css.linearGradient("90deg", [t.color.a, "25%"], "blue")`. Parts are tokens, numbers, strings, nested calls, or arrays joined by a space; `"+" "-" "*" "/"` join with spaces, other parts with the function's separator (a comma, or a space where the grammar has none). The result is a Typed OM value built at build time; the twin checks the whole call against `<name()>`. Math functions are typed by the kinds of their arguments with CSS precedence (length + time is a type error on the argument); other calls are checked as text against `<name()>`, the error on the first argument (the recognizer does not say where it stopped). Clashes: `colorMix`, `min`, `max`, `clamp` are generated (`colorMix("in oklab", …)`, `clamp<"number">` gone, the scope `cssints-fn` deleted); `attr` stays the condition and a function that clashes with a property or condition gets `Fn` (`attrFn`, `colorFn`, `translateFn`). `css.var(token, fallback?)` types the fallback as the token's type; a raw `var(--token)` string of a declared token warns with the token to pass. The agent's rule that any other `var()` is a build error broke the merge (Shiki's `--shiki-light` in apps/docs, motion's namespaced `--motion-o`), so other custom properties are left alone. Cost: members.ts +17%, `users.ts` +1.2%, a new `functions.ts` bench (377k).
 
-
 ## Typed OM imports in build-time modules (2026-10-08, cssints-tn5i)
 
 The import check ran in both environments, so a plugin module could not `import { CSSColorValue } from "cssints"` without the attribute, as the "Functions" example in API.md does: the error was raised in the ssr transform, while the Module Runner loaded the plugin. In that environment `CSS`, `CSSStyleValue`, `CSSUnitValue`, `CSSColorValue` and `CSSImageValue` are real exports of the eval-time library, so the ssr check now accepts them plainly. The client check is unchanged: the browser's `cssints` (runtime.ts) has none of them, and with the attribute a constructor is a site that ships as its CSS text ("Value constructors are sites"). A plugin module never reaches the client (its import has the attribute), so only the ssr check sees it.
 
 `cssints` now exports `CSSStyleValue` (the base, for a value of another type) and `CSSImageValue` (an `<image>` text, beside `CSSColorValue`). `@cssints/fluid` and `@cssints/gradient` import them from `cssints` and no longer depend on `@cssints/css-grammar`. docs.mjs runs the `tint`/`step` example through the engine.
 
-
 ## Ranges and long lists in the types (cssints-ini5, 2026-10-08)
 
 Found by @cssints/gradient and @cssints/tokens. **Lists.** A `#` list stopped after 9 items in the types (the depth cap of `Star` and `ListRest`), so Open Props' `linear()` springs and bounces (14 to 44 stops) were type errors that built. `ListRest` now has no cap, like the twin: it is tail-recursive and goes on only with remainders it has not seen (they are suffixes of the value, so it ends; a `var()` may stand for the comma, so the text alone does not shrink). Unconstrained parameters keep the declaration cheap: the floor (`empty.ts`) fell from 28.5 k to 26.4 k on tsc and from 28.7 k to 26.7 k on tsgo. 44 stops cost about 50 k. `*` and `+` keep the cap of 8. **Ranges.** The types stripped every `[lo,hi]`. They now keep a range whose bounds are integers from 0 up, `-∞` or `∞` (all of mdn's but `[0s,∞]`, `[-90deg,90deg]` and `[-∞,-1]`), and reject a plain decimal out of it on any numeric primitive: the sign, the integer part and whether the fraction is zero, compared digit by digit, the unit ignored as in the twin's `magnitude`. A literal with an exponent, a sentinel, a math function or a `var()` is not read and passes; the twin checks it at build time. So `padding: -1rem`, `font-weight: 1001`, `column-count: 0` and `gradient(…, 1)` (`<integer [2,64]>`, a TS number or a string) are type errors now; types and twin agree on 4272 of 4272 sampled rows. Cost, net of the floor (tsc / tsgo): one `padding` 1.6 → 1.7 k / 3.3 → 3.5 k, 200 calls 218 → 224 k / 220 → 227 k, `nocolor.ts` +4%, `queries.ts` +5%, the rest +1–3%; budgets updated. cssints' bench stays red as on master (13 errors in `errors.ts`, see above).
-
 
 ## Runtime fallbacks of CSS only, requires covered by a runtime, one name per key (cssints-mz30, 2026-10-08)
 
 Found by `@cssints/fonts` `trim()`. A runtime's fallback reached only the targets with `@property`, because the parent-vars script stands on it; a runtime of `css` alone is no script, so it now reaches every target (`unreached()` in delivery.ts): `BROWSERSLIST="firefox 120"` gets capsize's trim. The derived-token runtime and every `parentVars` runtime keep the `@property` floor, so `frame()` and `surface()` do not change. A kernel's `requires` key that a runtime of the same style polyfills warns only for the targets that runtime does not reach: a fallback of CSS only silences it, a `parentVars` one still warns below `@property`. `uses` names a private key without its `#`, so `#trim` beside `trim` pointed at the member: rather than two namespaces (a `#` in `uses`, a second lookup), such a table is a type error and a build error (`#trim and trim share a name: rename one`).
 
-
 ## Layers below the engine's (cssints-63ia, 2026-10-08)
 
 Every declared layer was printed after `@layer _.k, _.a, …;`, so a plugin's `reset` layer ranked above the classes and `* { margin: 0 }` beat `margin("1rem")`; `@cssints/reset` nested its rules as `_.k.reset`, and a stylesheet could not name a layer between the reset and cssints. A declaration now says which side it is on: `layers("reset", { before: true })`, a table entry `{ layers: ["reset"], before: true }`, or `layers: { layers: ["reset"], before: true }` from `build` (a plain list stays "after"). The sheet prints the statements before the engine's first, then `@layer _.k, …;`, then those after; each side keeps the old rules (one order, a statement that holds another first, then longest first and by name), so several scopes give one deterministic order. A layer declared on both sides is a build error at the second call. `check.contrast` ranks the themes the same way: the layers before, `_.k`, the layers after. `@cssints/reset` is a top-level `@layer reset` before `_.k`, and `layers("reset", "base", { before: true })` puts a user's layer between it and cssints. Only the order of the statements changed, not when the sheet is rebuilt, so the Quint model is untouched.
-
 
 ## Value members take positional arguments and a label (2026-10-08, cssints-pnnw)
 
 A value member's `args` is now what a call member's is (a grammar, `arg<T>()`, or a tuple ending in an object of named leaves), checked by the same types (`Callable`, shared by both kinds) and the same runtime (`argsOf`, split out of `callOf`). `value` gets an array: a grammar's parts one by one, as before, or the arguments as `build` gets them. A table cannot type `value` from the `args` beside it (TypeScript does not infer the table's type through a context-sensitive function in it: tried through `Valid`, the parameter came out `never` or `any`), which is why call members have `build()`; a value member returns a value, not a style, so it gets the one-line identity `fn({ args, value })` instead, and the types reject a tuple written without it (its `value` would be typed as a grammar's parts). For the name in errors, `label?: string` on the entry beats dotted keys (every key check, `uses` paths and the export walk read a dot as an embedded scope) and member methods (a new kind of entry): `fluid` keeps `fluidContainer` as a key, attached by hand, with `label: "fluid.container"`, and its plain wrapper is gone. Lost: fluid's px/rem-only types; a grammar cannot name units, so `em` is a build error only. A tuple value member costs ~1.06k instantiations a call (32 calls of fluid's shape); the table checks add ~1.3k to plugins-defs.ts.
 
-
 ## Kernels written as styles reach children, set custom properties, carry keyframes (cssints-b4q6, 2026-10-08)
 
 The tier-1 plugins hit three walls in `css: (css) => [...]`: no child rules, no custom properties, no `keyframes()` name, so layout had a second raw `-base` kernel per primitive and motion a raw kernel that read untyped internals of the keyframes value. Two members only the kernel's `css` has (`KernelCss` in scope.ts; user code does not see them): `nest("& > *")`, a condition with `nest: true` whose text after `&` follows the class in the selector (in the order the conditions wrap, so `nest(hover(...))` is `> *:hover` and `hover(nest(...))` is `:hover > *`), and `vars({ "--_x": v })`, unchecked values. A kernel's styles may now hold the kernels of at-rule names (keys starting with `@`): they go into the member's carry before the kernel. Derived conflicts leave out custom properties and nested rules, since they are not the element's properties. Rules of two nested selectors of the same rank are grouped per selector within a run of equal conditions, not interleaved by property. layout is one kernel per primitive (`_layout-stack-core`, one class less per call), motion a styles kernel that names its four keyframes in `--motion-in/out/ri/ro`, with presets that pick one (`--motion-n: var(--motion-in)`) and conflicts derived (`kernel core sets animation, animation-name`).
-
 
 ## Kernels as styles: `&` anywhere in nest(), `--_x` in their keyframes (cssints-l8nq, cssints-ge5k, 2026-10-09)
 
@@ -1450,8 +1483,6 @@ Found by `@cssints/tokens`. A browser drops an `@property` rule whose initial va
 
 Found by `@cssints/balance`: `hover(pretty())` printed `text-wrap: pretty` everywhere, with no error. A kernel is global CSS keyed to its marker class, and a condition wraps declarations, so a member with no declaration of its own (`pretty()`, `frame()` with no method, `group()`) had nothing for the condition to wrap and its marker went out unconditionally. Making the kernel conditional per site would mean a second, conditional copy of its CSS under a minted class for each condition chain, for a case that has a native answer (`css.textWrap(...)` under the condition, `frame()` outside and its methods inside), so it is a build error at the call instead: `cssints: :hover wraps _balance-prettyCore, the marker of kernel balance.prettyCore, with no declaration of its own: …`. The one check is in the condition wrapper (macro.ts), which every condition goes through (pseudo-classes, `attr()`, `within()`, `media()`, `container()`, `supports()`); `carried()` keeps the markers that came without declarations as `bare` on a merged node, so `hover(cn(frame(), color("red")))`, `hover(frame(), color("red"))` and a condition around a `cn()` that holds one fail too, as does one inside a `cv()` variant. A member with declarations of its own under a condition (`hover(frame().padding(2))`) is unchanged: its custom properties are conditional and the kernel only reads them. The types do not catch it: a member is a class string in user code, and telling a marker-only one apart would need a brand on every member's return type.
 
-
-
 ## A runtime ships a script of its own (cssints-kuki, 2026-10-08)
 
 Found by `@cssints/reveal`, `@cssints/balance` and `@cssints/stuck` (cssints-qhug, cssints-q6il, cssints-z1hd): `virtual:cssints/runtime/<scope>.<entry>` held only `cssints/parent-vars` or the derived-token runtime, so each shipped its fallback as a subpath the app imported by hand, and a missing import was silent. A runtime entry now takes `script`, a module specifier that the runtime module imports when a target lacks a polyfilled key. A string, not `new URL("./runtime.ts", import.meta.url)`: tsdown keeps that URL as written, so `dist/index.mjs` would point at a `dist/runtime.ts` that does not exist, while a package subpath picks `src/` by the `development` condition and `dist/` otherwise, and Vite 8 resolves a package's own name from inside it, so its tests need no alias. It is resolved from the app's root, as `cssints/parent-vars` is, not from the scope's module: the engine does not know that file, and an app has the plugin among its dependencies; a scope embedded by another package under a strict layout (pnpm) would need the plugin hoisted (left for when it happens). A script stands on nothing, so it reaches every target (`unreached()`), which also covers its kernel's `requires` everywhere; it probes the feature in the browser. Deduplication is the browser's: one module, however many runtime entries name it. The three packages dropped the manual import from READMEs and tests, and their browser tests run the delivered script (a modern-only `BROWSERSLIST` gets `export {};`).
@@ -1459,7 +1490,6 @@ Found by `@cssints/reveal`, `@cssints/balance` and `@cssints/stuck` (cssints-qhu
 ## Function calls: the error on the bad argument (cssints-6jou)
 
 The recognizer cannot say where inside a call it stopped (a failed sequence reports its start), so the error of a non-math call landed on the first argument. `CheckFn` now finds the argument by prefixes with the recognizer's pending substitution: a `var()` stands for any run of values, so `name(parts 1..i, var(--x))` is a `<name()>` while the parts can go on (or `name(parts 1..i)` is complete), and the first part after which neither holds is the bad one (`Stop` in function-types.ts); a call that ends too soon puts `unexpected end … (after argument N)` on its last argument. The message is the twin's wording plus the position. It runs only on a call that is already an error: valid calls cost the same (functions.ts bench +3%), an error about 57k instantiations. Rejected: a per-argument `CheckIn` (TS2589 risk) and partial-failure tracking in `Consume` (the hot path). The build-time message still names no position.
-
 
 ## Support warnings of a kernel written as styles are covered by its runtimes (cssints-rp0e, 2026-10-08)
 
@@ -1469,7 +1499,6 @@ Found by `@cssints/squircle`, `@cssints/reveal`, `@cssints/balance` and `@cssint
 
 Found by `@cssints/reveal` (cssints-qhug): its `animation` shorthand kernel reset the timeline kernel, worked around with a doubled class until cssints-rp0e folded both into one kernel. The gap stays for any plugin: `_.k` prints kernels sorted by key, so with `"#view": animationTimeline("view()")` and `"#zap": animation("1s both")` in one member the shorthand came last and reset the timeline, and renaming a kernel flipped it. Rules weighed: `uses` order (a kernel is shared by members, and embedded ones by scopes, that may list it in another order, so the sheet would need a global order and an error on a cycle), a shorthand before its longhands across kernels (says nothing for one property in both), and an error. Chosen: the error, at the call site, when two kernels written as styles in one carry set properties of the element that meet under `cn()`'s `relation()` (`kernels zap and view both set animation, animation-timeline ...: write those in one kernel`); one kernel already sorts its declarations by the sheet's order. It is the smallest rule and cannot surprise: the declarations of two kernels of one member are one element's styles, so overlap is a mistake, as two kernels declaring one custom property already is. A raw kernel derives no properties and is not compared; nested rules and custom properties are not the element's and are left out, as for derived conflicts. The sheet order is unchanged (by key, so independent of module load order), so the Quint model is untouched.
 
-
 ## A plugin member carries a group marker (cssints-sbs8, 2026-10-08)
 
 Found by `@cssints/stuck` (cssints-z1hd): `within()` reads only `_g-<name>`, and no field of a member added one, so `sticky()` wrapped its chain in a Proxy that put `group("stuck")` on every node. A chain or call member now takes `group: true`: its carry (scope-engine.ts `grouped`, once per `uses` list, also for a call whose `build` adds `uses`) gets the marker `_g-<scope>` with the owner `group`, as `group()` makes it. The name is the scope's, not a free string: scope names are unique in the process, so two plugins cannot collide, and `within(state, "<scope>")` names it with no new syntax; a separate namespace (`_<scope>-g`) would need a second form of `within()` for little gain. A user's `group("stuck")` is the same group, documented rather than forbidden (the scope may register after the user's call). One group per scope, deferred until a plugin needs two. The marker comes after the kernels' markers, so the class list is `_stuck-core _g-stuck _x` and the error of a condition around a member with no declaration (cssints-q83n, unchanged: a group marker is a marker) names the kernel. stuck drops its Proxy and exports the scope's member as it is.
@@ -1477,7 +1506,6 @@ Found by `@cssints/stuck` (cssints-z1hd): `within()` reads only `_g-<name>`, and
 ## Plugins read the build targets; what a plugin throws is located (cssints-rf3k, 2026-10-08)
 
 Found by `@cssints/stuck` (cssints-z1hd). **Targets:** `cssints/plugin` exports `lacking(...keys)`, the targets that lack one of the BCD keys as browserslist names them (`["firefox 140"]`), from css-grammar's `lackingOf`: the query and the `partial_implementation` rule of the support warnings. A free function, not a context argument of `build`/`value`/`emit`: stuck's `stuck()` is a plain function of the plugin (it wraps the user's styles, which no member kind does), so an argument would not reach it, and a free function serves members too. The query itself stays hidden. stuck drops its `@cssints/css-grammar` dependency. **Errors:** a plain `Error` became a located `MemberError` only where the engine wrapped the callback in `ran()` (`build`, `value`, a kernel's styles); a chain's `emit` was not wrapped, and a plugin's own plain function (`stuck("middle")`) has no wrapper at all, so `failureOf` (evaluate.ts) made both an `EvalError` with the file only. Fixed at the shared spot: anything thrown while a site runs (`registry.at` set) is a `MacroError` at that site, with the thrown message; `emit` goes through `ran()` too, so every member kind names its scope (`pluginName`). scope.mjs throws from each kind and from a helper.
-
 
 ## `display: grid-lanes` and `flow-tolerance` ahead of Chrome (cssints-rali, 2026-10-08)
 
@@ -1495,7 +1523,6 @@ The evaluator exposes happy-dom's own properties that Node lacks (`open`, `name`
 
 docs/research/devtools.md. atomic-css-devtools reads any sheet through the CSSOM and gets cssints' layer order right, but misses `@container`, `@supports` and `@scope` rules, ignores specificity (the one place the sheet relies on it: `hover()` over a query in one layer) and ranks unlayered rules below layers; upstream bugs, nothing cssints could print would fix them. What it and Chrome both lacked was the step from a hashed class to its source, so the dev sheet now has a source map (plugin.ts `sheetMap`: each class rule to the first site that produced it, read with `css.devSourcemap`; test/sheet-map.mjs). Readable dev class names, a `data-cssints` attribute and a JSON class map were weighed and not done: the Styles pane shows the declaration already, cssints does not own the JSX, and the map carries the same data to the browser. Sonda sees the sheet as a 0-byte module (no build map); Playwright CSS coverage reads 79 % of the demo's sheet as used on load, but that is an artifact of `@layer` blocks; by rule usage it is 75 % of the style-rule bytes (corrected by cssints-5jj1, docs/research/coverage.md).
 
-
 ## Token files from Figma tools (cssints-ow16, 2026-10-09)
 
 Checked against what the tools write (samples in `packages/cssints/test/fixtures/importers`, with their sources). Figma's native export (Export modes) is plain DTCG 2025.10, one file per mode: the default mode already worked, but the file of another mode could not be a theme, since overrides took values, not `{ $value }` leaves with `$type` and `$extensions` beside them. `createGlobalTheme` now takes such a file as it is, and a key that starts with a digit (`500`) finds the set's `_500`; that is the whole normaliser, and TokensBrücke's "Split modes into separate files" gives the same shape. What was silently misread is now a build error that says what to do: modes in `$extensions` (TokensBrücke's `mode`) were dropped, a Figma boolean (`com.figma.type`) became a number, a Tokens Studio colour modifier was ignored. Tokens Studio's other differences (legacy `value`/`type`, its type names, unitless dimensions, math, `rgba(<ref>, a)`, sets and `$themes`) are many and already solved by `@tokens-studio/sd-transforms`, so they are not normalised here: each is an error that points to a recipe in docs/API.md (Style Dictionary with sd-transforms and a six-line format that writes DTCG, checked with style-dictionary 5.6 and sd-transforms 2.0). Terrazzo was not needed: its Figma import reads variables through the REST API (Enterprise plans) and writes a resolver file, and it does not read Tokens Studio. Not done: a FLOAT variable stays a `number` token (Figma has no unit on it; `calc(t.x, "*", "1px")`), `string`/`fontFamily` tokens in a file are still an error for the whole file, and the DTCG resolver format (sets and modifiers) is not read.
@@ -1503,7 +1530,6 @@ Checked against what the tools write (samples in `packages/cssints/test/fixtures
 ## A source map of the build sheet (cssints-vxfr, 2026-10-09)
 
 Vite 8 writes no CSS map in a build: `vite:css-post` keeps each module's CSS as a string and `finalizeCss` (minify) and `emitFile` carry none, whatever `build.sourcemap` or `css.devSourcemap` say, so a map handed through `vite:css` in `renderChunk` would be dropped. With `build.sourcemap` (true, `"hidden"`, `"inline"`) the plugin records `siteOf` in the build too and, in a `generateBundle` hook after `vite:css-post`, maps each CSS asset as written with the dev map's own `sheetMap`: one segment per selector (LightningCSS prints a rule per selector, so that is the granularity that survives the minify), the first call of its first class, modules taken by path so builds are reproducible; the rest is unmapped. Off, nothing is recorded and the demo build is byte-identical. Sonda's Vite plugin (0.14.0) never analyses a CSS asset (it passes assets without entrypoints and its report drops them), an upstream gap; fed to its `Report` directly, the demo's 9 kB sheet splits into Showcase.tsx 3.4 kB, App.tsx 2.1 kB, Button.tsx 0.8 kB, Card.tsx 0.3 kB and 2.5 kB unassigned (layers, tokens, `@property`, keyframes). docs/research/devtools.md section 4; test/sheet-map.mjs.
-
 
 ## CSS coverage per route on sky: keep one sheet (cssints-oj0c, 2026-10-09)
 
@@ -1517,11 +1543,9 @@ The twin cannot say where inside a call it stopped, so `functions.ts` repeats th
 
 At build time each page's document gets its title, a description from the first real paragraph, and the article as static HTML (`#prerender`) beside a hidden app root; the app swaps the two in one task once its article is ready (no frame shows both or neither), and without JS the static copy stays. Chosen over Solid SSR: the content is already static HTML, and Solid 2 SSR and its router are release candidates. `DOCS_BASE` (default `/`) is Vite's `base`; the markdown worker, the router (`BASE_URL`) and `url()` follow it. `.github/workflows/docs.yml` deploys on push to master with `DOCS_BASE=/<repo>/`, from the tracked `dist` (no package build; Node 24 for the worker's type stripping); Pages source must be "GitHub Actions". Findings: a host that falls back to `index.html` shows the overview's copy until the article loads (GitHub Pages serves `404.html`); `vite preview` serves a slug without a trailing slash as the overview, so the static links end in a slash; `$` in page HTML needs function replacers in `String.replace`.
 
-
 ## Our own devtools: a dev overlay on the compiler's knowledge (cssints-cncb, 2026-10-09)
 
 docs/research/devtools.md showed that atomic-css-devtools, reading the CSSOM, misses `@container`, `@supports` and `@scope`, ignores specificity and ranks unlayered rules last, and cannot say which call made a class. `@cssints/devtools` is an overlay that `cssints({ devtools: true })` injects in dev (opt-in: on by default would add a script and a package to every dev page, and apps/sky's HMR test reads every HMR message as an update, so sky stays without it; the overlay works there, checked by hand). The dev server answers `cssints:devtools:get` over the HMR channel with a table built from its own records (`devtools-server.ts`: the sheet as rendered, each class's rule, plugin and tokens, and the sites of each module, recorded beside `siteOf`); after each client transform it sends `cssints:devtools:stale`, so once nothing is in flight the overlay's table is current, by the argument of `sheetFresh` (no await point moved, the Quint model is untouched). The core (Effect) parses the sheet and ranks per longhand by layer, specificity, then order; the browser decides the at-rules through a probe sheet around the element, and each winner is verified on a childless clone, with the cause named when the page shows something else (an unlayered `.mine` rule, an inline style). The UI is Solid + cssints, built ahead into one file (256 kB, 73 kB gzip, dev only) and mounted in a shadow root with its own sheet, so it is neither in the app's sheet nor in the table. Checked by a core test on happy-dom, a build test (nothing in the demo's build) and Playwright on the demo in Chrome, Firefox and WebKit. Left: `@scope` proximity, logical/physical pairs, elements in other shadow roots, server-rendered pages.
-
 
 ## Plugins tell the engine which files they read (cssints-04u8, 2026-10-09)
 
@@ -1530,7 +1554,6 @@ Found by `@cssints/placeholder` (cssints-cpca); icons (`fs`) and fonts (`fs`) ha
 ## Docs site on Cloudflare with Alchemy (2026-10-09)
 
 The repository is private, so GitHub Pages is not available: the site is a Cloudflare Worker serving `dist/` as static assets at https://cssints.accio.blue, described by `apps/docs/alchemy.run.ts` (Alchemy v2 beta.81 on effect 4.0.0, `Cloudflare.Website.StaticSite`: `bun run build`, `notFoundHandling: "404-page"`, `domain`). The state is in the Cloudflare account (`Cloudflare.state()`, the account's existing `alchemy-state-store` worker), so local deploys (`bun run deploy`, OAuth profile) and CI (`.github/workflows/docs.yml`, `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`, token scopes in apps/docs/README.md) share it. The first deploy used local state and was destroyed and redeployed on the account state (a Worker's physical name has a random suffix per instance, so adopting across stores would have made a second Worker).
-
 
 ## MCP tools on a running app and in a browser (cssints-vitu, cssints-xifk, 2026-10-09)
 
@@ -1544,7 +1567,6 @@ cssints-zayr found that ``shade: fn({ args: ["<color>", { "dark?": arg<boolean>(
 
 apps/sky now runs `cssints({ devtools: true })` with `@cssints/devtools` in its devDependencies. Its test/dev.mjs read every HMR message as a file update and crashed on the overlay's custom event `cssints:devtools:stale` (sent as `hot.send(event)`, so the payload is a string); it now skips custom events by their type, not by name. The overlay adds no console error or warning on any route (test:dev, test:browser green); on /dev/posts it picks a post card and lists its classes by `src/post/Post.tsx:56`. Without `dist/overlay.js` built, the entry prints one `console.warn`, which test:dev does not flag. The demo's coverage in devtools.md was `page.coverage`'s 79 %, which counts every rule of a used `@layer` block (coverage.md); by CDP rule usage, as apps/sky/test/coverage.mjs counts, the demo uses 75.2 % of its style-rule bytes on load and 83.9 % after widths, hover, focus, a dark browser and reduced motion (`page.coverage` reads 81.0 % on the same sheet). The profile's Media fixture now ends with a 3-image post, a gallery and a "warn" post from posts.json (scripts/record-profile.mjs adds them when it records again), so the 11 rules only /dev/posts used are measured on a route: sky's unused rules go from 15 to 4 (the dev page's width and the 3 style-query fallback rules). Left: whether @projectwallace/css-code-coverage has the same layer problem (cssints-o3dz).
 
-
 ## Engine entry points for the MCP: contrast, lowering, located warnings, targets per root, shipped docs (cssints-p3d2, 2026-10-09)
 
 @cssints/mcp (cssints-w57u, "## Engine gaps") worked around five things inside its own package. Each is now in the engine. A new subpath, `cssints/check` (Node only, Effects), exports `contrast(fg, bg)`, the ratio of `css.check.contrast` with its text cut at two places (the MCP had a copy of the culori maths), and `loweredOf(property, value, warning)`, what LightningCSS writes for the targets of a support warning (`check_support` answered by raw BCD, so `color: oklch(…)` for chrome 100 was "unsupported" while a build said nothing; it now counts as supported and lists the lowered value). `cssints/plugin` was weighed for both and left out: it is the plugin authors' entry, loaded by every evaluation, and culori would load with it. Support warnings had no place and were said once per class per process (`checkDeclarationNow(p, v, fresh)` checked support only for a new class), so a second compile of the same module was silent and the MCP kept its own memo per class and called the plugin's `hotUpdate`. Now `__site` keeps `registry.at` while the site's value is recorded, every warning carries its site, and the plugin gives Vite `{ message, id, loc }`: Vite prints `file:line:col` and a code frame. The rule chosen: once per file of the site, property and BCD feature per build (registry.ts `warn`); in dev a warning is said again when that file is edited (`hotUpdate` forgets the file's keys, it no longer clears all), not on an update of an unrelated module; a build of `vite build --watch` starts over. Weighed: once per module transform (a theme imported by many modules runs in every evaluation, so its warnings would repeat on each), and once per property per build as before (one warning for fifty files, at one of them). A tool calls `api.forgetWarnings(files?)` before a transform to hear them all; the MCP's `compile` does, and gives each warning `line`, `column` and `location`. Targets were read once from process.cwd(), so a Vite `root` elsewhere (the MCP's compile of another project, a test) warned for the wrong browsers: the plugin now reads the browserslist of `config.root` and sets it before each evaluation (css-grammar `useTargets`, on globalThis, as the registry, since the runner evaluates its own copy of support.ts); `supportOf` caches per list of targets. `targets` and `cssTarget` of `cssints/vite` still read process.cwd(): they are computed when vite.config.ts imports them, before the root is known. docs/API.md is copied into the cssints package by a `prepack` script (`files` lists `docs`, the copy is gitignored, scripts/pack.mjs runs it too), and `search_docs` reads `node_modules/cssints/docs/API.md` in a project. Cost: support is now looked up for every declaration, not only a new class (a cached map lookup): perf.mjs seq, 200 modules, A/B in this worktree on a busy machine, median per evaluation 5.0 to 8.6 ms on both sides, user time 2.1 to 3.1 ms on both, no difference above the noise. The order and await points of the evaluation are unchanged, so the Quint model is untouched; only what is printed changed. Left: `targets`/`cssTarget` per root (they would need the plugin to set `css.lightningcss.targets` and `build.cssTarget` itself); a runtime module loaded outside an evaluation reads the targets of the last one (one root per process is the usual case). The dist/ of cssints and css-grammar must be rebuilt on master for the MCP, which runs on dist.
@@ -1555,7 +1577,7 @@ The docs header has a display-settings popover (the native Popover API; a popove
 
 ## Devtools: custom properties checked as the page has them (cssints-g3u1, 2026-10-09)
 
-On apps/sky's /dev/posts the overlay marked the post card's `--surface-d` ✗: "the browser computes .04; ._1b4kpn9 would give 0.04", and a quote inside it the same with `1e6` against `1000000`. The cascade was right (the member class in `_.a` over the kernel's `0` in `_.k`); the check was not. The table carries the sheet as cssints renders it, the page has it after Vite's LightningCSS, which reprints values (`0.04` as `.04`, `1e6` as `1000000`, an `oklch()` as a hex and a `lab()` under `@supports`), and the step is unregistered on purpose, so it computes to its tokens as written, and the clone that got the table's text computed something else. The fix is in dom.ts: a custom property's winner goes on the clone as the page's sheet has it, the last rule with the winner's selector (as the CSSOM serialises it) whose at-rules hold for the element, found by the probe sheet; the table's text when there is none. `Page.verify` takes the winner's selector. Weighed: a comparison of token streams that knows numbers and whitespace (misses colours), and a model built from the page's sheet (a second source of rule indexes, and no text for a `<link>` in a build). Checked by a nested surface case in apps/demo's Inspect.tsx (the outer one's base written `oklch( 0.9   0.02 90 )`) in Chrome, Firefox and WebKit, and a core test on the cascade of nested surfaces. Left: a standard property is still set from the table's text (its computed value is normalised, so only a property that LightningCSS rewrites to another one would differ).
+On apps/sky's /dev/posts the overlay marked the post card's `--surface-d` ✗: "the browser computes .04; ._1b4kpn9 would give 0.04", and a quote inside it the same with `1e6` against `1000000`. The cascade was right (the member class in `_.a`over the kernel's`0`in`\_.k`); the check was not. The table carries the sheet as cssints renders it, the page has it after Vite's LightningCSS, which reprints values (`0.04`as`.04`, `1e6`as`1000000`, an `oklch()`as a hex and a`lab()`under`@supports`), and the step is unregistered on purpose, so it computes to its tokens as written, and the clone that got the table's text computed something else. The fix is in dom.ts: a custom property's winner goes on the clone as the page's sheet has it, the last rule with the winner's selector (as the CSSOM serialises it) whose at-rules hold for the element, found by the probe sheet; the table's text when there is none. `Page.verify`takes the winner's selector. Weighed: a comparison of token streams that knows numbers and whitespace (misses colours), and a model built from the page's sheet (a second source of rule indexes, and no text for a`<link>`in a build). Checked by a nested surface case in apps/demo's Inspect.tsx (the outer one's base written`oklch( 0.9 0.02 90 )`) in Chrome, Firefox and WebKit, and a core test on the cascade of nested surfaces. Left: a standard property is still set from the table's text (its computed value is normalised, so only a property that LightningCSS rewrites to another one would differ).
 
 ## Playground: the engine in the browser (cssints-4v2z)
 
@@ -1564,7 +1586,6 @@ Measured first (docs/research/playground.md), then built: `/playground` on the d
 ## A module that drops its cssints import leaves the dev sheet (cssints-fjho)
 
 Found by cssints-4v2z: a dev-server module edited so that it no longer imports cssints kept its rules, globals, layers, themes and checks, because `transform` returned early for a client file without the attribute and only a run of the module forgets its entries. The early return now calls `drop(id)` (client only, a no-op unless the module is in `usedBy`): it removes the module from `usedBy`, `siteOf` and `callsOf`, calls `forget(id)` as a re-run does, and reloads the sheet. `test/dev-drop.mjs` drops the import and restores it on a dev server. The Quint model is unchanged (no await point moved; it covers modules that use `css.*`). Left: `depsOf` keeps a dropped module's dependency ids (a harmless extra invalidation). Also: `apps/docs` typecheck excludes `test/out`, where the browser tests write the built site.
-
 
 ## apps/sky-tui: sky in a terminal on OpenTUI + Solid (cssints-41z7, 2026-10-10)
 
@@ -1578,7 +1599,6 @@ After brendonovich/vite-plugin-opencode (MIT), which marks markup with Babel: cs
 
 `/playground` has Monaco 0.57 with the TypeScript worker (CodeMirror removed) and the cssints types as extra libs built at build time (the built `.d.mts` of cssints and css-grammar, the sources of the plugin packages). The type-level grammar is usable in the browser: the first check of the README example about 1 s, an edit 430–510 ms, 280 checks 700–780 ms, because the language service runs in its own worker, Monaco's own validation is off, and the page checks only the open file 400 ms after an edit. Several files with relative attributed imports (errors located in their file, all files in the hash as `#files=`, old `#code=` links open). The plugin packages that run without Node load as text and are instrumented like Node's runner does it (bundling them let the docs' own plugin transform them); icons, fonts and placeholder read files and are a located error. Parity: 224 cases (63 from the plugin packages, five multi-file projects), 0 differ. Cost: the docs entry unchanged; a first visit to /playground about 5.25 MB brotli (Monaco and TypeScript 1.9 MB of it). Found: the cssints plugin transforms any non-node_modules module that mentions `cssints`, so a plugin package cannot be bundled into another Vite project without an `exclude` option. Left: Monaco after the first paint, LightningCSS on demand, a target picker, icons over the playground's own `.svg` files.
 
-
 ## A terminal target: `cssints/tui` and `@cssints/tui` (cssints-3ff7, 2026-10-10)
 
 The epic cssints-06ws wants cssints styles in a terminal app (OpenTUI first, then `@bomb.sh/tty`, cssints-kotl). A terminal has no stylesheet, no cascade and no custom properties, so `css.*` there compiles to prop objects and a small runtime applies the states and the theme (the user's decisions; design in docs/research/tui.md). The opt-in is the subpath `cssints/tui`, not a plugin option: the types must change (cells for lengths, only the properties a terminal has), which an option cannot do. Its members build `{ __tui }` nodes and the engine's `replacementOf` turns a site that holds one into an object literal, after every web shape has failed, so a web site does the same work as before (perf.mjs dev on 200 modules: 4.67 ms median per evaluation, in the range of master; the new branch is not reached). Units are rejected, not converted (no unit has one size in cells); colours are read at build time to hex by culori, and `color-mix()` or a relative colour by the evaluator of derived tokens; tokens are resolved per theme with the contrast check's `valueOf` and `together`, so a site carries its default values and what each named theme changes. Weighed: a theme table shipped once and looked up at run time (smaller sites, but the app would wire it and the module order would matter); per-site values need nothing. One engine fix came with it: the plugin instrumented the `ssr` environment of a build for evaluation, so `vite build --ssr` (a Bun app) shipped `__site` calls; now only the dev server's and the private build server's `ssr` are evaluation environments. The OpenTUI adapter (`attach`, `use`) hooks the renderable's `onMouseEvent`, so the user's own `onMouseOver` still runs (OpenTUI keeps one handler per event), sets the mouse pointer of `cursor` on over and `default` on out, and gives the caret to an editable's `cursorStyle`/`cursorColor`. Cost: the colour members use the web's `color` grammar; `bench/tui.ts` is 184,399 instantiations (tsc), 193,608 (tsgo), a new budget; the web budgets are unchanged. Tests in packages/tui: the plugin on fixtures (dev, SSR build, errors), the types, OpenTUI's test renderer under Bun (hover, press, out, theme, focus). Left: terminal HMR, text inheritance, per-side borders, `cv()` on terminal styles, the bomb.sh adapter.
@@ -1587,7 +1607,6 @@ The epic cssints-06ws wants cssints styles in a terminal app (OpenTUI first, the
 
 The second terminal adapter of the epic cssints-06ws. `@bomb.sh/tty` 0.9 (Clay in WASM) has no renderables: each frame is a list of ops and `term.render()` returns that frame's pointer events (`pointerenter`, `pointerleave`, `pointerclick`; no press event). So the adapter is two plain pieces on the neutral `resolve()`, and the core is unchanged: `openProps`/`textProps` map resolved props to the options of `open()` and `text()`, and `createTracker()` keeps `:hover` (enter to leave), `:active` (from `pointer.down` becoming true over the element to the release or a leave) and `:focus` (the id given to `ui.focus`) between frames. The events of a frame come after it is drawn, so `ui.render` draws it a second time when a state changed and a hover shows at once; weighed against showing it one frame late, which bomb.sh's own hover example accepts, but a press would then miss short clicks. bomb.sh has no setting for the mouse pointer or the caret shape, so the tracker writes OSC 22, DECSCUSR and OSC 12 itself, and `ui.reset()` undoes them. Found by the test: `output` is a view of the WASM memory that the next render reuses, so the first frame must be copied before the second render (it came out as garbage). What Clay cannot draw is left out at run time, since the build cannot tell which adapter a style goes to: `double` and `heavy` borders are single lines (one line set, `rounded` is a corner radius), margins, `flexShrink`, `flexBasis`, `flexWrap`, `-reverse`, `space-*`, `stretch`, `alignSelf`, `opacity`; `flexGrow` is `grow` on each axis without a size (Clay grows per axis). Cost: nothing in the engine or the types; `@bomb.sh/tty` is an optional peer. Tests: `node test/bomb.ts` renders the built fixtures at 30x8 and reads the ANSI output back as cells (border characters, colours, attributes, the OSC strings) through a pointer move, a press, a click, a theme switch, focus and the caret; `examples/bomb.ts` ran once in a pty (`script`) with SGR mouse input: hover, press, click and the theme key, then `q`. Left: scroll offsets (Clay's clip has none in the 0.9 ops), a key-driven focus helper, transitions as a style member.
 
-
 ## apps/sky-tui on `cssints/tui` (cssints-m0yj, 2026-10-10)
 
 sky-tui was the app the TUI target (cssints-3ff7) aimed at; its styles were plain OpenTUI `style` objects, functions of a theme signal and of a row's state, with a hand-written `hoverable()` that called `setMousePointer`. Now `src/styles.ts` is written with `cssints/tui`: nine colour tokens through `createTokens` (dark by default), a `light` theme through `createGlobalTheme`, `css.hover()`, `css.focus()` and `css.cursor("pointer")`; the components put the styles on renderables with `use()` of `@cssints/tui/opentui`, and `t` and `--light` call `setTheme`. The selected row is the keyboard focus (`focusable` and `focus()` in an effect), so its accent border is a `:focus` style; this was chosen over a "selected" state, which `cssints/tui` does not have, and over remounting the row. The active tab is a second style and a second `<text>` under `<Show>`, since a renderable keeps the style it was attached with. The `tui` Vite environment is gone: since cssints-ybcm the plugin keeps the JSX of an SSR build, so the config is `build.ssr: "src/main.tsx"` with `ssr.noExternal: true` and `@opentui/core` external, and test/build.mjs's checks (one file, the externals, no inert JSX, one Solid) hold unchanged. Four bugs came up, each worked around in the app and written down: `use()` throws on a text node such as `<span>` (cssints-5vnf; `span(style)` resolves the props and follows the theme through a signal); a focused box draws OpenTUI's `focusedBorderColor` (#00AAFF), not the `:focus` border colour, which test/screens.mjs missed because it read `borderColor` off the renderable (cssints-pkpg; the test now reads the drawn cell, and `Row` sets `focusedBorderColor`); `cssints/dist/tui.mjs` drops the side-effect import of culori's colour modes under `"sideEffects": false`, so every terminal colour is a build error against the dist (cssints-649r; `import "culori" with { type: "cssints" }` in styles.ts); and the build's evaluation server ignores the app's `resolve.alias` (cssints-qnif; styles.ts imports only `cssints/tui`). `@cssints/tui` has no `dist/` in the repository, so the app aliases it to its source. Cost: dist/main.js is 169.8 kB (57.4 kB gzip), with the styles as object literals and the adapter bundled. Left: drop the four workarounds when the bugs are fixed.
@@ -1595,7 +1614,6 @@ sky-tui was the app the TUI target (cssints-3ff7) aimed at; its styles were plai
 ## The four sky-tui bugs of the terminal target (cssints-649r, cssints-qnif, cssints-5vnf, cssints-pkpg, 2026-10-10)
 
 sky-tui on `cssints/tui` (cssints-m0yj) found four bugs; each is fixed, and its workaround in the app is gone. `dist/tui.mjs` lost culori's colour modes because `tui.ts` imported `./color.ts` only for its side effect and the package says `"sideEffects": false` (cssints-649r). A `sideEffects` list was weighed and dropped, since the chunk names are hashed. Now `tui.ts` imports `parseColor` from `color.ts`: a used binding keeps the module and its `useMode()` loop. `test/tui-dist.mjs` runs `vp pack` into a temporary `node_modules/cssints` and builds a style module against that dist; every other test runs the source. The build's evaluation server ignored the app's `resolve.alias` (cssints-qnif). It now gets `resolve.alias` and the `conditions` and `externalConditions` of the app's `ssr` environment, which is where a dev server evaluates. It does not get `define`, other plugins or `noExternal` (sky-tui's `ssr.noExternal: true` would inline everything into the runner). `test/build-resolve.mjs` checks an alias and a custom export condition in dev and in a build. The OpenTUI adapter threw on a text node (`<span>`, `<a>`), because a text node is a `BaseRenderable` with no mouse events and no focus (cssints-5vnf). Now a text node gets the props and the theme, and no states. It emits no `destroyed`, so the adapter wraps its `destroyRecursively`, which `@opentui/solid` calls on a removed node. A focused box drew `focusedBorderColor` (#00AAFF), not the `:focus` border (cssints-pkpg). An Input had the same bug with `focusedBackgroundColor`. On every apply, the adapter now copies the current `borderColor`, `backgroundColor` and `textColor` into the `focused*` prop of the same colour, where the renderable has one. A box whose descendant has the focus thus draws its own border, which is CSS `:focus` and not `:focus-within`. `color` is now `textColor` on an editable or a select, where it was dropped. The render tests read the drawn cells. One question is still open: should `use()` follow a changing style, as sky-tui's active tab needs? A Solid ref runs once and the adapter knows no framework, so this needs a `restyle()` of its own (cssints-332g); the tab still swaps two elements. Cost: none in the bundle (sky-tui's `dist/main.js` is 170 kB, as before); `test/tui-dist.mjs` adds a `vp pack` (about 10 s of CPU) to the cssints tests. The tracked `dist/` of cssints has to be rebuilt on master before sky-tui builds again without the culori import.
-
 
 ## A system theme from the terminal's palette (cssints-q1j3, 2026-10-10)
 
@@ -1612,7 +1630,6 @@ Four buttons in the panel header dock it right (default), left, top or bottom; a
 ## The docs site moves to cssints.dev (2026-10-10)
 
 The user bought cssints.dev on Cloudflare (same account). `alchemy.run.ts` now has `domain: { name: "cssints.dev", redirects: ["cssints.accio.blue"] }`: the site is served at https://cssints.dev, and the old address answers with a 301 that keeps the path and the query (a redirect rule in the old zone, before the Worker). Deployed from the laptop; every reference to the old address (README, AGENTS.md, the package homepages, the release check, the workflow) points at the new one. The CI token needs zone permissions for cssints.dev too (apps/docs/README.md).
-
 
 ## A renderable follows a changing style: attach again, use() with an accessor (cssints-332g, 2026-10-10)
 
@@ -1639,7 +1656,6 @@ The user published all 23 packages from the laptop (`bun run release`, 2FA): css
 ## Devtools: ↑ and the arrows walk from the element the panel shows (cssints-9e1y)
 
 In the detached window ↑ did nothing. Not the pop-up's document: the walk started from `selected()`, and after opening (or ⧉) picking is on with nothing selected, so the panel shows the hovered element while the pointer is in the other window; the docked panel had the same gap, hidden by a click in the page first. One `go(step)` now starts from `target()` (hovered while picking, else selected), selects the result and ends picking; the ↑ button and the keys share it. In the page the arrows still pass while picking (the page scrolls). The browsers test walks the tree in the window in Chrome, Firefox and WebKit and fails on the old source.
-
 
 ## A live terminal on the docs site: sky on bomb.sh in ghostty-web (cssints-ey13, 2026-10-11)
 
