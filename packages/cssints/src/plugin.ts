@@ -30,7 +30,14 @@ import type { ModuleRunner } from "vite/module-runner";
 import { verifyChecks } from "./contrast.ts";
 import { evaluate, DomEvaluator } from "./evaluate.ts";
 import { HookError, type PluginError, SiteMissingError } from "./errors.ts";
-import { instrument, runtimeImport, RUNTIME, type Instrumented, writeSite } from "./instrument.ts";
+import {
+  instrument,
+  runtimeImport,
+  RUNTIME,
+  type Instrumented,
+  tagged,
+  writeSite,
+} from "./instrument.ts";
 import {
   type DevSite,
   devtoolsBuildPlugin,
@@ -389,7 +396,8 @@ export default function cssints({
           site: n,
           offset: s.start,
         });
-      writeSite(ms, s, replacement);
+      // the readable class (devtools, dev) is text in the written code only: the table, sheet and hashes never see it
+      writeSite(ms, s, s.name ? tagged(replacement, s.name) : replacement);
     }
     // Build-time imports are gone from the client.
     for (const decl of parsed.imp.decls) ms.remove(decl.start, decl.end);
@@ -449,7 +457,7 @@ export default function cssints({
     }
     if (inner) return undefined;
 
-    const parsed = yield* instrument(code, id);
+    const parsed = yield* instrument(code, id, true, !!devtools && !build);
     if (!parsed) return undefined;
     const env = server!.environments.ssr;
     // No runner HMR: its full-reload re-imports would run outside the evaluation lock.
