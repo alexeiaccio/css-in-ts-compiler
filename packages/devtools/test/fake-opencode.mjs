@@ -48,7 +48,7 @@ export const startFake = async () => {
     writeFileSync(
       registration,
       JSON.stringify({
-        url: `http://127.0.0.1:${fake.address().port}`,
+        url: `http://127.0.0.1:${fake.address().port}`, // same as url()
         pid: process.pid,
         version: "2.0.26",
       }),
@@ -57,6 +57,8 @@ export const startFake = async () => {
 
   return {
     calls,
+    // the address the registration file announces
+    url: () => `http://127.0.0.1:${fake.address().port}`,
     register,
     unregister: () => rmSync(registration, { force: true }),
     outcome: (value) => (outcome = value),

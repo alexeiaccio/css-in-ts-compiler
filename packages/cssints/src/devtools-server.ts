@@ -140,6 +140,8 @@ export interface OpenCodeOptions {
 
 const ASK = "cssints:devtools:ask";
 const ASKED = "cssints:devtools:asked";
+const LINK = "cssints:devtools:link";
+const LINKED = "cssints:devtools:linked";
 // the browser builds a bounded prompt (@cssints/devtools core/prompt.ts); the server bounds it once more
 const MAX_PROMPT = 16_000;
 const Asking = Schema.Struct({ ref: Schema.Finite, prompt: Schema.String });
@@ -155,7 +157,17 @@ interface Asked {
 class OpenCodeError extends Data.TaggedError("OpenCodeError")<{
   readonly status: "unavailable" | "failed";
   readonly message: string;
+  /** OpenCode is simply not running (the overlay says how to start it), as against a client that is missing */
+  readonly idle?: boolean;
 }> {}
+
+/** What the server tells the overlay to a probe (`cssints:devtools:linked`). */
+interface Linked {
+  connected: boolean;
+  url?: string;
+  directory: string;
+  message?: string;
+}
 
 // The repository of the app is the workspace of the session: the nearest folder up from the Vite root with a `.git`.
 const workspace = (root: string) =>
@@ -188,10 +200,29 @@ const connect = Effect.fn("cssints.opencodeConnect")(function* () {
   if (!service)
     return yield* new OpenCodeError({
       status: "unavailable",
+      idle: true,
       message:
         "No OpenCode service is running. Start OpenCode (or `opencode serve --service`) and send again.",
     });
-  return OpenCode.make({ baseUrl: service.url, headers: Service.headers(service) });
+  return {
+    url: service.url,
+    client: OpenCode.make({ baseUrl: service.url, headers: Service.headers(service) }),
+  };
+});
+
+// The probe: is a service found? No session is created.
+const link = Effect.fn("cssints.opencodeLink")(function* (root: string) {
+  const directory = workspace(root);
+  return yield* connect().pipe(
+    Effect.map(({ url }) => ({ connected: true, url, directory }) satisfies Linked),
+    Effect.catchTag("OpenCodeError", (e) =>
+      Effect.succeed({
+        connected: false,
+        directory,
+        ...(e.idle ? {} : { message: e.message }),
+      } satisfies Linked),
+    ),
+  );
 });
 
 // One prompt: a session in the workspace, the prompt, then the outcome. `say` tells the overlay each step.
@@ -202,7 +233,7 @@ const ask = Effect.fn("cssints.opencodeAsk")(function* (
   prompt: string,
   say: (asked: Asked) => void,
 ) {
-  const client = yield* connect();
+  const { client } = yield* connect();
   const call = <A>(f: () => Promise<A>) =>
     Effect.tryPromise({
       try: f,
@@ -240,7 +271,7 @@ const hot = import.meta.hot;
 mount({
   root: ${Formatter.formatJson(root)},
   request: () => hot.send("cssints:devtools:get"),
-  on: (event, listener) => hot.on(event, listener),${opencode ? `\n  ask: (ref, prompt) => hot.send("${ASK}", { ref, prompt }),` : ""}
+  on: (event, listener) => hot.on(event, listener),${opencode ? `\n  ask: (ref, prompt) => hot.send("${ASK}", { ref, prompt }),\n  link: () => hot.send("${LINK}"),` : ""}
 });
 `
     : `console.warn("cssints: devtools is on, but @cssints/devtools/overlay is not installed (or not built): add @cssints/devtools to the devDependencies of the app");\n`;
@@ -277,7 +308,14 @@ export const devtoolsPlugin = (
         client.send("cssints:devtools", Effect.runSync(table(s.config.root, usedBy, callsOf))),
       );
       // the HMR channel, not a route: it carries Vite's own token, so a page of another origin cannot start a session
-      if (opencode)
+      if (opencode) {
+        s.environments.client.hot.on(LINK, () =>
+          Effect.runFork(
+            link(s.config.root).pipe(
+              Effect.map((linked) => s.environments.client.hot.send(LINKED, linked)),
+            ),
+          ),
+        );
         s.environments.client.hot.on(ASK, (data) => {
           const asking = Schema.decodeUnknownOption(Asking)(data);
           if (Option.isNone(asking)) return;
@@ -291,6 +329,7 @@ export const devtoolsPlugin = (
             ),
           );
         });
+      }
     },
     transformIndexHtml: () => [
       { tag: "script", attrs: { type: "module", src: `/@id/${DEVTOOLS_ID}` }, injectTo: "body" },

@@ -19,12 +19,28 @@ export interface Asked {
   readonly message?: string;
 }
 
+/** the browser asks whether an OpenCode service is found (no session is created); the answer is a LINKED */
+export const LINK = "cssints:devtools:link";
+export const LINKED = "cssints:devtools:linked";
+
+/** `message` is set when the client is missing or the lookup failed, not when OpenCode simply is not running. */
+export interface Linked {
+  readonly connected: boolean;
+  /** the address of the service */
+  readonly url?: string;
+  /** the folder the sessions open in */
+  readonly directory: string;
+  readonly message?: string;
+}
+
 export interface TransportApi {
   /** asks the server for the table (`cssints:devtools:get`); it answers with TABLE */
   readonly request: () => void;
   readonly on: (event: string, listener: (data: unknown) => void) => void;
   /** only when the server has `opencode` on: sends a prompt, the answers come as ASKED; the overlay shows its prompt box if it is set */
   readonly ask?: (ref: number, prompt: string) => void;
+  /** next to `ask`: probes for the service, the answer comes as LINKED */
+  readonly link?: () => void;
 }
 
 export class Transport extends Context.Service<Transport, TransportApi>()(

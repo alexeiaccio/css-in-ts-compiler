@@ -11,6 +11,7 @@ import { Window } from "happy-dom";
 import {
   buildPrompt,
   inspect,
+  pagePrompt,
   toModel,
   Page,
   specificity,
@@ -564,6 +565,13 @@ ${odd} {
   assert.ok(!text.includes("x".repeat(401)), "a call is cut");
   assert.ok(text.length < 6000, `${text.length} characters`);
   assert.ok(!text.includes("/app/"), "paths are relative to the root");
+
+  // no element picked: the instruction and the page
+  const page = pagePrompt("  make the page darker ", "http://localhost:5173/a");
+  assert.match(page, /^Change the UI of the running app/);
+  assert.match(page, /Instruction: make the page darker\n/);
+  assert.match(page, /Page: http:\/\/localhost:5173\/a$/);
+  assert.ok(!page.includes("Element:"));
 }
 
 // ---------- a bad table is a TableError

@@ -33,6 +33,22 @@ const domPath = (el: Element) => {
 const where = (c: Candidate) => `${c.selector} (${c.layer || "unlayered"})`;
 
 /**
+ * The prompt with no element picked: the instruction and the page it is about.
+ * @param {string} instruction what the user asked for
+ * @param {string} url the address of the page
+ * @returns {string} the text to send to the agent
+ */
+export const pagePrompt = (instruction: string, url: string) =>
+  [
+    "Change the UI of the running app as the instruction says.",
+    "The styles are written with cssints (`css.*` calls): edit those calls, not the generated class names.",
+    "",
+    `Instruction: ${instruction.trim()}`,
+    "",
+    `Page: ${url}`,
+  ].join("\n");
+
+/**
  * The prompt for an element: the instruction first, then what cssints knows of the element.
  * @param {Inspection} inspection the cascade of the element (`inspect`)
  * @param {Element} el the picked element

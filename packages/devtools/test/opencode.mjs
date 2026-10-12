@@ -4,8 +4,12 @@
 //   the prompt reaches the service as sent, with the agent and skills of the option and the repository as the directory;
 //   the status goes running (with the session id), then completed; no service is a message, not a crash; with the option
 //   off, the overlay's entry has no way to ask and the server ignores the event.
+// The link probe (`cssints:devtools:link`, answered by `linked`): found or not, never a session; `opencode.mjs missing` (run
+// from here) is the same probe with @opencode/client not installed: a message that says what to do.
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { once } from "node:events";
+import { register as hook } from "node:module";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
@@ -37,10 +41,18 @@ const serve = async (opencode) => {
   const socket = new WebSocket(url.replace("http", "ws"), "vite-hmr");
   await once(socket, "open");
   const asked = [];
+  const linked = [];
   socket.addEventListener("message", (e) => {
     const m = JSON.parse(e.data);
     if (m.type === "custom" && m.event === "cssints:devtools:asked") asked.push(m.data);
+    if (m.type === "custom" && m.event === "cssints:devtools:linked") linked.push(m.data);
   });
+  const probe = async () => {
+    const n = linked.length;
+    socket.send(JSON.stringify({ type: "custom", event: "cssints:devtools:link" }));
+    await until("linked", () => linked.length > n);
+    return linked.at(-1);
+  };
   const ask = (ref, prompt) =>
     socket.send(
       JSON.stringify({ type: "custom", event: "cssints:devtools:ask", data: { ref, prompt } }),
@@ -50,7 +62,7 @@ const serve = async (opencode) => {
     throw new Error(`timed out: ${what}: ${JSON.stringify(asked)}`);
   };
   const entry = await (await fetch(`${url}@id/virtual:cssints/devtools`)).text();
-  return { server, socket, asked, ask, until, entry };
+  return { server, socket, asked, linked, probe, ask, until, entry };
 };
 
 const PROMPT = [
@@ -60,11 +72,44 @@ const PROMPT = [
   '  color("blue")',
 ].join("\n");
 
+// ---------- the client is not installed: the probe says so
+if (process.argv[2] === "missing") {
+  hook(
+    `data:text/javascript,${encodeURIComponent(
+      "export const resolve = (s, c, next) => s.startsWith('@opencode/client') ? Promise.reject(Object.assign(new Error('Cannot find package'), { code: 'ERR_MODULE_NOT_FOUND' })) : next(s, c);",
+    )}`,
+  );
+  register();
+  const t = await serve({});
+  const l = await t.probe();
+  assert.equal(l.connected, false);
+  assert.match(l.message, /@opencode\/client is not installed/);
+  assert.equal(l.directory, repo);
+  t.socket.close();
+  await t.server.close();
+  fake.close();
+  process.exit(0);
+}
+
 // ---------- on: the prompt reaches the service
 {
   register();
   const t = await serve({ agent: "plan", skills: ["cssints"] });
   assert.match(t.entry, /ask: \(ref, prompt\) => hot\.send\("cssints:devtools:ask"/);
+  assert.match(t.entry, /link: \(\) => hot\.send\("cssints:devtools:link"\)/);
+
+  // the probe finds the service and creates no session; no service is no message but a fact; starting it later is found
+  assert.deepEqual(await t.probe(), { connected: true, url: fake.url(), directory: repo });
+  assert.deepEqual(
+    calls.map((c) => c.path),
+    ["/api/info"],
+    "only the service's info was read",
+  );
+  fake.unregister();
+  assert.deepEqual(await t.probe(), { connected: false, directory: repo });
+  register();
+  assert.equal((await t.probe()).connected, true);
+  calls.length = 0;
   t.ask(1, PROMPT);
   await t.until("completed", () => t.asked.some((a) => a.status === "completed"));
   assert.deepEqual(
@@ -126,13 +171,17 @@ const PROMPT = [
   const before = calls.length;
   const t = await serve(undefined);
   assert.ok(!t.entry.includes("cssints:devtools:ask"), "the entry has no ask");
+  assert.ok(!t.entry.includes("cssints:devtools:link"), "the entry has no probe");
   t.ask(1, PROMPT);
+  t.socket.send(JSON.stringify({ type: "custom", event: "cssints:devtools:link" }));
   await sleep(500);
   assert.deepEqual(t.asked, []);
+  assert.deepEqual(t.linked, []);
   assert.equal(calls.length, before, "the service was not called");
   t.socket.close();
   await t.server.close();
 }
 
 fake.close();
+execFileSync(process.execPath, [import.meta.filename, "missing"], { stdio: "inherit" });
 console.log("devtools opencode ok");

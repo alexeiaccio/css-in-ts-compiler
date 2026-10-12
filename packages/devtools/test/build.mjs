@@ -11,7 +11,10 @@ import cssints from "cssints/vite";
 import { build } from "vite";
 
 const demo = join(import.meta.dirname, "../../../apps/demo");
-assert.match(readFileSync(join(demo, "vite.config.ts"), "utf8"), /cssints\(\{ devtools: true \}\)/);
+assert.match(
+  readFileSync(join(demo, "vite.config.ts"), "utf8"),
+  /cssints\(\{ devtools: true(, opencode: true)? \}\)/,
+);
 const outDir = mkdtempSync(join(tmpdir(), "devtools-build-"));
 process.chdir(demo); // the demo reads @iconify-json/mdi from the working directory
 await build({
@@ -59,7 +62,13 @@ for (const mode of [true, "build"]) {
   const files = await output(mode, { agent: "build" });
   for (const f of files) {
     const text = String(f.type === "chunk" ? f.code : f.source);
-    for (const needle of ['"cssints:devtools:ask"', "@opencode", "ses_"])
+    // (the overlay's own text names the package it needs, so the needles are the client's calls, not the name)
+    for (const needle of [
+      '"cssints:devtools:ask"',
+      'import("@opencode',
+      "Service.discover",
+      "ses_",
+    ])
       assert.ok(!text.includes(needle), `${f.fileName} (devtools: ${mode}) holds ${needle}`);
   }
 }
