@@ -29,6 +29,7 @@
     "@cssints/tui": "workspace:*",
     "@effect/platform-bun": "4.0.0",
     "@iconify-json/ph": "^1.2.2",
+    "@opencode/client": "2.0.26",
     "@oxc-parser/binding-wasm32-wasi": "0.149.0",
     "@oxc-transform/binding-wasm32-wasi": "0.149.0",
     "@shikijs/twoslash": "^3.0.0",

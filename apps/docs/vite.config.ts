@@ -9,7 +9,7 @@ import tui from "./plugin/tui.ts";
 // DOCS_BASE is the path the site is served under: "/css-in-ts-compiler/" on GitHub Pages (.github/workflows/docs.yml), "/" otherwise
 export default defineConfig({
   base: process.env.DOCS_BASE || "/",
-  plugins: [cssints({ devtools: "build" }), solid(), playground(), tui(), docs()],
+  plugins: [cssints({ devtools: "build", opencode: true }), solid(), playground(), tui(), docs()],
   css: { transformer: "lightningcss", lightningcss: { targets } },
   build: { cssMinify: "lightningcss", cssTarget, chunkSizeWarningLimit: 1000 },
 });
