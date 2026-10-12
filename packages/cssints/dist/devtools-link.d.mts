@@ -32,7 +32,12 @@ export declare const register: (git: string, root: string, url: string) => () =>
  * @param {string} git the repository
  * @returns {DevServer[]} the live ones, by id
  */
-export declare const servers: (git: string) => DevServer[];
+export declare const servers: (git: string) => {
+  id: string;
+  root: string;
+  pid: number;
+  url: string;
+}[];
 /**
  * @param {string} git the repository
  * @param {string} id a dev server's id

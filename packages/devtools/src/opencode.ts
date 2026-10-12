@@ -24,7 +24,7 @@ interface Context {
     ): Promise<{ dispose(): Promise<void> }>;
   };
   readonly session: {
-    synthetic(input: { sessionID: string; text: string }): Promise<unknown>;
+    synthetic(input: { sessionID: string; text: string }): Promise<{ readonly id: string }>;
   };
 }
 

@@ -36,11 +36,19 @@ const dir = (git: string) => join(git, "node_modules/.cache/cssints-devtools");
 export const serverId = (git: string, root: string) =>
   relative(git, root).split(sep).join("-") || "root";
 
-const read = (file: string): Record<string, unknown> => {
+// what a file may hold; the readers check each field they use, a file may be anything
+interface Fields {
+  root?: string;
+  pid?: number;
+  url?: string;
+  sessionID?: string;
+}
+
+const read = (file: string) => {
   try {
-    return JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>;
+    return JSON.parse(readFileSync(file, "utf8")) as Fields;
   } catch {
-    return {};
+    return {} as Fields;
   }
 };
 
@@ -73,14 +81,15 @@ export const register = (git: string, root: string, url: string) => {
  * @param {string} git the repository
  * @returns {DevServer[]} the live ones, by id
  */
-export const servers = (git: string): DevServer[] => {
+export const servers = (git: string) => {
   if (!existsSync(dir(git))) return [];
   return readdirSync(dir(git))
     .filter((f) => f.endsWith(".json") && !f.endsWith(".session.json"))
     .flatMap((f) => {
       const { root, pid, url } = read(join(dir(git), f));
       if (typeof root !== "string" || typeof pid !== "number" || typeof url !== "string") return [];
-      if (alive(pid)) return [{ id: f.slice(0, -".json".length), root, pid, url }];
+      if (alive(pid))
+        return [{ id: f.slice(0, -".json".length), root, pid, url } satisfies DevServer];
       rmSync(join(dir(git), f), { force: true });
       return [];
     })
