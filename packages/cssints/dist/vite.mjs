@@ -32,6 +32,7 @@ var DomEvaluator = class extends ESModulesEvaluator {
 	}
 };
 const evalLock = Semaphore.makeUnsafe(1);
+const LIMIT = Effect.runSync(Config.Int("CSSINTS_EVAL_TIMEOUT").pipe(Config.withDefault(3e4)));
 const LIB = fileURLToPath(new URL("./index.ts", import.meta.url));
 const clearApp = ({ idToModuleMap, urlToIdModuleMap, fileToModulesMap }) => {
 	const lib = /* @__PURE__ */ new Set();
@@ -91,11 +92,11 @@ const evaluateModule = Effect.fnUntraced(function* (runner, id, targets) {
 		try: () => runner.import(id).then((m) => m.__cssints_hoisted?.()),
 		catch: failureOf(id, registry)
 	}).pipe(Effect.withSpan("cssints.runner.import", { attributes: { file: id } }), Effect.timeoutOrElse({
-		duration: "30 seconds",
-		orElse: () => Effect.fail(new EvalError({
+		duration: LIMIT,
+		orElse: () => Effect.promise(() => runner.close()).pipe(Effect.andThen(Effect.fail(new EvalError({
 			file: id,
-			message: `cssints: evaluating ${id} took more than 30 seconds`
-		}))
+			message: `cssints: evaluating ${id} took more than ${LIMIT / 1e3} seconds`
+		}))))
 	}));
 	yield* verifyChecks((c) => c.gen === registry.gen);
 	return registry.sites.get(id) ?? /* @__PURE__ */ new Map();
@@ -813,7 +814,7 @@ function cssints({ inner = false, exclude, devtools = false, opencode = false } 
 		const parsed = yield* instrument(code, id, true, !!devtools && !build);
 		if (!parsed) return void 0;
 		const env = server.environments.ssr;
-		runner ??= createServerModuleRunner(env, {
+		if (!runner || runner.isClosed()) runner = createServerModuleRunner(env, {
 			hmr: false,
 			sourcemapInterceptor: "prepareStackTrace",
 			evaluator: new DomEvaluator()
