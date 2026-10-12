@@ -103,6 +103,7 @@
         "@oxc-transform/binding-wasm32-wasi": "0.149.0",
         "@shikijs/twoslash": "^3.0.0",
         "@solidjs/vite-plugin": "3.0.0-next.47",
+        "@wasm-fmt/oxc_fmt": "0.2.9",
         "alchemy": "2.0.0-beta.81",
         "effect": "4.0.0",
         "ghostty-web": "0.4.0",
@@ -1348,6 +1349,8 @@
     "@voidzero-dev/vite-plus-win32-arm64-msvc": ["@voidzero-dev/vite-plus-win32-arm64-msvc@1.0.0", "", { "os": "win32", "cpu": "arm64" }, "sha512-XXK6N5xMkGVIcqMaVDjqDh44z0Z00DA8dYn2BWUkFOQflUU1Z3IWt+bPm/1Y7LjkwBWj5qD2zsQY1ANDCeX9QA=="],
 
     "@voidzero-dev/vite-plus-win32-x64-msvc": ["@voidzero-dev/vite-plus-win32-x64-msvc@1.0.0", "", { "os": "win32", "cpu": "x64" }, "sha512-XabdwdAsJ9QqEVSpSOuiiyJjiEwbwOspGahei9svQUGjs7e8MPuj4y/ltBHJZpyCBdZI6fhlc7Xaps9bUtl7Og=="],
+
+    "@wasm-fmt/oxc_fmt": ["@wasm-fmt/oxc_fmt@0.2.9", "", {}, "sha512-RIFMPyyPXWXe+gB6xzVXezpE/N62Fkv5wMvjZKu3WnmKcaargh6x2bq8i04NniiOG/jOiZFG7Gj1QoLvJXAT0g=="],
 
     "@webref/css": ["@webref/css@8.7.5", "", { "peerDependencies": { "css-tree": "^3.2.1" } }, "sha512-VQygoDH6OptDhYib3Uxo2e1uftOv2Tx9yddzUyAXOmsLquyrV46w5VzXla2kPAIK70+Lo56NzzrltKMqiBrrLg=="],
 
