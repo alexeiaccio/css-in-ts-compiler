@@ -1,10 +1,11 @@
 ---
 # cssints-joex
 title: 'Housekeeping: fmt reds, plugin by package name, playground test flakes; npmx.dev links'
-status: in-progress
+status: completed
 type: task
+priority: normal
 created_at: 2026-10-12T18:45:28Z
-updated_at: 2026-10-12T18:45:28Z
+updated_at: 2026-10-12T19:30:46Z
 ---
 
 User (2026-10-12): do the three leftovers after 0.3.0, and use https://npmx.dev/package/cssints instead of npmjs.com.
