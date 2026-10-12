@@ -34,6 +34,9 @@ reset({ media: true, prose: true });
     word-spacing: inherit;
     color: inherit;
   }
+  :where(button, input[type="button"], input[type="submit"], input[type="reset"]) {
+    border: 0;
+  }
   :where(p, h1, h2, h3, h4, h5, h6) {
     overflow-wrap: break-word;
   }
@@ -75,7 +78,9 @@ reset({ media: true, prose: true });
 - **The base** is what most modern resets agree on ([Josh Comeau](https://www.joshwcomeau.com/css/custom-css-reset/),
   [Jake Lazaroff](https://jakelazaroff.com/words/my-modern-css-reset/), [Vale](https://vale.rocks/posts/css-reset)):
   `border-box`, no margins, a readable line height, no text inflation on mobile, form controls in the page's font and
-  colour, long words that wrap, balanced headings and paragraphs without orphans. The paddings stay (a list keeps room
+  colour, buttons without the border of the browser (its bevel; text fields, text areas and selects keep theirs), long
+  words that wrap, balanced headings and paragraphs without orphans. A button keeps the background and the padding of the
+  browser (Tailwind's preflight drops the background; this reset does not). The paddings stay (a list keeps room
   for its markers), and the markers of a list go only with `role="list"` (Andy Bell's), since Safari stops announcing a
   list that has `list-style: none`.
 - **`media: true`** makes images, videos, canvases and SVGs blocks that never overflow their container, and keeps the

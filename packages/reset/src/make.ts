@@ -31,6 +31,10 @@ const BASE: Rule[] = [
       ["color", "inherit"],
     ],
   ],
+  [
+    ':where(button, input[type="button"], input[type="submit"], input[type="reset"])',
+    [["border", "0"]],
+  ],
   [`:where(p, ${HEADINGS})`, [["overflow-wrap", "break-word"]]],
   [`:where(${HEADINGS})`, [["text-wrap", "balance"]]],
   [":where(p)", [["text-wrap", "pretty"]]],
