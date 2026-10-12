@@ -203,11 +203,14 @@ const attachedTo = (root) => Effect.sync(() => {
 	const git = gitRoot(root);
 	return sessionOf(git, serverId(git, root));
 });
+const urlOf = (s) => {
+	const address = s.httpServer?.address();
+	return Predicate.hasProperty(address, "port") ? `${s.config.server.https ? "https" : "http"}://localhost:${address.port}/` : void 0;
+};
 const announce = (s) => Effect.try(() => {
 	const http = s.httpServer;
-	const address = http?.address();
-	if (!http || !Predicate.hasProperty(address, "port")) return;
-	const url = `${s.config.server.https ? "https" : "http"}://localhost:${address.port}/`;
+	const url = urlOf(s);
+	if (!http || !url) return;
 	const remove = register(gitRoot(s.config.root), s.config.root, url);
 	http.once("close", remove);
 	process.once("exit", remove);
@@ -258,7 +261,8 @@ const link = Effect.fn("cssints.opencodeLink")(function* (root) {
 		...e.idle ? {} : { message: e.message }
 	})));
 });
-const ask = Effect.fn("cssints.opencodeAsk")(function* (root, options, ref, prompt, say) {
+const appLine = (root, url) => `App: ${relative(gitRoot(root), root) || "."}${url ? ` (${url})` : ""}; file paths below are relative to it`;
+const ask = Effect.fn("cssints.opencodeAsk")(function* (root, url, options, ref, prompt, say) {
 	const { client } = yield* connect();
 	const call = (f) => Effect.tryPromise({
 		try: f,
@@ -284,7 +288,7 @@ const ask = Effect.fn("cssints.opencodeAsk")(function* (root, options, ref, prom
 	});
 	yield* call(() => client.session.prompt({
 		sessionID: id,
-		text: prompt.slice(0, MAX_PROMPT),
+		text: `${appLine(root, url)}\n${prompt}`.slice(0, MAX_PROMPT),
 		...options.skills?.length ? { skills: options.skills.map((s) => ({ id: s })) } : {}
 	}));
 	yield* call(() => client.session.wait({ sessionID: id }));
@@ -332,7 +336,7 @@ const devtoolsPlugin = (usedBy, callsOf, opencode) => {
 					if (Option.isNone(asking)) return;
 					const { ref, prompt } = asking.value;
 					const say = (asked) => s.environments.client.hot.send(ASKED, asked);
-					Effect.runFork(ask(s.config.root, opencode, ref, prompt, say).pipe(Effect.catchTag("OpenCodeError", (e) => Effect.sync(() => say({
+					Effect.runFork(ask(s.config.root, urlOf(s), opencode, ref, prompt, say).pipe(Effect.catchTag("OpenCodeError", (e) => Effect.sync(() => say({
 						ref,
 						status: e.status,
 						message: e.message
