@@ -71,7 +71,8 @@ for (const dir of packageDirs) {
 
   const [{ files, size }] = JSON.parse(run("npm", ["pack", "--dry-run", "--json"], dest));
   const paths = files.map((f) => f.path);
-  const allowed = /^(package\.json|README\.md|LICENSE|THIRD_PARTY_NOTICES\.md|(dist|docs|skills)\/.+)$/;
+  const allowed =
+    /^(package\.json|README\.md|LICENSE|THIRD_PARTY_NOTICES\.md|(dist|docs|skills)\/.+)$/;
   for (const p of paths) {
     if (/^src\/core\//.test(p) && published.files.includes("src/core")) continue;
     if (!allowed.test(p)) bad(`${p} does not belong in the tarball`);
