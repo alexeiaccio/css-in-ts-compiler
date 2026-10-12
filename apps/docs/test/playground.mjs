@@ -98,6 +98,7 @@ const SKIP = {
   "debugging-from-a-class-to-its-call": "the dev server's source map",
   "debugging-the-devtools-overlay": "the dev server's overlay",
   "debugging-traces-of-the-engine": "a tracing backend",
+  "debugging-the-limit-of-an-evaluation": "an environment variable of the engine",
   "checks-for-tools-cssints-check": "a function for tools that call the engine",
   "tui-cssints-tui": "draws in a terminal, not in a page",
   "export-groups-cssints-widely-available-cssints-css-grid-2":

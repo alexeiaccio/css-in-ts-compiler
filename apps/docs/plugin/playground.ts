@@ -193,12 +193,15 @@ export default function playgroundPlugin(): Plugin {
       // the wasm bindings find their .wasm and their worker by `new URL(..., import.meta.url)`: not through the optimizer
       return {
         optimizeDeps: {
-          // found late otherwise (a dynamic import of a virtual module), and a late dependency reloads the page
+          // found late otherwise (a dynamic import of a virtual module, a worker: the scan does not follow workers), and a
+          // late dependency re-optimizes and reloads the page: the chunks already served answer 504 "Outdated Optimize Dep"
           include: [
             "cssints > culori",
             "cssints > culori/fn",
             "@cssints/rybitten > rybitten",
             "@wasm-fmt/oxc_fmt/web",
+            "magic-string",
+            "monaco-editor/language/typescript/ts.worker.js",
           ],
           exclude: [
             "@oxc-parser/binding-wasm32-wasi",
