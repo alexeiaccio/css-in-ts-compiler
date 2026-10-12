@@ -330,8 +330,20 @@ const unescape = (s) =>
     .replace(/&lt;/g, "<")
     .replace(/&quot;/g, '"')
     .replace(/&amp;/g, "&");
-const projects = readdirSync(join(root, "apps/docs/examples")).filter((d) => d !== "csssky");
+const projects = readdirSync(join(root, "apps/docs/examples")).filter(
+  (d) => d !== "csssky" && d !== "install", // the Install page has no example panel
+);
 assert.ok(projects.length > 30, `${projects.length} examples`);
+// the Install page has no panel at its top; the README's example in its text is the example: its code (hovers kept) and the link, no frame
+const installDoc = html.get("install/index.html");
+assert.ok(installDoc, "the Install page");
+assert.equal(installDoc.match(/class="example/g)?.length, 1, "install: one example");
+assert.match(
+  installDoc,
+  /<div class="example code-only"><p><span><label>Code<\/label><\/span><a href="[^"]*playground#example=install">Open in playground<\/a><\/p><pre class="shiki[^"]*twoslash/,
+  "install: the README's example with its code and the link to the playground",
+);
+assert.ok(!installDoc.includes("<iframe"), "install: no result frame");
 for (const slug of projects) {
   const doc = html.get(`${slug}/index.html`);
   assert.ok(doc, `${slug}: a page for the example`);

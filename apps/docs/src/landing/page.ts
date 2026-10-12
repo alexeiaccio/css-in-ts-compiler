@@ -66,7 +66,13 @@ const heroColumn = css.cn(
   css.gap(t.space.lg),
   css.textAlign("center"),
 );
-const logo = css.cn(css.borderRadius(t.radius.lg), css.boxShadow("0 8px 32px var(--color-shadow)"));
+const logo = css.cn(
+  css.borderTopLeftRadius("0"),
+  css.borderTopRightRadius(t.radius.lg),
+  css.borderBottomRightRadius(t.radius.lg),
+  css.borderBottomLeftRadius(t.radius.lg),
+  css.boxShadow("0 8px 32px var(--color-shadow)"),
+);
 const h1 = css.cn(
   heading,
   css.fontSize("clamp(32px, 7vw, 56px)"),

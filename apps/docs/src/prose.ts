@@ -164,6 +164,13 @@ global(
   cursor("pointer"),
 );
 global(`${e} > p > span label`, fontWeight(t.fontWeight.semiBold));
+// an example that is only its code (the Install page's): the one label is the tab that is on
+global(
+  `${e}.code-only > p > span label`,
+  bg(t.color.accentSoft),
+  color(t.color.accentStrong),
+  cursor("default"),
+);
 global(`${e} .pane-code > div label`, fontFamily(mono));
 global(
   [

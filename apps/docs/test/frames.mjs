@@ -30,7 +30,7 @@ const server = await createServer({ root, logLevel: "error", server: { port: 0 }
 await server.listen();
 const base = server.resolvedUrls.local[0];
 
-const slugs = readdirSync(join(root, "examples")).filter((d) => d !== "csssky");
+const slugs = readdirSync(join(root, "examples")).filter((d) => d !== "csssky" && d !== "install");
 const PALETTES = ["cssints", "flexoki"];
 const MODES = ["light", "dark"];
 
@@ -164,7 +164,7 @@ try {
   );
 
   // the canvas of the frame is the site's: the page's background and text colour, the page's font; a project's own rules win
-  await page.goto(`${base}install`);
+  await page.goto(`${base}basic-usage`);
   const frame = await (await page.locator(".example iframe").elementHandle()).contentFrame();
   await frame.locator("#root:not(:empty)").waitFor();
   await set("dark", "flexoki");
@@ -233,7 +233,7 @@ try {
   await set("dark", "cssints");
 
   // screenshots: two pages, two palettes, two modes
-  for (const slug of ["install", "themes"])
+  for (const slug of ["basic-usage", "themes"])
     for (const palette of PALETTES)
       for (const mode of MODES) {
         await page.goto(`${base}${slug}`);

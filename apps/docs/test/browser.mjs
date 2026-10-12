@@ -612,7 +612,7 @@ try {
     ]);
     // the built page's frame follows the mode too (the code that tells it is in the page's chunk)
     const sky = await watched.newPage();
-    await sky.goto(`${built}install`);
+    await sky.goto(`${built}basic-usage`);
     await sky.locator(".example iframe").waitFor();
     const skyFrame = await (await sky.$(".example iframe")).contentFrame();
     await skyFrame.locator("#root:not(:empty)").waitFor();

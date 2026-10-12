@@ -84,6 +84,13 @@ const files = [
 ];
 // the pages that have an example project (apps/docs/examples/<slug>/, test/playground.mjs lists the pages that have none)
 const examples = new Set(readdirSync(join(root, "apps/docs/examples")));
+// the Install page has no panel at its top: the README's example in its text is the example (a block with the link), and its
+// project, the README's, is also in the playground's picker
+examples.delete("install");
+const installExample = readFileSync(
+  join(root, "apps/docs/examples/install/index.tsx"),
+  "utf8",
+).trim();
 const project = new Set(["Layout", "Development", "Credits", "License", "Changelog"]);
 
 // DOCS_HOVERS=0 skips the type-check of the ts blocks (the part of the build that takes ~15 s) while the styles are being worked on
@@ -263,7 +270,11 @@ declare namespace JSX {
             transformers: hovers ? [twoslash] : [],
           });
           // a type in an error message is named by its file: not this machine's path
-          return out.replaceAll(`${root}/`, "");
+          const html = out.replaceAll(`${root}/`, "");
+          // the README's example is the project of the playground's picker: on the Install page the block, with its hovers, is the example
+          return page.slug === "install" && text.trim() === installExample
+            ? `<div class="example code-only"><p><span><label>Code</label></span><a href="${base}playground#${exampleHash("install")}">Open in playground</a></p>${html}</div>\n`
+            : html;
         },
         link({ href: target, tokens }) {
           const to = href(file, target);
