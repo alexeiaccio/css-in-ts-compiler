@@ -54,15 +54,31 @@ cssints({ devtools: true, opencode: true });
 cssints({ devtools: true, opencode: { agent: "build", skills: ["cssints"] } });
 ```
 
-With an element picked, the panel has a prompt box (Enter sends, Shift+Enter is a new line). The dev server starts a session
-on the running OpenCode V2 service (`Service.discover` of `@opencode/client`; the page never talks to it) in the nearest
-folder up from the Vite root that has a `.git`, with a prompt of `src/core/prompt.ts`: your instruction, the element (tag,
-DOM path, text, classes), the `css.*` calls that style it (`file:line` and the call's source), the winner of each property
-and what it beat, and the tokens it reads; every list is cut. The box then shows `running · <session id>`, and `completed`,
-`failed` or `interrupted`; with no service running it says so and keeps your text. The page and the server talk over the
-HMR channel (`cssints:devtools:ask`, `cssints:devtools:asked`), not a route. A build has none of it. The idea, and the
-calls to the V2 client, follow [brendonovich/vite-plugin-opencode](https://github.com/Brendonovich/vite-plugin-opencode)
-(MIT, Brendan Allan), which marks the markup with Babel and so needs no table; here the table is the context.
+The panel has an OpenCode box whenever the option is on, picked element or not. It is pinned: at the bottom of the panel in
+a left or right dock, at its right edge (20 rem wide, to the right of the inspection) in a top or bottom dock, and in the
+detached window by the window's shape (wider than tall: the right edge); the inspection beside it scrolls, the box does not.
+The box has a title row (`OpenCode`, and a dot with `connected` or `not connected`), the input (Enter sends, Shift+Enter is a
+new line) and one status line:
+
+- Not connected: how to connect. Start OpenCode (or `opencode serve --service`); the dev server finds the running service by
+  itself; sessions open in the repository folder; `@opencode/client` must be in the app's devDependencies. When the server
+  has its own message (the client is not installed), it follows.
+- Connected: `connected to <service address> · session · <id> · <state>`. The id is the last session this page started (the
+  full id is the title; `no session yet` before the first send); the state is `running`, `completed`, `failed` or
+  `interrupted`.
+
+The page asks the dev server whether a service is found (a probe: it looks, it creates no session) when the panel opens, when
+the box gets focus and after a send that found none, so starting OpenCode later shows up without a reload.
+
+Enter starts a session on the running OpenCode V2 service (`Service.discover` of `@opencode/client`; the page never talks to
+it) in the nearest folder up from the Vite root that has a `.git`. The prompt is built by `src/core/prompt.ts`. With an
+element picked: your instruction, the element (tag, DOM path, text, classes), the `css.*` calls that style it (`file:line` and
+the call's source), the winner of each property and what it beat, and the tokens it reads; every list is cut. With none
+picked: your instruction and the page's address. With no service running the box says how to connect and keeps your text. The
+page and the server talk over the HMR channel (`cssints:devtools:ask`, `asked`, `link`, `linked`), not a route. A build has
+none of it. The idea, and the calls to the V2 client, follow
+[brendonovich/vite-plugin-opencode](https://github.com/Brendonovich/vite-plugin-opencode) (MIT, Brendan Allan), which marks the
+markup with Babel and so needs no table; here the table is the context.
 
 ## Layout
 
@@ -98,6 +114,6 @@ the calls to the V2 client. No code is copied. The overlay is built with [Solid]
 bun run test            # test/core.mjs (the cascade on happy-dom: hover vs media, @container, @supports, @scope,
                         # an unlayered rule, frame's kernel, within(), grouping), test/build.mjs (nothing in a build
                         # without the option; with "build": the table, the lazy chunk, the loader's size; apps/docs/test/browser.mjs opens it in Chrome),
-                        # test/opencode.mjs (the dev server and a fake OpenCode service: the prompt as sent, the agent, the directory, the status, no service)
-bun run test:browsers   # builds dist/overlay.js, then the demo in Chrome, Firefox and WebKit (test/browsers.mjs; each dock: the panel on its side, a pick beside it, a drag of the grip, the button after Esc, the dock and sizes after a reload; detach: the pop-up with the panel, a pick in the page followed live, the choice after a reload, closing re-docks, a blocked pop-up), then the prompt box in Chrome (test/ask-browser.mjs)
+                        # test/opencode.mjs (the dev server and a fake OpenCode service: the prompt as sent, the agent, the directory, the status, no service; the link probe, with and without the service and the client)
+bun run test:browsers   # builds dist/overlay.js, then the demo in Chrome, Firefox and WebKit (test/browsers.mjs; each dock: the panel on its side, a pick beside it, a drag of the grip, the button after Esc, the dock and sizes after a reload; detach: the pop-up with the panel, a pick in the page followed live, the choice after a reload, closing re-docks, a blocked pop-up), then the OpenCode box in Chrome (test/ask-browser.mjs: with nothing picked, pinned in each dock and in the window, the connect text, a service started later found on focus, the session id; screenshots in test/out/)
 ```
