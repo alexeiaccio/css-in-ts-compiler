@@ -3751,16 +3751,85 @@ const isRuntimeArg = (arg, code, scope, roots) => {
 	else if (n.type === "ParenthesizedExpression") todo.push(n.expression);
 	return a.type === "TemplateLiteral" || a.type === "Literal" && typeof a.value === "string" || !!code.slice(a.start, a.end).match(/[\p{L}\p{N}_$]+/gu)?.some((w) => scope.has(w));
 };
-function findSites(program, code, locals, cn, spaces) {
+const GLUE = /* @__PURE__ */ new Set([
+	"ConditionalExpression",
+	"LogicalExpression",
+	"ParenthesizedExpression",
+	"TSAsExpression",
+	"TSSatisfiesExpression",
+	"TSNonNullExpression",
+	"TSTypeAssertion",
+	"ChainExpression",
+	"AwaitExpression",
+	"JSXExpressionContainer",
+	"ReturnStatement",
+	"CallExpression",
+	"ArrayExpression"
+]);
+const PASCAL = /^[A-Z](?![A-Z0-9_]*$)/;
+const idName = (k, computed = false) => computed ? "" : k.type === "Identifier" || k.type === "PrivateIdentifier" ? k.name : k.type === "Literal" ? String(k.value) : "";
+const down = (from) => Array.from({ length: from + 1 }, (_, k) => from - k);
+const bound = (chain, from, site, fns) => {
+	for (const i of down(from)) {
+		const p = chain[i];
+		const child = chain[i + 1] ?? site;
+		switch (p.type) {
+			case "VariableDeclarator": return p.init === child && p.id.type === "Identifier" ? p.id.name : "";
+			case "AssignmentExpression": return p.right !== child ? "" : p.left.type === "MemberExpression" ? idName(p.left.property, p.left.computed) : idName(p.left);
+			case "Property":
+			case "PropertyDefinition":
+			case "MethodDefinition": return p.value === child ? idName(p.key, p.computed) : "";
+			case "JSXAttribute": return p.name.type === "JSXIdentifier" && !/^class(Name)?$/.test(p.name.name) ? p.name.name : "";
+			case "BlockStatement":
+				if (child.type !== "ReturnStatement") return "";
+				break;
+			case "FunctionDeclaration":
+			case "FunctionExpression":
+			case "ArrowFunctionExpression":
+				if (!fns) return "";
+				if (p.type !== "ArrowFunctionExpression" && p.id) return p.id.name;
+				break;
+			default: if (!GLUE.has(p.type)) return "";
+		}
+	}
+	return "";
+};
+const ownerOf = (chain, site) => {
+	for (const i of down(chain.length - 1)) {
+		const f = chain[i];
+		if (f.type === "FunctionDeclaration" || f.type === "FunctionExpression" || f.type === "ArrowFunctionExpression" || f.type === "ClassDeclaration" || f.type === "ClassExpression") {
+			const name = f.type !== "ArrowFunctionExpression" && f.id?.name || bound(chain, i - 1, site, false);
+			if (PASCAL.test(name)) return name;
+		}
+	}
+	return "";
+};
+const clean = (s, max) => s.replace(/[^\w-]+/g, "-").slice(0, max).replace(/^-+|-+$/g, "");
+const baseOf = (id) => {
+	const parts = id.replace(/[?#].*$/, "").split("/");
+	const file = parts.pop().split(".")[0];
+	return clean(file === "index" ? parts.pop() ?? file : file, 24) || "module";
+};
+const tokenOf = (chain, site, base) => {
+	const owner = clean(ownerOf(chain, site), 24) || base;
+	const label = clean(bound(chain, chain.length - 1, site, true), 20);
+	return `cs-${owner}${label && label !== owner ? `-${label}` : ""}`;
+};
+const tagged = (r, name) => r.startsWith("\"") ? `${r.slice(0, -1)}${r.length > 2 ? " " : ""}${name}"` : r.startsWith("__cv(") ? r.replace(/^(__cv\(\{"base":")([^"]*)/, (_, a, b) => `${a}${b && `${b} `}${name}`) : r.startsWith("__cx(") ? r.endsWith("\", ") ? `${r.slice(0, -3)} ${name}", ` : `${r}"${name}", ` : r;
+const calls = (c, ids, spaces, member) => c?.type === "Identifier" ? ids.has(c.name) : c?.type === "MemberExpression" && !c.computed && c.property.type === "Identifier" && c.property.name === member && c.object.type === "Identifier" && spaces.has(c.object.name);
+function findSites(program, code, locals, cn, spaces, names) {
 	const sites = [];
 	const scopes = [/* @__PURE__ */ new Set()];
+	const chain = names && [];
+	const open = [];
+	const nameOf = (n, isCn, c) => names && !open.length && (isCn || calls(c, names.cv, spaces, "cv")) ? tokenOf(chain, n, names.base) : void 0;
 	const walk = (node, inFn) => {
 		if (!Predicate.isObject(node) || typeof node.type !== "string") return;
 		const n = node;
 		if ((n.type === "CallExpression" || n.type === "NewExpression") && locals.has(rootIdent(n.callee) ?? "")) {
 			const scope = scopes[scopes.length - 1];
 			const c = n.type === "CallExpression" ? n.callee : void 0;
-			const isCn = c?.type === "Identifier" ? cn.has(c.name) : c?.type === "MemberExpression" && !c.computed && c.property.type === "Identifier" && c.property.name === "cn" && c.object.type === "Identifier" && spaces.has(c.object.name);
+			const isCn = calls(c, cn, spaces, "cn");
 			const args = n.type === "CallExpression" && isCn ? n.arguments : [];
 			const runtime = args.map((a) => isRuntimeArg(a, code, scope, locals));
 			if (!runtime.includes(true)) {
@@ -3768,17 +3837,23 @@ function findSites(program, code, locals, cn, spaces) {
 					start: n.start,
 					end: n.end,
 					inFn,
-					locals: scope
+					locals: scope,
+					name: nameOf(n, isCn, c)
 				});
 				return;
 			}
 			const from = sites.length;
+			chain?.push(n);
+			open.push(n);
 			args.forEach((a, i) => runtime[i] && walk(a, inFn));
+			open.pop();
+			chain?.pop();
 			sites.push({
 				start: n.start,
 				end: n.end,
 				inFn,
 				locals: scope,
+				name: nameOf(n, isCn, c),
 				group: {
 					callee: {
 						start: n.callee.start,
@@ -3798,11 +3873,13 @@ function findSites(program, code, locals, cn, spaces) {
 		const own = /* @__PURE__ */ new Set();
 		declares(n, own);
 		scopes.push(own.size ? /* @__PURE__ */ new Set([...scopes[scopes.length - 1], ...own]) : scopes[scopes.length - 1]);
+		chain?.push(n);
 		for (const k in node) {
 			const v = node[k];
 			if (Array.isArray(v)) v.forEach((c) => walk(c, fn));
 			else if (Predicate.isObject(v) && "type" in v) walk(v, fn);
 		}
+		chain?.pop();
 		scopes.pop();
 	};
 	walk(program, false);
@@ -3820,16 +3897,21 @@ const runtimeImport = (replacements) => {
 	const names = [...all.some((r) => r.startsWith("__cv(")) ? ["_cv as __cv"] : [], ...all.some((r) => r.startsWith("__cx(")) ? ["_cx as __cx"] : []];
 	return names.length ? `import { ${names.join(", ")} } from ${Formatter.formatJson(RUNTIME)};\n` : "";
 };
-const instrument = Effect.fn("cssints.instrument")(function* (code, id, client = true) {
+const instrument = Effect.fn("cssints.instrument")(function* (code, id, client = true, named = false) {
 	const { program } = parseSync(id, code);
 	const imp = yield* findCssImport(program, code, id, client);
 	if (!imp) return null;
 	const sources = imp.decls.filter((d) => isCssints(d.source.value));
 	const cn = /* @__PURE__ */ new Set();
+	const cv = /* @__PURE__ */ new Set();
 	const spaces = /* @__PURE__ */ new Set();
 	for (const d of sources) for (const x of d.specifiers) if (x.type === "ImportNamespaceSpecifier" || importedName(x) === "css") spaces.add(x.local.name);
 	else if (importedName(x) === "cn") cn.add(x.local.name);
-	const sites = findSites(program, code, withConditions(program, code, imp), cn, spaces);
+	else if (importedName(x) === "cv") cv.add(x.local.name);
+	const sites = findSites(program, code, withConditions(program, code, imp), cn, spaces, named ? {
+		cv,
+		base: baseOf(id)
+	} : void 0);
 	const ms = new MagicString(code);
 	const hoisted = [];
 	const file = Formatter.formatJson(id);
@@ -3871,4 +3953,4 @@ const instrument = Effect.fn("cssints.instrument")(function* (code, id, client =
 	};
 });
 //#endregion
-export { runtimeImport as a, instrument as i, CX_CALL as n, writeSite as o, RUNTIME as r, groups as s, CV_CALL as t };
+export { runtimeImport as a, groups as c, instrument as i, CX_CALL as n, tagged as o, RUNTIME as r, writeSite as s, CV_CALL as t };

@@ -33,6 +33,11 @@ docs/API.md, "Debugging: the devtools overlay"; the design in docs/research/devt
   (a `cssints` button and Alt+Shift+C). The first open loads both; a call shows as `file:line` and its source, with no link
   to an editor. The table has no path of the machine that built it. Sizes are logged by the build (this site: table 70 kB,
   overlay 190 kB, the entry +0.85 kB).
+- **Readable classes, dev only.** The dev server adds `cs-<owner>[-<label>]` to each `cn(...)` and `cv({...})`:
+  `const logo = cn(...)` inside `function Landing()` gives `cs-Landing-logo`, at the top of `landing/page.ts`
+  `cs-page-logo`, `<div class={cn(...)}>` in `Button` `cs-Button`. The panel shows it first in its bar and in the hover
+  tag; the prompt's `Classes:` line lists it. It is not in the table, the sheet or the hashes, and a build has none.
+  docs/API.md, "Debugging: the devtools overlay".
 - **The data is the compiler's.** The table holds the sheet as the server renders it, each class's rule, plugin,
   tokens and sites, and the place of every call. The core parses the sheet; it never reads the page's CSSOM for
   cssints' rules.

@@ -76,6 +76,8 @@ interface Site {
   start: number;
   end: number;
   inFn: boolean;
+  /** dev with devtools: the readable class of a cn() or cv() site (`cs-Landing-logo`), see `tagged` */
+  name: string | undefined;
   locals: Set<string>;
   group?: SiteGroup;
 }
@@ -84,7 +86,7 @@ interface Instrumented {
   sites: Site[];
   imp: CssImports;
 }
-export declare const instrument: (code: string, id: string, client?: boolean | undefined) => Effect.Effect<Instrumented | null, ImportError, never>;
+export declare const instrument: (code: string, id: string, client?: boolean | undefined, named?: boolean | undefined) => Effect.Effect<Instrumented | null, ImportError, never>;
 //#endregion
 //#region src/sheet.d.ts
 /** Adds a global rule (`*{box-sizing:border-box}`) of a plugin member, by its content, to the sheet of the module at `at`. `layer` names a declared top-level layer to wrap it in, no layer puts it in `_.k`. */

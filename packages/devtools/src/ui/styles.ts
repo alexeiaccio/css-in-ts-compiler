@@ -152,6 +152,13 @@ export const bar = cn(
 );
 
 export const title = cn(flexGrow(1), fontFamily(mono), fontWeight("600"));
+// the readable class of the picked element's call (cs-Landing-logo): first in the bar
+export const name = cn(
+  fontFamily(mono),
+  fontWeight("700"),
+  color(accent),
+  overflowWrap("anywhere"),
+);
 
 export const button = cn(
   paddingInline("6px"),

@@ -174,6 +174,8 @@ export interface Site {
   start: number;
   end: number;
   inFn: boolean;
+  /** dev with devtools: the readable class of a cn() or cv() site (`cs-Landing-logo`), see `tagged` */
+  name: string | undefined;
   // Names declared by the functions and blocks around the site: a runtime value, whatever a global or a module says
   locals: Set<string>;
   group?: SiteGroup;
@@ -225,6 +227,136 @@ const isRuntimeArg = (arg: Node, code: string, scope: Set<string>, roots: Set<st
   );
 };
 
+// ---------- dev names (cssints-12tp): a readable class `cs-<owner>[-<label>]` for a cn() or cv() site, from the ancestors
+// the walk already has (`chain`, kept only when asked). The owner is the nearest function or class with a PascalCase
+// name (else the file's name); the label is what the call is assigned to: a variable, a property or member, a class
+// field, a JSX attribute other than class/className, or the name of the helper that returns it. No name, no class.
+const GLUE = new Set([
+  "ConditionalExpression",
+  "LogicalExpression",
+  "ParenthesizedExpression",
+  "TSAsExpression",
+  "TSSatisfiesExpression",
+  "TSNonNullExpression",
+  "TSTypeAssertion",
+  "ChainExpression",
+  "AwaitExpression",
+  "JSXExpressionContainer",
+  "ReturnStatement",
+  "CallExpression",
+  "ArrayExpression",
+]);
+const PASCAL = /^[A-Z](?![A-Z0-9_]*$)/;
+const idName = (k: Node, computed = false) =>
+  computed
+    ? ""
+    : k.type === "Identifier" || k.type === "PrivateIdentifier"
+      ? k.name
+      : k.type === "Literal"
+        ? String(k.value)
+        : "";
+
+const down = (from: number) => Array.from({ length: from + 1 }, (_, k) => from - k);
+// The name the expression `chain[from + 1]` (`site` past the end) is bound to, going up through the nodes that pass a value
+// on. `fns`: a function that returns it passes it on too (`const row = () => cn(...)`, a method, `useMemo(() => cn(...))`).
+const bound = (chain: Node[], from: number, site: Node, fns: boolean) => {
+  for (const i of down(from)) {
+    const p = chain[i]!;
+    const child = chain[i + 1] ?? site;
+    switch (p.type) {
+      case "VariableDeclarator":
+        return p.init === child && p.id.type === "Identifier" ? p.id.name : "";
+      case "AssignmentExpression":
+        return p.right !== child
+          ? ""
+          : p.left.type === "MemberExpression"
+            ? idName(p.left.property, p.left.computed)
+            : idName(p.left);
+      case "Property":
+      case "PropertyDefinition":
+      case "MethodDefinition":
+        return p.value === child ? idName(p.key, p.computed) : "";
+      case "JSXAttribute":
+        return p.name.type === "JSXIdentifier" && !/^class(Name)?$/.test(p.name.name)
+          ? p.name.name
+          : "";
+      case "BlockStatement":
+        if (child.type !== "ReturnStatement") return "";
+        break;
+      case "FunctionDeclaration":
+      case "FunctionExpression":
+      case "ArrowFunctionExpression":
+        if (!fns) return "";
+        if (p.type !== "ArrowFunctionExpression" && p.id) return p.id.name;
+        break;
+      default:
+        if (!GLUE.has(p.type)) return "";
+    }
+  }
+  return "";
+};
+
+const ownerOf = (chain: Node[], site: Node) => {
+  for (const i of down(chain.length - 1)) {
+    const f = chain[i]!;
+    if (
+      f.type === "FunctionDeclaration" ||
+      f.type === "FunctionExpression" ||
+      f.type === "ArrowFunctionExpression" ||
+      f.type === "ClassDeclaration" ||
+      f.type === "ClassExpression"
+    ) {
+      const name =
+        (f.type !== "ArrowFunctionExpression" && f.id?.name) || bound(chain, i - 1, site, false);
+      if (PASCAL.test(name)) return name;
+    }
+  }
+  return "";
+};
+
+// Only [A-Za-z0-9_-], cut short.
+const clean = (s: string, max: number) =>
+  s
+    .replace(/[^\w-]+/g, "-")
+    .slice(0, max)
+    .replace(/^-+|-+$/g, "");
+// `src/landing/page.ts` is `page`; `src/Button/index.tsx` is `Button`.
+const baseOf = (id: string) => {
+  const parts = id.replace(/[?#].*$/, "").split("/");
+  const file = parts.pop()!.split(".")[0]!;
+  return clean(file === "index" ? (parts.pop() ?? file) : file, 24) || "module";
+};
+const tokenOf = (chain: Node[], site: Node, base: string) => {
+  const owner = clean(ownerOf(chain, site), 24) || base;
+  const label = clean(bound(chain, chain.length - 1, site, true), 20);
+  return `cs-${owner}${label && label !== owner ? `-${label}` : ""}`;
+};
+
+// The replacement of a cn() or cv() site with its readable class among the static classes (never a hashed class).
+export const tagged = (r: string, name: string) =>
+  r.startsWith('"')
+    ? `${r.slice(0, -1)}${r.length > 2 ? " " : ""}${name}"`
+    : r.startsWith(CV_CALL)
+      ? r.replace(
+          /^(__cv\(\{"base":")([^"]*)/,
+          (_, a: string, b: string) => `${a}${b && `${b} `}${name}`,
+        )
+      : r.startsWith(CX_CALL)
+        ? r.endsWith('", ')
+          ? `${r.slice(0, -3)} ${name}", `
+          : `${r}"${name}", `
+        : r;
+
+const calls = (c: Node | undefined, ids: Set<string>, spaces: Set<string>, member: string) =>
+  c?.type === "Identifier"
+    ? ids.has(c.name)
+    : c?.type === "MemberExpression" &&
+      !c.computed &&
+      c.property.type === "Identifier" &&
+      c.property.name === member &&
+      c.object.type === "Identifier" &&
+      spaces.has(c.object.name);
+
 // Maximal css-rooted call expressions, with whether they sit inside a function body. A plain walk over the AST:
 // it runs for every module twice (ssr, client), inside the `instrument` boundary. `cn` and `spaces` are the local
 // names of cn and of the namespace import of "cssints": a call of either with a runtime argument is a site that
@@ -235,9 +367,16 @@ function findSites(
   locals: Set<string>,
   cn: Set<string>,
   spaces: Set<string>,
+  names?: { cv: Set<string>; base: string },
 ) {
   const sites: Site[] = [];
   const scopes = [new Set<string>()]; // innermost last
+  const chain: Node[] | undefined = names && []; // dev names: the ancestors of the node
+  const open: Node[] = []; // the cn() calls whose runtime arguments are being walked: the outer call carries the name
+  const nameOf = (n: Node, isCn: boolean, c: Node | undefined) =>
+    names && !open.length && (isCn || calls(c, names.cv, spaces, "cv"))
+      ? tokenOf(chain!, n, names.base)
+      : undefined;
   const walk = (node: unknown, inFn: boolean) => {
     if (!Predicate.isObject(node) || typeof node.type !== "string") return;
     const n = node as unknown as Node;
@@ -248,28 +387,25 @@ function findSites(
     ) {
       const scope = scopes[scopes.length - 1]!;
       const c = n.type === "CallExpression" ? n.callee : undefined;
-      const isCn =
-        c?.type === "Identifier"
-          ? cn.has(c.name)
-          : c?.type === "MemberExpression" &&
-            !c.computed &&
-            c.property.type === "Identifier" &&
-            c.property.name === "cn" &&
-            c.object.type === "Identifier" &&
-            spaces.has(c.object.name);
+      const isCn = calls(c, cn, spaces, "cn");
       const args = n.type === "CallExpression" && isCn ? n.arguments : [];
       const runtime = args.map((a) => isRuntimeArg(a, code, scope, locals));
       if (!runtime.includes(true)) {
-        sites.push({ start: n.start, end: n.end, inFn, locals: scope });
+        sites.push({ start: n.start, end: n.end, inFn, locals: scope, name: nameOf(n, isCn, c) });
         return; // nested css calls are evaluated as part of this one
       }
       const from = sites.length;
+      chain?.push(n);
+      open.push(n);
       args.forEach((a, i) => runtime[i] && walk(a, inFn));
+      open.pop();
+      chain?.pop();
       sites.push({
         start: n.start,
         end: n.end,
         inFn,
         locals: scope,
+        name: nameOf(n, isCn, c),
         group: {
           callee: { start: n.callee.start, end: n.callee.end },
           args: args.map((a, i) => ({ start: a.start, end: a.end, runtime: runtime[i]! })),
@@ -284,11 +420,13 @@ function findSites(
     scopes.push(
       own.size ? new Set([...scopes[scopes.length - 1]!, ...own]) : scopes[scopes.length - 1]!,
     );
+    chain?.push(n);
     for (const k in node) {
       const v = node[k];
       if (Array.isArray(v)) v.forEach((c) => walk(c, fn));
       else if (Predicate.isObject(v) && "type" in v) walk(v, fn);
     }
+    chain?.pop();
     scopes.pop();
   };
   walk(program, false);
@@ -327,20 +465,30 @@ export const instrument = Effect.fn("cssints.instrument")(function* (
   code: string,
   id: string,
   client: boolean = true,
+  named: boolean = false,
 ): Effect.fn.Return<Instrumented | null, ImportError> {
   const { program } = parseSync(id, code);
   const imp = yield* findCssImport(program, code, id, client);
   if (!imp) return null;
   const sources = imp.decls.filter((d) => isCssints(d.source.value));
   const cn = new Set<string>();
+  const cv = new Set<string>();
   const spaces = new Set<string>();
   for (const d of sources)
     for (const x of d.specifiers) {
       if (x.type === "ImportNamespaceSpecifier" || importedName(x) === "css")
         spaces.add(x.local.name);
       else if (importedName(x) === "cn") cn.add(x.local.name);
+      else if (importedName(x) === "cv") cv.add(x.local.name);
     }
-  const sites = findSites(program, code, withConditions(program, code, imp), cn, spaces);
+  const sites = findSites(
+    program,
+    code,
+    withConditions(program, code, imp),
+    cn,
+    spaces,
+    named ? { cv, base: baseOf(id) } : undefined,
+  );
   const ms = new MagicString(code);
   const hoisted: string[] = [];
   const file = Formatter.formatJson(id);
