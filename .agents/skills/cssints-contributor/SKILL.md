@@ -95,7 +95,7 @@ order, leaves the model untouched: say so in the wayfinder entry.
 ## Docs house style
 
 - `docs/API.md` is the reference. Every `ts` block is type-checked by `test/docs.mjs`; a line ending in `// error`
-  must fail; fence `ts skip` for output. Its code blocks use tabs and are not formatted. A behaviour change updates
+  must fail; fence `ts skip` for output. Its code blocks are formatted by `vp fmt` (oxfmt formats embedded code in markdown): run it on the file after an edit. A behaviour change updates
   the bullet that states it, with the bean id and the date in the heading when it is a decision.
 - `docs/wayfinder.md` gets one entry per decision or finding: `## What changed (cssints-xxxx, YYYY-MM-DD)` and one
   paragraph: who found it (the bean or package), the problem with a repro, what was chosen and what was weighed, the
