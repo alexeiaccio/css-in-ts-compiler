@@ -180,12 +180,18 @@ const attachedTo = (root: string) =>
 
 // Announce this server to the command while it listens; the file goes when the server closes (Vite closes it on SIGINT and
 // SIGTERM) or the process exits. A crash leaves a stale pid, which the command ignores and removes.
+const urlOf = (s: ViteDevServer) => {
+  const address = s.httpServer?.address();
+  return Predicate.hasProperty(address, "port")
+    ? `${s.config.server.https ? "https" : "http"}://localhost:${address.port}/`
+    : undefined;
+};
+
 const announce = (s: ViteDevServer) =>
   Effect.try(() => {
     const http = s.httpServer;
-    const address = http?.address();
-    if (!http || !Predicate.hasProperty(address, "port")) return;
-    const url = `${s.config.server.https ? "https" : "http"}://localhost:${address.port}/`;
+    const url = urlOf(s);
+    if (!http || !url) return;
     const remove = register(gitRoot(s.config.root), s.config.root, url);
     http.once("close", remove);
     process.once("exit", remove);
@@ -243,9 +249,14 @@ const link = Effect.fn("cssints.opencodeLink")(function* (root: string) {
   );
 });
 
+// The app a prompt is about: file paths in it are relative to the Vite root, which is one of several apps in a monorepo.
+const appLine = (root: string, url: string | undefined) =>
+  `App: ${relative(gitRoot(root), root) || "."}${url ? ` (${url})` : ""}; file paths below are relative to it`;
+
 // One prompt: to the attached session, else to a new one in the workspace, then the outcome. `say` tells the overlay each step.
 const ask = Effect.fn("cssints.opencodeAsk")(function* (
   root: string,
+  url: string | undefined,
   options: OpenCodeOptions,
   ref: number,
   prompt: string,
@@ -285,7 +296,8 @@ const ask = Effect.fn("cssints.opencodeAsk")(function* (
   yield* call(() =>
     client.session.prompt({
       sessionID: id,
-      text: prompt.slice(0, MAX_PROMPT),
+      // cut from the end: the App line, the instruction and the header (the browser's first lines) stay
+      text: `${appLine(root, url)}\n${prompt}`.slice(0, MAX_PROMPT),
       ...(options.skills?.length ? { skills: options.skills.map((s) => ({ id: s })) } : {}),
     }),
   );
@@ -354,7 +366,7 @@ export const devtoolsPlugin = (
           const { ref, prompt } = asking.value;
           const say = (asked: Asked) => s.environments.client.hot.send(ASKED, asked);
           Effect.runFork(
-            ask(s.config.root, opencode, ref, prompt, say).pipe(
+            ask(s.config.root, urlOf(s), opencode, ref, prompt, say).pipe(
               Effect.catchTag("OpenCodeError", (e) =>
                 Effect.sync(() => say({ ref, status: e.status, message: e.message })),
               ),

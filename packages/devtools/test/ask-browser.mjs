@@ -196,9 +196,13 @@ const DOCKS = { right: false, left: false, top: true, bottom: true };
   assert.equal(await session.getAttribute("title"), null);
   assert.equal(await input.inputValue(), "", "the box is empty once the session exists");
   const first = fake.calls.find((c) => c.path.endsWith("/prompt")).body.text;
-  assert.match(first, /^Change the UI of the running app/);
+  const app =
+    /^App: packages\/devtools\/test\/fixtures\/app \(http:\/\/localhost:\d+\/\); file paths below are relative to it\n/;
+  assert.match(first, app, "the dev server puts the app on top");
+  assert.match(first, /\nChange the UI of the running app/);
   assert.match(first, /Instruction: make the page darker\n/);
-  assert.match(first, new RegExp(`Page: ${server.resolvedUrls.local[0]}`));
+  assert.match(first, /\nPage: \/\nTitle: \(none\)\nDisplay:\n- viewport: 1000x300/);
+  assert.match(first, /\n- prefers-color-scheme: (light|dark)$/);
   assert.ok(!first.includes("Element:"), "no element in it");
 
   // /cssints-devtools attaches a session (a file): the next probe, on focus, shows it, truncated, the full id in the title
@@ -222,7 +226,8 @@ const DOCKS = { right: false, left: false, top: true, bottom: true };
   await until("detached", async () => (await session.getAttribute("title")) === null);
   assert.equal(await session.innerText(), "no session attached: a prompt starts a new one");
 
-  // an element picked: as before
+  // an element picked: as before, with the header
+  await page.evaluate(() => document.documentElement.setAttribute("data-mode", "dark"));
   await pick(page);
   await input.fill("make it bigger");
   await input.press("ArrowUp"); // arrows move the caret of the box, not the selection
@@ -236,9 +241,20 @@ const DOCKS = { right: false, left: false, top: true, bottom: true };
       fake.calls.some((c) => c.path.endsWith("/prompt")),
   );
   const prompt = fake.calls.find((c) => c.path.endsWith("/prompt")).body.text;
-  assert.match(prompt, /^Change the UI of the running app/);
+  assert.match(prompt, app);
+  assert.match(prompt, /\nChange the UI of the running app/);
   assert.match(prompt, /Instruction: make it bigger\n/);
+  assert.match(prompt, /\nPage: \/\nTitle: \(none\)\nDisplay:\n- viewport: 1000x300/);
+  assert.match(prompt, /\n- rect: \d+x\d+ at \d+,\d+ in the viewport/);
+  assert.ok(
+    prompt.indexOf("Instruction:") < prompt.indexOf("Page:") &&
+      prompt.indexOf("Display:") < prompt.indexOf("Element:"),
+    "the header sits between the instruction and the element",
+  );
   assert.match(prompt, /Element: <p#p>/);
+  assert.match(prompt, /\nAttributes: id="p"\n/);
+  assert.match(prompt, /\n- <html> data-mode="dark"\n/);
+  assert.match(prompt, /\n- rect: .*; hovered\n/, "the pointer is on it");
   assert.match(prompt, /- main\.ts:5\n {2}color\("rebeccapurple"\)/);
   assert.match(prompt, /- color: rebeccapurple from \._\w+ \(_\.\w\)/);
   assert.ok(prompt.length < 4000, `${prompt.length} characters`);

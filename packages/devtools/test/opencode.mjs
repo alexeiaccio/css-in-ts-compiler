@@ -78,6 +78,12 @@ const PROMPT = [
   '  color("blue")',
 ].join("\n");
 
+// the server puts the app on top of what the page built: the root against the repository, and where it listens
+const local = (x) => x.server.resolvedUrls.local[0].replace("127.0.0.1", "localhost");
+const APP = (where, x, text = PROMPT) =>
+  `App: ${where} (${local(x)}); file paths below are relative to it\n${text}`;
+const sent = () => calls.findLast((c) => c.path.endsWith("/prompt")).body.text;
+
 // ---------- the client is not installed: the probe says so
 if (process.argv[2] === "missing") {
   hook(
@@ -133,7 +139,11 @@ if (process.argv[2] === "missing") {
     "the session runs in the repository of the app",
   );
   const prompt = calls.find((c) => c.path === "/api/session/ses_fake1/prompt");
-  assert.equal(prompt.body.text, PROMPT, "the prompt is sent as the overlay built it");
+  assert.equal(
+    prompt.body.text,
+    APP("packages/devtools/test/fixtures/app", t),
+    "the prompt is sent as the overlay built it, the app on top",
+  );
   assert.deepEqual(prompt.body.skills, [{ id: "cssints" }]);
   assert.deepEqual(
     calls.map((c) => c.path.replace("/api/", "")).filter((p) => p !== "info"),
@@ -181,7 +191,6 @@ if (process.argv[2] === "missing") {
   const u = await serve({}, here);
 
   // each server announces itself while it runs, with its root, pid and url
-  const local = (x) => x.server.resolvedUrls.local[0].replace("127.0.0.1", "localhost");
   assert.deepEqual(
     servers(repo).sort((x, y) => x.id.localeCompare(y.id)),
     [
@@ -210,7 +219,18 @@ if (process.argv[2] === "missing") {
     calls.find((c) => c.path.endsWith("/prompt")).path,
     "/api/session/ses_attached/prompt",
   );
-  assert.equal(calls.find((c) => c.path.endsWith("/prompt")).body.text, PROMPT);
+  assert.equal(sent(), APP("packages/devtools/test/fixtures/app", t));
+
+  // a root equal to the repository is ".", and a prompt past the cut loses its end, not the App line or the Instruction
+  const r = await serve({}, repo);
+  r.ask(1, `${PROMPT}\n${"x".repeat(20000)}`);
+  await r.until("repository root", () => r.asked.some((a) => a.status === "completed"));
+  const long = sent();
+  assert.equal(long.length, 16000, "cut to the server's bound");
+  assert.ok(long.startsWith(APP(".", r, "").trimEnd()), long.slice(0, 200));
+  assert.ok(long.includes("Instruction: make the heading bigger"), "the Instruction is kept");
+  r.socket.close();
+  await r.server.close();
 
   // the other server is not attached: its prompt opens a new session
   calls.length = 0;
@@ -218,6 +238,7 @@ if (process.argv[2] === "missing") {
   await u.until("new session", () => u.asked.some((a) => a.status === "completed"));
   assert.equal(u.asked[0].id, "ses_fake1");
   assert.ok(calls.some((c) => c.path === "/api/session" && c.method === "POST"));
+  assert.equal(sent(), APP("packages/devtools/test", u), "a root two levels under the repository");
 
   // detached: back to a new session per prompt
   attach(repo, id);
