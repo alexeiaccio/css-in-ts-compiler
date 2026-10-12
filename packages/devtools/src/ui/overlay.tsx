@@ -16,7 +16,10 @@ import {
   domPage,
   type Inspection,
   inspect,
+  LINKED,
+  type Linked,
   type Model,
+  pagePrompt,
   type Row,
   relative,
   session,
@@ -301,6 +304,9 @@ function App(props: {
   /** only with `opencode` on in the dev server: sends an instruction about the picked element; `asked` is how it goes */
   ask?: (prompt: string) => void;
   asked: () => AskState | undefined;
+  /** with `ask`: probes for the OpenCode service; `linked` is what the last probe found (undefined before the first answer) */
+  link?: () => void;
+  linked: () => Linked | undefined;
 }) {
   const [open, setOpen] = createSignal(false);
   const [picking, setPicking] = createSignal(false);
@@ -309,6 +315,13 @@ function App(props: {
   const [tick, setTick] = createSignal(0);
   const [place, setPlace] = createSignal(load());
   const horizontal = () => place().dock === "left" || place().dock === "right";
+  // the OpenCode box sits at the panel's bottom edge, or, in a wide strip (docked top or bottom; a window wider than tall), at its right edge
+  const strip = () => {
+    const w = win();
+    if (!w) return place().dock === "top" || place().dock === "bottom";
+    tick(); // the window's size is read on the panel's timer
+    return w.innerWidth > w.innerHeight;
+  };
   const [win, setWin] = createSignal<Window>();
   const [blocked, setBlocked] = createSignal(false);
   const closeWin = () => {
@@ -374,18 +387,35 @@ function App(props: {
       if (status === "running" && box) box.value = "";
     },
   );
+  // an unavailable service may be started by now: look again
+  createEffect(
+    () => props.asked()?.status,
+    (status) => {
+      if (status === "unavailable") props.link?.();
+    },
+  );
   const send = () => {
     const m = props.model();
     const el = selected();
     const text = input()?.value.trim();
+    if (!text) return;
     const i = m && el?.isConnected ? run(m, el) : undefined;
-    if (text && el && typeof i === "object") props.ask?.(buildPrompt(i, el, text));
+    props.ask?.(
+      el && typeof i === "object" ? buildPrompt(i, el, text) : pagePrompt(text, location.href),
+    );
+  };
+  const link = () => props.linked();
+  const linkState = () => (link() ? (link()?.connected ? "connected" : "disconnected") : "unknown");
+  const sessionText = () => {
+    const id = props.asked()?.id;
+    return id ? `session · ${id.length > 14 ? `${id.slice(0, 14)}…` : id}` : "no session yet";
   };
 
   const toggle = (on = !open()) => {
     setOpen(on);
     setPicking(on && !selected());
     props.setActive(on);
+    if (on) props.link?.();
     if (!on) closeWin();
     else if (place().detached && !win()) detach();
   };
@@ -477,7 +507,11 @@ function App(props: {
   const Docked = () => (
     <>
       <aside
-        class={cn(s.panel, win() ? s.dockWindow : PANEL[place().dock])}
+        class={cn(
+          s.panel,
+          strip() ? s.strip : s.column,
+          win() ? s.dockWindow : PANEL[place().dock],
+        )}
         data-devtools="panel"
         data-dock={place().dock}
         data-detached={win() ? "yes" : "no"}
@@ -489,89 +523,115 @@ function App(props: {
               : { height: `min(${place().h}px, 100vh)`, width: "" }
         }
       >
-        <div class={s.bar}>
-          <span class={s.title} data-devtools="element">
-            {typeof inspection() === "object"
-              ? (inspection() as Inspection).element
-              : "pick an element"}
-          </span>
-          <button
-            class={cn(s.button, picking() && s.pressed)}
-            data-devtools="pick"
-            data-on={picking() ? "yes" : "no"}
-            title="pick an element"
-            onClick={() => setPicking(!picking())}
-          >
-            pick
-          </button>
-          <button
-            class={cn(s.button, win() && s.pressed)}
-            data-devtools="detach"
-            data-on={win() ? "yes" : "no"}
-            title={win() ? "dock back" : "detach into a window"}
-            onClick={() => (win() ? redock() : detach())}
-          >
-            ⧉
-          </button>
-          <For each={DOCKS}>
-            {(d) => (
-              <button
-                class={cn(s.button, place().dock === d && s.pressed)}
-                data-devtools="dock"
-                data-dock={d}
-                title={`dock ${d}`}
-                onClick={() => moveTo(d)}
-              >
-                {ICON[d]}
-              </button>
-            )}
-          </For>
-          <button class={s.button} title="parent (↑)" onClick={() => go(parent)}>
-            ↑
-          </button>
-          <button
-            class={s.button}
-            data-devtools="close"
-            title="close (Esc)"
-            onClick={() => toggle(false)}
-          >
-            ×
-          </button>
-        </div>
-        <Show when={blocked() && !win()}>
-          <div class={s.reason} data-devtools="blocked">
-            The browser blocked the window. Allow pop-ups for this site and press ⧉ again.
+        <div class={s.main}>
+          <div class={s.bar} data-devtools="bar">
+            <span class={s.title} data-devtools="element">
+              {typeof inspection() === "object"
+                ? (inspection() as Inspection).element
+                : "pick an element"}
+            </span>
+            <button
+              class={cn(s.button, picking() && s.pressed)}
+              data-devtools="pick"
+              data-on={picking() ? "yes" : "no"}
+              title="pick an element"
+              onClick={() => setPicking(!picking())}
+            >
+              pick
+            </button>
+            <button
+              class={cn(s.button, win() && s.pressed)}
+              data-devtools="detach"
+              data-on={win() ? "yes" : "no"}
+              title={win() ? "dock back" : "detach into a window"}
+              onClick={() => (win() ? redock() : detach())}
+            >
+              ⧉
+            </button>
+            <For each={DOCKS}>
+              {(d) => (
+                <button
+                  class={cn(s.button, place().dock === d && s.pressed)}
+                  data-devtools="dock"
+                  data-dock={d}
+                  title={`dock ${d}`}
+                  onClick={() => moveTo(d)}
+                >
+                  {ICON[d]}
+                </button>
+              )}
+            </For>
+            <button class={s.button} title="parent (↑)" onClick={() => go(parent)}>
+              ↑
+            </button>
+            <button
+              class={s.button}
+              data-devtools="close"
+              title="close (Esc)"
+              onClick={() => toggle(false)}
+            >
+              ×
+            </button>
           </div>
-        </Show>
-        <Show
-          when={props.model()}
-          fallback={
-            <div class={s.hint}>
-              {props.build ? "loading the table…" : "waiting for the dev server…"}
+          <Show when={blocked() && !win()}>
+            <div class={s.reason} data-devtools="blocked">
+              The browser blocked the window. Allow pop-ups for this site and press ⧉ again.
             </div>
-          }
-        >
-          <Show
-            when={typeof inspection() === "object" ? (inspection() as Inspection) : undefined}
-            fallback={
-              <div class={s.hint}>
-                {typeof inspection() === "string"
-                  ? inspection()
-                  : "hover an element and click to pick it"}
-              </div>
-            }
-          >
-            {(i) => <Panel inspection={i()} build={props.build} />}
           </Show>
-        </Show>
-        <Show when={props.ask && selected()}>
-          <div class={s.ask} data-devtools="ask">
+          <div class={s.body} data-devtools="body">
+            <Show
+              when={props.model()}
+              fallback={
+                <div class={s.hint}>
+                  {props.build ? "loading the table…" : "waiting for the dev server…"}
+                </div>
+              }
+            >
+              <Show
+                when={typeof inspection() === "object" ? (inspection() as Inspection) : undefined}
+                fallback={
+                  <div class={s.hint}>
+                    {typeof inspection() === "string"
+                      ? inspection()
+                      : "hover an element and click to pick it"}
+                  </div>
+                }
+              >
+                {(i) => <Panel inspection={i()} build={props.build} />}
+              </Show>
+            </Show>
+          </div>
+        </div>
+        <Show when={props.ask}>
+          <div
+            class={cn(s.ask, strip() ? s.askSide : s.askBottom)}
+            data-devtools="ask"
+            data-layout={strip() ? "side" : "bottom"}
+          >
+            <div class={s.askHead}>
+              <span class={s.askTitle} data-devtools="ask-title">
+                OpenCode
+              </span>
+              <span class={cn(s.code, s.muted)} data-devtools="ask-link" data-link={linkState()}>
+                <span class={cn(s.dot, linkState() === "connected" ? s.dotOn : s.dotOff)} />{" "}
+                {linkState() === "connected"
+                  ? "connected"
+                  : linkState() === "unknown"
+                    ? "checking"
+                    : "not connected"}
+              </span>
+            </div>
             <textarea
               ref={setInput}
-              class={s.askInput}
+              class={cn(s.askInput, strip() && s.askInputGrow)}
               data-devtools="ask-input"
               rows="2"
-              placeholder="Ask OpenCode to change this element (Enter sends)"
+              placeholder={
+                selected()
+                  ? "Ask OpenCode to change this element (Enter sends)"
+                  : "Ask OpenCode to change the page, or pick an element first (Enter sends)"
+              }
+              onFocus={() => props.link?.()}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
                   e.preventDefault();
@@ -579,25 +639,42 @@ function App(props: {
                 }
               }}
             />
-            <Show when={props.asked()}>
-              {(a) => (
-                <div
-                  class={cn(
-                    s.sub,
-                    a().status === "completed"
-                      ? s.ok
-                      : a().status === "running" || a().status === "sending"
-                        ? s.muted
-                        : s.bad,
-                  )}
-                  data-devtools="ask-status"
-                  data-status={a().status}
-                  title={a().id}
-                >
-                  {a().message ?? `${a().status}${a().id ? ` · ${a().id}` : ""}`}
-                </div>
-              )}
-            </Show>
+            <div
+              class={cn(s.code, s.muted)}
+              data-devtools="ask-status"
+              data-link={linkState()}
+              data-status={props.asked()?.status ?? "idle"}
+            >
+              <Show when={link()} fallback="Looking for an OpenCode service…">
+                {(k) => (
+                  <Show
+                    when={k().connected}
+                    fallback={`Not connected. Start OpenCode (or run \`opencode serve --service\`); this server finds it by itself. Sessions open in ${k().directory}. @opencode/client must be in the devDependencies of the app.${k().message ? ` ${k().message}` : ""}`}
+                  >
+                    {`connected to ${k().url} · `}
+                    <span data-devtools="ask-session" title={props.asked()?.id}>
+                      {sessionText()}
+                    </span>
+                    <Show when={props.asked()}>
+                      {(a) => (
+                        <span
+                          class={
+                            a().status === "completed"
+                              ? s.ok
+                              : a().status === "running" || a().status === "sending"
+                                ? s.muted
+                                : s.bad
+                          }
+                          data-devtools="ask-state"
+                        >
+                          {` · ${a().message ?? a().status}`}
+                        </span>
+                      )}
+                    </Show>
+                  </Show>
+                )}
+              </Show>
+            </div>
           </div>
         </Show>
       </aside>
@@ -686,7 +763,7 @@ export function mount(transport: TransportApi & { root: string; build?: boolean 
   const ask =
     transport.ask &&
     ((prompt: string) => {
-      setAsked({ status: "sending" });
+      setAsked((prev) => ({ status: "sending", id: prev?.id }));
       last.ref += 1;
       transport.ask?.(last.ref, prompt);
     });
@@ -695,6 +772,8 @@ export function mount(transport: TransportApi & { root: string; build?: boolean 
       const a = data as Asked;
       if (a.ref === last.ref) setAsked((prev) => ({ ...prev, ...a }));
     });
+  const [linked, setLinked] = createSignal<Linked>();
+  if (transport.link) transport.on(LINKED, (data) => setLinked(data as Linked));
   render(
     () => (
       <App
@@ -704,6 +783,8 @@ export function mount(transport: TransportApi & { root: string; build?: boolean 
         build={transport.build}
         ask={ask}
         asked={asked}
+        link={transport.link}
+        linked={linked}
       />
     ),
     root,

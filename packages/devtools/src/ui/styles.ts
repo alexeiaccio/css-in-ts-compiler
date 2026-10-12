@@ -16,11 +16,14 @@ import {
   cursor,
   display,
   flex,
+  flexDirection,
   flexGrow,
+  flexShrink,
   font,
   fontFamily,
   fontSize,
   fontWeight,
+  gap,
   global,
   grid,
   height,
@@ -30,6 +33,8 @@ import {
   lineHeight,
   margin,
   maxHeight,
+  minHeight,
+  minWidth,
   marginBlock,
   marginBottom,
   marginInlineEnd,
@@ -44,6 +49,7 @@ import {
   paddingInlineStart,
   pointerEvents,
   position,
+  resize,
   right,
   textAlign,
   textDecoration,
@@ -101,17 +107,22 @@ export const tag = cn(
   whiteSpace("nowrap"),
 );
 
-// the size along the dock axis is inline (overlay.tsx): the user drags it
+// the size along the dock axis is inline (overlay.tsx): the user drags it. A column (left and right docks, a tall window):
+// the bar, the inspection that scrolls, the ask box at the bottom. A row (top and bottom docks, a wide window): the same
+// column of bar and inspection, the ask box on the right edge.
 export const panel = cn(
   position("fixed"),
   zIndex(2147483647),
-  overflow("auto"),
+  display("flex"),
+  overflow("hidden"),
   bg(panelBg),
   color(ink),
   fontFamily("system-ui, sans-serif"),
   fontSize("12px"),
   lineHeight("1.45"),
 );
+export const column = flexDirection("column");
+export const strip = flexDirection("row");
 export const dockRight = cn(top("0"), right("0"), bottom("0"), borderLeft("1px solid", line));
 export const dockLeft = cn(top("0"), left("0"), bottom("0"), borderRight("1px solid", line));
 export const dockTop = cn(top("0"), left("0"), right("0"), borderBottom("1px solid", line));
@@ -123,10 +134,18 @@ const grip = cn(position("fixed"), zIndex(2147483647), touchAction("none"));
 export const gripX = cn(grip, top("0"), bottom("0"), width("6px"), cursor("ew-resize"));
 export const gripY = cn(grip, left("0"), right("0"), height("6px"), cursor("ns-resize"));
 
+export const main = cn(
+  display("flex"),
+  flexDirection("column"),
+  flexGrow(1),
+  minHeight("0"),
+  minWidth("0"),
+);
+export const body = cn(flexGrow(1), minHeight("0"), overflow("auto"));
+
 export const bar = cn(
   flex().alignItems("center").gap(2),
-  position("sticky"),
-  top("0"),
+  flexShrink(0),
   p(2),
   bg(panelBg),
   borderBottom("1px solid", line),
@@ -222,13 +241,30 @@ export const unsure = color("#fcd34d");
 export const reason = cn(paddingInlineStart("12px"), color("#fca5a5"), fontSize("11px"));
 export const hint = cn(p(2), color(dim));
 
+// the OpenCode panel: a title row, the input, the status line; never scrolls away
 export const ask = cn(
-  position("sticky"),
-  bottom("0"),
+  display("flex"),
+  flexDirection("column"),
+  gap(1),
+  flexShrink(0),
   p(2),
   bg(panelBg),
-  borderTop("1px solid", line),
+  overflow("auto"),
 );
+export const askBottom = borderTop("1px solid", line);
+export const askSide = cn(width("20rem"), borderLeft("1px solid", line));
+export const askHead = cn(flex().alignItems("center").gap(2));
+export const askTitle = cn(
+  flexGrow(1),
+  fontSize("11px"),
+  fontWeight("600"),
+  textTransform("uppercase"),
+  letterSpacing("0.06em"),
+  color(dim),
+);
+export const dot = cn(display("inline-block"), width("8px"), height("8px"), borderRadius("999px"));
+export const dotOn = bg("#86efac");
+export const dotOff = bg(dim);
 export const askInput = cn(
   display("block"),
   width("100%"),
@@ -239,3 +275,4 @@ export const askInput = cn(
   color(ink),
   font("inherit"),
 );
+export const askInputGrow = cn(flexGrow(1), minHeight("3rem"), resize("none"));
