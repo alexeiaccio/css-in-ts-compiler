@@ -2,13 +2,13 @@
 // over Vite's HMR channel; the table is built from the plugin's own records at that moment: the entries of every client
 // module (`usedBy`, the sheet is rendered from them as `load()` does), the sites of each module (`callsOf`, recorded beside
 // `siteOf`) and the registry. After a client transform the overlay is told the table is stale, and asks again when it needs it.
-import { existsSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { relative } from "node:path";
 import { gzipSync } from "node:zlib";
 
 import { Data, Effect, Formatter, Option, Predicate, Schema } from "effect";
 import type { Plugin, ViteDevServer } from "vite";
 
+import { gitRoot, register, serverId, sessionOf } from "./devtools-link.ts";
 import { Registry } from "./registry.ts";
 import { LAYERS, layerStatements, renderSheet } from "./sheet.ts";
 
@@ -166,15 +166,30 @@ interface Linked {
   connected: boolean;
   url?: string;
   directory: string;
+  /** the session `/cssints-devtools` attached to this server: prompts go there */
+  session?: string;
   message?: string;
 }
 
-// The repository of the app is the workspace of the session: the nearest folder up from the Vite root with a `.git`.
-const workspace = (root: string) =>
-  root
-    .split(sep)
-    .map((_, i, parts) => parts.slice(0, parts.length - i).join(sep) || sep)
-    .find((dir) => existsSync(join(dir, ".git"))) ?? root;
+// The session attached to this dev server by `/cssints-devtools` (devtools-link.ts), read on each probe and each ask.
+const attachedTo = (root: string) =>
+  Effect.sync(() => {
+    const git = gitRoot(root);
+    return sessionOf(git, serverId(git, root));
+  });
+
+// Announce this server to the command while it listens; the file goes when the server closes (Vite closes it on SIGINT and
+// SIGTERM) or the process exits. A crash leaves a stale pid, which the command ignores and removes.
+const announce = (s: ViteDevServer) =>
+  Effect.try(() => {
+    const http = s.httpServer;
+    const address = http?.address();
+    if (!http || !Predicate.hasProperty(address, "port")) return;
+    const url = `${s.config.server.https ? "https" : "http"}://localhost:${address.port}/`;
+    const remove = register(gitRoot(s.config.root), s.config.root, url);
+    http.once("close", remove);
+    process.once("exit", remove);
+  }).pipe(Effect.ignore);
 
 // The client of the running OpenCode V2 service (`opencode serve --service` registers one), found as OpenCode's own clients
 // find it. @cssints/devtools talks to it from here and never from the page: the page holds no address and no credentials.
@@ -212,20 +227,23 @@ const connect = Effect.fn("cssints.opencodeConnect")(function* () {
 
 // The probe: is a service found? No session is created.
 const link = Effect.fn("cssints.opencodeLink")(function* (root: string) {
-  const directory = workspace(root);
+  const directory = gitRoot(root);
+  const attached = yield* attachedTo(root);
+  const session = attached ? { session: attached } : {};
   return yield* connect().pipe(
-    Effect.map(({ url }) => ({ connected: true, url, directory }) satisfies Linked),
+    Effect.map(({ url }) => ({ connected: true, url, directory, ...session }) satisfies Linked),
     Effect.catchTag("OpenCodeError", (e) =>
       Effect.succeed({
         connected: false,
         directory,
+        ...session,
         ...(e.idle ? {} : { message: e.message }),
       } satisfies Linked),
     ),
   );
 });
 
-// One prompt: a session in the workspace, the prompt, then the outcome. `say` tells the overlay each step.
+// One prompt: to the attached session, else to a new one in the workspace, then the outcome. `say` tells the overlay each step.
 const ask = Effect.fn("cssints.opencodeAsk")(function* (
   root: string,
   options: OpenCodeOptions,
@@ -243,13 +261,26 @@ const ask = Effect.fn("cssints.opencodeAsk")(function* (
           message: Predicate.isError(e) ? e.message : String(e),
         }),
     });
-  const { id } = yield* call(() =>
-    client.session.create({
-      title: "cssints devtools: UI change",
-      ...(options.agent ? { agent: options.agent } : {}),
-      location: { directory: workspace(root) },
-    }),
-  );
+  const attached = yield* attachedTo(root);
+  if (attached)
+    yield* call(() => client.session.get({ sessionID: attached })).pipe(
+      Effect.mapError(
+        (e) =>
+          new OpenCodeError({
+            status: "failed",
+            message: `The attached session ${attached} is gone (${e.message}). Run /cssints-devtools in an OpenCode session to attach another.`,
+          }),
+      ),
+    );
+  const id =
+    attached ??
+    (yield* call(() =>
+      client.session.create({
+        title: "cssints devtools: UI change",
+        ...(options.agent ? { agent: options.agent } : {}),
+        location: { directory: gitRoot(root) },
+      }),
+    )).id;
   say({ ref, status: "running", id });
   yield* call(() =>
     client.session.prompt({
@@ -304,6 +335,7 @@ export const devtoolsPlugin = (
     apply: "serve",
     configureServer(s) {
       server = s;
+      if (opencode) s.httpServer?.once("listening", () => Effect.runSync(announce(s)));
       s.environments.client.hot.on("cssints:devtools:get", (_, client) =>
         client.send("cssints:devtools", Effect.runSync(table(s.config.root, usedBy, callsOf))),
       );

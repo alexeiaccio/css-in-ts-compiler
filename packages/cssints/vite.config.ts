@@ -25,6 +25,7 @@ export default defineConfig({
         frame: "src/frame.ts",
         surface: "src/surface.ts",
         tui: "src/tui.ts",
+        "devtools-link": "src/devtools-link.ts",
       },
       platform: "node",
       format: "esm",

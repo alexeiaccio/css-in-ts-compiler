@@ -2,14 +2,15 @@ import { c as EvalError, d as MacroError, f as MemberError, i as forgetWarnings,
 import { C as fallbackEntries, T as runtimeNames, a as closeNames, b as DERIVED, c as layerEntries, f as themedEntries, l as layerStatements, m as usesDerived, n as addGlobal, o as globalEntries, r as addLayers, s as globalNames, t as LAYERS, u as renderSheet, v as kernelEntries, w as runtimeModule, x as RUNTIME_ID } from "./sheet-BeHdq4xt.mjs";
 import { a as runtimeImport, i as instrument, o as writeSite } from "./instrument-Bg2yhV0s.mjs";
 import { r as verifyChecks } from "./contrast-B49XCnVX.mjs";
+import { i as serverId, n as gitRoot, o as sessionOf, r as register } from "./devtools-link-D2YxsJKZ.mjs";
 import { createRequire } from "node:module";
 import { targets as targets$1, useTargets } from "@cssints/css-grammar/support";
 import { Cause, Clock, Config, Data, Effect, Exit, Formatter, Option, Predicate, Result, Schema, Semaphore } from "effect";
 import { createHash } from "node:crypto";
-import { basename, join, relative, resolve, sep } from "node:path";
+import { basename, join, relative, resolve } from "node:path";
 import { browserslistToTargets } from "lightningcss";
 import MagicString from "magic-string";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { browsers as browsers$1 } from "@cssints/css-grammar/browsers";
 import { createFilter, createServer, createServerModuleRunner, normalizePath, transformWithOxc } from "vite";
@@ -198,7 +199,19 @@ const Asking = Schema.Struct({
 	prompt: Schema.String
 });
 var OpenCodeError = class extends Data.TaggedError("OpenCodeError") {};
-const workspace = (root) => root.split(sep).map((_, i, parts) => parts.slice(0, parts.length - i).join(sep) || sep).find((dir) => existsSync(join(dir, ".git"))) ?? root;
+const attachedTo = (root) => Effect.sync(() => {
+	const git = gitRoot(root);
+	return sessionOf(git, serverId(git, root));
+});
+const announce = (s) => Effect.try(() => {
+	const http = s.httpServer;
+	const address = http?.address();
+	if (!http || !Predicate.hasProperty(address, "port")) return;
+	const url = `${s.config.server.https ? "https" : "http"}://localhost:${address.port}/`;
+	const remove = register(gitRoot(s.config.root), s.config.root, url);
+	http.once("close", remove);
+	process.once("exit", remove);
+}).pipe(Effect.ignore);
 const connect = Effect.fn("cssints.opencodeConnect")(function* () {
 	const unavailable = (message) => () => new OpenCodeError({
 		status: "unavailable",
@@ -230,14 +243,18 @@ const connect = Effect.fn("cssints.opencodeConnect")(function* () {
 	};
 });
 const link = Effect.fn("cssints.opencodeLink")(function* (root) {
-	const directory = workspace(root);
+	const directory = gitRoot(root);
+	const attached = yield* attachedTo(root);
+	const session = attached ? { session: attached } : {};
 	return yield* connect().pipe(Effect.map(({ url }) => ({
 		connected: true,
 		url,
-		directory
+		directory,
+		...session
 	})), Effect.catchTag("OpenCodeError", (e) => Effect.succeed({
 		connected: false,
 		directory,
+		...session,
 		...e.idle ? {} : { message: e.message }
 	})));
 });
@@ -250,11 +267,16 @@ const ask = Effect.fn("cssints.opencodeAsk")(function* (root, options, ref, prom
 			message: Predicate.isError(e) ? e.message : String(e)
 		})
 	});
-	const { id } = yield* call(() => client.session.create({
+	const attached = yield* attachedTo(root);
+	if (attached) yield* call(() => client.session.get({ sessionID: attached })).pipe(Effect.mapError((e) => new OpenCodeError({
+		status: "failed",
+		message: `The attached session ${attached} is gone (${e.message}). Run /cssints-devtools in an OpenCode session to attach another.`
+	})));
+	const id = attached ?? (yield* call(() => client.session.create({
 		title: "cssints devtools: UI change",
 		...options.agent ? { agent: options.agent } : {},
-		location: { directory: workspace(root) }
-	}));
+		location: { directory: gitRoot(root) }
+	}))).id;
 	say({
 		ref,
 		status: "running",
@@ -301,6 +323,7 @@ const devtoolsPlugin = (usedBy, callsOf, opencode) => {
 		apply: "serve",
 		configureServer(s) {
 			server = s;
+			if (opencode) s.httpServer?.once("listening", () => Effect.runSync(announce(s)));
 			s.environments.client.hot.on("cssints:devtools:get", (_, client) => client.send("cssints:devtools", Effect.runSync(table(s.config.root, usedBy, callsOf))));
 			if (opencode) {
 				s.environments.client.hot.on(LINK, () => Effect.runFork(link(s.config.root).pipe(Effect.map((linked) => s.environments.client.hot.send(LINKED, linked)))));
