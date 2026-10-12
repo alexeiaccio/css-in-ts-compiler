@@ -528,6 +528,11 @@ function App(props: {
       >
         <div class={s.main}>
           <div class={s.bar} data-devtools="bar">
+            <Show when={typeof inspection() === "object" && (inspection() as Inspection).names[0]}>
+              <span class={s.name} data-devtools="name" title="readable class (dev only)">
+                {(inspection() as Inspection).names.join(" ")}
+              </span>
+            </Show>
             <span class={s.title} data-devtools="element">
               {typeof inspection() === "object"
                 ? (inspection() as Inspection).element
@@ -718,8 +723,10 @@ function App(props: {
               height: `${r().height}px`,
             }}
           >
-            <span class={s.tag}>
-              {typeof inspection() === "object" ? (inspection() as Inspection).element : ""}
+            <span class={s.tag} data-devtools="tag">
+              {typeof inspection() === "object"
+                ? `${(inspection() as Inspection).names.join(" ")} ${(inspection() as Inspection).element}`.trim()
+                : ""}
             </span>
           </div>
         )}

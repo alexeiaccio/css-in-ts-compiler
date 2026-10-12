@@ -78,6 +78,8 @@ export interface TokenRow {
 
 export interface Inspection {
   element: string;
+  /** the readable classes of the element's cn() and cv() calls (`cs-Landing-logo`, dev only), not in the table */
+  names: string[];
   root: string;
   groups: Group[];
   rows: Row[];
@@ -87,6 +89,8 @@ export interface Inspection {
 const lh = (prop: string): readonly string[] => longhands[prop] ?? [prop];
 const isScope = (w: string) => /^@scope\b/i.test(w);
 const CLASSY = /\._[\w-]/;
+// the readable class of a cn() or cv() site that the dev server adds (instrument.ts `tagged`)
+const READABLE = /^cs-[\w-]+$/;
 const UNLAYERED = 1e9;
 // Computed values of these depend on the element's content, which the clone does not have.
 const LAYOUT =
@@ -346,7 +350,10 @@ export const inspect = Effect.fn("devtools.inspect")(function* (model: Model, el
     groups.push({ site, classes: left.filter((c) => site.classes.includes(c)).map(classRow) });
     left = left.filter((c) => !site.classes.includes(c));
   }
-  const rest = classes.filter((c) => !groups.some((g) => g.classes.some((r) => r.cls === c)));
+  const readable = classes.filter((c) => !table.classes[c] && READABLE.test(c));
+  const rest = classes.filter(
+    (c) => !readable.includes(c) && !groups.some((g) => g.classes.some((r) => r.cls === c)),
+  );
   if (rest.length) groups.push({ classes: rest.map(classRow) });
 
   // the tokens the element's rules read
@@ -371,6 +378,7 @@ export const inspect = Effect.fn("devtools.inspect")(function* (model: Model, el
   }
   return {
     element: yield* page.label(el),
+    names: readable,
     root: table.root,
     groups,
     rows,

@@ -1,6 +1,6 @@
 import { c as EvalError, d as MacroError, f as MemberError, i as forgetWarnings, l as HookError, n as forget, p as SiteMissingError, t as Registry } from "./registry-BUSEO32-.mjs";
 import { C as fallbackEntries, T as runtimeNames, a as closeNames, b as DERIVED, c as layerEntries, f as themedEntries, l as layerStatements, m as usesDerived, n as addGlobal, o as globalEntries, r as addLayers, s as globalNames, t as LAYERS, u as renderSheet, v as kernelEntries, w as runtimeModule, x as RUNTIME_ID } from "./sheet-BeHdq4xt.mjs";
-import { a as runtimeImport, i as instrument, o as writeSite } from "./instrument-Bg2yhV0s.mjs";
+import { a as runtimeImport, i as instrument, o as tagged, s as writeSite } from "./instrument-DL2qDZxG.mjs";
 import { r as verifyChecks } from "./contrast-B49XCnVX.mjs";
 import { i as serverId, n as gitRoot, o as sessionOf, r as register } from "./devtools-link-D2YxsJKZ.mjs";
 import { createRequire } from "node:module";
@@ -761,7 +761,7 @@ function cssints({ inner = false, exclude, devtools = false, opencode = false } 
 				site: n,
 				offset: s.start
 			});
-			writeSite(ms, s, replacement);
+			writeSite(ms, s, s.name ? tagged(replacement, s.name) : replacement);
 		}
 		for (const decl of parsed.imp.decls) ms.remove(decl.start, decl.end);
 		for (const dep of runnerDeps(env, id)) (depsOf.get(dep) ?? depsOf.set(dep, /* @__PURE__ */ new Set()).get(dep)).add(id);
@@ -806,7 +806,7 @@ function cssints({ inner = false, exclude, devtools = false, opencode = false } 
 			return out && /x$/.test(id) ? yield* inertJsx(out.code, id) : out?.code;
 		}
 		if (inner) return void 0;
-		const parsed = yield* instrument(code, id);
+		const parsed = yield* instrument(code, id, true, !!devtools && !build);
 		if (!parsed) return void 0;
 		const env = server.environments.ssr;
 		runner ??= createServerModuleRunner(env, {
