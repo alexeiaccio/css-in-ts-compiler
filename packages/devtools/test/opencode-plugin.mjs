@@ -111,4 +111,9 @@ assert.match(said1.text, /run no tools/);
 await cleanup();
 assert.ok(disposed);
 rmSync(git, { recursive: true });
+
+// OpenCode loads a package plugin by the package name (2.0.27: "Plugin entrypoint not found" without a `.` export): the main entry
+// of the package is the plugin
+const main = await import("@cssints/devtools");
+assert.equal(main.default.id, plugin.id);
 console.log("devtools opencode plugin ok");

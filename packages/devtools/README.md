@@ -78,9 +78,16 @@ the box gets focus and after a send that found none, so starting OpenCode later 
 
 ### The command `/cssints-devtools`
 
-The box does not choose a session: an OpenCode command attaches the session it runs in to a dev server. Load the plugin of
-this package in the repository of the app (OpenCode loads `.ts` files of `.opencode/plugins/`; a package subpath in
-`plugins` of opencode.jsonc is not loaded in 2.0.27, nor is a folder with only a `package.json`):
+The box does not choose a session: an OpenCode command attaches the session it runs in to a dev server. The plugin is the
+main entry of this package, so OpenCode loads it by the package name (checked on 2.0.27: it installs the package and finds
+the entry; a package subpath, `@cssints/devtools/opencode`, is not loaded as a plugin):
+
+```jsonc
+// opencode.jsonc of the repository of the app (or ~/.config/opencode/opencode.jsonc)
+{ "plugins": ["@cssints/devtools"] }
+```
+
+Or, with the package installed in the app, a file of the repository (OpenCode loads the `.ts` files of `.opencode/plugins/`):
 
 ```ts
 // .opencode/plugins/cssints-devtools.ts

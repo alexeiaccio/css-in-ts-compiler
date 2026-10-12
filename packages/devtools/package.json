@@ -16,6 +16,7 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
+    ".": "./dist/opencode.js",
     "./overlay": "./dist/overlay.js",
     "./opencode": "./dist/opencode.js",
     "./core": {
