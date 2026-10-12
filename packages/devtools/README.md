@@ -98,10 +98,20 @@ file with a dead pid, which the command ignores and removes. The plugin imports 
 sides share.
 
 Without an attached session, Enter starts a session on the running OpenCode V2 service (`Service.discover` of
-`@opencode/client`; the page never talks to it) in the nearest folder up from the Vite root that has a `.git`. The prompt is built by `src/core/prompt.ts`. With an
-element picked: your instruction, the element (tag, DOM path, text, classes), the `css.*` calls that style it (`file:line` and
-the call's source), the winner of each property and what it beat, and the tokens it reads; every list is cut. With none
-picked: your instruction and the page's address. With no service running the box says how to connect and keeps your text. The
+`@opencode/client`; the page never talks to it) in the nearest folder up from the Vite root that has a `.git`. The prompt is built by `src/core/prompt.ts`:
+
+- `App:` (added by the dev server, on top): the Vite root relative to the repository (`.` when it is the repository) and the
+  address the server listens on, as file paths in the prompt are relative to that root;
+- your instruction, then `Page:` (path, query and hash, not the origin), `Title:` and `Display:` (viewport and pixel ratio,
+  the `class` and `data-*` attributes of `<html>`, `prefers-color-scheme` and `prefers-reduced-motion`; with an element, its
+  rendered size and position and whether it is hovered, focused or disabled);
+- with an element picked: its tag, DOM path, text, classes, `id`, `role`, `aria-label`, `href`, `src`, `alt`, `type`, `name`,
+  `placeholder` and `title`, the `data-*` attributes of it and of its three nearest ancestors, the `css.*` calls that style it
+  (`file:line` and the call's source), the winner of each property and what it beat, and the tokens it reads. Never a `value`,
+  a cookie or storage.
+
+Every list and value is cut, the server cuts the whole at 16,000 characters from the end (the `App:` line, the instruction
+and the header come first and stay). With no service running the box says how to connect and keeps your text. The
 page and the server talk over the HMR channel (`cssints:devtools:ask`, `asked`, `link`, `linked`), not a route. A build has
 none of it. The idea, and the calls to the V2 client, follow
 [brendonovich/vite-plugin-opencode](https://github.com/Brendonovich/vite-plugin-opencode) (MIT, Brendan Allan), which marks the

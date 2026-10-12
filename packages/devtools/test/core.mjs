@@ -566,12 +566,74 @@ ${odd} {
   assert.ok(text.length < 6000, `${text.length} characters`);
   assert.ok(!text.includes("/app/"), "paths are relative to the root");
 
-  // no element picked: the instruction and the page
-  const page = pagePrompt("  make the page darker ", "http://localhost:5173/a");
+  // no element picked: the instruction, the route and the display
+  const site = new Window({
+    url: "http://localhost:5173/docs/install?tab=npm#top",
+    width: 800,
+    height: 600,
+  });
+  site.document.title = "Install  ·\ncssints";
+  site.document.documentElement.setAttribute("class", "dim");
+  site.document.documentElement.setAttribute("data-mode", "dark");
+  site.document.documentElement.setAttribute("data-hue", "210");
+  site.document.documentElement.setAttribute("lang", "en");
+  const page = pagePrompt("  make the page darker ", site.document);
   assert.match(page, /^Change the UI of the running app/);
   assert.match(page, /Instruction: make the page darker\n/);
-  assert.match(page, /Page: http:\/\/localhost:5173\/a$/);
-  assert.ok(!page.includes("Element:"));
+  assert.match(page, /\nPage: \/docs\/install\?tab=npm#top\n/, "the route, not the origin");
+  assert.match(page, /\nTitle: Install · cssints\n/);
+  assert.match(page, /\n- viewport: 800x600\n/, "devicePixelRatio 1 is the default");
+  assert.match(page, /\n- <html> class="dim" data-mode="dark" data-hue="210"\n/);
+  assert.match(page, /\n- prefers-color-scheme: light$/);
+  assert.ok(!page.includes("localhost") && !page.includes("Element:"));
+  assert.ok(
+    page.indexOf("Instruction:") < page.indexOf("Page:"),
+    "the header follows the instruction",
+  );
+
+  // an element: the same header, its box and state, what it is, never a value
+  const form = site.document.createElement("main");
+  form.setAttribute("data-section", "install");
+  form.innerHTML = `<div data-a="1"><div data-b="2"><section data-c="3"><span data-d="4">
+    <input id="pw" type="password" name="pw" value="hunter2" placeholder="Password" data-x="${"y".repeat(500)}"></span></section></div></div>`;
+  site.document.body.append(form);
+  const input = form.querySelector("input");
+  input.focus();
+  const info = buildPrompt(await run(table(sheet, {}), input), input, "fix");
+  assert.match(info, /\nPage: \/docs\/install\?tab=npm#top\nTitle: Install · cssints\nDisplay:\n/);
+  assert.match(info, /\n- rect: 0x0 at 0,0 in the viewport; focused\n/);
+  input.setAttribute("aria-disabled", "true");
+  assert.match(
+    buildPrompt(await run(table(sheet, {}), input), input, "x"),
+    /; focused, disabled\n/,
+  );
+  input.removeAttribute("aria-disabled");
+  assert.match(info, /\nAttributes: id="pw" type="password" name="pw" placeholder="Password"\n/);
+  assert.ok(!info.includes("hunter2") && !/value=/.test(info), "a value never leaves the page");
+  assert.ok(!info.includes("y".repeat(81)), "an attribute is cut");
+  assert.match(info, /\nData of input#pw: data-x="y{80}…"\n/);
+  assert.match(
+    info,
+    /\nData of span: data-d="4"\nData of section: data-c="3"\nData of div: data-b="2"\n/,
+  );
+  assert.ok(!info.includes("data-a=") && !info.includes("data-section"), "three ancestors");
+  assert.match(info, /start from the route \(Page\) and the app \(App\)/);
+
+  // a huge page and instruction: the header stays and the whole is bounded
+  const big = site.document.createElement("p");
+  big.textContent = "t".repeat(5000);
+  for (let i = 0; i < 100; i++) {
+    big.setAttribute(`data-n${i}`, "v".repeat(500));
+    site.document.documentElement.setAttribute(`data-h${i}`, "v".repeat(500));
+  }
+  big.setAttribute("href", "/".repeat(5000));
+  site.document.title = "T".repeat(5000);
+  form.append(big);
+  const huge = buildPrompt(await run(table(sheet, {}), big), big, "z".repeat(20000));
+  assert.ok(huge.length < 8000, `${huge.length} characters`);
+  assert.match(huge, /Instruction: z+…\n/);
+  assert.match(huge, /\nTitle: T+…\n/);
+  assert.match(huge, /\nElement: <p>/, "the element follows");
 }
 
 // ---------- a bad table is a TableError

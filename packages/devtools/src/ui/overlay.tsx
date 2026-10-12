@@ -401,7 +401,7 @@ function App(props: {
     if (!text) return;
     const i = m && el?.isConnected ? run(m, el) : undefined;
     props.ask?.(
-      el && typeof i === "object" ? buildPrompt(i, el, text) : pagePrompt(text, location.href),
+      el && typeof i === "object" ? buildPrompt(i, el, text) : pagePrompt(text, document),
     );
   };
   const link = () => props.linked();
