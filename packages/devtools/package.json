@@ -17,6 +17,7 @@
   "sideEffects": false,
   "exports": {
     "./overlay": "./dist/overlay.js",
+    "./opencode": "./dist/opencode.js",
     "./core": {
       "types": "./src/core/index.ts",
       "default": "./src/core/index.ts"
@@ -29,7 +30,7 @@
   },
   "scripts": {
     "build": "vp build",
-    "test": "node test/core.mjs && node test/opencode.mjs && node test/build.mjs",
+    "test": "node test/core.mjs && node test/opencode.mjs && node test/opencode-plugin.mjs && node test/build.mjs",
     "test:browsers": "vp build && node test/browsers.mjs && node test/ask-browser.mjs",
     "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
     "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1"

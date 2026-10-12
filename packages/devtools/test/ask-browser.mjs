@@ -5,6 +5,7 @@
 //   overflows and scrolls;
 //   without a service the status line says how to connect; a service started after the panel opened shows on focus, with
 //   its address; a prompt with nothing picked is the instruction and the page; the session id shows after the send;
+//   the line says `no session attached` or `attached session <id>` (the full id in the title) as /cssints-devtools sets it;
 //   a service that goes away shows on the failed send. Screenshots of the right and bottom docks go to test/out/.
 // Needs dist/overlay.js (`bun run build`).
 import assert from "node:assert/strict";
@@ -13,6 +14,7 @@ import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 
+import { attach, serverId } from "cssints/devtools-link";
 import cssints from "cssints/vite";
 import { createServer } from "vite";
 
@@ -27,6 +29,7 @@ const { chromium } = await import(
 const out = join(here, "out");
 mkdirSync(out, { recursive: true });
 
+const repo = join(here, "../../.."); // the repository of the fixture app: where /cssints-devtools keeps its files
 const fake = await startFake();
 const serve = async (port, options) => {
   const server = await createServer({
@@ -162,8 +165,9 @@ const DOCKS = { right: false, left: false, top: true, bottom: true };
   assert.match(await page.locator("[data-devtools=ask-link]").innerText(), /not connected/);
   const how = await status.innerText();
   assert.match(how, /Not connected\. Start OpenCode \(or run `opencode serve --service`\)/);
-  assert.match(how, /finds it by itself/);
-  assert.match(how, /Sessions open in \/\S+/);
+  assert.match(how, /run \/cssints-devtools in a session to attach it to this server/);
+  assert.match(how, /finds OpenCode by itself/);
+  assert.match(how, /a prompt opens a new one in \/\S+/);
   assert.match(how, /@opencode\/client must be in the devDependencies/);
 
   // a service started now is found on focus, with no reload
@@ -173,7 +177,7 @@ const DOCKS = { right: false, left: false, top: true, bottom: true };
   assert.match(await page.locator("[data-devtools=ask-link]").innerText(), /^\s*connected/);
   assert.match(
     await status.innerText(),
-    /^connected to http:\/\/127\.0\.0\.1:\d+ · no session yet$/,
+    /^connected to http:\/\/127\.0\.0\.1:\d+ · no session attached: a prompt starts a new one$/,
   );
   assert.equal(
     fake.calls.filter((c) => c.path.includes("session")).length,
@@ -188,14 +192,35 @@ const DOCKS = { right: false, left: false, top: true, bottom: true };
   await until("completed", async () => (await status.getAttribute("data-status")) === "completed");
   assert.match(await state.innerText(), /completed/);
   const session = page.locator("[data-devtools=ask-session]");
-  assert.equal(await session.innerText(), "session · ses_fake1");
-  assert.equal(await session.getAttribute("title"), "ses_fake1");
+  assert.equal(await session.innerText(), "no session attached: a prompt starts a new one");
+  assert.equal(await session.getAttribute("title"), null);
   assert.equal(await input.inputValue(), "", "the box is empty once the session exists");
   const first = fake.calls.find((c) => c.path.endsWith("/prompt")).body.text;
   assert.match(first, /^Change the UI of the running app/);
   assert.match(first, /Instruction: make the page darker\n/);
   assert.match(first, new RegExp(`Page: ${server.resolvedUrls.local[0]}`));
   assert.ok(!first.includes("Element:"), "no element in it");
+
+  // /cssints-devtools attaches a session (a file): the next probe, on focus, shows it, truncated, the full id in the title
+  const id = serverId(repo, server.config.root);
+  for (const [attached, shown] of [
+    ["ses_attached", "attached session ses_attached"],
+    ["ses_0123456789abcdefghij", "attached session ses_0123456789…"],
+  ]) {
+    attach(repo, id, attached);
+    await input.blur();
+    await input.focus();
+    await until(
+      `attached ${attached}`,
+      async () => (await session.getAttribute("title")) === attached,
+    );
+    assert.equal(await session.innerText(), shown);
+  }
+  attach(repo, id);
+  await input.blur();
+  await input.focus();
+  await until("detached", async () => (await session.getAttribute("title")) === null);
+  assert.equal(await session.innerText(), "no session attached: a prompt starts a new one");
 
   // an element picked: as before
   await pick(page);

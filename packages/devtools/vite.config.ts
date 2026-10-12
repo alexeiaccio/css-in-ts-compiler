@@ -32,7 +32,14 @@ export default defineConfig({
   css: { transformer: "lightningcss", lightningcss: { targets } },
   define: { "process.env.NODE_ENV": '"production"' },
   build: {
-    lib: { entry: "src/ui/overlay.tsx", formats: ["es"], fileName: () => "overlay.js" },
+    // dist/opencode.js is the OpenCode plugin (src/opencode.ts): it runs in OpenCode, so Node's modules and the files it shares
+    // with the dev server (cssints/devtools-link) stay imports
+    lib: {
+      entry: { overlay: "src/ui/overlay.tsx", opencode: "src/opencode.ts" },
+      formats: ["es"],
+      fileName: (_, name) => `${name}.js`,
+    },
+    rollupOptions: { external: [/^node:/, "cssints/devtools-link"] },
     cssMinify: "lightningcss",
     cssTarget,
     outDir: "dist",

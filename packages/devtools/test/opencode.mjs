@@ -10,10 +10,12 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { once } from "node:events";
 import { register as hook } from "node:module";
+import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
 import cssints from "cssints/vite";
+import { attach, serverId, servers } from "cssints/devtools-link";
 import { createServer } from "vite";
 
 import { startFake } from "./fake-opencode.mjs";
@@ -22,15 +24,19 @@ const here = import.meta.dirname;
 const app = join(here, "fixtures/app");
 const repo = join(here, "../../.."); // the nearest folder up from the app with a .git (a file in a worktree)
 
+// ---------- no session is attached to start with (a failed run may have left one)
+attach(repo, serverId(repo, app));
+attach(repo, serverId(repo, here));
+
 // ---------- the fake service
 const fake = await startFake();
 const { calls } = fake;
 const { register } = fake;
 
 // ---------- a dev server and a page that speaks to it
-const serve = async (opencode) => {
+const serve = async (opencode, root = app) => {
   const server = await createServer({
-    root: app,
+    root,
     configFile: false,
     logLevel: "error",
     server: { port: 5293, strictPort: false },
@@ -163,6 +169,96 @@ if (process.argv[2] === "missing") {
   assert.match(t.asked[0].message, /No OpenCode service is running/);
   t.socket.close();
   await t.server.close();
+}
+
+// ---------- /cssints-devtools: the session a dev server's prompts go to (the command's files, devtools-link.ts)
+{
+  register();
+  fake.outcome("succeeded");
+  const id = serverId(repo, app);
+  const other = serverId(repo, here);
+  const t = await serve({});
+  const u = await serve({}, here);
+
+  // each server announces itself while it runs, with its root, pid and url
+  const local = (x) => x.server.resolvedUrls.local[0].replace("127.0.0.1", "localhost");
+  assert.deepEqual(
+    servers(repo).sort((x, y) => x.id.localeCompare(y.id)),
+    [
+      { id: other, root: here, pid: process.pid, url: local(u) },
+      { id, root: app, pid: process.pid, url: local(t) },
+    ].sort((x, y) => x.id.localeCompare(y.id)),
+    "two dev servers",
+  );
+
+  // attached: the prompt goes to that session, which is not created; the probe says which
+  attach(repo, id, "ses_attached");
+  assert.equal((await t.probe()).session, "ses_attached");
+  assert.equal((await u.probe()).session, undefined, "the other server has none");
+  calls.length = 0;
+  t.ask(1, PROMPT);
+  await t.until("attached completed", () => t.asked.some((a) => a.status === "completed"));
+  assert.deepEqual(
+    t.asked.map((a) => [a.ref, a.status, a.id]),
+    [
+      [1, "running", "ses_attached"],
+      [1, "completed", "ses_attached"],
+    ],
+  );
+  assert.ok(!calls.some((c) => c.path === "/api/session" && c.method === "POST"), "no new session");
+  assert.equal(
+    calls.find((c) => c.path.endsWith("/prompt")).path,
+    "/api/session/ses_attached/prompt",
+  );
+  assert.equal(calls.find((c) => c.path.endsWith("/prompt")).body.text, PROMPT);
+
+  // the other server is not attached: its prompt opens a new session
+  calls.length = 0;
+  u.ask(2, PROMPT);
+  await u.until("new session", () => u.asked.some((a) => a.status === "completed"));
+  assert.equal(u.asked[0].id, "ses_fake1");
+  assert.ok(calls.some((c) => c.path === "/api/session" && c.method === "POST"));
+
+  // detached: back to a new session per prompt
+  attach(repo, id);
+  assert.equal((await t.probe()).session, undefined);
+  t.asked.length = 0;
+  t.ask(3, PROMPT);
+  await t.until("detached completed", () => t.asked.some((a) => a.status === "completed"));
+  assert.equal(t.asked[0].id, "ses_fake1");
+
+  // the session is gone: failed, with the way out
+  attach(repo, id, "ses_gone");
+  t.asked.length = 0;
+  t.ask(4, PROMPT);
+  await t.until("gone", () => t.asked.length > 0);
+  assert.equal(t.asked[0].status, "failed");
+  assert.match(
+    t.asked[0].message,
+    /ses_gone is gone.*Run \/cssints-devtools in an OpenCode session/,
+  );
+  attach(repo, id);
+
+  // a closed server leaves no file; a crash leaves a stale pid, which is ignored and removed
+  await u.server.close();
+  assert.deepEqual(
+    servers(repo).map((x) => x.id),
+    [id],
+  );
+  const stale = join(repo, "node_modules/.cache/cssints-devtools/stale.json");
+  writeFileSync(
+    stale,
+    JSON.stringify({ root: here, pid: 2 ** 22 + 1, url: "http://localhost:1/" }),
+  );
+  assert.deepEqual(
+    servers(repo).map((x) => x.id),
+    [id],
+  );
+  assert.ok(!existsSync(stale), "the stale file is removed");
+  t.socket.close();
+  u.socket.close();
+  await t.server.close();
+  assert.deepEqual(servers(repo), []);
 }
 
 // ---------- off (the default): no way to ask, and the event is ignored
