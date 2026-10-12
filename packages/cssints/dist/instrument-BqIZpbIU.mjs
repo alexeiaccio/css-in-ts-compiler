@@ -3768,9 +3768,11 @@ const GLUE = /* @__PURE__ */ new Set([
 ]);
 const PASCAL = /^[A-Z](?![A-Z0-9_]*$)/;
 const idName = (k, computed = false) => computed ? "" : k.type === "Identifier" || k.type === "PrivateIdentifier" ? k.name : k.type === "Literal" ? String(k.value) : "";
-const bound = (chain, from, child, fns) => {
-	for (let i = from; i >= 0; child = chain[i--]) {
+const down = (from) => Array.from({ length: from + 1 }, (_, k) => from - k);
+const bound = (chain, from, site, fns) => {
+	for (const i of down(from)) {
 		const p = chain[i];
+		const child = chain[i + 1] ?? site;
 		switch (p.type) {
 			case "VariableDeclarator": return p.init === child && p.id.type === "Identifier" ? p.id.name : "";
 			case "AssignmentExpression": return p.right !== child ? "" : p.left.type === "MemberExpression" ? idName(p.left.property, p.left.computed) : idName(p.left);
@@ -3792,11 +3794,11 @@ const bound = (chain, from, child, fns) => {
 	}
 	return "";
 };
-const ownerOf = (chain) => {
-	for (let i = chain.length - 1; i >= 0; i--) {
+const ownerOf = (chain, site) => {
+	for (const i of down(chain.length - 1)) {
 		const f = chain[i];
 		if (f.type === "FunctionDeclaration" || f.type === "FunctionExpression" || f.type === "ArrowFunctionExpression" || f.type === "ClassDeclaration" || f.type === "ClassExpression") {
-			const name = f.type !== "ArrowFunctionExpression" && f.id?.name || bound(chain, i - 1, f, false);
+			const name = f.type !== "ArrowFunctionExpression" && f.id?.name || bound(chain, i - 1, site, false);
 			if (PASCAL.test(name)) return name;
 		}
 	}
@@ -3809,7 +3811,7 @@ const baseOf = (id) => {
 	return clean(file === "index" ? parts.pop() ?? file : file, 24) || "module";
 };
 const tokenOf = (chain, site, base) => {
-	const owner = clean(ownerOf(chain), 24) || base;
+	const owner = clean(ownerOf(chain, site), 24) || base;
 	const label = clean(bound(chain, chain.length - 1, site, true), 20);
 	return `cs-${owner}${label && label !== owner ? `-${label}` : ""}`;
 };
@@ -3819,8 +3821,8 @@ function findSites(program, code, locals, cn, spaces, names) {
 	const sites = [];
 	const scopes = [/* @__PURE__ */ new Set()];
 	const chain = names && [];
-	let nested = 0;
-	const nameOf = (n, isCn, c) => names && !nested && (isCn || calls(c, names.cv, spaces, "cv")) ? tokenOf(chain, n, names.base) : void 0;
+	const open = [];
+	const nameOf = (n, isCn, c) => names && !open.length && (isCn || calls(c, names.cv, spaces, "cv")) ? tokenOf(chain, n, names.base) : void 0;
 	const walk = (node, inFn) => {
 		if (!Predicate.isObject(node) || typeof node.type !== "string") return;
 		const n = node;
@@ -3842,9 +3844,9 @@ function findSites(program, code, locals, cn, spaces, names) {
 			}
 			const from = sites.length;
 			chain?.push(n);
-			nested++;
+			open.push(n);
 			args.forEach((a, i) => runtime[i] && walk(a, inFn));
-			nested--;
+			open.pop();
 			chain?.pop();
 			sites.push({
 				start: n.start,

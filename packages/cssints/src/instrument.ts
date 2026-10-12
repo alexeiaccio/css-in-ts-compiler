@@ -256,11 +256,13 @@ const idName = (k: Node, computed = false) =>
         ? String(k.value)
         : "";
 
-// The name the expression `child` (a child of chain[from]) is bound to, going up through the nodes that pass a value on.
-// `fns`: a function that returns it passes it on too (`const row = () => cn(...)`, a method, `useMemo(() => cn(...))`).
-const bound = (chain: Node[], from: number, child: Node, fns: boolean): string => {
-  for (let i = from; i >= 0; child = chain[i--]!) {
+const down = (from: number) => Array.from({ length: from + 1 }, (_, k) => from - k);
+// The name the expression `chain[from + 1]` (`site` past the end) is bound to, going up through the nodes that pass a value
+// on. `fns`: a function that returns it passes it on too (`const row = () => cn(...)`, a method, `useMemo(() => cn(...))`).
+const bound = (chain: Node[], from: number, site: Node, fns: boolean) => {
+  for (const i of down(from)) {
     const p = chain[i]!;
+    const child = chain[i + 1] ?? site;
     switch (p.type) {
       case "VariableDeclarator":
         return p.init === child && p.id.type === "Identifier" ? p.id.name : "";
@@ -294,8 +296,8 @@ const bound = (chain: Node[], from: number, child: Node, fns: boolean): string =
   return "";
 };
 
-const ownerOf = (chain: Node[]): string => {
-  for (let i = chain.length - 1; i >= 0; i--) {
+const ownerOf = (chain: Node[], site: Node) => {
+  for (const i of down(chain.length - 1)) {
     const f = chain[i]!;
     if (
       f.type === "FunctionDeclaration" ||
@@ -305,7 +307,7 @@ const ownerOf = (chain: Node[]): string => {
       f.type === "ClassExpression"
     ) {
       const name =
-        (f.type !== "ArrowFunctionExpression" && f.id?.name) || bound(chain, i - 1, f, false);
+        (f.type !== "ArrowFunctionExpression" && f.id?.name) || bound(chain, i - 1, site, false);
       if (PASCAL.test(name)) return name;
     }
   }
@@ -325,7 +327,7 @@ const baseOf = (id: string) => {
   return clean(file === "index" ? (parts.pop() ?? file) : file, 24) || "module";
 };
 const tokenOf = (chain: Node[], site: Node, base: string) => {
-  const owner = clean(ownerOf(chain), 24) || base;
+  const owner = clean(ownerOf(chain, site), 24) || base;
   const label = clean(bound(chain, chain.length - 1, site, true), 20);
   return `cs-${owner}${label && label !== owner ? `-${label}` : ""}`;
 };
@@ -370,9 +372,9 @@ function findSites(
   const sites: Site[] = [];
   const scopes = [new Set<string>()]; // innermost last
   const chain: Node[] | undefined = names && []; // dev names: the ancestors of the node
-  let nested = 0; // inside the runtime arguments of a cn(): the outer call carries the name
+  const open: Node[] = []; // the cn() calls whose runtime arguments are being walked: the outer call carries the name
   const nameOf = (n: Node, isCn: boolean, c: Node | undefined) =>
-    names && !nested && (isCn || calls(c, names.cv, spaces, "cv"))
+    names && !open.length && (isCn || calls(c, names.cv, spaces, "cv"))
       ? tokenOf(chain!, n, names.base)
       : undefined;
   const walk = (node: unknown, inFn: boolean) => {
@@ -394,9 +396,9 @@ function findSites(
       }
       const from = sites.length;
       chain?.push(n);
-      nested++;
+      open.push(n);
       args.forEach((a, i) => runtime[i] && walk(a, inFn));
-      nested--;
+      open.pop();
       chain?.pop();
       sites.push({
         start: n.start,
