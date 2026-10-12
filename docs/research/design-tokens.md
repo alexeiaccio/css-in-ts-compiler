@@ -13,40 +13,40 @@ Ticket cssints-kag5, researched 2026-09-29. Facts come from primary sources: the
 
 ## 1. DTCG 2025.10
 
-**Status.** Published 2025-10-28 as a *Final Community Group Report*; it "is not a W3C Standard nor on the Standards Track" ([announcement](https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version/), [format](https://www.designtokens.org/TR/2025.10/format/)). Later commits to `technical-reports/` are errata only (links, examples, MAY/MUST wording in #442), no new features (`gh api commits?path=technical-reports&since=2025-10-29`). Source text: [format](https://github.com/design-tokens/community-group/tree/main/technical-reports/format), [color](https://github.com/design-tokens/community-group/tree/main/technical-reports/color), [resolver](https://github.com/design-tokens/community-group/tree/main/technical-reports/resolver), [JSON schemas](https://github.com/design-tokens/community-group/tree/main/schemas/src/2025.10).
+**Status.** Published 2025-10-28 as a _Final Community Group Report_; it "is not a W3C Standard nor on the Standards Track" ([announcement](https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version/), [format](https://www.designtokens.org/TR/2025.10/format/)). Later commits to `technical-reports/` are errata only (links, examples, MAY/MUST wording in #442), no new features (`gh api commits?path=technical-reports&since=2025-10-29`). Source text: [format](https://github.com/design-tokens/community-group/tree/main/technical-reports/format), [color](https://github.com/design-tokens/community-group/tree/main/technical-reports/color), [resolver](https://github.com/design-tokens/community-group/tree/main/technical-reports/resolver), [JSON schemas](https://github.com/design-tokens/community-group/tree/main/schemas/src/2025.10).
 
 ### Normative in 2025.10
 
-| Feature | Rule | Source |
-| --- | --- | --- |
-| Token, group | Object with `$value` is a token; names may not start with `$` or contain `{ } .` | [design-token](https://github.com/design-tokens/community-group/blob/main/technical-reports/format/design-token.md) |
-| `$type` | Required, on the token or inherited from a group or alias target. Tools MUST NOT guess it from the value | same |
-| Simple types | `color`, `dimension`, `fontFamily`, `fontWeight`, `duration`, `cubicBezier`, `number` | [types](https://github.com/design-tokens/community-group/blob/main/technical-reports/format/types.md) |
-| Composite types | `strokeStyle`, `border`, `transition`, `shadow`, `gradient`, `typography`; sub-values may be aliases | [composite-types](https://github.com/design-tokens/community-group/blob/main/technical-reports/format/composite-types.md) |
-| Color value | Object `{ colorSpace, components, alpha?, hex? }`, 14 colour spaces (srgb, srgb-linear, hsl, hwb, lab, lch, oklab, oklch, display-p3, a98-rgb, prophoto-rgb, rec2020, xyz-d65, xyz-d50); components have ranges, `none` allowed | [color-type](https://github.com/design-tokens/community-group/blob/main/technical-reports/color/color-type.md) |
-| Dimension | `{ value, unit }`, unit only `px` or `rem` | types |
-| Duration | `{ value, unit }`, unit `ms` or `s` | types |
-| Other ranges | `fontWeight` [1, 1000] or a keyword; `cubicBezier` x in [0, 1]; HSL hue [0, 360) | types, color-type |
-| Aliases | `{group.token}` refers to a whole token; chained aliases allowed; must match the target `$type`; cycles are an error | [aliases](https://github.com/design-tokens/community-group/blob/main/technical-reports/format/aliases.md) |
-| `$ref` JSON Pointer | Tools MUST support it; it reaches inside a value, e.g. `#/base/blue/$value/components/0` | aliases |
-| Groups | `$type` inheritance, `$root` token, `$extends` (deep merge, "syntactic sugar for JSON Schema `$ref`") | [groups](https://github.com/design-tokens/community-group/blob/main/technical-reports/format/groups.md) |
-| `$extensions`, `$deprecated`, `$description` | Vendor data MUST be preserved; SHOULD be optional metadata "not crucial to understanding that token's value" | design-token |
-| Resolver | Separate module, same version. `sets`, `modifiers` with `contexts`, `resolutionOrder`, an *input* that selects one context per modifier. Later entries win. **Aliases are resolved only after ordering**, so an alias follows the theme that is applied | [resolution-logic](https://github.com/design-tokens/community-group/blob/main/technical-reports/resolver/resolution-logic.md), [syntax](https://github.com/design-tokens/community-group/blob/main/technical-reports/resolver/syntax.md) |
+| Feature                                      | Rule                                                                                                                                                                                                                                                    | Source                                                                                                                                                                                                                                   |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Token, group                                 | Object with `$value` is a token; names may not start with `$` or contain `{ } .`                                                                                                                                                                        | [design-token](https://github.com/design-tokens/community-group/blob/main/technical-reports/format/design-token.md)                                                                                                                      |
+| `$type`                                      | Required, on the token or inherited from a group or alias target. Tools MUST NOT guess it from the value                                                                                                                                                | same                                                                                                                                                                                                                                     |
+| Simple types                                 | `color`, `dimension`, `fontFamily`, `fontWeight`, `duration`, `cubicBezier`, `number`                                                                                                                                                                   | [types](https://github.com/design-tokens/community-group/blob/main/technical-reports/format/types.md)                                                                                                                                    |
+| Composite types                              | `strokeStyle`, `border`, `transition`, `shadow`, `gradient`, `typography`; sub-values may be aliases                                                                                                                                                    | [composite-types](https://github.com/design-tokens/community-group/blob/main/technical-reports/format/composite-types.md)                                                                                                                |
+| Color value                                  | Object `{ colorSpace, components, alpha?, hex? }`, 14 colour spaces (srgb, srgb-linear, hsl, hwb, lab, lch, oklab, oklch, display-p3, a98-rgb, prophoto-rgb, rec2020, xyz-d65, xyz-d50); components have ranges, `none` allowed                         | [color-type](https://github.com/design-tokens/community-group/blob/main/technical-reports/color/color-type.md)                                                                                                                           |
+| Dimension                                    | `{ value, unit }`, unit only `px` or `rem`                                                                                                                                                                                                              | types                                                                                                                                                                                                                                    |
+| Duration                                     | `{ value, unit }`, unit `ms` or `s`                                                                                                                                                                                                                     | types                                                                                                                                                                                                                                    |
+| Other ranges                                 | `fontWeight` [1, 1000] or a keyword; `cubicBezier` x in [0, 1]; HSL hue [0, 360)                                                                                                                                                                        | types, color-type                                                                                                                                                                                                                        |
+| Aliases                                      | `{group.token}` refers to a whole token; chained aliases allowed; must match the target `$type`; cycles are an error                                                                                                                                    | [aliases](https://github.com/design-tokens/community-group/blob/main/technical-reports/format/aliases.md)                                                                                                                                |
+| `$ref` JSON Pointer                          | Tools MUST support it; it reaches inside a value, e.g. `#/base/blue/$value/components/0`                                                                                                                                                                | aliases                                                                                                                                                                                                                                  |
+| Groups                                       | `$type` inheritance, `$root` token, `$extends` (deep merge, "syntactic sugar for JSON Schema `$ref`")                                                                                                                                                   | [groups](https://github.com/design-tokens/community-group/blob/main/technical-reports/format/groups.md)                                                                                                                                  |
+| `$extensions`, `$deprecated`, `$description` | Vendor data MUST be preserved; SHOULD be optional metadata "not crucial to understanding that token's value"                                                                                                                                            | design-token                                                                                                                                                                                                                             |
+| Resolver                                     | Separate module, same version. `sets`, `modifiers` with `contexts`, `resolutionOrder`, an _input_ that selects one context per modifier. Later entries win. **Aliases are resolved only after ordering**, so an alias follows the theme that is applied | [resolution-logic](https://github.com/design-tokens/community-group/blob/main/technical-reports/resolver/resolution-logic.md), [syntax](https://github.com/design-tokens/community-group/blob/main/technical-reports/resolver/syntax.md) |
 
 The word "constraint" appears in the format spec only in the JSON Schema sense (`groups.md`, "Type inheritance": local `$type` and inherited constraints "must both be satisfied"). The spec text also has small inconsistencies, for example the resolver examples use both `context` and `contexts`.
 
 ### Not in the spec (proposals and open issues)
 
-| Idea | Where | State |
-| --- | --- | --- |
-| Computed values, basic arithmetic | [#81](https://github.com/design-tokens/community-group/issues/81), [#153](https://github.com/design-tokens/community-group/issues/153) | Closed 2022 and folded into #88; "feel free to post use-cases" |
-| Colour modifications (alpha, mix, lighten) | [#88](https://github.com/design-tokens/community-group/issues/88) | Open, active as of 2026-09. Debate: a short fixed menu of named adjustments vs a full expression system; "careful where DTCG starts reinventing programming syntax" |
-| Token operations (`$operations`) | [#224](https://github.com/design-tokens/community-group/issues/224) | Open since 2023; Tokens Studio uses generators and resolvers instead |
-| Relative colours and blending (CSS Color 5) | [#268](https://github.com/design-tokens/community-group/issues/268) | Open. An editor says they are "very interested", but wants a JSON syntax proposal first |
-| Do transforms live in the file or before it | [#238](https://github.com/design-tokens/community-group/issues/238) | Closed without a decision; the format stays "static, compiled result" first |
-| Conditional and contextual values, native modes | [#169](https://github.com/design-tokens/community-group/issues/169), [#204](https://github.com/design-tokens/community-group/issues/204), [#210](https://github.com/design-tokens/community-group/issues/210), [#348](https://github.com/design-tokens/community-group/issues/348) | Mostly open; #348 (`$modes`) closed as "core Resolver functionality" |
-| Fluid dimensions, `em`, `%` | [#188](https://github.com/design-tokens/community-group/issues/188), [#218](https://github.com/design-tokens/community-group/issues/218), [#390](https://github.com/design-tokens/community-group/issues/390) | Open |
-| System colours (high contrast) | [#91](https://github.com/design-tokens/community-group/issues/91) | Open |
+| Idea                                            | Where                                                                                                                                                                                                                                                                              | State                                                                                                                                                               |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Computed values, basic arithmetic               | [#81](https://github.com/design-tokens/community-group/issues/81), [#153](https://github.com/design-tokens/community-group/issues/153)                                                                                                                                             | Closed 2022 and folded into #88; "feel free to post use-cases"                                                                                                      |
+| Colour modifications (alpha, mix, lighten)      | [#88](https://github.com/design-tokens/community-group/issues/88)                                                                                                                                                                                                                  | Open, active as of 2026-09. Debate: a short fixed menu of named adjustments vs a full expression system; "careful where DTCG starts reinventing programming syntax" |
+| Token operations (`$operations`)                | [#224](https://github.com/design-tokens/community-group/issues/224)                                                                                                                                                                                                                | Open since 2023; Tokens Studio uses generators and resolvers instead                                                                                                |
+| Relative colours and blending (CSS Color 5)     | [#268](https://github.com/design-tokens/community-group/issues/268)                                                                                                                                                                                                                | Open. An editor says they are "very interested", but wants a JSON syntax proposal first                                                                             |
+| Do transforms live in the file or before it     | [#238](https://github.com/design-tokens/community-group/issues/238)                                                                                                                                                                                                                | Closed without a decision; the format stays "static, compiled result" first                                                                                         |
+| Conditional and contextual values, native modes | [#169](https://github.com/design-tokens/community-group/issues/169), [#204](https://github.com/design-tokens/community-group/issues/204), [#210](https://github.com/design-tokens/community-group/issues/210), [#348](https://github.com/design-tokens/community-group/issues/348) | Mostly open; #348 (`$modes`) closed as "core Resolver functionality"                                                                                                |
+| Fluid dimensions, `em`, `%`                     | [#188](https://github.com/design-tokens/community-group/issues/188), [#218](https://github.com/design-tokens/community-group/issues/218), [#390](https://github.com/design-tokens/community-group/issues/390)                                                                      | Open                                                                                                                                                                |
+| System colours (high contrast)                  | [#91](https://github.com/design-tokens/community-group/issues/91)                                                                                                                                                                                                                  | Open                                                                                                                                                                |
 
 If the request came from "tokens can express constraints and math" as seen in tools, that is Tokens Studio, Style Dictionary transforms, or Figma variables, not the DTCG format.
 
@@ -65,14 +65,14 @@ Source: [`packages/ariakit-tailwind`](https://github.com/ariakit/ariakit/tree/ma
 
 **The utilities** (from the README and `output.css`):
 
-| Utility | Meaning | Guarantee stated |
-| --- | --- | --- |
-| `ak-layer` | A surface. Sets `--ak-layer` (background), `--ak-text`, `--ak-edge` from the parent layer | none |
-| `ak-layer-lighten-6`, `-darken-*`, numeric `ak-layer-6` | Move the layer's OKLCH lightness away from the parent (numeric ones pick the direction for the theme) | "does not imply a fixed depth"; clamps around a forbidden mid-range |
-| `ak-layer-contrast` | Push lightness away from the parent to a preset target | README: "does not guarantee a contrast ratio" |
-| `ak-ink-70` | Text alpha, at least the value that meets **WCAG AA** against the layer | README claims AA; implemented as a polynomial in `calc()`, which I did not verify |
-| `ak-text`, `ak-text-primary` | Coloured text with contrast against the layer, from a table | the JS table targets a ratio of 5.263 (`LCH_WCAG_CONTRAST_RATIO`, no comment explains it) |
-| `--contrast` (0–100) | One global knob, set to 100 under `prefers-contrast: more` | n/a |
+| Utility                                                 | Meaning                                                                                               | Guarantee stated                                                                          |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `ak-layer`                                              | A surface. Sets `--ak-layer` (background), `--ak-text`, `--ak-edge` from the parent layer             | none                                                                                      |
+| `ak-layer-lighten-6`, `-darken-*`, numeric `ak-layer-6` | Move the layer's OKLCH lightness away from the parent (numeric ones pick the direction for the theme) | "does not imply a fixed depth"; clamps around a forbidden mid-range                       |
+| `ak-layer-contrast`                                     | Push lightness away from the parent to a preset target                                                | README: "does not guarantee a contrast ratio"                                             |
+| `ak-ink-70`                                             | Text alpha, at least the value that meets **WCAG AA** against the layer                               | README claims AA; implemented as a polynomial in `calc()`, which I did not verify         |
+| `ak-text`, `ak-text-primary`                            | Coloured text with contrast against the layer, from a table                                           | the JS table targets a ratio of 5.263 (`LCH_WCAG_CONTRAST_RATIO`, no comment explains it) |
+| `--contrast` (0–100)                                    | One global knob, set to 100 under `prefers-contrast: more`                                            | n/a                                                                                       |
 
 **The CSS it emits.** I compiled a small page with Tailwind 4.3.3 (`@tailwindcss/cli`) against the package's `output.css`, with `@theme { --color-canvas: #f5f8f7; --color-primary: #2563eb }`. Excerpts, abridged with `…`:
 
@@ -126,13 +126,13 @@ Lines in `output.css` that contain each token: 139 `@property`, 93 `@container`,
 
 ## 3. Other prior art (one line each)
 
-| Library | What it offers for this question | Source |
-| --- | --- | --- |
-| StyleX | `stylex.types.color/length/angle/…` in `defineVars` emit `@property` with that `syntax`. Same list as our `token.<type>`. No constraints or math | [types](https://stylexjs.com/docs/api/javascript/types/) |
-| vanilla-extract | `createThemeContract` plus `createTheme` fails the build when a theme misses a key (`validateContract`: "Tokens don't match contract"). `createVar({ syntax, inherits, initialValue })` emits `@property`. `@vanilla-extract/css-utils` `calc.add/multiply` only concatenates strings | [contract](https://vanilla-extract.style/documentation/api/create-theme-contract/), source `packages/css/src/vars.ts`, `packages/utils/src/index.ts` |
-| Panda | `semanticTokens` with `{ base, _dark }` conditions and `{colors.red}` references; "influenced by the W3C Token Format". No checks | [tokens](https://panda-css.com/docs/theming/tokens) |
-| Radix Colors | Contrast is baked into a 12-step scale: steps 11 and 12 are "guaranteed to Lc 60 and Lc 90 APCA" on step 2 of the same scale. Precomputed, no runtime maths | [scale](https://www.radix-ui.com/colors/docs/palette-composition/understanding-the-scale) |
-| Open Props | Static custom-property scales; one input, `--color-hue`, re-hues a fixed ladder (`oklch(95% .06 var(--color-hue, 0))`), declared on `:where(*)` so `var()` resolves per element. Its repo ships `open-props.resolver.json` (`"version": "2025.10"`), so DTCG is an export format there | `src/props.colors-oklch.css`, `open-props.resolver.json` |
+| Library         | What it offers for this question                                                                                                                                                                                                                                                       | Source                                                                                                                                               |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| StyleX          | `stylex.types.color/length/angle/…` in `defineVars` emit `@property` with that `syntax`. Same list as our `token.<type>`. No constraints or math                                                                                                                                       | [types](https://stylexjs.com/docs/api/javascript/types/)                                                                                             |
+| vanilla-extract | `createThemeContract` plus `createTheme` fails the build when a theme misses a key (`validateContract`: "Tokens don't match contract"). `createVar({ syntax, inherits, initialValue })` emits `@property`. `@vanilla-extract/css-utils` `calc.add/multiply` only concatenates strings  | [contract](https://vanilla-extract.style/documentation/api/create-theme-contract/), source `packages/css/src/vars.ts`, `packages/utils/src/index.ts` |
+| Panda           | `semanticTokens` with `{ base, _dark }` conditions and `{colors.red}` references; "influenced by the W3C Token Format". No checks                                                                                                                                                      | [tokens](https://panda-css.com/docs/theming/tokens)                                                                                                  |
+| Radix Colors    | Contrast is baked into a 12-step scale: steps 11 and 12 are "guaranteed to Lc 60 and Lc 90 APCA" on step 2 of the same scale. Precomputed, no runtime maths                                                                                                                            | [scale](https://www.radix-ui.com/colors/docs/palette-composition/understanding-the-scale)                                                            |
+| Open Props      | Static custom-property scales; one input, `--color-hue`, re-hues a fixed ladder (`oklch(95% .06 var(--color-hue, 0))`), declared on `:where(*)` so `var()` resolves per element. Its repo ships `open-props.resolver.json` (`"version": "2025.10"`), so DTCG is an export format there | `src/props.colors-oklch.css`, `open-props.resolver.json`                                                                                             |
 
 ## 4. Mapping onto our model
 
@@ -140,24 +140,24 @@ Our model: a token is a Typed OM value whose `toString()` is `var(--name)`; `tok
 
 ### 4.1 Which constraints go where
 
-| Constraint | Build time (compiler) | Stays in CSS | Notes |
-| --- | --- | --- | --- |
-| Value matches its type (initial values, each theme value) | Yes, grammar (already decided) | `@property` makes a bad computed value fall back to `initial-value` | Also DTCG ranges (fontWeight, cubicBezier, hue) |
-| Alias target exists, same type, no cycle | Yes, graph check | `var()` cycle = invalid at computed-value time | DTCG normative, cheap |
-| Theme completeness (every theme covers every token that must be themed) | Yes | no | vanilla-extract's contract check |
-| **Contrast ratio of a token pair per theme** | Yes, when both values are static (literal colours or alias chains to literals). WCAG 2.x ratio via a colour library; APCA optional | Cannot fail a build | The main compile-time-only feature. Unverifiable pairs get a warning, not an error |
-| Ordered scale (`space-2 > space-1`), range of a number | Yes, same-unit lengths exact; mixed `rem`/`px` assume 16px and are approximate | no | `rem` follows the user's font size |
-| Unit-correct `calc()` | Yes, dimension analysis (Typed OM numeric typing) | The browser drops an invalid `calc()` | Grammar does not check units in `calc` yet (wayfinder, "Still open") |
-| `calc()`, `min/max/clamp`, `round/mod` on tokens | Only constant folding of literals (LightningCSS may already do it) | Yes, because operands can be set at runtime | |
-| `color-mix()`, relative colour (`oklch(from …)`), `contrast-color()`, `if()` | Only if we implement Color 5 ourselves (see 4.2) | Yes | Reactive to runtime overrides |
-| Anything that depends on nesting (parent layer), DOM, or an inline `style={{ "--x": v }}` | No | Yes | Ariakit's odd/even trick |
-| `prefers-*` and `@media` themes | Yes: each condition is a known theme, so it can be checked | Applied by the browser | Combinations (dark × contrast-more) are only checked if declared, like resolver permutations |
+| Constraint                                                                                | Build time (compiler)                                                                                                              | Stays in CSS                                                        | Notes                                                                                        |
+| ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Value matches its type (initial values, each theme value)                                 | Yes, grammar (already decided)                                                                                                     | `@property` makes a bad computed value fall back to `initial-value` | Also DTCG ranges (fontWeight, cubicBezier, hue)                                              |
+| Alias target exists, same type, no cycle                                                  | Yes, graph check                                                                                                                   | `var()` cycle = invalid at computed-value time                      | DTCG normative, cheap                                                                        |
+| Theme completeness (every theme covers every token that must be themed)                   | Yes                                                                                                                                | no                                                                  | vanilla-extract's contract check                                                             |
+| **Contrast ratio of a token pair per theme**                                              | Yes, when both values are static (literal colours or alias chains to literals). WCAG 2.x ratio via a colour library; APCA optional | Cannot fail a build                                                 | The main compile-time-only feature. Unverifiable pairs get a warning, not an error           |
+| Ordered scale (`space-2 > space-1`), range of a number                                    | Yes, same-unit lengths exact; mixed `rem`/`px` assume 16px and are approximate                                                     | no                                                                  | `rem` follows the user's font size                                                           |
+| Unit-correct `calc()`                                                                     | Yes, dimension analysis (Typed OM numeric typing)                                                                                  | The browser drops an invalid `calc()`                               | Grammar does not check units in `calc` yet (wayfinder, "Still open")                         |
+| `calc()`, `min/max/clamp`, `round/mod` on tokens                                          | Only constant folding of literals (LightningCSS may already do it)                                                                 | Yes, because operands can be set at runtime                         |                                                                                              |
+| `color-mix()`, relative colour (`oklch(from …)`), `contrast-color()`, `if()`              | Only if we implement Color 5 ourselves (see 4.2)                                                                                   | Yes                                                                 | Reactive to runtime overrides                                                                |
+| Anything that depends on nesting (parent layer), DOM, or an inline `style={{ "--x": v }}` | No                                                                                                                                 | Yes                                                                 | Ariakit's odd/even trick                                                                     |
+| `prefers-*` and `@media` themes                                                           | Yes: each condition is a known theme, so it can be checked                                                                         | Applied by the browser                                              | Combinations (dark × contrast-more) are only checked if declared, like resolver permutations |
 
-`contrast-color()` does not replace a build check: in CSS Color 5 it takes one colour and returns black or white with a UA-defined algorithm, and the result "should still meet" only AA for *large* text ([css-color-5 §8](https://drafts.csswg.org/css-color-5/#contrast-color)). The Color 6 *editor's draft* adds a target (`wcag2(4.5)`) and a candidate list, with the fg/bg keywords still "TBD" ([css-color-6](https://drafts.csswg.org/css-color-6/#contrast-color)); BCD has no sub-feature for it.
+`contrast-color()` does not replace a build check: in CSS Color 5 it takes one colour and returns black or white with a UA-defined algorithm, and the result "should still meet" only AA for _large_ text ([css-color-5 §8](https://drafts.csswg.org/css-color-5/#contrast-color)). The Color 6 _editor's draft_ adds a target (`wcag2(4.5)`) and a candidate list, with the fg/bg keywords still "TBD" ([css-color-6](https://drafts.csswg.org/css-color-6/#contrast-color)); BCD has no sub-feature for it.
 
 ### 4.2 Hard limits found
 
-- **`@property` initial values.** `initial-value` must parse against the syntax and be *computationally independent*: `5px` and `1in` are, `3em` and anything with `var()` are not ([css-properties-values-api](https://drafts.css-houdini.org/css-properties-values-api/#initial-value-descriptor)). So an alias or derived token needs a literal `initial-value` (the alias flattened at build time) plus a normal declaration for the live value: `:root { --color-link: var(--color-accent) }`. Ariakit escapes this with `syntax: "*"`.
+- **`@property` initial values.** `initial-value` must parse against the syntax and be _computationally independent_: `5px` and `1in` are, `3em` and anything with `var()` are not ([css-properties-values-api](https://drafts.css-houdini.org/css-properties-values-api/#initial-value-descriptor)). So an alias or derived token needs a literal `initial-value` (the alias flattened at build time) plus a normal declaration for the live value: `:root { --color-link: var(--color-accent) }`. Ariakit escapes this with `syntax: "*"`.
 - **Aliases and theme scope.** `var()` is substituted where the property is declared, and descendants inherit the computed result. If a theme is a class on a wrapper and only `--color-accent` is set there, `--color-link` (declared on `:root`) keeps the old value. The compiler knows the graph, so each theme block should also re-declare the tokens that depend on what it overrides. Open Props solves the same problem by declaring on `:where(*)`. (Standard computed-value-time substitution; [css-variables](https://drafts.csswg.org/css-variables/#substitute-a-var).)
 - **Grammar gap (verified with `valid("color", …)` in `packages/css-grammar/src/twin.ts`).** Accepted: `color-mix(in oklab, red, blue 30%)`, `light-dark(red, blue)`. Rejected: `oklch(from red calc(l + 0.1) c h)`, `contrast-color(red)`, `if(style(--x: 1): red; else: blue)`. mdn-data 2.27.1 `<color>` is `<color-base> | currentColor | <system-color> | <light-dark()> | <deprecated-system-color>`; `@webref/css` 8.7.5 lists `contrast-color()` only as the Color 6 draft form. Ariakit-style CSS cannot be typed through `color()` until this is extended.
 - **Colour libraries parse literals, not Color 5 strings (verified).** culori 4.0.2 and Color.js 0.7.1 parse `#hex`, `oklch()`, `color(display-p3 …)`, `hsl()`, named colours; both fail on `color-mix()`, relative colour, `contrast-color()`, `light-dark()`, `canvas`, `currentcolor`. Both have programmatic mixing (`Color.mix`, `culori.interpolate`) and WCAG 2.1 and APCA contrast (Color.js: `#2563eb` on white is 5.17, APCA −80.2; culori `wcagContrast` gives 5.17). So a build check works on literal colours and on DTCG colour objects, and anything else is "unverifiable".
@@ -166,35 +166,35 @@ Our model: a token is a Typed OM value whose `toString()` is `var(--name)`; `tok
 
 ### 4.3 DTCG type to token type
 
-| DTCG `$type` | Our token | `@property` syntax | Conversion |
-| --- | --- | --- | --- |
-| `color` | `token.color` | `<color>` | object to `color(<space> …)` / `oklch()` / `hsl()`; the `hex` field is a fallback, ignore it |
-| `dimension` | `token.length` | `<length>` | `{ value: 1, unit: "rem" }` to `1rem` |
-| `number` | `token.number` | `<number>` | as is |
-| `duration` | `token.time` | `<time>` | `{ value: 200, unit: "ms" }` to `200ms` |
-| `fontWeight` | `token.number` (numeric) | `<number>` | keywords map to numbers (`bold` = 700) |
-| `fontFamily`, `cubicBezier` | none | `*` or unregistered | `cubic-bezier()` and a comma list are checked at the point of use |
-| `shadow`, `border`, `transition`, `gradient`, `typography`, `strokeStyle` | decompose into sub-tokens | one per part | or `*` and check where used |
+| DTCG `$type`                                                              | Our token                 | `@property` syntax  | Conversion                                                                                   |
+| ------------------------------------------------------------------------- | ------------------------- | ------------------- | -------------------------------------------------------------------------------------------- |
+| `color`                                                                   | `token.color`             | `<color>`           | object to `color(<space> …)` / `oklch()` / `hsl()`; the `hex` field is a fallback, ignore it |
+| `dimension`                                                               | `token.length`            | `<length>`          | `{ value: 1, unit: "rem" }` to `1rem`                                                        |
+| `number`                                                                  | `token.number`            | `<number>`          | as is                                                                                        |
+| `duration`                                                                | `token.time`              | `<time>`            | `{ value: 200, unit: "ms" }` to `200ms`                                                      |
+| `fontWeight`                                                              | `token.number` (numeric)  | `<number>`          | keywords map to numbers (`bold` = 700)                                                       |
+| `fontFamily`, `cubicBezier`                                               | none                      | `*` or unregistered | `cubic-bezier()` and a comma list are checked at the point of use                            |
+| `shadow`, `border`, `transition`, `gradient`, `typography`, `strokeStyle` | decompose into sub-tokens | one per part        | or `*` and check where used                                                                  |
 
 ### 4.4 Browser support of the CSS features involved
 
 First stable version, from `@mdn/browser-compat-data` 8.1.3 (`—` = not supported):
 
-| Feature | BCD path | Chrome | Firefox | Safari |
-| --- | --- | --- | --- | --- |
-| `@property` | `css.at-rules.property` | 85 | 128 | 16.4 |
-| `color-mix()` | `css.types.color.color-mix` | 111 | 113 | 16.2 |
-| Relative colour (`oklch(from …)`) | `css.types.color.oklch.relative_syntax` (`lch` 119, `rgb` 122, `hsl` 125, `color()` 119) | 122 | 128 | 18 |
-| `contrast-color()` (one-argument form) | `css.types.color.contrast-color` | 147 | 146 | 26 |
-| `if()` (experimental) | `css.types.if` | 137 | — | — |
-| `@container style(--x: v)` | `css.at-rules.container.style_queries_for_custom_properties` | 111 | 151 | 18 |
-| Style query range syntax | `….range_syntax` | 142 | 151 | — |
-| `@function` (experimental) | `css.at-rules.function` | 139 | — | preview |
-| `light-dark()` | `css.types.color.light-dark` | 123 | 120 | 17.5 |
-| `round()`, `mod()`, `rem()` | `css.types.round` etc. | 125 | 118 | 15.4 |
-| `sign()`, `abs()` | `css.types.sign` | 138 | 118 | 15.4 |
-| `clamp()`, `min()`, `max()` | `css.types.clamp` | 79 | 75 | 13.1 (`min`/`max` 11.1) |
-| `prefers-contrast` | `css.at-rules.media.prefers-contrast` | 96 | 101 | 14.1 |
+| Feature                                | BCD path                                                                                 | Chrome | Firefox | Safari                  |
+| -------------------------------------- | ---------------------------------------------------------------------------------------- | ------ | ------- | ----------------------- |
+| `@property`                            | `css.at-rules.property`                                                                  | 85     | 128     | 16.4                    |
+| `color-mix()`                          | `css.types.color.color-mix`                                                              | 111    | 113     | 16.2                    |
+| Relative colour (`oklch(from …)`)      | `css.types.color.oklch.relative_syntax` (`lch` 119, `rgb` 122, `hsl` 125, `color()` 119) | 122    | 128     | 18                      |
+| `contrast-color()` (one-argument form) | `css.types.color.contrast-color`                                                         | 147    | 146     | 26                      |
+| `if()` (experimental)                  | `css.types.if`                                                                           | 137    | —       | —                       |
+| `@container style(--x: v)`             | `css.at-rules.container.style_queries_for_custom_properties`                             | 111    | 151     | 18                      |
+| Style query range syntax               | `….range_syntax`                                                                         | 142    | 151     | —                       |
+| `@function` (experimental)             | `css.at-rules.function`                                                                  | 139    | —       | preview                 |
+| `light-dark()`                         | `css.types.color.light-dark`                                                             | 123    | 120     | 17.5                    |
+| `round()`, `mod()`, `rem()`            | `css.types.round` etc.                                                                   | 125    | 118     | 15.4                    |
+| `sign()`, `abs()`                      | `css.types.sign`                                                                         | 138    | 118     | 15.4                    |
+| `clamp()`, `min()`, `max()`            | `css.types.clamp`                                                                        | 79     | 75      | 13.1 (`min`/`max` 11.1) |
+| `prefers-contrast`                     | `css.at-rules.media.prefers-contrast`                                                    | 96     | 101     | 14.1                    |
 
 Derived floor for Ariakit's output (my reading of the table, since it publishes none): relative colour + style queries + `round/mod` + `sign` need **Chrome 138, Firefox 151, Safari 18**; `if()` is only an optimisation behind `@supports`. Anything we emit with `@property` alone needs Chrome 85, Firefox 128, Safari 16.4.
 
@@ -206,16 +206,16 @@ All three take DTCG-shaped input (inline object with `const` generics; values ar
 
 ```ts
 const t = css.createTokens({
-	color: {
-		$type: "color",
-		bg: { $value: "#fff" },
-		accent: { $value: { colorSpace: "oklch", components: [0.62, 0.19, 264] } }, // DTCG form
-		link: { $value: "{color.accent}" },                                          // alias
-	},
-	space: { $type: "dimension", md: { $value: { value: 1, unit: "rem" } } },
+  color: {
+    $type: "color",
+    bg: { $value: "#fff" },
+    accent: { $value: { colorSpace: "oklch", components: [0.62, 0.19, 264] } }, // DTCG form
+    link: { $value: "{color.accent}" }, // alias
+  },
+  space: { $type: "dimension", md: { $value: { value: 1, unit: "rem" } } },
 });
 css.createGlobalTheme(t, css.media("(prefers-color-scheme: dark)"), { color: { bg: "#111" } });
-css.cn(css.bg(t.color.bg), css.p(t.space.md));  // t.color.bg is a Typed OM value: var(--color-bg)
+css.cn(css.bg(t.color.bg), css.p(t.space.md)); // t.color.bg is a Typed OM value: var(--color-bg)
 ```
 
 CSS functions stay strings: `css.color("color-mix(in oklab, var(--color-accent), black 15%)")`.
@@ -223,7 +223,7 @@ CSS functions stay strings: `css.color("color-mix(in oklab, var(--color-accent),
 ### Option 2: Option 1 plus a build-time contrast check
 
 ```ts
-css.check.contrast(t.color.fg, t.color.bg, { min: 4.5 });   // WCAG 2.x; every theme, build time
+css.check.contrast(t.color.fg, t.color.bg, { min: 4.5 }); // WCAG 2.x; every theme, build time
 // build error: contrast 3.1 < 4.5: color.fg on color.bg, theme (prefers-color-scheme: dark), theme.ts:12
 ```
 
@@ -232,21 +232,21 @@ For each theme the compiler applies the theme's values over the base, resolves a
 ### Option 3: Option 2 plus derived tokens
 
 ```ts
-const hover = css.token.color(css.colorMix("oklab", t.color.accent, "black 15%"));  // CSS, reactive
-const onAccent = css.token.color(css.contrastColor(t.color.accent));                // Chrome 147 / Firefox 146 / Safari 26
-const solid = css.derive(t.color.accent, (c) => c.darken(0.15));                    // JS at build time, per theme, literal
+const hover = css.token.color(css.colorMix("oklab", t.color.accent, "black 15%")); // CSS, reactive
+const onAccent = css.token.color(css.contrastColor(t.color.accent)); // Chrome 147 / Firefox 146 / Safari 26
+const solid = css.derive(t.color.accent, (c) => c.darken(0.15)); // JS at build time, per theme, literal
 ```
 
 ### Trade-offs
 
-| | Option 1 | Option 2 (recommended) | Option 3 |
-| --- | --- | --- | --- |
-| Added code | none beyond tokens and themes | one function plus a colour library (build only) | helpers, a derive runtime, grammar extension for Color 5, `if()` |
-| Catches bad contrast | no | yes, for static pairs | yes, plus derived values if `derive()` is used |
-| Reactive to runtime overrides | n/a | n/a | `colorMix`/`contrastColor` yes; `derive()` no (baked per theme) |
-| Two ways to derive a value | no | no | yes (CSS and JS), so users must choose |
-| Browser floor | `@property` (Chrome 85, Firefox 128, Safari 16.4) | same | Chrome 147 / Firefox 146 / Safari 26 if `contrast-color()` is used |
-| Risk | users do not learn about contrast problems until a browser or an audit | false confidence if the check silently skips unverifiable pairs (mitigated by the warning) | becomes a colour-management library; `contrast-color()` is black/white only |
+|                               | Option 1                                                               | Option 2 (recommended)                                                                     | Option 3                                                                    |
+| ----------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| Added code                    | none beyond tokens and themes                                          | one function plus a colour library (build only)                                            | helpers, a derive runtime, grammar extension for Color 5, `if()`            |
+| Catches bad contrast          | no                                                                     | yes, for static pairs                                                                      | yes, plus derived values if `derive()` is used                              |
+| Reactive to runtime overrides | n/a                                                                    | n/a                                                                                        | `colorMix`/`contrastColor` yes; `derive()` no (baked per theme)             |
+| Two ways to derive a value    | no                                                                     | no                                                                                         | yes (CSS and JS), so users must choose                                      |
+| Browser floor                 | `@property` (Chrome 85, Firefox 128, Safari 16.4)                      | same                                                                                       | Chrome 147 / Firefox 146 / Safari 26 if `contrast-color()` is used          |
+| Risk                          | users do not learn about contrast problems until a browser or an audit | false confidence if the check silently skips unverifiable pairs (mitigated by the warning) | becomes a colour-management library; `contrast-color()` is black/white only |
 
 ## 6. Recommendation
 

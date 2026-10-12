@@ -29,22 +29,22 @@ Tokenami defines tokens in a config file:
 import { createConfig } from "@tokenami/css";
 
 export default createConfig({
-	theme: {
-		color: {
-			"slate-100": "#f1f5f9",
-			"slate-700": "#334155",
-			"sky-500": "#0ea5e9",
-		},
-		radii: {
-			rounded: "10px",
-			circle: "9999px",
-		},
-		spacing: {
-			1: "0.25rem",
-			2: "0.5rem",
-			4: "1rem",
-		},
-	},
+  theme: {
+    color: {
+      "slate-100": "#f1f5f9",
+      "slate-700": "#334155",
+      "sky-500": "#0ea5e9",
+    },
+    radii: {
+      rounded: "10px",
+      circle: "9999px",
+    },
+    spacing: {
+      1: "0.25rem",
+      2: "0.5rem",
+      4: "1rem",
+    },
+  },
 });
 ```
 
@@ -52,10 +52,10 @@ This generates CSS variables:
 
 ```css
 :root {
-	--color_slate-100: #f1f5f9;
-	--color_slate-700: #334155;
-	--radii_rounded: 10px;
-	--radii_circle: 9999px;
+  --color_slate-100: #f1f5f9;
+  --color_slate-700: #334155;
+  --radii_rounded: 10px;
+  --radii_circle: 9999px;
 }
 ```
 
@@ -63,19 +63,19 @@ This generates CSS variables:
 
 ```typescript
 export default createConfig({
-	theme: {
-		modes: {
-			light: {
-				color: { primary: "#f1f5f9" },
-			},
-			dark: {
-				color: { primary: "#0ea5e9" },
-			},
-		},
-		root: {
-			radii: { rounded: "10px" },
-		},
-	},
+  theme: {
+    modes: {
+      light: {
+        color: { primary: "#f1f5f9" },
+      },
+      dark: {
+        color: { primary: "#0ea5e9" },
+      },
+    },
+    root: {
+      radii: { rounded: "10px" },
+    },
+  },
 });
 ```
 
@@ -84,14 +84,14 @@ export default createConfig({
 ```typescript
 // tokens.ts - W3C DTCG format
 const defaultTokens = {
-	color: {
-		primary: { $value: "#3b82f6", $type: "color" },
-		secondary: { $value: "#6366f1", $type: "color" },
-	},
-	spacing: {
-		1: { $value: "0.25rem", $type: "dimension" },
-		2: { $value: "0.5rem", $type: "dimension" },
-	},
+  color: {
+    primary: { $value: "#3b82f6", $type: "color" },
+    secondary: { $value: "#6366f1", $type: "color" },
+  },
+  spacing: {
+    1: { $value: "0.25rem", $type: "dimension" },
+    2: { $value: "0.5rem", $type: "dimension" },
+  },
 };
 ```
 
@@ -130,10 +130,10 @@ Output HTML:
 
 ```html
 <button
-	class="tk-abc"
-	style="--background: var(--color_primary); --color: var(--color_white); --padding: var(--spacing_4); --border-radius: var(--radii_rounded);"
+  class="tk-abc"
+  style="--background: var(--color_primary); --color: var(--color_white); --padding: var(--spacing_4); --border-radius: var(--radii_rounded);"
 >
-	Click
+  Click
 </button>
 ```
 
@@ -141,10 +141,10 @@ Generated CSS (extracted to stylesheet):
 
 ```css
 .tk-abc {
-	background: var(--color_primary);
-	color: var(--color_white);
-	padding: var(--spacing_4);
-	border-radius: var(--radii_rounded);
+  background: var(--color_primary);
+  color: var(--color_white);
+  padding: var(--spacing_4);
+  border-radius: var(--radii_rounded);
 }
 ```
 
@@ -195,9 +195,9 @@ export default createConfig({
 
 ```typescript
 const button = style("button", {
-	backgroundColor: "primary",
-	padding: "1rem",
-	borderRadius: "rounded",
+  backgroundColor: "primary",
+  padding: "1rem",
+  borderRadius: "rounded",
 });
 ```
 
@@ -264,9 +264,9 @@ This makes it work with any setup—static HTML, PHP, Rails, etc.
 ```json
 // tsconfig.json
 {
-	"compilerOptions": {
-		"plugins": [{ "name": "tokenami" }]
-	}
+  "compilerOptions": {
+    "plugins": [{ "name": "tokenami" }]
+  }
 }
 ```
 
@@ -390,10 +390,10 @@ const button = style("button", {
 ```typescript
 // Proposed
 const button = compose({
-	base: { "--bg": "blue" },
-	variants: {
-		size: { sm: { "--p": 2 }, lg: { "--p": 4 } },
-	},
+  base: { "--bg": "blue" },
+  variants: {
+    size: { sm: { "--p": 2 }, lg: { "--p": 4 } },
+  },
 });
 ```
 

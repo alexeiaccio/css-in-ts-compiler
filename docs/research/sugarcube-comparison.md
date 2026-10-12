@@ -18,12 +18,12 @@ Both approaches use W3C DTCG format for design tokens.
 
 ```json
 {
-	"color": {
-		"primary": {
-			"$value": "#3b82f6",
-			"$type": "color"
-		}
-	}
+  "color": {
+    "primary": {
+      "$value": "#3b82f6",
+      "$type": "color"
+    }
+  }
 }
 ```
 
@@ -56,13 +56,13 @@ SugarCube generates semantic class names derived from token paths:
 
 ```css
 .bg-primary {
-	background-color: var(--color-primary);
+  background-color: var(--color-primary);
 }
 .text-lg {
-	font-size: var(--font-size-lg);
+  font-size: var(--font-size-lg);
 }
 .p-md {
-	padding: var(--space-md);
+  padding: var(--space-md);
 }
 ```
 
@@ -73,12 +73,12 @@ SugarCube generates semantic class names derived from token paths:
 ```typescript
 // sugarcube.config.ts
 export default defineConfig({
-	utilities: {
-		"background-color": {
-			source: "color.*",
-			prefix: "bg",
-		},
-	},
+  utilities: {
+    "background-color": {
+      source: "color.*",
+      prefix: "bg",
+    },
+  },
 });
 ```
 
@@ -103,10 +103,10 @@ We generate deterministic hash-based class names (StyleX/vanilla-extract pattern
 
 ```css
 .button__a1b2c3d4 {
-	color: red;
+  color: red;
 }
 .card__e5f6g7h8 {
-	padding: 1rem;
+  padding: 1rem;
 }
 ```
 
@@ -114,7 +114,7 @@ CSS variables use hash scoping:
 
 ```css
 :root {
-	--scope-primary__a1b2c3d4: #3b82f6;
+  --scope-primary__a1b2c3d4: #3b82f6;
 }
 ```
 
@@ -156,11 +156,16 @@ Elegant token composition with sets and modifiers:
 
 ```json
 {
-	"resolutionOrder": [
-		{ "type": "set", "name": "foundation", "sources": [{ "$ref": "./foundation.json" }] },
-		{ "type": "set", "name": "semantic", "sources": [{ "$ref": "./semantic.json" }] },
-		{ "type": "modifier", "name": "theme", "default": "light", "contexts": { "dark": [{ "$ref": "./dark.json" }] } }
-	]
+  "resolutionOrder": [
+    { "type": "set", "name": "foundation", "sources": [{ "$ref": "./foundation.json" }] },
+    { "type": "set", "name": "semantic", "sources": [{ "$ref": "./semantic.json" }] },
+    {
+      "type": "modifier",
+      "name": "theme",
+      "default": "light",
+      "contexts": { "dark": [{ "$ref": "./dark.json" }] }
+    }
+  ]
 }
 ```
 
@@ -271,10 +276,10 @@ Declarative utility generation from tokens:
 ```typescript
 // Proposed API
 defineConfig({
-	utilities: [
-		{ property: "background-color", source: "color.*", prefix: "bg" },
-		{ property: "color", source: "color.text.*", prefix: "text" },
-	],
+  utilities: [
+    { property: "background-color", source: "color.*", prefix: "bg" },
+    { property: "color", source: "color.text.*", prefix: "text" },
+  ],
 });
 ```
 
@@ -284,12 +289,12 @@ Generate `--token-*` variables alongside hash-based classes:
 
 ```css
 :root {
-	/* From tokens */
-	--color-primary: #3b82f6;
-	--space-md: 1rem;
+  /* From tokens */
+  --color-primary: #3b82f6;
+  --space-md: 1rem;
 
-	/* Hash-scoped for component styles */
-	--button-color__a1b2c3d4: red;
+  /* Hash-scoped for component styles */
+  --button-color__a1b2c3d4: red;
 }
 ```
 
@@ -299,11 +304,11 @@ Support `{path.to.token}` syntax:
 
 ```json
 {
-	"color": {
-		"button": {
-			"background": { "$value": "{color.primary}" }
-		}
-	}
+  "color": {
+    "button": {
+      "background": { "$value": "{color.primary}" }
+    }
+  }
 }
 ```
 

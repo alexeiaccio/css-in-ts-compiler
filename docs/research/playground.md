@@ -14,21 +14,21 @@ several files), 0 differ. See "Editor" and "Plugin packages".
 By file (`packages/cssints/src`, `packages/css-grammar/src`). "Host" means code that only the Vite plugin runs; the browser has its
 own host (`apps/docs/src/playground/compile.ts`), so those files are not part of the browser engine at all.
 
-| File | What it needs | In the browser |
-|---|---|---|
-| `plugin.ts` | `vite` (server, Module Runner, `transformWithOxc`), `node:fs`, `node:path`, `node:module`, `node:crypto`, `lightningcss` targets, `process.cwd()`, `magic-string` | host: replaced by `compile.ts` (a function of a source text) |
-| `devtools-server.ts`, `trace.ts`, `trace-otlp.ts` | `vite` types, OTLP over HTTP | host: not used |
-| `evaluate.ts` | `vite/module-runner` (a base class of the evaluator), `happy-dom` (a DOM for the evaluator), `node:url` | reused as is. `evaluate()` takes a runner; a runner of one module is 10 lines. The three imports are stubs; the DOM is not given (see Limits) |
-| `instrument.ts` | `oxc-parser` (native, napi), `magic-string` | `oxc-parser` as wasm; `magic-string` is plain JS |
-| `macro.ts` | `node:crypto` (`createHash("sha1")` for the class name) | SHA-1 in plain code (the class hash is sync; Web Crypto is async) |
-| `token.ts` | `node:crypto`, `node:path` (`relative`), `process.cwd()` (a private token is named after its file) | the same SHA-1; a POSIX `relative`; cwd is `/`, the file `/playground.tsx` |
-| `lib.ts` | `createRequire(import.meta.url)("mdn-data/css/selectors.json")` | a `createRequire` that answers from a table |
-| `lowered.ts` | `lightningcss` `transform` (what a target gets for a value), `Buffer` | `lightningcss-wasm` and a `Buffer` that is a `Uint8Array` |
-| `entries.ts` (new, see below) | nothing | as is |
-| everything else (`registry`, `sheet`, `kernel`, `delivery`, `derived*`, `theme`, `scope*`, `contrast`, `runtime`, `frame`, `surface` ...) | `effect`, `culori`; no Node | as is |
-| css-grammar `browsers.ts` | `browserslist` through `process.getBuiltinModule("node:module").createRequire`, reads `.browserslistrc`/`package.json` of the cwd | the query is resolved at build time into a list; `createRequire("browserslist")` returns a function that gives it |
-| css-grammar `support.ts` | `@mdn/browser-compat-data` (20 MB JSON) the same way | the `css` part, cut to what `support.ts` reads (`__compat.support` of the 12 browsers it maps): 2.6 MB raw, 120 KB gzip, 67 KB brotli |
-| css-grammar `twin-core.ts`, `mdn.ts`, `keywords.ts`, `check.ts` ... | `effect` only | as is |
+| File                                                                                                                                      | What it needs                                                                                                                                                     | In the browser                                                                                                                                |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugin.ts`                                                                                                                               | `vite` (server, Module Runner, `transformWithOxc`), `node:fs`, `node:path`, `node:module`, `node:crypto`, `lightningcss` targets, `process.cwd()`, `magic-string` | host: replaced by `compile.ts` (a function of a source text)                                                                                  |
+| `devtools-server.ts`, `trace.ts`, `trace-otlp.ts`                                                                                         | `vite` types, OTLP over HTTP                                                                                                                                      | host: not used                                                                                                                                |
+| `evaluate.ts`                                                                                                                             | `vite/module-runner` (a base class of the evaluator), `happy-dom` (a DOM for the evaluator), `node:url`                                                           | reused as is. `evaluate()` takes a runner; a runner of one module is 10 lines. The three imports are stubs; the DOM is not given (see Limits) |
+| `instrument.ts`                                                                                                                           | `oxc-parser` (native, napi), `magic-string`                                                                                                                       | `oxc-parser` as wasm; `magic-string` is plain JS                                                                                              |
+| `macro.ts`                                                                                                                                | `node:crypto` (`createHash("sha1")` for the class name)                                                                                                           | SHA-1 in plain code (the class hash is sync; Web Crypto is async)                                                                             |
+| `token.ts`                                                                                                                                | `node:crypto`, `node:path` (`relative`), `process.cwd()` (a private token is named after its file)                                                                | the same SHA-1; a POSIX `relative`; cwd is `/`, the file `/playground.tsx`                                                                    |
+| `lib.ts`                                                                                                                                  | `createRequire(import.meta.url)("mdn-data/css/selectors.json")`                                                                                                   | a `createRequire` that answers from a table                                                                                                   |
+| `lowered.ts`                                                                                                                              | `lightningcss` `transform` (what a target gets for a value), `Buffer`                                                                                             | `lightningcss-wasm` and a `Buffer` that is a `Uint8Array`                                                                                     |
+| `entries.ts` (new, see below)                                                                                                             | nothing                                                                                                                                                           | as is                                                                                                                                         |
+| everything else (`registry`, `sheet`, `kernel`, `delivery`, `derived*`, `theme`, `scope*`, `contrast`, `runtime`, `frame`, `surface` ...) | `effect`, `culori`; no Node                                                                                                                                       | as is                                                                                                                                         |
+| css-grammar `browsers.ts`                                                                                                                 | `browserslist` through `process.getBuiltinModule("node:module").createRequire`, reads `.browserslistrc`/`package.json` of the cwd                                 | the query is resolved at build time into a list; `createRequire("browserslist")` returns a function that gives it                             |
+| css-grammar `support.ts`                                                                                                                  | `@mdn/browser-compat-data` (20 MB JSON) the same way                                                                                                              | the `css` part, cut to what `support.ts` reads (`__compat.support` of the 12 browsers it maps): 2.6 MB raw, 120 KB gzip, 67 KB brotli         |
+| css-grammar `twin-core.ts`, `mdn.ts`, `keywords.ts`, `check.ts` ...                                                                       | `effect` only                                                                                                                                                     | as is                                                                                                                                         |
 
 One engine edit was needed, and it moves code without changing it: the part of `plugin.ts`'s `clientTransform` that turns the
 sites of a module into its sheet entries (classes, @property rules, themes, kernels, globals, layers, fallbacks, runtimes) is now
@@ -42,13 +42,13 @@ A worker bundle has its own plugin list in Vite, so the plugin lists itself in `
 
 ## Wasm options
 
-| Piece | Option | Size (raw / gzip / brotli) | Verdict |
-|---|---|---|---|
-| parser | `@oxc-parser/binding-wasm32-wasi` 0.149 (the same parser, napi-rs wasi build with threads) through its `browser-bundle.js` | 1.49 MB / 485 KB / 344 KB | **used**. The package's own `parser.wasi-browser.js` pairs `@emnapi/runtime` 2 with a `@napi-rs/wasm-runtime` that brings emnapi 1, and fails with `this.bridge.setLastError is not a function`; `browser-bundle.js` is one file with the right pair |
-| parser | `@oxc-parser/wasm` 0.60 (wasm-bindgen, no threads) | 0.74 MB / 257 KB / 195 KB | not used: its last version is 0.60 (the engine runs 0.149), so another AST |
-| TS and JSX removal | `@oxc-transform/binding-wasm32-wasi` 0.149 | 3.25 MB / 1.09 MB / 723 KB | **used**. With bun's install layout its loader gets the right emnapi; with npm's flat layout it needs aliases |
-| lowering and the shipped CSS | `lightningcss-wasm` 1.33 | 15.8 MB / 3.75 MB / **1.98 MB** | **used**, and the biggest piece. Needed because `lowered.ts` asks LightningCSS what a target gets for a value (token fallbacks, a warning that is not one). Option if the size matters: load it only when a module has a support warning, which needs `lowered.ts` to be async |
-| TS removal without oxc | sucrase (~150 KB) | | not needed; the wasm transform is the same one Vite uses in Node |
+| Piece                        | Option                                                                                                                     | Size (raw / gzip / brotli)      | Verdict                                                                                                                                                                                                                                                                        |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| parser                       | `@oxc-parser/binding-wasm32-wasi` 0.149 (the same parser, napi-rs wasi build with threads) through its `browser-bundle.js` | 1.49 MB / 485 KB / 344 KB       | **used**. The package's own `parser.wasi-browser.js` pairs `@emnapi/runtime` 2 with a `@napi-rs/wasm-runtime` that brings emnapi 1, and fails with `this.bridge.setLastError is not a function`; `browser-bundle.js` is one file with the right pair                           |
+| parser                       | `@oxc-parser/wasm` 0.60 (wasm-bindgen, no threads)                                                                         | 0.74 MB / 257 KB / 195 KB       | not used: its last version is 0.60 (the engine runs 0.149), so another AST                                                                                                                                                                                                     |
+| TS and JSX removal           | `@oxc-transform/binding-wasm32-wasi` 0.149                                                                                 | 3.25 MB / 1.09 MB / 723 KB      | **used**. With bun's install layout its loader gets the right emnapi; with npm's flat layout it needs aliases                                                                                                                                                                  |
+| lowering and the shipped CSS | `lightningcss-wasm` 1.33                                                                                                   | 15.8 MB / 3.75 MB / **1.98 MB** | **used**, and the biggest piece. Needed because `lowered.ts` asks LightningCSS what a target gets for a value (token fallbacks, a warning that is not one). Option if the size matters: load it only when a module has a support warning, which needs `lowered.ts` to be async |
+| TS removal without oxc       | sucrase (~150 KB)                                                                                                          |                                 | not needed; the wasm transform is the same one Vite uses in Node                                                                                                                                                                                                               |
 
 No cross-origin isolation is needed. The wasi builds create shared memory and nested workers, which one would expect to need
 `COOP`/`COEP` headers; they run without them in Chrome, Firefox and WebKit (measured: `crossOriginIsolated` is false, `SharedArrayBuffer`
@@ -101,31 +101,31 @@ sent to a module worker before its imports finish is lost, so the page waits for
 
 ## Sizes (the real build, `vp build`)
 
-| Asset | Raw | gzip | brotli | Loaded |
-|---|---|---|---|---|
-| docs entry (JS + CSS) before | 145.6 KB | 47.2 KB | 42.0 KB | always |
-| docs entry (JS + CSS) after | 149.7 KB | 49.5 KB | 44.3 KB | always; +4.1 KB raw, +2.3 KB gzip: the lazy route, the header link and its icon, 1.7 KB of the playground's rules in the one sheet |
-| `Playground` chunk (CodeMirror 6, the page) | 513.7 KB | 170.4 KB | 144.4 KB | at `/playground` |
-| `worker` (the engine, `effect`, css-grammar data, slimmed BCD) | 3.49 MB | 331 KB | 209 KB | at `/playground` |
-| `wasi-worker-browser` (the worker of the wasm threads) | 226 KB | 51 KB | 44 KB | at `/playground` |
-| parser wasm | 1.49 MB | 485 KB | 344 KB | at `/playground` |
-| transform wasm | 3.25 MB | 1.09 MB | 723 KB | at `/playground` |
-| LightningCSS wasm | 15.8 MB | 3.75 MB | 1.98 MB | at `/playground` |
-| **Playground, all** | **~25 MB** | **~5.9 MB** | **~3.45 MB** | first visit only; the host caches the hashed files |
+| Asset                                                          | Raw        | gzip        | brotli       | Loaded                                                                                                                             |
+| -------------------------------------------------------------- | ---------- | ----------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| docs entry (JS + CSS) before                                   | 145.6 KB   | 47.2 KB     | 42.0 KB      | always                                                                                                                             |
+| docs entry (JS + CSS) after                                    | 149.7 KB   | 49.5 KB     | 44.3 KB      | always; +4.1 KB raw, +2.3 KB gzip: the lazy route, the header link and its icon, 1.7 KB of the playground's rules in the one sheet |
+| `Playground` chunk (CodeMirror 6, the page)                    | 513.7 KB   | 170.4 KB    | 144.4 KB     | at `/playground`                                                                                                                   |
+| `worker` (the engine, `effect`, css-grammar data, slimmed BCD) | 3.49 MB    | 331 KB      | 209 KB       | at `/playground`                                                                                                                   |
+| `wasi-worker-browser` (the worker of the wasm threads)         | 226 KB     | 51 KB       | 44 KB        | at `/playground`                                                                                                                   |
+| parser wasm                                                    | 1.49 MB    | 485 KB      | 344 KB       | at `/playground`                                                                                                                   |
+| transform wasm                                                 | 3.25 MB    | 1.09 MB     | 723 KB       | at `/playground`                                                                                                                   |
+| LightningCSS wasm                                              | 15.8 MB    | 3.75 MB     | 1.98 MB      | at `/playground`                                                                                                                   |
+| **Playground, all**                                            | **~25 MB** | **~5.9 MB** | **~3.45 MB** | first visit only; the host caches the hashed files                                                                                 |
 
 Since cssints-avlz (Monaco instead of CodeMirror; the entry is measured against the same tree without the change):
 
-| Asset | Raw | gzip | brotli | Loaded |
-|---|---|---|---|---|
-| docs entry (JS + CSS) | 154.3 KB (+0.1) | 50.0 KB (+0.0) | 44.6 KB (+0.0) | always |
-| `Playground` chunk (the page, the types of cssints and the sources of the packages as text) | 1.37 MB | 307 KB | 211 KB (was 141 with CodeMirror) | at `/playground` |
-| `editor.api` (Monaco's core) | 2.61 MB | 682 KB | 538 KB | at `/playground` |
-| `tsMode` (the TypeScript features of Monaco) | 658 KB | 165 KB | 134 KB | at `/playground` |
-| `ts.worker` (the TypeScript compiler, the `lib.*.d.ts` files) | 6.61 MB | 1.42 MB | 1018 KB | at `/playground` |
-| `editor.worker` | 297 KB | 91 KB | 72 KB | at `/playground` |
-| codicon font and the CSS of Monaco (3 files) | 321 KB | 101 KB | 90 KB | at `/playground` |
-| `worker` (the engine) | 3.34 MB | 331 KB | 206 KB | at `/playground` |
-| **Playground, all** | **~35 MB** | **~8.2 MB** | **~5.25 MB** | first visit only (was ~3.45 MB brotli: +1.9 MB, Monaco and TypeScript) |
+| Asset                                                                                       | Raw             | gzip           | brotli                           | Loaded                                                                 |
+| ------------------------------------------------------------------------------------------- | --------------- | -------------- | -------------------------------- | ---------------------------------------------------------------------- |
+| docs entry (JS + CSS)                                                                       | 154.3 KB (+0.1) | 50.0 KB (+0.0) | 44.6 KB (+0.0)                   | always                                                                 |
+| `Playground` chunk (the page, the types of cssints and the sources of the packages as text) | 1.37 MB         | 307 KB         | 211 KB (was 141 with CodeMirror) | at `/playground`                                                       |
+| `editor.api` (Monaco's core)                                                                | 2.61 MB         | 682 KB         | 538 KB                           | at `/playground`                                                       |
+| `tsMode` (the TypeScript features of Monaco)                                                | 658 KB          | 165 KB         | 134 KB                           | at `/playground`                                                       |
+| `ts.worker` (the TypeScript compiler, the `lib.*.d.ts` files)                               | 6.61 MB         | 1.42 MB        | 1018 KB                          | at `/playground`                                                       |
+| `editor.worker`                                                                             | 297 KB          | 91 KB          | 72 KB                            | at `/playground`                                                       |
+| codicon font and the CSS of Monaco (3 files)                                                | 321 KB          | 101 KB         | 90 KB                            | at `/playground`                                                       |
+| `worker` (the engine)                                                                       | 3.34 MB         | 331 KB         | 206 KB                           | at `/playground`                                                       |
+| **Playground, all**                                                                         | **~35 MB**      | **~8.2 MB**    | **~5.25 MB**                     | first visit only (was ~3.45 MB brotli: +1.9 MB, Monaco and TypeScript) |
 
 Time, on localhost with the built site (`vite preview`): first compile 1.2 s (WebKit), 1.5 s (Firefox), 2.1 s (Chrome) after the
 navigation, that is the load, the worker, three wasm compiles and the first build; the first build alone is 0.45-0.7 s. A later compile
@@ -155,11 +155,11 @@ which is typed code; no declarations are tracked for them). `paths` maps the mod
 
 **The type-level grammar in the browser.** Measured on the built site (`vite preview`, Chrome, localhost, one core of a laptop):
 
-| | time |
-|---|---|
+|                                                                                                         | time                                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | first diagnostics of the README example (TypeScript worker starts, builds the program, checks the file) | 0.9-1.1 s of check; the status shows `Types: ok · 1100 ms`. 4.6 s after the navigation on a cold cache (the engine's first compile 1.5 s of it), 2.7 s warm |
-| the same file after an edit (the program is warm) | 430-510 ms |
-| a module of 40 styles, 7 declarations each (280 type-level checks) | 700-780 ms |
+| the same file after an edit (the program is warm)                                                       | 430-510 ms                                                                                                                                                  |
+| a module of 40 styles, 7 declarations each (280 type-level checks)                                      | 700-780 ms                                                                                                                                                  |
 
 So a full check of the open file is under a second, and the grammar is usable. It is kept so by what the page does, not by the types: the
 language service is in its own worker (typing never waits for it); Monaco's own validation is off and the page asks for the diagnostics of
@@ -189,12 +189,12 @@ removes the types and runs it with the others. Bundling them with the docs would
 transforms every module that mentions `cssints`, and rendered their rules into the docs' sheet). What they import from outside, `culori`
 (gradient, ramp) and `rybitten` (rybitten), is bundled with the worker.
 
-| Runs in the browser | Why |
-|---|---|
-| `balance`, `fluid`, `gradient`, `layout`, `masonry`, `mise-en-mode`, `motion`, `ramp`, `reset`, `reveal`, `rybitten`, `skeleton`, `squircle`, `stuck`, and the four sets of `tokens` | pure at build time: arithmetic, colour maths (culori, rybitten), `scope()` members |
-| `@cssints/icons` | reads `@iconify-json/<collection>/icons.json` (megabytes: ph is 4.5 MB) through `createRequire` and `fs`, and `.svg` files from a directory |
-| `@cssints/fonts` | reads font files from disk (fontkitten) and downloads them |
-| `@cssints/placeholder` | reads image files, SHA-1 of their bytes, PNG and JPEG codecs for Node |
+| Runs in the browser                                                                                                                                                                  | Why                                                                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `balance`, `fluid`, `gradient`, `layout`, `masonry`, `mise-en-mode`, `motion`, `ramp`, `reset`, `reveal`, `rybitten`, `skeleton`, `squircle`, `stuck`, and the four sets of `tokens` | pure at build time: arithmetic, colour maths (culori, rybitten), `scope()` members                                                          |
+| `@cssints/icons`                                                                                                                                                                     | reads `@iconify-json/<collection>/icons.json` (megabytes: ph is 4.5 MB) through `createRequire` and `fs`, and `.svg` files from a directory |
+| `@cssints/fonts`                                                                                                                                                                     | reads font files from disk (fontkitten) and downloads them                                                                                  |
+| `@cssints/placeholder`                                                                                                                                                               | reads image files, SHA-1 of their bytes, PNG and JPEG codecs for Node                                                                       |
 
 The three that do not run need files, which a browser has not. `icons` with the `fs` provider could read the `.svg` files of the playground,
 and a small collection could be a stub table; not built. Importing one is a located error that lists the modules there are. The runtime

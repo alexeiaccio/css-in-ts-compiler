@@ -111,11 +111,11 @@ the Baseline set, also checked against the Chromium downstream browsers at the m
 [baseline-browser-mapping](https://www.npmjs.com/package/baseline-browser-mapping) (bbm). That package offers three targets, and each is a group here, with and without
 `/with-downstream`:
 
-| Group                                     | Target in bbm                                                                         |
-| ----------------------------------------- | ------------------------------------------------------------------------------------- |
-| `widely-available`, `…/with-downstream`   | `widelyAvailableOnDate: "2026-10-09"` (the day web-features 3.42.0 came out; bbm's default is today minus 30 months) |
-| `newly-available`, `…/with-downstream`    | `targetYear: 2026`, the last year (the same Chrome 153 that `useSupports` calls `newly`) |
-| `baseline-YYYY`, `…/with-downstream`      | `targetYear: YYYY`, for 2015 (the first year in web-features: its `≤2015-07-29`) to 2026 |
+| Group                                   | Target in bbm                                                                                                        |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `widely-available`, `…/with-downstream` | `widelyAvailableOnDate: "2026-10-09"` (the day web-features 3.42.0 came out; bbm's default is today minus 30 months) |
+| `newly-available`, `…/with-downstream`  | `targetYear: 2026`, the last year (the same Chrome 153 that `useSupports` calls `newly`)                             |
+| `baseline-YYYY`, `…/with-downstream`    | `targetYear: YYYY`, for 2015 (the first year in web-features: its `≤2015-07-29`) to 2026                             |
 
 `baseline-YYYY` is cumulative: **a key is in it when its `baseline_low_date` (the status of that BCD key, the worst of the features that list it) is
 in YYYY or before**. A key that is not Baseline has no date and is in none. It is the browserslist-config-baseline rule ("fully supported in Chrome, Edge,
@@ -142,29 +142,29 @@ Minimum versions that bbm 2.11.28 gives (the browsers of the check; `op_mob` is 
 | Target             | Opera | Opera Android | Samsung Internet | WebView | UC (Blink) | QQ (Blink) |
 | ------------------ | ----: | ------------: | ---------------: | ------: | ---------: | ---------: |
 | widely available   |   109 |            82 |             27.0 |     123 | 17.6 (123) | 19.1 (121) |
-| 2015               |    31 |            32 |              4.0 |      44 | 11.6       | 8.1        |
-| 2020               |    73 |            62 |             14.0 |      87 | 15.3 (100) | 11.7 (89)  |
+| 2015               |    31 |            32 |              4.0 |      44 |       11.6 |        8.1 |
+| 2020               |    73 |            62 |             14.0 |      87 | 15.3 (100) |  11.7 (89) |
 | 2023               |   106 |            80 |             25.0 |     120 | 17.6 (123) | 19.1 (121) |
 | 2026, newly avail. |   137 |            99 |             30.0 |     153 | 17.6 (123) | 19.1 (121) |
 
 Counts (members of 707; the banned keywords are summed over the properties that have a ban):
 
-| Group                  | Members | `/with-downstream` | Banned keywords, with downstream | Banned functions, with downstream | Media features, with downstream |
-| ---------------------- | ------: | -----------------: | -------------------------------: | --------------------------------: | ------------------------------: |
-| `widely-available`     |     521 |                520 |                        156 → 181 |                           26 → 26 |                         11 → 12 |
-| `newly-available`      |     567 |                533 |                         88 → 167 |                           17 → 26 |                         11 → 12 |
-| `baseline-2015`        |     220 |                220 |                        144 → 191 |                           72 → 72 |                         29 → 30 |
-| `baseline-2016`        |     238 |                238 |                        148 → 185 |                           62 → 62 |                         29 → 30 |
-| `baseline-2017`        |     286 |                286 |                        180 → 212 |                           60 → 60 |                         29 → 30 |
-| `baseline-2018`        |     288 |                288 |                        181 → 204 |                           60 → 60 |                         25 → 26 |
-| `baseline-2019`        |     292 |                292 |                        211 → 234 |                           60 → 60 |                         25 → 26 |
-| `baseline-2020`        |     387 |                387 |                        169 → 198 |                           49 → 49 |                         20 → 22 |
-| `baseline-2021`        |     436 |                436 |                        164 → 194 |                           49 → 49 |                         20 → 21 |
-| `baseline-2022`        |     462 |                462 |                        168 → 211 |                           48 → 48 |                         16 → 17 |
-| `baseline-2023`        |     512 |                511 |                        157 → 183 |                           29 → 29 |                         11 → 12 |
-| `baseline-2024`        |     537 |                527 |                        147 → 172 |                           22 → 26 |                         11 → 12 |
-| `baseline-2025`        |     547 |                529 |                        144 → 168 |                           20 → 26 |                         11 → 12 |
-| `baseline-2026`        |     567 |                533 |                         88 → 167 |                           17 → 26 |                         11 → 12 |
+| Group              | Members | `/with-downstream` | Banned keywords, with downstream | Banned functions, with downstream | Media features, with downstream |
+| ------------------ | ------: | -----------------: | -------------------------------: | --------------------------------: | ------------------------------: |
+| `widely-available` |     521 |                520 |                        156 → 181 |                           26 → 26 |                         11 → 12 |
+| `newly-available`  |     567 |                533 |                         88 → 167 |                           17 → 26 |                         11 → 12 |
+| `baseline-2015`    |     220 |                220 |                        144 → 191 |                           72 → 72 |                         29 → 30 |
+| `baseline-2016`    |     238 |                238 |                        148 → 185 |                           62 → 62 |                         29 → 30 |
+| `baseline-2017`    |     286 |                286 |                        180 → 212 |                           60 → 60 |                         29 → 30 |
+| `baseline-2018`    |     288 |                288 |                        181 → 204 |                           60 → 60 |                         25 → 26 |
+| `baseline-2019`    |     292 |                292 |                        211 → 234 |                           60 → 60 |                         25 → 26 |
+| `baseline-2020`    |     387 |                387 |                        169 → 198 |                           49 → 49 |                         20 → 22 |
+| `baseline-2021`    |     436 |                436 |                        164 → 194 |                           49 → 49 |                         20 → 21 |
+| `baseline-2022`    |     462 |                462 |                        168 → 211 |                           48 → 48 |                         16 → 17 |
+| `baseline-2023`    |     512 |                511 |                        157 → 183 |                           29 → 29 |                         11 → 12 |
+| `baseline-2024`    |     537 |                527 |                        147 → 172 |                           22 → 26 |                         11 → 12 |
+| `baseline-2025`    |     547 |                529 |                        144 → 168 |                           20 → 26 |                         11 → 12 |
+| `baseline-2026`    |     567 |                533 |                         88 → 167 |                           17 → 26 |                         11 → 12 |
 
 What the downstream browsers lack, by BCD. In the members: `maskImage` (BCD has the prefixed `-webkit-mask-image` only for Opera), `scrollbarWidth` and `scrollbarColor` (Android WebView:
 `false` at every version, so they are out of every cut-off from 2024), and in the groups from `newly-available` to `baseline-2026` the members that Blink 121 and 123 (QQ and UC) do not have, among them `anchorName`, `positionArea`,
@@ -261,9 +261,9 @@ nothing about invalidation changed.
      The shared members say "is not in cssints/widely-available" for a word both ban, which is true of both. It works where the functions and units are equal: 12 of 14 pairs; the others
      (`newly-available`, 2024 to 2026: UC and QQ ban a function more) declare everything.
   2. **A Baseline group the same as an earlier one is that group**: `baseline-2026` is `newly-available` (and the same for `/with-downstream`), `export * from "./newly-available.ts"`; the editor's message names `newly-available`, the build's names the group written.
-  The declaration bundler (rolldown-plugin-dts) writes `export *` and a re-export out as a list of names, twice (`import` and `export`), so a file is a list of names however it is written in `src/groups`: 6 to 16 KB, and that is the floor
-  of the shapes tried. Not done: sharing one ban table (it is 4 KB of 35, the members are the rest), a member typed by the group's id through a registry (the line differs per group
-  all the same), and ending a group's `P<"background-color">` in the member's own name (the property is derivable, 25% of the gzip size of a file, a rewrite of all 122 files).
+     The declaration bundler (rolldown-plugin-dts) writes `export *` and a re-export out as a list of names, twice (`import` and `export`), so a file is a list of names however it is written in `src/groups`: 6 to 16 KB, and that is the floor
+     of the shapes tried. Not done: sharing one ban table (it is 4 KB of 35, the members are the rest), a member typed by the group's id through a registry (the line differs per group
+     all the same), and ending a group's `P<"background-color">` in the member's own name (the property is derivable, 25% of the gzip size of a file, a rewrite of all 122 files).
 - **JSDoc.** The members of a group carry no JSDoc (the grammar, the browser row and the MDN link of `members.ts`): it would be 140 KB
   more for each Baseline group. The hover shows the signature.
 - **Playground** (`apps/docs/plugin/playground.ts`): the editor's types gain an entry per group (the build runs the plugin from the

@@ -11,7 +11,7 @@ Throwaway proof for `docs/research/plugins.md` (cssints-rq2r): the runtime polyf
 | `controls.mjs`, `probe.mjs`          | negative controls; probe shapes                                                                       |
 | `bench.mjs`, `size.mjs`              | cost on nested trees; min + gzip + brotli                                                             |
 | `types/`                             | the plugin types over `packages/css-grammar/src/css.ts` (`tsgo -p types/tsconfig.json`)               |
-| `results.txt`                        | output of all of the above, Chrome 154, Firefox 155, WebKit 26.6, and the old builds                                     |
+| `results.txt`                        | output of all of the above, Chrome 154, Firefox 155, WebKit 26.6, and the old builds                  |
 
 ## Old browsers (cssints-fxz3, plugins.md §3.6)
 
