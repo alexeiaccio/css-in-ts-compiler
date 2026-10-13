@@ -1,5 +1,9 @@
 # @cssints/fonts
 
+## 0.3.1
+
+No changes in this release.
+
 ## 0.3.0
 
 ### Patch Changes
