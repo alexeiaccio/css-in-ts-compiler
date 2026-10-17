@@ -40,6 +40,9 @@ export const wrong = color(colorNames.red("abalone")); // error: "abalone" is in
   ._ethye4 {
     color: #d2691e;
   }
+  ._1b7kjqn {
+    color: lime;
+  }
 }
 ```
 
@@ -93,10 +96,11 @@ where the near-grays of the list are.
 
 ## CSS keywords
 
-148 CSS named colours: 63 have a list name with the same hex (`red` #ff0000, `orange` #ffa500), 63 have a list name
-with a **different** hex, and 22 have no list name of that spelling (`gray`, `slategray`, `dimgray`). `named()` resolves
-list names, so `named("green")` is the list's Green #00ff00, not CSS `#008000`, and `named("lime")` is #aaff32, not
-`#00ff00`. A CSS keyword stays reachable as a string: `color("green")` prints `color: green`.
+Of the 148 CSS named colours, 63 have a list name whose spelling matches, ignoring case and punctuation, with the same
+hex (`red` #ff0000, `orange` #ffa500); 63 have such a list name with a **different** hex; and 22 have none (`gray`,
+`slategray`, `deeppink`, `dimgray`, `lightgray`, `slateblue`, ...). `named()` resolves list names, so `named("green")`
+is the list's Green #00ff00, not CSS `#008000`, and `named("lime")` is #aaff32, not `#00ff00`. A CSS keyword stays
+reachable as a string: `color("green")` prints `color: green`.
 
 ## `nearest()`
 
