@@ -25,12 +25,12 @@ const cut = (text: string, sep: (ch: string) => boolean) => {
 /** A stop: its sRGB colour, or the text of a colour the browser resolves (a `var()`). */
 type Stop = Quad | string;
 
-const colour = (text: string): Stop => {
+const colour = (text: string) => {
   if (text.includes("var(")) return text;
   const c = parse(text);
   if (!c) throw new Error(`meshGradient(): ${JSON.stringify(text)} is not a colour`);
   const { r, g, b, alpha = 1 } = rgb(c);
-  return [r, g, b, alpha];
+  return [r, g, b, alpha] satisfies Quad;
 };
 
 // The spec's syntax, as far as the grid goes: `[in <space>] [<colour>]?` then the rows of stops (`;`), the stops of a
