@@ -123,7 +123,10 @@ const check = async (id, resolved = {}) => {
     for (let k = 0; k < 4; k++) {
       const d = Math.abs(px[i][k] - want[k]);
       if (d > worst.d)
-        worst = { d, at: `(${x}, ${y}) got ${px[i].join(" ")}, want ${want.map(Math.round).join(" ")}` };
+        worst = {
+          d,
+          at: `(${x}, ${y}) got ${px[i].join(" ")}, want ${want.map(Math.round).join(" ")}`,
+        };
     }
   });
   assert.ok(worst.d <= 3, `${id}: a pixel differs by ${worst.d.toFixed(1)}: ${worst.at}`);

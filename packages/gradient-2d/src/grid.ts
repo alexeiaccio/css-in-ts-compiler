@@ -65,9 +65,7 @@ export const sample = (g: Quad[][], u: number, v: number) => {
     g[Math.min(Math.max(r, 0), rows - 1)]![Math.min(Math.max(c, 0), cols - 1)]!;
   const line = (r: number) => {
     const p = [-1, 0, 1, 2].map((d) => at(r, i + d));
-    return [0, 1, 2, 3].map((k) =>
-      cr(p[0]![k]!, p[1]![k]!, p[2]![k]!, p[3]![k]!, tx),
-    ) as Quad;
+    return [0, 1, 2, 3].map((k) => cr(p[0]![k]!, p[1]![k]!, p[2]![k]!, p[3]![k]!, tx)) as Quad;
   };
   const q = [-1, 0, 1, 2].map((d) => line(j + d));
   return [0, 1, 2, 3].map((k) => cr(q[0]![k]!, q[1]![k]!, q[2]![k]!, q[3]![k]!, ty)) as Quad;
