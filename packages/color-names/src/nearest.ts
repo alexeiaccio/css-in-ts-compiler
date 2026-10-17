@@ -1,9 +1,9 @@
 // @cssints/color-names/nearest: the nearest name of the Color Name List to a colour, by CIEDE2000 on Lab, as the list's
-// own API (api.color.pizza/v1) matches. Build time only, in its own subpath: it imports the whole list and culori's colour
-// maths, so a plain export from the package root would put 900 kB of data in the client bundle of any module that merely
-// imported the package. Use it where the build runs (a plugin's `build`, a generator, the docs site); never import it from
-// a file that reaches the browser. The engine has no marker for such a module: the subpath and this line are the marker,
-// as for `@cssints/tokens`' sets and the `lacking`/`inGroup` helpers of `cssints/plugin`.
+// own API (api.color.pizza/v1) matches. Build time only, in its own subpath: it imports the whole list (an 865 kB chunk)
+// and culori's colour maths, so a plain export from the package root would put that chunk in the client bundle of any
+// module that merely imported the package. Use it where the build runs (a plugin's `build`, a generator, the docs site);
+// never import it from a file that reaches the browser. The engine has no marker for such a module: the subpath and this
+// line are the marker, as for `@cssints/tokens`' sets and the `lacking`/`inGroup` helpers of `cssints/plugin`.
 import { converter, differenceCiede2000 } from "culori";
 
 import { blue } from "./blue.ts";

@@ -138,7 +138,11 @@ for (const sector of SECTORS) {
         )
         .join("\n") +
       `\n} as const;\n` +
-      `export type ${type} = keyof typeof ${sector};\n`,
+      // The union written out, not `keyof typeof <sector>`: the declarations a build emits then hold the union (~540 kB)
+      // and not the record of every name to its hex (2.2 MB), which is not part of what the package exports.
+      `export type ${type} =\n${entries
+        .map(([name]) => `  | ${JSON.stringify(name)}`)
+        .join("\n")};\n`,
   );
 }
 

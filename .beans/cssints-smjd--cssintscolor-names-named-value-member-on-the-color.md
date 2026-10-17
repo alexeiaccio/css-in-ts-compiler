@@ -9,7 +9,7 @@ updated_at: 2026-10-17T10:21:19Z
 
 Design and measurements: docs/research/color-names.md (2026-10-17, cssints-sh52).
 
-- [x] package @cssints/color-names (25th of the fixed group): `named("tangerine")` is a value member returning hex as a `CSSColorValue`. `color-name-list` 14.61.0 is a **dependency**; `scripts/generate.ts` reads it and writes `src/<sector>.ts` (committed, 932 kB), so the plugin, its types and the docs playground are self-contained
+- [x] package @cssints/color-names (25th of the fixed group): `named("tangerine")` is a value member returning hex as a `CSSColorValue`. `color-name-list` 14.61.0 is a **dependency**; `scripts/generate.ts` reads it and writes `src/<sector>.ts` (committed, 1.5 MB: the record of key to hex plus the key union written out), so the plugin, its types and the docs playground are self-contained
 - [x] names checked in the types with `arg<Name>()` (31,939 keys after the collision alias; one `Name` alias for `named()`, one per sector: an error says `Red`, not the union). The **grammar route was not built**: a local syntax name would hold one alternative per key (31,939 alternatives in one ~500 kB string) that the table would carry and the twin would parse at every call, where `arg<Name>()` is the documented route for a TypeScript union
 - [x] unknown name is a build error with edit-distance suggestions (`no colour name "tangerin", did you mean tangerine?`)
 - [x] `nearest(hex)` (CIEDE2000 on Lab, by culori's `differenceCiede2000`) is `@cssints/color-names/nearest`, build time only, in its own subpath. `#3b82f6` gives dodger-blue `#3e82fc`, as the list's own API does. The engine has no marker for a build-time-only module: the subpath and the README line are the marker, as for `@cssints/tokens`' sets
@@ -78,11 +78,12 @@ The union costs types, not instantiations; the two scope rows share the 37,214 i
 ### Decided in the build
 
 - **The brown sector is a tenth member**, against the nine the bean listed: with the coordinator's cuts and no brown, `yellow` held 6,657 names and `neutral` 7,677, both over 6,000; a colour with a hue cannot be called neutral, so the fix is a sector, and `brown` is the natural one. With it every sector is under 5,000. `brown` is also a colour word. The counts above are the generator's own.
-- **The data is generated and committed** (`src/<sector>.ts`, 932 kB) even though `color-name-list` is a dependency: the key unions are types and cannot be computed at build time, and the docs playground runs the plugin's sources in a browser (no fs). The list itself is not vendored; `bun run generate` reads the dependency, and the package's test fails when the committed files differ from a fresh run.
-- **`nearest()` is a subpath**, not an export of the root: a root export would put 932 kB in the client bundle of any module that imported the package. `vp pack` emits it as its own entry (`dist/nearest.mjs`).
+- **The data is generated and committed** (`src/<sector>.ts`, 1.5 MB) even though `color-name-list` is a dependency: the key unions are types and cannot be computed at build time, and the docs playground runs the plugin's sources in a browser (no fs). The list itself is not vendored; `bun run generate` reads the dependency, and the package's test fails when the committed files differ from a fresh run.
+- **`nearest()` is a subpath**, not an export of the root: a root export would put the 865 kB data chunk in the client bundle of any module that imported the package. `vp pack` emits it as its own entry (`dist/nearest.mjs`).
 
 ### Left
 
 - The grammar route for the names (`args: "<name>"`), not built (see above).
 - Per-source licences of the list and a search for slurs (`so8y`, `smjd`).
 - The user's trusted publisher on npmjs.com for the new name, then the first publish by hand.
+- The declarations a build emits hold the key unions (548 kB), not the record of every name to its hex (2.2 MB): the generator writes `export type Red = "..." | "..."` rather than `keyof typeof red`.
