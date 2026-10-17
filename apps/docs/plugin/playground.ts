@@ -62,6 +62,7 @@ export const PLUGINS = [
   "balance",
   "fluid",
   "gradient",
+  "gradient-2d",
   "layout",
   "masonry",
   "mise-en-mode",
