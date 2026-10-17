@@ -23,7 +23,7 @@ Not a DTCG token set: 31,935 leaves cost 15-26 s and 3.6 M instantiations.
 
 Split the names by hue so that completion is short and cheap: `colorNames.red("ferrari red")`. The type check does not need it (research: the union of all names costs nothing measurable); the editor does (`named("|")` lists 31,939 names).
 
-- [ ] sector = the hue of the name's colour in oklch, computed by the generator; about 12 sectors (red, orange, yellow, green, cyan, blue, purple, pink) plus gray, white, black for low chroma; every name in exactly one sector
+- [ ] sector = the hue of the name's colour in oklch, computed by the generator; about 12 sectors (red, orange, yellow, green, cyan, blue, purple, pink) plus one `neutral` sector for low chroma (grays, whites, blacks; user decision 2026-10-17); every name in exactly one sector
 - [ ] sector members `colorNames.<sector>(name)` with `arg<SectorName>()`; the flat `named(name)` stays for an exact name
 - [ ] a name in the wrong sector is a build error that says its sector (`"ferrari red" is in red`), from a name-to-sector index
 - [ ] measure completion on the sector unions (count and latency, as the research did for the whole list) before committing to the shape; sector sizes are uneven, so check the biggest
