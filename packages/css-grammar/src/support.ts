@@ -120,13 +120,44 @@ function reach(syntax: string, seen = new Set<string>()): Set<string> {
   return seen;
 }
 
-export const get = (key: string) =>
+const bcdGet = (key: string) =>
   key
     .split(".")
     .reduce<Identifier | undefined>(
       (n, k) => n?.[k] ?? n?.[k.toLowerCase()],
       bcd as unknown as Identifier,
     );
+
+// The CSSWG adopted mesh-gradient() and freeform-gradient() on 2026-10-14; BCD has no entry yet
+// (docs/research/2d-gradients.md). Until a browser ships them, every target lacks them: a fallback that `get` reads
+// only where BCD has no node, so the entries go as soon as BCD has the keys.
+const absent = (description: string): Identifier =>
+  ({
+    __compat: {
+      description,
+      support: Object.fromEntries(
+        [
+          "chrome",
+          "chrome_android",
+          "edge",
+          "firefox",
+          "firefox_android",
+          "safari",
+          "safari_ios",
+          "opera",
+          "opera_android",
+          "samsunginternet_android",
+          "webview_android",
+        ].map((b) => [b, { version_added: false }]),
+      ),
+    },
+  }) as Identifier;
+const OWN: Record<string, Identifier> = {
+  "css.types.gradient.mesh-gradient": absent("mesh-gradient()"),
+  "css.types.gradient.freeform-gradient": absent("freeform-gradient()"),
+};
+
+export const get = (key: string) => bcdGet(key) ?? OWN[key];
 
 export interface Warning {
   feature: string;

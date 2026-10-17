@@ -226,4 +226,22 @@ for (const [p, v, ok] of rules) {
   if (err) console.log(`     ${err}`);
   verify(!err === ok, `${p}: ${v} ${ok ? "ok" : "error"}`);
 }
+// the 2D gradients have no BCD entry: support.ts's own table says every target lacks them, and a real BCD key is not
+// shadowed by the table (chrome 26 has linear-gradient, chrome 25 does not)
+verify(
+  lacking("css.types.gradient.mesh-gradient", [["chrome", "155"]]).length === 1,
+  "mesh-gradient(): chrome 155 lacks it (own table)",
+);
+verify(
+  lacking("css.types.gradient.freeform-gradient", [["safari", "26"]]).length === 1,
+  "freeform-gradient(): safari 26 lacks it (own table)",
+);
+verify(
+  lacking("css.types.gradient.linear-gradient", [["chrome", "26"]]).length === 0,
+  "linear-gradient: chrome 26 has it (BCD, not the table)",
+);
+verify(
+  lacking("css.types.gradient.linear-gradient", [["chrome", "25"]]).length === 1,
+  "linear-gradient: chrome 25 lacks it (BCD)",
+);
 process.exit(failed ? 1 : 0);
