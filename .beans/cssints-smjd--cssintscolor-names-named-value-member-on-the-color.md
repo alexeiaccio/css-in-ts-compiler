@@ -29,3 +29,14 @@ Split the names by hue so that completion is short and cheap: `colorNames.red("f
 - [ ] measure completion on the sector unions (count and latency, as the research did for the whole list) before committing to the shape; sector sizes are uneven, so check the biggest
 - [ ] data per sector in its own file, loaded at build time only
 Risk: the user must guess the sector (a "red" may sit in orange). The error message is the mitigation.
+
+## Sector rule, decided with the user (2026-10-17): the name's own colour word wins
+
+A colour word in the name puts the name in that sector, even when its oklch hue says another (`ferrari red` is in `red()` though it is orange in oklch). Only a name with no colour word is placed by hue.
+
+- Words are whole words (split on anything that is not a letter), not substrings: `redwood` and `bored` do not count. Words: red, orange, yellow, green, cyan, blue, purple, pink; gray/grey, white, black go to `neutral`.
+- A name with several colour words goes to each of its sectors (`orange red` is in `orange()` and `red()`): nobody has to guess which word wins. Flat `named()` is unchanged.
+- No colour word: the sector of its oklch hue; low chroma is `neutral`.
+- The wrong-sector error lists the sectors the name is in.
+
+Rough count on color-name-list (31,940 names; scratch script, thresholds not tuned): 7,198 names have a colour word (135 of them several), 24,742 are placed by hue. In 2,849 of the 7,198 the word and the hue disagree, so the rule moves them. Sector sizes: neutral 7,677, yellow 6,657, green 3,950, orange 3,629, blue 3,266, purple 1,976, red 1,878, pink 1,627, cyan 1,415. Yellow and neutral are too big for cheap completion, mostly browns and low-chroma colours: tune the hue cuts and the chroma threshold, or split `yellow` (brown) and `neutral` (gray, white, black) before the shape is final. Measure completion on the biggest sector.
