@@ -1,10 +1,11 @@
 ---
 # cssints-smjd
 title: '@cssints/color-names: named() value member on the Color Name List'
-status: todo
+status: completed
 type: feature
+priority: normal
 created_at: 2026-10-17T10:21:19Z
-updated_at: 2026-10-17T10:21:19Z
+updated_at: 2026-10-17T14:39:15Z
 ---
 
 Design and measurements: docs/research/color-names.md (2026-10-17, cssints-sh52).
