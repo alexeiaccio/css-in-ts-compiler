@@ -1,11 +1,11 @@
 ---
 # cssints-6ctt
 title: '@cssints/gradient-2d: meshGradient() plugin with a native switch and a runtime polyfill; own BCD keys'
-status: in-progress
+status: completed
 type: feature
 priority: normal
 created_at: 2026-10-17T10:14:28Z
-updated_at: 2026-10-17T13:50:00Z
+updated_at: 2026-10-17T10:56:31Z
 ---
 
 User (2026-10-17): mesh first, as a scope() plugin; BCD entries with version_added: false are fine, an own key too. Design: docs/research/2d-gradients.md (cssints-sh52).
@@ -21,3 +21,7 @@ User (2026-10-17): mesh first, as a scope() plugin; BCD entries with version_add
 - **A grammar cannot take the spec's mesh text.** The twin splits on whitespace, so a `;` glued to a stop is one token. Repro: `args: "<color>#[ ; <color>#]*"` on `"red, blue; green, yellow"` fails with `unexpected "blue;"`; with spaces (`"red, blue ; green, yellow"`) it passes, which is not the spec's text. Workaround: `args: arg<string>()`, and the build parses the rows and reports the errors (the rows' lengths, the colours, `by`/`with`). The same gap is in other grammars that glue punctuation (`1/2`); a tokenizer that splits `,`, `;` and `/` out of words would close it.
 - **A script's gate follows the table.** Until a browser ships the function, every browserslist target with a tracked browser lacks `css.types.gradient.mesh-gradient`, so the runtime is in every build that uses the plugin. When BCD gets the key, the runtime ships only to the targets that lack it.
 - **`dist/` of the package is not tracked** (the `.gitignore` tracks four packages' dist: cssints, css-grammar, icons, mise-en-mode), as balance and gradient.
+
+## Summary of Changes
+
+`@cssints/gradient-2d` (`meshGradient()`) and the own BCD keys for `mesh-gradient()` and `freeform-gradient()` in css-grammar. Merged 2026-10-17. Positions and `by`/`with` are build errors; the grammar tokenizer cannot read a glued `;`, so the mesh text is parsed at build time from `arg<string>()`. Runtime 2.9 kB minified (1.6 kB gzipped); 49 ms a redraw at 1000×600 in Chrome 155. Details in docs/wayfinder.md. Left: freeformGradient (cssints-mmp7), BCD upstream (cssints-y9v2), the trusted publisher (cssints-gvco).

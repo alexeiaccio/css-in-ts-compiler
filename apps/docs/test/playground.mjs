@@ -105,6 +105,7 @@ const SKIP = {
     "the playground has no export groups",
   "cssints-devtools": "the dev overlay",
   "cssints-fonts": "reads and downloads font files",
+  "cssints-gradient-2d": "a runtime draws the mesh in the browser; the result frame has no script",
   "cssints-icons": "reads icon files from disk",
   "cssints-mcp": "a server for agents",
   "cssints-placeholder": "reads image files from disk",
