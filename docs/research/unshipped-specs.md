@@ -284,3 +284,7 @@ Risk: only worth it if someone asks; no-one has in this repo.
 - **Edge and iOS.** Edge follows Chromium in BCD, but I did not check it separately. iOS and Android were skipped.
 - **Dates of BCD 8.1.6 and web-features 3.43.0.** The npm registry gave their latest versions on 2026-10-17. I did not look up the
   release dates.
+
+## Correction (2026-10-17)
+
+Candidate 1, `line-clamp`, is not a gap. cssints-l54z already added the WebKit box as members (`display("-webkit-box")`, `WebkitBoxOrient`, `WebkitLineClamp`) and docs/API.md shows the clamp; the standard `lineClamp` is a member that warns, as no engine ships it unprefixed. The overlap check above read the packages only, not the engine. Drop it from the ranking; the rest stands. Check the engine's own members (docs/API.md, `packages/cssints/src/members.ts`) before building any of the others.
