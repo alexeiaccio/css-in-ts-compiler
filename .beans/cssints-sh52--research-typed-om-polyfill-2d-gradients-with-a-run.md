@@ -1,10 +1,11 @@
 ---
 # cssints-sh52
 title: 'Research: Typed OM polyfill, 2D gradients with a runtime polyfill, unshipped specs, color names'
-status: in-progress
+status: completed
 type: task
+priority: normal
 created_at: 2026-10-17T09:51:44Z
-updated_at: 2026-10-17T09:51:44Z
+updated_at: 2026-10-17T10:16:50Z
 ---
 
 User (2026-10-17): (1) css-typed-om (bramus, https://www.bram.us/2026/10/13/introducing-css-typed-om-a-complete-and-wpt-tested-polyfill-for-css-typed-om/): we have our own Typed OM values, what to take. (2) a spec export with a runtime polyfill for 2D gradients (mesh-gradient(), freeform-gradient(): https://github.com/w3c/csswg-drafts/blob/main/css-images-5/explainers/2d-gradients.md). (3) the same for other specs that no browser ships yet. (4) a plugin with named colors (https://names.color.pizza/?model=oklch).
