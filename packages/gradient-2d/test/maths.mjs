@@ -97,7 +97,12 @@ const pair = [
   { u: 0, v: 0, spread: 1, q: toOklab([1, 0, 0, 1]) },
   { u: 1, v: 1, spread: 1, q: toOklab([0, 0, 1, 1]) },
 ];
-close(freeform(pair, 0.5, 0.5), mean(pair.map((p) => p.q)), 1e-9, "two points: the midpoint is the mean");
+close(
+  freeform(pair, 0.5, 0.5),
+  mean(pair.map((p) => p.q)),
+  1e-9,
+  "two points: the midpoint is the mean",
+);
 const srgbPair = pair.map((p) => ({ ...p, q: fromSpace("oklab", p.q) }));
 const ffOklab = fromSpace("oklab", freeform(pair, 0.5, 0.5));
 const ffSrgb = freeform(srgbPair, 0.5, 0.5);
@@ -117,7 +122,8 @@ const heavy = [
 ];
 const light = [heavy[0], { ...heavy[1], spread: 1 }];
 assert.ok(
-  fromSpace("oklab", freeform(heavy, 0.5, 0.5))[2] > fromSpace("oklab", freeform(light, 0.5, 0.5))[2],
+  fromSpace("oklab", freeform(heavy, 0.5, 0.5))[2] >
+    fromSpace("oklab", freeform(light, 0.5, 0.5))[2],
   "a larger spread pulls the colour of the midpoint toward its point",
 );
 const diag = pair;
