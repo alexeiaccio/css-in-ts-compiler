@@ -1,10 +1,11 @@
 ---
 # cssints-mmp7
 title: '@cssints/gradient-2d: freeformGradient() after meshGradient()'
-status: in-progress
+status: completed
 type: feature
+priority: normal
 created_at: 2026-10-17T10:21:19Z
-updated_at: 2026-10-17T10:21:19Z
+updated_at: 2026-10-17T14:20:09Z
 ---
 
 After cssints-6ctt (mesh) lands. Design: docs/research/2d-gradients.md, sections 4-6.
@@ -27,3 +28,7 @@ After cssints-6ctt (mesh) lands. Design: docs/research/2d-gradients.md, sections
 
 An IDW render of four points at 500 x 300 (throwaway, outside the repo) is soft round blobs, one per stop, the spread visible, the whole box covered. A Bowyer-Watson Delaunay of the same points paints only the points' convex hull: the box outside it has no triangle, and painting the nearest stop there leaves a hard edge along the hull — the spike of docs/research/2d-gradients.md saw the same. IDW ships; the box corners would be needed before Delaunay is worth it.
 
+
+## Summary of Changes
+
+`freeformGradient()` in `@cssints/gradient-2d`: points only, a radial-gradient first paint without JS, its own `@supports` branch and marker, and an inverse-distance-weighting runtime sharing `src/canvas.ts` with mesh. Delaunay was looked at and rejected (the hull edge). Runtime 3.9 kB minified (1.9 kB gzipped); Chrome 1000×600 redraw 33 ms; 20 read-back points within 1 of 255. Minor changeset. Details in docs/wayfinder.md. Merged 2026-10-17.
