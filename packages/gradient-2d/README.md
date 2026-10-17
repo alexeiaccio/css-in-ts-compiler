@@ -85,8 +85,8 @@ the average colour of the stops, in oklab.
 
 ## Limits
 
-- **A condition can change the data, and the runtime reads it at the draw.** `hover(meshGradient(...))` sets other
-  custom properties on hover; the drawing does not change until the next resize or the next time the element is added.
+- **A condition can change the data, and the runtime reads it at the draw.** `hover(meshGradient(...))` puts the data
+  under `:hover` (checked: the engine prints it); the drawing does not change on hover, only on the next resize.
 - **An element removed from the page keeps its observer and its blob URL** until the page unloads. Fine for pages, not
   for a long single-page app that churns meshes; a fix would observe removals.
 - **Printing** takes the raster fallback. A PDF of a browser's mesh is a patch shading, not a bitmap.
