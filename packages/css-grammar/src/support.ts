@@ -131,7 +131,7 @@ const bcdGet = (key: string) =>
 // The CSSWG adopted mesh-gradient() and freeform-gradient() on 2026-10-14; BCD has no entry yet
 // (docs/research/2d-gradients.md). Until a browser ships them, every target lacks them: a fallback that `get` reads
 // only where BCD has no node, so the entries go as soon as BCD has the keys.
-const absent = (description: string): Identifier =>
+const absent = (description: string) =>
   ({
     __compat: {
       description,
@@ -152,12 +152,12 @@ const absent = (description: string): Identifier =>
       ),
     },
   }) as Identifier;
-const OWN: Record<string, Identifier> = {
-  "css.types.gradient.mesh-gradient": absent("mesh-gradient()"),
-  "css.types.gradient.freeform-gradient": absent("freeform-gradient()"),
-};
+const OWN = new Map<string, Identifier>([
+  ["css.types.gradient.mesh-gradient", absent("mesh-gradient()")],
+  ["css.types.gradient.freeform-gradient", absent("freeform-gradient()")],
+]);
 
-export const get = (key: string) => bcdGet(key) ?? OWN[key];
+export const get = (key: string) => bcdGet(key) ?? OWN.get(key);
 
 export interface Warning {
   feature: string;

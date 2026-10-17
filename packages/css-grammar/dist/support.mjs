@@ -75,11 +75,8 @@ const absent = (description) => ({ __compat: {
 		"webview_android"
 	].map((b) => [b, { version_added: false }]))
 } });
-const OWN = {
-	"css.types.gradient.mesh-gradient": absent("mesh-gradient()"),
-	"css.types.gradient.freeform-gradient": absent("freeform-gradient()")
-};
-const get = (key) => bcdGet(key) ?? OWN[key];
+const OWN = /* @__PURE__ */ new Map([["css.types.gradient.mesh-gradient", absent("mesh-gradient()")], ["css.types.gradient.freeform-gradient", absent("freeform-gradient()")]]);
+const get = (key) => bcdGet(key) ?? OWN.get(key);
 const lacks = (c, on, exact = false) => on.filter(([a, ver]) => !supports(c.support[BCD_NAME[a]], ver, exact));
 const lackingOf = (key, ts = current(), exact = false) => {
 	const c = get(key)?.__compat;
