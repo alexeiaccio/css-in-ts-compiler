@@ -58,7 +58,25 @@ function reach(syntax, seen = /* @__PURE__ */ new Set()) {
 	}
 	return seen;
 }
-const get = (key) => key.split(".").reduce((n, k) => n?.[k] ?? n?.[k.toLowerCase()], bcd);
+const bcdGet = (key) => key.split(".").reduce((n, k) => n?.[k] ?? n?.[k.toLowerCase()], bcd);
+const absent = (description) => ({ __compat: {
+	description,
+	support: Object.fromEntries([
+		"chrome",
+		"chrome_android",
+		"edge",
+		"firefox",
+		"firefox_android",
+		"safari",
+		"safari_ios",
+		"opera",
+		"opera_android",
+		"samsunginternet_android",
+		"webview_android"
+	].map((b) => [b, { version_added: false }]))
+} });
+const OWN = /* @__PURE__ */ new Map([["css.types.gradient.mesh-gradient", absent("mesh-gradient()")], ["css.types.gradient.freeform-gradient", absent("freeform-gradient()")]]);
+const get = (key) => bcdGet(key) ?? OWN.get(key);
 const lacks = (c, on, exact = false) => on.filter(([a, ver]) => !supports(c.support[BCD_NAME[a]], ver, exact));
 const lackingOf = (key, ts = current(), exact = false) => {
 	const c = get(key)?.__compat;
