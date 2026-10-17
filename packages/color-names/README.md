@@ -1,6 +1,7 @@
 # @cssints/color-names
 
-The [Color Name List](https://github.com/meodai/color-names) (names.color.pizza) for
+The [Color Name List](https://github.com/meodai/color-names) ([names.color.pizza](https://names.color.pizza/), a colour at
+`/color/<name>/`) for
 [cssints](../../README.md): a colour name as a hex colour, as members of `cssints/plugin` `scope()`. 31,939 names, no
 runtime. `named(name)` takes any name; `colorNames.<sector>(name)` is the same name in one hue sector, so an editor's
 completion is a few thousand names and not 31,939. Build time only: the sheet holds the hex, and the data never reaches

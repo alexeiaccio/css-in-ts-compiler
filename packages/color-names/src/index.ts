@@ -110,6 +110,7 @@ const members: Members = colornames.export();
  * `color: #ff9300`. A name that is not in the list is an error in the types, and a build error with the nearest name.
  * The 63 CSS keywords whose list name has another hex (`green`: CSS `#008000`, the list's Green `#00ff00`) resolve to the
  * list's value; a CSS keyword stays reachable as a string, `color("green")`.
+ * The list and a colour's own page: {@link https://names.color.pizza/} (a name is at `/color/<name>/`).
  */
 export const named: Members["named"] = members.named;
 /**
@@ -118,6 +119,7 @@ export const named: Members["named"] = members.named;
  * colour: `red`, `orange`, `yellow`, `green`, `cyan`, `blue`, `purple`, `pink`, `brown` (a dark orange or yellow) and
  * `neutral` (grays, whites and blacks; low chroma). A name with several colour words is in each of its sectors. A name
  * that is not in the sector is an error that names the sectors it is in.
+ * The list and a colour's own page: {@link https://names.color.pizza/} (a name is at `/color/<name>/`).
  */
 export const colorNames = {
   red: members.red,
