@@ -40,3 +40,7 @@ A colour word in the name puts the name in that sector, even when its oklch hue 
 - The wrong-sector error lists the sectors the name is in.
 
 Rough count on color-name-list (31,940 names; scratch script, thresholds not tuned): 7,198 names have a colour word (135 of them several), 24,742 are placed by hue. In 2,849 of the 7,198 the word and the hue disagree, so the rule moves them. Sector sizes: neutral 7,677, yellow 6,657, green 3,950, orange 3,629, blue 3,266, purple 1,976, red 1,878, pink 1,627, cyan 1,415. Yellow and neutral are too big for cheap completion, mostly browns and low-chroma colours: tune the hue cuts and the chroma threshold, or split `yellow` (brown) and `neutral` (gray, white, black) before the shape is final. Measure completion on the biggest sector.
+
+## CSS keyword collisions (coordinator decision, 2026-10-17)
+
+`named("green")` is the list's name (hex #00ff00), not the CSS keyword (#008000): the plugin is a colour-name lookup, and the list name is what the user asked for. CSS keywords stay reachable as plain strings (`color("green")`), which is the normal path. Document this in the README with the 63-of-148 number.
