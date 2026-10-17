@@ -6,6 +6,7 @@
     [
       "cssints",
       "@cssints/balance",
+      "@cssints/color-names",
       "@cssints/css-grammar",
       "@cssints/devtools",
       "@cssints/fluid",

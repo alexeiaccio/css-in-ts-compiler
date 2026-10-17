@@ -1,11 +1,11 @@
 # Releasing
 
-Twenty-three packages go to npm: `cssints` and the 22 `@cssints/*` packages in `packages/` (the published versions: <https://npmx.dev/package/cssints>, and `/package/@cssints/reset` and so on; the trusted publisher settings are on npmjs.com). They share one version (Changesets `fixed` group) and go out under the dist-tag `latest` (0.1.0 went out under `next`; from 0.2.0 on, `latest`). The apps and `tools/` stay private. The first release (0.1.0) is run by hand on a laptop. Every later release is run by CI (`.github/workflows/release.yml`) with npm trusted publishing: no token.
+Twenty-five packages go to npm: `cssints` and the 24 `@cssints/*` packages in `packages/` (the published versions: <https://npmx.dev/package/cssints>, and `/package/@cssints/reset` and so on; the trusted publisher settings are on npmjs.com). They share one version (Changesets `fixed` group) and go out under the dist-tag `latest` (0.1.0 went out under `next`; from 0.2.0 on, `latest`). The apps and `tools/` stay private. The first release (0.1.0) is run by hand on a laptop. Every later release is run by CI (`.github/workflows/release.yml`) with npm trusted publishing: no token.
 
 ## Decisions (cssints-6tnn, 2026-10-10)
 
 - **The publish command is `changeset publish`, on a staged copy of each package.** Changesets calls `npm` for a bun workspace. `npm pack` and `npm publish` keep `workspace:*` in the manifest, ignore `publishConfig.exports`, and ship `src/` and the `development` export condition. `bun pm pack` replaces `workspace:*` (with the exact version, `0.1.0`, not `^0.1.0`) but also keeps `development`, `src/` and the top-level `exports`. So `scripts/stage.mjs` builds the published copy into `packages/<name>/.publish` (git-ignored): the manifest with `publishConfig` laid over it, `workspace:` turned into `^<version>`, no scripts, no `devDependencies`, only `dist/`, `docs/`, `skills/`, README and LICENSE. Each package says `publishConfig.directory: ".publish"`, and `changeset publish` sends that directory (`npm publish <dir> --access public`).
-- **One version for all 24 (`fixed`).** Twenty-one packages have `cssints` as a peer (`^0.1.0`, and on 0.x a caret stops at the next minor), `cssints` depends on `css-grammar`, and they change together (a new engine member, a new plugin API). With one number, "which plugin works with which cssints" has one answer, and every release publishes all 24, which is also what the 2-day rule of trusted publishing needs (below). The cost: a package without changes gets a version with an empty entry. Independent versions would need a compatibility table.
+- **One version for all 25 (`fixed`).** Twenty-two packages have `cssints` as a peer (`^0.1.0`, and on 0.x a caret stops at the next minor), `cssints` depends on `css-grammar`, and they change together (a new engine member, a new plugin API). With one number, "which plugin works with which cssints" has one answer, and every release publishes all 25, which is also what the 2-day rule of trusted publishing needs (below). The cost: a package without changes gets a version with an empty entry. Independent versions would need a compatibility table.
 - **The tag is `latest` (since 0.2.0, 2026-10-11).** 0.1.0 went out under `next`, and npm put `latest` on it too (the first publish of a package always does). With 0.2.0 removing `cx`, `npm install cssints` without a tag would have kept the old API, so releases publish to `latest` (`release:publish` is `changeset publish`) and the alpha is said by the 0.x version and the docs. `scripts/trust.sh` also drops the stale `next` tags. Changesets' prerelease mode (`0.2.0-next.0`) was not wanted.
 - **Peer ranges stay loose.** `onlyUpdatePeerDependentsWhenOutOfRange` in `.changeset/config.json`: a patch does not change `cssints: ^0.1.0` in the plugins, a minor (0.2.0) does.
 - **Every package has a `prepublishOnly` guard** that fails: a plain `npm publish` in a package directory would send the repository manifest (`workspace:*`, `src`). Staged copies have no scripts, so the guard does not touch the real publish.
@@ -14,8 +14,8 @@ Twenty-three packages go to npm: `cssints` and the 22 `@cssints/*` packages in `
 ## Check at any time
 
 ```bash
-bun run release:check                  # build the 24 packages, stage them, check manifests and files; nothing is published
-node scripts/release.mjs --install     # the same, then install all 24 tarballs into a fresh project (needs the network) and start cssints-mcp
+bun run release:check                  # build the 25 packages, stage them, check manifests and files; nothing is published
+node scripts/release.mjs --install     # the same, then install all 25 tarballs into a fresh project (needs the network) and start cssints-mcp
 cd packages/cssints && bun run test:smoke   # a Vite app built from the tarballs
 ```
 
@@ -54,9 +54,9 @@ Every package shows `next: 0.1.0`. The npm registry also sets `latest` on the fi
 
 After that: change "Not on npm yet" in `README.md` ("Install" and "Status") to the install command.
 
-## Trusted publishers (npmjs.com, once per package, 24 times)
+## Trusted publishers (npmjs.com, once per package, 25 times)
 
-A trusted publisher can be added only to a package that exists, so this comes after the first release. A new configuration expires if no publish goes through it within 2 days: do this right before the first CI release (open the "Version Packages" pull request first, below, then configure, then merge it). The first CI release publishes all 24 (fixed group), so every configuration is used at once.
+A trusted publisher can be added only to a package that exists, so this comes after the first release. A new configuration expires if no publish goes through it within 2 days: do this right before the first CI release (open the "Version Packages" pull request first, below, then configure, then merge it). The first CI release publishes all 25 (fixed group), so every configuration is used at once.
 
 For each package: npmjs.com, Packages, the package, Settings, Trusted Publisher, GitHub Actions:
 
@@ -77,13 +77,13 @@ done
 npm trust list cssints
 ```
 
-The list of names: `cssints`, `@cssints/balance`, `css-grammar`, `devtools`, `fluid`, `fonts`, `gradient`, `gradient-2d`, `icons`, `layout`, `masonry`, `mcp`, `mise-en-mode`, `motion`, `placeholder`, `ramp`, `reset`, `reveal`, `skeleton`, `squircle`, `stuck`, `tokens`, `tui` (all but the first under `@cssints/`).
+The list of names: `cssints`, `@cssints/balance`, `color-names`, `css-grammar`, `devtools`, `fluid`, `fonts`, `gradient`, `gradient-2d`, `icons`, `layout`, `masonry`, `mcp`, `mise-en-mode`, `motion`, `placeholder`, `ramp`, `reset`, `reveal`, `skeleton`, `squircle`, `stuck`, `tokens`, `tui` (all but the first under `@cssints/`).
 
 Then, per package, Settings, Publishing access: "Require two-factor authentication and disallow tokens". Trusted publishers keep working; a stolen token does not. Also in the repository: Settings, Actions, General, tick "Allow GitHub Actions to create and approve pull requests" (the version pull request).
 
 ## Later releases, from CI
 
-1. In a branch that changes a package, run `bun run changeset`: pick the packages (any one bumps all 24), the bump (`patch` or `minor`; on 0.x a breaking change is a `minor`) and write one line for the changelog. Commit the file in `.changeset/` with the change. `bunx changeset --empty` is for a change that releases nothing.
+1. In a branch that changes a package, run `bun run changeset`: pick the packages (any one bumps all 25), the bump (`patch` or `minor`; on 0.x a breaking change is a `minor`) and write one line for the changelog. Commit the file in `.changeset/` with the change. `bunx changeset --empty` is for a change that releases nothing.
 2. Merge to master. The `release` workflow opens or updates the pull request "Version Packages": `changeset version` (versions, `CHANGELOG.md` files, peer ranges), the release's entry at the top of the root `CHANGELOG.md` (`scripts/changelog.mjs`, from the changesets' summaries: for a breaking change, add the migration in that pull request before merging it) and `bun install --lockfile-only` (bun.lock records the workspace versions).
 3. Merge that pull request. The workflow runs on master with no changesets left: `bun install --frozen-lockfile`, `bun run release:check` (build, stage, check, dist freshness), then `changeset publish` through trusted publishing, then pushes the tags.
 

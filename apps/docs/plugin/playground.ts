@@ -60,6 +60,7 @@ const BROWSERS = new Set([
 // (reads images from disk, SHA-1 of file bytes, PNG and JPEG codecs for Node).
 export const PLUGINS = [
   "balance",
+  "color-names",
   "fluid",
   "gradient",
   "gradient-2d",
