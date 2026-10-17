@@ -288,3 +288,18 @@ Risk: only worth it if someone asks; no-one has in this repo.
 ## Correction (2026-10-17)
 
 Candidate 1, `line-clamp`, is not a gap. cssints-l54z already added the WebKit box as members (`display("-webkit-box")`, `WebkitBoxOrient`, `WebkitLineClamp`) and docs/API.md shows the clamp; the standard `lineClamp` is a member that warns, as no engine ships it unprefixed. The overlap check above read the packages only, not the engine. Drop it from the ranking; the rest stands. Check the engine's own members (docs/API.md, `packages/cssints/src/members.ts`) before building any of the others.
+
+### The rest of the ranking, checked against the engine (2026-10-17)
+
+Chrome 155.0.8059.80, `CSS.supports` and `CSSStyleSheet.replaceSync`, plus the engine's members and docs/API.md. Only `pointer-timeline` survives.
+
+| Candidate                | Result                                                                                                                                                                                        |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@custom-media`          | Covered. `css.media({ sm, lg })` names a query once and imports reuse it. Chrome parses the at-rule to 0 rules. cssints has no CSS authoring.                                                 |
+| `if()` with `supports()` | Covered by `css.supports()` and `firstThatWorks()`. A raw `if()` in a string part is accepted. Chrome 155 takes `if()` natively.                                                              |
+| `fit-content(L)`         | Grammar and the support warning exist (`css.properties.width.fit-content_function`). No fallback: `min(max-content, …)` is rejected in Chrome, and `calc-size()` is Chromium and Safari only. |
+| `@when` and `@else`      | Covered. Conditions nest up to four deep, and `@else` is a negated query string (`@supports not (…)`). Chrome parses `@when` to 0 rules.                                                      |
+| `@custom-selector`       | Covered. A selector is a checked string, so a named list is a `const`. Chrome parses the at-rule to 0 rules.                                                                                  |
+| `pointer-timeline`       | Open. Not in the engine; in webref 8.7.5; Chrome 155 rejects it; no BCD key. Needs the own-key table of cssints-6ctt and a runtime.                                                           |
+
+So the unshipped-spec list gives no new plugin by itself. The lesson for the next research brief: give the agent the engine's member list and docs/API.md to check against, not only the package READMEs.
