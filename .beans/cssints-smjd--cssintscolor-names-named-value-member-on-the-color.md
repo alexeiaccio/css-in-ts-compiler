@@ -92,3 +92,7 @@ The union costs types, not instantiations; the two scope rows share the 37,214 i
 - Per-source licences of the list and a search for slurs (`so8y`, `smjd`).
 - The user's trusted publisher on npmjs.com for the new name, then the first publish by hand.
 - The declarations a build emits hold the key unions (548 kB), not the record of every name to its hex (2.2 MB): the generator writes `export type Red = "..." | "..."` rather than `keyof typeof red`.
+
+## Per-source licences and a slur search: not done, on purpose (user, 2026-10-17)
+
+The list mixes sources (Wikipedia, paint makers, fiction) and the bean for borrowed data and attribution (cssints-so8y) covers attribution in general. The per-source licence audit and a search for offensive names are dropped: meodai's list is trusted as it is. The README keeps the MIT attribution (copyright David Aerne, 2017) and the list's own note that it removes offensive and protected names and that some may remain.
