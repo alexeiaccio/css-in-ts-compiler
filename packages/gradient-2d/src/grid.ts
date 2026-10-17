@@ -12,7 +12,7 @@ const lin = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 
 const gam = (c: number) => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055);
 
 // Björn Ottosson's oklab matrices (https://bottosson.github.io/posts/oklab/)
-export const toOklab = ([r, g, b, a]: Quad): Quad => {
+export const toOklab = ([r, g, b, a]: Quad) => {
   const R = lin(r);
   const G = lin(g);
   const B = lin(b);
@@ -24,10 +24,10 @@ export const toOklab = ([r, g, b, a]: Quad): Quad => {
     1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
     0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
     a,
-  ];
+  ] satisfies Quad;
 };
 
-export const toSrgb = ([L, A, B, a]: Quad): Quad => {
+export const toSrgb = ([L, A, B, a]: Quad) => {
   const l = (L + 0.3963377774 * A + 0.2158037573 * B) ** 3;
   const m = (L - 0.1055613458 * A - 0.0638541728 * B) ** 3;
   const s = (L - 0.0894841775 * A - 1.291485548 * B) ** 3;
@@ -36,15 +36,15 @@ export const toSrgb = ([L, A, B, a]: Quad): Quad => {
     gam(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
     gam(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s),
     a,
-  ];
+  ] satisfies Quad;
 };
 
 // An sRGB colour in the working space, and a colour of the working space back in sRGB (not clamped).
-export const toSpace = (space: Space, q: Quad): Quad => (space === "oklab" ? toOklab(q) : q);
-export const fromSpace = (space: Space, q: Quad): Quad => (space === "oklab" ? toSrgb(q) : q);
+export const toSpace = (space: Space, q: Quad) => (space === "oklab" ? toOklab(q) : q);
+export const fromSpace = (space: Space, q: Quad) => (space === "oklab" ? toSrgb(q) : q);
 
 // The mean of colours, channel by channel.
-export const mean = (qs: Quad[]): Quad =>
+export const mean = (qs: Quad[]) =>
   [0, 1, 2, 3].map((k) => qs.reduce((s, q) => s + q[k]!, 0) / qs.length) as Quad;
 
 // Catmull-Rom through p1 and p2 at t in [0, 1]: it passes through the stops, so a corner is its own colour.
@@ -52,7 +52,7 @@ const cr = (p0: number, p1: number, p2: number, p3: number, t: number) =>
   p1 + 0.5 * t * (p2 - p0 + t * (2 * p0 - 5 * p1 + 4 * p2 - p3 + t * (3 * (p1 - p2) + p3 - p0)));
 
 // The mesh at (u, v) of its box, each 0 to 1 from the top left; `g` is the grid in the working space.
-export const sample = (g: Quad[][], u: number, v: number): Quad => {
+export const sample = (g: Quad[][], u: number, v: number) => {
   const rows = g.length;
   const cols = g[0]!.length;
   const x = u * (cols - 1);
@@ -65,7 +65,9 @@ export const sample = (g: Quad[][], u: number, v: number): Quad => {
     g[Math.min(Math.max(r, 0), rows - 1)]![Math.min(Math.max(c, 0), cols - 1)]!;
   const line = (r: number) => {
     const p = [-1, 0, 1, 2].map((d) => at(r, i + d));
-    return [0, 1, 2, 3].map((k) => cr(p[0]![k]!, p[1]![k]!, p[2]![k]!, p[3]![k]!, tx)) as Quad;
+    return [0, 1, 2, 3].map((k) =>
+      cr(p[0]![k]!, p[1]![k]!, p[2]![k]!, p[3]![k]!, tx),
+    ) as Quad;
   };
   const q = [-1, 0, 1, 2].map((d) => line(j + d));
   return [0, 1, 2, 3].map((k) => cr(q[0]![k]!, q[1]![k]!, q[2]![k]!, q[3]![k]!, ty)) as Quad;

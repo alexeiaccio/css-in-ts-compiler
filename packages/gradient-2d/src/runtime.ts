@@ -2,8 +2,9 @@
 /// <reference lib="dom.iterable" />
 // The fallback of meshGradient() where the browser has no mesh-gradient(): the mesh drawn on a canvas, at a quarter of
 // the box (64 px at least), set as the element's --gradient2d-fallback (a blob URL the kernel's background-image reads).
-// A resize draws again; an element added later is observed and drawn. The maths is grid.ts's: this package's bicubic in
-// oklab, not the spec's tensor-product patch. Plain code, no Effect; off where CSS.supports says the function is native.
+// A resize draws again; an element added later, or given the marker's class later, is observed and drawn. The maths is
+// grid.ts's: this package's bicubic in oklab, not the spec's tensor-product patch. Plain code, no Effect; off where
+// CSS.supports says the function is native.
 import { fromSpace, sample, toSpace, type Quad, type Space } from "./grid.ts";
 
 const MARKER = "_gradient2d-core";
@@ -13,7 +14,7 @@ const drawn = new WeakMap<HTMLElement, { id: number; url?: string }>();
 
 // The colour a `var()` resolves to on this element: a hidden child inherits the custom properties, and a 1 x 1 canvas
 // turns the computed colour into sRGB.
-const resolve = (el: HTMLElement, text: string, ctx: CanvasRenderingContext2D): Quad => {
+const resolve = (el: HTMLElement, text: string, ctx: CanvasRenderingContext2D) => {
   const probe = document.createElement("span");
   probe.hidden = true;
   probe.style.color = text;
@@ -24,10 +25,10 @@ const resolve = (el: HTMLElement, text: string, ctx: CanvasRenderingContext2D): 
   ctx.fillStyle = css;
   ctx.fillRect(0, 0, 1, 1);
   const px = ctx.getImageData(0, 0, 1, 1).data;
-  return [px[0]! / 255, px[1]! / 255, px[2]! / 255, px[3]! / 255];
+  return [px[0]! / 255, px[1]! / 255, px[2]! / 255, px[3]! / 255] satisfies Quad;
 };
 
-const draw = (el: HTMLElement): void => {
+const draw = (el: HTMLElement) => {
   if (!el.clientWidth || !el.clientHeight) return;
   const w = Math.max(64, Math.round(el.clientWidth / 4));
   const h = Math.max(64, Math.round(el.clientHeight / 4));
@@ -45,11 +46,10 @@ const draw = (el: HTMLElement): void => {
     row.map((s) => toSpace(space, typeof s === "string" ? resolve(el, s, ctx) : (s as Quad))),
   );
   const img = ctx.createImageData(w, h);
-  for (let y = 0; y < h; y++)
-    for (let x = 0; x < w; x++) {
-      const q = fromSpace(space, sample(grid, (x + 0.5) / w, (y + 0.5) / h));
-      img.data.set([q[0] * 255, q[1] * 255, q[2] * 255, q[3] * 255], 4 * (y * w + x));
-    }
+  Array.from({ length: w * h }, (_, i) => i).forEach((i) => {
+    const q = fromSpace(space, sample(grid, ((i % w) + 0.5) / w, (Math.floor(i / w) + 0.5) / h));
+    img.data.set([q[0] * 255, q[1] * 255, q[2] * 255, q[3] * 255], 4 * i);
+  });
   ctx.putImageData(img, 0, 0);
   const s = drawn.get(el) ?? { id: 0 };
   const id = ++s.id;
@@ -62,13 +62,13 @@ const draw = (el: HTMLElement): void => {
   }, "image/png");
 };
 
-const start = (): void => {
+const start = () => {
   if (CSS.supports("background-image", "mesh-gradient(red, blue; green, yellow)")) return;
   // a size change, and the first observation of each element, draw it
   const sized = new ResizeObserver((es) => {
     for (const e of es) draw(e.target as HTMLElement);
   });
-  const scan = (root: Element): void => {
+  const scan = (root: Element) => {
     for (const el of root.matches(`.${MARKER}`) ? [root] : root.querySelectorAll(`.${MARKER}`))
       sized.observe(el);
   };
@@ -87,5 +87,3 @@ const start = (): void => {
 };
 
 if (typeof document !== "undefined" && typeof ResizeObserver !== "undefined") start();
-
-export {};

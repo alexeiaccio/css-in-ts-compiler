@@ -9,20 +9,17 @@ import { formatHex, formatHex8, parse, rgb } from "culori";
 import { fromSpace, mean, toOklab, type Quad, type Space } from "./grid.ts";
 
 // Splits at the separators outside brackets, so `var(--a, red)` keeps its comma.
-const cut = (text: string, sep: (ch: string) => boolean): string[] => {
-  const out: string[] = [];
-  let cur = "";
-  let depth = 0;
-  for (const ch of text) {
-    if (ch === "(") depth++;
-    else if (ch === ")") depth--;
-    if (depth === 0 && sep(ch)) {
-      out.push(cur.trim());
-      cur = "";
-    } else cur += ch;
-  }
-  out.push(cur.trim());
-  return out;
+const cut = (text: string, sep: (ch: string) => boolean) => {
+  const { out, cur } = [...text].reduce(
+    (acc, ch) => {
+      const depth = acc.depth + Number(ch === "(") - Number(ch === ")");
+      return depth === 0 && sep(ch)
+        ? { out: [...acc.out, acc.cur.trim()], cur: "", depth }
+        : { out: acc.out, cur: acc.cur + ch, depth };
+    },
+    { out: [] as string[], cur: "", depth: 0 },
+  );
+  return [...out, cur.trim()];
 };
 
 /** A stop: its sRGB colour, or the text of a colour the browser resolves (a `var()`). */
@@ -39,18 +36,16 @@ const colour = (text: string): Stop => {
 // The spec's syntax, as far as the grid goes: `[in <space>] [<colour>]?` then the rows of stops (`;`), the stops of a
 // row (`,`). A position, `by` and `with` are not supported yet: the grid is regular, so each stop sits at its corner or
 // edge of the box.
-const parseMesh = (text: string): { space: Space; rows: Stop[][] } => {
+const parseMesh = (text: string) => {
   const rows = cut(text, (c) => c === ";").map((row) => cut(row, (c) => c === ","));
-  let space: Space = "oklab";
-  const [, method = "", outside = ""] = /^in\s+(\S+)(?:\s+(.*))?$/i.exec(rows[0]?.[0] ?? "") ?? [];
-  if (method) {
-    if (method !== "oklab" && method !== "srgb")
-      throw new Error(`meshGradient(): in ${method} is not supported yet (oklab and srgb)`);
-    space = method;
-    if (outside) colour(outside);
-    rows[0]!.shift();
-  }
-  const stops = rows.map((row) =>
+  const head = /^in\s+(\S+)(?:\s+(.*))?$/i.exec(rows[0]?.[0] ?? "");
+  const [, method = "oklab", outside = ""] = head ?? [];
+  if (method !== "oklab" && method !== "srgb")
+    throw new Error(`meshGradient(): in ${method} is not supported yet (oklab and srgb)`);
+  if (outside) colour(outside);
+  const space: Space = method === "srgb" ? "srgb" : "oklab";
+  const body = head ? [rows[0]!.slice(1), ...rows.slice(1)] : rows;
+  const stops = body.map((row) =>
     row.map((p) => {
       const words = cut(p, (c) => /\s/.test(c));
       if (words.length > 1)
@@ -75,7 +70,7 @@ const parseMesh = (text: string): { space: Space; rows: Stop[][] } => {
 const clamp = (x: number) => Math.min(1, Math.max(0, x));
 
 // The average colour of the stops, in oklab, as a background that the first paint shows.
-const fallback = (stops: Stop[]): string => {
+const fallback = (stops: Stop[]) => {
   const known = stops.filter((s): s is Quad => typeof s !== "string");
   if (known.length < stops.length) return "none";
   const [r, g, b, a] = fromSpace("oklab", mean(known.map((q) => toOklab(q))));
