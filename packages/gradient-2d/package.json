@@ -1,0 +1,75 @@
+{
+  "name": "@cssints/gradient-2d",
+  "version": "0.3.1",
+  "description": "mesh-gradient() for cssints: the native function where the browser has it, else a canvas drawn by a runtime",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexeiaccio/css-in-ts-compiler.git",
+    "directory": "packages/gradient-2d"
+  },
+  "homepage": "https://cssints.dev",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "./src/runtime.ts",
+    "./dist/runtime.mjs"
+  ],
+  "exports": {
+    ".": {
+      "development": {
+        "types": "./src/index.ts",
+        "default": "./src/index.ts"
+      },
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    },
+    "./runtime": {
+      "development": {
+        "types": "./src/runtime.ts",
+        "default": "./src/runtime.ts"
+      },
+      "types": "./dist/runtime.d.mts",
+      "default": "./dist/runtime.mjs"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "./runtime": {
+        "types": "./dist/runtime.d.mts",
+        "default": "./dist/runtime.mjs"
+      }
+    },
+    "access": "public",
+    "directory": ".publish"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "test": "node test/maths.mjs && node test/gradient-2d.mjs",
+    "test:browser": "node test/browser.mjs",
+    "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
+    "pack:tgz": "node ../../scripts/pack.mjs",
+    "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1"
+  },
+  "dependencies": {
+    "culori": "^4.0.2"
+  },
+  "devDependencies": {
+    "@types/culori": "^4.0.0",
+    "cssints": "workspace:*",
+    "vite": "catalog:"
+  },
+  "peerDependencies": {
+    "cssints": "^0.3.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -11,6 +11,7 @@
       "@cssints/fluid",
       "@cssints/fonts",
       "@cssints/gradient",
+      "@cssints/gradient-2d",
       "@cssints/icons",
       "@cssints/layout",
       "@cssints/masonry",

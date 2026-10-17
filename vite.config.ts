@@ -17,7 +17,7 @@ const inputs = [
   "packages/cssints/test/fixtures/**",
   "packages/icons/test/fixtures/**",
   "packages/mise-en-mode/test/fixtures/**",
-  "packages/{fluid,layout,fonts,reset,tokens,gradient,motion,squircle,reveal,stuck,balance,masonry,placeholder,ramp,rybitten,skeleton,devtools,mcp,tui}/test/fixtures/**",
+  "packages/{fluid,layout,fonts,reset,tokens,gradient,gradient-2d,motion,squircle,reveal,stuck,balance,masonry,placeholder,ramp,rybitten,skeleton,devtools,mcp,tui}/test/fixtures/**",
   "packages/cssints/test/pkg/**",
   "packages/css-grammar/bench/err.ts",
   "packages/cssints/bench/errors.ts",
@@ -100,6 +100,8 @@ const plainCode = [
   "packages/reveal/src/**",
   "packages/stuck/src/**",
   "packages/balance/src/**",
+  // its maths (grid.ts) is shared with the runtime, which draws on a canvas: plain code, no Effect
+  "packages/gradient-2d/src/**",
   "packages/masonry/src/**",
   // tier 3: build-time assets and generators on scope()
   "packages/placeholder/src/**",
