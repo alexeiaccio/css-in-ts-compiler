@@ -17,7 +17,7 @@ const inputs = [
   "packages/cssints/test/fixtures/**",
   "packages/icons/test/fixtures/**",
   "packages/mise-en-mode/test/fixtures/**",
-  "packages/{fluid,layout,fonts,reset,tokens,gradient,gradient-2d,motion,squircle,reveal,stuck,balance,masonry,placeholder,ramp,rybitten,skeleton,devtools,mcp,tui}/test/fixtures/**",
+  "packages/{fluid,layout,fonts,reset,tokens,gradient,gradient-2d,color-names,motion,squircle,reveal,stuck,balance,masonry,placeholder,ramp,rybitten,skeleton,devtools,mcp,tui}/test/fixtures/**",
   "packages/cssints/test/pkg/**",
   "packages/css-grammar/bench/err.ts",
   "packages/cssints/bench/errors.ts",
@@ -94,6 +94,8 @@ const plainCode = [
   "packages/reset/src/**",
   "packages/tokens/src/**",
   "packages/gradient/src/**",
+  // @cssints/color-names: sync scope() members, like icons' and mise-en-mode's.
+  "packages/color-names/src/**",
   "packages/motion/src/**",
   // tier 2: scope() members plus the browser runtimes they ship when a target lacks the native feature
   "packages/squircle/src/**",
