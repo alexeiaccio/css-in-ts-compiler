@@ -90,19 +90,11 @@ const PERCENT = /^(-?\d*\.?\d+)%$/;
 const NUMBER = /^[+-]?(\d+\.?\d*|\.\d+)$/;
 const LENGTH = /^[+-]?(\d+\.?\d*|\.\d+)[a-z]+$/;
 const A_LINE_OR_SHAPE = /^(line|shape|curve)\b/;
-const ONE: Record<string, [number, number]> = {
-  left: [0, 0.5],
-  right: [1, 0.5],
-  top: [0.5, 0],
-  bottom: [0.5, 1],
-  center: [0.5, 0.5],
-};
-
 const CALL = "freeformGradient";
 
 // A `<position>` as `background-position` reads it, to (x, y) in 0..1: one or two keywords and percentages. An edge
 // keyword with a percentage measures it from that edge (`right 30%` is 70%); `center` names its own axis.
-const position = (words: string[]): [number, number] => {
+const position = (words: string[]) => {
   const pct = (w: string) => Number(PERCENT.exec(w)![1]) / 100;
   const axis = (w: string) =>
     w === "left" || w === "right" ? "x" : w === "top" || w === "bottom" ? "y" : "c";
@@ -110,7 +102,8 @@ const position = (words: string[]): [number, number] => {
   const [a, b] = words;
   if (b === undefined) {
     if (!KEYWORD.test(a!)) return [pct(a!), 0.5];
-    return ONE[a!]!;
+    if (a === "center") return [0.5, 0.5];
+    return axis(a!) === "x" ? [edge(a!), 0.5] : [0.5, edge(a!)];
   }
   const ka = KEYWORD.test(a!);
   const kb = KEYWORD.test(b);
@@ -130,21 +123,19 @@ const position = (words: string[]): [number, number] => {
 
 // `freeform-gradient( [<color-interpolation-method>? ,] <freeform-point># )`, points only: `<color> <number>? <position>`
 // (the colour, the spread, the position). No lines, no shapes: the spec has none yet (its "future improvements").
-const point = (text: string): Point => {
+const point = (text: string) => {
   const words = cut(text, (c) => /\s/.test(c));
   const c = words[0] ?? "";
-  let rest = words.slice(1);
+  const all = words.slice(1);
   const wants = () =>
     new Error(
       `${CALL}(): ${JSON.stringify(text)}: a point needs a position, \`<color> <number>? <position>\``,
     );
+  if (all.length === 0) throw wants();
+  // the spread is the bare number the syntax puts before the position
+  const spread = NUMBER.test(all[0]!) ? Number(all[0]) : 1;
+  const rest = NUMBER.test(all[0]!) ? all.slice(1) : all;
   if (rest.length === 0) throw wants();
-  let spread = 1;
-  if (NUMBER.test(rest[0]!)) {
-    spread = Number(rest[0]);
-    rest = rest.slice(1);
-    if (rest.length === 0) throw wants();
-  }
   const part = rest.find((w) => A_LINE_OR_SHAPE.test(w));
   if (part)
     throw new Error(`${CALL}(): ${JSON.stringify(part)}: a line or a shape is not supported yet`);
@@ -161,7 +152,7 @@ const point = (text: string): Point => {
         : `${CALL}(): ${JSON.stringify(text)}: a line (a point with more than one position) is not supported yet`,
     );
   }
-  const [u, v] = position(rest);
+  const [u = 0.5, v = 0.5] = position(rest);
   return { q: colour(c, CALL), u, v, spread };
 };
 
@@ -180,12 +171,17 @@ const parseFreeform = (text: string) => {
   if (body.length < 2)
     throw new Error(`${CALL}(): a gradient needs at least 2 points, not ${body.length}`);
   const points = body.map(point);
-  for (let i = 0; i < points.length; i++)
-    for (let j = i + 1; j < points.length; j++)
-      if (points[i]!.u === points[j]!.u && points[i]!.v === points[j]!.v)
-        throw new Error(
-          `${CALL}(): ${JSON.stringify(body[i])} and ${JSON.stringify(body[j])} are the same position: every point needs its own`,
-        );
+  // two points at one position: their weights are both infinite there, and no rule says which wins
+  const seen = new Map<string, string>();
+  for (const [i, p] of points.entries()) {
+    const at = `${p.u},${p.v}`;
+    const had = seen.get(at);
+    if (had !== undefined)
+      throw new Error(
+        `${CALL}(): ${JSON.stringify(had)} and ${JSON.stringify(body[i])} are the same position: every point needs its own`,
+      );
+    seen.set(at, body[i]!);
+  }
   return { space, points };
 };
 

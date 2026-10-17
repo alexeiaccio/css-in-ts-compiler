@@ -11,7 +11,7 @@ export type FreePoint = { u: number; v: number; spread: number; q: Quad };
 // The colour at (u, v) of the box, `points` in the working space. `ratio` is height / width: a distance is measured in
 // the box's pixels, so a point's influence is a circle on screen, as the CSS fallback's radial layers are. At a point's
 // own position its colour is exact; a point whose spread is 0 or less never pulls.
-export const freeform = (points: FreePoint[], u: number, v: number, ratio = 1): Quad => {
+export const freeform = (points: FreePoint[], u: number, v: number, ratio = 1) => {
   const ws = points.map((p) => {
     const du = u - p.u;
     const dv = (v - p.v) * ratio;

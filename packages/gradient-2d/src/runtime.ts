@@ -22,10 +22,10 @@ const mesh: Drawing = {
       row.map((s) => toSpace(space, typeof s === "string" ? resolve(el, s, ctx) : (s as Quad))),
     );
     const img = ctx.createImageData(w, h);
-    for (let i = 0; i < w * h; i++) {
+    Array.from({ length: w * h }, (_, i) => i).forEach((i) => {
       const q = fromSpace(space, sample(grid, ((i % w) + 0.5) / w, (Math.floor(i / w) + 0.5) / h));
       img.data.set([q[0] * 255, q[1] * 255, q[2] * 255, q[3] * 255], 4 * i);
-    }
+    });
     return img;
   },
 };
@@ -49,13 +49,13 @@ const points: Drawing = {
       q: toSpace(space, typeof c === "string" ? resolve(el, c, ctx) : (c as Quad)),
     }));
     const img = ctx.createImageData(w, h);
-    for (let i = 0; i < w * h; i++) {
+    Array.from({ length: w * h }, (_, i) => i).forEach((i) => {
       const q = fromSpace(
         space,
         freeform(ps, ((i % w) + 0.5) / w, (Math.floor(i / w) + 0.5) / h, ratio),
       );
       img.data.set([q[0] * 255, q[1] * 255, q[2] * 255, q[3] * 255], 4 * i);
-    }
+    });
     return img;
   },
 };
