@@ -15,6 +15,7 @@ import {
 } from "cssints";
 
 import { flexoki } from "../../src/flexoki.ts";
+import { madoromi } from "../../src/madoromi.ts";
 import * as op from "../../src/open-props.ts";
 import { dark, darkAlpha, light, lightAlpha } from "../../src/radix.ts";
 import { reasonableColors } from "../../src/reasonable-colors.ts";
@@ -73,6 +74,20 @@ createGlobalTheme(all, dm, { ...dark, ...darkAlpha });
 createGlobalTheme(rx, ".x", { blue: { _1: "1px" } });
 // @ts-expect-error the alpha scales are their own set
 createGlobalTheme(rx, ".x", darkAlpha);
+
+// madoromi: one flavour as tokens, another as a theme as it is (DTCG leaves)
+const mr = createTokens({ madoromi: madoromi.akiHiru });
+createGlobalTheme(mr.madoromi, dm, madoromi.akiYoru);
+createGlobalTheme(mr, "[data-madoromi]", { madoromi: { kami: "#fff", ansi: { black: "#000" } } });
+export const d = [
+  color(mr.madoromi.sumi),
+  color(mr.madoromi.roles.keyword),
+  color(mr.madoromi.ansi.brightWhite),
+];
+// @ts-expect-error no such colour (the names are ASCII: hyoshi, not hyōshi)
+export const e4 = color(mr.madoromi.hyōshi);
+// @ts-expect-error a colour is not a length
+export const e5 = padding(mr.madoromi.kami);
 
 export const c = [
   color(createTokens({ flexoki }).flexoki.red._600),

@@ -51,6 +51,24 @@ css = await sheet("palettes.ts");
 assert.deepEqual(properties(css), ["--flexoki-base-black", "--reasonable-azure-1"], css);
 assert.ok(css.includes("initial-value:#100f0f}"), css);
 
+// madoromi: one flavour as the tokens, the others as themes; the module that uses three tokens has three, and the
+// themes (madoromi-tokens.ts) passed their contrast checks
+css = await sheet("madoromi.ts");
+assert.deepEqual(
+  properties(css),
+  ["--madoromi-ansi-blue", "--madoromi-kami", "--madoromi-roles-text"],
+  css,
+);
+for (const rule of [
+  '@property --madoromi-kami{syntax:"<color>";inherits:true;initial-value:#f6eff8}',
+  "@media (prefers-color-scheme: dark){:root{--madoromi-sakura:#ffc5da;",
+  "--madoromi-kami:#241c26;",
+  "--madoromi-roles-text:#e1d1e7;",
+  "--madoromi-ansi-bright-white:#b7a8bd}",
+  '[data-madoromi="akiYoru"]{',
+])
+  assert.ok(css.includes(rule), `${rule}\n${css}`);
+
 // Radix: a module that uses one token has one; the theme module has the dark values of every scale
 css = await sheet("radix.ts");
 assert.deepEqual(properties(css), ["--radix-blue-11"], css);
