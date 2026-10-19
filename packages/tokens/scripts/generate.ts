@@ -212,10 +212,10 @@ const write = (file: string, header: string, exports: Group, license = "") => {
   // of their colours (a role stays right when a flavour is a theme of another), ANSI 0..15 by name (a digit key would
   // be `_0` in the tokens, and the types of createGlobalTheme do not map a `"0"` of a DTCG override to it)
   const ansi = ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"];
-  const ansiNames = [...ansi, ...ansi.map((n) => `bright${n[0]!.toUpperCase()}${n.slice(1)}`)];
+  const ansiNames = [...ansi, ...ansi.map((n) => `bright${n[0].toUpperCase()}${n.slice(1)}`)];
   const madoromi = Object.fromEntries(
     Object.entries(json.flavours).map(([id, f]) => {
-      const hex = (name: string) => f.colours[name]!.hex;
+      const hex = (name: string) => f.colours[name].hex;
       return [
         camel(id),
         {
@@ -229,7 +229,7 @@ const write = (file: string, header: string, exports: Group, license = "") => {
           ),
           ansi: leaves(
             "color",
-            f.ansi.map((v, i) => [ansiNames[i]!, v]),
+            f.ansi.map((v, i) => [ansiNames[i], v]),
           ),
         },
       ];
