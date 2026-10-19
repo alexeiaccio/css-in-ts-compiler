@@ -219,7 +219,10 @@ const write = (file: string, header: string, exports: Group, license = "") => {
       return [
         camel(id),
         {
-          ...leaves("color", Object.keys(f.colours).map((name) => [name, hex(name)])),
+          ...leaves(
+            "color",
+            Object.keys(f.colours).map((name) => [name, hex(name)]),
+          ),
           roles: leaves(
             "color",
             Object.entries(json.roles).map(([role, name]) => [role, hex(name)]),
