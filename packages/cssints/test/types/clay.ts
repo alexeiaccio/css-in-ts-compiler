@@ -42,3 +42,36 @@ css.cn(font.Serif);
 css.hover("red");
 // @ts-expect-error fonts() takes at least one name
 css.fonts();
+
+export const floats = css.cn(
+  css.float(),
+  css.float({
+    attach: { element: "left top", parent: "left bottom" },
+    parent: "Units",
+    offset: { x: 4, y: "-2px" },
+    expand: { width: 2, height: 3 },
+    zIndex: 10,
+    capture: false,
+    clip: "parent",
+  }),
+  css.float({ root: true, attach: { parent: "center center" } }),
+  css.hover(css.float({ zIndex: 1 })),
+);
+// @ts-expect-error a point is x then y, as Clay names it
+css.float({ attach: { element: "top left" } });
+// @ts-expect-error a point of the parent that Clay has not
+css.float({ attach: { parent: "middle" } });
+// @ts-expect-error not a length Clay counts
+css.float({ offset: { x: "1em" } });
+// @ts-expect-error no such option
+css.float({ zindex: 1 });
+// @ts-expect-error capture is a boolean
+css.float({ capture: "no" });
+// @ts-expect-error clip is none or parent
+css.float({ clip: "attached" });
+// @ts-expect-error a parent is the string of its CLAY_ID
+css.float({ parent: 3 });
+// @ts-expect-error a parent and the root are two places
+css.float({ parent: "Units", root: true });
+// @ts-expect-error float takes options, not a style
+css.float(css.p(1));

@@ -139,6 +139,54 @@ assert.ok(decl("plain_light"), th); // a style with no token has the theme's nam
 // a module with no theme has no themed names
 assert.ok(!h.includes("_light"), h);
 
+// floating: Clay_FloatingElementConfig field for field; unset fields stay out (Clay's zero is the default)
+const floats = { ...(await exportsOf("clay-float.ts")) };
+const ID_UNITS = 3516868942; // Clay__HashString("Units", 0).id, read off the real clay.h
+assert.deepEqual(floats.plain, { floating: { attachTo: "PARENT" } });
+assert.deepEqual(floats.menu.floating, {
+  offset: { x: 4, y: -2 },
+  expand: { width: 2, height: 3 },
+  parentId: ID_UNITS,
+  zIndex: 10,
+  attachPoints: { element: "LEFT_TOP", parent: "LEFT_BOTTOM" },
+  pointerCaptureMode: "PASSTHROUGH",
+  attachTo: "ELEMENT_WITH_ID",
+  clipTo: "ATTACHED_PARENT",
+});
+assert.deepEqual(floats.dialog.floating, {
+  zIndex: 100,
+  attachPoints: { element: "CENTER_CENTER", parent: "CENTER_CENTER" },
+  attachTo: "ROOT",
+});
+// the second float names no parent, so it keeps the first's; an offset side it leaves out is 0
+assert.deepEqual(floats.merged.floating, {
+  offset: { x: 0, y: 8 },
+  parentId: ID_UNITS,
+  zIndex: 1,
+  attachTo: "ELEMENT_WITH_ID",
+});
+assert.equal(floats.tip.floating, undefined);
+assert.deepEqual(floats.tip[":hover"], {
+  floating: { attachPoints: { element: "LEFT_TOP", parent: "CENTER_TOP" }, attachTo: "PARENT" },
+});
+
+const fh = header(floats);
+const fdecl = (name) => new RegExp(`Clay_ElementDeclaration ${name} = (.*);`).exec(fh)?.[1];
+assert.equal(fdecl("plain"), "{ .floating = { .attachTo = CLAY_ATTACH_TO_PARENT } }");
+assert.ok(
+  fdecl("menu").endsWith(
+    `, .floating = { .offset = { .x = 4, .y = -2 }, .expand = { .width = 2, .height = 3 }, .parentId = ${ID_UNITS}u, .zIndex = 10, .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_TOP, .parent = CLAY_ATTACH_POINT_LEFT_BOTTOM }, .pointerCaptureMode = CLAY_POINTER_CAPTURE_MODE_PASSTHROUGH, .attachTo = CLAY_ATTACH_TO_ELEMENT_WITH_ID, .clipTo = CLAY_CLIP_TO_ATTACHED_PARENT } }`,
+  ),
+  fh,
+);
+assert.match(fdecl("dialog"), /\.attachTo = CLAY_ATTACH_TO_ROOT \}/);
+assert.ok(!fdecl("dialog").includes("parentId"), fh); // the root is Clay's to name
+assert.ok(!fdecl("tip").includes("floating"), fh);
+assert.match(
+  fdecl("tip_hover"),
+  /\.floating = \{ \.attachPoints = \{ \.element = CLAY_ATTACH_POINT_LEFT_TOP, \.parent = CLAY_ATTACH_POINT_CENTER_TOP \}, \.attachTo = CLAY_ATTACH_TO_PARENT \}/,
+);
+
 const fails = async (source, message) =>
   assert.rejects(
     code(`import * as css from "cssints/clay" with { type: "cssints" };\n${source}`),
@@ -187,6 +235,79 @@ await fails(
 );
 await fails(`export const f = css.fonts("Roboto Mono");`, /each a C identifier, got "Roboto Mono"/);
 await fails(`export const f = css.fonts();`, /got nothing/);
+await fails(
+  `export const a = css.float({ attach: { element: "top left" } });`,
+  /float\.attach\.element: unexpected "top left", expected left top \| left center/,
+);
+await fails(
+  `export const a = css.float({ attach: { parent: "middle" } });`,
+  /float\.attach\.parent: unexpected "middle"/,
+);
+await fails(
+  `export const a = css.float({ attach: { below: "left top" } });`,
+  /float\.attach: unexpected "below", expected element \| parent/,
+);
+await fails(
+  `export const a = css.float({ expand: { width: -4 } });`,
+  /float\.expand\.width: unexpected -4, expected a number of pixels .*not negative/,
+);
+await fails(
+  `export const a = css.float({ expand: { height: "2rem" } });`,
+  /float\.expand\.height: unexpected "2rem"/,
+);
+await fails(
+  `export const a = css.float({ offset: { x: "1em" } });`,
+  /float\.offset\.x: unexpected "1em", expected a number of pixels/,
+);
+await fails(
+  `export const a = css.float({ offset: { z: 1 } });`,
+  /float\.offset: unexpected "z", expected x \| y/,
+);
+await fails(
+  `export const a = css.float({ zIndex: 1.5 });`,
+  /float\.zIndex: unexpected 1.5, expected a whole number/,
+);
+await fails(`export const a = css.float({ zIndex: 40000 });`, /float\.zIndex: unexpected 40000/);
+await fails(
+  `export const a = css.float({ capture: "no" });`,
+  /float\.capture: unexpected "no", expected true \| false/,
+);
+await fails(
+  `export const a = css.float({ clip: "attached" });`,
+  /float\.clip: unexpected "attached", expected none \| parent/,
+);
+await fails(
+  `export const a = css.float({ parent: "" });`,
+  /float\.parent: unexpected "", expected the non-empty ASCII string/,
+);
+await fails(`export const a = css.float({ parent: "меню" });`, /float\.parent: unexpected "меню"/);
+await fails(`export const a = css.float({ parent: 3 });`, /float\.parent: unexpected 3/);
+await fails(
+  `export const a = css.float({ root: "yes" });`,
+  /float\.root: unexpected "yes", expected true \| false/,
+);
+await fails(
+  `export const a = css.float({ parent: "a", root: true });`,
+  /parent and root are two places/,
+);
+await fails(
+  `export const a = css.float({ zindex: 1 });`,
+  /float: unexpected "zindex", expected attach \| parent \| root/,
+);
+await fails(`export const a = css.float("left");`, /float: unexpected "left", expected \{ attach/);
+await fails(
+  `export const a = css.float({}, {});`,
+  /float takes one object of options, got 2 values/,
+);
+await fails(`export const a = css.float(css.p(1));`, /float: a style is not a value/);
+await fails(
+  `export const a = css.float({ root: true, clip: "parent" });`,
+  /clip "parent" does nothing on a float attached to the root/,
+);
+await fails(
+  `export const a = css.cn(css.float({ clip: "parent" }), css.float({ root: true }));`,
+  /clip "parent" does nothing/,
+);
 
 await server.close();
 console.log("clay: ok");

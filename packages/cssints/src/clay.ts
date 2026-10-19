@@ -140,6 +140,109 @@ const pair =
       [end, v[1] ?? v[0]!],
     ];
   };
+// A floating element (Clay_FloatingElementConfig): one object of options, each entry a flat key like the other members'
+const POINTS = ["left", "center", "right"].flatMap((x) =>
+  ["top", "center", "bottom"].map((y) => `${x} ${y}`),
+);
+const FLOAT_OPTIONS = ["attach", "parent", "root", "offset", "expand", "zIndex", "capture", "clip"];
+const SIGNED = /^-?(?:\d+\.?\d*|\.\d+)(?:px)?$/;
+const offset = (prop: string, v: unknown): number => {
+  const n =
+    typeof v === "number"
+      ? v
+      : typeof v === "string" && SIGNED.test(v)
+        ? Number.parseFloat(v)
+        : NaN;
+  if (Number.isFinite(n)) return n;
+  throw fail(
+    `cssints: ${prop}: unexpected ${say(v)}, expected a number of pixels (a number or "Npx")`,
+  );
+};
+// Clay__HashString(id, 0).id: a static initializer needs a constant, and CLAY_ID() is a call
+const clayId = (id: string): number => {
+  const h = Array.from(id, (ch) => ch.charCodeAt(0)).reduce((acc, byte) => {
+    const sum = (acc + byte) >>> 0;
+    const mixed = (sum + (sum << 10)) >>> 0;
+    return (mixed ^ (mixed >>> 6)) >>> 0;
+  }, 0);
+  const a = (h + (h << 3)) >>> 0;
+  const b = (a ^ (a >>> 11)) >>> 0;
+  return (b + (b << 15) + 1) >>> 0;
+};
+const options = (prop: string, v: unknown, keys: string[]): Record<string, unknown> => {
+  if (typeof v !== "object" || v === null || Array.isArray(v))
+    throw fail(`cssints: ${prop}: unexpected ${say(v)}, expected { ${keys.join(", ")} }`);
+  const bad = Object.keys(v).find((k) => !keys.includes(k));
+  if (bad !== undefined)
+    throw fail(`cssints: ${prop}: unexpected ${say(bad)}, expected ${keys.join(" | ")}`);
+  return v as Record<string, unknown>;
+};
+const upper = (v: Value) => String(v).toUpperCase().replace(" ", "_");
+const floating: Build = (prop, parts) => {
+  if (parts.length > 1)
+    throw fail(`cssints: ${prop} takes one object of options, got ${parts.length} values`);
+  const o = options(prop, parts[0] ?? {}, FLOAT_OPTIONS);
+  // `float` only says the element floats: attachTo is an entry only when a parent or root is named, so that a cn() of
+  // two floats does not reset the first one's
+  const out: [string, Value][] = [["float", 1]];
+  const set = (k: string, v: Value) => out.push([k, v]);
+  if (o.parent !== undefined && o.root)
+    throw fail(`cssints: ${prop}: parent and root are two places to attach to`);
+  if (o.parent !== undefined) {
+    // chars are signed on some targets and unsigned on others, so only ASCII hashes the same everywhere
+    if (typeof o.parent !== "string" || !/^[\x20-\x7e]+$/.test(o.parent))
+      throw fail(
+        `cssints: ${prop}.parent: unexpected ${say(o.parent)}, expected the non-empty ASCII string of the parent's CLAY_ID()`,
+      );
+    set("floatTo", "ELEMENT_WITH_ID");
+    set("floatParentId", clayId(o.parent));
+  }
+  if (o.root !== undefined && typeof o.root !== "boolean")
+    throw fail(`cssints: ${prop}.root: unexpected ${say(o.root)}, expected true | false`);
+  if (o.root) set("floatTo", "ROOT");
+  if (o.attach !== undefined) {
+    const a = options(`${prop}.attach`, o.attach, ["element", "parent"]);
+    for (const k of ["element", "parent"])
+      if (a[k] !== undefined)
+        set(
+          `float${k === "element" ? "Element" : "Parent"}`,
+          upper(keyword(...POINTS)(`${prop}.attach.${k}`, a[k])),
+        );
+  }
+  for (const [name, read] of [
+    ["offset", offset],
+    ["expand", px],
+  ] as const) {
+    if (o[name] === undefined) continue;
+    const keys = name === "offset" ? ["x", "y"] : ["width", "height"];
+    const v = options(`${prop}.${name}`, o[name], keys);
+    for (const k of keys)
+      if (v[k] !== undefined)
+        set(
+          `float${name === "offset" ? "Offset" : "Expand"}${k[0]!.toUpperCase()}${k.slice(1)}`,
+          read(`${prop}.${name}.${k}`, v[k]),
+        );
+  }
+  if (o.zIndex !== undefined) {
+    if (!Number.isInteger(o.zIndex) || Math.abs(o.zIndex as number) > 32767)
+      throw fail(
+        `cssints: ${prop}.zIndex: unexpected ${say(o.zIndex)}, expected a whole number (Clay stores it as int16_t)`,
+      );
+    set("floatZIndex", o.zIndex as number);
+  }
+  if (o.capture !== undefined) {
+    if (typeof o.capture !== "boolean")
+      throw fail(`cssints: ${prop}.capture: unexpected ${say(o.capture)}, expected true | false`);
+    set("floatCapture", o.capture ? "CAPTURE" : "PASSTHROUGH");
+  }
+  if (o.clip !== undefined)
+    set(
+      "floatClip",
+      keyword("none", "parent")(`${prop}.clip`, o.clip) === "none" ? "NONE" : "ATTACHED_PARENT",
+    );
+  return out;
+};
+
 const PADDING = ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"];
 const BORDER = ["borderTop", "borderRight", "borderBottom", "borderLeft"];
 const RADIUS = ["topLeft", "topRight", "bottomRight", "bottomLeft"];
@@ -180,6 +283,7 @@ const MEMBERS: Record<string, Build> = {
   lineHeight: one("lineHeight", whole),
   textAlign: one("textAlign", keyword("left", "center", "right")),
   whiteSpace: one("whiteSpace", keyword("normal", "pre-line", "nowrap")),
+  float: floating,
 };
 
 const member =
@@ -276,6 +380,7 @@ export const {
   lineHeight,
   textAlign,
   whiteSpace,
+  float,
 } = members;
 
 // ---------- the site: Clay's structs, field for field
@@ -307,6 +412,49 @@ const X = { start: "LEFT", center: "CENTER", end: "RIGHT" } as const;
 const Y = { start: "TOP", center: "CENTER", end: "BOTTOM" } as const;
 const edge = (v: Value) =>
   v === "center" ? "center" : String(v).endsWith("end") ? "end" : "start";
+
+const FLOATING = [
+  "float",
+  "floatTo",
+  "floatElement",
+  "floatParent",
+  "floatParentId",
+  "floatOffsetX",
+  "floatOffsetY",
+  "floatExpandWidth",
+  "floatExpandHeight",
+  "floatZIndex",
+  "floatCapture",
+  "floatClip",
+];
+// Clay_FloatingElementConfig in the order of the struct; a float that names no parent is attached to its own
+const floatingOf = (p: Map<string, Value>): Shape => {
+  const has = (...ks: string[]) => ks.some((k) => p.has(k));
+  const to = p.get("floatTo") ?? "PARENT";
+  if (to === "ROOT" && p.get("floatClip") === "ATTACHED_PARENT")
+    throw fail(
+      `cssints: float: clip "parent" does nothing on a float attached to the root (it has no clipping parent)`,
+    );
+  return {
+    ...(has("floatOffsetX", "floatOffsetY") && {
+      offset: { x: p.get("floatOffsetX") ?? 0, y: p.get("floatOffsetY") ?? 0 },
+    }),
+    ...(has("floatExpandWidth", "floatExpandHeight") && {
+      expand: { width: p.get("floatExpandWidth") ?? 0, height: p.get("floatExpandHeight") ?? 0 },
+    }),
+    ...(to === "ELEMENT_WITH_ID" && { parentId: p.get("floatParentId")! }),
+    ...(p.has("floatZIndex") && { zIndex: p.get("floatZIndex")! }),
+    ...(has("floatElement", "floatParent") && {
+      attachPoints: {
+        element: p.get("floatElement") ?? "LEFT_TOP",
+        parent: p.get("floatParent") ?? "LEFT_TOP",
+      },
+    }),
+    ...(p.has("floatCapture") && { pointerCaptureMode: p.get("floatCapture")! }),
+    attachTo: to,
+    ...(p.has("floatClip") && { clipTo: p.get("floatClip")! }),
+  };
+};
 
 const shapeOf = (entries: Entry[], values?: Map<string, string>): Shape => {
   const p = new Map(entries.map(([k, v]): [string, Value] => [k, v]));
@@ -353,6 +501,7 @@ const shapeOf = (entries: Entry[], values?: Map<string, string>): Shape => {
       },
     };
   if (p.has("overflow")) out.clip = get("overflow") === "hidden" ? HIDDEN : VISIBLE;
+  if (FLOATING.some((k) => p.has(k))) out.floating = floatingOf(p);
   const text: Shape = {};
   if (p.has("color")) text.textColor = colourOf("color");
   for (const k of ["fontId", "fontSize", "letterSpacing", "lineHeight"])
@@ -445,9 +594,15 @@ const ENUM: Record<string, (v: string) => string> = {
   y: (v) => `CLAY_ALIGN_Y_${v}`,
   textAlignment: (v) => `CLAY_TEXT_ALIGN_${v}`,
   wrapMode: (v) => `CLAY_TEXT_WRAP_${v}`,
+  element: (v) => `CLAY_ATTACH_POINT_${v}`,
+  parent: (v) => `CLAY_ATTACH_POINT_${v}`,
+  pointerCaptureMode: (v) => `CLAY_POINTER_CAPTURE_MODE_${v}`,
+  attachTo: (v) => `CLAY_ATTACH_TO_${v}`,
+  clipTo: (v) => `CLAY_CLIP_TO_${v}`,
 };
 const c = (key: string, v: number | string | Shape): string => {
-  if (typeof v === "number") return String(v);
+  // parentId is a uint32_t: a hash over INT_MAX needs its suffix where int is 32 bits
+  if (typeof v === "number") return key === "parentId" ? `${v}u` : String(v);
   if (typeof v === "string") return ENUM[key]!(v);
   // a sizing axis: Clay's union, as CLAY_SIZING_FIXED() and its kin write it
   if (v.type !== undefined) {
@@ -469,6 +624,7 @@ const SHAPE = new Set([
   "cornerRadius",
   "border",
   "clip",
+  "floating",
   "text",
   "themes",
   ...STATES,

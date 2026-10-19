@@ -1406,7 +1406,7 @@ static const Clay_TextElementConfig label_text = { .textColor = { .r = 235, .g =
 CLAY(CLAY_ID("Units"), pill) { CLAY_TEXT(CLAY_STRING("switch to g"), label_text); }
 ```
 
-- **Members**: `width`, `height` (pixels, `N%`, `auto` for Clay's FIT, `stretch` for GROW), `padding`/`p` and the sides, `gap` (`childGap`), `flexDirection` (`row`, `column`), `justifyContent` and `alignItems` (start, center, end: Clay's `childAlignment`, the axis from `flexDirection`), `backgroundColor`/`bg`, `borderRadius`, `border(width, colour)`, `borderWidth`, `borderColor`, `overflow("hidden")` (`clip`), and for text `color`, `fontSize`, `letterSpacing`, `lineHeight`, `textAlign`, `whiteSpace` (`wrapMode`); `cn` merges, a later prop wins. Any other property is not a member.
+- **Members**: `width`, `height` (pixels, `N%`, `auto` for Clay's FIT, `stretch` for GROW), `padding`/`p` and the sides, `gap` (`childGap`), `flexDirection` (`row`, `column`), `justifyContent` and `alignItems` (start, center, end: Clay's `childAlignment`, the axis from `flexDirection`), `backgroundColor`/`bg`, `borderRadius`, `border(width, colour)`, `borderWidth`, `borderColor`, `overflow("hidden")` (`clip`), `float()` (`floating`, below), and for text `color`, `fontSize`, `letterSpacing`, `lineHeight`, `textAlign`, `whiteSpace` (`wrapMode`); `cn` merges, a later prop wins. Any other property is not a member.
 - **Pixels.** A number or `"Npx"`; padding, gap and border widths are whole numbers (`uint16_t` in Clay). Another unit is a type error and a build error.
 - **Colours** are checked by the web's `color` grammar, or are colour tokens of cssints/clay's `createTokens`, and are written as 0-255 `r g b a`.
 - **`header(exports)`** prints a `Clay_ElementDeclaration` per export and, for one with text props, a `Clay_TextElementConfig` named `<name>_text`. A field it does not set is zero, which is Clay's default.
@@ -1437,7 +1437,41 @@ css.cn(font.Serif); // error: not one of the fonts
 CLAY(CLAY_ID("Units"), pressed ? T(units_active) : T(units)) { CLAY_TEXT(CLAY_STRING("switch to g"), label_text); }
 ```
 
-- **Not yet**: min and max sizes, floating elements, derived colour tokens (`color-mix()` of tokens: a colour Clay is given must parse as one), a theme under a condition (a theme is a name; `media()` has no meaning on a board).
+- **Floating elements**: `float({ ... })` fills Clay's `floating`, the foundation of menus, popovers and dialogs. Every option is optional, and what it leaves out is Clay's own default, so `header()` prints only what is set (`float()` alone is `{ .attachTo = CLAY_ATTACH_TO_PARENT }`). The name is `float` as in CSS: it is a valid binding, and no other Clay member shares it.
+
+  | Option                        | Clay field                                                                                                                                                 | Default                                                   |
+  | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+  | `attach: { element, parent }` | `attachPoints`: which point of the float sits on which point of its parent, each `"left top"`, `"center center"`, `"right bottom"`, ... (x, then y)        | `left top` on `left top`                                  |
+  | `parent: "Units"`             | `parentId` and `attachTo = ELEMENT_WITH_ID`: the string of the parent's `CLAY_ID("Units")` (ASCII; a `CLAY_IDI` or local id is not one)                    | the element the float is a child of (`attachTo = PARENT`) |
+  | `root: true`                  | `attachTo = ROOT`: absolute positioning, a dialog on the screen (not with `parent`)                                                                        | off                                                       |
+  | `offset: { x, y }`            | `offset`: pixels from where `attach` puts it; a negative number goes left or up                                                                            | 0, 0                                                      |
+  | `expand: { width, height }`   | `expand`: pixels the float's own box grows by, its children's not; not negative                                                                            | 0, 0                                                      |
+  | `zIndex`                      | `zIndex`: a whole number, `int16_t`; floats draw in ascending order, with their children                                                                   | 0                                                         |
+  | `capture: false`              | `pointerCaptureMode = PASSTHROUGH`: the pointer reaches what lies under the float (`true` is `CAPTURE`)                                                    | `true`                                                    |
+  | `clip: "parent"`              | `clipTo = ATTACHED_PARENT`: clipped to the box its parent is clipped to (`"none"` is `CLIP_TO_NONE`; with `root` it has nothing to clip to, a build error) | `"none"`                                                  |
+
+  `parentId` is printed as a number, the hash of the id (`Clay__HashString(id, 0)` computed at build time), because `CLAY_ID()` is a call and a `static const` initializer takes constants. A misspelt id is Clay's own `FLOATING_CONTAINER_PARENT_NOT_FOUND` error at run time. A bad value, an option that does not exist, a negative `expand`, a non-ASCII id are build errors (the types catch what a type can: a point such as `"top left"`, an unknown option). Two floats merge in a `cn()` as the other members do: the later one's options win and the rest stay; a state (`hover(float(...))`) is a declaration of its own.
+
+```ts
+import * as css from "cssints/clay" with { type: "cssints" };
+
+export const menu = css.cn(
+  css.width(160),
+  css.bg("#242834"),
+  css.float({ parent: "Units", attach: { parent: "left bottom" }, offset: { y: 4 }, zIndex: 10 }),
+);
+export const dialog = css.float({
+  root: true,
+  attach: { element: "center center", parent: "center center" },
+});
+css.float({ attach: { element: "top left" } }); // error: a point is x, then y
+```
+
+```c
+static const Clay_ElementDeclaration menu = { .layout = { ... }, .backgroundColor = { ... }, .floating = { .offset = { .x = 0, .y = 4 }, .parentId = 3516868942u, .zIndex = 10, .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_TOP, .parent = CLAY_ATTACH_POINT_LEFT_BOTTOM }, .attachTo = CLAY_ATTACH_TO_ELEMENT_WITH_ID } };
+```
+
+- **Not yet**: min and max sizes, derived colour tokens (`color-mix()` of tokens: a colour Clay is given must parse as one), a theme under a condition (a theme is a name; `media()` has no meaning on a board).
 
 ### Export groups: `cssints/widely-available`, `cssints/css-grid-2`, … (decided 2026-10-11, cssints-n7z3)
 
