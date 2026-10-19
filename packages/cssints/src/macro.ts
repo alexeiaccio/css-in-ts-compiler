@@ -948,6 +948,15 @@ const replacementOf = Effect.fnUntraced(function* (
         throw e; // a bug, not a user error: a defect
       },
     });
+  // a style of cssints/clay (clay.ts): an object literal shaped as Clay's structs
+  if (registry.clay && Predicate.hasProperty(value, "__clay"))
+    return yield* Effect.try({
+      try: () => registry.clay!(value),
+      catch: (e) => {
+        if (e instanceof MacroError) return e;
+        throw e; // a bug, not a user error: a defect
+      },
+    });
   if (isPluginValue(value)) return undefined;
   return yield* new MacroError({
     message: `cssints: site ${at.site} in ${at.file} did not produce a css.*, cv(), style(), condition or Typed OM value`,

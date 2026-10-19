@@ -74,6 +74,8 @@ const plainCode = [
   "packages/cssints/src/functions.ts",
   // The members of cssints/tui: sync builders that user code calls in expressions, like lib.ts's.
   "packages/cssints/src/tui.ts",
+  // The members of cssints/clay and its C printer: sync builders, like tui.ts.
+  "packages/cssints/src/clay.ts",
   // @cssints/tui: the runtime of a terminal app (states, themes) and its OpenTUI adapter, called from renderables' events.
   "packages/tui/src/**",
   // The front of cssints/plugin: signatures with generics and one-line bodies (the engine is scope-engine.ts).

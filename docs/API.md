@@ -1376,6 +1376,42 @@ process.stdin.on("data", (bytes) => dispatch(input.scan(follow.feed(bytes)).even
 - **Live in the browser** (cssints-ey13, 2026-10-11). [The TUI page](https://cssints.dev/tui) of this site runs apps/csssky-tui's styles on `@cssints/tui/bomb` in a real terminal: Ghostty's emulator compiled to WebAssembly (ghostty-web) draws csssky's feed and thread from its recorded fixtures, with keys and the mouse. The page is the terminal: it answers the system theme's queries (OSC 10, 11, 4, `CSI ? 996 n`) from the site's display settings and reports a change of them (mode 2031), so the theme is solved again as the palette or the mode changes. OpenTUI is not shown: its renderer is native Zig over `bun:ffi`. On a change notification, `followSystemTheme` of `@cssints/tui/bomb` asks the colours again (`COLOURS` of `@cssints/tui/system`), not the scheme report: its reply is the same sequence as a notification, and asking it looped with a terminal that answers it.
 - **Cost.** A colour member costs what the same web member costs in the types (the `color` grammar); `bench/tui.ts` is 184k instantiations (tsc) for 16 calls and a token set. No terminal HMR in this version. The system theme brings culori's rgb, oklab, oklch and okhsl modes to the app (45 kB unminified in csssky-tui's bundle).
 
+### Clay: `cssints/clay` (2026-10-19, cssints-iwey)
+
+A native UI laid out by [Clay](https://github.com/nicbarker/clay), with no browser and no JS where it runs (an ESP32's firmware), writes its styles with `cssints/clay`. The same Vite plugin compiles each site to an object literal shaped as Clay's own structs, and `header()` prints a module of them as C initializers:
+
+```ts
+import * as css from "cssints/clay" with { type: "cssints" };
+
+export const pill = css.cn(
+  css.width(200),
+  css.height(38),
+  css.justifyContent("center"),
+  css.alignItems("center"),
+  css.bg("rgb(36 40 52)"),
+  css.borderRadius(19),
+  css.border(1, "#969baa"),
+);
+export const label = css.cn(css.color("#ebebf0"), css.fontSize(14));
+css.width("10rem"); // error: Clay counts pixels
+css.boxShadow("0 0 1px red"); // error: no such member in Clay
+```
+
+```c
+static const Clay_ElementDeclaration pill = { .layout = { .sizing = { .width = { .size = { .minMax = { 200, 200 } }, .type = CLAY__SIZING_TYPE_FIXED }, ... }, .backgroundColor = { .r = 36, .g = 40, .b = 52, .a = 255 }, ... };
+static const Clay_TextElementConfig label_text = { .textColor = { .r = 235, .g = 235, .b = 240, .a = 255 }, .fontSize = 14 };
+```
+
+```c
+CLAY(CLAY_ID("Units"), pill) { CLAY_TEXT(CLAY_STRING("switch to g"), label_text); }
+```
+
+- **Members**: `width`, `height` (pixels, `N%`, `auto` for Clay's FIT, `stretch` for GROW), `padding`/`p` and the sides, `gap` (`childGap`), `flexDirection` (`row`, `column`), `justifyContent` and `alignItems` (start, center, end: Clay's `childAlignment`, the axis from `flexDirection`), `backgroundColor`/`bg`, `borderRadius`, `border(width, colour)`, `borderWidth`, `borderColor`, `overflow("hidden")` (`clip`), and for text `color`, `fontSize`, `letterSpacing`, `lineHeight`, `textAlign`, `whiteSpace` (`wrapMode`); `cn` merges, a later prop wins. Any other property is not a member.
+- **Pixels.** A number or `"Npx"`; padding, gap and border widths are whole numbers (`uint16_t` in Clay). Another unit is a type error and a build error.
+- **Colours** are checked by the web's `color` grammar and written as 0-255 `r g b a`.
+- **`header(exports)`** prints a `Clay_ElementDeclaration` per export and, for one with text props, a `Clay_TextElementConfig` named `<name>_text`. A field it does not set is zero, which is Clay's default.
+- **Not yet**: states (`:hover`, `:active`: Clay reads `Clay_Hovered()` in the frame, so the firmware overrides a field of the declaration), tokens and themes, min and max sizes, floating elements. Clay's `fontId` is the firmware's: `fontSize` is printed, and the firmware picks its font by it.
+
 ### Export groups: `cssints/widely-available`, `cssints/css-grid-2`, … (decided 2026-10-11, cssints-n7z3)
 
 A group is a subpath of `cssints` that exports the members of `cssints` which a set of CSS features has, and refuses a value that holds a feature outside the set. It is the same import (`with { type: "cssints" }`), the same members, the same classes:
