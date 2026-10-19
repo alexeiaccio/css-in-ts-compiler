@@ -17,7 +17,8 @@ A Clay target for cssints, for the clay-test firmware of ~/github/esp32 (its bea
 - test/clay.mjs (fixture, header, five build errors), test/types/clay.ts; docs/API.md section, wayfinder entry, changeset.
 - Checked by hand against esp32's clay.h: the header compiles (-std=c99), and the generated Units pill gives render commands byte-identical to ui.c's.
 
+- On the board (2026-10-19): a copy of clay-test with the Units pill from a generated styles.h, flashed; boot log `clay errors 0`, layout 3.3 ms, raster 17.8 ms; the Sensors page works by eye.
+
 ## Left
 
-- Flash and look on the board (off USB and network on 2026-10-19).
 - States, tokens/themes, min/max sizes, floating, fontSize -> fontId, a generator the esp32 build calls.
