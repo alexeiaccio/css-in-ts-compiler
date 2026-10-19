@@ -153,8 +153,8 @@ the dark rules:
   (`hyoshi`, not `hyōshi`): the paper `kami`, `hyoshi`, `chitsu`, `nijimi0`..`2`, `kasure0`..`2`; the ink `usuzumi0`,
   `usuzumi1`, `sumi`; the 14 inks (`sakura`, `nadeshiko`, `botan`, `fuji`, `kikyo`, `beni`, `akane`, `kaki`,
   `yamabuki`, `wakaba`, `tokiwa`, `sora`, `ruri`, `ai`). `roles` are the style guide's uses (`text`, `keyword`,
-  `link`, `error`, `success`, `added`, ...: 40) and `ansi` the 16 terminal colours by name (`black`..`white`,
-  `brightBlack`..`brightWhite`). A role is the value of its colour, not an alias, so it is right in a theme of another
+  `link`, `error`, `success`, `added`, ...: 40) and `ansi` the 16 terminal colours by number (`ansi._0`..`ansi._15`,
+  `--madoromi-ansi-0`..`15`; `"0"` or `_0` in an override). A role is the value of its colour, not an alias, so it is right in a theme of another
   flavour. Which colour is for what: upstream's [style guide](https://github.com/the-moonwitch/madoromi/blob/f8bcc5aa1ec3f731fcba9471be7caa5df1ab5695/palettes/style-guide.md).
   Every flavour has the same paths, so one flavour is the tokens and any other is a theme of them, as it is:
 
