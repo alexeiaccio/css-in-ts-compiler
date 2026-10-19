@@ -122,9 +122,11 @@ type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
  * definition's value as text. A key that starts with a digit is read as `_<key>` (`t.space._2xs`).
  */
 export type Tokens<G, Inherited = undefined, Root = G> = {
-  readonly [
-    K in keyof G as K extends `$${string}` ? never : K extends `${Digit}${string}` ? `_${K}` : K
-  ]: G[K] extends {
+  readonly [K in keyof G as K extends `$${string}`
+    ? never
+    : K extends `${Digit}${string}`
+      ? `_${K}`
+      : K]: G[K] extends {
     readonly $value: infer V;
   }
     ? Token<KindOf<V, TypeOf<G[K], Inherited>, Root>, true, Text<V>>
@@ -222,9 +224,11 @@ type ObjectValue<K extends TokenType> = K extends Kinds["color"]
  * file of another mode, whose `$type` and `$extensions` are skipped). A token `_500` is also `500`, as in the data.
  */
 export type Overrides<X> = {
-  readonly [
-    K in keyof X as K | (K extends `_${infer D extends `${Digit}${string}`}` ? D : never)
-  ]?: X[K] extends { readonly "~token": infer Kd extends TokenType }
+  readonly [K in keyof X as
+    | K
+    | (K extends `_${infer D extends `${Digit}${string}`}` ? D : never)]?: X[K] extends {
+    readonly "~token": infer Kd extends TokenType;
+  }
     ? string | number | ObjectValue<Kd> | { readonly $value: unknown }
     : Overrides<X[K]>;
 };

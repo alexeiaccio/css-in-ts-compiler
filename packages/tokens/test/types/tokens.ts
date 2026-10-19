@@ -78,7 +78,9 @@ createGlobalTheme(rx, ".x", darkAlpha);
 // madoromi: one flavour as tokens, another as a theme as it is (DTCG leaves)
 const mr = createTokens({ madoromi: madoromi.akiHiru });
 createGlobalTheme(mr.madoromi, dm, madoromi.akiYoru);
-createGlobalTheme(mr, "[data-madoromi]", { madoromi: { kami: "#fff", ansi: { "0": "#000", _1: "#100" } } });
+createGlobalTheme(mr, "[data-madoromi]", {
+  madoromi: { kami: "#fff", ansi: { "0": "#000", _1: "#100" } },
+});
 export const d = [
   color(mr.madoromi.sumi),
   color(mr.madoromi.roles.keyword),
