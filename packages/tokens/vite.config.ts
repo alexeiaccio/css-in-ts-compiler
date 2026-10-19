@@ -10,6 +10,7 @@ export default defineConfig({
         radix: "src/radix.ts",
         flexoki: "src/flexoki.ts",
         "reasonable-colors": "src/reasonable-colors.ts",
+        madoromi: "src/madoromi.ts",
       },
       platform: "neutral",
       format: "esm",
