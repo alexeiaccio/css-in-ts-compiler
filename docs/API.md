@@ -1408,9 +1408,36 @@ CLAY(CLAY_ID("Units"), pill) { CLAY_TEXT(CLAY_STRING("switch to g"), label_text)
 
 - **Members**: `width`, `height` (pixels, `N%`, `auto` for Clay's FIT, `stretch` for GROW), `padding`/`p` and the sides, `gap` (`childGap`), `flexDirection` (`row`, `column`), `justifyContent` and `alignItems` (start, center, end: Clay's `childAlignment`, the axis from `flexDirection`), `backgroundColor`/`bg`, `borderRadius`, `border(width, colour)`, `borderWidth`, `borderColor`, `overflow("hidden")` (`clip`), and for text `color`, `fontSize`, `letterSpacing`, `lineHeight`, `textAlign`, `whiteSpace` (`wrapMode`); `cn` merges, a later prop wins. Any other property is not a member.
 - **Pixels.** A number or `"Npx"`; padding, gap and border widths are whole numbers (`uint16_t` in Clay). Another unit is a type error and a build error.
-- **Colours** are checked by the web's `color` grammar and written as 0-255 `r g b a`.
+- **Colours** are checked by the web's `color` grammar, or are colour tokens of cssints/clay's `createTokens`, and are written as 0-255 `r g b a`.
 - **`header(exports)`** prints a `Clay_ElementDeclaration` per export and, for one with text props, a `Clay_TextElementConfig` named `<name>_text`. A field it does not set is zero, which is Clay's default.
-- **Not yet**: states (`:hover`, `:active`: Clay reads `Clay_Hovered()` in the frame, so the firmware overrides a field of the declaration), tokens and themes, min and max sizes, floating elements. Clay's `fontId` is the firmware's: `fontSize` is printed, and the firmware picks its font by it.
+- **States**: `hover`, `focus`, `active` wrap styles. Clay has no states, so the literal has an overlay per state (`":active": { backgroundColor }`, the fields the state sets, at their values over the base), and `header()` prints the whole declaration again, `<name>_active` (`<name>_hover_text` for text): the page asks Clay and picks one, nothing is merged in C. States do not nest.
+- **Tokens and themes**: `createTokens` and `createGlobalTheme(tokens, name, overrides)` of cssints/clay, on tables of their own (a web or terminal token is not a Clay one, and a theme of one is a build error). Resolved at build time: a site has its colours at the tokens' values and, under `themes`, what each theme changes. `header()` prints every style of a module with a theme again, the theme's name last (`units_light`, `units_active_light`, `title_text_light`), so a page switches at run time by a suffix. A style sees the themes evaluated before it: declare them first, or in a module it imports.
+- **Fonts**: `fonts("Roboto", "Mono")` is the order of the app's font array; `.Mono` is a style that sets Clay's `fontId` to 1, and `header()` prints the order as an enum, `font_Roboto = 0, font_Mono = 1` (the export's name, then the font's).
+
+```ts
+import * as css from "cssints/clay" with { type: "cssints" };
+
+export const t = css.createTokens({
+  color: { $type: "color", surface: { $value: "rgb(36 40 52)" }, pressed: { $value: "#ffc878" } },
+});
+css.createGlobalTheme(t, "light", { color: { surface: "white" } });
+export const font = css.fonts("Roboto", "Mono");
+
+export const units = css.cn(
+  css.width(200),
+  css.bg(t.color.surface),
+  css.active(css.bg(t.color.pressed)),
+);
+export const label = css.cn(font.Mono, css.fontSize(14));
+css.cn(font.Serif); // error: not one of the fonts
+```
+
+```c
+#define T(name) (light ? name##_light : name)
+CLAY(CLAY_ID("Units"), pressed ? T(units_active) : T(units)) { CLAY_TEXT(CLAY_STRING("switch to g"), label_text); }
+```
+
+- **Not yet**: min and max sizes, floating elements, derived colour tokens (`color-mix()` of tokens: a colour Clay is given must parse as one), a theme under a condition (a theme is a name; `media()` has no meaning on a board).
 
 ### Export groups: `cssints/widely-available`, `cssints/css-grid-2`, … (decided 2026-10-11, cssints-n7z3)
 

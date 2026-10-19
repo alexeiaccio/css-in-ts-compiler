@@ -2,6 +2,9 @@
 // lengths, the keywords Clay has) and, for a colour, the web's `color` grammar. A property Clay cannot do has no member.
 // In user code every call is already the object literal the plugin put there.
 import type { Check, Part } from "./parts.ts";
+import type { CheckOverrides, Overrides } from "./theme-types.ts";
+
+export { createTokens } from "./theme-types.ts";
 
 /** A number of pixels, or `"Npx"`. */
 export type Px = number | `${number}px`;
@@ -27,14 +30,14 @@ interface Sides {
   top: number;
   bottom: number;
 }
-/** What a Clay style compiles to: the fields of `Clay_ElementDeclaration`, and of `Clay_TextElementConfig` under `text`. */
-export interface ClayShape {
+/** The fields of `Clay_ElementDeclaration`, and of `Clay_TextElementConfig` under `text`. */
+export interface ClayFields {
   layout?: {
     sizing?: { width?: Axis; height?: Axis };
     padding?: Sides;
     childGap?: number;
     childAlignment?: { x?: "LEFT" | "CENTER" | "RIGHT"; y?: "TOP" | "CENTER" | "BOTTOM" };
-    layoutDirection?: "TOP_TO_BOTTOM";
+    layoutDirection?: "LEFT_TO_RIGHT" | "TOP_TO_BOTTOM";
   };
   backgroundColor?: Rgba;
   cornerRadius?: { topLeft: number; topRight: number; bottomRight: number; bottomLeft: number };
@@ -42,12 +45,26 @@ export interface ClayShape {
   clip?: { horizontal: number; vertical: number };
   text?: {
     textColor?: Rgba;
+    fontId?: number;
     fontSize?: number;
     letterSpacing?: number;
     lineHeight?: number;
     textAlignment?: "LEFT" | "CENTER" | "RIGHT";
     wrapMode?: "WORDS" | "NEWLINES" | "NONE";
   };
+}
+type Partly<T> = { [K in keyof T]?: T[K] extends Rgba | Axis ? T[K] : Partly<T[K]> };
+/** What a state sets over the base: the fields it touches, at their values there. */
+export type ClayOverlay = Partly<ClayFields>;
+/** Clay's fields with the overlay of each state. */
+export interface ClayLayer extends ClayFields {
+  ":hover"?: ClayOverlay;
+  ":focus"?: ClayOverlay;
+  ":active"?: ClayOverlay;
+}
+/** What a Clay style compiles to: its fields, its state overlays, and per theme (by name) the colours it changes. */
+export interface ClayShape extends ClayLayer {
+  themes?: Record<string, Partly<ClayLayer>>;
 }
 /** What every member of cssints/clay returns. */
 export type ClayStyle = ClayShape & { readonly "~clay": true };
@@ -101,5 +118,27 @@ export declare const whiteSpace: One<"normal" | "pre-line" | "nowrap">;
 
 /** Merges styles in argument order: a later prop wins. */
 export declare const cn: (...styles: ClayStyle[]) => ClayStyle;
+/** Under the pointer: header() prints the style with it as `<name>_hover`. States do not nest. */
+export declare const hover: (...styles: ClayStyle[]) => ClayStyle;
+/** Focused: `<name>_focus`. */
+export declare const focus: (...styles: ClayStyle[]) => ClayStyle;
+/** Pressed: `<name>_active`. */
+export declare const active: (...styles: ClayStyle[]) => ClayStyle;
+/**
+ * The app's fonts in the order of its font array: a style per name that sets Clay's `fontId`, and the list, which
+ * header() prints as an enum `<export>_<font>`. Each name is a C identifier.
+ */
+export declare const fonts: <const N extends readonly [string, ...string[]]>(
+  ...names: N
+) => { readonly [K in N[number]]: ClayStyle } & { readonly fonts: N };
+/**
+ * A theme of cssints/clay's tokens, by a name that is a C identifier: header() prints every style again, the name
+ * appended (`<style>_<name>`, `<style>_hover_<name>`, `<style>_text_<name>`). It applies to the styles evaluated after it.
+ */
+export declare const createGlobalTheme: <const X extends object, const O extends Overrides<X>>(
+  tokens: X,
+  name: string,
+  overrides: O & CheckOverrides<X, O>,
+) => void;
 /** The styles of a built module as a C header: `CLAY(id, name)` and `CLAY_TEXT(s, name_text)`. */
 export declare const header: (styles: Record<string, unknown>) => string;

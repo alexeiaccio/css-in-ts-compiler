@@ -86,6 +86,59 @@ assert.match(
   /static const Clay_TextElementConfig label_text = \{ \.textColor = \{ \.r = 231, \.g = 127, \.b = 62, \.a = 128 \}, \.fontSize = 14, \.textAlignment = CLAY_TEXT_ALIGN_CENTER, \.wrapMode = CLAY_TEXT_WRAP_NONE \};/,
 );
 
+// states, tokens, a theme, fonts
+const themed = { ...(await exportsOf("clay-themed.ts")) };
+const RGB = (r, g, b) => ({ r, g, b, a: 255 });
+assert.deepEqual(themed.font, { fonts: ["Roboto", "Mono"] });
+// a state's overlay: the fields it sets, at their values over the base (all four sides of a padding; a border colour
+// with the base's width); justify-content is y in a column
+assert.deepEqual(themed.button[":hover"], {
+  layout: { padding: { left: 4, right: 4, top: 8, bottom: 4 } },
+  border: { color: RGB(255, 0, 0), width: { left: 0, right: 0, top: 0, bottom: 0 } },
+});
+assert.deepEqual(themed.button[":active"], {
+  layout: { childAlignment: { y: "CENTER" } },
+  backgroundColor: RGB(255, 255, 255),
+});
+assert.deepEqual(themed.button.backgroundColor, RGB(36, 40, 52)); // a token at its own value
+// a theme: the colours it changes, in the base and in each state
+assert.deepEqual(themed.button.themes, {
+  light: { backgroundColor: RGB(240, 240, 245), ":active": { backgroundColor: RGB(0, 0, 0) } },
+});
+assert.deepEqual(themed.label, {
+  text: { textColor: RGB(255, 255, 255), fontId: 1, fontSize: 14 },
+  themes: { light: { text: { textColor: RGB(0, 0, 0) } } },
+});
+assert.deepEqual(themed.plain.clip, { horizontal: 0, vertical: 0 });
+
+const th = header(themed);
+assert.ok(!/\bt\b =/.test(th), th); // the tokens are no declaration
+assert.match(th, /enum \{ font_Roboto = 0, font_Mono = 1 \};/);
+const decl = (name) => new RegExp(`Clay_ElementDeclaration ${name} = (.*);`).exec(th)?.[1];
+// a state is the whole declaration: the base's width and padding sides are in it
+assert.match(
+  decl("button_hover"),
+  /\.minMax = \{ 200, 200 \}.*\.top = 8.*\.border = \{ \.color = \{ \.r = 255/,
+);
+assert.match(
+  decl("button_active"),
+  /\.childAlignment = \{ \.y = CLAY_ALIGN_Y_CENTER \}.*\.r = 255, \.g = 255/,
+);
+// a theme: every style again, its states too
+assert.match(decl("button_light"), /\.backgroundColor = \{ \.r = 240, \.g = 240, \.b = 245/);
+assert.match(
+  decl("button_hover_light"),
+  /\.r = 240, \.g = 240.*\.top = 8|\.top = 8.*\.r = 240, \.g = 240/,
+);
+assert.match(decl("button_active_light"), /\.backgroundColor = \{ \.r = 0, \.g = 0, \.b = 0/);
+assert.match(
+  th,
+  /Clay_TextElementConfig label_text_light = \{ \.textColor = \{ \.r = 0, \.g = 0, \.b = 0, \.a = 255 \}, \.fontId = 1/,
+);
+assert.ok(decl("plain_light"), th); // a style with no token has the theme's name too
+// a module with no theme has no themed names
+assert.ok(!h.includes("_light"), h);
+
 const fails = async (source, message) =>
   assert.rejects(
     code(`import * as css from "cssints/clay" with { type: "cssints" };\n${source}`),
@@ -102,6 +155,38 @@ await fails(
   /expected flex-start \| start/,
 );
 await fails(`export const a = css.cn("x");`, /cn\(\) takes styles of cssints\/clay/);
+await fails(
+  `export const a = css.hover(css.active(css.bg("red")));`,
+  /:hover wraps :active: Clay states do not nest/,
+);
+const WEB = `import * as web from "cssints" with { type: "cssints" };\nexport const w = web.createTokens({ paper: { $type: "color", $value: "red" } });\n`;
+const CLAY = `export const t = css.createTokens({ ink: { $type: "color", $value: "red" } });\n`;
+await fails(
+  `${WEB}css.createGlobalTheme(w, "light", { paper: "blue" });`,
+  /these are web tokens of "cssints": a theme of "cssints\/clay" takes the tokens of its own createTokens/,
+);
+await fails(
+  `${WEB}${CLAY}web.createGlobalTheme(t, ".light", { ink: "blue" });`,
+  /these are Clay tokens of "cssints\/clay": theme them with the createGlobalTheme of "cssints\/clay"/,
+);
+await fails(
+  `${WEB}export const a = css.bg(w.paper);`,
+  /--paper is no token of the createTokens of cssints\/clay/,
+);
+await fails(
+  `${CLAY}css.createGlobalTheme(t, ".light", { ink: "blue" });`,
+  /a name that is a C identifier.*got the name "\.light"/,
+);
+await fails(
+  `export const t = css.createTokens({ gap: { $type: "dimension", $value: "4px" } });\nexport const a = css.bg(t.gap);`,
+  /bg: gap is a length token, not a colour/,
+);
+await fails(
+  `export const f = css.fonts("Roboto", "Roboto");`,
+  /fonts\(\): "Roboto" is there twice/,
+);
+await fails(`export const f = css.fonts("Roboto Mono");`, /each a C identifier, got "Roboto Mono"/);
+await fails(`export const f = css.fonts();`, /got nothing/);
 
 await server.close();
 console.log("clay: ok");

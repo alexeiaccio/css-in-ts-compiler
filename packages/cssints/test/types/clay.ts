@@ -21,3 +21,24 @@ css.justifyContent("space-between");
 css.boxShadow("0 0 1px red");
 // @ts-expect-error cn() takes styles only
 css.cn("x");
+
+const t = css.createTokens({ color: { $type: "color", bg: { $value: "#000" } } });
+css.createGlobalTheme(t, "light", { color: { bg: "#fff" } });
+// @ts-expect-error no token at this path
+css.createGlobalTheme(t, "light", { color: { fg: "#fff" } });
+// @ts-expect-error not a colour
+css.createGlobalTheme(t, "light", { color: { bg: "blu" } });
+const font = css.fonts("Roboto", "Mono");
+export const states = css.cn(
+  font.Mono,
+  css.bg(t.color.bg),
+  css.hover(css.bg("red")),
+  css.active(css.p(2)),
+  css.focus(css.border(1, "blue")),
+);
+// @ts-expect-error a font the list does not declare
+css.cn(font.Serif);
+// @ts-expect-error a state takes styles
+css.hover("red");
+// @ts-expect-error fonts() takes at least one name
+css.fonts();

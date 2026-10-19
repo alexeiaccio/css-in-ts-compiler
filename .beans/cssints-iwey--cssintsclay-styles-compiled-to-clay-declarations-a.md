@@ -5,7 +5,7 @@ status: completed
 type: feature
 priority: normal
 created_at: 2026-10-19T12:46:41Z
-updated_at: 2026-10-19T12:47:28Z
+updated_at: 2026-10-19T18:00:00Z
 ---
 
 
@@ -19,6 +19,8 @@ A Clay target for cssints, for the clay-test firmware of ~/github/esp32 (its bea
 
 - On the board (2026-10-19): a copy of clay-test with the Units pill from a generated styles.h, flashed; boot log `clay errors 0`, layout 3.3 ms, raster 17.8 ms; the Sensors page works by eye.
 
+- States (`hover`/`focus`/`active`: an overlay in the literal, `<name>_active` in C), tokens and themes (`createTokens`, `createGlobalTheme(tokens, name, overrides)` on `registry.clayTokens`; `<name>_<theme>` in C), `fonts()` (fontId, an enum in C). test/clay.mjs and test/types/clay.ts extended; used by cssints-native's Sensors page (THEME=light frame).
+
 ## Left
 
-- States, tokens/themes, min/max sizes, floating, fontSize -> fontId, a generator the esp32 build calls.
+- Min/max sizes, floating, derived colour tokens, a generator the esp32 build calls.

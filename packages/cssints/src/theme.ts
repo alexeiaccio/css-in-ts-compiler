@@ -157,6 +157,8 @@ export interface TokenSet {
   aliases: { name: string; targets: string[]; css: string }[];
   /** a set of cssints/tui (tui.ts): its tokens are no sheet's */
   terminal?: true;
+  /** a set of cssints/clay (clay.ts): no sheet's either */
+  clay?: true;
 }
 // every group of every token set, by object: a subtree is a token set too
 export const sets = new WeakMap<object, TokenSet>();
@@ -460,7 +462,7 @@ export const tokensOf = (v: unknown): string | undefined => {
   const set = Predicate.isObject(v) ? sets.get(v) : undefined;
   if (!set) return undefined;
   const text = Formatter.formatJson(v);
-  return set.terminal ? text.replaceAll("--", "-\\u002d") : text;
+  return set.terminal || set.clay ? text.replaceAll("--", "-\\u002d") : text;
 };
 
 // ---------- createGlobalTheme
@@ -515,9 +517,17 @@ const theme = (at: At | undefined, args: unknown[]) =>
         return yield* fail(
           "cssints: createGlobalTheme(tokens, condition | selector, overrides, { layer, scope }?) takes tokens of createTokens, a media() or container() condition or a selector, the values to set, and optionally a declared top-level layer and a selector to scope them to",
         );
-      // cssints/tui runs this on its own tables (tui.ts): a set of the other createTokens has no token there (cssints-v872)
+      // cssints/tui and cssints/clay run this on tables of their own (tui.ts, clay.ts): a set of another createTokens has
+      // no token there (cssints-v872)
       const terminal = registry.defs === registry.terminal?.defs;
-      if (!!set.terminal !== terminal)
+      const clay = registry.defs === registry.clayTokens?.defs;
+      if (!!set.clay !== clay)
+        return yield* fail(
+          set.clay
+            ? `cssints: createGlobalTheme(): these are Clay tokens of "cssints/clay": theme them with the createGlobalTheme of "cssints/clay"`
+            : `cssints: createGlobalTheme(): these are ${set.terminal ? 'terminal tokens of "cssints/tui"' : 'web tokens of "cssints"'}: a theme of "cssints/clay" takes the tokens of its own createTokens`,
+        );
+      if (!clay && !!set.terminal !== terminal)
         return yield* fail(
           set.terminal
             ? `cssints: createGlobalTheme(): these are terminal tokens of "cssints/tui": theme them with the createGlobalTheme of "cssints/tui"`
@@ -673,7 +683,7 @@ const theme = (at: At | undefined, args: unknown[]) =>
       }
 
       const stale = new Set(changed.keys());
-      for (let grew = true; grew; )
+      for (let grew = true; grew;)
         grew = set.aliases.some(
           (a) => a.targets.some((t) => stale.has(t)) && !stale.has(a.name) && !!stale.add(a.name),
         );

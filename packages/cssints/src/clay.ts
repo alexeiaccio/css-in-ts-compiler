@@ -3,19 +3,59 @@
 // (macro.ts `replacementOf`, through `registry.clay`) replaces a site that holds one by an object literal shaped as Clay's
 // own structs: `Clay_ElementDeclaration` and, under `text`, `Clay_TextElementConfig`. `header()` prints those literals
 // as C initializers for a firmware that runs no JS. Plain code like tui.ts: user code calls the builders in expressions.
+// Clay has no states and no themes: a state is an overlay of the literal (`":hover"`), a theme the colours it changes
+// (`themes`), and header() prints each as a whole declaration of its own, so C picks one and merges nothing.
 import { clampRgb, formatHex } from "culori/fn";
-import { Formatter } from "effect";
+import { Formatter, Predicate } from "effect";
 
 import { parseColor } from "./color.ts";
+import { together, valueOf } from "./contrast.ts";
 import { fail } from "./node.ts";
-import { registry } from "./registry.ts";
+import { registry, type RegistryState } from "./registry.ts";
+import { createGlobalTheme as webTheme, createTokens as webTokens, sets } from "./theme.ts";
+
+// The tokens and themes of Clay: the web's createTokens and createGlobalTheme on tables of their own, as cssints/tui's.
+const tables: NonNullable<RegistryState["clayTokens"]> = (registry.clayTokens ??= {
+  properties: new Map(),
+  defs: new Map(),
+  themed: new Map(),
+});
+const inClay =
+  <R>(f: (...args: unknown[]) => R) =>
+  (...args: unknown[]): R => {
+    const web = { properties: registry.properties, defs: registry.defs, themed: registry.themed };
+    Object.assign(registry, tables);
+    try {
+      return f(...args);
+    } finally {
+      Object.assign(registry, web);
+    }
+  };
+export const createTokens = inClay((...args) => {
+  const root = webTokens(...args);
+  sets.get(root as object)!.clay = true;
+  return root;
+});
+const IDENT = /^[A-Za-z]\w*$/;
+// A theme is named, not selected: the name ends the C names of its declarations (`units_light`).
+export const createGlobalTheme = inClay((...args) => {
+  if (args.length !== 3 || typeof args[1] !== "string" || !IDENT.test(args[1]))
+    throw fail(
+      `cssints: createGlobalTheme(tokens, name, overrides) of cssints/clay takes its tokens, a name that is a C identifier (header() names a themed declaration <style>_<name>) and the values to set, got the name ${say(args[1])}`,
+    );
+  return webTheme(...args);
+});
 
 type Value = string | number;
+type State = "" | ":hover" | ":focus" | ":active";
+const STATES = [":hover", ":focus", ":active"] as const;
+type Entry = [key: string, value: Value, state: State];
 interface ClayNode {
-  __clay: [key: string, value: Value][];
+  __clay: Entry[];
 }
 const isClay = (v: unknown): v is ClayNode =>
-  !!v && typeof v === "object" && Array.isArray((v as ClayNode).__clay);
+  !!v && typeof v === "object" && Array.isArray((v as ClayNode).__clay) && !("__fonts" in v);
+const node = (entries: Entry[]): ClayNode => ({ __clay: entries });
 const say = (v: unknown) => (typeof v === "string" ? `"${v}"` : Formatter.formatJson(v));
 
 // ---------- values
@@ -49,17 +89,23 @@ const keyword =
     if (typeof v === "string" && words.includes(v)) return v;
     throw fail(`cssints: ${prop}: unexpected ${say(v)}, expected ${words.join(" | ")}`);
   };
-// A colour as `r g b a`, 0-255 each (Clay_Color is four floats, 0-255 by convention).
-const colour = (prop: string, v: unknown): Value => {
-  const c = typeof v === "string" && !v.includes("var(") ? parseColor(v) : undefined;
-  if (!c)
-    throw fail(
-      `cssints: ${prop}: ${say(v)} is not a colour Clay can draw (a name, hex, rgb(), hsl(), oklch(); not a token, currentColor or light-dark())`,
-    );
-  // through hex: clampRgb keeps the colour's own mode, formatHex converts it to sRGB
-  const hex = formatHex(clampRgb(c));
-  const rgb = [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16));
-  return [...rgb, Math.round((c.alpha ?? 1) * 255)].join(" ");
+// A colour is kept as its text, tokens and all, and resolved at the site per theme (`rgba`); here it is only checked.
+const VAR = /var\((--[\w-]+)\)/g;
+const NOT_A_COLOUR =
+  "is not a colour Clay can draw (a name, hex, rgb(), hsl(), oklch() or a colour token of the createTokens of cssints/clay; not currentColor or light-dark())";
+// a token is a CSSTokenValue at build time, `var(--name)` as text
+const colour = (prop: string, u: unknown): Value => {
+  // oxlint-disable-next-line typescript/no-base-to-string -- a token's toString is its var()
+  const v = String(u);
+  for (const [, name] of v.matchAll(VAR)) {
+    const def = tables.defs.get(name!);
+    if (!def)
+      throw fail(`cssints: ${prop}: ${name} is no token of the createTokens of cssints/clay`);
+    if (def.kind !== "color" && v === `var(${name})`)
+      throw fail(`cssints: ${prop}: ${def.path} is a ${def.kind} token, not a colour`);
+  }
+  if (!v.includes("var(")) rgba(prop, v);
+  return v;
 };
 
 // ---------- members
@@ -71,6 +117,7 @@ const one =
     if (parts.length !== 1) throw fail(`cssints: ${prop} takes one value, got ${parts.length}`);
     return [[key, read(prop, parts[0])]];
   };
+const COLOURS = new Set(["backgroundColor", "color", "borderColor"]);
 // 1 to 4 values in CSS order, spread over `keys`
 const sides =
   (keys: readonly string[], read: (prop: string, v: unknown) => Value): Build =>
@@ -139,21 +186,61 @@ const member =
   (name: string, build: Build) =>
   (...parts: unknown[]): ClayNode => {
     if (parts.some(isClay)) throw fail(`cssints: ${name}: a style is not a value`);
-    return { __clay: build(name, parts) };
+    return node(build(name, parts).map(([k, v]): Entry => [k, v, ""]));
   };
+
+const stylesOf = (what: string, styles: unknown[]): Entry[] => {
+  const bad = styles.find((s) => !isClay(s));
+  if (bad !== undefined || !styles.length)
+    throw fail(
+      `cssints: ${what} takes styles of cssints/clay, got ${bad === undefined ? "nothing" : say(bad)}`,
+    );
+  return (styles as ClayNode[]).flatMap((s) => s.__clay);
+};
 
 /**
  * Merges styles in argument order: a later prop wins.
  *
  * @returns {ClayNode} the merged style
  */
-export const cn = (...styles: unknown[]): ClayNode => {
-  const bad = styles.find((s) => !isClay(s));
-  if (bad !== undefined || !styles.length)
-    throw fail(
-      `cssints: cn() takes styles of cssints/clay, got ${bad === undefined ? "nothing" : say(bad)}`,
+export const cn = (...styles: unknown[]): ClayNode => node(stylesOf("cn()", styles));
+
+// Clay has no states: the page asks Clay_PointerOver() and the pointer, and picks `<name>_hover` or `<name>_active`.
+const state =
+  (s: Exclude<State, "">) =>
+  (...styles: unknown[]): ClayNode =>
+    node(
+      stylesOf(s, styles).map(([k, v, inner]): Entry => {
+        if (inner)
+          throw fail(`cssints: ${s} wraps ${inner}: Clay states do not nest (one state per style)`);
+        return [k, v, s];
+      }),
     );
-  return { __clay: (styles as ClayNode[]).flatMap((s) => s.__clay) };
+export const hover = state(":hover");
+export const focus = state(":focus");
+export const active = state(":active");
+
+/**
+ * The fonts of the app, in the order of its font array: `fonts("Roboto", "Mono").Mono` is a style that sets Clay's
+ * `fontId` to 1, and header() prints the order as an enum, `<name>_Mono`.
+ *
+ * @returns {Record<string, unknown>} a style per font, by name, and the list
+ */
+export const fonts = (...names: unknown[]): Record<string, unknown> => {
+  const bad = names.find((n) => typeof n !== "string" || !IDENT.test(n));
+  if (bad !== undefined || !names.length)
+    throw fail(
+      `cssints: fonts() takes the names of the app's fonts in order, each a C identifier, got ${bad === undefined ? "nothing" : say(bad)}`,
+    );
+  const twice = names.find((n, i) => names.indexOf(n) !== i);
+  if (twice !== undefined) throw fail(`cssints: fonts(): ${say(twice)} is there twice`);
+  return {
+    __clay: [],
+    __fonts: names,
+    ...Object.fromEntries(
+      names.map((n, i): [string, ClayNode] => [String(n), node([["fontId", i, ""]])]),
+    ),
+  };
 };
 
 const members = Object.fromEntries(Object.entries(MEMBERS).map(([k, b]) => [k, member(k, b)]));
@@ -194,9 +281,18 @@ export const {
 // ---------- the site: Clay's structs, field for field
 
 type Shape = { [k: string]: number | string | Shape };
-const rgba = (v: Value): Shape => {
-  const [r, g, b, a] = String(v).split(" ").map(Number);
-  return { r: r!, g: g!, b: b!, a: a! };
+// Clay_Color: four floats, 0-255 by convention; each var() of the text resolved with the values of a theme
+const rgba = (prop: string, text: string, values?: Map<string, string>): Shape => {
+  const flat = text.replace(VAR, (m, n: string) => valueOf(tables, n, values) ?? m);
+  const c = flat.includes("var(") ? undefined : parseColor(flat);
+  if (!c)
+    throw fail(
+      `cssints: ${prop}: ${say(text)}${flat === text ? "" : ` (${say(flat)} here)`} ${NOT_A_COLOUR}`,
+    );
+  // through hex: clampRgb keeps the colour's own mode, formatHex converts it to sRGB
+  const hex = formatHex(clampRgb(c));
+  const [r, g, b] = [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16));
+  return { r: r!, g: g!, b: b!, a: Math.round((c.alpha ?? 1) * 255) };
 };
 const axis = (v: Value): Shape =>
   v === "auto"
@@ -212,8 +308,9 @@ const Y = { start: "TOP", center: "CENTER", end: "BOTTOM" } as const;
 const edge = (v: Value) =>
   v === "center" ? "center" : String(v).endsWith("end") ? "end" : "start";
 
-const shapeOf = (n: ClayNode): Shape => {
-  const p = new Map(n.__clay);
+const shapeOf = (entries: Entry[], values?: Map<string, string>): Shape => {
+  const p = new Map(entries.map(([k, v]): [string, Value] => [k, v]));
+  const colourOf = (k: string) => rgba(k, String(p.get(k)), values);
   const out: Shape = {};
   const layout: Shape = {};
   const get = (k: string) => p.get(k);
@@ -231,7 +328,7 @@ const shapeOf = (n: ClayNode): Shape => {
     };
   if (p.has("gap")) layout.childGap = get("gap")!;
   const column = get("flexDirection") === "column";
-  if (column) layout.layoutDirection = "TOP_TO_BOTTOM";
+  if (p.has("flexDirection")) layout.layoutDirection = column ? "TOP_TO_BOTTOM" : "LEFT_TO_RIGHT";
   const main = get("justifyContent"),
     cross = get("alignItems");
   if (main !== undefined || cross !== undefined) {
@@ -242,12 +339,12 @@ const shapeOf = (n: ClayNode): Shape => {
     };
   }
   if (Object.keys(layout).length) out.layout = layout;
-  if (p.has("backgroundColor")) out.backgroundColor = rgba(get("backgroundColor")!);
+  if (p.has("backgroundColor")) out.backgroundColor = colourOf("backgroundColor");
   if (RADIUS.some((k) => p.has(k)))
     out.cornerRadius = Object.fromEntries(RADIUS.map((k) => [k, get(k) ?? 0]));
   if (BORDER.some((k) => p.has(k)) || p.has("borderColor"))
     out.border = {
-      ...(p.has("borderColor") && { color: rgba(get("borderColor")!) }),
+      ...(p.has("borderColor") && { color: colourOf("borderColor") }),
       width: {
         left: get("borderLeft") ?? 0,
         right: get("borderRight") ?? 0,
@@ -255,10 +352,11 @@ const shapeOf = (n: ClayNode): Shape => {
         bottom: get("borderBottom") ?? 0,
       },
     };
-  if (get("overflow") === "hidden") out.clip = { horizontal: 1, vertical: 1 };
+  if (p.has("overflow")) out.clip = get("overflow") === "hidden" ? HIDDEN : VISIBLE;
   const text: Shape = {};
-  if (p.has("color")) text.textColor = rgba(get("color")!);
-  for (const k of ["fontSize", "letterSpacing", "lineHeight"]) if (p.has(k)) text[k] = get(k)!;
+  if (p.has("color")) text.textColor = colourOf("color");
+  for (const k of ["fontId", "fontSize", "letterSpacing", "lineHeight"])
+    if (p.has(k)) text[k] = get(k)!;
   if (p.has("textAlign")) text.textAlignment = String(get("textAlign")).toUpperCase();
   const wrap = get("whiteSpace");
   if (wrap !== undefined)
@@ -267,7 +365,76 @@ const shapeOf = (n: ClayNode): Shape => {
   return out;
 };
 
-registry.clay = (v) => (isClay(v) ? `(${Formatter.formatJson(shapeOf(v))})` : undefined);
+const HIDDEN = { horizontal: 1, vertical: 1 };
+const VISIBLE = { horizontal: 0, vertical: 0 };
+
+// A leaf of the literal: a number, a keyword, a colour or a sizing axis (replaced whole, never merged field by field).
+const isLeaf = (v: unknown): boolean =>
+  typeof v !== "object" || Object.hasOwn(v as object, "r") || Object.hasOwn(v as object, "type");
+// The fields of `full` that `mask` has
+const pick = (full: Shape, mask: Shape): Shape =>
+  Object.fromEntries(
+    Object.keys(mask).map((k) => [
+      k,
+      isLeaf(mask[k]) ? full[k]! : pick(full[k] as Shape, mask[k] as Shape),
+    ]),
+  );
+// The fields of `a` that differ from `b` (both of one key set: a theme changes colours only)
+const diff = (a: Shape, b: Shape): Shape => {
+  const out: Shape = {};
+  for (const [k, v] of Object.entries(a)) {
+    if (isLeaf(v)) {
+      if (Formatter.formatJson(v) !== Formatter.formatJson(b[k])) out[k] = v;
+    } else {
+      const d = diff(v as Shape, b[k] as Shape);
+      if (Object.keys(d).length) out[k] = d;
+    }
+  }
+  return out;
+};
+const merge = (a: Shape, b: Shape): Shape => {
+  const out = { ...a };
+  for (const [k, v] of Object.entries(b))
+    out[k] = isLeaf(v) || out[k] === undefined ? v : merge(out[k] as Shape, v as Shape);
+  return out;
+};
+
+// The literal of a style under one theme's values: the base, and per state the fields the state sets, at the values
+// they take over the base (the direction of the base read with them: justify-content is y in a column).
+const literalOf = (n: ClayNode, values?: Map<string, string>): Shape => {
+  const base = n.__clay.filter((e) => !e[2]);
+  const out = shapeOf(base, values);
+  for (const s of STATES) {
+    const own = n.__clay.filter((e) => e[2] === s);
+    if (!own.length) continue;
+    const mask = shapeOf([...base.filter((e) => e[0] === "flexDirection"), ...own], values);
+    const overlay = pick(shapeOf([...base, ...own], values), mask);
+    const layout = overlay.layout as Shape | undefined;
+    if (layout && !own.some((e) => e[0] === "flexDirection")) {
+      delete layout.layoutDirection;
+      if (!Object.keys(layout).length) delete overlay.layout;
+    }
+    out[s] = overlay;
+  }
+  return out;
+};
+// ... and what each theme changes of it, by name
+const replacement = (n: ClayNode): Shape => {
+  const out = literalOf(n);
+  if (!n.__clay.some(([k, v]) => COLOURS.has(k) && String(v).includes("var("))) return out;
+  const themes: Shape = {};
+  for (const { label, values } of together({ themed: tables.themed, layers: registry.layers })) {
+    const d = diff(literalOf(n, values), out);
+    if (Object.keys(d).length) themes[label] = d;
+  }
+  if (Object.keys(themes).length) out.themes = themes;
+  return out;
+};
+
+registry.clay = (v) => {
+  if (Predicate.hasProperty(v, "__fonts")) return `(${Formatter.formatJson({ fonts: v.__fonts })})`;
+  return isClay(v) ? `(${Formatter.formatJson(replacement(v))})` : undefined;
+};
 
 // ---------- C
 
@@ -295,9 +462,29 @@ const c = (key: string, v: number | string | Shape): string => {
     .join(", ")} }`;
 };
 
+// A style's literal, or undefined for another export (the tokens of createTokens: their leaves are var() text)
+const SHAPE = new Set([
+  "layout",
+  "backgroundColor",
+  "cornerRadius",
+  "border",
+  "clip",
+  "text",
+  "themes",
+  ...STATES,
+]);
+const isShape = (v: unknown): v is Shape =>
+  !!v &&
+  typeof v === "object" &&
+  Object.keys(v).every((k) => SHAPE.has(k)) &&
+  !Formatter.formatJson(v).includes('"var(');
+
 /**
  * The styles of a module as C: a `Clay_ElementDeclaration` per export, and a `Clay_TextElementConfig` named
- * `<name>_text` for one that sets text props, for `CLAY(id, name)` and `CLAY_TEXT(s, name_text)`.
+ * `<name>_text` for one that sets text props, for `CLAY(id, name)` and `CLAY_TEXT(s, name_text)`. A state is a whole
+ * declaration of its own, `<name>_hover` (`_focus`, `_active`, and `<name>_hover_text`); a theme is a whole set of
+ * them again, its name last (`<name>_<theme>`, `<name>_hover_<theme>`, `<name>_text_<theme>`), for every style once
+ * the module has a theme, so a page picks a theme by appending its name. The fonts of `fonts()` are an enum, `<name>_<font>`, in their order.
  *
  * @param {Record<string, unknown>} styles the exports of a built module of cssints/clay styles
  * @returns {string} a C header that includes clay.h
@@ -310,12 +497,36 @@ export const header = (styles: Record<string, unknown>): string => {
     '#include "clay.h"',
     "",
   ];
-  for (const [name, v] of Object.entries(styles)) {
-    if (!v || typeof v !== "object") continue;
-    const { text, ...decl } = v as Shape;
-    if (Object.keys(decl).length)
-      lines.push(`static const Clay_ElementDeclaration ${name} = ${c("", decl)};`);
-    if (text) lines.push(`static const Clay_TextElementConfig ${name}_text = ${c("", text)};`);
+  const print = (name: string, all: Shape, theme = "") => {
+    const { themes: _, ...v } = all;
+    const base = Object.fromEntries(
+      Object.entries(v).filter(([k]) => !(STATES as readonly string[]).includes(k)),
+    );
+    for (const [suffix, shape] of [
+      ["", base],
+      ...STATES.flatMap((s) => (v[s] ? [[`_${s.slice(1)}`, merge(base, v[s] as Shape)]] : [])),
+    ] as [string, Shape][]) {
+      const { text, ...decl } = shape;
+      if (Object.keys(decl).length)
+        lines.push(
+          `static const Clay_ElementDeclaration ${name}${suffix}${theme} = ${c("", decl)};`,
+        );
+      if (text)
+        lines.push(
+          `static const Clay_TextElementConfig ${name}${suffix}_text${theme} = ${c("", text)};`,
+        );
+    }
+  };
+  const shapes = Object.entries(styles).filter((e): e is [string, Shape] => isShape(e[1]));
+  for (const [name, v] of Object.entries(styles))
+    if (Predicate.hasProperty(v, "fonts") && Array.isArray(v.fonts) && Object.keys(v).length === 1)
+      lines.push(`enum { ${v.fonts.map((f, i) => `${name}_${String(f)} = ${i}`).join(", ")} };`);
+  for (const [name, v] of shapes) print(name, v);
+  const names = [...new Set(shapes.flatMap(([, v]) => Object.keys((v.themes ?? {}) as Shape)))];
+  for (const theme of names) {
+    lines.push("", `// theme ${theme}`);
+    for (const [name, v] of shapes)
+      print(name, merge(v, ((v.themes as Shape | undefined)?.[theme] ?? {}) as Shape), `_${theme}`);
   }
   return `${lines.join("\n")}\n`;
 };
