@@ -78,11 +78,11 @@ createGlobalTheme(rx, ".x", darkAlpha);
 // madoromi: one flavour as tokens, another as a theme as it is (DTCG leaves)
 const mr = createTokens({ madoromi: madoromi.akiHiru });
 createGlobalTheme(mr.madoromi, dm, madoromi.akiYoru);
-createGlobalTheme(mr, "[data-madoromi]", { madoromi: { kami: "#fff", ansi: { black: "#000" } } });
+createGlobalTheme(mr, "[data-madoromi]", { madoromi: { kami: "#fff", ansi: { "0": "#000", _1: "#100" } } });
 export const d = [
   color(mr.madoromi.sumi),
   color(mr.madoromi.roles.keyword),
-  color(mr.madoromi.ansi.brightWhite),
+  color(mr.madoromi.ansi._15),
 ];
 // @ts-expect-error no such colour (the names are ASCII: hyoshi, not hyōshi)
 export const e4 = color(mr.madoromi.hyōshi);

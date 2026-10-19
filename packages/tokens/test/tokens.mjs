@@ -56,7 +56,7 @@ assert.ok(css.includes("initial-value:#100f0f}"), css);
 css = await sheet("madoromi.ts");
 assert.deepEqual(
   properties(css),
-  ["--madoromi-ansi-blue", "--madoromi-kami", "--madoromi-roles-text"],
+  ["--madoromi-ansi-4", "--madoromi-kami", "--madoromi-roles-text"],
   css,
 );
 for (const rule of [
@@ -64,7 +64,7 @@ for (const rule of [
   "@media (prefers-color-scheme: dark){:root{--madoromi-sakura:#ffc5da;",
   "--madoromi-kami:#241c26;",
   "--madoromi-roles-text:#e1d1e7;",
-  "--madoromi-ansi-bright-white:#b7a8bd}",
+  "--madoromi-ansi-15:#b7a8bd}",
   '[data-madoromi="akiYoru"]{',
 ])
   assert.ok(css.includes(rule), `${rule}\n${css}`);
