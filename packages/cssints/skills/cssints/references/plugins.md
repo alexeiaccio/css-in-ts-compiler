@@ -62,6 +62,18 @@ a suggestion.
 **`@cssints/gradient`**: `backgroundImage(gradient("linear", "to bottom", "#000", "transparent", "ease-in-out", 5))`:
 eased stops mixed in oklab. Each argument its own string; the direction is one string (`"to bottom"`).
 
+**`@cssints/gradient-2d`**: `meshGradient("red, blue; green, yellow")` (rows from the top of the box down, separated by
+`;`, stops by `,`) and `freeformGradient("red top left, gold 4 60% 40%, yellow bottom right")` (points, an optional
+weight before the position). One string per call. Where the browser has `mesh-gradient()`, the declaration is native;
+elsewhere a runtime the build adds draws the same points on a canvas, so it needs a script.
+
+**`@cssints/color-names`**: `color(named("tangerine"))` is `#ff9300`. `colorNames.<sector>(name)` is the same name
+restricted to one sector (`red`, `orange`, `yellow`, `green`, `cyan`, `blue`, `purple`, `pink`, `brown`, `neutral`), so
+completion stays short; the colour word in the name picks the sector. An unknown name is a build error with the nearest
+one, and a name outside the sector is one that names the sectors it is in. The list's hex wins over the CSS keyword's
+(`named("green")` is `#00ff00`; `color("green")` is the CSS one). `@cssints/color-names/nearest` maps a hex to the
+closest name at build time.
+
 **`@cssints/placeholder`**: `backgroundImage(placeholder("src/hero.jpg"))` (a gradient of the image's colours) or
 `{ mode: "thumbhash" }` (a tiny PNG; pair it with `backgroundSize("cover")`). JPEG and PNG only; the path is relative
 to the working directory.
