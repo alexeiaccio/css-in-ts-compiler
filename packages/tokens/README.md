@@ -112,12 +112,13 @@ the dark rules:
 
 ## The sets
 
-| Import                              | Exports                                                                                                                                                                                                                                                                 | From                    |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| `@cssints/tokens/open-props`        | `colors`, `sizes`, `remSizes`, `fluidSizes`, `contentSizes`, `headerSizes`, `relativeSizes`, `radii`, `borderSizes`, `fontSizes`, `fluidFontSizes`, `letterSpacings`, `fontWeights`, `lineHeights`, `easings`, `springs`, `shadows` (tokens); `shadowsDark` (overrides) | open-props 1.7.23       |
-| `@cssints/tokens/radix`             | `light`, `lightAlpha` (tokens); `dark`, `darkAlpha` (overrides)                                                                                                                                                                                                         | @radix-ui/colors 3.0.0  |
-| `@cssints/tokens/flexoki`           | `flexoki` (`base`: `black`, `paper`, `50`..`950`; eight accents `50`..`950`)                                                                                                                                                                                            | kepano/flexoki@8d723ba  |
-| `@cssints/tokens/reasonable-colors` | `reasonableColors` (25 hues, shades `1`..`6`)                                                                                                                                                                                                                           | reasonable-colors 0.4.0 |
+| Import                              | Exports                                                                                                                                                                                                                                                                 | From                           |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `@cssints/tokens/open-props`        | `colors`, `sizes`, `remSizes`, `fluidSizes`, `contentSizes`, `headerSizes`, `relativeSizes`, `radii`, `borderSizes`, `fontSizes`, `fluidFontSizes`, `letterSpacings`, `fontWeights`, `lineHeights`, `easings`, `springs`, `shadows` (tokens); `shadowsDark` (overrides) | open-props 1.7.23              |
+| `@cssints/tokens/radix`             | `light`, `lightAlpha` (tokens); `dark`, `darkAlpha` (overrides)                                                                                                                                                                                                         | @radix-ui/colors 3.0.0         |
+| `@cssints/tokens/flexoki`           | `flexoki` (`base`: `black`, `paper`, `50`..`950`; eight accents `50`..`950`)                                                                                                                                                                                            | kepano/flexoki@8d723ba         |
+| `@cssints/tokens/reasonable-colors` | `reasonableColors` (25 hues, shades `1`..`6`)                                                                                                                                                                                                                           | reasonable-colors 0.4.0        |
+| `@cssints/tokens/madoromi`          | `madoromi` (eight flavours `haruHiru`..`fuyuYoru`: 12 neutrals, 14 inks, `roles`, `ansi`)                                                                                                                                                                               | the-moonwitch/madoromi@f8bcc5a |
 
 - **Data, not a `createTokens` call.** The variable name is the token path, so the group you put a set under is its
   prefix: `createTokens({ radix: light })` gives `--radix-blue-11`, `createTokens(light)` gives `--blue-11`. Open Props,
@@ -147,6 +148,27 @@ the dark rules:
 - **Radix.** `light` has the 31 solid scales, `lightAlpha` the 31 alpha scales and `blackA`, `whiteA`. `dark` and
   `darkAlpha` give the same paths, `{ blue: { _1: "#0d1520", ... } }`, for `createGlobalTheme`. To pick scales, pick
   them in both the tokens and the overrides. An override for a token you did not create is a type error.
+- **madoromi.** Eight flavours, a season (`haru` spring, `natsu` summer, `aki` autumn, `fuyu` winter) by day (`hiru`)
+  or by night (`yoru`): `haruHiru` .. `fuyuYoru`. Each has the same keys, with the upstream names in ASCII
+  (`hyoshi`, not `hyōshi`): the paper `kami`, `hyoshi`, `chitsu`, `nijimi0`..`2`, `kasure0`..`2`; the ink `usuzumi0`,
+  `usuzumi1`, `sumi`; the 14 inks (`sakura`, `nadeshiko`, `botan`, `fuji`, `kikyo`, `beni`, `akane`, `kaki`,
+  `yamabuki`, `wakaba`, `tokiwa`, `sora`, `ruri`, `ai`). `roles` are the style guide's uses (`text`, `keyword`,
+  `link`, `error`, `success`, `added`, ...: 40) and `ansi` the 16 terminal colours by name (`black`..`white`,
+  `brightBlack`..`brightWhite`). A role is the value of its colour, not an alias, so it is right in a theme of another
+  flavour. Which colour is for what: upstream's [style guide](https://github.com/the-moonwitch/madoromi/blob/f8bcc5aa1ec3f731fcba9471be7caa5df1ab5695/palettes/style-guide.md).
+  Every flavour has the same paths, so one flavour is the tokens and any other is a theme of them, as it is:
+
+  ```ts
+  import { createGlobalTheme, createTokens, media } from "cssints" with { type: "cssints" };
+  import { madoromi } from "@cssints/tokens/madoromi";
+
+  export const m = createTokens({ madoromi: madoromi.akiHiru }); // --madoromi-kami, --madoromi-roles-text, ...
+  createGlobalTheme(m.madoromi, media("(prefers-color-scheme: dark)"), madoromi.akiYoru); // day and night
+  createGlobalTheme(m.madoromi, '[data-season="haru"]', madoromi.haruHiru); // another season
+  ```
+
+  A theme sets every token of the flavour (82). For night and a season at once, give each pair its own selector
+  (`[data-season="haru"][data-mode="yoru"]`).
 
 ## Contrast
 
@@ -165,6 +187,10 @@ results (`test/fixtures/radix-theme.ts` checks all 31 scales, light and dark):
   `check.contrast(t.radix.orange._11, t.radix.orange._2, { min: 4.5 })` fails the build:
   `contrast 4.24 is below 4.5: radix.orange.11 #cc4e00 on radix.orange.2 #fff7ed, in the default values`.
 
+With madoromi, `test/fixtures/madoromi-tokens.ts` checks all eight flavours: `sumi` on `kami` is 7 or more (7.17 to
+11.48), `usuzumi0` on `kami` 4.5 or more (4.52 to 7.44), `kasure2` (subtle text, comments) on `kami` 3 or more (3.50
+to 5.74). The day flavours are the low end of each range.
+
 ## Limits
 
 - **A shadow costs in the types.** cssints checks each shadow value by the `<shadow>#` grammar: about 30,000
@@ -182,6 +208,7 @@ results (`test/fixtures/radix-theme.ts` checks all 31 scales, light and dark):
   | Radix `light` and `lightAlpha` in one call, with both themes   | 0.66 M         | 0.38 s     |
   | Flexoki (119)                                                  | 0.17 M         | 0.09 s     |
   | Reasonable Colors (150)                                        | 0.17 M         | 0.10 s     |
+  | madoromi, one flavour (82) and another as a theme              | 0.20 M         | 0.13 s     |
 
   A single statement stops at TypeScript's limit (TS2589, "excessively deep") at about 5 M.
 
@@ -193,8 +220,12 @@ The code is MIT (`LICENSE`). The data keeps the license of its source:
 - **Radix Colors**: MIT, Copyright (c) 2021 Radix.
 - **Flexoki**: MIT, Copyright (c) 2023 Steph Ango.
 - **Reasonable Colors**: MIT, Copyright (c) 2020 Matthew Howell.
+- **madoromi**: MPL-2.0, Copyright the-moonwitch (samhain). The MPL applies per file: `src/madoromi.ts` and the
+  `dist/madoromi.*` built from it are MPL-2.0 and carry its notice and the source URL at the commit; the rest of the
+  package stays MIT. A change to those files is under the MPL; using them in your code is not
+  ([MPL-2.0](https://mozilla.org/MPL/2.0/), section 3.3).
 
-The MIT notice of each source, with its copyright line above:
+The MIT notice of each MIT source, with its copyright line above:
 
 > Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 > documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
