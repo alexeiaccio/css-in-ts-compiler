@@ -333,3 +333,16 @@ export const dg2: Token<"length", true, "2px"> = dg.dg._2xs;
 css.createGlobalTheme(dg, ".dg", { dg: { _2xs: "3px" } });
 // @ts-expect-error read as _2xs
 export const dg3 = dg.dg["2xs"];
+// A DTCG group of digit keys only is an override as it is (cssints-twtp).
+const ansi = {
+  ansi: { $type: "color", "0": { $value: "#000" }, "1": { $value: "#c00" } },
+} as const;
+const an = css.createTokens(ansi);
+export const an0: Token<"color", true, "#000"> = an.ansi._0;
+css.createGlobalTheme(an, ".an", ansi);
+css.createGlobalTheme(an, ".an", { ansi: { "1": { $value: "#f00" } } });
+css.createGlobalTheme(an, ".an", { ansi: { "1": "#f00" } });
+// @ts-expect-error no token at this path
+css.createGlobalTheme(an, ".an", { ansi: { "2": { $value: "#f00" } } });
+// @ts-expect-error not a colour
+css.createGlobalTheme(an, ".an", { ansi: { "1": "12px" } });

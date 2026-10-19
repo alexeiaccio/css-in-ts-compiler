@@ -122,11 +122,9 @@ type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
  * definition's value as text. A key that starts with a digit is read as `_<key>` (`t.space._2xs`).
  */
 export type Tokens<G, Inherited = undefined, Root = G> = {
-  readonly [K in keyof G as K extends `$${string}`
-    ? never
-    : K extends `${Digit}${string}`
-      ? `_${K}`
-      : K]: G[K] extends {
+  readonly [
+    K in keyof G as K extends `$${string}` ? never : K extends `${Digit}${string}` ? `_${K}` : K
+  ]: G[K] extends {
     readonly $value: infer V;
   }
     ? Token<KindOf<V, TypeOf<G[K], Inherited>, Root>, true, Text<V>>
@@ -221,10 +219,12 @@ type ObjectValue<K extends TokenType> = K extends Kinds["color"]
 
 /**
  * The values a theme may set: the paths of the tokens, each a value of the token's type, or a DTCG leaf `{ $value }` (the
- * file of another mode, whose `$type` and `$extensions` are skipped).
+ * file of another mode, whose `$type` and `$extensions` are skipped). A token `_500` is also `500`, as in the data.
  */
 export type Overrides<X> = {
-  readonly [K in keyof X]?: X[K] extends { readonly "~token": infer Kd extends TokenType }
+  readonly [
+    K in keyof X as K | (K extends `_${infer D extends `${Digit}${string}`}` ? D : never)
+  ]?: X[K] extends { readonly "~token": infer Kd extends TokenType }
     ? string | number | ObjectValue<Kd> | { readonly $value: unknown }
     : Overrides<X[K]>;
 };
@@ -258,28 +258,27 @@ type CheckRefs<V extends string, Kd extends TokenType, X> = V extends `{${infer 
         ? V
         : R
       : never;
+type CheckOverride<T, V, Root> = T extends { readonly "~token": infer Kd extends TokenType }
+  ? V extends string
+    ? V extends FontWeightName
+      ? V
+      : V extends `${string}{${string}}${string}`
+        ? CheckRefs<V, Kd, Root>
+        : Fits<V, Valid<Kd, V>> extends infer R
+          ? [R] extends [true]
+            ? V
+            : R
+          : never
+    : V
+  : CheckOverrides<T, V, Root>;
 export type CheckOverrides<X, O, Root = X> = {
   [K in keyof O]: K extends `$${string}`
     ? O[K]
     : K extends keyof X
-      ? X[K] extends { readonly "~token": infer Kd extends TokenType }
-        ? O[K] extends string
-          ? O[K] extends FontWeightName
-            ? O[K]
-            : O[K] extends `${string}{${string}}${string}`
-              ? CheckRefs<O[K], Kd, Root>
-              : Fits<O[K], Valid<Kd, O[K]>> extends infer R
-                ? [R] extends [true]
-                  ? O[K]
-                  : R
-                : never
-          : O[K]
-        : CheckOverrides<X[K], O[K], Root>
+      ? CheckOverride<X[K], O[K], Root>
       : K extends `${Digit}${string}`
         ? `_${K}` extends keyof X
-          ? X[`_${K}`] extends { readonly "~token": TokenType }
-            ? O[K]
-            : CheckOverrides<X[`_${K}`], O[K], Root>
+          ? CheckOverride<X[`_${K}`], O[K], Root>
           : Bad<"no token at this path">
         : Bad<"no token at this path">;
 };
