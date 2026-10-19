@@ -191,7 +191,7 @@ and Cursor. The skills use it when it is configured and work without it.
 bun install
 bun run test    # all packages (vp run -r test, cached where possible); includes the type-check of the code in docs/API.md and this file
 bun run bench   # type instantiation budgets (tsc and tsgo)
-bun run check   # format, lint, type-check (vp check), then the Effect diagnostics (bun run typecheck)
+bun run check   # format, lint, type-check (vp check), then tsc 7 with the Effect diagnostics (bun run typecheck)
 bun run diff:check   # the added lines against master: anti-slop rules, key-file changes (tools/ai-automation)
 cd apps/demo && bun run dev
 cd apps/docs && bun run dev   # the documentation site, on the pages of README.md and docs/API.md

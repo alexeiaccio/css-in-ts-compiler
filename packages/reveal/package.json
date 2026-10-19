@@ -54,7 +54,7 @@
     "build": "vp pack",
     "test": "node test/reveal.mjs",
     "test:browsers": "node test/browsers.mjs",
-    "typecheck": "tsgo -p tsconfig.json --noEmit && effect-tsgo diagnostics --project tsconfig.json --format pretty",
+    "typecheck": "node ../../scripts/typecheck.mjs",
     "pack:tgz": "node ../../scripts/pack.mjs",
     "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1"
   },

@@ -5,7 +5,7 @@
   "scripts": {
     "build": "vp build",
     "start": "bun dist/main.js",
-    "typecheck": "tsgo -p tsconfig.json --noEmit && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
+    "typecheck": "node ../../scripts/typecheck.mjs && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
     "test": "node test/build.mjs"
   },
   "dependencies": {

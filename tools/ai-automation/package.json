@@ -6,7 +6,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "typecheck": "tsgo -p tsconfig.json --noEmit",
+    "typecheck": "node ../../scripts/typecheck.mjs",
     "test": "vp test run"
   },
   "devDependencies": {

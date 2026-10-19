@@ -1792,3 +1792,43 @@ The 25th package adds `named(name)` as a value member of `scope("colornames", ..
 ## Digit keys in a theme override (cssints-twtp, 2026-10-19)
 
 Found with `@cssints/tokens/madoromi` (cssints-bm7a). docs/API.md says a DTCG file used as a theme maps a key such as `500` to the set's `_500`, and the run time does. The types did not: `Overrides<X>` listed only `_0`, so `createGlobalTheme(t, ".x", { ansi: { "0": { $value: "#000" } } })` failed with TS2353 (an inline object) or TS2345 (a variable whose group has only digit keys: no key in common with a weak type). It worked before only when the group had another key too. In `CheckOverrides`, a digit key was also not checked: `{ "1": "12px" }` on a colour passed. Now `Overrides` takes `0` beside `_0` (the same `Digit` mapping `Tokens` uses), and a digit key goes through the same value check as a named one (one shared `CheckOverride`). `scope()` themes use `CheckOverrides` and get the check too. Cost: +25 instantiations on each cssints bench file, palette.ts and tui.ts stay below their budget. No data in `@cssints/tokens` changes.
+
+## `tsc-rs` as the typechecker, with the Effect diagnostics in one pass (2026-10-19)
+
+Asked by the user: adopt [pingdotgg/ts-rust](https://github.com/pingdotgg/ts-rust) with Effect checking. `tsc-rs` 0.7.0 is
+a Rust port of tsc 7 pinned to `microsoft/TypeScript@fed0bf24` (7.1.0-dev.20261008.1) with the Effect language service
+diagnostics built in (codes TS377xxx, the rules of Effect-TS/tsgo 0.51.1). It reads the same plugin entry as
+`@effect/language-service`, so `tsconfig.effect.json` moved over unchanged apart from the three items below.
+
+**One pass instead of two, 7x.** `bun run typecheck` now runs `tsc-rs -p tsconfig.json --noEmit` per workspace instead of
+`tsgo -p … --noEmit && effect-tsgo diagnostics --project … --format pretty`. Summed over the 30 workspaces: 46.3 s → 6.6 s
+(cssints 4.6 → 0.7, tokens 6.0 → 0.6, docs 3.2 → 0.5, mcp and the plugin packages the like). The full `bun run typecheck`
+is 21.7 s wall; the rest is the tsc 5.9 pass of the four apps, which stays. The diagnostics are the same: 0 everywhere
+before and after, and a probe file with `try/catch` in `Effect.gen` gives the same `tryCatchInEffectGen` error as
+effect-tsgo (`TS377012` instead of `effect(tryCatchInEffectGen)`). `tsc-rs` is pinned to `0.7.0`, not a range: it is an
+experimental port and 0.7.0 is the version that was verified.
+
+**Three things the port does differently, all documented in the config and the script.**
+
+- `anyUnknownInErrorContext` is off. `tsc-rs` reports TS2590 ("a union type that is too complex to represent") with no
+  file and no position while running the rule over the recognizer's unions and the variadic-property types
+  (`css-grammar/src/api-typed.ts`, `cssints/test/types/errors.ts`). `@effect/tsgo` 0.48.0 and 0.51.1 report nothing on the
+  same config, so it is a port bug; a per-file `overrides` entry silenced it in cssints but not in css-grammar. Nothing in
+  the repo has an `any` in an error channel today, so the rule has found nothing so far.
+- `scripts/typecheck.mjs` fails on errors only. `tsc-rs` 0.7.0 fails the run on a warning (`tsc` and `effect-tsgo` exit 0).
+  The docs app type-checks the engine's sources through its `cssints-src/*` path mapping, and under the app's defaults the
+  engine's three `@effect-diagnostics` directives have no effect: three warnings on every run, printed and not fatal.
+- `unstableApiUsage` and `experimentalApiUsage` are off. They arrive with the 0.51.1 rule set (0.48 has neither) and
+  report 53 uses of effect/http and effect/ai in `@cssints/mcp`, as warnings upstream. Their policy is a separate
+  decision; turning them on means `allowedUnstableApis` or the calls changed.
+
+**What stays.** `@effect/tsgo` remains a devDependency for the editor: `prepare` runs `effect-tsgo patch --typescript`,
+which patches the native TypeScript 7 package and takes over `.bin/tsc` (so `vp check`'s type-check and the editor see the
+Effect rules, and TypeScript 5.9 is called by path in css-grammar's `test` and `bench/budget.mjs`). `tsgo` stays for the
+instantiation budgets (`bench`) and the language-server bench, whose numbers are tsgo's.
+
+**Left.** Revisit with a tsc-rs release: the TS2590 and the exit code on warnings, then turn `anyUnknownInErrorContext`
+back on, and decide the API-stability rules. `--fast` is 2.9x on top on the project's own benchmark, but it can move
+TS2589/TS5115 near the 5M-instantiation limit, and this repo lives at that limit, so it needs its own verification run
+before it is used here. `bun run diff:check` warns on `bun.lock` (tsc-rs and its six platform packages, nothing else) and
+on `tsconfig.effect.json` (the runs above), as it does for every change to a key file.

@@ -6,7 +6,7 @@
     "dev": "vp dev",
     "build": "vp build",
     "preview": "vp preview",
-    "typecheck": "node scripts/tokens-types.mjs --check && tsgo -p tsconfig.json --noEmit && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
+    "typecheck": "node scripts/tokens-types.mjs --check && node ../../scripts/typecheck.mjs && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
     "test": "node test/search.mjs && node test/settings.mjs && node test/contrast.mjs && node test/build.mjs && node test/browser.mjs && node test/frames.mjs && node test/playground.mjs && node test/tui.mjs",
     "tokens:types": "node scripts/tokens-types.mjs",
     "deploy": "alchemy deploy --stage prod",

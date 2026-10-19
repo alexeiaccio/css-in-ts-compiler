@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vp dev",
     "build": "vp build",
-    "typecheck": "node scripts/tokens-types.mjs --check && tsgo -p tsconfig.json --noEmit && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
+    "typecheck": "node scripts/tokens-types.mjs --check && node ../../scripts/typecheck.mjs && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
     "test": "node --conditions=browser test/api.mjs && node --conditions=browser test/post.mjs && node --conditions=browser test/home.mjs && node --conditions=browser test/profile.mjs && node --conditions=browser test/thread.mjs && node test/settings.mjs && node test/contrast.mjs && node test/build.mjs && node test/dev.mjs",
     "test:browser": "node test/browser.mjs",
     "test:old-browser": "node test/old-browser.mjs",

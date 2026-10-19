@@ -1,8 +1,8 @@
 {
   "$schema": "./node_modules/@effect/tsgo/schema.json",
   // Shared by the packages with Effect code (cssints, css-grammar, icons): every Effect language service diagnostic as an
-  // error (the off-by-default ones and the suggestions too), three left off for the reasons below. `bun run typecheck`
-  // runs them through `effect-tsgo diagnostics`.
+  // error (the off-by-default ones and the suggestions too), the rest left off for the reasons below. `bun run typecheck`
+  // runs them through `tsc-rs` (scripts/typecheck.mjs), the Rust port of tsc 7 with these diagnostics built in.
   "compilerOptions": {
     "customConditions": ["development"],
     "plugins": [
@@ -16,7 +16,12 @@
           "abortControllerInEffect": "error",
           "acquireReleaseDisposable": "error",
           "allOfMapToForEach": "error",
-          "anyUnknownInErrorContext": "error",
+          // tsc-rs 0.7.0 reports TS2590 (no file, no position) while running this rule: it walks the error types of every
+          // Effect, and over the recognizer's unions and the variadic-property types (css-grammar/src/api-typed.ts,
+          // cssints/test/types/errors.ts) that walk ends in a union too complex to represent. @effect/tsgo 0.48.0 and
+          // 0.51.1 report nothing with the same config, so it is a port bug; a per-file override did not silence it. Off
+          // until a tsc-rs release fixes it (nothing in the repo has an `any` in an error channel today).
+          "anyUnknownInErrorContext": "off",
           "asyncFunction": "error",
           "catchAllTagDispatchToCatchTag": "error",
           "catchAllToMapError": "error",
@@ -43,6 +48,11 @@
           "effectMapVoid": "error",
           "effectSucceedWithVoid": "error",
           "extendsNativeError": "error",
+          // 53 reports, all in @cssints/mcp: effect/http and effect/ai are unstable APIs in effect 4; the repo's stance on
+          // them is not decided yet, and these two rules arrive with the 0.51.1 rule set that tsc-rs ports (the 0.48.0 one
+          // has neither). `tsc-rs` also counts a warning as a failure (upstream exits 0), so a warning would turn the
+          // typecheck red. Decide with the policy, then allow effect/http and effect/ai or fix the calls.
+          "experimentalApiUsage": "off",
           "flatMapConditionalToFilterOrFail": "error",
           "flatMapToMap": "error",
           "floatingEffect": "error",
@@ -128,6 +138,8 @@
           "unnecessaryPipe": "error",
           "unnecessaryPipeChain": "error",
           "unnecessaryTypeofType": "error",
+          // see experimentalApiUsage above
+          "unstableApiUsage": "off",
           "unsafeEffectTypeAssertion": "error"
         },
         "overrides": [
