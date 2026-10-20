@@ -1,6 +1,6 @@
-import { a as registry, d as MacroError, f as MemberError, o as warn } from "./registry-BUSEO32-.mjs";
-import { D as relation, E as covers, d as requireLayer, p as standIn } from "./sheet-BeHdq4xt.mjs";
-import { t as fallbackOf } from "./lowered-aJVapQT6.mjs";
+import { a as registry, d as MacroError, f as MemberError, o as warn } from "./registry-ByrYF2v5.mjs";
+import { D as relation, E as covers, d as requireLayer, p as standIn } from "./sheet-BT2R1wk_.mjs";
+import { t as fallbackOf } from "./lowered-CKSYUc0i.mjs";
 import { createRequire } from "node:module";
 import { checkSelector } from "@cssints/css-grammar/check";
 import { browsers, supportOf } from "@cssints/css-grammar/support";
@@ -777,7 +777,7 @@ const tokensOf = (v) => {
 	const set = Predicate.isObject(v) ? sets.get(v) : void 0;
 	if (!set) return void 0;
 	const text = Formatter.formatJson(v);
-	return set.terminal ? text.replaceAll("--", "-\\u002d") : text;
+	return set.terminal || set.clay ? text.replaceAll("--", "-\\u002d") : text;
 };
 const DONE = Object.freeze({ __done: true });
 const isDone = (v) => v === DONE;
@@ -808,7 +808,9 @@ const theme = (at, args) => edge(Effect.gen(function* () {
 	const scope = typeof wanted === "string" ? wanted.trim() : void 0;
 	if (!at || !set || args.length < 3 || args.length > 4 || !Predicate.isObject(overrides) || args.length === 4 && (!Predicate.isObject(options) || asked !== void 0 && layer === void 0 || wanted !== void 0 && scope === void 0)) return yield* fail("cssints: createGlobalTheme(tokens, condition | selector, overrides, { layer, scope }?) takes tokens of createTokens, a media() or container() condition or a selector, the values to set, and optionally a declared top-level layer and a selector to scope them to");
 	const terminal = registry.defs === registry.terminal?.defs;
-	if (!!set.terminal !== terminal) return yield* fail(set.terminal ? `cssints: createGlobalTheme(): these are terminal tokens of "cssints/tui": theme them with the createGlobalTheme of "cssints/tui"` : `cssints: createGlobalTheme(): these are web tokens of "cssints": theme them with the createGlobalTheme of "cssints", or make them with the createTokens of "cssints/tui"`);
+	const clay = registry.defs === registry.clayTokens?.defs;
+	if (!!set.clay !== clay) return yield* fail(set.clay ? `cssints: createGlobalTheme(): these are Clay tokens of "cssints/clay": theme them with the createGlobalTheme of "cssints/clay"` : `cssints: createGlobalTheme(): these are ${set.terminal ? "terminal tokens of \"cssints/tui\"" : "web tokens of \"cssints\""}: a theme of "cssints/clay" takes the tokens of its own createTokens`);
+	if (!clay && !!set.terminal !== terminal) return yield* fail(set.terminal ? `cssints: createGlobalTheme(): these are terminal tokens of "cssints/tui": theme them with the createGlobalTheme of "cssints/tui"` : `cssints: createGlobalTheme(): these are web tokens of "cssints": theme them with the createGlobalTheme of "cssints", or make them with the createTokens of "cssints/tui"`);
 	if (layer !== void 0) yield* requireLayer(layer, at);
 	if (scope !== void 0) {
 		if (typeof condition !== "string") return yield* fail("cssints: createGlobalTheme(): a scope goes with a selector, not a condition");

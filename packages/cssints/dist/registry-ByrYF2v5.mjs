@@ -66,7 +66,11 @@ const forgetKernels = (file) => {
 };
 const forget = (file) => {
 	forgetKernels(file);
-	for (const s of [registry, registry.terminal ?? registry]) {
+	for (const s of [
+		registry,
+		registry.terminal ?? registry,
+		registry.clayTokens ?? registry
+	]) {
 		for (const [k, p] of s.properties) if (p.file === file) {
 			s.properties.delete(k);
 			s.defs.delete(k);

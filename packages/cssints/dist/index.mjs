@@ -1,8 +1,8 @@
-import { a as registry, d as MacroError, f as MemberError, o as warn, r as forgetKernels, t as Registry } from "./registry-BUSEO32-.mjs";
-import { A as camel, C as hashClass, D as settled, E as minWidth, F as probed, M as failIn, N as isNode, O as toDecls, P as node, S as edge, T as merged, _ as PSEUDOS, a as createTokens, b as checkVars, c as tokensOf, d as style, f as token, g as PROPS, h as LAYER, i as createGlobalTheme, j as fail, k as VAR, l as CSSTokenValue, m as FUNCTIONS, n as addTheme, o as isDone, p as CONTEXTS, r as check$1, t as DONE, u as isStyle, v as carried, w as isFallback, x as dropsOf, y as chainDecl } from "./theme-SlQ73rFL.mjs";
-import { D as relation, S as addRuntime, _ as addKernel, i as byOrder, n as addGlobal, r as addLayers, y as kernelWarnings } from "./sheet-BeHdq4xt.mjs";
-import { n as loweredOf } from "./lowered-aJVapQT6.mjs";
-import { c as groups$1, n as CX_CALL, t as CV_CALL } from "./instrument-BqIZpbIU.mjs";
+import { a as registry, d as MacroError, f as MemberError, o as warn, r as forgetKernels, t as Registry } from "./registry-ByrYF2v5.mjs";
+import { A as camel, C as hashClass, D as settled, E as minWidth, F as probed, M as failIn, N as isNode, O as toDecls, P as node, S as edge, T as merged, _ as PSEUDOS, a as createTokens, b as checkVars, c as tokensOf, d as style, f as token, g as PROPS, h as LAYER, i as createGlobalTheme, j as fail, k as VAR, l as CSSTokenValue, m as FUNCTIONS, n as addTheme, o as isDone, p as CONTEXTS, r as check$1, t as DONE, u as isStyle, v as carried, w as isFallback, x as dropsOf, y as chainDecl } from "./theme-WGcgMD4V.mjs";
+import { D as relation, S as addRuntime, _ as addKernel, i as byOrder, n as addGlobal, r as addLayers, y as kernelWarnings } from "./sheet-BT2R1wk_.mjs";
+import { n as loweredOf } from "./lowered-CKSYUc0i.mjs";
+import { c as groups$1, n as CX_CALL, t as CV_CALL } from "./instrument-C7Am_dJ3.mjs";
 import { checkDeclarationNow, checkQuery, checkSelector, checkValueNow, isDeclarationError } from "@cssints/css-grammar/check";
 import { lackingOf, messageOf } from "@cssints/css-grammar/support";
 import { CSS, CSSColorValue, CSSImageValue, CSSStyleValue, CSSStyleValue as CSSStyleValue$1, CSSUnitValue } from "@cssints/css-grammar/values";
@@ -1236,6 +1236,13 @@ const replacementOf = Effect.fnUntraced(function* (at, value) {
 	if (inert !== void 0) return inert;
 	if (registry.tui && Predicate.hasProperty(value, "__tui")) return yield* Effect.try({
 		try: () => registry.tui(value),
+		catch: (e) => {
+			if (e instanceof MacroError) return e;
+			throw e;
+		}
+	});
+	if (registry.clay && Predicate.hasProperty(value, "__clay")) return yield* Effect.try({
+		try: () => registry.clay(value),
 		catch: (e) => {
 			if (e instanceof MacroError) return e;
 			throw e;

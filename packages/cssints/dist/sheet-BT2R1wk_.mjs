@@ -1,4 +1,4 @@
-import { d as MacroError, f as MemberError, o as warn, t as Registry } from "./registry-BUSEO32-.mjs";
+import { d as MacroError, f as MemberError, o as warn, t as Registry } from "./registry-ByrYF2v5.mjs";
 import { browsers, lacking, messageOf, supportOf } from "@cssints/css-grammar/support";
 import { Effect, Formatter, Result, Schema } from "effect";
 import { longhands } from "@cssints/css-grammar/longhands";
@@ -572,7 +572,7 @@ const refuses = (literal) => {
 };
 const standIn = Effect.fnUntraced(function* (at, who, kind, literal, inherits, rooted) {
 	const registry = yield* Registry;
-	if (registry.defs === registry.terminal?.defs) return false;
+	if (registry.defs === registry.terminal?.defs || registry.defs === registry.clayTokens?.defs) return false;
 	let why;
 	if (kind !== "color") why = "computes colours only";
 	else if (!inherits) why = "does not write tokens that do not inherit";
