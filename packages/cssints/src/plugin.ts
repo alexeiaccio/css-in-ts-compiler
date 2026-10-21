@@ -650,7 +650,14 @@ export default function cssints({
         ...(ssr && {
           environments: {
             ssr: {
-              resolve: { conditions: ssr.conditions, externalConditions: ssr.externalConditions },
+              resolve: {
+                conditions: ssr.conditions,
+                externalConditions: ssr.externalConditions,
+                // What the app's ssr environment inlines, the evaluation server inlines too: a package
+                // imported by an inlined one (a router's `@solidjs/web`) would otherwise be resolved by
+                // Node and land on its server build, where the client-only APIs throw.
+                noExternal: ssr.noExternal,
+              },
             },
           },
         }),
