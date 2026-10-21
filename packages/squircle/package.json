@@ -1,6 +1,6 @@
 {
   "name": "@cssints/squircle",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Squircle corners for cssints: native corner-shape: squircle, a CSS mask where a target lacks it",
   "license": "MIT",
   "repository": {
@@ -48,7 +48,7 @@
     "vite": "catalog:"
   },
   "peerDependencies": {
-    "cssints": "^0.3.0"
+    "cssints": "^0.4.0"
   },
   "engines": {
     "node": ">=22"

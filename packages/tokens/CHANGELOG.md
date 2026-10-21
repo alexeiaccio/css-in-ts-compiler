@@ -1,5 +1,17 @@
 # @cssints/tokens
 
+## 0.4.0
+
+### Minor Changes
+
+- 9a2bd45: `@cssints/tokens/madoromi`: the eight madoromi flavours (the-moonwitch/madoromi, MPL-2.0 in that one file) as DTCG data: neutrals, inks, roles and ANSI, one flavour a theme of another.
+
+### Patch Changes
+
+- Updated dependencies [6687dc2]
+- Updated dependencies [3d97232]
+  - cssints@0.4.0
+
 ## 0.3.1
 
 No changes in this release.
