@@ -1,10 +1,10 @@
 ---
 # cssints-y9v2
 title: Contribute BCD entries for mesh-gradient() and freeform-gradient() upstream
-status: todo
+status: scrapped
 type: task
 created_at: 2026-10-17T10:21:20Z
-updated_at: 2026-10-17T10:21:20Z
+updated_at: 2026-10-21T14:20:00Z
 ---
 
 From cssints-6ctt: cssints keeps a small table of own BCD entries (version_added: false). Upstream would remove the need.
@@ -31,3 +31,11 @@ Next: a tracking issue now (resolution + explainer + the two planned keys) is ch
 whether the explainer is enough; the PR itself waits for the `Overview.bs` section, then `version_added: false` for the
 11 BCD browsers and `spec_url` to the section. Nothing rots meanwhile: `get()` prefers real BCD by key, so our table
 becomes dead weight the day the entries land.
+
+## Reasons for Scrapping
+
+User's decision (2026-10-21): the spec work is not ours to do; wait until it arrives by itself. The CSSWG adopted the two
+functions on 2026-10-14 and the explainer is in `css-images-5/explainers/`, so the section will reach `Overview.bs` and
+then BCD without us. Meanwhile nothing rots: `get()` prefers real BCD by key, so the day the entries land our `OWN` table
+in `packages/css-grammar/src/support.ts` simply stops being read, and deleting it (and its test) is a one-line cleanup,
+not a task.
