@@ -1,5 +1,14 @@
 # @cssints/reveal
 
+## 0.4.0
+
+### Patch Changes
+
+- Updated dependencies [6687dc2]
+- Updated dependencies [3d97232]
+  - cssints@0.4.0
+  - @cssints/motion@0.4.0
+
 ## 0.3.1
 
 ### Patch Changes
