@@ -95,3 +95,22 @@ Checks run with the token of the Actions bot do not start on the version pull re
 - `E404` on the package when adding a trusted publisher: it was never published.
 - "the tracked dist/ differs from a fresh build": on master run `bun run build:packages`, commit `dist/`.
 - A package published, the rest did not: run the publish again, `changeset publish` skips the ones on npm.
+
+## After a CI release (from 0.4.0, 2026-10-21)
+
+`changeset publish` can report a package under "Successfully published" while the registry does not have it: in 0.4.0,
+`@cssints/fluid@0.4.0` sat in that list with no error in the log and appeared on npm only about ten minutes later. So
+check the registry, and not with `npm view`: the CLI keeps a packument in its cache for minutes and answered `0.3.1` for
+packages that were already published.
+
+```bash
+for p in cssints $(node -p "require('fs').readdirSync('packages').filter(d => require('fs').existsSync('./packages/'+d+'/package.json')).map(d => require('./packages/'+d+'/package.json').name).filter(n => n !== 'cssints').join(' ')"); do
+  printf '%-26s %s\n' "$p" "$(curl -sL "https://registry.npmjs.org/${p//\//%2F}" | python3 -c 'import sys,json; print(json.load(sys.stdin)["dist-tags"]["latest"])')"
+done
+```
+
+If one is missing, re-run the workflow (`gh run rerun <id>`): changesets reads the registry and publishes what is not
+there. A package that still does not appear either has a staged version pending or a trusted publisher whose "Allowed
+actions" miss `npm publish` (a configuration allows only `npm stage publish` by default); both are visible on npmjs.com.
+A staged publish leaves a `0.0.0-stage` version on the package: harmless once `latest` is the real version, and
+`npm deprecate @cssints/<name>@0.0.0-stage "placeholder of a staged publish"` clears it from the listing.
