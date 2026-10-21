@@ -1269,7 +1269,15 @@ const { ratio, text } = await Effect.runPromise(contrast("#777", "white"));
 - **`contrast(foreground, background)`** is the WCAG 2.x ratio of `css.check.contrast` (see Themes): culori reads the colour, one outside sRGB is clipped to it. A colour it cannot read (`currentColor`, a `var()`) or a translucent one fails with a `ContrastError` (`colour`, `message`).
 - **`loweredOf(property, value, warning)`** answers what a build asks before it says a support warning ("No warning for what LightningCSS lowers", under Errors): the value of the first declaration LightningCSS writes for the targets of the warning, or `undefined` when it leaves the feature in place (`text-wrap`, a `var()` inside the value). `warning` is one of `support()` of `@cssints/css-grammar/support`; a custom property is `--name`. For `color: oklch(70% 0.2 330)` and chrome 100 it is a hex colour, so a build does not warn.
 
-### TUI: `cssints/tui` (decided 2026-10-10, cssints-3ff7)
+### TUI: `cssints/tui` (decided 2026-10-10, cssints-3ff7; deprecated 2026-10-21)
+
+> **Deprecated.** The members below still compile, and `@cssints/tui` still applies them, but importing it now prints
+> one warning, and the package will not get new members. A terminal app builds on
+> [cssints-native](https://github.com/alexeiaccio/cssints-native) instead: `terminal/` takes `cssints/clay` styles
+> (`generator/clay-header.ts` → a C header), lays them out with [Clay](https://github.com/nicbarker/clay) and draws them
+> into character cells on [termbox2](https://github.com/termbox/termbox2), with the keyboard focus layer in C
+> (`terminal/focus.c`). What carries over and what does not, and the commands that run it, are in
+> [packages/tui/README.md](../packages/tui/README.md); `docs/map.md` step 6 of that project is the full account.
 
 A terminal app writes its styles with `cssints/tui`, and the same Vite plugin compiles them to **prop objects** for terminal renderables, not to classes: there is no sheet and no cascade. `@cssints/tui` applies them (states, the mouse pointer, the caret, themes); its adapters are [OpenTUI](https://opentui.com) and [@bomb.sh/tty](https://bomb.sh/docs/tty/api/). The design, the full property table and what is out of scope are in [research/tui.md](research/tui.md).
 

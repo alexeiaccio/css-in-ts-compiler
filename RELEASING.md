@@ -114,3 +114,19 @@ there. A package that still does not appear either has a staged version pending 
 actions" miss `npm publish` (a configuration allows only `npm stage publish` by default); both are visible on npmjs.com.
 A staged publish leaves a `0.0.0-stage` version on the package: harmless once `latest` is the real version, and
 `npm deprecate @cssints/<name>@0.0.0-stage "placeholder of a staged publish"` clears it from the listing.
+
+## Deprecating a package (2026-10-21, `@cssints/tui`)
+
+A deprecation is registry metadata on a version range, and only `npm deprecate` writes it: Changesets does not, and
+`npm publish` cannot (a `deprecated` field in `package.json` is ignored by npm). So the release ships the notice and a
+person marks the range afterwards. `@cssints/tui` is the first: it is deprecated in favour of the `terminal/` target of
+`cssints-native`, and 0.4.1 (the `fixed` group bumps all 25) is the version that carries the notice.
+
+```bash
+npm login                                                     # the account that owns the cssints org
+npm deprecate "@cssints/tui@*" "Deprecated: the terminal/ target of cssints-native replaces it (cssints/clay styles, Clay layout, cells on termbox2). See packages/tui/README.md"
+npm view @cssints/tui deprecated                              # reads it back
+```
+
+`@*` marks every version already on npm and every one published later; a single version is `@cssints/tui@0.4.1`. To undo
+it, `npm deprecate "@cssints/tui@*" ""` (an empty message clears it).

@@ -1,9 +1,21 @@
 // The renderer-neutral runtime of cssints/tui styles (docs/research/tui.md): the props of a style in a state and a theme,
 // the theme in use, and the run-time theme table (`defineTheme`, which the system theme fills: ./system.ts). An adapter
 // (./opentui.ts, ./bomb.ts) sets what `resolve` gives on its renderables. Plain, no imports.
+// @effect-diagnostics globalConsole:off -- plain run-time code of a terminal app (plainCode): the deprecation notice goes to stderr here
 import type { TuiLayer, TuiProps, TuiShape } from "cssints/tui";
 
 export type { TuiProps, TuiShape } from "cssints/tui";
+
+// Deprecated in favour of cssints-native's terminal/ (README.md). Every subpath imports this file, so one warning a
+// process: the flag is a symbol on globalThis, which a second copy of the package shares. stderr, not stdout.
+const WARNED = Symbol.for("cssints.tui.deprecated");
+const flags = globalThis as unknown as Record<symbol, boolean>;
+if (!flags[WARNED]) {
+  flags[WARNED] = true;
+  console.warn(
+    "@cssints/tui is deprecated: cssints-native's terminal/ target replaces it (cssints/clay styles, Clay layout, cells on termbox2). See packages/tui/README.md",
+  );
+}
 
 /** The states a renderable is in. */
 export interface TuiState {

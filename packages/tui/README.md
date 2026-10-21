@@ -1,9 +1,40 @@
 # @cssints/tui
 
-[cssints](../../README.md) in a terminal: the runtime of `cssints/tui` styles (states, the mouse pointer, the caret,
-themes) and its adapters for [OpenTUI](https://opentui.com) and [@bomb.sh/tty](https://bomb.sh/docs/tty/api/). The styles are written with `cssints/tui`, which the cssints
-Vite plugin compiles to prop objects; this package puts them on renderables. The design is in
-[docs/research/tui.md](../../docs/research/tui.md).
+> **Deprecated (2026-10-21).** The replacement is the `terminal/` target of
+> [cssints-native](https://github.com/alexeiaccio/cssints-native): `cssints/clay` styles, laid out by
+> [Clay](https://github.com/nicbarker/clay) and drawn into character cells on
+> [termbox2](https://github.com/termbox/termbox2), with the keyboard focus layer in C. The package still works and is
+> still published; importing it prints one warning ("`@cssints/tui` is deprecated: …"). The registry marks the version
+> deprecated when the release runs `npm deprecate` (see [RELEASING.md](../../RELEASING.md)).
+
+| Here                                            | There (cssints-native `terminal/`)                                                            |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `cssints/tui` styles, the Vite plugin           | `cssints/clay` styles, `generator/clay-header.ts` → a C header (`styles.h`)                   |
+| the layout of an adapter (`resolve`, a flexbox) | Clay lays out; `terminal/measure.c` measures text as a monospace grid                         |
+| OpenTUI (`/opentui`) or @bomb.sh/tty (`/bomb`)  | `terminal/render.c` fills cells, `terminal/tb2.c` is termbox2: truecolour or 256, keys, mouse |
+| `:focus` from the renderable                    | `terminal/focus.c`: the Tab order, roving focus in a group, `focus(id)`                       |
+| Solid or React trees                            | hand-written C pages: `terminal/page.c` (the Sensors page), `sky.c`, `thread.c`, `profile.c`  |
+
+What carries over: styles as data (a `styles.ts` module, no sheet and no cascade), tokens and named themes (the static
+dark and light ones), and the state names (`:hover`, `:active`, `:focus`) as overlays. What does not: OpenTUI and
+bomb.sh, the run-time `setTheme` and the system theme, hover (termbox2 reports no motion), images, a body that wraps,
+wide glyphs and emoji, floating overlays, sub-cell borders and radii. `docs/map.md` step 6 is the full account.
+
+```sh
+cd ../cssints-native
+sh terminal/build.sh                    # styles.ts -> generator/clay-header.ts -> styles.h, then cc -> terminal/demo
+./terminal/demo                         # the Sensors page in cells: Tab, Up/Down, Space, t, q
+./terminal/demo --page sky              # apps/csssky-tui's feed; enter opens the thread
+./terminal/demo --page profile          # apps/csssky's profile, the screen the tui never had
+./terminal/demo --dump out.txt          # one frame headless, '.' is a fill
+./terminal/demo --keys Tab,ArrowDown --dump out.txt   # a frame after each key
+```
+
+The rest of this file describes the deprecated package: [cssints](../../README.md) in a terminal, the runtime of
+`cssints/tui` styles (states, the mouse pointer, the caret, themes) and its adapters for
+[OpenTUI](https://opentui.com) and [@bomb.sh/tty](https://bomb.sh/docs/tty/api/). The styles are written with
+`cssints/tui`, which the cssints Vite plugin compiles to prop objects; this package puts them on renderables. The design
+is in [docs/research/tui.md](../../docs/research/tui.md).
 
 ```ts
 // styles.ts
