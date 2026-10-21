@@ -940,7 +940,8 @@ function cssints({ inner = false, exclude, devtools = false, opencode = false } 
 				resolve: { alias: config.resolve.alias },
 				...ssr && { environments: { ssr: { resolve: {
 					conditions: ssr.conditions,
-					externalConditions: ssr.externalConditions
+					externalConditions: ssr.externalConditions,
+					noExternal: ssr.noExternal
 				} } } }
 			};
 			cssPlugins = ["vite:css", "vite:css-post"].map((n) => config.plugins.find((p) => p.name === n));
