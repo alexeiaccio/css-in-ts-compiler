@@ -187,6 +187,41 @@ assert.match(
   /\.floating = \{ \.attachPoints = \{ \.element = CLAY_ATTACH_POINT_LEFT_TOP, \.parent = CLAY_ATTACH_POINT_CENTER_TOP \}, \.attachTo = CLAY_ATTACH_TO_PARENT \}/,
 );
 
+// images: Clay 1.0's Clay_ImageElementConfig is `void *imageData` alone (older Clay's sourceDimensions is gone), so the
+// path travels in it and the element's box is the image's own size; `contain` adds Clay's aspectRatio
+const images = { ...(await exportsOf("clay-image.ts")) };
+assert.deepEqual(images.glyph, {
+  layout: {
+    sizing: {
+      width: { type: "FIXED", min: 32, max: 32 },
+      height: { type: "FIXED", min: 32, max: 32 },
+    },
+  },
+  image: { imageData: "examples/sensors/glyph.png" },
+});
+assert.deepEqual(images.logo.image, { imageData: "assets/logo.png" });
+assert.deepEqual(images.logo.aspectRatio, { aspectRatio: 2 });
+assert.deepEqual(images.logo.layout.sizing.width, { type: "GROW" }); // a later width wins, the ratio stays
+assert.equal(images.glyph.aspectRatio, undefined); // fill, CSS's default: no ratio
+assert.deepEqual(images.odd.image, { imageData: 'a"b\\c.png' });
+// a later image that fills clears an earlier one's ratio; the last image's path wins
+assert.equal(images.cleared.aspectRatio, undefined);
+assert.deepEqual(images.cleared.image, { imageData: "b.png" });
+assert.deepEqual(images.cleared.layout.sizing.width, { type: "FIXED", min: 8, max: 8 });
+
+const imh = header(images);
+const imdecl = (name) => new RegExp(`Clay_ElementDeclaration ${name} = (.*);`).exec(imh)?.[1];
+assert.equal(
+  imdecl("glyph"),
+  '{ .layout = { .sizing = { .width = { .size = { .minMax = { 32, 32 } }, .type = CLAY__SIZING_TYPE_FIXED }, .height = { .size = { .minMax = { 32, 32 } }, .type = CLAY__SIZING_TYPE_FIXED } } }, .image = { .imageData = (void *)"examples/sensors/glyph.png" } }',
+);
+assert.equal(
+  imdecl("logo"),
+  '{ .layout = { .sizing = { .width = { .size = { .minMax = { 0, 0 } }, .type = CLAY__SIZING_TYPE_GROW }, .height = { .size = { .minMax = { 32, 32 } }, .type = CLAY__SIZING_TYPE_FIXED } } }, .image = { .imageData = (void *)"assets/logo.png" }, .aspectRatio = { .aspectRatio = 2 } }',
+);
+// a quote and a backslash of the path are escaped, so the C compiles
+assert.match(imdecl("odd"), /\.imageData = \(void \*\)"a\\"b\\\\c\.png" \}/);
+
 const fails = async (source, message) =>
   assert.rejects(
     code(`import * as css from "cssints/clay" with { type: "cssints" };\n${source}`),
@@ -307,6 +342,42 @@ await fails(
 await fails(
   `export const a = css.cn(css.float({ clip: "parent" }), css.float({ root: true }));`,
   /clip "parent" does nothing/,
+);
+await fails(
+  `export const a = css.image("a.png", { width: 32 });`,
+  /image: unexpected .*expected the image's width and height/,
+);
+await fails(`export const a = css.image("a.png");`, /expected the image's width and height/);
+await fails(
+  `export const a = css.image("a.png", { width: 0, height: 2 });`,
+  /image: unexpected 0x2, expected a positive whole number of pixels for each side/,
+);
+await fails(
+  `export const a = css.image("a.png", { width: 1.5, height: 2 });`,
+  /image\.width: 1\.5 is not a whole number of pixels/,
+);
+await fails(`export const a = css.image("", { width: 1, height: 1 });`, /expected the path of an image/);
+await fails(`export const a = css.image(3, { width: 1, height: 1 });`, /image: unexpected 3/);
+await fails(
+  `export const a = css.image("a\\nb.png", { width: 1, height: 1 });`,
+  /expected the path of an image/,
+);
+await fails(
+  `export const a = css.image("a.png", { width: 1, height: 1, src: "x" });`,
+  /image: unexpected "src", expected width \| height \| fit/,
+);
+await fails(
+  `export const a = css.image("a.png", { width: 1, height: 1, fit: "cover" });`,
+  /image\.fit: unexpected "cover", expected fill \| contain/,
+);
+await fails(
+  `export const a = css.image("a.png", { width: 1, height: 1 }, 2);`,
+  /image takes the path of an image and its \{ width, height, fit \}, got 3 values/,
+);
+await fails(`export const a = css.image();`, /image takes the path of an image .*got 0 values/);
+await fails(
+  `export const a = css.image(css.p(1), { width: 1, height: 1 });`,
+  /image: a style is not a value/,
 );
 
 await server.close();

@@ -176,6 +176,27 @@ const floating = (prop, parts) => {
 	if (o.clip !== void 0) set("floatClip", keyword("none", "parent")(`${prop}.clip`, o.clip) === "none" ? "NONE" : "ATTACHED_PARENT");
 	return out;
 };
+const IMAGE_OPTIONS = [
+	"width",
+	"height",
+	"fit"
+];
+const imageOf = (prop, parts) => {
+	if (parts.length < 1 || parts.length > 2) throw fail(`cssints: ${prop} takes the path of an image and its { width, height, fit }, got ${parts.length} values`);
+	const src = parts[0];
+	if (typeof src !== "string" || !src || /\p{Cc}/u.test(src)) throw fail(`cssints: ${prop}: unexpected ${say(src)}, expected the path of an image (a string, not empty, no control characters)`);
+	const o = options(prop, parts[1] ?? {}, IMAGE_OPTIONS);
+	if (o.width === void 0 || o.height === void 0) throw fail(`cssints: ${prop}: unexpected ${say(parts[1] ?? {})}, expected the image's width and height in pixels`);
+	const w = whole(`${prop}.width`, o.width);
+	const h = whole(`${prop}.height`, o.height);
+	if (!w || !h) throw fail(`cssints: ${prop}: unexpected ${say(w)}x${say(h)}, expected a positive whole number of pixels for each side`);
+	return [
+		["imageSrc", src],
+		["width", w],
+		["height", h],
+		["aspectRatio", keyword("fill", "contain")(`${prop}.fit`, o.fit ?? "fill") === "contain" ? w / h : 0]
+	];
+};
 const PADDING = [
 	"paddingTop",
 	"paddingRight",
@@ -235,7 +256,8 @@ const MEMBERS = {
 	lineHeight: one("lineHeight", whole),
 	textAlign: one("textAlign", keyword("left", "center", "right")),
 	whiteSpace: one("whiteSpace", keyword("normal", "pre-line", "nowrap")),
-	float: floating
+	float: floating,
+	image: imageOf
 };
 const member = (name, build) => (...parts) => {
 	if (parts.some(isClay)) throw fail(`cssints: ${name}: a style is not a value`);
@@ -288,7 +310,7 @@ const fonts = (...names) => {
 		]])]))
 	};
 };
-const { backgroundColor, bg, color, borderColor, width, height, padding, p, paddingInline, paddingBlock, paddingTop, paddingRight, paddingBottom, paddingLeft, pt, pr, pb, pl, gap, flexDirection, justifyContent, alignItems, borderRadius, borderWidth, border, overflow, fontSize, letterSpacing, lineHeight, textAlign, whiteSpace, float } = Object.fromEntries(Object.entries(MEMBERS).map(([k, b]) => [k, member(k, b)]));
+const { backgroundColor, bg, color, borderColor, width, height, padding, p, paddingInline, paddingBlock, paddingTop, paddingRight, paddingBottom, paddingLeft, pt, pr, pb, pl, gap, flexDirection, justifyContent, alignItems, borderRadius, borderWidth, border, overflow, fontSize, letterSpacing, lineHeight, textAlign, whiteSpace, float, image } = Object.fromEntries(Object.entries(MEMBERS).map(([k, b]) => [k, member(k, b)]));
 const rgba = (prop, text, values) => {
 	const flat = text.replace(VAR, (m, n) => valueOf(tables, n, values) ?? m);
 	const c = flat.includes("var(") ? void 0 : parseColor(flat);
@@ -404,6 +426,8 @@ const shapeOf = (entries, values) => {
 	};
 	if (p.has("overflow")) out.clip = get("overflow") === "hidden" ? HIDDEN : VISIBLE;
 	if (FLOATING.some((k) => p.has(k))) out.floating = floatingOf(p);
+	if (p.has("imageSrc")) out.image = { imageData: get("imageSrc") };
+	if (p.get("aspectRatio")) out.aspectRatio = { aspectRatio: get("aspectRatio") };
 	const text = {};
 	if (p.has("color")) text.textColor = colourOf("color");
 	for (const k of [
@@ -491,9 +515,10 @@ const ENUM = {
 	attachTo: (v) => `CLAY_ATTACH_TO_${v}`,
 	clipTo: (v) => `CLAY_CLIP_TO_${v}`
 };
+const cString = (s) => `"${s.replace(/[\\"]/g, "\\$&")}"`;
 const c = (key, v) => {
 	if (typeof v === "number") return key === "parentId" ? `${v}u` : String(v);
-	if (typeof v === "string") return ENUM[key](v);
+	if (typeof v === "string") return key === "imageData" ? `(void *)${cString(v)}` : ENUM[key](v);
 	if (v.type !== void 0) return `{ .size = { ${v.percent !== void 0 ? `.percent = ${c("", v.percent)}` : `.minMax = { ${c("", v.min ?? 0)}, ${c("", v.max ?? 0)} }`} }, .type = ${c("type", v.type)} }`;
 	return `{ ${Object.entries(v).map(([k, x]) => `.${k} = ${c(k, x)}`).join(", ")} }`;
 };
@@ -504,6 +529,8 @@ const SHAPE = /* @__PURE__ */ new Set([
 	"border",
 	"clip",
 	"floating",
+	"image",
+	"aspectRatio",
 	"text",
 	"themes",
 	...STATES
@@ -547,4 +574,4 @@ const header = (styles) => {
 	return `${lines.join("\n")}\n`;
 };
 //#endregion
-export { active, alignItems, backgroundColor, bg, border, borderColor, borderRadius, borderWidth, cn, color, createGlobalTheme, createTokens, flexDirection, float, focus, fontSize, fonts, gap, header, height, hover, justifyContent, letterSpacing, lineHeight, overflow, p, padding, paddingBlock, paddingBottom, paddingInline, paddingLeft, paddingRight, paddingTop, pb, pl, pr, pt, textAlign, whiteSpace, width };
+export { active, alignItems, backgroundColor, bg, border, borderColor, borderRadius, borderWidth, cn, color, createGlobalTheme, createTokens, flexDirection, float, focus, fontSize, fonts, gap, header, height, hover, image, justifyContent, letterSpacing, lineHeight, overflow, p, padding, paddingBlock, paddingBottom, paddingInline, paddingLeft, paddingRight, paddingTop, pb, pl, pr, pt, textAlign, whiteSpace, width };

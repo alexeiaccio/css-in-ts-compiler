@@ -40,6 +40,18 @@ export type FloatOptions = {
   root?: boolean;
   parent?: never;
 });
+/** The options of `image()`: the image's size in pixels, and how it fills its box. */
+export type ImageOptions = {
+  /** The image's width in whole pixels: the element's box starts at the image's own size. */
+  width: Px;
+  /** The image's height in whole pixels. */
+  height: Px;
+  /**
+   * `"fill"` stretches the image into a box another style gives it; `"contain"` sets Clay's `aspectRatio` to the
+   * image's, so a box that grows keeps its proportions. Default: `"fill"`, as CSS's `object-fit`.
+   */
+  fit?: "fill" | "contain";
+};
 interface Rgba {
   r: number;
   g: number;
@@ -87,6 +99,13 @@ export interface ClayFields {
   clip?: {
     horizontal: number;
     vertical: number;
+  };
+  /** `Clay_ImageElementConfig`: `imageData` is the path of the image, which the renderer loads. */
+  image?: {
+    imageData: string;
+  };
+  aspectRatio?: {
+    aspectRatio: number;
   };
   floating?: {
     offset?: {
@@ -181,6 +200,12 @@ export declare const whiteSpace: One<"normal" | "pre-line" | "nowrap">;
  * the one `parent` names, or to the root. A float is out of the flow of its siblings and of its parent's size.
  */
 export declare const float: (options?: FloatOptions) => ClayStyle;
+/**
+ * An image element: the path it is loaded from, and its size in whole pixels, which is the element's box. `fit`
+ * `"contain"` keeps its proportions in a box another style grows (Clay's `aspectRatio`); the path is passed to the
+ * renderer as `imageData`.
+ */
+export declare const image: (src: string, options: ImageOptions) => ClayStyle;
 /** Merges styles in argument order: a later prop wins. */
 export declare const cn: (...styles: ClayStyle[]) => ClayStyle;
 /** Under the pointer: header() prints the style with it as `<name>_hover`. States do not nest. */
