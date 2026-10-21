@@ -1406,7 +1406,7 @@ static const Clay_TextElementConfig label_text = { .textColor = { .r = 235, .g =
 CLAY(CLAY_ID("Units"), pill) { CLAY_TEXT(CLAY_STRING("switch to g"), label_text); }
 ```
 
-- **Members**: `width`, `height` (pixels, `N%`, `auto` for Clay's FIT, `stretch` for GROW), `padding`/`p` and the sides, `gap` (`childGap`), `flexDirection` (`row`, `column`), `justifyContent` and `alignItems` (start, center, end: Clay's `childAlignment`, the axis from `flexDirection`), `backgroundColor`/`bg`, `borderRadius`, `border(width, colour)`, `borderWidth`, `borderColor`, `overflow("hidden")` (`clip`), `float()` (`floating`, below), and for text `color`, `fontSize`, `letterSpacing`, `lineHeight`, `textAlign`, `whiteSpace` (`wrapMode`); `cn` merges, a later prop wins. Any other property is not a member.
+- **Members**: `width`, `height` (pixels, `N%`, `auto` for Clay's FIT, `stretch` for GROW), `padding`/`p` and the sides, `gap` (`childGap`), `flexDirection` (`row`, `column`), `justifyContent` and `alignItems` (start, center, end: Clay's `childAlignment`, the axis from `flexDirection`), `backgroundColor`/`bg`, `borderRadius`, `border(width, colour)`, `borderWidth`, `borderColor`, `overflow("hidden")` (`clip`), `float()` (`floating`, below), `image(src, { width, height, fit })` (`image`, below), and for text `color`, `fontSize`, `letterSpacing`, `lineHeight`, `textAlign`, `whiteSpace` (`wrapMode`); `cn` merges, a later prop wins. Any other property is not a member.
 - **Pixels.** A number or `"Npx"`; padding, gap and border widths are whole numbers (`uint16_t` in Clay). Another unit is a type error and a build error.
 - **Colours** are checked by the web's `color` grammar, or are colour tokens of cssints/clay's `createTokens`, and are written as 0-255 `r g b a`.
 - **`header(exports)`** prints a `Clay_ElementDeclaration` per export and, for one with text props, a `Clay_TextElementConfig` named `<name>_text`. A field it does not set is zero, which is Clay's default.
@@ -1469,6 +1469,31 @@ css.float({ attach: { element: "top left" } }); // error: a point is x, then y
 
 ```c
 static const Clay_ElementDeclaration menu = { .layout = { ... }, .backgroundColor = { ... }, .floating = { .offset = { .x = 0, .y = 4 }, .parentId = 3516868942u, .zIndex = 10, .attachPoints = { .element = CLAY_ATTACH_POINT_LEFT_TOP, .parent = CLAY_ATTACH_POINT_LEFT_BOTTOM }, .attachTo = CLAY_ATTACH_TO_ELEMENT_WITH_ID } };
+```
+
+- **Images**: `image(src, { width, height, fit })` fills Clay's `image`: the element that draws a picture, its children none. Clay 1.0's `Clay_ImageElementConfig` is one field, `void *imageData`, which Clay passes to the renderer untouched, so the path of the image travels in it (the desktop renderer loads it with ThorVG; the firmware's own renderer is still the app's to write). Older Clay also kept the image's `sourceDimensions` there; 1.0 has no such field, so the image's own size becomes the element's box, and `fit` is Clay's `aspectRatio`:
+
+  | Option                     | Clay field                                                                                                       | Default   |
+  | -------------------------- | ---------------------------------------------------------------------------------------------------------------- | --------- |
+  | `"glyph.png"` (argument 1) | `image.imageData`: the path, printed as a C string, `(void *)"glyph.png"`                                        | —         |
+  | `width`, `height`          | `layout.sizing`: the image's size, `CLAY_SIZING_FIXED`, whole pixels (a later `width` of a `cn()` wins)          | —         |
+  | `fit: "contain"`           | `aspectRatio`: width / height, which Clay uses where it has one side to derive the other's (`"fill"` stretches)  | `"fill"`  |
+
+  A path that is not a non-empty string, a size that is not a positive whole number, an option that does not exist are build errors. `fit` is how the picture meets a box another style gives it: `fill` (CSS's `object-fit` default) stretches it, `contain` keeps the image's proportions.
+
+```ts
+import * as css from "cssints/clay" with { type: "cssints" };
+
+export const glyph = css.image("examples/sensors/glyph.png", { width: 32, height: 32 });
+export const logo = css.cn(
+  css.image("assets/logo.png", { width: 64, height: 32, fit: "contain" }),
+  css.width("stretch"),
+);
+css.image("logo.png", { width: 64, height: 32, fit: "cover" }); // error: fill or contain
+```
+
+```c
+static const Clay_ElementDeclaration glyph = { .layout = { .sizing = { .width = { .size = { .minMax = { 32, 32 } }, .type = CLAY__SIZING_TYPE_FIXED }, .height = { .size = { .minMax = { 32, 32 } }, .type = CLAY__SIZING_TYPE_FIXED } } }, .image = { .imageData = (void *)"examples/sensors/glyph.png" } };
 ```
 
 - **Not yet**: min and max sizes, derived colour tokens (`color-mix()` of tokens: a colour Clay is given must parse as one), a theme under a condition (a theme is a name; `media()` has no meaning on a board).

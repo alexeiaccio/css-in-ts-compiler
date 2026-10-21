@@ -75,3 +75,14 @@ css.float({ parent: 3 });
 css.float({ parent: "Units", root: true });
 // @ts-expect-error float takes options, not a style
 css.float(css.p(1));
+
+export const images = css.cn(
+  css.image("glyph.png", { width: 32, height: 32 }),
+  css.image("logo.png", { width: 64, height: 32, fit: "contain" }),
+);
+// @ts-expect-error fill or contain, as CSS's object-fit
+css.image("a.png", { width: 1, height: 1, fit: "cover" });
+// @ts-expect-error the image's size is required
+css.image("a.png", { width: 1 });
+// @ts-expect-error no such option: the path is the first argument
+css.image({ src: "a.png", width: 1, height: 1 });

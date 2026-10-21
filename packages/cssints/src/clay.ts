@@ -243,6 +243,42 @@ const floating: Build = (prop, parts) => {
   return out;
 };
 
+// An image (Clay_ImageElementConfig): Clay 1.0's config is a single `void *imageData`, which it passes through to the
+// renderer untouched, so the path of the image travels there; older Clay also carried its sourceDimensions, and 1.0
+// sizes the box instead (and an aspectRatio, which is where `fit` goes).
+const IMAGE_OPTIONS = ["width", "height", "fit"];
+const imageOf: Build = (prop, parts) => {
+  if (parts.length < 1 || parts.length > 2)
+    throw fail(
+      `cssints: ${prop} takes the path of an image and its { width, height, fit }, got ${parts.length} values`,
+    );
+  const src = parts[0];
+  if (typeof src !== "string" || !src || /\p{Cc}/u.test(src))
+    throw fail(
+      `cssints: ${prop}: unexpected ${say(src)}, expected the path of an image (a string, not empty, no control characters)`,
+    );
+  const o = options(prop, parts[1] ?? {}, IMAGE_OPTIONS);
+  if (o.width === undefined || o.height === undefined)
+    throw fail(
+      `cssints: ${prop}: unexpected ${say(parts[1] ?? {})}, expected the image's width and height in pixels`,
+    );
+  const w = whole(`${prop}.width`, o.width);
+  const h = whole(`${prop}.height`, o.height);
+  if (!w || !h)
+    throw fail(
+      `cssints: ${prop}: unexpected ${say(w)}x${say(h)}, expected a positive whole number of pixels for each side`,
+    );
+  // the box starts at the image's own size, as sourceDimensions did; `contain` also sets Clay's aspectRatio, so a box
+  // another style grows keeps the image's proportions and a renderer that fills it does not distort it. `fill` says 0,
+  // which is Clay's own "no ratio": a later image in a cn() clears an earlier one's ratio.
+  return [
+    ["imageSrc", src],
+    ["width", w],
+    ["height", h],
+    ["aspectRatio", keyword("fill", "contain")(`${prop}.fit`, o.fit ?? "fill") === "contain" ? w / h : 0],
+  ];
+};
+
 const PADDING = ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"];
 const BORDER = ["borderTop", "borderRight", "borderBottom", "borderLeft"];
 const RADIUS = ["topLeft", "topRight", "bottomRight", "bottomLeft"];
@@ -284,6 +320,7 @@ const MEMBERS: Record<string, Build> = {
   textAlign: one("textAlign", keyword("left", "center", "right")),
   whiteSpace: one("whiteSpace", keyword("normal", "pre-line", "nowrap")),
   float: floating,
+  image: imageOf,
 };
 
 const member =
@@ -381,6 +418,7 @@ export const {
   textAlign,
   whiteSpace,
   float,
+  image,
 } = members;
 
 // ---------- the site: Clay's structs, field for field
@@ -502,6 +540,8 @@ const shapeOf = (entries: Entry[], values?: Map<string, string>): Shape => {
     };
   if (p.has("overflow")) out.clip = get("overflow") === "hidden" ? HIDDEN : VISIBLE;
   if (FLOATING.some((k) => p.has(k))) out.floating = floatingOf(p);
+  if (p.has("imageSrc")) out.image = { imageData: get("imageSrc")! };
+  if (p.get("aspectRatio")) out.aspectRatio = { aspectRatio: get("aspectRatio")! };
   const text: Shape = {};
   if (p.has("color")) text.textColor = colourOf("color");
   for (const k of ["fontId", "fontSize", "letterSpacing", "lineHeight"])
@@ -600,10 +640,13 @@ const ENUM: Record<string, (v: string) => string> = {
   attachTo: (v) => `CLAY_ATTACH_TO_${v}`,
   clipTo: (v) => `CLAY_CLIP_TO_${v}`,
 };
+// a C string literal: the path of an image, as imageData (a void *, the renderer's to read)
+const cString = (s: string) => `"${s.replace(/[\\"]/g, "\\$&")}"`;
 const c = (key: string, v: number | string | Shape): string => {
   // parentId is a uint32_t: a hash over INT_MAX needs its suffix where int is 32 bits
   if (typeof v === "number") return key === "parentId" ? `${v}u` : String(v);
-  if (typeof v === "string") return ENUM[key]!(v);
+  if (typeof v === "string")
+    return key === "imageData" ? `(void *)${cString(v)}` : ENUM[key]!(v);
   // a sizing axis: Clay's union, as CLAY_SIZING_FIXED() and its kin write it
   if (v.type !== undefined) {
     const size =
@@ -625,6 +668,8 @@ const SHAPE = new Set([
   "border",
   "clip",
   "floating",
+  "image",
+  "aspectRatio",
   "text",
   "themes",
   ...STATES,
