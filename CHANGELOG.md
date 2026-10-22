@@ -2,6 +2,16 @@
 
 All 25 packages share one version (`cssints` and every `@cssints/*`). cssints is in alpha: on 0.x a minor version can break, and each breaking change here says how to migrate. The entries come from the changesets of each release (`scripts/changelog.mjs`, run by `bun run version-packages`).
 
+## 0.5.0 (2026-10-22)
+
+### Minor changes
+
+- `cssints/clay`: `image(src, { width, height, fit })` fills Clay's `image` — the path in `imageData` for the renderer to load, the image's size as the element's box, and `fit: "contain"` as Clay's `aspectRatio`.
+
+### Patch changes
+
+- Deprecated in favour of the `terminal/` target of [cssints-native](https://github.com/alexeiaccio/cssints-native): `cssints/clay` styles laid out by Clay and drawn into character cells on termbox2, with the focus layer in C. The package keeps working; importing it warns once, and the README says what carries over (`packages/tui/README.md`).
+
 ## 0.4.0 (2026-10-21)
 
 ### Minor changes

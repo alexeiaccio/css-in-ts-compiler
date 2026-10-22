@@ -1,5 +1,15 @@
 # cssints
 
+## 0.5.0
+
+### Minor Changes
+
+- c23f8ea: `cssints/clay`: `image(src, { width, height, fit })` fills Clay's `image` — the path in `imageData` for the renderer to load, the image's size as the element's box, and `fit: "contain"` as Clay's `aspectRatio`.
+
+### Patch Changes
+
+- @cssints/css-grammar@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes
