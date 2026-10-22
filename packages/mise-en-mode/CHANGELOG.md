@@ -1,5 +1,12 @@
 # @cssints/mise-en-mode
 
+## 0.5.0
+
+### Patch Changes
+
+- Updated dependencies [c23f8ea]
+  - cssints@0.5.0
+
 ## 0.4.0
 
 ### Patch Changes
