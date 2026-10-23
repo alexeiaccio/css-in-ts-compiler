@@ -1,0 +1,539 @@
+{
+  "pattern": "resizable-panels",
+  "source": "spec",
+  "commit": null,
+  "license": "MIT",
+  "notes": "Not an APG pattern (bean cssints-pyit): a group of APG window splitters. Written from specs/patterns/resizable-panels.qnt (the layout, the drag and the request/commit contract) with the keyboard from specs/apg/windowsplitter.qnt. Config is the three-pane instance: 10/80 bounds, 10% steps, pane 0 collapsible at 0. The drag is its own vocabulary: dragStart on a separator, dragBy with a +/-10 delta, dragEnd.",
+  "skipped": [
+    {
+      "id": "resizable-panels.spec.drag-through-min-collapses",
+      "reason": "react-resizable-panels collapses a pane when a drag crosses its minSize; this spec collapses only on Enter or a host write, so a drag stops at MIN"
+    },
+    {
+      "id": "resizable-panels.spec.f6-cycles-panes",
+      "reason": "the group has no F6 cycle: with three panes it buys nothing a Tab does not, and the spec leaves it out"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "resizable-panels.spec.initial-layout",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "expect": {
+            "focus": null,
+            "value": [
+              20,
+              40,
+              40
+            ],
+            "attrs": {
+              "separator:0": {
+                "role": "separator",
+                "aria-orientation": "vertical",
+                "aria-valuenow": "20",
+                "aria-valuemin": "10",
+                "aria-valuemax": "80",
+                "tabindex": "0"
+              },
+              "separator:1": {
+                "role": "separator",
+                "aria-valuenow": "40"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "resizable-panels.spec.arrow-moves-the-pair",
+      "apg": "keyboard",
+      "config": {},
+      "steps": [
+        {
+          "event": "focus",
+          "target": "separator:0"
+        },
+        {
+          "expect": {
+            "focus": "separator:0"
+          }
+        },
+        {
+          "event": "key",
+          "key": "ArrowRight",
+          "target": "separator:0"
+        },
+        {
+          "expect": {
+            "value": [
+              30,
+              30,
+              40
+            ],
+            "attrs": {
+              "separator:0": {
+                "aria-valuenow": "30"
+              }
+            },
+            "events": {
+              "onSizesChange": [
+                [
+                  30,
+                  30,
+                  40
+                ]
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "resizable-panels.spec.arrow-stops-at-the-neighbours-min",
+      "apg": "keyboard",
+      "config": {},
+      "steps": [
+        {
+          "event": "focus",
+          "target": "separator:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "separator:0"
+        },
+        {
+          "expect": {
+            "value": [
+              10,
+              50,
+              40
+            ]
+          }
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "separator:0"
+        },
+        {
+          "expect": {
+            "value": [
+              10,
+              50,
+              40
+            ],
+            "events": {
+              "onSizesChange": [
+                [
+                  10,
+                  50,
+                  40
+                ]
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "resizable-panels.spec.home-and-end-jump-the-pair",
+      "apg": "keyboard",
+      "config": {},
+      "steps": [
+        {
+          "event": "focus",
+          "target": "separator:1"
+        },
+        {
+          "event": "key",
+          "key": "End",
+          "target": "separator:1"
+        },
+        {
+          "expect": {
+            "value": [
+              20,
+              70,
+              10
+            ]
+          }
+        },
+        {
+          "event": "key",
+          "key": "Home",
+          "target": "separator:1"
+        },
+        {
+          "expect": {
+            "value": [
+              20,
+              10,
+              70
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "resizable-panels.spec.enter-collapses-and-restores",
+      "apg": "keyboard",
+      "config": {},
+      "steps": [
+        {
+          "event": "focus",
+          "target": "separator:0"
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "separator:0"
+        },
+        {
+          "expect": {
+            "value": [
+              0,
+              60,
+              40
+            ],
+            "attrs": {
+              "separator:0": {
+                "aria-valuenow": "0"
+              }
+            }
+          }
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "separator:0"
+        },
+        {
+          "expect": {
+            "value": [
+              20,
+              40,
+              40
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "resizable-panels.spec.drag-stops-at-min-and-keeps-the-snapshot",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "dragStart",
+          "target": "separator:0"
+        },
+        {
+          "expect": {
+            "focus": "separator:0"
+          }
+        },
+        {
+          "event": "dragBy",
+          "value": 10
+        },
+        {
+          "expect": {
+            "value": [
+              30,
+              30,
+              40
+            ]
+          }
+        },
+        {
+          "event": "dragBy",
+          "value": -10
+        },
+        {
+          "expect": {
+            "value": [
+              20,
+              40,
+              40
+            ]
+          }
+        },
+        {
+          "event": "dragBy",
+          "value": -10
+        },
+        {
+          "expect": {
+            "value": [
+              10,
+              50,
+              40
+            ]
+          }
+        },
+        {
+          "event": "dragBy",
+          "value": -10
+        },
+        {
+          "event": "dragEnd"
+        },
+        {
+          "expect": {
+            "value": [
+              10,
+              50,
+              40
+            ],
+            "events": {
+              "onSizesChange": [
+                [
+                  30,
+                  30,
+                  40
+                ],
+                [
+                  20,
+                  40,
+                  40
+                ],
+                [
+                  10,
+                  50,
+                  40
+                ]
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "resizable-panels.spec.drag-moves-only-the-neighbours",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        {
+          "event": "dragStart",
+          "target": "separator:1"
+        },
+        {
+          "event": "dragBy",
+          "value": 10
+        },
+        {
+          "expect": {
+            "value": [
+              20,
+              50,
+              30
+            ]
+          }
+        },
+        {
+          "event": "dragEnd"
+        },
+        {
+          "expect": {
+            "value": [
+              20,
+              50,
+              30
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "resizable-panels.spec.collapsed-separator-is-immovable",
+      "apg": "keyboard",
+      "config": {},
+      "steps": [
+        {
+          "event": "focus",
+          "target": "separator:0"
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "separator:0"
+        },
+        {
+          "expect": {
+            "value": [
+              0,
+              60,
+              40
+            ]
+          }
+        },
+        {
+          "event": "key",
+          "key": "ArrowRight",
+          "target": "separator:0"
+        },
+        {
+          "event": "key",
+          "key": "Home",
+          "target": "separator:0"
+        },
+        {
+          "expect": {
+            "value": [
+              0,
+              60,
+              40
+            ],
+            "events": {
+              "onSizesChange": [
+                [
+                  0,
+                  60,
+                  40
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "separator:0"
+        },
+        {
+          "expect": {
+            "value": [
+              20,
+              40,
+              40
+            ]
+          }
+        }
+      ],
+      "notes": "collapsed by Enter (an uncontrolled group), so arrows and Home are inert and Enter restores the remembered size"
+    },
+    {
+      "id": "resizable-panels.spec.controlled-hold-ignores-the-request",
+      "apg": "extension",
+      "config": {
+        "controlled": true,
+        "accepts": false
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "separator:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowRight",
+          "target": "separator:0"
+        },
+        {
+          "expect": {
+            "value": [
+              20,
+              40,
+              40
+            ],
+            "attrs": {
+              "separator:0": {
+                "aria-valuenow": "20"
+              }
+            },
+            "events": {
+              "onSizesChange": [
+                [
+                  30,
+                  30,
+                  40
+                ]
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "resizable-panels.spec.controlled-host-writes-the-layout",
+      "apg": "extension",
+      "config": {
+        "controlled": true,
+        "accepts": false,
+        "layout": "wide"
+      },
+      "steps": [
+        {
+          "expect": {
+            "value": [
+              50,
+              30,
+              20
+            ],
+            "attrs": {
+              "separator:0": {
+                "aria-valuenow": "50"
+              },
+              "separator:1": {
+                "aria-valuenow": "30"
+              }
+            }
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "hostLayout",
+          "value": "narrow"
+        },
+        {
+          "expect": {
+            "value": [
+              10,
+              40,
+              50
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "resizable-panels.spec.controlled-accepting-host-commits",
+      "apg": "extension",
+      "config": {
+        "controlled": true
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "separator:1"
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "separator:1"
+        },
+        {
+          "expect": {
+            "value": [
+              20,
+              30,
+              50
+            ],
+            "events": {
+              "onSizesChange": [
+                [
+                  20,
+                  30,
+                  50
+                ]
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

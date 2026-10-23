@@ -1,6 +1,6 @@
 # @cssints/apg-specs — APG widget specs
 
-The Quint specs behind [`@cssints/headless`](../headless/README.md): one spec per WAI-ARIA APG pattern (plus the canvas camera/pointer contract), the generated models and typed scaffolding, the `SpecBridge` for each pattern, the ported upstream scenario sets, and the spec-only verification. Private: it is the test oracle of the widgets, and of `native/headless`, not a published package.
+The Quint specs behind [`@cssints/headless`](../headless/README.md): one spec per WAI-ARIA APG pattern, one per non-APG pattern composed of them (resizable panels), plus the canvas camera/pointer contract; the generated models and typed scaffolding, the `SpecBridge` for each pattern, the ported upstream scenario sets, and the spec-only verification. Private: it is the test oracle of the widgets, and of `native/headless`, not a published package.
 
 The generated files (`*.model.generated.json`, `*.scaffolding.generated.ts`) are written by the code generation of [`@quint-machine/core`](https://www.npmjs.com/package/@quint-machine/core) and are never edited by hand. Ticket ids like `effects-of-atmosphere-dx00` in the comments of the specs and tests are tickets of the repository these files came from.
 
@@ -9,12 +9,15 @@ The generated files (`*.model.generated.json`, `*.scaffolding.generated.ts`) are
 ```
 specs/apg/<pattern>.qnt                           # APG pattern specs (one behavior-machine each)
 specs/canvas/<machine>.qnt                        # canvas camera + pointer specs
+specs/patterns/<machine>.qnt                      # non-APG patterns composed of APG widgets (resizable-panels)
 shared/<module>.qnt                               # vocabulary + pure defs: aria, focusgroup, popover, invokers, details-group
 src/<service>/<machine>.model.generated.json      # generated model document
 src/<service>/<machine>.scaffolding.generated.ts  # generated typed scaffolding
 src/apg/<pattern>.bridge.ts                       # scenario vocabulary <-> spec events/state
+src/patterns/<machine>.bridge.ts                  # the same, for a non-APG pattern
 src/scenario.ts                                   # scenario decoder + replay/differential-walk runtime
 scenarios/apg/*.json, scenarios/canvas/*.json     # ported upstream scenario sets
+scenarios/patterns/*.json                         # scenarios written from our own pattern specs
 scenarios/parts.json                              # part names per pattern
 test/<service>/<machine>.test.ts                  # spec-only verification
 scripts/generate-all.ts                           # regenerates every spec under specs/
@@ -32,4 +35,4 @@ Run in `packages/apg-specs`:
 - `bun run typecheck` — `tsc-rs` over `src`, `test` and `scripts`.
 - `bun run check` — all of the above, in order.
 
-Consumers import by deep path, e.g. `@cssints/apg-specs/src/apg/disclosure.bridge`, `@cssints/apg-specs/src/scenario`, `@cssints/apg-specs/scenarios/apg/tabs.base-ui.json`. The scenario format is specified in `scenarios/apg/README.md`.
+Consumers import by deep path, e.g. `@cssints/apg-specs/src/apg/disclosure.bridge`, `@cssints/apg-specs/src/scenario`, `@cssints/apg-specs/scenarios/apg/tabs.base-ui.json`. The scenario format is specified in `scenarios/apg/README.md`; `scenarios/patterns/` holds the scenarios of our own non-APG patterns (same format, no upstream).
