@@ -264,7 +264,8 @@ Each step ends in a check that fails when it breaks.
    viewport, the keyboard reveal and its bounds, the wheel not moving the selection, the header and footer unmoved, the
    ring's pixels, the wheel only under the pointer, the page fitting). Dropping the scroll-into-view fails eleven of them.
    Seen by eye: the four frames; the window started (`--frames 60`, exit 0) but its wheel and keys were not tried by hand
-   (the screen is not visible to me). Left: horizontal scrolling, momentum, dragging the list with the pointer, a
+   (the screen is not visible to me). Left: horizontal scrolling, momentum (the Sky feed got the first motion tracks,
+   item 2; this page keeps Clay's instant wheel step), dragging the list with the pointer, a
    scrollbar (the page has a "n of 30" readout instead) and dragging one, and scrolling the page itself when the wheel is
    outside the viewport (Clay scrolls the container under the pointer only).
    **Done: the accessibility tree** (`solid/a11y.ts`, `solid/a11y.test.ts`). `snapshot(root, { parts, containers })`
@@ -292,8 +293,10 @@ Each step ends in a check that fails when it breaks.
    `dialog.test.ts`'s, not the tree's), the `tree`/`toolbar`/`tablist` containers unnamed (the page has no caption for
    them), and the List page, which is no headless part and so has no roles at all yet.
    **Done: the first real app** (`solid/app/Sky.tsx`, `bun solid/main.ts sky`). csssky's home feed at phone size
-   (360x760): the wordmark and the three feeds as a headless tablist, a Clay clip element (664px of the window) that the
-   wheel scrolls and that one Tab stop scrolls with Down/Up 40px, PageDown/PageUp a viewport and Home/End, and six cards
+   (360x760): the wordmark and the three feeds as a headless tablist, a clip element (664px of the window) that the page's
+   own motion track scrolls — 10px a wheel notch, a flick's decay, Down/Up 40px, PageDown/PageUp a viewport, Home/End,
+   clamped to the cards' height (item 2's tracks; it is the first page that owns its offset and turns
+   `ui_auto_scroll` off) — and six cards
    from the app's own recorded fixtures — three Discover, three Science, News empty — with the author's name and
    `@handle · age` (`ago()` pinned to the fixture's capture moment, not the clock), a body (14px/20) that **wraps** (the
    first page where text does: the body is a stretch text inside the card's percent width, because a clip element lets
@@ -305,13 +308,18 @@ Each step ends in a check that fails when it breaks.
    Check: four stored frames (Discover, Science after a click on its tab, the light theme, Science 8 notches down) and
    `solid/sky.test.ts` (the avatars' pixels — the panel at the box's transparent corner, the author's hue in the disc,
    michaelwarburton `74 132 214` and erikstrub `126 108 200`, and the change with the tab; Erik's body four 20px lines
-   and the media line that makes Titania's card 18px taller than Michael's; hover on a card and a tab; the wheel's 10px
-   with the bar and status still; the keyboard's 40px a Down, a viewport a Page, and the clamps; the feed's ring pixels;
+   and the media line that makes Titania's card 18px taller than Michael's; hover on a card and a tab; the wheel's one
+   notch gliding `2.59, 1.92, 1.42…` px a frame to exactly 10 with the bar and status still, eight notches flinging to
+   the clamped 78 in 31 frames and the stored `sky-scrolled.png` matching that frame 0 pixels, a wheel up mid-throw
+   landing 10px back at 64.05 with no step jumping; the keyboard's 40px a Down, a viewport a Page, Home/End on the same
+   track, and the clamps; the feed's ring pixels;
    the tabs switching the feed and News' empty centred muted line; the page fitting). Mutations: a bare 40x40 avatar box
-   fails the disc asserts, and a `nowrap` body fails the wrap asserts and (the content then short) the scroll ones. Seen
+   fails the disc asserts, a `nowrap` body fails the wrap asserts and (the content then short) the scroll ones, and
+   `Track.retarget` dropping the sampled velocity fails the mid-flight block. Seen
    by eye: the four frames, zoomed — the bar's underline, the name and handle, the counts' `·`, the avatar discs. Left:
    no fetching or paging (three recorded posts per feed), no thread screen, no post images (a media line), no avatars
-   beyond the six committed, no momentum or drag scrolling, the name and handle on two lines because the pair does not
+   beyond the six committed, no drag scrolling (the wheel is the only input; touch has no host yet), the name and handle
+   on two lines because the pair does not
    fit 312px (Clay has no ellipsis), and media lines that wrap at spaces only, so the Science link shows the embed's host
    instead of its 60-character URI (the app's own fallback when a link has no title).
 5. **JSX to C.** The same component evaluated at build time to C calls, for targets with no JS. Check: its render
@@ -453,6 +461,31 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    anyway, so `solid/src/motion.ts` is ~150 lines and the Dialog, the menu, the tab underline, hover and the feed's
    scroll come alive. Checks are theirs too: `x` and `v` continuous at a retarget, `1x16.6 ms == 2x8.3 ms == seek`, and
    an exact stop.
+   **Done: motion tracks (scroll)** (2026-10-23). `solid/src/motion.ts` has the model: a spring from
+   `(duration = 0.35, bounce = 0)` with `ω = 2π/duration`, `ζ = 1 - bounce`, solved analytically in the three regimes
+   (a decaying sinusoid, `e^(-ωt)(d0 + (v0 + ω d0)t)`, two real exponentials), so it is exact at any time and needs no
+   integration; a track `{x0, v0, target, t0, spring}` whose `at(t)` is `{x, v, done}`, whose `retarget(t, target)`
+   samples the presented `(x, v)` first (continuity), and whose settle is 0.5px and 0.5px/s with the value snapped to
+   the target exactly; `spatial()` and `effect()` (the latter critically damped and clamped to the start..target range
+   even when asked for a bounce); and a decay `v0·r^t`, `r = 0.998/ms` (`k = -1000 ln r ≈ 2.002`), landing at
+   `x0 + v0/k`, stopping at `|v| < 5px/s` on that projection. The clock is passed in, never read. The first user is the
+   Sky feed, which is also the first page to own its scroll offset: `ui_wheel` now feeds a second channel
+   (`ui_wheel_pop`), `ui_auto_scroll(0)` keeps `ui_begin` from giving the same delta to Clay's containers (the default
+   stays on, and only Sky turns it off — the List page and every other frame are untouched), `View.onWheel(dx, dy)` gets
+   the polled delta before the frame (headless `--wheel` too) and `View.tick(dt)` runs before `flush()`. Sky: a notch is
+   10px, accumulated and clamped to the last card's height (an explicit `maxScroll` from `ui.bounds`); a notch from rest
+   glides from `ω·d` (no overshoot); a burst of two or more is a flick whose presented velocity goes to the decay, whose
+   projection is clamped, and the motion then either decays to it or springs to the clamped end; keys retarget the same
+   track. Measured: one notch `2.59, 1.92, 1.42, 1.05, 0.78, 0.58…` px a frame, exact 10px at rest; eight notches
+   `2.59…5.79`, peak 6.60, rest at 78 after 31 frames; a wheel up 13.51px into the throw lands at 64.05, worst
+   frame-to-frame increase 1.64px (the notch is 10); the four stored frames regenerated byte-identical (the settled
+   -78 is what the old clamp had). Checks: `solid/motion.test.ts` (frame-rate independence, both limits at a retarget,
+   the exact settle, effect's clamp, the decay's projection) and the sky test's four scroll blocks, whose stored-frame
+   check is a 0-pixel `diffPng`. Mutation: `Track.retarget` setting `v0 = 0` after sampling makes the mid-flight block
+   fail — `FAIL and it turns the throw back: the rest is 64, ten px above the 74 it was heading to: 27.87, wanted
+   64.05`. Not covered yet: **opacity and transform animation** (a Clay style is a compile-time literal, so a field
+   needs a runtime style-value channel before a track can drive it), the Dialog/menu/tab underline/hover, first-mount
+   entry, reduced motion, a rubber band (the feed clamps hard), drag/touch, and the terminal, browser and board.
 3. **Metamorphic tests of layout and raster.** ~30 lines each, and they catch the bug classes we actually have:
    wrapping a page in a style-less box leaves the pixels identical; shifting a subtree by whole px shifts the picture
    exactly; a wider container never adds a text line (the Sky body); building the tree fresh versus reusing it gives

@@ -133,6 +133,59 @@ The Sky page's cards are the first gradient: `180deg` from `rgb(27 32 38)` to `r
 not an inversion. A hover overrides the whole gradient with the hover tokens (`34 40 49` to `28 33 40`): a state cannot
 unset one, so it replaces it.
 
+## Motion
+
+`solid/src/motion.ts` is Rune's model, and the first user is the Sky feed's scroll. A **spring** is made from
+SwiftUI's `(duration, bounce)`: `ω = 2π / duration`, `ζ = 1 - bounce`, and the analytic solution of
+`d'' + 2ζω d' + ω² d = 0` for the three regimes — a decaying sinusoid under-damped, `e^(-ωt)(d0 + (v0 + ω d0)t)`
+critically damped, two real exponentials over-damped. It is exact at any instant, so there is no integration and no
+frame-rate dependence. A **track** is one segment `{x0, v0, target, t0, spring}`; `at(t)` returns `{x, v, done}` and
+`retarget(t, target)` first samples the presented `(x, v)`, so the value and the velocity are continuous. The settle
+rule is 0.5px and 0.5px/s: within it the value *is* the target and the velocity 0, an exact snap like Rune's 1/64px
+idea without the grid. Two classes: `spatial()` (0.35s, bounce 0, may overshoot) and `effect()` (critically damped and
+clamped to the start..target range, so a colour or an opacity cannot overshoot even when a bounce is asked for). A
+**decay** is a fling: `v(t) = v0·r^t` with `r = 0.998` per millisecond (iOS's normal deceleration), i.e.
+`v0·e^(-kt)`, `k = -1000 ln r ≈ 2.002`, and `x(t) = x0 + v0(1 - e^(-kt))/k`; `project()` is `x0 + v0/k`, where it lands,
+and it stops at `|v| < 5px/s` on the projection. **The clock is passed in**: nothing in the file reads the time, so a
+headless frame at 1/60 and a window frame at the real dt take one path and a test can ask for any instant.
+`bun solid/motion.test.ts` checks 16.6ms against two 8.3ms steps, the continuity of a retarget (both limits), the exact
+settle, `effect` staying inside its range, and the decay's monotonicity and projection. The mutation is the model's:
+`Track.retarget` dropping the sampled velocity (setting `v0 = 0`) fails the sky test's mid-flight block.
+
+Two host members carry the wheel to a page. `ui_window_poll` still adds every SDL wheel event through `ui_wheel`, and
+`ui_wheel` now fills two channels: Clay's (as before, for a page that keeps Clay's scroll container) and the page's,
+drained by `ui_wheel_pop(float out[2])`. `ui_auto_scroll(0)` stops `ui_begin` from calling
+`Clay_UpdateScrollContainers` with that delta (the delta is still drained), so a page that owns its offset does not get
+the notch twice; the default is on, and **only the Sky page turns it off** — the List page is unchanged. On the host
+side, `View.onWheel(dx, dy)` gets the polled delta before the frame (the window loop pops it after `ui_window_poll`;
+`--wheel N` in headless mode calls the same pop after each notch) and `View.tick(dt)` is called once a frame after the
+events and before `flush()`. `main.ts` wires a page's `motion` object to both; `Sky` puts its handler there.
+
+The Sky feed's offset is a positive-down value the page owns. A wheel notch adds 10px (as before) to a clamped target
+and retargets the track; a notch from rest starts at the velocity a critically damped spring needs to glide the step
+without overshoot (`ω·d`), so the notch moves on its first frame and each frame after it less. A burst of notches
+(≥2, frames or notches) is a flick: on the release the track's presented velocity is handed to a decay, its
+`project()` is clamped to the content, and the motion either runs the decay to that landing (inside the content) or
+springs to the clamped end from the presented `(x, v)`. A wheel during a throw retargets from the presented `(x, v)`,
+so nothing jumps or stops. The keyboard retargets the same track: Down/Up 40px, PageUp/PageDown a viewport, Home/End
+to the ends. The clamp is explicit: the last card's `ui.bounds` bottom plus the 12px padding, less the viewport's
+bottom and Clay's offset, so a shorter feed clamps to 0. `ui.scrollTo("sky-feed", -x)` puts the presented value on
+Clay's clip element each frame. Measured (`solid/sky.test.ts`): one notch moves `2.59, 1.92, 1.42, 1.05, 0.78, 0.58…`
+px a frame and rests at exactly 10px; eight notches step `2.59, 2.28, 2.64, 3.32, 4.14, 4.99, 5.79`, peak at 6.60 and
+decay to rest at 78px after 31 frames; a notch up 13.51px into that throw lands at 64.05 (10px back), the worst
+frame-to-frame increase 1.64px against the notch's 10. The four stored `frames/sky*.png` were regenerated with the new
+`--settle 60` and are **byte-identical**: the settle is the same -78 the clamp had, so the motion changes the frames
+between the ends, not the committed ones.
+
+Not here: **opacity and transform animation**. A Clay style is a compile-time literal (`css.cn(...)` becomes a packed
+`Float32Array` at module load), and `frame.ts` reads it whole each frame, so animating one field needs a runtime
+style-value channel — a way for a page to say "this field, this frame" without a new literal — and that is a separate
+change; today a track can only drive a value the page already consumes itself (`ui.scrollTo` here). So the Dialog, the
+menu, the tab underline and hover are not animated yet, nor is anything on first mount. Also not here: reduced motion,
+a rubber band at the ends (the Sky feed clamps hard), drag scrolling and touch (a pointer's velocity is the host's; the
+List page still has no momentum and keeps Clay's instant wheel step), and the terminal, browser and board targets
+(they have no Solid page or no wheel).
+
 ## Test
 
 ```sh

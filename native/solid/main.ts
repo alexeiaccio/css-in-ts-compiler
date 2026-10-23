@@ -19,14 +19,17 @@
 //                                        (`Input.textInput`), not a key: --keys Tab,text:Ada,Shift+ArrowLeft
 //   --wheel N                            headless, before --keys: the pointer onto the element `--wheel-over` names (the
 //                                        list's viewport by default), then N wheel notches down, a frame each (one
-//                                        notch is 10px of Clay's scroll)
+//                                        notch is 10px: Clay's scroll on the List page, the Sky feed's own track)
 //   --wheel-over ID                      the element the wheel's pointer goes onto (default "list")
+//   --settle N                           headless: N more frames at 1/60 after the wheel and the keys, for a page whose
+//                                        motion has to come to rest (the Sky feed's spring and fling)
 //   --bench N                            headless: N more frames, the ms a frame by phase
 //   --raster thorvg|thorvg-gpu           the ThorVG software canvas (the default) or its WebGPU canvas, the frame read
 //                                        back; the latter needs a libui.dylib from desktop/build-thorvg-gpu.sh solid
 //   --frames N                           window: close after N frames (a smoke test)
 //   THEME=light                          the light theme
 import "./plugin.ts";
+import type { Motion } from "./app/Sky.tsx";
 import type { Drag } from "./app/Widgets.tsx";
 
 const page = process.argv[2]?.startsWith("--") ? "sensors" : (process.argv[2] ?? "sensors");
@@ -47,6 +50,7 @@ const keys = arg("--keys")?.[0]?.split(",");
 // headless: wheel notches down over the element --wheel-over names, a frame each
 const wheel = Number(arg("--wheel")?.[0] ?? 0);
 const wheelOver = arg("--wheel-over")?.[0] ?? "list";
+const settle = Number(arg("--settle")?.[0] ?? 0);
 const bench = Number(arg("--bench")?.[0] ?? 0);
 // the raster: ThorVG's software canvas (the default) or its WebGPU one, when the dylib was built for it
 const gpu = arg("--raster")?.[0] === "thorvg-gpu";
@@ -87,6 +91,8 @@ const input = createInput();
 // `t` is the page's shortcut only while no text field has focus: a letter typed into one is a character, not a key
 input.fallback = (name) => (name === "t" && !input.editing() ? ((theme = theme ? undefined : "light"), true) : false);
 const dragState: Drag = {};
+// the Sky feed's frame hook: the page puts its wheel handler and its tick on it, the host calls them
+const motion: Motion = {};
 const dispose = render(
   page === "widgets"
     ? () => Widgets({ input, drag: dragState })
@@ -97,7 +103,7 @@ const dispose = render(
         : page === "list"
           ? () => List({ input })
           : page === "sky"
-            ? () => Sky({ input })
+            ? () => Sky({ input, motion })
             : Sensors,
   root,
 );
@@ -108,11 +114,21 @@ const frame = createFrame(root, {
   },
   onPointer: (x, y, down) => dragState.onPointer?.(x, y, down),
   onPressMiss: () => input.pressMiss(),
+  onWheel: (dx, dy) => motion.onWheel?.(dx, dy),
+  tick: (dt) => motion.tick?.(dt),
   stats,
 });
+// the wheel the host took since the last frame goes to the page before the frame is declared; a page that keeps Clay's
+// own scrolling (the List) has no onWheel, so this is only a drain
+const wheelOut = new Float32Array(2);
+const pumpWheel = () => {
+  while (ui.wheelPop(wheelOut)) motion.onWheel?.(wheelOut[0]!, wheelOut[1]!);
+};
 
 const headless = png || expect;
 if (headless) {
+  // where the last frame left the pointer: a settle frame keeps it there, so a hover is the frame's, not the settle's
+  let settleAt: [number, number] = [-1, -1];
   if (drag) {
     // a drag on the widgets slider: frame 0 lays out, 1 puts the pointer on the rail, 2 presses at the first fraction,
     // then the pointer moves to the second with the button held and the last frame (still held) is written
@@ -128,16 +144,20 @@ if (headless) {
   } else {
     // as host.c: a scripted click is frames 0 to 2 at the point, pressed in frame 1, and frame 3 is written
     for (let n = 0; n < (click ? 4 : 1); n++) frame(click?.[0] ?? -1, click?.[1] ?? -1, n === 1, 1 / 60);
+    if (click) settleAt = [click[0]!, click[1]!];
   }
-  // the wheel: Clay scrolls the container under the pointer, so the pointer goes onto the viewport for a frame first
+  // the wheel: Clay scrolls the container under the pointer (unless the page owns it: the Sky feed), so the pointer goes
+  // onto the viewport for a frame first; every notch goes to both channels, and the page's handler sees it before the frame
   if (wheel) {
     const [left, top, width, height] = ui.bounds(Buffer.from(wheelOver)) ?? [W / 2, H / 2, 0, 0];
     const [px, py] = [left + width / 2, top + height / 2];
     frame(px, py, false, 1 / 60);
     for (let n = 0; n < wheel; n++) {
       ui.wheel(0, -1); // one notch down
+      pumpWheel();
       frame(px, py, false, 1 / 60);
     }
+    settleAt = [px, py];
   }
   for (const key of keys ?? []) {
     // `text:Ada` is typed text, not a key: the same call SDL's TEXT_INPUT events make in the window
@@ -149,6 +169,8 @@ if (headless) {
     }
     frame(-1, -1, false, 1 / 60);
   }
+  // the motion at rest: a page with a track needs frames after the input, not one
+  for (let n = 0; n < settle; n++) frame(settleAt[0], settleAt[1], false, 1 / 60);
   let status = ui.errors() ? 1 : 0;
   if (png) ui.savePng(png);
   if (expect) {
@@ -201,6 +223,7 @@ let last = performance.now();
 for (let n = 0; n < maxFrames; n++) {
   ui.windowPoll(pointer);
   if (pointer[3]) break;
+  pumpWheel();
   while ((got = ui.textPop(typed)) > 0) input.textInput(decoder.decode(typed.subarray(0, got)));
   while (ui.keyPop(event)) {
     const [down, code, mod, repeat] = [event[0] !== 0, event[1]!, event[2]!, event[3] !== 0];

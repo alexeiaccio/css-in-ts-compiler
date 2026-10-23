@@ -60,9 +60,32 @@ static int gpu;          // 0: the software canvas; 1: the WebGPU canvas, the fr
 
 // the wheel the polls took, in Clay's units (positive scrolls the content down, the wheel up), for the next ui_begin
 static float wheel_x, wheel_y;
+// ... and the same delta for the page: `ui_wheel_pop` drains it (a page that scrolls itself reads it, so it sees a notch
+// even while `ui_begin` leaves Clay's containers alone)
+static float page_wheel_x, page_wheel_y;
+// whether `ui_begin` feeds the wheel to Clay's scroll containers (the default); a page that animates its own offset
+// turns it off, so the same notch is not applied twice
+static int auto_scroll = 1;
 
 /** Adds a wheel delta to the next frame, in Clay's units: positive scrolls the content down, as SDL's wheel y. */
-void ui_wheel(float dx, float dy) { wheel_x += dx, wheel_y += dy; }
+void ui_wheel(float dx, float dy)
+{
+    wheel_x += dx, wheel_y += dy;
+    page_wheel_x += dx, page_wheel_y += dy;
+}
+
+/** The wheel the polls (or the headless `ui_wheel` calls) took since the last pop into out[2], drained; 0 when there is
+ *  none. The delta is SDL's: positive y is away from the user. */
+int ui_wheel_pop(float *out)
+{
+    if (page_wheel_x == 0 && page_wheel_y == 0) return 0;
+    out[0] = page_wheel_x, out[1] = page_wheel_y;
+    page_wheel_x = page_wheel_y = 0;
+    return 1;
+}
+
+/** Turns Clay's own wheel scrolling on (1, the default) or off (0): a page that scrolls itself owns the offset. */
+void ui_auto_scroll(int on) { auto_scroll = on != 0; }
 
 static void on_error(Clay_ErrorData e)
 {
@@ -154,8 +177,9 @@ void ui_begin(float px, float py, int down, float dt)
     Clay_SetPointerState((Clay_Vector2){px, py}, down);
     // Clay's scroll containers: the wheel delta of the polls moves the container the pointer is over, before the layout
     // reads the offsets (ui_open hands each clip element its own through Clay_GetScrollOffset). No drag scrolling: a
-    // press belongs to the page's parts.
-    Clay_UpdateScrollContainers(0, (Clay_Vector2){wheel_x, wheel_y}, dt);
+    // press belongs to the page's parts. A page that owns its offset (ui_auto_scroll(0)) has already taken the delta
+    // through ui_wheel_pop, so the drain still happens and Clay moves nothing.
+    if (auto_scroll) Clay_UpdateScrollContainers(0, (Clay_Vector2){wheel_x, wheel_y}, dt);
     wheel_x = 0, wheel_y = 0;
     Clay_BeginLayout();
 }
@@ -491,8 +515,9 @@ void ui_window_poll(float *out)
     out[3] = 0, out[4] = 0;
     while (SDL_PollEvent(&e)) {
         if (e.type == SDL_EVENT_QUIT) out[3] = 1;
-        // SDL's wheel y is positive away from the user, and so is Clay's scroll delta: no sign to flip
-        if (e.type == SDL_EVENT_MOUSE_WHEEL) wheel_x += e.wheel.x, wheel_y += e.wheel.y;
+        // SDL's wheel y is positive away from the user, and so is Clay's scroll delta: no sign to flip. ui_wheel feeds
+        // Clay's containers and the page's own channel at once.
+        if (e.type == SDL_EVENT_MOUSE_WHEEL) ui_wheel(e.wheel.x, e.wheel.y);
         if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP) {
             if (keys_len == KEY_QUEUE) keys_head = (keys_head + 1) % KEY_QUEUE, keys_len--;
             int *k = keys[(keys_head + keys_len++) % KEY_QUEUE];

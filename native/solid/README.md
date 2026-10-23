@@ -423,32 +423,39 @@ post count, or the card a click selected.
 | The cards | the panel, radius 12, padding 12, gap 8, the author's 40x40 avatar, the name and the handle with its age, the body, the media line and the counts; the palette is `terminal/sky_styles.ts`'s (the sky dark and light themes, not the web app's Mu theme). A click records the card in a signal (the status line names it) and nothing else: there is no thread screen yet. |
 | The avatars | `css.image(path, { width: 40, height: 40 })` — the six committed 64x64 PNGs of `examples/sky/avatars.py` (a disc in the author's hue, transparent outside it, so the panel shows at the box's corners). The path is a literal per author because a css style is evaluated when its module loads: a page cannot build one from a loop variable. This is the first page that uses `css.image` in the Solid path. |
 | Wrapping | new on this page: a body is a `text` with `whiteSpace("normal")` and `lineHeight(20)` inside a stretch box inside a card of percent width, and Clay wraps it. (A clip element lets its children grow past the viewport for their content, so a card that must wrap cannot take its width from a stretch inside the feed: the card is `width("100%")`.) |
-| Scrolling | the wheel moves the feed under the pointer (Clay's own container, 10px a notch, as on the List page); one Tab stop on the feed takes Down/Up 40px, PageDown/PageUp a viewport and Home/End to the ends through `ui_scroll_to` (clamped by `ui.c`). Discover's three short posts fit the 664px viewport, so the wheel frame and the test scroll **Science** (742px of content). |
+| Scrolling | the feed's offset is a page-owned motion track (`solid/src/motion.ts`): a wheel notch is 10px on a spring that glides it, a burst of notches is a flick whose decay lands (clamped) at the end, and one Tab stop on the feed retargets the same track with Down/Up 40px, PageDown/PageUp a viewport and Home/End. The page turns `ui_auto_scroll` off, so Clay's own container does not also move; `ui.scrollTo("sky-feed", -x)` puts the value on it each frame. Discover's three short posts fit the 664px viewport (max 0), so the wheel frame and the test scroll **Science** (742px of content, 78px of travel). |
 
 | Frame | Keys | Shows |
 | --- | --- | --- |
 | `sky` | | Discover: the bar, three cards (Michael, Titania, alexjungle), the status `Discover — 3 posts` |
 | `sky-science` | a click on `(180, 32)` | Science: Erik's four-line body and its link line, David, Jason (cut at the feed's bottom), the ring on the clicked tab |
 | `sky-light` | `THEME=light` | the same Discover feed in the palette's light theme |
-| `sky-scrolled` | the Science click, `--wheel 8 --wheel-over sky-feed` | the Science feed 80px down: Erik's card cut at the top, Jason's at the bottom, the bar and status unmoved |
+| `sky-scrolled` | the Science click, `--wheel 8 --wheel-over sky-feed --settle 60` | the Science feed eight notches down, settled at the clamped 78px: Erik's card cut at the top, Jason's at the bottom, the bar and status unmoved |
 
 Checked by `bun solid/sky.test.ts`: `ago()`/`num()`, the bar 64 / feed 664 / status 32 layout with 8px card gaps, the
 avatars' pixels (the panel at the box's corner where the PNG is transparent, the head's tint at the middle, the author's
 exact hue in the disc — `74 132 214` for michaelwarburton, `126 108 200` for erikstrub — and the change of author with
 the tab), the body and media wrapping (Erik's body four 20px lines, Titania's card one media line taller than
-Michael's), hover on a card and a tab, the wheel moving Clay's offset 10px a notch with the bar and status still, the
-keyboard (Down/Up 40, PageDown a viewport, Home/End, all clamped), the feed's focus ring's pixels, the tabs switching the
-feed, News' empty box and its centred muted line, the status naming a clicked card, and the page fitting 360x760.
+Michael's), hover on a card and a tab, one wheel notch gliding `2.59, 1.92, 1.42…` px a frame to exactly 10 (the bar
+and status still), eight notches flinging to the clamped 78 in 31 frames and the settled frame matching
+`sky-scrolled.png` pixel for pixel, a wheel up mid-throw landing 10px back at 64.05 with no frame's step jumping, the
+keyboard (Down/Up 40, PageDown a viewport, Home/End, all on the same track and clamped), the feed's focus ring's pixels,
+the tabs switching the feed, News' empty box and its centred muted line, the status naming a clicked card, and the page
+fitting 360x760. `bun solid/motion.test.ts` is the model itself: one path at any dt, a retarget's continuity, the exact
+settle, `effect`'s clamp, the decay's projection.
 
 **Mutations.** Dropping `css.image` from Michael's avatar box (a bare 40x40 box) fails the two disc asserts (the middle
 and the body are the panel `[23,27,32]`, not `[99,178,255]`/`[74,132,214]`). Making the body `nowrap` fails the wrap
 asserts (alexjungle's body 20px, Erik's 60, David's 20) and, because the Science content then shrinks to 678, the scroll
-asserts too (the offset stops at -14). Both files are compared with their backup after the revert.
+asserts too (the offset stops at -14). `Track.retarget` resetting `v0` to 0 after sampling fails the mid-flight block
+(`FAIL and it turns the throw back: the rest is 64, ten px above the 74 it was heading to: 27.87, wanted 64.05`). Both
+files are compared with their backup after the revert.
 
 **What is not here.** No fetching and no paging: one recorded fixture per feed (three posts), News empty as in the app.
 No thread screen, so a card click only selects. No images in post media — the media is a line (`[image]`, `[image: …]`,
 `[video]`, `[link: …]`), as in the terminal. No avatars beyond the six committed PNGs (a real author's avatar is a remote
-file). No scroll momentum and no drag scrolling (the press belongs to the cards). The name and the handle are two lines,
+file). No drag scrolling (the press belongs to the cards; the wheel's momentum is the page's motion track, item 2 of
+Rune's research). The name and the handle are two lines,
 not the app's one row: the longest pair does not fit the 312px card and Clay has no ellipsis. A media line wraps at
 spaces only, so a word wider than the card would run over the gutter: the Science link carries the app's own fallback
 for an embed with no title, the host (`[link: sciencedirect.com]`), not its 60-character URI. And the light theme is the
@@ -494,7 +501,7 @@ on every role that requires one. Mutation: dropping `label` from the disclosure 
   radio, tabs or toolbar on the page (the parts take the option; the page has the horizontal ones), the tree's
   multi-select (`selection: 'multiple'` is in the part; the page is single) and its type-ahead (not ported), and disabled
   tree nodes (the part has none). The list scrolls one axis and one way: no horizontal scrolling, no momentum (Clay's
-  wheel step is instant; momentum comes from dragging, which the page leaves off), no pointer drag of its contents, no
+  wheel step is instant; the Sky feed has the first motion track, this page opts out), no pointer drag of its contents, no
   scrollbar to drag (the `n of 30` readout stands in for it), and the wheel reaches the viewport only while the pointer is
   over it: Clay scrolls the container under the pointer, and the window is not itself a scroll container.
 - The text field is ours, not a port, and it stops at the simple text model: an index is a UTF-16 code unit (a `selection`

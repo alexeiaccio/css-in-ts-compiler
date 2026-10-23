@@ -11,10 +11,11 @@
 // text on these pages that wraps: it is a text in a stretch box in a card of percent width, and Clay wraps a text
 // element only when something constrains its width (a clip element lets its children grow past the viewport).
 import * as css from "cssints/clay" with { type: "cssints" };
-import { createSignal } from "solid-js";
+import { createSignal, onCleanup } from "solid-js";
 
 import { a11y } from "../a11y.ts";
 import { createTabs } from "../../headless/src/index.ts";
+import { decay, spatial, track, type Decay, type Sample } from "../src/motion.ts";
 import { ui } from "../src/ffi.ts";
 import type { FocusPart, Input } from "../src/input.ts";
 
@@ -287,16 +288,41 @@ const AVATARS: Record<string, css.ClayStyle> = {
   bittelmethis: css.image(`${SKY}bittelmethis.png`, { width: 40, height: 40 }),
 };
 
+/** The page's frame hook: the host hands the wheel in and ticks the motion before the tree is declared. */
+export interface Motion {
+  onWheel?: (dx: number, dy: number) => void;
+  tick?: (dt: number) => void;
+}
+
 /**
  * The page. Two Tab stops: the tablist (one stop on the active tab, arrows move and switch) and the feed. The feed's keys
- * scroll it: Down and Up 40px, PageDown and PageUp a viewport, Home and End to the ends, all through `ui.scroll_to` so
- * Clay clamps them to the content (the List page's way). The wheel scrolls the feed under the pointer (Clay's own), and
- * a card press only records the selection until there is a thread screen to open.
+ * scroll it: Down and Up 40px, PageDown and PageUp a viewport, Home and End to the ends. The wheel adds 10px a notch and
+ * a flick keeps going (a decay) to its projection, clamped to the content; both are one motion track (src/motion.ts) the
+ * page owns, retargeted from the presented (x, v), and `ui.scrollTo` puts the value on Clay's clip element each frame.
+ * The bar and the status line are the feed's siblings, so they stay put. A card press only records the selection until
+ * there is a thread screen to open.
  */
-export function Sky(props: { input: Input }) {
+export function Sky(props: { input: Input; motion?: Motion }) {
   const { input } = props;
   const [focused, setFocused] = createSignal(false);
   const [selected, setSelected] = createSignal<{ feed: number; i: number } | null>(null);
+
+  // the feed scrolls itself: Clay's own wheel scrolling is off for this page, and the page takes the notch through
+  // `onWheel` instead. The offset is positive-down (Clay's is negative-down) and is what the track presents.
+  const spring = spatial();
+  let anim = track(0, spring);
+  let fling: Decay | null = null;
+  let now = 0; // seconds, the clock the tracks are given; no track reads the time
+  let notches = 0; // the wheel's notches since the last tick, positive down (a notch is 10px)
+  let notchDir = 0; // the last notch's direction: a fling only continues that way
+  let burst = 0; // how many notches have come without a frame between them: one notch is a step, two are a flick
+  let chasing = false; // the last tick had a notch, so this one decides whether a fling follows
+  let target = 0; // what the wheel and the keys accumulate towards, clamped to the content
+  let keyed = false;
+  ui.autoScroll(false);
+  onCleanup(() => ui.autoScroll(true));
+
+  const clamp = (y: number, max: number) => Math.min(Math.max(y, 0), max);
 
   // the tablist is the page's first stop and the feed the second. The panels are not stops of their own: the feed is one
   // (the tabs' `focusablePanels` says so, or Tab would land on a panel the page draws no box for).
@@ -305,8 +331,90 @@ export function Sky(props: { input: Input }) {
   const active = () => tabs.selected();
   const feed = () => FEEDS[active()]!;
 
-  /** Scrolls the feed to `y` (ui.c clamps it to the content: 0 at the top, the last screenful at the bottom). */
-  const scroll = (y: number) => ui.scrollTo(VIEW, y);
+  /** How far the feed can scroll: the last card's bottom (in screen coordinates, already shifted by Clay's offset) plus
+   *  the 12px bottom padding, less the viewport's bottom, less the offset's own lift. 0 when the feed fits. */
+  const maxScroll = () => {
+    const posts = feed().posts.length;
+    if (!posts) return 0;
+    const view = ui.bounds(Buffer.from(VIEW));
+    const last = ui.bounds(Buffer.from(`sky-card-${posts - 1}`));
+    if (!view || !last) return 0;
+    return Math.max(0, last[1]! + last[3]! + 12 - (view[1]! + view[3]!) - ui.scrollOffset(VIEW));
+  };
+
+  /** Where the feed is at t: the fling while one runs, the spring otherwise. */
+  const presented = (t: number): Sample => (fling ? fling.at(t) : anim.at(t));
+
+  /** Starts a segment at t from a presented (x, v), so position and velocity are continuous across a retarget. */
+  const restart = (p: { x: number; v: number }, t: number, to: number) => {
+    anim = track(p.x, spring, t);
+    anim.v0 = p.v;
+    anim.retarget(t, to, spring); // samples the (x, v) above and starts the new segment from it
+    fling = null;
+  };
+
+  /** The wheel: 10px a notch, accumulated for the next tick (positive down). A horizontal delta has no page to move. */
+  const wheel = (_dx: number, dy: number) => {
+    const n = -dy;
+    if (n) (notches += n), (notchDir = Math.sign(n));
+  };
+
+  /** One frame: the wheel and the keys retarget, the release may fling, and the value goes to Clay. Input is applied at
+   *  the frame's start and the frame presents the state one dt later, so the notch that arrived in this frame moves it. */
+  const tick = (dt: number) => {
+    const max = maxScroll();
+    const n = notches;
+    notches = 0;
+    const key = keyed;
+    keyed = false;
+    target = clamp(target, max);
+    // a shorter feed (a tab switch) or an overshoot from an earlier frame must not leave the offset past an end
+    const before = presented(now);
+    if (before.x < 0 || before.x > max) {
+      const x = clamp(before.x, max);
+      restart({ x, v: before.x === x ? before.v : 0 }, now, x);
+      target = x;
+    }
+    if (n) {
+      burst += Math.abs(n);
+      target = clamp(target + n * 10, max);
+      const p = presented(now);
+      restart(p, now, target);
+      // a notch from rest starts with the velocity a critically damped spring needs to glide the 10px without overshoot
+      // (ω·d): the offset moves on the first frame and each frame after it moves less. A notch during a burst keeps the
+      // presented velocity, so the steps grow with the accumulated target.
+      if (Math.abs(p.v) < 1) anim.v0 = spring.omega * (target - p.x);
+      chasing = true;
+    } else if (key) {
+      chasing = false;
+      burst = 0;
+      restart(presented(now), now, target);
+    } else if (chasing) {
+      chasing = false;
+      const p = anim.at(now);
+      // a fling only for a burst (a flick, not one notch) whose presented velocity still follows the wheel
+      if (burst >= 2 && Math.abs(p.v) > 10 && Math.sign(p.v) === notchDir) {
+        const d = decay(p.x, p.v, now);
+        const raw = d.project();
+        const land = clamp(notchDir > 0 ? Math.max(raw, target) : Math.min(raw, target), max);
+        // inside the content: the decay runs to its projection. Past an end (or short of the wheel's target): a spring
+        // from the presented (x, v) to the clamped end.
+        if (land === raw) (fling = d), (target = land);
+        else restart(p, now, land), (target = land);
+      }
+      burst = 0;
+    } else if (fling) {
+      const d = fling.at(now);
+      if (d.done) restart({ x: d.x, v: 0 }, now, d.x), (target = d.x);
+      else if (d.x < 0 || d.x > max) {
+        const x = clamp(d.x, max);
+        restart({ x, v: 0 }, now, x), (target = x);
+      }
+    }
+    now += dt;
+    ui.scrollTo(VIEW, -presented(now).x);
+  };
+  if (props.motion) (props.motion.onWheel = wheel), (props.motion.tick = tick);
 
   const part: FocusPart & { readonly disabled: boolean } = {
     id: VIEW,
@@ -317,14 +425,14 @@ export function Sky(props: { input: Input }) {
     focus: () => setFocused(true),
     blur: () => setFocused(false),
     keyDown: (key) => {
-      const offset = ui.scrollOffset(VIEW);
+      const max = maxScroll();
       const page = ui.bounds(Buffer.from(VIEW))?.[3] ?? 0;
-      // the offset is negative going down (Clay's), so Down subtracts
-      const step = key === "ArrowDown" ? -40 : key === "ArrowUp" ? 40 : key === "PageDown" ? -page : key === "PageUp" ? page : 0;
-      if (key === "Home") scroll(0);
-      else if (key === "End") scroll(-1e6);
-      else if (!step) return false;
-      else scroll(offset + step);
+      // the offset is positive going down, so Down adds
+      const step = key === "ArrowDown" ? 40 : key === "ArrowUp" ? -40 : key === "PageDown" ? page : key === "PageUp" ? -page : 0;
+      if (!step && key !== "Home" && key !== "End") return false;
+      // Home and End are targets too: the track eases to them, it does not jump
+      target = clamp(key === "Home" ? 0 : key === "End" ? max : target + step, max);
+      keyed = true;
       return true;
     },
     keyUp: () => false,

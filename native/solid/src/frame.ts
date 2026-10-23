@@ -44,6 +44,11 @@ export interface View {
   onPointer?: (x: number, y: number, down: boolean) => void;
   /** A press (the button going down) that no element with `onPress` was under: a click on empty space. */
   onPressMiss?: () => void;
+  /** The wheel the host polled since the last frame, before this one: SDL's delta, positive y away from the user. */
+  onWheel?: (dx: number, dy: number) => void;
+  /** Called once a frame with the elapsed seconds, after the frame's events and before the tree is declared: a page's
+   *  motion ticks here, so a headless frame (dt = 1/60) and a window frame (the real dt) take the same path. */
+  tick?: (dt: number) => void;
   /** Each frame pushes its nanoseconds: [events and Solid's flush, the tree declared, layout, draw]. */
   stats?: [number, number, number, number][];
 }
@@ -114,6 +119,7 @@ export function createFrame(root: El, view: View = {}) {
     ui.begin(px, py, down ? 1 : 0, dt);
     events(down, px, py);
     view.onPointer?.(px, py, down);
+    view.tick?.(dt);
     flush();
     const t1 = Bun.nanoseconds();
     seen = [];

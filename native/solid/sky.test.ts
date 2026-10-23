@@ -1,5 +1,6 @@
 // What the stored frames of the Sky page cannot show: the avatars are drawn pictures (and change with the feed), the body
-// wraps, the wheel and the keys move Clay's scroll offset, the tablist switches the feed and its cards, the News feed is
+// wraps, the wheel and the keys drive the feed's own motion track (a notch glides 10px, a flick decays and clamps, a
+// wheel mid-flight retargets from the presented x and v), the tablist switches the feed and its cards, the News feed is
 // empty, and the page fits its window. Driven as the window does it: pointer, wheel and keys in, then a frame.
 import "./plugin.ts";
 
@@ -29,14 +30,23 @@ const LIGHT_PANEL_DEEP = [240, 243, 246]; // ... and at its bottom
 // a gradient's pixel is the stop interpolated at that y, so it is matched within a channel or two
 const near = (got: number[], want: number[], d = 2) =>
   got.length === 3 && want.every((v, i) => Math.abs(got[i]! - v) <= d);
+/** An offset from layout, to the pixel: Clay's float32 turns 78 into 77.99998. */
+const r = (x: number) => Math.round(x * 100) / 100;
 
 let dispose = () => {};
 function fresh(theme?: string) {
   dispose();
   const root = new El("root");
   const input = createInput();
-  dispose = render(() => Sky({ input }), root);
-  const frame = createFrame(root, { theme, onPressMiss: () => input.pressMiss() });
+  // the page's frame hook, as the host wires it: the wheel in, one tick a frame
+  const motion: { onWheel?: (dx: number, dy: number) => void; tick?: (dt: number) => void } = {};
+  dispose = render(() => Sky({ input, motion }), root);
+  const frame = createFrame(root, {
+    theme,
+    onPressMiss: () => input.pressMiss(),
+    onWheel: (dx, dy) => motion.onWheel?.(dx, dy),
+    tick: (dt) => motion.tick?.(dt),
+  });
   let at = [-1, -1];
   const step = (down = false) => frame(at[0]!, at[1]!, down, 1 / 60);
   step();
@@ -56,6 +66,7 @@ function fresh(theme?: string) {
     box,
     pixel,
     texts,
+    step,
     /** The status line: "Discover — 3 posts" or the selected card's "name — 1 of 3". */
     status: () => texts().find((s) => / — \d+ (of \d+|posts?)$/.test(s))!,
     /** Puts the pointer at x, y and lays out a frame: `ui.bounds` and Clay's "what is under it" follow. */
@@ -77,11 +88,19 @@ function fresh(theme?: string) {
       if (!b.length) throw new Error(`no box ${id}`);
       this.click(b[0]! + b[2]! / 2, b[1]! + b[3]! / 2);
     },
-    /** `n` wheel notches down over the feed (the pointer goes onto it first: Clay scrolls under the pointer). */
-    wheel(n: number) {
-      this.point(180, 400);
-      ui.wheel(0, -n);
+    /** One wheel event of `n` notches down (negative for up), then a frame: the page's own channel, as the host. */
+    notch(n = 1) {
+      motion.onWheel?.(0, -n);
       step();
+    },
+    /** `n` notches down over the feed, one a frame as the host's --wheel does. */
+    wheel(n: number) {
+      this.point(180, 396);
+      for (let i = 0; i < n; i++) this.notch(1);
+    },
+    /** Frames with no input: the track comes to rest. */
+    settle(n = 60) {
+      for (let i = 0; i < n; i++) step();
     },
     /** A key pressed and released with a frame after each. */
     tap(name: string) {
@@ -100,6 +119,7 @@ function fresh(theme?: string) {
     card: (i: number) => box(`sky-card-${i}`),
     body: (i: number) => box(`sky-body-${i}`),
     avatar: (i: number) => box(`sky-avatar-${i}`),
+    /** Clay's offset, negative down. */
     offset: () => ui.scrollOffset("sky-feed"),
   };
 }
@@ -234,22 +254,105 @@ function fresh(theme?: string) {
   check("David's body is three lines", p.body(1)[3], 60);
 }
 
-// --- the wheel: Clay moves the feed under the pointer 10px a notch, and the bar and status stay put
+// --- the wheel: one notch is a 10px step on a track — it glides, the first frame moves most and each frame after moves
+//     less — and the bar and status stay put
 {
   const p = fresh();
   p.science();
   const bar = p.box("sky-bar");
   const status = p.box("sky-status");
   const first = p.card(0);
-  p.wheel(1);
-  check("one notch scrolls the feed to -10", p.offset(), -10);
-  check("and lifts the first card by exactly 10", p.card(0)[1], first[1]! - 10);
+  p.point(180, 400);
+  const ys = [0];
+  p.notch(1);
+  ys.push(-p.offset());
+  for (let i = 0; i < 40; i++) {
+    p.step();
+    ys.push(-p.offset());
+  }
+  const steps = ys.map((y, i) => (i ? y - ys[i - 1]! : 0));
+  check("one notch settles at exactly 10px", r(ys[ys.length - 1]!), 10);
+  check("the notch's first frame is its largest step (a glide, not a jump)", r(steps[1]!), r(Math.max(...steps)));
+  check("and the steps decay", steps[1]! > steps[11]! && steps[11]! > steps[31]!, true);
+  check("the first card ends 10px up", r(p.card(0)[1]!), r(first[1]! - 10));
   check("the bar did not move", p.box("sky-bar"), bar);
   check("nor did the status line", p.box("sky-status"), status);
-  check("the cards below moved with it", p.card(1)[1], first[1]! + first[3]! + 8 - 10);
+  console.log(`solid/sky.test.ts: one notch, ${steps.slice(1, 7).map((s) => s.toFixed(2)).join(" ")} … px a frame`);
 }
 
-// --- the keys: Down and Up 40, PageDown a viewport (clamped), Home and End to the ends, through ui.scroll_to
+// --- a flick: eight notches one a frame keep going after the last one, faster than any notch, and stop at the clamped
+//     end in a finite number of frames; the stored frame is that resting frame
+{
+  const p = fresh();
+  p.science();
+  p.point(180, 396);
+  const ys = [0];
+  for (let i = 0; i < 8; i++) {
+    p.notch(1);
+    ys.push(-p.offset());
+  }
+  let frames = 0;
+  for (let i = 0; i < 60; i++) {
+    const before = -p.offset();
+    p.step();
+    const y = -p.offset();
+    ys.push(y);
+    if (y !== before) frames = i + 1;
+  }
+  const steps = ys.map((y, i) => (i ? y - ys[i - 1]! : 0));
+  const peak = Math.max(...steps);
+  check("the flick reaches the clamped end", r(p.offset()), -78);
+  check("its fastest frame is past the first notch's step", peak > steps[1]!, true);
+  check("and the tail has stopped", steps.slice(-10).every((s) => Math.abs(s) < 0.5), true);
+  check("it comes to rest in a finite number of frames", frames < 60, true);
+  console.log(
+    `solid/sky.test.ts: eight notches, the steps ${steps.slice(1, 8).map((s) => s.toFixed(2)).join(" ")} px, ` +
+      `peak ${peak.toFixed(2)}, then ${steps.slice(8, 14).map((s) => s.toFixed(2)).join(" ")} … rest after ${frames} frames`,
+  );
+  // the same state as test.sh's stored frame (the pointer on the feed's middle): the frame after the fling is that frame
+  check(
+    "the settled frame is frames/sky-scrolled.png",
+    ui.diffPng(
+      new URL("./frames/sky-scrolled.png", import.meta.url).pathname,
+      new URL("./frames/sky-scrolled.png.actual.png", import.meta.url).pathname,
+    ),
+    0,
+  );
+}
+
+// --- a second wheel mid-flight: it retargets from the presented (x, v), so no frame jumps, and it bends the throw back
+//     by its notch (two notches fling towards 74; one notch up mid-decay lands at 64 instead)
+{
+  const p = fresh();
+  p.science();
+  p.point(180, 396);
+  p.notch(1);
+  p.notch(1); // two notches: the release is a decay, mid-flight
+  p.settle(3);
+  const y0 = -p.offset();
+  p.step();
+  const before = -p.offset();
+  const prevStep = before - y0;
+  check("mid-flight, the feed is moving", Math.abs(prevStep) > 0.5, true);
+  const ys = [before];
+  p.notch(-1); // one notch up: the throw's landing drops by 10px, from 74 to 64
+  ys.push(-p.offset());
+  for (let i = 0; i < 60; i++) {
+    p.step();
+    ys.push(-p.offset());
+  }
+  const steps = ys.map((y, i) => (i ? y - ys[i - 1]! : 0));
+  let worst = 0;
+  for (let i = 2; i < steps.length; i++) worst = Math.max(worst, Math.abs(steps[i]!) - Math.abs(steps[i - 1]!));
+  check("no frame's step exceeds the previous one by more than the notch (10px)", Math.round(worst * 100) / 100 <= 10, true);
+  check("and it turns the throw back: the rest is 64, ten px above the 74 it was heading to", r(ys[ys.length - 1]!), 64.05);
+  console.log(
+    `solid/sky.test.ts: the up-notch at ${before.toFixed(2)}px mid-decay, worst step ${worst.toFixed(2)}px, rest 64px`,
+  );
+}
+
+// --- the keys: Down and Up 40, PageDown a viewport (clamped), Home and End to the ends, all on the same track (the
+//     offset eases to the target instead of jumping)
 {
   const p = fresh();
   p.science();
@@ -259,22 +362,33 @@ function fresh(theme?: string) {
   check("the feed wears the ring at its edge", p.pixel(1, 400), RING);
   check("2px in, its own background", p.pixel(3, 400), PAGE);
   p.tap("ArrowDown");
-  check("Down scrolls the feed by 40", p.offset(), -40);
+  check("Down has not jumped to 40", r(p.offset()) > -40 && r(p.offset()) < 0, true);
+  p.settle();
+  check("Down settles at 40", r(p.offset()), -40);
   p.tap("ArrowUp");
-  check("Up comes back", p.offset(), 0);
+  p.settle();
+  check("Up comes back", r(p.offset()), 0);
   p.tap("ArrowDown");
+  p.settle();
   p.tap("ArrowDown");
-  check("two Downs clamp at the content (742 - 664): -78", p.offset(), -78);
+  p.settle();
+  check("two Downs clamp at the content (742 - 664): -78", r(p.offset()), -78);
   p.tap("Home");
-  check("Home returns to the top", p.offset(), 0);
+  check("Home moves with a track, not a jump", r(p.offset()) > -78 && r(p.offset()) < 0, true);
+  p.settle();
+  check("and reaches the top", r(p.offset()), 0);
   p.tap("End");
-  check("End goes to the last screenful: 742 - 664", p.offset(), -78);
+  p.settle();
+  check("End goes to the last screenful: 742 - 664", r(p.offset()), -78);
   p.tap("PageDown");
-  check("PageDown at the end does not pass it", p.offset(), -78);
+  p.settle();
+  check("PageDown at the end does not pass it", r(p.offset()), -78);
   p.tap("PageUp");
-  check("PageUp a viewport (664) reaches the top from the end", p.offset(), 0);
+  p.settle();
+  check("PageUp a viewport (664) reaches the top from the end", r(p.offset()), 0);
   p.tap("Home");
-  check("and Home puts it back", p.offset(), 0);
+  p.settle();
+  check("and Home puts it back", r(p.offset()), 0);
 }
 
 // --- the tabs: clicking one switches the feed, and the News feed is the app's empty case
@@ -338,8 +452,9 @@ if (failed) process.exit(1);
 console.log(
   "solid/sky.test.ts: ago() and the compact numbers, the bar/feed/status layout, the six drawn avatars (the panel at the " +
     "corner, the author's hue in the disc) and their change with the feed, the card's vertical gradient (top to bottom, " +
-    "constant across, gone at its edge, the hover's own), the body and media wrapping, the wheel moving Clay's offset " +
-    "10px a notch with the bar still, the keyboard scrolling (Down/Up 40, PageDown a viewport, Home/End), the tabs " +
+    "constant across, gone at its edge, the hover's own), the body and media wrapping, the wheel's 10px notch on a track " +
+    "with decaying steps and the bar still, a flick to the clamped end and its stored frame, a wheel mid-flight turning " +
+    "without a jump, the keyboard scrolling the same track (Down/Up 40, PageDown a viewport, Home/End), the tabs " +
     "switching the feed and the empty News case, a card click recording the selection, the page fitting",
 );
 process.exit(0);

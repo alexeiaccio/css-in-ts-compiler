@@ -9,6 +9,8 @@ const { symbols: s } = dlopen(new URL("../../build/solid/libui.dylib", import.me
   ui_errors: { args: [], returns: T.i32 },
   ui_begin: { args: [T.f32, T.f32, T.i32, T.f32], returns: T.void },
   ui_wheel: { args: [T.f32, T.f32], returns: T.void },
+  ui_wheel_pop: { args: [T.ptr], returns: T.i32 },
+  ui_auto_scroll: { args: [T.i32], returns: T.void },
   ui_pointer_over: { args: [T.ptr, T.i32], returns: T.i32 },
   ui_open: { args: [T.ptr, T.i32, T.ptr], returns: T.void },
   ui_image: { args: [T.ptr, T.i32], returns: T.void },
@@ -48,8 +50,12 @@ export const ui = {
   errors: () => s.ui_errors(),
   begin: s.ui_begin,
   /** Adds a wheel delta to the next frame: positive scrolls the content down (away from the user), as SDL's wheel y.
-   *  Clay moves the scroll container the pointer is over by it at the next `begin`. */
+   *  Clay moves the scroll container the pointer is over by it at the next `begin`, unless the page turned that off. */
   wheel: s.ui_wheel,
+  /** The wheel the polls (or `wheel`) took since the last pop, into out[2] and drained; false when there is none. */
+  wheelPop: (out: Float32Array) => s.ui_wheel_pop(ptr(out)) !== 0,
+  /** Clay's own wheel scrolling of its scroll containers: on by default, off while a page animates its own offset. */
+  autoScroll: (on: boolean) => s.ui_auto_scroll(on ? 1 : 0),
   /** Is the pointer over the element with that id (UTF-8, no terminator) in the layout of the last frame? */
   over: (id: Uint8Array) => s.ui_pointer_over(ptr(id), id.length) !== 0,
   open: (id: Uint8Array | undefined, style: Float32Array) => s.ui_open(id ? ptr(id) : null, id?.length ?? 0, ptr(style)),

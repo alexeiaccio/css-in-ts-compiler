@@ -62,13 +62,16 @@ $L --wheel 32 --expect solid/frames/list-wheel.png
 $L --keys $DOWN12 --expect solid/frames/list-select.png
 THEME=light $L --keys $DOWN12 --expect solid/frames/list-light.png
 bun solid/list.test.ts
-# the Sky page (csssky's feed: the tablist, the cards with drawn avatars, the wrapped bodies, Clay's scroll container):
-# Discover, the Science tab, the light theme, and the Science feed 8 notches down (Discover's three posts fit the viewport)
+# the motion model (a spring from duration and bounce, a track that retargets from the presented x and v, the exact
+# settle, the effect class's clamp, the decay's projection): no page, no Clay
+bun solid/motion.test.ts
+# the Sky page (csssky's feed: the tablist, the cards with drawn avatars, the wrapped bodies, the feed's own motion track):
+# Discover, the Science tab, the light theme, and the Science feed eight notches down, settled (the track flings to the end)
 S="bun solid/main.ts sky"
 $S --expect solid/frames/sky.png
 $S --click 180 32 --expect solid/frames/sky-science.png
 THEME=light $S --expect solid/frames/sky-light.png
-$S --click 180 32 --wheel 8 --wheel-over sky-feed --expect solid/frames/sky-scrolled.png
+$S --click 180 32 --wheel 8 --wheel-over sky-feed --settle 60 --expect solid/frames/sky-scrolled.png
 bun solid/sky.test.ts
 # the inline-styles page (styles in the .tsx) against the same page with a .styles.ts: identical pixel for pixel, and its frame
 bun solid/inline.test.ts
