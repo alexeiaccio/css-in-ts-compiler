@@ -275,7 +275,10 @@ const imageOf: Build = (prop, parts) => {
     ["imageSrc", src],
     ["width", w],
     ["height", h],
-    ["aspectRatio", keyword("fill", "contain")(`${prop}.fit`, o.fit ?? "fill") === "contain" ? w / h : 0],
+    [
+      "aspectRatio",
+      keyword("fill", "contain")(`${prop}.fit`, o.fit ?? "fill") === "contain" ? w / h : 0,
+    ],
   ];
 };
 
@@ -645,8 +648,7 @@ const cString = (s: string) => `"${s.replace(/[\\"]/g, "\\$&")}"`;
 const c = (key: string, v: number | string | Shape): string => {
   // parentId is a uint32_t: a hash over INT_MAX needs its suffix where int is 32 bits
   if (typeof v === "number") return key === "parentId" ? `${v}u` : String(v);
-  if (typeof v === "string")
-    return key === "imageData" ? `(void *)${cString(v)}` : ENUM[key]!(v);
+  if (typeof v === "string") return key === "imageData" ? `(void *)${cString(v)}` : ENUM[key]!(v);
   // a sizing axis: Clay's union, as CLAY_SIZING_FIXED() and its kin write it
   if (v.type !== undefined) {
     const size =

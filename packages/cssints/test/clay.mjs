@@ -356,7 +356,10 @@ await fails(
   `export const a = css.image("a.png", { width: 1.5, height: 2 });`,
   /image\.width: 1\.5 is not a whole number of pixels/,
 );
-await fails(`export const a = css.image("", { width: 1, height: 1 });`, /expected the path of an image/);
+await fails(
+  `export const a = css.image("", { width: 1, height: 1 });`,
+  /expected the path of an image/,
+);
 await fails(`export const a = css.image(3, { width: 1, height: 1 });`, /image: unexpected 3/);
 await fails(
   `export const a = css.image("a\\nb.png", { width: 1, height: 1 });`,

@@ -761,19 +761,23 @@ export const pointerSteps: ReadonlyArray<ActionStep> = [
   { event: "prop", prop: "snap", value: false },
   { event: "prop", prop: "marquee", value: "contain" },
   { event: "prop", prop: "marquee", value: "overlap" },
-  ...ZOOM_LEVELS.map((value): ActionStep => ({
-    event: "prop",
-    prop: "zoom",
-    value,
-  })),
+  ...ZOOM_LEVELS.map(
+    (value): ActionStep => ({
+      event: "prop",
+      prop: "zoom",
+      value,
+    }),
+  ),
   { event: "prop", prop: "edit" },
   ...NODES.flatMap((_, node) =>
-    HOST_POSITIONS.map(([x, y]): ActionStep => ({
-      event: "prop",
-      prop: "place",
-      target: `node${node}`,
-      value: [x, y],
-    })),
+    HOST_POSITIONS.map(
+      ([x, y]): ActionStep => ({
+        event: "prop",
+        prop: "place",
+        target: `node${node}`,
+        value: [x, y],
+      }),
+    ),
   ),
 ];
 
@@ -791,12 +795,14 @@ export const pointerProbe: Probe = {
     ["state", "culled"],
     ["state", "announcements"],
     ["live", "text"],
-    ...NODES.flatMap((_, index): Array<readonly [string, string]> => [
-      [`node${index}`, "aria-selected"],
-      [`node${index}`, "--node-x"],
-      [`node${index}`, "--node-y"],
-      [`node${index}`, "content-visibility"],
-    ]),
+    ...NODES.flatMap(
+      (_, index): Array<readonly [string, string]> => [
+        [`node${index}`, "aria-selected"],
+        [`node${index}`, "--node-x"],
+        [`node${index}`, "--node-y"],
+        [`node${index}`, "content-visibility"],
+      ],
+    ),
   ],
   events: ["onSelectionChange", "onNodesMove"],
 };
@@ -805,26 +811,32 @@ const anchorSteps = ANCHORS.map((anchor) => anchor);
 
 /** The user-level steps a camera differential walk draws from. */
 export const cameraSteps: ReadonlyArray<ActionStep> = [
-  ...VIEWPORTS.map((_, value): ActionStep => ({
-    event: "prop",
-    prop: "resize",
-    value,
-  })),
+  ...VIEWPORTS.map(
+    (_, value): ActionStep => ({
+      event: "prop",
+      prop: "resize",
+      value,
+    }),
+  ),
   { event: "prop", prop: "motion", value: true },
   { event: "prop", prop: "motion", value: false },
   ...PAN_DELTAS.flatMap((dx) =>
-    [-400, 5, 9_000_000].map((dy): ActionStep => ({
-      event: "prop",
-      prop: "pan",
-      value: [dx, dy],
-    })),
+    [-400, 5, 9_000_000].map(
+      (dy): ActionStep => ({
+        event: "prop",
+        prop: "pan",
+        value: [dx, dy],
+      }),
+    ),
   ),
   ...ZOOM_FACTORS.flatMap((factor) =>
-    anchorSteps.map((anchor): ActionStep => ({
-      event: "prop",
-      prop: "zoom",
-      value: { factor, anchor },
-    })),
+    anchorSteps.map(
+      (anchor): ActionStep => ({
+        event: "prop",
+        prop: "zoom",
+        value: { factor, anchor },
+      }),
+    ),
   ),
   ...anchorSteps.flatMap((anchor): ActionStep[] => [
     { event: "prop", prop: "zoomLimit", value: { limit: "min", anchor } },
@@ -832,16 +844,21 @@ export const cameraSteps: ReadonlyArray<ActionStep> = [
     { event: "prop", prop: "tween", value: { zoom: "100%", anchor } },
     { event: "prop", prop: "tween", value: { zoom: "max", anchor } },
   ]),
-  ...CENTRE_POINTS.map(([x, y]): ActionStep => ({
-    event: "prop",
-    prop: "tween",
-    value: { centre: [x, y] },
-  })),
+  ...CENTRE_POINTS.map(
+    ([x, y]): ActionStep => ({
+      event: "prop",
+      prop: "tween",
+      value: { centre: [x, y] },
+    }),
+  ),
   // ticks and cancels dominate so a tween is usually in flight when something interrupts it
-  ...Array.from({ length: 12 }, (): ActionStep => ({
-    event: "prop",
-    prop: "tick",
-  })),
+  ...Array.from(
+    { length: 12 },
+    (): ActionStep => ({
+      event: "prop",
+      prop: "tick",
+    }),
+  ),
   { event: "prop", prop: "cancelTween" },
 ];
 

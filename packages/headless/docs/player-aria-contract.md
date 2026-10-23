@@ -143,7 +143,7 @@ current`. Adapter-origin events are prefixed `on`; user-intent events are the
 primitive's public methods/keys.
 
 | Event                                      | Source (HTML)                    | Effect                                                                  |
-| ------------------------------------------ | -------------------------------- | ----------------------------------------------------------------------- |
+| ------------------------------------------ | -------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------- | ----- | --------------------------------------------------------------------------------------------------------- |
 | `onLoadedMetadata(d)`                      | `loadedmetadata`                 | if `loading`: `stage=ready`, `known=true`, `dur=d`, `pos=0`; else no-op |
 | `onCanPlay`                                | `canplay`                        | if `loading`: `stage=ready`; else no-op                                 |
 | `onWaiting`                                | `waiting`                        | if `playing`: `stage=buffering`; else no-op                             |
@@ -361,21 +361,14 @@ export interface PlaybackAdapter {
 }
 
 export type PlayerAdapterEvent =
-  | { type: 'loadedmetadata'; duration: number }
+  | { type: "loadedmetadata"; duration: number }
   | {
-      type:
-        | 'canplay'
-        | 'playing'
-        | 'pause'
-        | 'waiting'
-        | 'seeking'
-        | 'seeked'
-        | 'ended';
+      type: "canplay" | "playing" | "pause" | "waiting" | "seeking" | "seeked" | "ended";
     }
-  | { type: 'timeupdate'; currentTime: number }
-  | { type: 'ratechange'; rate: number }
-  | { type: 'volumechange' }
-  | { type: 'error'; cause: Error };
+  | { type: "timeupdate"; currentTime: number }
+  | { type: "ratechange"; rate: number }
+  | { type: "volumechange" }
+  | { type: "error"; cause: Error };
 ```
 
 Kept out of the adapter on purpose (YAGNI / wrong layer):

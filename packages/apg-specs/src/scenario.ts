@@ -422,10 +422,9 @@ type Entry = readonly [label: string, value: Schema.Json | "?"];
 const snapshot = (observer: Observer, probe: Probe): ReadonlyArray<Entry> => [
   ["focus", observed(() => normalize(observer.focus()))],
   ["visible", observer.visible().map(partName).sort()],
-  ...probe.attrs.map(([target, name]): Entry => [
-    `${target}[${name}]`,
-    observed(() => observer.attr(target, name)),
-  ]),
+  ...probe.attrs.map(
+    ([target, name]): Entry => [`${target}[${name}]`, observed(() => observer.attr(target, name))],
+  ),
   ...probe.events.map((name): Entry => [`events.${name}`, [...observer.events(name)]]),
 ];
 

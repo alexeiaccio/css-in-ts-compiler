@@ -417,10 +417,12 @@ export const treeviewSteps: ReadonlyArray<ActionStep> = [
   { event: "type", text: "o", target: "tree" },
   { event: "type", text: "s", target: "tree" },
   { event: "typeaheadReset" },
-  ...IDS.map((node): ActionStep => ({
-    event: "click",
-    target: nodeToPath(node),
-  })),
+  ...IDS.map(
+    (node): ActionStep => ({
+      event: "click",
+      target: nodeToPath(node),
+    }),
+  ),
   { event: "prop", prop: "hostToggle" },
   { event: "prop", prop: "selected", value: ["treeitem:0"] },
   { event: "prop", prop: "selected", value: ["treeitem:1"] },
