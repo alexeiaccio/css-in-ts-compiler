@@ -577,8 +577,33 @@ The order, each with its own frame and its own number:
    browser/board/terminal (a dual Kawase pass, a pre-baked sprite, none), a panel whose own alpha varies per pixel (the
    fill is one Clay colour), and what a backdrop over an image or another float would need (the box is the first
    rectangle command; a picture or a float in the cut is drawn into pass 1 and blurred like everything else under it).
-3. **Gradients** as a member (`css.backgroundImage("linear-gradient(...)")`, the grammar is already in cssints) filled
-   by ThorVG, with a dither step — an undithered dark card shows bands.
+3. **Done: gradients** (`css.backgroundImage("linear-gradient(...)")`, 2026-10-23) — the third effect, and the first that is
+   a fill rather than work on the buffer. The style's literal carries a sibling `backgroundImage: { kind: "linear", angle,
+   stops: [{ offset, color }] }` key; `header()` prints nothing for it (the C pages stay byte-identical), `variant()` pulls
+   it out beside the shadow and the backdrop, `frame.ts` calls `ui.backgroundImage(kind, angle, count, stops)` before
+   `ui_open`, and `ui.c` hangs it on the renderer's table by `Clay_ElementId.id`, cleared at `ui_begin`. The member is one
+   string of CSS's own grammar: an optional direction (`<number>deg`, or `to top | to right | to bottom | to left`; 180deg
+   by default) and two or more colour stops with an optional `<number>%` (a stop without one is spread as CSS spreads it);
+   `radial-gradient`, `conic-gradient`, a repeating one, `url()`, colour hints, `px` stops, fewer than two stops and a
+   backwards list are build errors. At the element's first **rectangle** command the renderer fills the box (its corner
+   radii too) with ThorVG's linear gradient and does not draw the solid fill; a border is its own command and stays. The
+   geometry is CSS's gradient line: direction `(sin θ, -cos θ)`, length `|w·sinθ| + |h·cosθ|`, the box's centre ± half of
+   it, in Clay units (the root scene carries the scale). One gradient an element (16 a frame), 8 stops (a ninth is an
+   error count), linear only. The page: the Sky cards (three of 336x190) are `180deg` from `rgb(27 32 38)` to
+   `rgb(21 25 30)` in the dark theme and `255 255 255` to `240 243 246` in the light one, both top-lighter; the hover
+   overrides the whole gradient with the hover tokens (`34 40 49` to `28 33 40`), since a state cannot unset one. The four
+   stored frames were regenerated: of their pixels 187,898 (sky), 194,752 (science), 197,990 (light) and 198,952
+   (scrolled) differ from the frames without a gradient, every one inside a card's box, worst channel 6, 6, 15 and 9/255.
+   A card's column is 5/255 lighter at its top over 182px (14/255 in the light theme), a row varies by 0/255 across, and
+   the page is one pixel beyond its edge. Cost: under 0.2 ms for the page's three cards (`--bench 1000`, the least-loaded
+   of three back-to-back pairs: 3.735 against 3.631 ms a frame, light 3.625 against 3.458), i.e. what the solid fill of the
+   same pixels costs, within the machine's noise. Checks: `test/clay.mjs` (the literal at 180deg and at `to right`, the
+   even spreading, a themed stop, the offsets, the errors), `solid/sky.test.ts` (the vertical scan, the row, the edge, the
+   hover, the light theme) and the four frames; a mutation of the angle to `90deg` fails the vertical scan. **It bands**:
+   the dark card's 190px is 6 luminance steps of about 30px, the light one 12 of about 15px — a dither step is the cure
+   and is not built. Open: radial and conic (ThorVG has both), dithering, a gradient under a translucent fill (one fill per
+   element today), a gradient on text, a border or an image, and the browser, the board and the terminal (the board would
+   band hardest; a dithered gradient is PPA work on the P4).
 4. **Tint and tritone** for themes and disabled states, worth it once a theme switch is animated.
 5. The terminal gets none of the blurs; its equivalents are the palette and the attributes it already has.
 6. The board gets only what `render.c` can do without a filter: dithered gradients, shadows as pre-baked sprites, PPA

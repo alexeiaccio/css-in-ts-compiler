@@ -19,18 +19,24 @@ const check = (what: string, got: unknown, want: unknown) => {
 };
 
 const PAGE = [16, 19, 22]; // the page token of the dark theme
-const PANEL = [23, 27, 32]; // a card at rest
+const PANEL = [27, 32, 38]; // the card's gradient at its top (the panel token)
+const PANEL_DEEP = [21, 25, 30]; // ... and at its bottom
 const MUTED = [139, 152, 165]; // the muted token
-const HOVER = [34, 40, 49]; // a card or tab under the pointer
+const HOVER = [34, 40, 49]; // a card or tab under the pointer: the hover gradient's top
 const RING = [92, 176, 255]; // the feed's focus ring
+const LIGHT_PANEL = [255, 255, 255]; // the light theme's card, at its top
+const LIGHT_PANEL_DEEP = [240, 243, 246]; // ... and at its bottom
+// a gradient's pixel is the stop interpolated at that y, so it is matched within a channel or two
+const near = (got: number[], want: number[], d = 2) =>
+  got.length === 3 && want.every((v, i) => Math.abs(got[i]! - v) <= d);
 
 let dispose = () => {};
-function fresh() {
+function fresh(theme?: string) {
   dispose();
   const root = new El("root");
   const input = createInput();
   dispose = render(() => Sky({ input }), root);
-  const frame = createFrame(root, { onPressMiss: () => input.pressMiss() });
+  const frame = createFrame(root, { theme, onPressMiss: () => input.pressMiss() });
   let at = [-1, -1];
   const step = (down = false) => frame(at[0]!, at[1]!, down, 1 / 60);
   step();
@@ -132,7 +138,7 @@ function fresh() {
   const p = fresh();
   const a = p.avatar(0);
   check("the avatar is a 40x40 box", a, [24, 88, 40, 40]);
-  check("its corner is the card's panel: the disc's outside is transparent", p.pixel(a[0]! + 1, a[1]! + 1), PANEL);
+  check("its corner is the card's panel: the disc's outside is transparent", near(p.pixel(a[0]! + 1, a[1]! + 1), PANEL), true);
   check("the disc's middle is the head, a lighter tint of the hue", p.pixel(a[0]! + 20, a[1]! + 20), [99, 178, 255]);
   check("and its body is michaelwarburton's hue", p.pixel(a[0]! + 10, a[1]! + 10), [74, 132, 214]);
   p.science();
@@ -146,14 +152,73 @@ function fresh() {
 {
   const p = fresh();
   const card = p.card(1);
-  check("a card at rest is the panel", p.pixel(180, 300), PANEL);
+  check("a card at rest is the panel", near(p.pixel(180, 300), PANEL), true);
   p.point(180, 300);
-  check("under the pointer the card is the hover step", p.pixel(180, 300), HOVER);
+  check("under the pointer the card is the hover step", near(p.pixel(180, 300), HOVER, 2), true);
   check("with its box unchanged", p.card(1), card);
   const tab = p.box("sky-tabs-tab-1");
   check("a tab at rest is the page behind it", p.pixel(tab[0]! + 4, tab[1]! + 14), PAGE);
   p.point(tab[0]! + 4, tab[1]! + 14);
   check("the tab under the pointer lightens too", p.pixel(tab[0]! + 4, tab[1]! + 14), HOVER);
+}
+
+// --- the card's gradient (css.backgroundImage): a vertical linear gradient, 180deg, from the panel token at the top to
+//     the deep one at the bottom; the same across the card, gone at its edge, and the hover overrides it whole
+{
+  const p = fresh();
+  const card = p.card(0);
+  const [x0, y0, w, h] = [card[0]!, card[1]!, card[2]!, card[3]!];
+  // a column in the card's right padding: no text, no avatar; 4px in from each end so the rounded corners are out
+  const column: number[][] = [];
+  for (let y = y0 + 4; y < y0 + h - 4; y++) column.push(p.pixel(x0 + w - 8, y));
+  const top = column[0]!,
+    bottom = column[column.length - 1]!;
+  check("the card's gradient runs top to bottom: its top is lighter", top[0]! >= bottom[0]! + 3, true);
+  check("by 5/255 over these 182px", top[0]! - bottom[0]!, 5);
+  check("it starts at the panel token", near(top, PANEL), true);
+  check("and ends at the deep one", near(bottom, PANEL_DEEP), true);
+  // a row in the card's top padding, above the avatar and the name: a vertical gradient does not vary across
+  const row: number[][] = [];
+  for (let x = x0 + 8; x < x0 + w - 8; x++) row.push(p.pixel(x, y0 + 4));
+  const across = Math.max(...row.map((c) => c[0]!)) - Math.min(...row.map((c) => c[0]!));
+  check("the gradient is vertical: one row varies by at most 1/255", across <= 1, true);
+  // its edges: one pixel outside the card is the page, the card's own first pixel is the gradient
+  const mid = y0 + Math.floor(h / 2);
+  check("above the card is the page, not the gradient", p.pixel(180, y0 - 1), PAGE);
+  check("left of it is the page too", p.pixel(x0 - 1, mid), PAGE);
+  check("and its own left edge is the gradient", p.pixel(x0, mid).join() === PAGE.join(), false);
+  check("its own top edge is the gradient", p.pixel(180, y0).join() === PAGE.join(), false);
+  // the bands: how many runs of one luminance a vertical scan of a 190px card shows (this is where a dither step would
+  // come in; none is built, and the count is reported)
+  const lum = (c: number[]) => Math.round(0.2126 * c[0]! + 0.7152 * c[1]! + 0.0722 * c[2]!);
+  let runs = 1;
+  for (let i = 1; i < column.length; i++) if (lum(column[i]!) !== lum(column[i - 1]!)) runs++;
+  check("the bands are runs of one luminance down the card", runs >= 2, true);
+  console.log(
+    `solid/sky.test.ts: the card's gradient down ${column.length}px: ${new Set(column.map((c) => c.join())).size} colours, ` +
+      `${runs} bands of ${(column.length / runs).toFixed(1)}px on average`,
+  );
+  // the hover overrides the whole gradient: the card under the pointer starts at the hover token
+  const card1 = p.card(1);
+  const at = p.pixel(180, card1[1]! + 30);
+  p.point(180, card1[1]! + 30);
+  const hovered = p.pixel(180, card1[1]! + 30);
+  check("the hover replaces the gradient: lighter by more than 3/255", hovered[0]! >= at[0]! + 3, true);
+  check("at the hover token", near(hovered, [33, 39, 48], 2), true);
+}
+
+// --- the light theme's card is the same gradient, white to the light deep token: top-lighter there too (not inverted)
+{
+  const p = fresh("light");
+  const card = p.card(0);
+  const [x0, y0, w, h] = [card[0]!, card[1]!, card[2]!, card[3]!];
+  const column: number[][] = [];
+  for (let y = y0 + 4; y < y0 + h - 4; y++) column.push(p.pixel(x0 + w - 8, y));
+  const [top, bottom] = [column[0]!, column[column.length - 1]!];
+  check("the light card starts at white", near(top, LIGHT_PANEL, 1), true);
+  check("and ends at the light deep token", near(bottom, LIGHT_PANEL_DEEP, 1), true);
+  check("lighter at its top by at least 3/255", top[0]! >= bottom[0]! + 3, true);
+  check("the page around it is the light one", p.pixel(180, y0 - 1), [243, 245, 247]);
 }
 
 // --- the text wraps: the body of Erik's long post is four 20px lines, and Titania's long media line makes her card
@@ -246,7 +311,7 @@ function fresh() {
   check("the status names the selected post", p.status(), "Titania — 2 of 3");
   check("the card keeps its box", p.card(1), card);
   check("the selected card has the accent border", p.pixel(card[0]!, card[1]! + 100), [59, 156, 240]);
-  check("and the hover panel it was clicked under", p.pixel(180, 300), HOVER);
+  check("and the hover gradient it was clicked under", near(p.pixel(180, 300), HOVER, 2), true);
   check("a click on the background keeps it too", (p.point(180, 60), p.status()), "Titania — 2 of 3");
   p.news();
   check("and another feed's status has no selection", p.status(), "News — 0 posts");
@@ -272,8 +337,9 @@ dispose();
 if (failed) process.exit(1);
 console.log(
   "solid/sky.test.ts: ago() and the compact numbers, the bar/feed/status layout, the six drawn avatars (the panel at the " +
-    "corner, the author's hue in the disc) and their change with the feed, the body and media wrapping, the wheel moving " +
-    "Clay's offset 10px a notch with the bar still, the keyboard scrolling (Down/Up 40, PageDown a viewport, Home/End), " +
-    "the tabs switching the feed and the empty News case, a card click recording the selection, the page fitting",
+    "corner, the author's hue in the disc) and their change with the feed, the card's vertical gradient (top to bottom, " +
+    "constant across, gone at its edge, the hover's own), the body and media wrapping, the wheel moving Clay's offset " +
+    "10px a notch with the bar still, the keyboard scrolling (Down/Up 40, PageDown a viewport, Home/End), the tabs " +
+    "switching the feed and the empty News case, a card click recording the selection, the page fitting",
 );
 process.exit(0);

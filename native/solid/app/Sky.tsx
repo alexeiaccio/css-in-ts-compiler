@@ -18,14 +18,16 @@ import { createTabs } from "../../headless/src/index.ts";
 import { ui } from "../src/ffi.ts";
 import type { FocusPart, Input } from "../src/input.ts";
 
-// the sky palette: the page, the card one tonal step above it, the hover step, the muted step and the accent blue; the
-// ring is the same blue the other pages use.
+// the sky palette: the page, the card one tonal step above it (its top; the gradient's deep end is a step below), the
+// hover step, the muted step and the accent blue; the ring is the same blue the other pages use.
 const t = css.createTokens({
   color: {
     $type: "color",
     page: { $value: "rgb(16 19 22)" },
-    panel: { $value: "rgb(23 27 32)" },
+    panel: { $value: "rgb(27 32 38)" },
+    panelDeep: { $value: "rgb(21 25 30)" },
     hover: { $value: "rgb(34 40 49)" },
+    hoverDeep: { $value: "rgb(28 33 40)" },
     ink: { $value: "rgb(230 233 236)" },
     muted: { $value: "rgb(139 152 165)" },
     accent: { $value: "rgb(59 156 240)" },
@@ -36,7 +38,9 @@ css.createGlobalTheme(t, "light", {
   color: {
     page: "rgb(243 245 247)",
     panel: "rgb(255 255 255)",
+    panelDeep: "rgb(240 243 246)",
     hover: "rgb(232 238 244)",
+    hoverDeep: "rgb(222 229 236)",
     ink: "rgb(15 20 25)",
     muted: "rgb(86 99 111)",
     accent: "rgb(17 112 207)",
@@ -78,8 +82,12 @@ const view = css.cn(
   css.focus(css.border(2, t.color.ring)),
 );
 
-// a card: the panel, 12px radius and padding, a column of avatar, identity, body, media and counts. The selected card is
-// the hover panel with an accent border (a border draws inside, so it moves nothing); the hover lightens the panel.
+// a card: the panel, 12px radius and padding, a column of avatar, identity, body, media and counts. The panel is a
+// vertical gradient (a renderer effect: Clay draws the solid colour under it, and the desktop renderer fills the gradient
+// instead), the selected card is the hover panel with an accent border (a border draws inside, so it moves nothing), and
+// the hover lightens the gradient: a state overrides `backgroundImage` whole.
+const cardTint = css.backgroundImage(`linear-gradient(180deg, ${t.color.panel}, ${t.color.panelDeep})`);
+const cardHoverTint = css.backgroundImage(`linear-gradient(180deg, ${t.color.hover}, ${t.color.hoverDeep})`);
 const card = css.cn(
   // a percent width: a clip element lets its children grow past the viewport for their content, so a card that must
   // wrap its body takes the feed's width from the parent, not from what its text wants
@@ -89,9 +97,10 @@ const card = css.cn(
   css.flexDirection("column"),
   css.bg(t.color.panel),
   css.borderRadius(12),
-  css.hover(css.bg(t.color.hover)),
+  cardTint,
+  css.hover(cardHoverTint, css.bg(t.color.hover)),
 );
-const cardOn = css.cn(card, css.bg(t.color.hover), css.border(1, t.color.accent));
+const cardOn = css.cn(card, cardHoverTint, css.bg(t.color.hover), css.border(1, t.color.accent));
 // the app's one <text> of spans, split in two here: a name and handle side by side do not fit a 312px card (the longest
 // pair is about 340px) and Clay has no ellipsis, so the handle and age take the line under the name
 const nameLine = css.cn(css.width("stretch"), css.flexDirection("column"));

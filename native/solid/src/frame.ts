@@ -85,6 +85,9 @@ export function createFrame(root: El, view: View = {}) {
       ui.shadow(shadow.x, shadow.y, shadow.blur, shadow.color.r, shadow.color.g, shadow.color.b, shadow.color.a);
     // a backdrop too: the renderer blurs the pixels under the element, before the element's own commands
     if (v?.backdrop) ui.backdrop(v.backdrop.blur);
+    // a gradient is a fill, not an effect: it lands in the element's first rectangle, over the shadow and any blurred page
+    const gradient = v?.backgroundImage;
+    if (gradient) ui.backgroundImage(gradient.kind, gradient.angle, gradient.count, gradient.stops);
     ui.open(id, v?.box || NO_STYLE);
     for (const c of el.children) if (c instanceof El) emit(c, down);
     ui.close();

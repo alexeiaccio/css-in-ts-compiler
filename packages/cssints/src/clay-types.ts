@@ -105,6 +105,22 @@ export interface Shadow {
 export interface Backdrop {
   blur: number;
 }
+/** A gradient stop: where it sits up the gradient line (0..1) and its colour. */
+export interface GradientStop {
+  offset: number;
+  color: Rgba;
+}
+/**
+ * A linear gradient the renderer draws instead of the solid fill (`css.backgroundImage`): CSS's gradient line of `angle`
+ * across the element's box, `stops` from its start to its end.
+ */
+export interface BackgroundImage {
+  kind: "linear";
+  /** CSS's angle in degrees: 0 up, 90 right, 180 down (the default), 270 left. */
+  angle: number;
+  /** Two or more, in order (a later one is at or past an earlier one). */
+  stops: GradientStop[];
+}
 interface Axis {
   type: "FIT" | "GROW" | "PERCENT" | "FIXED";
   min?: number;
@@ -142,6 +158,11 @@ export interface ClayFields {
    * the element's box before the element's own command, keyed by its id.
    */
   backdrop?: Backdrop;
+  /**
+   * A gradient (`css.backgroundImage`): not a field of `Clay_ElementDeclaration` either — the renderer fills the element's
+   * box with it instead of `backgroundColor`, keyed by its id.
+   */
+  backgroundImage?: BackgroundImage;
   aspectRatio?: { aspectRatio: number };
   floating?: {
     offset?: { x: number; y: number };
@@ -250,6 +271,14 @@ export declare const shadow: (options?: ShadowOptions) => ClayStyle;
  * Today `native/solid`'s ThorVG renderer is the one that blurs.
  */
 export declare const backdrop: (options?: BackdropOptions) => ClayStyle;
+/**
+ * A background image of the element, as CSS's `linear-gradient()` in one string: an optional direction (`<number>deg`, or
+ * `to top | to bottom | to left | to right`) and two or more colour stops with an optional `<number>%` each. Only a linear
+ * gradient is drawn. It is a renderer effect, not a Clay field, as `shadow` is: `header()` prints nothing for it and only
+ * a renderer that reads it draws one; the C targets keep their solid fill. `header()` and the C pages ignore it, the
+ * desktop renderer fills the element's box instead of `backgroundColor`, and the element needs an `id`.
+ */
+export declare const backgroundImage: (gradient: string) => ClayStyle;
 
 /** Merges styles in argument order: a later prop wins. */
 export declare const cn: (...styles: ClayStyle[]) => ClayStyle;

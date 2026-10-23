@@ -261,6 +261,58 @@ assert.deepEqual(backdrops.floating, {
 const bd = header(backdrops);
 assert.ok(!/backdrop/i.test(bd), bd); // the declaration keeps its layout, not the effect
 
+// gradients: a sibling `backgroundImage` the renderer fills the box with, header() drops it too
+const gradients = { ...(await exportsOf("clay-gradient.ts")) };
+const grad = (angle, stops) => ({ kind: "linear", angle, stops });
+const stop = (offset, r, g, b, a = 255) => ({ offset, color: { r, g, b, a } });
+// no direction is `to bottom`: 180deg, top to bottom
+assert.deepEqual(
+  gradients.vertical.backgroundImage,
+  grad(180, [stop(0, 27, 32, 38), stop(1, 21, 25, 30)]),
+);
+// `to right` is 90deg; three stops without offsets spread evenly between 0 and 1
+assert.deepEqual(
+  gradients.right.backgroundImage,
+  grad(90, [stop(0, 255, 255, 255), stop(0.5, 255, 0, 0), stop(1, 0, 0, 0)]),
+);
+// an angle is kept, and two stops that are not the ends keep their own offsets
+assert.deepEqual(
+  gradients.angled.backgroundImage,
+  grad(45, [stop(0.25, 255, 0, 0), stop(0.75, 0, 0, 255)]),
+);
+// the missing offsets are spread between the given ones (green halfway from 10% to 40%)
+assert.deepEqual(
+  gradients.given.backgroundImage,
+  grad(180, [
+    stop(0.1, 255, 0, 0),
+    stop(0.25, 0, 128, 0),
+    stop(0.4, 0, 0, 255),
+    stop(1, 255, 255, 255),
+  ]),
+);
+// a token's stop is resolved at the literal, and a theme changes the stops and nothing else
+assert.deepEqual(
+  gradients.themed.backgroundImage,
+  grad(180, [stop(0, 27, 32, 38), stop(1, 21, 25, 30)]),
+);
+assert.deepEqual(gradients.themed.themes, {
+  light: { backgroundImage: { stops: [stop(0, 255, 255, 255), stop(1, 240, 243, 246)] } },
+});
+// a state overrides the whole gradient, stops and all
+assert.deepEqual(
+  gradients.card[":hover"].backgroundImage,
+  grad(45, [stop(0.25, 255, 0, 0), stop(0.75, 0, 0, 255)]),
+);
+assert.deepEqual(gradients.panelled, {
+  layout: { sizing: { width: { type: "FIXED", min: 336, max: 336 } } },
+  backgroundColor: { r: 23, g: 27, b: 32, a: 255 },
+  cornerRadius: { topLeft: 12, topRight: 12, bottomRight: 12, bottomLeft: 12 },
+  backgroundImage: grad(180, [stop(0, 27, 32, 38), stop(1, 21, 25, 30)]),
+});
+const gh = header(gradients);
+assert.ok(!/gradient/i.test(gh), gh); // no name, no field: a renderer effect, as the shadow
+assert.ok(!gh.includes("linear"), gh);
+
 const fails = async (source, message) =>
   assert.rejects(
     code(`import * as css from "cssints/clay" with { type: "cssints" };\n${source}`),
@@ -395,7 +447,10 @@ await fails(
   `export const a = css.image("a.png", { width: 1.5, height: 2 });`,
   /image\.width: 1\.5 is not a whole number of pixels/,
 );
-await fails(`export const a = css.image("", { width: 1, height: 1 });`, /expected the path of an image/);
+await fails(
+  `export const a = css.image("", { width: 1, height: 1 });`,
+  /expected the path of an image/,
+);
 await fails(`export const a = css.image(3, { width: 1, height: 1 });`, /image: unexpected 3/);
 await fails(
   `export const a = css.image("a\\nb.png", { width: 1, height: 1 });`,
@@ -444,10 +499,7 @@ await fails(
   `export const a = css.backdrop({ blur: -2 });`,
   /backdrop\.blur: unexpected -2, expected a number of pixels .*not negative/,
 );
-await fails(
-  `export const a = css.backdrop({ blur: "4em" });`,
-  /backdrop\.blur: unexpected "4em"/,
-);
+await fails(`export const a = css.backdrop({ blur: "4em" });`, /backdrop\.blur: unexpected "4em"/);
 await fails(
   `export const a = css.backdrop({ radius: 2 });`,
   /backdrop: unexpected "radius", expected blur/,
@@ -458,6 +510,69 @@ await fails(
 );
 await fails(`export const a = css.backdrop(2);`, /backdrop: unexpected 2, expected \{ blur \}/);
 await fails(`export const a = css.backdrop(css.p(1));`, /backdrop: a style is not a value/);
+
+// the gradient's grammar: one string, a linear-gradient(), a direction, two or more stops, percentages that do not go back
+await fails(
+  `export const a = css.backgroundImage();`,
+  /backgroundImage takes one string, got 0 values/,
+);
+await fails(
+  `export const a = css.backgroundImage("linear-gradient(red, blue)", "x");`,
+  /backgroundImage takes one string, got 2 values/,
+);
+await fails(
+  `export const a = css.backgroundImage(3);`,
+  /backgroundImage: unexpected 3, expected a linear-gradient/,
+);
+await fails(
+  `export const a = css.backgroundImage("radial-gradient(red, blue)");`,
+  /expected a linear-gradient\(\) as one string/,
+);
+await fails(`export const a = css.backgroundImage("url(a.png)");`, /expected a linear-gradient/);
+await fails(
+  `export const a = css.backgroundImage("linear-gradient()");`,
+  /a gradient needs two or more colour stops, got 0/,
+);
+await fails(
+  `export const a = css.backgroundImage("linear-gradient(red)");`,
+  /a gradient needs two or more colour stops, got 1/,
+);
+await fails(
+  `export const a = css.backgroundImage("linear-gradient(45, red, blue)");`,
+  /unexpected "45" as a direction, expected <number>deg or to top \| to right \| to bottom \| to left/,
+);
+await fails(
+  `export const a = css.backgroundImage("linear-gradient(0.5turn, red, blue)");`,
+  /unexpected "0\.5turn" as a direction/,
+);
+await fails(
+  `export const a = css.backgroundImage("linear-gradient(to middle, red, blue)");`,
+  /unexpected "to middle" as a direction/,
+);
+await fails(
+  `export const a = css.backgroundImage("linear-gradient(red, blu)");`,
+  /"blu" is not a colour Clay can draw/,
+);
+await fails(
+  `export const a = css.backgroundImage("linear-gradient(red 10px, blue)");`,
+  /unexpected "10px" as a stop, expected a percentage/,
+);
+await fails(
+  `export const a = css.backgroundImage("linear-gradient(red, 30%, blue)");`,
+  /unexpected "30%", expected a colour \(colour hints are not drawn\)/,
+);
+await fails(
+  `export const a = css.backgroundImage("linear-gradient(red 120%, blue)");`,
+  /unexpected "120%" as an offset, expected 0% to 100%/,
+);
+await fails(
+  `export const a = css.backgroundImage("linear-gradient(red, blue 60%, green 20%)");`,
+  /the stops go backwards: "60%" then "20%"/,
+);
+await fails(
+  `export const a = css.backgroundImage(css.p(1));`,
+  /backgroundImage: a style is not a value/,
+);
 
 await server.close();
 console.log("clay: ok");

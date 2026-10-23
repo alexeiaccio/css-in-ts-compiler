@@ -33,6 +33,18 @@ typedef struct {
         float blur;
     } backdrops[8];
     int backdropCount;
+    // the frame's gradients (css.backgroundImage), by the id of the element that has one: the element's box is filled with
+    // the linear gradient instead of its solid background. A table beside the commands, as the shadows are.
+    struct {
+        uint32_t id;
+        int kind; // 1: linear
+        float angle;
+        int count;
+        float offset[8];
+        Clay_Color color[8];
+        bool drawn;
+    } gradients[16];
+    int gradientCount;
     bool cut; // this frame's one cut has happened (the first backdrop's first rectangle)
     // the software canvas's target, for the CPU blur of a backdrop: the WebGPU canvas reads its frame back only after
     // the whole draw, so it sets none and a backdrop is not blurred there (the frame is not cut either)
@@ -185,6 +197,60 @@ static float Clay_ThorVG_BackdropOf(Clay_ThorVGRendererData *d, uint32_t id)
     return -1;
 }
 
+/** Gives the element with this id's hash a background image for the next draw (one a frame): a linear gradient that fills
+ *  the element's box instead of its solid background. `stops` is `count` rows of (offset 0..1, r, g, b, a). A renderer
+ *  effect, as the shadow: no Clay field holds one, and the command stream's id is what finds it again. */
+static void Clay_ThorVG_SetBackgroundImage(Clay_ThorVGRendererData *d, uint32_t id, int kind, float angle, int count,
+                                           const float stops[][5])
+{
+    // ponytail: 16 gradients a frame, 8 stops each, one an element; more needs a table that grows
+    if (d->gradientCount == (int)(sizeof d->gradients / sizeof *d->gradients)) return;
+    if (count < 2) return;
+    if (count > 8) count = 8;
+    int i = d->gradientCount++;
+    d->gradients[i].id = id;
+    d->gradients[i].kind = kind;
+    d->gradients[i].angle = angle;
+    d->gradients[i].count = count;
+    for (int k = 0; k < count; k++) {
+        d->gradients[i].offset[k] = stops[k][0];
+        d->gradients[i].color[k] = (Clay_Color){stops[k][1], stops[k][2], stops[k][3], stops[k][4]};
+    }
+    d->gradients[i].drawn = false;
+}
+
+/** The gradient of the element with this id, at its `*at`, if it has one it has not drawn yet; false when it has none. */
+static bool Clay_ThorVG_GradientOf(Clay_ThorVGRendererData *d, uint32_t id, int *at)
+{
+    for (int i = 0; i < d->gradientCount; i++)
+        if (d->gradients[i].id == id && !d->gradients[i].drawn) return (*at = i), true;
+    return false;
+}
+
+#define CLAY_THORVG_PI 3.14159265358979323846f
+
+/** Fills a shape with a linear gradient along CSS's gradient line: the direction (sin θ, -cos θ) (0deg is up, 90 right),
+ *  the line's length |w·sinθ| + |h·cosθ| (the box's projection on it), from the box's centre out to both ends. The
+ *  coordinates are the shape's own, the same space as its path: the root scene carries the pixel density, as for a
+ *  shadow's sigma. */
+static void Clay_ThorVG_FillGradient(Tvg_Paint s, const float angle, int count, const float *offset,
+                                     const Clay_Color *color, float x, float y, float w, float h)
+{
+    const float rad = angle * CLAY_THORVG_PI / 180.0f;
+    const float dx = sinf(rad), dy = -cosf(rad);
+    const float len = fabsf(w * dx) + fabsf(h * dy);
+    const float cx = x + w / 2, cy = y + h / 2;
+    Tvg_Color_Stop stops[8];
+    for (int i = 0; i < count; i++)
+        stops[i] = (Tvg_Color_Stop){offset[i], (uint8_t)color[i].r, (uint8_t)color[i].g, (uint8_t)color[i].b,
+                                    (uint8_t)color[i].a};
+    Tvg_Gradient grad = tvg_linear_gradient_new();
+    tvg_linear_gradient_set(grad, cx - dx * len / 2, cy - dy * len / 2, cx + dx * len / 2, cy + dy * len / 2);
+    tvg_gradient_set_color_stops(grad, stops, (uint32_t)count);
+    // the shape takes the gradient: setting the fill hands it over, so there is no tvg_gradient_del of ours
+    tvg_shape_set_gradient(s, grad);
+}
+
 // The backdrop blur's machine: a separable box blur, three passes each way, which is a gaussian to the eye and has no
 // kernel to build. A pass of radius r three times has the variance (r^2 + r) of a gaussian, so CSS's blur radius (sigma
 // = blur / 2, the shadow's reading) picks r = (sqrt(1 + 4 sigma^2) - 1) / 2.
@@ -324,8 +390,17 @@ static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_Rend
             const float rad[4] = {c.topLeft, c.topRight, c.bottomRight, c.bottomLeft};
             Tvg_Paint s = tvg_shape_new();
             Clay_ThorVG_RoundRect(s, x, y, w, h, rad, rad);
-            tvg_shape_set_fill_color(s, r->backgroundColor.r, r->backgroundColor.g, r->backgroundColor.b,
-                                     r->backgroundColor.a);
+            // a gradient (css.backgroundImage) fills the element's box instead of its solid colour: the first rectangle
+            // command of the element takes it, drawn over the shadow and (after a backdrop's cut) over the blurred page
+            int gradient;
+            if (Clay_ThorVG_GradientOf(d, rcmd->id, &gradient)) {
+                d->gradients[gradient].drawn = true;
+                // ponytail: the solid background under a gradient is not drawn at all, not blended with it
+                Clay_ThorVG_FillGradient(s, d->gradients[gradient].angle, d->gradients[gradient].count,
+                                         d->gradients[gradient].offset, d->gradients[gradient].color, x, y, w, h);
+            } else
+                tvg_shape_set_fill_color(s, r->backgroundColor.r, r->backgroundColor.g, r->backgroundColor.b,
+                                         r->backgroundColor.a);
             tvg_scene_add(into, s);
         } break;
         case CLAY_RENDER_COMMAND_TYPE_BORDER: {

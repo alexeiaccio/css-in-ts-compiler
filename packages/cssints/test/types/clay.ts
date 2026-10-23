@@ -112,3 +112,13 @@ css.backdrop({ blur: "1rem" });
 css.backdrop({ radius: 2 });
 // @ts-expect-error one object of options
 css.backdrop(8);
+
+export const gradients = css.cn(
+  css.backgroundImage("linear-gradient(180deg, rgb(27 32 38), rgb(21 25 30))"),
+  css.backgroundImage("linear-gradient(to right, #fff, red 50%)"),
+  css.hover(css.backgroundImage("linear-gradient(45deg, red 25%, blue)")),
+);
+// @ts-expect-error the gradient is one string, not options
+css.backgroundImage({ angle: 180 });
+// @ts-expect-error and it is required
+css.backgroundImage();

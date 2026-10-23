@@ -1414,7 +1414,7 @@ static const Clay_TextElementConfig label_text = { .textColor = { .r = 235, .g =
 CLAY(CLAY_ID("Units"), pill) { CLAY_TEXT(CLAY_STRING("switch to g"), label_text); }
 ```
 
-- **Members**: `width`, `height` (pixels, `N%`, `auto` for Clay's FIT, `stretch` for GROW), `padding`/`p` and the sides, `gap` (`childGap`), `flexDirection` (`row`, `column`), `justifyContent` and `alignItems` (start, center, end: Clay's `childAlignment`, the axis from `flexDirection`), `backgroundColor`/`bg`, `borderRadius`, `border(width, colour)`, `borderWidth`, `borderColor`, `overflow("hidden")` (`clip`), `float()` (`floating`, below), `image(src, { width, height, fit })` (`image`, below), `shadow({ x, y, blur, color })` and `backdrop({ blur })` (renderer effects, not Clay fields: `shadow` and `backdrop`, below), and for text `color`, `fontSize`, `letterSpacing`, `lineHeight`, `textAlign`, `whiteSpace` (`wrapMode`); `cn` merges, a later prop wins. Any other property is not a member.
+- **Members**: `width`, `height` (pixels, `N%`, `auto` for Clay's FIT, `stretch` for GROW), `padding`/`p` and the sides, `gap` (`childGap`), `flexDirection` (`row`, `column`), `justifyContent` and `alignItems` (start, center, end: Clay's `childAlignment`, the axis from `flexDirection`), `backgroundColor`/`bg`, `borderRadius`, `border(width, colour)`, `borderWidth`, `borderColor`, `overflow("hidden")` (`clip`), `float()` (`floating`, below), `image(src, { width, height, fit })` (`image`, below), `backgroundImage("linear-gradient(...)")` (a renderer effect, not a Clay field: `backgroundImage`, below), `shadow({ x, y, blur, color })` and `backdrop({ blur })` (renderer effects, not Clay fields: `shadow` and `backdrop`, below), and for text `color`, `fontSize`, `letterSpacing`, `lineHeight`, `textAlign`, `whiteSpace` (`wrapMode`); `cn` merges, a later prop wins. Any other property is not a member.
 - **Pixels.** A number or `"Npx"`; padding, gap and border widths are whole numbers (`uint16_t` in Clay). Another unit is a type error and a build error.
 - **Colours** are checked by the web's `color` grammar, or are colour tokens of cssints/clay's `createTokens`, and are written as 0-255 `r g b a`.
 - **`header(exports)`** prints a `Clay_ElementDeclaration` per export and, for one with text props, a `Clay_TextElementConfig` named `<name>_text`. A field it does not set is zero, which is Clay's default.
@@ -1535,10 +1535,10 @@ static const Clay_ElementDeclaration panel = { .layout = { .sizing = { .width = 
 
 - **Backdrops** (2026-10-23): `backdrop({ blur })` is glass over our **own** content — a menu or a panel over the page we draw, its fill translucent, the pixels under it blurred. The window behind the window is out of reach: nothing outside the frame's buffer can be sampled, so this is what CSS's `backdrop-filter` shows when the backdrop is the same page, not the desktop. As `shadow` is, it is a renderer effect, not a Clay field: `Clay_ElementDeclaration` has none in Clay 1.0, the literal carries a sibling `backdrop: { blur }` key, `header()` prints nothing for it, and the C targets are unchanged. The renderer draws everything before the element's first command, blurs the element's box in its own buffer, then draws the element's own commands over the blurred pixels — its text and border stay crisp. **The element needs an `id`**, one backdrop an element. `blur` is a radius in pixels, read as CSS reads one (the gaussian's sigma is half of it).
 
-  | Option | What the renderer does                                             | Default |
-  | ------ | ------------------------------------------------------------------ | ------- |
-  | `blur` | blurs the element's box under it, not negative                     | 12      |
-  | —      | no spread, no saturation or tint: only `blur`, and one an element  | —       |
+  | Option | What the renderer does                                            | Default |
+  | ------ | ----------------------------------------------------------------- | ------- |
+  | `blur` | blurs the element's box under it, not negative                    | 12      |
+  | —      | no spread, no saturation or tint: only `blur`, and one an element | —       |
 
   The desktop renderer (`native/solid`) is the only one that draws a backdrop today; the box is the element's first rectangle command, clipped to the canvas, and nothing is blurred outside it. The blur is three box passes each way on the CPU, on the region alone; on the Dialog page's 150x133 menu (blur 10) the frame's draw goes from 2.2 to 3.0 ms (Apple M2, one thread, back-to-back 300-frame runs), and the radius barely moves it — the frame's split into two draws is the cost. A panel may keep its own shadow: it is drawn before the blur, so it lies on the unblurred page, under the glass. The browser (a dual Kawase pass), the board and the terminal have none.
 
@@ -1559,6 +1559,40 @@ css.backdrop({ blur: "1rem" }); // error: a blur is pixels
 ```c
 // no backdrop here either: the declaration keeps its layout and its translucent fill
 static const Clay_ElementDeclaration menu = { .layout = { .sizing = { .width = { .size = { .minMax = { 150, 150 } }, .type = CLAY__SIZING_TYPE_FIXED } } }, .backgroundColor = { .r = 23, .g = 27, .b = 32, .a = 184 }, .cornerRadius = { .topLeft = 10, .topRight = 10, .bottomRight = 10, .bottomLeft = 10 } };
+```
+
+- **Gradients** (2026-10-23): `backgroundImage("linear-gradient(...)")` fills the element's box with a linear gradient, written as CSS writes it — one string, the function, an optional direction, the stops. Clay 1.0 has no gradient field, so as `shadow` and `backdrop` are, it is a renderer effect: the declaration keeps its layout and its solid fill, the literal carries a sibling `backgroundImage: { kind: "linear", angle, stops: [{ offset, color: { r, g, b, a } }] }` key, `header()` prints nothing for it, the C targets draw the solid fill, and the desktop renderer (`native/solid`) fills the box with the gradient instead of `backgroundColor`. **The element needs an `id`**, and a solid `backgroundColor` too: Clay emits a rectangle command for a box whose fill is not transparent, and that command is where the gradient goes (the solid is not drawn then).
+
+  | Part                     | What it is                                                                                                                                                         | Default               |
+  | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- |
+  | `linear-gradient(` … `)` | the only function: `radial-gradient`, `conic-gradient`, a repeating one, `url()` and `image-set()` are build errors                                                | —                     |
+  | the direction            | `<number>deg` (0 up, 90 right, 180 down, 270 left), or `to top`/`to right`/`to bottom`/`to left`, which are 0, 90, 180, 270                                        | `180deg`, `to bottom` |
+  | two or more stops        | a colour through `bg`'s parser (tokens too), and an optional `<number>%` from 0 to 100, in order; fewer than two, or a percentage that goes back, is a build error | —                     |
+  | a stop without a `%`     | spread evenly between the stops that have one, as CSS does: an unpositioned first stop is 0%, an unpositioned last one 100%                                        | —                     |
+
+  The literal's offsets are 0 to 1. A stop's colour is resolved at build time per theme, as a `bg` token is, so a gradient of tokens lights up in the light theme by itself. A state may set `backgroundImage` whole, `css.hover(css.backgroundImage(...))`, which is how the Sky page's cards lighten under the pointer; it cannot unset one — override it or leave it out. Up to 8 stops are drawn; a ninth is dropped and counted as a renderer error, not a crash. Only a fill is drawn: there is no gradient on text, a border or an image, and the browser, the board and the terminal have none (the C targets keep the solid fill).
+
+```ts
+import * as css from "cssints/clay" with { type: "cssints" };
+
+// a card's fill: the panel token at the top, a step deeper at the bottom; `to right` would be 90deg
+export const card = css.cn(
+  css.width("100%"),
+  css.bg("rgb(27 32 38)"),
+  css.backgroundImage("linear-gradient(180deg, rgb(27 32 38), rgb(21 25 30))"),
+);
+// a state overrides the whole gradient: the card lightens under the pointer
+export const hovered = css.cn(
+  card,
+  css.hover(css.backgroundImage("linear-gradient(180deg, #2a303a, #1f242b)")),
+);
+css.backgroundImage({ angle: 180 }); // error: one string
+css.backgroundImage(); // error: the gradient is required
+```
+
+```c
+// no gradient here either: the declaration keeps its layout and its solid fill
+static const Clay_ElementDeclaration card = { .layout = { .sizing = { .width = { .size = { .percent = 1 }, .type = CLAY__SIZING_TYPE_PERCENT } } }, .backgroundColor = { .r = 27, .g = 32, .b = 38, .a = 255 } };
 ```
 
 - **Not yet**: min and max sizes, derived colour tokens (`color-mix()` of tokens: a colour Clay is given must parse as one), a theme under a condition (a theme is a name; `media()` has no meaning on a board).

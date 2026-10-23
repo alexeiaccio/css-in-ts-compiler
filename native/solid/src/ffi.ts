@@ -17,6 +17,7 @@ const { symbols: s } = dlopen(new URL("../../build/solid/libui.dylib", import.me
     returns: T.void,
   },
   ui_backdrop: { args: [T.f32], returns: T.void },
+  ui_backgroundImage: { args: [T.i32, T.f32, T.i32, T.ptr], returns: T.void },
   ui_close: { args: [], returns: T.void },
   ui_text: { args: [T.ptr, T.i32, T.ptr], returns: T.void },
   ui_end: { args: [T.f32], returns: T.i32 },
@@ -59,6 +60,10 @@ export const ui = {
     s.ui_shadow(x, y, blur, r, g, b, a),
   /** The backdrop of the element the next `open` declares (a css.backdrop style): the blur radius in pixels. */
   backdrop: (blur: number) => s.ui_backdrop(blur),
+  /** The background image of the element the next `open` declares (a css.backgroundImage style): a linear gradient at
+   *  `angle` degrees (0 up, 90 right), `count` stops of (offset, r, g, b, a) flattened. */
+  backgroundImage: (kind: number, angle: number, count: number, stops: Float32Array) =>
+    s.ui_backgroundImage(kind, angle, count, ptr(stops)),
   close: s.ui_close,
   text: (bytes: Uint8Array, style: Float32Array) => s.ui_text(ptr(bytes), bytes.length, ptr(style)),
   end: s.ui_end,

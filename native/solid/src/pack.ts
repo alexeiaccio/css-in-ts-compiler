@@ -1,7 +1,7 @@
 // A cssints/clay style (a ClayShape literal) as what ui.c takes: a theme and a state picked, then the fields packed
 // into a Float32Array in a fixed order. The picking is what header() does for C (`<name>_<theme>`, `<name>_active`),
 // done at run time; a variant is packed once and kept.
-import type { Backdrop, ClayShape, Shadow } from "cssints/clay";
+import type { Backdrop, BackgroundImage, ClayShape, Shadow } from "cssints/clay";
 
 type Shape = Record<string, any>;
 
@@ -31,8 +31,13 @@ const ATTACH_POINT = {
 const CAPTURE = { CAPTURE: 0, PASSTHROUGH: 1 } as const;
 const CLIP = { NONE: 0, ATTACHED_PARENT: 1 } as const;
 
-// the same merge as header(): a colour or a sizing axis is replaced whole, anything else field by field
-const isLeaf = (v: unknown) => typeof v !== "object" || Object.hasOwn(v as object, "r") || Object.hasOwn(v as object, "type");
+// the same merge as header(): a colour or a sizing axis is replaced whole, anything else field by field. An array (a
+// gradient's stops) is a leaf, as it is there: merging one field by field would make an object of it.
+const isLeaf = (v: unknown) =>
+  typeof v !== "object" ||
+  Array.isArray(v) ||
+  Object.hasOwn(v as object, "r") ||
+  Object.hasOwn(v as object, "type");
 const merge = (a: Shape, b: Shape): Shape => {
   const out = { ...a };
   for (const [k, v] of Object.entries(b)) out[k] = isLeaf(v) || out[k] === undefined ? v : merge(out[k], v);
@@ -108,10 +113,29 @@ export interface Variant {
   text?: Float32Array;
   /** The style's image path (`css.image`): Clay's image config is one pointer, so it travels beside the floats. */
   image?: string;
+  /** The style's gradient (`css.backgroundImage`): no Clay field holds one either, so it travels beside the floats. */
+  backgroundImage?: Gradient;
   /** The style's shadow (`css.shadow`): no Clay field holds one, so it travels beside the floats too, for `ui.shadow`. */
   shadow?: Shadow;
   /** The style's backdrop (`css.backdrop`): the blur of the content under it, for `ui.backdrop`. */
   backdrop?: Backdrop;
+}
+
+/** ui.c's kind of gradient: only a linear one today. */
+const GRADIENT = { linear: 1 } as const;
+
+/** A gradient packed as `ui.backgroundImage` takes it: `count` stops of five floats (offset, r, g, b, a). */
+export interface Gradient {
+  kind: number;
+  angle: number;
+  count: number;
+  stops: Float32Array;
+}
+
+function packGradient(g: BackgroundImage): Gradient {
+  const stops = new Float32Array(g.stops.length * 5);
+  g.stops.forEach((s, i) => stops.set([s.offset, s.color.r, s.color.g, s.color.b, s.color.a], i * 5));
+  return { kind: GRADIENT[g.kind], angle: g.angle, count: g.stops.length, stops };
 }
 
 const cache = new WeakMap<object, Map<string, Variant>>();
@@ -123,13 +147,14 @@ export function variant(shape: ClayShape, theme?: string, states: State[] = []):
   const key = `${theme}|${states.join("")}`;
   let v = byKey.get(key);
   if (!v) {
-    const { text, image, shadow, backdrop, ...decl } = resolve(shape, theme, states);
+    const { text, image, backgroundImage, shadow, backdrop, ...decl } = resolve(shape, theme, states);
     byKey.set(
       key,
       (v = {
         box: Object.keys(decl).length ? packBox(decl) : undefined,
         text: text && packText(text),
         image: image?.imageData,
+        backgroundImage: backgroundImage && packGradient(backgroundImage),
         shadow,
         backdrop,
       }),

@@ -42,6 +42,15 @@ static Clay_Color pending_shadow_color;
 static int has_pending_shadow;
 // the backdrop (css.backdrop) the next ui_open declares: the renderer blurs the pixels under that element
 static float pending_backdrop = -1;
+// the background image (css.backgroundImage) the next ui_open declares: a linear gradient, 8 stops at most
+#define MAX_GRADIENT_STOPS 8
+static struct {
+    int kind;  // 1: linear (the only one cssints/clay writes)
+    float angle;
+    int count;
+    float stops[MAX_GRADIENT_STOPS][5]; // offset (0..1), then r, g, b, a 0-255
+} pending_gradient;
+static int has_pending_gradient;
 
 static SDL_Window *window;
 static SDL_Renderer *renderer;
@@ -138,8 +147,10 @@ void ui_begin(float px, float py, int down, float dt)
     pending_image = NULL;
     has_pending_shadow = 0;
     pending_backdrop = -1;
+    has_pending_gradient = 0;
     tvg.shadowCount = 0; // the frame's shadows go with the rest of the frame
     tvg.backdropCount = 0;
+    tvg.gradientCount = 0;
     Clay_SetPointerState((Clay_Vector2){px, py}, down);
     // Clay's scroll containers: the wheel delta of the polls moves the container the pointer is over, before the layout
     // reads the offsets (ui_open hands each clip element its own through Clay_GetScrollOffset). No drag scrolling: a
@@ -195,6 +206,19 @@ void ui_shadow(float x, float y, float blur, float r, float g, float b, float a)
  *  drawn over them, so a translucent fill is glass over what is behind it. A renderer effect, as the shadow. */
 void ui_backdrop(float blur) { pending_backdrop = blur; }
 
+/** The background image of the next element (a css.backgroundImage style): a linear gradient at `angle` degrees in CSS's
+ *  reading (0 up, 90 right), `count` stops of (offset 0..1, r, g, b, a) each, flattened. A renderer effect, as the shadow:
+ *  the renderer fills the element's box with it instead of its solid background. */
+void ui_backgroundImage(int kind, float angle, int count, const float *stops)
+{
+    // ponytail: 8 stops a gradient, one gradient an element; a ninth is counted as an error and dropped
+    if (count > MAX_GRADIENT_STOPS) errors++, count = MAX_GRADIENT_STOPS;
+    if (count < 2) errors++;
+    pending_gradient.kind = kind, pending_gradient.angle = angle, pending_gradient.count = count;
+    memcpy(pending_gradient.stops, stops, (size_t)count * 5 * sizeof(float));
+    has_pending_gradient = 1;
+}
+
 /** Opens an element. id is NULL for an anonymous one; f is 45 floats: the box fields, then the floating ones. */
 void ui_open(const char *id, int len, const float *f)
 {
@@ -242,6 +266,13 @@ void ui_open(const char *id, int len, const float *f)
     if (pending_backdrop >= 0) {
         if (id) Clay_ThorVG_SetBackdrop(&tvg, eid.id, pending_backdrop);
         pending_backdrop = -1;
+    }
+    // ... and its gradient (css.backgroundImage): the renderer fills the element's box with it, over its shadow
+    if (has_pending_gradient) {
+        if (id)
+            Clay_ThorVG_SetBackgroundImage(&tvg, eid.id, pending_gradient.kind, pending_gradient.angle,
+                                           pending_gradient.count, pending_gradient.stops);
+        has_pending_gradient = 0;
     }
     if (id) Clay__OpenElementWithId(eid);
     else Clay__OpenElement();

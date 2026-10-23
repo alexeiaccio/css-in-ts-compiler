@@ -95,6 +95,44 @@ The Dialog page's menu is the first glass: `blur 10`, a fill of `rgb(23 27 32 / 
 it. The modal dialog keeps its opaque fill and its shadow: the dimmed float under it is one flat colour, so a blur there
 would show nothing.
 
+### A gradient: a fill the renderer draws
+
+`css.backgroundImage("linear-gradient(...)")` is a fill, not an effect on the buffer: the element's box is painted with
+ThorVG's linear gradient instead of its solid `backgroundColor`. It travels as the shadow does — a sibling
+`backgroundImage: { kind, angle, stops }` key of the style literal, `pack.ts`'s `variant()` pulls it out, `frame.ts` calls
+`ui.backgroundImage(kind, angle, count, stops)` (the C function `ui_backgroundImage`, five floats a stop: offset 0..1, r,
+g, b, a) before `ui_open`, and `ui.c` fills a pending value that `ui_open` hangs on the renderer's table by
+`Clay_ElementId.id`, cleared in `ui_begin` with the rest of the frame. At the element's first **rectangle** command the
+renderer fills the box's rounded rect with the gradient and does not draw the solid colour; a border is a command of its
+own and stays. The element needs an `id`, and a solid `backgroundColor` too: Clay emits a rectangle only for a fill that
+is not transparent, so the gradient is what that command draws, and the solid fill is what the C targets keep.
+
+Geometry is CSS's gradient line: the direction is `(sin θ, -cos θ)` (0deg up, 90 right, 180 down — the default), the line
+is `|w·sinθ| + |h·cosθ|` long (the box's projection on it), and it runs from the box's centre minus half of that to the
+centre plus half. ThorVG's gradient coordinates are the shape's own, the same space as its path, so they are Clay units:
+the root scene carries the pixel density, as it does for a shadow's sigma.
+
+Ceilings, on purpose: one gradient an element (16 a frame), 8 stops (a ninth is counted as an error and dropped), linear
+only (ThorVG has radial and conic, the style's grammar takes neither), no dither, the solid fill under a gradient is not
+drawn (not blended), no gradient on text, a border or an image, and the C targets — `examples/`, the terminal, the
+browser — keep the solid fill: `header()` prints nothing for a gradient and the generated declarations are unchanged.
+
+Cost: the Sky page's three cards (336x190 each) with gradients against the same page with the gradients dropped,
+`--bench 1000`, Apple M2, one thread, the least-loaded of three back-to-back pairs: 3.735 against 3.631 ms a frame
+(light 3.625 against 3.458), so **under 0.2 ms for the three cards**, inside the run-to-run noise of this machine
+(±0.5 ms). The fill covers the same pixels either way; a gradient's per-pixel lerp is what a solid fill does with one
+colour.
+
+Banding, reported rather than hidden: the dark card's 190px is **6 luminance steps of about 30px** (18 distinct colours),
+the light one 12 steps of about 15px (30 colours). The dark gradient from `27 32 38` to `21 25 30` has 6 channel values
+to spread over 190px, so one step every 30px is a strap the eye can see on a large flat surface. The cure is a dither
+step (a 4x4 ordered offset before the 8-bit write), not built; the Sky cards are the first surface where it would matter.
+
+The Sky page's cards are the first gradient: `180deg` from `rgb(27 32 38)` to `rgb(21 25 30)` in the dark theme and
+`rgb(255 255 255)` to `rgb(240 243 246)` in the light one — both top-lighter, so the light theme is the same direction,
+not an inversion. A hover overrides the whole gradient with the hover tokens (`34 40 49` to `28 33 40`): a state cannot
+unset one, so it replaces it.
+
 ## Test
 
 ```sh
