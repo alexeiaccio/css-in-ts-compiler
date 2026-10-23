@@ -21,6 +21,8 @@ packages/devtools      @cssints/devtools: the dev overlay of cssints({ devtools:
                        test/: core.mjs (the cascade on happy-dom), build.mjs (nothing in a build, and `devtools: "build"` on fixtures/app), browsers.mjs (the demo in Chrome, Firefox, WebKit), names-browser.mjs (the readable class `cs-Landing-logo` that the dev server adds to a cn() or cv(), instrument.ts, first in the panel's bar),
                        and for `opencode` (the OpenCode box, pinned to the panel's edge, that starts a session through the dev server and shows whether a service is found; `@opencode/client`, an optional peer of cssints): fake-opencode.mjs, opencode.mjs, opencode-plugin.mjs, ask-browser.mjs;
                        `src/opencode.ts` is the OpenCode plugin (`@cssints/devtools/opencode`, dist/opencode.js; the command `/cssints-devtools` attaches the session it runs in to a dev server, through the files of `cssints/devtools-link`, src/devtools-link.ts in packages/cssints)
+packages/apg-specs     @cssints/apg-specs (private, the test oracle): the 43 APG and canvas Quint specs (specs/, shared/), their generated models and scaffolding (src/<service>/*.generated.*, from `bun run generate:all`: never edit them, and a changed spec needs a regenerate), the scenario bridges (src/apg/*.bridge.ts), the replay and differential walk (src/scenario.ts), the ported scenarios (scenarios/), scripts/ (generate-all, typecheck-quint, emit-scxml); test/: spec-only vitest tests (`vp test run`)
+packages/headless      @cssints/headless: Solid 2 APG widgets that return DOM attribute objects (src/<pattern>.ts, no styling, `solid-js` is a peer); test/: *.browser.test.tsx and fixtures that replay the Quint traces and scenarios of @cssints/apg-specs in Chromium (vitest browser mode, Playwright provider through `vite-plus/test`); not in the changesets `fixed` group yet (`ignore` list)
 packages/cssints/src/clay.ts  cssints/clay: styles as Clay's C structs (Clay_ElementDeclaration), header() prints them as C; test/clay.mjs
 packages/tui           @cssints/tui: the runtime of cssints/tui styles (resolve, setTheme, defineTheme; src/index.ts), the system theme (createSystemTheme, the reply parser; src/system.ts), the OpenTUI adapter (attach, use; src/opentui.ts) and the @bomb.sh/tty adapter
                        (createTracker, openProps, textProps; src/bomb.ts); the members are cssints's src/tui.ts and tui-types.ts; test/: tui.mjs (the plugin on fixtures: dev, SSR build, errors),
@@ -81,6 +83,8 @@ cd apps/csssky && bun run test               # the Solid app: api.ts against rec
                                               # test:safari: the built app in Chrome, the WebKit builds of Safari 17/18 and real Safari (header of test/safari.mjs)
 cd apps/csssky-tui && bun run build && bun run start   # the terminal app on the public AppView (the terminal's colours by default; `bun dist/main.js --light` or `--dark` for a static theme)
 bun run test:native                           # sh native/test.sh: the C and Solid targets against their stored frames, headless, terminal, browser (needs cc and brew sdl3 sdl3_ttf sdl3_image thorvg; the browser check skips without zig or Playwright's chromium); not in `bun run test`: native has no `test` script, and lint, fmt and typecheck skip native/
+cd packages/apg-specs && bun run generate:all  # regenerate the models and scaffolding of every spec (byte-identical when nothing changed); bun run typecheck:quint (Quint's typechecker, ~90 s); bun run test (the explorations can time out on a loaded machine: rerun the file alone)
+cd packages/headless && bun run test          # the widgets in Chromium against the specs (~2 min, needs `bunx playwright install chromium`; the menu, treeview and listbox walks can time out under load: rerun the file alone); bun run build: dist/ by vp pack
 cd apps/csssky-tui && bun run test           # vp build check, then (under Bun; skipped without it) feed, j/k (the focus and the drawn border), enter/esc, tab, hover, pointer and click, the theme on the test renderer
 ```
 
@@ -116,7 +120,7 @@ Other deps:
 - [Lighting CSS](https://lightningcss.dev)
 - [tsdown](https://tsdown.dev/)
 - [Vite 8](https://main.vite.dev/)
-- [Vitest](https://main.vitest.dev/) (part of Vite+; only tools/ai-automation's tests use it, imported from `vite-plus/test`: ours are plain node scripts)
+- [Vitest](https://main.vitest.dev/) (part of Vite+, imported from `vite-plus/test`; tools/ai-automation, packages/apg-specs and packages/headless (browser mode) use it: ours are otherwise plain node scripts)
 - [TypeScript Go](https://github.com/microsoft/typescript-go)
 - [OXC lint](https://oxc.rs/blog/2025-12-08-type-aware-alpha)
 - [OXC fmt](https://oxc.rs/docs/guide/usage/formatter)
@@ -453,7 +457,7 @@ const camel = (p: string) => p.replace(/-([a-z])/g, (_, c: string) => c.toUpperC
 
 ### Testing
 
-Tests are plain `node` scripts with `node:assert`, run through `bun run test` (`vp run -r test`); there is no test runner, except in tools/ai-automation (vitest, `vp test run`). A fixture in `packages/cssints/test/fixtures` is a module the plugin transforms (`node run.mjs fixtures/x.ts` prints its code and css). A type test is a file that `tsc-rs` checks, with `@ts-expect-error` for what must fail (`packages/cssints/test/types/`, `packages/css-grammar/test/`). The doc test is `packages/cssints/test/docs.mjs`.
+Tests are plain `node` scripts with `node:assert`, run through `bun run test` (`vp run -r test`); there is no test runner, except in tools/ai-automation, packages/apg-specs and packages/headless (vitest, `vp test run`). A fixture in `packages/cssints/test/fixtures` is a module the plugin transforms (`node run.mjs fixtures/x.ts` prints its code and css). A type test is a file that `tsc-rs` checks, with `@ts-expect-error` for what must fail (`packages/cssints/test/types/`, `packages/css-grammar/test/`). The doc test is `packages/cssints/test/docs.mjs`.
 
 ### File Structure
 
@@ -477,7 +481,7 @@ Effect rules as errors on Effect code: the whole effect profile (no `try/catch`,
 `in` and `typeof`. Which rules are on and which are off, with counts, is in tools/ai-automation/README.md.
 
 Plain code by design is exempt through the `plainCode` override of `vite.config.ts` (a reason each): browser runtimes, the Typed OM
-values, the sync css.\* builders and class hash of lib.ts, the twin's recognizer, @cssints/icons, @cssints/mise-en-mode, the apps, tests, benches and scripts.
+values, the sync css.\* builders and class hash of lib.ts, the twin's recognizer, @cssints/icons, @cssints/mise-en-mode, the apps, tests, benches and scripts, and @cssints/headless and @cssints/apg-specs (plain Solid signals; the spec bridges and tests of the oracle).
 Add a file there when it joins that list, not a disable comment.
 
 The Effect language service runs with every diagnostic as an error (tsconfig.effect.json, extended by cssints, css-grammar, icons and mise-en-mode);

@@ -21,6 +21,10 @@ cd packages/cssints && bun run test:smoke   # a Vite app built from the tarballs
 
 `scripts/release.mjs` fails when, in a package: `private`, `workspace:` or `catalog:` is left; the `development` condition is left; `repository` is not exactly `git+https://github.com/alexeiaccio/css-in-ts-compiler.git` with its directory (the trusted publisher compares it); a file named by `exports` or `bin` is missing; a sibling's range is not met by the sibling's version; the tarball holds a test, a fixture or TypeScript source (except `src/core` of devtools); there is no README or LICENSE. And for the repository: a tracked `dist/` folder differs from a fresh build (commit the rebuilt `dist/` on master first).
 
+## Not released yet: `@cssints/headless`, and `@cssints/apg-specs` never
+
+`packages/headless` (`@cssints/headless`, 0.5.0) has the manifest of a published package and `scripts/release.mjs` stages and checks it with the others (26 packages in the report), but it is in the `ignore` list of `.changeset/config.json`, not in the `fixed` group: Changesets neither versions nor publishes it. To release it, move `@cssints/headless` from `ignore` into `fixed`, add a changeset, give it a trusted publisher on npmjs.com (the table below), and change the counts in this file. `packages/apg-specs` (`@cssints/apg-specs`) is the private test oracle of the widgets and `native/headless`: it is in `ignore` too, and `release.mjs` skips it (and fails if it loses `private`).
+
 ## First release, from the laptop
 
 You need an npm account that owns the organization `cssints` (it creates `@cssints/*`) and can publish the unscoped `cssints` (both names were free on 2026-10-10). Nothing below runs without you.
