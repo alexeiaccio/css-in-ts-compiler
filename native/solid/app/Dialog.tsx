@@ -108,6 +108,7 @@ const panel = css.cn(
   css.bg(t.color.surface),
   css.borderRadius(12),
   css.border(1, t.color.muted),
+  css.shadow({ y: 12, blur: 24, color: "rgb(0 0 0 / 0.45)" }),
   css.float({
     root: true,
     attach: { element: "center center", parent: "center center" },
@@ -127,6 +128,8 @@ const menuPanel = css.cn(
   css.bg(t.color.surface),
   css.borderRadius(10),
   css.border(1, t.color.muted),
+  // a smaller shadow than the dialog's: it hangs off a row, not over the whole page
+  css.shadow({ y: 6, blur: 14, color: "rgb(0 0 0 / 0.45)" }),
   css.float({
     parent: "zoom-trigger",
     attach: { element: "left top", parent: "left bottom" },

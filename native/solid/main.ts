@@ -167,7 +167,7 @@ if (headless) {
     for (const flips of [false, true]) {
       stats.length = 0;
       for (let n = 0; n < bench; n++) {
-        if (flips) units.props.onClick(); // the signal changes every frame: Solid updates texts, Clay measures
+        if (flips) units?.props.onClick(); // the signal changes every frame: Solid updates texts, Clay measures
         frame(px, py, false, 1 / 60);
       }
       const ms = [0, 1, 2, 3].map((i) => (stats.reduce((sum, s) => sum + s[i]!, 0) / bench / 1e6).toFixed(3));

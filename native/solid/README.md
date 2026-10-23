@@ -87,6 +87,7 @@ with an `id`: Clay tells whether the pointer is over it. `onClick` runs on relea
 | `ui_begin(px, py, down, dt)` | pointer for this frame, then Clay's scroll containers move by the wheel this frame took (`Clay_UpdateScrollContainers(false, delta, dt)`, before the layout), then `Clay_BeginLayout` |
 | `ui_open(id, len, f32[45])` | open an element; `id` NULL for none; the style as below |
 | `ui_image(bytes, len)` | the image of the element the next `ui_open` declares (a `css.image` style): the path as UTF-8, no terminator. Interned once per distinct path, so the renderer's picture cache (keyed by that pointer) sees one address every frame |
+| `ui_shadow(x, y, blur, r, g, b, a)` | the shadow of the element the next `ui_open` declares (a `css.shadow` style): Clay has no shadow field, so it waits here and the element id's hash carries it to the renderer's table (one a frame, 32 at most, one draw an element) |
 | `ui_text(bytes, len, f32[10])` | a text element; the bytes are copied for the frame |
 | `ui_close()` | close the element |
 | `ui_pointer_over(id, len)` | Clay's `Clay_PointerOver`, on the last frame's layout |
@@ -112,6 +113,13 @@ packed box in its variant). `ui.c` interns the path, because Clay's config is th
 The packed style does not carry Clay's `aspectRatio`, so `fit: "contain"` is the C header's; `fill` (the default) is what
 a Solid page gets. The SDL renderer path still reads `imageData` as an `SDL_Texture` and does not draw a path: the image
 element is ThorVG-only, as on the C side.
+
+A shadow is the second part of a style that is not a float, for the other reason: Clay 1.0's declaration has no shadow
+field, and a shadow is an effect of the raster, not a box. `frame.ts` calls `ui_shadow` just before `ui_open`, and
+`ui.c` files it under `Clay_ElementId.id` — the id the element's render commands carry — so the renderer draws it before
+the element's first command (`clay_renderer_thorvg.c`: the command's box and radii, offset, filled and blurred, sigma
+`blur / 2` in the scene's own units, quality 80). `pack.ts` keeps the `Shadow` object in its variant beside the image's
+path; the element needs an `id`, or the shadow is dropped.
 
 ### `ui_open` fields (`pack.ts` `packBox`, `ui.c` `ui_open`)
 
