@@ -51,6 +51,21 @@ export type FloatOptions = {
     }
 );
 
+/**
+ * The options of `shadow()`: one object, all optional, lengths in pixels. No options at all is the default shadow
+ * (`{ x: 0, y: 2, blur: 12, color: "rgb(0 0 0 / 0.4)" }`); the fields a state names are the ones it changes.
+ */
+export type ShadowOptions = {
+  /** Moves the shadow from the element's box, in pixels (a negative one goes left or up). Default: 0. */
+  x?: Px;
+  /** Moves the shadow down (or up, negative). Default: 2. */
+  y?: Px;
+  /** The blur radius in pixels: the width of the soft edge, not negative. Default: 12. */
+  blur?: Px;
+  /** The colour of the shadow, as any colour a Clay page can draw. Default: `rgb(0 0 0 / 0.4)`. */
+  color?: string;
+};
+
 /** The options of `image()`: the image's size in pixels, and how it fills its box. */
 export type ImageOptions = {
   /** The image's width in whole pixels: the element's box starts at the image's own size. */
@@ -69,6 +84,13 @@ interface Rgba {
   g: number;
   b: number;
   a: number;
+}
+/** A shadow the renderer draws: the element's box, offset and blurred, in that colour. */
+export interface Shadow {
+  x: number;
+  y: number;
+  blur: number;
+  color: Rgba;
 }
 interface Axis {
   type: "FIT" | "GROW" | "PERCENT" | "FIXED";
@@ -97,6 +119,11 @@ export interface ClayFields {
   clip?: { horizontal: number; vertical: number };
   /** `Clay_ImageElementConfig`: `imageData` is the path of the image, which the renderer loads. */
   image?: { imageData: string };
+  /**
+   * A shadow (`css.shadow`): not a field of `Clay_ElementDeclaration` (Clay 1.0 has none) — the declaration keeps its
+   * layout and the renderer draws the shadow before the element's own command, keyed by its id.
+   */
+  shadow?: Shadow;
   aspectRatio?: { aspectRatio: number };
   floating?: {
     offset?: { x: number; y: number };
@@ -191,6 +218,13 @@ export declare const float: (options?: FloatOptions) => ClayStyle;
  * renderer as `imageData`.
  */
 export declare const image: (src: string, options: ImageOptions) => ClayStyle;
+/**
+ * A shadow of the element: a renderer effect, not a Clay field (Clay 1.0 has none), so `header()` prints nothing for it
+ * and the C targets ignore it until a page draws it themselves. The declaration keeps the layout; the renderer draws the
+ * element's own box, offset by `x`/`y` and blurred by `blur`, in `color`, before the element's command. The element needs
+ * an `id`: the renderer keys the shadow by Clay's element id.
+ */
+export declare const shadow: (options?: ShadowOptions) => ClayStyle;
 
 /** Merges styles in argument order: a later prop wins. */
 export declare const cn: (...styles: ClayStyle[]) => ClayStyle;

@@ -1,7 +1,7 @@
 // A cssints/clay style (a ClayShape literal) as what ui.c takes: a theme and a state picked, then the fields packed
 // into a Float32Array in a fixed order. The picking is what header() does for C (`<name>_<theme>`, `<name>_active`),
 // done at run time; a variant is packed once and kept.
-import type { ClayShape } from "cssints/clay";
+import type { ClayShape, Shadow } from "cssints/clay";
 
 type Shape = Record<string, any>;
 
@@ -108,6 +108,8 @@ export interface Variant {
   text?: Float32Array;
   /** The style's image path (`css.image`): Clay's image config is one pointer, so it travels beside the floats. */
   image?: string;
+  /** The style's shadow (`css.shadow`): no Clay field holds one, so it travels beside the floats too, for `ui.shadow`. */
+  shadow?: Shadow;
 }
 
 const cache = new WeakMap<object, Map<string, Variant>>();
@@ -119,8 +121,16 @@ export function variant(shape: ClayShape, theme?: string, states: State[] = []):
   const key = `${theme}|${states.join("")}`;
   let v = byKey.get(key);
   if (!v) {
-    const { text, image, ...decl } = resolve(shape, theme, states);
-    byKey.set(key, (v = { box: Object.keys(decl).length ? packBox(decl) : undefined, text: text && packText(text), image: image?.imageData }));
+    const { text, image, shadow, ...decl } = resolve(shape, theme, states);
+    byKey.set(
+      key,
+      (v = {
+        box: Object.keys(decl).length ? packBox(decl) : undefined,
+        text: text && packText(text),
+        image: image?.imageData,
+        shadow,
+      }),
+    );
   }
   return v;
 }

@@ -1402,7 +1402,7 @@ export const pill = css.cn(
 );
 export const label = css.cn(css.color("#ebebf0"), css.fontSize(14));
 css.width("10rem"); // error: Clay counts pixels
-css.boxShadow("0 0 1px red"); // error: no such member in Clay
+css.boxShadow("0 0 1px red"); // error: no such member in Clay (a shadow is css.shadow, below)
 ```
 
 ```c
@@ -1414,7 +1414,7 @@ static const Clay_TextElementConfig label_text = { .textColor = { .r = 235, .g =
 CLAY(CLAY_ID("Units"), pill) { CLAY_TEXT(CLAY_STRING("switch to g"), label_text); }
 ```
 
-- **Members**: `width`, `height` (pixels, `N%`, `auto` for Clay's FIT, `stretch` for GROW), `padding`/`p` and the sides, `gap` (`childGap`), `flexDirection` (`row`, `column`), `justifyContent` and `alignItems` (start, center, end: Clay's `childAlignment`, the axis from `flexDirection`), `backgroundColor`/`bg`, `borderRadius`, `border(width, colour)`, `borderWidth`, `borderColor`, `overflow("hidden")` (`clip`), `float()` (`floating`, below), `image(src, { width, height, fit })` (`image`, below), and for text `color`, `fontSize`, `letterSpacing`, `lineHeight`, `textAlign`, `whiteSpace` (`wrapMode`); `cn` merges, a later prop wins. Any other property is not a member.
+- **Members**: `width`, `height` (pixels, `N%`, `auto` for Clay's FIT, `stretch` for GROW), `padding`/`p` and the sides, `gap` (`childGap`), `flexDirection` (`row`, `column`), `justifyContent` and `alignItems` (start, center, end: Clay's `childAlignment`, the axis from `flexDirection`), `backgroundColor`/`bg`, `borderRadius`, `border(width, colour)`, `borderWidth`, `borderColor`, `overflow("hidden")` (`clip`), `float()` (`floating`, below), `image(src, { width, height, fit })` (`image`, below), `shadow({ x, y, blur, color })` (a renderer effect, not a Clay field: `shadow`, below), and for text `color`, `fontSize`, `letterSpacing`, `lineHeight`, `textAlign`, `whiteSpace` (`wrapMode`); `cn` merges, a later prop wins. Any other property is not a member.
 - **Pixels.** A number or `"Npx"`; padding, gap and border widths are whole numbers (`uint16_t` in Clay). Another unit is a type error and a build error.
 - **Colours** are checked by the web's `color` grammar, or are colour tokens of cssints/clay's `createTokens`, and are written as 0-255 `r g b a`.
 - **`header(exports)`** prints a `Clay_ElementDeclaration` per export and, for one with text props, a `Clay_TextElementConfig` named `<name>_text`. A field it does not set is zero, which is Clay's default.
@@ -1502,6 +1502,35 @@ css.image("logo.png", { width: 64, height: 32, fit: "cover" }); // error: fill o
 
 ```c
 static const Clay_ElementDeclaration glyph = { .layout = { .sizing = { .width = { .size = { .minMax = { 32, 32 } }, .type = CLAY__SIZING_TYPE_FIXED }, .height = { .size = { .minMax = { 32, 32 } }, .type = CLAY__SIZING_TYPE_FIXED } } }, .image = { .imageData = (void *)"examples/sensors/glyph.png" } };
+```
+
+- **Shadows** (2026-10-23): `shadow({ x, y, blur, color })` is a renderer effect, not a Clay field — `Clay_ElementDeclaration` has none in Clay 1.0. The declaration keeps its layout, the literal carries the shadow as a sibling key (as an image's path does), and `header()` prints nothing for it, so the C targets are unchanged and ignore it until a page's own renderer draws it. The shadow is the element's own box, moved by `x`/`y` and filled with `color`, its edge softened by `blur` (CSS's `box-shadow` reading, in pixels: the gaussian's sigma is half of it), drawn before the element's own command so the element covers the middle of it. The desktop renderer (`native/solid`) is the one that draws it today.
+
+  | Option        | What the renderer draws                                                   | Default            |
+  | ------------- | ------------------------------------------------------------------------- | ------------------ |
+  | `x`, `y`      | the element's box moved that many pixels (a negative one goes left or up) | 0, 2               |
+  | `blur`        | the width of the soft edge, not negative (sigma is half of it)            | 12                 |
+  | `color`       | the shadow's colour, any colour a Clay page can draw                      | `rgb(0 0 0 / 0.4)` |
+  | spread, inset | not drawn: the box is the element's own, and the shadow lies outside it   | —                  |
+
+  The literal is whole — `shadow: { x, y, blur, color: { r, g, b, a } }`, unset fields at their defaults — and a state's overlay merges field by field, so `css.hover(css.shadow({ blur: 20 }))` keeps the base's `x`, `y` and colour. **The element needs an `id`**: the renderer keys the shadow by Clay's element id (a table a frame, cleared with it), one draw an element, and an anonymous element's shadow is dropped. A blur is not free: the Dialog page's 280x152 panel (blur 24) costs 0.8 ms a frame on the desktop and takes its 360x480 frame from 1.07 to 1.93 ms (Apple M2, one thread, `--bench 300`; quality 50 and 30 are 1.47 and 1.31 ms, for 5/255 and 15/255 at the shadow's edge). A colour's alpha is what the shadow is worth: over a dimmed page a black one can darken only a little (3/255 under the panel in the dark theme, 41/255 in the light one).
+
+```ts
+import * as css from "cssints/clay" with { type: "cssints" };
+
+export const panel = css.cn(
+  css.width(280),
+  css.bg("#242834"),
+  css.borderRadius(12),
+  css.shadow({ y: 12, blur: 24, color: "rgb(0 0 0 / 0.45)" }),
+);
+css.shadow({ spread: 2 }); // error: the box is the element's own
+css.shadow({ blur: "1rem" }); // error: a blur is pixels
+```
+
+```c
+// no shadow here: a renderer effect, not a Clay field
+static const Clay_ElementDeclaration panel = { .layout = { .sizing = { .width = { .size = { .minMax = { 280, 280 } }, .type = CLAY__SIZING_TYPE_FIXED } } }, .backgroundColor = { .r = 36, .g = 40, .b = 52, .a = 255 }, .cornerRadius = { .topLeft = 12, .topRight = 12, .bottomRight = 12, .bottomLeft = 12 } };
 ```
 
 - **Not yet**: min and max sizes, derived colour tokens (`color-mix()` of tokens: a colour Clay is given must parse as one), a theme under a condition (a theme is a name; `media()` has no meaning on a board).

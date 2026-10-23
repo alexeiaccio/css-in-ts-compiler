@@ -16,7 +16,22 @@ typedef struct {
         Tvg_Paint picture;
     } images[32];
     int imageCount;
+    // the frame's shadows (css.shadow), by the id of the element that casts one: no Clay field holds a shadow, so the
+    // host sets them beside the declaration and the command stream's id finds them again here
+    struct {
+        uint32_t id; // Clay_ElementId.id of the element
+        float x, y, blur;
+        Clay_Color color;
+        bool drawn;
+    } shadows[32];
+    int shadowCount;
 } Clay_ThorVGRendererData;
+
+// CSS sizes a box-shadow's blur as twice the gaussian's standard deviation; ThorVG takes sigma, in the scene's own
+// units (measured: the same sigma through a root scene at scale 2 blurs twice as many device pixels)
+#define CLAY_THORVG_SHADOW_SIGMA(blur) ((blur) / 2.0f)
+// the effect's steps: 80 is smooth at a 24px edge and costs one pass a shadow
+#define CLAY_THORVG_SHADOW_QUALITY 80
 
 // Clay sizes are CSS pixels; ThorVG sizes text in points at 96 dpi
 #define CLAY_THORVG_PT 0.75f
@@ -88,6 +103,56 @@ static Tvg_Paint Clay_ThorVG_Picture(Clay_ThorVGRendererData *d, const void *ima
     return p;
 }
 
+/** Gives the element with this id's hash a shadow for the next draw (one a frame). It is a renderer effect, not a Clay
+ *  declaration: `css.shadow` is carried beside the packed box, and the command stream's id is what finds it again. */
+static void Clay_ThorVG_SetShadow(Clay_ThorVGRendererData *d, uint32_t id, float x, float y, float blur, Clay_Color color)
+{
+    // ponytail: 32 shadows a frame, one an element, no spread and no inner shadow (the box is the element's own); more
+    // needs a table that grows and a second kind of shape
+    if (d->shadowCount == (int)(sizeof d->shadows / sizeof *d->shadows)) return;
+    d->shadows[d->shadowCount].id = id;
+    d->shadows[d->shadowCount].x = x;
+    d->shadows[d->shadowCount].y = y;
+    d->shadows[d->shadowCount].blur = blur;
+    d->shadows[d->shadowCount].color = color;
+    d->shadows[d->shadowCount].drawn = false;
+    d->shadowCount++;
+}
+
+/** Draws the shadow of the element a command belongs to, once and before the command itself: the command's box moved by
+ *  the shadow's offset, filled with its colour, blurred as a scene effect. A rectangle or a border brings its corner
+ *  radii; a text or an image box is square. */
+static void Clay_ThorVG_DrawShadow(Clay_ThorVGRendererData *d, Clay_RenderCommand *rcmd, Tvg_Paint into)
+{
+    for (int i = 0; i < d->shadowCount; i++) {
+        if (d->shadows[i].id != rcmd->id || d->shadows[i].drawn) continue;
+        d->shadows[i].drawn = true;
+        const float blur = d->shadows[i].blur;
+        const float x = (int)rcmd->boundingBox.x + d->shadows[i].x;
+        const float y = (int)rcmd->boundingBox.y + d->shadows[i].y;
+        const float w = (int)rcmd->boundingBox.width, h = (int)rcmd->boundingBox.height;
+        float rad[4] = {0, 0, 0, 0};
+        if (rcmd->commandType == CLAY_RENDER_COMMAND_TYPE_RECTANGLE ||
+            rcmd->commandType == CLAY_RENDER_COMMAND_TYPE_BORDER) {
+            const Clay_CornerRadius c = rcmd->commandType == CLAY_RENDER_COMMAND_TYPE_RECTANGLE
+                                            ? rcmd->renderData.rectangle.cornerRadius
+                                            : rcmd->renderData.border.cornerRadius;
+            rad[0] = c.topLeft, rad[1] = c.topRight, rad[2] = c.bottomRight, rad[3] = c.bottomLeft;
+        }
+        const Clay_Color fill = d->shadows[i].color;
+        Tvg_Paint scene = tvg_scene_new();
+        Tvg_Paint shape = tvg_shape_new();
+        Clay_ThorVG_RoundRect(shape, x, y, w, h, rad, rad);
+        tvg_shape_set_fill_color(shape, fill.r, fill.g, fill.b, fill.a);
+        tvg_scene_add(scene, shape);
+        // sigma is in the scene's own units, like the shape's coordinates: the root scene's scale applies to it too
+        if (blur > 0)
+            tvg_scene_add_effect_gaussian_blur(scene, CLAY_THORVG_SHADOW_SIGMA(blur), 0, 0,
+                                               CLAY_THORVG_SHADOW_QUALITY);
+        tvg_scene_add(into, scene);
+    }
+}
+
 /** Rebuilds the canvas from the commands and draws it into the target buffer, over what the buffer holds (or, with
  *  d->clear, clearing it first); false if the canvas could not sync its target. */
 static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_RenderCommandArray *rcommands)
@@ -97,6 +162,8 @@ static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_Rend
     tvg_paint_scale(root, d->scale);
     for (int32_t i = 0; i < rcommands->length; i++) {
         Clay_RenderCommand *rcmd = Clay_RenderCommandArray_Get(rcommands, i);
+        // a shadow of this element (css.shadow) goes before its first command, in the same scene as the command
+        Clay_ThorVG_DrawShadow(d, rcmd, into);
         // whole pixels, as Clay's SDL3 renderer
         const float x = (int)rcmd->boundingBox.x, y = (int)rcmd->boundingBox.y;
         const float w = (int)rcmd->boundingBox.width, h = (int)rcmd->boundingBox.height;

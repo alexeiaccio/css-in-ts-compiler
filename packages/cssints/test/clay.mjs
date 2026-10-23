@@ -222,6 +222,30 @@ assert.equal(
 // a quote and a backslash of the path are escaped, so the C compiles
 assert.match(imdecl("odd"), /\.imageData = \(void \*\)"a\\"b\\\\c\.png" \}/);
 
+// shadows: no Clay field (clay.h 1.0 has none), so the literal carries a sibling `shadow` the renderer draws, and
+// header() drops it — the declaration keeps its layout
+const shadows = { ...(await exportsOf("clay-shadow.ts")) };
+const BLACK = (a) => ({ r: 0, g: 0, b: 0, a });
+assert.deepEqual(shadows.plain, { shadow: { x: 0, y: 2, blur: 12, color: BLACK(102) } });
+assert.deepEqual(shadows.panel, { shadow: { x: 0, y: 12, blur: 24, color: BLACK(115) } });
+assert.deepEqual(shadows.card.shadow, { x: 2, y: 8, blur: 16, color: BLACK(128) });
+// a state's shadow is laid over the base field by field: x, y and the colour stay, blur changes
+assert.deepEqual(shadows.card[":hover"], { shadow: { x: 2, y: 8, blur: 20, color: BLACK(128) } });
+assert.deepEqual(shadows.replaced.shadow, { x: 0, y: -3, blur: 4, color: BLACK(102) });
+assert.deepEqual(shadows.floating, {
+  layout: { sizing: { width: { type: "FIXED", min: 280, max: 280 } } },
+  backgroundColor: RGB(36, 40, 52),
+  cornerRadius: { topLeft: 12, topRight: 12, bottomRight: 12, bottomLeft: 12 },
+  shadow: { x: 0, y: 12, blur: 24, color: BLACK(102) },
+});
+const sh = header(shadows);
+const shdecl = (name) => new RegExp(`Clay_ElementDeclaration ${name} = (.*);`).exec(sh)?.[1];
+assert.equal(
+  shdecl("floating"),
+  "{ .layout = { .sizing = { .width = { .size = { .minMax = { 280, 280 } }, .type = CLAY__SIZING_TYPE_FIXED } } }, .backgroundColor = { .r = 36, .g = 40, .b = 52, .a = 255 }, .cornerRadius = { .topLeft = 12, .topRight = 12, .bottomRight = 12, .bottomLeft = 12 } }",
+);
+assert.ok(!/shadow/i.test(sh), sh); // the style's name and every field it sets: no shadow anywhere
+
 const fails = async (source, message) =>
   assert.rejects(
     code(`import * as css from "cssints/clay" with { type: "cssints" };\n${source}`),
@@ -379,6 +403,28 @@ await fails(
   `export const a = css.image(css.p(1), { width: 1, height: 1 });`,
   /image: a style is not a value/,
 );
+await fails(
+  `export const a = css.shadow({ blur: -2 });`,
+  /shadow\.blur: unexpected -2, expected a number of pixels .*not negative/,
+);
+await fails(`export const a = css.shadow({ blur: "4em" });`, /shadow\.blur: unexpected "4em"/);
+await fails(
+  `export const a = css.shadow({ x: "2em" });`,
+  /shadow\.x: unexpected "2em", expected a number of pixels/,
+);
+await fails(
+  `export const a = css.shadow({ color: "blu" });`,
+  /shadow\.color: "blu" is not a colour Clay can draw/,
+);
+await fails(
+  `export const a = css.shadow({ spread: 2 });`,
+  /shadow: unexpected "spread", expected x \| y \| blur \| color/,
+);
+await fails(
+  `export const a = css.shadow({}, {});`,
+  /shadow takes one object of options, got 2 values/,
+);
+await fails(`export const a = css.shadow(css.p(1));`, /shadow: a style is not a value/);
 
 await server.close();
 console.log("clay: ok");

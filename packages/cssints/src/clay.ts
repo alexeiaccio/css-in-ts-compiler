@@ -117,7 +117,7 @@ const one =
     if (parts.length !== 1) throw fail(`cssints: ${prop} takes one value, got ${parts.length}`);
     return [[key, read(prop, parts[0])]];
   };
-const COLOURS = new Set(["backgroundColor", "color", "borderColor"]);
+const COLOURS = new Set(["backgroundColor", "color", "borderColor", "shadowColor"]);
 // 1 to 4 values in CSS order, spread over `keys`
 const sides =
   (keys: readonly string[], read: (prop: string, v: unknown) => Value): Build =>
@@ -279,6 +279,28 @@ const imageOf: Build = (prop, parts) => {
   ];
 };
 
+// A shadow (css.shadow): Clay 1.0's declaration has no shadow field, so it travels beside the declaration as an image's
+// path does — a sibling `shadow` key of the literal, which header() drops (the renderer owns the effect, keyed by the
+// element's id) and whose fields a state's overlay merges one by one.
+const SHADOW_OPTIONS = ["x", "y", "blur", "color"];
+const SHADOW_FIELDS = ["shadowX", "shadowY", "shadowBlur", "shadowColor"];
+const SHADOW_COLOUR = "rgb(0 0 0 / 0.4)";
+const SHADOW_DEFAULT = { x: 0, y: 2, blur: 12, color: SHADOW_COLOUR };
+const shadowOf: Build = (prop, parts) => {
+  if (parts.length > 1)
+    throw fail(`cssints: ${prop} takes one object of options, got ${parts.length} values`);
+  const o = options(prop, parts[0] ?? {}, SHADOW_OPTIONS);
+  // no options is the whole default shadow; some set only the fields they name, so a state's
+  // css.hover(css.shadow({ blur: 20 })) keeps the base's x, y and colour
+  const given = Object.keys(o).length ? o : SHADOW_DEFAULT;
+  const out: [string, Value][] = [];
+  if (given.x !== undefined) out.push(["shadowX", offset(`${prop}.x`, given.x)]);
+  if (given.y !== undefined) out.push(["shadowY", offset(`${prop}.y`, given.y)]);
+  if (given.blur !== undefined) out.push(["shadowBlur", px(`${prop}.blur`, given.blur)]);
+  if (given.color !== undefined) out.push(["shadowColor", colour(`${prop}.color`, given.color)]);
+  return out;
+};
+
 const PADDING = ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"];
 const BORDER = ["borderTop", "borderRight", "borderBottom", "borderLeft"];
 const RADIUS = ["topLeft", "topRight", "bottomRight", "bottomLeft"];
@@ -321,6 +343,7 @@ const MEMBERS: Record<string, Build> = {
   whiteSpace: one("whiteSpace", keyword("normal", "pre-line", "nowrap")),
   float: floating,
   image: imageOf,
+  shadow: shadowOf,
 };
 
 const member =
@@ -419,6 +442,7 @@ export const {
   whiteSpace,
   float,
   image,
+  shadow,
 } = members;
 
 // ---------- the site: Clay's structs, field for field
@@ -542,6 +566,14 @@ const shapeOf = (entries: Entry[], values?: Map<string, string>): Shape => {
   if (FLOATING.some((k) => p.has(k))) out.floating = floatingOf(p);
   if (p.has("imageSrc")) out.image = { imageData: get("imageSrc")! };
   if (p.get("aspectRatio")) out.aspectRatio = { aspectRatio: get("aspectRatio")! };
+  // a shadow has no Clay field: its own key of the literal, for the renderer; unset fields take CSS's defaults
+  if (SHADOW_FIELDS.some((k) => p.has(k)))
+    out.shadow = {
+      x: get("shadowX") ?? SHADOW_DEFAULT.x,
+      y: get("shadowY") ?? SHADOW_DEFAULT.y,
+      blur: get("shadowBlur") ?? SHADOW_DEFAULT.blur,
+      color: rgba("shadow.color", String(get("shadowColor") ?? SHADOW_COLOUR), values),
+    };
   const text: Shape = {};
   if (p.has("color")) text.textColor = colourOf("color");
   for (const k of ["fontId", "fontSize", "letterSpacing", "lineHeight"])
@@ -669,6 +701,7 @@ const SHAPE = new Set([
   "clip",
   "floating",
   "image",
+  "shadow",
   "aspectRatio",
   "text",
   "themes",
@@ -707,7 +740,9 @@ export const header = (styles: Record<string, unknown>): string => {
       ["", base],
       ...STATES.flatMap((s) => (v[s] ? [[`_${s.slice(1)}`, merge(base, v[s] as Shape)]] : [])),
     ] as [string, Shape][]) {
+      // a shadow is no Clay field (clay.h 1.0 has none): the declaration keeps its layout, the renderer its effect
       const { text, ...decl } = shape;
+      delete decl.shadow;
       if (Object.keys(decl).length)
         lines.push(
           `static const Clay_ElementDeclaration ${name}${suffix}${theme} = ${c("", decl)};`,

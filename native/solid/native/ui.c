@@ -36,6 +36,10 @@ static int arena_used;
 static const char *image_paths[MAX_IMAGES];
 static int image_count;
 static const char *pending_image;
+// the shadow (css.shadow) the next ui_open declares: Clay has no shadow field, so it rides the renderer's table instead
+static float pending_shadow[3];
+static Clay_Color pending_shadow_color;
+static int has_pending_shadow;
 
 static SDL_Window *window;
 static SDL_Renderer *renderer;
@@ -127,6 +131,8 @@ void ui_begin(float px, float py, int down, float dt)
 {
     arena_used = 0;
     pending_image = NULL;
+    has_pending_shadow = 0;
+    tvg.shadowCount = 0; // the frame's shadows go with the rest of the frame
     Clay_SetPointerState((Clay_Vector2){px, py}, down);
     // Clay's scroll containers: the wheel delta of the polls moves the container the pointer is over, before the layout
     // reads the offsets (ui_open hands each clip element its own through Clay_GetScrollOffset). No drag scrolling: a
@@ -169,6 +175,15 @@ void ui_image(const char *path, int len)
     pending_image = image_paths[image_count++];
 }
 
+/** The shadow of the next element (a css.shadow style): the element's box moved by x and y, blurred by blur, in that
+ *  colour. Clay has no shadow field, so this is a renderer effect keyed by the element's id. */
+void ui_shadow(float x, float y, float blur, float r, float g, float b, float a)
+{
+    pending_shadow[0] = x, pending_shadow[1] = y, pending_shadow[2] = blur;
+    pending_shadow_color = (Clay_Color){r, g, b, a};
+    has_pending_shadow = 1;
+}
+
 /** Opens an element. id is NULL for an anonymous one; f is 45 floats: the box fields, then the floating ones. */
 void ui_open(const char *id, int len, const float *f)
 {
@@ -203,7 +218,16 @@ void ui_open(const char *id, int len, const float *f)
         d.image.imageData = (void *)pending_image;
         pending_image = NULL;
     }
-    if (id) Clay__OpenElementWithId(Clay__HashString(slice(id, len), 0));
+    Clay_ElementId eid = {0};
+    if (id) eid = Clay__HashString(slice(id, len), 0);
+    // the style's shadow (css.shadow), set by ui_shadow just before this call: the renderer keys it by the element's
+    // 32-bit id hash, which is also what its commands carry. An anonymous element has no id to key it by.
+    if (has_pending_shadow) {
+        if (id) Clay_ThorVG_SetShadow(&tvg, eid.id, pending_shadow[0], pending_shadow[1], pending_shadow[2],
+                                      pending_shadow_color);
+        has_pending_shadow = 0;
+    }
+    if (id) Clay__OpenElementWithId(eid);
     else Clay__OpenElement();
     // a clip element is a scroll container: the offset Clay kept for it across frames is what shifts its children (its
     // debug view feeds its own the same way). Before Clay__ConfigureOpenElement, which reads this declaration.

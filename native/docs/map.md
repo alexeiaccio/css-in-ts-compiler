@@ -507,8 +507,8 @@ we use neither: `tvg_scene_add_effect_gaussian_blur(scene, sigma, direction, qua
 angle, distance, sigma, quality)`, `..._motion_blur`, `..._fill`, `..._tint`, `..._tritone`, and `Paint::mask()` with
 alpha, luma and their inverses. An effect is not a Clay declaration, so it cannot be a style field Clay lays out: it is
 a renderer side table keyed by Clay's element id. The command stream already carries that id, so `ui_effect(id, kind,
-params)` (called from JS, or printed by `header()` for the C targets) plus a lookup at draw time is the whole API, and
-the style keeps only its own layout.
+params)` (called from JS, or printed by `header()` for the C targets; the shadow is its first call,
+`ui_shadow(x, y, blur, rgba)`) plus a lookup at draw time is the whole API, and the style keeps only its own layout.
 
 What each target can actually do — the "no" cells are as important as the rest:
 
@@ -524,8 +524,31 @@ What each target can actually do — the "no" cells are as important as the rest
 
 The order, each with its own frame and its own number:
 
-1. **Shadow** (`css.shadow(...)`) — the largest felt difference for the smallest piece of work: the Dialog, the menu
-   and the Sky cards float today on colour alone. The shadow is the same box and radius, drawn before the command.
+1. **Done: shadow** (`css.shadow({ x, y, blur, color })`, 2026-10-23) — the largest felt difference for the smallest
+   piece of work: the Dialog, the menu and the Sky cards float today on colour alone. The style's literal carries a
+   sibling `shadow` key (`{ x, y, blur, color: { r, g, b, a } }`, defaults 0, 2, 12, `rgb(0 0 0 / 0.4)`); Clay 1.0's
+   declaration has no such field, so `header()` prints nothing for it and the C pages are unchanged, `pack.ts`'s
+   `variant()` pulls it out beside the image's path (the packed box stays 45 floats), `frame.ts` calls `ui_shadow(x, y,
+   blur, r, g, b, a)` before `ui_open`, and `ui.c` hangs it on the renderer's table by the element id's 32-bit hash
+   (`Clay_ElementId.id`), cleared at `ui_begin` with the rest of the frame. The renderer draws it for the element's
+   first command with that id — the command's box and corner radii, offset and filled with the shadow's colour, a scene
+   with `tvg_scene_add_effect_gaussian_blur` (sigma `blur / 2`, CSS's reading of a blur radius, quality 80), then the
+   command itself, so the element covers its middle: a `drop_shadow` of a scene of the element's own silhouette would be
+   the same pixels, and the blur of one shape is the smaller machine. Measured, sigma 8 in a scene under a root at
+   scale 2 blurs twice as many device pixels as at scale 1: the sigma is in the scene's own units, so the root's scale
+   carries it (it is not multiplied by the pixel density). Frames: the Dialog page's panel (280x152, `{ y: 12, blur: 24,
+   color: "rgb(0 0 0 / 0.45)" }`) and its menu (150x133, `{ y: 6, blur: 14 }`), the three stored frames regenerated —
+   23037 (dark), 23053 (light) and 8647 (menu) pixels differ from the frames without a shadow, every one outside the
+   element's box except the four corner cut-outs of its radius, 11636 of the panel's below it against 4006 above (the
+   12px offset), max channel 4/255 in the dark theme and 41/255 in the light one. Cost: the page at 360x480 is 1.07 ms
+   a frame drawn without the panel's shadow and 1.93 ms with it (dark; light 1.00 → 1.76), so **about 0.8 ms a 280x152
+   shadow at blur 24, quality 80** (Apple M2, one thread, `--bench 300`, `bun solid/main.ts dialog --keys Tab,Enter
+   --png out.png --bench 300`); quality 50 is 1.47 ms and 30 1.31 ms for 5/255 and 15/255 at the shadow's edge, and the
+   sigma is not the lever (sigma = blur, CSS's blur radius unhalved, spreads the same alpha over 44px instead of 25 and
+   reads washed out). Checks: `solid/dialog.test.ts` and the four frames. Open: spread and inner shadows (the box is the
+   element's own), a cache between frames (each frame blurs the shadow again), the element must have an `id`, and no C
+   target draws one (the header and the C pages are untouched; the browser's Canvas2D `shadowBlur` and a 9-slice sprite
+   on the board are the obvious ports).
 2. **Backdrop blur from our buffer** — `ui.c` owns `pixels`, so the content under a panel is already in the buffer when
    the panel is drawn: copy the region, blur it separably, draw the panel over it with its own alpha. That is glass
    over our content, not over the window; the desktop behind the window is out of reach, as it is for Rune without the
@@ -542,6 +565,7 @@ gradient; soft masks on clips; an effect is opt-in with a plain fallback, and sh
 desktop frame and the board where it exists. The GPU raster does not buy the cost back (0.69-1.06 vs 0.31-0.47 ms,
 before the compositor), so the first pass is the CPU raster.
 
+||||||| e044926a
 ## Not doing
 
 - JS on a microcontroller. A GPU path on the ESP32-S3. One style for cells and pixels. A layout engine of our own.

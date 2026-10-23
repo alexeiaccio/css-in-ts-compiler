@@ -17,7 +17,7 @@ css.width("10rem");
 css.bg("blu");
 // @ts-expect-error Clay has no space-between
 css.justifyContent("space-between");
-// @ts-expect-error no such member: Clay draws no shadow
+// @ts-expect-error a shadow is no CSS box-shadow string, and no Clay field: css.shadow() is the member
 css.boxShadow("0 0 1px red");
 // @ts-expect-error cn() takes styles only
 css.cn("x");
@@ -86,3 +86,16 @@ css.image("a.png", { width: 1, height: 1, fit: "cover" });
 css.image("a.png", { width: 1 });
 // @ts-expect-error no such option: the path is the first argument
 css.image({ src: "a.png", width: 1, height: 1 });
+
+export const shadows = css.cn(
+  css.shadow(),
+  css.shadow({ x: 0, y: 12, blur: 24, color: "rgb(0 0 0 / 0.45)" }),
+  css.shadow({ blur: "20px" }),
+  css.hover(css.shadow({ blur: 20 })),
+);
+// @ts-expect-error a spread is not drawn: the box is the element's own
+css.shadow({ spread: 2 });
+// @ts-expect-error a length is pixels
+css.shadow({ blur: "1rem" });
+// @ts-expect-error one object of options
+css.shadow(4);

@@ -37,6 +37,25 @@ browser/                   the same page as WebAssembly on a canvas: page.c (Cla
 docs/map.md                targets, layers, order of work
 ```
 
+## Effects
+
+`css.shadow({ x, y, blur, color })` is the first one: a renderer effect, because Clay 1.0's declaration has no shadow
+field. The style's literal carries it as a sibling `shadow` key, `solid/src/pack.ts`'s `variant()` pulls it out beside
+the image's path (the packed box itself stays 45 floats), `solid/src/frame.ts` calls `ui_shadow(x, y, blur, r, g, b, a)`
+before `ui_open`, and `ui.c` hangs it on a side table keyed by the element id's 32-bit hash (`Clay_ElementId.id`),
+cleared in `ui_begin` with the rest of the frame. `desktop/clay_renderer_thorvg.c` draws it for the element's first
+command that carries that id — the command's box and corner radii, offset and filled with the shadow's colour, as a
+scene with `tvg_scene_add_effect_gaussian_blur` (sigma `blur / 2`, CSS's reading, quality 80), then the command, which
+covers the shadow's middle. One shadow an element; **the element needs an `id`**.
+
+The effect's sigma is in the scene's own units, so the root scene's scale carries it: the same sigma under a root at
+pixel density 2 blurs twice as many device pixels, which is why it is not multiplied by the density. Ceilings, on
+purpose: 32 shadows a frame, no spread and no inner shadow (the box is the element's own), nothing cached between
+frames (the blur runs again each frame), and the cost is real — the Dialog page's 280x152 panel at blur 24 takes the
+360x480 frame from 1.07 to 1.93 ms (Apple M2, one thread, `--bench 300`; light 1.00 → 1.76, quality 50 and 30 are 1.47
+and 1.31 ms for 5/255 and 15/255 at the edge). The C pages — `examples/`, the terminal, the browser — ignore a shadow:
+`header()` prints nothing for it and the generated declarations are unchanged.
+
 ## Test
 
 ```sh

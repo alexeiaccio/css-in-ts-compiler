@@ -79,6 +79,10 @@ export function createFrame(root: El, view: View = {}) {
     const v = style ? variant(style, view.theme, states) : undefined;
     // an image's path goes in before its element: Clay's image config is a pointer, not a float field
     if (v?.image) ui.image(pathBytes(v.image));
+    // ... and so does a shadow: no Clay field holds one, so it rides the renderer's table by the element's id
+    const shadow = v?.shadow;
+    if (shadow)
+      ui.shadow(shadow.x, shadow.y, shadow.blur, shadow.color.r, shadow.color.g, shadow.color.b, shadow.color.a);
     ui.open(id, v?.box || NO_STYLE);
     for (const c of el.children) if (c instanceof El) emit(c, down);
     ui.close();

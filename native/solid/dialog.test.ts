@@ -20,14 +20,14 @@ const check = (what: string, got: unknown, want: unknown) => {
 };
 
 let dispose = () => {};
-function fresh() {
+function fresh(theme?: string) {
   dispose();
   const root = new El("root");
   const input = createInput();
   const unhandled: string[] = [];
   input.fallback = (name) => (unhandled.push(name), false);
   dispose = render(() => Dialog({ input }), root);
-  const frame = createFrame(root, { onPressMiss: () => input.pressMiss() });
+  const frame = createFrame(root, { theme, onPressMiss: () => input.pressMiss() });
   let at = [-1, -1];
   const step = (down = false) => frame(at[0]!, at[1]!, down, 1 / 60);
   step(), step();
@@ -205,9 +205,68 @@ function fresh() {
   check("Escape closes it again", [p.menuOpen(), p.focused()], [false, "zoom-trigger"]);
 }
 
+// --- the shadows (css.shadow): a renderer effect by element id, so the frames' pixels are the proof
+// The panel's shadow is its own box, 12px down and blurred: the page beside it is darker than the page far away, the
+// falloff is a gradient (not a line), the panel's border still sits above it, and more of it is below the panel than
+// above (the offset). The menu's shadow is smaller and hangs off it the same way.
+const lum = (c: readonly number[]) => 0.2126 * c[0]! + 0.7152 * c[1]! + 0.0722 * c[2]!;
+const at = (x: number, y: number) => lum(ui.pixel(Math.round(x), Math.round(y)));
+for (const theme of [undefined, "light"]) {
+  const name = theme ?? "dark";
+  const p = fresh(theme);
+  p.openDialog();
+  const [x, y, w, h] = p.box("settings-dialog");
+  const mid = y! + h! / 2;
+  const outside = at(x! - 1, mid);
+  const far = at(x! - 24, mid);
+  const edge = at(x!, mid);
+  const outward = [x! - 1, x! - 4, x! - 8, x! - 16, x! - 24].map((ax) => at(ax, mid));
+  const above = at(x! - 1, y! + 3);
+  const below = at(x! - 1, y! + h! - 3);
+  console.log(
+    `shadow (${name}): page ${far.toFixed(1)}, beside the panel ${outside.toFixed(1)}, its border ${edge.toFixed(1)}, ` +
+      `outward ${outward.map((v) => v.toFixed(1)).join(" ")}, above ${above.toFixed(1)}, below ${below.toFixed(1)}`,
+  );
+  check(`${name}: the page beside the panel is darker than the page`, outside < far, true);
+  // a gradient: every step away from the panel is at least as light as the one before
+  check(
+    `${name}: the shadow fades outwards`,
+    outward.every((v, i) => i === 0 || v >= outward[i - 1]!),
+    true,
+  );
+  check(`${name}: the panel's edge still sits above its shadow`, edge > outside, true);
+  check(`${name}: more shadow below the panel than above it`, below < above, true);
+  // the shadow goes under the panel, not over it: two points of the panel's own surface, one of them near the shadow
+  check(`${name}: the shadow does not tint the panel`, at(x! + 6, y! + h! - 6), at(x! + 100, y! + h! - 6));
+  const root = p.box("Root");
+  check(
+    `${name}: the page and its panel fit the window`,
+    root[1]! + root[3]! <= size.height && y! + h! <= size.height,
+    true,
+  );
+}
+
+for (const theme of [undefined, "light"]) {
+  const name = theme ?? "dark";
+  const p = fresh(theme);
+  p.tap("Tab"), p.tap("Tab"), p.tap("Enter");
+  const [x, y, w, h] = p.box("zoom-menu");
+  const below = at(x! + 8, y! + h! + 1);
+  const clear = at(x! + 8, y! + h! + 16);
+  const left = at(x! - 1, y! + h! / 2);
+  const leftClear = at(x! - 24, y! + h! / 2);
+  console.log(
+    `menu shadow (${name}): page ${clear.toFixed(1)}, below the menu ${below.toFixed(1)}, ` +
+      `left of it ${left.toFixed(1)} against ${leftClear.toFixed(1)}`,
+  );
+  check(`${name}: the menu has a shadow below it`, below < clear, true);
+  check(`${name}: the menu has a shadow to its left`, left < leftClear, true);
+  check(`${name}: the menu fits the window`, y! + h! <= size.height, true);
+}
+
 dispose();
 if (failed) process.exit(1);
 console.log(
-  "solid/dialog.test.ts: the modal trap, Escape and Cancel, OK's write, the backdrop, the floats' placement, the menu's keys",
+  "solid/dialog.test.ts: the modal trap, Escape and Cancel, OK's write, the backdrop, the floats' placement, the menu's keys, the shadows",
 );
 process.exit(0);
