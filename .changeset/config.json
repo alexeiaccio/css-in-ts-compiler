@@ -35,7 +35,14 @@
   "access": "public",
   "baseBranch": "master",
   "updateInternalDependencies": "patch",
-  "ignore": ["cssints-demo", "cssints-docs", "csssky", "csssky-tui", "@cssints/ai-automation"],
+  "ignore": [
+    "cssints-demo",
+    "cssints-docs",
+    "csssky",
+    "csssky-tui",
+    "cssints-native",
+    "@cssints/ai-automation"
+  ],
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
     "onlyUpdatePeerDependentsWhenOutOfRange": true
   }

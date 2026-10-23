@@ -6,14 +6,14 @@ import type { TuiLayer, TuiProps, TuiShape } from "cssints/tui";
 
 export type { TuiProps, TuiShape } from "cssints/tui";
 
-// Deprecated in favour of cssints-native's terminal/ (README.md). Every subpath imports this file, so one warning a
+// Deprecated in favour of native/terminal in this repository (README.md). Every subpath imports this file, so one warning a
 // process: the flag is a symbol on globalThis, which a second copy of the package shares. stderr, not stdout.
 const WARNED = Symbol.for("cssints.tui.deprecated");
 const flags = globalThis as unknown as Record<symbol, boolean>;
 if (!flags[WARNED]) {
   flags[WARNED] = true;
   console.warn(
-    "@cssints/tui is deprecated: cssints-native's terminal/ target replaces it (cssints/clay styles, Clay layout, cells on termbox2). See packages/tui/README.md",
+    "@cssints/tui is deprecated: the terminal target in the cssints repository (native/terminal) replaces it (cssints/clay styles, Clay layout, cells on termbox2). See packages/tui/README.md",
   );
 }
 

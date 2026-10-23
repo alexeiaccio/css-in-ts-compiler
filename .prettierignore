@@ -40,3 +40,6 @@ packages/*/package.json
 # The publishable copy of a package (scripts/stage.mjs) and the API.md that cssints's prepack copies in.
 **/.publish
 packages/cssints/docs
+
+# native/: its own style (the C targets, headless in single quotes, vendored specs and fonts); not part of the cssints formatter's scope.
+native

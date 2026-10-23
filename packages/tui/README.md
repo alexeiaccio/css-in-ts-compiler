@@ -1,13 +1,13 @@
 # @cssints/tui
 
 > **Deprecated (2026-10-21).** The replacement is the `terminal/` target of
-> [cssints-native](https://github.com/alexeiaccio/cssints-native): `cssints/clay` styles, laid out by
+> [`native/`](../../native/README.md) in this repository ([native/terminal](../../native/terminal)): `cssints/clay` styles, laid out by
 > [Clay](https://github.com/nicbarker/clay) and drawn into character cells on
 > [termbox2](https://github.com/termbox/termbox2), with the keyboard focus layer in C. The package still works and is
 > still published; importing it prints one warning ("`@cssints/tui` is deprecated: …"). The registry marks the version
 > deprecated when the release runs `npm deprecate` (see [RELEASING.md](../../RELEASING.md)).
 
-| Here                                            | There (cssints-native `terminal/`)                                                            |
+| Here                                            | There (`native/terminal/`)                                                                    |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `cssints/tui` styles, the Vite plugin           | `cssints/clay` styles, `generator/clay-header.ts` → a C header (`styles.h`)                   |
 | the layout of an adapter (`resolve`, a flexbox) | Clay lays out; `terminal/measure.c` measures text as a monospace grid                         |
@@ -18,10 +18,10 @@
 What carries over: styles as data (a `styles.ts` module, no sheet and no cascade), tokens and named themes (the static
 dark and light ones), and the state names (`:hover`, `:active`, `:focus`) as overlays. What does not: OpenTUI and
 bomb.sh, the run-time `setTheme` and the system theme, hover (termbox2 reports no motion), images, a body that wraps,
-wide glyphs and emoji, floating overlays, sub-cell borders and radii. `docs/map.md` step 6 is the full account.
+wide glyphs and emoji, floating overlays, sub-cell borders and radii. [native/docs/map.md](../../native/docs/map.md) step 6 is the full account.
 
 ```sh
-cd ../cssints-native
+cd ../../native
 sh terminal/build.sh                    # styles.ts -> generator/clay-header.ts -> styles.h, then cc -> terminal/demo
 ./terminal/demo                         # the Sensors page in cells: Tab, Up/Down, Space, t, q
 ./terminal/demo --page sky              # apps/csssky-tui's feed; enter opens the thread
