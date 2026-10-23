@@ -11,8 +11,7 @@
     "exactOptionalPropertyTypes": true,
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
-    "types": ["bun"],
-    "paths": { "@eoa/quint-machine": ["./vendor/quint-machine/src/index.ts"] }
+    "types": ["bun"]
   },
-  "include": ["src", "test", "vendor"]
+  "include": ["src", "test"]
 }

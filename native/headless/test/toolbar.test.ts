@@ -1,14 +1,14 @@
-import ariakit from '../vendor/specs/scenarios/apg/toolbar.ariakit.json';
-import baseUi from '../vendor/specs/scenarios/apg/toolbar.base-ui.json';
-import definition from '../vendor/specs/src/apg/toolbar.model.generated.json';
-import reactAria from '../vendor/specs/scenarios/apg/toolbar.react-aria.json';
+import ariakit from '@cssints/apg-specs/scenarios/apg/toolbar.ariakit.json';
+import baseUi from '@cssints/apg-specs/scenarios/apg/toolbar.base-ui.json';
+import definition from '@cssints/apg-specs/src/apg/toolbar.model.generated.json';
+import reactAria from '@cssints/apg-specs/scenarios/apg/toolbar.react-aria.json';
 import {
   toolbarBridge,
   toolbarConfig,
   toolbarProbe,
   toolbarSteps,
-} from '../vendor/specs/src/apg/toolbar.bridge';
-import type { ActionStep, Probe } from '../vendor/specs/src/scenario';
+} from '@cssints/apg-specs/src/apg/toolbar.bridge';
+import type { ActionStep, Probe } from '@cssints/apg-specs/src/scenario';
 import { conformance } from './conformance';
 import { mountToolbar } from './mounts';
 

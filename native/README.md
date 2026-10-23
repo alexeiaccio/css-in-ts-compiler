@@ -107,5 +107,5 @@ wrapping (a body is one clipped row), the app's system theme, and the app shell 
 tests run with `--conditions=development`, which resolves to its sources, so an edit to the engine is seen at once; `dist`
 is what a web build gets. `native` is a workspace of the repository's `bun.lock`, with one difference from the others: it
 has no `test` script, so `bun run test` at the root (`vp run -r test`) does not need a C toolchain, SDL3 or ThorVG; the
-script is `test:native`. `headless/` is a package with its own install (`bun install --frozen-lockfile` in it, `bun.lock`
-next to its `package.json`: TypeScript 7 and `@types/bun` of its own), which `test.sh` runs.
+script is `test:native`. `headless/` is a workspace too (`native/headless` in the root `workspaces`; TypeScript 7 and `@types/bun` of its own, the specs from
+`@cssints/apg-specs`); its scripts are `typecheck:native` and `test:native` for the same reason, and `test.sh` runs them.

@@ -68,7 +68,7 @@ sh solid/test.sh
 node focus/test/focus.test.ts
 
 # Headless widgets (button, switch, checkbox, disclosure) on neutral parts: ported scenarios and a walk against the Quint models
-(cd headless && bun install --frozen-lockfile >/dev/null && bun run typecheck && bun run test)
+(cd headless && bun run typecheck:native && bun run test:native)
 
 # Step 6: the terminal target. Clay's commands into character cells (terminal/cells.c, render.c, measure.c), the
 # Sensors page plus a list in C. The cell layer's own checks, then three stored frames: the dark page, the light
