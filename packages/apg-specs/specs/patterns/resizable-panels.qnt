@@ -38,8 +38,8 @@
 // bounded to +/-100) and the layout is re-solved from the snapshot, never
 // accumulated, so dragging back past a clamp recovers exactly. pointerup ends
 // the drag (the newest pointerdown takes over and re-snapshots); a host write
-// cancels it. A drag never changes a pane outside its
-// pair (DragMovesOnlyNeighbours).
+// cancels it, and the keyboard is a no-op while it runs. A drag never changes a
+// pane outside its pair (DragMovesOnlyNeighbours).
 //
 // REQUEST VS COMMIT is the windowsplitter contract (map ticket rt1p), applied to
 // the whole layout: every move requests the target layout (rq0..rq2) and bumps

@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT.
 // Generated from: ../../specs/patterns/resizable-panels.qnt
-// Spec hash (sha256): 70e8411cc707fad3c49eb7088c881a12cb97745d397a1588dd6d118c9caffa3f
+// Spec hash (sha256): db4dc3af8fd3c1d52dd46481354474cf4fc3fc98088e57d37ba62b1b3cbe1f65
 // Regenerate with: npm run generate:model
 import { Machine } from "@typeonce/effect-machine";
 import { Schema } from "effect";
