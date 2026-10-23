@@ -69,7 +69,7 @@ export interface RadioGroup<T = unknown> {
 
 /**
  * APG Radio Group (https://www.w3.org/WAI/ARIA/apg/patterns/radio/): a
- * `radiogroup` with `role=radio` items. Platform choice (docs/research/
+ * `radiogroup` with `role=radio` items. Platform choice (packages/headless/docs/
  * apg-platform-features.md): **native** `<input type=radio name>`; custom
  * `role=radio` needs selection-follows-focus, which this primitive implements —
  * arrows move focus AND check the next/previous enabled radio (wrapping), Space

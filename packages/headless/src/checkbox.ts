@@ -51,7 +51,7 @@ export interface Checkbox {
 
 /**
  * APG Checkbox (https://www.w3.org/WAI/ARIA/apg/patterns/checkbox/): one
- * dual-state, optionally tri-state, checkbox. Platform choice (docs/research/
+ * dual-state, optionally tri-state, checkbox. Platform choice (packages/headless/docs/
  * apg-platform-features.md): **native** `<input type=checkbox>` (+ the
  * `indeterminate` JS property); this primitive exposes the polyfillable
  * `role=checkbox` + `aria-checked` contract so the same state drives either

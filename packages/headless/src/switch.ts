@@ -48,7 +48,7 @@ export interface Switch {
 
 /**
  * APG Switch (https://www.w3.org/WAI/ARIA/apg/patterns/switch/): a binary on/off
- * input. Platform choice (docs/research/apg-platform-features.md): **native
+ * input. Platform choice (packages/headless/docs/apg-platform-features.md): **native
  * `<input type=checkbox switch>`** as progressive enhancement (Safari only),
  * with checkbox + `role=switch` as the safe baseline; this primitive exposes
  * the `role=switch` + `aria-checked` contract. Space arms on keydown and fires
