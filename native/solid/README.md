@@ -402,7 +402,7 @@ the revert.
 
 ## The Sky page
 
-`bun solid/main.ts sky` is **csssky's feed** (`~/github/css-in-ts-compiler/apps/csssky`) as the first real app on this
+`bun solid/main.ts sky` is **csssky's feed** (`apps/csssky` of this repository) as the first real app on this
 renderer: a phone-shaped 360x760 page whose data is the app's own recorded fixtures, not a fetch. The bar holds the
 wordmark and the three feeds as a **headless tablist** (`createTabs`: one Tab stop on the active tab, Left/Right and
 Home/End move it and switch the feed); the feed is one Clay clip element (`sky-feed`, the rest of the window's height)

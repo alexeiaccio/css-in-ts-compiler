@@ -2,8 +2,10 @@ import { defineConfig } from "vite-plus";
 
 import { allRules, profiles } from "./tools/ai-automation/src/profiles.ts";
 
-// Out of scope: docs/archive is old; a research prototype is throwaway code that reruns a finding.
+// Out of scope: docs/archive is old; a research prototype is throwaway code that reruns a finding; native/ is its own
+// toolchain (C targets, Solid 2 over bun:ffi, headless widgets in single quotes) and is checked by native/test.sh.
 const outOfScope = [
+  "native/**",
   "docs/archive/**",
   "docs/research/sublayers-proto/**",
   "docs/research/plugin-api-proto/**",

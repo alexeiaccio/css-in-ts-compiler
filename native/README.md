@@ -1,6 +1,6 @@
 # cssints-native
 
-A native UI framework on [cssints](../css-in-ts-compiler) styles and [Clay](https://github.com/nicbarker/clay)
+A native UI framework on [cssints](../packages/cssints) styles and [Clay](https://github.com/nicbarker/clay)
 layout: the desktop on the GPU first, then an ESP32 with no JS on the chip. The plan and the targets are in
 [docs/map.md](docs/map.md).
 
@@ -13,6 +13,10 @@ export const units = css.cn(css.width(200), css.height(38), css.bg("rgb(36 40 52
 ```sh
 node --conditions=development generator/clay-header.ts styles.ts styles.h   # C for CLAY(CLAY_ID("Units"), units)
 ```
+
+This directory is `native/` of the cssints repository: the commands below run from it (`cd native`), and `bun install` is
+the repository's, at its root (`native` is one of the bun workspaces). From the repository root, `bun run test:native`
+is `sh native/test.sh`.
 
 ## Layout
 
@@ -36,8 +40,8 @@ docs/map.md                targets, layers, order of work
 ## Test
 
 ```sh
-bun install
-bun run test     # generator, same.c against esp32's clay.h, the Sensors frames on SDL and on ThorVG (needs brew sdl3 sdl3_ttf sdl3_image thorvg)
+bun install      # at the repository root
+sh test.sh       # generator, same.c against vendor/clay/clay.h, the Sensors frames on SDL and on ThorVG (needs brew sdl3 sdl3_ttf sdl3_image thorvg)
 sh desktop/build.sh examples/sensors && ./build/sensors/app   # the window, ThorVG's software raster; the t key toggles the theme
 ./build/sensors/app --raster sdl                              # Clay's SDL3 renderer instead (the window uses the GPU)
 sh desktop/build-thorvg-gpu.sh examples/sensors               # ThorVG built from source with its WebGPU engine (~1 min, in $TMPDIR)
@@ -81,7 +85,7 @@ frame in `examples/sensors/expected-thorvg.png`); it is not part of the page.
 
 ## The sky screens in a terminal
 
-`apps/csssky-tui` (css-in-ts-compiler) ported to cells: the same cards, the same recorded fixtures, the same palette
+`apps/csssky-tui` (`../apps/csssky-tui`) ported to cells: the same cards, the same recorded fixtures, the same palette
 from its `styles.ts`. Its two screens and the profile of the sibling web app `apps/csssky`:
 
 | screen | data | keys |
@@ -99,6 +103,9 @@ What stays unported: `apps/csssky-tui` has no profile screen of its own (that on
 layer and fixtures); no fetching (the frame is the recorded fixture), no images (a media line), no quote box, no
 wrapping (a body is one clipped row), the app's system theme, and the app shell (a bar, a list, a footer is all).
 
-`cssints` comes from npm (`^0.5.0`, the release that carries `cssints/clay` and its images): no local link, so the tree builds on a
-clean machine. The tests still run with `--conditions=development`, which resolves to the package's shipped source;
-`dist` is what a web build gets. A change to the engine means a new release, not an edit in a sibling checkout.
+`cssints` is the workspace package (`"cssints": "workspace:*"`, `../packages/cssints`), not a release from npm: the
+tests run with `--conditions=development`, which resolves to its sources, so an edit to the engine is seen at once; `dist`
+is what a web build gets. `native` is a workspace of the repository's `bun.lock`, with one difference from the others: it
+has no `test` script, so `bun run test` at the root (`vp run -r test`) does not need a C toolchain, SDL3 or ThorVG; the
+script is `test:native`. `headless/` is a package with its own install (`bun install --frozen-lockfile` in it, `bun.lock`
+next to its `package.json`: TypeScript 7 and `@types/bun` of its own), which `test.sh` runs.

@@ -1,8 +1,9 @@
 #!/bin/sh
-# The generator on the Units example, then the C against Clay. CLAY_H is the folder of clay.h (esp32's by default,
-# until clay.h moves here at the desktop step).
+# The generator on the Units example, then the C against Clay. CLAY_H is the folder of clay.h (vendor/clay by default;
+# the same file as esp32's). Runs from native/ whatever the caller's directory is (`bun run test:native` at the repo root).
 set -e
-CLAY_H="${CLAY_H:-$HOME/github/esp32/firmware/clay-test/main}"
+cd "$(dirname "$0")"
+CLAY_H="${CLAY_H:-$PWD/vendor/clay}"
 OUT="${TMPDIR:-/tmp}/cssints-native-test"
 mkdir -p "$OUT/sensors"
 node --conditions=development generator/clay-header.ts examples/units/styles.ts "$OUT/styles.h"
