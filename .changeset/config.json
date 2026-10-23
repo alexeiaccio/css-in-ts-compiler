@@ -42,7 +42,8 @@
     "csssky-tui",
     "cssints-native",
     "@cssints/ai-automation",
-    "@cssints/apg-specs"
+    "@cssints/apg-specs",
+    "@cssints/headless"
   ],
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
     "onlyUpdatePeerDependentsWhenOutOfRange": true

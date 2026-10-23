@@ -295,6 +295,24 @@
         "cssints": "^0.5.0",
       },
     },
+    "packages/headless": {
+      "name": "@cssints/headless",
+      "version": "0.5.0",
+      "devDependencies": {
+        "@cssints/apg-specs": "workspace:*",
+        "@quint-machine/core": "0.1.0",
+        "@solidjs/vite-plugin": "3.0.0-next.47",
+        "@solidjs/web": "2.0.0-rc.13",
+        "@vitest/browser-playwright": "5.0.1",
+        "effect": "4.0.0",
+        "playwright": "1.64.1",
+        "solid-js": "2.0.0-rc.13",
+        "vite-plus": "catalog:",
+      },
+      "peerDependencies": {
+        "solid-js": "^2.0.0-rc.13",
+      },
+    },
     "packages/icons": {
       "name": "@cssints/icons",
       "version": "0.5.0",
@@ -706,6 +724,8 @@
     "@cssints/gradient": ["@cssints/gradient@workspace:packages/gradient"],
 
     "@cssints/gradient-2d": ["@cssints/gradient-2d@workspace:packages/gradient-2d"],
+
+    "@cssints/headless": ["@cssints/headless@workspace:packages/headless"],
 
     "@cssints/icons": ["@cssints/icons@workspace:packages/icons"],
 
