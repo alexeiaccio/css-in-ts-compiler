@@ -16,6 +16,7 @@ const { symbols: s } = dlopen(new URL("../../build/solid/libui.dylib", import.me
     args: [T.f32, T.f32, T.f32, T.f32, T.f32, T.f32, T.f32],
     returns: T.void,
   },
+  ui_backdrop: { args: [T.f32], returns: T.void },
   ui_close: { args: [], returns: T.void },
   ui_text: { args: [T.ptr, T.i32, T.ptr], returns: T.void },
   ui_end: { args: [T.f32], returns: T.i32 },
@@ -56,6 +57,8 @@ export const ui = {
   /** The shadow of the element the next `open` declares (a css.shadow style): offset, blur, colour 0-255. */
   shadow: (x: number, y: number, blur: number, r: number, g: number, b: number, a: number) =>
     s.ui_shadow(x, y, blur, r, g, b, a),
+  /** The backdrop of the element the next `open` declares (a css.backdrop style): the blur radius in pixels. */
+  backdrop: (blur: number) => s.ui_backdrop(blur),
   close: s.ui_close,
   text: (bytes: Uint8Array, style: Float32Array) => s.ui_text(ptr(bytes), bytes.length, ptr(style)),
   end: s.ui_end,

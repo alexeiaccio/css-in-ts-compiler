@@ -2,6 +2,7 @@
 // 32-bit buffer (ABGR8888: R,G,B,A bytes in memory, as SDL's RGBA32). Text is measured with ThorVG too, so what Clay
 // lays out is what is drawn: the width is the sum of glyph advances (ThorVG 1.1 applies no kerning), the height the
 // font's line advance.
+#include <math.h>
 #include <thorvg_capi.h>
 
 typedef struct {
@@ -25,6 +26,18 @@ typedef struct {
         bool drawn;
     } shadows[32];
     int shadowCount;
+    // the frame's backdrops (css.backdrop), by the id of the element that has one: the same ride-along as a shadow, but
+    // the effect is on the pixels already in the target, not on a scene
+    struct {
+        uint32_t id;
+        float blur;
+    } backdrops[8];
+    int backdropCount;
+    bool cut; // this frame's one cut has happened (the first backdrop's first rectangle)
+    // the software canvas's target, for the CPU blur of a backdrop: the WebGPU canvas reads its frame back only after
+    // the whole draw, so it sets none and a backdrop is not blurred there (the frame is not cut either)
+    uint32_t *target;
+    int targetWidth, targetHeight;
 } Clay_ThorVGRendererData;
 
 // CSS sizes a box-shadow's blur as twice the gaussian's standard deviation; ThorVG takes sigma, in the scene's own
@@ -153,6 +166,115 @@ static void Clay_ThorVG_DrawShadow(Clay_ThorVGRendererData *d, Clay_RenderComman
     }
 }
 
+/** Gives the element with this id's hash a backdrop for the next draw (one a frame): the pixels under its box, blurred
+ *  by blur before its own commands. A renderer effect, as the shadow. */
+static void Clay_ThorVG_SetBackdrop(Clay_ThorVGRendererData *d, uint32_t id, float blur)
+{
+    // ponytail: 8 backdrops a frame (one cut is what is drawn, see the render), no list that grows
+    if (d->backdropCount == (int)(sizeof d->backdrops / sizeof *d->backdrops)) return;
+    d->backdrops[d->backdropCount].id = id;
+    d->backdrops[d->backdropCount].blur = blur;
+    d->backdropCount++;
+}
+
+/** The blur of the element with this id, or -1 when it has no backdrop. */
+static float Clay_ThorVG_BackdropOf(Clay_ThorVGRendererData *d, uint32_t id)
+{
+    for (int i = 0; i < d->backdropCount; i++)
+        if (d->backdrops[i].id == id) return d->backdrops[i].blur;
+    return -1;
+}
+
+// The backdrop blur's machine: a separable box blur, three passes each way, which is a gaussian to the eye and has no
+// kernel to build. A pass of radius r three times has the variance (r^2 + r) of a gaussian, so CSS's blur radius (sigma
+// = blur / 2, the shadow's reading) picks r = (sqrt(1 + 4 sigma^2) - 1) / 2.
+#define CLAY_THORVG_BACKDROP_PASSES 3
+
+/** A box blur of one row, radius r, the window clamped to the row's ends (the box's own edge is not pulled in from
+ *  outside it). Alpha is copied through: the target's is 255 everywhere.
+ *  Three sums and a division a pixel; n is the same for the whole blur, so the division is a multiply the compiler
+ *  hoists (measured: 0.11 ms a pass each way for a 150x133 box at any radius up to 16, the traffic being the cost).
+ *  ponytail: three integer sums a pixel, no SIMD, no half-resolution pass; the region is what keeps it small. */
+static void Clay_ThorVG_BoxBlurH(const uint8_t *src, uint8_t *dst, int w, int h, int r)
+{
+    const int n = 2 * r + 1;
+    for (int y = 0; y < h; y++) {
+        const uint8_t *s = src + (size_t)y * w * 4;
+        uint8_t *o = dst + (size_t)y * w * 4;
+        int sr = 0, sg = 0, sb = 0;
+        for (int i = -r; i <= r; i++) {
+            const int x = i < 0 ? 0 : (i >= w ? w - 1 : i);
+            sr += s[x * 4], sg += s[x * 4 + 1], sb += s[x * 4 + 2];
+        }
+        for (int x = 0; x < w; x++) {
+            o[x * 4] = (uint8_t)(sr / n), o[x * 4 + 1] = (uint8_t)(sg / n), o[x * 4 + 2] = (uint8_t)(sb / n);
+            o[x * 4 + 3] = s[x * 4 + 3];
+            const int out = x - r < 0 ? 0 : x - r, in = x + r + 1 >= w ? w - 1 : x + r + 1;
+            sr += s[in * 4] - s[out * 4], sg += s[in * 4 + 1] - s[out * 4 + 1], sb += s[in * 4 + 2] - s[out * 4 + 2];
+        }
+    }
+}
+
+/** The same for one column. */
+static void Clay_ThorVG_BoxBlurV(const uint8_t *src, uint8_t *dst, int w, int h, int r)
+{
+    const int n = 2 * r + 1;
+    const size_t stride = (size_t)w * 4;
+    for (int x = 0; x < w; x++) {
+        const uint8_t *s = src + (size_t)x * 4;
+        uint8_t *o = dst + (size_t)x * 4;
+        int sr = 0, sg = 0, sb = 0;
+        for (int i = -r; i <= r; i++) {
+            const uint8_t *p = s + (size_t)(i < 0 ? 0 : (i >= h ? h - 1 : i)) * stride;
+            sr += p[0], sg += p[1], sb += p[2];
+        }
+        for (int y = 0; y < h; y++) {
+            uint8_t *q = o + (size_t)y * stride;
+            q[0] = (uint8_t)(sr / n), q[1] = (uint8_t)(sg / n), q[2] = (uint8_t)(sb / n), q[3] = s[y * stride + 3];
+            const int out = y - r < 0 ? 0 : y - r, in = y + r + 1 >= h ? h - 1 : y + r + 1;
+            sr += s[in * stride] - s[out * stride], sg += s[in * stride + 1] - s[out * stride + 1],
+                sb += s[in * stride + 2] - s[out * stride + 2];
+        }
+    }
+}
+
+/** Blurs the box of a backdrop's first command in the target, and only it: the box clipped to the canvas, two buffers of
+ *  the region, three passes. Nothing outside the box is read or written, so the frame around it is untouched. */
+static void Clay_ThorVG_BlurBackdrop(Clay_ThorVGRendererData *d, Clay_RenderCommand *rcmd, float blur)
+{
+    uint32_t *px = d->target;
+    if (!px || blur <= 0) return;
+    const int tw = d->targetWidth, th = d->targetHeight;
+    int x0 = (int)floorf(rcmd->boundingBox.x * d->scale), y0 = (int)floorf(rcmd->boundingBox.y * d->scale);
+    int x1 = (int)ceilf((rcmd->boundingBox.x + rcmd->boundingBox.width) * d->scale);
+    int y1 = (int)ceilf((rcmd->boundingBox.y + rcmd->boundingBox.height) * d->scale);
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x1 > tw) x1 = tw;
+    if (y1 > th) y1 = th;
+    const int w = x1 - x0, h = y1 - y0;
+    if (w <= 0 || h <= 0) return;
+    // sigma in device pixels, and the box radius of one of the three passes
+    const float sigma = blur * d->scale / 2.0f;
+    int r = (int)lroundf((sqrtf(1 + 4 * sigma * sigma) - 1) / 2);
+    if (r < 1) r = 1;
+    // ponytail: two buffers of the box, malloc'd a blur; a page that blurs every frame could keep them (and would need
+    // the largest box it has seen)
+    const size_t bytes = (size_t)w * h * 4;
+    uint8_t *a = malloc(bytes), *b = malloc(bytes);
+    if (!a || !b) {
+        free(a), free(b);
+        return;
+    }
+    for (int y = 0; y < h; y++) memcpy(a + (size_t)y * w * 4, px + (size_t)(y0 + y) * tw + x0, (size_t)w * 4);
+    for (int pass = 0; pass < CLAY_THORVG_BACKDROP_PASSES; pass++) {
+        Clay_ThorVG_BoxBlurH(a, b, w, h, r);
+        Clay_ThorVG_BoxBlurV(b, a, w, h, r);
+    }
+    for (int y = 0; y < h; y++) memcpy(px + (size_t)(y0 + y) * tw + x0, a + (size_t)y * w * 4, (size_t)w * 4);
+    free(a), free(b);
+}
+
 /** Rebuilds the canvas from the commands and draws it into the target buffer, over what the buffer holds (or, with
  *  d->clear, clearing it first); false if the canvas could not sync its target. */
 static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_RenderCommandArray *rcommands)
@@ -160,6 +282,7 @@ static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_Rend
     tvg_canvas_remove(d->canvas, NULL);
     Tvg_Paint root = tvg_scene_new(), into = root;
     tvg_paint_scale(root, d->scale);
+    d->cut = false;
     for (int32_t i = 0; i < rcommands->length; i++) {
         Clay_RenderCommand *rcmd = Clay_RenderCommandArray_Get(rcommands, i);
         // a shadow of this element (css.shadow) goes before its first command, in the same scene as the command
@@ -167,6 +290,33 @@ static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_Rend
         // whole pixels, as Clay's SDL3 renderer
         const float x = (int)rcmd->boundingBox.x, y = (int)rcmd->boundingBox.y;
         const float w = (int)rcmd->boundingBox.width, h = (int)rcmd->boundingBox.height;
+        // a backdrop (css.backdrop): everything under the element has been drawn (its shadow too, which lies on the
+        // unblurred page), so draw this pass, blur the element's box in the buffer, and carry on in a new scene over the
+        // blurred pixels. The element's own commands — its fill, its text, its border — land in that second pass and stay
+        // crisp. One cut a frame: glass under glass would need the first panel's pixels, and a second cut would read a
+        // frame the first one has already drawn.
+        // ponytail: only a rectangle cuts, and only outside a scissor scene; a backdrop inside a clip is not blurred, and
+        // neither is one on the WebGPU canvas (it has no target to read before the whole frame is drawn).
+        if (d->target && !d->cut && into == root && rcmd->commandType == CLAY_RENDER_COMMAND_TYPE_RECTANGLE &&
+            Clay_ThorVG_BackdropOf(d, rcmd->id) >= 0) {
+            d->cut = true;
+            tvg_canvas_add(d->canvas, root);
+            tvg_canvas_draw(d->canvas, d->clear);
+            if (tvg_canvas_sync(d->canvas) != TVG_RESULT_SUCCESS) return false;
+            // taken off the canvas so the second draw does not overdraw the blur with it; ThorVG's canvas owns it from
+            // add to remove, so there is no reference of ours to release (tvg_paint_rel here is a double free)
+            tvg_canvas_remove(d->canvas, root);
+            Clay_ThorVG_BlurBackdrop(d, rcmd, Clay_ThorVG_BackdropOf(d, rcmd->id));
+            root = tvg_scene_new(), into = root;
+            tvg_paint_scale(root, d->scale);
+            // ThorVG's software canvas seeds its working surface from the target on its first draw and replaces what a
+            // later draw's paints touch: setting the same target again is what lets this pass composite the panel over
+            // the blurred pixels (measured: without it a translucent fill comes out as its own alpha, and a scene
+            // effect drawn in the pass before wipes the frame). A WebGPU canvas has no target here, and no cut.
+            if (d->target)
+                tvg_swcanvas_set_target(d->canvas, d->target, d->targetWidth, d->targetWidth, d->targetHeight,
+                                        TVG_COLORSPACE_ABGR8888);
+        }
         switch (rcmd->commandType) {
         case CLAY_RENDER_COMMAND_TYPE_RECTANGLE: {
             const Clay_RectangleRenderData *r = &rcmd->renderData.rectangle;
@@ -232,6 +382,7 @@ static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_Rend
         }
     }
     tvg_canvas_add(d->canvas, root);
-    tvg_canvas_draw(d->canvas, d->clear);
+    // the second pass overdraws the first: it must not clear what the blur left there
+    tvg_canvas_draw(d->canvas, d->cut ? false : d->clear);
     return tvg_canvas_sync(d->canvas) == TVG_RESULT_SUCCESS;
 }

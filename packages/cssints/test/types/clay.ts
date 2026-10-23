@@ -99,3 +99,16 @@ css.shadow({ spread: 2 });
 css.shadow({ blur: "1rem" });
 // @ts-expect-error one object of options
 css.shadow(4);
+
+export const backdrops = css.cn(
+  css.backdrop(),
+  css.backdrop({ blur: 10 }),
+  css.backdrop({ blur: "10px" }),
+  css.hover(css.backdrop({ blur: 16 })),
+);
+// @ts-expect-error a blur is pixels
+css.backdrop({ blur: "1rem" });
+// @ts-expect-error the only option
+css.backdrop({ radius: 2 });
+// @ts-expect-error one object of options
+css.backdrop(8);

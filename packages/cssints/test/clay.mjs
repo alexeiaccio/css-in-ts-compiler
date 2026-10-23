@@ -246,6 +246,21 @@ assert.equal(
 );
 assert.ok(!/shadow/i.test(sh), sh); // the style's name and every field it sets: no shadow anywhere
 
+// backdrops: a sibling `backdrop` the renderer blurs, and header() drops it too
+const backdrops = { ...(await exportsOf("clay-backdrop.ts")) };
+assert.deepEqual(backdrops.plain, { backdrop: { blur: 12 } });
+assert.deepEqual(backdrops.menu, { backdrop: { blur: 10 } });
+assert.deepEqual(backdrops.panel, { backdrop: { blur: 18 } });
+assert.deepEqual(backdrops.card, { backdrop: { blur: 6 }, ":hover": { backdrop: { blur: 16 } } });
+assert.deepEqual(backdrops.floating, {
+  layout: { sizing: { width: { type: "FIXED", min: 150, max: 150 } } },
+  backgroundColor: { r: 23, g: 27, b: 32, a: 184 },
+  cornerRadius: { topLeft: 10, topRight: 10, bottomRight: 10, bottomLeft: 10 },
+  backdrop: { blur: 10 },
+});
+const bd = header(backdrops);
+assert.ok(!/backdrop/i.test(bd), bd); // the declaration keeps its layout, not the effect
+
 const fails = async (source, message) =>
   assert.rejects(
     code(`import * as css from "cssints/clay" with { type: "cssints" };\n${source}`),
@@ -425,6 +440,24 @@ await fails(
   /shadow takes one object of options, got 2 values/,
 );
 await fails(`export const a = css.shadow(css.p(1));`, /shadow: a style is not a value/);
+await fails(
+  `export const a = css.backdrop({ blur: -2 });`,
+  /backdrop\.blur: unexpected -2, expected a number of pixels .*not negative/,
+);
+await fails(
+  `export const a = css.backdrop({ blur: "4em" });`,
+  /backdrop\.blur: unexpected "4em"/,
+);
+await fails(
+  `export const a = css.backdrop({ radius: 2 });`,
+  /backdrop: unexpected "radius", expected blur/,
+);
+await fails(
+  `export const a = css.backdrop({}, {});`,
+  /backdrop takes one object of options, got 2 values/,
+);
+await fails(`export const a = css.backdrop(2);`, /backdrop: unexpected 2, expected \{ blur \}/);
+await fails(`export const a = css.backdrop(css.p(1));`, /backdrop: a style is not a value/);
 
 await server.close();
 console.log("clay: ok");

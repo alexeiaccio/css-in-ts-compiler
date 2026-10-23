@@ -1,7 +1,7 @@
 // A cssints/clay style (a ClayShape literal) as what ui.c takes: a theme and a state picked, then the fields packed
 // into a Float32Array in a fixed order. The picking is what header() does for C (`<name>_<theme>`, `<name>_active`),
 // done at run time; a variant is packed once and kept.
-import type { ClayShape, Shadow } from "cssints/clay";
+import type { Backdrop, ClayShape, Shadow } from "cssints/clay";
 
 type Shape = Record<string, any>;
 
@@ -110,6 +110,8 @@ export interface Variant {
   image?: string;
   /** The style's shadow (`css.shadow`): no Clay field holds one, so it travels beside the floats too, for `ui.shadow`. */
   shadow?: Shadow;
+  /** The style's backdrop (`css.backdrop`): the blur of the content under it, for `ui.backdrop`. */
+  backdrop?: Backdrop;
 }
 
 const cache = new WeakMap<object, Map<string, Variant>>();
@@ -121,7 +123,7 @@ export function variant(shape: ClayShape, theme?: string, states: State[] = []):
   const key = `${theme}|${states.join("")}`;
   let v = byKey.get(key);
   if (!v) {
-    const { text, image, shadow, ...decl } = resolve(shape, theme, states);
+    const { text, image, shadow, backdrop, ...decl } = resolve(shape, theme, states);
     byKey.set(
       key,
       (v = {
@@ -129,6 +131,7 @@ export function variant(shape: ClayShape, theme?: string, states: State[] = []):
         text: text && packText(text),
         image: image?.imageData,
         shadow,
+        backdrop,
       }),
     );
   }

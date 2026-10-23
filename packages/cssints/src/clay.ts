@@ -301,6 +301,19 @@ const shadowOf: Build = (prop, parts) => {
   return out;
 };
 
+// A backdrop (css.backdrop): the pixels under the element, blurred before its own commands, so a translucent panel is
+// glass over the content behind it. As a shadow, no Clay field holds one: a sibling `backdrop` key of the literal, which
+// header() drops and the renderer reads by the element's id.
+const BACKDROP_OPTIONS = ["blur"];
+const BACKDROP_DEFAULT = 12;
+const backdropOf: Build = (prop, parts) => {
+  if (parts.length > 1)
+    throw fail(`cssints: ${prop} takes one object of options, got ${parts.length} values`);
+  const o = options(prop, parts[0] ?? {}, BACKDROP_OPTIONS);
+  // the only field: an empty object is the default, as a bare call is
+  return [["backdropBlur", px(`${prop}.blur`, o.blur ?? BACKDROP_DEFAULT)]];
+};
+
 const PADDING = ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"];
 const BORDER = ["borderTop", "borderRight", "borderBottom", "borderLeft"];
 const RADIUS = ["topLeft", "topRight", "bottomRight", "bottomLeft"];
@@ -344,6 +357,7 @@ const MEMBERS: Record<string, Build> = {
   float: floating,
   image: imageOf,
   shadow: shadowOf,
+  backdrop: backdropOf,
 };
 
 const member =
@@ -443,6 +457,7 @@ export const {
   float,
   image,
   shadow,
+  backdrop,
 } = members;
 
 // ---------- the site: Clay's structs, field for field
@@ -574,6 +589,8 @@ const shapeOf = (entries: Entry[], values?: Map<string, string>): Shape => {
       blur: get("shadowBlur") ?? SHADOW_DEFAULT.blur,
       color: rgba("shadow.color", String(get("shadowColor") ?? SHADOW_COLOUR), values),
     };
+  // a backdrop has no Clay field either: its own key, for the renderer, one blur
+  if (p.has("backdropBlur")) out.backdrop = { blur: get("backdropBlur")! };
   const text: Shape = {};
   if (p.has("color")) text.textColor = colourOf("color");
   for (const k of ["fontId", "fontSize", "letterSpacing", "lineHeight"])
@@ -702,6 +719,7 @@ const SHAPE = new Set([
   "floating",
   "image",
   "shadow",
+  "backdrop",
   "aspectRatio",
   "text",
   "themes",
@@ -740,9 +758,11 @@ export const header = (styles: Record<string, unknown>): string => {
       ["", base],
       ...STATES.flatMap((s) => (v[s] ? [[`_${s.slice(1)}`, merge(base, v[s] as Shape)]] : [])),
     ] as [string, Shape][]) {
-      // a shadow is no Clay field (clay.h 1.0 has none): the declaration keeps its layout, the renderer its effect
+      // a shadow or a backdrop is no Clay field (clay.h 1.0 has none): the declaration keeps its layout, the renderer
+      // its effect
       const { text, ...decl } = shape;
       delete decl.shadow;
+      delete decl.backdrop;
       if (Object.keys(decl).length)
         lines.push(
           `static const Clay_ElementDeclaration ${name}${suffix}${theme} = ${c("", decl)};`,

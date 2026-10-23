@@ -26,6 +26,8 @@ const t = css.createTokens({
     active: { $value: "rgb(64 70 90)" },
     ring: { $value: "rgb(90 170 255)" },
     shadow: { $value: "rgb(8 10 14)" },
+    // the menu's glass: a fill the blurred page shows through (css.backdrop)
+    glass: { $value: "rgb(23 27 32 / 0.72)" },
   },
 });
 css.createGlobalTheme(t, "light", {
@@ -41,6 +43,7 @@ css.createGlobalTheme(t, "light", {
     active: "rgb(216 221 231)",
     ring: "rgb(20 100 220)",
     shadow: "rgb(60 64 78)",
+    glass: "rgb(255 255 255 / 0.78)",
   },
 });
 const font = css.fonts("Roboto");
@@ -119,24 +122,28 @@ const panel = css.cn(
 const dialogTitle = css.cn(font.Roboto, css.color(t.color.ink), css.fontSize(20));
 const actions = css.cn(css.width("stretch"), css.gap(10));
 
-// the menu: a float attached to its trigger's left-bottom corner, one row per item
-const menuPanel = css.cn(
+// the menu: a float attached to its trigger's left-bottom corner, one row per item. It overlaps the trigger by 20px so
+// there is a border and a text stroke under the glass, and its fill is translucent for the blur to show through.
+const menu = css.cn(
   css.width(150),
   css.p(6),
   css.gap(2),
   css.flexDirection("column"),
-  css.bg(t.color.surface),
+  css.bg(t.color.glass),
   css.borderRadius(10),
   css.border(1, t.color.muted),
-  // a smaller shadow than the dialog's: it hangs off a row, not over the whole page
+  // a smaller shadow than the dialog's: it hangs off a row, not over the whole page; under the glass, on the page
   css.shadow({ y: 6, blur: 14, color: "rgb(0 0 0 / 0.45)" }),
   css.float({
     parent: "zoom-trigger",
     attach: { element: "left top", parent: "left bottom" },
-    offset: { y: 4 },
+    offset: { y: -20 },
     zIndex: 10,
   }),
 );
+// the glass: the page under the menu, blurred (the desktop's renderer reads it from its own frame); the same style
+// without it is what the test renders to see what the blur does
+const menuPanel = css.cn(menu, css.backdrop({ blur: 10 }));
 const item = css.cn(
   css.width("stretch"),
   css.p(5, 8),
@@ -165,6 +172,7 @@ export const s = {
   panel,
   dialogTitle,
   actions,
+  menu,
   menuPanel,
   item,
   dot,
@@ -178,9 +186,10 @@ const ZOOMS = ["100%", "125%", "150%", "200%"];
 /**
  * The settings screen. The dialog's Open button is the page's own button: while the dialog is open the backdrop takes
  * every press and `input.modal` every key, so the page behind is unreachable. OK writes 55% onto the page, Cancel and
- * Escape close without writing. The menu reports the zoom it last picked next to its trigger.
+ * Escape close without writing. The menu reports the zoom it last picked next to its trigger; its panel is glass over
+ * the page, unless `glass` is false (what the pixel test renders to compare the blur against the same page without it).
  */
-export function Dialog(props: { input: Input }) {
+export function Dialog(props: { input: Input; glass?: boolean }) {
   const { input } = props;
   const [volume, setVolume] = createSignal(40);
   const [changed, setChanged] = createSignal(false);
@@ -232,7 +241,7 @@ export function Dialog(props: { input: Input }) {
         <text style={s.mark}>{menu.open() ? "-" : "+"}</text>
       </box>
       <Show when={menu.open()}>
-        <box {...a11y(menu.menu)} label="Zoom" style={s.menuPanel}>
+        <box {...a11y(menu.menu)} label="Zoom" style={props.glass === false ? s.menu : s.menuPanel}>
           {ZOOMS.map((name, index) => (
             <box {...menuBind.items[index]!} {...a11y(menu.item(index))} style={s.item}>
               <text style={s.label}>{name}</text>

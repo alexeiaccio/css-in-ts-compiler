@@ -56,6 +56,45 @@ frames (the blur runs again each frame), and the cost is real — the Dialog pag
 and 1.31 ms for 5/255 and 15/255 at the edge). The C pages — `examples/`, the terminal, the browser — ignore a shadow:
 `header()` prints nothing for it and the generated declarations are unchanged.
 
+### A backdrop: glass over our own content
+
+`css.backdrop({ blur })` blurs the page under an element, so a translucent fill is glass. It travels as the shadow
+does — a sibling `backdrop: { blur }` key, pulled out by `variant()`, `ui_backdrop(blur)` before `ui_open`, a side table
+in `ui.c` keyed by `Clay_ElementId.id`, one an element, cleared in `ui_begin` — and the hard part is the draw, not the
+style: the pixels under the panel must be blurred **before** the panel's own commands, and ThorVG draws the whole
+command array in one `tvg_canvas_draw`.
+
+So the renderer cuts the frame. When the first command carrying a backdrop element's id arrives (a rectangle: only one
+cuts), it draws what it has built as pass 1, blurs the element's box in the buffer, starts a new scene, and carries on
+from there: the element's fill, text, border and focus ring are in pass 2, over the blurred pixels, so they stay crisp.
+`tvg_canvas_draw(d->canvas, d->clear)` clears for pass 1 only. Two things in ThorVG made this fiddly, both measured:
+the software canvas seeds its working surface from the target on its **first** draw and replaces what a later draw's
+paints touch (so a second draw of a translucent fill comes out as its own alpha — the renderer sets the same target
+again before pass 2, which re-seeds it; and a scene effect drawn in an earlier pass wipes the frame if it does not), and
+`tvg_paint_rel` on a scene the canvas has owned is a double free, so the pass-1 scene is only removed.
+
+The blur is on the CPU, on the box alone, clipped to the canvas, intersecting nothing else: three box passes each way
+(a gaussian to the eye, no kernel to build), radius from CSS's reading of a blur radius — sigma `blur / 2`, as the
+shadow's, and a pass of radius r three times has the variance `r² + r`, so `r = (sqrt(1 + 4σ²) - 1) / 2`. The window
+clamps at the box's edges, so nothing outside the box is read or written (the pixel test checks the rest of the frame is
+byte-identical), and alpha is carried through untouched (it is 255 everywhere; a straight average per channel is
+correct). The two buffers are the box's size, `malloc`'d a blur. One cut a frame: a second backdrop, or a nested one, is
+not drawn — glass under glass would read a frame the first cut has already drawn. A backdrop inside a scissor scene does
+not cut either, neither does one on the WebGPU canvas (its frame is read back after the whole draw, so there is nothing
+to blur). The panel's own shadow is drawn before the cut, so it lies on the unblurred page under the glass; the part of
+it under the box is blurred with the rest of the page, and the panel covers it.
+
+Cost, measured on the Dialog page's menu (150x133, blur 10 → r = 5) at 360x480, `--bench 300`, Apple M2, one thread: the
+frame's draw is 2.2 ms without the glass and 3.0 ms with it (back-to-back runs of 300 frames on a loaded machine, so
+0.7-1.0 ms for one glass). The radius is not the lever: blur 18 costs ~0.2 ms more than 10, and a cut with blur 0 is
+the same within the noise — the price is the second `tvg_canvas_draw` and the target re-seed, not the six box passes over
+about 20k pixels each. Cheap enough for a menu; a full-window backdrop at blur 24 would be ~8× the area and is not free.
+
+The Dialog page's menu is the first glass: `blur 10`, a fill of `rgb(23 27 32 / 0.72)` in the dark theme and
+`rgb(255 255 255 / 0.78)` in the light one, overlapping its trigger by 20px so there is a border and a text stroke under
+it. The modal dialog keeps its opaque fill and its shadow: the dimmed float under it is one flat colour, so a blur there
+would show nothing.
+
 ## Test
 
 ```sh

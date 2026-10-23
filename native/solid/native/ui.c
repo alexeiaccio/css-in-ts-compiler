@@ -40,6 +40,8 @@ static const char *pending_image;
 static float pending_shadow[3];
 static Clay_Color pending_shadow_color;
 static int has_pending_shadow;
+// the backdrop (css.backdrop) the next ui_open declares: the renderer blurs the pixels under that element
+static float pending_backdrop = -1;
 
 static SDL_Window *window;
 static SDL_Renderer *renderer;
@@ -66,6 +68,8 @@ static int retarget(float scale)
     free(pixels);
     pixels = malloc((size_t)tw * th * 4);
     tvg.scale = scale;
+    // the CPU blur of a backdrop (css.backdrop) works on this buffer; the WebGPU canvas has none until its readback
+    tvg.target = NULL;
     if (gpu) {
 #ifdef CLAY_THORVG_WG
         // ponytail: a new device and texture on every retarget (init, then the window's scale); the old one is left to
@@ -76,6 +80,7 @@ static int retarget(float scale)
         return 1;
 #endif
     }
+    tvg.target = pixels, tvg.targetWidth = tw, tvg.targetHeight = th;
     return tvg_swcanvas_set_target(tvg.canvas, pixels, tw, tw, th, TVG_COLORSPACE_ABGR8888);
 }
 
@@ -132,7 +137,9 @@ void ui_begin(float px, float py, int down, float dt)
     arena_used = 0;
     pending_image = NULL;
     has_pending_shadow = 0;
+    pending_backdrop = -1;
     tvg.shadowCount = 0; // the frame's shadows go with the rest of the frame
+    tvg.backdropCount = 0;
     Clay_SetPointerState((Clay_Vector2){px, py}, down);
     // Clay's scroll containers: the wheel delta of the polls moves the container the pointer is over, before the layout
     // reads the offsets (ui_open hands each clip element its own through Clay_GetScrollOffset). No drag scrolling: a
@@ -184,6 +191,10 @@ void ui_shadow(float x, float y, float blur, float r, float g, float b, float a)
     has_pending_shadow = 1;
 }
 
+/** The backdrop of the next element (a css.backdrop style): the pixels under its box are blurred, then the element is
+ *  drawn over them, so a translucent fill is glass over what is behind it. A renderer effect, as the shadow. */
+void ui_backdrop(float blur) { pending_backdrop = blur; }
+
 /** Opens an element. id is NULL for an anonymous one; f is 45 floats: the box fields, then the floating ones. */
 void ui_open(const char *id, int len, const float *f)
 {
@@ -226,6 +237,11 @@ void ui_open(const char *id, int len, const float *f)
         if (id) Clay_ThorVG_SetShadow(&tvg, eid.id, pending_shadow[0], pending_shadow[1], pending_shadow[2],
                                       pending_shadow_color);
         has_pending_shadow = 0;
+    }
+    // ... and its backdrop (css.backdrop): the renderer cuts the frame there, blurs the element's box and carries on
+    if (pending_backdrop >= 0) {
+        if (id) Clay_ThorVG_SetBackdrop(&tvg, eid.id, pending_backdrop);
+        pending_backdrop = -1;
     }
     if (id) Clay__OpenElementWithId(eid);
     else Clay__OpenElement();

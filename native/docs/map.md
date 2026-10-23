@@ -550,10 +550,33 @@ The order, each with its own frame and its own number:
    element's own), a cache between frames (each frame blurs the shadow again), the element must have an `id`, and no C
    target draws one (the header and the C pages are untouched; the browser's Canvas2D `shadowBlur` and a 9-slice sprite
    on the board are the obvious ports).
-2. **Backdrop blur from our buffer** — `ui.c` owns `pixels`, so the content under a panel is already in the buffer when
-   the panel is drawn: copy the region, blur it separably, draw the panel over it with its own alpha. That is glass
-   over our content, not over the window; the desktop behind the window is out of reach, as it is for Rune without the
-   window server.
+2. **Done: backdrop blur** (`css.backdrop({ blur })`, 2026-10-23) — glass over our own content, the second effect. The
+   style's literal carries a sibling `backdrop: { blur }` key (`header()` prints nothing, the C pages are unchanged),
+   `variant()` pulls it out beside the shadow, `frame.ts` calls `ui_backdrop(blur)` before `ui_open`, and `ui.c` hangs it
+   on the renderer's table by the element id, cleared at `ui_begin`. The renderer cuts the frame: at the element's first
+   rectangle command it draws pass 1 (`tvg_canvas_draw(d->canvas, d->clear)`), blurs the element's box in `pixels`, and
+   starts a new scene for the rest, so the element's fill, text, border and focus ring are drawn over blurred pixels and
+   stay crisp. The blur is CPU-side and box-only: three box passes each way, sigma `blur / 2` as the shadow's, pass
+   radius `r = (sqrt(1 + 4σ²) - 1) / 2`, both ends clamped so nothing outside the box is read or written, alpha carried
+   through (255 everywhere, so a per-channel average is right). The menu of the Dialog page is the first glass: 150x133,
+   blur 10 (r = 5), a `rgb(23 27 32 / 0.72)` fill (light `rgb(255 255 255 / 0.78)`), overlapping its trigger by 20px so
+   the border and the text stroke under it are the proof. Measured: 5273 pixels of `dialog-menu.png` differ from the same
+   page with the style dropped, bbox 40,214-189,347 (the menu's own box), worst channel 81; a light menu frame was added
+   (`dialog-menu-light.png`); `dialog-closed.png`/`-open`/`-light` stay byte-identical. The A/B in `dialog.test.ts` puts
+   the pixel over the trigger's border at 21,25,30 against 40,44,49 in the dark theme and 228,228,229 against
+   210,211,213 in the light one, the 1px step down that edge 1 against 23 and 20, zero pixels changed outside the box,
+   and the label's ink box identical (55,258-91,269, 166 px): the panel is not blurred with the page.
+   Cost: the frame's draw is 2.2 ms without the glass and 3.0 ms with it in back-to-back 300-frame runs (Apple M2, one
+   thread, a loaded machine, so 0.7-1.0 ms for one 150x133 glass); the radius is not the lever (blur 18 is ~0.2 ms more
+   than 10, and blur 0 with the cut still made is the same within the noise), the second `tvg_canvas_draw` and the target
+   re-seed are; the blur's own passes are six of about 20k pixels each. Two ThorVG facts the cut rests on, both measured: its software canvas seeds its
+   working surface from the target on its first draw only (a later draw replaces what its paints touch, so the renderer
+   sets the same target again before pass 2) and `tvg_paint_rel` on a canvas-owned scene is a double free (the pass-1
+   scene is removed, not released). Open: nested backdrops and a backdrop inside a scissor scene (one cut a frame; a
+   second is not drawn), the WebGPU canvas (no target to blur before the whole draw, so no cut at all there), the
+   browser/board/terminal (a dual Kawase pass, a pre-baked sprite, none), a panel whose own alpha varies per pixel (the
+   fill is one Clay colour), and what a backdrop over an image or another float would need (the box is the first
+   rectangle command; a picture or a float in the cut is drawn into pass 1 and blurred like everything else under it).
 3. **Gradients** as a member (`css.backgroundImage("linear-gradient(...)")`, the grammar is already in cssints) filled
    by ThorVG, with a dither step — an undithered dark card shows bands.
 4. **Tint and tritone** for themes and disabled states, worth it once a theme switch is animated.

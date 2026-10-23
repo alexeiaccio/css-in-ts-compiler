@@ -66,6 +66,15 @@ export type ShadowOptions = {
   color?: string;
 };
 
+/** The options of `backdrop()`: the element is glass over the content behind it. */
+export type BackdropOptions = {
+  /**
+   * The blur radius in pixels, as CSS's `backdrop-filter` reads one: about twice the gaussian's standard deviation.
+   * Not negative. Default: 12.
+   */
+  blur?: Px;
+};
+
 /** The options of `image()`: the image's size in pixels, and how it fills its box. */
 export type ImageOptions = {
   /** The image's width in whole pixels: the element's box starts at the image's own size. */
@@ -91,6 +100,10 @@ export interface Shadow {
   y: number;
   blur: number;
   color: Rgba;
+}
+/** A backdrop the renderer blurs: the content under the element's box, before the element's own commands. */
+export interface Backdrop {
+  blur: number;
 }
 interface Axis {
   type: "FIT" | "GROW" | "PERCENT" | "FIXED";
@@ -124,6 +137,11 @@ export interface ClayFields {
    * layout and the renderer draws the shadow before the element's own command, keyed by its id.
    */
   shadow?: Shadow;
+  /**
+   * A backdrop (`css.backdrop`): not a field of `Clay_ElementDeclaration` either — the renderer blurs the pixels under
+   * the element's box before the element's own command, keyed by its id.
+   */
+  backdrop?: Backdrop;
   aspectRatio?: { aspectRatio: number };
   floating?: {
     offset?: { x: number; y: number };
@@ -225,6 +243,13 @@ export declare const image: (src: string, options: ImageOptions) => ClayStyle;
  * an `id`: the renderer keys the shadow by Clay's element id.
  */
 export declare const shadow: (options?: ShadowOptions) => ClayStyle;
+/**
+ * A backdrop of the element: the content under it is blurred, then the element is drawn over it, so a translucent fill
+ * is glass over our own page (the desktop behind the window is out of reach). A renderer effect, not a Clay field, as
+ * `shadow` is: `header()` prints nothing for it and only a renderer that reads it draws one. The element needs an `id`.
+ * Today `native/solid`'s ThorVG renderer is the one that blurs.
+ */
+export declare const backdrop: (options?: BackdropOptions) => ClayStyle;
 
 /** Merges styles in argument order: a later prop wins. */
 export declare const cn: (...styles: ClayStyle[]) => ClayStyle;

@@ -20,13 +20,13 @@ const check = (what: string, got: unknown, want: unknown) => {
 };
 
 let dispose = () => {};
-function fresh(theme?: string) {
+function fresh(theme?: string, glass = true) {
   dispose();
   const root = new El("root");
   const input = createInput();
   const unhandled: string[] = [];
   input.fallback = (name) => (unhandled.push(name), false);
-  dispose = render(() => Dialog({ input }), root);
+  dispose = render(() => Dialog({ input, glass }), root);
   const frame = createFrame(root, { theme, onPressMiss: () => input.pressMiss() });
   let at = [-1, -1];
   const step = (down = false) => frame(at[0]!, at[1]!, down, 1 / 60);
@@ -195,12 +195,12 @@ function fresh(theme?: string) {
   p.click("zoom-item-1");
   check("a click picks and closes", [p.menuOpen(), p.zoom()], [false, "125%"]);
 
-  // the panel hangs off the trigger's left-bottom corner, 4px down
+  // the panel hangs off the trigger's left-bottom corner, overlapping it by 20px (the glass needs something under it)
   p.tap("Enter");
   const panel = p.box("zoom-menu");
   const trigger = p.box("zoom-trigger");
   check("the menu's left edge is the trigger's", panel[0], trigger[0]);
-  check("the menu hangs below the trigger", panel[1], trigger[1]! + trigger[3]! + 4);
+  check("the menu overlaps the trigger's bottom edge", panel[1], trigger[1]! + trigger[3]! - 20);
   p.tap("Escape");
   check("Escape closes it again", [p.menuOpen(), p.focused()], [false, "zoom-trigger"]);
 }
@@ -264,9 +264,101 @@ for (const theme of [undefined, "light"]) {
   check(`${name}: the menu fits the window`, y! + h! <= size.height, true);
 }
 
+// --- the backdrop (css.backdrop): the page under the menu is blurred, the menu's own pixels are not
+// The reference frame is the same page with the style dropped (the app's `glass` prop), so the only difference between
+// the two is the blur: not a stored second frame, an A/B of one process.
+const packed = (x: number, y: number) => {
+  const [r, g, b, a] = ui.pixel(x, y);
+  return (r! | (g! << 8) | (b! << 16) | (a! << 24)) >>> 0;
+};
+function capture(theme: string | undefined, glass: boolean) {
+  const p = fresh(theme, glass);
+  p.tap("Tab"), p.tap("Tab"), p.tap("Enter");
+  const menu = [...p.box("zoom-menu")];
+  const trigger = [...p.box("zoom-trigger")];
+  const px = new Array<number>(size.width * size.height);
+  for (let y = 0; y < size.height; y++)
+    for (let x = 0; x < size.width; x++) px[y * size.width + x] = packed(x, y);
+  const rgb = (x: number, y: number) => {
+    const v = px[y * size.width + x]!;
+    return [v & 255, (v >> 8) & 255, (v >> 16) & 255];
+  };
+  return { menu, trigger, px, rgb };
+}
+const step = (a: number[], b: number[]) => Math.max(...a.map((v, i) => Math.abs(v - b[i]!)));
+for (const theme of [undefined, "light"]) {
+  const name = theme ?? "dark";
+  const glass = capture(theme, true);
+  const plain = capture(theme, false);
+  const [mx, my, mw, mh] = glass.menu as [number, number, number, number];
+  // the device-pixel rect the renderer blurs: the box rounded out to whole pixels
+  const [bx0, by0] = [Math.floor(mx), Math.floor(my)];
+  const [bx1, by1] = [Math.ceil(mx + mw), Math.ceil(my + mh)];
+  // a pixel of the menu over the trigger's bottom border: a hard edge in the page under the glass
+  const edge = Math.round(glass.trigger[1]! + glass.trigger[3]!) - 1;
+  const col = Math.round(mx + 120);
+  const under = glass.rgb(col, edge);
+  const plainUnder = plain.rgb(col, edge);
+  // ... and a 1px scan down across it, inside the menu: past the top border and the first item's focus ring, which are
+  // the menu's own crisp pixels, and over the trigger's border alone
+  const scan = (fx: (x: number, y: number) => number[], y0: number, y1: number, x: number) => {
+    const lines: number[][] = [];
+    for (let y = y0; y <= y1; y++) lines.push(fx(x, y));
+    return lines.reduce((m, v, i) => (i ? Math.max(m, step(v, lines[i - 1]!)) : m), 0);
+  };
+  const scanGlass = scan(glass.rgb, by0 + 10, by0 + 26, col);
+  const scanPlain = scan(plain.rgb, by0 + 10, by0 + 26, col);
+  console.log(
+    `backdrop (${name}): over the trigger's border ${under.join(",")} against ${plainUnder.join(",")}, ` +
+      `max step down the scan ${scanGlass} against ${scanPlain} without the backdrop`,
+  );
+  check(`${name}: the glass differs from the page under it (the blur moved the edge)`, step(under, plainUnder) >= 8, true);
+  check(`${name}: the border's step is soft under the glass`, scanGlass <= Math.max(2, scanPlain / 2), true);
+  check(`${name}: no single-channel step over 8 in the scan`, scanGlass <= 8, true);
+  // outside the menu's box the frame is the reference's: the blur did not leak
+  let leaked = 0;
+  let worst = 0;
+  for (let y = 0; y < size.height; y++)
+    for (let x = 0; x < size.width; x++) {
+      if (x >= bx0 && x < bx1 && y >= by0 && y < by1) continue;
+      const [a, b] = [glass.px[y * size.width + x]!, plain.px[y * size.width + x]!];
+      if (a !== b) leaked++, (worst = Math.max(worst, step(glass.rgb(x, y), plain.rgb(x, y))));
+    }
+  check(`${name}: the blur does not leak outside the menu's box`, leaked, 0);
+  console.log(`backdrop (${name}): ${leaked} pixels differ outside the box (worst channel ${worst})`);
+  // the menu's own text is drawn after the blur: its ink box is the reference's, give or take a pixel
+  const inkBox = (f: (x: number, y: number) => number[], x0: number, y0: number, x1: number, y1: number) => {
+    // the text's ink is far from what the glass leaves of the page (60/255 is well past its edge)
+    const base = f(x0, y0);
+    let [left, top, right, bottom, n] = [Infinity, Infinity, -Infinity, -Infinity, 0];
+    for (let y = y0; y < y1; y++)
+      for (let x = x0; x < x1; x++)
+        if (step(f(x, y), base) >= 60)
+          (n++,
+            (left = Math.min(left, x)),
+            (top = Math.min(top, y)),
+            (right = Math.max(right, x)),
+            (bottom = Math.max(bottom, y)));
+    return { n, box: [left, top, right, bottom] };
+  };
+  // the "125%" row: the second item's label, over a flat stretch of the page, so the two backgrounds agree
+  const label: [number, number, number, number] = [
+    Math.round(mx + 8),
+    Math.round(my + 42),
+    Math.round(mx + 60),
+    Math.round(my + 62),
+  ];
+  const g1 = inkBox(glass.rgb, ...label);
+  const p1 = inkBox(plain.rgb, ...label);
+  console.log(
+    `backdrop (${name}): the label's ink box ${g1.box.join(",")} (${g1.n} px) against ${p1.box.join(",")} (${p1.n} px)`,
+  );
+  check(`${name}: the menu's text is not blurred`, g1.n > 40 && step(g1.box, p1.box) <= 1, true);
+}
+
 dispose();
 if (failed) process.exit(1);
 console.log(
-  "solid/dialog.test.ts: the modal trap, Escape and Cancel, OK's write, the backdrop, the floats' placement, the menu's keys, the shadows",
+  "solid/dialog.test.ts: the modal trap, Escape and Cancel, OK's write, the backdrop, the floats' placement, the menu's keys, the shadows, the backdrop blur",
 );
 process.exit(0);

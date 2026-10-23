@@ -41,6 +41,8 @@ $D --expect solid/frames/dialog-closed.png
 $D --keys Tab,Enter --expect solid/frames/dialog-open.png
 THEME=light $D --keys Tab,Enter --expect solid/frames/dialog-light.png
 $D --keys Tab,Tab,Enter --expect solid/frames/dialog-menu.png
+# the menu's glass (css.backdrop) over the light page: a translucent white, the blurred page showing through
+THEME=light $D --keys Tab,Tab,Enter --expect solid/frames/dialog-menu-light.png
 bun solid/dialog.test.ts
 # the Text field page (the neutral createTextField on SDL's text input): an empty field with the caret, "Ada",
 # a selection with Shift+ArrowLeft twice, a submit, and the light theme; then the caret and selection pixels and the keys
