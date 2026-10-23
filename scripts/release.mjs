@@ -6,8 +6,8 @@
 // Checks per package: the staged manifest has no `private`, no `workspace:` and no `development` condition; the license,
 // the repository (exactly the URL of the trusted publisher) and the access are set; every file that `exports` and `bin`
 // name exists; a sibling's range is met by the sibling's version; the tarball holds only dist/, docs/, skills/,
-// README, LICENSE, THIRD_PARTY_NOTICES.md and package.json (and src/core when `files` names it), never a test or a fixture. Over the whole
-// repository: the tracked dist/ folders equal a fresh build.
+// README, LICENSE, THIRD_PARTY_NOTICES.md and package.json (and src/core when `files` names it, and the data of
+// `shippedData`), never a test or a fixture. Over the whole repository: the tracked dist/ folders equal a fresh build.
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -38,17 +38,16 @@ const exists = (dir, target) => {
 const run = (cmd, args, cwd) =>
   execFileSync(cmd, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] });
 
-// Workspace packages that stay out of npm: the test oracle of the widgets has no dist/ and no publishConfig.
-const unpublished = new Set(["@cssints/apg-specs"]);
+// Data a package ships on purpose, next to dist/: @cssints/apg-specs is the Quint specs (.qnt), the ported scenario sets and
+// the shared vocabulary, which consumers read by subpath (the generated models are in dist/ as .json).
+const shippedData = {
+  "@cssints/apg-specs": /^((specs|shared)\/.+\.(qnt|md)|scenarios\/.+\.(json|md))$/,
+};
 
 const staged = [];
 for (const dir of packageDirs) {
   const repo = read(dir);
   const bad = (what) => problems.push(`${repo.name}: ${what}`);
-  if (unpublished.has(repo.name)) {
-    if (!repo.private) bad("must stay private: it is not published");
-    continue;
-  }
   const dest = join(dir, repo.publishConfig?.directory ?? ".publish");
   if (repo.publishConfig?.directory !== ".publish")
     bad('publishConfig.directory must be ".publish" (changeset publish sends that directory)');
@@ -82,6 +81,7 @@ for (const dir of packageDirs) {
     /^(package\.json|README\.md|LICENSE|THIRD_PARTY_NOTICES\.md|(dist|docs|skills)\/.+)$/;
   for (const p of paths) {
     if (/^src\/core\//.test(p) && published.files.includes("src/core")) continue;
+    if (shippedData[published.name]?.test(p)) continue;
     if (!allowed.test(p)) bad(`${p} does not belong in the tarball`);
     else if (/\.ts$/.test(p) && !/\.d\.[cm]?ts$/.test(p)) bad(`${p}: TypeScript source`);
   }

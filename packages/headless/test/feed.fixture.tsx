@@ -1,7 +1,7 @@
 import { type Feed, createFeed } from "../src/feed";
 import { createEffect, createSignal } from "solid-js";
-import type { FeedConfig } from "@cssints/apg-specs/src/apg/feed.bridge";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { FeedConfig } from "@cssints/apg-specs/apg/feed.bridge";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
 import { render } from "@solidjs/web";
 

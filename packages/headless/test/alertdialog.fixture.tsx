@@ -1,7 +1,7 @@
 import { type AlertDialog, createAlertDialog } from "../src/alertdialog";
 import { createEffect, createSignal } from "solid-js";
-import type { AlertDialogConfig } from "@cssints/apg-specs/src/apg/alertdialog.bridge";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { AlertDialogConfig } from "@cssints/apg-specs/apg/alertdialog.bridge";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
 import { render } from "@solidjs/web";
 

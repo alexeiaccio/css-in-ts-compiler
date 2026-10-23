@@ -1,8 +1,8 @@
 import { type WindowSplitter, createWindowSplitter } from "../src/windowsplitter";
 import { createEffect, createSignal } from "solid-js";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
-import type { WindowsplitterConfig } from "@cssints/apg-specs/src/apg/windowsplitter.bridge";
+import type { WindowsplitterConfig } from "@cssints/apg-specs/apg/windowsplitter.bridge";
 import { render } from "@solidjs/web";
 
 const MIN = 0;

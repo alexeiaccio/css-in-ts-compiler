@@ -4,8 +4,8 @@ import {
   type TreeviewConfig,
   nodeToPath,
   pathToNode,
-} from "@cssints/apg-specs/src/apg/treeview.bridge";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/apg/treeview.bridge";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
 import { render } from "@solidjs/web";
 

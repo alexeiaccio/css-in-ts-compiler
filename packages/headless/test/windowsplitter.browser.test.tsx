@@ -5,7 +5,7 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import {
@@ -13,9 +13,9 @@ import {
   windowsplitterConfig,
   windowsplitterProbe,
   windowsplitterSteps,
-} from "@cssints/apg-specs/src/apg/windowsplitter.bridge";
+} from "@cssints/apg-specs/apg/windowsplitter.bridge";
 import apg from "@cssints/apg-specs/scenarios/apg/windowsplitter.apg.json";
-import definitionJson from "@cssints/apg-specs/src/apg/windowsplitter.model.generated.json";
+import definitionJson from "@cssints/apg-specs/apg/windowsplitter.model.json";
 import { mountWindowSplitter } from "./windowsplitter.fixture";
 import { partsDriver } from "./parts-driver";
 

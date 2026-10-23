@@ -1,8 +1,8 @@
 import { type Menu, createMenu, createMenubar } from "../src/menu";
 import { createEffect, createSignal } from "solid-js";
-import type { Json } from "@cssints/apg-specs/src/scenario";
-import type { MenuCheckableConfig } from "@cssints/apg-specs/src/apg/menu-checkable.bridge";
-import type { MenuMenubarConfig } from "@cssints/apg-specs/src/apg/menu-menubar.bridge";
+import type { Json } from "@cssints/apg-specs/scenario";
+import type { MenuCheckableConfig } from "@cssints/apg-specs/apg/menu-checkable.bridge";
+import type { MenuMenubarConfig } from "@cssints/apg-specs/apg/menu-menubar.bridge";
 import type { Mounted } from "./dom-driver";
 import { render } from "@solidjs/web";
 

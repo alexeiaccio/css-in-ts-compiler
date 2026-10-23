@@ -5,7 +5,7 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import {
@@ -13,9 +13,9 @@ import {
   meterConfig,
   meterProbe,
   meterSteps,
-} from "@cssints/apg-specs/src/apg/meter.bridge";
+} from "@cssints/apg-specs/apg/meter.bridge";
 import baseUi from "@cssints/apg-specs/scenarios/apg/meter.base-ui.json";
-import definitionJson from "@cssints/apg-specs/src/apg/meter.model.generated.json";
+import definitionJson from "@cssints/apg-specs/apg/meter.model.json";
 import { domDriver } from "./dom-driver";
 import { mountMeter } from "./meter.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/meter.react-aria.json";

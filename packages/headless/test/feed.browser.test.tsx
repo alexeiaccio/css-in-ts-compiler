@@ -8,17 +8,12 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
-import {
-  feedBridge,
-  feedConfig,
-  feedProbe,
-  feedSteps,
-} from "@cssints/apg-specs/src/apg/feed.bridge";
+import { feedBridge, feedConfig, feedProbe, feedSteps } from "@cssints/apg-specs/apg/feed.bridge";
 import apg from "@cssints/apg-specs/scenarios/apg/feed.apg.json";
-import definitionJson from "@cssints/apg-specs/src/apg/feed.model.generated.json";
+import definitionJson from "@cssints/apg-specs/apg/feed.model.json";
 import { mountFeed } from "./feed.fixture";
 import { userEvent } from "vite-plus/test/browser";
 

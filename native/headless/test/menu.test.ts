@@ -3,17 +3,17 @@ import {
   menuButtonConfig,
   menuButtonProbe,
   menuButtonSteps,
-} from '@cssints/apg-specs/src/apg/menu-button.bridge';
+} from '@cssints/apg-specs/apg/menu-button.bridge';
 import {
   menuCheckableBridge,
   menuCheckableConfig,
   menuCheckableProbe,
   menuCheckableSteps,
-} from '@cssints/apg-specs/src/apg/menu-checkable.bridge';
+} from '@cssints/apg-specs/apg/menu-checkable.bridge';
 import ariakit from '@cssints/apg-specs/scenarios/apg/menu-button.ariakit.json';
 import baseUi from '@cssints/apg-specs/scenarios/apg/menu-button.base-ui.json';
-import buttonDefinition from '@cssints/apg-specs/src/apg/menu-button.model.generated.json';
-import checkableDefinition from '@cssints/apg-specs/src/apg/menu-checkable.model.generated.json';
+import buttonDefinition from '@cssints/apg-specs/apg/menu-button.model.json';
+import checkableDefinition from '@cssints/apg-specs/apg/menu-checkable.model.json';
 import reactAria from '@cssints/apg-specs/scenarios/apg/menu-button.react-aria.json';
 import { conformance } from './conformance';
 import { mountCheckableMenu, mountMenuButton } from './mounts';

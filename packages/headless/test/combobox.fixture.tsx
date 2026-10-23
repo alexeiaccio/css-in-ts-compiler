@@ -1,7 +1,7 @@
 import { type Combobox, type ComboboxAutoComplete, createCombobox } from "../src/combobox";
 import { For, createSignal } from "solid-js";
-import type { ComboboxSelectOnlyConfig } from "@cssints/apg-specs/src/apg/combobox-select-only.bridge";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { ComboboxSelectOnlyConfig } from "@cssints/apg-specs/apg/combobox-select-only.bridge";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
 import { render } from "@solidjs/web";
 

@@ -5,7 +5,7 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { createMenu, createMenubar } from "../src";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
@@ -14,22 +14,22 @@ import {
   menuCheckableConfig,
   menuCheckableProbe,
   menuCheckableSteps,
-} from "@cssints/apg-specs/src/apg/menu-checkable.bridge";
+} from "@cssints/apg-specs/apg/menu-checkable.bridge";
 import {
   menuMenubarBridge,
   menuMenubarConfig,
   menuMenubarProbe,
   menuMenubarSteps,
-} from "@cssints/apg-specs/src/apg/menu-menubar.bridge";
+} from "@cssints/apg-specs/apg/menu-menubar.bridge";
 import { mountCheckableMenu, mountMenubar } from "./menu.fixture";
 import ariakit from "@cssints/apg-specs/scenarios/apg/menubar.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/menubar.base-ui.json";
-import checkableDefinition from "@cssints/apg-specs/src/apg/menu-checkable.model.generated.json";
+import checkableDefinition from "@cssints/apg-specs/apg/menu-checkable.model.json";
 import { domDriver } from "./dom-driver";
 import menuAriakit from "@cssints/apg-specs/scenarios/apg/menu-button.ariakit.json";
 import menuBaseUi from "@cssints/apg-specs/scenarios/apg/menu-button.base-ui.json";
 import menuReactAria from "@cssints/apg-specs/scenarios/apg/menu-button.react-aria.json";
-import menubarDefinition from "@cssints/apg-specs/src/apg/menu-menubar.model.generated.json";
+import menubarDefinition from "@cssints/apg-specs/apg/menu-menubar.model.json";
 import { partsDriver } from "./parts-driver";
 
 const checkableModel = makeReferenceModel(decodeDefinition(checkableDefinition));

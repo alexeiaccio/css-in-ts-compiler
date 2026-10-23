@@ -5,7 +5,7 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import {
@@ -13,11 +13,11 @@ import {
   menuButtonConfig,
   menuButtonProbe,
   menuButtonSteps,
-} from "@cssints/apg-specs/src/apg/menu-button.bridge";
+} from "@cssints/apg-specs/apg/menu-button.bridge";
 import { domDriver } from "./dom-driver";
 import menuAriakit from "@cssints/apg-specs/scenarios/apg/menu-button.ariakit.json";
 import menuBaseUi from "@cssints/apg-specs/scenarios/apg/menu-button.base-ui.json";
-import menuButtonDefinition from "@cssints/apg-specs/src/apg/menu-button.model.generated.json";
+import menuButtonDefinition from "@cssints/apg-specs/apg/menu-button.model.json";
 import menuReactAria from "@cssints/apg-specs/scenarios/apg/menu-button.react-aria.json";
 import { mountMenuButton } from "./menu-button.fixture";
 

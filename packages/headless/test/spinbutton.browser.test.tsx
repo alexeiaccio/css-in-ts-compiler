@@ -5,7 +5,7 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import {
@@ -13,9 +13,9 @@ import {
   spinbuttonConfig,
   spinbuttonProbe,
   spinbuttonSteps,
-} from "@cssints/apg-specs/src/apg/spinbutton.bridge";
+} from "@cssints/apg-specs/apg/spinbutton.bridge";
 import baseUi from "@cssints/apg-specs/scenarios/apg/spinbutton.base-ui.json";
-import definitionJson from "@cssints/apg-specs/src/apg/spinbutton.model.generated.json";
+import definitionJson from "@cssints/apg-specs/apg/spinbutton.model.json";
 import { domDriver } from "./dom-driver";
 import { mountSpinbutton } from "./spinbutton.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/spinbutton.react-aria.json";

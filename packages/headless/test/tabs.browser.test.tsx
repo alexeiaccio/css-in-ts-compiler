@@ -7,7 +7,7 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import {
@@ -16,10 +16,10 @@ import {
   tabsEventName,
   tabsProbe,
   tabsSteps,
-} from "@cssints/apg-specs/src/apg/tabs.bridge";
+} from "@cssints/apg-specs/apg/tabs.bridge";
 import ariakit from "@cssints/apg-specs/scenarios/apg/tabs.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/tabs.base-ui.json";
-import definitionJson from "@cssints/apg-specs/src/apg/tabs.model.generated.json";
+import definitionJson from "@cssints/apg-specs/apg/tabs.model.json";
 import { domDriver } from "./dom-driver";
 import { mountTabs } from "./tabs.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/tabs.react-aria.json";

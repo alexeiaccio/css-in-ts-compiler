@@ -4,7 +4,7 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { createRoot, flush } from "solid-js";
 import { describe, expect, it } from "vite-plus/test";
@@ -14,9 +14,9 @@ import {
   resizablePanelsConfig,
   resizablePanelsProbe,
   resizablePanelsSteps,
-} from "@cssints/apg-specs/src/patterns/resizable-panels.bridge";
+} from "@cssints/apg-specs/patterns/resizable-panels.bridge";
 import apg from "@cssints/apg-specs/scenarios/patterns/resizable-panels.spec.json";
-import definitionJson from "@cssints/apg-specs/src/patterns/resizable-panels.model.generated.json";
+import definitionJson from "@cssints/apg-specs/patterns/resizable-panels.model.json";
 import { mountResizablePanels } from "./resizable-panels.fixture";
 import { resizablePanelsDriver } from "./resizable-panels.driver";
 

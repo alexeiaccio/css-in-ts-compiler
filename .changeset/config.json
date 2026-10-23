@@ -29,7 +29,8 @@
       "@cssints/stuck",
       "@cssints/tokens",
       "@cssints/tui",
-      "@cssints/headless"
+      "@cssints/headless",
+      "@cssints/apg-specs"
     ]
   ],
   "linked": [],
@@ -42,8 +43,7 @@
     "csssky",
     "csssky-tui",
     "cssints-native",
-    "@cssints/ai-automation",
-    "@cssints/apg-specs"
+    "@cssints/ai-automation"
   ],
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
     "onlyUpdatePeerDependentsWhenOutOfRange": true

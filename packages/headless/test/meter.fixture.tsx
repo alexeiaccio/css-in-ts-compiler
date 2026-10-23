@@ -1,5 +1,5 @@
-import type { Json } from "@cssints/apg-specs/src/scenario";
-import type { MeterConfig } from "@cssints/apg-specs/src/apg/meter.bridge";
+import type { Json } from "@cssints/apg-specs/scenario";
+import type { MeterConfig } from "@cssints/apg-specs/apg/meter.bridge";
 import type { Mounted } from "./dom-driver";
 import { createMeter } from "../src/meter";
 import { createSignal } from "solid-js";

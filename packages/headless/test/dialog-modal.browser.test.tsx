@@ -5,7 +5,7 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import {
@@ -13,10 +13,10 @@ import {
   dialogModalConfig,
   dialogModalProbe,
   dialogModalSteps,
-} from "@cssints/apg-specs/src/apg/dialog-modal.bridge";
+} from "@cssints/apg-specs/apg/dialog-modal.bridge";
 import ariakit from "@cssints/apg-specs/scenarios/apg/dialog-modal.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/dialog-modal.base-ui.json";
-import definitionJson from "@cssints/apg-specs/src/apg/dialog-modal.model.generated.json";
+import definitionJson from "@cssints/apg-specs/apg/dialog-modal.model.json";
 import { domDriver } from "./dom-driver";
 import { mountDialogModal } from "./dialog-modal.fixture";
 import { partsDriver } from "./parts-driver";

@@ -5,7 +5,7 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import {
@@ -13,9 +13,9 @@ import {
   sliderMultithumbConfig,
   sliderMultithumbProbe,
   sliderMultithumbSteps,
-} from "@cssints/apg-specs/src/apg/slider-multithumb.bridge";
+} from "@cssints/apg-specs/apg/slider-multithumb.bridge";
 import baseUi from "@cssints/apg-specs/scenarios/apg/slider-multithumb.base-ui.json";
-import definitionJson from "@cssints/apg-specs/src/apg/slider-multithumb.model.generated.json";
+import definitionJson from "@cssints/apg-specs/apg/slider-multithumb.model.json";
 import { domDriver } from "./dom-driver";
 import { mountSliderMultithumb } from "./slider-multithumb.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/slider-multithumb.react-aria.json";

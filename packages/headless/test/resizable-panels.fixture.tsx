@@ -1,12 +1,12 @@
 import { type ResizablePanels, createResizablePanels } from "../src/resizable-panels";
 import { createEffect, createSignal } from "solid-js";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
 import {
   PANELS_LAYOUTS,
   type PanelsConfig,
   type PanelsLayout,
-} from "@cssints/apg-specs/src/patterns/resizable-panels.bridge";
+} from "@cssints/apg-specs/patterns/resizable-panels.bridge";
 import { render } from "@solidjs/web";
 
 const isLayout = (value: Json | undefined): value is PanelsLayout =>

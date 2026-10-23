@@ -1,7 +1,7 @@
 import { type RadioGroup, createRadioGroup } from "../src/radio";
-import { type Json } from "@cssints/apg-specs/src/scenario";
+import { type Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
-import type { RadioConfig } from "@cssints/apg-specs/src/apg/radio.bridge";
+import type { RadioConfig } from "@cssints/apg-specs/apg/radio.bridge";
 import { createSignal } from "solid-js";
 import { render } from "@solidjs/web";
 

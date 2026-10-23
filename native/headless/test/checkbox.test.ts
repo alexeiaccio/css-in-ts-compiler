@@ -3,10 +3,10 @@ import {
   checkboxConfig,
   checkboxProbe,
   checkboxSteps,
-} from '@cssints/apg-specs/src/apg/checkbox.bridge';
+} from '@cssints/apg-specs/apg/checkbox.bridge';
 import ariakit from '@cssints/apg-specs/scenarios/apg/checkbox.ariakit.json';
 import baseUi from '@cssints/apg-specs/scenarios/apg/checkbox.base-ui.json';
-import definition from '@cssints/apg-specs/src/apg/checkbox.model.generated.json';
+import definition from '@cssints/apg-specs/apg/checkbox.model.json';
 import reactAria from '@cssints/apg-specs/scenarios/apg/checkbox.react-aria.json';
 import { conformance } from './conformance';
 import { mountCheckbox } from './mounts';

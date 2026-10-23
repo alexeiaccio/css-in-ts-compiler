@@ -1,7 +1,7 @@
 import { type Switch, createSwitch } from "../src/switch";
-import { type Json } from "@cssints/apg-specs/src/scenario";
+import { type Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
-import type { SwitchConfig } from "@cssints/apg-specs/src/apg/switch.bridge";
+import type { SwitchConfig } from "@cssints/apg-specs/apg/switch.bridge";
 import { createSignal } from "solid-js";
 import { render } from "@solidjs/web";
 

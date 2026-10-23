@@ -5,16 +5,16 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import {
   breadcrumbBridge,
   breadcrumbConfig,
   breadcrumbProbe,
   breadcrumbSteps,
-} from "@cssints/apg-specs/src/apg/breadcrumb.bridge";
+} from "@cssints/apg-specs/apg/breadcrumb.bridge";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
-import definitionJson from "@cssints/apg-specs/src/apg/breadcrumb.model.generated.json";
+import definitionJson from "@cssints/apg-specs/apg/breadcrumb.model.json";
 import { domDriver } from "./dom-driver";
 import { mountBreadcrumb } from "./breadcrumb.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/breadcrumb.react-aria.json";

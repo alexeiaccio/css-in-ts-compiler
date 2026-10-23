@@ -1,27 +1,155 @@
 {
   "name": "@cssints/apg-specs",
-  "version": "0.0.0",
-  "private": true,
-  "description": "APG widget specs: Quint sources, generated models/scaffolding, scenario bridges and ported scenario sets, with spec-only verification",
+  "version": "0.5.2",
+  "description": "APG widget specs: Quint sources, generated models, scenario bridges and ported scenario sets, the test oracle of headless widgets",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexeiaccio/css-in-ts-compiler.git",
+    "directory": "packages/apg-specs"
+  },
+  "homepage": "https://cssints.dev",
+  "files": [
+    "dist",
+    "src",
+    "specs",
+    "shared",
+    "scenarios"
+  ],
   "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./scenario": {
+      "development": {
+        "types": "./src/scenario.ts",
+        "default": "./src/scenario.ts"
+      },
+      "bun": "./src/scenario.ts",
+      "types": "./dist/scenario.d.mts",
+      "default": "./dist/scenario.mjs"
+    },
+    "./apg/listbox-shared": {
+      "development": {
+        "types": "./src/apg/listbox-shared.ts",
+        "default": "./src/apg/listbox-shared.ts"
+      },
+      "bun": "./src/apg/listbox-shared.ts",
+      "types": "./dist/apg/listbox-shared.d.mts",
+      "default": "./dist/apg/listbox-shared.mjs"
+    },
+    "./apg/*.bridge": {
+      "development": {
+        "types": "./src/apg/*.bridge.ts",
+        "default": "./src/apg/*.bridge.ts"
+      },
+      "bun": "./src/apg/*.bridge.ts",
+      "types": "./dist/apg/*.bridge.d.mts",
+      "default": "./dist/apg/*.bridge.mjs"
+    },
+    "./apg/*.model.json": {
+      "development": "./src/apg/*.model.generated.json",
+      "bun": "./src/apg/*.model.generated.json",
+      "default": "./dist/apg/*.model.json"
+    },
+    "./canvas/*.bridge": {
+      "development": {
+        "types": "./src/canvas/*.bridge.ts",
+        "default": "./src/canvas/*.bridge.ts"
+      },
+      "bun": "./src/canvas/*.bridge.ts",
+      "types": "./dist/canvas/*.bridge.d.mts",
+      "default": "./dist/canvas/*.bridge.mjs"
+    },
+    "./canvas/*.model.json": {
+      "development": "./src/canvas/*.model.generated.json",
+      "bun": "./src/canvas/*.model.generated.json",
+      "default": "./dist/canvas/*.model.json"
+    },
+    "./patterns/*.bridge": {
+      "development": {
+        "types": "./src/patterns/*.bridge.ts",
+        "default": "./src/patterns/*.bridge.ts"
+      },
+      "bun": "./src/patterns/*.bridge.ts",
+      "types": "./dist/patterns/*.bridge.d.mts",
+      "default": "./dist/patterns/*.bridge.mjs"
+    },
+    "./patterns/*.model.json": {
+      "development": "./src/patterns/*.model.generated.json",
+      "bun": "./src/patterns/*.model.generated.json",
+      "default": "./dist/patterns/*.model.json"
+    },
+    "./scenarios/patterns/*.json": "./scenarios/patterns/*.json",
+    "./specs/patterns/*.qnt": "./specs/patterns/*.qnt",
+    "./scenarios/apg/*.json": "./scenarios/apg/*.json",
+    "./scenarios/canvas/*.json": "./scenarios/canvas/*.json",
+    "./scenarios/parts.json": "./scenarios/parts.json",
+    "./specs/apg/*.qnt": "./specs/apg/*.qnt",
+    "./specs/canvas/*.qnt": "./specs/canvas/*.qnt",
+    "./shared/*.qnt": "./shared/*.qnt",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      "./scenario": {
+        "types": "./dist/scenario.d.mts",
+        "default": "./dist/scenario.mjs"
+      },
+      "./apg/listbox-shared": {
+        "types": "./dist/apg/listbox-shared.d.mts",
+        "default": "./dist/apg/listbox-shared.mjs"
+      },
+      "./apg/*.bridge": {
+        "types": "./dist/apg/*.bridge.d.mts",
+        "default": "./dist/apg/*.bridge.mjs"
+      },
+      "./apg/*.model.json": "./dist/apg/*.model.json",
+      "./canvas/*.bridge": {
+        "types": "./dist/canvas/*.bridge.d.mts",
+        "default": "./dist/canvas/*.bridge.mjs"
+      },
+      "./canvas/*.model.json": "./dist/canvas/*.model.json",
+      "./patterns/*.bridge": {
+        "types": "./dist/patterns/*.bridge.d.mts",
+        "default": "./dist/patterns/*.bridge.mjs"
+      },
+      "./patterns/*.model.json": "./dist/patterns/*.model.json",
+      "./scenarios/patterns/*.json": "./scenarios/patterns/*.json",
+      "./specs/patterns/*.qnt": "./specs/patterns/*.qnt",
+      "./scenarios/apg/*.json": "./scenarios/apg/*.json",
+      "./scenarios/canvas/*.json": "./scenarios/canvas/*.json",
+      "./scenarios/parts.json": "./scenarios/parts.json",
+      "./specs/apg/*.qnt": "./specs/apg/*.qnt",
+      "./specs/canvas/*.qnt": "./specs/canvas/*.qnt",
+      "./shared/*.qnt": "./shared/*.qnt",
+      "./package.json": "./package.json"
+    },
+    "directory": ".publish"
+  },
   "scripts": {
+    "build": "vp pack",
     "generate:all": "node scripts/generate-all.ts",
     "scxml": "node scripts/emit-scxml.ts",
     "check": "bun run generate:all && bun run typecheck:quint && bun run test",
     "test": "vp test run",
     "typecheck": "node ../../scripts/typecheck.mjs",
-    "typecheck:quint": "node scripts/typecheck-quint.ts"
+    "typecheck:quint": "node scripts/typecheck-quint.ts",
+    "pack:tgz": "node ../../scripts/pack.mjs",
+    "prepublishOnly": "echo 'publish through the root release script: see RELEASING.md' && exit 1"
   },
   "dependencies": {
-    "@quint-machine/core": "0.1.0",
-    "@typeonce/effect-machine": "0.40.0",
-    "effect": "4.0.0"
+    "@quint-machine/core": "^0.1.0"
   },
   "devDependencies": {
     "@effect/platform-node": "4.0.0",
     "@informalsystems/quint": "0.32.0",
+    "@typeonce/effect-machine": "0.40.0",
+    "effect": "4.0.0",
     "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "effect": "^4.0.0"
   },
   "engines": {
     "node": ">=22"

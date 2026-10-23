@@ -1,4 +1,4 @@
-import { type ActionStep, type Driver, Unsupported } from "@cssints/apg-specs/src/scenario";
+import { type ActionStep, type Driver, Unsupported } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
 import { userEvent } from "vite-plus/test/browser";
 

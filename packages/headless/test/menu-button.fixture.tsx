@@ -1,6 +1,6 @@
 import { type Menu, createMenu } from "../src/menu";
-import type { Json } from "@cssints/apg-specs/src/scenario";
-import type { MenuButtonConfig } from "@cssints/apg-specs/src/apg/menu-button.bridge";
+import type { Json } from "@cssints/apg-specs/scenario";
+import type { MenuButtonConfig } from "@cssints/apg-specs/apg/menu-button.bridge";
 import type { Mounted } from "./dom-driver";
 import { createEffect } from "solid-js";
 import { render } from "@solidjs/web";
