@@ -1,0 +1,6568 @@
+{
+  "generatedFrom": "../../specs/canvas/camera.qnt",
+  "specHash": "0b9988d2ecd7483da6644fa0f4525b25242adeb3620159a6164de980a1af03e5",
+  "module": "canvas_camera",
+  "vars": [
+    {
+      "name": "vw",
+      "type": "int"
+    },
+    {
+      "name": "vh",
+      "type": "int"
+    },
+    {
+      "name": "tx",
+      "type": "int"
+    },
+    {
+      "name": "ty",
+      "type": "int"
+    },
+    {
+      "name": "z",
+      "type": "int"
+    },
+    {
+      "name": "rm",
+      "type": "bool"
+    },
+    {
+      "name": "active",
+      "type": "bool"
+    },
+    {
+      "name": "tp",
+      "type": "int"
+    },
+    {
+      "name": "stx",
+      "type": "int"
+    },
+    {
+      "name": "sty",
+      "type": "int"
+    },
+    {
+      "name": "sz",
+      "type": "int"
+    },
+    {
+      "name": "ttx",
+      "type": "int"
+    },
+    {
+      "name": "tty",
+      "type": "int"
+    },
+    {
+      "name": "tz",
+      "type": "int"
+    },
+    {
+      "name": "anch",
+      "type": "bool"
+    },
+    {
+      "name": "asx",
+      "type": "int"
+    },
+    {
+      "name": "asy",
+      "type": "int"
+    },
+    {
+      "name": "awx",
+      "type": "int"
+    },
+    {
+      "name": "awy",
+      "type": "int"
+    }
+  ],
+  "defs": {
+    "ZONE": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "4096"
+      }
+    },
+    "TONE": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "256"
+      }
+    },
+    "TZ": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "imul",
+        "args": [
+          {
+            "kind": "name",
+            "name": "ZONE"
+          },
+          {
+            "kind": "name",
+            "name": "TONE"
+          }
+        ]
+      }
+    },
+    "ZMIN": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "256"
+      }
+    },
+    "ZMAX": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "32768"
+      }
+    },
+    "WB": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "1000000"
+      }
+    },
+    "WT": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "imul",
+        "args": [
+          {
+            "kind": "name",
+            "name": "WB"
+          },
+          {
+            "kind": "name",
+            "name": "TONE"
+          }
+        ]
+      }
+    },
+    "TN": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "4"
+      }
+    },
+    "absI": {
+      "kind": "function",
+      "params": [
+        "a"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "a"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "iuminus",
+            "args": [
+              {
+                "kind": "name",
+                "name": "a"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "a"
+          }
+        ]
+      }
+    },
+    "clampI": {
+      "kind": "function",
+      "params": [
+        "v",
+        "lo",
+        "hi"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "v"
+              },
+              {
+                "kind": "name",
+                "name": "lo"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "lo"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igt",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "v"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "hi"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "hi"
+              },
+              {
+                "kind": "name",
+                "name": "v"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fdiv": {
+      "kind": "function",
+      "params": [
+        "a",
+        "b"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "a"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "idiv",
+            "args": [
+              {
+                "kind": "name",
+                "name": "a"
+              },
+              {
+                "kind": "name",
+                "name": "b"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "iuminus",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "idiv",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "isub",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "iadd",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "iuminus",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "a"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "name",
+                            "name": "b"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "b"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "rdiv": {
+      "kind": "function",
+      "params": [
+        "a",
+        "b"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "fdiv",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "imul",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "a"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "b"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "imul",
+            "args": [
+              {
+                "kind": "int",
+                "value": "2"
+              },
+              {
+                "kind": "name",
+                "name": "b"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "screenToWorld": {
+      "kind": "function",
+      "params": [
+        "s",
+        "t",
+        "zf"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "isub",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "rdiv",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "imul",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "s"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "TZ"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "zf"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "t"
+          }
+        ]
+      }
+    },
+    "worldToScreen": {
+      "kind": "function",
+      "params": [
+        "w",
+        "t",
+        "zf"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "rdiv",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "imul",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "w"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "t"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "zf"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "TZ"
+          }
+        ]
+      }
+    },
+    "clampZ": {
+      "kind": "function",
+      "params": [
+        "zf"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "clampI",
+        "args": [
+          {
+            "kind": "name",
+            "name": "zf"
+          },
+          {
+            "kind": "name",
+            "name": "ZMIN"
+          },
+          {
+            "kind": "name",
+            "name": "ZMAX"
+          }
+        ]
+      }
+    },
+    "clampT": {
+      "kind": "function",
+      "params": [
+        "t"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "clampI",
+        "args": [
+          {
+            "kind": "name",
+            "name": "t"
+          },
+          {
+            "kind": "app",
+            "opcode": "iuminus",
+            "args": [
+              {
+                "kind": "name",
+                "name": "WT"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "WT"
+          }
+        ]
+      }
+    },
+    "anchoredT": {
+      "kind": "function",
+      "params": [
+        "t",
+        "zf",
+        "zf2",
+        "s"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "clampT",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "isub",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "t"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "rdiv",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "imul",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "s"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "TZ"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "zf2"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "rdiv",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imul",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "s"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "TZ"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "zf"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "panT": {
+      "kind": "function",
+      "params": [
+        "t",
+        "zf",
+        "d"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "clampT",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "t"
+              },
+              {
+                "kind": "app",
+                "opcode": "rdiv",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imul",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "d"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "TZ"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "zf"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "zoomRequest": {
+      "kind": "function",
+      "params": [
+        "zf",
+        "f"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "clampZ",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "rdiv",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "imul",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "zf"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "f"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ZONE"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "lerp": {
+      "kind": "function",
+      "params": [
+        "a",
+        "b",
+        "p"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "iadd",
+        "args": [
+          {
+            "kind": "name",
+            "name": "a"
+          },
+          {
+            "kind": "app",
+            "opcode": "fdiv",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "imul",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "isub",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "b"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "a"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "p"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "TN"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "VW": {
+      "kind": "function",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "320"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "i"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "800"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "i"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1024"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "i"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "3"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1920"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4096"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "VH": {
+      "kind": "function",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "240"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "i"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "600"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "i"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "768"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "i"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "3"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1080"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2160"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "anchorX": {
+      "kind": "function",
+      "params": [
+        "a",
+        "w"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "a"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "a"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "idiv",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "w"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "a"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "w"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "idiv",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "w"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "anchorY": {
+      "kind": "function",
+      "params": [
+        "a",
+        "h"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "a"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "a"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "idiv",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "h"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "a"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "h"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "idiv",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "imul",
+                        "args": [
+                          {
+                            "kind": "int",
+                            "value": "3"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "h"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "zoomFactor": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "2048"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "3072"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "5120"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "k"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "3"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "6144"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "k"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "4"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "int",
+                            "value": "8192"
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "ite",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "eq",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "k"
+                                  },
+                                  {
+                                    "kind": "int",
+                                    "value": "5"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "int",
+                                "value": "65536"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "256"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "panDelta": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "iuminus",
+            "args": [
+              {
+                "kind": "int",
+                "value": "9000000"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iuminus",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "400"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "k"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "3"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "5"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "9000000"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "pointX": {
+      "kind": "function",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "i"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "1000"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "i"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "iuminus",
+                    "args": [
+                      {
+                        "kind": "int",
+                        "value": "250000"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "999000"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "pointY": {
+      "kind": "function",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "i"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "500"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "i"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "400000"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "iuminus",
+                    "args": [
+                      {
+                        "kind": "int",
+                        "value": "999000"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "tgtZ": {
+      "kind": "function",
+      "params": [
+        "g",
+        "zf"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "idiv",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "g"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "4"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "ZMIN"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "idiv",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "g"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ZMAX"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "idiv",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "g"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "4"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZONE"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "zf"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "tgtX": {
+      "kind": "function",
+      "params": [
+        "g",
+        "t",
+        "zf",
+        "w"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "idiv",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "g"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "4"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "3"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "clampT",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isub",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "rdiv",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "imul",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "idiv",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "w"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "2"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "name",
+                            "name": "TZ"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "zf"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "imul",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "pointX",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "imod",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "g"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "4"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "TONE"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "anchoredT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "t"
+              },
+              {
+                "kind": "name",
+                "name": "zf"
+              },
+              {
+                "kind": "app",
+                "opcode": "tgtZ",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "g"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "zf"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "anchorX",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "g"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "w"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "tgtY": {
+      "kind": "function",
+      "params": [
+        "g",
+        "t",
+        "zf",
+        "h"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "idiv",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "g"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "4"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "3"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "clampT",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isub",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "rdiv",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "imul",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "idiv",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "h"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "2"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "name",
+                            "name": "TZ"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "zf"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "imul",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "pointY",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "imod",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "g"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "4"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "TONE"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "anchoredT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "t"
+              },
+              {
+                "kind": "name",
+                "name": "zf"
+              },
+              {
+                "kind": "app",
+                "opcode": "tgtZ",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "g"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "zf"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "anchorY",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "g"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "h"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "zoomOk": {
+      "kind": "function",
+      "params": [
+        "zf"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ZMIN"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "zf"
+              },
+              {
+                "kind": "name",
+                "name": "ZMIN"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "zf"
+              },
+              {
+                "kind": "name",
+                "name": "ZMAX"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "tOk": {
+      "kind": "function",
+      "params": [
+        "t"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ilte",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "absI",
+            "args": [
+              {
+                "kind": "name",
+                "name": "t"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "WT"
+          }
+        ]
+      }
+    },
+    "axisAnchored": {
+      "kind": "function",
+      "params": [
+        "s",
+        "w0",
+        "t",
+        "zf"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "absI",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "t"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "WT"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igt",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "zf"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ilt",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "absI",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "isub",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "screenToWorld",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "s"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "t"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "zf"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "name",
+                            "name": "w0"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "TONE"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ViewportInRange": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "vw"
+              },
+              {
+                "kind": "int",
+                "value": "320"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "vw"
+              },
+              {
+                "kind": "int",
+                "value": "4096"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "vh"
+              },
+              {
+                "kind": "int",
+                "value": "240"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "vh"
+              },
+              {
+                "kind": "int",
+                "value": "2160"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ZoomInRange": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "zoomOk",
+        "args": [
+          {
+            "kind": "name",
+            "name": "z"
+          }
+        ]
+      }
+    },
+    "OriginInBound": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "tOk",
+            "args": [
+              {
+                "kind": "name",
+                "name": "tx"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "tOk",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ty"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "TweenEndpointsValid": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "zoomOk",
+            "args": [
+              {
+                "kind": "name",
+                "name": "sz"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "zoomOk",
+            "args": [
+              {
+                "kind": "name",
+                "name": "tz"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "tOk",
+            "args": [
+              {
+                "kind": "name",
+                "name": "stx"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "tOk",
+            "args": [
+              {
+                "kind": "name",
+                "name": "sty"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "tOk",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ttx"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "tOk",
+            "args": [
+              {
+                "kind": "name",
+                "name": "tty"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ScreenWorldRoundTrip": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "worldToScreen",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "screenToWorld",
+                    "args": [
+                      {
+                        "kind": "int",
+                        "value": "0"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "tx"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "z"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "tx"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "worldToScreen",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "screenToWorld",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "vw"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "tx"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "z"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "tx"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "vw"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "worldToScreen",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "screenToWorld",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "idiv",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "vw"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "2"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "tx"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "z"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "tx"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "idiv",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "vw"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "worldToScreen",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "screenToWorld",
+                    "args": [
+                      {
+                        "kind": "int",
+                        "value": "0"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ty"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "z"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ty"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "worldToScreen",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "screenToWorld",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "vh"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ty"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "z"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ty"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "vh"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "worldToScreen",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "screenToWorld",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "idiv",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "vh"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "3"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ty"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "z"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ty"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "idiv",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "vh"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "3"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "AnchorFixed": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "anch"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "axisAnchored",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "asx"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "awx"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "tx"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "axisAnchored",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "asy"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "awy"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ty"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "TweenFollowsLerp": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "active"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "tp"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ilt",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "tp"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "TN"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "tx"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "lerp",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "stx"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ttx"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "tp"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ty"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "lerp",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "sty"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "tty"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "tp"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "lerp",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "sz"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "tz"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "tp"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "RestIsOnTarget": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "name",
+            "name": "active"
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "tp"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "TN"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "tx"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ttx"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ty"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "tty"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "tz"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "stx"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ttx"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "sty"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "tty"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "sz"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "tz"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ReducedMotionNeverTweens": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rm"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "active"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "actions": [
+    {
+      "name": "init",
+      "assignments": [
+        {
+          "field": "vw",
+          "rhs": {
+            "kind": "int",
+            "value": "800"
+          }
+        },
+        {
+          "field": "vh",
+          "rhs": {
+            "kind": "int",
+            "value": "600"
+          }
+        },
+        {
+          "field": "tx",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "ty",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "z",
+          "rhs": {
+            "kind": "int",
+            "value": "4096"
+          }
+        },
+        {
+          "field": "rm",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "tp",
+          "rhs": {
+            "kind": "int",
+            "value": "4"
+          }
+        },
+        {
+          "field": "stx",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "sty",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "sz",
+          "rhs": {
+            "kind": "int",
+            "value": "4096"
+          }
+        },
+        {
+          "field": "ttx",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "tty",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "tz",
+          "rhs": {
+            "kind": "int",
+            "value": "4096"
+          }
+        },
+        {
+          "field": "anch",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "asx",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "asy",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "awx",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "awy",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        }
+      ]
+    },
+    {
+      "name": "resize",
+      "nondet": {
+        "name": "vp",
+        "kind": "int",
+        "pool": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "vw",
+          "rhs": {
+            "kind": "app",
+            "opcode": "VW",
+            "args": [
+              {
+                "kind": "name",
+                "name": "vp"
+              }
+            ]
+          }
+        },
+        {
+          "field": "vh",
+          "rhs": {
+            "kind": "app",
+            "opcode": "VH",
+            "args": [
+              {
+                "kind": "name",
+                "name": "vp"
+              }
+            ]
+          }
+        },
+        {
+          "field": "tx",
+          "rhs": {
+            "kind": "name",
+            "name": "tx"
+          }
+        },
+        {
+          "field": "ty",
+          "rhs": {
+            "kind": "name",
+            "name": "ty"
+          }
+        },
+        {
+          "field": "z",
+          "rhs": {
+            "kind": "name",
+            "name": "z"
+          }
+        },
+        {
+          "field": "rm",
+          "rhs": {
+            "kind": "name",
+            "name": "rm"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "name",
+            "name": "active"
+          }
+        },
+        {
+          "field": "tp",
+          "rhs": {
+            "kind": "name",
+            "name": "tp"
+          }
+        },
+        {
+          "field": "stx",
+          "rhs": {
+            "kind": "name",
+            "name": "stx"
+          }
+        },
+        {
+          "field": "sty",
+          "rhs": {
+            "kind": "name",
+            "name": "sty"
+          }
+        },
+        {
+          "field": "sz",
+          "rhs": {
+            "kind": "name",
+            "name": "sz"
+          }
+        },
+        {
+          "field": "ttx",
+          "rhs": {
+            "kind": "name",
+            "name": "ttx"
+          }
+        },
+        {
+          "field": "tty",
+          "rhs": {
+            "kind": "name",
+            "name": "tty"
+          }
+        },
+        {
+          "field": "tz",
+          "rhs": {
+            "kind": "name",
+            "name": "tz"
+          }
+        },
+        {
+          "field": "anch",
+          "rhs": {
+            "kind": "name",
+            "name": "anch"
+          }
+        },
+        {
+          "field": "asx",
+          "rhs": {
+            "kind": "name",
+            "name": "asx"
+          }
+        },
+        {
+          "field": "asy",
+          "rhs": {
+            "kind": "name",
+            "name": "asy"
+          }
+        },
+        {
+          "field": "awx",
+          "rhs": {
+            "kind": "name",
+            "name": "awx"
+          }
+        },
+        {
+          "field": "awy",
+          "rhs": {
+            "kind": "name",
+            "name": "awy"
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_motion",
+      "nondet": {
+        "name": "reduced",
+        "kind": "bool",
+        "pool": [
+          true,
+          false
+        ]
+      },
+      "assignments": [
+        {
+          "field": "vw",
+          "rhs": {
+            "kind": "name",
+            "name": "vw"
+          }
+        },
+        {
+          "field": "vh",
+          "rhs": {
+            "kind": "name",
+            "name": "vh"
+          }
+        },
+        {
+          "field": "tx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "reduced"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ttx"
+              },
+              {
+                "kind": "name",
+                "name": "tx"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "reduced"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "tty"
+              },
+              {
+                "kind": "name",
+                "name": "ty"
+              }
+            ]
+          }
+        },
+        {
+          "field": "z",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "reduced"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "tz"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              }
+            ]
+          }
+        },
+        {
+          "field": "rm",
+          "rhs": {
+            "kind": "name",
+            "name": "reduced"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "reduced"
+              },
+              {
+                "kind": "bool",
+                "value": false
+              },
+              {
+                "kind": "name",
+                "name": "active"
+              }
+            ]
+          }
+        },
+        {
+          "field": "tp",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "reduced"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "TN"
+              },
+              {
+                "kind": "name",
+                "name": "tp"
+              }
+            ]
+          }
+        },
+        {
+          "field": "stx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "reduced"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ttx"
+              },
+              {
+                "kind": "name",
+                "name": "stx"
+              }
+            ]
+          }
+        },
+        {
+          "field": "sty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "reduced"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "tty"
+              },
+              {
+                "kind": "name",
+                "name": "sty"
+              }
+            ]
+          }
+        },
+        {
+          "field": "sz",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "reduced"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "tz"
+              },
+              {
+                "kind": "name",
+                "name": "sz"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ttx",
+          "rhs": {
+            "kind": "name",
+            "name": "ttx"
+          }
+        },
+        {
+          "field": "tty",
+          "rhs": {
+            "kind": "name",
+            "name": "tty"
+          }
+        },
+        {
+          "field": "tz",
+          "rhs": {
+            "kind": "name",
+            "name": "tz"
+          }
+        },
+        {
+          "field": "anch",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "reduced"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "bool",
+                "value": false
+              },
+              {
+                "kind": "name",
+                "name": "anch"
+              }
+            ]
+          }
+        },
+        {
+          "field": "asx",
+          "rhs": {
+            "kind": "name",
+            "name": "asx"
+          }
+        },
+        {
+          "field": "asy",
+          "rhs": {
+            "kind": "name",
+            "name": "asy"
+          }
+        },
+        {
+          "field": "awx",
+          "rhs": {
+            "kind": "name",
+            "name": "awx"
+          }
+        },
+        {
+          "field": "awy",
+          "rhs": {
+            "kind": "name",
+            "name": "awy"
+          }
+        }
+      ]
+    },
+    {
+      "name": "pan_by",
+      "nondet": {
+        "name": "delta",
+        "kind": "int",
+        "pool": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16",
+          "17",
+          "18",
+          "19",
+          "20",
+          "21",
+          "22",
+          "23",
+          "24"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "vw",
+          "rhs": {
+            "kind": "name",
+            "name": "vw"
+          }
+        },
+        {
+          "field": "vh",
+          "rhs": {
+            "kind": "name",
+            "name": "vh"
+          }
+        },
+        {
+          "field": "tx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "panT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "tx"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "panDelta",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "delta"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "5"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "ty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "panT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ty"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "panDelta",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "idiv",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "delta"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "5"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "z",
+          "rhs": {
+            "kind": "name",
+            "name": "z"
+          }
+        },
+        {
+          "field": "rm",
+          "rhs": {
+            "kind": "name",
+            "name": "rm"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "tp",
+          "rhs": {
+            "kind": "name",
+            "name": "TN"
+          }
+        },
+        {
+          "field": "stx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "panT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "tx"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "panDelta",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "delta"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "5"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "sty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "panT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ty"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "panDelta",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "idiv",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "delta"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "5"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "sz",
+          "rhs": {
+            "kind": "name",
+            "name": "z"
+          }
+        },
+        {
+          "field": "ttx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "panT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "tx"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "panDelta",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "delta"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "5"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "tty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "panT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ty"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "panDelta",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "idiv",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "delta"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "5"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "tz",
+          "rhs": {
+            "kind": "name",
+            "name": "z"
+          }
+        },
+        {
+          "field": "anch",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "asx",
+          "rhs": {
+            "kind": "name",
+            "name": "asx"
+          }
+        },
+        {
+          "field": "asy",
+          "rhs": {
+            "kind": "name",
+            "name": "asy"
+          }
+        },
+        {
+          "field": "awx",
+          "rhs": {
+            "kind": "name",
+            "name": "awx"
+          }
+        },
+        {
+          "field": "awy",
+          "rhs": {
+            "kind": "name",
+            "name": "awy"
+          }
+        }
+      ]
+    },
+    {
+      "name": "zoom_at",
+      "nondet": {
+        "name": "gesture",
+        "kind": "int",
+        "pool": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16",
+          "17",
+          "18",
+          "19",
+          "20",
+          "21",
+          "22",
+          "23",
+          "24",
+          "25",
+          "26",
+          "27"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "vw",
+          "rhs": {
+            "kind": "name",
+            "name": "vw"
+          }
+        },
+        {
+          "field": "vh",
+          "rhs": {
+            "kind": "name",
+            "name": "vh"
+          }
+        },
+        {
+          "field": "tx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "anchoredT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "tx"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "zoomRequest",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "zoomFactor",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "idiv",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "gesture"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "4"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "anchorX",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "gesture"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vw"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "ty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "anchoredT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ty"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "zoomRequest",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "zoomFactor",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "idiv",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "gesture"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "4"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "anchorY",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "gesture"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vh"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "z",
+          "rhs": {
+            "kind": "app",
+            "opcode": "zoomRequest",
+            "args": [
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "zoomFactor",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "idiv",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "gesture"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "rm",
+          "rhs": {
+            "kind": "name",
+            "name": "rm"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "tp",
+          "rhs": {
+            "kind": "name",
+            "name": "TN"
+          }
+        },
+        {
+          "field": "stx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "anchoredT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "tx"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "zoomRequest",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "zoomFactor",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "idiv",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "gesture"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "4"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "anchorX",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "gesture"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vw"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "sty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "anchoredT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ty"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "zoomRequest",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "zoomFactor",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "idiv",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "gesture"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "4"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "anchorY",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "gesture"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vh"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "sz",
+          "rhs": {
+            "kind": "app",
+            "opcode": "zoomRequest",
+            "args": [
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "zoomFactor",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "idiv",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "gesture"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "ttx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "anchoredT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "tx"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "zoomRequest",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "zoomFactor",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "idiv",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "gesture"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "4"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "anchorX",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "gesture"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vw"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "tty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "anchoredT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ty"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "zoomRequest",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "zoomFactor",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "idiv",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "gesture"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "4"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "anchorY",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "gesture"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vh"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "tz",
+          "rhs": {
+            "kind": "app",
+            "opcode": "zoomRequest",
+            "args": [
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "zoomFactor",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "idiv",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "gesture"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "anch",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "asx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "anchorX",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "imod",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "gesture"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "4"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "vw"
+              }
+            ]
+          }
+        },
+        {
+          "field": "asy",
+          "rhs": {
+            "kind": "app",
+            "opcode": "anchorY",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "imod",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "gesture"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "4"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "vh"
+              }
+            ]
+          }
+        },
+        {
+          "field": "awx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "screenToWorld",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "anchorX",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "gesture"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vw"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "tx"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              }
+            ]
+          }
+        },
+        {
+          "field": "awy",
+          "rhs": {
+            "kind": "app",
+            "opcode": "screenToWorld",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "anchorY",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "gesture"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vh"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ty"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "zoom_limit",
+      "nondet": {
+        "name": "limit",
+        "kind": "int",
+        "pool": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "vw",
+          "rhs": {
+            "kind": "name",
+            "name": "vw"
+          }
+        },
+        {
+          "field": "vh",
+          "rhs": {
+            "kind": "name",
+            "name": "vh"
+          }
+        },
+        {
+          "field": "tx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "anchoredT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "tx"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "ilt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "limit"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZMIN"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZMAX"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "anchorX",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "limit"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vw"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "ty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "anchoredT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ty"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "ilt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "limit"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZMIN"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZMAX"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "anchorY",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "limit"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vh"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "z",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "ilt",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "limit"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "4"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ZMIN"
+              },
+              {
+                "kind": "name",
+                "name": "ZMAX"
+              }
+            ]
+          }
+        },
+        {
+          "field": "rm",
+          "rhs": {
+            "kind": "name",
+            "name": "rm"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "tp",
+          "rhs": {
+            "kind": "name",
+            "name": "TN"
+          }
+        },
+        {
+          "field": "stx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "anchoredT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "tx"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "ilt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "limit"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZMIN"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZMAX"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "anchorX",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "limit"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vw"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "sty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "anchoredT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ty"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "ilt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "limit"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZMIN"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZMAX"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "anchorY",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "limit"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vh"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "sz",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "ilt",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "limit"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "4"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ZMIN"
+              },
+              {
+                "kind": "name",
+                "name": "ZMAX"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ttx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "anchoredT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "tx"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "ilt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "limit"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZMIN"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZMAX"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "anchorX",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "limit"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vw"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "tty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "anchoredT",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ty"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "ilt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "limit"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZMIN"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ZMAX"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "anchorY",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "limit"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vh"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "tz",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "ilt",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "limit"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "4"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ZMIN"
+              },
+              {
+                "kind": "name",
+                "name": "ZMAX"
+              }
+            ]
+          }
+        },
+        {
+          "field": "anch",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "asx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "anchorX",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "imod",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "limit"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "4"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "vw"
+              }
+            ]
+          }
+        },
+        {
+          "field": "asy",
+          "rhs": {
+            "kind": "app",
+            "opcode": "anchorY",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "imod",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "limit"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "4"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "vh"
+              }
+            ]
+          }
+        },
+        {
+          "field": "awx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "screenToWorld",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "anchorX",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "limit"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vw"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "tx"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              }
+            ]
+          }
+        },
+        {
+          "field": "awy",
+          "rhs": {
+            "kind": "app",
+            "opcode": "screenToWorld",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "anchorY",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "limit"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vh"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ty"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "request_tween",
+      "nondet": {
+        "name": "goal",
+        "kind": "int",
+        "pool": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "vw",
+          "rhs": {
+            "kind": "name",
+            "name": "vw"
+          }
+        },
+        {
+          "field": "vh",
+          "rhs": {
+            "kind": "name",
+            "name": "vh"
+          }
+        },
+        {
+          "field": "tx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rm"
+              },
+              {
+                "kind": "app",
+                "opcode": "tgtX",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "goal"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "tx"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vw"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "tx"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rm"
+              },
+              {
+                "kind": "app",
+                "opcode": "tgtY",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "goal"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ty"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vh"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ty"
+              }
+            ]
+          }
+        },
+        {
+          "field": "z",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rm"
+              },
+              {
+                "kind": "app",
+                "opcode": "tgtZ",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "goal"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              }
+            ]
+          }
+        },
+        {
+          "field": "rm",
+          "rhs": {
+            "kind": "name",
+            "name": "rm"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rm"
+              }
+            ]
+          }
+        },
+        {
+          "field": "tp",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rm"
+              },
+              {
+                "kind": "name",
+                "name": "TN"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        },
+        {
+          "field": "stx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rm"
+              },
+              {
+                "kind": "app",
+                "opcode": "tgtX",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "goal"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "tx"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vw"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "tx"
+              }
+            ]
+          }
+        },
+        {
+          "field": "sty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rm"
+              },
+              {
+                "kind": "app",
+                "opcode": "tgtY",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "goal"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ty"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "vh"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ty"
+              }
+            ]
+          }
+        },
+        {
+          "field": "sz",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rm"
+              },
+              {
+                "kind": "app",
+                "opcode": "tgtZ",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "goal"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "z"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ttx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "tgtX",
+            "args": [
+              {
+                "kind": "name",
+                "name": "goal"
+              },
+              {
+                "kind": "name",
+                "name": "tx"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "name",
+                "name": "vw"
+              }
+            ]
+          }
+        },
+        {
+          "field": "tty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "tgtY",
+            "args": [
+              {
+                "kind": "name",
+                "name": "goal"
+              },
+              {
+                "kind": "name",
+                "name": "ty"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              },
+              {
+                "kind": "name",
+                "name": "vh"
+              }
+            ]
+          }
+        },
+        {
+          "field": "tz",
+          "rhs": {
+            "kind": "app",
+            "opcode": "tgtZ",
+            "args": [
+              {
+                "kind": "name",
+                "name": "goal"
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              }
+            ]
+          }
+        },
+        {
+          "field": "anch",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "asx",
+          "rhs": {
+            "kind": "name",
+            "name": "asx"
+          }
+        },
+        {
+          "field": "asy",
+          "rhs": {
+            "kind": "name",
+            "name": "asy"
+          }
+        },
+        {
+          "field": "awx",
+          "rhs": {
+            "kind": "name",
+            "name": "awx"
+          }
+        },
+        {
+          "field": "awy",
+          "rhs": {
+            "kind": "name",
+            "name": "awy"
+          }
+        }
+      ]
+    },
+    {
+      "name": "tween_tick",
+      "assignments": [
+        {
+          "field": "vw",
+          "rhs": {
+            "kind": "name",
+            "name": "vw"
+          }
+        },
+        {
+          "field": "vh",
+          "rhs": {
+            "kind": "name",
+            "name": "vh"
+          }
+        },
+        {
+          "field": "tx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "app",
+                "opcode": "lerp",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "stx"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ttx"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "tp"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "tx"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "app",
+                "opcode": "lerp",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "sty"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "tty"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "tp"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ty"
+              }
+            ]
+          }
+        },
+        {
+          "field": "z",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "app",
+                "opcode": "lerp",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "sz"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "tz"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "tp"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "z"
+              }
+            ]
+          }
+        },
+        {
+          "field": "rm",
+          "rhs": {
+            "kind": "name",
+            "name": "rm"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "app",
+                "opcode": "ilt",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "tp"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "TN"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "tp",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "tp"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "tp"
+              }
+            ]
+          }
+        },
+        {
+          "field": "stx",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "igte",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "iadd",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "tp"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "1"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "TN"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ttx"
+              },
+              {
+                "kind": "name",
+                "name": "stx"
+              }
+            ]
+          }
+        },
+        {
+          "field": "sty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "igte",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "iadd",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "tp"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "1"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "TN"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "tty"
+              },
+              {
+                "kind": "name",
+                "name": "sty"
+              }
+            ]
+          }
+        },
+        {
+          "field": "sz",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "igte",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "iadd",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "tp"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "1"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "TN"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "tz"
+              },
+              {
+                "kind": "name",
+                "name": "sz"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ttx",
+          "rhs": {
+            "kind": "name",
+            "name": "ttx"
+          }
+        },
+        {
+          "field": "tty",
+          "rhs": {
+            "kind": "name",
+            "name": "tty"
+          }
+        },
+        {
+          "field": "tz",
+          "rhs": {
+            "kind": "name",
+            "name": "tz"
+          }
+        },
+        {
+          "field": "anch",
+          "rhs": {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "name",
+                "name": "anch"
+              },
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "asx",
+          "rhs": {
+            "kind": "name",
+            "name": "asx"
+          }
+        },
+        {
+          "field": "asy",
+          "rhs": {
+            "kind": "name",
+            "name": "asy"
+          }
+        },
+        {
+          "field": "awx",
+          "rhs": {
+            "kind": "name",
+            "name": "awx"
+          }
+        },
+        {
+          "field": "awy",
+          "rhs": {
+            "kind": "name",
+            "name": "awy"
+          }
+        }
+      ]
+    },
+    {
+      "name": "cancel_tween",
+      "assignments": [
+        {
+          "field": "vw",
+          "rhs": {
+            "kind": "name",
+            "name": "vw"
+          }
+        },
+        {
+          "field": "vh",
+          "rhs": {
+            "kind": "name",
+            "name": "vh"
+          }
+        },
+        {
+          "field": "tx",
+          "rhs": {
+            "kind": "name",
+            "name": "tx"
+          }
+        },
+        {
+          "field": "ty",
+          "rhs": {
+            "kind": "name",
+            "name": "ty"
+          }
+        },
+        {
+          "field": "z",
+          "rhs": {
+            "kind": "name",
+            "name": "z"
+          }
+        },
+        {
+          "field": "rm",
+          "rhs": {
+            "kind": "name",
+            "name": "rm"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "tp",
+          "rhs": {
+            "kind": "name",
+            "name": "TN"
+          }
+        },
+        {
+          "field": "stx",
+          "rhs": {
+            "kind": "name",
+            "name": "tx"
+          }
+        },
+        {
+          "field": "sty",
+          "rhs": {
+            "kind": "name",
+            "name": "ty"
+          }
+        },
+        {
+          "field": "sz",
+          "rhs": {
+            "kind": "name",
+            "name": "z"
+          }
+        },
+        {
+          "field": "ttx",
+          "rhs": {
+            "kind": "name",
+            "name": "tx"
+          }
+        },
+        {
+          "field": "tty",
+          "rhs": {
+            "kind": "name",
+            "name": "ty"
+          }
+        },
+        {
+          "field": "tz",
+          "rhs": {
+            "kind": "name",
+            "name": "z"
+          }
+        },
+        {
+          "field": "anch",
+          "rhs": {
+            "kind": "name",
+            "name": "anch"
+          }
+        },
+        {
+          "field": "asx",
+          "rhs": {
+            "kind": "name",
+            "name": "asx"
+          }
+        },
+        {
+          "field": "asy",
+          "rhs": {
+            "kind": "name",
+            "name": "asy"
+          }
+        },
+        {
+          "field": "awx",
+          "rhs": {
+            "kind": "name",
+            "name": "awx"
+          }
+        },
+        {
+          "field": "awy",
+          "rhs": {
+            "kind": "name",
+            "name": "awy"
+          }
+        }
+      ]
+    }
+  ],
+  "step": [
+    "init",
+    "resize",
+    "set_motion",
+    "pan_by",
+    "zoom_at",
+    "zoom_limit",
+    "request_tween",
+    "tween_tick",
+    "cancel_tween"
+  ]
+}

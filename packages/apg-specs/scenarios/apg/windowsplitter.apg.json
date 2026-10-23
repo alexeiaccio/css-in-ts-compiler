@@ -1,0 +1,557 @@
+{
+  "pattern": "windowsplitter",
+  "source": "apg",
+  "commit": null,
+  "license": "W3C Software and Document License",
+  "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/",
+  "notes": "No upstream implementation of the window splitter pattern exists in ariakit, base-ui or react-aria. Searched all *test* files under ariakit/app/src, base-ui/packages and react-spectrum/packages for separator/splitter/resiz: ariakit and base-ui ship only a static role=separator element (base-ui Separator.test.tsx, ariakit examples/separator and toolbar separators) that has no size control; react-aria's useSeparator is likewise static. react-aria's ColumnResizer (react-aria-components Table) is a table-column resizer, not a splitter: it renders an <input type=range> with role=slider (so not role=separator), Enter starts keyboard resizing rather than collapsing, arrows move the slider, and there is no F6 pane cycle - it does not follow the window splitter keyboard model, so it is not ported. Scenarios are therefore derived from the APG Window Splitter Pattern page: About This Pattern, Keyboard Interaction, and WAI-ARIA Roles, States, and Properties, licensed W3C Software and Document License. There is no functional APG example for this pattern (tracked upstream as issue 130), so no example-derived scenarios exist.",
+  "skipped": [
+    {
+      "reason": "ariakit static separators (app/src/sandbox/separator-semantics, app/src/examples/separator/_component/test.ts, app/src/sandbox/toolbar-separator-6302, app/src/sandbox/role-7455): role=separator elements that are not focusable and do not resize a pane"
+    },
+    {
+      "reason": "base-ui static separators (packages/react/src/separator/Separator.test.tsx, packages/react/src/toolbar/separator/ToolbarSeparator.test.tsx): role=separator + aria-orientation conformance only, no size control"
+    },
+    {
+      "reason": "react-aria static separators (packages/react-aria-components/test/Separator.test.js, packages/@adobe/react-spectrum/test/divider/Divider.test.js): render/class/DOM-prop assertions on a static separator; useSeparator is not focusable and does not resize"
+    },
+    {
+      "reason": "react-aria table column resizing (packages/react-aria-components/test/Table.test.js resizeCol, packages/@adobe/react-spectrum/test/table/TableSizing.test.tsx, packages/react-aria/test/table/ariaTableResizing.test.tsx, packages/react-aria/test/table/tableResizingTests.tsx): ColumnResizer/Resizer render an <input type=range> with role=slider and resize table columns; this is the Slider pattern, not the window splitter keyboard model (Enter starts keyboard resize, no collapse/restore, no F6 cycle)"
+    },
+    {
+      "reason": "@adobe/spectrum-css-temp/components/splitview/*.css: CSS custom-property styles with no React component or test"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "windowsplitter.apg.about.vertical-splitter-between-left-and-right-panes",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#aboutthispattern",
+      "upstreamTest": "About This Pattern: a vertical splitter divides left and right panes",
+      "apg": "about",
+      "config": {
+        "orientation": "vertical",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "separator": {
+                "role": "separator",
+                "aria-orientation": "vertical",
+                "aria-valuenow": "4"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "windowsplitter.apg.about.horizontal-splitter-between-top-and-bottom-panes",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#aboutthispattern",
+      "upstreamTest": "About This Pattern: a horizontal splitter divides top and bottom panes",
+      "apg": "about",
+      "config": {
+        "orientation": "horizontal",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "separator": {
+                "role": "separator",
+                "aria-orientation": "horizontal",
+                "aria-valuenow": "4"
+              }
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "windowsplitter.apg.keyboard.left-arrow-moves-vertical-splitter-left",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: Left Arrow moves a vertical splitter to the left",
+      "apg": "keyboard",
+      "config": {
+        "orientation": "vertical",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "separator" },
+        { "event": "key", "key": "ArrowLeft", "target": "separator" },
+        {
+          "expect": {
+            "focus": "separator",
+            "attrs": { "separator": { "aria-valuenow": "2" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "windowsplitter.apg.keyboard.right-arrow-moves-vertical-splitter-right",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: Right Arrow moves a vertical splitter to the right",
+      "apg": "keyboard",
+      "config": {
+        "orientation": "vertical",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "separator" },
+        { "event": "key", "key": "ArrowRight", "target": "separator" },
+        {
+          "expect": {
+            "focus": "separator",
+            "attrs": { "separator": { "aria-valuenow": "6" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "windowsplitter.apg.keyboard.vertical-splitter-ignores-up-and-down-arrows",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: only the arrow pair matching the splitter axis moves it",
+      "apg": "keyboard",
+      "config": {
+        "orientation": "vertical",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "separator" },
+        { "event": "key", "key": "ArrowUp", "target": "separator" },
+        { "event": "key", "key": "ArrowDown", "target": "separator" },
+        { "expect": { "attrs": { "separator": { "aria-valuenow": "4" } } } }
+      ]
+    },
+    {
+      "id": "windowsplitter.apg.keyboard.up-arrow-moves-horizontal-splitter-up",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: Up Arrow moves a horizontal splitter up",
+      "apg": "keyboard",
+      "config": {
+        "orientation": "horizontal",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "separator" },
+        { "event": "key", "key": "ArrowUp", "target": "separator" },
+        {
+          "expect": {
+            "focus": "separator",
+            "attrs": { "separator": { "aria-valuenow": "2" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "windowsplitter.apg.keyboard.down-arrow-moves-horizontal-splitter-down",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: Down Arrow moves a horizontal splitter down",
+      "apg": "keyboard",
+      "config": {
+        "orientation": "horizontal",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "separator" },
+        { "event": "key", "key": "ArrowDown", "target": "separator" },
+        {
+          "expect": {
+            "focus": "separator",
+            "attrs": { "separator": { "aria-valuenow": "6" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "windowsplitter.apg.keyboard.horizontal-splitter-ignores-left-and-right-arrows",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: only the arrow pair matching the splitter axis moves it",
+      "apg": "keyboard",
+      "config": {
+        "orientation": "horizontal",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "separator" },
+        { "event": "key", "key": "ArrowLeft", "target": "separator" },
+        { "event": "key", "key": "ArrowRight", "target": "separator" },
+        { "expect": { "attrs": { "separator": { "aria-valuenow": "4" } } } }
+      ]
+    },
+    {
+      "id": "windowsplitter.apg.keyboard.left-arrow-clamps-at-minimum",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: the splitter cannot move below the minimum position",
+      "apg": "keyboard",
+      "config": {
+        "orientation": "vertical",
+        "value": 0,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "separator" },
+        { "event": "key", "key": "ArrowLeft", "target": "separator" },
+        { "expect": { "attrs": { "separator": { "aria-valuenow": "0" } } } }
+      ]
+    },
+    {
+      "id": "windowsplitter.apg.keyboard.right-arrow-clamps-at-maximum",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: the splitter cannot move above the maximum position",
+      "apg": "keyboard",
+      "config": {
+        "orientation": "vertical",
+        "value": 6,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "separator" },
+        { "event": "key", "key": "ArrowRight", "target": "separator" },
+        { "expect": { "attrs": { "separator": { "aria-valuenow": "6" } } } }
+      ]
+    },
+    {
+      "id": "windowsplitter.apg.keyboard.enter-collapses-primary-pane",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: Enter collapses the primary pane when it is not collapsed",
+      "apg": "keyboard",
+      "config": {
+        "orientation": "vertical",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2,
+        "collapsed": false
+      },
+      "steps": [
+        { "event": "focus", "target": "separator" },
+        { "event": "key", "key": "Enter", "target": "separator" },
+        {
+          "expect": {
+            "attrs": {
+              "separator": { "aria-valuenow": "0", "aria-valuemin": "0" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "windowsplitter.apg.keyboard.enter-restores-previous-position",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: Enter restores the splitter to its previous position when the pane is collapsed",
+      "apg": "keyboard",
+      "config": {
+        "orientation": "vertical",
+        "value": 2,
+        "min": 0,
+        "max": 6,
+        "step": 2,
+        "prev": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "separator" },
+        { "event": "key", "key": "Enter", "target": "separator" },
+        { "expect": { "attrs": { "separator": { "aria-valuenow": "0" } } } },
+        { "event": "key", "key": "Enter", "target": "separator" },
+        { "expect": { "attrs": { "separator": { "aria-valuenow": "2" } } } }
+      ],
+      "notes": "The remembered position is the value at the moment of collapse; moving to value 2 first makes the restore distinguishable from the initial 4."
+    },
+    {
+      "id": "windowsplitter.apg.keyboard.home-moves-splitter-to-minimum",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction (optional): Home moves splitter to the smallest allowed primary-pane size",
+      "apg": "keyboard",
+      "config": {
+        "orientation": "vertical",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "separator" },
+        { "event": "key", "key": "Home", "target": "separator" },
+        { "expect": { "attrs": { "separator": { "aria-valuenow": "0" } } } }
+      ]
+    },
+    {
+      "id": "windowsplitter.apg.keyboard.end-moves-splitter-to-maximum",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction (optional): End moves splitter to the largest allowed primary-pane size",
+      "apg": "keyboard",
+      "config": {
+        "orientation": "vertical",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "separator" },
+        { "event": "key", "key": "End", "target": "separator" },
+        { "expect": { "attrs": { "separator": { "aria-valuenow": "6" } } } }
+      ]
+    },
+    {
+      "id": "windowsplitter.apg.keyboard.f6-cycles-focus-through-panes",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction (optional): F6 cycles through window panes",
+      "apg": "keyboard",
+      "config": {
+        "orientation": "vertical",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "separator" },
+        { "event": "key", "key": "F6", "target": "separator" },
+        { "expect": { "focus": "secondary" } },
+        { "event": "key", "key": "F6", "target": "secondary" },
+        { "expect": { "focus": "primary" } },
+        { "event": "key", "key": "F6", "target": "primary" },
+        { "expect": { "focus": "separator" } }
+      ],
+      "notes": "APG does not fix the cycle order; the order asserted here is the one modelled by specs/apg/windowsplitter.qnt (splitter -> secondary -> primary -> splitter)."
+    },
+    {
+      "id": "windowsplitter.apg.keyboard.keys-ignored-when-a-pane-has-focus",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: splitter keys operate only while the splitter has focus",
+      "apg": "keyboard",
+      "config": {
+        "orientation": "vertical",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "separator" },
+        { "event": "key", "key": "F6", "target": "separator" },
+        { "event": "key", "key": "ArrowLeft", "target": "secondary" },
+        { "event": "key", "key": "Enter", "target": "secondary" },
+        {
+          "expect": {
+            "focus": "secondary",
+            "attrs": { "separator": { "aria-valuenow": "4" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "windowsplitter.apg.keyboard.fixed-splitter-ignores-arrows",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction note: a fixed size splitter omits implementation of the arrow keys",
+      "apg": "keyboard",
+      "config": {
+        "orientation": "vertical",
+        "fixed": true,
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "separator" },
+        { "event": "key", "key": "ArrowLeft", "target": "separator" },
+        { "event": "key", "key": "ArrowRight", "target": "separator" },
+        { "event": "key", "key": "Home", "target": "separator" },
+        { "event": "key", "key": "End", "target": "separator" },
+        { "expect": { "attrs": { "separator": { "aria-valuenow": "4" } } } }
+      ]
+    },
+    {
+      "id": "windowsplitter.apg.keyboard.fixed-splitter-enter-toggles-two-positions",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#aboutthispattern",
+      "upstreamTest": "About This Pattern: a fixed splitter toggles between two positions",
+      "apg": "keyboard",
+      "config": {
+        "orientation": "vertical",
+        "fixed": true,
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2,
+        "prev": 4
+      },
+      "steps": [
+        { "event": "focus", "target": "separator" },
+        { "event": "key", "key": "Enter", "target": "separator" },
+        { "expect": { "attrs": { "separator": { "aria-valuenow": "0" } } } },
+        { "event": "key", "key": "Enter", "target": "separator" },
+        { "expect": { "attrs": { "separator": { "aria-valuenow": "4" } } } }
+      ],
+      "notes": "A fixed splitter still collapses/restores with Enter; only the arrow keys are omitted (previous scenario)."
+    },
+
+    {
+      "id": "windowsplitter.apg.roles.focusable-splitter-has-role-separator",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: the focusable splitter element has role separator",
+      "apg": "roles",
+      "config": {
+        "orientation": "vertical",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "separator": { "role": "separator", "tabindex": "0" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "windowsplitter.apg.roles.aria-valuenow-represents-current-position",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: aria-valuenow is a decimal for the current separator position",
+      "apg": "roles",
+      "config": {
+        "orientation": "vertical",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        { "expect": { "attrs": { "separator": { "aria-valuenow": "4" } } } },
+        { "event": "focus", "target": "separator" },
+        { "event": "key", "key": "ArrowRight", "target": "separator" },
+        { "expect": { "attrs": { "separator": { "aria-valuenow": "6" } } } }
+      ]
+    },
+    {
+      "id": "windowsplitter.apg.roles.aria-valuemin-is-minimum-position",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: aria-valuemin represents the position of the smallest primary pane, typically 0",
+      "apg": "roles",
+      "config": {
+        "orientation": "vertical",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        { "expect": { "attrs": { "separator": { "aria-valuemin": "0" } } } }
+      ]
+    },
+    {
+      "id": "windowsplitter.apg.roles.aria-valuemax-is-maximum-position",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: aria-valuemax represents the position of the largest primary pane, typically 100",
+      "apg": "roles",
+      "config": {
+        "orientation": "vertical",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        { "expect": { "attrs": { "separator": { "aria-valuemax": "6" } } } }
+      ],
+      "notes": "APG says aria-valuemax is typically 100; this scenario pins the range end of the modelled widget (maximum 6)."
+    },
+    {
+      "id": "windowsplitter.apg.roles.aria-label-names-primary-pane",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: without a visible primary-pane label, the splitter gets its name from aria-label",
+      "apg": "roles",
+      "config": {
+        "orientation": "vertical",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "labelledby": null
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "separator": { "aria-label": "*", "aria-labelledby": null }
+            }
+          }
+        }
+      ],
+      "notes": "Attribute value \"*\" means any non-empty implementation-chosen accessible name matching the primary pane name."
+    },
+    {
+      "id": "windowsplitter.apg.roles.aria-labelledby-references-primary-pane-label",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: a visible primary-pane label is referenced by aria-labelledby on the splitter",
+      "apg": "roles",
+      "config": {
+        "orientation": "vertical",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "labelledby": "primary-label"
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "separator": { "aria-labelledby": "primary-label" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "windowsplitter.apg.roles.aria-controls-references-primary-pane",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: the splitter has aria-controls referring to the primary pane",
+      "apg": "roles",
+      "config": {
+        "orientation": "vertical",
+        "value": 4,
+        "min": 0,
+        "max": 6,
+        "step": 2
+      },
+      "steps": [
+        {
+          "expect": { "attrs": { "separator": { "aria-controls": "*" } } }
+        }
+      ],
+      "notes": "Attribute value \"*\" means any non-empty IDREF (or IDREF list) identifying the primary pane."
+    }
+  ]
+}

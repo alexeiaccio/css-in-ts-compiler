@@ -1,0 +1,201 @@
+{
+  "pattern": "meter",
+  "source": "react-aria",
+  "commit": "99e610236887da619ad9d54a1cd87983166c043d",
+  "license": "Apache-2.0",
+  "skipped": [
+    { "reason": "Meter > should support slot (aria-label passthrough only)" },
+    { "reason": "Meter > should support custom render function" },
+    { "reason": "@adobe Meter > supports UNSAFE_className" },
+    { "reason": "@adobe Meter > supports custom DOM props" },
+    { "reason": "Meter > renders (visible .value text and .bar width)" }
+  ],
+  "scenarios": [
+    {
+      "id": "meter.react-aria.default-meter-attributes",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Meter.test.js#L33",
+      "upstreamTest": "Meter > renders",
+      "apg": "aria",
+      "config": { "value": 25, "labelId": "meter-label" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "meter": {
+                "role": "meter",
+                "aria-valuenow": "25",
+                "aria-labelledby": "meter-label"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "meter.react-aria.custom-range",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Meter.test.js#L52",
+      "upstreamTest": "Meter > supports a custom range",
+      "apg": "aria",
+      "config": { "value": 3, "minValue": 0, "maxValue": 6 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "meter": {
+                "aria-valuenow": "3",
+                "aria-valuemin": "0",
+                "aria-valuemax": "6",
+                "aria-valuetext": "50%"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "meter.react-aria.empty-range",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Meter.test.js#L71",
+      "upstreamTest": "Meter > renders 0 percent for an empty range",
+      "apg": "aria",
+      "config": { "value": 0, "minValue": 0, "maxValue": 0 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "meter": {
+                "aria-valuenow": "0",
+                "aria-valuemin": "0",
+                "aria-valuemax": "0",
+                "aria-valuetext": "0%"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "An empty range must not produce NaN in aria-valuetext."
+    },
+    {
+      "id": "meter.react-aria.slot-supplies-aria-label",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Meter.test.js#L91",
+      "upstreamTest": "Meter > should support slot",
+      "apg": "aria",
+      "config": { "slot": "test" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "meter": { "aria-label": "test" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "meter.react-aria.adobe-defaults",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/meter/Meter.test.js#L18",
+      "upstreamTest": "Meter > handles defaults",
+      "apg": "aria",
+      "config": { "labelId": "meter-label" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "meter": {
+                "aria-valuemin": "0",
+                "aria-valuemax": "100",
+                "aria-valuenow": "0",
+                "aria-valuetext": "0%",
+                "aria-labelledby": "meter-label"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "meter.react-aria.adobe-value-updates-attributes",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/meter/Meter.test.js#L32",
+      "upstreamTest": "Meter > updates all fields by value",
+      "apg": "aria",
+      "config": { "value": 30 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "meter": {
+                "aria-valuemin": "0",
+                "aria-valuemax": "100",
+                "aria-valuenow": "30",
+                "aria-valuetext": "30%"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "meter.react-aria.adobe-clamps-low",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/meter/Meter.test.js#L41",
+      "upstreamTest": "Meter > clamps values to 0",
+      "apg": "aria",
+      "config": { "value": -1 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "meter": { "aria-valuenow": "0", "aria-valuetext": "0%" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "meter.react-aria.adobe-clamps-high",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/meter/Meter.test.js#L48",
+      "upstreamTest": "Meter > clamps values to 100",
+      "apg": "aria",
+      "config": { "value": 1000 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "meter": { "aria-valuenow": "100", "aria-valuetext": "100%" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "meter.react-aria.adobe-negative-range",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/meter/Meter.test.js#L61",
+      "upstreamTest": "Meter > can handle negative values",
+      "apg": "aria",
+      "config": { "value": 0, "minValue": -5, "maxValue": 5 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "meter": {
+                "role": "meter",
+                "aria-valuenow": "0",
+                "aria-valuetext": "50%"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "meter.react-aria.adobe-aria-label",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/meter/Meter.test.js#L69",
+      "upstreamTest": "Meter > supports aria-label",
+      "apg": "aria",
+      "config": { "aria-label": "Meter" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "meter": { "aria-label": "Meter" } }
+          }
+        }
+      ]
+    }
+  ]
+}

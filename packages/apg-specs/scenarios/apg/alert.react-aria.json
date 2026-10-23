@@ -1,0 +1,98 @@
+{
+  "pattern": "alert",
+  "source": "react-aria",
+  "commit": "99e610236887da619ad9d54a1cd87983166c043d",
+  "license": "Apache-2.0",
+  "skipped": [
+    { "reason": "Toast > should render with default class" },
+    { "reason": "Toast > pauses timers when hovering" },
+    { "reason": "Toast > pauses timers when focusing" },
+    { "reason": "Toast > should restore focus when a toast exits" },
+    { "reason": "Toast > should restore focus when removing with the mouse" },
+    { "reason": "useToast > handles close button" },
+    { "reason": "useToast > passes through data attributes" },
+    {
+      "reason": "single toast at a time > moves focus to the next toast when it appears"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "alert.react-aria.toast-content-role-alert",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/toast/useToast.test.js#L36",
+      "upstreamTest": "useToast > handles defaults",
+      "apg": "announcements",
+      "config": {},
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "content": { "role": "alert" },
+              "toast": { "role": "alertdialog" },
+              "close": { "aria-label": "Close" }
+            }
+          }
+        }
+      ],
+      "notes": "The live announcement is role=alert on the toast content; the surrounding toast is an alertdialog so it can also hold focus."
+    },
+    {
+      "id": "alert.react-aria.live-toast-exposes-alert",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Toast.test.js#L72",
+      "upstreamTest": "Toast > should trigger a toast",
+      "apg": "announcements",
+      "config": {},
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "toast": { "role": null }, "content": { "role": null } }
+          }
+        },
+        { "event": "click", "target": "add" },
+        {
+          "expect": {
+            "attrs": {
+              "toast": { "role": "alertdialog", "aria-modal": "false" },
+              "content": { "role": "alert" }
+            }
+          }
+        },
+        { "event": "click", "target": "close" },
+        {
+          "expect": {
+            "attrs": { "toast": { "role": null }, "content": { "role": null } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "alert.react-aria.no-alert-before-message",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Toast.test.js#L77",
+      "upstreamTest": "Toast > should trigger a toast (no alertdialog or alert rendered before adding)",
+      "apg": "announcements",
+      "config": {},
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "toast": { "role": null }, "content": { "role": null } }
+          }
+        }
+      ],
+      "notes": "An empty queue renders no live region: the alert only exists with a message."
+    },
+    {
+      "id": "alert.react-aria.region-labelled-by-announcement-count",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Toast.test.js#L83",
+      "upstreamTest": "Toast > should trigger a toast (toast region aria-label describes the number of notifications)",
+      "apg": "announcements",
+      "config": {},
+      "steps": [
+        { "event": "click", "target": "add" },
+        {
+          "expect": {
+            "attrs": { "region": { "aria-label": "1 notification." } }
+          }
+        }
+      ]
+    }
+  ]
+}

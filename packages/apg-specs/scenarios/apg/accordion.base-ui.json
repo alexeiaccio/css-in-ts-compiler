@@ -1,0 +1,1005 @@
+{
+  "pattern": "accordion",
+  "source": "base-ui",
+  "commit": "19511bb171f3b360b006c94cf6d07e53cb446505",
+  "license": "MIT",
+  "skipped": [
+    {
+      "reason": "styling and non-ARIA data-* attributes (data-open, data-panel-open, data-index, data-value)"
+    },
+    {
+      "reason": "React render-function component replacement (render={<span/>}); the non-native trigger behaviour it exercises is ported via the nativeButton prop"
+    },
+    {
+      "reason": "trigger event-handler escape hatch (event.preventBaseUIHandler())"
+    },
+    {
+      "reason": "SSR/hydration id association and React.Activity keyframe suppression"
+    },
+    { "reason": "CSS transitions and keyframe animation behaviour" },
+    { "reason": "development-time console warnings and assertions" },
+    {
+      "reason": "component context errors (parts rendered outside their required parent)"
+    },
+    { "reason": "describeConformance generic props/ref/className conformance" },
+    {
+      "reason": "library-specific change-event-detail API (eventDetails.cancel()/isCanceled/reason)"
+    },
+    { "reason": "unregistering generated part ids across conditional mounting" }
+  ],
+  "scenarios": [
+    {
+      "id": "accordion.base-ui.aria-expanded-and-controls",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L41",
+      "upstreamTest": "<Accordion.Root /> > ARIA attributes > renders correct ARIA attributes",
+      "apg": "aria",
+      "config": {
+        "items": 1,
+        "defaultExpanded": [0]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true",
+                "aria-controls": "panel:0"
+              },
+              "panel:0": {
+                "role": "region",
+                "aria-labelledby": "trigger:0"
+              }
+            },
+            "visible": ["panel:0"]
+          }
+        }
+      ],
+      "notes": "Auto-generated ids are normalised to part tokens (trigger:0 / panel:0). All accordion callbacks take a single argument; in events a sub-array is an array-valued argument."
+    },
+    {
+      "id": "accordion.base-ui.aria-controls-manual-panel-id",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L62",
+      "upstreamTest": "<Accordion.Root /> > ARIA attributes > references manual panel id in trigger aria-controls",
+      "apg": "aria",
+      "config": {
+        "items": 1,
+        "defaultExpanded": [0],
+        "panelId": "custom-panel-id"
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-controls": "custom-panel-id"
+              },
+              "panel:0": {
+                "id": "custom-panel-id"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.base-ui.aria-labelledby-manual-trigger-id",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L81",
+      "upstreamTest": "<Accordion.Root /> > ARIA attributes > references manual trigger id in panel aria-labelledby",
+      "apg": "aria",
+      "config": {
+        "items": 1,
+        "defaultExpanded": [0],
+        "triggerId": "custom-trigger-id"
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "panel:0": {
+                "aria-labelledby": "custom-trigger-id"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.base-ui.aria-labelledby-tracks-trigger-id-change",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L98",
+      "upstreamTest": "<Accordion.Root /> > ARIA attributes > updates panel labeling when a manual trigger id is added or changed",
+      "apg": "aria",
+      "config": {
+        "items": 1,
+        "defaultExpanded": [0]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "id": "trigger:0"
+              },
+              "panel:0": {
+                "aria-labelledby": "trigger:0"
+              }
+            }
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "triggerId",
+          "value": "custom-trigger-id-1"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "id": "custom-trigger-id-1"
+              },
+              "panel:0": {
+                "aria-labelledby": "custom-trigger-id-1"
+              }
+            }
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "triggerId",
+          "value": "custom-trigger-id-2"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "id": "custom-trigger-id-2"
+              },
+              "panel:0": {
+                "aria-labelledby": "custom-trigger-id-2"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.base-ui.aria-labelledby-restored-when-trigger-id-removed",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L145",
+      "upstreamTest": "<Accordion.Root /> > ARIA attributes > restores panel labeling when a manual trigger id is removed",
+      "apg": "aria",
+      "config": {
+        "items": 1,
+        "defaultExpanded": [0],
+        "triggerId": "custom-trigger-id"
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "panel:0": {
+                "aria-labelledby": "custom-trigger-id"
+              }
+            }
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "triggerId",
+          "value": null
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "id": "trigger:0"
+              },
+              "panel:0": {
+                "aria-labelledby": "trigger:0"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.base-ui.uncontrolled-click-toggles",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L250",
+      "upstreamTest": "<Accordion.Root /> > uncontrolled > open state",
+      "apg": "pointer",
+      "config": {
+        "items": 1
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              }
+            },
+            "visible": []
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"]
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              }
+            },
+            "visible": []
+          }
+        }
+      ],
+      "notes": "APG specifies Enter/Space only; pointer toggle recorded as an extension."
+    },
+    {
+      "id": "accordion.base-ui.default-value-opens-item",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L282",
+      "upstreamTest": "<Accordion.Root /> > uncontrolled > prop: defaultValue > custom item value",
+      "apg": "states",
+      "config": {
+        "items": 2,
+        "itemValues": ["first", "second"],
+        "defaultExpanded": ["first"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"],
+            "value": {
+              "expanded": ["first"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.base-ui.controlled-value-updates",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L310",
+      "upstreamTest": "<Accordion.Root /> > controlled > open state",
+      "apg": "states",
+      "config": {
+        "items": 1,
+        "expanded": []
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              }
+            },
+            "visible": []
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "expanded",
+          "value": [0]
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"]
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "expanded",
+          "value": []
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              }
+            },
+            "visible": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.base-ui.controlled-custom-item-value",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L342",
+      "upstreamTest": "<Accordion.Root /> > controlled > prop: value > custom item value",
+      "apg": "states",
+      "config": {
+        "items": 2,
+        "itemValues": ["one", "second"],
+        "expanded": ["one"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"],
+            "value": {
+              "expanded": ["one"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.base-ui.disabled-root-disables-all-parts",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L370",
+      "upstreamTest": "<Accordion.Root /> > prop: disabled > can disable the whole accordion",
+      "apg": "states",
+      "config": {
+        "items": 2,
+        "defaultExpanded": [0],
+        "disabled": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "disabled": "true"
+              },
+              "trigger:1": {
+                "disabled": "true"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Upstream marks item/header/panel with data-disabled; scenario asserts native disabled on the triggers."
+    },
+    {
+      "id": "accordion.base-ui.disabled-item-disables-its-parts",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L399",
+      "upstreamTest": "<Accordion.Root /> > prop: disabled > can disable one accordion item",
+      "apg": "states",
+      "config": {
+        "items": 2,
+        "defaultExpanded": [0],
+        "disabledItems": [0]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "disabled": "true"
+              },
+              "trigger:1": {
+                "disabled": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.base-ui.disabled-item-ignores-activation",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L431",
+      "upstreamTest": "<Accordion.Root /> > prop: disabled > does not toggle or fire callbacks when the item is disabled",
+      "apg": "states",
+      "config": {
+        "items": 2,
+        "disabledItems": [0]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "event": "focus",
+          "target": "trigger:0"
+        },
+        {
+          "event": "key",
+          "key": "Space",
+          "target": "trigger:0"
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              }
+            },
+            "visible": [],
+            "events": {
+              "onExpandedChange": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.base-ui.disabled-root-ignores-activation",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L431",
+      "upstreamTest": "<Accordion.Root /> > prop: disabled > does not toggle or fire callbacks when the root is disabled",
+      "apg": "states",
+      "config": {
+        "items": 2,
+        "disabled": true
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "event": "focus",
+          "target": "trigger:0"
+        },
+        {
+          "event": "key",
+          "key": "Space",
+          "target": "trigger:0"
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              }
+            },
+            "visible": [],
+            "events": {
+              "onExpandedChange": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.base-ui.enter-toggles",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L496",
+      "upstreamTest": "<Accordion.Root /> > keyboard interactions > key: Enter toggles the Accordion open state",
+      "apg": "keyboard",
+      "config": {
+        "items": 1
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "trigger:0"
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"]
+          }
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              }
+            },
+            "visible": []
+          }
+        }
+      ],
+      "notes": "Upstream also runs this with a non-native span trigger; behaviour is identical."
+    },
+    {
+      "id": "accordion.base-ui.space-toggles",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L496",
+      "upstreamTest": "<Accordion.Root /> > keyboard interactions > key: Space toggles the Accordion open state",
+      "apg": "keyboard",
+      "config": {
+        "items": 1
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "trigger:0"
+        },
+        {
+          "event": "key",
+          "key": "Space",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"]
+          }
+        },
+        {
+          "event": "key",
+          "key": "Space",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              }
+            },
+            "visible": []
+          }
+        }
+      ],
+      "notes": "Upstream also runs this with a non-native span trigger; behaviour is identical."
+    },
+    {
+      "id": "accordion.base-ui.space-activates-on-keyup",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L541",
+      "upstreamTest": "<Accordion.Root /> > keyboard activation timing > opens and closes on Space keyup",
+      "apg": "extension",
+      "config": {
+        "items": 1
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "trigger:0"
+        },
+        {
+          "event": "key",
+          "key": "Space",
+          "phase": "down",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              }
+            },
+            "visible": [],
+            "events": {
+              "onExpandedChange": []
+            }
+          }
+        },
+        {
+          "event": "key",
+          "key": "Space",
+          "phase": "up",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"],
+            "events": {
+              "onExpandedChange": [true]
+            }
+          }
+        }
+      ],
+      "notes": "APG does not fix keydown/keyup timing. Upstream callback is onOpenChange(nextOpen, details)."
+    },
+    {
+      "id": "accordion.base-ui.multiple-allows-two-open",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L818",
+      "upstreamTest": "<Accordion.Root /> > prop: multiple > multiple items can be open when `multiple = true`",
+      "apg": "about",
+      "config": {
+        "items": 2,
+        "multiple": true
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "event": "click",
+          "target": "trigger:1"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              },
+              "trigger:1": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0", "panel:1"]
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              },
+              "trigger:1": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:1"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.base-ui.single-closes-other",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L859",
+      "upstreamTest": "<Accordion.Root /> > prop: multiple > when false only one item can be open",
+      "apg": "about",
+      "config": {
+        "items": 2,
+        "multiple": false
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"]
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:1"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              },
+              "trigger:1": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:1"]
+          }
+        }
+      ],
+      "notes": "APG allows either single or multiple expansion; single-expansion recorded against aria-expanded/visibility."
+    },
+    {
+      "id": "accordion.base-ui.on-expanded-change-default-values",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L899",
+      "upstreamTest": "<Accordion.Root /> > prop: onValueChange > default item value",
+      "apg": "extension",
+      "config": {
+        "items": 2,
+        "multiple": true
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "events": {
+              "onExpandedChange": [[0]]
+            }
+          }
+        },
+        {
+          "event": "focus",
+          "target": "trigger:1"
+        },
+        {
+          "event": "key",
+          "key": "Space",
+          "target": "trigger:1"
+        },
+        {
+          "expect": {
+            "events": {
+              "onExpandedChange": [[0], [0, 1]]
+            }
+          }
+        }
+      ],
+      "notes": "Upstream callback onValueChange receives the full expanded-value array."
+    },
+    {
+      "id": "accordion.base-ui.on-expanded-change-custom-values",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L939",
+      "upstreamTest": "<Accordion.Root /> > prop: onValueChange > custom item value",
+      "apg": "extension",
+      "config": {
+        "items": 2,
+        "multiple": true,
+        "itemValues": ["one", "two"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger:1"
+        },
+        {
+          "expect": {
+            "events": {
+              "onExpandedChange": [["two"]]
+            }
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "events": {
+              "onExpandedChange": [["two"], ["two", "one"]]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.base-ui.on-expanded-change-single-mode",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L974",
+      "upstreamTest": "<Accordion.Root /> > prop: onValueChange > `multiple` is false",
+      "apg": "extension",
+      "config": {
+        "items": 2,
+        "multiple": false,
+        "itemValues": ["one", "two"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "events": {
+              "onExpandedChange": [["one"]]
+            }
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:1"
+        },
+        {
+          "expect": {
+            "events": {
+              "onExpandedChange": [["one"], ["two"]]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.base-ui.multiple-keeps-array-item-value",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/root/AccordionRoot.test.tsx#L792",
+      "upstreamTest": "<Accordion.Root /> > BaseUIChangeEventDetails > keeps an array item value intact while multiple",
+      "apg": "extension",
+      "config": {
+        "items": 1,
+        "multiple": true,
+        "itemValues": [["section", "details"]]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"],
+            "events": {
+              "onExpandedChange": [["section", "details"]]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.base-ui.disabled-trigger-has-disabled-attribute",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/trigger/AccordionTrigger.test.tsx#L21",
+      "upstreamTest": "<Accordion.Trigger /> > renders the disabled attribute when disabled",
+      "apg": "states",
+      "config": {
+        "items": 1,
+        "disabledItems": [0]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "disabled": "true",
+                "aria-disabled": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.base-ui.disabled-non-native-trigger-removed-from-tab-order",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/trigger/AccordionTrigger.test.tsx#L38",
+      "upstreamTest": "<Accordion.Trigger /> > removes a disabled non-native trigger from the tab order",
+      "apg": "states",
+      "config": {
+        "items": 1,
+        "disabledItems": [0],
+        "nativeButton": false
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-disabled": "true",
+                "tabindex": "-1",
+                "disabled": null
+              }
+            }
+          }
+        },
+        {
+          "event": "key",
+          "key": "Tab",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "focus": null
+          }
+        }
+      ],
+      "notes": "focus:null means focus left the accordion (nothing in it is tabbable)."
+    },
+    {
+      "id": "accordion.base-ui.non-native-trigger-tabbable",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/trigger/AccordionTrigger.test.tsx#L60",
+      "upstreamTest": "<Accordion.Trigger /> > keeps a non-native trigger tabbable",
+      "apg": "states",
+      "config": {
+        "items": 1,
+        "nativeButton": false
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "tabindex": "0"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.base-ui.keep-mounted-closed-panel-hidden",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/panel/AccordionPanel.test.tsx#L97",
+      "upstreamTest": "<Accordion.Panel /> > passes root keepMounted to closed panels",
+      "apg": "extension",
+      "config": {
+        "items": 1,
+        "keepMounted": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "panel:0": {
+                "hidden": "true"
+              }
+            },
+            "visible": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.base-ui.hidden-until-found-closed-panels",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/accordion/panel/AccordionPanel.test.tsx#L112",
+      "upstreamTest": "<Accordion.Panel /> > passes root hiddenUntilFound to closed panels and allows panel overrides",
+      "apg": "extension",
+      "config": {
+        "items": 2,
+        "keepMounted": true,
+        "hiddenUntilFound": true,
+        "panelOverrides": {
+          "1": {
+            "hiddenUntilFound": false,
+            "keepMounted": false
+          }
+        }
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "panel:0": {
+                "hidden": "until-found"
+              }
+            },
+            "visible": []
+          }
+        }
+      ],
+      "notes": "Panel 1 overrides hiddenUntilFound/keepMounted and is unmounted while closed, so it is absent from visible."
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>APG disclosure — the Quint spec as SCXML</title>
+    <!--
+      <scxml-view> is @tinyactors/scxmljs (MIT). `trusted` skips the QuickJS
+      sandbox download: this chart is ours, and the point here is the viewer.
+      Serve this folder over HTTP (not file://): the element fetches the chart.
+    -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@tinyactors/scxmljs/view": "https://esm.sh/@tinyactors/scxmljs@0.1.0/view"
+        }
+      }
+    </script>
+    <script type="module">
+      import '@tinyactors/scxmljs/view';
+    </script>
+    <style>
+      body {
+        margin: 0;
+        font:
+          14px/1.4 system-ui,
+          sans-serif;
+      }
+      scxml-view {
+        display: block;
+        height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <scxml-view trusted src="./disclosure.scxml" direction="auto"></scxml-view>
+  </body>
+</html>

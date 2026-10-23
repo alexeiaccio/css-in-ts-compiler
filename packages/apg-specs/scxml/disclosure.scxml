@@ -1,0 +1,1664 @@
+<scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0"
+       datamodel="ecmascript" initial="s_false_false_none" name="apg disclosure">
+  <!-- Generated from ../../specs/apg/disclosure.qnt (45b28b7b6e8b…).
+       One state per reachable configuration of (expanded, disabled, focus); the other variables still update in the datamodel.
+       Invariants (the Quint oracle, not part of the machine): AriaMirrorsPanel, RenderFollowsState, DisabledNotFocused, FocusKnown, ChangesNonNegative -->
+  <datamodel>
+    <data id="expanded" expr="false"/>
+    <data id="disabled" expr="false"/>
+    <data id="focus" expr="&quot;none&quot;"/>
+    <data id="ariaExpanded" expr="&quot;false&quot;"/>
+    <data id="panelHidden" expr="true"/>
+    <data id="changes" expr="BigInt(&quot;0&quot;)"/>
+  </datamodel>
+  <script>
+      function ariaOf(e) {
+        return (e ? &quot;true&quot; : &quot;false&quot;);
+      }
+
+      function changed(before, after) {
+        return ((before === after) ? BigInt(&quot;0&quot;) : BigInt(&quot;1&quot;));
+      }
+  </script>
+
+  <state id="s_false_false_none">
+    <transition event="focusTrigger" target="s_false_false_trigger">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="blurTrigger" target="s_false_false_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = &quot;none&quot;;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="click" target="s_true_false_trigger">
+      <script>
+        {
+          const __next_expanded = (disabled ? expanded : (!expanded));
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = (disabled ? ariaExpanded : ariaOf((!expanded)));
+          const __next_panelHidden = (disabled ? panelHidden : expanded);
+          const __next_changes = (disabled ? changes : (changes + BigInt(&quot;1&quot;)));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="press" target="s_false_false_none">
+      <script>
+        {
+          const __next_expanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (!expanded) : expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? ariaOf((!expanded)) : ariaExpanded);
+          const __next_panelHidden = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? expanded : panelHidden);
+          const __next_changes = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (changes + BigInt(&quot;1&quot;)) : changes);
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="expand" target="s_true_false_none">
+      <script>
+        {
+          const __next_expanded = true;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;true&quot;;
+          const __next_panelHidden = false;
+          const __next_changes = (changes + changed(expanded, true));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="collapse" target="s_false_false_none">
+      <script>
+        {
+          const __next_expanded = false;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;false&quot;;
+          const __next_panelHidden = true;
+          const __next_changes = (changes + changed(expanded, false));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="toggle" target="s_true_false_none">
+      <script>
+        {
+          const __next_expanded = (!expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaOf((!expanded));
+          const __next_panelHidden = expanded;
+          const __next_changes = (changes + BigInt(&quot;1&quot;));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="disable" target="s_false_true_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = true;
+          const __next_focus = ((focus === &quot;trigger&quot;) ? &quot;unknown&quot; : focus);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="enable" target="s_false_false_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = false;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+  </state>
+  <state id="s_false_false_trigger">
+    <transition event="focusTrigger" target="s_false_false_trigger">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="blurTrigger" target="s_false_false_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = &quot;none&quot;;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="click" target="s_true_false_trigger">
+      <script>
+        {
+          const __next_expanded = (disabled ? expanded : (!expanded));
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = (disabled ? ariaExpanded : ariaOf((!expanded)));
+          const __next_panelHidden = (disabled ? panelHidden : expanded);
+          const __next_changes = (disabled ? changes : (changes + BigInt(&quot;1&quot;)));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="press" target="s_true_false_trigger">
+      <script>
+        {
+          const __next_expanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (!expanded) : expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? ariaOf((!expanded)) : ariaExpanded);
+          const __next_panelHidden = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? expanded : panelHidden);
+          const __next_changes = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (changes + BigInt(&quot;1&quot;)) : changes);
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="expand" target="s_true_false_trigger">
+      <script>
+        {
+          const __next_expanded = true;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;true&quot;;
+          const __next_panelHidden = false;
+          const __next_changes = (changes + changed(expanded, true));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="collapse" target="s_false_false_trigger">
+      <script>
+        {
+          const __next_expanded = false;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;false&quot;;
+          const __next_panelHidden = true;
+          const __next_changes = (changes + changed(expanded, false));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="toggle" target="s_true_false_trigger">
+      <script>
+        {
+          const __next_expanded = (!expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaOf((!expanded));
+          const __next_panelHidden = expanded;
+          const __next_changes = (changes + BigInt(&quot;1&quot;));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="disable" target="s_false_true_unknown">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = true;
+          const __next_focus = ((focus === &quot;trigger&quot;) ? &quot;unknown&quot; : focus);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="enable" target="s_false_false_trigger">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = false;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+  </state>
+  <state id="s_true_false_trigger">
+    <transition event="focusTrigger" target="s_true_false_trigger">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="blurTrigger" target="s_true_false_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = &quot;none&quot;;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="click" target="s_false_false_trigger">
+      <script>
+        {
+          const __next_expanded = (disabled ? expanded : (!expanded));
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = (disabled ? ariaExpanded : ariaOf((!expanded)));
+          const __next_panelHidden = (disabled ? panelHidden : expanded);
+          const __next_changes = (disabled ? changes : (changes + BigInt(&quot;1&quot;)));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="press" target="s_false_false_trigger">
+      <script>
+        {
+          const __next_expanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (!expanded) : expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? ariaOf((!expanded)) : ariaExpanded);
+          const __next_panelHidden = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? expanded : panelHidden);
+          const __next_changes = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (changes + BigInt(&quot;1&quot;)) : changes);
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="expand" target="s_true_false_trigger">
+      <script>
+        {
+          const __next_expanded = true;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;true&quot;;
+          const __next_panelHidden = false;
+          const __next_changes = (changes + changed(expanded, true));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="collapse" target="s_false_false_trigger">
+      <script>
+        {
+          const __next_expanded = false;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;false&quot;;
+          const __next_panelHidden = true;
+          const __next_changes = (changes + changed(expanded, false));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="toggle" target="s_false_false_trigger">
+      <script>
+        {
+          const __next_expanded = (!expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaOf((!expanded));
+          const __next_panelHidden = expanded;
+          const __next_changes = (changes + BigInt(&quot;1&quot;));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="disable" target="s_true_true_unknown">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = true;
+          const __next_focus = ((focus === &quot;trigger&quot;) ? &quot;unknown&quot; : focus);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="enable" target="s_true_false_trigger">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = false;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+  </state>
+  <state id="s_true_false_none">
+    <transition event="focusTrigger" target="s_true_false_trigger">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="blurTrigger" target="s_true_false_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = &quot;none&quot;;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="click" target="s_false_false_trigger">
+      <script>
+        {
+          const __next_expanded = (disabled ? expanded : (!expanded));
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = (disabled ? ariaExpanded : ariaOf((!expanded)));
+          const __next_panelHidden = (disabled ? panelHidden : expanded);
+          const __next_changes = (disabled ? changes : (changes + BigInt(&quot;1&quot;)));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="press" target="s_true_false_none">
+      <script>
+        {
+          const __next_expanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (!expanded) : expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? ariaOf((!expanded)) : ariaExpanded);
+          const __next_panelHidden = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? expanded : panelHidden);
+          const __next_changes = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (changes + BigInt(&quot;1&quot;)) : changes);
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="expand" target="s_true_false_none">
+      <script>
+        {
+          const __next_expanded = true;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;true&quot;;
+          const __next_panelHidden = false;
+          const __next_changes = (changes + changed(expanded, true));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="collapse" target="s_false_false_none">
+      <script>
+        {
+          const __next_expanded = false;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;false&quot;;
+          const __next_panelHidden = true;
+          const __next_changes = (changes + changed(expanded, false));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="toggle" target="s_false_false_none">
+      <script>
+        {
+          const __next_expanded = (!expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaOf((!expanded));
+          const __next_panelHidden = expanded;
+          const __next_changes = (changes + BigInt(&quot;1&quot;));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="disable" target="s_true_true_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = true;
+          const __next_focus = ((focus === &quot;trigger&quot;) ? &quot;unknown&quot; : focus);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="enable" target="s_true_false_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = false;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+  </state>
+  <state id="s_false_true_none">
+    <transition event="focusTrigger" target="s_false_true_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="blurTrigger" target="s_false_true_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = &quot;none&quot;;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="click" target="s_false_true_none">
+      <script>
+        {
+          const __next_expanded = (disabled ? expanded : (!expanded));
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = (disabled ? ariaExpanded : ariaOf((!expanded)));
+          const __next_panelHidden = (disabled ? panelHidden : expanded);
+          const __next_changes = (disabled ? changes : (changes + BigInt(&quot;1&quot;)));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="press" target="s_false_true_none">
+      <script>
+        {
+          const __next_expanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (!expanded) : expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? ariaOf((!expanded)) : ariaExpanded);
+          const __next_panelHidden = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? expanded : panelHidden);
+          const __next_changes = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (changes + BigInt(&quot;1&quot;)) : changes);
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="expand" target="s_true_true_none">
+      <script>
+        {
+          const __next_expanded = true;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;true&quot;;
+          const __next_panelHidden = false;
+          const __next_changes = (changes + changed(expanded, true));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="collapse" target="s_false_true_none">
+      <script>
+        {
+          const __next_expanded = false;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;false&quot;;
+          const __next_panelHidden = true;
+          const __next_changes = (changes + changed(expanded, false));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="toggle" target="s_true_true_none">
+      <script>
+        {
+          const __next_expanded = (!expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaOf((!expanded));
+          const __next_panelHidden = expanded;
+          const __next_changes = (changes + BigInt(&quot;1&quot;));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="disable" target="s_false_true_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = true;
+          const __next_focus = ((focus === &quot;trigger&quot;) ? &quot;unknown&quot; : focus);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="enable" target="s_false_false_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = false;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+  </state>
+  <state id="s_false_true_unknown">
+    <transition event="focusTrigger" target="s_false_true_unknown">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="blurTrigger" target="s_false_true_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = &quot;none&quot;;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="click" target="s_false_true_unknown">
+      <script>
+        {
+          const __next_expanded = (disabled ? expanded : (!expanded));
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = (disabled ? ariaExpanded : ariaOf((!expanded)));
+          const __next_panelHidden = (disabled ? panelHidden : expanded);
+          const __next_changes = (disabled ? changes : (changes + BigInt(&quot;1&quot;)));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="press" target="s_false_true_unknown">
+      <script>
+        {
+          const __next_expanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (!expanded) : expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? ariaOf((!expanded)) : ariaExpanded);
+          const __next_panelHidden = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? expanded : panelHidden);
+          const __next_changes = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (changes + BigInt(&quot;1&quot;)) : changes);
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="expand" target="s_true_true_unknown">
+      <script>
+        {
+          const __next_expanded = true;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;true&quot;;
+          const __next_panelHidden = false;
+          const __next_changes = (changes + changed(expanded, true));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="collapse" target="s_false_true_unknown">
+      <script>
+        {
+          const __next_expanded = false;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;false&quot;;
+          const __next_panelHidden = true;
+          const __next_changes = (changes + changed(expanded, false));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="toggle" target="s_true_true_unknown">
+      <script>
+        {
+          const __next_expanded = (!expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaOf((!expanded));
+          const __next_panelHidden = expanded;
+          const __next_changes = (changes + BigInt(&quot;1&quot;));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="disable" target="s_false_true_unknown">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = true;
+          const __next_focus = ((focus === &quot;trigger&quot;) ? &quot;unknown&quot; : focus);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="enable" target="s_false_false_unknown">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = false;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+  </state>
+  <state id="s_true_true_unknown">
+    <transition event="focusTrigger" target="s_true_true_unknown">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="blurTrigger" target="s_true_true_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = &quot;none&quot;;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="click" target="s_true_true_unknown">
+      <script>
+        {
+          const __next_expanded = (disabled ? expanded : (!expanded));
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = (disabled ? ariaExpanded : ariaOf((!expanded)));
+          const __next_panelHidden = (disabled ? panelHidden : expanded);
+          const __next_changes = (disabled ? changes : (changes + BigInt(&quot;1&quot;)));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="press" target="s_true_true_unknown">
+      <script>
+        {
+          const __next_expanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (!expanded) : expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? ariaOf((!expanded)) : ariaExpanded);
+          const __next_panelHidden = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? expanded : panelHidden);
+          const __next_changes = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (changes + BigInt(&quot;1&quot;)) : changes);
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="expand" target="s_true_true_unknown">
+      <script>
+        {
+          const __next_expanded = true;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;true&quot;;
+          const __next_panelHidden = false;
+          const __next_changes = (changes + changed(expanded, true));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="collapse" target="s_false_true_unknown">
+      <script>
+        {
+          const __next_expanded = false;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;false&quot;;
+          const __next_panelHidden = true;
+          const __next_changes = (changes + changed(expanded, false));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="toggle" target="s_false_true_unknown">
+      <script>
+        {
+          const __next_expanded = (!expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaOf((!expanded));
+          const __next_panelHidden = expanded;
+          const __next_changes = (changes + BigInt(&quot;1&quot;));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="disable" target="s_true_true_unknown">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = true;
+          const __next_focus = ((focus === &quot;trigger&quot;) ? &quot;unknown&quot; : focus);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="enable" target="s_true_false_unknown">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = false;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+  </state>
+  <state id="s_true_true_none">
+    <transition event="focusTrigger" target="s_true_true_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="blurTrigger" target="s_true_true_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = &quot;none&quot;;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="click" target="s_true_true_none">
+      <script>
+        {
+          const __next_expanded = (disabled ? expanded : (!expanded));
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = (disabled ? ariaExpanded : ariaOf((!expanded)));
+          const __next_panelHidden = (disabled ? panelHidden : expanded);
+          const __next_changes = (disabled ? changes : (changes + BigInt(&quot;1&quot;)));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="press" target="s_true_true_none">
+      <script>
+        {
+          const __next_expanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (!expanded) : expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? ariaOf((!expanded)) : ariaExpanded);
+          const __next_panelHidden = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? expanded : panelHidden);
+          const __next_changes = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (changes + BigInt(&quot;1&quot;)) : changes);
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="expand" target="s_true_true_none">
+      <script>
+        {
+          const __next_expanded = true;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;true&quot;;
+          const __next_panelHidden = false;
+          const __next_changes = (changes + changed(expanded, true));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="collapse" target="s_false_true_none">
+      <script>
+        {
+          const __next_expanded = false;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;false&quot;;
+          const __next_panelHidden = true;
+          const __next_changes = (changes + changed(expanded, false));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="toggle" target="s_false_true_none">
+      <script>
+        {
+          const __next_expanded = (!expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaOf((!expanded));
+          const __next_panelHidden = expanded;
+          const __next_changes = (changes + BigInt(&quot;1&quot;));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="disable" target="s_true_true_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = true;
+          const __next_focus = ((focus === &quot;trigger&quot;) ? &quot;unknown&quot; : focus);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="enable" target="s_true_false_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = false;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+  </state>
+  <state id="s_false_false_unknown">
+    <transition event="focusTrigger" target="s_false_false_trigger">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="blurTrigger" target="s_false_false_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = &quot;none&quot;;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="click" target="s_true_false_trigger">
+      <script>
+        {
+          const __next_expanded = (disabled ? expanded : (!expanded));
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = (disabled ? ariaExpanded : ariaOf((!expanded)));
+          const __next_panelHidden = (disabled ? panelHidden : expanded);
+          const __next_changes = (disabled ? changes : (changes + BigInt(&quot;1&quot;)));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="press" target="s_false_false_unknown">
+      <script>
+        {
+          const __next_expanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (!expanded) : expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? ariaOf((!expanded)) : ariaExpanded);
+          const __next_panelHidden = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? expanded : panelHidden);
+          const __next_changes = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (changes + BigInt(&quot;1&quot;)) : changes);
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="expand" target="s_true_false_unknown">
+      <script>
+        {
+          const __next_expanded = true;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;true&quot;;
+          const __next_panelHidden = false;
+          const __next_changes = (changes + changed(expanded, true));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="collapse" target="s_false_false_unknown">
+      <script>
+        {
+          const __next_expanded = false;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;false&quot;;
+          const __next_panelHidden = true;
+          const __next_changes = (changes + changed(expanded, false));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="toggle" target="s_true_false_unknown">
+      <script>
+        {
+          const __next_expanded = (!expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaOf((!expanded));
+          const __next_panelHidden = expanded;
+          const __next_changes = (changes + BigInt(&quot;1&quot;));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="disable" target="s_false_true_unknown">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = true;
+          const __next_focus = ((focus === &quot;trigger&quot;) ? &quot;unknown&quot; : focus);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="enable" target="s_false_false_unknown">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = false;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+  </state>
+  <state id="s_true_false_unknown">
+    <transition event="focusTrigger" target="s_true_false_trigger">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="blurTrigger" target="s_true_false_none">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = disabled;
+          const __next_focus = &quot;none&quot;;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="click" target="s_false_false_trigger">
+      <script>
+        {
+          const __next_expanded = (disabled ? expanded : (!expanded));
+          const __next_disabled = disabled;
+          const __next_focus = (disabled ? focus : &quot;trigger&quot;);
+          const __next_ariaExpanded = (disabled ? ariaExpanded : ariaOf((!expanded)));
+          const __next_panelHidden = (disabled ? panelHidden : expanded);
+          const __next_changes = (disabled ? changes : (changes + BigInt(&quot;1&quot;)));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="press" target="s_true_false_unknown">
+      <script>
+        {
+          const __next_expanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (!expanded) : expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? ariaOf((!expanded)) : ariaExpanded);
+          const __next_panelHidden = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? expanded : panelHidden);
+          const __next_changes = (((!disabled) &amp;&amp; (focus === &quot;trigger&quot;)) ? (changes + BigInt(&quot;1&quot;)) : changes);
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="expand" target="s_true_false_unknown">
+      <script>
+        {
+          const __next_expanded = true;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;true&quot;;
+          const __next_panelHidden = false;
+          const __next_changes = (changes + changed(expanded, true));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="collapse" target="s_false_false_unknown">
+      <script>
+        {
+          const __next_expanded = false;
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = &quot;false&quot;;
+          const __next_panelHidden = true;
+          const __next_changes = (changes + changed(expanded, false));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="toggle" target="s_false_false_unknown">
+      <script>
+        {
+          const __next_expanded = (!expanded);
+          const __next_disabled = disabled;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaOf((!expanded));
+          const __next_panelHidden = expanded;
+          const __next_changes = (changes + BigInt(&quot;1&quot;));
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="disable" target="s_true_true_unknown">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = true;
+          const __next_focus = ((focus === &quot;trigger&quot;) ? &quot;unknown&quot; : focus);
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+    <transition event="enable" target="s_true_false_unknown">
+      <script>
+        {
+          const __next_expanded = expanded;
+          const __next_disabled = false;
+          const __next_focus = focus;
+          const __next_ariaExpanded = ariaExpanded;
+          const __next_panelHidden = panelHidden;
+          const __next_changes = changes;
+          expanded = __next_expanded;
+          disabled = __next_disabled;
+          focus = __next_focus;
+          ariaExpanded = __next_ariaExpanded;
+          panelHidden = __next_panelHidden;
+          changes = __next_changes;
+        }
+      </script>
+    </transition>
+  </state>
+</scxml>

@@ -1,0 +1,441 @@
+{
+  "pattern": "tooltip",
+  "source": "ariakit",
+  "commit": "404c72257b879569feb08465da4ff9915fd873da",
+  "license": "MIT",
+  "skipped": [
+    {
+      "reason": "visual/browser capture tests (ariakit-ui-tooltip/test-browser.ts: capturePage, forEachColorScheme, getCapture)"
+    },
+    {
+      "reason": "cross-anchor and fullscreen-portal placement tests (tooltip-cross-anchor/test-browser.ts, tooltip-fullscreen-portal/test-browser.ts) - positioning and portal container internals"
+    },
+    {
+      "reason": "focusable-tooltip-7094/test-safari.ts - Safari-specific focus restoration, browser-only"
+    },
+    {
+      "reason": "tooltip-perf/perf-chrome.ts - performance measurement, no behaviour"
+    },
+    {
+      "reason": "animation and mount lifecycle (tooltip-variants 'keeps the ... tooltip mounted during leave', data-enter/data-leave/data-mounted, poll for removal)"
+    },
+    {
+      "reason": "pointer-events shield styling (tooltip-button-disabled 'keeps truly disabled anchors out of pointer reach', toHaveStyle pointer-events: none)"
+    },
+    {
+      "reason": "dynamic disabled state races that flip while the show timer is pending (tooltip-button-disabled 'turns truly disabled while it is pending' and 'loses focusable while it is pending') - needs a live prop mutation the step vocabulary models only crudely"
+    },
+    {
+      "reason": "forced-open / multiple simultaneously visible tooltips (tooltip-4894 'keeps multiple forced tooltips visible' and 'keeps managed tooltips active after forced tooltips reopen') - intentionally violates the spec's AtMostOneVisible invariant"
+    },
+    {
+      "reason": "menu + tooltip integration (menu-tooltip-variants/test.ts) and combobox change-id tests other than the tooltip anchor id: their own APG pattern is menu/combobox"
+    },
+    {
+      "reason": "hovercard disclosure toggling (hovercard-disclosure-interactions/test.ts) - the disclosure pattern, not the tooltip"
+    },
+    {
+      "reason": "React-only composition (TooltipAnchor render prop, ButtonSlot, VisuallyHidden) and store API tests (unstable_open/setOpen)"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "tooltip.ariakit.hover-shows-hide-outside-reopens",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/tooltip-interactions/test.ts#L10",
+      "upstreamTest": "shows on hover, hides outside, and immediately reopens",
+      "apg": "pointer",
+      "config": { "delay": 20, "closeDelay": 20 },
+      "steps": [
+        {
+          "expect": {
+            "visible": [],
+            "attrs": { "trigger:0": { "aria-describedby": null } }
+          }
+        },
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        {
+          "expect": {
+            "visible": ["tooltip:0"],
+            "attrs": { "trigger:0": { "aria-describedby": "*" } }
+          }
+        },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        {
+          "expect": {
+            "visible": [],
+            "attrs": { "trigger:0": { "aria-describedby": null } }
+          }
+        },
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } }
+      ],
+      "notes": "aria-describedby value \"*\" means any non-empty IDREF matching the tooltip; the spec removes it while hidden."
+    },
+    {
+      "id": "tooltip.ariakit.hover-then-focus-stays-open",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/tooltip-interactions/test.ts#L23",
+      "upstreamTest": "stays open when hover is followed by keyboard focus",
+      "apg": "extension",
+      "config": { "delay": 20, "closeDelay": 20 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "focus", "target": "trigger:0" },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"], "focus": "trigger:0" } }
+      ],
+      "notes": "Keyboard focus keeps the tooltip engaged after the pointer leaves (WCAG 1.4.13 persistent)."
+    },
+    {
+      "id": "tooltip.ariakit.focus-shows-blur-hides",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/tooltip-interactions/test.ts#L32",
+      "upstreamTest": "shows on focus and hides after focus moves",
+      "apg": "focus",
+      "config": { "delay": 20, "closeDelay": 20 },
+      "steps": [
+        { "event": "focus", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"], "focus": "trigger:0" } },
+        { "event": "blur", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": [] } }
+      ],
+      "notes": "Tab to the control after the anchor is modelled as a blur."
+    },
+    {
+      "id": "tooltip.ariakit.focus-stays-open-through-pointer-leave",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/tooltip-interactions/test.ts#L40",
+      "upstreamTest": "stays open after focus-visible and pointer movement",
+      "apg": "focus",
+      "config": { "delay": 20, "closeDelay": 20 },
+      "steps": [
+        { "event": "key", "key": "Tab", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"], "focus": "trigger:0" } },
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } }
+      ]
+    },
+    {
+      "id": "tooltip.ariakit.waits-again-after-focus-lost",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/tooltip-interactions/test.ts#L53",
+      "upstreamTest": "waits again after keyboard focus is lost",
+      "apg": "extension",
+      "config": { "delay": 20, "closeDelay": 20 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "key", "key": "Tab", "target": "trigger:0" },
+        { "event": "blur", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": [] } },
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 10 },
+        { "expect": { "visible": [] } },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } }
+      ],
+      "notes": "The short wait pins the visible-but-not-yet-shown window before the show timeout expires (ariakit issue 7043)."
+    },
+    {
+      "id": "tooltip.ariakit.escape-from-content-restores-anchor",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/tooltip-interactions/test.ts#L72",
+      "upstreamTest": "Escape from tooltip content restores its anchor",
+      "apg": "keyboard",
+      "config": { "delay": 20, "closeDelay": 20 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "click", "target": "tooltip:0" },
+        { "event": "key", "key": "Escape", "target": "tooltip:0" },
+        { "expect": { "visible": [], "focus": "trigger:0" } }
+      ],
+      "notes": "Ariakit's tooltip content can take focus; APG says tooltips never take focus. Divergence from APG, ported as the upstream test states."
+    },
+    {
+      "id": "tooltip.ariakit.escape-keeps-closed-on-pointer-focus",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/tooltip-interactions/test.ts#L84",
+      "upstreamTest": "Escape keeps the tooltip closed when the anchor has pointer focus",
+      "apg": "keyboard",
+      "config": { "delay": 20, "closeDelay": 20 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        {
+          "expect": {
+            "visible": ["tooltip:0"],
+            "attrs": { "trigger:0": { "data-focus-visible": null } }
+          }
+        },
+        { "event": "click", "target": "trigger:0" },
+        { "expect": { "focus": "trigger:0", "visible": ["tooltip:0"] } },
+        { "event": "key", "key": "Escape", "target": "trigger:0" },
+        {
+          "expect": {
+            "visible": [],
+            "attrs": { "trigger:0": { "data-focus-visible": "true" } }
+          }
+        }
+      ],
+      "notes": "Escape makes the anchor focus-visible, which must not reopen the dismissed tooltip (ariakit issue 7622). The data-focus-visible attribute is Ariakit-specific, not APG."
+    },
+    {
+      "id": "tooltip.ariakit.instant-variant-shows-on-hover-and-focus",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/tooltip-variants/test.ts#L9",
+      "upstreamTest": "shows the instant tooltip on hover and focus",
+      "apg": "extension",
+      "config": { "delay": 0, "instant": true },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "unhover", "target": "trigger:0" },
+        { "expect": { "visible": [] } },
+        { "event": "key", "key": "Tab", "target": "trigger:0" },
+        { "expect": { "visible": ["tooltip:0"], "focus": "trigger:0" } }
+      ],
+      "notes": "The instant variant uses delay=0; the default delay/no-delay choice is an Ariakit extension."
+    },
+    {
+      "id": "tooltip.ariakit.label-tooltip-stays-open-on-click",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/tooltip-variants/test.ts#L20",
+      "upstreamTest": "keeps the label tooltip open when its anchor is clicked",
+      "apg": "extension",
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "click", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": [] } }
+      ],
+      "notes": "APG tooltips are described by the anchor, never clicked to dismiss; the label tooltip here is an Ariakit variant."
+    },
+    {
+      "id": "tooltip.ariakit.escape-from-animated-content-restores-anchor",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/tooltip-variants/test.ts#L55",
+      "upstreamTest": "Escape from animated tooltip content restores the anchor",
+      "apg": "keyboard",
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "click", "target": "tooltip:0" },
+        { "event": "key", "key": "Escape", "target": "tooltip:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": [], "focus": "trigger:0" } }
+      ],
+      "notes": "The upstream polls the mounted-but-exiting element out of the DOM; only the escape/focus restoration is restated."
+    },
+    {
+      "id": "tooltip.ariakit.disabled-anchor-shows-on-hover-and-focus",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/tooltip-button-disabled/test.ts#L5",
+      "upstreamTest": "shows the tooltip on hover when the anchor renders the disabled button; shows the tooltip on keyboard focus in both composition orders",
+      "apg": "extension",
+      "config": { "anchorDisabled": true, "delay": 20 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": [] } },
+        { "event": "key", "key": "Tab", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"], "focus": "trigger:0" } }
+      ],
+      "notes": "APG: a disabled element should still explain why it is disabled; the tooltip must open on both hover and keyboard focus. Restated as one hover+focus scenario."
+    },
+    {
+      "id": "tooltip.ariakit.hover-opted-out-for-disabled-anchor",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/tooltip-button-disabled/test.ts#L32",
+      "upstreamTest": "does not show the tooltip on hover when the consumer opts out for disabled anchors",
+      "apg": "extension",
+      "config": {
+        "anchorDisabled": true,
+        "showOnDisabledHover": false,
+        "delay": 20
+      },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": [] } }
+      ]
+    },
+    {
+      "id": "tooltip.ariakit.opted-out-hover-still-shows-on-focus",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/tooltip-button-disabled/test.ts#L39",
+      "upstreamTest": "still shows the tooltip on keyboard focus when hover is opted out",
+      "apg": "focus",
+      "config": {
+        "anchorDisabled": true,
+        "showOnDisabledHover": false,
+        "delay": 20
+      },
+      "steps": [
+        { "event": "focus", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"], "focus": "trigger:0" } }
+      ],
+      "notes": "Same anchor as the hover opt-out, so the focus half is not vacuous."
+    },
+    {
+      "id": "tooltip.ariakit.truly-disabled-anchor-shows-on-hover",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/tooltip-button-disabled/test.ts#L69",
+      "upstreamTest": "shows the tooltip on hover when the rendered element declares itself disabled",
+      "apg": "extension",
+      "config": { "elementDisabled": true, "delay": 20 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } }
+      ],
+      "notes": "The resolved disabled state is read from the element, so hover still explains it."
+    },
+    {
+      "id": "tooltip.ariakit.truly-disabled-anchor-keeps-pointer-events-no-hover",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/tooltip-button-disabled/test.ts#L95",
+      "upstreamTest": "does not show the tooltip on hover for a truly disabled anchor that keeps pointer events",
+      "apg": "extension",
+      "config": { "trulyDisabled": true, "pointerEvents": "auto", "delay": 20 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": [] } }
+      ]
+    },
+    {
+      "id": "tooltip.ariakit.delayed-tooltip-opens-on-hover",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/tooltip-button-disabled/test.ts#L111",
+      "upstreamTest": "opens a delayed tooltip on hover",
+      "apg": "extension",
+      "config": { "delay": 150 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 100 },
+        { "expect": { "visible": [] } },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } }
+      ],
+      "notes": "The provider delays the show by 150ms; the short wait is the pending window."
+    },
+    {
+      "id": "tooltip.ariakit.controlled-tooltip-replaces-open-one",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/tooltip-4894/test.ts#L16",
+      "upstreamTest": "hides controlled tooltips that accept setOpen updates",
+      "apg": "extension",
+      "config": { "controlled": true },
+      "steps": [
+        { "event": "click", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "click", "target": "trigger:1" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:1"] } }
+      ],
+      "notes": "Opening one controlled tooltip hides the other; at most one visible, matching the spec invariant."
+    },
+    {
+      "id": "tooltip.ariakit.hovercard-shows-on-hover-hides-outside",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/hovercard-interactions/test.ts#L13",
+      "upstreamTest": "shows after hovering and hides after hovering outside",
+      "apg": "extension",
+      "config": { "delay": 600 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": [] } }
+      ],
+      "notes": "A hovercard is a tooltip with rich hoverable content (WCAG 1.4.13), not an APG tooltip; modelled as an extension with the tooltip part name."
+    },
+    {
+      "id": "tooltip.ariakit.hovercard-stays-open-on-quick-pointer-return",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/hovercard-interactions/test.ts#L37",
+      "upstreamTest": "stays open when the pointer quickly returns",
+      "apg": "extension",
+      "config": { "delay": 600, "closeDelay": 300 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "wait", "ms": 100 },
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 300 },
+        { "expect": { "visible": ["tooltip:0"] } }
+      ],
+      "notes": "Re-entering before the close grace expires cancels it."
+    },
+    {
+      "id": "tooltip.ariakit.hovercard-escape-unfocused-hides-without-moving-focus",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/hovercard-interactions/test.ts#L55",
+      "upstreamTest": "Escape closes an unfocused hovercard without moving focus",
+      "apg": "keyboard",
+      "config": { "delay": 600 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"], "focus": null } },
+        { "event": "key", "key": "Escape", "target": "trigger:0" },
+        { "expect": { "visible": [], "focus": null } }
+      ],
+      "notes": "WCAG 1.4.13 dismissable: Escape hides the content without moving pointer or focus."
+    },
+    {
+      "id": "tooltip.ariakit.hovercard-escape-focused-restores-anchor",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/hovercard-interactions/test.ts#L65",
+      "upstreamTest": "Escape closes a focused hovercard and restores the anchor",
+      "apg": "keyboard",
+      "config": { "delay": 600 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "event": "focus", "target": "trigger:0" },
+        { "expect": { "visible": ["tooltip:0"], "focus": "trigger:0" } },
+        { "event": "key", "key": "Escape", "target": "trigger:0" },
+        { "expect": { "visible": [], "focus": "trigger:0" } }
+      ],
+      "notes": "The upstream focuses a button inside the card; the anchor focus stands in for card focus, which keeps it engaged."
+    },
+    {
+      "id": "tooltip.ariakit.label-id-follows-tooltip-content-id-change",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-select-tag-tooltip-element-id/test.ts#L20",
+      "upstreamTest": "updates the tooltip anchor when the content id changes",
+      "apg": "aria",
+      "config": { "tooltipId": "tooltip-before" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "trigger:0": { "aria-labelledby": "tooltip-before" } }
+          }
+        },
+        {
+          "event": "prop",
+          "target": "tooltip:0",
+          "prop": "id",
+          "value": "tooltip-after"
+        },
+        {
+          "expect": {
+            "attrs": { "trigger:0": { "aria-labelledby": "tooltip-after" } }
+          }
+        }
+      ],
+      "notes": "This tooltip names its anchor (aria-labelledby), unlike the APG described-by tooltip; kept as the id-wiring behaviour under test."
+    }
+  ]
+}

@@ -1,0 +1,2558 @@
+{
+  "pattern": "treegrid",
+  "source": "apg",
+  "commit": "",
+  "license": "W3C Software and Document License",
+  "scenarios": [
+    {
+      "id": "treegrid.apg.container-has-treegrid-role-and-label",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Role, Property, State, and Tabindex Attributes > treegrid / aria-label",
+      "apg": "roles",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "treegrid": {
+                "role": "treegrid",
+                "aria-label": "Inbox"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "The container has role treegrid and an accessible name."
+    },
+    {
+      "id": "treegrid.apg.rows-have-row-role",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Role, Property, State, and Tabindex Attributes > row",
+      "apg": "roles",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "row:0": {
+                "role": "row"
+              },
+              "row:0/0": {
+                "role": "row"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Every row container has role row, including child rows."
+    },
+    {
+      "id": "treegrid.apg.cells-have-gridcell-role",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Role, Property, State, and Tabindex Attributes > gridcell",
+      "apg": "roles",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "cell:0,0": {
+                "role": "gridcell"
+              },
+              "cell:0,1": {
+                "role": "gridcell"
+              },
+              "cell:0,2": {
+                "role": "gridcell"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Cells that are not column or row headers have role gridcell."
+    },
+    {
+      "id": "treegrid.apg.parent-row-exposes-aria-expanded",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/",
+      "upstreamTest": "Treegrid Pattern > WAI-ARIA Roles, States, and Properties > aria-expanded",
+      "apg": "aria",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "row:0": {
+                "aria-expanded": "true"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "A parent row reports aria-expanded=true when its child rows are displayed."
+    },
+    {
+      "id": "treegrid.apg.leaf-rows-omit-aria-expanded",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/",
+      "upstreamTest": "Treegrid Pattern > WAI-ARIA Roles, States, and Properties > aria-expanded",
+      "apg": "aria",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "row:0/0": {
+                "aria-expanded": null
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Rows that do not control child rows must not have aria-expanded."
+    },
+    {
+      "id": "treegrid.apg.rows-expose-level-setsize-posinset",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/",
+      "upstreamTest": "Treegrid Pattern > WAI-ARIA Roles, States, and Properties > aria-level / aria-setsize / aria-posinset",
+      "apg": "aria",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "row:0": {
+                "aria-level": "1",
+                "aria-setsize": "1",
+                "aria-posinset": "1"
+              },
+              "row:0/0": {
+                "aria-level": "2",
+                "aria-setsize": "7",
+                "aria-posinset": "1"
+              },
+              "row:0/6": {
+                "aria-level": "2",
+                "aria-setsize": "7",
+                "aria-posinset": "7"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Setsize/posinset count siblings within the same branch and level, one-based."
+    },
+    {
+      "id": "treegrid.apg.first-row-js-in-tab-sequence",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > roving tabindex",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "row:0": {
+                "tabindex": "0"
+              },
+              "row:0/0": {
+                "tabindex": "-1"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "One row or cell carries tabindex=0; all others are -1 (roving tabindex)."
+    },
+    {
+      "id": "treegrid.apg.arrow-right-on-collapsed-row-expands",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Right Arrow",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "row:0",
+            "attrs": {
+              "row:0": {
+                "aria-expanded": "false"
+              }
+            }
+          }
+        },
+        {
+          "event": "key",
+          "key": "ArrowRight",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "row:0",
+            "attrs": {
+              "row:0": {
+                "aria-expanded": "true"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Right Arrow on a focused collapsed row expands it and does not move focus."
+    },
+    {
+      "id": "treegrid.apg.arrow-right-on-expanded-row-focuses-first-cell",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Right Arrow",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowRight",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "cell:0,0"
+          }
+        }
+      ],
+      "notes": "Right Arrow on a focused expanded row moves focus to the first cell."
+    },
+    {
+      "id": "treegrid.apg.arrow-right-moves-cell-right",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Right Arrow",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "cell:0,0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowRight",
+          "target": "cell:0,0"
+        },
+        {
+          "expect": {
+            "focus": "cell:0,1"
+          }
+        }
+      ],
+      "notes": "On a cell that is not right-most, Right Arrow moves one cell right."
+    },
+    {
+      "id": "treegrid.apg.arrow-right-on-rightmost-cell-does-not-move",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Right Arrow",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "cell:0,2"
+        },
+        {
+          "event": "key",
+          "key": "ArrowRight",
+          "target": "cell:0,2"
+        },
+        {
+          "expect": {
+            "focus": "cell:0,2"
+          }
+        }
+      ],
+      "notes": "Focus does not move from the right-most cell."
+    },
+    {
+      "id": "treegrid.apg.arrow-left-on-expanded-row-collapses",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Left Arrow",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "row:0",
+            "attrs": { "row:0": { "aria-expanded": "false" } },
+            "visible": ["row:0"]
+          }
+        }
+      ],
+      "notes": "Left Arrow on a focused expanded row collapses it, hiding child rows."
+    },
+    {
+      "id": "treegrid.apg.arrow-left-on-collapsed-row-moves-to-parent",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Left Arrow",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0/0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "row:0/0"
+        },
+        {
+          "expect": {
+            "focus": "row:0"
+          }
+        }
+      ],
+      "notes": "Left Arrow on a collapsed (leaf) row moves focus to its parent row."
+    },
+    {
+      "id": "treegrid.apg.arrow-left-on-first-cell-focuses-row",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Left Arrow",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "cell:0,0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "cell:0,0"
+        },
+        {
+          "expect": {
+            "focus": "row:0"
+          }
+        }
+      ],
+      "notes": "When row focus is supported, Left Arrow on the first cell focuses the row."
+    },
+    {
+      "id": "treegrid.apg.arrow-left-moves-cell-left",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Left Arrow",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "cell:0,2"
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "cell:0,2"
+        },
+        {
+          "expect": {
+            "focus": "cell:0,1"
+          }
+        }
+      ],
+      "notes": "On a non-first cell, Left Arrow moves one cell left."
+    },
+    {
+      "id": "treegrid.apg.arrow-down-on-row-moves-row-down",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Down Arrow",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "row:0/0"
+          }
+        }
+      ],
+      "notes": "With a row focused, Down Arrow moves one visible row down."
+    },
+    {
+      "id": "treegrid.apg.arrow-up-on-row-moves-row-up",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Up Arrow",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0/0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowUp",
+          "target": "row:0/0"
+        },
+        {
+          "expect": {
+            "focus": "row:0"
+          }
+        }
+      ],
+      "notes": "With a row focused, Up Arrow moves one visible row up."
+    },
+    {
+      "id": "treegrid.apg.arrow-down-on-cell-moves-cell-down",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Down Arrow",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "cell:0,0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "cell:0,0"
+        },
+        {
+          "expect": {
+            "focus": "cell:0/0,0"
+          }
+        }
+      ],
+      "notes": "With a cell focused, Down Arrow moves one cell down in the same column."
+    },
+    {
+      "id": "treegrid.apg.arrow-up-on-cell-moves-cell-up",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Up Arrow",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "cell:0/0,0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowUp",
+          "target": "cell:0/0,0"
+        },
+        {
+          "expect": {
+            "focus": "cell:0,0"
+          }
+        }
+      ],
+      "notes": "With a cell focused, Up Arrow moves one cell up in the same column."
+    },
+    {
+      "id": "treegrid.apg.tab-moves-to-next-interactive-widget-in-row",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Tab",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "Tab",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "cell:0,0/link"
+          }
+        }
+      ],
+      "notes": "Tab moves to the first interactive widget in the current row; widget targets use <cell>/<widget>."
+    },
+    {
+      "id": "treegrid.apg.shift-tab-on-row-moves-out-of-grid",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Shift + Tab",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "Shift+Tab",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": null
+          }
+        }
+      ],
+      "notes": "Shift+Tab with a row focused moves focus out of the treegrid."
+    },
+    {
+      "id": "treegrid.apg.shift-tab-on-cell-moves-to-previous-widget",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Shift + Tab",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "cell:0,1/link"
+        },
+        {
+          "event": "key",
+          "key": "Shift+Tab",
+          "target": "cell:0,1/link"
+        },
+        {
+          "expect": {
+            "focus": "cell:0,0/link"
+          }
+        }
+      ],
+      "notes": "With a cell widget focused, Shift+Tab moves to the previous interactive widget in the row."
+    },
+    {
+      "id": "treegrid.apg.home-on-row-moves-to-first-row",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Home",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0/3"
+        },
+        {
+          "event": "key",
+          "key": "Home",
+          "target": "row:0/3"
+        },
+        {
+          "expect": {
+            "focus": "row:0"
+          }
+        }
+      ],
+      "notes": "With a row focused, Home moves to the first row."
+    },
+    {
+      "id": "treegrid.apg.home-on-cell-moves-to-first-cell",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Home",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "cell:0,2"
+        },
+        {
+          "event": "key",
+          "key": "Home",
+          "target": "cell:0,2"
+        },
+        {
+          "expect": {
+            "focus": "cell:0,0"
+          }
+        }
+      ],
+      "notes": "With a cell focused, Home moves to the first cell in that row."
+    },
+    {
+      "id": "treegrid.apg.end-on-row-moves-to-last-visible-row",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > End",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "End",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "row:0/6"
+          }
+        }
+      ],
+      "notes": "With a row focused, End moves to the last visible row."
+    },
+    {
+      "id": "treegrid.apg.end-on-cell-moves-to-last-cell",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > End",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "cell:0,0"
+        },
+        {
+          "event": "key",
+          "key": "End",
+          "target": "cell:0,0"
+        },
+        {
+          "expect": {
+            "focus": "cell:0,2"
+          }
+        }
+      ],
+      "notes": "With a cell focused, End moves to the last cell in that row."
+    },
+    {
+      "id": "treegrid.apg.control-home-on-cell-moves-to-first-row-same-column",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Control + Home",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "cell:0/3,2"
+        },
+        {
+          "event": "key",
+          "key": "Control+Home",
+          "target": "cell:0/3,2"
+        },
+        {
+          "expect": {
+            "focus": "cell:0,2"
+          }
+        }
+      ],
+      "notes": "With a cell focused, Control+Home moves to the first row in the same column."
+    },
+    {
+      "id": "treegrid.apg.control-end-on-cell-moves-to-last-row-same-column",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Control + End",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "cell:0,0"
+        },
+        {
+          "event": "key",
+          "key": "Control+End",
+          "target": "cell:0,0"
+        },
+        {
+          "expect": {
+            "focus": "cell:0/6,0"
+          }
+        }
+      ],
+      "notes": "With a cell focused, Control+End moves to the last row in the same column."
+    },
+    {
+      "id": "treegrid.apg.enter-toggles-expansion-in-cells-only-mode",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Enter",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "rowFocus": "cells-only",
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "cell:0,0"
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "cell:0,0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "cell:0,0": {
+                "aria-expanded": "false"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "In cells-only focus, Enter on the first cell with aria-expanded toggles child rows."
+    },
+    {
+      "id": "treegrid.apg.enter-performs-row-default-action",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Keyboard Support > Enter",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "onAction": true,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0/0"
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "row:0/0"
+        },
+        {
+          "expect": {
+            "events": {
+              "onAction": ["m2"]
+            }
+          }
+        }
+      ],
+      "notes": "Enter on a row performs its default action."
+    },
+    {
+      "id": "treegrid.apg.multi-select-rows-report-aria-selected",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/",
+      "upstreamTest": "Treegrid Pattern > WAI-ARIA Roles, States, and Properties > multi-select aria-selected",
+      "apg": "selection",
+      "config": {
+        "columns": 3,
+        "selectionMode": "multiple",
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "treegrid": {
+                "aria-multiselectable": "true"
+              },
+              "row:0": {
+                "aria-selected": "false"
+              },
+              "row:0/0": {
+                "aria-selected": "false"
+              }
+            }
+          }
+        },
+        {
+          "event": "click",
+          "target": "row:0/0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:0/0": {
+                "aria-selected": "true"
+              }
+            },
+            "events": {
+              "onSelectionChange": ["m2"]
+            }
+          }
+        }
+      ],
+      "notes": "Multi-select treegrid marks all rows aria-selected; selected rows true."
+    },
+    {
+      "id": "treegrid.apg.single-select-only-selected-row-has-aria-selected",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/",
+      "upstreamTest": "Treegrid Pattern > WAI-ARIA Roles, States, and Properties > single-select aria-selected",
+      "apg": "selection",
+      "config": {
+        "columns": 3,
+        "selectionMode": "single",
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "row:0/0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:0/0": {
+                "aria-selected": "true"
+              },
+              "row:0/1": {
+                "aria-selected": null
+              }
+            }
+          }
+        }
+      ],
+      "notes": "In single-select, aria-selected is present only on the selected row."
+    },
+    {
+      "id": "treegrid.apg.focus-and-selection-are-independent",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/",
+      "upstreamTest": "Treegrid Pattern > About This Pattern > focus vs selection",
+      "apg": "selection",
+      "config": {
+        "columns": 3,
+        "selectionMode": "multiple",
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "row:0"
+        },
+        {
+          "event": "focus",
+          "target": "row:0/2"
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0/2"
+        },
+        {
+          "expect": {
+            "focus": "row:0/3",
+            "attrs": {
+              "row:0": {
+                "aria-selected": "true"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Moving focus does not change the selected row in a multi-select treegrid."
+    },
+    {
+      "id": "treegrid.apg.shift-space-selects-focused-row",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/",
+      "upstreamTest": "Treegrid Pattern > Keyboard Interaction > Shift + Space",
+      "apg": "selection",
+      "config": {
+        "columns": 3,
+        "selectionMode": "multiple",
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0/1"
+        },
+        {
+          "event": "key",
+          "key": "Shift+Space",
+          "target": "row:0/1"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:0/1": {
+                "aria-selected": "true"
+              }
+            },
+            "events": {
+              "onSelectionChange": ["m3"]
+            }
+          }
+        }
+      ],
+      "notes": "Shift+Space selects the row that contains focus."
+    },
+    {
+      "id": "treegrid.apg.rows-first-mode-focuses-first-row",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Example Usage Options > Rows are focused first",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "rowFocus": "rows-first",
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "key",
+          "key": "Tab",
+          "target": "document"
+        },
+        {
+          "expect": {
+            "focus": "row:0"
+          }
+        }
+      ],
+      "notes": "Rows-first navigation puts initial focus on the first row."
+    },
+    {
+      "id": "treegrid.apg.cells-first-mode-focuses-first-cell",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Example Usage Options > Cells are focused first",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "rowFocus": "cells-first",
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "key",
+          "key": "Tab",
+          "target": "document"
+        },
+        {
+          "expect": {
+            "focus": "cell:0,0"
+          }
+        }
+      ],
+      "notes": "Cells-first navigation puts initial focus on the first cell but rows remain focusable."
+    },
+    {
+      "id": "treegrid.apg.cells-only-mode-does-not-focus-rows",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Example Usage Options > Only cells can be focused",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "rowFocus": "cells-only",
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "key",
+          "key": "Tab",
+          "target": "document"
+        },
+        {
+          "expect": {
+            "focus": "cell:0,0"
+          }
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "cell:0,0"
+        },
+        {
+          "expect": {
+            "focus": "cell:0,0"
+          }
+        }
+      ],
+      "notes": "In cells-only mode, Left Arrow on the first cell does not move focus to the row."
+    },
+    {
+      "id": "treegrid.apg.cells-only-mode-expanded-state-on-first-cell",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > Role, Property, State, and Tabindex Attributes > aria-expanded",
+      "apg": "aria",
+      "config": {
+        "columns": 3,
+        "rowFocus": "cells-only",
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "cell:0,0": {
+                "aria-expanded": "true"
+              },
+              "row:0": {
+                "aria-expanded": null
+              }
+            }
+          }
+        }
+      ],
+      "notes": "In cells-only mode aria-expanded lives on the first cell, not the row."
+    },
+    {
+      "id": "treegrid.apg.version-tag-grants-tabindex-only-one-element",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > roving tabindex > single tabindex=0",
+      "apg": "keyboard",
+      "config": {
+        "columns": 3,
+        "tree": [
+          {
+            "id": "m1",
+            "label": "Treegrids are awesome",
+            "children": [
+              {
+                "id": "m2",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m3",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m4",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m5",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m6",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m7",
+                "label": "re: Treegrids are awesome"
+              },
+              {
+                "id": "m8",
+                "label": "re: Treegrids are awesome"
+              }
+            ]
+          }
+        ],
+        "expanded": ["m1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0/2"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:0/2": {
+                "tabindex": "0"
+              },
+              "row:0": {
+                "tabindex": "-1"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Roving tabindex moves the single tabindex=0 to the focused row."
+    }
+  ],
+  "skipped": [
+    {
+      "id": "treegrid.apg.styling-of-expanded-state",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/examples/treegrid-1/",
+      "upstreamTest": "Email Inbox treegrid example > cursor/background styling",
+      "reason": "Visual styling (CSS attribute selectors) is out of scope."
+    },
+    {
+      "id": "treegrid.apg.control-space-and-control-a-selection",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/",
+      "upstreamTest": "Treegrid Pattern > Control + Space / Control + A",
+      "reason": "Cell/column selection model not implemented by the ported sources; deferred."
+    },
+    {
+      "id": "treegrid.apg.shift-arrow-extends-selection",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/",
+      "upstreamTest": "Treegrid Pattern > Shift + Arrow selection",
+      "reason": "Range selection across cells/rows; not implemented by the ported sources."
+    },
+    {
+      "id": "treegrid.apg.page-down-page-up",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/",
+      "upstreamTest": "Treegrid Pattern > Page Down / Page Up",
+      "reason": "Author-determined scroll distance; not covered by the email-inbox example."
+    },
+    {
+      "id": "treegrid.apg.sorting-and-editing-attributes",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/treegrid/",
+      "upstreamTest": "Treegrid Pattern > aria-sort / aria-readonly / aria-colcount",
+      "reason": "Sorting and content editing are optional treegrid features; not exercised here."
+    }
+  ]
+}

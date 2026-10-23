@@ -1,0 +1,78 @@
+{
+  "pattern": "listbox",
+  "source": "ariakit",
+  "commit": "404c72257b879569feb08465da4ff9915fd873da",
+  "license": "MIT",
+  "skipped": [
+    {
+      "reason": "no standalone Listbox implementation exists in this checkout: ariakit exposes option/listbox semantics only through Select (and Combobox, which reuses the select popover). The scenarios below port the typeahead behaviour of that popup list."
+    },
+    {
+      "reason": "typeahead updates the value for late unmounted items and for late renderer items (combobox-select-typeahead): these exercise React store item (re)registration after async load, not a listbox interaction primitive; the listbox-visible part is already covered by the open/closed typeahead scenarios."
+    },
+    {
+      "reason": "composite typeahead buffer scoping across two Composite instances (composite-typeahead-buffer): upstream renders two independent Composite button groups and addresses options within the second instance; the scenario target syntax has no way to address options inside a second listbox, so the isolation property is not restated here."
+    },
+    {
+      "reason": "typeahead matching against arbitrary custom React content while closed (the fixture renders flags inside each option) and the Combobox half of the shared fixture (this file is scoped to the Select popup list)."
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "listbox.ariakit.typeahead-matches-content-skips-empty",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-select-typeahead/test.ts#L32",
+      "upstreamTest": "matches custom item content and skips empty text while open",
+      "apg": "extension",
+      "config": {
+        "items": ["Brazil", "Citrus", "Canada", "Japan", "Mexico"],
+        "selectionMode": "single",
+        "defaultValue": "Brazil",
+        "typeaheadText": { "Citrus": "" }
+      },
+      "steps": [
+        { "event": "click", "target": "trigger:0" },
+        { "expect": { "focus": "option:0" } },
+        { "event": "type", "text": "c", "target": "listbox" },
+        { "expect": { "focus": "option:2" } }
+      ],
+      "notes": "Matches against each option's typeahead text, not its visible text: Citrus has an empty typeahead text so 'c' lands on Canada (index 2) instead of the first c-option. ariakit tracks a data-active-item; mapped here to the active/focused option."
+    },
+    {
+      "id": "listbox.ariakit.typeahead-uses-alias-text",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-select-typeahead/test.ts#L53",
+      "upstreamTest": "updates custom item text",
+      "apg": "extension",
+      "config": {
+        "items": ["Brazil", "Citrus", "Canada", "Japan", "Mexico"],
+        "selectionMode": "single",
+        "defaultValue": "Brazil",
+        "typeaheadText": { "Citrus": "", "Canada": "Dominion" }
+      },
+      "steps": [
+        { "event": "click", "target": "trigger:0" },
+        { "event": "type", "text": "d", "target": "listbox" },
+        { "expect": { "focus": "option:2" } }
+      ],
+      "notes": "Typeahead text can differ from the rendered label (Canada matches the alias 'Dominion')."
+    },
+    {
+      "id": "listbox.ariakit.typeahead-matches-while-closed",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-select-typeahead/test.ts#L43",
+      "upstreamTest": "matches custom item content while closed",
+      "apg": "extension",
+      "config": {
+        "items": ["Brazil", "Citrus", "Canada", "Japan", "Mexico"],
+        "selectionMode": "single",
+        "defaultValue": "Brazil",
+        "open": false,
+        "typeaheadText": { "Citrus": "" }
+      },
+      "steps": [
+        { "event": "focus", "target": "trigger:0" },
+        { "event": "type", "text": "c", "target": "trigger:0" },
+        { "expect": { "visible": [], "value": { "trigger:0": "Canada" } } }
+      ],
+      "notes": "Typeahead on the closed trigger immediately updates the displayed value to the match and does not open the listbox."
+    }
+  ]
+}

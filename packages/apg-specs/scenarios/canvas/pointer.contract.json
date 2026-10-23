@@ -1,0 +1,528 @@
+{
+  "pattern": "pointer",
+  "source": "contract",
+  "license": "authored in this repository (no upstream); numbers derived from specs/canvas/pointer.qnt",
+  "scenarios": [
+    {
+      "id": "pointer.contract.click-selects-the-topmost-node",
+      "area": "selection",
+      "config": {},
+      "steps": [
+        { "event": "pointerdown", "target": "p4" },
+        {
+          "expect": {
+            "attrs": { "state": { "mode": "pointing", "selection": "[\"1\"]" } }
+          }
+        },
+        { "event": "pointerup" },
+        {
+          "expect": {
+            "focus": "node1",
+            "attrs": {
+              "state": {
+                "mode": "idle",
+                "owner": null,
+                "selection": "[\"1\"]",
+                "cursor": "1",
+                "announcements": "1"
+              },
+              "node0": { "aria-selected": "false" },
+              "node1": { "aria-selected": "true" },
+              "node2": { "aria-selected": "false" },
+              "live": { "text": "Node B selected" }
+            },
+            "events": { "onSelectionChange": [["1"]], "onNodesMove": [] }
+          }
+        }
+      ],
+      "notes": "(280, 170) is inside nodes A and B; B is higher in the z-order, so it is the hit. A press selects at once, the settled selection is announced on pointerup, and focus follows the cursor to the node element."
+    },
+    {
+      "id": "pointer.contract.drag-threshold-is-measured-in-screen-px",
+      "area": "drag",
+      "config": {},
+      "steps": [
+        { "event": "pointerdown", "target": "p0" },
+        { "event": "pointermove", "target": "p1" },
+        { "expect": { "attrs": { "state": { "mode": "pointing" } } } },
+        { "event": "pointermove", "target": "p2" },
+        { "expect": { "attrs": { "state": { "mode": "pointing" } } } },
+        { "event": "pointermove", "target": "p3" },
+        {
+          "expect": {
+            "attrs": {
+              "state": { "mode": "dragging" },
+              "node0": { "--node-x": "105", "--node-y": "100" }
+            },
+            "events": { "onNodesMove": [] }
+          }
+        },
+        { "event": "pointerup" },
+        {
+          "expect": {
+            "attrs": {
+              "state": { "mode": "idle", "selection": "[\"0\"]" },
+              "node0": { "--node-x": "105", "--node-y": "100" }
+            },
+            "events": { "onNodesMove": [[{ "id": "0", "x": 105, "y": 100 }]] }
+          }
+        }
+      ],
+      "notes": "The three moves sit 2.2, 4 and 5 px from the press (squared distance 5, 16, 25 against DRAG_PX^2 = 16): only the third leaves `pointing`. The node follows the pointer live but its committed position (and the callback) only change on pointerup."
+    },
+    {
+      "id": "pointer.contract.shift-click-toggles-from-the-pointerdown-snapshot",
+      "area": "selection",
+      "config": {},
+      "steps": [
+        { "event": "prop", "prop": "shift", "value": true },
+        { "event": "pointerdown", "target": "p0" },
+        { "event": "pointerup" },
+        { "expect": { "attrs": { "state": { "selection": "[\"0\"]" } } } },
+        { "event": "pointerdown", "target": "p5" },
+        { "event": "pointerup" },
+        {
+          "expect": { "attrs": { "state": { "selection": "[\"0\",\"1\"]" } } }
+        },
+        { "event": "pointerdown", "target": "p0" },
+        { "event": "pointerup" },
+        {
+          "expect": {
+            "attrs": {
+              "state": { "selection": "[\"1\"]", "announcements": "3" },
+              "live": { "text": "Node B selected" }
+            },
+            "events": {
+              "onSelectionChange": [["0"], ["0", "1"], ["1"]]
+            }
+          }
+        }
+      ],
+      "notes": "Pressing a selected node with shift keeps the multi-selection while the pointer is down (so a drag can move it); releasing without moving toggles that node out, computed from the selection at pointerdown."
+    },
+    {
+      "id": "pointer.contract.marquee-contain-selects-enclosed-nodes",
+      "area": "selection",
+      "config": {},
+      "steps": [
+        { "event": "pointerdown", "target": "p7" },
+        { "event": "pointermove", "target": "p5" },
+        {
+          "expect": {
+            "attrs": {
+              "state": {
+                "mode": "marquee",
+                "selection": "[\"0\"]",
+                "cursor": null
+              }
+            }
+          }
+        },
+        { "event": "pointerup" },
+        {
+          "expect": {
+            "attrs": {
+              "state": {
+                "mode": "idle",
+                "selection": "[\"0\"]",
+                "announcements": "1"
+              }
+            },
+            "events": { "onSelectionChange": [["0"]] }
+          }
+        }
+      ],
+      "notes": "Rectangle (60, 60)-(400, 250): node A is enclosed, node B (to x = 450) is only crossed. The selection is live while the rectangle moves and announced once, on release."
+    },
+    {
+      "id": "pointer.contract.marquee-overlap-selects-crossed-nodes",
+      "area": "selection",
+      "config": { "marquee": "overlap" },
+      "steps": [
+        { "event": "pointerdown", "target": "p7" },
+        { "event": "pointermove", "target": "p5" },
+        { "event": "pointerup" },
+        {
+          "expect": {
+            "attrs": { "state": { "selection": "[\"0\",\"1\"]" } },
+            "events": { "onSelectionChange": [["0", "1"]] }
+          }
+        }
+      ],
+      "notes": "Same rectangle as the contain scenario; overlap takes every node with a positive-area intersection."
+    },
+    {
+      "id": "pointer.contract.second-pointer-is-ignored-while-one-holds-the-capture",
+      "area": "capture",
+      "config": {},
+      "steps": [
+        { "event": "pointerdown", "target": "p0", "value": 1 },
+        { "event": "pointerdown", "target": "p6", "value": 2 },
+        { "event": "pointermove", "target": "p9", "value": 2 },
+        { "event": "pointerup", "value": 2 },
+        {
+          "expect": {
+            "attrs": {
+              "state": {
+                "mode": "pointing",
+                "owner": "1",
+                "selection": "[\"0\"]"
+              }
+            }
+          }
+        },
+        { "event": "pointerup", "value": 1 },
+        {
+          "expect": {
+            "attrs": {
+              "state": { "mode": "idle", "owner": null, "selection": "[\"0\"]" }
+            }
+          }
+        }
+      ],
+      "notes": "One capture owner: a second pointer's down, move and up change nothing until the owner lifts."
+    },
+    {
+      "id": "pointer.contract.cancel-aborts-to-the-pointerdown-snapshot",
+      "area": "capture",
+      "config": {},
+      "steps": [
+        { "event": "pointerdown", "target": "p5" },
+        { "event": "pointerup" },
+        { "event": "pointerdown", "target": "p0" },
+        { "event": "pointermove", "target": "p3" },
+        {
+          "expect": {
+            "attrs": {
+              "state": { "mode": "dragging", "selection": "[\"0\"]" },
+              "node0": { "--node-x": "105" }
+            }
+          }
+        },
+        { "event": "pointercancel" },
+        {
+          "expect": {
+            "attrs": {
+              "state": {
+                "mode": "idle",
+                "selection": "[\"1\"]",
+                "announcements": "1"
+              },
+              "node0": { "--node-x": "100", "--node-y": "100" }
+            },
+            "events": { "onSelectionChange": [["1"]], "onNodesMove": [] }
+          }
+        }
+      ],
+      "notes": "pointercancel (palm rejection, a stolen capture) restores the selection from pointerdown and commits nothing; the selection equals the last announced one, so nothing is announced."
+    },
+    {
+      "id": "pointer.contract.snap-threshold-is-screen-px",
+      "area": "snap",
+      "config": { "snap": true },
+      "steps": [
+        { "event": "pointerdown", "target": "p0" },
+        { "event": "pointermove", "target": "p3" },
+        {
+          "expect": {
+            "attrs": {
+              "state": {
+                "mode": "dragging",
+                "guides": "{\"x\":true,\"y\":true}"
+              },
+              "node0": { "--node-x": "100", "--node-y": "100" }
+            }
+          }
+        },
+        { "event": "pointerup" },
+        {
+          "expect": {
+            "attrs": { "state": { "guides": "{\"x\":false,\"y\":false}" } },
+            "events": { "onNodesMove": [] }
+          }
+        }
+      ],
+      "notes": "A 5-unit drag at zoom 1 is 5 screen px from the grid line (<= 8 px), so the node snaps back onto x = 100 and both guides show; guides are cleared when the gesture ends."
+    },
+    {
+      "id": "pointer.contract.space-drag-pans-the-camera",
+      "area": "pan",
+      "config": {},
+      "steps": [
+        { "event": "prop", "prop": "space", "value": true },
+        { "event": "pointerdown", "target": "p0" },
+        {
+          "expect": {
+            "attrs": {
+              "state": { "mode": "panning", "selection": "[]", "cursor": null }
+            }
+          }
+        },
+        { "event": "pointermove", "target": "p3" },
+        {
+          "expect": {
+            "attrs": {
+              "state": { "mode": "panning" },
+              "layer": {
+                "--canvas-x": "5",
+                "--canvas-y": "0",
+                "--canvas-zoom": "1"
+              }
+            }
+          }
+        },
+        { "event": "pointerup" },
+        {
+          "expect": {
+            "attrs": { "state": { "mode": "idle", "announcements": "0" } }
+          }
+        }
+      ],
+      "notes": "The hand tool keeps the world point grabbed at pointerdown under the pointer: the pointer moved 5 px right, so the camera moved 5 world units. It never selects, so nothing is announced."
+    },
+    {
+      "id": "pointer.contract.selected-nodes-are-never-culled",
+      "area": "culling",
+      "config": {},
+      "steps": [
+        { "event": "pointerdown", "target": "p0" },
+        { "event": "pointerup" },
+        { "event": "pointermove", "target": "p10" },
+        { "event": "prop", "prop": "zoom", "value": 8 },
+        {
+          "expect": {
+            "attrs": {
+              "state": { "selection": "[\"0\"]", "culled": "[\"1\",\"2\"]" },
+              "node0": { "content-visibility": "visible" },
+              "node1": { "content-visibility": "auto" },
+              "node2": { "content-visibility": "auto" }
+            }
+          }
+        },
+        { "event": "prop", "prop": "zoom", "value": 0.0625 },
+        { "expect": { "attrs": { "state": { "culled": "[]" } } } }
+      ],
+      "notes": "Zoom 8 about the hover position (800, 600) leaves only a 128 x 96 world window there: node A is selected and so stays rendered even though it is off screen, B and C are culled. At zoom 1/16 everything is in view."
+    },
+    {
+      "id": "pointer.contract.editing-exempts-the-node",
+      "area": "culling",
+      "config": {},
+      "steps": [
+        { "event": "pointerdown", "target": "p0" },
+        { "event": "pointerup" },
+        { "event": "prop", "prop": "edit" },
+        {
+          "expect": {
+            "attrs": { "state": { "editing": "0", "cursor": "0" } }
+          }
+        },
+        { "event": "pointerdown", "target": "p0" },
+        {
+          "expect": {
+            "attrs": { "state": { "editing": "0", "mode": "idle" } }
+          }
+        },
+        { "event": "pointerup" },
+        { "event": "pointerdown", "target": "p7" },
+        {
+          "expect": {
+            "attrs": { "state": { "editing": null } }
+          }
+        },
+        { "event": "pointerup" }
+      ],
+      "notes": "Editing is only entered from a single selection while idle. A pointerdown whose topmost hit is the editing node is not a gesture - it keeps editing and leaves the machine idle, so a press inside a text editor selects text; a press anywhere else ends editing."
+    },
+    {
+      "id": "pointer.contract.host-move-sets-committed-positions-and-clamps",
+      "area": "host",
+      "config": {},
+      "steps": [
+        { "event": "pointerdown", "target": "p0" },
+        { "event": "pointerup" },
+        {
+          "event": "prop",
+          "prop": "place",
+          "target": "node0",
+          "value": [320, 200]
+        },
+        {
+          "expect": {
+            "focus": "node0",
+            "attrs": {
+              "state": {
+                "mode": "idle",
+                "selection": "[\"0\"]",
+                "announcements": "1"
+              },
+              "node0": { "--node-x": "320", "--node-y": "200" },
+              "live": { "text": "Node A selected" }
+            },
+            "events": {
+              "onNodesMove": [[{ "id": "0", "x": 320, "y": 200 }]]
+            }
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "place",
+          "target": "node2",
+          "value": [5000000, -5000000]
+        },
+        {
+          "expect": {
+            "attrs": {
+              "state": { "culled": "[\"2\"]" },
+              "node2": { "--node-x": "999900", "--node-y": "-1000000" }
+            },
+            "events": {
+              "onNodesMove": [
+                [{ "id": "0", "x": 320, "y": 200 }],
+                [{ "id": "2", "x": 999900, "y": -1000000 }]
+              ]
+            }
+          }
+        }
+      ],
+      "notes": "A host (an auto-layout, a controlled scene) sets a committed position while idle. It is not a selection change (nothing is announced), the focused node keeps focus although moving it reorders the DOM (node 0 now sits below node 1), and the callback reports the position after the world-bound clamp: node 2 is 100 wide, so x stops at 1e6 - 100 and y at -1e6."
+    },
+    {
+      "id": "pointer.contract.host-move-changes-what-a-pointer-hits",
+      "area": "host",
+      "config": {},
+      "steps": [
+        {
+          "event": "prop",
+          "prop": "place",
+          "target": "node2",
+          "value": [0, 0]
+        },
+        { "event": "pointerdown", "target": "p7" },
+        {
+          "expect": {
+            "attrs": { "state": { "mode": "pointing", "selection": "[\"2\"]" } }
+          }
+        },
+        { "event": "pointerup" },
+        {
+          "expect": {
+            "focus": "node2",
+            "attrs": {
+              "state": { "cursor": "2", "announcements": "1" },
+              "live": { "text": "Node C selected" }
+            }
+          }
+        }
+      ],
+      "notes": "(60, 60) is empty canvas in the fixed layout. Once the host puts node C at the origin it is the topmost hit there, so the press selects it: hit testing reads the host's positions, not a copy taken at creation."
+    },
+    {
+      "id": "pointer.contract.host-move-during-a-drag-re-solves-the-delta",
+      "area": "host",
+      "config": {},
+      "steps": [
+        { "event": "pointerdown", "target": "p0" },
+        { "event": "pointermove", "target": "p3" },
+        {
+          "expect": {
+            "attrs": {
+              "state": { "mode": "dragging" },
+              "node0": { "--node-x": "105", "--node-y": "100" }
+            }
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "place",
+          "target": "node0",
+          "value": [320, 200]
+        },
+        {
+          "expect": {
+            "attrs": {
+              "state": { "mode": "dragging" },
+              "node0": { "--node-x": "325", "--node-y": "200" }
+            },
+            "events": {
+              "onNodesMove": [[{ "id": "0", "x": 320, "y": 200 }]]
+            }
+          }
+        },
+        { "event": "pointerup" },
+        {
+          "expect": {
+            "attrs": {
+              "state": { "mode": "idle" },
+              "node0": { "--node-x": "325", "--node-y": "200" }
+            },
+            "events": {
+              "onNodesMove": [
+                [{ "id": "0", "x": 320, "y": 200 }],
+                [{ "id": "0", "x": 325, "y": 200 }]
+              ]
+            }
+          }
+        }
+      ],
+      "notes": "A drag is the committed position plus a world delta recomputed from the pointer, never accumulated. When the host moves the dragged node mid-gesture the committed position changes under it, the 5 unit delta is kept, and the release commits the new base plus the delta. The grab point is no longer inside the node, which is why TargetIsTopmostHit stands down for a gesture a host move touched."
+    },
+    {
+      "id": "pointer.contract.host-move-during-a-marquee-re-solves-the-selection",
+      "area": "host",
+      "config": { "marquee": "overlap" },
+      "steps": [
+        { "event": "pointerdown", "target": "p7" },
+        { "event": "pointermove", "target": "p5" },
+        {
+          "expect": {
+            "attrs": {
+              "state": { "mode": "marquee", "selection": "[\"0\",\"1\"]" }
+            }
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "place",
+          "target": "node2",
+          "value": [0, 0]
+        },
+        {
+          "expect": {
+            "attrs": {
+              "state": {
+                "selection": "[\"0\",\"1\",\"2\"]",
+                "announcements": "0"
+              }
+            }
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "place",
+          "target": "node0",
+          "value": [-300, -300]
+        },
+        {
+          "expect": {
+            "attrs": { "state": { "selection": "[\"1\",\"2\"]" } }
+          }
+        },
+        { "event": "pointerup" },
+        {
+          "expect": {
+            "attrs": {
+              "state": {
+                "mode": "idle",
+                "selection": "[\"1\",\"2\"]",
+                "announcements": "1"
+              }
+            },
+            "events": { "onSelectionChange": [["1", "2"]] }
+          }
+        }
+      ],
+      "notes": "The marquee (60, 60)-(400, 250) crosses nodes A and B. Moving node C into it adds it, moving node A off screen drops it: the live selection is always the mode's hits over the CURRENT geometry, announced once on release."
+    }
+  ]
+}

@@ -1,0 +1,312 @@
+{
+  "pattern": "breadcrumb",
+  "source": "react-aria",
+  "commit": "99e610236887da619ad9d54a1cd87983166c043d",
+  "license": "Apache-2.0",
+  "skipped": [
+    { "reason": "Breadcrumbs > should render with default class" },
+    { "reason": "Breadcrumbs > should render with custom class" },
+    { "reason": "Breadcrumbs > should support refs" },
+    { "reason": "Breadcrumbs > should support render props" },
+    { "reason": "BreadcrumbItem > Handles custom element type (href)" },
+    {
+      "reason": "@adobe Breadcrumbs > Handles UNSAFE_className / size S / size M"
+    },
+    { "reason": "@adobe Breadcrumbs > collapse width suites" },
+    { "reason": "@adobe Breadcrumbs > should support RouterProvider" }
+  ],
+  "scenarios": [
+    {
+      "id": "breadcrumb.react-aria.list-and-current-link",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Breadcrumbs.test.js#L34",
+      "upstreamTest": "Breadcrumbs > should render with default class",
+      "apg": "aria",
+      "config": { "items": 3 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "breadcrumb": { "role": "list" },
+              "item:0": { "role": "listitem" },
+              "item:1": { "role": "listitem" },
+              "item:2": { "role": "listitem" },
+              "link:0": { "aria-current": null },
+              "link:2": { "aria-current": "page" }
+            }
+          }
+        }
+      ],
+      "notes": "Only the last (current) item carries aria-current=page; ancestors must not."
+    },
+    {
+      "id": "breadcrumb.react-aria.label-on-list-and-items",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Breadcrumbs.test.js#L63",
+      "upstreamTest": "Breadcrumbs > should support DOM props",
+      "apg": "aria",
+      "config": { "items": 3, "aria-label": "test group" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "breadcrumb": { "aria-label": "test group" },
+              "item:0": { "aria-label": "test item" },
+              "item:2": { "aria-label": "test item" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "breadcrumb.react-aria.dynamic-collection-order",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Breadcrumbs.test.js#L106",
+      "upstreamTest": "Breadcrumbs > should support dynamic collections",
+      "apg": "aria",
+      "config": { "items": 3 },
+      "steps": [
+        {
+          "expect": {
+            "visible": ["breadcrumb", "item:0", "item:1", "item:2"]
+          }
+        }
+      ],
+      "notes": "Dynamic items render in data order; item text is checked by the upstream test."
+    },
+    {
+      "id": "breadcrumb.react-aria.nav-landmark-default-label",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/breadcrumbs/useBreadcrumbs.test.js#L23",
+      "upstreamTest": "useBreadcrumbs > handles defaults",
+      "apg": "aria",
+      "config": {},
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "nav": { "aria-label": "Breadcrumbs" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "breadcrumb.react-aria.nav-landmark-custom-label",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/breadcrumbs/useBreadcrumbs.test.js#L28",
+      "upstreamTest": "useBreadcrumbs > handles custom aria label",
+      "apg": "aria",
+      "config": { "aria-label": "test-label" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "nav": { "aria-label": "test-label" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "breadcrumb.react-aria.span-item-is-a-link",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/breadcrumbs/useBreadcrumbItem.test.js#L23",
+      "upstreamTest": "useBreadcrumbItem > handles span elements",
+      "apg": "aria",
+      "config": { "elementType": "span" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "item": { "role": "link", "aria-disabled": null } },
+            "focus": "item"
+          }
+        }
+      ],
+      "notes": "A non-native breadcrumb item takes role=link and is focusable (tabIndex 0)."
+    },
+    {
+      "id": "breadcrumb.react-aria.current-span-item",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/breadcrumbs/useBreadcrumbItem.test.js#L31",
+      "upstreamTest": "useBreadcrumbItem > handles isCurrent",
+      "apg": "aria",
+      "config": { "elementType": "span", "isCurrent": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "item": { "role": "link", "aria-current": "page" } },
+            "focus": null
+          }
+        }
+      ],
+      "notes": "The current item keeps role=link but is removed from the tab order."
+    },
+    {
+      "id": "breadcrumb.react-aria.disabled-span-item",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/breadcrumbs/useBreadcrumbItem.test.js#L38",
+      "upstreamTest": "useBreadcrumbItem > handles isDisabled",
+      "apg": "aria",
+      "config": { "elementType": "span", "isDisabled": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "item": { "role": "link", "aria-disabled": "true" } },
+            "focus": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "breadcrumb.react-aria.descendant-href-item-keeps-no-role",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/breadcrumbs/useBreadcrumbItem.test.js#L45",
+      "upstreamTest": "useBreadcrumbItem > handles descendant link with href",
+      "apg": "aria",
+      "config": {},
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "item": { "role": null, "aria-disabled": null } },
+            "focus": "item"
+          }
+        }
+      ],
+      "notes": "A wrapping <a href> is natively focusable, so no role=link is added."
+    },
+    {
+      "id": "breadcrumb.react-aria.dom-props-on-items",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Breadcrumbs.test.js#L78",
+      "upstreamTest": "Breadcrumbs > should support custom render function",
+      "apg": "aria",
+      "config": { "items": 3 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "breadcrumb": { "data-custom": "bar" },
+              "item:0": { "data-custom": "true" }
+            }
+          }
+        }
+      ],
+      "notes": "Render-prop DOM passthrough for the list and items."
+    },
+    {
+      "id": "breadcrumb.react-aria.adobe-current-item-marked",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/breadcrumbs/Breadcrumbs.test.js#L65",
+      "upstreamTest": "Breadcrumbs > Handles multiple items",
+      "apg": "aria",
+      "config": { "items": 3 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "item:0": { "aria-current": null },
+              "item:1": { "aria-current": null },
+              "item:2": { "aria-current": "page" }
+            },
+            "focus": "item:0"
+          }
+        }
+      ],
+      "notes": "Ancestor items are tabbable; the current item is tabIndex=-1 and aria-current=page."
+    },
+    {
+      "id": "breadcrumb.react-aria.adobe-single-current-item",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/breadcrumbs/Breadcrumbs.test.js#L84",
+      "upstreamTest": "Breadcrumbs > Handles single item and showRoot",
+      "apg": "aria",
+      "config": { "items": 1, "showRoot": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "item:0": { "aria-current": "page" } },
+            "focus": null
+          }
+        }
+      ],
+      "notes": "A lone current item is not in the tab order."
+    },
+    {
+      "id": "breadcrumb.react-aria.adobe-disabled-trail",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/breadcrumbs/Breadcrumbs.test.js#L190",
+      "upstreamTest": "Breadcrumbs > Handles isDisabled",
+      "apg": "aria",
+      "config": { "items": 2, "isDisabled": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "item:0": { "aria-disabled": "true" },
+              "item:1": { "aria-disabled": "true" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "breadcrumb.react-aria.adobe-nav-label",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/breadcrumbs/Breadcrumbs.test.js#L373",
+      "upstreamTest": "Breadcrumbs > supports aria-label",
+      "apg": "aria",
+      "config": { "items": 1, "aria-label": "Test" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "nav": { "aria-label": "Test" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "breadcrumb.react-aria.adobe-nav-labelledby",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/breadcrumbs/Breadcrumbs.test.js#L383",
+      "upstreamTest": "Breadcrumbs > supports aria-labelledby",
+      "apg": "aria",
+      "config": { "items": 1, "aria-labelledby": "test" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "nav": { "aria-labelledby": "test" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "breadcrumb.react-aria.adobe-nav-describedby",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/breadcrumbs/Breadcrumbs.test.js#L396",
+      "upstreamTest": "Breadcrumbs > supports aria-describedby",
+      "apg": "aria",
+      "config": { "items": 1, "aria-describedby": "test" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "nav": { "aria-describedby": "test" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "breadcrumb.react-aria.adobe-item-current",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/breadcrumbs/BreadcrumbItem.test.js#L27",
+      "upstreamTest": "BreadcrumbItem > Handles current",
+      "apg": "aria",
+      "config": { "isCurrent": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "item": { "aria-current": "page" } },
+            "focus": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "breadcrumb.react-aria.adobe-item-disabled-blocks-press",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/breadcrumbs/BreadcrumbItem.test.js#L34",
+      "upstreamTest": "BreadcrumbItem > Handles disabled",
+      "apg": "aria",
+      "config": { "isDisabled": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "item": { "aria-disabled": "true" } },
+            "focus": null
+          }
+        },
+        { "event": "click", "target": "item" },
+        { "expect": { "events": { "onPress": [] } } }
+      ],
+      "notes": "A disabled breadcrumb item does not fire onPress."
+    }
+  ]
+}

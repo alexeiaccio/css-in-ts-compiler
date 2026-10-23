@@ -1,0 +1,5094 @@
+{
+  "pattern": "treegrid",
+  "source": "react-aria",
+  "commit": "99e610236887da619ad9d54a1cd87983166c043d",
+  "license": "Apache-2.0",
+  "scenarios": [
+    {
+      "id": "treegrid.react-aria.treegrid-role-exposes-aria-label",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L404",
+      "upstreamTest": "Tree > should render a Tree with default classes",
+      "apg": "roles",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1",
+                "children": [
+                  {
+                    "id": "projects-1a",
+                    "label": "Projects-1A"
+                  }
+                ]
+              },
+              {
+                "id": "projects-2",
+                "label": "Projects-2"
+              },
+              {
+                "id": "projects-3",
+                "label": "Projects-3"
+              }
+            ]
+          }
+        ],
+        "expanded": ["projects", "projects-1"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "treegrid": {
+                "aria-label": "test tree"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Tree is rendered with role=treegrid; the grid carries the accessible name."
+    },
+    {
+      "id": "treegrid.react-aria.static-rows-expose-level-and-expanded",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L482",
+      "upstreamTest": "Tree > should have the expected attributes on the rows",
+      "apg": "aria",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1",
+                "children": [
+                  {
+                    "id": "projects-1a",
+                    "label": "Projects-1A"
+                  }
+                ]
+              },
+              {
+                "id": "projects-2",
+                "label": "Projects-2"
+              },
+              {
+                "id": "projects-3",
+                "label": "Projects-3"
+              }
+            ]
+          }
+        ],
+        "expanded": ["projects", "projects-1"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "visible": [
+              "row:0",
+              "row:1",
+              "row:1/0",
+              "row:1/0/0",
+              "row:1/1",
+              "row:1/2"
+            ],
+            "attrs": {
+              "row:0": {
+                "aria-label": "Photos",
+                "aria-expanded": null,
+                "data-level": "1"
+              },
+              "row:1": {
+                "aria-label": "Projects",
+                "aria-expanded": "true",
+                "data-level": "1"
+              },
+              "row:1/0": {
+                "aria-label": "Projects-1",
+                "aria-expanded": "true",
+                "data-level": "2"
+              },
+              "row:1/0/0": {
+                "aria-label": "Projects-1A",
+                "aria-expanded": null,
+                "data-level": "3"
+              },
+              "row:1/1": {
+                "aria-label": "Projects-2",
+                "aria-expanded": null,
+                "data-level": "2"
+              },
+              "row:1/2": {
+                "aria-label": "Projects-3",
+                "aria-expanded": null,
+                "data-level": "2"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Only parent rows carry aria-expanded; leaves omit it."
+    },
+    {
+      "id": "treegrid.react-aria.dynamic-rows-expose-level-posinset-setsize",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L549",
+      "upstreamTest": "Tree > should support dynamic trees",
+      "apg": "aria",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "expect": {
+            "visible": [
+              "row:0",
+              "row:0/0",
+              "row:0/1",
+              "row:0/1/0",
+              "row:0/1/1",
+              "row:0/1/2",
+              "row:0/2",
+              "row:0/3",
+              "row:0/4",
+              "row:0/4/0",
+              "row:0/4/1",
+              "row:0/4/2",
+              "row:1",
+              "row:1/0",
+              "row:1/0/0",
+              "row:1/0/0/0",
+              "row:1/0/0/0/0",
+              "row:1/0/1",
+              "row:1/0/2",
+              "row:1/1"
+            ],
+            "attrs": {
+              "row:0": {
+                "aria-label": "Projects",
+                "aria-expanded": "true",
+                "aria-level": "1",
+                "aria-posinset": "1",
+                "aria-setsize": "2"
+              },
+              "row:0/1": {
+                "aria-label": "Project 2",
+                "aria-expanded": "true",
+                "aria-level": "2",
+                "aria-posinset": "2",
+                "aria-setsize": "5"
+              },
+              "row:0/4": {
+                "aria-label": "Project 5",
+                "aria-expanded": "true",
+                "aria-level": "2",
+                "aria-posinset": "5",
+                "aria-setsize": "5"
+              },
+              "row:1": {
+                "aria-label": "Reports",
+                "aria-expanded": "true",
+                "aria-level": "1",
+                "aria-posinset": "2",
+                "aria-setsize": "2"
+              },
+              "row:1/0/0/0/0": {
+                "aria-label": "Reports 1ABC",
+                "aria-level": "5",
+                "aria-posinset": "1",
+                "aria-setsize": "1"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "aria-posinset/setsize count siblings within the same branch and level."
+    },
+    {
+      "id": "treegrid.react-aria.first-row-posinset-and-setsize",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/AriaTree.test-util.tsx#L76",
+      "upstreamTest": "AriaTree > should have the base set of aria and data attributes",
+      "apg": "aria",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1"
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports"
+          }
+        ],
+        "expanded": []
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "row:0": {
+                "aria-level": "1",
+                "aria-posinset": "1",
+                "aria-setsize": "3",
+                "aria-expanded": null
+              },
+              "row:1": {
+                "aria-level": "1",
+                "aria-posinset": "2",
+                "aria-setsize": "3",
+                "aria-expanded": "false"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Leaves omit aria-expanded; collapsed parents report false."
+    },
+    {
+      "id": "treegrid.react-aria.empty-tree-row-level-one-without-posinset",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1624",
+      "upstreamTest": "Tree > empty state > should allow the user to tab to the empty tree",
+      "apg": "aria",
+      "config": {
+        "columns": 1,
+        "tree": [],
+        "empty": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "treegrid": {
+                "data-empty": "true"
+              },
+              "row:0": {
+                "aria-level": "1",
+                "aria-posinset": null,
+                "aria-setsize": null
+              }
+            }
+          }
+        }
+      ],
+      "notes": "The empty-state row reports level 1 but no position/setsize."
+    },
+    {
+      "id": "treegrid.react-aria.arrow-down-moves-to-next-visible-row",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1336",
+      "upstreamTest": "Tree > keyboard interactions > should navigate between visible rows when using Arrow Up/Down",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "row:0/0",
+            "attrs": {
+              "row:0/0": {
+                "aria-label": "Project 1"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Arrow Down moves one visible row down."
+    },
+    {
+      "id": "treegrid.react-aria.arrow-up-moves-to-previous-visible-row",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1336",
+      "upstreamTest": "Tree > keyboard interactions > should navigate between visible rows when using Arrow Up/Down",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0/0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowUp",
+          "target": "row:0/0"
+        },
+        {
+          "expect": {
+            "focus": "row:0"
+          }
+        }
+      ],
+      "notes": "Arrow Up moves one visible row up."
+    },
+    {
+      "id": "treegrid.react-aria.collapse-culls-arrow-down-navigation",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1348",
+      "upstreamTest": "Tree > keyboard interactions > should navigate between visible rows when using Arrow Up/Down",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "row:1",
+            "attrs": {
+              "row:1": {
+                "aria-label": "Reports"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "After collapsing the first branch, children are skipped by Arrow Down."
+    },
+    {
+      "id": "treegrid.react-aria.home-end-move-between-visible-rows",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1360",
+      "upstreamTest": "Tree > keyboard interactions > should navigate between visible rows when using Home/End",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "End",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "row:1/1",
+            "attrs": {
+              "row:1/1": {
+                "aria-label": "Reports 2"
+              }
+            }
+          }
+        },
+        {
+          "event": "key",
+          "key": "Home",
+          "target": "row:1/1"
+        },
+        {
+          "expect": {
+            "focus": "row:0"
+          }
+        }
+      ],
+      "notes": "End/Home jump to the last/first visible row when row focus is supported."
+    },
+    {
+      "id": "treegrid.react-aria.arrow-right-on-collapsed-row-expands",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1260",
+      "upstreamTest": "Tree > keyboard interactions > left and right arrows should navigate between interactive elements in the row",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "row:0",
+            "attrs": {
+              "row:0": {
+                "aria-expanded": "false"
+              }
+            }
+          }
+        },
+        {
+          "event": "key",
+          "key": "ArrowRight",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "row:0",
+            "attrs": {
+              "row:0": {
+                "aria-expanded": "true"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Arrow Right expands a focused collapsed parent row and keeps focus on the row."
+    },
+    {
+      "id": "treegrid.react-aria.arrow-left-on-expanded-row-collapses",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1256",
+      "upstreamTest": "Tree > keyboard interactions > left and right arrows should navigate between interactive elements in the row",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "row:0",
+            "attrs": { "row:0": { "aria-expanded": "false" } },
+            "visible": [
+              "row:0",
+              "row:1",
+              "row:1/0",
+              "row:1/0/0",
+              "row:1/0/0/0",
+              "row:1/0/0/0/0",
+              "row:1/0/1",
+              "row:1/0/2",
+              "row:1/1"
+            ]
+          }
+        }
+      ],
+      "notes": "Arrow Left collapses a focused expanded parent row."
+    },
+    {
+      "id": "treegrid.react-aria.arrow-left-on-leaf-moves-focus-to-parent",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1315",
+      "upstreamTest": "Tree > keyboard interactions > should support collapse key to navigate to parent",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0/0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowRight",
+          "target": "row:0/1"
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0/1"
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0/1/0"
+        },
+        {
+          "expect": {
+            "focus": "row:0/1/1",
+            "attrs": {
+              "row:0/1/1": {
+                "aria-label": "Project 2B"
+              }
+            }
+          }
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "row:0/1/1"
+        },
+        {
+          "expect": {
+            "focus": "row:0/1",
+            "attrs": {
+              "row:0/1": {
+                "aria-label": "Project 2"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Collapse on a leaf moves focus to its parent row."
+    },
+    {
+      "id": "treegrid.react-aria.arrow-left-on-collapsed-parent-moves-to-grandparent",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1330",
+      "upstreamTest": "Tree > keyboard interactions > should support collapse key to navigate to parent",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0/0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "row:0/1"
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "row:0/1"
+        },
+        {
+          "expect": {
+            "focus": "row:0",
+            "attrs": {
+              "row:0": {
+                "aria-label": "Projects"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Collapse on an already-collapsed parent moves focus to its own parent."
+    },
+    {
+      "id": "treegrid.react-aria.arrow-right-on-expanded-row-moves-to-first-interactive",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1246",
+      "upstreamTest": "Tree > keyboard interactions > left and right arrows should navigate between interactive elements in the row",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "selectionMode": "multiple",
+        "widgets": ["checkbox", "chevron", "info", "menu"],
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowRight",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "row:0/checkbox"
+          }
+        }
+      ],
+      "notes": "Rows-first navigation: on an expanded row, Arrow Right focuses the first interactive element in the row before cells."
+    },
+    {
+      "id": "treegrid.react-aria.arrow-left-moves-back-through-row-widgets",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1264",
+      "upstreamTest": "Tree > keyboard interactions > left and right arrows should navigate between interactive elements in the row",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "selectionMode": "multiple",
+        "widgets": ["checkbox", "chevron", "info", "menu"],
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowRight",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowRight",
+          "target": "row:0/checkbox"
+        },
+        {
+          "event": "key",
+          "key": "ArrowRight",
+          "target": "row:0/menu"
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "row:0/menu"
+        },
+        {
+          "expect": {
+            "focus": "row:0/info"
+          }
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "row:0/info"
+        },
+        {
+          "expect": {
+            "focus": "row:0/checkbox"
+          }
+        }
+      ],
+      "notes": "Arrow Left walks back toward the row through the row's interactive elements."
+    },
+    {
+      "id": "treegrid.react-aria.type-ahead-moves-focus-to-matching-row",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1274",
+      "upstreamTest": "Tree > keyboard interactions > should support type ahead",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "type",
+          "text": "Reports 1ABC",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "row:1/0/0/0/0",
+            "attrs": {
+              "row:1/0/0/0/0": {
+                "aria-label": "Reports 1ABC"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Type-ahead matches visible row labels and moves focus."
+    },
+    {
+      "id": "treegrid.react-aria.type-ahead-skips-hidden-rows",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1289",
+      "upstreamTest": "Tree > keyboard interactions > should support type ahead",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "click",
+          "target": "row:1"
+        },
+        {
+          "event": "type",
+          "text": "Reports 1ABC",
+          "target": "row:1"
+        },
+        {
+          "expect": {
+            "focus": "row:1",
+            "attrs": {
+              "row:1": {
+                "aria-label": "Reports"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Collapsing a branch removes its rows from type-ahead matching."
+    },
+    {
+      "id": "treegrid.react-aria.enter-collapses-expanded-row-and-fires-onExpandedChange",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1396",
+      "upstreamTest": "Tree > expanding and collapsing > should expand/collapse a row when clicking/using Enter on the row itself and there arent any other primary actions",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "row:0",
+            "attrs": { "row:0": { "aria-expanded": "false" } },
+            "visible": [
+              "row:0",
+              "row:1",
+              "row:1/0",
+              "row:1/0/0",
+              "row:1/0/0/0",
+              "row:1/0/0/0/0",
+              "row:1/0/1",
+              "row:1/0/2",
+              "row:1/1"
+            ],
+            "events": {
+              "onExpandedChange": [
+                "project-2",
+                "project-5",
+                "reports",
+                "reports-1",
+                "reports-1a",
+                "reports-1ab"
+              ]
+            }
+          }
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "row:0",
+            "attrs": {
+              "row:0": {
+                "aria-expanded": "true"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "With no selection/action/link, Enter toggles expansion and reports the new expanded set."
+    },
+    {
+      "id": "treegrid.react-aria.click-collapses-expanded-row",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1408",
+      "upstreamTest": "Tree > expanding and collapsing > should expand/collapse a row when clicking/using Enter on the row itself and there arent any other primary actions",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "row:0",
+            "attrs": {
+              "row:0": {
+                "aria-expanded": "false"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Pointer activation of the row toggles expansion like Enter."
+    },
+    {
+      "id": "treegrid.react-aria.nested-collapse-leaves-parent-expanded",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1446",
+      "upstreamTest": "Tree > expanding and collapsing > should expand/collapse a row when clicking/using Enter on the row itself and there arent any other primary actions",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0/0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "row:0/1"
+        },
+        {
+          "expect": {
+            "focus": "row:0/1",
+            "attrs": {
+              "row:0/1": { "aria-expanded": "false" },
+              "row:0": { "aria-expanded": "true" }
+            },
+            "visible": [
+              "row:0",
+              "row:0/0",
+              "row:0/1",
+              "row:0/2",
+              "row:0/3",
+              "row:0/4",
+              "row:0/4/0",
+              "row:0/4/1",
+              "row:0/4/2",
+              "row:1",
+              "row:1/0",
+              "row:1/0/0",
+              "row:1/0/0/0",
+              "row:1/0/0/0/0",
+              "row:1/0/1",
+              "row:1/0/2",
+              "row:1/1"
+            ]
+          }
+        }
+      ],
+      "notes": "Collapsing a child does not collapse its expanded ancestors."
+    },
+    {
+      "id": "treegrid.react-aria.reexpand-parent-restores-child-collapsed-state",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1471",
+      "upstreamTest": "Tree > expanding and collapsing > should expand/collapse a row when clicking/using Enter on the row itself and there arent any other primary actions",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0/0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "row:0/1"
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "row:0/1"
+        },
+        {
+          "event": "key",
+          "key": "ArrowRight",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:0": {
+                "aria-expanded": "true"
+              },
+              "row:0/1": {
+                "aria-expanded": "false"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "A child collapsed before its parent kept its collapsed state on re-expand."
+    },
+    {
+      "id": "treegrid.react-aria.selectable-row-enter-selects-instead-of-expanding",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1482",
+      "upstreamTest": "Tree > expanding and collapsing > should not expand when clicking/using Enter on the row if the row is selectable",
+      "apg": "selection",
+      "config": {
+        "columns": 1,
+        "selectionMode": "multiple",
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "events": {
+              "onSelectionChange": ["projects"],
+              "onExpandedChange": []
+            }
+          }
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "events": {
+              "onSelectionChange": []
+            }
+          }
+        }
+      ],
+      "notes": "When the row is selectable, Enter changes selection, not expansion."
+    },
+    {
+      "id": "treegrid.react-aria.chevron-toggles-expansion-when-row-selectable",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1508",
+      "upstreamTest": "Tree > expanding and collapsing > should not expand when clicking/using Enter on the row if the row is selectable",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "selectionMode": "multiple",
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "click",
+          "target": "row:0/chevron"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:0": {
+                "aria-expanded": "false"
+              }
+            },
+            "events": {
+              "onExpandedChange": [
+                "project-2",
+                "project-5",
+                "reports",
+                "reports-1",
+                "reports-1a",
+                "reports-1ab"
+              ]
+            }
+          }
+        }
+      ],
+      "notes": "The expand/collapse control in the row remains the way to expand a selectable row."
+    },
+    {
+      "id": "treegrid.react-aria.actionable-row-enter-fires-onAction-instead-of-expanding",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1519",
+      "upstreamTest": "Tree > expanding and collapsing > should not expand when clicking/using Enter on the row if the row has an action",
+      "apg": "extension",
+      "config": {
+        "columns": 1,
+        "onAction": true,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "events": {
+              "onAction": ["projects"],
+              "onExpandedChange": []
+            }
+          }
+        }
+      ],
+      "notes": "onAction takes precedence over expansion on row activation."
+    },
+    {
+      "id": "treegrid.react-aria.chevron-collapses-row-with-action",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1538",
+      "upstreamTest": "Tree > expanding and collapsing > should not expand when clicking/using Enter on the row if the row has an action",
+      "apg": "extension",
+      "config": {
+        "columns": 1,
+        "onAction": true,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "click",
+          "target": "row:0/chevron"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:0": {
+                "aria-expanded": "false"
+              }
+            },
+            "events": {
+              "onAction": [],
+              "onExpandedChange": [
+                "project-2",
+                "project-5",
+                "reports",
+                "reports-1",
+                "reports-1a",
+                "reports-1ab"
+              ]
+            }
+          }
+        }
+      ],
+      "notes": "Activating the chevron control expands/collapses even when the row has an action."
+    },
+    {
+      "id": "treegrid.react-aria.escape-key-behavior-none-keeps-selection",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1089",
+      "upstreamTest": "Tree > should prevent Esc from clearing selection if escapeKeyBehavior is \"none\"",
+      "apg": "selection",
+      "config": {
+        "columns": 1,
+        "selectionMode": "multiple",
+        "escapeKeyBehavior": "none",
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1",
+                "children": [
+                  {
+                    "id": "projects-1a",
+                    "label": "Projects-1A"
+                  }
+                ]
+              },
+              {
+                "id": "projects-2",
+                "label": "Projects-2"
+              },
+              {
+                "id": "projects-3",
+                "label": "Projects-3"
+              }
+            ]
+          }
+        ],
+        "expanded": ["projects", "projects-1"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "row:0"
+        },
+        {
+          "event": "click",
+          "target": "row:1"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:0": {
+                "aria-selected": "true"
+              },
+              "row:1": {
+                "aria-selected": "true"
+              }
+            },
+            "events": {
+              "onSelectionChange": ["photos", "projects"]
+            }
+          }
+        },
+        {
+          "event": "key",
+          "key": "Escape",
+          "target": "row:1"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:0": {
+                "aria-selected": "true"
+              },
+              "row:1": {
+                "aria-selected": "true"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "With escapeKeyBehavior=none, Escape must not clear the selection."
+    },
+    {
+      "id": "treegrid.react-aria.checkbox-selection-fires-onSelectionChange",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L634",
+      "upstreamTest": "Tree > should render checkboxes for selection using Checkbox",
+      "apg": "selection",
+      "config": {
+        "columns": 1,
+        "selectionMode": "single",
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1",
+                "children": [
+                  {
+                    "id": "projects-1a",
+                    "label": "Projects-1A"
+                  }
+                ]
+              },
+              {
+                "id": "projects-2",
+                "label": "Projects-2"
+              },
+              {
+                "id": "projects-3",
+                "label": "Projects-3"
+              }
+            ]
+          }
+        ],
+        "expanded": ["projects", "projects-1"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "row:1/0/checkbox"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:1/0": {
+                "aria-selected": "true",
+                "data-selected": "true"
+              }
+            },
+            "events": {
+              "onSelectionChange": ["projects-1"]
+            }
+          }
+        }
+      ],
+      "notes": "Selecting via the row checkbox updates aria-selected and reports the key."
+    },
+    {
+      "id": "treegrid.react-aria.unselected-rows-report-aria-selected-false",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L651",
+      "upstreamTest": "Tree > should render checkboxes for selection using Checkbox",
+      "apg": "aria",
+      "config": {
+        "columns": 1,
+        "selectionMode": "single",
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1",
+                "children": [
+                  {
+                    "id": "projects-1a",
+                    "label": "Projects-1A"
+                  }
+                ]
+              },
+              {
+                "id": "projects-2",
+                "label": "Projects-2"
+              },
+              {
+                "id": "projects-3",
+                "label": "Projects-3"
+              }
+            ]
+          }
+        ],
+        "expanded": ["projects", "projects-1"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "row:0": {
+                "aria-selected": "false",
+                "data-selection-mode": "single"
+              },
+              "row:1": {
+                "aria-selected": "false",
+                "data-selection-mode": "single"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Single-select treegrid marks every row aria-selected (false when unselected)."
+    },
+    {
+      "id": "treegrid.react-aria.selection-replace-updates-aria-selected",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L682",
+      "upstreamTest": "Tree > should not render checkboxes for selection with selectionBehavior=replace",
+      "apg": "selection",
+      "config": {
+        "columns": 1,
+        "selectionMode": "multiple",
+        "selectionBehavior": "replace",
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1",
+                "children": [
+                  {
+                    "id": "projects-1a",
+                    "label": "Projects-1A"
+                  }
+                ]
+              },
+              {
+                "id": "projects-2",
+                "label": "Projects-2"
+              },
+              {
+                "id": "projects-3",
+                "label": "Projects-3"
+              }
+            ]
+          }
+        ],
+        "expanded": ["projects", "projects-1"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "treegrid": {
+                "aria-multiselectable": "true"
+              },
+              "row:0": {
+                "aria-selected": "false"
+              }
+            }
+          }
+        },
+        {
+          "event": "click",
+          "target": "row:1/0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:1/0": {
+                "aria-selected": "true",
+                "data-selected": "true"
+              }
+            },
+            "events": {
+              "onSelectionChange": ["projects-1"]
+            }
+          }
+        }
+      ],
+      "notes": "selectionBehavior=replace selects on row press with no checkbox."
+    },
+    {
+      "id": "treegrid.react-aria.selection-replace-moves-selection-between-rows",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L704",
+      "upstreamTest": "Tree > should not render checkboxes for selection with selectionBehavior=replace",
+      "apg": "selection",
+      "config": {
+        "columns": 1,
+        "selectionMode": "multiple",
+        "selectionBehavior": "replace",
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1",
+                "children": [
+                  {
+                    "id": "projects-1a",
+                    "label": "Projects-1A"
+                  }
+                ]
+              },
+              {
+                "id": "projects-2",
+                "label": "Projects-2"
+              },
+              {
+                "id": "projects-3",
+                "label": "Projects-3"
+              }
+            ]
+          }
+        ],
+        "expanded": ["projects", "projects-1"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "row:1/0"
+        },
+        {
+          "event": "click",
+          "target": "row:1"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:1": {
+                "aria-selected": "true"
+              },
+              "row:1/0": {
+                "aria-selected": "false"
+              }
+            },
+            "events": {
+              "onSelectionChange": ["projects"]
+            }
+          }
+        }
+      ],
+      "notes": "In replace mode selecting a new row clears the previous selection."
+    },
+    {
+      "id": "treegrid.react-aria.single-selection-omits-aria-multiselectable",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L644",
+      "upstreamTest": "Tree > should render checkboxes for selection using Checkbox",
+      "apg": "aria",
+      "config": {
+        "columns": 1,
+        "selectionMode": "single",
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1",
+                "children": [
+                  {
+                    "id": "projects-1a",
+                    "label": "Projects-1A"
+                  }
+                ]
+              },
+              {
+                "id": "projects-2",
+                "label": "Projects-2"
+              },
+              {
+                "id": "projects-3",
+                "label": "Projects-3"
+              }
+            ]
+          }
+        ],
+        "expanded": ["projects", "projects-1"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "treegrid": {
+                "aria-multiselectable": null
+              }
+            }
+          }
+        }
+      ],
+      "notes": "A single-select treegrid does not set aria-multiselectable."
+    },
+    {
+      "id": "treegrid.react-aria.multiple-selection-sets-aria-multiselectable",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L687",
+      "upstreamTest": "Tree > should not render checkboxes for selection with selectionBehavior=replace",
+      "apg": "aria",
+      "config": {
+        "columns": 1,
+        "selectionMode": "multiple",
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1",
+                "children": [
+                  {
+                    "id": "projects-1a",
+                    "label": "Projects-1A"
+                  }
+                ]
+              },
+              {
+                "id": "projects-2",
+                "label": "Projects-2"
+              },
+              {
+                "id": "projects-3",
+                "label": "Projects-3"
+              }
+            ]
+          }
+        ],
+        "expanded": ["projects", "projects-1"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "treegrid": {
+                "aria-multiselectable": "true"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "A multi-select treegrid exposes aria-multiselectable=true."
+    },
+    {
+      "id": "treegrid.react-aria.select-on-press-down-fires-immediately",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L2187",
+      "upstreamTest": "Tree > shouldSelectOnPressUp > should select an item on pressing down when shouldSelectOnPressUp is not provided",
+      "apg": "extension",
+      "config": {
+        "columns": 1,
+        "selectionMode": "single",
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1",
+                "children": [
+                  {
+                    "id": "projects-1a",
+                    "label": "Projects-1A"
+                  }
+                ]
+              },
+              {
+                "id": "projects-2",
+                "label": "Projects-2"
+              },
+              {
+                "id": "projects-3",
+                "label": "Projects-3"
+              }
+            ]
+          }
+        ],
+        "expanded": ["projects", "projects-1"]
+      },
+      "steps": [
+        {
+          "event": "pointerdown",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "events": {
+              "onSelectionChange": ["photos"]
+            }
+          }
+        },
+        {
+          "event": "pointerup",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "events": {
+              "onSelectionChange": ["photos"]
+            }
+          }
+        }
+      ],
+      "notes": "By default selection fires on pointer down, not on release."
+    },
+    {
+      "id": "treegrid.react-aria.select-on-press-up-fires-on-release",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L2217",
+      "upstreamTest": "Tree > shouldSelectOnPressUp > should select an item on pressing up when shouldSelectOnPressUp is true",
+      "apg": "extension",
+      "config": {
+        "columns": 1,
+        "selectionMode": "single",
+        "shouldSelectOnPressUp": true,
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1",
+                "children": [
+                  {
+                    "id": "projects-1a",
+                    "label": "Projects-1A"
+                  }
+                ]
+              },
+              {
+                "id": "projects-2",
+                "label": "Projects-2"
+              },
+              {
+                "id": "projects-3",
+                "label": "Projects-3"
+              }
+            ]
+          }
+        ],
+        "expanded": ["projects", "projects-1"]
+      },
+      "steps": [
+        {
+          "event": "pointerdown",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "events": {
+              "onSelectionChange": []
+            }
+          }
+        },
+        {
+          "event": "pointerup",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "events": {
+              "onSelectionChange": ["photos"]
+            }
+          }
+        }
+      ],
+      "notes": "shouldSelectOnPressUp defers selection to pointer release (react-aria prop)."
+    },
+    {
+      "id": "treegrid.react-aria.disabled-row-is-not-selectable",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/AriaTree.test-util.tsx#L153",
+      "upstreamTest": "AriaTree > single selection > can select items",
+      "apg": "selection",
+      "config": {
+        "columns": 1,
+        "selectionMode": "single",
+        "disabled": ["projects-1"],
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1",
+                "children": [
+                  {
+                    "id": "projects-1a",
+                    "label": "Projects-1A"
+                  }
+                ]
+              },
+              {
+                "id": "projects-2",
+                "label": "Projects-2"
+              },
+              {
+                "id": "projects-3",
+                "label": "Projects-3"
+              }
+            ]
+          }
+        ],
+        "expanded": ["projects", "projects-1"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "row:1/0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:1/0": {
+                "aria-selected": null
+              }
+            },
+            "events": {
+              "onSelectionChange": []
+            }
+          }
+        }
+      ],
+      "notes": "A disabled row cannot be selected and reports no aria-selected."
+    },
+    {
+      "id": "treegrid.react-aria.disabled-behavior-all-blocks-expansion-and-action",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L880",
+      "upstreamTest": "Tree > general interactions > should not update the hover state if the row is not interactive",
+      "apg": "extension",
+      "config": {
+        "columns": 1,
+        "disabledBehavior": "all",
+        "disabled": ["projects"],
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1",
+                "children": [
+                  {
+                    "id": "projects-1a",
+                    "label": "Projects-1A"
+                  }
+                ]
+              },
+              {
+                "id": "projects-2",
+                "label": "Projects-2"
+              },
+              {
+                "id": "projects-3",
+                "label": "Projects-3"
+              }
+            ]
+          }
+        ],
+        "expanded": ["projects", "projects-1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:1"
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "row:1"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:1": {
+                "aria-expanded": "true",
+                "data-disabled": "true"
+              }
+            },
+            "events": {
+              "onExpandedChange": []
+            }
+          }
+        }
+      ],
+      "notes": "disabledBehavior=all makes the row inert, blocking expansion and actions."
+    },
+    {
+      "id": "treegrid.react-aria.tab-focuses-first-row",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1401",
+      "upstreamTest": "Tree > expanding and collapsing > should expand/collapse a row when clicking/using Enter on the row itself and there arent any other primary actions",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "key",
+          "key": "Tab",
+          "target": "document"
+        },
+        {
+          "expect": {
+            "focus": "row:0",
+            "attrs": {
+              "row:0": {
+                "aria-expanded": "true"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Tabbing into the treegrid focuses the first row (roving focus)."
+    },
+    {
+      "id": "treegrid.react-aria.falsy-keys-navigate-in-order",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L592",
+      "upstreamTest": "Tree > should support items with falsy keys",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "0",
+            "label": "Zero",
+            "children": [
+              {
+                "id": "",
+                "label": "Empty"
+              },
+              {
+                "id": "zero-child",
+                "label": "Zero child"
+              }
+            ]
+          },
+          {
+            "id": "1",
+            "label": "One"
+          }
+        ],
+        "expanded": ["0"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "focus": "row:0/0"
+          }
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0/0"
+        },
+        {
+          "expect": {
+            "focus": "row:0/1"
+          }
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0/1"
+        },
+        {
+          "expect": {
+            "focus": "row:1"
+          }
+        },
+        {
+          "event": "key",
+          "key": "ArrowUp",
+          "target": "row:1"
+        },
+        {
+          "expect": {
+            "focus": "row:0/1"
+          }
+        }
+      ],
+      "notes": "Falsy keys (0, \"\") are still navigable in document order."
+    },
+    {
+      "id": "treegrid.react-aria.empty-tree-gridcell-focusable",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1633",
+      "upstreamTest": "Tree > empty state > should allow the user to tab to the empty tree",
+      "apg": "keyboard",
+      "config": {
+        "columns": 1,
+        "tree": [],
+        "empty": true
+      },
+      "steps": [
+        {
+          "event": "key",
+          "key": "Tab",
+          "target": "document"
+        },
+        {
+          "expect": {
+            "focus": "treegrid",
+            "attrs": {
+              "treegrid": {
+                "data-empty": "true",
+                "data-focused": "true"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "When empty, focus lands on the treegrid itself."
+    },
+    {
+      "id": "treegrid.react-aria.row-action-fires-on-click",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1052",
+      "upstreamTest": "Tree > general interactions > should support actions on rows",
+      "apg": "extension",
+      "config": {
+        "columns": 1,
+        "selectionMode": "multiple",
+        "onAction": true,
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1",
+                "children": [
+                  {
+                    "id": "projects-1a",
+                    "label": "Projects-1A"
+                  }
+                ]
+              },
+              {
+                "id": "projects-2",
+                "label": "Projects-2"
+              },
+              {
+                "id": "projects-3",
+                "label": "Projects-3"
+              }
+            ]
+          }
+        ],
+        "expanded": ["projects", "projects-1"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "events": {
+              "onAction": ["photos"],
+              "onSelectionChange": []
+            }
+          }
+        },
+        {
+          "event": "click",
+          "target": "row:1/0"
+        },
+        {
+          "expect": {
+            "events": {
+              "onAction": ["projects-1"]
+            }
+          }
+        }
+      ],
+      "notes": "Clicking a row triggers onAction instead of selection when an action exists."
+    },
+    {
+      "id": "treegrid.react-aria.row-action-fires-on-enter",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1083",
+      "upstreamTest": "Tree > general interactions > should support actions on rows",
+      "apg": "extension",
+      "config": {
+        "columns": 1,
+        "selectionMode": "multiple",
+        "onAction": true,
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1",
+                "children": [
+                  {
+                    "id": "projects-1a",
+                    "label": "Projects-1A"
+                  }
+                ]
+              },
+              {
+                "id": "projects-2",
+                "label": "Projects-2"
+              },
+              {
+                "id": "projects-3",
+                "label": "Projects-3"
+              }
+            ]
+          }
+        ],
+        "expanded": ["projects", "projects-1"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:1/0"
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "row:1/0"
+        },
+        {
+          "expect": {
+            "events": {
+              "onAction": ["projects-1"],
+              "onSelectionChange": []
+            }
+          }
+        }
+      ],
+      "notes": "Enter activates the row action, matching pointer activation."
+    },
+    {
+      "id": "treegrid.react-aria.chevron-aria-label-reflects-state",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1582",
+      "upstreamTest": "Tree > expanding and collapsing > should apply the proper attributes to the chevron",
+      "apg": "aria",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:0": {
+                "aria-expanded": "true"
+              },
+              "row:0/chevron": {
+                "aria-label": "Collapse"
+              }
+            }
+          }
+        },
+        {
+          "event": "click",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:0": {
+                "aria-expanded": "false"
+              },
+              "row:0/chevron": {
+                "aria-label": "Expand"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "The chevron control's accessible label tracks the expanded state."
+    },
+    {
+      "id": "treegrid.react-aria.onScroll-fires-when-grid-scrolls",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1109",
+      "upstreamTest": "Tree > general interactions > should support onScroll",
+      "apg": "extension",
+      "config": {
+        "columns": 1,
+        "onScroll": true,
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1",
+                "children": [
+                  {
+                    "id": "projects-1a",
+                    "label": "Projects-1A"
+                  }
+                ]
+              },
+              {
+                "id": "projects-2",
+                "label": "Projects-2"
+              },
+              {
+                "id": "projects-3",
+                "label": "Projects-3"
+              }
+            ]
+          }
+        ],
+        "expanded": ["projects", "projects-1"]
+      },
+      "steps": [
+        {
+          "event": "scroll",
+          "target": "treegrid"
+        },
+        {
+          "expect": {
+            "events": {
+              "onScroll": ["treegrid"]
+            }
+          }
+        }
+      ],
+      "notes": "Scrolling the grid element reports onScroll."
+    },
+    {
+      "id": "treegrid.react-aria.checkbox-accessible-name-includes-row",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L650",
+      "upstreamTest": "Tree > should render checkboxes for selection using Checkbox",
+      "apg": "aria",
+      "config": {
+        "columns": 1,
+        "selectionMode": "single",
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1",
+                "children": [
+                  {
+                    "id": "projects-1a",
+                    "label": "Projects-1A"
+                  }
+                ]
+              },
+              {
+                "id": "projects-2",
+                "label": "Projects-2"
+              },
+              {
+                "id": "projects-3",
+                "label": "Projects-3"
+              }
+            ]
+          }
+        ],
+        "expanded": ["projects", "projects-1"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "row:1/0/checkbox": {
+                "aria-label": "Select"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "The row-selection checkbox has its own label and is associated with the row."
+    },
+    {
+      "id": "treegrid.react-aria.collapse-parent-keeps-selected-descendant-state",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/AriaTree.test-util.tsx#L196",
+      "upstreamTest": "AriaTree > single selection > can select items",
+      "apg": "selection",
+      "config": {
+        "columns": 1,
+        "selectionMode": "single",
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "row:1/0/0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:1/0/0": {
+                "aria-selected": "true"
+              }
+            }
+          }
+        },
+        {
+          "event": "focus",
+          "target": "row:1"
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "row:1"
+        },
+        {
+          "event": "key",
+          "key": "ArrowRight",
+          "target": "row:1"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "row:1/0": {
+                "aria-selected": "true"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Selection inside a branch survives collapsing and re-expanding the parent."
+    },
+    {
+      "id": "treegrid.react-aria.collapsing-child-removes-descendants-from-dom",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/AriaTree.test-util.tsx#L143",
+      "upstreamTest": "AriaTree > interaction > should have the expected attributes on the rows",
+      "apg": "aria",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "project-1",
+                "label": "Project 1"
+              },
+              {
+                "id": "project-2",
+                "label": "Project 2",
+                "children": [
+                  {
+                    "id": "project-2a",
+                    "label": "Project 2A"
+                  },
+                  {
+                    "id": "project-2b",
+                    "label": "Project 2B"
+                  },
+                  {
+                    "id": "project-2c",
+                    "label": "Project 2C"
+                  }
+                ]
+              },
+              {
+                "id": "project-3",
+                "label": "Project 3"
+              },
+              {
+                "id": "project-4",
+                "label": "Project 4"
+              },
+              {
+                "id": "project-5",
+                "label": "Project 5",
+                "children": [
+                  {
+                    "id": "project-5a",
+                    "label": "Project 5A"
+                  },
+                  {
+                    "id": "project-5b",
+                    "label": "Project 5B"
+                  },
+                  {
+                    "id": "project-5c",
+                    "label": "Project 5C"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "reports",
+            "label": "Reports",
+            "children": [
+              {
+                "id": "reports-1",
+                "label": "Reports 1",
+                "children": [
+                  {
+                    "id": "reports-1a",
+                    "label": "Reports 1A",
+                    "children": [
+                      {
+                        "id": "reports-1ab",
+                        "label": "Reports 1AB",
+                        "children": [
+                          {
+                            "id": "reports-1abc",
+                            "label": "Reports 1ABC"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "reports-1b",
+                    "label": "Reports 1B"
+                  },
+                  {
+                    "id": "reports-1c",
+                    "label": "Reports 1C"
+                  }
+                ]
+              },
+              {
+                "id": "reports-2",
+                "label": "Reports 2"
+              }
+            ]
+          }
+        ],
+        "expanded": [
+          "projects",
+          "project-2",
+          "project-5",
+          "reports",
+          "reports-1",
+          "reports-1a",
+          "reports-1ab"
+        ]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "row:0"
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "row:0"
+        },
+        {
+          "expect": {
+            "visible": [
+              "row:0",
+              "row:1",
+              "row:1/0",
+              "row:1/0/0",
+              "row:1/0/0/0",
+              "row:1/0/0/0/0",
+              "row:1/0/1",
+              "row:1/0/2",
+              "row:1/1"
+            ]
+          }
+        }
+      ],
+      "notes": "Collapsing removes descendant rows from the rendered set."
+    },
+    {
+      "id": "treegrid.react-aria.expandable-row-aria-label-lists-children",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L531",
+      "upstreamTest": "Tree > should include the row as part of the expand/collapse button accessible label",
+      "apg": "aria",
+      "config": {
+        "columns": 1,
+        "tree": [
+          {
+            "id": "photos",
+            "label": "Photos"
+          },
+          {
+            "id": "projects",
+            "label": "Projects",
+            "children": [
+              {
+                "id": "projects-1",
+                "label": "Projects-1",
+                "children": [
+                  {
+                    "id": "projects-1a",
+                    "label": "Projects-1A"
+                  }
+                ]
+              },
+              {
+                "id": "projects-2",
+                "label": "Projects-2"
+              },
+              {
+                "id": "projects-3",
+                "label": "Projects-3"
+              }
+            ]
+          }
+        ],
+        "expanded": ["projects", "projects-1"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "row:1/chevron": {
+                "slot": "chevron"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "The expand/collapse control is labelled by the containing row."
+    }
+  ],
+  "skipped": [
+    {
+      "id": "treegrid.react-aria.render-default-and-custom-classes",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L404",
+      "upstreamTest": "Tree > should render a Tree with default classes / custom classes",
+      "reason": "Styling (CSS classes) is out of scope."
+    },
+    {
+      "id": "treegrid.react-aria.dom-props-and-style",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L426",
+      "upstreamTest": "Tree > should support DOM props / style / custom render function",
+      "reason": "React-only rendering API (render prop, className function, style)."
+    },
+    {
+      "id": "treegrid.react-aria.hover-and-press-state",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L772",
+      "upstreamTest": "Tree > general interactions > hover/press state tests",
+      "reason": "Styling data attributes (data-hovered, data-pressed); no APG behaviour."
+    },
+    {
+      "id": "treegrid.react-aria.focus-visible-styling",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L996",
+      "upstreamTest": "Tree > general interactions > should support focus",
+      "reason": "Styling data attribute (data-focus-visible)."
+    },
+    {
+      "id": "treegrid.react-aria.virtualizer-window",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L714",
+      "upstreamTest": "Tree > should support virtualizer",
+      "reason": "Virtualization; not APG behaviour."
+    },
+    {
+      "id": "treegrid.react-aria.load-more-and-sentinels",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1655",
+      "upstreamTest": "Tree > load more / loading sentinels",
+      "reason": "Async loading and intersection observers; out of scope."
+    },
+    {
+      "id": "treegrid.react-aria.drag-and-drop",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L2234",
+      "upstreamTest": "Tree > drag and drop",
+      "reason": "Drag-and-drop; explicitly out of scope."
+    },
+    {
+      "id": "treegrid.react-aria.links-and-navigation",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L1117",
+      "upstreamTest": "Tree > links",
+      "reason": "Browser navigation/href handling; React-only link semantics."
+    },
+    {
+      "id": "treegrid.react-aria.unslotted-checkbox-in-content",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L667",
+      "upstreamTest": "Tree > should allow unslotted checkboxes in item content",
+      "reason": "React slot API."
+    },
+    {
+      "id": "treegrid.react-aria.checkbox-component-variants",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tree.test.tsx#L634",
+      "upstreamTest": "Tree > should render checkboxes for selection using CheckboxField",
+      "reason": "React-only component variant (CheckboxField) of the same behaviour."
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "pattern": "link",
+  "source": "base-ui",
+  "commit": "19511bb171f3b360b006c94cf6d07e53cb446505",
+  "license": "MIT",
+  "skipped": [
+    {
+      "reason": "NavigationMenu.Link > prop: closeOnClick (menu open state suite)"
+    },
+    {
+      "reason": "NavigationMenu.Link > keeps the menu open when a link loses focus without a related target"
+    },
+    {
+      "reason": "Menu.LinkItem > does not navigate when Space is pressed during an active typeahead session"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "link.base-ui.active-navigation-link-current",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/navigation-menu/link/NavigationMenuLink.test.tsx#L102",
+      "upstreamTest": "NavigationMenu.Link > prop: active > when true, renders with aria-current=\"page\"",
+      "apg": "aria",
+      "config": { "active": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "link": { "role": "link", "aria-current": "page" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "link.base-ui.inactive-navigation-link-no-current",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/navigation-menu/link/NavigationMenuLink.test.tsx#L118",
+      "upstreamTest": "NavigationMenu.Link > prop: active > when false, does not render with aria-current=\"page\"",
+      "apg": "aria",
+      "config": { "active": false },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "link": { "role": "link", "aria-current": null } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "link.base-ui.toolbar-link-renders-anchor",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/toolbar/link/ToolbarLink.test.tsx#L38",
+      "upstreamTest": "Toolbar.Link > ARIA attributes > renders an anchor",
+      "apg": "aria",
+      "config": { "href": "https://base-ui.com" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "link": { "role": null } }
+          }
+        }
+      ],
+      "notes": "With href the part is a native anchor and reports the link role natively."
+    },
+    {
+      "id": "link.base-ui.menu-link-item-enter-activates",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/menu/link-item/MenuLinkItem.test.tsx#L30",
+      "upstreamTest": "Menu.LinkItem > react-router <Link> activates with Enter and Space",
+      "apg": "extension",
+      "config": { "items": 2 },
+      "steps": [
+        { "event": "focus", "target": "link:1" },
+        { "event": "key", "key": "Enter", "target": "link:1" },
+        { "expect": { "events": { "onActivate": ["/two"] } } }
+      ],
+      "notes": "Menu items are role=menuitem; Enter activation follows the menu pattern, not the link pattern."
+    },
+    {
+      "id": "link.base-ui.menu-link-item-space-activates",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/menu/link-item/MenuLinkItem.test.tsx#L97",
+      "upstreamTest": "Menu.LinkItem > react-router <Link> activates with Enter and Space",
+      "apg": "extension",
+      "config": { "items": 2 },
+      "steps": [
+        { "event": "focus", "target": "link:1" },
+        { "event": "key", "key": " ", "target": "link:1" },
+        { "expect": { "events": { "onActivate": ["/two"] } } }
+      ],
+      "notes": "Unlike a plain link, a menu item activates on Space as well as Enter."
+    }
+  ]
+}

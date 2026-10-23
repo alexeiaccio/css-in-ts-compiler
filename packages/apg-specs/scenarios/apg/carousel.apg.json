@@ -1,0 +1,909 @@
+{
+  "pattern": "carousel",
+  "source": "apg",
+  "commit": null,
+  "license": "W3C Software and Document License",
+  "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/",
+  "notes": "No upstream test implementation of the carousel pattern exists in ariakit, base-ui or react-aria (none of them ships a carousel), so every scenario is derived from the WAI-ARIA APG Carousel Pattern itself: the About This Pattern, Keyboard Interaction and WAI-ARIA Roles, States, and Properties sections, plus the two APG examples (carousel-1-prev-next and carousel-2-tablist) and their carousel-prev-next.js / carousel-tablist.js, all licensed W3C Software and Document License. Targets: `carousel` (the container carrying region/group + aria-roledescription and, in this vocabulary, aria-live, since the APG target names given for this port have no separate slides wrapper), `rotation`, `prev`, `next`, `slide:<i>` and `tab:<i>`. A rotation tick is `{ \"event\": \"wait\", \"ms\": 5000 }` (the examples' timeInterval). config vocabulary: items = slide count (default 6); variant = \"basic\" (default) | \"tabbed\"; autoRotate = carousel has the auto-rotate feature (false = the example's \\\"Disable auto-rotation\\\" option, which removes the rotation control); playing = rotation active at start (false models the paused-on-load option; the user must activate the rotation control); reducedMotion = prefers-reduced-motion, which forces paused-on-load; focusInside = DOM focus starts inside the carousel; hovering = pointer starts over the carousel; initialIndex = initially shown slide / selected tab, 0-based (default 0); labelledBy = ID of the carousel's visible label; role = container role (region or group). Known APG ambiguity: the pattern page says a tabbed slide (tabpanel) does NOT have aria-roledescription, while the carousel-2 example's role/attribute table sets aria-roledescription=\"slide\" on it; the tabbed scenario below follows the example table and is flagged in its notes. The basic example resumes rotation on focusout, while the pattern text and the tabbed example say focus does not resume rotation until the user activates the rotation control; the scenarios follow the pattern text and flag the divergence.",
+  "scenarios": [
+    {
+      "id": "carousel.apg.about.auto-rotation-advances-on-interval",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#aboutthispattern",
+      "upstreamTest": "About This Pattern: rotation automatically starts when the page loads and rotates the next slide into view",
+      "apg": "about",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        { "expect": { "visible": ["slide:0"] } },
+        { "event": "wait", "ms": 5000 },
+        {
+          "expect": {
+            "visible": ["slide:1"],
+            "attrs": { "slide:1": { "aria-label": "2 of 6" } }
+          }
+        }
+      ],
+      "notes": "The examples' timeInterval is 5000 ms; one interval advances exactly one slide."
+    },
+    {
+      "id": "carousel.apg.about.rotation-stops-on-keyboard-focus",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: automatic slide rotation stops when any element in the carousel receives keyboard focus",
+      "apg": "about",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        { "event": "focus", "target": "next" },
+        { "event": "wait", "ms": 5000 },
+        {
+          "expect": {
+            "visible": ["slide:0"],
+            "attrs": { "carousel": { "aria-live": "polite" } }
+          }
+        }
+      ],
+      "notes": "Focus entering any carousel element (here the next button) latches rotation off for the tick; the live region flips to polite while focus is inside."
+    },
+    {
+      "id": "carousel.apg.about.focus-stop-persists-after-blur",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: rotation does not resume unless the user activates the rotation control",
+      "apg": "about",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        { "event": "focus", "target": "next" },
+        { "event": "blur", "target": "next" },
+        { "event": "wait", "ms": 5000 },
+        { "expect": { "visible": ["slide:0"] } }
+      ],
+      "notes": "Divergence: carousel-prev-next.js resumes on focusout, but the pattern text and the tabbed example keep rotation stopped until the user activates the rotation control; this scenario pins the pattern-text behaviour."
+    },
+    {
+      "id": "carousel.apg.about.rotation-resumes-only-on-rotation-control",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: a focus-stopped carousel resumes rotation only when the user activates the rotation control",
+      "apg": "about",
+      "config": {
+        "items": 6,
+        "autoRotate": true,
+        "playing": true,
+        "focusInside": true
+      },
+      "steps": [
+        { "event": "focus", "target": "next" },
+        { "event": "wait", "ms": 5000 },
+        { "expect": { "visible": ["slide:0"] } },
+        { "event": "click", "target": "rotation" },
+        { "event": "wait", "ms": 5000 },
+        { "expect": { "visible": ["slide:1"] } }
+      ],
+      "notes": "Once the user activates the rotation control, focus/hover states are ignored until it is activated again (APG Accessibility Features). In carousel-prev-next.js reaching this state after a focus pause takes a stop-then-start pair of activations; the scenario states the intended single-action resume."
+    },
+    {
+      "id": "carousel.apg.about.hover-pauses-rotation",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-1-prev-next/#accessibilityfeatures",
+      "upstreamTest": "Accessibility Features: hovering the mouse over any carousel content pauses automatic rotation",
+      "apg": "about",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        { "event": "hover", "target": "carousel" },
+        { "event": "wait", "ms": 5000 },
+        { "expect": { "visible": ["slide:0"] } }
+      ]
+    },
+    {
+      "id": "carousel.apg.about.unhover-resumes-rotation",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-1-prev-next/#accessibilityfeatures",
+      "upstreamTest": "Accessibility Features: automatic rotation resumes when the mouse moves away unless another condition prevents rotation",
+      "apg": "about",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        { "event": "hover", "target": "carousel" },
+        { "event": "wait", "ms": 5000 },
+        { "expect": { "visible": ["slide:0"] } },
+        { "event": "unhover", "target": "carousel" },
+        { "event": "wait", "ms": 5000 },
+        { "expect": { "visible": ["slide:1"] } }
+      ]
+    },
+    {
+      "id": "carousel.apg.about.hover-does-not-resume-when-stopped",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-1-prev-next/#accessibilityfeatures",
+      "upstreamTest": "Accessibility Features: rotation resumes on unhover only when it has not been stopped",
+      "apg": "about",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        { "event": "click", "target": "rotation" },
+        { "event": "hover", "target": "carousel" },
+        { "event": "unhover", "target": "carousel" },
+        { "event": "wait", "ms": 5000 },
+        { "expect": { "visible": ["slide:0"] } }
+      ]
+    },
+    {
+      "id": "carousel.apg.about.user-started-rotation-ignores-hover",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-1-prev-next/#accessibilityfeatures",
+      "upstreamTest": "Accessibility Features: once the user activates the rotation control, hover states that pause rotation are ignored",
+      "apg": "about",
+      "config": {
+        "items": 6,
+        "autoRotate": true,
+        "playing": false,
+        "hovering": true
+      },
+      "steps": [
+        { "event": "click", "target": "rotation" },
+        { "event": "wait", "ms": 5000 },
+        { "expect": { "visible": ["slide:1"] } }
+      ],
+      "notes": "Mirrors carousel-prev-next.js rotateSlides: the hasUserActivatedPlay branch advances even while hasHover is set."
+    },
+    {
+      "id": "carousel.apg.example.reduced-motion-pauses-on-load",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-1-prev-next/#accessibilityfeatures",
+      "upstreamTest": "Accessibility Features: a prefers-reduced-motion setting always overrides autoplay and starts the carousel paused",
+      "apg": "example",
+      "config": {
+        "items": 6,
+        "autoRotate": true,
+        "reducedMotion": true,
+        "playing": false
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "rotation": { "aria-label": "Start automatic slide show" }
+            }
+          }
+        },
+        { "event": "wait", "ms": 5000 },
+        { "expect": { "visible": ["slide:0"] } }
+      ]
+    },
+    {
+      "id": "carousel.apg.example.disable-auto-rotation-hides-control",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-1-prev-next/#exampleoptions",
+      "upstreamTest": "Example Options / Accessibility Features: disabling auto-rotation removes the rotation control from the interface",
+      "apg": "example",
+      "config": { "items": 6, "autoRotate": false },
+      "steps": [{ "expect": { "attrs": { "rotation": { "hidden": "" } } } }],
+      "notes": "carousel-prev-next.js sets pausePlayButtonNode.hidden = disable; the control is absent from the tab sequence in that state."
+    },
+    {
+      "id": "carousel.apg.example.manual-controls-work-without-auto-rotation",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-1-prev-next/#exampleoptions",
+      "upstreamTest": "Accessibility Features: when auto-rotation is disabled the previous and next buttons still rotate slides",
+      "apg": "example",
+      "config": { "items": 6, "autoRotate": false },
+      "steps": [
+        { "event": "click", "target": "next" },
+        { "expect": { "visible": ["slide:1"] } },
+        { "event": "click", "target": "prev" },
+        { "expect": { "visible": ["slide:0"] } }
+      ]
+    },
+
+    {
+      "id": "carousel.apg.rotation.label-stop-when-playing",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: while the carousel is rotating the rotation control's label is Stop automatic slide show",
+      "apg": "rotation",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "rotation": { "aria-label": "Stop automatic slide show" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "carousel.apg.rotation.label-start-when-paused",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: while the carousel is not rotating the rotation control's label is Start automatic slide show",
+      "apg": "rotation",
+      "config": { "items": 6, "autoRotate": true, "playing": false },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "rotation": { "aria-label": "Start automatic slide show" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "carousel.apg.rotation.label-toggles-on-activation",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: the label changes to match the action the button will perform each time it is activated",
+      "apg": "rotation",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        { "event": "click", "target": "rotation" },
+        {
+          "expect": {
+            "attrs": {
+              "rotation": { "aria-label": "Start automatic slide show" }
+            }
+          }
+        },
+        { "event": "click", "target": "rotation" },
+        {
+          "expect": {
+            "attrs": {
+              "rotation": { "aria-label": "Stop automatic slide show" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "carousel.apg.rotation.no-aria-pressed-state",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: because the label changes, the rotation control has no states such as aria-pressed",
+      "apg": "rotation",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        { "expect": { "attrs": { "rotation": { "aria-pressed": null } } } }
+      ]
+    },
+    {
+      "id": "carousel.apg.rotation.activation-does-not-move-focus",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: activating the rotation control does not move focus, so it can be activated repeatedly",
+      "apg": "rotation",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        { "event": "focus", "target": "rotation" },
+        { "event": "click", "target": "rotation" },
+        { "expect": { "focus": "rotation" } }
+      ]
+    },
+    {
+      "id": "carousel.apg.rotation.enter-or-space-toggles",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-1-prev-next/#kbd_label",
+      "upstreamTest": "Keyboard Support: Enter or Space toggles auto rotation of the slides",
+      "apg": "rotation",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        { "event": "focus", "target": "rotation" },
+        { "event": "key", "key": "Enter", "target": "rotation" },
+        {
+          "expect": {
+            "attrs": {
+              "rotation": { "aria-label": "Start automatic slide show" }
+            }
+          }
+        },
+        { "event": "key", "key": " ", "target": "rotation" },
+        {
+          "expect": {
+            "attrs": {
+              "rotation": { "aria-label": "Stop automatic slide show" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "carousel.apg.rotation.control-precedes-content-in-tab-order",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: the rotation control is the first element in the Tab sequence inside the carousel and precedes previous, next and the slide content",
+      "apg": "keyboard",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        { "event": "focus", "target": "rotation" },
+        { "event": "key", "key": "Tab", "target": "rotation" },
+        { "expect": { "focus": "prev" } },
+        { "event": "key", "key": "Tab", "target": "prev" },
+        { "expect": { "focus": "next" } },
+        { "event": "key", "key": "Tab", "target": "next" },
+        { "expect": { "focus": "slide:0" } }
+      ],
+      "notes": "In the basic example the focusable content of the shown slide is the image link, so Tab lands on the slide container (target slide:0)."
+    },
+    {
+      "id": "carousel.apg.rotation.shift-tab-reverses-tab-order",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: Shift+Tab moves focus backwards through the interactive elements without scripting",
+      "apg": "keyboard",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        { "event": "focus", "target": "next" },
+        { "event": "key", "key": "Shift+Tab", "target": "next" },
+        { "expect": { "focus": "prev" } },
+        { "event": "key", "key": "Shift+Tab", "target": "prev" },
+        { "expect": { "focus": "rotation" } }
+      ]
+    },
+
+    {
+      "id": "carousel.apg.next.advances-to-next-slide",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#aboutthispattern",
+      "upstreamTest": "About This Pattern: the next slide control hides the current slide and rotates the next slide into view",
+      "apg": "next",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        { "event": "click", "target": "next" },
+        {
+          "expect": {
+            "visible": ["slide:1"],
+            "attrs": { "slide:1": { "aria-label": "2 of 6" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "carousel.apg.next.wraps-from-last-to-first",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-1-prev-next/#kbd_label",
+      "upstreamTest": "Keyboard Support: the next control at the last slide rotates to the first slide",
+      "apg": "next",
+      "config": {
+        "items": 6,
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 5
+      },
+      "steps": [
+        { "event": "click", "target": "next" },
+        {
+          "expect": {
+            "visible": ["slide:0"],
+            "attrs": { "slide:0": { "aria-label": "1 of 6" } }
+          }
+        }
+      ],
+      "notes": "nextCarouselItem wraps nextIndex >= length back to 0."
+    },
+    {
+      "id": "carousel.apg.next.activation-does-not-move-focus",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: activating the next slide control does not move focus",
+      "apg": "next",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        { "event": "focus", "target": "next" },
+        { "event": "click", "target": "next" },
+        { "expect": { "focus": "next", "visible": ["slide:1"] } }
+      ]
+    },
+    {
+      "id": "carousel.apg.next.enter-key-advances",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-1-prev-next/#kbd_label",
+      "upstreamTest": "Keyboard Support: Enter or Space on the next button displays the next slide",
+      "apg": "next",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        { "event": "focus", "target": "next" },
+        { "event": "key", "key": "Enter", "target": "next" },
+        { "expect": { "visible": ["slide:1"] } }
+      ]
+    },
+    {
+      "id": "carousel.apg.prev.goes-to-previous-slide",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#aboutthispattern",
+      "upstreamTest": "About This Pattern: the previous slide control rotates the previous slide into view",
+      "apg": "prev",
+      "config": {
+        "items": 6,
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 2
+      },
+      "steps": [
+        { "event": "click", "target": "prev" },
+        { "expect": { "visible": ["slide:1"] } }
+      ]
+    },
+    {
+      "id": "carousel.apg.prev.wraps-from-first-to-last",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-1-prev-next/#kbd_label",
+      "upstreamTest": "Keyboard Support: the previous control at the first slide rotates to the last slide",
+      "apg": "prev",
+      "config": {
+        "items": 6,
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 0
+      },
+      "steps": [
+        { "event": "click", "target": "prev" },
+        {
+          "expect": {
+            "visible": ["slide:5"],
+            "attrs": { "slide:5": { "aria-label": "6 of 6" } }
+          }
+        }
+      ],
+      "notes": "previousCarouselItem wraps nextIndex < 0 to length - 1."
+    },
+    {
+      "id": "carousel.apg.prev.activation-does-not-move-focus",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: activating the previous slide control does not move focus",
+      "apg": "prev",
+      "config": {
+        "items": 6,
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "prev" },
+        { "event": "click", "target": "prev" },
+        { "expect": { "focus": "prev", "visible": ["slide:1"] } }
+      ]
+    },
+
+    {
+      "id": "carousel.apg.roles.container-roledescription-carousel",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: the carousel container has aria-roledescription set to carousel",
+      "apg": "roles",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "carousel": { "aria-roledescription": "carousel" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "carousel.apg.roles.container-has-visible-label",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: a visible carousel label is referenced by aria-labelledby on the carousel container",
+      "apg": "roles",
+      "config": { "items": 6, "labelledBy": "carousel-heading" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "carousel": { "aria-labelledby": "carousel-heading" } }
+          }
+        }
+      ],
+      "notes": "Without a visible label the name comes from aria-label instead; since aria-roledescription is carousel, the label itself must not contain the word carousel."
+    },
+    {
+      "id": "carousel.apg.roles.container-role-region",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: the carousel container has role region or group",
+      "apg": "roles",
+      "config": { "items": 6, "role": "region" },
+      "steps": [
+        { "expect": { "attrs": { "carousel": { "role": "region" } } } }
+      ],
+      "notes": "The pattern allows region or group depending on the page's information architecture; this scenario pins the region branch."
+    },
+    {
+      "id": "carousel.apg.roles.slide-role-and-roledescription",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: each slide container has role group and aria-roledescription set to slide",
+      "apg": "roles",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "slide:0": { "role": "group", "aria-roledescription": "slide" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "carousel.apg.roles.slide-label-is-position-of-set",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: each slide has an accessible name giving its position, e.g. 1 of 6",
+      "apg": "roles",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "slide:0": { "aria-label": "1 of 6" },
+              "slide:5": { "aria-label": "6 of 6" }
+            }
+          }
+        }
+      ],
+      "notes": "Normally position/size in an accessible name is discouraged; the carousel is an exception because group elements do not support aria-setsize / aria-posinset."
+    },
+    {
+      "id": "carousel.apg.roles.live-off-while-rotating",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: aria-live is off while the carousel is automatically rotating",
+      "apg": "roles",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        { "expect": { "attrs": { "carousel": { "aria-live": "off" } } } }
+      ]
+    },
+    {
+      "id": "carousel.apg.roles.live-polite-when-not-rotating",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: aria-live is polite when the carousel is not automatically rotating",
+      "apg": "roles",
+      "config": { "items": 6, "autoRotate": true, "playing": false },
+      "steps": [
+        { "expect": { "attrs": { "carousel": { "aria-live": "polite" } } } }
+      ]
+    },
+    {
+      "id": "carousel.apg.roles.live-polite-when-focus-inside",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-1-prev-next/#accessibilityfeatures",
+      "upstreamTest": "Accessibility Features: moving focus into the carousel turns the live region on so slide changes are announced",
+      "apg": "roles",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        { "event": "focus", "target": "next" },
+        { "expect": { "attrs": { "carousel": { "aria-live": "polite" } } } }
+      ]
+    },
+    {
+      "id": "carousel.apg.roles.live-off-after-user-restarts",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-1-prev-next/#accessibilityfeatures",
+      "upstreamTest": "Accessibility Features: when automatic rotation is on, the live region is disabled",
+      "apg": "roles",
+      "config": { "items": 6, "autoRotate": true, "playing": false },
+      "steps": [
+        { "event": "click", "target": "rotation" },
+        { "expect": { "attrs": { "carousel": { "aria-live": "off" } } } }
+      ]
+    },
+    {
+      "id": "carousel.apg.roles.controls-aria-controls-slides",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-1-prev-next/#rps_label",
+      "upstreamTest": "Example attributes: each control button has aria-controls referring to the element containing the slides",
+      "apg": "roles",
+      "config": { "items": 6, "autoRotate": true, "playing": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "rotation": { "aria-controls": "*" },
+              "prev": { "aria-controls": "*" },
+              "next": { "aria-controls": "*" }
+            }
+          }
+        }
+      ],
+      "notes": "Value \"*\" means any non-empty IDREF list (see feed.apg.json for the same convention)."
+    },
+
+    {
+      "id": "carousel.apg.tablist.selected-tab-shows-its-slide",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Tabbed: activating a tab displays the slide associated with that tab",
+      "apg": "tablist",
+      "config": {
+        "items": 6,
+        "variant": "tabbed",
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 0
+      },
+      "steps": [
+        {
+          "expect": {
+            "visible": ["slide:0"],
+            "attrs": {
+              "tab:0": { "aria-selected": "true" },
+              "tab:1": { "aria-selected": "false" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "carousel.apg.tablist.roving-tabindex",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-2-tablist/#rps_label",
+      "upstreamTest": "Example attributes: only the selected tab is in the page Tab sequence; unselected tabs get tabindex=-1 and the selected tab's tabindex is removed",
+      "apg": "tablist",
+      "config": {
+        "items": 6,
+        "variant": "tabbed",
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 0
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "tab:0": { "tabindex": null },
+              "tab:1": { "tabindex": "-1" },
+              "tab:5": { "tabindex": "-1" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "carousel.apg.tablist.arrow-right-selects-next-tab",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-2-tablist/#kbd_label",
+      "upstreamTest": "Keyboard Support: Right Arrow moves focus to the next tab and shows its slide",
+      "apg": "tablist",
+      "config": {
+        "items": 6,
+        "variant": "tabbed",
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 0
+      },
+      "steps": [
+        { "event": "focus", "target": "tab:0" },
+        { "event": "key", "key": "ArrowRight", "target": "tab:0" },
+        {
+          "expect": {
+            "focus": "tab:1",
+            "visible": ["slide:1"],
+            "attrs": { "tab:1": { "aria-selected": "true" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "carousel.apg.tablist.arrow-right-wraps-last-to-first",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-2-tablist/#kbd_label",
+      "upstreamTest": "Keyboard Support: Right Arrow on the last tab moves focus to the first tab and shows the first slide",
+      "apg": "tablist",
+      "config": {
+        "items": 6,
+        "variant": "tabbed",
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 5
+      },
+      "steps": [
+        { "event": "focus", "target": "tab:5" },
+        { "event": "key", "key": "ArrowRight", "target": "tab:5" },
+        { "expect": { "focus": "tab:0", "visible": ["slide:0"] } }
+      ]
+    },
+    {
+      "id": "carousel.apg.tablist.arrow-left-selects-previous-tab",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-2-tablist/#kbd_label",
+      "upstreamTest": "Keyboard Support: Left Arrow moves focus to the previous tab and shows its slide",
+      "apg": "tablist",
+      "config": {
+        "items": 6,
+        "variant": "tabbed",
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "tab:2" },
+        { "event": "key", "key": "ArrowLeft", "target": "tab:2" },
+        { "expect": { "focus": "tab:1", "visible": ["slide:1"] } }
+      ]
+    },
+    {
+      "id": "carousel.apg.tablist.arrow-left-wraps-first-to-last",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-2-tablist/#kbd_label",
+      "upstreamTest": "Keyboard Support: Left Arrow on the first tab moves focus to the last tab and shows the last slide",
+      "apg": "tablist",
+      "config": {
+        "items": 6,
+        "variant": "tabbed",
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 0
+      },
+      "steps": [
+        { "event": "focus", "target": "tab:0" },
+        { "event": "key", "key": "ArrowLeft", "target": "tab:0" },
+        { "expect": { "focus": "tab:5", "visible": ["slide:5"] } }
+      ]
+    },
+    {
+      "id": "carousel.apg.tablist.home-selects-first-tab",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-2-tablist/#kbd_label",
+      "upstreamTest": "Keyboard Support: Home moves focus to the first tab and shows the first slide",
+      "apg": "tablist",
+      "config": {
+        "items": 6,
+        "variant": "tabbed",
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 3
+      },
+      "steps": [
+        { "event": "focus", "target": "tab:3" },
+        { "event": "key", "key": "Home", "target": "tab:3" },
+        { "expect": { "focus": "tab:0", "visible": ["slide:0"] } }
+      ]
+    },
+    {
+      "id": "carousel.apg.tablist.end-selects-last-tab",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-2-tablist/#kbd_label",
+      "upstreamTest": "Keyboard Support: End moves focus to the last tab and shows the last slide",
+      "apg": "tablist",
+      "config": {
+        "items": 6,
+        "variant": "tabbed",
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 0
+      },
+      "steps": [
+        { "event": "focus", "target": "tab:0" },
+        { "event": "key", "key": "End", "target": "tab:0" },
+        { "expect": { "focus": "tab:5", "visible": ["slide:5"] } }
+      ]
+    },
+    {
+      "id": "carousel.apg.tablist.click-selects-tab-and-moves-focus",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-2-tablist/#kbd_label",
+      "upstreamTest": "Keyboard Support/Tabs: activating a tab (click) shows its slide and moves focus to the tab",
+      "apg": "tablist",
+      "config": {
+        "items": 6,
+        "variant": "tabbed",
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 0
+      },
+      "steps": [
+        { "event": "click", "target": "tab:2" },
+        {
+          "expect": {
+            "focus": "tab:2",
+            "visible": ["slide:2"],
+            "attrs": {
+              "tab:2": { "aria-selected": "true" },
+              "tab:0": { "aria-selected": "false" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "carousel.apg.tablist.tab-has-role-label-and-controls",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-2-tablist/#rps_label",
+      "upstreamTest": "Example attributes: each control is role tab, named Slide X, with aria-controls on its panel",
+      "apg": "tablist",
+      "config": {
+        "items": 6,
+        "variant": "tabbed",
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 0
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "tab:0": {
+                "role": "tab",
+                "aria-label": "Slide 1",
+                "aria-controls": "*"
+              },
+              "tab:5": { "aria-label": "Slide 6" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "carousel.apg.tablist.tabpanel-roledescription-slide",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-2-tablist/#rps_label",
+      "upstreamTest": "Example attributes: each tabpanel has aria-roledescription slide and aria-label X of Y",
+      "apg": "tablist",
+      "config": {
+        "items": 6,
+        "variant": "tabbed",
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 0
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "slide:0": {
+                "role": "tabpanel",
+                "aria-roledescription": "slide",
+                "aria-label": "1 of 6"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Divergence: the Carousel Pattern page says a tabbed slide (tabpanel) does NOT carry aria-roledescription, but the carousel-2 example's role/attribute table sets it to slide; this scenario follows the example table."
+    },
+    {
+      "id": "carousel.apg.tablist.tab-order-rotation-then-tablist-then-slide",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-2-tablist/#kbd_label",
+      "upstreamTest": "Keyboard Support: the rotation control and the tab list precede the slide content in the Tab sequence; when the tablist holds focus Tab moves on to a link in the shown slide",
+      "apg": "tablist",
+      "config": {
+        "items": 6,
+        "variant": "tabbed",
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 0
+      },
+      "steps": [
+        { "event": "focus", "target": "rotation" },
+        { "event": "key", "key": "Tab", "target": "rotation" },
+        { "expect": { "focus": "tab:0" } },
+        { "event": "key", "key": "Tab", "target": "tab:0" },
+        { "expect": { "focus": "slide:0" } }
+      ]
+    },
+    {
+      "id": "carousel.apg.tablist.auto-rotation-selects-next-tab",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#aboutthispattern",
+      "upstreamTest": "About This Pattern: automatic rotation moves to the next slide, which in the tabbed variant activates the next tab",
+      "apg": "tablist",
+      "config": {
+        "items": 6,
+        "variant": "tabbed",
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 0
+      },
+      "steps": [
+        { "event": "wait", "ms": 5000 },
+        {
+          "expect": {
+            "visible": ["slide:1"],
+            "attrs": { "tab:1": { "aria-selected": "true" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "carousel.apg.tablist.focus-stops-auto-rotation",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-2-tablist/#accessibilityfeatures",
+      "upstreamTest": "Accessibility Features: moving keyboard focus to any carousel content, including the tab elements, pauses automatic rotation",
+      "apg": "tablist",
+      "config": {
+        "items": 6,
+        "variant": "tabbed",
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 0
+      },
+      "steps": [
+        { "event": "focus", "target": "tab:0" },
+        { "event": "wait", "ms": 5000 },
+        { "expect": { "visible": ["slide:0"] } }
+      ]
+    },
+    {
+      "id": "carousel.apg.tablist.hover-pauses-auto-rotation",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-2-tablist/#accessibilityfeatures",
+      "upstreamTest": "Accessibility Features: hovering the mouse over carousel content pauses automatic rotation",
+      "apg": "tablist",
+      "config": {
+        "items": 6,
+        "variant": "tabbed",
+        "autoRotate": true,
+        "playing": true,
+        "initialIndex": 0
+      },
+      "steps": [
+        { "event": "hover", "target": "carousel" },
+        { "event": "wait", "ms": 5000 },
+        { "expect": { "visible": ["slide:0"] } }
+      ]
+    }
+  ],
+  "skipped": [
+    {
+      "upstreamTest": "Grouped carousel slide picker controls (buttons in a role=group, current picker aria-disabled=true)",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/#wai-ariaroles,states,andproperties",
+      "reason": "third carousel style; the port targets only the basic and tabbed variants named in this task"
+    },
+    {
+      "upstreamTest": "Rendering controls/captions inside vs outside the image, focus styling, color contrast",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/carousel/examples/carousel-1-prev-next/#accessibilityfeatures",
+      "reason": "styling and view-option presentation, not interaction behaviour"
+    }
+  ]
+}

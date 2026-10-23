@@ -1,0 +1,720 @@
+{
+  "pattern": "grid",
+  "source": "base-ui",
+  "commit": "19511bb171f3b360b006c94cf6d07e53cb446505",
+  "license": "MIT",
+  "scenarios": [
+    {
+      "id": "grid.base-ui.uniform-1x1-items",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L538",
+      "upstreamTest": "Composite > grid > uniform 1x1 items",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 3,
+        "enableHomeAndEndKeys": true
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:0,0" },
+        { "event": "key", "key": "ArrowDown", "target": "cell:0,0" },
+        {
+          "expect": {
+            "focus": "cell:1,0",
+            "attrs": { "cell:1,0": { "tabindex": "0" } }
+          }
+        },
+        { "event": "key", "key": "ArrowRight", "target": "cell:1,0" },
+        {
+          "expect": {
+            "focus": "cell:1,1",
+            "attrs": { "cell:1,1": { "tabindex": "0" } }
+          }
+        },
+        { "event": "key", "key": "ArrowDown", "target": "cell:1,1" },
+        {
+          "expect": {
+            "focus": "cell:2,1",
+            "attrs": { "cell:2,1": { "tabindex": "0" } }
+          }
+        },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:2,1" },
+        {
+          "expect": {
+            "focus": "cell:2,0",
+            "attrs": { "cell:2,0": { "tabindex": "0" } }
+          }
+        },
+        { "event": "key", "key": "ArrowUp", "target": "cell:2,0" },
+        {
+          "expect": {
+            "focus": "cell:1,0",
+            "attrs": { "cell:1,0": { "tabindex": "0" } }
+          }
+        },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:1,0" },
+        {
+          "expect": {
+            "focus": "cell:1,2",
+            "attrs": { "cell:1,2": { "tabindex": "0" } }
+          }
+        },
+        { "event": "focus", "target": "cell:2,2" },
+        { "event": "key", "key": "Home", "target": "cell:2,2" },
+        {
+          "expect": {
+            "focus": "cell:0,0",
+            "attrs": { "cell:0,0": { "tabindex": "0" } }
+          }
+        },
+        { "event": "key", "key": "End", "target": "cell:0,0" },
+        {
+          "expect": {
+            "focus": "cell:2,2",
+            "attrs": { "cell:2,2": { "tabindex": "0" } }
+          }
+        }
+      ],
+      "notes": "3x3 grid, loop enabled: ArrowLeft from the row start wraps to the row end; Home/End jump to first/last item. Each move moves the roving tabindex '0'."
+    },
+    {
+      "id": "grid.base-ui.on-loop-grid-returns-target",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L603",
+      "upstreamTest": "Composite > grid > calls onLoop while navigating through grid cells",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 3,
+        "onLoop": "returns-index-4"
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:1,2" },
+        { "event": "key", "key": "ArrowRight", "target": "cell:1,2" },
+        {
+          "expect": {
+            "focus": "cell:1,1",
+            "events": { "onLoop": ["ArrowRight", "5", "3", "cell:1,1"] }
+          }
+        }
+      ],
+      "notes": "Right from the row end invokes onLoop with prevIndex 5, nextIndex 3; the returned index 4 decides the landing cell."
+    },
+    {
+      "id": "grid.base-ui.on-loop-vertical-between-rows",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L639",
+      "upstreamTest": "Composite > grid > calls onLoop when looping vertically between rows",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 3,
+        "onLoop": "returns-next-index"
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:2,2" },
+        { "event": "key", "key": "ArrowDown", "target": "cell:2,2" },
+        {
+          "expect": {
+            "focus": "cell:0,2",
+            "events": { "onLoop": ["ArrowDown", "8", "2", "cell:0,2"] }
+          }
+        },
+        { "event": "key", "key": "ArrowUp", "target": "cell:0,2" },
+        {
+          "expect": {
+            "focus": "cell:2,2",
+            "events": { "onLoop": ["ArrowUp", "2", "8", "cell:2,2"] }
+          }
+        }
+      ],
+      "notes": "Vertical loop wraps from the last row to the same column in the first row and back."
+    },
+    {
+      "id": "grid.base-ui.on-loop-returns-prev-index-stays",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L680",
+      "upstreamTest": "Composite > grid > stays on the current item when onLoop returns prevIndex",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 3,
+        "orientation": "horizontal",
+        "onLoop": "returns-prev-index"
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:2,2" },
+        { "event": "key", "key": "ArrowRight", "target": "cell:2,2" },
+        {
+          "expect": {
+            "focus": "cell:2,2",
+            "events": { "onLoop": ["ArrowRight", "8", "0", "cell:2,2"] }
+          }
+        },
+        { "event": "key", "key": "ArrowDown", "target": "cell:2,2" },
+        {
+          "expect": {
+            "focus": "cell:2,2",
+            "events": { "onLoop": ["ArrowDown", "8", "2", "cell:2,2"] }
+          }
+        }
+      ],
+      "notes": "When onLoop returns prevIndex the tab stop is not moved."
+    },
+    {
+      "id": "grid.base-ui.no-loop-when-loop-focus-disabled",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L713",
+      "upstreamTest": "Composite > grid > does not loop or call onLoop when loopFocus is disabled",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 3,
+        "loopFocus": false
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:2,2" },
+        { "event": "key", "key": "ArrowDown", "target": "cell:2,2" },
+        { "expect": { "focus": "cell:2,2" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:2,2" },
+        { "expect": { "focus": "cell:2,2", "events": { "onLoop": [] } } }
+      ],
+      "notes": "With loopFocus=false navigation stops at the edge and onLoop is never called."
+    },
+    {
+      "id": "grid.base-ui.skips-disabled-indices",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L744",
+      "upstreamTest": "Composite > grid > skips disabled indices",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 3,
+        "disabledIndices": [4]
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:0,1" },
+        { "event": "key", "key": "ArrowDown", "target": "cell:0,1" },
+        {
+          "expect": {
+            "focus": "cell:2,1",
+            "attrs": { "cell:2,1": { "tabindex": "0" } }
+          }
+        }
+      ],
+      "notes": "The disabled centre cell (index 4) is skipped; focus lands on the next enabled cell in the same column."
+    },
+    {
+      "id": "grid.base-ui.dense-packing-fills-gaps",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L764",
+      "upstreamTest": "Composite > grid > packs items into earlier gaps when dense",
+      "apg": "extension",
+      "config": {
+        "layout": "grid",
+        "cols": 2,
+        "dense": true,
+        "itemSizes": [
+          { "width": 1, "height": 1 },
+          { "width": 2, "height": 1 },
+          { "width": 1, "height": 1 }
+        ]
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:0,0" },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,0" },
+        { "expect": { "focus": "cell:0,1" } },
+        { "event": "key", "key": "ArrowDown", "target": "cell:0,1" },
+        { "expect": { "focus": "cell:1,0" } }
+      ],
+      "notes": "Extension (layout packing): with dense packing the third 1x1 item backfills the gap next to the first."
+    },
+    {
+      "id": "grid.base-ui.rtl-horizontal",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L802",
+      "upstreamTest": "Composite > grid > rtl > horizontal orientation",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 3,
+        "orientation": "horizontal",
+        "dir": "rtl",
+        "enableHomeAndEndKeys": true
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:0,0" },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,0" },
+        { "expect": { "focus": "cell:0,1" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,1" },
+        { "expect": { "focus": "cell:0,2" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,2" },
+        { "expect": { "focus": "cell:1,0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:1,0" },
+        { "expect": { "focus": "cell:1,1" } },
+        { "event": "key", "key": "Home", "target": "cell:1,1" },
+        { "expect": { "focus": "cell:0,0" } },
+        { "event": "key", "key": "End", "target": "cell:0,0" },
+        { "expect": { "focus": "cell:2,2" } }
+      ],
+      "notes": "In RTL ArrowLeft advances forward."
+    },
+    {
+      "id": "grid.base-ui.rtl-both-orientation",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L850",
+      "upstreamTest": "Composite > grid > rtl > both horizontal and vertical orientation",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 3,
+        "orientation": "both",
+        "dir": "rtl",
+        "enableHomeAndEndKeys": true
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:0,0" },
+        { "event": "key", "key": "ArrowDown", "target": "cell:0,0" },
+        { "expect": { "focus": "cell:1,0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:1,0" },
+        { "expect": { "focus": "cell:1,1" } },
+        { "event": "key", "key": "ArrowDown", "target": "cell:1,1" },
+        { "expect": { "focus": "cell:2,1" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:2,1" },
+        { "expect": { "focus": "cell:2,0" } },
+        { "event": "key", "key": "ArrowUp", "target": "cell:2,0" },
+        { "expect": { "focus": "cell:1,0" } },
+        { "event": "key", "key": "End", "target": "cell:1,0" },
+        { "expect": { "focus": "cell:2,2" } },
+        { "event": "key", "key": "Home", "target": "cell:2,2" },
+        { "expect": { "focus": "cell:0,0" } }
+      ],
+      "notes": "RTL with orientation=both: ArrowLeft is forward, ArrowRight is backward."
+    },
+    {
+      "id": "grid.base-ui.rtl-spanning-item-forward-edge",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L904",
+      "upstreamTest": "Composite > grid > rtl > uses the forward edge when navigating from a spanning item",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "cols": 3,
+        "orientation": "both",
+        "dir": "rtl",
+        "itemSizes": [
+          { "width": 1, "height": 1 },
+          { "width": 2, "height": 1 },
+          { "width": 1, "height": 1 }
+        ]
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:0,1" },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,1" },
+        { "expect": { "focus": "cell:0,0" } }
+      ],
+      "notes": "The 2-column spanning item uses its forward (RTL) edge when moving to the previous item."
+    },
+    {
+      "id": "grid.base-ui.controlled-highlighted-index",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L60",
+      "upstreamTest": "Composite > list > controlled mode",
+      "apg": "keyboard",
+      "config": {
+        "layout": "list",
+        "orientation": "vertical",
+        "items": 3,
+        "highlightedIndex": "controlled"
+      },
+      "steps": [
+        { "event": "focus", "target": "row:0" },
+        {
+          "expect": {
+            "focus": "row:0",
+            "attrs": { "row:0": { "tabindex": "0" } }
+          }
+        },
+        { "event": "key", "key": "ArrowDown", "target": "row:0" },
+        {
+          "expect": {
+            "focus": "row:1",
+            "attrs": { "row:1": { "tabindex": "0" } }
+          }
+        },
+        { "event": "key", "key": "ArrowDown", "target": "row:1" },
+        {
+          "expect": {
+            "focus": "row:2",
+            "attrs": { "row:2": { "tabindex": "0" } }
+          }
+        },
+        { "event": "key", "key": "ArrowUp", "target": "row:2" },
+        {
+          "expect": {
+            "focus": "row:1",
+            "attrs": { "row:1": { "tabindex": "0" } }
+          }
+        },
+        { "event": "key", "key": "ArrowUp", "target": "row:1" },
+        {
+          "expect": {
+            "focus": "row:0",
+            "attrs": { "row:0": { "tabindex": "0" } }
+          }
+        }
+      ],
+      "notes": "One-column composite; roving tabindex follows the controlled highlighted index."
+    },
+    {
+      "id": "grid.base-ui.uncontrolled-navigation",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L110",
+      "upstreamTest": "Composite > list > uncontrolled mode",
+      "apg": "keyboard",
+      "config": {
+        "layout": "list",
+        "orientation": "vertical",
+        "items": 3
+      },
+      "steps": [
+        { "event": "focus", "target": "row:0" },
+        { "event": "key", "key": "ArrowDown", "target": "row:0" },
+        {
+          "expect": {
+            "focus": "row:1",
+            "attrs": { "row:1": { "tabindex": "0" } }
+          }
+        },
+        { "event": "key", "key": "ArrowDown", "target": "row:1" },
+        {
+          "expect": {
+            "focus": "row:2",
+            "attrs": { "row:2": { "tabindex": "0" } }
+          }
+        },
+        { "event": "key", "key": "ArrowUp", "target": "row:2" },
+        {
+          "expect": {
+            "focus": "row:1",
+            "attrs": { "row:1": { "tabindex": "0" } }
+          }
+        },
+        { "event": "key", "key": "ArrowUp", "target": "row:1" },
+        {
+          "expect": {
+            "focus": "row:0",
+            "attrs": { "row:0": { "tabindex": "0" } }
+          }
+        }
+      ],
+      "notes": "Same as controlled, without a highlightedIndex prop."
+    },
+    {
+      "id": "grid.base-ui.home-key-first-item",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L303",
+      "upstreamTest": "Composite > list > Home and End keys > Home key moves focus to the first item",
+      "apg": "keyboard",
+      "config": {
+        "layout": "list",
+        "orientation": "vertical",
+        "items": 3,
+        "enableHomeAndEndKeys": true
+      },
+      "steps": [
+        { "event": "focus", "target": "row:2" },
+        { "event": "key", "key": "Home", "target": "row:2" },
+        {
+          "expect": {
+            "focus": "row:0",
+            "attrs": { "row:0": { "tabindex": "0" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "grid.base-ui.end-key-last-item",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L324",
+      "upstreamTest": "Composite > list > Home and End keys > End key moves focus to the last item",
+      "apg": "keyboard",
+      "config": {
+        "layout": "list",
+        "orientation": "vertical",
+        "items": 3,
+        "enableHomeAndEndKeys": true
+      },
+      "steps": [
+        { "event": "focus", "target": "row:0" },
+        { "event": "key", "key": "End", "target": "row:0" },
+        {
+          "expect": {
+            "focus": "row:2",
+            "attrs": { "row:2": { "tabindex": "0" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "grid.base-ui.on-loop-list",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L346",
+      "upstreamTest": "Composite > list > calls onLoop and uses its return value",
+      "apg": "keyboard",
+      "config": {
+        "layout": "list",
+        "orientation": "vertical",
+        "items": 9,
+        "onLoop": "returns-index-1"
+      },
+      "steps": [
+        { "event": "focus", "target": "row:8" },
+        { "event": "key", "key": "ArrowDown", "target": "row:8" },
+        {
+          "expect": {
+            "focus": "row:1",
+            "events": { "onLoop": ["ArrowDown", "8", "0", "row:1"] }
+          }
+        }
+      ],
+      "notes": "onLoop receives the previous and next indices and its return value selects the focused item."
+    },
+    {
+      "id": "grid.base-ui.disabled-index-initial-tab-stop",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L939",
+      "upstreamTest": "Composite > prop: disabledIndices > moves the initial tab stop to the first enabled item when the default item is disabled",
+      "apg": "aria",
+      "config": {
+        "layout": "list",
+        "orientation": "vertical",
+        "items": 3,
+        "disabledIndices": [0]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "row:0": { "tabindex": "-1" },
+              "row:1": { "tabindex": "0" },
+              "row:2": { "tabindex": "-1" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "grid.base-ui.all-disabled-keeps-initial-tab-stop",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L953",
+      "upstreamTest": "Composite > prop: disabledIndices > keeps the initial tab stop when all items are disabled",
+      "apg": "aria",
+      "config": {
+        "layout": "list",
+        "orientation": "vertical",
+        "items": 2,
+        "disabledIndices": [0, 1]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "row:0": { "tabindex": "0" },
+              "row:1": { "tabindex": "-1" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "grid.base-ui.navigates-around-disabled-index",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L965",
+      "upstreamTest": "Composite > prop: disabledIndices > disables navigating item when their index is included",
+      "apg": "keyboard",
+      "config": {
+        "layout": "list",
+        "orientation": "vertical",
+        "items": 3,
+        "disabledIndices": [1]
+      },
+      "steps": [
+        { "event": "focus", "target": "row:0" },
+        { "event": "key", "key": "ArrowDown", "target": "row:0" },
+        {
+          "expect": {
+            "focus": "row:2",
+            "attrs": { "row:2": { "tabindex": "0" } }
+          }
+        },
+        { "event": "key", "key": "ArrowUp", "target": "row:2" },
+        {
+          "expect": {
+            "focus": "row:0",
+            "attrs": { "row:0": { "tabindex": "0" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "grid.base-ui.modifier-keys-prevent-navigation",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L1219",
+      "upstreamTest": "Composite > prop: modifierKeys > prevents arrow key navigation when any modifier key is pressed by default",
+      "apg": "extension",
+      "config": {
+        "layout": "list",
+        "orientation": "vertical",
+        "items": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "row:0" },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0",
+          "modifiers": ["Shift"]
+        },
+        { "expect": { "focus": "row:0" } },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0",
+          "modifiers": ["Control"]
+        },
+        { "expect": { "focus": "row:0" } },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0",
+          "modifiers": ["Alt"]
+        },
+        { "expect": { "focus": "row:0" } },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0",
+          "modifiers": ["Meta"]
+        },
+        { "expect": { "focus": "row:0" } }
+      ],
+      "notes": "Extension (base-ui specific): with no modifierKeys prop every modified arrow is prevented."
+    },
+    {
+      "id": "grid.base-ui.allowed-modifier-keys",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L1250",
+      "upstreamTest": "Composite > prop: modifierKeys > specifies allowed modifier keys that do not prevent arrow key navigation when pressed",
+      "apg": "extension",
+      "config": {
+        "layout": "list",
+        "orientation": "vertical",
+        "items": 3,
+        "modifierKeys": ["Alt", "Meta"]
+      },
+      "steps": [
+        { "event": "focus", "target": "row:0" },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0",
+          "modifiers": ["Shift"]
+        },
+        { "expect": { "focus": "row:0" } },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0",
+          "modifiers": ["Control"]
+        },
+        { "expect": { "focus": "row:0" } },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:0",
+          "modifiers": ["Alt"]
+        },
+        { "expect": { "focus": "row:1" } },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "row:1",
+          "modifiers": ["Meta"]
+        },
+        { "expect": { "focus": "row:2" } }
+      ],
+      "notes": "Extension (base-ui specific): only Alt and Meta are allowed."
+    },
+    {
+      "id": "grid.base-ui.removal-keeps-tab-stop",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L1066",
+      "upstreamTest": "Composite > item removal > keeps the tab stop on the highlighted item when an earlier item is removed",
+      "apg": "aria",
+      "config": {
+        "layout": "list",
+        "orientation": "vertical",
+        "items": 4,
+        "removableFirstItem": true
+      },
+      "steps": [
+        { "event": "focus", "target": "row:0" },
+        { "event": "key", "key": "ArrowDown", "target": "row:0" },
+        { "event": "key", "key": "ArrowDown", "target": "row:1" },
+        { "expect": { "attrs": { "row:2": { "tabindex": "0" } } } },
+        { "event": "prop", "prop": "removeFirstItem" },
+        {
+          "expect": {
+            "attrs": {
+              "row:2": { "tabindex": "0" },
+              "row:1": { "tabindex": "-1" },
+              "row:3": { "tabindex": "-1" }
+            }
+          }
+        },
+        { "event": "key", "key": "ArrowDown", "target": "row:2" },
+        { "expect": { "focus": "row:3" } }
+      ],
+      "notes": "Removing an earlier item leaves the roving tab stop on the highlighted item and navigation continues from it."
+    },
+    {
+      "id": "grid.base-ui.removal-highlighted-item-back-into-range",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/internals/composite/root/CompositeRoot.test.tsx#L1105",
+      "upstreamTest": "Composite > item removal > moves the tab stop back into range when the highlighted item is removed",
+      "apg": "aria",
+      "config": {
+        "layout": "list",
+        "orientation": "vertical",
+        "items": 3,
+        "removableLastItem": true
+      },
+      "steps": [
+        { "event": "focus", "target": "row:0" },
+        { "event": "key", "key": "ArrowDown", "target": "row:0" },
+        { "event": "key", "key": "ArrowDown", "target": "row:1" },
+        { "expect": { "attrs": { "row:2": { "tabindex": "0" } } } },
+        { "event": "prop", "prop": "removeLastItem" },
+        {
+          "expect": {
+            "attrs": {
+              "row:0": { "tabindex": "0" },
+              "row:1": { "tabindex": "-1" }
+            }
+          }
+        }
+      ],
+      "notes": "When the item holding the tab stop unmounts, the tab stop returns to the first item."
+    }
+  ],
+  "skipped": [
+    {
+      "reason": "CompositeRoot.test.tsx: grid > prevents default for grid navigation outside the configured orientation (upstream asserts event.defaultPrevented, which the scenario format cannot express)"
+    },
+    {
+      "reason": "CompositeRoot.test.tsx: 'keeps native input behavior...' uses synthetic composedPath and React internals"
+    },
+    {
+      "reason": "CompositeRoot.test.tsx: 'updates the order of items' / 'when their containers are reordered' are collection-order internals"
+    },
+    {
+      "reason": "CompositeRoot.test.tsx: nested Composite items (nested metadata/registration) and onMapChange internals"
+    },
+    {
+      "reason": "CompositeRoot.test.tsx: item removal cases for display:none/aria-disabled and active-item fallback are registration internals"
+    },
+    {
+      "reason": "packages/react/src/internals/composite/list/CompositeList.test.tsx: virtualised registration/ref internals, StrictMode/Suspense/SSR hydration"
+    },
+    {
+      "reason": "packages/react/test/floating-ui-tests/Grid.tsx and ComplexGrid.tsx: floating-ui visual fixtures for menu grids, not APG grid"
+    }
+  ]
+}

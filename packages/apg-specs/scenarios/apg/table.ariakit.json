@@ -1,0 +1,65 @@
+{
+  "pattern": "table",
+  "source": "ariakit",
+  "commit": "404c72257b879569feb08465da4ff9915fd873da",
+  "license": "MIT",
+  "skipped": [
+    {
+      "reason": "ariakit-ui-table > test-chrome selection / row-click suites (grid ticket)"
+    },
+    {
+      "reason": "names declarative and composed tables with native captions (firstElementChild styling assertion)"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "table.ariakit.native-table-named-by-caption",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/ariakit-ui-table/test.ts#L5",
+      "upstreamTest": "names declarative and composed tables with native captions",
+      "apg": "aria",
+      "config": { "caption": "Component inventory", "rows": 2 },
+      "steps": [
+        {
+          "expect": {
+            "visible": ["table", "caption", "rowgroup", "row:0", "row:1"]
+          }
+        }
+      ],
+      "notes": "A native table takes its accessible name from the visible caption; both declarative and composed tables expose it."
+    },
+    {
+      "id": "table.ariakit.caption-is-optional",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/ariakit-ui-table/test.ts#L16",
+      "upstreamTest": "supports optional caption parts before declarative and appended rows",
+      "apg": "aria",
+      "config": { "caption": null, "rows": 2 },
+      "steps": [
+        {
+          "expect": {
+            "visible": ["table", "rowgroup", "row:0", "row:1"]
+          }
+        }
+      ],
+      "notes": "When the caption is hidden the caption element is not rendered and the table keeps its rows and cells (Button, Covered, Tabs, Expanded)."
+    },
+    {
+      "id": "table.ariakit.explicit-caption-element",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/ariakit-ui-table/test.ts#L16",
+      "upstreamTest": "supports optional caption parts before declarative and appended rows (Caption element format)",
+      "apg": "aria",
+      "config": {
+        "caption": "Component inventory",
+        "captionAsElement": true,
+        "rows": 2
+      },
+      "steps": [
+        {
+          "expect": {
+            "visible": ["table", "caption", "rowgroup", "row:0", "row:1"]
+          }
+        }
+      ],
+      "notes": "A caption supplied as an element is rendered as the table's caption just like the text and props forms."
+    }
+  ]
+}

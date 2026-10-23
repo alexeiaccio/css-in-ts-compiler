@@ -1,0 +1,694 @@
+{
+  "generatedFrom": "../../specs/apg/link.qnt",
+  "specHash": "1970a5bd0408fe3d0bd8f88846fef0fb4c74f32bed4071c3b0f36454281e5e30",
+  "module": "apg_link",
+  "vars": [
+    {
+      "name": "native",
+      "type": "bool"
+    },
+    {
+      "name": "tabindex",
+      "type": "bool"
+    },
+    {
+      "name": "focus",
+      "type": "str"
+    },
+    {
+      "name": "location",
+      "type": "int"
+    },
+    {
+      "name": "activations",
+      "type": "int"
+    }
+  ],
+  "defs": {
+    "focusable": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "name",
+            "name": "native"
+          },
+          {
+            "kind": "name",
+            "name": "tabindex"
+          }
+        ]
+      }
+    },
+    "KeyboardReachable": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "name",
+        "name": "focusable"
+      }
+    },
+    "FocusOnLinkImpliesFocusable": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focus"
+              },
+              {
+                "kind": "str",
+                "value": "link"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "focusable"
+          }
+        ]
+      }
+    },
+    "TargetFocusImpliesArrived": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focus"
+              },
+              {
+                "kind": "str",
+                "value": "target"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "location"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ArrivedImpliesActivated": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "location"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "activations"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "LocationKnown": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "location"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "location"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ActivationsNonNegative": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "igte",
+        "args": [
+          {
+            "kind": "name",
+            "name": "activations"
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          }
+        ]
+      }
+    }
+  },
+  "actions": [
+    {
+      "name": "init",
+      "assignments": [
+        {
+          "field": "native",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "tabindex",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "location",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "activations",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        }
+      ]
+    },
+    {
+      "name": "focusLink",
+      "assignments": [
+        {
+          "field": "native",
+          "rhs": {
+            "kind": "name",
+            "name": "native"
+          }
+        },
+        {
+          "field": "tabindex",
+          "rhs": {
+            "kind": "name",
+            "name": "tabindex"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focusable"
+              },
+              {
+                "kind": "str",
+                "value": "link"
+              },
+              {
+                "kind": "name",
+                "name": "focus"
+              }
+            ]
+          }
+        },
+        {
+          "field": "location",
+          "rhs": {
+            "kind": "name",
+            "name": "location"
+          }
+        },
+        {
+          "field": "activations",
+          "rhs": {
+            "kind": "name",
+            "name": "activations"
+          }
+        }
+      ]
+    },
+    {
+      "name": "blur",
+      "assignments": [
+        {
+          "field": "native",
+          "rhs": {
+            "kind": "name",
+            "name": "native"
+          }
+        },
+        {
+          "field": "tabindex",
+          "rhs": {
+            "kind": "name",
+            "name": "tabindex"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "location",
+          "rhs": {
+            "kind": "name",
+            "name": "location"
+          }
+        },
+        {
+          "field": "activations",
+          "rhs": {
+            "kind": "name",
+            "name": "activations"
+          }
+        }
+      ]
+    },
+    {
+      "name": "press",
+      "assignments": [
+        {
+          "field": "native",
+          "rhs": {
+            "kind": "name",
+            "name": "native"
+          }
+        },
+        {
+          "field": "tabindex",
+          "rhs": {
+            "kind": "name",
+            "name": "tabindex"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "link"
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "target"
+              },
+              {
+                "kind": "name",
+                "name": "focus"
+              }
+            ]
+          }
+        },
+        {
+          "field": "location",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "link"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              },
+              {
+                "kind": "name",
+                "name": "location"
+              }
+            ]
+          }
+        },
+        {
+          "field": "activations",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "link"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "activations"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "activations"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "pressSpace",
+      "assignments": [
+        {
+          "field": "native",
+          "rhs": {
+            "kind": "name",
+            "name": "native"
+          }
+        },
+        {
+          "field": "tabindex",
+          "rhs": {
+            "kind": "name",
+            "name": "tabindex"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "name",
+            "name": "focus"
+          }
+        },
+        {
+          "field": "location",
+          "rhs": {
+            "kind": "name",
+            "name": "location"
+          }
+        },
+        {
+          "field": "activations",
+          "rhs": {
+            "kind": "name",
+            "name": "activations"
+          }
+        }
+      ]
+    },
+    {
+      "name": "click",
+      "assignments": [
+        {
+          "field": "native",
+          "rhs": {
+            "kind": "name",
+            "name": "native"
+          }
+        },
+        {
+          "field": "tabindex",
+          "rhs": {
+            "kind": "name",
+            "name": "tabindex"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "str",
+            "value": "target"
+          }
+        },
+        {
+          "field": "location",
+          "rhs": {
+            "kind": "int",
+            "value": "1"
+          }
+        },
+        {
+          "field": "activations",
+          "rhs": {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "activations"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "back",
+      "assignments": [
+        {
+          "field": "native",
+          "rhs": {
+            "kind": "name",
+            "name": "native"
+          }
+        },
+        {
+          "field": "tabindex",
+          "rhs": {
+            "kind": "name",
+            "name": "tabindex"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "location",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "activations",
+          "rhs": {
+            "kind": "name",
+            "name": "activations"
+          }
+        }
+      ]
+    },
+    {
+      "name": "setNative",
+      "assignments": [
+        {
+          "field": "native",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "tabindex",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "name",
+            "name": "focus"
+          }
+        },
+        {
+          "field": "location",
+          "rhs": {
+            "kind": "name",
+            "name": "location"
+          }
+        },
+        {
+          "field": "activations",
+          "rhs": {
+            "kind": "name",
+            "name": "activations"
+          }
+        }
+      ]
+    },
+    {
+      "name": "setCustom",
+      "assignments": [
+        {
+          "field": "native",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "tabindex",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "name",
+            "name": "focus"
+          }
+        },
+        {
+          "field": "location",
+          "rhs": {
+            "kind": "name",
+            "name": "location"
+          }
+        },
+        {
+          "field": "activations",
+          "rhs": {
+            "kind": "name",
+            "name": "activations"
+          }
+        }
+      ]
+    }
+  ],
+  "step": [
+    "init",
+    "focusLink",
+    "blur",
+    "press",
+    "pressSpace",
+    "click",
+    "back",
+    "setNative",
+    "setCustom"
+  ]
+}

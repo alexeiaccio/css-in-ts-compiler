@@ -1,0 +1,1688 @@
+{
+  "pattern": "spinbutton",
+  "source": "base-ui",
+  "commit": "19511bb171f3b360b006c94cf6d07e53cb446505",
+  "license": "MIT",
+  "skipped": [
+    {
+      "reason": "describeConformance suites (ref forwarding, prop merging, native button/input conformance) - React-API-only"
+    },
+    {
+      "reason": "styling and state callbacks: className as function (disabled), data-focused/data-touched/data-dirty/data-filled/data-invalid/data-valid/data-readonly attribute presentation, -webkit-textfield customisation"
+    },
+    {
+      "reason": "exhaustive Intl number-format locale matrices: roundingMode per en-US/fr-FR/ar-EG, percent permille variants, currency/unit/scientific formatting, group/decimal separators, default-formatting precision edge cases"
+    },
+    {
+      "reason": "React-API-only integration: Field.Label/Field.Description wiring, Field validationMode, Form external errors, hidden number-input autofill, React re-render/controlled rerender plumbing"
+    },
+    {
+      "reason": "console warning assertions (paste clipboard read failure and its owner-stack variant)"
+    },
+    {
+      "reason": "NumberField.ScrubArea pointer-drag scrubbing and NumberField.ScrubAreaCursor tracking (not APG spinbutton behaviour)"
+    },
+    {
+      "reason": "largeStep/smallStep on pointer button press with Shift/Alt - browser-only (skipIf(isJSDOM)), timing-sensitive hold accounting, touch settle/scroll heuristics and global pointerup listener teardown"
+    },
+    {
+      "reason": "NumberFieldGroup describeConformance and role-only assertion beyond the group role check"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "spinbutton.base-ui.input-has-textbox-role",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L47",
+      "upstreamTest": "<NumberField.Input /> > has textbox role",
+      "apg": "aria",
+      "config": {},
+      "steps": [{ "expect": { "attrs": { "input": { "role": "textbox" } } } }],
+      "notes": "Divergence from APG: base-ui exposes the editable field as role=textbox backed by a hidden input[type=number], whereas the APG spinbutton pattern uses role=spinbutton with aria-valuenow/min/max."
+    },
+    {
+      "id": "spinbutton.base-ui.group-has-role-group",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/group/NumberFieldGroup.test.tsx#L16",
+      "upstreamTest": "<NumberField.Group /> > has role prop",
+      "apg": "aria",
+      "config": {},
+      "steps": [{ "expect": { "attrs": { "group": { "role": "group" } } } }]
+    },
+    {
+      "id": "spinbutton.base-ui.increment-has-increase-label",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L23",
+      "upstreamTest": "<NumberField.Increment /> > has increase label",
+      "apg": "aria",
+      "config": { "buttons": true },
+      "steps": [
+        { "expect": { "attrs": { "increment": { "aria-label": "Increase" } } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.decrement-has-decrease-label",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/decrement/NumberFieldDecrement.test.tsx#L20",
+      "upstreamTest": "<NumberField.Decrement /> > has decrease label",
+      "apg": "aria",
+      "config": { "buttons": true },
+      "steps": [
+        { "expect": { "attrs": { "decrement": { "aria-label": "Decrease" } } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.stepper-aria-controls-input",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L1024",
+      "upstreamTest": "<NumberField.Increment /> > disabled state > exposes aria-controls on the stepper",
+      "apg": "aria",
+      "config": { "readOnly": true, "buttons": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "increment": {
+                "aria-controls": "input:0",
+                "aria-disabled": "true"
+              },
+              "input": { "readonly": "true" }
+            }
+          }
+        }
+      ],
+      "notes": "The stepper button points at the input id; readOnly is expressed as aria-disabled on the buttons and readonly on the input."
+    },
+    {
+      "id": "spinbutton.base-ui.readonly-input-no-aria-readonly-on-steppers",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L960",
+      "upstreamTest": "<NumberField /> > prop: readOnly > does not render aria-readonly on stepper buttons",
+      "apg": "aria",
+      "config": { "readOnly": true, "buttons": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "input": { "readonly": "true" },
+              "increment": { "aria-readonly": null, "aria-disabled": "true" },
+              "decrement": { "aria-readonly": null, "aria-disabled": "true" }
+            }
+          }
+        }
+      ],
+      "notes": "aria-readonly is invalid on role=button; readonly lives on the input and the steppers use disabled semantics."
+    },
+    {
+      "id": "spinbutton.base-ui.disabled-input-attribute",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L929",
+      "upstreamTest": "<NumberField /> > prop: disabled > should disable the input",
+      "apg": "extension",
+      "config": { "disabled": true },
+      "steps": [{ "expect": { "attrs": { "input": { "disabled": "true" } } } }]
+    },
+    {
+      "id": "spinbutton.base-ui.required-input-attribute",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L977",
+      "upstreamTest": "<NumberField /> > prop: required > should mark the input as required",
+      "apg": "extension",
+      "config": { "required": true },
+      "steps": [{ "expect": { "attrs": { "input": { "required": "true" } } } }]
+    },
+    {
+      "id": "spinbutton.base-ui.arrow-up-increments",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L92",
+      "upstreamTest": "<NumberField.Input /> > should increment on keydown ArrowUp",
+      "apg": "keyboard",
+      "config": { "defaultValue": 0 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "ArrowUp", "target": "input" },
+        { "expect": { "value": { "input": "1" } } }
+      ],
+      "notes": "APG: Up Arrow increases the value by one step."
+    },
+    {
+      "id": "spinbutton.base-ui.arrow-down-decrements",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L104",
+      "upstreamTest": "<NumberField.Input /> > should decrement on keydown ArrowDown",
+      "apg": "keyboard",
+      "config": { "defaultValue": 0 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "value": { "input": "-1" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.home-sets-min",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L116",
+      "upstreamTest": "<NumberField.Input /> > should set the value to min on keydown Home",
+      "apg": "keyboard",
+      "config": { "min": -10, "max": 10 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "Home", "target": "input" },
+        { "expect": { "value": { "input": "-10" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.end-sets-max",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L128",
+      "upstreamTest": "<NumberField.Input /> > should set the value to max on keydown End",
+      "apg": "keyboard",
+      "config": { "min": -10, "max": 10 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "End", "target": "input" },
+        { "expect": { "value": { "input": "10" } } }
+      ],
+      "notes": "APG: Home sets the minimum and End the maximum when bounds exist."
+    },
+    {
+      "id": "spinbutton.base-ui.pageup-pagedown-not-swallowed",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L2900",
+      "upstreamTest": "<NumberField /> > does not swallow non-printing keys it does not handle",
+      "apg": "extension",
+      "config": { "defaultValue": 5 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "PageUp", "target": "input" },
+        { "event": "key", "key": "PageDown", "target": "input" },
+        { "expect": { "value": { "input": "5" } } }
+      ],
+      "notes": "Divergence from APG: PageUp/PageDown larger-step variation is not implemented by base-ui; the events pass through untouched."
+    },
+    {
+      "id": "spinbutton.base-ui.navigation-keys-not-prevented",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L2874",
+      "upstreamTest": "<NumberField /> > should allow navigation keys and not prevent their default behavior",
+      "apg": "keyboard",
+      "config": { "value": "123" },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        {
+          "event": "key",
+          "key": "Backspace",
+          "target": "input",
+          "defaultPrevented": false
+        },
+        {
+          "event": "key",
+          "key": "Delete",
+          "target": "input",
+          "defaultPrevented": false
+        },
+        {
+          "event": "key",
+          "key": "ArrowLeft",
+          "target": "input",
+          "defaultPrevented": false
+        },
+        {
+          "event": "key",
+          "key": "ArrowRight",
+          "target": "input",
+          "defaultPrevented": false
+        },
+        {
+          "event": "key",
+          "key": "Tab",
+          "target": "input",
+          "defaultPrevented": false
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "input",
+          "defaultPrevented": false
+        }
+      ],
+      "notes": "Caret movement, deletion and Tab/Enter keep browser default behaviour."
+    },
+    {
+      "id": "spinbutton.base-ui.home-end-not-prevented-when-unbounded",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L2888",
+      "upstreamTest": "<NumberField /> > does not prevent native caret movement for Home/End without min/max",
+      "apg": "keyboard",
+      "config": { "defaultValue": 5 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        {
+          "event": "key",
+          "key": "Home",
+          "target": "input",
+          "defaultPrevented": false
+        },
+        {
+          "event": "key",
+          "key": "End",
+          "target": "input",
+          "defaultPrevented": false
+        },
+        { "expect": { "value": { "input": "5" } } }
+      ],
+      "notes": "With no bounds Home/End keep native caret behaviour instead of jumping to min/max."
+    },
+    {
+      "id": "spinbutton.base-ui.step-not-taken-when-keydown-default-prevented",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L1595",
+      "upstreamTest": "<NumberField.Input /> > consumer-prevented defaults > does not step when the keydown default is prevented",
+      "apg": "extension",
+      "config": { "defaultValue": 5, "preventKeyDown": true },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "ArrowUp", "target": "input" },
+        {
+          "expect": {
+            "value": { "input": "5" },
+            "events": { "onValueChange": [] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.rejects-non-numeric-change",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L56",
+      "upstreamTest": "<NumberField.Input /> > should not allow non-numeric characters on change",
+      "apg": "keyboard",
+      "config": {},
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "abc" },
+        { "expect": { "value": { "input": "" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.rejects-non-numeric-keydown",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L68",
+      "upstreamTest": "<NumberField.Input /> > should not allow non-numeric characters on keydown",
+      "apg": "keyboard",
+      "config": {},
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "a", "target": "input" },
+        { "expect": { "value": { "input": "" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.accepts-numeric-change",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L80",
+      "upstreamTest": "<NumberField.Input /> > should allow numeric characters on change",
+      "apg": "keyboard",
+      "config": {},
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "123" },
+        { "expect": { "value": { "input": "123" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.commits-formatted-value-on-blur",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L486",
+      "upstreamTest": "<NumberField.Input /> > commits formatted value only on blur",
+      "apg": "keyboard",
+      "config": {},
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "1234" },
+        { "expect": { "value": { "input": "1234" } } },
+        { "event": "blur", "target": "input" },
+        { "expect": { "value": { "input": "1,234" } } }
+      ],
+      "notes": "Raw text while editing, canonical locale-formatted number on commit."
+    },
+    {
+      "id": "spinbutton.base-ui.commit-clamps-min-on-blur",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L500",
+      "upstreamTest": "<NumberField.Input /> > should commit validated number on blur (min)",
+      "apg": "keyboard",
+      "config": { "min": 0 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "-1" },
+        { "expect": { "value": { "input": "-1" } } },
+        { "event": "blur", "target": "input" },
+        { "expect": { "value": { "input": "0" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.commit-clamps-max-on-blur",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L514",
+      "upstreamTest": "<NumberField.Input /> > should commit validated number on blur (max)",
+      "apg": "keyboard",
+      "config": { "max": 0 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "1" },
+        { "expect": { "value": { "input": "1" } } },
+        { "event": "blur", "target": "input" },
+        { "expect": { "value": { "input": "0" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.no-step-snap-on-blur",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L528",
+      "upstreamTest": "<NumberField.Input /> > should not snap number to step on blur",
+      "apg": "extension",
+      "config": { "step": 0.5, "snapOnStep": true },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "1.5" },
+        { "event": "blur", "target": "input" },
+        { "expect": { "value": { "input": "1.5" } } }
+      ],
+      "notes": "snapOnStep applies to stepper/keyboard stepping, not to blur commit."
+    },
+    {
+      "id": "spinbutton.base-ui.commit-keeps-invalid-off-step-value",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L542",
+      "upstreamTest": "<NumberField.Input /> > should commit validated number on blur (step and min)",
+      "apg": "keyboard",
+      "config": { "min": 2, "step": 2 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "3" },
+        { "event": "blur", "target": "input" },
+        { "expect": { "value": { "input": "3" } } }
+      ],
+      "notes": "A step mismatch is a validation concern, not a clamp; the value is kept."
+    },
+
+    {
+      "id": "spinbutton.base-ui.typing-fires-parseable-changes",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L332",
+      "upstreamTest": "<NumberField /> > typing behavior (parseable changes) > fires onValueChange for each parseable change while typing",
+      "apg": "keyboard",
+      "config": {},
+      "steps": [
+        { "event": "type", "target": "input", "value": "1" },
+        { "event": "type", "target": "input", "value": "12" },
+        { "event": "type", "target": "input", "value": "12." },
+        { "event": "type", "target": "input", "value": "12.a" },
+        {
+          "expect": {
+            "events": { "onValueChange": [1, 12, 12], "onValueCommitted": [] }
+          }
+        }
+      ],
+      "notes": "Only parseable text reports a change; '12.a' is ignored; nothing commits while typing."
+    },
+    {
+      "id": "spinbutton.base-ui.ime-non-numeric-no-change",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L357",
+      "upstreamTest": "<NumberField /> > typing behavior (parseable changes) > does not fire onValueChange for non-numeric composition/partial input",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        { "event": "compositionstart", "target": "input" },
+        { "event": "type", "target": "input", "value": "n" },
+        { "event": "type", "target": "input", "value": "ni" },
+        { "event": "compositionend", "target": "input" },
+        { "expect": { "events": { "onValueChange": [] } } },
+        { "event": "type", "target": "input", "value": "一" },
+        { "expect": { "events": { "onValueChange": [1] } } },
+        { "event": "blur", "target": "input" },
+        { "expect": { "events": { "onValueCommitted": [1] } } }
+      ],
+      "notes": "Han numeral 一 parses to 1; commit happens once on blur. IME partial Latin text reports nothing."
+    },
+    {
+      "id": "spinbutton.base-ui.sign-and-decimal-partials",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L384",
+      "upstreamTest": "<NumberField /> > typing behavior (parseable changes) > handles sign and decimal partials vs. parseable numbers",
+      "apg": "keyboard",
+      "config": { "min": -10 },
+      "steps": [
+        { "event": "type", "target": "input", "value": "-" },
+        { "event": "type", "target": "input", "value": "." },
+        { "event": "type", "target": "input", "value": "0." },
+        { "event": "type", "target": "input", "value": "-1" },
+        { "event": "type", "target": "input", "value": "-1.5" },
+        {
+          "expect": {
+            "events": { "onValueChange": [0, -1, -1.5], "onValueCommitted": [] }
+          }
+        },
+        { "event": "blur", "target": "input" },
+        { "expect": { "events": { "onValueCommitted": [-1.5] } } }
+      ],
+      "notes": "'-' and '.' alone are not parseable; '0.' parses to 0."
+    },
+    {
+      "id": "spinbutton.base-ui.invalid-input-not-committed-on-blur",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L720",
+      "upstreamTest": "<NumberField /> > typing behavior (parseable changes) > does not commit on blur for invalid input",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        { "event": "type", "target": "input", "value": "." },
+        { "expect": { "value": { "input": "." } } },
+        { "event": "blur", "target": "input" },
+        { "expect": { "events": { "onValueCommitted": [] } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.onvaluechange-when-value-changes",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L171",
+      "upstreamTest": "<NumberField /> > prop: onValueChange > should be called when the value changes",
+      "apg": "extension",
+      "config": { "controlled": true, "defaultValue": 1 },
+      "steps": [
+        { "event": "type", "target": "input", "value": "2" },
+        { "expect": { "events": { "onValueChange": [2] } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.onvaluechange-null-when-empty",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L213",
+      "upstreamTest": "<NumberField /> > prop: onValueChange > should be called with `null` when empty and transitioning from a number",
+      "apg": "extension",
+      "config": { "controlled": true, "defaultValue": 5 },
+      "steps": [
+        { "event": "type", "target": "input", "value": "" },
+        { "expect": { "events": { "onValueChange": [null] } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.onvaluechange-from-null",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L192",
+      "upstreamTest": "<NumberField /> > prop: onValueChange > should be called with a number when transitioning from `null`",
+      "apg": "extension",
+      "config": { "controlled": true, "defaultValue": null },
+      "steps": [
+        { "event": "type", "target": "input", "value": "5" },
+        { "expect": { "events": { "onValueChange": [5] } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.onvaluechange-reason-keyboard",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L264",
+      "upstreamTest": "<NumberField /> > prop: onValueChange > includes the reason for keyboard increments",
+      "apg": "extension",
+      "config": { "defaultValue": 1 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "ArrowUp", "target": "input" },
+        {
+          "expect": {
+            "events": {
+              "onValueChange": [1],
+              "onValueChangeReason": ["keyboard"]
+            }
+          }
+        }
+      ],
+      "notes": "Only the change reason is restated; the rich ChangeEventDetails object is a React-API detail."
+    },
+    {
+      "id": "spinbutton.base-ui.onvaluechange-reason-increment-press",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L282",
+      "upstreamTest": "<NumberField /> > prop: onValueChange > includes the reason for increment button presses",
+      "apg": "extension",
+      "config": { "defaultValue": 1, "buttons": true },
+      "steps": [
+        { "event": "click", "target": "increment" },
+        {
+          "expect": {
+            "events": {
+              "onValueChange": [2],
+              "onValueChangeReason": ["increment-press"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.onvaluechange-reason-decrement-press",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L297",
+      "upstreamTest": "<NumberField /> > prop: onValueChange > includes the reason for decrement button presses",
+      "apg": "extension",
+      "config": { "defaultValue": 1, "buttons": true },
+      "steps": [
+        { "event": "click", "target": "decrement" },
+        {
+          "expect": {
+            "events": {
+              "onValueChange": [0],
+              "onValueChangeReason": ["decrement-press"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.canceled-keyboard-change-reverts",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L889",
+      "upstreamTest": "<NumberField /> > prop: onValueCommitted > does not commit a canceled keyboard change",
+      "apg": "extension",
+      "config": { "defaultValue": 0, "onValueChangeCancel": true },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "ArrowUp", "target": "input" },
+        {
+          "expect": {
+            "value": { "input": "0" },
+            "events": { "onValueCommitted": [] }
+          }
+        }
+      ],
+      "notes": "A canceled change leaves the controlled value untouched."
+    },
+    {
+      "id": "spinbutton.base-ui.canceled-clear-on-blur-no-commit",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L908",
+      "upstreamTest": "<NumberField /> > prop: onValueCommitted > does not commit a canceled clear on blur",
+      "apg": "extension",
+      "config": { "defaultValue": 5, "onValueChangeCancel": true },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "" },
+        { "event": "blur", "target": "input" },
+        { "expect": { "events": { "onValueCommitted": [] } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.paste-unicode-numerals",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L2545",
+      "upstreamTest": "<NumberField /> > integration: exotic inputs and IME > pastes Persian numerals through the input contract",
+      "apg": "extension",
+      "config": { "defaultValue": 0 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "paste", "target": "input", "value": "۱۲۳" },
+        {
+          "expect": {
+            "value": { "input": "۱۲۳" },
+            "events": {
+              "onValueChange": [123],
+              "onValueChangeReason": ["input-paste"]
+            }
+          }
+        }
+      ],
+      "notes": "Persian ۱۲۳ (and Arabic-Indic, fullwidth, Han numerals) parse to 123."
+    },
+    {
+      "id": "spinbutton.base-ui.paste-invalid-rejected",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L2564",
+      "upstreamTest": "<NumberField /> > integration: exotic inputs and IME > rejects invalid pasted characters without changing the value contract",
+      "apg": "extension",
+      "config": { "defaultValue": 12 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "paste", "target": "input", "value": "abc" },
+        {
+          "expect": {
+            "value": { "input": "12" },
+            "events": { "onValueChange": [] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.change-default-prevented-ignored",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L1578",
+      "upstreamTest": "<NumberField.Input /> > consumer-prevented defaults > ignores a change whose native default was already prevented",
+      "apg": "extension",
+      "config": { "defaultValue": 5, "preventChange": true },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "9" },
+        {
+          "expect": {
+            "value": { "input": "5" },
+            "events": { "onValueChange": [] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.blur-default-prevented-no-commit",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L1557",
+      "upstreamTest": "<NumberField.Input /> > consumer-prevented defaults > does not reformat, touch, or commit on blur when the blur default is prevented",
+      "apg": "extension",
+      "config": { "preventBlur": true },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "5.10" },
+        { "event": "blur", "target": "input" },
+        {
+          "expect": {
+            "value": { "input": "5.10" },
+            "events": { "onValueCommitted": [] }
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "spinbutton.base-ui.oncommit-fires-on-blur",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L734",
+      "upstreamTest": "<NumberField /> > prop: onValueCommitted > fires on blur with committed numeric value",
+      "apg": "keyboard",
+      "config": {},
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "123." },
+        { "event": "blur", "target": "input" },
+        { "expect": { "events": { "onValueCommitted": [123] } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.oncommit-null-when-cleared",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L748",
+      "upstreamTest": "<NumberField /> > prop: onValueCommitted > fires null on blur when input is cleared",
+      "apg": "keyboard",
+      "config": { "defaultValue": 5 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "" },
+        { "event": "blur", "target": "input" },
+        { "expect": { "events": { "onValueCommitted": [null] } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.oncommit-reports-clamped-max",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L761",
+      "upstreamTest": "<NumberField /> > prop: onValueCommitted > reports and displays the clamped value on blur, not the raw input",
+      "apg": "keyboard",
+      "config": { "max": 10 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "1000" },
+        { "event": "blur", "target": "input" },
+        {
+          "expect": {
+            "value": { "input": "10" },
+            "events": { "onValueCommitted": [10] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.oncommit-reports-clamped-min",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L775",
+      "upstreamTest": "<NumberField /> > prop: onValueCommitted > reports and displays the min-clamped value on blur, not the raw input",
+      "apg": "keyboard",
+      "config": { "min": 0 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "-50" },
+        { "event": "blur", "target": "input" },
+        {
+          "expect": {
+            "value": { "input": "0" },
+            "events": { "onValueCommitted": [0] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.oncommit-keyboard-steps",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L789",
+      "upstreamTest": "<NumberField /> > prop: onValueCommitted > fires on keyboard interactions (ArrowUp/Down/Home/End)",
+      "apg": "keyboard",
+      "config": { "defaultValue": 0, "min": -10, "max": 10 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "ArrowUp", "target": "input" },
+        { "expect": { "events": { "onValueCommitted": [1] } } },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "events": { "onValueCommitted": [1, 0] } } },
+        { "event": "key", "key": "Home", "target": "input" },
+        { "expect": { "events": { "onValueCommitted": [1, 0, -10] } } },
+        { "event": "key", "key": "End", "target": "input" },
+        { "expect": { "events": { "onValueCommitted": [1, 0, -10, 10] } } }
+      ],
+      "notes": "Keyboard steps commit immediately in base-ui, unlike typed text which commits on blur."
+    },
+    {
+      "id": "spinbutton.base-ui.oncommit-buttons",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L815",
+      "upstreamTest": "<NumberField /> > prop: onValueCommitted > fires when using increment/decrement buttons",
+      "apg": "keyboard",
+      "config": { "defaultValue": 0, "buttons": true },
+      "steps": [
+        { "event": "click", "target": "increment" },
+        {
+          "expect": {
+            "value": { "input": "1" },
+            "events": { "onValueCommitted": [1] }
+          }
+        },
+        { "event": "click", "target": "decrement" },
+        {
+          "expect": {
+            "value": { "input": "0" },
+            "events": { "onValueCommitted": [1, 0] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.oncommit-reason-buttons",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L834",
+      "upstreamTest": "<NumberField /> > prop: onValueCommitted > includes the correct reason for increment and decrement button presses",
+      "apg": "extension",
+      "config": { "defaultValue": 0, "buttons": true },
+      "steps": [
+        { "event": "click", "target": "increment" },
+        { "event": "click", "target": "decrement" },
+        {
+          "expect": {
+            "events": {
+              "onValueCommittedReason": ["increment-press", "decrement-press"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.oncommit-skipped-when-untouched-empty",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L848",
+      "upstreamTest": "<NumberField /> > prop: onValueCommitted > does not fire when blurring an untouched empty field",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "blur", "target": "input" },
+        { "expect": { "events": { "onValueCommitted": [] } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.oncommit-skips-no-op-steps",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L859",
+      "upstreamTest": "<NumberField /> > prop: onValueCommitted > does not fire on keyboard steps that do not change the value",
+      "apg": "extension",
+      "config": { "defaultValue": 5, "min": 0, "max": 5 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "ArrowUp", "target": "input" },
+        { "event": "key", "key": "End", "target": "input" },
+        { "expect": { "events": { "onValueCommitted": [] } } },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "events": { "onValueCommitted": [4] } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.oncommit-once-per-press-release",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L876",
+      "upstreamTest": "<NumberField /> > prop: onValueCommitted > fires once per press-release even after mouseleave/mouseenter during a hold",
+      "apg": "extension",
+      "config": { "defaultValue": 0, "buttons": true },
+      "steps": [
+        {
+          "event": "pointerdown",
+          "target": "increment",
+          "button": 0,
+          "pointerType": "mouse"
+        },
+        { "event": "mouseleave", "target": "increment" },
+        { "event": "mouseenter", "target": "increment", "buttons": 1 },
+        {
+          "event": "pointerup",
+          "target": "increment",
+          "button": 0,
+          "pointerType": "mouse"
+        },
+        { "expect": { "events": { "onValueCommitted": [1] } } }
+      ]
+    },
+
+    {
+      "id": "spinbutton.base-ui.min-prevents-below-on-type",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L1004",
+      "upstreamTest": "<NumberField /> > prop: min > prevents the raw value from going below the `min` prop",
+      "apg": "extension",
+      "config": { "defaultValue": 5, "min": 5 },
+      "steps": [
+        { "event": "type", "target": "input", "value": "4" },
+        {
+          "expect": {
+            "value": { "input": "4" },
+            "events": { "onValueChange": [5] }
+          }
+        }
+      ],
+      "notes": "Typed text can undershoot; the reported value is clamped to min while the raw text stays until blur."
+    },
+    {
+      "id": "spinbutton.base-ui.allows-above-min",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L1030",
+      "upstreamTest": "<NumberField /> > prop: min > allows the value to go above the `min` prop",
+      "apg": "extension",
+      "config": { "defaultValue": 5, "min": 5 },
+      "steps": [
+        { "event": "type", "target": "input", "value": "6" },
+        { "expect": { "value": { "input": "6" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.max-prevents-above-on-type",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L1057",
+      "upstreamTest": "<NumberField /> > prop: max > prevents the value from going above the `max` prop",
+      "apg": "extension",
+      "config": { "defaultValue": 5, "max": 5 },
+      "steps": [
+        { "event": "type", "target": "input", "value": "6" },
+        {
+          "expect": {
+            "value": { "input": "6" },
+            "events": { "onValueChange": [5] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.allows-below-max",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L1083",
+      "upstreamTest": "<NumberField /> > prop: max > allows the value to go below the `max` prop",
+      "apg": "extension",
+      "config": { "defaultValue": 5, "max": 5 },
+      "steps": [
+        { "event": "type", "target": "input", "value": "4" },
+        {
+          "expect": {
+            "value": { "input": "4" },
+            "events": { "onValueChange": [4] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.allow-out-of-range-typing",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L1111",
+      "upstreamTest": "<NumberField /> > prop: allowOutOfRange > allows typing a negative value via keyboard when min is 0",
+      "apg": "extension",
+      "config": { "min": 0, "allowOutOfRange": true },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        {
+          "event": "key",
+          "key": "-",
+          "target": "input",
+          "defaultPrevented": false
+        },
+        { "event": "type", "target": "input", "value": "-1" },
+        { "expect": { "value": { "input": "-1" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.allow-out-of-range-still-clamps-step",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L1152",
+      "upstreamTest": "<NumberField /> > prop: allowOutOfRange > still clamps step interactions when true",
+      "apg": "extension",
+      "config": {
+        "defaultValue": 5,
+        "max": 5,
+        "allowOutOfRange": true,
+        "buttons": true
+      },
+      "steps": [
+        { "event": "click", "target": "increment" },
+        { "expect": { "value": { "input": "5" } } }
+      ],
+      "notes": "allowOutOfRange opens typed input; stepper interactions still clamp to the range."
+    },
+
+    {
+      "id": "spinbutton.base-ui.step-defaults-to-one",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L1205",
+      "upstreamTest": "<NumberField /> > prop: step > defaults to 1",
+      "apg": "keyboard",
+      "config": { "defaultValue": 5, "buttons": true },
+      "steps": [
+        { "event": "click", "target": "increment" },
+        { "expect": { "value": { "input": "6" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.step-increments-by-step",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L1212",
+      "upstreamTest": "<NumberField /> > prop: step > should increment the value by the `step` prop",
+      "apg": "keyboard",
+      "config": { "defaultValue": 4, "step": 2, "buttons": true },
+      "steps": [
+        { "event": "click", "target": "increment" },
+        { "expect": { "value": { "input": "6" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.step-snaps-increment",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L1219",
+      "upstreamTest": "<NumberField /> > prop: step > should snap when incrementing to the nearest multiple of the `step` prop",
+      "apg": "keyboard",
+      "config": {
+        "defaultValue": 5,
+        "step": 2,
+        "snapOnStep": true,
+        "buttons": true
+      },
+      "steps": [
+        { "event": "click", "target": "increment" },
+        { "expect": { "value": { "input": "6" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.step-decrements-by-step",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L1226",
+      "upstreamTest": "<NumberField /> > prop: step > should decrement the value by the `step` prop",
+      "apg": "keyboard",
+      "config": { "defaultValue": 6, "step": 2, "buttons": true },
+      "steps": [
+        { "event": "click", "target": "decrement" },
+        { "expect": { "value": { "input": "4" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.step-snaps-decrement",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/root/NumberFieldRoot.test.tsx#L1233",
+      "upstreamTest": "<NumberField /> > prop: step > should snap when decrementing to the nearest multiple of the `step` prop",
+      "apg": "keyboard",
+      "config": {
+        "defaultValue": 5,
+        "step": 2,
+        "snapOnStep": true,
+        "buttons": true
+      },
+      "steps": [
+        { "event": "click", "target": "decrement" },
+        { "expect": { "value": { "input": "4" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.alt-arrow-small-step",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L140",
+      "upstreamTest": "<NumberField.Input /> > uses smallStep and snapOnStep when holding Alt with ArrowUp/ArrowDown",
+      "apg": "extension",
+      "config": { "defaultValue": 0.15, "smallStep": 0.1, "snapOnStep": true },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        {
+          "event": "key",
+          "key": "ArrowUp",
+          "target": "input",
+          "modifiers": ["Alt"]
+        },
+        { "expect": { "value": { "input": "0.3" } } },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "input",
+          "modifiers": ["Alt"]
+        },
+        { "expect": { "value": { "input": "0.2" } } }
+      ],
+      "notes": "Not in APG; Alt applies the finer smallStep (default 0.1) instead of step."
+    },
+    {
+      "id": "spinbutton.base-ui.small-step-finer-than-three-digits",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L154",
+      "upstreamTest": "<NumberField.Input /> > advances by a smallStep finer than 3 fraction digits",
+      "apg": "extension",
+      "config": { "controlled": true, "defaultValue": 0, "smallStep": 0.0001 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        {
+          "event": "key",
+          "key": "ArrowUp",
+          "target": "input",
+          "modifiers": ["Alt"]
+        },
+        { "expect": { "events": { "onValueChange": [0.0001] } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.keyboard-step-from-full-precision",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L184",
+      "upstreamTest": "<NumberField.Input /> > increments with keyboard from numeric state, not rounded display text",
+      "apg": "extension",
+      "config": { "defaultValue": 1.23456 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "ArrowUp", "target": "input" },
+        { "expect": { "events": { "onValueChange": [2.23456] } } }
+      ],
+      "notes": "Stepping uses full numeric precision, not the rounded display text."
+    },
+    {
+      "id": "spinbutton.base-ui.keyboard-step-from-dirty-text",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L258",
+      "upstreamTest": "<NumberField.Input /> > steps keyboard from dirty input text when the controlled value lags onValueChange",
+      "apg": "extension",
+      "config": { "controlled": true, "value": 0 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "1.5" },
+        { "expect": { "events": { "onValueChange": [1.5] } } },
+        { "event": "key", "key": "ArrowUp", "target": "input" },
+        { "expect": { "events": { "onValueChange": [1.5, 2.5] } } }
+      ],
+      "notes": "When the parent does not mirror the change, the next step uses the dirty text rather than the stale stored value."
+    },
+    {
+      "id": "spinbutton.base-ui.dirty-authority-survives-navigation-key",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L324",
+      "upstreamTest": "<NumberField.Input /> > keeps dirty-input authority after a non-mutating key so the next keyboard step uses dirty text",
+      "apg": "extension",
+      "config": { "controlled": true, "value": 0 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "1.5" },
+        { "event": "key", "key": "ArrowLeft", "target": "input" },
+        { "event": "key", "key": "ArrowUp", "target": "input" },
+        { "expect": { "events": { "onValueChange": [1.5, 2.5] } } }
+      ],
+      "notes": "A cursor key does not mark the field synced."
+    },
+    {
+      "id": "spinbutton.base-ui.blur-commits-dirty-text-after-cursor-key",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L368",
+      "upstreamTest": "<NumberField.Input /> > commits dirty text on blur after a cursor key when the controlled value does not mirror it",
+      "apg": "extension",
+      "config": { "controlled": true, "value": 0 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "5" },
+        { "event": "key", "key": "ArrowLeft", "target": "input" },
+        { "event": "blur", "target": "input" },
+        { "expect": { "events": { "onValueChange": [5, 5] } } }
+      ],
+      "notes": "Blur commits the typed text rather than reverting to the stale stored value."
+    },
+    {
+      "id": "spinbutton.base-ui.keyboard-step-not-stale-after-cancel",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L280",
+      "upstreamTest": "<NumberField.Input /> > does not commit a stale value when a synced keyboard step is canceled after an external change",
+      "apg": "extension",
+      "config": {
+        "controlled": true,
+        "value": 0,
+        "externalValue": 10,
+        "cancelNextAfterExternal": true
+      },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "ArrowUp", "target": "input" },
+        { "expect": { "events": { "onValueCommitted": [1] } } },
+        { "event": "prop", "target": "input", "set": { "value": 10 } },
+        { "event": "key", "key": "ArrowUp", "target": "input" },
+        { "expect": { "events": { "onValueCommitted": [1] } } }
+      ],
+      "notes": "A canceled step after an external change must not re-commit the pre-external value."
+    },
+
+    {
+      "id": "spinbutton.base-ui.percent-formatted-unicode-keys-allowed",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L392",
+      "upstreamTest": "<NumberField.Input /> > allows unicode plus/minus, permille and fullwidth digits on keydown when formatted as percent",
+      "apg": "extension",
+      "config": { "format": "percent" },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        {
+          "event": "key",
+          "key": "−",
+          "target": "input",
+          "defaultPrevented": false
+        },
+        {
+          "event": "key",
+          "key": "＋",
+          "target": "input",
+          "defaultPrevented": false
+        },
+        {
+          "event": "key",
+          "key": "‰",
+          "target": "input",
+          "defaultPrevented": false
+        },
+        {
+          "event": "key",
+          "key": "１",
+          "target": "input",
+          "defaultPrevented": false
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.percent-symbols-blocked-when-not-percent",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L413",
+      "upstreamTest": "<NumberField.Input /> > blocks percent and permille symbols on keydown when not formatted as percent",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        { "event": "focus", "target": "input" },
+        {
+          "event": "key",
+          "key": "%",
+          "target": "input",
+          "defaultPrevented": true
+        },
+        {
+          "event": "key",
+          "key": "‰",
+          "target": "input",
+          "defaultPrevented": true
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.locale-decimal-group-gating",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L432",
+      "upstreamTest": "<NumberField.Input /> > applies locale-aware decimal/group gating (de-DE)",
+      "apg": "extension",
+      "config": { "locale": "de-DE" },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        {
+          "event": "key",
+          "key": ",",
+          "target": "input",
+          "defaultPrevented": false
+        },
+        { "event": "type", "target": "input", "value": "1," },
+        {
+          "event": "key",
+          "key": ",",
+          "target": "input",
+          "defaultPrevented": true
+        },
+        {
+          "event": "key",
+          "key": ".",
+          "target": "input",
+          "defaultPrevented": false
+        }
+      ],
+      "notes": "de-DE uses ',' as decimal (one only) and '.' as group (repeatable)."
+    },
+    {
+      "id": "spinbutton.base-ui.space-grouping-allowed",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/input/NumberFieldInput.test.tsx#L463",
+      "upstreamTest": "<NumberField.Input /> > allows space key when locale uses space-like grouping (pl-PL)",
+      "apg": "extension",
+      "config": { "locale": "pl-PL" },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        {
+          "event": "key",
+          "key": " ",
+          "target": "input",
+          "defaultPrevented": false
+        },
+        { "event": "type", "target": "input", "value": "1 234" },
+        { "expect": { "value": { "input": "1 234" } } }
+      ]
+    },
+
+    {
+      "id": "spinbutton.base-ui.increment-starts-empty-at-zero",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L32",
+      "upstreamTest": "<NumberField.Increment /> > increments starting from 0 click",
+      "apg": "keyboard",
+      "config": { "buttons": true },
+      "steps": [
+        { "event": "click", "target": "increment" },
+        { "expect": { "value": { "input": "0" } } }
+      ],
+      "notes": "An empty field seeds to the nearest in-range value (0 when unbounded)."
+    },
+    {
+      "id": "spinbutton.base-ui.increment-zero-to-one",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L45",
+      "upstreamTest": "<NumberField.Increment /> > increments to 1 starting from defaultValue=0 click",
+      "apg": "keyboard",
+      "config": { "defaultValue": 0, "buttons": true },
+      "steps": [
+        { "event": "click", "target": "increment" },
+        { "expect": { "value": { "input": "1" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.increment-seeds-negative-range",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L58",
+      "upstreamTest": "<NumberField.Increment /> > seeds an empty fully-negative range in range on first increment",
+      "apg": "extension",
+      "config": { "min": -10, "max": -5, "buttons": true },
+      "steps": [
+        { "event": "click", "target": "increment" },
+        { "expect": { "value": { "input": "-5" } } }
+      ],
+      "notes": "An empty field seeds the in-range value nearest zero (the max here), not 0."
+    },
+    {
+      "id": "spinbutton.base-ui.increment-once-per-click",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L261",
+      "upstreamTest": "<NumberField.Increment /> > only calls onValueChange once per increment",
+      "apg": "keyboard",
+      "config": { "buttons": true },
+      "steps": [
+        { "event": "click", "target": "increment" },
+        { "event": "click", "target": "increment" },
+        { "expect": { "events": { "onValueChange": [0, 1] } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.increment-dirty-input-click",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L742",
+      "upstreamTest": "<NumberField.Increment /> > should increment when input is dirty but not blurred (click)",
+      "apg": "extension",
+      "config": { "defaultValue": 0, "buttons": true },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "100" },
+        { "event": "click", "target": "increment" },
+        { "expect": { "value": { "input": "101" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.increment-dirty-input-pointerdown",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L760",
+      "upstreamTest": "<NumberField.Increment /> > should increment when input is dirty but not blurred (pointerdown)",
+      "apg": "extension",
+      "config": { "defaultValue": 0, "buttons": true },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "100" },
+        { "event": "pointerdown", "target": "increment", "button": 0 },
+        { "expect": { "value": { "input": "101" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.increment-ignores-non-primary-button",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L778",
+      "upstreamTest": "<NumberField.Increment /> > ignores non-primary pointer buttons",
+      "apg": "extension",
+      "config": { "controlled": true, "value": 0, "buttons": true },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "100" },
+        { "event": "pointerdown", "target": "increment", "button": 1 },
+        {
+          "expect": {
+            "value": { "input": "100" },
+            "events": { "onValueChange": [100] }
+          }
+        }
+      ],
+      "notes": "Only the change from typing is reported; a non-primary press does not sync dirty text or step."
+    },
+    {
+      "id": "spinbutton.base-ui.increment-caret-on-mouse-press",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L835",
+      "upstreamTest": "<NumberField.Increment /> > places the caret at the end of the input when a mouse press focuses it",
+      "apg": "extension",
+      "config": { "defaultValue": 100, "buttons": true },
+      "steps": [
+        {
+          "event": "pointerdown",
+          "target": "increment",
+          "button": 0,
+          "pointerType": "mouse"
+        },
+        {
+          "expect": {
+            "focus": "input",
+            "attrs": {
+              "input": { "selectionStart": "end", "selectionEnd": "end" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.increment-hold-continuous",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L291",
+      "upstreamTest": "<NumberField.Increment /> > press and hold > increments continuously when holding pointerdown",
+      "apg": "extension",
+      "config": { "defaultValue": 0, "buttons": true },
+      "steps": [
+        { "event": "pointerdown", "target": "increment", "button": 0 },
+        { "expect": { "value": { "input": "1" } } },
+        { "event": "wait", "ms": 400 },
+        { "event": "wait", "ms": 60 },
+        { "event": "wait", "ms": 60 },
+        { "event": "wait", "ms": 60 },
+        { "expect": { "value": { "input": "4" } } },
+        { "event": "pointerup", "target": "increment", "button": 0 },
+        { "event": "wait", "ms": 60 },
+        { "expect": { "value": { "input": "4" } } }
+      ],
+      "notes": "After a 400ms start delay the value ticks every 60ms until release."
+    },
+    {
+      "id": "spinbutton.base-ui.increment-hold-stops-at-max",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L500",
+      "upstreamTest": "<NumberField.Increment /> > press and hold > stops calling onValueChange once max is reached",
+      "apg": "extension",
+      "config": { "defaultValue": 9, "max": 10, "buttons": true },
+      "steps": [
+        { "event": "pointerdown", "target": "increment", "button": 0 },
+        {
+          "expect": {
+            "value": { "input": "10" },
+            "events": { "onValueChange": [10] }
+          }
+        },
+        { "event": "wait", "ms": 400 },
+        { "event": "wait", "ms": 60 },
+        { "event": "wait", "ms": 60 },
+        {
+          "expect": {
+            "value": { "input": "10" },
+            "events": { "onValueChange": [10] }
+          }
+        },
+        { "event": "pointerup", "target": "increment", "button": 0 }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.increment-hold-stops-on-mouseleave",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L620",
+      "upstreamTest": "<NumberField.Increment /> > press and hold > should stop incrementing after mouseleave",
+      "apg": "extension",
+      "config": { "defaultValue": 0, "buttons": true },
+      "steps": [
+        { "event": "pointerdown", "target": "increment", "button": 0 },
+        { "event": "wait", "ms": 400 },
+        { "event": "wait", "ms": 60 },
+        { "event": "wait", "ms": 60 },
+        { "event": "wait", "ms": 60 },
+        { "expect": { "value": { "input": "4" } } },
+        { "event": "mouseleave", "target": "increment" },
+        { "event": "wait", "ms": 60 },
+        { "expect": { "value": { "input": "4" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.increment-no-double-pointerdown-click",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L602",
+      "upstreamTest": "<NumberField.Increment /> > press and hold > does not increment twice with pointerdown and click",
+      "apg": "extension",
+      "config": { "defaultValue": 0, "buttons": true },
+      "steps": [
+        { "event": "pointerdown", "target": "increment", "button": 0 },
+        { "event": "pointerup", "target": "increment", "button": 0 },
+        { "event": "click", "target": "increment", "detail": 1 },
+        { "expect": { "value": { "input": "1" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.increment-commits-on-release-after-boundary",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L528",
+      "upstreamTest": "<NumberField.Increment /> > press and hold > commits on release after a hold reaches the boundary",
+      "apg": "extension",
+      "config": { "defaultValue": 9, "max": 10, "buttons": true },
+      "steps": [
+        { "event": "pointerdown", "target": "increment", "button": 0 },
+        { "event": "wait", "ms": 400 },
+        { "event": "wait", "ms": 60 },
+        { "event": "wait", "ms": 60 },
+        {
+          "expect": {
+            "value": { "input": "10" },
+            "events": { "onValueCommitted": [] }
+          }
+        },
+        { "event": "pointerup", "target": "increment", "button": 0 },
+        { "expect": { "events": { "onValueCommitted": [10] } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.increment-snap-exact-step-when-false",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L944",
+      "upstreamTest": "<NumberField.Increment /> > prop: snapOnStep > should increment by exact step without rounding when snapOnStep is false",
+      "apg": "extension",
+      "config": {
+        "defaultValue": 2.7,
+        "step": 2,
+        "snapOnStep": false,
+        "buttons": true
+      },
+      "steps": [
+        { "event": "click", "target": "increment" },
+        { "expect": { "value": { "input": "4.7" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.increment-snaps-when-true",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L958",
+      "upstreamTest": "<NumberField.Increment /> > prop: snapOnStep > should snap on increment when snapOnStep is true",
+      "apg": "extension",
+      "config": { "defaultValue": 1.3, "snapOnStep": true, "buttons": true },
+      "steps": [
+        { "event": "click", "target": "increment" },
+        { "expect": { "value": { "input": "2" } } },
+        { "event": "type", "target": "input", "value": "1.9" },
+        { "event": "click", "target": "increment" },
+        { "expect": { "value": { "input": "2" } } },
+        { "event": "type", "target": "input", "value": "-0.2" },
+        { "event": "click", "target": "increment" },
+        { "expect": { "value": { "input": "0" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.increment-snaps-relative-to-min",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L996",
+      "upstreamTest": "<NumberField.Increment /> > prop: snapOnStep > should increment with respect to the min value",
+      "apg": "extension",
+      "config": {
+        "defaultValue": 1,
+        "min": 1,
+        "step": 2,
+        "snapOnStep": true,
+        "buttons": true
+      },
+      "steps": [
+        { "event": "click", "target": "increment" },
+        { "expect": { "value": { "input": "3" } } },
+        { "event": "click", "target": "increment" },
+        { "expect": { "value": { "input": "5" } } },
+        { "event": "type", "target": "input", "value": "1.112" },
+        { "event": "click", "target": "increment" },
+        { "expect": { "value": { "input": "3" } } },
+        { "event": "type", "target": "input", "value": "0.999" },
+        { "event": "click", "target": "increment" },
+        { "expect": { "value": { "input": "1" } } }
+      ],
+      "notes": "With snapOnStep the step grid is anchored at min, so 0.999 snaps up to 1 rather than 3."
+    },
+    {
+      "id": "spinbutton.base-ui.increment-disabled-root",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L1036",
+      "upstreamTest": "<NumberField.Increment /> > disabled state > should not increment when root is disabled",
+      "apg": "extension",
+      "config": { "disabled": true, "buttons": true },
+      "steps": [
+        { "event": "click", "target": "increment" },
+        {
+          "expect": {
+            "value": { "input": "" },
+            "events": { "onValueChange": [] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.increment-disabled-button",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L1051",
+      "upstreamTest": "<NumberField.Increment /> > disabled state > should not increment when button is disabled",
+      "apg": "extension",
+      "config": {
+        "defaultValue": 0,
+        "incrementDisabled": true,
+        "buttons": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "increment": { "disabled": "true" } },
+            "value": { "input": "0" }
+          }
+        },
+        { "event": "pointerdown", "target": "increment", "button": 0 },
+        {
+          "expect": {
+            "value": { "input": "0" },
+            "events": { "onValueChange": [] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.decrement-starts-empty-at-zero",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/decrement/NumberFieldDecrement.test.tsx#L29",
+      "upstreamTest": "<NumberField.Decrement /> > decrements starting from 0 click",
+      "apg": "keyboard",
+      "config": { "buttons": true },
+      "steps": [
+        { "event": "click", "target": "decrement" },
+        { "expect": { "value": { "input": "0" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.decrement-zero-to-minus-one",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/decrement/NumberFieldDecrement.test.tsx#L42",
+      "upstreamTest": "<NumberField.Decrement /> > decrements to -1 starting from defaultValue=0 click",
+      "apg": "keyboard",
+      "config": { "defaultValue": 0, "buttons": true },
+      "steps": [
+        { "event": "click", "target": "decrement" },
+        { "expect": { "value": { "input": "-1" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.decrement-once-per-click",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/decrement/NumberFieldDecrement.test.tsx#L142",
+      "upstreamTest": "<NumberField.Decrement /> > only calls onValueChange once per decrement",
+      "apg": "keyboard",
+      "config": { "buttons": true },
+      "steps": [
+        { "event": "click", "target": "decrement" },
+        { "event": "click", "target": "decrement" },
+        { "expect": { "events": { "onValueChange": [0, -1] } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.decrement-dirty-input-click",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/decrement/NumberFieldDecrement.test.tsx#L361",
+      "upstreamTest": "<NumberField.Decrement /> > should decrement when input is dirty but not blurred (click)",
+      "apg": "extension",
+      "config": { "defaultValue": 0, "buttons": true },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "100" },
+        { "event": "click", "target": "decrement" },
+        { "expect": { "value": { "input": "99" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.decrement-snap-exact-step-when-false",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/decrement/NumberFieldDecrement.test.tsx#L447",
+      "upstreamTest": "<NumberField.Decrement /> > prop: snapOnStep > should decrement by exact step without rounding when snapOnStep is false",
+      "apg": "extension",
+      "config": {
+        "defaultValue": 2.7,
+        "step": 2,
+        "snapOnStep": false,
+        "buttons": true
+      },
+      "steps": [
+        { "event": "click", "target": "decrement" },
+        { "expect": { "value": { "input": "0.7" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.decrement-snaps-when-true",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/decrement/NumberFieldDecrement.test.tsx#L461",
+      "upstreamTest": "<NumberField.Decrement /> > prop: snapOnStep > should snap on decrement when snapOnStep is true",
+      "apg": "extension",
+      "config": { "defaultValue": 1.3, "snapOnStep": true, "buttons": true },
+      "steps": [
+        { "event": "click", "target": "decrement" },
+        { "expect": { "value": { "input": "1" } } },
+        { "event": "type", "target": "input", "value": "1.9" },
+        { "event": "click", "target": "decrement" },
+        { "expect": { "value": { "input": "1" } } },
+        { "event": "type", "target": "input", "value": "-0.2" },
+        { "event": "click", "target": "decrement" },
+        { "expect": { "value": { "input": "-1" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.decrement-snaps-relative-to-min",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/decrement/NumberFieldDecrement.test.tsx#L485",
+      "upstreamTest": "<NumberField.Decrement /> > prop: snapOnStep > should decrement with respect to the min value",
+      "apg": "extension",
+      "config": {
+        "defaultValue": 8,
+        "min": 1,
+        "step": 2,
+        "snapOnStep": true,
+        "buttons": true
+      },
+      "steps": [
+        { "event": "click", "target": "decrement" },
+        { "expect": { "value": { "input": "7" } } },
+        { "event": "click", "target": "decrement" },
+        { "expect": { "value": { "input": "5" } } },
+        { "event": "type", "target": "input", "value": "9.112" },
+        { "event": "click", "target": "decrement" },
+        { "expect": { "value": { "input": "9" } } },
+        { "event": "type", "target": "input", "value": "1.112" },
+        { "event": "click", "target": "decrement" },
+        { "expect": { "value": { "input": "1" } } }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.decrement-disabled-root",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/decrement/NumberFieldDecrement.test.tsx#L513",
+      "upstreamTest": "<NumberField.Decrement /> > disabled state > should not decrement when root is disabled",
+      "apg": "extension",
+      "config": { "disabled": true, "buttons": true },
+      "steps": [
+        { "event": "click", "target": "decrement" },
+        {
+          "expect": {
+            "value": { "input": "" },
+            "events": { "onValueChange": [] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.decrement-disabled-button",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/decrement/NumberFieldDecrement.test.tsx#L528",
+      "upstreamTest": "<NumberField.Decrement /> > disabled state > should not decrement when button is disabled",
+      "apg": "extension",
+      "config": {
+        "defaultValue": 0,
+        "decrementDisabled": true,
+        "buttons": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "decrement": { "disabled": "true" } },
+            "value": { "input": "0" }
+          }
+        },
+        { "event": "pointerdown", "target": "decrement", "button": 0 },
+        {
+          "expect": {
+            "value": { "input": "0" },
+            "events": { "onValueChange": [] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.base-ui.readonly-steppers-do-not-change",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx#L729",
+      "upstreamTest": "<NumberField.Increment /> > should not increment when readOnly",
+      "apg": "extension",
+      "config": { "readOnly": true, "buttons": true },
+      "steps": [
+        { "event": "click", "target": "increment" },
+        { "expect": { "value": { "input": "" } } }
+      ]
+    }
+  ]
+}

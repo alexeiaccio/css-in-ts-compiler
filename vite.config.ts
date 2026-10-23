@@ -120,6 +120,10 @@ const plainCode = [
   // (no Effect runtime there) and called through Effect.sync by the dev server.
   "packages/cssints/src/devtools-link.ts",
   "packages/devtools/src/opencode.ts",
+  // @cssints/headless: plain Solid signals and attribute objects, in the browser (no Effect runtime in a widget); @cssints/apg-specs:
+  // the Quint specs' bridges, generator scripts and spec-only tests (the test oracle of the widgets, not published).
+  "packages/headless/**",
+  "packages/apg-specs/**",
   // The apps are plain Solid and React; the tests, benches and generator scripts are node scripts.
   "apps/**",
   "**/test/**",
@@ -187,6 +191,32 @@ export default defineConfig({
       {
         files: ["packages/cssints/src/author.ts", "packages/cssints/src/scope.ts"],
         rules: { "jsdoc/require-param": "off", "jsdoc/require-returns": "off" },
+      },
+      // The widget tests are vitest (browser mode) and the spec tests vitest (node), not Playwright Test: the Playwright rules do not
+      // apply. The code is documented by prose (the READMEs), not by JSDoc tags; the tests wait a frame with `new Promise`, and the
+      // fixtures print scenario values that are `unknown` on purpose.
+      {
+        files: ["packages/headless/**", "packages/apg-specs/**"],
+        rules: {
+          "playwright/consistent-spacing-between-blocks": "off",
+          "playwright/no-force-option": "off",
+          "playwright/no-standalone-expect": "off",
+          "playwright/prefer-web-first-assertions": "off",
+          "jsdoc/require-param": "off",
+          "jsdoc/require-returns": "off",
+          "promise/avoid-new": "off",
+          "typescript/no-base-to-string": "off",
+          "typescript/require-await": "off",
+        },
+      },
+      // The bridges and tests read scenario and model JSON: `Array.isArray` on a `Json` value is `any[]`.
+      {
+        files: ["packages/apg-specs/**", "packages/headless/test/canvas.driver.ts"],
+        rules: {
+          ...Object.fromEntries(noUnsafe.map((r) => [r, "off"])),
+          "typescript/no-redundant-type-constituents": "off",
+          "typescript/no-unnecessary-type-assertion": "off",
+        },
       },
       // The tool is checked by its own tests and tsgo; its rules read AST nodes typed `any`, its tests are vitest (not Playwright).
       {

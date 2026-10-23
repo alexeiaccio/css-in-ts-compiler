@@ -1,0 +1,57 @@
+{
+  "pattern": "camera",
+  "source": "excalidraw",
+  "commit": "ed10ac7dca7e40f3f4a31269b4bfba980d0db41e",
+  "license": "MIT",
+  "copyright": "Copyright (c) 2020 Excalidraw",
+  "scenarios": [
+    {
+      "id": "camera.excalidraw.centre-target-keeps-zoom",
+      "upstream": "https://github.com/excalidraw/excalidraw/blob/ed10ac7dca7e40f3f4a31269b4bfba980d0db41e/packages/excalidraw/tests/fitToContent.test.tsx#L200",
+      "upstreamTest": "none > should keep the current zoom and only center the target",
+      "area": "extension",
+      "config": {
+        "viewport": { "w": 100, "h": 100 },
+        "camera": { "x": 0, "y": 0, "zoom": 0.5 },
+        "nodes": [{ "id": "rect", "x": 1000, "y": 1000, "w": 50, "h": 50 }]
+      },
+      "steps": [
+        {
+          "event": "tween",
+          "goal": { "centreOn": [1025, 1025] },
+          "animation": false
+        },
+        { "expect": { "camera": { "x": -925, "y": -925, "zoom": 0.5 } } }
+      ],
+      "notes": "Excalidraw scroll is world-offset, the same convention as camera.qnt (screen = (world + t) * zoom), so scrollX maps to tx. scroll = viewport / 2 / zoom - centre = 100 / 2 / 0.5 - 1025 = -925. Upstream uses toBeCloseTo on doubles; the fixed-point camera (zoom / 4096, t / 256) is exact here. fit 'none' is the centre-on-a-point goal of request_tween."
+    },
+    {
+      "id": "camera.excalidraw.animation-settles-on-target-and-stops",
+      "upstream": "https://github.com/excalidraw/excalidraw/blob/ed10ac7dca7e40f3f4a31269b4bfba980d0db41e/packages/excalidraw/tests/fitToContent.test.tsx#L368",
+      "upstreamTest": "scale-down animated > should stop ticking and settle on the target once complete",
+      "area": "extension",
+      "config": {
+        "viewport": { "w": 10, "h": 10 },
+        "camera": { "x": 0, "y": 0, "zoom": 1 },
+        "nodes": [{ "id": "rect", "x": -100, "y": -100, "w": 100, "h": 100 }]
+      },
+      "steps": [
+        {
+          "event": "tween",
+          "goal": { "fit": "scale-down", "target": "rect" },
+          "animation": true
+        },
+        { "event": "tick", "until": "settled" },
+        { "expect": { "tweenActive": false, "cameraMoved": true } },
+        { "event": "tick", "count": 3 },
+        {
+          "expect": {
+            "tweenActive": false,
+            "cameraUnchangedSinceSettled": true
+          }
+        }
+      ],
+      "notes": "Ported by intent: a finished tween removes itself and leaves the camera ON the target; further frames never move it (camera.qnt: RestIsOnTarget, a tick at rest is a no-op). The same goal with reduced motion (animation: false) must end in the identical camera. Fit-to-bounds itself is not modelled in camera.qnt (adapter policy); the target is whatever the host computes."
+    }
+  ]
+}

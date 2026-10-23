@@ -1,0 +1,243 @@
+{
+  "pattern": "meter",
+  "source": "base-ui",
+  "commit": "19511bb171f3b360b006c94cf6d07e53cb446505",
+  "license": "MIT",
+  "skipped": [
+    {
+      "reason": "Meter.Root > defaults aria-valuetext to the localized formatted value (de-DE formatting)"
+    },
+    {
+      "reason": "Meter.Root > rounds the default aria-valuetext like the displayed value"
+    },
+    { "reason": "Meter.Value > children and render-function suites" },
+    { "reason": "Meter.Indicator > value bounds and internal styles" },
+    { "reason": "Meter.Track > describeConformance" },
+    { "reason": "Meter.Label > throws outside Meter.Root" }
+  ],
+  "scenarios": [
+    {
+      "id": "meter.base-ui.default-aria-attributes",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/meter/root/MeterRoot.test.tsx#L19",
+      "upstreamTest": "Meter.Root > ARIA attributes > sets the correct aria attributes",
+      "apg": "aria",
+      "config": { "value": 30, "labelId": "battery-level" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "meter": {
+                "role": "meter",
+                "aria-valuenow": "30",
+                "aria-valuemin": "0",
+                "aria-valuemax": "100",
+                "aria-valuetext": "30%",
+                "aria-labelledby": "battery-level"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "meter.base-ui.custom-range-fraction",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/meter/root/MeterRoot.test.tsx#L105",
+      "upstreamTest": "Meter.Root > range > formats the value as its position within a custom range",
+      "apg": "aria",
+      "config": { "value": 0.5, "min": 0, "max": 1 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "meter": { "aria-valuenow": "0.5", "aria-valuetext": "50%" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "meter.base-ui.non-zero-min",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/meter/root/MeterRoot.test.tsx#L122",
+      "upstreamTest": "Meter.Root > range > formats the value relative to a non-zero min",
+      "apg": "aria",
+      "config": { "value": 30, "min": 20, "max": 40 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "meter": { "aria-valuetext": "50%" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "meter.base-ui.range-and-value-rerender",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/meter/root/MeterRoot.test.tsx#L134",
+      "upstreamTest": "Meter.Root > range > keeps range attributes, formatted text synchronized on rerender",
+      "apg": "aria",
+      "config": { "value": 20, "min": 10, "max": 30 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "meter": {
+                "aria-valuemin": "10",
+                "aria-valuemax": "30",
+                "aria-valuenow": "20",
+                "aria-valuetext": "50%"
+              }
+            }
+          }
+        },
+        { "event": "prop", "target": "meter", "prop": "value", "value": 50 },
+        { "event": "prop", "target": "meter", "prop": "min", "value": 20 },
+        { "event": "prop", "target": "meter", "prop": "max", "value": 60 },
+        {
+          "expect": {
+            "attrs": {
+              "meter": {
+                "aria-valuemin": "20",
+                "aria-valuemax": "60",
+                "aria-valuenow": "50",
+                "aria-valuetext": "75%"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "meter.base-ui.clamps-value-above-max",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/meter/root/MeterRoot.test.tsx#L160",
+      "upstreamTest": "Meter.Root > range > normalizes aria attributes when value exceeds max",
+      "apg": "aria",
+      "config": { "value": 150 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "meter": { "aria-valuenow": "100", "aria-valuetext": "100%" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "meter.base-ui.clamps-value-below-min",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/meter/root/MeterRoot.test.tsx#L166",
+      "upstreamTest": "Meter.Root > range > normalizes aria attributes when value is below min",
+      "apg": "aria",
+      "config": { "value": -10 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "meter": { "aria-valuenow": "0", "aria-valuetext": "0%" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "meter.base-ui.min-equals-max",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/meter/root/MeterRoot.test.tsx#L172",
+      "upstreamTest": "Meter.Root > range > normalizes aria attributes when min equals max",
+      "apg": "aria",
+      "config": { "value": 5, "min": 5, "max": 5 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "meter": { "aria-valuenow": "5", "aria-valuetext": "0%" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "meter.base-ui.nan-value",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/meter/root/MeterRoot.test.tsx#L178",
+      "upstreamTest": "Meter.Root > range > normalizes aria attributes when value is NaN",
+      "apg": "aria",
+      "config": { "value": "NaN" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "meter": { "aria-valuenow": "0", "aria-valuetext": "0%" }
+            }
+          }
+        }
+      ],
+      "notes": "JSON cannot carry NaN; the scenario records the raw NaN input as the string \"NaN\"."
+    },
+    {
+      "id": "meter.base-ui.getAriaValueText-overrides-spoken-text",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/meter/root/MeterRoot.test.tsx#L189",
+      "upstreamTest": "Meter.Root > prop: getAriaValueText > uses the returned text and receives the formatted and raw value",
+      "apg": "aria",
+      "config": { "value": 30, "getAriaValueText": "30 of 100 (30%)" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "meter": { "aria-valuetext": "30 of 100 (30%)" } }
+          }
+        }
+      ],
+      "notes": "getAriaValueText changes only aria-valuetext, not the visible value."
+    },
+    {
+      "id": "meter.base-ui.value-change-refreshes-attributes",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/meter/root/MeterRoot.test.tsx#L57",
+      "upstreamTest": "Meter.Root > ARIA attributes > refreshes aria-valuenow and aria-valuetext when value changes",
+      "apg": "aria",
+      "config": { "value": 50 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "meter": { "aria-valuenow": "50", "aria-valuetext": "50%" }
+            }
+          }
+        },
+        { "event": "prop", "target": "meter", "prop": "value", "value": 77 },
+        {
+          "expect": {
+            "attrs": {
+              "meter": { "aria-valuenow": "77", "aria-valuetext": "77%" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "meter.base-ui.label-association-updates-and-clears",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/meter/label/MeterLabel.test.tsx#L22",
+      "upstreamTest": "Meter.Label > updates and clears the meter label association",
+      "apg": "aria",
+      "config": { "value": 50, "labelId": "label-a" },
+      "steps": [
+        {
+          "expect": { "attrs": { "meter": { "aria-labelledby": "label-a" } } }
+        },
+        {
+          "event": "prop",
+          "target": "meter",
+          "prop": "labelId",
+          "value": "label-b"
+        },
+        {
+          "expect": { "attrs": { "meter": { "aria-labelledby": "label-b" } } }
+        },
+        {
+          "event": "prop",
+          "target": "meter",
+          "prop": "labelId",
+          "value": null
+        },
+        {
+          "expect": { "attrs": { "meter": { "aria-labelledby": null } } }
+        }
+      ]
+    }
+  ]
+}

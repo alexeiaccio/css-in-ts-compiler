@@ -1,0 +1,1185 @@
+{
+  "generatedFrom": "../../specs/apg/meter.qnt",
+  "specHash": "b72cfa3231ecf06c295309e94669a7b8d1c4b65b4a45c9ef323ddaab5a56c900",
+  "module": "apg_meter",
+  "vars": [
+    {
+      "name": "min",
+      "type": "int"
+    },
+    {
+      "name": "max",
+      "type": "int"
+    },
+    {
+      "name": "raw",
+      "type": "int"
+    },
+    {
+      "name": "now",
+      "type": "int"
+    },
+    {
+      "name": "friendly",
+      "type": "bool"
+    },
+    {
+      "name": "hasText",
+      "type": "bool"
+    },
+    {
+      "name": "textNow",
+      "type": "int"
+    }
+  ],
+  "defs": {
+    "clamp": {
+      "kind": "function",
+      "params": [
+        "v",
+        "lo",
+        "hi"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "v"
+              },
+              {
+                "kind": "name",
+                "name": "lo"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "lo"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igt",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "v"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "hi"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "hi"
+              },
+              {
+                "kind": "name",
+                "name": "v"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "loOf": {
+      "kind": "function",
+      "params": [
+        "r"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "r"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "r"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "10"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "r"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "20"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "r"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "3"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "20"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "10"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "hiOf": {
+      "kind": "function",
+      "params": [
+        "r"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "r"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "100"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "r"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "50"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "r"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "200"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "r"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "3"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "10"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "10"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "pickMin": {
+      "kind": "function",
+      "params": [
+        "lo",
+        "hi"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "lo"
+              },
+              {
+                "kind": "name",
+                "name": "hi"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "lo"
+          },
+          {
+            "kind": "name",
+            "name": "min"
+          }
+        ]
+      }
+    },
+    "pickMax": {
+      "kind": "function",
+      "params": [
+        "lo",
+        "hi"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "lo"
+              },
+              {
+                "kind": "name",
+                "name": "hi"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "hi"
+          },
+          {
+            "kind": "name",
+            "name": "max"
+          }
+        ]
+      }
+    },
+    "RangeValid": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ilt",
+        "args": [
+          {
+            "kind": "name",
+            "name": "min"
+          },
+          {
+            "kind": "name",
+            "name": "max"
+          }
+        ]
+      }
+    },
+    "NowInRange": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "min"
+              },
+              {
+                "kind": "name",
+                "name": "now"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "now"
+              },
+              {
+                "kind": "name",
+                "name": "max"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "NowIsClampedRaw": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "now"
+          },
+          {
+            "kind": "app",
+            "opcode": "clamp",
+            "args": [
+              {
+                "kind": "name",
+                "name": "raw"
+              },
+              {
+                "kind": "name",
+                "name": "min"
+              },
+              {
+                "kind": "name",
+                "name": "max"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "TextWhenNotFriendly": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "name",
+            "name": "friendly"
+          },
+          {
+            "kind": "name",
+            "name": "hasText"
+          }
+        ]
+      }
+    },
+    "TextNeverStale": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "hasText"
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "textNow"
+              },
+              {
+                "kind": "name",
+                "name": "now"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "textNow"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "actions": [
+    {
+      "name": "init",
+      "assignments": [
+        {
+          "field": "min",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "max",
+          "rhs": {
+            "kind": "int",
+            "value": "100"
+          }
+        },
+        {
+          "field": "raw",
+          "rhs": {
+            "kind": "int",
+            "value": "50"
+          }
+        },
+        {
+          "field": "now",
+          "rhs": {
+            "kind": "int",
+            "value": "50"
+          }
+        },
+        {
+          "field": "friendly",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "hasText",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "textNow",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        }
+      ]
+    },
+    {
+      "name": "setValue",
+      "nondet": {
+        "name": "v",
+        "kind": "int",
+        "pool": [
+          "-5",
+          "0",
+          "5",
+          "15",
+          "25",
+          "60",
+          "100",
+          "150"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "min",
+          "rhs": {
+            "kind": "name",
+            "name": "min"
+          }
+        },
+        {
+          "field": "max",
+          "rhs": {
+            "kind": "name",
+            "name": "max"
+          }
+        },
+        {
+          "field": "raw",
+          "rhs": {
+            "kind": "name",
+            "name": "v"
+          }
+        },
+        {
+          "field": "now",
+          "rhs": {
+            "kind": "app",
+            "opcode": "clamp",
+            "args": [
+              {
+                "kind": "name",
+                "name": "v"
+              },
+              {
+                "kind": "name",
+                "name": "min"
+              },
+              {
+                "kind": "name",
+                "name": "max"
+              }
+            ]
+          }
+        },
+        {
+          "field": "friendly",
+          "rhs": {
+            "kind": "name",
+            "name": "friendly"
+          }
+        },
+        {
+          "field": "hasText",
+          "rhs": {
+            "kind": "name",
+            "name": "hasText"
+          }
+        },
+        {
+          "field": "textNow",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hasText"
+              },
+              {
+                "kind": "app",
+                "opcode": "clamp",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "v"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "min"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "max"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "setRange",
+      "nondet": {
+        "name": "r",
+        "kind": "int",
+        "pool": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "min",
+          "rhs": {
+            "kind": "app",
+            "opcode": "pickMin",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "loOf",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "r"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "hiOf",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "r"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "max",
+          "rhs": {
+            "kind": "app",
+            "opcode": "pickMax",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "loOf",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "r"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "hiOf",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "r"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "raw",
+          "rhs": {
+            "kind": "name",
+            "name": "raw"
+          }
+        },
+        {
+          "field": "now",
+          "rhs": {
+            "kind": "app",
+            "opcode": "clamp",
+            "args": [
+              {
+                "kind": "name",
+                "name": "raw"
+              },
+              {
+                "kind": "app",
+                "opcode": "pickMin",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "loOf",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "r"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "hiOf",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "r"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "pickMax",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "loOf",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "r"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "hiOf",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "r"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "friendly",
+          "rhs": {
+            "kind": "name",
+            "name": "friendly"
+          }
+        },
+        {
+          "field": "hasText",
+          "rhs": {
+            "kind": "name",
+            "name": "hasText"
+          }
+        },
+        {
+          "field": "textNow",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hasText"
+              },
+              {
+                "kind": "app",
+                "opcode": "clamp",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "raw"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "pickMin",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "loOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "r"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "hiOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "r"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "pickMax",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "loOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "r"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "hiOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "r"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "addText",
+      "assignments": [
+        {
+          "field": "min",
+          "rhs": {
+            "kind": "name",
+            "name": "min"
+          }
+        },
+        {
+          "field": "max",
+          "rhs": {
+            "kind": "name",
+            "name": "max"
+          }
+        },
+        {
+          "field": "raw",
+          "rhs": {
+            "kind": "name",
+            "name": "raw"
+          }
+        },
+        {
+          "field": "now",
+          "rhs": {
+            "kind": "name",
+            "name": "now"
+          }
+        },
+        {
+          "field": "friendly",
+          "rhs": {
+            "kind": "name",
+            "name": "friendly"
+          }
+        },
+        {
+          "field": "hasText",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "textNow",
+          "rhs": {
+            "kind": "name",
+            "name": "now"
+          }
+        }
+      ]
+    },
+    {
+      "name": "removeText",
+      "assignments": [
+        {
+          "field": "min",
+          "rhs": {
+            "kind": "name",
+            "name": "min"
+          }
+        },
+        {
+          "field": "max",
+          "rhs": {
+            "kind": "name",
+            "name": "max"
+          }
+        },
+        {
+          "field": "raw",
+          "rhs": {
+            "kind": "name",
+            "name": "raw"
+          }
+        },
+        {
+          "field": "now",
+          "rhs": {
+            "kind": "name",
+            "name": "now"
+          }
+        },
+        {
+          "field": "friendly",
+          "rhs": {
+            "kind": "name",
+            "name": "friendly"
+          }
+        },
+        {
+          "field": "hasText",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "friendly"
+              },
+              {
+                "kind": "bool",
+                "value": false
+              },
+              {
+                "kind": "name",
+                "name": "hasText"
+              }
+            ]
+          }
+        },
+        {
+          "field": "textNow",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "friendly"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              },
+              {
+                "kind": "name",
+                "name": "textNow"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "percentFriendly",
+      "assignments": [
+        {
+          "field": "min",
+          "rhs": {
+            "kind": "name",
+            "name": "min"
+          }
+        },
+        {
+          "field": "max",
+          "rhs": {
+            "kind": "name",
+            "name": "max"
+          }
+        },
+        {
+          "field": "raw",
+          "rhs": {
+            "kind": "name",
+            "name": "raw"
+          }
+        },
+        {
+          "field": "now",
+          "rhs": {
+            "kind": "name",
+            "name": "now"
+          }
+        },
+        {
+          "field": "friendly",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "hasText",
+          "rhs": {
+            "kind": "name",
+            "name": "hasText"
+          }
+        },
+        {
+          "field": "textNow",
+          "rhs": {
+            "kind": "name",
+            "name": "textNow"
+          }
+        }
+      ]
+    },
+    {
+      "name": "percentUnfriendly",
+      "assignments": [
+        {
+          "field": "min",
+          "rhs": {
+            "kind": "name",
+            "name": "min"
+          }
+        },
+        {
+          "field": "max",
+          "rhs": {
+            "kind": "name",
+            "name": "max"
+          }
+        },
+        {
+          "field": "raw",
+          "rhs": {
+            "kind": "name",
+            "name": "raw"
+          }
+        },
+        {
+          "field": "now",
+          "rhs": {
+            "kind": "name",
+            "name": "now"
+          }
+        },
+        {
+          "field": "friendly",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "hasText",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "textNow",
+          "rhs": {
+            "kind": "name",
+            "name": "now"
+          }
+        }
+      ]
+    }
+  ],
+  "step": [
+    "init",
+    "setValue",
+    "setRange",
+    "addText",
+    "removeText",
+    "percentFriendly",
+    "percentUnfriendly"
+  ]
+}

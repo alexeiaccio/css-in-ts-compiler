@@ -1,0 +1,1118 @@
+{
+  "pattern": "listbox",
+  "source": "react-aria",
+  "commit": "99e610236887da619ad9d54a1cd87983166c043d",
+  "license": "Apache-2.0",
+  "skipped": [
+    {
+      "reason": "styling and DOM-shape assertions: default/custom classes, data-rac, data-foo/data-bar DOM props, custom render/render-as-link, slots, refs, hover/press/focus-ring class hooks, sections and group markup (react-aria-components ListBox.test.js)"
+    },
+    {
+      "reason": "collection lifecycle and React-only APIs: dynamic collections, non-object entries, render-function changes, item moving between sections, descendants updating, duplicate keys across React Activity boundaries, React 19 Activity/portal, SSR (react-aria-components ListBox.test.js)"
+    },
+    {
+      "reason": "async loading and virtualization: renderEmptyState, ListBoxLoadMoreItem sentinel, IntersectionObserver load-more, virtualizer row height/overscan, scroll position (react-aria-components and @adobe ListBox.test.js)"
+    },
+    {
+      "reason": "drag and drop: draggable items, drop indicators, onReorder/onItemDrop/onRootDrop, grid drag layouts, Alt+Enter drag mode (react-aria-components ListBox.test.js)"
+    },
+    {
+      "reason": "links and router integration: href options, mockClickDefault navigation, RouterProvider (react-aria-components and @adobe ListBox.test.js)"
+    },
+    {
+      "reason": "modal/dialog integration: Escape clears selection then closes the dialog (react-aria-components ListBox.test.js)"
+    },
+    {
+      "reason": "callback plumbing that only counts handler invocations without an observable state change: per-item onKeyDown/onKeyUp, list-level onScroll, onHoverStart/onHoverEnd counting, press-event interactionType matrix, long-press timing matrix (react-aria-components ListBox.test.js)"
+    },
+    {
+      "reason": "grid geometry tests that mock getBoundingClientRect per option and rely on measured columns/rows beyond a plain 2-D grid layout (react-aria-components ListBox.test.js)"
+    },
+    {
+      "reason": "warnings: missing aria-label console warning; item id must not override the React key (@adobe ListBox.test.js)"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "listbox.react-aria.vertical-arrow-navigation",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/listbox/ListBox.test.js#L180",
+      "upstreamTest": "allows user to change listbox focus via up/down arrow keys",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Foo", "Bar", "Baz", "Blah", "Bleh", "Foo Bar", "Foo Baz"],
+        "selectionMode": "single",
+        "autoFocus": "first"
+      },
+      "steps": [
+        { "expect": { "focus": "option:0" } },
+        { "event": "key", "key": "ArrowDown", "target": "option:0" },
+        { "expect": { "focus": "option:1" } },
+        { "event": "key", "key": "ArrowUp", "target": "option:1" },
+        { "expect": { "focus": "option:0" } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.focus-wrap-arrows",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/listbox/ListBox.test.js#L193",
+      "upstreamTest": "wraps focus from first to last and last to first when shouldFocusWrap is true",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Foo", "Bar", "Baz", "Blah", "Bleh", "Foo Bar", "Foo Baz"],
+        "selectionMode": "single",
+        "autoFocus": "first",
+        "shouldFocusWrap": true
+      },
+      "steps": [
+        { "expect": { "focus": "option:0" } },
+        { "event": "key", "key": "ArrowUp", "target": "option:0" },
+        { "expect": { "focus": "option:6" } },
+        { "event": "key", "key": "ArrowDown", "target": "option:6" },
+        { "expect": { "focus": "option:0" } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.horizontal-arrow-navigation",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L1037",
+      "upstreamTest": "should support horizontal orientation",
+      "apg": "keyboard",
+      "config": { "items": 3, "orientation": "horizontal" },
+      "steps": [
+        { "event": "focus", "target": "option:0" },
+        { "expect": { "focus": "option:0" } },
+        { "event": "key", "key": "ArrowRight", "target": "option:0" },
+        { "expect": { "focus": "option:1" } },
+        { "event": "key", "key": "ArrowRight", "target": "option:1" },
+        { "expect": { "focus": "option:2" } },
+        { "event": "key", "key": "ArrowLeft", "target": "option:2" },
+        { "expect": { "focus": "option:1" } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.arrow-skips-disabled-item",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L681",
+      "upstreamTest": "should support isDisabled prop on items",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "disabledKeys": ["dog"]
+      },
+      "steps": [
+        { "event": "focus", "target": "option:0" },
+        { "expect": { "focus": "option:0" } },
+        { "event": "key", "key": "ArrowDown", "target": "option:0" },
+        { "expect": { "focus": "option:2" } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.grid-arrow-navigation",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L1054",
+      "upstreamTest": "should support grid layout",
+      "apg": "extension",
+      "config": {
+        "items": 3,
+        "layout": "grid",
+        "orientation": "vertical",
+        "columns": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "option:0" },
+        { "expect": { "focus": "option:0" } },
+        { "event": "key", "key": "ArrowDown", "target": "option:0" },
+        { "expect": { "focus": "option:2" } },
+        { "event": "key", "key": "ArrowLeft", "target": "option:2" },
+        { "expect": { "focus": "option:1" } },
+        { "event": "key", "key": "ArrowLeft", "target": "option:1" },
+        { "expect": { "focus": "option:0" } },
+        { "event": "key", "key": "ArrowRight", "target": "option:0" },
+        { "expect": { "focus": "option:1" } }
+      ],
+      "notes": "Grid layout is a react-aria extension, not part of the APG listbox pattern."
+    },
+    {
+      "id": "listbox.react-aria.vertical-grid-boundaries",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L1090",
+      "upstreamTest": "should not throw TypeError at boundaries of vertical grid layout when keyboard navigating",
+      "apg": "extension",
+      "config": {
+        "items": 9,
+        "layout": "grid",
+        "orientation": "vertical",
+        "columns": 3
+      },
+      "steps": [
+        { "event": "focus", "target": "option:0" },
+        { "event": "key", "key": "ArrowDown", "target": "option:0" },
+        { "expect": { "focus": "option:3" } },
+        { "event": "key", "key": "ArrowDown", "target": "option:3" },
+        { "expect": { "focus": "option:6" } },
+        { "event": "key", "key": "ArrowDown", "target": "option:6" },
+        { "expect": { "focus": "option:6" } },
+        { "event": "key", "key": "ArrowUp", "target": "option:6" },
+        { "expect": { "focus": "option:3" } },
+        { "event": "key", "key": "ArrowUp", "target": "option:3" },
+        { "expect": { "focus": "option:0" } },
+        { "event": "key", "key": "ArrowUp", "target": "option:0" },
+        { "expect": { "focus": "option:0" } }
+      ],
+      "notes": "Grid layout is a react-aria extension; focus clamps at the grid boundary instead of throwing."
+    },
+    {
+      "id": "listbox.react-aria.horizontal-grid-boundaries",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L1189",
+      "upstreamTest": "should not throw TypeError at boundaries of horizontal grid layout when keyboard navigating",
+      "apg": "extension",
+      "config": {
+        "items": 9,
+        "layout": "grid",
+        "orientation": "horizontal",
+        "rows": 3
+      },
+      "steps": [
+        { "event": "focus", "target": "option:0" },
+        { "event": "key", "key": "ArrowRight", "target": "option:0" },
+        { "expect": { "focus": "option:3" } },
+        { "event": "key", "key": "ArrowRight", "target": "option:3" },
+        { "expect": { "focus": "option:6" } },
+        { "event": "key", "key": "ArrowRight", "target": "option:6" },
+        { "expect": { "focus": "option:6" } },
+        { "event": "key", "key": "ArrowLeft", "target": "option:6" },
+        { "expect": { "focus": "option:3" } },
+        { "event": "key", "key": "ArrowLeft", "target": "option:3" },
+        { "expect": { "focus": "option:0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "option:0" },
+        { "expect": { "focus": "option:0" } }
+      ],
+      "notes": "Grid layout is a react-aria extension; focus clamps at the grid boundary instead of throwing."
+    },
+    {
+      "id": "listbox.react-aria.modifier-unsupported-mac",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L2511",
+      "upstreamTest": "should not navigate when using unsupported modifier keys (mac)",
+      "apg": "keyboard",
+      "config": { "items": 3, "selectionMode": "none", "platform": "mac" },
+      "steps": [
+        { "event": "focus", "target": "option:0" },
+        { "event": "key", "key": "ArrowDown", "target": "option:0" },
+        { "expect": { "focus": "option:1" } },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "option:1",
+          "modifiers": ["Meta"]
+        },
+        { "expect": { "focus": "option:1" } },
+        {
+          "event": "key",
+          "key": "ArrowUp",
+          "target": "option:1",
+          "modifiers": ["Meta"]
+        },
+        { "expect": { "focus": "option:1" } },
+        {
+          "event": "key",
+          "key": "Home",
+          "target": "option:1",
+          "modifiers": ["Control"]
+        },
+        { "expect": { "focus": "option:1" } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.modifier-unsupported-windows",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L2617",
+      "upstreamTest": "should not navigate when using unsupported modifier keys (windows)",
+      "apg": "keyboard",
+      "config": { "items": 3, "selectionMode": "none", "platform": "windows" },
+      "steps": [
+        { "event": "focus", "target": "option:0" },
+        { "event": "key", "key": "ArrowDown", "target": "option:0" },
+        { "expect": { "focus": "option:1" } },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "option:1",
+          "modifiers": ["Meta"]
+        },
+        { "expect": { "focus": "option:1" } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.single-selection-space",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/listbox/ListBox.test.js#L280",
+      "upstreamTest": "supports using space key to change item selection",
+      "apg": "selection",
+      "config": {
+        "items": ["Foo", "Bar", "Baz", "Blah", "Bleh", "Foo Bar", "Foo Baz"],
+        "selectionMode": "single"
+      },
+      "steps": [
+        { "event": "focus", "target": "option:4" },
+        { "event": "key", "key": "Space", "target": "option:4" },
+        {
+          "expect": {
+            "attrs": { "option:4": { "aria-selected": "true" } },
+            "events": { "onSelectionChange": ["Bleh"] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.single-selection-click",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/listbox/ListBox.test.js#L304",
+      "upstreamTest": "supports using click to change item selection",
+      "apg": "selection",
+      "config": {
+        "items": ["Foo", "Bar", "Baz", "Blah", "Bleh", "Foo Bar", "Foo Baz"],
+        "selectionMode": "single"
+      },
+      "steps": [
+        { "event": "click", "target": "option:4" },
+        {
+          "expect": {
+            "attrs": { "option:4": { "aria-selected": "true" } },
+            "events": { "onSelectionChange": ["Bleh"] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.disabled-item-not-selectable",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/listbox/ListBox.test.js#L326",
+      "upstreamTest": "supports disabled items",
+      "apg": "selection",
+      "config": {
+        "items": ["Foo", "Bar", "Baz", "Blah", "Bleh", "Foo Bar", "Foo Baz"],
+        "selectionMode": "single",
+        "disabledKeys": ["Baz"],
+        "autoFocus": "first"
+      },
+      "steps": [
+        { "event": "click", "target": "option:2" },
+        {
+          "expect": {
+            "attrs": {
+              "option:2": { "aria-selected": "false", "aria-disabled": "true" }
+            },
+            "events": {}
+          }
+        }
+      ],
+      "notes": "onSelectionChange is not called; keyboard navigation around disabled items is covered by listbox.react-aria.arrow-skips-disabled-item."
+    },
+    {
+      "id": "listbox.react-aria.multiple-select",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/listbox/ListBox.test.js#L363",
+      "upstreamTest": "supports selecting multiple items",
+      "apg": "selection",
+      "config": {
+        "items": ["Foo", "Bar", "Baz", "Blah", "Bleh", "Foo Bar", "Foo Baz"],
+        "selectionMode": "multiple"
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "listbox": { "aria-multiselectable": "true" } }
+          }
+        },
+        { "event": "click", "target": "option:3" },
+        {
+          "expect": {
+            "attrs": { "option:3": { "aria-selected": "true" } },
+            "events": { "onSelectionChange": ["Blah"] }
+          }
+        },
+        { "event": "click", "target": "option:1" },
+        {
+          "expect": {
+            "attrs": {
+              "option:3": { "aria-selected": "true" },
+              "option:1": { "aria-selected": "true" }
+            },
+            "events": { "onSelectionChange": ["Bar", "Blah"] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.multiple-deselect",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/listbox/ListBox.test.js#L487",
+      "upstreamTest": "supports deselection",
+      "apg": "selection",
+      "config": {
+        "items": ["Foo", "Bar", "Baz", "Blah", "Bleh", "Foo Bar", "Foo Baz"],
+        "selectionMode": "multiple",
+        "defaultSelectedKeys": ["Foo", "Bar"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "option:0": { "aria-selected": "true" },
+              "option:1": { "aria-selected": "true" }
+            }
+          }
+        },
+        { "event": "click", "target": "option:0" },
+        {
+          "expect": {
+            "attrs": {
+              "option:0": { "aria-selected": "false" },
+              "option:1": { "aria-selected": "true" }
+            },
+            "events": { "onSelectionChange": ["Bar"] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.none-mode-prevents-selection",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/listbox/ListBox.test.js#L585",
+      "upstreamTest": "prevents selection of any items",
+      "apg": "selection",
+      "config": {
+        "items": ["Foo", "Bar", "Baz", "Blah", "Bleh", "Foo Bar", "Foo Baz"],
+        "selectionMode": "none"
+      },
+      "steps": [
+        { "event": "click", "target": "option:3" },
+        {
+          "expect": {
+            "attrs": { "option:3": { "aria-selected": "false" } },
+            "events": {}
+          }
+        },
+        { "event": "key", "key": "Space", "target": "option:4" },
+        {
+          "expect": {
+            "attrs": { "option:4": { "aria-selected": "false" } },
+            "events": {}
+          }
+        },
+        { "event": "key", "key": "Enter", "target": "option:1" },
+        {
+          "expect": {
+            "attrs": { "option:1": { "aria-selected": "false" } },
+            "events": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.replace-selection-pointer",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L755",
+      "upstreamTest": "should perform selection with single selection (selectionBehavior replace, mouse)",
+      "apg": "selection",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "single",
+        "selectionBehavior": "replace"
+      },
+      "steps": [
+        { "event": "click", "target": "option:2" },
+        {
+          "expect": {
+            "attrs": { "option:2": { "aria-selected": "true" } },
+            "events": { "onSelectionChange": ["kangaroo"] }
+          }
+        },
+        { "event": "click", "target": "option:1" },
+        {
+          "expect": {
+            "attrs": {
+              "option:1": { "aria-selected": "true" },
+              "option:2": { "aria-selected": "false" }
+            },
+            "events": { "onSelectionChange": ["dog"] }
+          }
+        },
+        { "event": "click", "target": "option:1" },
+        {
+          "expect": {
+            "attrs": {
+              "option:1": { "aria-selected": "false" },
+              "option:2": { "aria-selected": "false" }
+            },
+            "events": { "onSelectionChange": [] }
+          }
+        }
+      ],
+      "notes": "Mouse/touch variant. With a keyboard interaction the initial focus selects the first row, so onSelectionChange fires an extra time; that is not restated here."
+    },
+    {
+      "id": "listbox.react-aria.arrow-replaces-selection-mac",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L2527",
+      "upstreamTest": "replaces selection as focus moves with arrow keys (mac)",
+      "apg": "selection",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple",
+        "selectionBehavior": "replace",
+        "platform": "mac"
+      },
+      "steps": [
+        { "event": "focus", "target": "option:0" },
+        { "event": "key", "key": "ArrowDown", "target": "option:0" },
+        {
+          "expect": {
+            "focus": "option:1",
+            "events": { "onSelectionChange": ["dog"] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.alt-arrow-navigates-without-selecting",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L2541",
+      "upstreamTest": "navigates focus without changing selection when Alt is held",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple",
+        "selectionBehavior": "replace"
+      },
+      "steps": [
+        { "event": "focus", "target": "option:0" },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "option:0",
+          "modifiers": ["Alt"]
+        },
+        { "expect": { "focus": "option:1", "events": {} } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.shift-arrow-extends-selection",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L2556",
+      "upstreamTest": "extends selection when Shift is held",
+      "apg": "selection",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple",
+        "selectionBehavior": "replace"
+      },
+      "steps": [
+        { "event": "focus", "target": "option:0" },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "option:0",
+          "modifiers": ["Shift"]
+        },
+        {
+          "expect": {
+            "focus": "option:1",
+            "events": { "onSelectionChange": ["cat", "dog"] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.home-end-replace-selection",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L2572",
+      "upstreamTest": "replaces selection with Home and End",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple",
+        "selectionBehavior": "replace"
+      },
+      "steps": [
+        { "event": "focus", "target": "option:0" },
+        { "event": "key", "key": "End", "target": "option:0" },
+        {
+          "expect": {
+            "focus": "option:2",
+            "events": { "onSelectionChange": ["kangaroo"] }
+          }
+        },
+        { "event": "key", "key": "Home", "target": "option:2" },
+        {
+          "expect": {
+            "focus": "option:0",
+            "events": { "onSelectionChange": ["cat"] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.mod-a-selects-all-mac",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L2592",
+      "upstreamTest": "selects all with Mod+A (Meta) in multiple selection mode",
+      "apg": "selection",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple",
+        "platform": "mac"
+      },
+      "steps": [
+        { "event": "focus", "target": "option:0" },
+        {
+          "event": "key",
+          "key": "a",
+          "target": "listbox",
+          "modifiers": ["Meta"]
+        },
+        { "expect": { "events": { "onSelectionChange": ["all"] } } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.mod-a-noop-single-mac",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L2600",
+      "upstreamTest": "does not select all with Mod+A when selection mode is single",
+      "apg": "selection",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "single",
+        "platform": "mac"
+      },
+      "steps": [
+        { "event": "focus", "target": "option:0" },
+        {
+          "event": "key",
+          "key": "a",
+          "target": "listbox",
+          "modifiers": ["Meta"]
+        },
+        { "expect": { "events": {} } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.control-a-selects-all-windows",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L2660",
+      "upstreamTest": "selects all with Mod+A (Control) in multiple selection mode (windows)",
+      "apg": "selection",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple",
+        "platform": "windows"
+      },
+      "steps": [
+        { "event": "focus", "target": "option:0" },
+        {
+          "event": "key",
+          "key": "a",
+          "target": "listbox",
+          "modifiers": ["Control"]
+        },
+        { "expect": { "events": { "onSelectionChange": ["all"] } } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.control-arrow-navigates-windows",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L2627",
+      "upstreamTest": "navigates focus when Control is held (non-contiguous)",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple",
+        "platform": "windows"
+      },
+      "steps": [
+        { "event": "focus", "target": "option:0" },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "option:0",
+          "modifiers": ["Control"]
+        },
+        { "expect": { "focus": "option:1", "events": {} } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.control-shift-home-end-extends",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L2638",
+      "upstreamTest": "extends selection with Control+Shift+End and Control+Shift+Home",
+      "apg": "selection",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple",
+        "defaultSelectedKeys": ["cat"],
+        "platform": "windows"
+      },
+      "steps": [
+        { "event": "focus", "target": "option:0" },
+        {
+          "event": "key",
+          "key": "End",
+          "target": "option:0",
+          "modifiers": ["Control", "Shift"]
+        },
+        {
+          "expect": {
+            "focus": "option:2",
+            "events": { "onSelectionChange": ["cat", "kangaroo"] }
+          }
+        },
+        {
+          "event": "key",
+          "key": "Home",
+          "target": "option:2",
+          "modifiers": ["Control", "Shift"]
+        },
+        {
+          "expect": {
+            "focus": "option:0",
+            "events": { "onSelectionChange": ["cat", "dog", "kangaroo"] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.falsy-keys-shift-extend",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L1944",
+      "upstreamTest": "should deselect item 0 when navigating back in replace selection mode",
+      "apg": "selection",
+      "config": {
+        "items": ["Item 0", "Item 1", "Item 2"],
+        "selectionMode": "multiple",
+        "selectionBehavior": "replace"
+      },
+      "steps": [
+        { "event": "click", "target": "option:1" },
+        { "expect": { "attrs": { "option:1": { "aria-selected": "true" } } } },
+        {
+          "event": "key",
+          "key": "ArrowUp",
+          "target": "option:1",
+          "modifiers": ["Shift"]
+        },
+        {
+          "expect": {
+            "attrs": {
+              "option:0": { "aria-selected": "true" },
+              "option:1": { "aria-selected": "true" },
+              "option:2": { "aria-selected": "false" }
+            }
+          }
+        },
+        {
+          "event": "key",
+          "key": "ArrowDown",
+          "target": "option:0",
+          "modifiers": ["Shift"]
+        },
+        {
+          "expect": {
+            "attrs": {
+              "option:0": { "aria-selected": "false" },
+              "option:1": { "aria-selected": "true" },
+              "option:2": { "aria-selected": "false" }
+            }
+          }
+        }
+      ],
+      "notes": "Regression for falsy key 0: the item with key 0 must stay selectable and deselectable."
+    },
+    {
+      "id": "listbox.react-aria.select-on-press-default",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L2025",
+      "upstreamTest": "should select an item on pressing down when shouldSelectOnPressUp is not provided",
+      "apg": "pointer",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "single"
+      },
+      "steps": [
+        { "event": "pointerdown", "target": "option:0" },
+        { "expect": { "events": { "onSelectionChange": ["cat"] } } },
+        { "event": "pointerup", "target": "option:0" },
+        { "expect": { "events": { "onSelectionChange": ["cat"] } } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.select-on-press-down-when-false",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L2037",
+      "upstreamTest": "should select an item on pressing down when shouldSelectOnPressUp is false",
+      "apg": "pointer",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "single",
+        "shouldSelectOnPressUp": false
+      },
+      "steps": [
+        { "event": "pointerdown", "target": "option:0" },
+        { "expect": { "events": { "onSelectionChange": ["cat"] } } },
+        { "event": "pointerup", "target": "option:0" },
+        { "expect": { "events": { "onSelectionChange": ["cat"] } } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.select-on-press-up-true",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L2053",
+      "upstreamTest": "should select an item on pressing up when shouldSelectOnPressUp is true",
+      "apg": "pointer",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "single",
+        "shouldSelectOnPressUp": true
+      },
+      "steps": [
+        { "event": "pointerdown", "target": "option:0" },
+        { "expect": { "events": {} } },
+        { "event": "pointerup", "target": "option:0" },
+        { "expect": { "events": { "onSelectionChange": ["cat"] } } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.focus-on-hover",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L2071",
+      "upstreamTest": "should focus options on hovering with shouldFocusOnHover",
+      "apg": "focus",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "shouldFocusOnHover": true
+      },
+      "steps": [
+        { "expect": { "focus": null } },
+        { "event": "hover", "target": "option:0" },
+        { "expect": { "focus": "option:0" } },
+        { "event": "key", "key": "ArrowDown", "target": "option:0" },
+        { "expect": { "focus": "option:1" } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.no-focus-on-hover",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L2088",
+      "upstreamTest": "should not focus options on hovering when shouldFocusOnHover is not true",
+      "apg": "focus",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "shouldFocusOnHover": false
+      },
+      "steps": [
+        { "expect": { "focus": null } },
+        { "event": "hover", "target": "option:0" },
+        { "expect": { "focus": null } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.auto-focus-listbox",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L514",
+      "upstreamTest": "should support autoFocus",
+      "apg": "focus",
+      "config": { "items": ["Cat", "Dog", "Kangaroo"], "autoFocus": true },
+      "steps": [{ "expect": { "focus": "listbox" } }]
+    },
+    {
+      "id": "listbox.react-aria.typeahead-rapid-letters",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/listbox/ListBox.test.js#L615",
+      "upstreamTest": "supports focusing items by typing letters in rapid succession",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Foo", "Bar", "Baz", "Blah", "Bleh", "Foo Bar", "Foo Baz"],
+        "autoFocus": "first"
+      },
+      "steps": [
+        { "expect": { "focus": "option:0" } },
+        { "event": "type", "text": "B", "target": "listbox" },
+        { "expect": { "focus": "option:1" } },
+        { "event": "type", "text": "L", "target": "listbox" },
+        { "expect": { "focus": "option:3" } },
+        { "event": "type", "text": "E", "target": "listbox" },
+        { "expect": { "focus": "option:4" } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.typeahead-space-in-search",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/listbox/ListBox.test.js#L631",
+      "upstreamTest": "supports the space character in a search",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Foo", "Bar", "Baz", "Blah", "Bleh", "Foo Bar", "Foo Baz"],
+        "autoFocus": "first"
+      },
+      "steps": [
+        { "event": "type", "text": "F", "target": "listbox" },
+        { "event": "type", "text": "O", "target": "listbox" },
+        { "event": "type", "text": "O", "target": "listbox" },
+        { "expect": { "focus": "option:0" } },
+        { "event": "type", "text": " ", "target": "listbox" },
+        { "expect": { "focus": "option:5" } },
+        { "event": "type", "text": "B", "target": "listbox" },
+        { "event": "type", "text": "A", "target": "listbox" },
+        { "expect": { "focus": "option:5" } },
+        { "event": "type", "text": "Z", "target": "listbox" },
+        { "expect": { "focus": "option:6" } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.typeahead-space-after-timeout-selects",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/listbox/ListBox.test.js#L659",
+      "upstreamTest": "supports item selection using the Spacebar after search times out",
+      "apg": "selection",
+      "config": {
+        "items": ["Foo", "Bar", "Baz", "Blah", "Bleh", "Foo Bar", "Foo Baz"],
+        "selectionMode": "single",
+        "autoFocus": "first"
+      },
+      "steps": [
+        { "event": "type", "text": "F", "target": "listbox" },
+        { "event": "type", "text": "O", "target": "listbox" },
+        { "event": "type", "text": "O", "target": "listbox" },
+        { "event": "type", "text": " ", "target": "listbox" },
+        {
+          "expect": {
+            "focus": "option:5",
+            "attrs": { "option:5": { "aria-selected": "false" } },
+            "events": {}
+          }
+        },
+        { "event": "type", "text": "B", "target": "listbox" },
+        { "expect": { "focus": "option:5" } },
+        { "event": "prop", "prop": "typeaheadTimeoutElapsed", "value": true },
+        { "event": "key", "key": "Space", "target": "option:5" },
+        {
+          "expect": {
+            "attrs": { "option:5": { "aria-selected": "true" } },
+            "events": { "onSelectionChange": ["Foo Bar"] }
+          }
+        }
+      ],
+      "notes": "A space typed while a typeahead buffer is active is treated as search text; only after the buffer timeout is Space a selection key. typeaheadTimeoutElapsed stands in for advancing the typeahead timer."
+    },
+    {
+      "id": "listbox.react-aria.typeahead-reset-after-timeout",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/listbox/ListBox.test.js#L716",
+      "upstreamTest": "resets the search text after a timeout",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Foo", "Bar", "Baz", "Blah", "Bleh", "Foo Bar", "Foo Baz"],
+        "autoFocus": "first"
+      },
+      "steps": [
+        { "event": "type", "text": "B", "target": "listbox" },
+        { "expect": { "focus": "option:1" } },
+        { "event": "prop", "prop": "typeaheadTimeoutElapsed", "value": true },
+        { "event": "type", "text": "B", "target": "listbox" },
+        { "expect": { "focus": "option:1" } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.typeahead-searches-from-current-item",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/listbox/ListBox.test.js#L733",
+      "upstreamTest": "wraps around when no items past the current one match",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Foo", "Bar", "Baz", "Blah", "Bleh", "Foo Bar", "Foo Baz"],
+        "autoFocus": "first"
+      },
+      "steps": [
+        { "event": "type", "text": "B", "target": "listbox" },
+        { "event": "type", "text": "L", "target": "listbox" },
+        { "event": "type", "text": "E", "target": "listbox" },
+        { "expect": { "focus": "option:4" } },
+        { "event": "prop", "prop": "typeaheadTimeoutElapsed", "value": true },
+        { "event": "type", "text": "B", "target": "listbox" },
+        { "expect": { "focus": "option:4" } }
+      ],
+      "notes": "Upstream title says 'wraps around', but the assertion shows the search is inclusive of the current item: focus stays on Bleh because it starts with B."
+    },
+    {
+      "id": "listbox.react-aria.aria-label",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/listbox/ListBox.test.js#L777",
+      "upstreamTest": "supports aria-label",
+      "apg": "aria",
+      "config": { "items": ["Foo", "Bar", "Baz"], "ariaLabel": "Test" },
+      "steps": [
+        { "expect": { "attrs": { "listbox": { "aria-label": "Test" } } } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.disabled-option-aria",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L670",
+      "upstreamTest": "should support disabled state",
+      "apg": "aria",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple",
+        "disabledKeys": ["cat"]
+      },
+      "steps": [
+        { "expect": { "attrs": { "option:0": { "aria-disabled": "true" } } } }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.on-action-list-and-item",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L1006",
+      "upstreamTest": "should support onAction on list and list items",
+      "apg": "extension",
+      "config": { "items": ["Cat", "Dog", "Kangaroo"] },
+      "steps": [
+        { "event": "click", "target": "option:0" },
+        {
+          "expect": {
+            "events": { "onAction": ["cat"], "onItemAction": ["cat"] }
+          }
+        }
+      ],
+      "notes": "onAction is a react-aria callback, not an APG listbox requirement."
+    },
+    {
+      "id": "listbox.react-aria.on-action-double-click-replace",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L724",
+      "upstreamTest": "should trigger onAction on double click if selectionBehavior=replace",
+      "apg": "extension",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple",
+        "selectionBehavior": "replace"
+      },
+      "steps": [
+        { "event": "click", "target": "option:0" },
+        {
+          "expect": {
+            "attrs": { "option:0": { "aria-selected": "true" } },
+            "events": {}
+          }
+        },
+        { "event": "click", "target": "option:1", "count": 2 },
+        {
+          "expect": {
+            "attrs": {
+              "option:1": { "aria-selected": "true" },
+              "option:0": { "aria-selected": "false" }
+            },
+            "events": { "onAction": ["dog"] }
+          }
+        }
+      ],
+      "notes": "A single press selects, a double press runs onAction; onAction is a react-aria extension."
+    },
+    {
+      "id": "listbox.react-aria.press-events",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L2316",
+      "upstreamTest": "should support press events on items",
+      "apg": "extension",
+      "config": { "items": ["Cat", "Dog", "Kangaroo"] },
+      "steps": [
+        { "event": "click", "target": "option:1" },
+        {
+          "expect": {
+            "events": {
+              "onAction": ["dog"],
+              "onPressStart": ["dog"],
+              "onPressEnd": ["dog"],
+              "onPress": ["dog"],
+              "onClick": ["dog"]
+            }
+          }
+        }
+      ],
+      "notes": "Press callbacks are a react-aria extension; the observable listbox effect is only the activation of option:1."
+    },
+    {
+      "id": "listbox.react-aria.single-default-selection-enter",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/listbox/ListBox.test.js#L207",
+      "upstreamTest": "supports defaultSelectedKeys (uncontrolled)",
+      "apg": "selection",
+      "config": {
+        "items": ["Foo", "Bar", "Baz", "Blah", "Bleh", "Foo Bar", "Foo Baz"],
+        "selectionMode": "single",
+        "defaultSelectedKeys": ["Blah"],
+        "autoFocus": "first"
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "option:3": { "aria-selected": "true" } },
+            "focus": "option:3"
+          }
+        },
+        { "event": "key", "key": "Enter", "target": "option:4" },
+        {
+          "expect": {
+            "attrs": {
+              "option:4": { "aria-selected": "true" },
+              "option:3": { "aria-selected": "false" }
+            },
+            "events": { "onSelectionChange": ["Bleh"] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.multiple-default-selection-click",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/listbox/ListBox.test.js#L397",
+      "upstreamTest": "supports multiple defaultSelectedKeys (uncontrolled)",
+      "apg": "selection",
+      "config": {
+        "items": ["Foo", "Bar", "Baz", "Blah", "Bleh", "Foo Bar", "Foo Baz"],
+        "selectionMode": "multiple",
+        "defaultSelectedKeys": ["Foo", "Bar"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "option:0": { "aria-selected": "true" },
+              "option:1": { "aria-selected": "true" }
+            }
+          }
+        },
+        { "event": "click", "target": "option:4" },
+        {
+          "expect": {
+            "attrs": { "option:4": { "aria-selected": "true" } },
+            "events": { "onSelectionChange": ["Foo", "Bar", "Bleh"] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.escape-none-retains-selection",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ListBox.test.js#L1389",
+      "upstreamTest": "should prevent Esc from clearing selection if escapeKeyBehavior is none",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple",
+        "escapeKeyBehavior": "none"
+      },
+      "steps": [
+        { "event": "click", "target": "option:0" },
+        { "expect": { "attrs": { "option:0": { "aria-selected": "true" } } } },
+        { "event": "key", "key": "Escape", "target": "option:0" },
+        {
+          "expect": {
+            "attrs": { "option:0": { "aria-selected": "true" } },
+            "events": { "onSelectionChange": ["cat"] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "listbox.react-aria.escape-none-retains-multi",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/listbox/ListBox.test.js#L556",
+      "upstreamTest": "should prevent Esc from clearing selection if escapeKeyBehavior is none (multiple)",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Foo", "Bar", "Baz", "Blah", "Bleh", "Foo Bar", "Foo Baz"],
+        "selectionMode": "multiple",
+        "escapeKeyBehavior": "none"
+      },
+      "steps": [
+        { "event": "click", "target": "option:3" },
+        { "event": "click", "target": "option:1" },
+        {
+          "expect": {
+            "attrs": {
+              "option:3": { "aria-selected": "true" },
+              "option:1": { "aria-selected": "true" }
+            }
+          }
+        },
+        { "event": "key", "key": "Escape", "target": "option:1" },
+        {
+          "expect": {
+            "attrs": {
+              "option:3": { "aria-selected": "true" },
+              "option:1": { "aria-selected": "true" }
+            },
+            "events": { "onSelectionChange": ["Bar", "Blah"] }
+          }
+        }
+      ]
+    }
+  ]
+}

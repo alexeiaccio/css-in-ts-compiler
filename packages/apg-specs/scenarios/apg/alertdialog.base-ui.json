@@ -1,0 +1,331 @@
+{
+  "pattern": "alertdialog",
+  "source": "base-ui",
+  "commit": "19511bb171f3b360b006c94cf6d07e53cb446505",
+  "license": "MIT",
+  "skipped": [
+    {
+      "reason": "styling / CSS-variable assertions and popup conformance (popupConformanceTests)"
+    },
+    {
+      "reason": "enter/exit transition timing and onOpen/onClose animation callbacks"
+    },
+    {
+      "reason": "detached-trigger hydration plumbing (payload, root/handle swapping, remount) that does not change observed behaviour"
+    },
+    { "reason": "imperative handle payload tests" },
+    {
+      "reason": "React-API-only: reuses the popup DOM node when switching triggers, manual unmount bookkeeping"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "alertdialog.base-ui.aria-labelledby-and-describedby",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/alert-dialog/root/AlertDialogRoot.test.tsx#L32",
+      "upstreamTest": "ARIA attributes",
+      "apg": "wai-aria",
+      "config": { "open": true, "modal": true },
+      "steps": [
+        {
+          "expect": {
+            "visible": ["dialog"],
+            "attrs": {
+              "dialog": {
+                "role": "alertdialog",
+                "aria-labelledby": "title",
+                "aria-describedby": "description"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "alertdialog.base-ui.trigger-aria-expanded-controls-controlled",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/alert-dialog/root/AlertDialogRoot.test.tsx#L57",
+      "upstreamTest": "synchronizes trigger ARIA attributes in controlled mode",
+      "apg": "wai-aria",
+      "config": {
+        "open": true,
+        "triggerCount": 2,
+        "activeTrigger": "trigger:1"
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": { "aria-expanded": "false", "aria-controls": null },
+              "trigger:1": {
+                "aria-expanded": "true",
+                "aria-controls": "dialog"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "alertdialog.base-ui.trigger-aria-expanded-initially-open-handle",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/alert-dialog/root/AlertDialogRoot.test.tsx#L78",
+      "upstreamTest": "synchronizes trigger ARIA attributes when initially open with a handle",
+      "apg": "wai-aria",
+      "config": { "open": true, "handle": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger": { "aria-expanded": "true", "aria-controls": "dialog" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "alertdialog.base-ui.detached-trigger-aria-expanded",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/alert-dialog/root/AlertDialogRoot.test.tsx#L97",
+      "upstreamTest": "synchronizes detached trigger ARIA attributes when initially open with a handle",
+      "apg": "wai-aria",
+      "config": { "open": true, "handle": true, "detachedTrigger": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger": { "aria-expanded": "true", "aria-controls": "dialog" }
+            },
+            "events": { "handleIsOpen": [true] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "alertdialog.base-ui.onopenchange-new-state",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/alert-dialog/root/AlertDialogRoot.test.tsx#L136",
+      "upstreamTest": "calls onOpenChange with the new open state",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        { "expect": { "events": { "onOpenChange": [true] } } },
+        { "event": "click", "target": "dismiss" },
+        { "expect": { "events": { "onOpenChange": [true, false] } } }
+      ]
+    },
+    {
+      "id": "alertdialog.base-ui.onopenchange-reason-trigger-and-close",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/alert-dialog/root/AlertDialogRoot.test.tsx#L165",
+      "upstreamTest": "calls onOpenChange with the reason for change when clicked on trigger and close button",
+      "apg": "extension",
+      "config": {},
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        {
+          "expect": {
+            "events": {
+              "onOpenChange": [{ "open": true, "reason": "triggerPress" }]
+            }
+          }
+        },
+        { "event": "click", "target": "dismiss" },
+        {
+          "expect": {
+            "events": {
+              "onOpenChange": [
+                { "open": true, "reason": "triggerPress" },
+                { "open": false, "reason": "closePress" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "alertdialog.base-ui.escape-close-reason",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/alert-dialog/root/AlertDialogRoot.test.tsx#L196",
+      "upstreamTest": "calls onOpenChange with the reason for change when pressed Esc while the dialog is open",
+      "apg": "keyboard",
+      "config": { "open": true, "modal": true },
+      "steps": [
+        { "event": "key", "key": "Escape", "target": "dialog" },
+        {
+          "expect": {
+            "events": {
+              "onOpenChange": [{ "open": false, "reason": "escapeKey" }]
+            }
+          }
+        }
+      ],
+      "notes": "Escape closes by default; APG allows alertdialogs to require an explicit action by not handling Escape, which is an author choice upstream does not make."
+    },
+    {
+      "id": "alertdialog.base-ui.backdrop-click-does-not-close",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/alert-dialog/root/AlertDialogRoot.test.tsx#L216",
+      "upstreamTest": "does not close when the backdrop is clicked",
+      "apg": "keyboard",
+      "config": { "open": true, "modal": true },
+      "steps": [
+        { "event": "click", "target": "backdrop" },
+        {
+          "expect": { "visible": ["dialog"], "events": { "onOpenChange": [] } }
+        }
+      ]
+    },
+    {
+      "id": "alertdialog.base-ui.controlled-vetoed-close-keeps-open",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/alert-dialog/root/AlertDialogRoot.test.tsx#L236",
+      "upstreamTest": "keeps the trigger data-popup-open attribute and handle.isOpen when a controlled close is vetoed",
+      "apg": "extension",
+      "config": { "controlled": true, "vetoClose": true, "handle": true },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        { "event": "click", "target": "dismiss" },
+        {
+          "expect": {
+            "visible": ["dialog"],
+            "attrs": { "trigger": { "data-popup-open": "" } },
+            "events": { "handleIsOpen": [true] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "alertdialog.base-ui.handle-close-method",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/alert-dialog/root/AlertDialogRoot.test.tsx#L366",
+      "upstreamTest": "closes the alert dialog when the close method is called",
+      "apg": "extension",
+      "config": { "handle": true },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        { "expect": { "visible": ["dialog"] } },
+        { "event": "prop", "prop": "handle.close", "value": true },
+        { "expect": { "hidden": ["dialog"] } }
+      ]
+    },
+    {
+      "id": "alertdialog.base-ui.opens-with-any-trigger",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/alert-dialog/root/AlertDialogRoot.test.tsx#L390",
+      "upstreamTest": "opens the alert dialog with any trigger",
+      "apg": "extension",
+      "config": { "triggerCount": 2 },
+      "steps": [
+        { "event": "click", "target": "trigger:0" },
+        { "expect": { "visible": ["dialog"] } },
+        { "event": "click", "target": "dismiss" },
+        { "event": "click", "target": "trigger:1" },
+        { "expect": { "visible": ["dialog"] } }
+      ]
+    },
+    {
+      "id": "alertdialog.base-ui.active-trigger-aria-attributes",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/alert-dialog/root/AlertDialogRoot.test.tsx#L497",
+      "upstreamTest": "synchronizes ARIA attributes on the active trigger",
+      "apg": "wai-aria",
+      "config": { "triggerCount": 2 },
+      "steps": [
+        { "event": "click", "target": "trigger:0" },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true",
+                "aria-controls": "dialog"
+              },
+              "trigger:1": { "aria-expanded": "false", "aria-controls": null }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "alertdialog.base-ui.handle-backed-enforces-alert-state",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/alert-dialog/root/AlertDialogRoot.test.tsx#L868",
+      "upstreamTest": "enforces alert dialog state for handle-backed roots",
+      "apg": "wai-aria",
+      "config": { "handle": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "dialog": {
+                "data-modal": "true",
+                "data-disable-pointer-dismissal": "true",
+                "data-role": "alertdialog"
+              }
+            }
+          }
+        },
+        { "event": "click", "target": "trigger" },
+        {
+          "expect": {
+            "visible": ["dialog"],
+            "events": { "handleIsOpen": [true] }
+          }
+        },
+        { "event": "click", "target": "backdrop" },
+        {
+          "expect": {
+            "visible": ["dialog"],
+            "events": { "handleIsOpen": [true] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "alertdialog.base-ui.handle-backed-backdrop-click-keeps-open",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/alert-dialog/root/AlertDialogRoot.test.tsx#L902",
+      "upstreamTest": "keeps the alert dialog open when the backdrop is clicked",
+      "apg": "keyboard",
+      "config": { "handle": true },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        { "expect": { "visible": ["dialog"] } },
+        { "event": "click", "target": "backdrop" },
+        {
+          "expect": {
+            "visible": ["dialog"],
+            "events": { "handleIsOpen": [true] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "alertdialog.base-ui.handle-open-and-close",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/alert-dialog/root/AlertDialogRoot.test.tsx#L931",
+      "upstreamTest": "opens and closes the dialog",
+      "apg": "extension",
+      "config": { "handle": true },
+      "steps": [
+        { "event": "prop", "prop": "handle.open", "value": true },
+        {
+          "expect": {
+            "visible": ["dialog"],
+            "attrs": { "trigger": { "aria-expanded": "true" } }
+          }
+        },
+        { "event": "prop", "prop": "handle.close", "value": true },
+        {
+          "expect": {
+            "hidden": ["dialog"],
+            "attrs": { "trigger": { "aria-expanded": "false" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "alertdialog.base-ui.modal-inerts-page",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/alert-dialog/root/AlertDialogRoot.test.tsx#L1047",
+      "upstreamTest": "makes other interactive elements on the page inert when a modal dialog is open",
+      "apg": "wai-aria",
+      "config": { "open": true, "modal": true },
+      "steps": [
+        {
+          "expect": {
+            "visible": ["dialog", "backdrop"],
+            "attrs": {
+              "dialog": { "role": "alertdialog", "aria-modal": "true" }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

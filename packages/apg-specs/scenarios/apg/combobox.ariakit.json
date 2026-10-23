@@ -1,0 +1,945 @@
+{
+  "pattern": "combobox",
+  "source": "ariakit",
+  "commit": "404c72257b879569feb08465da4ff9915fd873da",
+  "license": "MIT",
+  "scenarios": [
+    {
+      "id": "combobox.ariakit.show-on-click",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox/test.ts#L8",
+      "upstreamTest": "show on click",
+      "apg": "pointer",
+      "config": {
+        "items": ["Apple", "Grape", "Orange", "Strawberry", "Watermelon"]
+      },
+      "steps": [
+        { "expect": { "visible": [] } },
+        { "event": "click", "target": "input" },
+        { "expect": { "visible": ["popup", "option:0"], "focus": "input" } }
+      ],
+      "notes": "Clicking the input opens the listbox but does not move focus to any option."
+    },
+    {
+      "id": "combobox.ariakit.label-click-does-not-open",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox/test.ts#L15",
+      "upstreamTest": "label click",
+      "apg": "extension",
+      "config": {
+        "items": ["Apple", "Grape", "Orange", "Strawberry", "Watermelon"]
+      },
+      "steps": [
+        { "event": "click", "target": "label" },
+        { "expect": { "visible": [] } }
+      ],
+      "notes": "Pressing the associated label does not open the popup."
+    },
+    {
+      "id": "combobox.ariakit.arrow-down-opens",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox/test.ts#L21",
+      "upstreamTest": "show on arrow down key",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Apple", "Grape", "Orange", "Strawberry", "Watermelon"]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "expect": { "visible": [] } },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "visible": ["popup", "option:0"], "focus": "input" } }
+      ],
+      "notes": "ArrowDown opens the popup without focusing the first option."
+    },
+    {
+      "id": "combobox.ariakit.arrow-up-opens",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox/test.ts#L29",
+      "upstreamTest": "show on arrow up key",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Apple", "Grape", "Orange", "Strawberry", "Watermelon"]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "key", "key": "ArrowUp", "target": "input" },
+        { "expect": { "visible": ["popup", "option:4"], "focus": "input" } }
+      ],
+      "notes": "ArrowUp opens the popup without focusing the last option."
+    },
+    {
+      "id": "combobox.ariakit.typing-opens",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox/test.ts#L37",
+      "upstreamTest": "show on change",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Apple", "Grape", "Orange", "Strawberry", "Watermelon"]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "type", "text": "a", "target": "input" },
+        { "expect": { "visible": ["popup", "option:0"], "focus": "input" } }
+      ],
+      "notes": "Typing opens the popup but leaves focus in the input."
+    },
+    {
+      "id": "combobox.ariakit.navigate-with-arrows",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox/test.ts#L45",
+      "upstreamTest": "navigate through items with keyboard",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Apple", "Grape", "Orange", "Strawberry", "Watermelon"]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "focus": "option:0" } },
+        { "event": "key", "key": "ArrowDown", "target": "option:0" },
+        { "expect": { "focus": "option:1" } },
+        { "event": "key", "key": "ArrowDown", "target": "option:1" },
+        { "expect": { "focus": "option:2" } }
+      ],
+      "notes": "The first ArrowDown only opens the list; the next moves DOM focus to the first option, then down the list. This is ariakit's focus-based active item rather than aria-activedescendant."
+    },
+    {
+      "id": "combobox.ariakit.typing-moves-caret-not-selection",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox/test.ts#L56",
+      "upstreamTest": "type",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Apple", "Grape", "Orange", "Strawberry", "Watermelon"]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "type", "text": "a", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "focus": "option:0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "option:0" },
+        { "expect": { "focus": "option:0" } },
+        { "event": "type", "text": "b", "target": "input" },
+        { "expect": { "value": "ba", "focus": "input" } }
+      ],
+      "notes": "Horizontal keys move the caret without leaving the highlighted item; typing edits the query. Upstream also checks selectionStart, which is input-internal."
+    },
+    {
+      "id": "combobox.ariakit.mouse-select-commits-and-closes",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox/test.ts#L68",
+      "upstreamTest": "set value and hide on item click with mouse",
+      "apg": "pointer",
+      "config": {
+        "items": ["Apple", "Grape", "Orange", "Strawberry", "Watermelon"]
+      },
+      "steps": [
+        { "event": "click", "target": "input" },
+        { "event": "click", "target": "option:2" },
+        { "expect": { "value": "Orange", "focus": "input", "visible": [] } }
+      ]
+    },
+    {
+      "id": "combobox.ariakit.keyboard-select-commits-and-closes",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox/test.ts#L77",
+      "upstreamTest": "set value and hide on item click with keyboard",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Apple", "Grape", "Orange", "Strawberry", "Watermelon"]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "value": "" } },
+        { "event": "key", "key": "Enter", "target": "option:1" },
+        { "expect": { "value": "Grape", "focus": "input", "visible": [] } }
+      ],
+      "notes": "Enter on the focused Grape option commits its value and closes the popup."
+    },
+    {
+      "id": "combobox.ariakit.space-does-not-select",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox/test.ts#L89",
+      "upstreamTest": "do not set value and hide by pressing space",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Apple", "Grape", "Orange", "Strawberry", "Watermelon"]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "type", "text": " ", "target": "input" },
+        { "expect": { "value": " ", "focus": "input", "visible": ["popup"] } }
+      ],
+      "notes": "Space is typed into the input, not treated as option activation; the popup stays open and no option keeps focus."
+    },
+    {
+      "id": "combobox.ariakit.escape-closes-keeps-focus",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox/test.ts#L102",
+      "upstreamTest": "hide listbox by pressing escape",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Apple", "Grape", "Orange", "Strawberry", "Watermelon"]
+      },
+      "steps": [
+        { "event": "click", "target": "input" },
+        { "expect": { "visible": ["popup"] } },
+        { "event": "key", "key": "Escape", "target": "input" },
+        { "expect": { "visible": [], "focus": "input" } }
+      ]
+    },
+    {
+      "id": "combobox.ariakit.click-outside-closes-and-blurs",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox/test.ts#L110",
+      "upstreamTest": "hide listbox by clicking outside",
+      "apg": "pointer",
+      "config": {
+        "items": ["Apple", "Grape", "Orange", "Strawberry", "Watermelon"]
+      },
+      "steps": [
+        { "event": "click", "target": "input" },
+        { "event": "click", "target": "body" },
+        { "expect": { "visible": [], "focus": null } }
+      ],
+      "notes": "Clicking outside closes the popup and lets focus leave the combobox."
+    },
+    {
+      "id": "combobox.ariakit.backspace-reopens-after-escape",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox/test.ts#L118",
+      "upstreamTest": "re-open listbox when deleting content",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Apple", "Grape", "Orange", "Strawberry", "Watermelon"]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "type", "text": "a", "target": "input" },
+        { "expect": { "visible": ["popup"] } },
+        { "event": "key", "key": "Escape", "target": "input" },
+        { "expect": { "visible": [] } },
+        { "event": "key", "key": "Backspace", "target": "input" },
+        { "expect": { "visible": ["popup"] } }
+      ],
+      "notes": "Editing after dismissal reopens the popup."
+    },
+    {
+      "id": "combobox.ariakit.click-input-removes-option-focus",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox/test.ts#L128",
+      "upstreamTest": "clicking on combobox input removes focus from item",
+      "apg": "pointer",
+      "config": {
+        "items": ["Apple", "Grape", "Orange", "Strawberry", "Watermelon"]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "focus": "option:1" } },
+        { "event": "click", "target": "input" },
+        { "expect": { "focus": "input" } }
+      ],
+      "notes": "Pressing the input drops the option's DOM focus back to the input."
+    },
+    {
+      "id": "combobox.ariakit.horizontal-keys-then-arrows",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox/test.ts#L138",
+      "upstreamTest": "move cursor on combobox with horizontal keys",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Apple", "Grape", "Orange", "Strawberry", "Watermelon"]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "type", "text": "abc", "target": "input" },
+        { "event": "key", "key": "ArrowLeft", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "focus": "option:0" } },
+        { "event": "key", "key": "ArrowRight", "target": "input" },
+        { "event": "key", "key": "Home", "target": "input" }
+      ],
+      "notes": "Caret movement on the input (selectionStart 3->2->3->0 upstream) is input-internal; only the arrow transition to the option is restated."
+    },
+    {
+      "id": "combobox.ariakit.select-only.pointer-and-keyboard-open-close",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-select/test.ts#L10",
+      "upstreamTest": "Provider favorite fruit > opens and closes with the pointer and keyboard",
+      "apg": "keyboard",
+      "config": {
+        "variant": "select-only",
+        "items": [
+          "Apple",
+          "Bacon",
+          "Banana",
+          "Broccoli",
+          "Burger",
+          "Cake",
+          "Candy",
+          "Carrot",
+          "Cherry",
+          "Chocolate",
+          "Cookie",
+          "Cucumber",
+          "Donut",
+          "Fish",
+          "Fries",
+          "Grape",
+          "Green apple",
+          "Hot dog",
+          "Ice cream",
+          "Kiwi",
+          "Lemon",
+          "Lollipop",
+          "Onion",
+          "Orange",
+          "Pasta",
+          "Pineapple",
+          "Pizza",
+          "Potato",
+          "Salad",
+          "Sandwich",
+          "Steak",
+          "Strawberry",
+          "Tomato",
+          "Watermelon"
+        ],
+        "defaultSelectedValue": "Apple"
+      },
+      "steps": [
+        { "expect": { "visible": [] } },
+        { "event": "click", "target": "trigger" },
+        { "expect": { "visible": ["popup", "option:0"], "focus": "input" } },
+        { "event": "click", "target": "trigger" },
+        { "expect": { "visible": [], "focus": "trigger" } },
+        { "event": "key", "key": "Enter", "target": "trigger" },
+        { "expect": { "visible": ["popup"], "focus": "input" } },
+        { "event": "key", "key": "Shift+Tab", "target": "input" },
+        { "expect": { "focus": "trigger" } },
+        { "event": "key", "key": "Enter", "target": "trigger" },
+        { "expect": { "visible": [] } }
+      ],
+      "notes": "Select-only: the trigger carries the value, the search input lives in the popup and is focused on open; Shift+Tab returns to the trigger."
+    },
+    {
+      "id": "combobox.ariakit.select-only.filter-commit-restore",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-select/test.ts#L33",
+      "upstreamTest": "Provider favorite fruit > filters, commits, and restores the selected item",
+      "apg": "keyboard",
+      "config": {
+        "variant": "select-only",
+        "items": [
+          "Apple",
+          "Bacon",
+          "Banana",
+          "Broccoli",
+          "Burger",
+          "Cake",
+          "Candy",
+          "Carrot",
+          "Cherry",
+          "Chocolate",
+          "Cookie",
+          "Cucumber",
+          "Donut",
+          "Fish",
+          "Fries",
+          "Grape",
+          "Green apple",
+          "Hot dog",
+          "Ice cream",
+          "Kiwi",
+          "Lemon",
+          "Lollipop",
+          "Onion",
+          "Orange",
+          "Pasta",
+          "Pineapple",
+          "Pizza",
+          "Potato",
+          "Salad",
+          "Sandwich",
+          "Steak",
+          "Strawberry",
+          "Tomato",
+          "Watermelon"
+        ],
+        "defaultSelectedValue": "Apple"
+      },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        { "event": "type", "text": "gr", "target": "input" },
+        { "expect": { "value": "gr", "focus": "option:0" } },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "Enter", "target": "input" },
+        { "expect": { "value": "Green apple", "visible": [] } },
+        { "event": "key", "key": "Enter", "target": "trigger" },
+        { "expect": { "value": "", "focus": "option:0" } },
+        { "event": "type", "text": "o", "target": "input" },
+        { "expect": { "focus": "option:0" } }
+      ],
+      "notes": "Typing filters and auto-selects the first match; committing writes the label into the trigger. Reopening clears the query and restores the selected item."
+    },
+    {
+      "id": "combobox.ariakit.select-only.reopen-resets-filter",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-select/test.ts#L50",
+      "upstreamTest": "Provider favorite fruit > resets filtering and focus when reopened",
+      "apg": "keyboard",
+      "config": {
+        "variant": "select-only",
+        "items": [
+          "Apple",
+          "Bacon",
+          "Banana",
+          "Broccoli",
+          "Burger",
+          "Cake",
+          "Candy",
+          "Carrot",
+          "Cherry",
+          "Chocolate",
+          "Cookie",
+          "Cucumber",
+          "Donut",
+          "Fish",
+          "Fries",
+          "Grape",
+          "Green apple",
+          "Hot dog",
+          "Ice cream",
+          "Kiwi",
+          "Lemon",
+          "Lollipop",
+          "Onion",
+          "Orange",
+          "Pasta",
+          "Pineapple",
+          "Pizza",
+          "Potato",
+          "Salad",
+          "Sandwich",
+          "Steak",
+          "Strawberry",
+          "Tomato",
+          "Watermelon"
+        ],
+        "defaultSelectedValue": "Apple"
+      },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        { "event": "type", "text": "f", "target": "input" },
+        { "expect": { "focus": "option:0" } },
+        { "event": "key", "key": "Escape", "target": "input" },
+        { "expect": { "focus": "trigger" } },
+        { "event": "key", "key": "Enter", "target": "trigger" },
+        { "expect": { "value": "", "focus": "option:0" } }
+      ],
+      "notes": "Escape discards the filter and returns focus to the trigger; reopening shows the full list with the first option active."
+    },
+    {
+      "id": "combobox.ariakit.select-only.autoselect-while-typing",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-select/test.ts#L64",
+      "upstreamTest": "Provider favorite fruit > auto-selects while the search input owns focus",
+      "apg": "keyboard",
+      "config": {
+        "variant": "select-only",
+        "items": [
+          "Apple",
+          "Bacon",
+          "Banana",
+          "Broccoli",
+          "Burger",
+          "Cake",
+          "Candy",
+          "Carrot",
+          "Cherry",
+          "Chocolate",
+          "Cookie",
+          "Cucumber",
+          "Donut",
+          "Fish",
+          "Fries",
+          "Grape",
+          "Green apple",
+          "Hot dog",
+          "Ice cream",
+          "Kiwi",
+          "Lemon",
+          "Lollipop",
+          "Onion",
+          "Orange",
+          "Pasta",
+          "Pineapple",
+          "Pizza",
+          "Potato",
+          "Salad",
+          "Sandwich",
+          "Steak",
+          "Strawberry",
+          "Tomato",
+          "Watermelon"
+        ],
+        "defaultSelectedValue": "Apple"
+      },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        { "event": "type", "text": "p", "target": "input" },
+        { "expect": { "focus": "option:0" } },
+        { "event": "type", "text": "i", "target": "input" },
+        { "expect": { "focus": "option:0" } }
+      ],
+      "notes": "Pasta then Pineapple are the first matches for 'p' and then 'pi'; auto-select keeps the first match focused."
+    },
+    {
+      "id": "combobox.ariakit.select-only.popup-role-dialog",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-select/test-browser.ts#L11",
+      "upstreamTest": "Provider favorite fruit reflects the popup role when opened",
+      "apg": "aria",
+      "config": {
+        "variant": "select-only",
+        "items": [
+          "Apple",
+          "Bacon",
+          "Banana",
+          "Broccoli",
+          "Burger",
+          "Cake",
+          "Candy",
+          "Carrot",
+          "Cherry",
+          "Chocolate",
+          "Cookie",
+          "Cucumber",
+          "Donut",
+          "Fish",
+          "Fries",
+          "Grape",
+          "Green apple",
+          "Hot dog",
+          "Ice cream",
+          "Kiwi",
+          "Lemon",
+          "Lollipop",
+          "Onion",
+          "Orange",
+          "Pasta",
+          "Pineapple",
+          "Pizza",
+          "Potato",
+          "Salad",
+          "Sandwich",
+          "Steak",
+          "Strawberry",
+          "Tomato",
+          "Watermelon"
+        ],
+        "defaultSelectedValue": "Apple"
+      },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        {
+          "expect": {
+            "visible": ["popup", "option:0"],
+            "attrs": {
+              "popup": { "role": "dialog" },
+              "trigger": { "aria-haspopup": "dialog" }
+            }
+          }
+        }
+      ],
+      "notes": "Select-only exposes a dialog popup that contains the listbox and the search input."
+    },
+    {
+      "id": "combobox.ariakit.select-only.autoselect-restores-filtered-value",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-select/test-browser.ts#L21",
+      "upstreamTest": "Provider favorite fruit auto-selects and restores filtered values",
+      "apg": "keyboard",
+      "config": {
+        "variant": "select-only",
+        "items": [
+          "Apple",
+          "Bacon",
+          "Banana",
+          "Broccoli",
+          "Burger",
+          "Cake",
+          "Candy",
+          "Carrot",
+          "Cherry",
+          "Chocolate",
+          "Cookie",
+          "Cucumber",
+          "Donut",
+          "Fish",
+          "Fries",
+          "Grape",
+          "Green apple",
+          "Hot dog",
+          "Ice cream",
+          "Kiwi",
+          "Lemon",
+          "Lollipop",
+          "Onion",
+          "Orange",
+          "Pasta",
+          "Pineapple",
+          "Pizza",
+          "Potato",
+          "Salad",
+          "Sandwich",
+          "Steak",
+          "Strawberry",
+          "Tomato",
+          "Watermelon"
+        ],
+        "defaultSelectedValue": "Apple"
+      },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        { "event": "type", "text": "cho", "target": "input" },
+        { "expect": { "focus": "option:0" } },
+        { "event": "key", "key": "Enter", "target": "input" },
+        { "expect": { "value": "Chocolate", "visible": [] } },
+        { "event": "click", "target": "trigger" },
+        { "expect": { "value": "", "focus": "option:0" } }
+      ],
+      "notes": "Reopening clears the query and re-highlights the currently selected Chocolate."
+    },
+    {
+      "id": "combobox.ariakit.filtering.show-entire-list",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-filtering/test.ts#L5",
+      "upstreamTest": "show entire list",
+      "apg": "pointer",
+      "config": { "filterMode": "local" },
+      "steps": [
+        { "event": "click", "target": "input" },
+        { "expect": { "visible": ["popup", "option:0", "option:1"] } }
+      ],
+      "notes": "With an empty query every item in the list is visible."
+    },
+    {
+      "id": "combobox.ariakit.filtering.filter-list",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-filtering/test.ts#L11",
+      "upstreamTest": "filter list",
+      "apg": "keyboard",
+      "config": { "filterMode": "local", "match": "sa", "matchCount": 5 },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "type", "text": "sa", "target": "input" },
+        {
+          "expect": {
+            "visible": [
+              "popup",
+              "option:0",
+              "option:1",
+              "option:2",
+              "option:3",
+              "option:4"
+            ]
+          }
+        },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "option:0" },
+        { "expect": { "focus": "option:1" } }
+      ],
+      "notes": "'sa' matches five dishes; navigation goes to Salad then Sandwich."
+    },
+    {
+      "id": "combobox.ariakit.filtering.no-result",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-filtering/test.ts#L21",
+      "upstreamTest": "no result",
+      "apg": "keyboard",
+      "config": { "filterMode": "local", "emptyText": "No results found" },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "type", "text": "zzz", "target": "input" },
+        { "expect": { "visible": ["popup", "popup"] } }
+      ],
+      "notes": "An unmatched query shows the empty-state text."
+    },
+    {
+      "id": "combobox.ariakit.integrated.click-open-and-outside-close",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-filtering-integrated/test.ts#L4",
+      "upstreamTest": "show/hide popover with click",
+      "apg": "pointer",
+      "config": {
+        "filterMode": "integrated",
+        "items": ["Apple", "Banana", "Broccoli", "Burger", "Grapes", "Yogurt"]
+      },
+      "steps": [
+        { "event": "click", "target": "input" },
+        { "expect": { "visible": ["popup", "option:0"], "focus": "input" } },
+        { "event": "click", "target": "body" },
+        { "expect": { "visible": [], "focus": null } }
+      ]
+    },
+    {
+      "id": "combobox.ariakit.integrated.keyboard-open-page-down-escape",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-filtering-integrated/test.ts#L13",
+      "upstreamTest": "show/hide popover with keyboard",
+      "apg": "keyboard",
+      "config": {
+        "filterMode": "integrated",
+        "items": ["Apple", "Banana", "Broccoli", "Burger", "Grapes", "Yogurt"]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "expect": { "visible": [] } },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "visible": ["popup"], "focus": "input" } },
+        { "event": "key", "key": "PageDown", "target": "input" },
+        { "expect": { "focus": "option:5" } },
+        { "event": "key", "key": "Escape", "target": "option:5" },
+        { "expect": { "visible": [], "focus": "input" } }
+      ],
+      "notes": "PageDown jumps to the last option (Yogurt); Escape closes and returns focus to the input."
+    },
+    {
+      "id": "combobox.ariakit.integrated.hover-moves-active-item",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-filtering-integrated/test.ts#L26",
+      "upstreamTest": "hover over items",
+      "apg": "pointer",
+      "config": {
+        "filterMode": "integrated",
+        "items": ["Apple", "Banana", "Broccoli", "Burger", "Grapes", "Yogurt"]
+      },
+      "steps": [
+        { "event": "click", "target": "input" },
+        { "event": "hover", "target": "option:1" },
+        { "expect": { "focus": "option:1" } },
+        { "event": "hover", "target": "option:3" },
+        { "expect": { "focus": "option:3" } },
+        { "event": "hover", "target": "body" },
+        { "expect": { "focus": "option:3" } },
+        { "event": "key", "key": "ArrowUp", "target": "option:3" },
+        { "expect": { "focus": "option:2" } }
+      ],
+      "notes": "Hovering an option activates it; unmounting the hover does not clear it. ArrowUp follows the rendered order (Burger -> Broccoli)."
+    },
+    {
+      "id": "combobox.ariakit.integrated.filter-items",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-filtering-integrated/test.ts#L38",
+      "upstreamTest": "filter items",
+      "apg": "keyboard",
+      "config": {
+        "filterMode": "integrated",
+        "items": ["Apple", "Banana", "Broccoli", "Burger", "Grapes", "Yogurt"]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "type", "text": "gr", "target": "input" },
+        {
+          "expect": {
+            "visible": ["popup", "option:0", "option:1", "option:2"],
+            "focus": "option:0"
+          }
+        },
+        { "event": "type", "text": "q", "target": "input" },
+        { "expect": { "visible": ["popup", "popup"] } }
+      ],
+      "notes": "'gr' keeps three matches (Grapes first); 'grq' matches nothing and shows the empty state."
+    },
+    {
+      "id": "combobox.ariakit.group.inline-autocomplete-on-typing",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/examples/combobox-group/test.ts#L13",
+      "upstreamTest": "auto select with inline autocomplete on typing",
+      "apg": "keyboard",
+      "config": {
+        "inlineAutocomplete": true,
+        "items": [
+          "annual_report.pdf",
+          "images_backup.tar.gz",
+          "John Smith",
+          "Emma Johnson",
+          "Sarah Davis"
+        ]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "type", "text": "a", "target": "input" },
+        { "expect": { "value": "annual_report.pdf", "focus": "input" } },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "value": "images_backup.tar.gz", "focus": "input" } },
+        { "event": "key", "key": "ArrowUp", "target": "input" },
+        { "expect": { "value": "annual_report.pdf", "focus": "input" } },
+        { "event": "type", "text": "e", "target": "input" },
+        { "expect": { "value": "ae", "focus": "input" } }
+      ],
+      "notes": "Inline autocomplete appends the active option's remainder to the typed prefix; the upstream text-selection range is input-internal."
+    },
+    {
+      "id": "combobox.ariakit.group.inline-autocomplete-on-arrow-down",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/examples/combobox-group/test.ts#L35",
+      "upstreamTest": "auto select with inline autocomplete on arrow down",
+      "apg": "keyboard",
+      "config": {
+        "inlineAutocomplete": true,
+        "items": [
+          "annual_report.pdf",
+          "images_backup.tar.gz",
+          "John Smith",
+          "Emma Johnson",
+          "Sarah Davis"
+        ]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "value": "John Smith", "focus": "input" } },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "value": "Emma Johnson", "focus": "input" } },
+        { "event": "key", "key": "ArrowUp", "target": "input" },
+        { "expect": { "value": "John Smith", "focus": "input" } }
+      ],
+      "notes": "ArrowDown opens and moves through the list; the active option's label is mirrored into the input."
+    },
+    {
+      "id": "combobox.ariakit.group.inline-autocomplete-on-typing-and-clearing",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/examples/combobox-group/test.ts#L48",
+      "upstreamTest": "auto select with inline autocomplete on typing + clearing",
+      "apg": "keyboard",
+      "config": {
+        "inlineAutocomplete": true,
+        "items": [
+          "annual_report.pdf",
+          "images_backup.tar.gz",
+          "John Smith",
+          "Emma Johnson",
+          "Sarah Davis"
+        ]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "type", "text": "em", "target": "input" },
+        { "expect": { "value": "emma Johnson", "focus": "input" } },
+        { "event": "key", "key": "Backspace", "target": "input" },
+        { "expect": { "value": "em", "focus": "option:0" } },
+        { "event": "key", "key": "Backspace", "target": "input" },
+        { "expect": { "value": "e" } },
+        { "event": "key", "key": "Backspace", "target": "input" },
+        { "expect": { "value": "" } },
+        { "event": "type", "text": "j", "target": "input" },
+        { "expect": { "value": "john Smith", "focus": "option:0" } }
+      ],
+      "notes": "Backspacing a completed autocomplete reverts to the typed prefix and keeps the matched item active."
+    },
+    {
+      "id": "combobox.ariakit.group.shift-arrow-replaces-selection",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/examples/combobox-group/test.ts#L69",
+      "upstreamTest": "text selection with shift+arrow keys and replacement",
+      "apg": "keyboard",
+      "config": {
+        "inlineAutocomplete": true,
+        "items": [
+          "annual_report.pdf",
+          "images_backup.tar.gz",
+          "John Smith",
+          "Emma Johnson",
+          "Sarah Davis"
+        ]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "value": "Emma Johnson", "focus": "option:0" } },
+        { "event": "type", "text": "m", "target": "input" },
+        { "expect": { "value": "michael Brown", "focus": "input" } }
+      ],
+      "notes": "Upstream extends the selection with Shift+ArrowLeft over the autocompleted remainder and replaces it; the replacement result is restated, the selection range is input-internal."
+    },
+    {
+      "id": "combobox.ariakit.group.blur-after-autocomplete-keeps-value",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/examples/combobox-group/test.ts#L89",
+      "upstreamTest": "blur input after autocomplete",
+      "apg": "extension",
+      "config": {
+        "inlineAutocomplete": true,
+        "items": [
+          "annual_report.pdf",
+          "images_backup.tar.gz",
+          "John Smith",
+          "Emma Johnson",
+          "Sarah Davis"
+        ]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "type", "text": "a", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "value": "images_backup.tar.gz" } },
+        { "event": "click", "target": "body" },
+        { "event": "click", "target": "body" },
+        { "expect": { "value": "images_backup.tar.gz" } }
+      ],
+      "notes": "Blurring after autocomplete keeps the mirrored value."
+    },
+    {
+      "id": "combobox.ariakit.group.hover-does-not-replace-typed-prefix",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/examples/combobox-group/test.ts#L100",
+      "upstreamTest": "autocomplete on focus on hover",
+      "apg": "pointer",
+      "config": {
+        "inlineAutocomplete": true,
+        "items": [
+          "annual_report.pdf",
+          "images_backup.tar.gz",
+          "John Smith",
+          "Emma Johnson",
+          "Sarah Davis"
+        ]
+      },
+      "steps": [
+        { "event": "click", "target": "input" },
+        { "event": "type", "text": "m", "target": "input" },
+        { "expect": { "value": "michael Brown" } },
+        { "event": "hover", "target": "option:4" },
+        { "expect": { "value": "m" } }
+      ],
+      "notes": "Hovering an unrelated option does not overwrite the typed prefix."
+    },
+    {
+      "id": "combobox.ariakit.group.active-item-survives-pointer-leave",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/examples/combobox-group/test-chrome-firefox.ts#L4",
+      "upstreamTest": "keeps the active result highlighted after the pointer leaves",
+      "apg": "pointer",
+      "config": {
+        "inlineAutocomplete": true,
+        "items": [
+          "annual_report.pdf",
+          "images_backup.tar.gz",
+          "John Smith",
+          "Emma Johnson",
+          "Sarah Davis"
+        ]
+      },
+      "steps": [
+        { "event": "type", "text": "m", "target": "input" },
+        { "event": "hover", "target": "option:2" },
+        { "expect": { "focus": "option:2" } },
+        { "event": "hover", "target": "input" },
+        { "expect": { "focus": "option:2" } },
+        { "event": "hover", "target": "option:4" },
+        { "expect": { "focus": "option:4" } },
+        { "event": "key", "key": "Enter", "target": "input" },
+        { "expect": { "value": "Sarah Davis", "visible": [] } }
+      ],
+      "notes": "The upstream asserts data-active-item and its background colour; the neutral equivalent is the active option surviving the pointer leaving."
+    }
+  ],
+  "skipped": [
+    {
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/examples/combobox-group/test.ts#L108",
+      "upstreamTest": "composition text",
+      "reason": "IME composition internals with sleeps and composing key state."
+    },
+    {
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox/test-mobile.ts#L1",
+      "upstreamTest": "mobile combobox interactions",
+      "reason": "Platform-specific mobile touch behaviour."
+    },
+    {
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-filtering-integrated/test.ts#L1",
+      "upstreamTest": "combobox-filtering-integrated visual and layout coverage",
+      "reason": "Styling, layout and scroll coverage only."
+    }
+  ]
+}

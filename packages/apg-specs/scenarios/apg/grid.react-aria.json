@@ -1,0 +1,969 @@
+{
+  "pattern": "grid",
+  "source": "react-aria",
+  "commit": "99e610236887da619ad9d54a1cd87983166c043d",
+  "license": "Apache-2.0",
+  "scenarios": [
+    {
+      "id": "grid.react-aria.use-grid-row-mode-cell-mode",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/grid/useGrid.test.js#L53",
+      "upstreamTest": "useGrid > gridFocusMode = row, cellFocusMode = cell",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "gridFocusMode": "row",
+        "cellFocusMode": "cell",
+        "rows": 3,
+        "cellChildren": [2, 3, 2]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "expect": { "focus": "row:0" } },
+        { "event": "key", "key": "ArrowRight", "target": "row:0" },
+        { "expect": { "focus": "cell:0,0" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,0" },
+        { "expect": { "focus": "cell:0,0/child:0" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,0/child:0" },
+        { "expect": { "focus": "cell:0,0/child:1" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,0/child:1" },
+        { "expect": { "focus": "row:0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "row:0" },
+        { "expect": { "focus": "cell:0,0" } },
+        { "event": "focus", "target": "cell:0,0/child:1" },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,0/child:1" },
+        { "expect": { "focus": "cell:0,0/child:0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,0/child:0" },
+        { "expect": { "focus": "cell:0,0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,0" },
+        { "expect": { "focus": "row:0" } }
+      ],
+      "notes": "Each Item is a row holding a single gridcell of interactive children (switches). Row mode exposes the cell element; cell mode exposes its children."
+    },
+    {
+      "id": "grid.react-aria.use-grid-row-mode-child-mode",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/grid/useGrid.test.js#L86",
+      "upstreamTest": "useGrid > gridFocusMode = row, cellFocusMode = child",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "gridFocusMode": "row",
+        "cellFocusMode": "child",
+        "rows": 3,
+        "cellChildren": [2, 3, 2]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "expect": { "focus": "row:0" } },
+        { "event": "key", "key": "ArrowRight", "target": "row:0" },
+        { "expect": { "focus": "cell:0,0/child:0" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,0/child:0" },
+        { "expect": { "focus": "cell:0,0/child:1" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,0/child:1" },
+        { "expect": { "focus": "row:0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "row:0" },
+        { "expect": { "focus": "cell:0,0/child:1" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,0/child:1" },
+        { "expect": { "focus": "cell:0,0/child:0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,0/child:0" },
+        { "expect": { "focus": "row:0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "row:0" },
+        { "expect": { "focus": "cell:0,0/child:1" } }
+      ],
+      "notes": "cellFocusMode=child skips the cell element: entering a row enters its last focused child, wrapping around."
+    },
+    {
+      "id": "grid.react-aria.use-grid-cell-mode-child-mode",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/grid/useGrid.test.js#L114",
+      "upstreamTest": "useGrid > gridFocusMode = cell, cellFocusMode = child",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "gridFocusMode": "cell",
+        "cellFocusMode": "child",
+        "rows": 3,
+        "cellChildren": [2, 3, 2]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "expect": { "focus": "cell:0,0/child:0" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,0/child:0" },
+        { "expect": { "focus": "cell:0,0/child:1" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,0/child:1" },
+        { "expect": { "focus": "cell:0,0/child:0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,0/child:0" },
+        { "expect": { "focus": "cell:0,0/child:1" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,0/child:1" },
+        { "expect": { "focus": "cell:0,0/child:0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,0/child:0" },
+        { "expect": { "focus": "cell:0,0/child:1" } }
+      ],
+      "notes": "Grid starts on the first child; horizontal arrows cycle within the cell's children."
+    },
+    {
+      "id": "grid.react-aria.use-grid-cell-mode-cell-mode",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/grid/useGrid.test.js#L136",
+      "upstreamTest": "useGrid > gridFocusMode = cell, cellFocusMode = cell",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "gridFocusMode": "cell",
+        "cellFocusMode": "cell",
+        "rows": 3,
+        "cellChildren": [2, 3, 2]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "expect": { "focus": "cell:0,0" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,0" },
+        { "expect": { "focus": "cell:0,0/child:0" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,0/child:0" },
+        { "expect": { "focus": "cell:0,0/child:1" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,0/child:1" },
+        { "expect": { "focus": "cell:0,0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,0" },
+        { "expect": { "focus": "cell:0,0/child:1" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,0/child:1" },
+        { "expect": { "focus": "cell:0,0/child:0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,0/child:0" },
+        { "expect": { "focus": "cell:0,0" } }
+      ],
+      "notes": "Grid and cells both focusable: arrows move between cell and children."
+    },
+    {
+      "id": "grid.react-aria.use-grid-restores-last-focused-child",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/grid/useGrid.test.js#L161",
+      "upstreamTest": "useGrid > should restore focus to the child that was last focused within a cell, not the first child",
+      "apg": "focus",
+      "config": {
+        "layout": "grid",
+        "gridFocusMode": "cell",
+        "cellFocusMode": "child",
+        "rows": 3,
+        "cellChildren": [2, 3, 2]
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:0,0" },
+        { "expect": { "focus": "cell:0,0/child:0" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,0/child:0" },
+        { "expect": { "focus": "cell:0,0/child:1" } },
+        { "event": "focus", "target": "cell:0,0" },
+        { "expect": { "focus": "cell:0,0/child:1" } }
+      ]
+    },
+    {
+      "id": "grid.react-aria.gridlist-layout-grid-arrow-navigation",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/GridList.test.js#L554",
+      "upstreamTest": "GridList > should support grid layout",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "orientation": "horizontal"
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "expect": { "focus": "row:0" } },
+        { "event": "key", "key": "ArrowRight", "target": "row:0" },
+        { "expect": { "focus": "row:1" } },
+        { "event": "key", "key": "ArrowRight", "target": "row:1" },
+        { "expect": { "focus": "row:2" } },
+        { "event": "key", "key": "ArrowLeft", "target": "row:2" },
+        { "expect": { "focus": "row:1" } },
+        { "event": "key", "key": "Tab", "target": "row:1" },
+        { "expect": { "focus": "row:1/child:0" } },
+        { "event": "key", "key": "Tab", "target": "row:1/child:0" },
+        { "expect": { "focus": "body" } }
+      ],
+      "notes": "layout=\"grid\" gives the list a grid role and makes rows laid out horizontally navigable with Left/Right."
+    },
+    {
+      "id": "grid.react-aria.gridlist-horizontal-orientation",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/GridList.test.js#L590",
+      "upstreamTest": "GridList > should support horizontal orientation",
+      "apg": "keyboard",
+      "config": {
+        "layout": "list",
+        "orientation": "horizontal",
+        "rows": 3
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "expect": { "focus": "row:0" } },
+        { "event": "key", "key": "ArrowDown", "target": "row:0" },
+        { "expect": { "focus": "row:1" } },
+        { "event": "key", "key": "ArrowDown", "target": "row:1" },
+        { "expect": { "focus": "row:2" } },
+        { "event": "key", "key": "ArrowUp", "target": "row:2" },
+        { "expect": { "focus": "row:1" } },
+        { "event": "key", "key": "ArrowUp", "target": "row:1" },
+        { "expect": { "focus": "row:0" } }
+      ],
+      "notes": "With orientation=horizontal the Up/Down arrows are the forward/backward keys."
+    },
+    {
+      "id": "grid.react-aria.gridlist-horizontal-orientation-grid-layout",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/GridList.test.js#L617",
+      "upstreamTest": "GridList > should support horizontal orientation with grid layout",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "orientation": "horizontal",
+        "rows": 3
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "expect": { "focus": "row:0" } },
+        { "event": "key", "key": "ArrowDown", "target": "row:0" },
+        { "expect": { "focus": "row:1" } },
+        { "event": "key", "key": "ArrowDown", "target": "row:1" },
+        { "expect": { "focus": "row:2" } },
+        { "event": "key", "key": "ArrowUp", "target": "row:2" },
+        { "expect": { "focus": "row:1" } },
+        { "event": "key", "key": "Tab", "target": "row:1" },
+        { "expect": { "focus": "row:1/child:0" } },
+        { "event": "key", "key": "Tab", "target": "row:1/child:0" },
+        { "expect": { "focus": "body" } }
+      ]
+    },
+    {
+      "id": "grid.react-aria.gridlist-selection-replace-checkboxes",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/GridList.test.js#L653",
+      "upstreamTest": "GridList > should support selectionMode=\"replace\" with checkboxes",
+      "apg": "selection",
+      "config": {
+        "layout": "list",
+        "rows": 3,
+        "selectionMode": "multiple",
+        "selectionBehavior": "replace"
+      },
+      "steps": [
+        { "event": "click", "target": "row:0" },
+        { "event": "click", "target": "row:1" },
+        {
+          "expect": {
+            "attrs": {
+              "row:0": { "aria-selected": "false" },
+              "row:1": { "aria-selected": "true" },
+              "row:2": { "aria-selected": "false" }
+            }
+          }
+        },
+        { "event": "click", "target": "row:2/checkbox" },
+        {
+          "expect": {
+            "attrs": {
+              "row:0": { "aria-selected": "false" },
+              "row:1": { "aria-selected": "true" },
+              "row:2": { "aria-selected": "true" }
+            }
+          }
+        }
+      ],
+      "notes": "selecting a row replaces the selection; the row checkbox adds to an existing selection."
+    },
+    {
+      "id": "grid.react-aria.gridlist-selection-replace-single-keyboard",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/GridList.test.js#L777",
+      "upstreamTest": "GridList > selectionBehavior=\"replace\" > keyboard > should perform selection with single selection",
+      "apg": "selection",
+      "config": {
+        "layout": "list",
+        "rows": 3,
+        "selectionMode": "single",
+        "selectionBehavior": "replace",
+        "noCheckboxes": true
+      },
+      "steps": [
+        { "event": "focus", "target": "row:2" },
+        { "event": "key", "key": "Enter", "target": "row:2" },
+        {
+          "expect": {
+            "attrs": {
+              "row:2": { "aria-selected": "true", "data-selected": "true" }
+            }
+          }
+        },
+        { "event": "focus", "target": "row:1" },
+        { "event": "key", "key": "Enter", "target": "row:1" },
+        {
+          "expect": {
+            "attrs": {
+              "row:1": { "aria-selected": "true", "data-selected": "true" },
+              "row:2": { "aria-selected": "false", "data-selected": null }
+            }
+          }
+        },
+        { "event": "key", "key": "Enter", "target": "row:1" },
+        {
+          "expect": {
+            "attrs": {
+              "row:1": { "aria-selected": "false", "data-selected": null }
+            }
+          }
+        }
+      ],
+      "notes": "No checkboxes are rendered when selectionBehavior=replace. Keyboard selection starts on the focused row, which is why the first focus also fires a change upstream."
+    },
+    {
+      "id": "grid.react-aria.gridlist-focus-mode-child-autofocus",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/GridList.test.js#L2151",
+      "upstreamTest": "GridList > focusMode and allowsArrowNavigation > focusMode=\"child\" auto-focuses first child when item receives focus",
+      "apg": "focus",
+      "config": {
+        "layout": "list",
+        "rows": 3,
+        "keyboardNavigationBehavior": "tab",
+        "focusMode": "child"
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "expect": { "focus": "row:0/child:0" } },
+        { "event": "key", "key": "Tab", "modifiers": ["Shift"] },
+        { "event": "key", "key": "ArrowDown" },
+        { "expect": { "focus": "row:1/child:0" } }
+      ],
+      "notes": "In keyboardNavigationBehavior=\"tab\" a focusMode=child row puts focus straight on its first child."
+    },
+    {
+      "id": "grid.react-aria.gridlist-allows-arrow-navigation-on-child",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/GridList.test.js#L2179",
+      "upstreamTest": "GridList > focusMode and allowsArrowNavigation > allowsArrowNavigation allows arrow key row navigation when focused on child",
+      "apg": "keyboard",
+      "config": {
+        "layout": "list",
+        "rows": 3,
+        "keyboardNavigationBehavior": "tab",
+        "focusMode": "child",
+        "allowsArrowNavigation": true
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "expect": { "focus": "row:0/child:0" } },
+        { "event": "key", "key": "ArrowDown", "target": "row:0/child:0" },
+        { "expect": { "focus": "row:1/child:0" } }
+      ]
+    },
+    {
+      "id": "grid.react-aria.gridlist-focus-mode-child-arrow-down",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/GridList.test.js#L2207",
+      "upstreamTest": "GridList > focusMode=\"child\" with default arrow navigation > ArrowDown from child navigates to first child of next item",
+      "apg": "keyboard",
+      "config": {
+        "layout": "list",
+        "rows": 3,
+        "focusMode": "child"
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "expect": { "focus": "row:0/child:0" } },
+        { "event": "key", "key": "ArrowDown", "target": "row:0/child:0" },
+        { "expect": { "focus": "row:1/child:0" } },
+        { "event": "key", "key": "ArrowDown", "target": "row:1/child:0" },
+        { "expect": { "focus": "row:2/child:0" } }
+      ]
+    },
+    {
+      "id": "grid.react-aria.gridlist-focus-mode-child-arrow-up",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/GridList.test.js#L2238",
+      "upstreamTest": "GridList > focusMode=\"child\" with default arrow navigation > ArrowUp from child navigates to first child of previous item",
+      "apg": "keyboard",
+      "config": {
+        "layout": "list",
+        "rows": 2,
+        "focusMode": "child"
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "key", "key": "ArrowDown", "target": "row:0/child:0" },
+        { "expect": { "focus": "row:1/child:0" } },
+        { "event": "key", "key": "ArrowUp", "target": "row:1/child:0" },
+        { "expect": { "focus": "row:0/child:0" } }
+      ]
+    },
+    {
+      "id": "grid.react-aria.gridlist-focus-mode-child-left-right-cycle",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/GridList.test.js#L2262",
+      "upstreamTest": "GridList > focusMode=\"child\" with default arrow navigation > ArrowLeft/Right cycles through children and row element",
+      "apg": "keyboard",
+      "config": {
+        "layout": "list",
+        "rows": 1,
+        "focusMode": "child",
+        "cellChildren": 2
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "expect": { "focus": "row:0/child:0" } },
+        { "event": "key", "key": "ArrowRight", "target": "row:0/child:0" },
+        { "expect": { "focus": "row:0/child:1" } },
+        { "event": "key", "key": "ArrowRight", "target": "row:0/child:1" },
+        { "expect": { "focus": "row:0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "row:0" },
+        { "expect": { "focus": "row:0/child:1" } },
+        { "event": "key", "key": "ArrowLeft", "target": "row:0/child:1" },
+        { "expect": { "focus": "row:0/child:0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "row:0/child:0" },
+        { "expect": { "focus": "row:0" } },
+        { "event": "key", "key": "ArrowRight", "target": "row:0" },
+        { "expect": { "focus": "row:0/child:0" } }
+      ]
+    },
+    {
+      "id": "grid.react-aria.table-restore-focus-to-dialog-trigger-in-cell",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L458",
+      "upstreamTest": "Table > should restore focus to the associated dialog trigger inside a cell",
+      "apg": "focus",
+      "config": {
+        "layout": "grid",
+        "rows": 1,
+        "cols": 3,
+        "cellTriggers": 3
+      },
+      "steps": [
+        { "event": "click", "target": "cell:0,2/child:1" },
+        { "expect": { "focus": "dialog", "visible": ["dialog"] } },
+        { "event": "key", "key": "Escape", "target": "dialog" },
+        { "expect": { "focus": "cell:0,2/child:1", "visible": [] } }
+      ],
+      "notes": "A dialog opened from a cell action returns focus to that trigger when dismissed."
+    },
+    {
+      "id": "grid.react-aria.table-select-all-mod-a",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L676",
+      "upstreamTest": "Table > should support select all with Mod+A",
+      "apg": "selection",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "selectionMode": "multiple",
+        "platform": "mac"
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:0,0" },
+        {
+          "event": "key",
+          "key": "a",
+          "target": "cell:0,0",
+          "modifiers": ["Meta"]
+        },
+        { "expect": { "events": { "onSelectionChange": ["all"] } } }
+      ]
+    },
+    {
+      "id": "grid.react-aria.table-select-all-control-windows",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L689",
+      "upstreamTest": "Table > should support select all with Mod+A (Control) on Windows",
+      "apg": "extension",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "selectionMode": "multiple",
+        "platform": "windows"
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:0,0" },
+        {
+          "event": "key",
+          "key": "a",
+          "target": "cell:0,0",
+          "modifiers": ["Control"]
+        },
+        { "expect": { "events": { "onSelectionChange": ["all"] } } }
+      ],
+      "notes": "Platform-specific modifier (extension): Control on Windows."
+    },
+    {
+      "id": "grid.react-aria.table-no-select-all-in-single-mode",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L702",
+      "upstreamTest": "Table > should not select all with Mod+A when selection mode is single",
+      "apg": "selection",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "selectionMode": "single",
+        "platform": "mac"
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:0,0" },
+        {
+          "event": "key",
+          "key": "a",
+          "target": "cell:0,0",
+          "modifiers": ["Meta"]
+        },
+        { "expect": { "events": { "onSelectionChange": [] } } }
+      ]
+    },
+    {
+      "id": "grid.react-aria.table-escape-none-keeps-selection",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L714",
+      "upstreamTest": "Table > should prevent Esc from clearing selection if escapeKeyBehavior is \"none\"",
+      "apg": "selection",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "selectionMode": "multiple",
+        "escapeKeyBehavior": "none"
+      },
+      "steps": [
+        { "event": "click", "target": "row:0/checkbox" },
+        { "event": "click", "target": "row:1/checkbox" },
+        {
+          "expect": {
+            "attrs": {
+              "row:0": { "aria-selected": "true" },
+              "row:1": { "aria-selected": "true" }
+            }
+          }
+        },
+        { "event": "key", "key": "Escape", "target": "cell:0,0" },
+        {
+          "expect": {
+            "attrs": {
+              "row:0": { "aria-selected": "true" },
+              "row:1": { "aria-selected": "true" }
+            },
+            "events": { "onSelectionChange": ["row:0", "row:1"] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "grid.react-aria.table-arrow-up-down-keeps-column-index",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L1638",
+      "upstreamTest": "Table > colSpan > should focus to the same colIndex when moving focus up or down",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "rows": 8,
+        "cols": 3,
+        "rowHeaders": true,
+        "colSpans": true
+      },
+      "steps": [
+        { "event": "focus", "target": "row:1" },
+        { "event": "key", "key": "ArrowRight", "target": "row:1" },
+        { "expect": { "focus": "row:1/rowheader" } },
+        { "event": "key", "key": "ArrowRight", "target": "row:1/rowheader" },
+        { "expect": { "focus": "cell:1,0" } },
+        { "event": "key", "key": "ArrowDown", "target": "cell:1,0" },
+        { "expect": { "focus": "cell:2,0" } },
+        { "event": "key", "key": "ArrowDown", "target": "cell:2,0" },
+        { "expect": { "focus": "row:3/rowheader" } },
+        { "event": "key", "key": "ArrowDown", "target": "row:3/rowheader" },
+        { "event": "key", "key": "ArrowRight", "target": "row:4/rowheader" },
+        { "expect": { "focus": "cell:4,0" } },
+        { "event": "key", "key": "ArrowUp", "target": "cell:4,0" },
+        { "expect": { "focus": "row:3/rowheader" } }
+      ],
+      "notes": "With row headers and colspan, vertical movement preserves the column (or row header) even when spans shift the column count."
+    },
+    {
+      "id": "grid.react-aria.table-tab-from-cell-to-first-child",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L3801",
+      "upstreamTest": "Table > keyboardNavigationBehavior='tab' and textfields in row > Tab from a focused cell moves focus to the first tabbable child",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 4,
+        "keyboardNavigationBehavior": "tab",
+        "rowHeaders": true,
+        "focusableCell": "cell:0,3"
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:0,1" },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,1" },
+        { "expect": { "focus": "cell:0,3" } },
+        { "event": "key", "key": "Tab", "target": "cell:0,3" },
+        { "expect": { "focus": "cell:0,3/child:0" } }
+      ],
+      "notes": "cell:0,3 holds a text input (child 0) and a button (child 1)."
+    },
+    {
+      "id": "grid.react-aria.table-tab-exits-table",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L3815",
+      "upstreamTest": "Table > keyboardNavigationBehavior='tab' and textfields in row > Tab from a cell with no tabbable children or from the last child in a cell exits the table",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 4,
+        "keyboardNavigationBehavior": "tab",
+        "rowHeaders": true,
+        "focusableCell": "cell:0,3",
+        "surroundingButtons": true
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:0,3" },
+        { "event": "key", "key": "Tab", "target": "cell:0,3" },
+        { "expect": { "focus": "cell:0,3/child:0" } },
+        { "event": "key", "key": "Tab", "target": "cell:0,3/child:0" },
+        { "expect": { "focus": "cell:0,3/child:1" } },
+        { "event": "key", "key": "Tab", "target": "cell:0,3/child:1" },
+        { "expect": { "focus": "after:2" } }
+      ],
+      "notes": "Tabbing past the last child of the last cell leaves the grid (after:2 is the button following the table)."
+    },
+    {
+      "id": "grid.react-aria.table-shift-tab-returns-to-cell",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L3849",
+      "upstreamTest": "Table > keyboardNavigationBehavior='tab' and textfields in row > Shift+Tab from a child returns focus to the cell",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 4,
+        "keyboardNavigationBehavior": "tab",
+        "rowHeaders": true,
+        "focusableCell": "cell:0,3"
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:0,3" },
+        { "event": "key", "key": "Tab", "target": "cell:0,3" },
+        { "expect": { "focus": "cell:0,3/child:0" } },
+        {
+          "event": "key",
+          "key": "Tab",
+          "target": "cell:0,3/child:0",
+          "modifiers": ["Shift"]
+        },
+        { "expect": { "focus": "cell:0,3" } }
+      ]
+    },
+    {
+      "id": "grid.react-aria.table-arrows-in-text-input-do-not-navigate",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L3865",
+      "upstreamTest": "Table > keyboardNavigationBehavior='tab' and textfields in row > should not navigate to next cell when arrow keys are pressed while a text input child has focus",
+      "apg": "editing",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 4,
+        "keyboardNavigationBehavior": "tab",
+        "rowHeaders": true,
+        "focusableCell": "cell:0,3"
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:0,3/child:0" },
+        { "event": "key", "key": "ArrowDown", "target": "cell:0,3/child:0" },
+        { "expect": { "focus": "cell:0,3/child:0" } },
+        { "event": "key", "key": "ArrowUp", "target": "cell:0,3/child:0" },
+        { "expect": { "focus": "cell:0,3/child:0" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,3/child:0" },
+        { "expect": { "focus": "cell:0,3/child:0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,3/child:0" },
+        { "expect": { "focus": "cell:0,3/child:0" } }
+      ]
+    },
+    {
+      "id": "grid.react-aria.table-typeahead-not-in-text-input",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L3890",
+      "upstreamTest": "Table > keyboardNavigationBehavior='tab' and textfields in row > should not trigger typeahead when typing in a text input child",
+      "apg": "editing",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 4,
+        "keyboardNavigationBehavior": "tab",
+        "rowHeaders": true,
+        "focusableCell": "cell:0,3"
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:0,3/child:0" },
+        { "event": "type", "text": "Games", "target": "cell:0,3/child:0" },
+        {
+          "expect": {
+            "focus": "cell:0,3/child:0",
+            "value": { "cell:0,3/child:0": "Games" }
+          }
+        }
+      ]
+    },
+    {
+      "id": "grid.react-aria.table-space-enter-in-text-input-no-selection",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L3910",
+      "upstreamTest": "Table > keyboardNavigationBehavior='tab' and textfields in row > should not trigger selection when pressing Space or Enter in a text input child",
+      "apg": "selection",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 4,
+        "keyboardNavigationBehavior": "tab",
+        "rowHeaders": true,
+        "focusableCell": "cell:0,3",
+        "selectionMode": "multiple"
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:0,3/child:0" },
+        { "event": "type", "text": " ", "target": "cell:0,3/child:0" },
+        { "event": "key", "key": "Enter", "target": "cell:0,3/child:0" },
+        {
+          "expect": {
+            "focus": "cell:0,3/child:0",
+            "events": { "onSelectionChange": [] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "grid.react-aria.table-click-tabbable-child-no-selection",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L3935",
+      "upstreamTest": "Table > keyboardNavigationBehavior='tab' and textfields in row > should not trigger selection when clicking on a tabbable child element",
+      "apg": "selection",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 4,
+        "keyboardNavigationBehavior": "tab",
+        "rowHeaders": true,
+        "focusableCell": "cell:0,3",
+        "selectionMode": "multiple"
+      },
+      "steps": [
+        { "event": "click", "target": "cell:0,3/child:0" },
+        {
+          "expect": {
+            "focus": "cell:0,3/child:0",
+            "events": { "onSelectionChange": [] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "grid.react-aria.table-click-row-selects",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L3961",
+      "upstreamTest": "Table > keyboardNavigationBehavior='tab' and textfields in row > should still trigger selection when clicking on a row with no tabbable children",
+      "apg": "selection",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 4,
+        "selectionMode": "multiple"
+      },
+      "steps": [
+        { "event": "click", "target": "row:0" },
+        { "expect": { "events": { "onSelectionChange": ["row:0"] } } }
+      ]
+    },
+    {
+      "id": "grid.react-aria.table-focus-mode-child-arrow-focuses-child",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L3976",
+      "upstreamTest": "Table > keyboardNavigationBehavior='tab' and textfields in row > focusMode='child' > arrow navigating to a focusMode=\"child\" cell focuses the child directly",
+      "apg": "focus",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 4,
+        "keyboardNavigationBehavior": "tab",
+        "rowHeaders": true,
+        "focusableCell": "cell:0,3",
+        "actionCellFocusMode": "child"
+      },
+      "steps": [
+        { "event": "focus", "target": "row:0" },
+        { "event": "key", "key": "ArrowLeft", "target": "row:0" },
+        { "expect": { "focus": "cell:0,3/child:1" } }
+      ],
+      "notes": "ArrowLeft into a focusMode=child action cell focuses the last child (the button)."
+    },
+    {
+      "id": "grid.react-aria.table-focus-mode-child-allows-arrow-navigation",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L3984",
+      "upstreamTest": "Table > keyboardNavigationBehavior='tab' and textfields in row > focusMode='child' > allowsArrowNavigation allows arrow key row navigation when focused on child",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 4,
+        "keyboardNavigationBehavior": "tab",
+        "rowHeaders": true,
+        "focusableCell": "cell:0,3",
+        "actionCellFocusMode": "child",
+        "allowsArrowNavigation": true
+      },
+      "steps": [
+        { "event": "focus", "target": "row:0" },
+        { "event": "key", "key": "ArrowLeft", "target": "row:0" },
+        { "expect": { "focus": "cell:0,3/child:1" } },
+        { "event": "key", "key": "ArrowDown", "target": "cell:0,3/child:1" },
+        { "expect": { "focus": "cell:1,3/child:0" } }
+      ]
+    },
+    {
+      "id": "grid.react-aria.table-shift-tab-from-focus-mode-child-skips-cell",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L3995",
+      "upstreamTest": "Table > keyboardNavigationBehavior='tab' and textfields in row > focusMode='child' > Shift+Tab from a focusMode=\"child\" child skips the cell and does not return to it",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": 4,
+        "keyboardNavigationBehavior": "tab",
+        "rowHeaders": true,
+        "focusableCell": "cell:0,3",
+        "actionCellFocusMode": "child"
+      },
+      "steps": [
+        { "event": "focus", "target": "row:0" },
+        { "event": "key", "key": "ArrowLeft", "target": "row:0" },
+        { "expect": { "focus": "cell:0,3/child:1" } },
+        {
+          "event": "key",
+          "key": "Tab",
+          "target": "cell:0,3/child:1",
+          "modifiers": ["Shift"]
+        },
+        { "expect": { "focus": "cell:0,3/child:0" } },
+        {
+          "event": "key",
+          "key": "Tab",
+          "target": "cell:0,3/child:0",
+          "modifiers": ["Shift"]
+        },
+        { "expect": { "focus": "body" } }
+      ]
+    },
+    {
+      "id": "grid.react-aria.table-arrow-mode-crosses-cells",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L4015",
+      "upstreamTest": "Table > cells with focusable children in arrow navigation mode > default focusMode: ArrowRight crosses from last child to first child of next cell, ArrowLeft reverses",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "rows": 2,
+        "cols": 3,
+        "rowHeaders": true,
+        "cellChildren": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "row:0" },
+        { "event": "key", "key": "ArrowRight", "target": "row:0" },
+        { "expect": { "focus": "cell:0,0" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,0" },
+        { "expect": { "focus": "cell:0,1/child:0" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,1/child:0" },
+        { "expect": { "focus": "cell:0,1/child:1" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,1/child:1" },
+        { "expect": { "focus": "cell:0,2/child:0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,2/child:0" },
+        { "expect": { "focus": "cell:0,1/child:1" } }
+      ],
+      "notes": "Arrow navigation in a table crosses cell boundaries between focusable children."
+    },
+    {
+      "id": "grid.react-aria.table-focus-mode-cell-stays-on-cell",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L4033",
+      "upstreamTest": "Table > cells with focusable children in arrow navigation mode > focusMode='cell': cell element stays focused on navigate, arrows enter/exit children within cell",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "rows": 2,
+        "cols": 3,
+        "rowHeaders": true,
+        "cellChildren": 2,
+        "cellFocusMode": "cell"
+      },
+      "steps": [
+        { "event": "focus", "target": "row:0" },
+        { "event": "key", "key": "ArrowRight", "target": "row:0" },
+        { "expect": { "focus": "cell:0,0" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,0" },
+        { "expect": { "focus": "cell:0,1" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,1" },
+        { "expect": { "focus": "cell:0,1/child:0" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,1/child:0" },
+        { "expect": { "focus": "cell:0,1/child:1" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,1/child:1" },
+        { "expect": { "focus": "cell:0,1/child:0" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,1/child:0" },
+        { "expect": { "focus": "cell:0,1" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,1" },
+        { "expect": { "focus": "cell:0,0" } }
+      ]
+    },
+    {
+      "id": "grid.react-aria.table-double-click-row-action",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/table/useTable.test.tsx#L117",
+      "upstreamTest": "useTable > actions on rows > calls onAction",
+      "apg": "selection",
+      "config": {
+        "layout": "grid",
+        "rows": 5,
+        "selectionMode": "multiple",
+        "selectionBehavior": "replace"
+      },
+      "steps": [
+        { "event": "click", "target": "cell:1,0" },
+        {
+          "expect": {
+            "events": { "onSelectionChange": ["row:1"], "onAction": [] }
+          }
+        },
+        { "event": "click", "target": "cell:1,0", "count": 2 },
+        { "expect": { "events": { "onAction": ["row:1"] } } }
+      ],
+      "notes": "A single click selects and announces the row; a double click fires onAction."
+    },
+    {
+      "id": "grid.react-aria.table-selection-replace-single-keyboard",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L3254",
+      "upstreamTest": "Table > selectionBehavior=\"replace\" > keyboard > should perform selection with single selection",
+      "apg": "selection",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "selectionMode": "single",
+        "selectionBehavior": "replace",
+        "noCheckboxes": true
+      },
+      "steps": [
+        { "event": "focus", "target": "cell:2,0" },
+        { "event": "key", "key": "Enter", "target": "cell:2,0" },
+        {
+          "expect": {
+            "attrs": {
+              "row:2": { "aria-selected": "true", "data-selected": "true" }
+            }
+          }
+        },
+        { "event": "focus", "target": "cell:1,0" },
+        { "event": "key", "key": "Enter", "target": "cell:1,0" },
+        {
+          "expect": {
+            "attrs": {
+              "row:1": { "aria-selected": "true", "data-selected": "true" },
+              "row:2": { "aria-selected": "false", "data-selected": null }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "skipped": [
+    {
+      "reason": "useGrid.test.js: none skipped — all five focus-mode tests ported"
+    },
+    {
+      "reason": "GridList.test.js / Table.test.js: styling, custom classes, DOM props, refs, render props, hover/press/focus-ring visuals"
+    },
+    {
+      "reason": "GridList.test.js / Table.test.js: virtualizer, async loading, load-more sentinel and scroll callbacks"
+    },
+    {
+      "reason": "GridList.test.js / Table.test.js: drag and drop, drop indicators, column resizing"
+    },
+    {
+      "reason": "GridList.test.js / Table.test.js: links, RouterProvider, SSR, Suspense, error/duplicate-key state, TagGroup nesting"
+    },
+    {
+      "reason": "Table.test.js: selection replacement/strict-mode bugs tied to React effects"
+    },
+    {
+      "reason": "tableResizingTests.tsx / ariaTableResizing.test.tsx / useTableBackwardCompat.test.tsx: resizing and legacy API"
+    },
+    {
+      "reason": "@adobe/react-spectrum layout Grid.test.js: CSS layout component, not an interactive grid"
+    }
+  ]
+}

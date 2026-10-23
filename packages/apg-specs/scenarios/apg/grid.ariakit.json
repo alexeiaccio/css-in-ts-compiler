@@ -1,0 +1,197 @@
+{
+  "pattern": "grid",
+  "source": "ariakit",
+  "commit": "404c72257b879569feb08465da4ff9915fd873da",
+  "license": "MIT",
+  "scenarios": [
+    {
+      "id": "grid.ariakit.composite-grid-navigation-without-focus-shift",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/composite-navigation/test.ts#L49",
+      "upstreamTest": "composite-navigation > navigates a grid without focus shifting",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "focusShift": false,
+        "rows": 3,
+        "cols": [3, 2, 3]
+      },
+      "steps": [
+        { "event": "click", "target": "cell:0,0" },
+        { "expect": { "focus": "cell:0,0" } },
+        { "event": "key", "key": "ArrowDown", "target": "cell:0,0" },
+        { "expect": { "focus": "cell:1,0" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:1,0" },
+        { "expect": { "focus": "cell:1,1" } },
+        { "event": "key", "key": "ArrowDown", "target": "cell:1,1" },
+        { "expect": { "focus": "cell:2,1" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:2,1" },
+        { "expect": { "focus": "cell:2,2" } },
+        { "event": "key", "key": "ArrowUp", "target": "cell:2,2" },
+        { "expect": { "focus": "cell:0,2" } },
+        { "event": "key", "key": "ArrowDown", "target": "cell:0,2" },
+        { "expect": { "focus": "cell:2,2" } }
+      ],
+      "notes": "Ragged layout grid (rows hold 3, 2, 3 cells). Up from the bottom-right cell stays in the same column index rather than the geometric neighbour above."
+    },
+    {
+      "id": "grid.ariakit.composite-grid-navigation-with-focus-shift",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/composite-navigation/test.ts#L64",
+      "upstreamTest": "composite-navigation > navigates a grid with focus shifting",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "focusShift": true,
+        "rows": 3,
+        "cols": [3, 2, 3]
+      },
+      "steps": [
+        { "event": "click", "target": "cell:0,0" },
+        { "expect": { "focus": "cell:0,0" } },
+        { "event": "key", "key": "ArrowDown", "target": "cell:0,0" },
+        { "expect": { "focus": "cell:1,0" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:1,0" },
+        { "expect": { "focus": "cell:1,1" } },
+        { "event": "key", "key": "ArrowDown", "target": "cell:1,1" },
+        { "expect": { "focus": "cell:2,1" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:2,1" },
+        { "expect": { "focus": "cell:2,2" } },
+        { "event": "key", "key": "ArrowUp", "target": "cell:2,2" },
+        { "expect": { "focus": "cell:1,1" } },
+        { "event": "key", "key": "ArrowUp", "target": "cell:1,1" },
+        { "expect": { "focus": "cell:0,1" } },
+        { "event": "key", "key": "ArrowRight", "target": "cell:0,1" },
+        { "expect": { "focus": "cell:0,2" } },
+        { "event": "key", "key": "ArrowDown", "target": "cell:0,2" },
+        { "expect": { "focus": "cell:1,1" } },
+        { "event": "key", "key": "ArrowDown", "target": "cell:1,1" },
+        { "expect": { "focus": "cell:2,1" } }
+      ],
+      "notes": "With focus shifting the ragged row B (2 cells) redirects column-3 vertical movement to column 2."
+    },
+    {
+      "id": "grid.ariakit.composite-grid-ctrl-home-first-cell",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/composite-navigation/test.ts#L114",
+      "upstreamTest": "composite-navigation > moves focus-visible with Ctrl+Home on a grid",
+      "apg": "keyboard",
+      "config": {
+        "layout": "grid",
+        "rows": 3,
+        "cols": [3, 2, 3]
+      },
+      "steps": [
+        { "event": "click", "target": "cell:1,1" },
+        {
+          "expect": {
+            "focus": "cell:1,1",
+            "attrs": { "cell:1,1": { "data-focus-visible": null } }
+          }
+        },
+        {
+          "event": "key",
+          "key": "Home",
+          "target": "cell:1,1",
+          "modifiers": ["Control"]
+        },
+        {
+          "expect": {
+            "focus": "cell:0,0",
+            "attrs": { "cell:0,0": { "data-focus-visible": "true" } }
+          }
+        }
+      ],
+      "notes": "Ctrl+Home jumps to the first grid cell and marks it focus-visible even though the preceding interaction was a pointer click."
+    },
+    {
+      "id": "grid.ariakit.composite-row-aria-posinset",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/composite-row-6334/test.ts#L5",
+      "upstreamTest": "composite-row-6334 > cells compute their position from row-level aria-posinset",
+      "apg": "aria",
+      "config": {
+        "layout": "grid",
+        "rows": 2,
+        "cols": 2,
+        "windowed": true,
+        "ariaRowCount": 50,
+        "ariaSetSize": 100,
+        "firstRowPosInSet": 21
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "cell:0,0": { "aria-posinset": "21", "aria-setsize": "100" },
+              "cell:0,1": { "aria-posinset": "22", "aria-setsize": "100" },
+              "cell:1,0": { "aria-posinset": "23", "aria-setsize": "100" },
+              "cell:1,1": { "aria-posinset": "24", "aria-setsize": "100" }
+            }
+          }
+        }
+      ],
+      "notes": "Only rows 11-12 of a 50-row / 100-cell windowed grid are mounted; each cell derives its aria-posinset from its row's aria-posinset."
+    },
+    {
+      "id": "grid.ariakit.combobox-grid-arrow-navigation",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-grid/test.ts#L23",
+      "upstreamTest": "combobox-grid > move through items without moving the cursor",
+      "apg": "extension",
+      "config": {
+        "layout": "grid",
+        "popup": true,
+        "orientation": "both",
+        "rows": 2,
+        "cols": 3,
+        "comboboxText": "Direction"
+      },
+      "steps": [
+        { "event": "click", "target": "combobox" },
+        { "event": "type", "text": "abc", "target": "combobox" },
+        { "event": "key", "key": "ArrowDown", "target": "combobox" },
+        { "expect": { "focus": "cell:0,0" } },
+        { "event": "key", "key": "End", "target": "cell:0,0" },
+        { "expect": { "focus": "cell:0,2" } },
+        { "event": "key", "key": "ArrowLeft", "target": "cell:0,2" },
+        { "expect": { "focus": "cell:0,1" } },
+        { "event": "key", "key": "Home", "target": "cell:0,1" },
+        { "expect": { "focus": "cell:0,0" } }
+      ],
+      "notes": "Combobox with a grid popup (extension): arrow/Home/End move focus through gridcells while the text cursor in the input is unchanged."
+    },
+    {
+      "id": "grid.ariakit.combobox-grid-nested-roles",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/combobox-grid/test.ts#L66",
+      "upstreamTest": "combobox-grid > uses the nested grid role for groups and rows",
+      "apg": "extension",
+      "config": {
+        "layout": "grid",
+        "popup": true,
+        "grouped": true,
+        "rows": 1,
+        "cols": 2,
+        "comboboxText": "Grouped direction"
+      },
+      "steps": [
+        { "event": "click", "target": "combobox" },
+        {
+          "expect": {
+            "visible": ["rowgroup:0", "row:0", "cell:0,0", "cell:0,1"]
+          }
+        }
+      ],
+      "notes": "Extension: the popup exposes rowgroup/row/gridcell structure rather than a flat listbox."
+    }
+  ],
+  "skipped": [
+    {
+      "reason": "composite-navigation/test.ts: non-grid composite tests (BasicComposite, toolbar legacy focus order, distant composite) target buttons/toolbars, not the grid pattern"
+    },
+    {
+      "reason": "composite-item-tabbable/test.ts: option/listbox roving tabindex and disabled-item resolution, not a grid"
+    },
+    {
+      "reason": "composite-typeahead-buffer, composite-6299, composite-6335, composite-7360, composite-presentation-cancel*, composite-virtual-focus-events, composite-hover-virtual-focus-events, composite-perf: focus-restoration, virtualisation and perf internals"
+    },
+    {
+      "reason": "combobox-select-grid/test.ts: select-with-grid-popup value/selection behaviour (combobox/select pattern)"
+    }
+  ]
+}
