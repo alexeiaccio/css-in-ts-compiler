@@ -138,7 +138,7 @@ The specs, bridges and scenarios the tests replay are [`@cssints/apg-specs`](../
 
 ## Status
 
-Not on npm yet: the package is in the Changesets `ignore` list until it joins the `fixed` group (RELEASING.md). Its manifest follows the other packages (`development` condition on `src`, `dist` for consumers, `publishConfig.directory`).
+Published with the Changesets `fixed` group (one version with the other packages, RELEASING.md). Its manifest follows the other packages (`development` condition on `src`, `dist` for consumers, `publishConfig.directory`).
 
 Solid 2 reminders: setters apply on the microtask flush (the DOM driver waits a frame after each step); pass props objects/getters, never destructure options.
 
