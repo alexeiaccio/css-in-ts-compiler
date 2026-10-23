@@ -500,6 +500,48 @@ or compute) and a GLSL generator.
 Verdict: keep as the named option for a browser effects layer or a GPU-renderer prototype, with `browser/render.js`
 (the same commands, WebGPU instead of Canvas2D) as the entry point. Not a dependency of anything today.
 
+## Effects (2026-10-23)
+
+The raster can do more than we ask of it. ThorVG 1.1.3 (the installed one) already ships scene effects and masks, and
+we use neither: `tvg_scene_add_effect_gaussian_blur(scene, sigma, direction, quality)`, `..._drop_shadow(r,g,b,a,
+angle, distance, sigma, quality)`, `..._motion_blur`, `..._fill`, `..._tint`, `..._tritone`, and `Paint::mask()` with
+alpha, luma and their inverses. An effect is not a Clay declaration, so it cannot be a style field Clay lays out: it is
+a renderer side table keyed by Clay's element id. The command stream already carries that id, so `ui_effect(id, kind,
+params)` (called from JS, or printed by `header()` for the C targets) plus a lookup at draw time is the whole API, and
+the style keeps only its own layout.
+
+What each target can actually do — the "no" cells are as important as the rest:
+
+| Effect | Desktop (ThorVG, CPU) | Browser (WebGPU) | Board (S3/P4) | Terminal |
+| --- | --- | --- | --- | --- |
+| Card, panel, menu shadow | `drop_shadow` on a one-shape scene, drawn before the command | one pass | a pre-baked 9-slice sprite | none |
+| Blur of the element itself (a menu, a card leaving in place) | `gaussian_blur` on its scene | one pass | none | none |
+| Backdrop blur ("glass" over our own content) | our own buffer: copy the region under the panel, blur it, draw the panel over it | dual Kawase pass | none | none |
+| Gradients | ThorVG linear and radial fills; a new style member, dithered | Canvas 2D or WGSL | banded, dithered | 256 colours, dithered |
+| Group opacity | a scene with opacity (not a Clay concept today; per-command alpha is what we have) | yes | per-command alpha | none |
+| Tint and tritone (themes, disabled states) | ThorVG effect | a pass | a palette swap | the palette |
+| Grain, vignette | one tiled 64x64 alpha PNG | a pass | the same tile | none |
+
+The order, each with its own frame and its own number:
+
+1. **Shadow** (`css.shadow(...)`) — the largest felt difference for the smallest piece of work: the Dialog, the menu
+   and the Sky cards float today on colour alone. The shadow is the same box and radius, drawn before the command.
+2. **Backdrop blur from our buffer** — `ui.c` owns `pixels`, so the content under a panel is already in the buffer when
+   the panel is drawn: copy the region, blur it separably, draw the panel over it with its own alpha. That is glass
+   over our content, not over the window; the desktop behind the window is out of reach, as it is for Rune without the
+   window server.
+3. **Gradients** as a member (`css.backgroundImage("linear-gradient(...)")`, the grammar is already in cssints) filled
+   by ThorVG, with a dither step — an undithered dark card shows bands.
+4. **Tint and tritone** for themes and disabled states, worth it once a theme switch is animated.
+5. The terminal gets none of the blurs; its equivalents are the palette and the attributes it already has.
+6. The board gets only what `render.c` can do without a filter: dithered gradients, shadows as pre-baked sprites, PPA
+   for scaling and blending on the P4. A full-screen blur does not fit a 22 ms frame.
+
+Rules to keep from Rune's research: blur only what enters or leaves in place, never persistent text; dither every
+gradient; soft masks on clips; an effect is opt-in with a plain fallback, and ships with a measured cost on both the
+desktop frame and the board where it exists. The GPU raster does not buy the cost back (0.69-1.06 vs 0.31-0.47 ms,
+before the compositor), so the first pass is the CPU raster.
+
 ## Not doing
 
 - JS on a microcontroller. A GPU path on the ESP32-S3. One style for cells and pixels. A layout engine of our own.
