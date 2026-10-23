@@ -24,6 +24,7 @@ it needs no runtime on the device.
 | Browser (WASM)    | `cssints/clay`  | Clay (C→WASM)  | canvas 2D                      | none (the generated C) | a static frame and its `use_g` twin on a canvas |
 | ESP32-P4          | `cssints/clay`  | Clay           | CPU + PPA (2D DMA)             | none           | later, needs a board          |
 | Terminal          | `cssints/clay`  | Clay (cells)   | Clay's `termbox2` renderer     | optional (Bun) | after desktop; replaces `cssints/tui` |
+| iOS, Android      | `cssints/clay`  | Clay           | ThorVG CPU, on a Metal/GLES surface (SDL3) | none (the generated C) | planned; the first slice is the section below |
 
 Facts behind it:
 
@@ -566,6 +567,60 @@ desktop frame and the board where it exists. The GPU raster does not buy the cos
 before the compositor), so the first pass is the CPU raster.
 
 ||||||| e044926a
+## Mobile: iOS and Android (2026-10-23)
+
+Status: not started. The first slice is **A: no JavaScript** — Clay, ThorVG, the C renderer and generated pages in a
+platform shell, which is the board's shape on a phone. Solid on the device (a JS runtime and a bridge where
+`bun:ffi` sits today) is a decision for later, and what decides it is the events debt of generated C.
+
+What transfers, so the first slice is smaller than it looks:
+
+- **Clay** is one C99 header with no dependencies, and **ThorVG** builds for both platforms; the software canvas means
+  no GPU code of ours. `clay_renderer_thorvg.c` is plain C.
+- **SDL3** is already the desktop's window, pointer and text input, and it has iOS and Android backends: touch, the
+  system keyboard's committed text, the activity lifecycle. Our `Field` speaks the same text events.
+- **The styles need no compiler on the device**: `cssints/clay` is a build-time literal and `header()` prints C.
+- **The generated pages** are the board's path — `main/generated/*` in esp32 comes from `regen.sh` and `--text`, and the
+  same generator runs for a mobile app.
+- **`retarget(scale)`** already takes a pixel density, so 2x and 3x are a scale, not a rewrite.
+
+What has to be built, in the order it hurts:
+
+1. **Builds.** An Xcode project and a Gradle/NDK one, ThorVG per ABI (arm64 device, arm64 simulator, arm64-v8a,
+   x86_64), the fonts in the bundle, SDL3's own mobile project shapes. Mechanical, and the slowest part in wall-clock
+   time.
+2. **Touch.** Down, move, up; a press that leaves its element; drag scrolling with decay and rubber band (`0.998/ms`,
+   `0.55` from Rune's research); the drag takes the wheel's place.
+3. **Text input.** The system keyboard and committed text come with SDL3 and the Field already handles them; marked
+   text (composition), autocorrect, the caret's loupe and the selection handles do not, and are the largest single
+   piece of work on a phone (Flutter's iOS text shim is ~3,400 lines).
+4. **Insets.** Safe areas and the notch, the keyboard over the window, rotation: the root takes them as padding, and
+   Clay lays out again.
+5. **Accessibility.** VoiceOver and TalkBack cannot see a C raster. The tree we already snapshot (`solid/a11y.ts`, an
+   element's `bounds`) has to be posted to `UIAccessibility` and to an `AccessibilityNodeProvider`; without it the app
+   is not readable by a screen reader, which the stores require.
+6. **Lifecycle and the platform bits.** Background and foreground, the first frame, memory pressure, Android's back
+   button, haptics, the status bar, share and links.
+
+The first slice, and what each step proves:
+
+1. The generated Sensors page on the iOS simulator and the Android emulator through SDL3 and ThorVG at the device's
+   pixel density, with a tap hit-tested on `ui_bounds` toggling `use_g`. Proves the toolchain, the raster and the DPI.
+2. The Sky page with drag scrolling and a Field that raises the keyboard. Proves the interaction model.
+3. The a11y bridge for those two pages. Proves that a store could ship it.
+Roughly 1-2 weeks for the first step, 2 more for the second, a week for the third.
+
+The decision left open (B): **Solid on the device** — the desktop's architecture, a JS bundle and a JSI module where
+`bun:ffi` is. It keeps one UI codebase and the whole interaction layer, at the cost of a runtime (no JIT on iOS:
+Hermes or JSC in interpreter mode, so our 0.3 ms a frame becomes 1-3), the bridge, and a bundle build. What forks the
+decision is generated C's **events debt**: if `page-to-c` learns to carry state and handlers, A is enough and B is never
+needed; if it does not, B is the only route to a real app. Either is 3-6 weeks to the same demo.
+
+Not doing: React Native, and Skia with it (tens of megabytes and a second raster; the board's 1.25 MB firmware rules
+it out), our own text shaping (HarfBuzz/Parley is its own project; ThorVG's text is thin, and it is what we have), and
+pixel-exact goldens across architectures: float differences are real, so a mobile lane needs the tolerance model of
+Rune's research 14 — a bounded per-channel error with a recorded budget, not a hash.
+
 ## Not doing
 
 - JS on a microcontroller. A GPU path on the ESP32-S3. One style for cells and pixels. A layout engine of our own.
