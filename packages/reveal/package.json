@@ -1,6 +1,6 @@
 {
   "name": "@cssints/reveal",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Scroll-driven reveal animations for cssints: motion's presets on animation-timeline: view(), with a tiny IntersectionObserver fallback",
   "license": "MIT",
   "repository": {

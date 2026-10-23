@@ -1,5 +1,9 @@
 # @cssints/mise-en-mode
 
+## 0.5.1
+
+No changes in this release.
+
 ## 0.5.0
 
 ### Patch Changes
