@@ -1,5 +1,11 @@
 # @cssints/gradient
 
+## 0.6.0
+
+### Patch Changes
+
+- cssints@0.6.0
+
 ## 0.5.2
 
 No changes in this release.
