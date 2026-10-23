@@ -68,6 +68,7 @@ export * from "./menu";
 export * from "./meter";
 export * from "./prefs";
 export * from "./radio";
+export * from "./resizable-panels";
 export * from "./slider";
 export * from "./slider-multithumb";
 export * from "./spinbutton";

@@ -7,6 +7,8 @@ export interface ControllableOptions<T> {
   readonly initial: T;
   /** The request callback (`onValueChange`): the host may ignore it. */
   readonly onChange: () => ((value: T) => void) | undefined;
+  /** Equality for values that are not primitives (a layout array). */
+  readonly same?: (a: T, b: T) => boolean;
 }
 
 /**
@@ -26,8 +28,9 @@ export const createControllable = <T>(
     version();
     return options.value() ?? local;
   };
+  const same = options.same ?? Object.is;
   const request = (next: T): void => {
-    if (next === current()) {
+    if (same(next, current())) {
       return;
     }
     if (options.value() === undefined) {
