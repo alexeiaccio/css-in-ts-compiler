@@ -5,7 +5,7 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import {
@@ -13,9 +13,9 @@ import {
   sliderConfig,
   sliderProbe,
   sliderSteps,
-} from "@cssints/apg-specs/src/apg/slider.bridge";
+} from "@cssints/apg-specs/apg/slider.bridge";
 import baseUi from "@cssints/apg-specs/scenarios/apg/slider.base-ui.json";
-import definitionJson from "@cssints/apg-specs/src/apg/slider.model.generated.json";
+import definitionJson from "@cssints/apg-specs/apg/slider.model.json";
 import { domDriver } from "./dom-driver";
 import { mountSlider } from "./slider.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/slider.react-aria.json";

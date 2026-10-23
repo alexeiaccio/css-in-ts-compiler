@@ -5,7 +5,7 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import {
@@ -13,10 +13,10 @@ import {
   toolbarConfig,
   toolbarProbe,
   toolbarSteps,
-} from "@cssints/apg-specs/src/apg/toolbar.bridge";
+} from "@cssints/apg-specs/apg/toolbar.bridge";
 import ariakit from "@cssints/apg-specs/scenarios/apg/toolbar.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/toolbar.base-ui.json";
-import definitionJson from "@cssints/apg-specs/src/apg/toolbar.model.generated.json";
+import definitionJson from "@cssints/apg-specs/apg/toolbar.model.json";
 import { domDriver } from "./dom-driver";
 import { mountToolbar } from "./toolbar.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/toolbar.react-aria.json";

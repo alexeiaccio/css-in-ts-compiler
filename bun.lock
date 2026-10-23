@@ -146,16 +146,19 @@
     },
     "packages/apg-specs": {
       "name": "@cssints/apg-specs",
-      "version": "0.0.0",
+      "version": "0.5.1",
       "dependencies": {
-        "@quint-machine/core": "0.1.0",
-        "@typeonce/effect-machine": "0.40.0",
-        "effect": "4.0.0",
+        "@quint-machine/core": "^0.1.0",
       },
       "devDependencies": {
         "@effect/platform-node": "4.0.0",
         "@informalsystems/quint": "0.32.0",
+        "@typeonce/effect-machine": "0.40.0",
+        "effect": "4.0.0",
         "vite-plus": "catalog:",
+      },
+      "peerDependencies": {
+        "effect": "^4.0.0",
       },
     },
     "packages/balance": {

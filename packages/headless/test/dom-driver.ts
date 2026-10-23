@@ -1,9 +1,4 @@
-import {
-  type ActionStep,
-  type Driver,
-  type Json,
-  Unsupported,
-} from "@cssints/apg-specs/src/scenario";
+import { type ActionStep, type Driver, type Json, Unsupported } from "@cssints/apg-specs/scenario";
 import { flush } from "solid-js";
 import { userEvent } from "vite-plus/test/browser";
 

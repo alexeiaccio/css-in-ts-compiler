@@ -1,5 +1,5 @@
-import type { ButtonConfig } from "@cssints/apg-specs/src/apg/button.bridge";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { ButtonConfig } from "@cssints/apg-specs/apg/button.bridge";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
 import { createButton } from "../src/button";
 import { createSignal } from "solid-js";

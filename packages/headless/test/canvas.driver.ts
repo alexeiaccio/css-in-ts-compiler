@@ -1,9 +1,4 @@
-import {
-  type ActionStep,
-  type Driver,
-  type Json,
-  Unsupported,
-} from "@cssints/apg-specs/src/scenario";
+import { type ActionStep, type Driver, type Json, Unsupported } from "@cssints/apg-specs/scenario";
 import {
   HOST_POSITIONS,
   NODES,
@@ -14,7 +9,7 @@ import {
   formatValue,
   parseCameraOp,
   parsePointerOp,
-} from "@cssints/apg-specs/src/canvas/canvas.bridge";
+} from "@cssints/apg-specs/canvas/canvas.bridge";
 import { ZMAX, ZMIN, ZONE } from "../src";
 import type { CanvasMounted } from "./canvas.fixture";
 

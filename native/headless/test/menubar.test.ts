@@ -3,10 +3,10 @@ import {
   menuMenubarConfig,
   menuMenubarProbe,
   menuMenubarSteps,
-} from '@cssints/apg-specs/src/apg/menu-menubar.bridge';
+} from '@cssints/apg-specs/apg/menu-menubar.bridge';
 import ariakit from '@cssints/apg-specs/scenarios/apg/menubar.ariakit.json';
 import baseUi from '@cssints/apg-specs/scenarios/apg/menubar.base-ui.json';
-import definition from '@cssints/apg-specs/src/apg/menu-menubar.model.generated.json';
+import definition from '@cssints/apg-specs/apg/menu-menubar.model.json';
 import { createRoot, flush } from 'solid-js';
 import { describe, expect, it } from 'bun:test';
 import { createFocus } from '../../focus/src/focus';

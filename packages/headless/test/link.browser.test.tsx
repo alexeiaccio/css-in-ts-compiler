@@ -5,18 +5,13 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
-import {
-  linkBridge,
-  linkConfig,
-  linkProbe,
-  linkSteps,
-} from "@cssints/apg-specs/src/apg/link.bridge";
+import { linkBridge, linkConfig, linkProbe, linkSteps } from "@cssints/apg-specs/apg/link.bridge";
 import ariakit from "@cssints/apg-specs/scenarios/apg/link.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/link.base-ui.json";
-import definitionJson from "@cssints/apg-specs/src/apg/link.model.generated.json";
+import definitionJson from "@cssints/apg-specs/apg/link.model.json";
 import { domDriver } from "./dom-driver";
 import { mountLink } from "./link.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/link.react-aria.json";

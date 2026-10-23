@@ -1,8 +1,8 @@
 import { type Treegrid, createTreegrid } from "../src/treegrid";
 import { createEffect, createSignal } from "solid-js";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
-import type { TreegridConfig } from "@cssints/apg-specs/src/apg/treegrid.bridge";
+import type { TreegridConfig } from "@cssints/apg-specs/apg/treegrid.bridge";
 import { render } from "@solidjs/web";
 
 /**

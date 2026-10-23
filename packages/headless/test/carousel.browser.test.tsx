@@ -8,17 +8,17 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import {
   carouselBridge,
   carouselConfig,
   carouselProbe,
   carouselSteps,
-} from "@cssints/apg-specs/src/apg/carousel.bridge";
+} from "@cssints/apg-specs/apg/carousel.bridge";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import apg from "@cssints/apg-specs/scenarios/apg/carousel.apg.json";
-import definitionJson from "@cssints/apg-specs/src/apg/carousel.model.generated.json";
+import definitionJson from "@cssints/apg-specs/apg/carousel.model.json";
 import { domDriver } from "./dom-driver";
 import { mountCarousel } from "./carousel.fixture";
 import { userEvent } from "vite-plus/test/browser";

@@ -1,7 +1,7 @@
 import { type DialogModal, createDialogModal } from "../src/dialog-modal";
 import { createEffect, createSignal } from "solid-js";
-import type { DialogModalConfig } from "@cssints/apg-specs/src/apg/dialog-modal.bridge";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { DialogModalConfig } from "@cssints/apg-specs/apg/dialog-modal.bridge";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
 import { render } from "@solidjs/web";
 

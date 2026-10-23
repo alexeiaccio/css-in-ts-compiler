@@ -3,10 +3,10 @@ import {
   radioConfig,
   radioProbe,
   radioSteps,
-} from '@cssints/apg-specs/src/apg/radio.bridge';
+} from '@cssints/apg-specs/apg/radio.bridge';
 import ariakit from '@cssints/apg-specs/scenarios/apg/radio.ariakit.json';
 import baseUi from '@cssints/apg-specs/scenarios/apg/radio.base-ui.json';
-import definition from '@cssints/apg-specs/src/apg/radio.model.generated.json';
+import definition from '@cssints/apg-specs/apg/radio.model.json';
 import reactAria from '@cssints/apg-specs/scenarios/apg/radio.react-aria.json';
 import { conformance } from './conformance';
 import { mountRadio } from './mounts';

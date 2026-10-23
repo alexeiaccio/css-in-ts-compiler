@@ -5,19 +5,19 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import {
   canonicalEvent,
   checkboxBridge,
   checkboxConfig,
   checkboxProbe,
   checkboxSteps,
-} from "@cssints/apg-specs/src/apg/checkbox.bridge";
+} from "@cssints/apg-specs/apg/checkbox.bridge";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import ariakit from "@cssints/apg-specs/scenarios/apg/checkbox.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/checkbox.base-ui.json";
-import definitionJson from "@cssints/apg-specs/src/apg/checkbox.model.generated.json";
+import definitionJson from "@cssints/apg-specs/apg/checkbox.model.json";
 import { domDriver } from "./dom-driver";
 import { mountCheckbox } from "./checkbox.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/checkbox.react-aria.json";

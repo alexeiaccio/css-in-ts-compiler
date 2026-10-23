@@ -1,8 +1,8 @@
 import { type Menu, createMenu } from "../src/menu";
 import { type Toolbar, type ToolbarItemKind, createToolbar } from "../src/toolbar";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
-import type { ToolbarConfig } from "@cssints/apg-specs/src/apg/toolbar.bridge";
+import type { ToolbarConfig } from "@cssints/apg-specs/apg/toolbar.bridge";
 import { createEffect } from "solid-js";
 import { render } from "@solidjs/web";
 

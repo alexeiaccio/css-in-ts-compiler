@@ -3,9 +3,9 @@ import {
   switchConfig,
   switchProbe,
   switchSteps,
-} from '@cssints/apg-specs/src/apg/switch.bridge';
+} from '@cssints/apg-specs/apg/switch.bridge';
 import baseUi from '@cssints/apg-specs/scenarios/apg/switch.base-ui.json';
-import definition from '@cssints/apg-specs/src/apg/switch.model.generated.json';
+import definition from '@cssints/apg-specs/apg/switch.model.json';
 import reactAria from '@cssints/apg-specs/scenarios/apg/switch.react-aria.json';
 import { conformance } from './conformance';
 import { mountSwitch } from './mounts';

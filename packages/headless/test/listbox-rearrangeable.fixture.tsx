@@ -4,9 +4,9 @@ import {
   type RearrangeableListbox,
   createRearrangeableListbox,
 } from "../src/listbox-rearrangeable";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
-import type { RearrangeableConfig } from "@cssints/apg-specs/src/apg/listbox-rearrangeable.bridge";
+import type { RearrangeableConfig } from "@cssints/apg-specs/apg/listbox-rearrangeable.bridge";
 import { render } from "@solidjs/web";
 
 const isJsonObject = (value: Json): value is Readonly<Record<string, Json>> =>

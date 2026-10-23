@@ -5,18 +5,18 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import {
   canonicalEvent,
   switchBridge,
   switchConfig,
   switchProbe,
   switchSteps,
-} from "@cssints/apg-specs/src/apg/switch.bridge";
+} from "@cssints/apg-specs/apg/switch.bridge";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import baseUi from "@cssints/apg-specs/scenarios/apg/switch.base-ui.json";
-import definitionJson from "@cssints/apg-specs/src/apg/switch.model.generated.json";
+import definitionJson from "@cssints/apg-specs/apg/switch.model.json";
 import { domDriver } from "./dom-driver";
 import { mountSwitch } from "./switch.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/switch.react-aria.json";

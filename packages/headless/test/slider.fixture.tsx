@@ -1,7 +1,7 @@
 import { type Slider, createSlider } from "../src/slider";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
-import type { SliderConfig } from "@cssints/apg-specs/src/apg/slider.bridge";
+import type { SliderConfig } from "@cssints/apg-specs/apg/slider.bridge";
 import { createSignal } from "solid-js";
 import { render } from "@solidjs/web";
 

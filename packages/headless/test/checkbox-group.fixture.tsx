@@ -3,8 +3,8 @@ import {
   type CheckboxGroupFocus,
   createCheckboxGroup,
 } from "../src/checkbox-group";
-import type { CheckboxGroupConfig } from "@cssints/apg-specs/src/apg/checkbox-group.bridge";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { CheckboxGroupConfig } from "@cssints/apg-specs/apg/checkbox-group.bridge";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
 import { createSignal } from "solid-js";
 import { render } from "@solidjs/web";

@@ -1,4 +1,4 @@
-import { type ScenarioConfig, differentialWalk, specDriver } from "@cssints/apg-specs/src/scenario";
+import { type ScenarioConfig, differentialWalk, specDriver } from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import {
@@ -6,8 +6,8 @@ import {
   playerConfig,
   playerProbe,
   playerSteps,
-} from "@cssints/apg-specs/src/apg/player.bridge";
-import definitionJson from "@cssints/apg-specs/src/apg/player.model.generated.json";
+} from "@cssints/apg-specs/apg/player.bridge";
+import definitionJson from "@cssints/apg-specs/apg/player.model.json";
 import { domDriver } from "./dom-driver";
 import { mountPlayer } from "./player.fixture";
 

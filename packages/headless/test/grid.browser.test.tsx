@@ -6,32 +6,27 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
-import {
-  gridBridge,
-  gridConfig,
-  gridProbe,
-  gridSteps,
-} from "@cssints/apg-specs/src/apg/grid.bridge";
+import { gridBridge, gridConfig, gridProbe, gridSteps } from "@cssints/apg-specs/apg/grid.bridge";
 import {
   gridSelectionBridge,
   gridSelectionConfig,
   gridSelectionProbe,
   gridSelectionSteps,
-} from "@cssints/apg-specs/src/apg/grid-selection.bridge";
+} from "@cssints/apg-specs/apg/grid-selection.bridge";
 import {
   gridSortBridge,
   gridSortConfig,
   gridSortProbe,
   gridSortSteps,
-} from "@cssints/apg-specs/src/apg/grid-sort.bridge";
+} from "@cssints/apg-specs/apg/grid-sort.bridge";
 import ariakit from "@cssints/apg-specs/scenarios/apg/grid.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/grid.base-ui.json";
-import gridDefinition from "@cssints/apg-specs/src/apg/grid.model.generated.json";
-import gridSelectionDefinition from "@cssints/apg-specs/src/apg/grid-selection.model.generated.json";
-import gridSortDefinition from "@cssints/apg-specs/src/apg/grid-sort.model.generated.json";
+import gridDefinition from "@cssints/apg-specs/apg/grid.model.json";
+import gridSelectionDefinition from "@cssints/apg-specs/apg/grid-selection.model.json";
+import gridSortDefinition from "@cssints/apg-specs/apg/grid-sort.model.json";
 import { mountGrid } from "./grid.fixture";
 import { partsDriver } from "./parts-driver";
 import reactAria from "@cssints/apg-specs/scenarios/apg/grid.react-aria.json";

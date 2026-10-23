@@ -1,7 +1,7 @@
 import { type Canvas, type CanvasOptions, createCanvas } from "../src";
 import { For, Show, createEffect } from "solid-js";
-import { NODES, POINTER_VIEWPORT } from "@cssints/apg-specs/src/canvas/canvas.bridge";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import { NODES, POINTER_VIEWPORT } from "@cssints/apg-specs/canvas/canvas.bridge";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
 import { render } from "@solidjs/web";
 

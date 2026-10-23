@@ -5,7 +5,7 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import {
   cameraBridge,
   cameraConfig,
@@ -15,12 +15,12 @@ import {
   pointerConfig,
   pointerProbe,
   pointerSteps,
-} from "@cssints/apg-specs/src/canvas/canvas.bridge";
+} from "@cssints/apg-specs/canvas/canvas.bridge";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import cameraContract from "@cssints/apg-specs/scenarios/canvas/camera.contract.json";
 import cameraExcalidraw from "@cssints/apg-specs/scenarios/canvas/camera.excalidraw.json";
-import cameraJson from "@cssints/apg-specs/src/canvas/camera.model.generated.json";
+import cameraJson from "@cssints/apg-specs/canvas/camera.model.json";
 import { canvasDriver } from "./canvas.driver";
 import { createCanvas } from "../src";
 import { createRoot } from "solid-js";
@@ -28,7 +28,7 @@ import marqueeExcalidraw from "@cssints/apg-specs/scenarios/canvas/marquee.excal
 import { mountCanvas } from "./canvas.fixture";
 import panExcalidraw from "@cssints/apg-specs/scenarios/canvas/pan.excalidraw.json";
 import pointerContract from "@cssints/apg-specs/scenarios/canvas/pointer.contract.json";
-import pointerJson from "@cssints/apg-specs/src/canvas/pointer.model.generated.json";
+import pointerJson from "@cssints/apg-specs/canvas/pointer.model.json";
 
 const cameraModel = makeReferenceModel(decodeDefinition(cameraJson));
 const pointerModel = makeReferenceModel(decodeDefinition(pointerJson));
