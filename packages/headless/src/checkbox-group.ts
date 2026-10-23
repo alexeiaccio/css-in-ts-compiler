@@ -106,7 +106,7 @@ const nextFocus = (focus: CheckboxGroupFocus): CheckboxGroupFocus => {
  * (https://www.w3.org/WAI/ARIA/apg/patterns/checkbox/): a controller whose
  * `aria-checked` is derived from three children (all/none/mixed), plus the
  * optional "remember the last mixed combination" cycle. Platform choice
- * (docs/research/apg-platform-features.md): **native** checkboxes; the
+ * (packages/headless/docs/apg-platform-features.md): **native** checkboxes; the
  * controller is a third checkbox with `aria-checked=mixed`.
  *
  * Request/commit (map ticket `rt1p`): uncontrolled by default (`defaultValue`);
