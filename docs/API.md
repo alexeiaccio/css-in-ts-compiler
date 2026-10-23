@@ -1273,11 +1273,11 @@ const { ratio, text } = await Effect.runPromise(contrast("#777", "white"));
 
 > **Deprecated.** The members below still compile, and `@cssints/tui` still applies them, but importing it now prints
 > one warning, and the package will not get new members. A terminal app builds on
-> [cssints-native](https://github.com/alexeiaccio/cssints-native) instead: `terminal/` takes `cssints/clay` styles
+> [`native/`](../native/README.md) in this repository instead: `native/terminal` takes `cssints/clay` styles
 > (`generator/clay-header.ts` → a C header), lays them out with [Clay](https://github.com/nicbarker/clay) and draws them
 > into character cells on [termbox2](https://github.com/termbox/termbox2), with the keyboard focus layer in C
 > (`terminal/focus.c`). What carries over and what does not, and the commands that run it, are in
-> [packages/tui/README.md](../packages/tui/README.md); `docs/map.md` step 6 of that project is the full account.
+> [packages/tui/README.md](../packages/tui/README.md); `native/docs/map.md` step 6 is the full account.
 
 A terminal app writes its styles with `cssints/tui`, and the same Vite plugin compiles them to **prop objects** for terminal renderables, not to classes: there is no sheet and no cascade. `@cssints/tui` applies them (states, the mouse pointer, the caret, themes); its adapters are [OpenTUI](https://opentui.com) and [@bomb.sh/tty](https://bomb.sh/docs/tty/api/). The design, the full property table and what is out of scope are in [research/tui.md](research/tui.md).
 
@@ -1481,11 +1481,11 @@ static const Clay_ElementDeclaration menu = { .layout = { ... }, .backgroundColo
 
 - **Images**: `image(src, { width, height, fit })` fills Clay's `image`: the element that draws a picture, its children none. Clay 1.0's `Clay_ImageElementConfig` is one field, `void *imageData`, which Clay passes to the renderer untouched, so the path of the image travels in it (the desktop renderer loads it with ThorVG; the firmware's own renderer is still the app's to write). Older Clay also kept the image's `sourceDimensions` there; 1.0 has no such field, so the image's own size becomes the element's box, and `fit` is Clay's `aspectRatio`:
 
-  | Option                     | Clay field                                                                                                       | Default   |
-  | -------------------------- | ---------------------------------------------------------------------------------------------------------------- | --------- |
-  | `"glyph.png"` (argument 1) | `image.imageData`: the path, printed as a C string, `(void *)"glyph.png"`                                        | —         |
-  | `width`, `height`          | `layout.sizing`: the image's size, `CLAY_SIZING_FIXED`, whole pixels (a later `width` of a `cn()` wins)          | —         |
-  | `fit: "contain"`           | `aspectRatio`: width / height, which Clay uses where it has one side to derive the other's (`"fill"` stretches)  | `"fill"`  |
+  | Option                     | Clay field                                                                                                      | Default  |
+  | -------------------------- | --------------------------------------------------------------------------------------------------------------- | -------- |
+  | `"glyph.png"` (argument 1) | `image.imageData`: the path, printed as a C string, `(void *)"glyph.png"`                                       | —        |
+  | `width`, `height`          | `layout.sizing`: the image's size, `CLAY_SIZING_FIXED`, whole pixels (a later `width` of a `cn()` wins)         | —        |
+  | `fit: "contain"`           | `aspectRatio`: width / height, which Clay uses where it has one side to derive the other's (`"fill"` stretches) | `"fill"` |
 
   A path that is not a non-empty string, a size that is not a positive whole number, an option that does not exist are build errors. `fit` is how the picture meets a box another style gives it: `fill` (CSS's `object-fit` default) stretches it, `contain` keeps the image's proportions.
 
