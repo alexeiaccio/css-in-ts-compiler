@@ -1,6 +1,6 @@
 import { type Alert, createAlert } from "../src/alert";
-import type { AlertConfig } from "@cssints/apg-specs/src/apg/alert.bridge";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { AlertConfig } from "@cssints/apg-specs/apg/alert.bridge";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
 import { createSignal } from "solid-js";
 import { render } from "@solidjs/web";

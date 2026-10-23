@@ -3,10 +3,10 @@ import {
   dialogModalConfig,
   dialogModalProbe,
   dialogModalSteps,
-} from '@cssints/apg-specs/src/apg/dialog-modal.bridge';
+} from '@cssints/apg-specs/apg/dialog-modal.bridge';
 import ariakit from '@cssints/apg-specs/scenarios/apg/dialog-modal.ariakit.json';
 import baseUi from '@cssints/apg-specs/scenarios/apg/dialog-modal.base-ui.json';
-import definition from '@cssints/apg-specs/src/apg/dialog-modal.model.generated.json';
+import definition from '@cssints/apg-specs/apg/dialog-modal.model.json';
 import reactAria from '@cssints/apg-specs/scenarios/apg/dialog-modal.react-aria.json';
 import { conformance } from './conformance';
 import { mountDialogModal } from './mounts';

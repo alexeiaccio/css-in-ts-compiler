@@ -9,7 +9,7 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import {
   type QuintReferenceModel,
   decodeDefinition,
@@ -21,28 +21,28 @@ import {
   listboxMultiConfig,
   listboxMultiProbe,
   listboxMultiSteps,
-} from "@cssints/apg-specs/src/apg/listbox-multi.bridge";
+} from "@cssints/apg-specs/apg/listbox-multi.bridge";
 import {
   listboxSingleBridge,
   listboxSingleConfig,
   listboxSingleProbe,
   listboxSingleSteps,
-} from "@cssints/apg-specs/src/apg/listbox-single.bridge";
+} from "@cssints/apg-specs/apg/listbox-single.bridge";
 import {
   listboxTypeaheadBridge,
   listboxTypeaheadConfig,
   listboxTypeaheadProbe,
   listboxTypeaheadSteps,
-} from "@cssints/apg-specs/src/apg/listbox-typeahead.bridge";
-import type { ListboxMountConfig } from "@cssints/apg-specs/src/apg/listbox-shared";
+} from "@cssints/apg-specs/apg/listbox-typeahead.bridge";
+import type { ListboxMountConfig } from "@cssints/apg-specs/apg/listbox-shared";
 import ariakit from "@cssints/apg-specs/scenarios/apg/listbox.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/listbox.base-ui.json";
 import { domDriver } from "./dom-driver";
 import { mountListbox } from "./listbox.fixture";
-import multiDefinitionJson from "@cssints/apg-specs/src/apg/listbox-multi.model.generated.json";
+import multiDefinitionJson from "@cssints/apg-specs/apg/listbox-multi.model.json";
 import reactAria from "@cssints/apg-specs/scenarios/apg/listbox.react-aria.json";
-import singleDefinitionJson from "@cssints/apg-specs/src/apg/listbox-single.model.generated.json";
-import typeaheadDefinitionJson from "@cssints/apg-specs/src/apg/listbox-typeahead.model.generated.json";
+import singleDefinitionJson from "@cssints/apg-specs/apg/listbox-single.model.json";
+import typeaheadDefinitionJson from "@cssints/apg-specs/apg/listbox-typeahead.model.json";
 
 interface Machine {
   readonly bridge: SpecBridge;

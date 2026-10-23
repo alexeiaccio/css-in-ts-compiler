@@ -1,7 +1,7 @@
 import { type Carousel, createCarousel } from "../src/carousel";
 import { createEffect, createSignal } from "solid-js";
-import type { CarouselConfig } from "@cssints/apg-specs/src/apg/carousel.bridge";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { CarouselConfig } from "@cssints/apg-specs/apg/carousel.bridge";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
 import { render } from "@solidjs/web";
 

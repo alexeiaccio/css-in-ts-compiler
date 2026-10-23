@@ -1,7 +1,7 @@
 import { type TooltipGroup, createTooltipGroup } from "../src/tooltip";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
-import type { TooltipConfig } from "@cssints/apg-specs/src/apg/tooltip.bridge";
+import type { TooltipConfig } from "@cssints/apg-specs/apg/tooltip.bridge";
 import { createSignal } from "solid-js";
 import { render } from "@solidjs/web";
 

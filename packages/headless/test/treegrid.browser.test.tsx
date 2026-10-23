@@ -5,7 +5,7 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import {
@@ -13,12 +13,12 @@ import {
   treegridConfig,
   treegridProbe,
   treegridSteps,
-} from "@cssints/apg-specs/src/apg/treegrid.bridge";
+} from "@cssints/apg-specs/apg/treegrid.bridge";
 import apg from "@cssints/apg-specs/scenarios/apg/treegrid.apg.json";
 import { mountTreegrid } from "./treegrid.fixture";
 import { partsDriver } from "./parts-driver";
 import reactAria from "@cssints/apg-specs/scenarios/apg/treegrid.react-aria.json";
-import treegridDefinition from "@cssints/apg-specs/src/apg/treegrid.model.generated.json";
+import treegridDefinition from "@cssints/apg-specs/apg/treegrid.model.json";
 
 const treegridModel = makeReferenceModel(decodeDefinition(treegridDefinition));
 

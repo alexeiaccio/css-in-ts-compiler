@@ -5,17 +5,17 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import {
   alertdialogBridge,
   alertdialogConfig,
   alertdialogProbe,
   alertdialogSteps,
-} from "@cssints/apg-specs/src/apg/alertdialog.bridge";
+} from "@cssints/apg-specs/apg/alertdialog.bridge";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import baseUi from "@cssints/apg-specs/scenarios/apg/alertdialog.base-ui.json";
-import definitionJson from "@cssints/apg-specs/src/apg/alertdialog.model.generated.json";
+import definitionJson from "@cssints/apg-specs/apg/alertdialog.model.json";
 import { domDriver } from "./dom-driver";
 import { mountAlertDialog } from "./alertdialog.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/alertdialog.react-aria.json";

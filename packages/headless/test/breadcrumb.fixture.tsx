@@ -1,5 +1,5 @@
-import type { BreadcrumbConfig } from "@cssints/apg-specs/src/apg/breadcrumb.bridge";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { BreadcrumbConfig } from "@cssints/apg-specs/apg/breadcrumb.bridge";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
 import { createBreadcrumb } from "../src/breadcrumb";
 import { createSignal } from "solid-js";

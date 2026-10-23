@@ -7,7 +7,7 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import {
@@ -15,9 +15,9 @@ import {
   treeviewConfig,
   treeviewProbe,
   treeviewSteps,
-} from "@cssints/apg-specs/src/apg/treeview.bridge";
+} from "@cssints/apg-specs/apg/treeview.bridge";
 import apg from "@cssints/apg-specs/scenarios/apg/treeview.apg.json";
-import definitionJson from "@cssints/apg-specs/src/apg/treeview.model.generated.json";
+import definitionJson from "@cssints/apg-specs/apg/treeview.model.json";
 import { mountTreeview } from "./treeview.fixture";
 import { userEvent } from "vite-plus/test/browser";
 

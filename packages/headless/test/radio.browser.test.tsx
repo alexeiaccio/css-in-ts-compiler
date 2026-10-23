@@ -5,19 +5,19 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import {
   canonicalEvent,
   radioBridge,
   radioConfig,
   radioProbe,
   radioSteps,
-} from "@cssints/apg-specs/src/apg/radio.bridge";
+} from "@cssints/apg-specs/apg/radio.bridge";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import ariakit from "@cssints/apg-specs/scenarios/apg/radio.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/radio.base-ui.json";
-import definitionJson from "@cssints/apg-specs/src/apg/radio.model.generated.json";
+import definitionJson from "@cssints/apg-specs/apg/radio.model.json";
 import { domDriver } from "./dom-driver";
 import { mountRadio } from "./radio.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/radio.react-aria.json";

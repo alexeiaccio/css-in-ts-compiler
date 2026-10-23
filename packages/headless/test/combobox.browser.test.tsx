@@ -8,21 +8,21 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import {
   COMBOBOX_AUTOCOMPLETE_ITEMS,
   comboboxAutocompleteBridge,
   comboboxAutocompleteConfig,
   comboboxAutocompleteProbe,
   comboboxAutocompleteSteps,
-} from "@cssints/apg-specs/src/apg/combobox-autocomplete.bridge";
+} from "@cssints/apg-specs/apg/combobox-autocomplete.bridge";
 import {
   COMBOBOX_SELECT_ONLY_ITEMS,
   comboboxSelectOnlyBridge,
   comboboxSelectOnlyConfig,
   comboboxSelectOnlyProbe,
   comboboxSelectOnlySteps,
-} from "@cssints/apg-specs/src/apg/combobox-select-only.bridge";
+} from "@cssints/apg-specs/apg/combobox-select-only.bridge";
 import {
   type QuintReferenceModel,
   decodeDefinition,
@@ -32,29 +32,29 @@ import {
   comboboxDialogBridge,
   comboboxDialogProbe,
   comboboxDialogSteps,
-} from "@cssints/apg-specs/src/apg/combobox-dialog.bridge";
+} from "@cssints/apg-specs/apg/combobox-dialog.bridge";
 import {
   comboboxGridBridge,
   comboboxGridProbe,
   comboboxGridSteps,
-} from "@cssints/apg-specs/src/apg/combobox-grid.bridge";
+} from "@cssints/apg-specs/apg/combobox-grid.bridge";
 import {
   comboboxTreeBridge,
   comboboxTreeProbe,
   comboboxTreeSteps,
-} from "@cssints/apg-specs/src/apg/combobox-tree.bridge";
+} from "@cssints/apg-specs/apg/combobox-tree.bridge";
 import { describe, expect, it } from "vite-plus/test";
 import type { Mounted } from "./dom-driver";
 import ariakit from "@cssints/apg-specs/scenarios/apg/combobox.ariakit.json";
-import autocompleteDefinition from "@cssints/apg-specs/src/apg/combobox-autocomplete.model.generated.json";
+import autocompleteDefinition from "@cssints/apg-specs/apg/combobox-autocomplete.model.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/combobox.base-ui.json";
-import dialogDefinition from "@cssints/apg-specs/src/apg/combobox-dialog.model.generated.json";
+import dialogDefinition from "@cssints/apg-specs/apg/combobox-dialog.model.json";
 import { domDriver } from "./dom-driver";
-import gridDefinition from "@cssints/apg-specs/src/apg/combobox-grid.model.generated.json";
+import gridDefinition from "@cssints/apg-specs/apg/combobox-grid.model.json";
 import { mountCombobox } from "./combobox.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/combobox.react-aria.json";
-import selectOnlyDefinition from "@cssints/apg-specs/src/apg/combobox-select-only.model.generated.json";
-import treeDefinition from "@cssints/apg-specs/src/apg/combobox-tree.model.generated.json";
+import selectOnlyDefinition from "@cssints/apg-specs/apg/combobox-select-only.model.json";
+import treeDefinition from "@cssints/apg-specs/apg/combobox-tree.model.json";
 
 interface Pattern {
   readonly name: string;

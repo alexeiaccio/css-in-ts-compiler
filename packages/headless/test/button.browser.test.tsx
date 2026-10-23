@@ -5,19 +5,19 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from "@cssints/apg-specs/src/scenario";
+} from "@cssints/apg-specs/scenario";
 import {
   buttonBridge,
   buttonConfig,
   buttonProbe,
   buttonSteps,
   canonicalEvent,
-} from "@cssints/apg-specs/src/apg/button.bridge";
+} from "@cssints/apg-specs/apg/button.bridge";
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, expect, it } from "vite-plus/test";
 import ariakit from "@cssints/apg-specs/scenarios/apg/button.ariakit.json";
 import baseUi from "@cssints/apg-specs/scenarios/apg/button.base-ui.json";
-import definitionJson from "@cssints/apg-specs/src/apg/button.model.generated.json";
+import definitionJson from "@cssints/apg-specs/apg/button.model.json";
 import { domDriver } from "./dom-driver";
 import { mountButton } from "./button.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/button.react-aria.json";

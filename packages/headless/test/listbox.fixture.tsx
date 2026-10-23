@@ -1,7 +1,7 @@
 import { type Listbox, createListbox } from "../src/listbox";
 import { createEffect, createSignal } from "solid-js";
-import type { Json } from "@cssints/apg-specs/src/scenario";
-import type { ListboxMountConfig } from "@cssints/apg-specs/src/apg/listbox-shared";
+import type { Json } from "@cssints/apg-specs/scenario";
+import type { ListboxMountConfig } from "@cssints/apg-specs/apg/listbox-shared";
 import type { Mounted } from "./dom-driver";
 import { render } from "@solidjs/web";
 

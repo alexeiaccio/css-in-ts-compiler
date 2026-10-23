@@ -1,14 +1,14 @@
 import { decodeDefinition, makeReferenceModel } from "@quint-machine/core";
 import { describe, it } from "vite-plus/test";
-import { differentialWalk, specDriver } from "@cssints/apg-specs/src/scenario";
+import { differentialWalk, specDriver } from "@cssints/apg-specs/scenario";
 import {
   listboxRearrangeableBridge,
   listboxRearrangeableConfig,
   listboxRearrangeableProbe,
   listboxRearrangeableSteps,
-} from "@cssints/apg-specs/src/apg/listbox-rearrangeable.bridge";
-import type { ScenarioConfig } from "@cssints/apg-specs/src/scenario";
-import definitionJson from "@cssints/apg-specs/src/apg/listbox-rearrangeable.model.generated.json";
+} from "@cssints/apg-specs/apg/listbox-rearrangeable.bridge";
+import type { ScenarioConfig } from "@cssints/apg-specs/scenario";
+import definitionJson from "@cssints/apg-specs/apg/listbox-rearrangeable.model.json";
 import { domDriver } from "./dom-driver";
 import { mountRearrangeableListbox } from "./listbox-rearrangeable.fixture";
 

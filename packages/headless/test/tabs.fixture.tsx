@@ -1,8 +1,8 @@
 import { type Tabs, createTabs } from "../src/tabs";
 import { createEffect, createSignal } from "solid-js";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
-import type { TabsConfig } from "@cssints/apg-specs/src/apg/tabs.bridge";
+import type { TabsConfig } from "@cssints/apg-specs/apg/tabs.bridge";
 import { render } from "@solidjs/web";
 
 const disabledIndices = (mask: number): ReadonlyArray<number> =>

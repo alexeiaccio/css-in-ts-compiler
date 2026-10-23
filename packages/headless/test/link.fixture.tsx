@@ -1,5 +1,5 @@
-import type { Json } from "@cssints/apg-specs/src/scenario";
-import type { LinkConfig } from "@cssints/apg-specs/src/apg/link.bridge";
+import type { Json } from "@cssints/apg-specs/scenario";
+import type { LinkConfig } from "@cssints/apg-specs/apg/link.bridge";
 import type { Mounted } from "./dom-driver";
 import { createLink } from "../src/link";
 import { createSignal } from "solid-js";

@@ -1,7 +1,7 @@
 import { type PlaybackAdapter, type PlaybackAdapterEvent, type Player, createPlayer } from "../src";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
-import type { PlayerConfig } from "@cssints/apg-specs/src/apg/player.bridge";
+import type { PlayerConfig } from "@cssints/apg-specs/apg/player.bridge";
 import { createSignal } from "solid-js";
 import { render } from "@solidjs/web";
 

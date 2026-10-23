@@ -10,7 +10,7 @@ import {
   parseScenarioFile,
   replayScenario,
   specDriver,
-} from '@cssints/apg-specs/src/scenario';
+} from '@cssints/apg-specs/scenario';
 import {
   type Mounted,
   type NeutralDriverOptions,

@@ -323,10 +323,10 @@ disarms.
 ## The specs
 
 The spec side of the tests is the workspace package [`@cssints/apg-specs`](../../packages/apg-specs) (`workspace:*`): the
-bridges and the scenario replay (`@cssints/apg-specs/src/scenario`, `.../src/apg/<pattern>.bridge`), the generated
-models (`.../src/apg/<pattern>.model.generated.json`) and the ported scenarios (`.../scenarios/apg/`). The model
+bridges and the scenario replay (`@cssints/apg-specs/scenario`, `.../apg/<pattern>.bridge`), the generated
+models (`.../apg/<pattern>.model.json`) and the ported scenarios (`.../scenarios/apg/`). The model
 evaluator is the npm package `@quint-machine/core` (0.1.0), and `effect@4.0.0` decodes the scenario files and the
-model. `bun run test:native` at the repository root runs `typecheck:native` and `test:native` here.
+model. `@cssints/apg-specs` resolves to its `src/` here through the `bun` export condition (`development` would also switch `solid-js` to its dev build). `bun run test:native` at the repository root runs `typecheck:native` and `test:native` here.
 Because the specs are shared with the web widgets, a change to a spec is checked by both.
 
 ## Left

@@ -3,7 +3,7 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "customConditions": ["browser"],
+    "customConditions": ["browser", "development"],
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,

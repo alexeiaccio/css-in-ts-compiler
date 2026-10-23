@@ -1,6 +1,6 @@
 import { type Accordion, createAccordion } from "../src/accordion";
-import type { AccordionConfig } from "@cssints/apg-specs/src/apg/accordion.bridge";
-import type { Json } from "@cssints/apg-specs/src/scenario";
+import type { AccordionConfig } from "@cssints/apg-specs/apg/accordion.bridge";
+import type { Json } from "@cssints/apg-specs/scenario";
 import type { Mounted } from "./dom-driver";
 import { createSignal } from "solid-js";
 import { render } from "@solidjs/web";
