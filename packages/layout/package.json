@@ -1,6 +1,6 @@
 {
   "name": "@cssints/layout",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Layout primitives for cssints: stack, cluster, sidebar, switcher, cover and autoGrid as chain members",
   "license": "MIT",
   "repository": {
