@@ -1,6 +1,6 @@
 {
   "name": "@cssints/placeholder",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Image placeholders for cssints: a gradient of the dominant colours, or a thumbhash data URL, read from the image at build time",
   "license": "MIT",
   "repository": {

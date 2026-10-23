@@ -1,6 +1,6 @@
 {
   "name": "@cssints/ramp",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "OKLCH colour ramps for cssints as DTCG data: a lightness ramp, or steps picked by WCAG 2 contrast against a background",
   "license": "MIT",
   "repository": {
