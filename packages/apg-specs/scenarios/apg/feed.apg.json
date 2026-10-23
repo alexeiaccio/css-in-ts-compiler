@@ -1,0 +1,442 @@
+{
+  "pattern": "feed",
+  "source": "apg",
+  "commit": null,
+  "license": "W3C Software and Document License",
+  "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/",
+  "notes": "No upstream test implementation of the feed pattern exists in ariakit, base-ui or react-aria (searched *test* files for role=feed / feed; only unrelated uses of the word 'feed' and the 'feedback'/'MessageFeedback' components matched). Scenarios are therefore derived from the APG Feed Pattern itself: the Keyboard Interaction and WAI-ARIA Roles, States, and Properties sections, and the Infinite Scrolling Feed example (pattern page + example page + the example's feed.js, licensed W3C Software and Document License).",
+  "skipped": [],
+  "scenarios": [
+    {
+      "id": "feed.apg.about.focus-on-last-loaded-article-loads-more",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#aboutthispattern",
+      "upstreamTest": "About This Pattern: the page loads feed articles based on which article contains DOM focus",
+      "apg": "about",
+      "config": { "loaded": 1, "totalArticles": 6 },
+      "steps": [
+        { "event": "focus", "target": "article:1" },
+        {
+          "expect": {
+            "focus": "article:1",
+            "attrs": { "feed": { "aria-busy": "true" } },
+            "visible": ["article:1"]
+          }
+        }
+      ],
+      "notes": "Focus reaching the last loaded article is the load trigger; aria-busy brackets the DOM update. Scroll-triggered loading is modelled by the same load phase."
+    },
+    {
+      "id": "feed.apg.about.focus-not-on-last-article-does-not-load",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#aboutthispattern",
+      "upstreamTest": "About This Pattern: loading is driven by the article holding DOM focus, not by every focus change",
+      "apg": "about",
+      "config": { "loaded": 3, "totalArticles": 6 },
+      "steps": [
+        { "event": "focus", "target": "article:2" },
+        {
+          "expect": {
+            "focus": "article:2",
+            "attrs": { "feed": { "aria-busy": null } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "feed.apg.about.no-load-when-all-articles-loaded",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#aboutthispattern",
+      "upstreamTest": "About This Pattern: once every article is loaded there is nothing left to fetch",
+      "apg": "about",
+      "config": { "loaded": 6, "totalArticles": 6 },
+      "steps": [
+        { "event": "focus", "target": "article:6" },
+        {
+          "expect": {
+            "focus": "article:6",
+            "attrs": {
+              "feed": { "aria-busy": null },
+              "article:1": { "aria-setsize": "6" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "feed.apg.about.tab-enters-on-any-loaded-article",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#aboutthispattern",
+      "upstreamTest": "About This Pattern: the reading cursor is the focused article; articles are in the Tab sequence",
+      "apg": "about",
+      "config": { "loaded": 3, "totalArticles": 6 },
+      "steps": [
+        { "event": "focus", "target": "article:2" },
+        { "expect": { "focus": "article:2" } }
+      ]
+    },
+    {
+      "id": "feed.apg.about.focus-on-unloaded-article-is-ignored",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#aboutthispattern",
+      "upstreamTest": "About This Pattern: focus cannot land on an article that has not been loaded",
+      "apg": "about",
+      "config": { "loaded": 3, "totalArticles": 6 },
+      "steps": [
+        { "event": "focus", "target": "article:4" },
+        {
+          "expect": {
+            "focus": "before-feed",
+            "attrs": { "feed": { "aria-busy": null } },
+            "visible": ["article:1", "article:2", "article:3"]
+          }
+        }
+      ],
+      "notes": "Sentinel targets \"before-feed\"/\"after-feed\" denote DOM focus outside the feed on the first focusable element before/after it."
+    },
+
+    {
+      "id": "feed.apg.keyboard.page-down-moves-to-next-article",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: Page Down moves focus to next article",
+      "apg": "keyboard",
+      "config": { "loaded": 3, "totalArticles": 6 },
+      "steps": [
+        { "event": "focus", "target": "article:1" },
+        { "event": "key", "key": "PageDown", "target": "article:1" },
+        { "expect": { "focus": "article:2" } }
+      ]
+    },
+    {
+      "id": "feed.apg.keyboard.page-down-on-last-article-stays",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: Page Down has no next article at the end of the loaded set",
+      "apg": "keyboard",
+      "config": { "loaded": 3, "totalArticles": 3 },
+      "steps": [
+        { "event": "focus", "target": "article:3" },
+        { "event": "key", "key": "PageDown", "target": "article:3" },
+        {
+          "expect": {
+            "focus": "article:3",
+            "attrs": { "feed": { "aria-busy": null } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "feed.apg.keyboard.page-up-moves-to-previous-article",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: Page Up moves focus to previous article",
+      "apg": "keyboard",
+      "config": { "loaded": 3, "totalArticles": 6 },
+      "steps": [
+        { "event": "focus", "target": "article:3" },
+        { "event": "key", "key": "PageUp", "target": "article:3" },
+        { "expect": { "focus": "article:2" } }
+      ]
+    },
+    {
+      "id": "feed.apg.keyboard.page-up-on-first-article-stays",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: Page Up has no previous article at the start of the feed",
+      "apg": "keyboard",
+      "config": { "loaded": 3, "totalArticles": 6 },
+      "steps": [
+        { "event": "focus", "target": "article:1" },
+        { "event": "key", "key": "PageUp", "target": "article:1" },
+        { "expect": { "focus": "article:1" } }
+      ]
+    },
+    {
+      "id": "feed.apg.keyboard.ctrl-end-moves-to-element-after-feed",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: Control+End moves focus to the first focusable element after the feed",
+      "apg": "keyboard",
+      "config": { "loaded": 3, "totalArticles": 6 },
+      "steps": [
+        { "event": "focus", "target": "article:2" },
+        { "event": "key", "key": "Control+End", "target": "article:2" },
+        { "expect": { "focus": "after-feed" } }
+      ]
+    },
+    {
+      "id": "feed.apg.keyboard.ctrl-home-moves-to-element-before-feed",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: Control+Home moves focus to the first focusable element before the feed",
+      "apg": "keyboard",
+      "config": { "loaded": 3, "totalArticles": 6 },
+      "steps": [
+        { "event": "focus", "target": "article:2" },
+        { "event": "key", "key": "Control+Home", "target": "article:2" },
+        { "expect": { "focus": "before-feed" } }
+      ]
+    },
+    {
+      "id": "feed.apg.keyboard.page-down-when-focus-outside-feed-is-noop",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: the navigation keys operate when focus is inside the feed",
+      "apg": "keyboard",
+      "config": { "loaded": 3, "totalArticles": 6 },
+      "steps": [
+        { "event": "key", "key": "PageDown", "target": "before-feed" },
+        { "expect": { "focus": "before-feed" } }
+      ]
+    },
+    {
+      "id": "feed.apg.keyboard.page-up-when-focus-outside-feed-is-noop",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#keyboardinteraction",
+      "upstreamTest": "Keyboard Interaction: the navigation keys operate when focus is inside the feed",
+      "apg": "keyboard",
+      "config": { "loaded": 3, "totalArticles": 6 },
+      "steps": [
+        { "event": "key", "key": "PageUp", "target": "after-feed" },
+        { "expect": { "focus": "after-feed" } }
+      ]
+    },
+
+    {
+      "id": "feed.apg.roles.feed-container-has-role",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: the element that contains the set of feed articles has role feed",
+      "apg": "roles",
+      "config": { "loaded": 1, "totalArticles": 6 },
+      "steps": [{ "expect": { "attrs": { "feed": { "role": "feed" } } } }]
+    },
+    {
+      "id": "feed.apg.roles.feed-container-not-focusable",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/examples/feed/#rps_label",
+      "upstreamTest": "Example attributes table: the feed element is a structural container that is not focusable",
+      "apg": "roles",
+      "config": { "loaded": 1, "totalArticles": 6 },
+      "steps": [{ "expect": { "attrs": { "feed": { "tabindex": null } } } }]
+    },
+    {
+      "id": "feed.apg.roles.feed-has-accessible-name",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: the feed is named with aria-labelledby, or aria-label when there is no visible label",
+      "apg": "roles",
+      "config": { "loaded": 1, "labelledby": "feed-heading" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "feed": { "aria-labelledby": "feed-heading" } }
+          }
+        }
+      ],
+      "notes": "With no visible label the name comes from aria-label instead; this scenario pins the labelledby branch."
+    },
+    {
+      "id": "feed.apg.roles.article-has-role-and-posinset",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: each unit of content is an article whose aria-posinset is its position in the feed, numbering from 1",
+      "apg": "roles",
+      "config": { "loaded": 3, "totalArticles": 6 },
+      "steps": [
+        {
+          "expect": {
+            "visible": ["article:1", "article:2", "article:3"],
+            "attrs": {
+              "article:1": { "role": "article", "aria-posinset": "1" },
+              "article:3": { "aria-posinset": "3" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "feed.apg.roles.articles-are-tabbable",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/examples/feed/#rps_label",
+      "upstreamTest": "Example attributes table: tabindex=0 makes an article focusable and includes it in the page Tab sequence",
+      "apg": "roles",
+      "config": { "loaded": 3, "totalArticles": 6 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "article:1": { "tabindex": "0" },
+              "article:3": { "tabindex": "0" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "feed.apg.roles.article-has-labelledby",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: each article has aria-labelledby referring to elements inside it that distinguish it",
+      "apg": "roles",
+      "config": { "loaded": 1, "totalArticles": 6 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "article:1": { "aria-labelledby": "*" } }
+          }
+        }
+      ],
+      "notes": "Attribute value \"*\" means any non-empty implementation-chosen IDREF list."
+    },
+    {
+      "id": "feed.apg.roles.article-has-describedby-for-primary-content",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: each article has aria-describedby referring to its primary content, excluding content repeated in every article",
+      "apg": "roles",
+      "config": { "loaded": 1, "totalArticles": 6 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "article:1": { "aria-describedby": "*" } }
+          }
+        }
+      ],
+      "notes": "Value \"*\" means any non-empty IDREF list. APG: repeated elements such as the example's Bookmark button must not be part of it."
+    },
+    {
+      "id": "feed.apg.roles.setsize-is-loaded-count-per-example",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/examples/feed/#rps_label",
+      "upstreamTest": "Example attributes table: aria-setsize is set to the total number of articles currently contained by the feed",
+      "apg": "roles",
+      "config": { "loaded": 3, "totalArticles": 30, "sizeMode": "loaded" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "article:1": { "aria-setsize": "3" },
+              "article:3": { "aria-setsize": "3" }
+            }
+          }
+        }
+      ],
+      "notes": "APG permits either the currently loaded count or the total in the feed; the example uses the loaded count."
+    },
+    {
+      "id": "feed.apg.roles.setsize-may-be-total",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: aria-setsize may be the total number in the feed",
+      "apg": "roles",
+      "config": {
+        "loaded": 3,
+        "totalArticles": 30,
+        "sizeMode": "total",
+        "totalKnown": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "article:1": { "aria-setsize": "30" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "feed.apg.roles.setsize-minus-one-when-total-undetermined",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: an undetermined total number in the feed is represented by aria-setsize -1",
+      "apg": "roles",
+      "config": {
+        "loaded": 3,
+        "totalArticles": null,
+        "sizeMode": "total",
+        "totalKnown": false
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "article:1": { "aria-setsize": "-1" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "feed.apg.roles.busy-true-while-adding-articles",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: the feed has aria-busy=true during a multi-operation update that adds articles",
+      "apg": "roles",
+      "config": { "loaded": 1, "totalArticles": 6 },
+      "steps": [
+        { "event": "prop", "prop": "loadStart" },
+        { "expect": { "attrs": { "feed": { "aria-busy": "true" } } } }
+      ]
+    },
+    {
+      "id": "feed.apg.roles.busy-cleared-when-load-completes",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: aria-busy is set to false when the update operation is complete",
+      "apg": "roles",
+      "config": { "loaded": 1, "totalArticles": 6 },
+      "steps": [
+        { "event": "prop", "prop": "loadStart" },
+        { "event": "prop", "prop": "loadFinish", "value": 2 },
+        {
+          "expect": {
+            "attrs": {
+              "feed": { "aria-busy": null },
+              "article:1": { "aria-setsize": "3" }
+            },
+            "visible": ["article:1", "article:2", "article:3"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "feed.apg.roles.busy-cleared-after-failed-load",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/#wai-ariaroles,states,andproperties",
+      "upstreamTest": "Roles/States: aria-busy must be false once the operation is complete, so the changes become visible to assistive technology",
+      "apg": "roles",
+      "config": { "loaded": 1, "totalArticles": 6 },
+      "steps": [
+        { "event": "prop", "prop": "loadStart" },
+        { "event": "prop", "prop": "loadFail" },
+        {
+          "expect": {
+            "attrs": { "feed": { "aria-busy": null } },
+            "visible": ["article:1"]
+          }
+        }
+      ],
+      "notes": "A failed load adds nothing but must still clear aria-busy."
+    },
+
+    {
+      "id": "feed.apg.example.ctrl-home-focuses-first-article",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/examples/feed/",
+      "upstreamTest": "Example keyboard table: Control+Home moves focus to the first focusable element in the feed (feed.js focuses feedItems[0])",
+      "apg": "example",
+      "config": { "loaded": 3, "totalArticles": 6 },
+      "steps": [
+        { "event": "focus", "target": "article:2" },
+        { "event": "key", "key": "Control+Home", "target": "article:2" },
+        { "expect": { "focus": "article:1" } }
+      ],
+      "notes": "Divergence: the APG Keyboard Interaction section says Control+Home moves to the first focusable element before the feed; the example's table and feed.js move to the first article inside the feed."
+    },
+    {
+      "id": "feed.apg.example.ctrl-end-focuses-anchor-after-feed",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/examples/feed/",
+      "upstreamTest": "Example keyboard table and feed.js: Control+End moves focus to the anchor item after the feed",
+      "apg": "example",
+      "config": { "loaded": 3, "totalArticles": 6 },
+      "steps": [
+        { "event": "focus", "target": "article:2" },
+        { "event": "key", "key": "Control+End", "target": "article:2" },
+        { "expect": { "focus": "after-feed" } }
+      ]
+    },
+    {
+      "id": "feed.apg.example.setsize-updates-for-all-articles-on-load",
+      "upstream": "https://www.w3.org/WAI/ARIA/apg/patterns/feed/examples/feed/",
+      "upstreamTest": "Example feedDisplay.js: after appending articles, aria-setsize is re-set on every article to the new loaded count",
+      "apg": "example",
+      "config": { "loaded": 1, "totalArticles": 30 },
+      "steps": [
+        { "event": "prop", "prop": "loadStart" },
+        { "event": "prop", "prop": "loadFinish", "value": 2 },
+        {
+          "expect": {
+            "attrs": {
+              "article:1": { "aria-setsize": "3" },
+              "article:2": { "aria-setsize": "3" },
+              "article:3": { "aria-setsize": "3" }
+            },
+            "visible": ["article:1", "article:2", "article:3"]
+          }
+        }
+      ]
+    }
+  ]
+}

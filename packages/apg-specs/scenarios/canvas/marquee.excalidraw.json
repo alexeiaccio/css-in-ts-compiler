@@ -1,0 +1,122 @@
+{
+  "pattern": "marquee",
+  "source": "excalidraw",
+  "commit": "ed10ac7dca7e40f3f4a31269b4bfba980d0db41e",
+  "license": "MIT",
+  "copyright": "Copyright (c) 2020 Excalidraw",
+  "scenarios": [
+    {
+      "id": "marquee.excalidraw.contain-shift-additive",
+      "upstream": "https://github.com/excalidraw/excalidraw/blob/ed10ac7dca7e40f3f4a31269b4bfba980d0db41e/packages/excalidraw/tests/selection.test.tsx#L67",
+      "upstreamTest": "box-selection > should allow adding to selection via box-select when holding shift",
+      "area": "selection",
+      "config": {
+        "boxSelection": "contain",
+        "camera": { "x": 0, "y": 0, "zoom": 1 },
+        "nodes": [
+          { "id": "rect1", "x": 0, "y": 0, "w": 50, "h": 50 },
+          { "id": "rect2", "x": 100, "y": 0, "w": 50, "h": 50 }
+        ]
+      },
+      "steps": [
+        { "event": "pointerdown", "at": [175, -20] },
+        { "event": "pointermove", "at": [85, 70] },
+        { "event": "pointerup" },
+        { "expect": { "selection": ["rect2"] } },
+        { "event": "modifier", "shift": true },
+        { "event": "pointerdown", "at": [75, -20] },
+        { "event": "pointermove", "at": [-15, 70] },
+        { "event": "pointerup" },
+        {
+          "expect": {
+            "selection": ["rect2", "rect1"],
+            "selectionOrder": "unordered"
+          }
+        }
+      ],
+      "notes": "Upstream first throws the pointer to (-1000, -1000) to get past the drag threshold; the port moves straight to the final point. Both boxes sit on empty canvas and fully enclose their node. Shift keeps the pointerdown selection and adds the marquee hits."
+    },
+    {
+      "id": "marquee.excalidraw.live-deselect-when-leaving",
+      "upstream": "https://github.com/excalidraw/excalidraw/blob/ed10ac7dca7e40f3f4a31269b4bfba980d0db41e/packages/excalidraw/tests/selection.test.tsx#L104",
+      "upstreamTest": "box-selection > should (de)select element when box-selecting over and out while not holding shift",
+      "area": "selection",
+      "config": {
+        "boxSelection": "contain",
+        "camera": { "x": 0, "y": 0, "zoom": 1 },
+        "nodes": [{ "id": "rect1", "x": 0, "y": 0, "w": 50, "h": 50 }]
+      },
+      "steps": [
+        { "event": "pointerdown", "at": [75, -20] },
+        { "event": "pointermove", "at": [-15, 70] },
+        { "expect": { "selection": ["rect1"] } },
+        { "event": "pointermove", "at": [100, -100] },
+        { "expect": { "selection": [] } },
+        { "event": "pointerup" },
+        { "expect": { "selection": [] } }
+      ],
+      "notes": "The marquee selection is live: it is recomputed from the rectangle on every move, so shrinking the rectangle away from a node deselects it before release."
+    },
+    {
+      "id": "marquee.excalidraw.contain-partial-overlap-selects-nothing",
+      "upstream": "https://github.com/excalidraw/excalidraw/blob/ed10ac7dca7e40f3f4a31269b4bfba980d0db41e/packages/excalidraw/tests/selection.test.tsx#L132",
+      "upstreamTest": "box-selection > should not select an element when the selection box only partially overlaps it",
+      "area": "selection",
+      "config": {
+        "boxSelection": "contain",
+        "camera": { "x": 0, "y": 0, "zoom": 1 },
+        "nodes": [{ "id": "rect1", "x": 0, "y": 0, "w": 50, "h": 50 }]
+      },
+      "steps": [
+        { "event": "pointerdown", "at": [25, -20] },
+        { "event": "pointermove", "at": [75, 70] },
+        { "event": "pointerup" },
+        { "expect": { "selection": [] } }
+      ],
+      "notes": "Excalidraw's default mode is contain, as in pointer.qnt. The node is a filled rectangle, so geometry-aware hit rules (hollow shapes) do not enter."
+    },
+    {
+      "id": "marquee.excalidraw.overlap-partial-selects",
+      "upstream": "https://github.com/excalidraw/excalidraw/blob/ed10ac7dca7e40f3f4a31269b4bfba980d0db41e/packages/excalidraw/tests/selection.test.tsx#L261",
+      "upstreamTest": "box-selection overlap mode > should select an element when the selection box partially overlaps it",
+      "area": "selection",
+      "config": {
+        "boxSelection": "overlap",
+        "camera": { "x": 0, "y": 0, "zoom": 1 },
+        "nodes": [{ "id": "rect1", "x": 0, "y": 0, "w": 50, "h": 50 }]
+      },
+      "steps": [
+        { "event": "pointerdown", "at": [25, -20] },
+        { "event": "pointermove", "at": [75, 70] },
+        { "event": "pointerup" },
+        { "expect": { "selection": ["rect1"] } }
+      ],
+      "notes": "The same drag as contain-partial-overlap-selects-nothing: contain selects a subset of overlap (pointer.qnt ContainSubsetOfOverlap). Upstream starts the app with boxSelectionMode 'overlap' in appState; the port states it as config."
+    },
+    {
+      "id": "marquee.excalidraw.unchanged-selection-does-not-churn",
+      "upstream": "https://github.com/excalidraw/excalidraw/blob/ed10ac7dca7e40f3f4a31269b4bfba980d0db41e/packages/excalidraw/tests/selection.test.tsx#L1407",
+      "upstreamTest": "selectedElementIds stability > box-selection should be stable when not changing selection",
+      "area": "extension",
+      "config": {
+        "boxSelection": "contain",
+        "camera": { "x": 0, "y": 0, "zoom": 1 },
+        "nodes": [{ "id": "rect", "x": 0, "y": 0, "w": 10, "h": 10 }]
+      },
+      "steps": [
+        { "event": "pointerdown", "at": [-100, -100] },
+        { "event": "pointermove", "at": [-50, -50] },
+        { "event": "pointerup" },
+        { "expect": { "selection": [], "selectionChanged": false } },
+        { "event": "pointerdown", "at": [-50, -50] },
+        { "event": "pointermove", "at": [50, 50] },
+        { "expect": { "selection": ["rect"], "selectionChanged": true } },
+        { "event": "pointermove", "at": [60, 60] },
+        { "expect": { "selection": ["rect"], "selectionChanged": false } },
+        { "event": "pointerup" },
+        { "expect": { "selection": ["rect"], "selectionChanged": false } }
+      ],
+      "notes": "Upstream asserts object identity of selectedElementIds (React state stability). The engine-neutral reading is selectionChanged: a step that leaves the selection set equal must not emit a selection change (a Solid signal must not fire; pointer.qnt announces only when a gesture ends with a changed selection)."
+    }
+  ]
+}

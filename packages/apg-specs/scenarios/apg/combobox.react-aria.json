@@ -1,0 +1,845 @@
+{
+  "pattern": "combobox",
+  "source": "react-aria",
+  "commit": "99e610236887da619ad9d54a1cd87983166c043d",
+  "license": "Apache-2.0",
+  "scenarios": [
+    {
+      "id": "combobox.react-aria.input-role-and-autocomplete",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/combobox/useComboBox.test.js#L81",
+      "upstreamTest": "useComboBox > should return default props for all the button group elements",
+      "apg": "aria",
+      "config": { "items": ["Cat", "Dog", "Kangaroo"] },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "input": {
+                "role": "combobox",
+                "aria-autocomplete": "list",
+                "aria-controls": null,
+                "aria-activedescendant": null
+              },
+              "trigger": { "aria-haspopup": "true", "aria-expanded": null }
+            }
+          }
+        }
+      ],
+      "notes": "The input is the combobox; aria-controls and aria-activedescendant appear only while open. The trigger is a button excluded from the tab order with aria-haspopup."
+    },
+    {
+      "id": "combobox.react-aria.open-and-select-option-by-pointer",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L69",
+      "upstreamTest": "ComboBox > provides slots",
+      "apg": "aria",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "defaultInputValue": "C"
+      },
+      "steps": [
+        { "expect": { "value": "C" } },
+        { "event": "click", "target": "trigger" },
+        {
+          "expect": {
+            "visible": ["popup", "option:0", "option:1", "option:2"],
+            "attrs": { "popup": { "role": "listbox" } }
+          }
+        },
+        { "event": "click", "target": "option:1" },
+        { "expect": { "value": "Dog", "visible": [] } }
+      ],
+      "notes": "aria-labelledby/aria-describedby wiring is asserted upstream but depends on generated ids; only the labelled listbox and option selection are restated."
+    },
+    {
+      "id": "combobox.react-aria.filtering-sections",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L136",
+      "upstreamTest": "ComboBox > should support filtering sections",
+      "apg": "aria",
+      "config": {
+        "items": ["Apple", "Banana", "Cabbage", "Broccoli"],
+        "sections": {
+          "Fruit": ["Apple", "Banana"],
+          "Vegetable": ["Cabbage", "Broccoli"]
+        }
+      },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "text": "p", "target": "input" },
+        {
+          "expect": {
+            "visible": ["popup", "option:0"],
+            "attrs": { "option:0": { "aria-selected": "false" } }
+          }
+        }
+      ],
+      "notes": "Only the section holding a match is rendered; the surviving option is Apple."
+    },
+    {
+      "id": "combobox.react-aria.dynamic-collection-filter",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L216",
+      "upstreamTest": "ComboBox > should support dynamic collections",
+      "apg": "aria",
+      "config": { "items": ["Cat", "Dog", "Kangaroo"], "dynamicItems": true },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "text": "c", "target": "input" },
+        { "expect": { "visible": ["popup", "option:0"] } }
+      ],
+      "notes": "Typing filters the dynamic collection down to the single match (Cat)."
+    },
+    {
+      "id": "combobox.react-aria.keyboard-select-option",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L285",
+      "upstreamTest": "ComboBox > should support selecting an option via keyboard",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "interactionType": "keyboard"
+      },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        {
+          "expect": {
+            "visible": ["popup", "option:0", "option:1", "option:2"],
+            "attrs": { "input": { "aria-activedescendant": "option:0" } }
+          }
+        },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        {
+          "expect": {
+            "attrs": { "input": { "aria-activedescendant": "option:1" } }
+          }
+        },
+        { "event": "key", "key": "Enter", "target": "input" },
+        {
+          "expect": {
+            "value": "Dog",
+            "visible": [],
+            "events": { "onSelectionChange": ["2"] }
+          }
+        }
+      ],
+      "notes": "Options are tracked with aria-activedescendant, not DOM focus; the option id is the library-neutral option index ('2' is the Dog key)."
+    },
+    {
+      "id": "combobox.react-aria.tab-commits-without-extra-change",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L312",
+      "upstreamTest": "ComboBox > should not fire extra onSelectionChange calls after focus moves away in fully controlled mode via tab",
+      "apg": "keyboard",
+      "config": { "items": ["Cat", "Dog", "Kangaroo"], "controlled": true },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "Enter", "target": "input" },
+        {
+          "expect": { "value": "Dog", "events": { "onSelectionChange": ["2"] } }
+        },
+        { "event": "key", "key": "Tab", "target": "input" },
+        {
+          "expect": { "value": "Dog", "events": { "onSelectionChange": ["2"] } }
+        }
+      ],
+      "notes": "Moving focus away must not re-fire the selection callback."
+    },
+    {
+      "id": "combobox.react-aria.readonly-does-not-open-on-focus-trigger",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L494",
+      "upstreamTest": "ComboBox > should not open the menu when isReadOnly",
+      "apg": "extension",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "isReadOnly": true,
+        "menuTrigger": "focus"
+      },
+      "steps": [
+        { "event": "click", "target": "input" },
+        { "expect": { "visible": [] } }
+      ],
+      "notes": "A read-only combobox still allows browsing but must not open when the menu trigger is focus."
+    },
+    {
+      "id": "combobox.react-aria.empty-state-with-loader",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L584",
+      "upstreamTest": "ComboBox > should render empty state even when there is a loader provided and allowsEmptyCollection is true",
+      "apg": "extension",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "allowsEmptyCollection": true,
+        "hasLoader": true
+      },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "text": "p", "target": "input" },
+        {
+          "expect": {
+            "visible": ["popup", "option:0"],
+            "attrs": { "option:0": { "aria-selected": "false" } }
+          }
+        }
+      ],
+      "notes": "The empty state replaces the loader; option:0 is the 'No results' row."
+    },
+    {
+      "id": "combobox.react-aria.create-option-onaction-keyboard",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L599",
+      "upstreamTest": "ComboBox > should support onAction with keyboard",
+      "apg": "extension",
+      "config": { "allowsEmptyCollection": true, "controlledInput": true },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "text": "L", "target": "input" },
+        { "expect": { "visible": ["popup", "option:0"] } },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "Enter", "target": "input" },
+        {
+          "expect": {
+            "value": "",
+            "events": { "onAction": ["Create \"L\""] }
+          }
+        }
+      ],
+      "notes": "The single filtered option is the dynamically created 'Create \"L\"' item; activating it fires onAction and clears the input."
+    },
+    {
+      "id": "combobox.react-aria.section-header-click-keeps-open",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L670",
+      "upstreamTest": "ComboBox > should not close the combobox when clicking on a section header",
+      "apg": "pointer",
+      "config": {
+        "items": ["Apple", "Banana", "Cabbage", "Broccoli"],
+        "sections": {
+          "Fruit": ["Apple", "Banana"],
+          "Vegetable": ["Cabbage", "Broccoli"]
+        }
+      },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        { "expect": { "visible": ["popup", "option:0"] } },
+        { "event": "click", "target": "popup" },
+        { "expect": { "visible": ["popup", "option:0"] } },
+        { "event": "click", "target": "option:0" },
+        { "expect": { "value": "Apple", "visible": [] } }
+      ],
+      "notes": "Pressing the section header region is not an outside press; the listbox stays open and an option can still be committed."
+    },
+    {
+      "id": "combobox.react-aria.multiple-selection-aria-and-events",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L736",
+      "upstreamTest": "ComboBox > should support multiple selection",
+      "apg": "aria",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple"
+      },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        {
+          "expect": {
+            "visible": ["popup", "option:0", "option:1", "option:2"],
+            "attrs": {
+              "popup": { "role": "listbox", "aria-multiselectable": "true" }
+            }
+          }
+        },
+        { "event": "click", "target": "option:0" },
+        {
+          "expect": {
+            "visible": ["popup"],
+            "attrs": { "option:0": { "aria-selected": "true" } },
+            "events": { "onChange": [["1"]] }
+          }
+        },
+        { "event": "click", "target": "option:1" },
+        {
+          "expect": {
+            "visible": ["popup"],
+            "attrs": {
+              "option:0": { "aria-selected": "true" },
+              "option:1": { "aria-selected": "true" }
+            },
+            "value": "Cat and Dog",
+            "events": { "onChange": [["1"], ["1", "2"]] }
+          }
+        }
+      ],
+      "notes": "Multi-select keeps the popup open, toggles aria-selected, and reflects the combined value text."
+    },
+    {
+      "id": "combobox.react-aria.multiple-deselect",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L788",
+      "upstreamTest": "ComboBox > should support deselection if multiple selection is enabled",
+      "apg": "pointer",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple"
+      },
+      "steps": [
+        { "event": "click", "target": "option:0" },
+        { "event": "click", "target": "option:1" },
+        {
+          "expect": {
+            "attrs": {
+              "option:0": { "aria-selected": "true" },
+              "option:1": { "aria-selected": "true" }
+            },
+            "events": { "onChange": [["1"], ["1", "2"]] }
+          }
+        },
+        { "event": "click", "target": "option:0" },
+        {
+          "expect": {
+            "attrs": {
+              "option:0": { "aria-selected": "false" },
+              "option:1": { "aria-selected": "true" }
+            },
+            "events": { "onChange": [["1"], ["1", "2"], ["2"]] }
+          }
+        },
+        { "event": "click", "target": "option:1" },
+        {
+          "expect": {
+            "attrs": {
+              "option:0": { "aria-selected": "false" },
+              "option:1": { "aria-selected": "false" }
+            },
+            "events": { "onChange": [["1"], ["1", "2"], ["2"], []] }
+          }
+        }
+      ],
+      "notes": "Clicking a selected option removes it from the value."
+    },
+    {
+      "id": "combobox.react-aria.controlled-multiple-selected-options",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L819",
+      "upstreamTest": "ComboBox > should support controlled multi-selection",
+      "apg": "aria",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple",
+        "value": ["2", "3"]
+      },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        {
+          "expect": {
+            "value": "",
+            "attrs": {
+              "option:0": { "aria-selected": "false" },
+              "option:1": { "aria-selected": "true" },
+              "option:2": { "aria-selected": "true" }
+            }
+          }
+        }
+      ],
+      "notes": "The controlled value marks the matching options selected; the input stays empty."
+    },
+    {
+      "id": "combobox.react-aria.controlled-input-and-value",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L834",
+      "upstreamTest": "ComboBox > should support controlled multi-selection with both inputValue and value controlled",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple",
+        "inputValue": "C",
+        "value": ["2", "3"]
+      },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        { "expect": { "value": "C" } },
+        { "event": "key", "key": "a", "target": "input" },
+        {
+          "expect": {
+            "value": "C",
+            "events": { "onInputChange": ["Ca"], "onChange": [] }
+          }
+        },
+        { "event": "key", "key": "Enter", "target": "input" },
+        { "expect": { "value": "C", "events": { "onChange": [["3"]] } } }
+      ],
+      "notes": "A fully controlled input never moves; typing reports the proposed text and Enter toggles the highlighted option."
+    },
+    {
+      "id": "combobox.react-aria.multiselect-custom-value-survives-tab",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L871",
+      "upstreamTest": "ComboBox > should support multi-select with custom value",
+      "apg": "extension",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple",
+        "allowsCustomValue": true
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "type", "text": "Test", "target": "input" },
+        { "expect": { "value": "Test" } },
+        { "event": "key", "key": "Tab", "target": "input" },
+        { "expect": { "value": "Test" } }
+      ],
+      "notes": "With allowsCustomValue the typed text is preserved across blur."
+    },
+    {
+      "id": "combobox.react-aria.custom-input-preserved-on-escape",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L884",
+      "upstreamTest": "ComboBox > should preserve multi-select value with custom input on Escape",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple",
+        "allowsCustomValue": true,
+        "defaultValue": ["1", "2"],
+        "defaultInputValue": ""
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "type", "text": "Den", "target": "input" },
+        { "expect": { "value": "Den" } },
+        { "event": "key", "key": "Escape", "target": "input" },
+        { "expect": { "value": "Den", "visible": [] } }
+      ],
+      "notes": "Escape closes without committing; the custom text and the 'Cat and Dog' value remain."
+    },
+    {
+      "id": "combobox.react-aria.multiple-keyboard-deselect-uncontrolled",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L912",
+      "upstreamTest": "ComboBox > should allow the user to deselect items with keyboard when multiselect (uncontrolled)",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple",
+        "defaultValue": ["1", "2"]
+      },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        {
+          "expect": {
+            "attrs": {
+              "option:0": { "aria-selected": "true" },
+              "option:1": { "aria-selected": "true" }
+            }
+          }
+        },
+        { "event": "key", "key": "Enter", "target": "input" },
+        { "expect": { "events": { "onChange": [["2"]] } } },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "Enter", "target": "input" },
+        { "expect": { "events": { "onChange": [["2"], []] } } }
+      ],
+      "notes": "Enter toggles the initially highlighted option; ArrowDown moves to the second and Enter removes it."
+    },
+    {
+      "id": "combobox.react-aria.multiple-keyboard-deselect-controlled",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L930",
+      "upstreamTest": "ComboBox > should allow the user to deselect items with keyboard when multiselect (controlled)",
+      "apg": "keyboard",
+      "config": {
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple",
+        "value": ["1", "2"]
+      },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        { "event": "key", "key": "Enter", "target": "input" },
+        { "expect": { "events": { "onChange": [["2"]] } } },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "Enter", "target": "input" },
+        { "expect": { "events": { "onChange": [["2"], ["1"]] } } }
+      ],
+      "notes": "Controlled variant: the parent owns the value, the callback reports the next candidate."
+    },
+    {
+      "id": "combobox.react-aria.click-input-keeps-popup-open",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L1006",
+      "upstreamTest": "ComboBox > should not close the combobox when clicking on the input",
+      "apg": "pointer",
+      "config": { "items": ["Cat", "Dog", "Kangaroo"] },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        { "expect": { "visible": ["popup"], "focus": "input" } },
+        { "event": "click", "target": "input" },
+        {
+          "expect": {
+            "visible": ["popup"],
+            "focus": "input",
+            "events": { "onOpenChange": [true] }
+          }
+        }
+      ],
+      "notes": "Focus is never stolen from the input, and re-pressing it does not toggle the popup."
+    },
+    {
+      "id": "combobox.react-aria.click-trigger-toggles-popup",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L1028",
+      "upstreamTest": "ComboBox > should close the combobox when clicking on the button, and it should reopen if clicked again",
+      "apg": "pointer",
+      "config": { "items": ["Cat", "Dog", "Kangaroo"] },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        {
+          "expect": {
+            "visible": ["popup"],
+            "events": { "onOpenChange": [true] }
+          }
+        },
+        { "event": "click", "target": "trigger" },
+        {
+          "expect": {
+            "visible": [],
+            "focus": "input",
+            "events": { "onOpenChange": [true, false] }
+          }
+        },
+        { "event": "click", "target": "trigger" },
+        {
+          "expect": {
+            "visible": ["popup"],
+            "focus": "input",
+            "events": { "onOpenChange": [true, false, true] }
+          }
+        }
+      ],
+      "notes": "The trigger closes and reopens the popup without moving focus off the input."
+    },
+    {
+      "id": "combobox.react-aria.controlled-items-reopen-on-backspace",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L1068",
+      "upstreamTest": "ComboBox > should re-open the menu when controlled items go from empty to non-empty controlled items",
+      "apg": "extension",
+      "config": {
+        "controlled": true,
+        "items": ["Luke Skywalker"],
+        "filteredItemsToggle": true
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "visible": ["popup", "option:0"] } },
+        { "event": "key", "key": "L", "target": "input" },
+        { "expect": { "visible": [] } },
+        { "event": "key", "key": "Backspace", "target": "input" },
+        { "expect": { "visible": ["popup", "option:0"] } }
+      ],
+      "notes": "An emptied filtered result closes the popup; deleting the query reopens it."
+    },
+    {
+      "id": "combobox.react-aria.uncontrolled-empty-items-close",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L1251",
+      "upstreamTest": "ComboBox > should still close the menu when uncontrolled items are empty",
+      "apg": "extension",
+      "config": { "defaultItems": ["Luke Skywalker"] },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "visible": ["popup", "option:0"] } },
+        { "event": "key", "key": "Z", "target": "input" },
+        { "expect": { "visible": [] } }
+      ]
+    },
+    {
+      "id": "combobox.react-aria.escape-does-not-reopen-controlled-items",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L1284",
+      "upstreamTest": "ComboBox > should not re-open after user dismisses with Escape (revert) controlled items",
+      "apg": "keyboard",
+      "config": {
+        "controlled": true,
+        "items": ["Luke Skywalker"],
+        "filteredItemsToggle": true
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "visible": ["popup"] } },
+        { "event": "key", "key": "L", "target": "input" },
+        { "expect": { "visible": [] } },
+        { "event": "key", "key": "Escape", "target": "input" },
+        { "expect": { "visible": [] } }
+      ],
+      "notes": "Escape must not resurrect a popup that closed because the controlled list emptied."
+    },
+    {
+      "id": "combobox.react-aria.select-only.keyboard-select",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Select.test.js#L523",
+      "upstreamTest": "Select > select can select an option via keyboard",
+      "apg": "keyboard",
+      "config": {
+        "variant": "select-only",
+        "items": ["Cat", "Dog", "Kangaroo"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "value": "Select an item",
+            "attrs": {
+              "trigger": {
+                "aria-haspopup": "listbox",
+                "aria-expanded": "false"
+              }
+            }
+          }
+        },
+        { "event": "key", "key": "Enter", "target": "trigger" },
+        {
+          "expect": { "visible": ["popup", "option:0", "option:1", "option:2"] }
+        },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "Enter", "target": "input" },
+        { "expect": { "value": "Kangaroo", "visible": [] } }
+      ],
+      "notes": "Select-only combobox: the trigger is the combobox and the popup hosts a focusable list; the value shows in the trigger."
+    },
+    {
+      "id": "combobox.react-aria.select-only.typeahead",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Select.test.js#L548",
+      "upstreamTest": "Select > typeahead > can select an option via typeahead",
+      "apg": "keyboard",
+      "config": {
+        "variant": "select-only",
+        "items": [
+          "Australian Capital Territory",
+          "New South Wales",
+          "Northern Territory",
+          "Queensland",
+          "South Australia",
+          "Tasmania",
+          "Victoria",
+          "Western Australia"
+        ]
+      },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "event": "type", "text": "Northern Terr", "target": "trigger" },
+        {
+          "expect": {
+            "value": "Northern Territory",
+            "attrs": { "trigger": { "aria-expanded": "false" } }
+          }
+        }
+      ],
+      "notes": "Typing on the select-only trigger performs typeahead and selects the match without opening the popup."
+    },
+    {
+      "id": "combobox.react-aria.select-only.autofocus",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Select.test.js#L585",
+      "upstreamTest": "Select > should support autoFocus",
+      "apg": "extension",
+      "config": {
+        "variant": "select-only",
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "autoFocus": true
+      },
+      "steps": [{ "expect": { "focus": "trigger" } }]
+    },
+    {
+      "id": "combobox.react-aria.select-only.arrow-selects-falsy-value",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Select.test.js#L357",
+      "upstreamTest": "Select > should support arrow key navigation to a falsy key",
+      "apg": "keyboard",
+      "config": { "variant": "select-only", "items": ["0", "1", "2"] },
+      "steps": [
+        { "event": "focus", "target": "trigger" },
+        { "event": "key", "key": "ArrowRight", "target": "trigger" },
+        { "expect": { "value": "0", "events": { "onSelectionChange": [0] } } }
+      ],
+      "notes": "A key of 0 is a valid selection and must not be treated as empty."
+    },
+    {
+      "id": "combobox.react-aria.select-only.wont-open-when-empty",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Select.test.js#L630",
+      "upstreamTest": "Select > shouldn't allow the user to open the select if there are no items",
+      "apg": "extension",
+      "config": {
+        "variant": "select-only",
+        "items": [],
+        "defaultSelectedKey": "cat",
+        "hasLoader": true
+      },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        { "expect": { "visible": [] } }
+      ],
+      "notes": "A select whose collection is empty (or holds only a loader) does not open."
+    },
+    {
+      "id": "combobox.react-aria.select-only.stays-open-when-close-disabled",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Select.test.js#L241",
+      "upstreamTest": "Select > should stay open on selecting an option if shouldCloseOnSelect is false and single selection mode",
+      "apg": "extension",
+      "config": {
+        "variant": "select-only",
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "shouldCloseOnSelect": false
+      },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        {
+          "expect": {
+            "visible": ["popup"],
+            "attrs": { "trigger": { "aria-expanded": "true" } }
+          }
+        },
+        { "event": "click", "target": "option:1" },
+        {
+          "expect": {
+            "value": "Dog",
+            "visible": ["popup"],
+            "attrs": { "trigger": { "aria-expanded": "true" } }
+          }
+        }
+      ],
+      "notes": "shouldCloseOnSelect=false keeps the popup open after a single selection."
+    },
+    {
+      "id": "combobox.react-aria.select-only.closes-on-select-in-multiple",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Select.test.js#L269",
+      "upstreamTest": "Select > should close on selecting an option if shouldCloseOnSelect is true and multiple selection mode",
+      "apg": "extension",
+      "config": {
+        "variant": "select-only",
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple",
+        "shouldCloseOnSelect": true
+      },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        {
+          "expect": {
+            "visible": ["popup"],
+            "attrs": { "trigger": { "aria-expanded": "true" } }
+          }
+        },
+        { "event": "click", "target": "option:1" },
+        {
+          "expect": {
+            "value": "Dog",
+            "visible": [],
+            "attrs": { "trigger": { "aria-expanded": "false" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.react-aria.select-only.multiple-selection",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Select.test.js#L723",
+      "upstreamTest": "Select > should support multiple selection",
+      "apg": "aria",
+      "config": {
+        "variant": "select-only",
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple"
+      },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        {
+          "expect": {
+            "visible": ["popup", "option:0", "option:1", "option:2"],
+            "attrs": {
+              "popup": { "role": "listbox", "aria-multiselectable": "true" }
+            }
+          }
+        },
+        { "event": "click", "target": "option:0" },
+        { "event": "click", "target": "option:1" },
+        {
+          "expect": {
+            "value": "Cat and Dog",
+            "attrs": {
+              "option:0": { "aria-selected": "true" },
+              "option:1": { "aria-selected": "true" }
+            },
+            "events": { "onChange": [["cat"], ["cat", "dog"]] }
+          }
+        }
+      ],
+      "notes": "The select-only list is exposed with aria-multiselectable and keeps the trigger text as the combined labels."
+    },
+    {
+      "id": "combobox.react-aria.select-only.multiple-deselect",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Select.test.js#L756",
+      "upstreamTest": "Select > should support deselection if multiple selection is enabled",
+      "apg": "pointer",
+      "config": {
+        "variant": "select-only",
+        "items": ["Cat", "Dog", "Kangaroo"],
+        "selectionMode": "multiple"
+      },
+      "steps": [
+        { "event": "click", "target": "option:0" },
+        { "event": "click", "target": "option:1" },
+        { "event": "click", "target": "option:0" },
+        {
+          "expect": {
+            "attrs": {
+              "option:0": { "aria-selected": "false" },
+              "option:1": { "aria-selected": "true" }
+            },
+            "events": { "onChange": [["cat"], ["cat", "dog"], ["dog"]] }
+          }
+        },
+        { "event": "click", "target": "option:1" },
+        {
+          "expect": {
+            "attrs": {
+              "option:0": { "aria-selected": "false" },
+              "option:1": { "aria-selected": "false" }
+            },
+            "events": { "onChange": [["cat"], ["cat", "dog"], ["dog"], []] }
+          }
+        }
+      ]
+    }
+  ],
+  "skipped": [
+    {
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L107",
+      "upstreamTest": "ComboBox > should support slot / should support custom render function / should support render props / should clear contexts inside popover",
+      "reason": "React-only composition APIs (slots, render props, contexts) with no library-neutral behaviour."
+    },
+    {
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L271",
+      "upstreamTest": "ComboBox > should support formValue / form reset / form prop / validation errors / isRequired with multiple selection",
+      "reason": "Form submission, validation and hidden-field internals."
+    },
+    {
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L407",
+      "upstreamTest": "ComboBox > should render data- attributes on outer element / should apply isPressed state to button when expanded / should support read-only state",
+      "reason": "React data-attribute and styling hooks."
+    },
+    {
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L470",
+      "upstreamTest": "ComboBox > should close on scroll / should not close on input scrolling for cursor placement",
+      "reason": "Scroll-event wiring and cursor-placement internals; no APG combobox behaviour."
+    },
+    {
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L503",
+      "upstreamTest": "ComboBox > should support virtualizer",
+      "reason": "Virtualization internals."
+    },
+    {
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L1114",
+      "upstreamTest": "ComboBox > should re-open the menu with useAsyncList after an empty async result then backspace / should re-open the menu when using Collection pattern",
+      "reason": "Async-loading internals (useAsyncList timers)."
+    },
+    {
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/ComboBox.test.js#L1330",
+      "upstreamTest": "ComboBox > should not throw when rendered inside a Dialog / alertdialog with a Text errorMessage slot",
+      "reason": "Regression guard for a React context crash, not a combobox behaviour."
+    },
+    {
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/combobox/useComboBox.test.js#L105",
+      "upstreamTest": "useComboBox > should prevent default on Enter if isOpen / should only call commit on Tab when the menu is open / should call onBlur when no button provided",
+      "reason": "React-hook unit tests over synthetic events with no observable DOM state."
+    },
+    {
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Select.test.js#L297",
+      "upstreamTest": "Select > should send disabled prop to the hidden field / form prop / should not submit if required and selectedKey is null / validation errors",
+      "reason": "Form and hidden-field internals."
+    },
+    {
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Select.test.js#L304",
+      "upstreamTest": "Select > should render data- attributes only on the outer element / should support autoFocus / has a value immediately after rendering",
+      "reason": "Styling hooks and effect-timing assertions with no keyboard/ARIA behaviour."
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "pattern": "pan",
+  "source": "excalidraw",
+  "commit": "ed10ac7dca7e40f3f4a31269b4bfba980d0db41e",
+  "license": "MIT",
+  "copyright": "Copyright (c) 2020 Excalidraw",
+  "scenarios": [
+    {
+      "id": "pan.excalidraw.secondary-button-threshold",
+      "upstream": "https://github.com/excalidraw/excalidraw/blob/ed10ac7dca7e40f3f4a31269b4bfba980d0db41e/packages/excalidraw/tests/pan.test.tsx#L46",
+      "upstreamTest": "secondary-button pan > pans past five pixels with no context menu",
+      "area": "extension",
+      "config": {
+        "dragThresholdPx": 5,
+        "button": "secondary",
+        "camera": { "x": 0, "y": 0, "zoom": 1 }
+      },
+      "steps": [
+        { "event": "pointerdown", "at": [100, 100] },
+        { "event": "pointermove", "at": [103, 104] },
+        {
+          "expect": {
+            "camera": { "x": 0, "y": 0, "zoom": 1 },
+            "panEngaged": false
+          }
+        },
+        { "event": "pointermove", "at": [106, 100] },
+        {
+          "expect": {
+            "camera": { "x": 0, "y": 0, "zoom": 1 },
+            "panEngaged": true
+          }
+        },
+        { "event": "pointermove", "at": [108, 103] },
+        {
+          "expect": {
+            "camera": { "x": 2, "y": 3, "zoom": 1 },
+            "panEngaged": true
+          }
+        },
+        { "event": "pointerup" }
+      ],
+      "notes": "The threshold is a SCREEN quantity: 5 px away (dx 3, dy 4) is still a click, 6 px engages the pan. Upstream then pans incrementally from the engage point (the engaging move itself does not move the view; the next move shifts the camera by delta / zoom). pointer.qnt differs on purpose: its hand-tool pan starts on the press with no threshold and keeps the grab world point under the pointer (PanKeepsGrabUnderPointer), and its threshold is DRAG_PX = 4 (squared distance > 16). Replay the threshold expectations (config.dragThresholdPx) against the pointing -> gesture edge; the camera expectations after engagement are an adapter-policy divergence. Context-menu and pointer-broadcast parts of the upstream test are host concerns and are not ported."
+    }
+  ]
+}

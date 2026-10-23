@@ -1,0 +1,411 @@
+{
+  "pattern": "tooltip",
+  "source": "base-ui",
+  "commit": "19511bb171f3b360b006c94cf6d07e53cb446505",
+  "license": "MIT",
+  "skipped": [
+    {
+      "reason": "animation and mount lifecycle (data-starting-style / data-ending-style / data-instant, getAnimations, CSS keyframes, exit-animation onOpenChangeComplete timings) - styling and timing internals"
+    },
+    {
+      "reason": "popupConformanceTests and describeConformance suites (ref forwarding, render props, prop merging, error messages) - React-API-only"
+    },
+    {
+      "reason": "positioning and cursor tracking (tooltip/positioner, trackCursorAxis x/both, side, sideOffset, getBoundingClientRect assertions) - placement internals"
+    },
+    {
+      "reason": "inline style assertions (positioner pointer-events for disableHoverablePopup and trackCursorAxis, inline opacity removal)"
+    },
+    {
+      "reason": "BaseUIChangeEventDetails API assertions (cancel(), allowPropagation(), details.reason, stopPropagation spy)"
+    },
+    {
+      "reason": "prop: actionsRef imperative unmount/close methods and preventUnmountOnClose keep-mounted flows"
+    },
+    {
+      "reason": "controlled prop updates (`uses the latest closeDelay after the prop updates`, `does not close when open is controlled`) that rerender with new props mid-timer"
+    },
+    {
+      "reason": "detached-trigger and multiple-detached-trigger variants; the contained-trigger behaviour is ported once"
+    },
+    {
+      "reason": "shadow-root and empty composedPath nested-trigger fallbacks, touch-pointer nested reopen paths, and safePolygon suppression"
+    },
+    {
+      "reason": "rare races (`does not re-announce an open outer tooltip`, `rapidly moving back to a nested trigger`) that require fake-clock interleaving with external opens"
+    },
+    {
+      "reason": "provider closeDelay/trigger-delay precedence variants beyond the single override scenario"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "tooltip.base-ui.opens-on-hover-after-open-delay",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L87",
+      "upstreamTest": "<Tooltip.Root /> > uncontrolled open > should open when the trigger is hovered",
+      "apg": "pointer",
+      "config": { "delay": 600 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 300 },
+        { "expect": { "visible": [] } },
+        { "event": "wait", "ms": 300 },
+        { "expect": { "visible": ["tooltip:0"] } }
+      ],
+      "notes": "OPEN_DELAY is 600ms; the first wait is the pending window."
+    },
+    {
+      "id": "tooltip.base-ui.does-not-open-for-touch-pointer-hover",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L103",
+      "upstreamTest": "<Tooltip.Root /> > uncontrolled open > does not open when a touch pointer hovers the trigger",
+      "apg": "extension",
+      "config": { "delay": 600, "pointerType": "touch" },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": [] } }
+      ],
+      "notes": "Hover-intent is ignored for touch pointers."
+    },
+    {
+      "id": "tooltip.base-ui.closes-when-trigger-unhovered",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L119",
+      "upstreamTest": "<Tooltip.Root /> > uncontrolled open > should close when the trigger is unhovered",
+      "apg": "pointer",
+      "config": { "delay": 600, "closeDelay": 0 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "unhover", "target": "trigger:0" },
+        { "expect": { "visible": [] } }
+      ],
+      "notes": "With no closeDelay the tooltip closes immediately on leave."
+    },
+    {
+      "id": "tooltip.base-ui.opens-on-trigger-focus",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L138",
+      "upstreamTest": "<Tooltip.Root /> > uncontrolled open > should open when the trigger is focused",
+      "apg": "focus",
+      "config": { "delay": 600 },
+      "steps": [
+        { "event": "focus", "target": "trigger:0" },
+        { "expect": { "visible": ["tooltip:0"], "focus": "trigger:0" } }
+      ],
+      "notes": "Focus opens without waiting for the rest delay."
+    },
+    {
+      "id": "tooltip.base-ui.closes-when-trigger-blurred",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L154",
+      "upstreamTest": "<Tooltip.Root /> > uncontrolled open > should close when the trigger is blurred",
+      "apg": "focus",
+      "config": { "delay": 600 },
+      "steps": [
+        { "event": "focus", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "blur", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": [] } }
+      ]
+    },
+    {
+      "id": "tooltip.base-ui.opens-after-rest-delay",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L303",
+      "upstreamTest": "<Tooltip.Root /> > prop: delay > should open after rest delay",
+      "apg": "extension",
+      "config": { "delay": 100 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 50 },
+        { "expect": { "visible": [] } },
+        { "event": "wait", "ms": 50 },
+        { "expect": { "visible": ["tooltip:0"] } }
+      ]
+    },
+    {
+      "id": "tooltip.base-ui.closes-after-close-delay",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L326",
+      "upstreamTest": "<Tooltip.Root /> > prop: closeDelay > should close after delay",
+      "apg": "extension",
+      "config": { "delay": 600, "closeDelay": 100 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "unhover", "target": "trigger:0" },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "wait", "ms": 100 },
+        { "expect": { "visible": [] } }
+      ],
+      "notes": "The tooltip stays mounted during the closeDelay grace."
+    },
+    {
+      "id": "tooltip.base-ui.trigger-delay-overrides-provider-delay",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/provider/TooltipProvider.test.tsx#L79",
+      "upstreamTest": "<Tooltip.Provider /> > prop: delay > respects trigger delay prop over provider delay prop",
+      "apg": "extension",
+      "config": { "providerDelay": 10, "delay": 100 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 50 },
+        { "expect": { "visible": [] } },
+        { "event": "wait", "ms": 50 },
+        { "expect": { "visible": ["tooltip:0"] } }
+      ]
+    },
+    {
+      "id": "tooltip.base-ui.disabled-does-not-open-on-hover-or-focus",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L840",
+      "upstreamTest": "<Tooltip.Root /> > prop: disabled > should not open when disabled",
+      "apg": "extension",
+      "config": { "disabled": true, "delay": 600 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": [] } },
+        { "event": "focus", "target": "trigger:0" },
+        { "expect": { "visible": [] } }
+      ]
+    },
+    {
+      "id": "tooltip.base-ui.disabled-marks-the-trigger",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L904",
+      "upstreamTest": "<Tooltip.Root /> > prop: disabled > marks the trigger as disabled when the root is disabled",
+      "apg": "aria",
+      "config": { "disabled": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "trigger:0": { "data-trigger-disabled": "true" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "tooltip.base-ui.escape-closes-and-notifies",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L1088",
+      "upstreamTest": "<Tooltip.Root /> > dismissal > should close when Escape is pressed",
+      "apg": "keyboard",
+      "config": { "defaultOpen": true },
+      "steps": [
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "key", "key": "Escape", "target": "trigger:0" },
+        { "expect": { "visible": [], "events": { "onOpenChange": [false] } } }
+      ],
+      "notes": "Only the callback's boolean payload is restated; details.reason is a React-only API."
+    },
+    {
+      "id": "tooltip.base-ui.click-before-delay-cancels-open",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L1110",
+      "upstreamTest": "<Tooltip.Root /> > dismissal > should not open when the trigger was clicked before delay duration",
+      "apg": "extension",
+      "config": { "delay": 600 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 300 },
+        { "event": "click", "target": "trigger:0" },
+        { "event": "wait", "ms": 300 },
+        { "expect": { "visible": [] } }
+      ],
+      "notes": "Clicking the trigger during the rest delay cancels the pending open."
+    },
+    {
+      "id": "tooltip.base-ui.click-before-delay-with-close-on-click-false-opens",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L1150",
+      "upstreamTest": "<Tooltip.Root /> > dismissal > should open when the trigger was clicked before delay duration and closeOnClick is false",
+      "apg": "extension",
+      "config": { "delay": 600, "closeOnClick": false },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 300 },
+        { "event": "click", "target": "trigger:0" },
+        { "event": "wait", "ms": 300 },
+        { "expect": { "visible": ["tooltip:0"] } }
+      ]
+    },
+    {
+      "id": "tooltip.base-ui.click-after-open-closes",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L1170",
+      "upstreamTest": "<Tooltip.Root /> > dismissal > should close when the trigger is clicked after delay duration",
+      "apg": "extension",
+      "config": { "delay": 600 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "click", "target": "trigger:0" },
+        { "expect": { "visible": [] } }
+      ]
+    },
+    {
+      "id": "tooltip.base-ui.reopens-on-hover-after-click-close",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L1210",
+      "upstreamTest": "<Tooltip.Root /> > dismissal > reopens on hover after the trigger is clicked closed",
+      "apg": "extension",
+      "config": { "delay": 100 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 100 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "click", "target": "trigger:0" },
+        { "expect": { "visible": [] } },
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 100 },
+        { "expect": { "visible": ["tooltip:0"] } }
+      ]
+    },
+    {
+      "id": "tooltip.base-ui.controlled-calls-on-open-change",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L178",
+      "upstreamTest": "<Tooltip.Root /> > controlled open > should call onOpenChange when the open state changes",
+      "apg": "extension",
+      "config": { "controlled": true, "open": false, "delay": 600 },
+      "steps": [
+        { "expect": { "visible": [] } },
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        {
+          "expect": {
+            "visible": ["tooltip:0"],
+            "events": { "onOpenChange": [true] }
+          }
+        },
+        { "event": "unhover", "target": "trigger:0" },
+        {
+          "expect": {
+            "visible": [],
+            "events": { "onOpenChange": [true, false] }
+          }
+        }
+      ],
+      "notes": "The upstream records the previous open value; the neutral payload is the next open value."
+    },
+    {
+      "id": "tooltip.base-ui.default-open-uncontrolled-closes-on-unhover",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L283",
+      "upstreamTest": "<Tooltip.Root /> > prop: defaultOpen > should remain uncontrolled",
+      "apg": "extension",
+      "config": { "defaultOpen": true },
+      "steps": [
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "unhover", "target": "trigger:0" },
+        { "expect": { "visible": [] } }
+      ]
+    },
+    {
+      "id": "tooltip.base-ui.hoverable-popup-survives-trigger-to-popup-trip",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L1523",
+      "upstreamTest": "<Tooltip.Root /> > hoverable popup > survives the trip from the trigger to the popup, then closes after leaving it",
+      "apg": "extension",
+      "config": { "delay": 600, "closeDelay": 0, "hoverable": true },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "hover", "target": "tooltip:0" },
+        { "event": "wait", "ms": 100 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "unhover", "target": "tooltip:0" },
+        { "expect": { "visible": [] } }
+      ],
+      "notes": "WCAG 1.4.13 hoverable: moving the pointer onto the tooltip keeps it open; leaving it closes."
+    },
+    {
+      "id": "tooltip.base-ui.hoverable-popup-disabled-closes-on-trip",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L1544",
+      "upstreamTest": "<Tooltip.Root /> > hoverable popup > closes on that same trip when `disableHoverablePopup` is set",
+      "apg": "extension",
+      "config": { "delay": 600, "closeDelay": 0, "hoverable": false },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "hover", "target": "tooltip:0" },
+        { "expect": { "visible": [] } }
+      ]
+    },
+    {
+      "id": "tooltip.base-ui.adjacent-tooltip-opens-instantly-while-warm",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/provider/TooltipProvider.test.tsx#L226",
+      "upstreamTest": "<Tooltip.Provider /> > prop: timeout > opens an adjacent tooltip instantly while the group is active",
+      "apg": "extension",
+      "config": { "delay": 100, "timeout": 400 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 100 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "hover", "target": "trigger:1" },
+        { "expect": { "visible": ["tooltip:1"] } }
+      ],
+      "notes": "Global warm-up: while the group is warm, an adjacent tooltip opens without its delay and replaces the previous one."
+    },
+    {
+      "id": "tooltip.base-ui.requires-full-delay-once-timeout-elapses",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/provider/TooltipProvider.test.tsx#L289",
+      "upstreamTest": "<Tooltip.Provider /> > prop: timeout > requires the full delay again once the timeout elapses",
+      "apg": "extension",
+      "config": { "delay": 100, "timeout": 400 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 100 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "wait", "ms": 400 },
+        { "event": "hover", "target": "trigger:1" },
+        { "event": "wait", "ms": 50 },
+        { "expect": { "visible": [] } },
+        { "event": "wait", "ms": 50 },
+        { "expect": { "visible": ["tooltip:1"] } }
+      ]
+    },
+    {
+      "id": "tooltip.base-ui.nested-trigger-suppresses-outer-tooltip",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L1615",
+      "upstreamTest": "nested tooltips > should not open the outer tooltip when hovering over a nested tooltip trigger",
+      "apg": "extension",
+      "config": { "nested": true, "delay": 600 },
+      "steps": [
+        { "event": "hover", "target": "trigger:1" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:1"] } }
+      ],
+      "notes": "trigger:0 is the outer trigger, trigger:1 the nested one; only the inner tooltip opens."
+    },
+    {
+      "id": "tooltip.base-ui.nested-disabled-trigger-allows-outer-tooltip",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L2514",
+      "upstreamTest": "nested tooltips > should allow the parent tooltip to open when a nested trigger is disabled",
+      "apg": "extension",
+      "config": { "nested": true, "nestedDisabled": true, "delay": 600 },
+      "steps": [
+        { "event": "hover", "target": "trigger:1" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } }
+      ],
+      "notes": "A disabled nested trigger does not shadow its parent, so the outer tooltip opens."
+    },
+    {
+      "id": "tooltip.base-ui.trigger-unmounted-during-open-delay-never-opens",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/tooltip/root/TooltipRoot.test.tsx#L58",
+      "upstreamTest": "<Tooltip.Root /> > trigger unmount during the open delay > does not open once the hovered trigger has unmounted",
+      "apg": "extension",
+      "config": { "delay": 600 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 1 },
+        {
+          "event": "prop",
+          "target": "trigger:0",
+          "prop": "mounted",
+          "value": false
+        },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": [] } }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,3802 @@
+{
+  "generatedFrom": "../../specs/apg/grid.qnt",
+  "specHash": "5349d3004355c984c021894b1290a347d5a53c34b9b759792688965f14440216",
+  "module": "apg_grid",
+  "vars": [
+    {
+      "name": "row",
+      "type": "int"
+    },
+    {
+      "name": "col",
+      "type": "int"
+    },
+    {
+      "name": "hasFocus",
+      "type": "bool"
+    },
+    {
+      "name": "mode",
+      "type": "str"
+    },
+    {
+      "name": "dirty",
+      "type": "bool"
+    },
+    {
+      "name": "lastEdit",
+      "type": "str"
+    },
+    {
+      "name": "gridKind",
+      "type": "str"
+    },
+    {
+      "name": "wrapCols",
+      "type": "bool"
+    },
+    {
+      "name": "wrapRows",
+      "type": "bool"
+    },
+    {
+      "name": "focusTarget",
+      "type": "str"
+    },
+    {
+      "name": "gridReadonly",
+      "type": "bool"
+    }
+  ],
+  "defs": {
+    "ROWS": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "4"
+      }
+    },
+    "COLS": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "3"
+      }
+    },
+    "PAGE": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "2"
+      }
+    },
+    "LAST_ROW": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "isub",
+        "args": [
+          {
+            "kind": "name",
+            "name": "ROWS"
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          }
+        ]
+      }
+    },
+    "LAST_COL": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "isub",
+        "args": [
+          {
+            "kind": "name",
+            "name": "COLS"
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          }
+        ]
+      }
+    },
+    "CELLS": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "imul",
+        "args": [
+          {
+            "kind": "name",
+            "name": "ROWS"
+          },
+          {
+            "kind": "name",
+            "name": "COLS"
+          }
+        ]
+      }
+    },
+    "colReadonly": {
+      "kind": "function",
+      "params": [
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "c"
+          },
+          {
+            "kind": "name",
+            "name": "LAST_COL"
+          }
+        ]
+      }
+    },
+    "cur": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "iadd",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "imul",
+            "args": [
+              {
+                "kind": "name",
+                "name": "row"
+              },
+              {
+                "kind": "name",
+                "name": "COLS"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "col"
+          }
+        ]
+      }
+    },
+    "navigating": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "hasFocus"
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "mode"
+              },
+              {
+                "kind": "str",
+                "value": "navigate"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "editing": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "mode"
+          },
+          {
+            "kind": "str",
+            "value": "edit"
+          }
+        ]
+      }
+    },
+    "canEdit": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "gridReadonly"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "colReadonly",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "col"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "rightIdx": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "col"
+              },
+              {
+                "kind": "name",
+                "name": "LAST_COL"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "wrapCols"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ilt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "row"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "LAST_ROW"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "cur"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "cur"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "leftIdx": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "col"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "isub",
+            "args": [
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "wrapCols"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "igt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "row"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "0"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "isub",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "cur"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "cur"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "downIdx": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "row"
+              },
+              {
+                "kind": "name",
+                "name": "LAST_ROW"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "name",
+                "name": "COLS"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "wrapRows"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ilt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "col"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "LAST_COL"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "col"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "cur"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "upIdx": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "row"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "isub",
+            "args": [
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "name",
+                "name": "COLS"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "wrapRows"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "igt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "col"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "0"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "isub",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "imul",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "LAST_ROW"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "COLS"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "col"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "cur"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "pageDownIdx": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igt",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "row"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "PAGE"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "LAST_ROW"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "imul",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "LAST_ROW"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "COLS"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "col"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "app",
+                "opcode": "imul",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "PAGE"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "COLS"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "pageUpIdx": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "row"
+              },
+              {
+                "kind": "name",
+                "name": "PAGE"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "col"
+          },
+          {
+            "kind": "app",
+            "opcode": "isub",
+            "args": [
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "app",
+                "opcode": "imul",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "PAGE"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "COLS"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "keyTarget": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "ArrowRight"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "rightIdx"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "ArrowLeft"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "leftIdx"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "k"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "ArrowDown"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "downIdx"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "k"
+                          },
+                          {
+                            "kind": "str",
+                            "value": "ArrowUp"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "upIdx"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "k"
+                              },
+                              {
+                                "kind": "str",
+                                "value": "PageDown"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "name",
+                            "name": "pageDownIdx"
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "ite",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "eq",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "k"
+                                  },
+                                  {
+                                    "kind": "str",
+                                    "value": "PageUp"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "name",
+                                "name": "pageUpIdx"
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "ite",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "eq",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "k"
+                                      },
+                                      {
+                                        "kind": "str",
+                                        "value": "Home"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "imul",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "row"
+                                      },
+                                      {
+                                        "kind": "name",
+                                        "name": "COLS"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "ite",
+                                    "args": [
+                                      {
+                                        "kind": "app",
+                                        "opcode": "eq",
+                                        "args": [
+                                          {
+                                            "kind": "name",
+                                            "name": "k"
+                                          },
+                                          {
+                                            "kind": "str",
+                                            "value": "End"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "kind": "app",
+                                        "opcode": "iadd",
+                                        "args": [
+                                          {
+                                            "kind": "app",
+                                            "opcode": "imul",
+                                            "args": [
+                                              {
+                                                "kind": "name",
+                                                "name": "row"
+                                              },
+                                              {
+                                                "kind": "name",
+                                                "name": "COLS"
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "kind": "name",
+                                            "name": "LAST_COL"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "kind": "app",
+                                        "opcode": "ite",
+                                        "args": [
+                                          {
+                                            "kind": "app",
+                                            "opcode": "eq",
+                                            "args": [
+                                              {
+                                                "kind": "name",
+                                                "name": "k"
+                                              },
+                                              {
+                                                "kind": "str",
+                                                "value": "Control+Home"
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "kind": "int",
+                                            "value": "0"
+                                          },
+                                          {
+                                            "kind": "app",
+                                            "opcode": "ite",
+                                            "args": [
+                                              {
+                                                "kind": "app",
+                                                "opcode": "eq",
+                                                "args": [
+                                                  {
+                                                    "kind": "name",
+                                                    "name": "k"
+                                                  },
+                                                  {
+                                                    "kind": "str",
+                                                    "value": "Control+End"
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "kind": "app",
+                                                "opcode": "isub",
+                                                "args": [
+                                                  {
+                                                    "kind": "name",
+                                                    "name": "CELLS"
+                                                  },
+                                                  {
+                                                    "kind": "int",
+                                                    "value": "1"
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "kind": "name",
+                                                "name": "cur"
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "startsEdit": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "navigating"
+          },
+          {
+            "kind": "name",
+            "name": "canEdit"
+          },
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "Enter"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "F2"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "a"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "commitsEdit": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "editing"
+          },
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "Enter"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "F2"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "cancelsEdit": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "editing"
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              },
+              {
+                "kind": "str",
+                "value": "Escape"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "endsEdit": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "commitsEdit",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "cancelsEdit",
+            "args": [
+              {
+                "kind": "name",
+                "name": "k"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "leavesGrid": {
+      "kind": "function",
+      "params": [
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "navigating"
+          },
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "Tab"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "Shift+Tab"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ARIA_ROWCOUNT": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "name",
+        "name": "ROWS"
+      }
+    },
+    "ARIA_COLCOUNT": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "name",
+        "name": "COLS"
+      }
+    },
+    "ariaRowindex": {
+      "kind": "function",
+      "params": [
+        "r"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "iadd",
+        "args": [
+          {
+            "kind": "name",
+            "name": "r"
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          }
+        ]
+      }
+    },
+    "ariaColindex": {
+      "kind": "function",
+      "params": [
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "iadd",
+        "args": [
+          {
+            "kind": "name",
+            "name": "c"
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          }
+        ]
+      }
+    },
+    "cellReadonly": {
+      "kind": "function",
+      "params": [
+        "r",
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "name",
+            "name": "gridReadonly"
+          },
+          {
+            "kind": "app",
+            "opcode": "colReadonly",
+            "args": [
+              {
+                "kind": "name",
+                "name": "c"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "cellTabindex": {
+      "kind": "function",
+      "params": [
+        "r",
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "r"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "row"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "c"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "col"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "focusTarget"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "cell"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "app",
+            "opcode": "iuminus",
+            "args": [
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "widgetTabindex": {
+      "kind": "function",
+      "params": [
+        "r",
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "r"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "row"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "c"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "col"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "focusTarget"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "widget"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "app",
+            "opcode": "iuminus",
+            "args": [
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "cellDomFocused": {
+      "kind": "function",
+      "params": [
+        "r",
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "navigating"
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focusTarget"
+              },
+              {
+                "kind": "str",
+                "value": "cell"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "r"
+              },
+              {
+                "kind": "name",
+                "name": "row"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "c"
+              },
+              {
+                "kind": "name",
+                "name": "col"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "widgetDomFocused": {
+      "kind": "function",
+      "params": [
+        "r",
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "navigating"
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focusTarget"
+              },
+              {
+                "kind": "str",
+                "value": "widget"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "r"
+              },
+              {
+                "kind": "name",
+                "name": "row"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "c"
+              },
+              {
+                "kind": "name",
+                "name": "col"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "inputDomFocused": {
+      "kind": "function",
+      "params": [
+        "r",
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "editing"
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "r"
+              },
+              {
+                "kind": "name",
+                "name": "row"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "c"
+              },
+              {
+                "kind": "name",
+                "name": "col"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "tabStops": {
+      "kind": "function",
+      "params": [
+        "r",
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "iadd",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "cellTabindex",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "r"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "c"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "widgetTabindex",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "r"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "c"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "rowTabStops": {
+      "kind": "function",
+      "params": [
+        "r"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "iadd",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "tabStops",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "r"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "tabStops",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "r"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "tabStops",
+            "args": [
+              {
+                "kind": "name",
+                "name": "r"
+              },
+              {
+                "kind": "int",
+                "value": "2"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "FocusInBounds": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "row"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "row"
+              },
+              {
+                "kind": "name",
+                "name": "ROWS"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "col"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "col"
+              },
+              {
+                "kind": "name",
+                "name": "COLS"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ExactlyOneTabStop": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "rowTabStops",
+                        "args": [
+                          {
+                            "kind": "int",
+                            "value": "0"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "rowTabStops",
+                        "args": [
+                          {
+                            "kind": "int",
+                            "value": "1"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "rowTabStops",
+                    "args": [
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "rowTabStops",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "3"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          }
+        ]
+      }
+    },
+    "AriaIndicesInRange": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "ariaRowindex",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "row"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "ariaRowindex",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "row"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ARIA_ROWCOUNT"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "ariaColindex",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "col"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "ariaColindex",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "col"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ARIA_COLCOUNT"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ModeValid": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "mode"
+              },
+              {
+                "kind": "str",
+                "value": "navigate"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "mode"
+              },
+              {
+                "kind": "str",
+                "value": "edit"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "KindValid": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "gridKind"
+              },
+              {
+                "kind": "str",
+                "value": "data"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "gridKind"
+              },
+              {
+                "kind": "str",
+                "value": "layout"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "FocusTargetValid": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focusTarget"
+              },
+              {
+                "kind": "str",
+                "value": "cell"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focusTarget"
+              },
+              {
+                "kind": "str",
+                "value": "widget"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "LastEditValid": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "lastEdit"
+              },
+              {
+                "kind": "str",
+                "value": "none"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "lastEdit"
+              },
+              {
+                "kind": "str",
+                "value": "committed"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "lastEdit"
+              },
+              {
+                "kind": "str",
+                "value": "cancelled"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "EditImpliesFocus": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "editing"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        ]
+      }
+    },
+    "EditOnEditableCell": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "editing"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "canEdit"
+          }
+        ]
+      }
+    },
+    "DirtyImpliesEdit": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "dirty"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "editing"
+          }
+        ]
+      }
+    },
+    "DataGridNeverWraps": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "gridKind"
+              },
+              {
+                "kind": "str",
+                "value": "layout"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "wrapCols"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "wrapRows"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "actions": [
+    {
+      "name": "init",
+      "assignments": [
+        {
+          "field": "row",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "col",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "mode",
+          "rhs": {
+            "kind": "str",
+            "value": "navigate"
+          }
+        },
+        {
+          "field": "dirty",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "lastEdit",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "gridKind",
+          "rhs": {
+            "kind": "str",
+            "value": "data"
+          }
+        },
+        {
+          "field": "wrapCols",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "wrapRows",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "focusTarget",
+          "rhs": {
+            "kind": "str",
+            "value": "cell"
+          }
+        },
+        {
+          "field": "gridReadonly",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "key",
+      "nondet": {
+        "name": "key",
+        "kind": "str",
+        "pool": [
+          "ArrowRight",
+          "ArrowLeft",
+          "ArrowDown",
+          "ArrowUp",
+          "Home",
+          "End",
+          "Control+Home",
+          "Control+End",
+          "PageUp",
+          "PageDown",
+          "Enter",
+          "F2",
+          "Escape",
+          "a",
+          "Tab",
+          "Shift+Tab"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "row",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "navigating"
+              },
+              {
+                "kind": "app",
+                "opcode": "idiv",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "keyTarget",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "key"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "COLS"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "row"
+              }
+            ]
+          }
+        },
+        {
+          "field": "col",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "navigating"
+              },
+              {
+                "kind": "app",
+                "opcode": "imod",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "keyTarget",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "key"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "COLS"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "col"
+              }
+            ]
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "leavesGrid",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  }
+                ]
+              },
+              {
+                "kind": "bool",
+                "value": false
+              },
+              {
+                "kind": "name",
+                "name": "hasFocus"
+              }
+            ]
+          }
+        },
+        {
+          "field": "mode",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "startsEdit",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "edit"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "endsEdit",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "key"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "str",
+                    "value": "navigate"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "mode"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "dirty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "startsEdit",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "a"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "editing"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "key"
+                          },
+                          {
+                            "kind": "str",
+                            "value": "a"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "bool",
+                    "value": true
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "endsEdit",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "key"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "bool",
+                        "value": false
+                      },
+                      {
+                        "kind": "name",
+                        "name": "dirty"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "lastEdit",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "commitsEdit",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "committed"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "cancelsEdit",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "key"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "str",
+                    "value": "cancelled"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "lastEdit"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "gridKind",
+          "rhs": {
+            "kind": "name",
+            "name": "gridKind"
+          }
+        },
+        {
+          "field": "wrapCols",
+          "rhs": {
+            "kind": "name",
+            "name": "wrapCols"
+          }
+        },
+        {
+          "field": "wrapRows",
+          "rhs": {
+            "kind": "name",
+            "name": "wrapRows"
+          }
+        },
+        {
+          "field": "focusTarget",
+          "rhs": {
+            "kind": "name",
+            "name": "focusTarget"
+          }
+        },
+        {
+          "field": "gridReadonly",
+          "rhs": {
+            "kind": "name",
+            "name": "gridReadonly"
+          }
+        }
+      ]
+    },
+    {
+      "name": "click",
+      "nondet": {
+        "name": "cell",
+        "kind": "int",
+        "pool": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "row",
+          "rhs": {
+            "kind": "app",
+            "opcode": "idiv",
+            "args": [
+              {
+                "kind": "name",
+                "name": "cell"
+              },
+              {
+                "kind": "name",
+                "name": "COLS"
+              }
+            ]
+          }
+        },
+        {
+          "field": "col",
+          "rhs": {
+            "kind": "app",
+            "opcode": "imod",
+            "args": [
+              {
+                "kind": "name",
+                "name": "cell"
+              },
+              {
+                "kind": "name",
+                "name": "COLS"
+              }
+            ]
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "mode",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "editing"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "cell"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "cur"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "edit"
+              },
+              {
+                "kind": "str",
+                "value": "navigate"
+              }
+            ]
+          }
+        },
+        {
+          "field": "dirty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "editing"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "cell"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "cur"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "dirty"
+              },
+              {
+                "kind": "bool",
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "field": "lastEdit",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "editing"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "neq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "cell"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "cur"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "committed"
+              },
+              {
+                "kind": "name",
+                "name": "lastEdit"
+              }
+            ]
+          }
+        },
+        {
+          "field": "gridKind",
+          "rhs": {
+            "kind": "name",
+            "name": "gridKind"
+          }
+        },
+        {
+          "field": "wrapCols",
+          "rhs": {
+            "kind": "name",
+            "name": "wrapCols"
+          }
+        },
+        {
+          "field": "wrapRows",
+          "rhs": {
+            "kind": "name",
+            "name": "wrapRows"
+          }
+        },
+        {
+          "field": "focusTarget",
+          "rhs": {
+            "kind": "name",
+            "name": "focusTarget"
+          }
+        },
+        {
+          "field": "gridReadonly",
+          "rhs": {
+            "kind": "name",
+            "name": "gridReadonly"
+          }
+        }
+      ]
+    },
+    {
+      "name": "focus_in",
+      "assignments": [
+        {
+          "field": "row",
+          "rhs": {
+            "kind": "name",
+            "name": "row"
+          }
+        },
+        {
+          "field": "col",
+          "rhs": {
+            "kind": "name",
+            "name": "col"
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "mode",
+          "rhs": {
+            "kind": "name",
+            "name": "mode"
+          }
+        },
+        {
+          "field": "dirty",
+          "rhs": {
+            "kind": "name",
+            "name": "dirty"
+          }
+        },
+        {
+          "field": "lastEdit",
+          "rhs": {
+            "kind": "name",
+            "name": "lastEdit"
+          }
+        },
+        {
+          "field": "gridKind",
+          "rhs": {
+            "kind": "name",
+            "name": "gridKind"
+          }
+        },
+        {
+          "field": "wrapCols",
+          "rhs": {
+            "kind": "name",
+            "name": "wrapCols"
+          }
+        },
+        {
+          "field": "wrapRows",
+          "rhs": {
+            "kind": "name",
+            "name": "wrapRows"
+          }
+        },
+        {
+          "field": "focusTarget",
+          "rhs": {
+            "kind": "name",
+            "name": "focusTarget"
+          }
+        },
+        {
+          "field": "gridReadonly",
+          "rhs": {
+            "kind": "name",
+            "name": "gridReadonly"
+          }
+        }
+      ]
+    },
+    {
+      "name": "focus_out",
+      "assignments": [
+        {
+          "field": "row",
+          "rhs": {
+            "kind": "name",
+            "name": "row"
+          }
+        },
+        {
+          "field": "col",
+          "rhs": {
+            "kind": "name",
+            "name": "col"
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "mode",
+          "rhs": {
+            "kind": "str",
+            "value": "navigate"
+          }
+        },
+        {
+          "field": "dirty",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "lastEdit",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "editing"
+              },
+              {
+                "kind": "str",
+                "value": "committed"
+              },
+              {
+                "kind": "name",
+                "name": "lastEdit"
+              }
+            ]
+          }
+        },
+        {
+          "field": "gridKind",
+          "rhs": {
+            "kind": "name",
+            "name": "gridKind"
+          }
+        },
+        {
+          "field": "wrapCols",
+          "rhs": {
+            "kind": "name",
+            "name": "wrapCols"
+          }
+        },
+        {
+          "field": "wrapRows",
+          "rhs": {
+            "kind": "name",
+            "name": "wrapRows"
+          }
+        },
+        {
+          "field": "focusTarget",
+          "rhs": {
+            "kind": "name",
+            "name": "focusTarget"
+          }
+        },
+        {
+          "field": "gridReadonly",
+          "rhs": {
+            "kind": "name",
+            "name": "gridReadonly"
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_kind",
+      "nondet": {
+        "name": "choice",
+        "kind": "str",
+        "pool": [
+          "data",
+          "layout"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "row",
+          "rhs": {
+            "kind": "name",
+            "name": "row"
+          }
+        },
+        {
+          "field": "col",
+          "rhs": {
+            "kind": "name",
+            "name": "col"
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "mode",
+          "rhs": {
+            "kind": "name",
+            "name": "mode"
+          }
+        },
+        {
+          "field": "dirty",
+          "rhs": {
+            "kind": "name",
+            "name": "dirty"
+          }
+        },
+        {
+          "field": "lastEdit",
+          "rhs": {
+            "kind": "name",
+            "name": "lastEdit"
+          }
+        },
+        {
+          "field": "gridKind",
+          "rhs": {
+            "kind": "name",
+            "name": "choice"
+          }
+        },
+        {
+          "field": "wrapCols",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "choice"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "data"
+                  }
+                ]
+              },
+              {
+                "kind": "bool",
+                "value": false
+              },
+              {
+                "kind": "name",
+                "name": "wrapCols"
+              }
+            ]
+          }
+        },
+        {
+          "field": "wrapRows",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "choice"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "data"
+                  }
+                ]
+              },
+              {
+                "kind": "bool",
+                "value": false
+              },
+              {
+                "kind": "name",
+                "name": "wrapRows"
+              }
+            ]
+          }
+        },
+        {
+          "field": "focusTarget",
+          "rhs": {
+            "kind": "name",
+            "name": "focusTarget"
+          }
+        },
+        {
+          "field": "gridReadonly",
+          "rhs": {
+            "kind": "name",
+            "name": "gridReadonly"
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_wrap_cols",
+      "nondet": {
+        "name": "flag",
+        "kind": "bool",
+        "pool": [
+          true,
+          false
+        ]
+      },
+      "assignments": [
+        {
+          "field": "row",
+          "rhs": {
+            "kind": "name",
+            "name": "row"
+          }
+        },
+        {
+          "field": "col",
+          "rhs": {
+            "kind": "name",
+            "name": "col"
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "mode",
+          "rhs": {
+            "kind": "name",
+            "name": "mode"
+          }
+        },
+        {
+          "field": "dirty",
+          "rhs": {
+            "kind": "name",
+            "name": "dirty"
+          }
+        },
+        {
+          "field": "lastEdit",
+          "rhs": {
+            "kind": "name",
+            "name": "lastEdit"
+          }
+        },
+        {
+          "field": "gridKind",
+          "rhs": {
+            "kind": "name",
+            "name": "gridKind"
+          }
+        },
+        {
+          "field": "wrapCols",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "gridKind"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "layout"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "flag"
+              },
+              {
+                "kind": "bool",
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "field": "wrapRows",
+          "rhs": {
+            "kind": "name",
+            "name": "wrapRows"
+          }
+        },
+        {
+          "field": "focusTarget",
+          "rhs": {
+            "kind": "name",
+            "name": "focusTarget"
+          }
+        },
+        {
+          "field": "gridReadonly",
+          "rhs": {
+            "kind": "name",
+            "name": "gridReadonly"
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_wrap_rows",
+      "nondet": {
+        "name": "flag",
+        "kind": "bool",
+        "pool": [
+          true,
+          false
+        ]
+      },
+      "assignments": [
+        {
+          "field": "row",
+          "rhs": {
+            "kind": "name",
+            "name": "row"
+          }
+        },
+        {
+          "field": "col",
+          "rhs": {
+            "kind": "name",
+            "name": "col"
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "mode",
+          "rhs": {
+            "kind": "name",
+            "name": "mode"
+          }
+        },
+        {
+          "field": "dirty",
+          "rhs": {
+            "kind": "name",
+            "name": "dirty"
+          }
+        },
+        {
+          "field": "lastEdit",
+          "rhs": {
+            "kind": "name",
+            "name": "lastEdit"
+          }
+        },
+        {
+          "field": "gridKind",
+          "rhs": {
+            "kind": "name",
+            "name": "gridKind"
+          }
+        },
+        {
+          "field": "wrapCols",
+          "rhs": {
+            "kind": "name",
+            "name": "wrapCols"
+          }
+        },
+        {
+          "field": "wrapRows",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "gridKind"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "layout"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "flag"
+              },
+              {
+                "kind": "bool",
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "field": "focusTarget",
+          "rhs": {
+            "kind": "name",
+            "name": "focusTarget"
+          }
+        },
+        {
+          "field": "gridReadonly",
+          "rhs": {
+            "kind": "name",
+            "name": "gridReadonly"
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_focus_target",
+      "nondet": {
+        "name": "choice",
+        "kind": "str",
+        "pool": [
+          "cell",
+          "widget"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "row",
+          "rhs": {
+            "kind": "name",
+            "name": "row"
+          }
+        },
+        {
+          "field": "col",
+          "rhs": {
+            "kind": "name",
+            "name": "col"
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "mode",
+          "rhs": {
+            "kind": "name",
+            "name": "mode"
+          }
+        },
+        {
+          "field": "dirty",
+          "rhs": {
+            "kind": "name",
+            "name": "dirty"
+          }
+        },
+        {
+          "field": "lastEdit",
+          "rhs": {
+            "kind": "name",
+            "name": "lastEdit"
+          }
+        },
+        {
+          "field": "gridKind",
+          "rhs": {
+            "kind": "name",
+            "name": "gridKind"
+          }
+        },
+        {
+          "field": "wrapCols",
+          "rhs": {
+            "kind": "name",
+            "name": "wrapCols"
+          }
+        },
+        {
+          "field": "wrapRows",
+          "rhs": {
+            "kind": "name",
+            "name": "wrapRows"
+          }
+        },
+        {
+          "field": "focusTarget",
+          "rhs": {
+            "kind": "name",
+            "name": "choice"
+          }
+        },
+        {
+          "field": "gridReadonly",
+          "rhs": {
+            "kind": "name",
+            "name": "gridReadonly"
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_readonly",
+      "nondet": {
+        "name": "flag",
+        "kind": "bool",
+        "pool": [
+          true,
+          false
+        ]
+      },
+      "assignments": [
+        {
+          "field": "row",
+          "rhs": {
+            "kind": "name",
+            "name": "row"
+          }
+        },
+        {
+          "field": "col",
+          "rhs": {
+            "kind": "name",
+            "name": "col"
+          }
+        },
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "mode",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "flag"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "editing"
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "navigate"
+              },
+              {
+                "kind": "name",
+                "name": "mode"
+              }
+            ]
+          }
+        },
+        {
+          "field": "dirty",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "flag"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "editing"
+                  }
+                ]
+              },
+              {
+                "kind": "bool",
+                "value": false
+              },
+              {
+                "kind": "name",
+                "name": "dirty"
+              }
+            ]
+          }
+        },
+        {
+          "field": "lastEdit",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "flag"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "editing"
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "cancelled"
+              },
+              {
+                "kind": "name",
+                "name": "lastEdit"
+              }
+            ]
+          }
+        },
+        {
+          "field": "gridKind",
+          "rhs": {
+            "kind": "name",
+            "name": "gridKind"
+          }
+        },
+        {
+          "field": "wrapCols",
+          "rhs": {
+            "kind": "name",
+            "name": "wrapCols"
+          }
+        },
+        {
+          "field": "wrapRows",
+          "rhs": {
+            "kind": "name",
+            "name": "wrapRows"
+          }
+        },
+        {
+          "field": "focusTarget",
+          "rhs": {
+            "kind": "name",
+            "name": "focusTarget"
+          }
+        },
+        {
+          "field": "gridReadonly",
+          "rhs": {
+            "kind": "name",
+            "name": "flag"
+          }
+        }
+      ]
+    }
+  ],
+  "step": [
+    "init",
+    "key",
+    "click",
+    "focus_in",
+    "focus_out",
+    "set_kind",
+    "set_wrap_cols",
+    "set_wrap_rows",
+    "set_focus_target",
+    "set_readonly"
+  ]
+}

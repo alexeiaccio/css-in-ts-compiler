@@ -1,0 +1,5232 @@
+{
+  "generatedFrom": "../../specs/apg/alertdialog.qnt",
+  "specHash": "bb9b199b47c66b62a41b8f4b5ff5d7087150770ad5d0eeaf4d91cf36f55f2f53",
+  "module": "apg_alertdialog",
+  "vars": [
+    {
+      "name": "isOpen",
+      "type": "bool"
+    },
+    {
+      "name": "focus",
+      "type": "int"
+    },
+    {
+      "name": "ret",
+      "type": "int"
+    },
+    {
+      "name": "interacted",
+      "type": "bool"
+    },
+    {
+      "name": "notes",
+      "type": "int"
+    },
+    {
+      "name": "stored",
+      "type": "int"
+    },
+    {
+      "name": "requests",
+      "type": "int"
+    },
+    {
+      "name": "controlled",
+      "type": "bool"
+    },
+    {
+      "name": "accepting",
+      "type": "bool"
+    },
+    {
+      "name": "valueProp",
+      "type": "bool"
+    },
+    {
+      "name": "requested",
+      "type": "bool"
+    },
+    {
+      "name": "outcome",
+      "type": "str"
+    },
+    {
+      "name": "base",
+      "type": "bool"
+    }
+  ],
+  "defs": {
+    "USE_ARIA_DISABLED": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "bool",
+        "value": true
+      }
+    },
+    "NO_POS": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "1"
+      }
+    },
+    "YES_POS": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "2"
+      }
+    },
+    "FALLBACK_TARGET": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "1"
+      }
+    },
+    "dialogRole": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "str",
+        "value": "alertdialog"
+      }
+    },
+    "ariaModal": {
+      "kind": "function",
+      "params": [
+        "open"
+      ],
+      "body": {
+        "kind": "name",
+        "name": "open"
+      }
+    },
+    "hasAccessibleName": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "bool",
+        "value": true
+      }
+    },
+    "hasDescription": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "bool",
+        "value": true
+      }
+    },
+    "contractOk": {
+      "kind": "function",
+      "params": [
+        "open"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "dialogRole"
+              },
+              {
+                "kind": "str",
+                "value": "alertdialog"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ariaModal",
+            "args": [
+              {
+                "kind": "name",
+                "name": "open"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "hasAccessibleName"
+          },
+          {
+            "kind": "name",
+            "name": "hasDescription"
+          }
+        ]
+      }
+    },
+    "discardAriaDisabled": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "notes"
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          }
+        ]
+      }
+    },
+    "saveAriaDisabled": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "notes"
+          },
+          {
+            "kind": "name",
+            "name": "stored"
+          }
+        ]
+      }
+    },
+    "pageInert": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "name",
+        "name": "isOpen"
+      }
+    },
+    "discardFocusable": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "name",
+            "name": "USE_ARIA_DISABLED"
+          },
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "notes"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "layer": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "isOpen"
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          }
+        ]
+      }
+    },
+    "focusLayer": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "idiv",
+        "args": [
+          {
+            "kind": "name",
+            "name": "focus"
+          },
+          {
+            "kind": "int",
+            "value": "100"
+          }
+        ]
+      }
+    },
+    "focusPos": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "imod",
+        "args": [
+          {
+            "kind": "name",
+            "name": "focus"
+          },
+          {
+            "kind": "int",
+            "value": "100"
+          }
+        ]
+      }
+    },
+    "tabCount": {
+      "kind": "function",
+      "params": [
+        "l"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "l"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "2"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "discardFocusable"
+              },
+              {
+                "kind": "int",
+                "value": "3"
+              },
+              {
+                "kind": "int",
+                "value": "2"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "validPos": {
+      "kind": "function",
+      "params": [
+        "l",
+        "pos"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "pos"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "pos"
+              },
+              {
+                "kind": "app",
+                "opcode": "tabCount",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "l"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "validTarget": {
+      "kind": "function",
+      "params": [
+        "target"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "idiv",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "target"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "100"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "layer"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "validPos",
+            "args": [
+              {
+                "kind": "name",
+                "name": "layer"
+              },
+              {
+                "kind": "app",
+                "opcode": "imod",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "target"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "100"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nextPos": {
+      "kind": "function",
+      "params": [
+        "pos",
+        "n"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "pos"
+              },
+              {
+                "kind": "name",
+                "name": "n"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "pos"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "prevPos": {
+      "kind": "function",
+      "params": [
+        "pos",
+        "n"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "pos"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "n"
+          },
+          {
+            "kind": "app",
+            "opcode": "isub",
+            "args": [
+              {
+                "kind": "name",
+                "name": "pos"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "isDestructive": {
+      "kind": "function",
+      "params": [
+        "pos"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "pos"
+          },
+          {
+            "kind": "name",
+            "name": "YES_POS"
+          }
+        ]
+      }
+    },
+    "retFocus": {
+      "kind": "function",
+      "params": [
+        "notesAfter"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ret"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "3"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "or",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "USE_ARIA_DISABLED"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "neq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "notesAfter"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "0"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "FALLBACK_TARGET"
+          },
+          {
+            "kind": "name",
+            "name": "ret"
+          }
+        ]
+      }
+    },
+    "activateMode": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "isOpen"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "int",
+                        "value": "100"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "NO_POS"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "2"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "focus"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "iadd",
+                        "args": [
+                          {
+                            "kind": "int",
+                            "value": "100"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "YES_POS"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "3"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "focus"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "3"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "neq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "notes"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "0"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "focus"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "2"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "neq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "notes"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "stored"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "4"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "modeOf": {
+      "kind": "function",
+      "params": [
+        "ev"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ev"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "isOpen"
+              },
+              {
+                "kind": "int",
+                "value": "2"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ev"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "activateMode"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "ev"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "6"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "and",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "not",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "isOpen"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "focus"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "1"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "neq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "notes"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "stored"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "0"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "ev"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "7"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "and",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "not",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "isOpen"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "eq",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "focus"
+                                  },
+                                  {
+                                    "kind": "int",
+                                    "value": "1"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "int",
+                            "value": "5"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "0"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "ev"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "8"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "ite",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "and",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "not",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "isOpen"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "eq",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "focus"
+                                      },
+                                      {
+                                        "kind": "int",
+                                        "value": "1"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "int",
+                                "value": "6"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "0"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "int",
+                            "value": "0"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nextOpen": {
+      "kind": "function",
+      "params": [
+        "ev"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "modeOf",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ev"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "bool",
+            "value": true
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "modeOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "ev"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "modeOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "ev"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "3"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "bool",
+                "value": false
+              },
+              {
+                "kind": "name",
+                "name": "isOpen"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nextNotes": {
+      "kind": "function",
+      "params": [
+        "ev"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "modeOf",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "ev"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "3"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "modeOf",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "ev"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "6"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "modeOf",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "ev"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "5"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "notes"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "notes"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nextStored": {
+      "kind": "function",
+      "params": [
+        "ev"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "modeOf",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ev"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "3"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "modeOf",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "ev"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "4"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "notes"
+              },
+              {
+                "kind": "name",
+                "name": "stored"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nextRet": {
+      "kind": "function",
+      "params": [
+        "ev"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "modeOf",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ev"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "focus"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "modeOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "ev"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "modeOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "ev"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "3"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              },
+              {
+                "kind": "name",
+                "name": "ret"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nextInteracted": {
+      "kind": "function",
+      "params": [
+        "ev",
+        "arg"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "modeOf",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ev"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "bool",
+            "value": false
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "ev"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "3"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "ev"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "bool",
+                "value": true
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "and",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "ev"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "5"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "validTarget",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "arg"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "bool",
+                    "value": true
+                  },
+                  {
+                    "kind": "name",
+                    "name": "interacted"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nextFocus": {
+      "kind": "function",
+      "params": [
+        "ev",
+        "arg"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "modeOf",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ev"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "int",
+                "value": "100"
+              },
+              {
+                "kind": "name",
+                "name": "NO_POS"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "modeOf",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "ev"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "retFocus",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "notes"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "modeOf",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "ev"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "3"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "retFocus",
+                    "args": [
+                      {
+                        "kind": "int",
+                        "value": "0"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "ev"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "3"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "iadd",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "imul",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "layer"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "100"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "nextPos",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "focusPos"
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "tabCount",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "layer"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "ev"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "4"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "iadd",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "imul",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "layer"
+                                  },
+                                  {
+                                    "kind": "int",
+                                    "value": "100"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "prevPos",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "focusPos"
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "tabCount",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "layer"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "ite",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "and",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "eq",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "ev"
+                                      },
+                                      {
+                                        "kind": "int",
+                                        "value": "5"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "validTarget",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "arg"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "name",
+                                "name": "arg"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "focus"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "moved": {
+      "kind": "function",
+      "params": [
+        "a",
+        "b"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "a"
+              },
+              {
+                "kind": "name",
+                "name": "b"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          }
+        ]
+      }
+    },
+    "holds": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "controlled"
+          },
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "accepting"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "follows": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "controlled"
+          },
+          {
+            "kind": "name",
+            "name": "accepting"
+          }
+        ]
+      }
+    },
+    "verdict": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "holds"
+          },
+          {
+            "kind": "str",
+            "value": "rejected"
+          },
+          {
+            "kind": "str",
+            "value": "accepted"
+          }
+        ]
+      }
+    },
+    "landed": {
+      "kind": "function",
+      "params": [
+        "h",
+        "v",
+        "want"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "h"
+          },
+          {
+            "kind": "name",
+            "name": "v"
+          },
+          {
+            "kind": "name",
+            "name": "want"
+          }
+        ]
+      }
+    },
+    "propAfter": {
+      "kind": "function",
+      "params": [
+        "f",
+        "p",
+        "want"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "f"
+          },
+          {
+            "kind": "name",
+            "name": "want"
+          },
+          {
+            "kind": "name",
+            "name": "p"
+          }
+        ]
+      }
+    },
+    "wantOpenActivate": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "nextOpen",
+        "args": [
+          {
+            "kind": "int",
+            "value": "2"
+          }
+        ]
+      }
+    },
+    "wantOpenEscape": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "nextOpen",
+        "args": [
+          {
+            "kind": "int",
+            "value": "1"
+          }
+        ]
+      }
+    },
+    "rejectActivate": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "holds"
+          },
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "wantOpenActivate"
+              },
+              {
+                "kind": "name",
+                "name": "isOpen"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "rejectEscape": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "holds"
+          },
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "wantOpenEscape"
+              },
+              {
+                "kind": "name",
+                "name": "isOpen"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "setOpen": {
+      "kind": "function",
+      "params": [
+        "c",
+        "v"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "c"
+          },
+          {
+            "kind": "name",
+            "name": "v"
+          },
+          {
+            "kind": "bool",
+            "value": false
+          }
+        ]
+      }
+    },
+    "openingSet": {
+      "kind": "function",
+      "params": [
+        "c",
+        "v",
+        "open"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "c"
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "name",
+                "name": "v"
+              },
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "open"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "closingSet": {
+      "kind": "function",
+      "params": [
+        "c",
+        "v",
+        "open"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "c"
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "not",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "v"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "open"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "toggleOpen": {
+      "kind": "function",
+      "params": [
+        "c",
+        "open"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "c"
+          },
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "open"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "open"
+          }
+        ]
+      }
+    },
+    "toggleOpening": {
+      "kind": "function",
+      "params": [
+        "c",
+        "open"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "c"
+          },
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "open"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "toggleClosing": {
+      "kind": "function",
+      "params": [
+        "c",
+        "open"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "c"
+          },
+          {
+            "kind": "name",
+            "name": "open"
+          }
+        ]
+      }
+    },
+    "FocusInActiveLayer": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "focusLayer"
+          },
+          {
+            "kind": "name",
+            "name": "layer"
+          }
+        ]
+      }
+    },
+    "FocusPositionValid": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "validPos",
+        "args": [
+          {
+            "kind": "name",
+            "name": "layer"
+          },
+          {
+            "kind": "name",
+            "name": "focusPos"
+          }
+        ]
+      }
+    },
+    "OpenImpliesNotes": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "isOpen"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "notes"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "controlled"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ReturnTargetIsInvoker": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "isOpen"
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ret"
+              },
+              {
+                "kind": "int",
+                "value": "3"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ret"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "InitialFocusLeastDestructive": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "isOpen"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "interacted"
+          },
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isDestructive",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "focusPos"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "AlertDialogHonoursContract": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "isOpen"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "contractOk",
+            "args": [
+              {
+                "kind": "name",
+                "name": "isOpen"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "PageInertIffOpen": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "isOpen"
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focusLayer"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "pageInert"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "RequestsNonNegative": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "igte",
+        "args": [
+          {
+            "kind": "name",
+            "name": "requests"
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          }
+        ]
+      }
+    },
+    "ControlledFollowsProp": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "isOpen"
+              },
+              {
+                "kind": "name",
+                "name": "valueProp"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "RejectedRequestUntouched": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "outcome"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "rejected"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "isOpen"
+              },
+              {
+                "kind": "name",
+                "name": "base"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "AcceptedRequestCommits": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "outcome"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "accepted"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "isOpen"
+              },
+              {
+                "kind": "name",
+                "name": "requested"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "actions": [
+    {
+      "name": "init",
+      "assignments": [
+        {
+          "field": "isOpen",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "int",
+            "value": "1"
+          }
+        },
+        {
+          "field": "ret",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "interacted",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "notes",
+          "rhs": {
+            "kind": "int",
+            "value": "1"
+          }
+        },
+        {
+          "field": "stored",
+          "rhs": {
+            "kind": "int",
+            "value": "1"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "escape",
+      "assignments": [
+        {
+          "field": "isOpen",
+          "rhs": {
+            "kind": "app",
+            "opcode": "landed",
+            "args": [
+              {
+                "kind": "name",
+                "name": "holds"
+              },
+              {
+                "kind": "name",
+                "name": "isOpen"
+              },
+              {
+                "kind": "name",
+                "name": "wantOpenEscape"
+              }
+            ]
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rejectEscape"
+              },
+              {
+                "kind": "name",
+                "name": "focus"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextFocus",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "ret",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rejectEscape"
+              },
+              {
+                "kind": "name",
+                "name": "ret"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextRet",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "interacted",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rejectEscape"
+              },
+              {
+                "kind": "name",
+                "name": "interacted"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextInteracted",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "notes",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rejectEscape"
+              },
+              {
+                "kind": "name",
+                "name": "notes"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextNotes",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "stored",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rejectEscape"
+              },
+              {
+                "kind": "name",
+                "name": "stored"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextStored",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "requests"
+              },
+              {
+                "kind": "app",
+                "opcode": "moved",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "isOpen"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "wantOpenEscape"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "app",
+            "opcode": "propAfter",
+            "args": [
+              {
+                "kind": "name",
+                "name": "follows"
+              },
+              {
+                "kind": "name",
+                "name": "valueProp"
+              },
+              {
+                "kind": "name",
+                "name": "wantOpenEscape"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "isOpen"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "wantOpenEscape"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "requested"
+              },
+              {
+                "kind": "name",
+                "name": "wantOpenEscape"
+              }
+            ]
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "isOpen"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "wantOpenEscape"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "outcome"
+              },
+              {
+                "kind": "name",
+                "name": "verdict"
+              }
+            ]
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "isOpen"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "wantOpenEscape"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "base"
+              },
+              {
+                "kind": "name",
+                "name": "isOpen"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "activate",
+      "assignments": [
+        {
+          "field": "isOpen",
+          "rhs": {
+            "kind": "app",
+            "opcode": "landed",
+            "args": [
+              {
+                "kind": "name",
+                "name": "holds"
+              },
+              {
+                "kind": "name",
+                "name": "isOpen"
+              },
+              {
+                "kind": "name",
+                "name": "wantOpenActivate"
+              }
+            ]
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rejectActivate"
+              },
+              {
+                "kind": "name",
+                "name": "focus"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextFocus",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "ret",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rejectActivate"
+              },
+              {
+                "kind": "name",
+                "name": "ret"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextRet",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "interacted",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rejectActivate"
+              },
+              {
+                "kind": "name",
+                "name": "interacted"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextInteracted",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "notes",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rejectActivate"
+              },
+              {
+                "kind": "name",
+                "name": "notes"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextNotes",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "stored",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "rejectActivate"
+              },
+              {
+                "kind": "name",
+                "name": "stored"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextStored",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "requests"
+              },
+              {
+                "kind": "app",
+                "opcode": "moved",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "isOpen"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "wantOpenActivate"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "app",
+            "opcode": "propAfter",
+            "args": [
+              {
+                "kind": "name",
+                "name": "follows"
+              },
+              {
+                "kind": "name",
+                "name": "valueProp"
+              },
+              {
+                "kind": "name",
+                "name": "wantOpenActivate"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "isOpen"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "wantOpenActivate"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "requested"
+              },
+              {
+                "kind": "name",
+                "name": "wantOpenActivate"
+              }
+            ]
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "isOpen"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "wantOpenActivate"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "outcome"
+              },
+              {
+                "kind": "name",
+                "name": "verdict"
+              }
+            ]
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "isOpen"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "wantOpenActivate"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "base"
+              },
+              {
+                "kind": "name",
+                "name": "isOpen"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "tab",
+      "assignments": [
+        {
+          "field": "isOpen",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextOpen",
+            "args": [
+              {
+                "kind": "int",
+                "value": "3"
+              }
+            ]
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextFocus",
+            "args": [
+              {
+                "kind": "int",
+                "value": "3"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ret",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextRet",
+            "args": [
+              {
+                "kind": "int",
+                "value": "3"
+              }
+            ]
+          }
+        },
+        {
+          "field": "interacted",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextInteracted",
+            "args": [
+              {
+                "kind": "int",
+                "value": "3"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        },
+        {
+          "field": "notes",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextNotes",
+            "args": [
+              {
+                "kind": "int",
+                "value": "3"
+              }
+            ]
+          }
+        },
+        {
+          "field": "stored",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextStored",
+            "args": [
+              {
+                "kind": "int",
+                "value": "3"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "valueProp"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        }
+      ]
+    },
+    {
+      "name": "shift_tab",
+      "assignments": [
+        {
+          "field": "isOpen",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextOpen",
+            "args": [
+              {
+                "kind": "int",
+                "value": "4"
+              }
+            ]
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextFocus",
+            "args": [
+              {
+                "kind": "int",
+                "value": "4"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ret",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextRet",
+            "args": [
+              {
+                "kind": "int",
+                "value": "4"
+              }
+            ]
+          }
+        },
+        {
+          "field": "interacted",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextInteracted",
+            "args": [
+              {
+                "kind": "int",
+                "value": "4"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        },
+        {
+          "field": "notes",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextNotes",
+            "args": [
+              {
+                "kind": "int",
+                "value": "4"
+              }
+            ]
+          }
+        },
+        {
+          "field": "stored",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextStored",
+            "args": [
+              {
+                "kind": "int",
+                "value": "4"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "valueProp"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        }
+      ]
+    },
+    {
+      "name": "focus_attempt",
+      "nondet": {
+        "name": "target",
+        "kind": "int",
+        "pool": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "100",
+          "101",
+          "102",
+          "103"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "isOpen",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextOpen",
+            "args": [
+              {
+                "kind": "int",
+                "value": "5"
+              }
+            ]
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextFocus",
+            "args": [
+              {
+                "kind": "int",
+                "value": "5"
+              },
+              {
+                "kind": "name",
+                "name": "target"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ret",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextRet",
+            "args": [
+              {
+                "kind": "int",
+                "value": "5"
+              }
+            ]
+          }
+        },
+        {
+          "field": "interacted",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextInteracted",
+            "args": [
+              {
+                "kind": "int",
+                "value": "5"
+              },
+              {
+                "kind": "name",
+                "name": "target"
+              }
+            ]
+          }
+        },
+        {
+          "field": "notes",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextNotes",
+            "args": [
+              {
+                "kind": "int",
+                "value": "5"
+              }
+            ]
+          }
+        },
+        {
+          "field": "stored",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextStored",
+            "args": [
+              {
+                "kind": "int",
+                "value": "5"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "valueProp"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ctrl_s",
+      "assignments": [
+        {
+          "field": "isOpen",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextOpen",
+            "args": [
+              {
+                "kind": "int",
+                "value": "6"
+              }
+            ]
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextFocus",
+            "args": [
+              {
+                "kind": "int",
+                "value": "6"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ret",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextRet",
+            "args": [
+              {
+                "kind": "int",
+                "value": "6"
+              }
+            ]
+          }
+        },
+        {
+          "field": "interacted",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextInteracted",
+            "args": [
+              {
+                "kind": "int",
+                "value": "6"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        },
+        {
+          "field": "notes",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextNotes",
+            "args": [
+              {
+                "kind": "int",
+                "value": "6"
+              }
+            ]
+          }
+        },
+        {
+          "field": "stored",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextStored",
+            "args": [
+              {
+                "kind": "int",
+                "value": "6"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "valueProp"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        }
+      ]
+    },
+    {
+      "name": "type_text",
+      "assignments": [
+        {
+          "field": "isOpen",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextOpen",
+            "args": [
+              {
+                "kind": "int",
+                "value": "7"
+              }
+            ]
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextFocus",
+            "args": [
+              {
+                "kind": "int",
+                "value": "7"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ret",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextRet",
+            "args": [
+              {
+                "kind": "int",
+                "value": "7"
+              }
+            ]
+          }
+        },
+        {
+          "field": "interacted",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextInteracted",
+            "args": [
+              {
+                "kind": "int",
+                "value": "7"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        },
+        {
+          "field": "notes",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextNotes",
+            "args": [
+              {
+                "kind": "int",
+                "value": "7"
+              }
+            ]
+          }
+        },
+        {
+          "field": "stored",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextStored",
+            "args": [
+              {
+                "kind": "int",
+                "value": "7"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "valueProp"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        }
+      ]
+    },
+    {
+      "name": "clear_text",
+      "assignments": [
+        {
+          "field": "isOpen",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextOpen",
+            "args": [
+              {
+                "kind": "int",
+                "value": "8"
+              }
+            ]
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextFocus",
+            "args": [
+              {
+                "kind": "int",
+                "value": "8"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ret",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextRet",
+            "args": [
+              {
+                "kind": "int",
+                "value": "8"
+              }
+            ]
+          }
+        },
+        {
+          "field": "interacted",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextInteracted",
+            "args": [
+              {
+                "kind": "int",
+                "value": "8"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        },
+        {
+          "field": "notes",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextNotes",
+            "args": [
+              {
+                "kind": "int",
+                "value": "8"
+              }
+            ]
+          }
+        },
+        {
+          "field": "stored",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextStored",
+            "args": [
+              {
+                "kind": "int",
+                "value": "8"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "valueProp"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        }
+      ]
+    },
+    {
+      "name": "pointer_outside",
+      "assignments": [
+        {
+          "field": "isOpen",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextOpen",
+            "args": [
+              {
+                "kind": "int",
+                "value": "9"
+              }
+            ]
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextFocus",
+            "args": [
+              {
+                "kind": "int",
+                "value": "9"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        },
+        {
+          "field": "ret",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextRet",
+            "args": [
+              {
+                "kind": "int",
+                "value": "9"
+              }
+            ]
+          }
+        },
+        {
+          "field": "interacted",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextInteracted",
+            "args": [
+              {
+                "kind": "int",
+                "value": "9"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        },
+        {
+          "field": "notes",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextNotes",
+            "args": [
+              {
+                "kind": "int",
+                "value": "9"
+              }
+            ]
+          }
+        },
+        {
+          "field": "stored",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextStored",
+            "args": [
+              {
+                "kind": "int",
+                "value": "9"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "valueProp"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        }
+      ]
+    },
+    {
+      "name": "setValue",
+      "nondet": {
+        "name": "v",
+        "kind": "bool",
+        "pool": [
+          true,
+          false
+        ]
+      },
+      "assignments": [
+        {
+          "field": "isOpen",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "app",
+                "opcode": "setOpen",
+                "args": [
+                  {
+                    "kind": "bool",
+                    "value": true
+                  },
+                  {
+                    "kind": "name",
+                    "name": "v"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "isOpen"
+              }
+            ]
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "openingSet",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "controlled"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "v"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "isOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "100"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "NO_POS"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "closingSet",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "controlled"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "v"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "isOpen"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "retFocus",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "notes"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "ret",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "openingSet",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "controlled"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "v"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "isOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "3"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "closingSet",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "controlled"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "v"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "isOpen"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ret"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "interacted",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "openingSet",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "controlled"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "v"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "isOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "bool",
+                "value": false
+              },
+              {
+                "kind": "name",
+                "name": "interacted"
+              }
+            ]
+          }
+        },
+        {
+          "field": "notes",
+          "rhs": {
+            "kind": "name",
+            "name": "notes"
+          }
+        },
+        {
+          "field": "stored",
+          "rhs": {
+            "kind": "name",
+            "name": "stored"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "app",
+                "opcode": "setOpen",
+                "args": [
+                  {
+                    "kind": "bool",
+                    "value": true
+                  },
+                  {
+                    "kind": "name",
+                    "name": "v"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "valueProp"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "str",
+                "value": "none"
+              },
+              {
+                "kind": "name",
+                "name": "outcome"
+              }
+            ]
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        }
+      ]
+    },
+    {
+      "name": "hostToggle",
+      "assignments": [
+        {
+          "field": "isOpen",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "app",
+                "opcode": "toggleOpen",
+                "args": [
+                  {
+                    "kind": "bool",
+                    "value": true
+                  },
+                  {
+                    "kind": "name",
+                    "name": "isOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "isOpen"
+              }
+            ]
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "toggleOpening",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "controlled"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "isOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "100"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "NO_POS"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "toggleClosing",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "controlled"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "isOpen"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "retFocus",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "notes"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "ret",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "toggleOpening",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "controlled"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "isOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "3"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "toggleClosing",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "controlled"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "isOpen"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ret"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "interacted",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "toggleOpening",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "controlled"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "isOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "bool",
+                "value": false
+              },
+              {
+                "kind": "name",
+                "name": "interacted"
+              }
+            ]
+          }
+        },
+        {
+          "field": "notes",
+          "rhs": {
+            "kind": "name",
+            "name": "notes"
+          }
+        },
+        {
+          "field": "stored",
+          "rhs": {
+            "kind": "name",
+            "name": "stored"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "app",
+                "opcode": "toggleOpen",
+                "args": [
+                  {
+                    "kind": "bool",
+                    "value": true
+                  },
+                  {
+                    "kind": "name",
+                    "name": "isOpen"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "valueProp"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "str",
+                "value": "none"
+              },
+              {
+                "kind": "name",
+                "name": "outcome"
+              }
+            ]
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        }
+      ]
+    },
+    {
+      "name": "control",
+      "assignments": [
+        {
+          "field": "isOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "isOpen"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "name",
+            "name": "focus"
+          }
+        },
+        {
+          "field": "ret",
+          "rhs": {
+            "kind": "name",
+            "name": "ret"
+          }
+        },
+        {
+          "field": "interacted",
+          "rhs": {
+            "kind": "name",
+            "name": "interacted"
+          }
+        },
+        {
+          "field": "notes",
+          "rhs": {
+            "kind": "name",
+            "name": "notes"
+          }
+        },
+        {
+          "field": "stored",
+          "rhs": {
+            "kind": "name",
+            "name": "stored"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "isOpen"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        }
+      ]
+    },
+    {
+      "name": "acceptRequests",
+      "assignments": [
+        {
+          "field": "isOpen",
+          "rhs": {
+            "kind": "name",
+            "name": "isOpen"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "name",
+            "name": "focus"
+          }
+        },
+        {
+          "field": "ret",
+          "rhs": {
+            "kind": "name",
+            "name": "ret"
+          }
+        },
+        {
+          "field": "interacted",
+          "rhs": {
+            "kind": "name",
+            "name": "interacted"
+          }
+        },
+        {
+          "field": "notes",
+          "rhs": {
+            "kind": "name",
+            "name": "notes"
+          }
+        },
+        {
+          "field": "stored",
+          "rhs": {
+            "kind": "name",
+            "name": "stored"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "valueProp"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        }
+      ]
+    }
+  ],
+  "step": [
+    "init",
+    "escape",
+    "activate",
+    "tab",
+    "shift_tab",
+    "focus_attempt",
+    "ctrl_s",
+    "type_text",
+    "clear_text",
+    "pointer_outside",
+    "setValue",
+    "hostToggle",
+    "control",
+    "acceptRequests"
+  ]
+}

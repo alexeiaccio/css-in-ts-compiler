@@ -1,0 +1,291 @@
+{
+  "accordion": {
+    "specs": ["accordion"],
+    "parts": {
+      "trigger": "header",
+      "panel": "content",
+      "heading": "heading"
+    },
+    "fixture": ["menu", "menuTrigger"]
+  },
+  "alert": {
+    "specs": ["alert"],
+    "parts": {
+      "alert": "alert",
+      "close": "dismiss"
+    },
+    "fixture": ["add", "add-high", "content", "region", "root", "toast"]
+  },
+  "alertdialog": {
+    "specs": ["alertdialog"],
+    "parts": {
+      "trigger": "discard",
+      "dialog": "alertdialog",
+      "cancel": "no",
+      "confirm": "yes"
+    },
+    "fixture": ["backdrop", "dismiss", "secondary"]
+  },
+  "breadcrumb": {
+    "specs": ["breadcrumb"],
+    "parts": {
+      "item": "item",
+      "link": "link",
+      "nav": null,
+      "breadcrumb": null
+    },
+    "fixture": []
+  },
+  "button": {
+    "specs": ["button"],
+    "parts": {
+      "button": "button",
+      "group": null,
+      "text": null
+    },
+    "fixture": []
+  },
+  "carousel": {
+    "specs": ["carousel"],
+    "parts": {
+      "carousel": null,
+      "rotation": "rotation",
+      "prev": "prev",
+      "next": "next",
+      "tab": "tab",
+      "slide": "slide"
+    },
+    "fixture": []
+  },
+  "checkbox": {
+    "specs": ["checkbox", "checkbox-group"],
+    "parts": {
+      "checkbox": "checkbox",
+      "group": null
+    },
+    "fixture": ["button", "input", "label"]
+  },
+  "combobox": {
+    "specs": [
+      "combobox-autocomplete",
+      "combobox-dialog",
+      "combobox-grid",
+      "combobox-select-only",
+      "combobox-tree"
+    ],
+    "parts": {
+      "input": "input",
+      "trigger": "button",
+      "popup": "popup",
+      "option": "option",
+      "gridcell": "cell",
+      "treeitem": "node"
+    },
+    "fixture": ["body", "final-focus-button", "label", "next-button"]
+  },
+  "dialog-modal": {
+    "specs": ["dialog-modal"],
+    "parts": {
+      "trigger": "invoker",
+      "dialog": "dialog",
+      "backdrop": null
+    },
+    "fixture": "*"
+  },
+  "disclosure": {
+    "specs": ["disclosure"],
+    "parts": {
+      "trigger": "trigger",
+      "panel": "panel",
+      "heading": null
+    },
+    "fixture": ["disclosure"]
+  },
+  "feed": {
+    "specs": ["feed"],
+    "parts": {
+      "feed": "feed",
+      "article": "article",
+      "before-feed": "before",
+      "after-feed": "after"
+    },
+    "fixture": []
+  },
+  "grid": {
+    "specs": ["grid", "grid-selection", "grid-sort"],
+    "parts": {
+      "cell": "cell",
+      "row": "row",
+      "rowgroup": null,
+      "columnheader": "header"
+    },
+    "fixture": ["after", "body", "checkbox", "combobox", "dialog", "rowheader"]
+  },
+  "landmarks": {
+    "specs": [],
+    "parts": {
+      "main": null,
+      "navigation": null,
+      "region": null,
+      "button": null,
+      "link": null,
+      "listitem": null
+    },
+    "fixture": []
+  },
+  "link": {
+    "specs": ["link"],
+    "parts": {
+      "link": "link",
+      "button": null
+    },
+    "fixture": []
+  },
+  "listbox": {
+    "specs": [
+      "listbox-single",
+      "listbox-multi",
+      "listbox-typeahead",
+      "listbox-rearrangeable"
+    ],
+    "parts": {
+      "listbox": "listbox",
+      "option": "option"
+    },
+    "fixture": ["trigger"]
+  },
+  "menu-button": {
+    "specs": ["menu-button", "menu-checkable"],
+    "parts": {
+      "trigger": "button",
+      "menu": "menu",
+      "menuitem": "item",
+      "submenu": null
+    },
+    "fixture": ["after", "body", "dialog", "dismiss", "group", "outside"]
+  },
+  "menubar": {
+    "specs": ["menu-menubar"],
+    "parts": {
+      "menubar": "menubar",
+      "menu": "menu",
+      "menuitem": "item",
+      "submenu": "submenu"
+    },
+    "fixture": ["body", "outside"]
+  },
+  "meter": {
+    "specs": ["meter"],
+    "parts": {
+      "meter": "meter"
+    },
+    "fixture": []
+  },
+  "radio": {
+    "specs": ["radio"],
+    "parts": {
+      "radiogroup": "radiogroup",
+      "radio": "radio"
+    },
+    "fixture": []
+  },
+  "slider": {
+    "specs": ["slider"],
+    "parts": {
+      "thumb": "thumb",
+      "track": "rail"
+    },
+    "fixture": ["body"]
+  },
+  "slider-multithumb": {
+    "specs": ["slider-multithumb"],
+    "parts": {
+      "thumb": "thumb",
+      "track": "rail"
+    },
+    "fixture": ["body"]
+  },
+  "spinbutton": {
+    "specs": ["spinbutton"],
+    "parts": {
+      "input": "input",
+      "increment": "increment",
+      "decrement": "decrement"
+    },
+    "fixture": ["description", "error", "group", "label"]
+  },
+  "switch": {
+    "specs": ["switch"],
+    "parts": {
+      "switch": "switch"
+    },
+    "fixture": ["button", "input", "label"]
+  },
+  "table": {
+    "specs": [],
+    "parts": {
+      "table": null,
+      "rowgroup": null,
+      "row": null,
+      "columnheader": null,
+      "rowheader": null,
+      "gridcell": null,
+      "caption": null,
+      "colindex-cell": null,
+      "colspan-cell": null
+    },
+    "fixture": []
+  },
+  "tabs": {
+    "specs": ["tabs"],
+    "parts": {
+      "tablist": "tablist",
+      "tab": "tab",
+      "tabpanel": "tabpanel"
+    },
+    "fixture": ["link"]
+  },
+  "toolbar": {
+    "specs": ["toolbar"],
+    "parts": {
+      "toolbar": "toolbar",
+      "item": "item"
+    },
+    "fixture": ["dialog", "menuitem", "option", "popup"]
+  },
+  "tooltip": {
+    "specs": ["tooltip"],
+    "parts": {
+      "trigger": "trigger",
+      "tooltip": "tooltip"
+    },
+    "fixture": []
+  },
+  "treegrid": {
+    "specs": ["treegrid"],
+    "parts": {
+      "treegrid": "grid",
+      "row": "row",
+      "cell": "cell",
+      "chevron": "expander"
+    },
+    "fixture": ["checkbox", "document", "info", "link", "menu"]
+  },
+  "treeview": {
+    "specs": ["treeview"],
+    "parts": {
+      "tree": "tree",
+      "treeitem": "node"
+    },
+    "fixture": []
+  },
+  "windowsplitter": {
+    "specs": ["windowsplitter"],
+    "parts": {
+      "separator": "splitter",
+      "primary": "primary",
+      "secondary": "secondary"
+    },
+    "fixture": []
+  }
+}

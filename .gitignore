@@ -67,3 +67,6 @@ native/**/build/
 native/terminal/demo
 native/terminal/test-cells
 native/**/*.actual.png
+
+# vitest browser mode (packages/headless): failure screenshots
+.vitest/

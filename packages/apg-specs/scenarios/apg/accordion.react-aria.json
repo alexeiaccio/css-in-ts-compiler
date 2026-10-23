@@ -1,0 +1,929 @@
+{
+  "pattern": "accordion",
+  "source": "react-aria",
+  "commit": "99e610236887da619ad9d54a1cd87983166c043d",
+  "license": "Apache-2.0",
+  "skipped": [
+    {
+      "reason": "styling: class names, custom className, default class assertions"
+    },
+    {
+      "reason": "React render props, custom render functions and generic DOM prop passthrough"
+    },
+    {
+      "reason": "focus-ring styling attributes (data-focus-visible-within, className function)"
+    },
+    { "reason": "SSR tests (Disclosure.ssr.test.js, Accordion.ssr.test.js)" },
+    {
+      "reason": "hook-level state and aria tests (useDisclosure, useDisclosureState, useDisclosureGroupState) - React API, not component behaviour"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "accordion.react-aria.aria-expanded-and-region",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/accordion/Accordion.test.js#L52",
+      "upstreamTest": "Accordion > renders properly",
+      "apg": "aria",
+      "config": {
+        "items": 3,
+        "itemValues": ["one", "two", "three"],
+        "defaultExpanded": ["one"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true",
+                "aria-controls": "panel:0"
+              },
+              "trigger:1": {
+                "aria-expanded": "false"
+              },
+              "trigger:2": {
+                "aria-expanded": "false"
+              },
+              "panel:0": {
+                "role": "region",
+                "aria-labelledby": "trigger:0"
+              }
+            },
+            "visible": ["panel:0"]
+          }
+        }
+      ],
+      "notes": "Auto-generated ids are normalised to part tokens (trigger:0 / panel:0). All accordion callbacks take a single argument; in events a sub-array is an array-valued argument."
+    },
+    {
+      "id": "accordion.react-aria.click-toggles",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/accordion/Accordion.test.js#L72",
+      "upstreamTest": "Accordion > toggle accordion on mouse click",
+      "apg": "pointer",
+      "config": {
+        "items": 3
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              }
+            },
+            "visible": []
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"],
+            "events": {
+              "onExpandedChange": [["one"]]
+            }
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              }
+            },
+            "visible": [],
+            "events": {
+              "onExpandedChange": [["one"], []]
+            }
+          }
+        }
+      ],
+      "notes": "APG specifies Enter/Space only; pointer toggle recorded as an extension."
+    },
+    {
+      "id": "accordion.react-aria.enter-toggles",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/accordion/Accordion.test.js#L86",
+      "upstreamTest": "Accordion > allows users to open and close disclosure with enter / space key",
+      "apg": "keyboard",
+      "config": {
+        "items": 3
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "trigger:0"
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"],
+            "events": {
+              "onExpandedChange": [["one"]]
+            }
+          }
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              }
+            },
+            "visible": [],
+            "events": {
+              "onExpandedChange": [["one"], []]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.react-aria.tab-moves-focus-between-headers",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/accordion/Accordion.test.js#L106",
+      "upstreamTest": "Accordion > allows users to navigate accordion headers through the tab key",
+      "apg": "keyboard",
+      "config": {
+        "items": 3
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "trigger:0"
+        },
+        {
+          "event": "key",
+          "key": "Tab",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "focus": "trigger:1"
+          }
+        },
+        {
+          "event": "key",
+          "key": "Tab",
+          "target": "trigger:1",
+          "modifiers": ["Shift"]
+        },
+        {
+          "expect": {
+            "focus": "trigger:0"
+          }
+        },
+        {
+          "event": "key",
+          "key": "Tab",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "focus": "trigger:1"
+          }
+        },
+        {
+          "event": "key",
+          "key": "Tab",
+          "target": "trigger:1"
+        },
+        {
+          "expect": {
+            "focus": "trigger:2"
+          }
+        },
+        {
+          "event": "key",
+          "key": "Tab",
+          "target": "trigger:2"
+        },
+        {
+          "expect": {
+            "focus": null
+          }
+        },
+        {
+          "event": "key",
+          "key": "Tab",
+          "target": "trigger:2",
+          "modifiers": ["Shift"]
+        },
+        {
+          "expect": {
+            "focus": "trigger:2"
+          }
+        }
+      ],
+      "notes": "focus:null means focus left the accordion; all triggers are independently tabbable (no roving tabindex)."
+    },
+    {
+      "id": "accordion.react-aria.type-inside-panel",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/accordion/Accordion.test.js#L130",
+      "upstreamTest": "Accordion > allows users to type inside disclosures",
+      "apg": "extension",
+      "config": {
+        "items": 3,
+        "defaultExpanded": ["three"]
+      },
+      "steps": [
+        {
+          "event": "type",
+          "target": "panel:2",
+          "text": "Type example"
+        },
+        {
+          "expect": {
+            "value": {
+              "panel:2": "Type example"
+            }
+          }
+        }
+      ],
+      "notes": "Panel 3 contains a text input; expanded state keeps it focusable and editable."
+    },
+    {
+      "id": "accordion.react-aria.default-expanded-keys",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/accordion/Accordion.test.js#L143",
+      "upstreamTest": "Accordion > supports defaultExpandedKeys",
+      "apg": "states",
+      "config": {
+        "items": 3,
+        "itemValues": ["one", "two", "three"],
+        "defaultExpanded": ["one"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.react-aria.controlled-expanded-keys-stays-expanded",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/accordion/Accordion.test.js#L150",
+      "upstreamTest": "Accordion > supports controlled expandedKeys",
+      "apg": "states",
+      "config": {
+        "items": 3,
+        "itemValues": ["one", "two", "three"],
+        "expanded": ["one"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"],
+            "events": {
+              "onExpandedChange": [[]]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.react-aria.disabled-accordion",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/accordion/Accordion.test.js#L163",
+      "upstreamTest": "Accordion > supports isDisabled on Accordion",
+      "apg": "states",
+      "config": {
+        "items": 3,
+        "disabled": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "disabled": "true"
+              },
+              "trigger:1": {
+                "disabled": "true"
+              },
+              "trigger:2": {
+                "disabled": "true"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.react-aria.disabled-item",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/accordion/Accordion.test.js#L171",
+      "upstreamTest": "Accordion > supports isDisabled on individual Disclosures",
+      "apg": "states",
+      "config": {
+        "items": 3,
+        "itemValues": ["one", "two", "three"],
+        "disabledItems": ["two"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "disabled": null
+              },
+              "trigger:1": {
+                "disabled": "true"
+              },
+              "trigger:2": {
+                "disabled": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.react-aria.disclosure-aria-label",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Disclosure.test.js#L92",
+      "upstreamTest": "Disclosure > should support aria label",
+      "apg": "aria",
+      "config": {
+        "items": 1,
+        "headingLabel": "Test disclosure heading",
+        "panelLabel": "Test disclosure panel"
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "heading:0": {
+                "aria-label": "Test disclosure heading"
+              },
+              "panel:0": {
+                "aria-label": "Test disclosure panel"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.react-aria.disabled-disclosure-hidden-panel",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Disclosure.test.js#L109",
+      "upstreamTest": "Disclosure > should support disabled state",
+      "apg": "states",
+      "config": {
+        "items": 1,
+        "disabled": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "disabled": "true"
+              }
+            },
+            "visible": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.react-aria.disabled-disclosure-expanded-panel",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Disclosure.test.js#L130",
+      "upstreamTest": "Disclosure > should expand a disabled disclosure via isExpanded",
+      "apg": "states",
+      "config": {
+        "items": 1,
+        "disabled": true,
+        "expanded": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "disabled": "true",
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.react-aria.controlled-is-expanded",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Disclosure.test.js#L147",
+      "upstreamTest": "Disclosure > should support controlled isExpanded prop",
+      "apg": "states",
+      "config": {
+        "items": 1,
+        "expanded": true
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"],
+            "events": {
+              "onExpandedChange": [false]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.react-aria.click-toggles-disclosure",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Disclosure.test.js#L172",
+      "upstreamTest": "Disclosure > should toggle expanded state when trigger is clicked",
+      "apg": "pointer",
+      "config": {
+        "items": 1
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              }
+            },
+            "visible": []
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"]
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              }
+            },
+            "visible": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.react-aria.interactive-element-beside-heading",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Disclosure.test.js#L255",
+      "upstreamTest": "Disclosure > should support interactive elements adjacent to heading",
+      "apg": "extension",
+      "config": {
+        "items": 1,
+        "adjacentMenu": true
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "menuTrigger"
+        },
+        {
+          "expect": {
+            "visible": ["menu"],
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              }
+            }
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"]
+          }
+        }
+      ],
+      "notes": "A menu trigger placed beside the disclosure heading does not toggle the panel."
+    },
+    {
+      "id": "accordion.react-aria.nested-disclosures",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Disclosure.test.js#L310",
+      "upstreamTest": "Disclosure > should support nested Disclosures",
+      "apg": "extension",
+      "config": {
+        "items": 2,
+        "nested": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "visible": []
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "visible": ["panel:0"]
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:1"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              },
+              "trigger:1": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0", "panel:1"]
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:1"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:1": {
+                "aria-expanded": "false"
+              }
+            },
+            "visible": ["panel:0"]
+          }
+        }
+      ],
+      "notes": "Item 2 is nested inside the panel of item 1 and is independent of it."
+    },
+    {
+      "id": "accordion.react-aria.repeat-keydown-toggles-once",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Disclosure.test.js#L345",
+      "upstreamTest": "Disclosure > should not expand or collapse on repeat keydown events",
+      "apg": "extension",
+      "config": {
+        "items": 1
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "trigger:0"
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "repeat": 4,
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"],
+            "events": {
+              "onExpandedChange": [true]
+            }
+          }
+        },
+        {
+          "event": "key",
+          "key": "Enter",
+          "repeat": 4,
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              }
+            },
+            "visible": [],
+            "events": {
+              "onExpandedChange": [true, false]
+            }
+          }
+        }
+      ],
+      "notes": "Held/repeat keydown events toggle once per press."
+    },
+    {
+      "id": "accordion.react-aria.group-single-expansion",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Disclosure.test.js#L409",
+      "upstreamTest": "DisclosureGroup > should only allow one Disclosure to be expanded at a time by default",
+      "apg": "about",
+      "config": {
+        "items": 2
+      },
+      "steps": [
+        {
+          "expect": {
+            "visible": []
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"]
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:1"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              },
+              "trigger:1": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:1"]
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:1"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:1": {
+                "aria-expanded": "false"
+              }
+            },
+            "visible": []
+          }
+        }
+      ],
+      "notes": "APG allows either single or multiple expansion; single-expansion recorded against aria-expanded/visibility."
+    },
+    {
+      "id": "accordion.react-aria.group-allows-multiple-expanded",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Disclosure.test.js#L452",
+      "upstreamTest": "DisclosureGroup > should allow multiple Disclosures to be expanded when allowsMultipleExpanded is true",
+      "apg": "about",
+      "config": {
+        "items": 2,
+        "multiple": true
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"]
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:1"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              },
+              "trigger:1": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0", "panel:1"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.react-aria.group-controlled-expanded-keys",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Disclosure.test.js#L491",
+      "upstreamTest": "DisclosureGroup > should support controlled expandedKeys prop",
+      "apg": "states",
+      "config": {
+        "items": 2,
+        "itemValues": ["item1", "item2"],
+        "expanded": ["item1"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0"]
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "expanded",
+          "value": ["item2"]
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "false"
+              },
+              "trigger:1": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:1"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.react-aria.group-on-expanded-change",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Disclosure.test.js#L533",
+      "upstreamTest": "DisclosureGroup > should call onExpandedChange when a Disclosure is toggled",
+      "apg": "extension",
+      "config": {
+        "items": 1,
+        "itemValues": ["item1"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "events": {
+              "onExpandedChange": [["item1"]]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.react-aria.group-disabled-disables-items",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Disclosure.test.js#L557",
+      "upstreamTest": "DisclosureGroup > should disable all Disclosures when DisclosureGroup is disabled",
+      "apg": "states",
+      "config": {
+        "items": 2,
+        "disabled": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "disabled": "true"
+              },
+              "trigger:1": {
+                "disabled": "true"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "accordion.react-aria.group-nested",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Disclosure.test.js#L586",
+      "upstreamTest": "DisclosureGroup > should support nested DisclosureGroups",
+      "apg": "extension",
+      "config": {
+        "items": 2,
+        "nested": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "visible": []
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:0"
+        },
+        {
+          "expect": {
+            "visible": ["panel:0"]
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:1"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:0": {
+                "aria-expanded": "true"
+              },
+              "trigger:1": {
+                "aria-expanded": "true"
+              }
+            },
+            "visible": ["panel:0", "panel:1"]
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger:1"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger:1": {
+                "aria-expanded": "false"
+              }
+            },
+            "visible": ["panel:0"]
+          }
+        }
+      ],
+      "notes": "Nested DisclosureGroup lives inside the panel of item 1 and expands independently."
+    }
+  ]
+}

@@ -1,0 +1,574 @@
+{
+  "generatedFrom": "../../specs/apg/breadcrumb.qnt",
+  "specHash": "0725349bd6d8924054ee7fbda32974408db3fe7b71b1fc680218240e25868ea0",
+  "module": "apg_breadcrumb",
+  "vars": [
+    {
+      "name": "depth",
+      "type": "int"
+    },
+    {
+      "name": "currentIsLink",
+      "type": "bool"
+    },
+    {
+      "name": "currentIndex",
+      "type": "int"
+    },
+    {
+      "name": "navigations",
+      "type": "int"
+    }
+  ],
+  "defs": {
+    "deeper": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "depth"
+              },
+              {
+                "kind": "int",
+                "value": "4"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "depth"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "depth"
+          }
+        ]
+      }
+    },
+    "cutTo": {
+      "kind": "function",
+      "params": [
+        "t"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "t"
+              },
+              {
+                "kind": "name",
+                "name": "depth"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "t"
+          },
+          {
+            "kind": "name",
+            "name": "depth"
+          }
+        ]
+      }
+    },
+    "remark": {
+      "kind": "function",
+      "params": [
+        "d"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "currentIndex"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "name",
+            "name": "d"
+          }
+        ]
+      }
+    },
+    "CurrentIsLastOrAbsent": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "currentIndex"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "currentIndex"
+              },
+              {
+                "kind": "name",
+                "name": "depth"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "LinkCurrentIsMarked": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "currentIsLink"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "currentIndex"
+              },
+              {
+                "kind": "name",
+                "name": "depth"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "TrailNotEmpty": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "igte",
+        "args": [
+          {
+            "kind": "name",
+            "name": "depth"
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          }
+        ]
+      }
+    },
+    "TrailBounded": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ilte",
+        "args": [
+          {
+            "kind": "name",
+            "name": "depth"
+          },
+          {
+            "kind": "int",
+            "value": "4"
+          }
+        ]
+      }
+    },
+    "NavigationsNonNegative": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "igte",
+        "args": [
+          {
+            "kind": "name",
+            "name": "navigations"
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          }
+        ]
+      }
+    }
+  },
+  "actions": [
+    {
+      "name": "init",
+      "assignments": [
+        {
+          "field": "depth",
+          "rhs": {
+            "kind": "int",
+            "value": "1"
+          }
+        },
+        {
+          "field": "currentIsLink",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "currentIndex",
+          "rhs": {
+            "kind": "int",
+            "value": "1"
+          }
+        },
+        {
+          "field": "navigations",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        }
+      ]
+    },
+    {
+      "name": "descend",
+      "assignments": [
+        {
+          "field": "depth",
+          "rhs": {
+            "kind": "name",
+            "name": "deeper"
+          }
+        },
+        {
+          "field": "currentIsLink",
+          "rhs": {
+            "kind": "name",
+            "name": "currentIsLink"
+          }
+        },
+        {
+          "field": "currentIndex",
+          "rhs": {
+            "kind": "app",
+            "opcode": "remark",
+            "args": [
+              {
+                "kind": "name",
+                "name": "deeper"
+              }
+            ]
+          }
+        },
+        {
+          "field": "navigations",
+          "rhs": {
+            "kind": "name",
+            "name": "navigations"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ancestor",
+      "nondet": {
+        "name": "target",
+        "kind": "int",
+        "pool": [
+          "1",
+          "2",
+          "3"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "depth",
+          "rhs": {
+            "kind": "app",
+            "opcode": "cutTo",
+            "args": [
+              {
+                "kind": "name",
+                "name": "target"
+              }
+            ]
+          }
+        },
+        {
+          "field": "currentIsLink",
+          "rhs": {
+            "kind": "name",
+            "name": "currentIsLink"
+          }
+        },
+        {
+          "field": "currentIndex",
+          "rhs": {
+            "kind": "app",
+            "opcode": "remark",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "cutTo",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "target"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "navigations",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "ilt",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "target"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "depth"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "navigations"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "navigations"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "renderLink",
+      "assignments": [
+        {
+          "field": "depth",
+          "rhs": {
+            "kind": "name",
+            "name": "depth"
+          }
+        },
+        {
+          "field": "currentIsLink",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "currentIndex",
+          "rhs": {
+            "kind": "name",
+            "name": "depth"
+          }
+        },
+        {
+          "field": "navigations",
+          "rhs": {
+            "kind": "name",
+            "name": "navigations"
+          }
+        }
+      ]
+    },
+    {
+      "name": "renderText",
+      "assignments": [
+        {
+          "field": "depth",
+          "rhs": {
+            "kind": "name",
+            "name": "depth"
+          }
+        },
+        {
+          "field": "currentIsLink",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "currentIndex",
+          "rhs": {
+            "kind": "name",
+            "name": "currentIndex"
+          }
+        },
+        {
+          "field": "navigations",
+          "rhs": {
+            "kind": "name",
+            "name": "navigations"
+          }
+        }
+      ]
+    },
+    {
+      "name": "toggleMark",
+      "assignments": [
+        {
+          "field": "depth",
+          "rhs": {
+            "kind": "name",
+            "name": "depth"
+          }
+        },
+        {
+          "field": "currentIsLink",
+          "rhs": {
+            "kind": "name",
+            "name": "currentIsLink"
+          }
+        },
+        {
+          "field": "currentIndex",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "currentIsLink"
+              },
+              {
+                "kind": "name",
+                "name": "currentIndex"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "currentIndex"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "0"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "depth"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "navigations",
+          "rhs": {
+            "kind": "name",
+            "name": "navigations"
+          }
+        }
+      ]
+    }
+  ],
+  "step": [
+    "init",
+    "descend",
+    "ancestor",
+    "renderLink",
+    "renderText",
+    "toggleMark"
+  ]
+}

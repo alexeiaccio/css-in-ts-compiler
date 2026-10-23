@@ -38,10 +38,17 @@ const exists = (dir, target) => {
 const run = (cmd, args, cwd) =>
   execFileSync(cmd, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] });
 
+// Workspace packages that stay out of npm: the test oracle of the widgets has no dist/ and no publishConfig.
+const unpublished = new Set(["@cssints/apg-specs"]);
+
 const staged = [];
 for (const dir of packageDirs) {
   const repo = read(dir);
   const bad = (what) => problems.push(`${repo.name}: ${what}`);
+  if (unpublished.has(repo.name)) {
+    if (!repo.private) bad("must stay private: it is not published");
+    continue;
+  }
   const dest = join(dir, repo.publishConfig?.directory ?? ".publish");
   if (repo.publishConfig?.directory !== ".publish")
     bad('publishConfig.directory must be ".publish" (changeset publish sends that directory)');

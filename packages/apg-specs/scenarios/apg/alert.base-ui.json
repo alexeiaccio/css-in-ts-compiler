@@ -1,0 +1,81 @@
+{
+  "pattern": "alert",
+  "source": "base-ui",
+  "commit": "19511bb171f3b360b006c94cf6d07e53cb446505",
+  "license": "MIT",
+  "skipped": [
+    {
+      "reason": "Toast.Viewport > sets the measured frontmost toast height CSS variable"
+    },
+    { "reason": "Toast.Viewport > gets focused when F6 is pressed" },
+    {
+      "reason": "Toast.Viewport > focuses first toast upon tab after viewport is focused"
+    },
+    { "reason": "Toast.Root > sets the vertical offset CSS variable" },
+    { "reason": "Toast.Root > swipe behavior" },
+    { "reason": "Toast.Provider > timer and focus restoration suites" }
+  ],
+  "scenarios": [
+    {
+      "id": "alert.base-ui.high-priority-toast-is-alert",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/toast/useToastManager.test.tsx#L706",
+      "upstreamTest": "useToastManager > option: priority > applies correct ARIA attributes for high priority toasts",
+      "apg": "announcements",
+      "config": {},
+      "steps": [
+        { "event": "click", "target": "add-high" },
+        {
+          "expect": {
+            "attrs": {
+              "root": { "role": "alertdialog", "aria-modal": "false" },
+              "alert": { "role": "alert", "aria-atomic": "true" }
+            }
+          }
+        },
+        { "event": "click", "target": "close" },
+        {
+          "expect": { "attrs": { "alert": { "role": null } } }
+        }
+      ]
+    },
+    {
+      "id": "alert.base-ui.default-toast-has-live-alert",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/toast/viewport/ToastViewport.tsx#L266",
+      "upstreamTest": "Toast.Viewport renders each toast in a role=alert, aria-atomic wrapper",
+      "apg": "announcements",
+      "config": {},
+      "steps": [
+        { "event": "click", "target": "add" },
+        {
+          "expect": {
+            "attrs": { "alert": { "role": "alert", "aria-atomic": "true" } }
+          }
+        }
+      ],
+      "notes": "The alert wrapper is part of the viewport render and applies to every toast, not only priority ones."
+    },
+    {
+      "id": "alert.base-ui.toast-labelled-and-described-by-parts",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/toast/root/ToastRoot.test.tsx#L112",
+      "upstreamTest": "Toast.Root > keeps dynamic title and description ids synchronized with mounted label parts",
+      "apg": "aria",
+      "config": {
+        "titleId": "toast-title",
+        "descriptionId": "toast-description"
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "root": {
+                "aria-labelledby": "toast-title",
+                "aria-describedby": "toast-description"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Upstream uses generated ids; pinned ids restate the same label association."
+    }
+  ]
+}

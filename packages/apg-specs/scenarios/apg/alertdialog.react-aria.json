@@ -1,0 +1,225 @@
+{
+  "pattern": "alertdialog",
+  "source": "react-aria",
+  "commit": "99e610236887da619ad9d54a1cd87983166c043d",
+  "license": "Apache-2.0",
+  "skipped": [
+    { "reason": "styling / theme wrappers and Spectrum visual variants" },
+    { "reason": "enter/exit animation timing" },
+    {
+      "reason": "React-API-only props that do not change observed behaviour (title/data-testid plumbing asserted purely structurally)"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "alertdialog.react-aria.primary-action-callback",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/dialog/AlertDialog.test.js#L21",
+      "upstreamTest": "AlertDialog > renders alert dialog with onPrimaryAction",
+      "apg": "wai-aria",
+      "config": { "variant": "confirmation" },
+      "steps": [
+        { "expect": { "visible": ["dialog"], "focus": "dialog" } },
+        { "event": "click", "target": "confirm" },
+        { "expect": { "events": { "onPrimaryAction": [1] } } }
+      ]
+    },
+    {
+      "id": "alertdialog.react-aria.two-button-cancel-and-confirm",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/dialog/AlertDialog.test.js#L45",
+      "upstreamTest": "AlertDialog > renders 2 button alert dialog with onPrimaryAction / onCancel",
+      "apg": "wai-aria",
+      "config": { "variant": "confirmation", "cancelLabel": "cancel" },
+      "steps": [
+        { "expect": { "visible": ["dialog"], "focus": "dialog" } },
+        { "event": "click", "target": "cancel" },
+        { "expect": { "events": { "onCancel": [1], "onPrimaryAction": [] } } },
+        { "event": "click", "target": "confirm" },
+        { "expect": { "events": { "onPrimaryAction": [1], "onCancel": [1] } } }
+      ]
+    },
+    {
+      "id": "alertdialog.react-aria.three-button-callbacks",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/dialog/AlertDialog.test.js#L79",
+      "upstreamTest": "AlertDialog > renders a 3 button alert dialog with onPrimaryAction / onCancel",
+      "apg": "wai-aria",
+      "config": {
+        "variant": "confirmation",
+        "secondaryActionLabel": "secondary",
+        "cancelLabel": "cancel"
+      },
+      "steps": [
+        { "expect": { "focus": "dialog" } },
+        { "event": "click", "target": "secondary" },
+        {
+          "expect": { "events": { "onSecondaryAction": [1], "onCancel": [] } }
+        },
+        { "event": "click", "target": "confirm" },
+        { "expect": { "events": { "onPrimaryAction": [1], "onCancel": [] } } },
+        { "event": "click", "target": "cancel" },
+        { "expect": { "events": { "onCancel": [1], "onPrimaryAction": [1] } } }
+      ]
+    },
+    {
+      "id": "alertdialog.react-aria.disabled-confirm-not-fired",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/dialog/AlertDialog.test.js#L122",
+      "upstreamTest": "AlertDialog > disable its confirm button",
+      "apg": "extension",
+      "config": { "variant": "confirmation", "isPrimaryActionDisabled": true },
+      "steps": [
+        { "expect": { "focus": "dialog" } },
+        { "event": "click", "target": "confirm" },
+        { "expect": { "events": { "onPrimaryAction": [] } } }
+      ]
+    },
+    {
+      "id": "alertdialog.react-aria.autofocus-confirm-button",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/dialog/AlertDialog.test.js#L146",
+      "upstreamTest": "AlertDialog > autofocus its confirm button",
+      "apg": "focus",
+      "config": { "variant": "confirmation", "autoFocusButton": "primary" },
+      "steps": [{ "expect": { "focus": "confirm" } }]
+    },
+    {
+      "id": "alertdialog.react-aria.autofocus-cancel-button",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/dialog/AlertDialog.test.js#L163",
+      "upstreamTest": "AlertDialog > autofocus its cancel button",
+      "apg": "focus",
+      "config": {
+        "variant": "confirmation",
+        "cancelLabel": "cancel",
+        "autoFocusButton": "cancel"
+      },
+      "steps": [{ "expect": { "focus": "cancel" } }]
+    },
+    {
+      "id": "alertdialog.react-aria.disabled-secondary-not-fired",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/dialog/AlertDialog.test.js#L181",
+      "upstreamTest": "AlertDialog > disable its secondary button",
+      "apg": "extension",
+      "config": {
+        "variant": "confirmation",
+        "isSecondaryActionDisabled": true
+      },
+      "steps": [
+        { "expect": { "focus": "dialog" } },
+        { "event": "click", "target": "secondary" },
+        { "expect": { "events": { "onPrimaryAction": [] } } }
+      ]
+    },
+    {
+      "id": "alertdialog.react-aria.autofocus-secondary-button",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/dialog/AlertDialog.test.js#L206",
+      "upstreamTest": "AlertDialog > autofocus its secondary button",
+      "apg": "focus",
+      "config": {
+        "variant": "confirmation",
+        "secondaryActionLabel": "secondary",
+        "autoFocusButton": "secondary"
+      },
+      "steps": [{ "expect": { "focus": "secondary" } }]
+    },
+    {
+      "id": "alertdialog.react-aria.aria-describedby-points-to-content",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/dialog/AlertDialog.test.js#L250",
+      "upstreamTest": "AlertDialog > should have aria-describedby pointing to the content",
+      "apg": "wai-aria",
+      "config": { "variant": "confirmation" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "dialog": { "role": "alertdialog", "aria-describedby": "content" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "alertdialog.react-aria.aria-describedby-custom",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/dialog/AlertDialog.test.js#L267",
+      "upstreamTest": "AlertDialog > accepts custom aria-describedby",
+      "apg": "wai-aria",
+      "config": { "variant": "confirmation", "ariaDescribedby": "content-id" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "dialog": { "aria-describedby": "content-id" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "alertdialog.react-aria.components-role-alertdialog",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Dialog.test.js#L54",
+      "upstreamTest": "Dialog > works with modal",
+      "apg": "wai-aria",
+      "config": { "modal": true, "role": "alertdialog" },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        {
+          "expect": {
+            "visible": ["dialog"],
+            "attrs": {
+              "dialog": { "role": "alertdialog", "aria-labelledby": "title" }
+            }
+          }
+        },
+        { "event": "click", "target": "dismiss" },
+        { "expect": { "hidden": ["dialog"] } }
+      ]
+    },
+    {
+      "id": "alertdialog.react-aria.use-dialog-describedby-from-content",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/dialog/useDialog.test.js#L73",
+      "upstreamTest": "useDialog > should set aria-describedby on alertdialog when content is rendered",
+      "apg": "wai-aria",
+      "config": { "role": "alertdialog", "showContent": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "dialog": { "role": "alertdialog", "aria-describedby": "content" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "alertdialog.react-aria.s2-auto-describedby",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@react-spectrum/s2/test/AlertDialog.test.tsx#L37",
+      "upstreamTest": "AlertDialog > automatically links to the content with aria-describedby",
+      "apg": "wai-aria",
+      "config": { "title": "Test", "primaryActionLabel": "Test" },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        {
+          "expect": {
+            "visible": ["dialog"],
+            "attrs": {
+              "dialog": { "role": "alertdialog", "aria-describedby": "content" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "alertdialog.react-aria.s2-custom-describedby",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@react-spectrum/s2/test/AlertDialog.test.tsx#L60",
+      "upstreamTest": "AlertDialog > accepts custom aria-describedby",
+      "apg": "wai-aria",
+      "config": {
+        "title": "Test",
+        "primaryActionLabel": "Test",
+        "ariaDescribedby": "content-id"
+      },
+      "steps": [
+        { "event": "click", "target": "trigger" },
+        {
+          "expect": {
+            "attrs": { "dialog": { "aria-describedby": "content-id" } }
+          }
+        }
+      ]
+    }
+  ]
+}

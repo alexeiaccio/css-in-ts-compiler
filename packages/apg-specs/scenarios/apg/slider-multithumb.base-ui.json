@@ -1,0 +1,316 @@
+{
+  "pattern": "slider-multithumb",
+  "source": "base-ui",
+  "commit": "19511bb171f3b360b006c94cf6d07e53cb446505",
+  "license": "MIT",
+  "skipped": [],
+  "scenarios": [
+    {
+      "id": "slider-multithumb.base-ui.aria-valuetext-range-endpoints",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/slider/root/SliderRoot.test.tsx#L213",
+      "upstreamTest": "SliderRoot > ARIA attributes > should set default aria-valuetext on range slider thumbs",
+      "apg": "aria",
+      "config": { "thumbs": 2, "values": [44, 50] },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "thumb:0": { "aria-valuetext": "44 start range" },
+              "thumb:1": { "aria-valuetext": "50 end range" }
+            }
+          }
+        }
+      ],
+      "notes": "Thumb aria-valuetext defaults for the endpoints of a multi-thumb range; derived from the value and thumb role, not from rendering."
+    },
+    {
+      "id": "slider-multithumb.base-ui.clamps-initial-values-into-bounds",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/slider/root/SliderRoot.test.tsx#L777",
+      "upstreamTest": "SliderRoot > prop: min > clamps range values that fall outside the min and max bounds",
+      "apg": "aria",
+      "config": { "thumbs": 2, "values": [19, 41], "min": 20, "max": 40 },
+      "steps": [
+        {
+          "expect": {
+            "value": [20, 40],
+            "attrs": {
+              "thumb:0": { "aria-valuenow": "20" },
+              "thumb:1": { "aria-valuenow": "40" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "slider-multithumb.base-ui.min-steps-between-values-keyboard",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/slider/root/SliderRoot.test.tsx#L787",
+      "upstreamTest": "SliderRoot > prop: minStepsBetweenValues > should enforce a minimum difference between range slider values",
+      "apg": "extension",
+      "config": {
+        "thumbs": 2,
+        "values": [44, 50],
+        "step": 2,
+        "minStepsBetweenValues": 2
+      },
+      "steps": [
+        { "event": "focus", "target": "thumb:0" },
+        { "event": "key", "target": "thumb:0", "key": "ArrowUp" },
+        {
+          "expect": {
+            "value": [46, 50],
+            "events": { "onValueChange": [[[46, 50]]] }
+          }
+        },
+        { "event": "key", "target": "thumb:0", "key": "ArrowUp" },
+        { "expect": { "value": [46, 50] } },
+        { "event": "key", "target": "thumb:1", "key": "Tab" },
+        { "event": "key", "target": "thumb:1", "key": "ArrowUp" },
+        { "expect": { "value": [46, 52] } },
+        { "event": "key", "target": "thumb:1", "key": "ArrowDown" },
+        { "event": "key", "target": "thumb:1", "key": "ArrowDown" },
+        { "expect": { "value": [46, 50] } }
+      ],
+      "notes": "minStepsBetweenValues is a cross-thumb constraint not specified by APG; the second ArrowUp on thumb:0 is rejected because thumb:1 must stay at least 2 steps ahead."
+    },
+    {
+      "id": "slider-multithumb.base-ui.end-moves-to-rightmost-possible-value",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/slider/root/SliderRoot.test.tsx#L2754",
+      "upstreamTest": "SliderRoot > keyboard interactions > key: End sets value to the maximum possible value in a range slider",
+      "apg": "keyboard",
+      "config": { "thumbs": 2, "values": [20, 50], "max": 77 },
+      "steps": [
+        { "event": "focus", "target": "thumb:0" },
+        { "event": "key", "target": "thumb:0", "key": "End" },
+        {
+          "expect": {
+            "value": [50, 50],
+            "events": { "onValueChange": [[[50, 50]]] }
+          }
+        },
+        { "event": "key", "target": "thumb:0", "key": "End" },
+        { "expect": { "value": [50, 50] } },
+        { "event": "key", "target": "thumb:1", "key": "Tab" },
+        { "event": "key", "target": "thumb:1", "key": "End" },
+        { "expect": { "value": [50, 77] } }
+      ],
+      "notes": "APG does not state a per-thumb End rule; the model clamps the focused thumb against its neighbouring value."
+    },
+    {
+      "id": "slider-multithumb.base-ui.home-moves-to-leftmost-possible-value",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/slider/root/SliderRoot.test.tsx#L2826",
+      "upstreamTest": "SliderRoot > keyboard interactions > key: Home sets value to the minimum possible value in a range slider",
+      "apg": "keyboard",
+      "config": { "thumbs": 2, "values": [20, 50], "min": 7 },
+      "steps": [
+        { "event": "key", "target": "thumb:0", "key": "Tab" },
+        { "event": "key", "target": "thumb:1", "key": "Tab" },
+        { "event": "focus", "target": "thumb:1" },
+        { "event": "key", "target": "thumb:1", "key": "Home" },
+        {
+          "expect": {
+            "value": [20, 20],
+            "events": { "onValueChange": [[[20, 20]]] }
+          }
+        },
+        { "event": "key", "target": "thumb:1", "key": "Home" },
+        { "expect": { "value": [20, 20] } },
+        { "event": "key", "target": "thumb:0", "key": "Home" },
+        { "expect": { "value": [7, 20] } }
+      ]
+    },
+    {
+      "id": "slider-multithumb.base-ui.track-press-selects-nearest-thumb",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/slider/root/SliderRoot.test.tsx#L2040",
+      "upstreamTest": "SliderRoot > prop: onValueChange > provides the change reason for track presses",
+      "apg": "pointer",
+      "config": { "thumbs": 2, "values": [10, 40], "min": 0, "max": 100 },
+      "steps": [
+        { "event": "pointerdown", "target": "track", "position": 0.21 },
+        { "event": "pointerup", "target": "track", "position": 0.21 },
+        { "expect": { "value": [21, 40] } }
+      ],
+      "notes": "Clicking the track moves the closest thumb, not necessarily thumb:0; ported from the single-thumb reason test plus the range geometry."
+    },
+    {
+      "id": "slider-multithumb.base-ui.drag-one-thumb-leaves-other-unchanged",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/slider/root/SliderRoot.test.tsx#L1097",
+      "upstreamTest": "SliderRoot > prop: onValueCommitted > array value",
+      "apg": "pointer",
+      "config": { "thumbs": 2, "values": [10, 20] },
+      "steps": [
+        { "event": "pointerdown", "target": "thumb:1", "position": 0.2 },
+        { "event": "pointermove", "target": "thumb:1", "position": 0.3 },
+        {
+          "expect": { "value": [10, 30], "events": { "onValueCommitted": [] } }
+        },
+        { "event": "pointerup", "target": "thumb:1", "position": 0.3 },
+        {
+          "expect": {
+            "events": { "onValueCommitted": [[[10, 30], { "reason": "drag" }]] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "slider-multithumb.base-ui.disabled-thumb-not-draggable",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/slider/root/SliderRoot.test.tsx#L361",
+      "upstreamTest": "SliderRoot > prop: disabled > does not drag a thumb disabled via the `disabled` prop",
+      "apg": "extension",
+      "config": { "thumbs": 2, "values": [20, 80], "disabledThumbs": [1] },
+      "steps": [
+        { "event": "pointerdown", "target": "thumb:1", "position": 0.8 },
+        { "event": "pointermove", "target": "thumb:1", "position": 0.4 },
+        { "event": "pointerup", "target": "thumb:1", "position": 0.4 },
+        {
+          "expect": {
+            "value": [20, 80],
+            "events": { "onValueChange": [] },
+            "attrs": { "thumb:1": { "disabled": "" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "slider-multithumb.base-ui.track-press-near-disabled-thumb-selects-enabled",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/slider/root/SliderRoot.test.tsx#L454",
+      "upstreamTest": "SliderRoot > prop: disabled > does not select a disabled thumb when pressing the track",
+      "apg": "extension",
+      "config": {
+        "thumbs": 2,
+        "values": [20, 80],
+        "disabledThumbs": [1],
+        "thumbCollisionBehavior": "none"
+      },
+      "steps": [
+        { "event": "pointerdown", "target": "track", "position": 0.95 },
+        { "event": "pointerup", "target": "track", "position": 0.95 },
+        { "expect": { "value": [20, 80] } }
+      ],
+      "notes": "Track press selects the enabled thumb instead of the disabled one near it, so the disabled value stays put."
+    },
+    {
+      "id": "slider-multithumb.base-ui.thumb-collision-none-prevents-crossing",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/slider/thumb/SliderThumb.test.tsx#L885",
+      "upstreamTest": "SliderThumb > positioning styles > thumbCollisionBehavior > prevents thumbs from passing each other when set to \"none\"",
+      "apg": "extension",
+      "config": {
+        "thumbs": 2,
+        "values": [20, 40],
+        "thumbCollisionBehavior": "none"
+      },
+      "steps": [
+        { "event": "pointerdown", "target": "thumb:0", "position": 0.2 },
+        { "event": "pointermove", "target": "thumb:0", "position": 0.6 },
+        { "event": "pointerup", "target": "thumb:0", "position": 0.6 },
+        { "expect": { "value": [40, 40] } }
+      ]
+    },
+    {
+      "id": "slider-multithumb.base-ui.thumb-collision-push-advances-adjacent",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/slider/thumb/SliderThumb.test.tsx#L926",
+      "upstreamTest": "SliderThumb > positioning styles > thumbCollisionBehavior > pushes adjacent thumbs forward when set to \"push\"",
+      "apg": "extension",
+      "config": {
+        "thumbs": 2,
+        "values": [20, 40],
+        "thumbCollisionBehavior": "push"
+      },
+      "steps": [
+        { "event": "pointerdown", "target": "thumb:0", "position": 0.2 },
+        { "event": "pointermove", "target": "thumb:0", "position": 0.65 },
+        { "event": "pointerup", "target": "thumb:0", "position": 0.65 },
+        { "expect": { "value": [65, 65] } }
+      ]
+    },
+    {
+      "id": "slider-multithumb.base-ui.thumb-collision-swap",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/slider/thumb/SliderThumb.test.tsx#L967",
+      "upstreamTest": "SliderThumb > positioning styles > thumbCollisionBehavior > allows thumbs to swap when set to \"swap\"",
+      "apg": "extension",
+      "config": {
+        "thumbs": 2,
+        "values": [20, 40],
+        "thumbCollisionBehavior": "swap"
+      },
+      "steps": [
+        { "event": "pointerdown", "target": "thumb:0", "position": 0.2 },
+        { "event": "pointermove", "target": "thumb:0", "position": 0.7 },
+        { "event": "pointerup", "target": "thumb:0", "position": 0.7 },
+        { "expect": { "value": [40, 70] } }
+      ]
+    },
+    {
+      "id": "slider-multithumb.base-ui.thumb-collision-swap-respects-min-steps",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/slider/thumb/SliderThumb.test.tsx#L1008",
+      "upstreamTest": "SliderThumb > positioning styles > thumbCollisionBehavior > maintains minimum steps between values when swapping",
+      "apg": "extension",
+      "config": {
+        "thumbs": 3,
+        "values": [20, 40, 60],
+        "minStepsBetweenValues": 10,
+        "thumbCollisionBehavior": "swap"
+      },
+      "steps": [
+        { "event": "pointerdown", "target": "thumb:0", "position": 0.2 },
+        { "event": "pointermove", "target": "thumb:0", "position": 0.5 },
+        { "event": "pointermove", "target": "thumb:0", "position": 0.55 },
+        { "event": "pointermove", "target": "thumb:0", "position": 0.8 },
+        { "event": "pointerup", "target": "thumb:0", "position": 0.8 },
+        { "expect": { "value": [30, 50, 80] } }
+      ]
+    },
+    {
+      "id": "slider-multithumb.base-ui.focus-tab-order-and-blur-callbacks",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/slider/thumb/SliderThumb.test.tsx#L218",
+      "upstreamTest": "SliderThumb > events > focus and blur > multiple thumbs",
+      "apg": "extension",
+      "config": { "thumbs": 2, "values": [50, 70] },
+      "steps": [
+        { "expect": { "focus": null } },
+        { "event": "key", "target": "body", "key": "Tab" },
+        {
+          "expect": {
+            "focus": "thumb:0",
+            "events": { "onFocus": [["thumb:0"]] }
+          }
+        },
+        { "event": "key", "target": "thumb:0", "key": "Tab" },
+        {
+          "expect": {
+            "focus": "thumb:1",
+            "events": {
+              "onBlur": [["thumb:0"]],
+              "onFocus": [["thumb:0"], ["thumb:1"]]
+            }
+          }
+        },
+        { "event": "key", "target": "thumb:1", "key": "Tab" },
+        {
+          "expect": {
+            "focus": null,
+            "events": { "onBlur": [["thumb:0"], ["thumb:1"]] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "slider-multithumb.base-ui.three-thumb-drag-keeps-active-index",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/slider/root/SliderRoot.test.tsx#L2066",
+      "upstreamTest": "SliderRoot > prop: onValueChange > drags the intended thumb when 3 thumbs are present",
+      "apg": "pointer",
+      "config": { "thumbs": 3, "values": [10, 40, 60], "min": 0, "max": 100 },
+      "steps": [
+        { "event": "pointerdown", "target": "thumb:2", "position": 0.6 },
+        { "event": "pointermove", "target": "thumb:2", "position": 0.8 },
+        {
+          "expect": {
+            "events": {
+              "onValueChange": [[[10, 40, 80], { "activeThumbIndex": 2 }]]
+            }
+          }
+        }
+      ],
+      "notes": "The last mousePosition is not asserted exactly upstream, only that the third value changed and activeThumbIndex stayed 2."
+    }
+  ]
+}

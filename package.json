@@ -5,7 +5,8 @@
     "packages/*",
     "apps/*",
     "tools/*",
-    "native"
+    "native",
+    "native/headless"
   ],
   "scripts": {
     "prepare": "effect-language-service patch && effect-tsgo patch --typescript",

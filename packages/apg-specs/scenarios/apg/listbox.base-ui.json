@@ -1,0 +1,163 @@
+{
+  "pattern": "listbox",
+  "source": "base-ui",
+  "commit": "19511bb171f3b360b006c94cf6d07e53cb446505",
+  "license": "MIT",
+  "skipped": [
+    {
+      "reason": "no standalone Listbox component exists in this checkout: Base UI renders role=listbox/option inside Select (and reuses it for Combobox and Autocomplete), so the scenarios below port only the list/option-level behaviour that is independent of the trigger."
+    },
+    {
+      "reason": "trigger/popup lifecycle and positioning: defaultOpen, open/close transitions, modal, finalFocus, scroll arrows, positioner sizing, RTL alignment (SelectRoot/SelectPopup tests)"
+    },
+    {
+      "reason": "value/form plumbing: defaultValue, controlled value, itemToStringValue/Label, hidden inputs, validation, dirty/touched/filled field state, browser autofill"
+    },
+    {
+      "reason": "Base UI style hooks: data-highlighted / data-selected / data-disabled attribute assertions as styling contracts (conformance suites) and generic data attribute forwarding"
+    },
+    {
+      "reason": "grouping and reordering of items, grouped selection bookkeeping, and the index-guessing regression (SelectItem tests)"
+    },
+    {
+      "reason": "drag-to-select and opening-delay pointer timing matrices (SelectItem tests)"
+    },
+    {
+      "reason": "Select.List conformance and Separator orientation (SelectList/ListboxSeparator tests): the list container conforms to a div ref and the separator only asserts role=presentation, neither is an option/listbox interaction"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "listbox.base-ui.arrow-keys-focus-options",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/select/item/SelectItem.test.tsx#L152",
+      "upstreamTest": "navigating with keyboard should focus item",
+      "apg": "keyboard",
+      "config": {
+        "items": ["one", "two", "three"],
+        "open": true,
+        "selectionMode": "single"
+      },
+      "steps": [
+        { "expect": { "focus": "option:0" } },
+        { "event": "key", "key": "ArrowDown", "target": "option:0" },
+        { "expect": { "focus": "option:1" } },
+        { "event": "key", "key": "ArrowDown", "target": "option:1" },
+        { "expect": { "focus": "option:2" } }
+      ]
+    },
+    {
+      "id": "listbox.base-ui.enter-selects-highlighted-option",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/select/item/SelectItem.test.tsx#L191",
+      "upstreamTest": "should select item when Enter key is pressed",
+      "apg": "selection",
+      "config": {
+        "items": ["one", "two"],
+        "open": true,
+        "selectionMode": "single"
+      },
+      "steps": [
+        { "event": "key", "key": "ArrowDown", "target": "option:0" },
+        { "expect": { "focus": "option:1" } },
+        { "event": "key", "key": "Enter", "target": "option:1" },
+        {
+          "expect": {
+            "value": { "trigger:0": "two" },
+            "visible": [],
+            "events": { "onValueChange": ["two"] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "listbox.base-ui.click-selects-and-closes",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/select/item/SelectItem.test.tsx#L120",
+      "upstreamTest": "should select the item and close popup when clicked",
+      "apg": "selection",
+      "config": { "items": ["one"], "open": true, "selectionMode": "single" },
+      "steps": [
+        { "event": "click", "target": "option:0" },
+        {
+          "expect": {
+            "value": { "trigger:0": "one" },
+            "visible": [],
+            "events": { "onValueChange": ["one"] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "listbox.base-ui.disabled-option-focusable",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/select/item/SelectItem.test.tsx#L220",
+      "upstreamTest": "should focus disabled items",
+      "apg": "aria",
+      "config": { "items": ["two"], "open": true, "disabledKeys": ["two"] },
+      "steps": [
+        { "event": "focus", "target": "option:0" },
+        {
+          "expect": {
+            "focus": "option:0",
+            "attrs": { "option:0": { "aria-disabled": "true" } }
+          }
+        }
+      ],
+      "notes": "Base UI keeps disabled options focusable (aria-disabled, not disabled); they just cannot be selected."
+    },
+    {
+      "id": "listbox.base-ui.disabled-option-not-selectable",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/select/item/SelectItem.test.tsx#L245",
+      "upstreamTest": "should not select disabled item",
+      "apg": "selection",
+      "config": {
+        "items": ["one", "two"],
+        "open": true,
+        "selectionMode": "single",
+        "disabledKeys": ["two"]
+      },
+      "steps": [
+        { "event": "click", "target": "option:1" },
+        { "expect": { "value": { "trigger:0": "" }, "events": {} } }
+      ]
+    },
+    {
+      "id": "listbox.base-ui.focus-selected-option-on-open",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/select/item/SelectItem.test.tsx#L444",
+      "upstreamTest": "should focus the selected item upon opening the popup",
+      "apg": "focus",
+      "config": {
+        "items": ["one", "two", "three"],
+        "selectionMode": "single",
+        "defaultValue": "three"
+      },
+      "steps": [
+        { "event": "click", "target": "trigger:0" },
+        { "event": "click", "target": "option:2" },
+        { "expect": { "value": { "trigger:0": "three" } } },
+        { "event": "click", "target": "trigger:0" },
+        { "expect": { "focus": "option:2" } }
+      ]
+    },
+    {
+      "id": "listbox.base-ui.hover-highlights-option",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/select/item/SelectItem.test.tsx#L362",
+      "upstreamTest": "should highlight a hovered item and commit it with a mouse click",
+      "apg": "pointer",
+      "config": {
+        "items": ["one", "two", "three"],
+        "open": true,
+        "selectionMode": "single"
+      },
+      "steps": [
+        { "event": "hover", "target": "option:1" },
+        { "expect": { "focus": "option:1" } },
+        { "event": "click", "target": "option:1" },
+        {
+          "expect": {
+            "value": { "trigger:0": "two" },
+            "events": { "onValueChange": ["two"] }
+          }
+        }
+      ],
+      "notes": "Base UI moves the active option with pointer hover (aria-activedescendant / data-highlighted); mapped here to the active/focused option."
+    }
+  ]
+}

@@ -1,0 +1,426 @@
+{
+  "pattern": "spinbutton",
+  "source": "react-aria",
+  "commit": "99e610236887da619ad9d54a1cd87983166c043d",
+  "license": "Apache-2.0",
+  "skipped": [
+    {
+      "reason": "react-aria-components NumberField.test.js 'provides slots' styling/class assertions, custom render function, slot/context API, data-attribute placement, hover/focus-visible state, data-readonly presentation"
+    },
+    {
+      "reason": "exhaustive Intl number-format locales: non-Latin numbering systems, Arabic singular/dual plural rules, useGrouping false in en-US/de-DE, ambiguous 1,000/1.000 parsing, currency reformatting"
+    },
+    {
+      "reason": "React-API-only surfaces: useNumberField renderHook prop merging (default props, placeholder, event handler merging), useNumberFieldState formatOptions-reference stability, React render props and i18n providers"
+    },
+    {
+      "reason": "form/validation plumbing: form value coverage, isDisabled form value, Form validationErrors, FieldError/required constraint messaging, commitBehavior='validate' out-of-range validation flow"
+    },
+    {
+      "reason": "live-announcer assertion internals beyond the announce call argument"
+    },
+    {
+      "reason": "@react-spectrum/@adobe spectrum S1/S2 NumberField tests and SSR/snapshot suites - rendering only"
+    },
+    {
+      "reason": "auto-spinning press-and-hold timing beyond the disabled-button stop case"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "spinbutton.react-aria.role-spinbutton-aria-values",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/spinbutton/useSpinButton.test.js#L30",
+      "upstreamTest": "useSpinButton > should have role=\"spinbutton\" and aria props",
+      "apg": "aria",
+      "config": { "value": 2, "textValue": "2 items", "min": 1, "max": 3 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "input": {
+                "role": "spinbutton",
+                "aria-valuenow": "2",
+                "aria-valuemin": "1",
+                "aria-valuemax": "3",
+                "aria-valuetext": "2 items",
+                "aria-disabled": null,
+                "aria-readonly": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.react-aria.aria-disabled",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/spinbutton/useSpinButton.test.js#L42",
+      "upstreamTest": "useSpinButton > should have aria-disabled if isDisabled is set",
+      "apg": "aria",
+      "config": {
+        "value": 2,
+        "textValue": "2 items",
+        "min": 1,
+        "max": 3,
+        "disabled": true
+      },
+      "steps": [
+        { "expect": { "attrs": { "input": { "aria-disabled": "true" } } } }
+      ]
+    },
+    {
+      "id": "spinbutton.react-aria.aria-readonly",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/spinbutton/useSpinButton.test.js#L50",
+      "upstreamTest": "useSpinButton > should have aria-readonly if isReadOnly is set",
+      "apg": "aria",
+      "config": {
+        "value": 2,
+        "textValue": "2 items",
+        "min": 1,
+        "max": 3,
+        "readOnly": true
+      },
+      "steps": [
+        { "expect": { "attrs": { "input": { "aria-readonly": "true" } } } }
+      ]
+    },
+    {
+      "id": "spinbutton.react-aria.arrow-up-onincrement",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/spinbutton/useSpinButton.test.js#L58",
+      "upstreamTest": "useSpinButton > should trigger onIncrement on arrow up",
+      "apg": "keyboard",
+      "config": { "value": 2 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "ArrowUp", "target": "input" },
+        { "expect": { "events": { "onIncrement": [1] } } }
+      ],
+      "notes": "APG: Up Arrow increases the value. The spinbutton owns the numeric state; the handler records one call."
+    },
+    {
+      "id": "spinbutton.react-aria.arrow-down-ondecrement",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/spinbutton/useSpinButton.test.js#L67",
+      "upstreamTest": "useSpinButton > should trigger onDecrement on arrow down",
+      "apg": "keyboard",
+      "config": { "value": 2 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "expect": { "events": { "onDecrement": [1] } } }
+      ]
+    },
+    {
+      "id": "spinbutton.react-aria.pageup-onincrementpage",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/spinbutton/useSpinButton.test.js#L76",
+      "upstreamTest": "useSpinButton > should trigger onIncrementPage on page up",
+      "apg": "keyboard",
+      "config": { "value": 2 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "PageUp", "target": "input" },
+        { "expect": { "events": { "onIncrementPage": [1] } } }
+      ],
+      "notes": "APG: Page Up increases the value by a larger amount."
+    },
+    {
+      "id": "spinbutton.react-aria.pageup-falls-back-to-increment",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/spinbutton/useSpinButton.test.js#L85",
+      "upstreamTest": "useSpinButton > should fall back to onIncrement on page up if onIncrementPage is not available",
+      "apg": "keyboard",
+      "config": { "value": 2 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "PageUp", "target": "input" },
+        { "expect": { "events": { "onIncrement": [1] } } }
+      ]
+    },
+    {
+      "id": "spinbutton.react-aria.pagedown-ondecrementpage",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/spinbutton/useSpinButton.test.js#L94",
+      "upstreamTest": "useSpinButton > should trigger onDecrementPage on page up",
+      "apg": "keyboard",
+      "config": { "value": 2 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "PageDown", "target": "input" },
+        { "expect": { "events": { "onDecrementPage": [1] } } }
+      ],
+      "notes": "APG: Page Down decreases the value by a larger amount."
+    },
+    {
+      "id": "spinbutton.react-aria.pagedown-falls-back-to-decrement",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/spinbutton/useSpinButton.test.js#L103",
+      "upstreamTest": "useSpinButton > should fall back to onDecrement on page up if onDecrementPage is not available",
+      "apg": "keyboard",
+      "config": { "value": 2 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "PageDown", "target": "input" },
+        { "expect": { "events": { "onDecrement": [1] } } }
+      ]
+    },
+    {
+      "id": "spinbutton.react-aria.home-ondecrementtomin",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/spinbutton/useSpinButton.test.js#L112",
+      "upstreamTest": "useSpinButton > should trigger onDecrementToMin on home key",
+      "apg": "keyboard",
+      "config": { "value": 2, "min": 1 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "Home", "target": "input" },
+        { "expect": { "events": { "onDecrementToMin": [1] } } }
+      ]
+    },
+    {
+      "id": "spinbutton.react-aria.end-onincrementtomax",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/spinbutton/useSpinButton.test.js#L121",
+      "upstreamTest": "useSpinButton > should trigger onIncrementToMax on end key",
+      "apg": "keyboard",
+      "config": { "value": 2, "max": 1 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "End", "target": "input" },
+        { "expect": { "events": { "onIncrementToMax": [1] } } }
+      ]
+    },
+    {
+      "id": "spinbutton.react-aria.negative-valuetext-uses-minus-sign",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/spinbutton/useSpinButton.test.js#L161",
+      "upstreamTest": "useSpinButton > should substitute a minus sign for hyphen in the textValue for negative values",
+      "apg": "aria",
+      "config": { "value": -2, "textValue": "-2 items" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "input": { "aria-valuenow": "-2", "aria-valuetext": "−2 items" }
+            }
+          }
+        },
+        { "event": "focus", "target": "input" },
+        {
+          "event": "prop",
+          "target": "input",
+          "set": { "value": -3, "textValue": "-3 items" }
+        },
+        {
+          "expect": {
+            "attrs": {
+              "input": { "aria-valuenow": "-3", "aria-valuetext": "−3 items" }
+            },
+            "events": { "announce": ["−3 items"] }
+          }
+        }
+      ],
+      "notes": "Negative aria-valuetext uses U+2212 MINUS SIGN instead of a hyphen."
+    },
+    {
+      "id": "spinbutton.react-aria.announce-on-value-change-while-focused",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/spinbutton/useSpinButton.test.js#L130",
+      "upstreamTest": "useSpinButton > should announce on value change while focused",
+      "apg": "extension",
+      "config": { "value": 2 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "prop", "target": "input", "set": { "value": 3 } },
+        { "expect": { "events": { "announce": ["3"] } } },
+        { "event": "blur", "target": "input" },
+        { "event": "prop", "target": "input", "set": { "value": 4 } },
+        { "expect": { "events": { "announce": ["3"] } } }
+      ],
+      "notes": "Live-region announcement is a react-aria extension, not APG; announcements only occur while focused. announce is emitted assertively."
+    },
+    {
+      "id": "spinbutton.react-aria.announce-on-textvalue-change-while-focused",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/spinbutton/useSpinButton.test.js#L149",
+      "upstreamTest": "useSpinButton > should announce on textValue change while focused",
+      "apg": "extension",
+      "config": { "value": 2, "textValue": "2 items" },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        {
+          "event": "prop",
+          "target": "input",
+          "set": { "value": 3, "textValue": "3 items" }
+        },
+        { "expect": { "events": { "announce": ["3 items"] } } }
+      ]
+    },
+
+    {
+      "id": "spinbutton.react-aria.provides-slots",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/NumberField.test.js#L46",
+      "upstreamTest": "NumberField > provides slots",
+      "apg": "aria",
+      "config": {
+        "defaultValue": 1024,
+        "min": 0,
+        "buttons": true,
+        "label": "Width",
+        "description": "Description",
+        "errorMessage": "Error"
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "group": { "role": "group" },
+              "input": {
+                "role": "textbox",
+                "aria-labelledby": "label:0",
+                "aria-describedby": "description:0 error:0"
+              },
+              "increment": { "aria-label": "Increase" },
+              "decrement": { "aria-label": "Decrease" }
+            },
+            "value": { "input": "1,024" }
+          }
+        }
+      ],
+      "notes": "aria-labelledby/aria-describedby resolve to the Label/Text parts; the input exposes the formatted value."
+    },
+    {
+      "id": "spinbutton.react-aria.repeat-arrow-keydown-holding",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/NumberField.test.js#L334",
+      "upstreamTest": "NumberField > should support repeat keydown events when holding an arrow key",
+      "apg": "keyboard",
+      "config": { "defaultValue": 1024 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "ArrowUp", "target": "input" },
+        { "event": "key", "key": "ArrowUp", "target": "input" },
+        { "event": "key", "key": "ArrowUp", "target": "input" },
+        {
+          "expect": {
+            "value": { "input": "1,027" },
+            "events": { "onChange": [1025, 1026, 1027] }
+          }
+        },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        { "event": "key", "key": "ArrowDown", "target": "input" },
+        {
+          "expect": {
+            "value": { "input": "1,024" },
+            "events": { "onChange": [1025, 1026, 1027, 1026, 1025, 1024] }
+          }
+        }
+      ],
+      "notes": "Key auto-repeat steps once per keydown event."
+    },
+    {
+      "id": "spinbutton.react-aria.stepper-buttons-onchange",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/NumberField.test.js#L393",
+      "upstreamTest": "NumberField > should trigger onChange via programmatic click() on stepper buttons",
+      "apg": "keyboard",
+      "config": { "defaultValue": 1024, "buttons": true },
+      "steps": [
+        { "event": "click", "target": "increment" },
+        {
+          "expect": {
+            "value": { "input": "1,025" },
+            "events": { "onChange": [1025] }
+          }
+        },
+        { "event": "click", "target": "decrement" },
+        {
+          "expect": {
+            "value": { "input": "1,024" },
+            "events": { "onChange": [1025, 1024] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "spinbutton.react-aria.backspace-first-digit-before-group-separator",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/NumberField.test.js#L408",
+      "upstreamTest": "NumberField > should allow you to delete the first digit in a number if it is followed by a group separator",
+      "apg": "keyboard",
+      "config": { "defaultValue": 1024, "useGrouping": true },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "key", "key": "ArrowLeft", "target": "input" },
+        { "event": "key", "key": "ArrowRight", "target": "input" },
+        { "event": "key", "key": "Backspace", "target": "input" },
+        { "expect": { "value": { "input": ",024" } } },
+        { "event": "key", "key": "Enter", "target": "input" },
+        { "expect": { "value": { "input": "24" } } }
+      ],
+      "notes": "The dangling group separator after deleting the leading digit is cleaned up on commit."
+    },
+    {
+      "id": "spinbutton.react-aria.commit-on-enter",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/NumberField.test.js#L422",
+      "upstreamTest": "NumberField > supports onChange",
+      "apg": "keyboard",
+      "config": { "defaultValue": 200 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "" },
+        { "event": "type", "target": "input", "value": "1024" },
+        { "event": "key", "key": "Enter", "target": "input" },
+        { "expect": { "events": { "onChange": [1024] } } }
+      ],
+      "notes": "Enter commits the typed value."
+    },
+    {
+      "id": "spinbutton.react-aria.paste-into-format",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/NumberField.test.js#L433",
+      "upstreamTest": "NumberField > should support pasting into a format",
+      "apg": "keyboard",
+      "config": { "defaultValue": 200, "format": "currency:USD" },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "" },
+        { "event": "paste", "target": "input", "value": "1,024" },
+        {
+          "expect": {
+            "value": { "input": "$1,024.00" },
+            "events": { "onChange": [1024], "announce": ["$1,024.00"] }
+          }
+        }
+      ],
+      "notes": "Pasting parses using the current locale and reformats to the configured currency."
+    },
+    {
+      "id": "spinbutton.react-aria.controlled-rejects-unaccepted-paste",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/NumberField.test.js#L452",
+      "upstreamTest": "NumberField > should not change the input value if the new value is not accepted",
+      "apg": "extension",
+      "config": { "controlled": true, "value": 200 },
+      "steps": [
+        { "event": "focus", "target": "input" },
+        { "event": "type", "target": "input", "value": "" },
+        { "event": "paste", "target": "input", "value": "1024" },
+        { "expect": { "value": { "input": "200" } } },
+        { "event": "key", "key": "Enter", "target": "input" },
+        { "expect": { "value": { "input": "200" } } }
+      ],
+      "notes": "A controlled field whose parent does not accept the parsed value reverts the text."
+    },
+    {
+      "id": "spinbutton.react-aria.auto-spin-stops-when-button-disabled",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/NumberField.test.js#L614",
+      "upstreamTest": "NumberField > auto spinning > stops spinning if the associated button is disabled",
+      "apg": "extension",
+      "config": {
+        "controlled": true,
+        "value": 4,
+        "incrementDisabledAbove": 8,
+        "decrementDisabledBelow": 4
+      },
+      "steps": [
+        { "event": "click", "target": "increment" },
+        { "expect": { "value": { "input": "5" } } },
+        { "event": "pointerdown", "target": "decrement", "button": 0 },
+        { "event": "pointerup", "target": "decrement", "button": 0 },
+        {
+          "expect": {
+            "value": { "input": "5" },
+            "attrs": { "decrement": { "disabled": "true" } }
+          }
+        }
+      ],
+      "notes": "Once the decrement button is disabled the press-and-hold does not fire."
+    }
+  ]
+}

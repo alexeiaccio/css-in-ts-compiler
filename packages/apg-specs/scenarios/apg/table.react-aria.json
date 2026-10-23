@@ -1,0 +1,221 @@
+{
+  "pattern": "table",
+  "source": "react-aria",
+  "commit": "99e610236887da619ad9d54a1cd87983166c043d",
+  "license": "Apache-2.0",
+  "skipped": [
+    { "reason": "Table > should render with default classes" },
+    { "reason": "Table > should render with custom classes" },
+    { "reason": "Table > should support DOM props" },
+    { "reason": "Table > should support custom render function" },
+    { "reason": "Table > custom cell renderer and index rows" },
+    { "reason": "Table > should support column hover when sorting is allowed" },
+    { "reason": "Table > supports removing rows" },
+    {
+      "reason": "Table > does not hang restoring focus when no focusable row remains"
+    },
+    {
+      "reason": "Table > should support virtualizer (scroll re-window and End keyboard)"
+    },
+    {
+      "reason": "Table > colSpan > should focus to the same colIndex when moving focus up or down"
+    },
+    {
+      "reason": "Table > keyboard navigation, selection checkboxes, row actions (grid ticket)"
+    },
+    { "reason": "useTable > calls onAction" },
+    { "reason": "useTable > sets the passed id" }
+  ],
+  "scenarios": [
+    {
+      "id": "table.react-aria.structural-roles",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L549",
+      "upstreamTest": "Table > should render with custom classes (role structure)",
+      "apg": "aria",
+      "config": { "columns": 3, "rows": 2, "rowHeaderColumn": 0 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "table": { "role": "grid" },
+              "rowgroup:0": { "role": "rowgroup" },
+              "rowgroup:1": { "role": "rowgroup" },
+              "columnheader:0": { "role": "columnheader" },
+              "rowheader:0": { "role": "rowheader" },
+              "gridcell:0": { "role": "gridcell" }
+            }
+          }
+        }
+      ],
+      "notes": "Header cells are columnheaders, the first column is rowheaders, the rest are gridcells."
+    },
+    {
+      "id": "table.react-aria.grid-accessible-name",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L558",
+      "upstreamTest": "Table > should render with custom classes (aria-label on the grid)",
+      "apg": "aria",
+      "config": { "aria-label": "Files" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "table": { "aria-label": "Files" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "table.react-aria.sort-descriptor",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L1105",
+      "upstreamTest": "Table > should support sorting",
+      "apg": "states",
+      "config": {
+        "sortColumn": "name",
+        "sortDirection": "ascending",
+        "sortable": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "columnheader:0": { "aria-sort": "ascending" },
+              "columnheader:1": { "aria-sort": "none" }
+            }
+          }
+        }
+      ],
+      "notes": "Only sortable columns expose aria-sort; the unsorted ones report none."
+    },
+    {
+      "id": "table.react-aria.selection-replace-aria-selected",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L736",
+      "upstreamTest": "Table > should not render checkboxes for selection with selectionBehavior=replace",
+      "apg": "states",
+      "config": { "selectionMode": "multiple", "selectionBehavior": "replace" },
+      "steps": [
+        { "event": "click", "target": "row:1" },
+        { "expect": { "attrs": { "row:1": { "aria-selected": "true" } } } }
+      ],
+      "notes": "With replace behavior there are no checkboxes; selection is reported on the row."
+    },
+    {
+      "id": "table.react-aria.static-counts-and-indices",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/table/TableTests.js#L274",
+      "upstreamTest": "TableView > renders a static table (row/column counts and indices)",
+      "apg": "states",
+      "config": { "columns": 3, "rows": 2, "rowHeaderColumn": 0 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "table": {
+                "role": "grid",
+                "aria-rowcount": "3",
+                "aria-colcount": "3"
+              },
+              "rowgroup:0": { "role": "rowgroup" },
+              "rowgroup:1": { "role": "rowgroup" },
+              "row:0": { "aria-rowindex": "1" },
+              "columnheader:0": { "aria-colindex": "1", "aria-sort": null },
+              "columnheader:1": { "aria-colindex": "2" },
+              "columnheader:2": { "aria-colindex": "3" },
+              "rowheader:0": { "aria-colindex": "1" },
+              "gridcell:0": { "aria-colindex": "2" }
+            }
+          }
+        }
+      ],
+      "notes": "The header counts as row 1; a static table with no sort descriptor has no aria-sort on any column."
+    },
+    {
+      "id": "table.react-aria.static-selection-structure",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/table/TableTests.js#L333",
+      "upstreamTest": "TableView > renders a static table with selection",
+      "apg": "states",
+      "config": { "columns": 3, "rows": 2, "selectionMode": "multiple" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "table": {
+                "role": "grid",
+                "aria-multiselectable": "true",
+                "aria-rowcount": "3",
+                "aria-colcount": "4"
+              },
+              "row:0": { "aria-selected": null },
+              "row:1": { "aria-selected": "false" },
+              "rowheader:0": { "aria-colindex": "2" }
+            }
+          }
+        }
+      ],
+      "notes": "A selection column adds one column, shifting the row header to column 2; unselected rows report aria-selected=false."
+    },
+    {
+      "id": "table.react-aria.virtualizer-row-index",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L1503",
+      "upstreamTest": "Table > should support virtualizer (aria-rowindex on every row)",
+      "apg": "states",
+      "config": { "virtualized": true, "items": 50 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "row:0": { "aria-rowindex": "1" },
+              "row:1": { "aria-rowindex": "2" }
+            }
+          }
+        }
+      ],
+      "notes": "Every visible row, header included, exposes its position via aria-rowindex."
+    },
+    {
+      "id": "table.react-aria.colspan-colindex",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L1596",
+      "upstreamTest": "Table > colSpan > should render table with colSpans",
+      "apg": "states",
+      "config": { "columns": 4, "colspans": true, "colspanRow": 1 },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "colspan-cell": { "colspan": "2", "aria-colindex": null },
+              "colindex-cell": { "aria-colindex": "4" }
+            }
+          }
+        }
+      ],
+      "notes": "A spanned cell omits aria-colindex; the next cell reports the advanced index."
+    },
+    {
+      "id": "table.react-aria.empty-state-rowgroup",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.test.js#L1127",
+      "upstreamTest": "Table > should support empty state",
+      "apg": "states",
+      "config": { "empty": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "rowgroup:1": { "data-empty": "true" } }
+          }
+        }
+      ],
+      "notes": "The empty body keeps its rowgroup and renders the fallback content in a rowheader."
+    },
+    {
+      "id": "table.react-aria.ssr-row-order",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Table.ssr.test.js#L20",
+      "upstreamTest": "Table SSR > should render without errors",
+      "apg": "aria",
+      "config": { "items": 4, "insertedAfter": 2 },
+      "steps": [
+        {
+          "expect": {
+            "visible": ["table", "row:0", "row:1", "row:2", "row:3", "row:4"]
+          }
+        }
+      ],
+      "notes": "Server-rendered and hydrated rows keep order with the late-inserted row before the final one."
+    }
+  ]
+}

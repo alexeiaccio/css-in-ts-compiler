@@ -1,0 +1,3863 @@
+{
+  "generatedFrom": "../../specs/apg/checkbox-group.qnt",
+  "specHash": "35010cbb4aef0e7a5c52a1f588f8cd81784e1b0992ac824ab48a2e5b1467d2f5",
+  "module": "apg_checkbox_group",
+  "vars": [
+    {
+      "name": "c0",
+      "type": "bool"
+    },
+    {
+      "name": "c1",
+      "type": "bool"
+    },
+    {
+      "name": "c2",
+      "type": "bool"
+    },
+    {
+      "name": "m0",
+      "type": "bool"
+    },
+    {
+      "name": "m1",
+      "type": "bool"
+    },
+    {
+      "name": "m2",
+      "type": "bool"
+    },
+    {
+      "name": "focus",
+      "type": "str"
+    },
+    {
+      "name": "remember",
+      "type": "bool"
+    },
+    {
+      "name": "controlled",
+      "type": "bool"
+    },
+    {
+      "name": "accepting",
+      "type": "bool"
+    },
+    {
+      "name": "valueProp",
+      "type": "int"
+    },
+    {
+      "name": "requested",
+      "type": "int"
+    },
+    {
+      "name": "outcome",
+      "type": "str"
+    },
+    {
+      "name": "base",
+      "type": "int"
+    },
+    {
+      "name": "requests",
+      "type": "int"
+    }
+  ],
+  "defs": {
+    "isAll": {
+      "kind": "function",
+      "params": [
+        "a",
+        "b",
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "a"
+          },
+          {
+            "kind": "name",
+            "name": "b"
+          },
+          {
+            "kind": "name",
+            "name": "c"
+          }
+        ]
+      }
+    },
+    "isNone": {
+      "kind": "function",
+      "params": [
+        "a",
+        "b",
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "not",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "name",
+                "name": "a"
+              },
+              {
+                "kind": "name",
+                "name": "b"
+              },
+              {
+                "kind": "name",
+                "name": "c"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "isMixedSet": {
+      "kind": "function",
+      "params": [
+        "a",
+        "b",
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isAll",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "a"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "b"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isNone",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "a"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "b"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "parentChecked": {
+      "kind": "function",
+      "params": [
+        "a",
+        "b",
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "isAll",
+            "args": [
+              {
+                "kind": "name",
+                "name": "a"
+              },
+              {
+                "kind": "name",
+                "name": "b"
+              },
+              {
+                "kind": "name",
+                "name": "c"
+              }
+            ]
+          },
+          {
+            "kind": "str",
+            "value": "true"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isNone",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "a"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "b"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c"
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "false"
+              },
+              {
+                "kind": "str",
+                "value": "mixed"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "restores": {
+      "kind": "function",
+      "params": [
+        "a",
+        "b",
+        "c",
+        "ma",
+        "mb",
+        "mc",
+        "remember"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "remember"
+          },
+          {
+            "kind": "app",
+            "opcode": "isNone",
+            "args": [
+              {
+                "kind": "name",
+                "name": "a"
+              },
+              {
+                "kind": "name",
+                "name": "b"
+              },
+              {
+                "kind": "name",
+                "name": "c"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "isMixedSet",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ma"
+              },
+              {
+                "kind": "name",
+                "name": "mb"
+              },
+              {
+                "kind": "name",
+                "name": "mc"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nextChild": {
+      "kind": "function",
+      "params": [
+        "name",
+        "ci",
+        "mi",
+        "target",
+        "allChecked",
+        "restore"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "target"
+              },
+              {
+                "kind": "name",
+                "name": "name"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "ci"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "target"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "parent"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "allChecked"
+                  },
+                  {
+                    "kind": "bool",
+                    "value": false
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "restore"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "mi"
+                      },
+                      {
+                        "kind": "bool",
+                        "value": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ci"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "keepMemory": {
+      "kind": "function",
+      "params": [
+        "mixedNow",
+        "ci",
+        "mi"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "mixedNow"
+          },
+          {
+            "kind": "name",
+            "name": "ci"
+          },
+          {
+            "kind": "name",
+            "name": "mi"
+          }
+        ]
+      }
+    },
+    "nextFocus": {
+      "kind": "function",
+      "params": [
+        "f"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "f"
+              },
+              {
+                "kind": "str",
+                "value": "none"
+              }
+            ]
+          },
+          {
+            "kind": "str",
+            "value": "parent"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "f"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "parent"
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "c0"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "f"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "c0"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "str",
+                    "value": "c1"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "f"
+                          },
+                          {
+                            "kind": "str",
+                            "value": "c1"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "str",
+                        "value": "c2"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "none"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "b2i": {
+      "kind": "function",
+      "params": [
+        "b"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "b"
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          }
+        ]
+      }
+    },
+    "packed": {
+      "kind": "function",
+      "params": [
+        "a",
+        "b",
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "iadd",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "b2i",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "a"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "imul",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "b2i",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "b"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "imul",
+            "args": [
+              {
+                "kind": "int",
+                "value": "4"
+              },
+              {
+                "kind": "app",
+                "opcode": "b2i",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "c"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "bitAt": {
+      "kind": "function",
+      "params": [
+        "i",
+        "n"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "imod",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "n"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "i"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "idiv",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "n"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "2"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "imod",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "idiv",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "n"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "4"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "holds": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "controlled"
+          },
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "accepting"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "follows": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "controlled"
+          },
+          {
+            "kind": "name",
+            "name": "accepting"
+          }
+        ]
+      }
+    },
+    "verdict": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "holds"
+          },
+          {
+            "kind": "str",
+            "value": "rejected"
+          },
+          {
+            "kind": "str",
+            "value": "accepted"
+          }
+        ]
+      }
+    },
+    "landed": {
+      "kind": "function",
+      "params": [
+        "h",
+        "current",
+        "want"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "h"
+          },
+          {
+            "kind": "name",
+            "name": "current"
+          },
+          {
+            "kind": "name",
+            "name": "want"
+          }
+        ]
+      }
+    },
+    "propAfter": {
+      "kind": "function",
+      "params": [
+        "f",
+        "p",
+        "want"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "f"
+          },
+          {
+            "kind": "name",
+            "name": "want"
+          },
+          {
+            "kind": "name",
+            "name": "p"
+          }
+        ]
+      }
+    },
+    "nowPacked": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "packed",
+        "args": [
+          {
+            "kind": "name",
+            "name": "c0"
+          },
+          {
+            "kind": "name",
+            "name": "c1"
+          },
+          {
+            "kind": "name",
+            "name": "c2"
+          }
+        ]
+      }
+    },
+    "intent": {
+      "kind": "function",
+      "params": [
+        "name",
+        "ci",
+        "mi",
+        "target"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "nextChild",
+        "args": [
+          {
+            "kind": "name",
+            "name": "name"
+          },
+          {
+            "kind": "name",
+            "name": "ci"
+          },
+          {
+            "kind": "name",
+            "name": "mi"
+          },
+          {
+            "kind": "name",
+            "name": "target"
+          },
+          {
+            "kind": "app",
+            "opcode": "isAll",
+            "args": [
+              {
+                "kind": "name",
+                "name": "c0"
+              },
+              {
+                "kind": "name",
+                "name": "c1"
+              },
+              {
+                "kind": "name",
+                "name": "c2"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "restores",
+            "args": [
+              {
+                "kind": "name",
+                "name": "c0"
+              },
+              {
+                "kind": "name",
+                "name": "c1"
+              },
+              {
+                "kind": "name",
+                "name": "c2"
+              },
+              {
+                "kind": "name",
+                "name": "m0"
+              },
+              {
+                "kind": "name",
+                "name": "m1"
+              },
+              {
+                "kind": "name",
+                "name": "m2"
+              },
+              {
+                "kind": "name",
+                "name": "remember"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "intentPacked": {
+      "kind": "function",
+      "params": [
+        "target"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "packed",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "intent",
+            "args": [
+              {
+                "kind": "str",
+                "value": "c0"
+              },
+              {
+                "kind": "name",
+                "name": "c0"
+              },
+              {
+                "kind": "name",
+                "name": "m0"
+              },
+              {
+                "kind": "name",
+                "name": "target"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "intent",
+            "args": [
+              {
+                "kind": "str",
+                "value": "c1"
+              },
+              {
+                "kind": "name",
+                "name": "c1"
+              },
+              {
+                "kind": "name",
+                "name": "m1"
+              },
+              {
+                "kind": "name",
+                "name": "target"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "intent",
+            "args": [
+              {
+                "kind": "str",
+                "value": "c2"
+              },
+              {
+                "kind": "name",
+                "name": "c2"
+              },
+              {
+                "kind": "name",
+                "name": "m2"
+              },
+              {
+                "kind": "name",
+                "name": "target"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "moves": {
+      "kind": "function",
+      "params": [
+        "target"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "neq",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "intentPacked",
+            "args": [
+              {
+                "kind": "name",
+                "name": "target"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "nowPacked"
+          }
+        ]
+      }
+    },
+    "flipAt": {
+      "kind": "function",
+      "params": [
+        "n",
+        "i"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "bitAt",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "n"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "isub",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "n"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "n"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "i"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "bitAt",
+                    "args": [
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "n"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "isub",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "n"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "n"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "bitAt",
+                    "args": [
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "n"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "isub",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "n"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "n"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "4"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "MixedIffChildrenDisagree": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "parentChecked",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "c0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c1"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c2"
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "mixed"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "c0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c1"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "c1"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c2"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "CheckedIffAllChildrenChecked": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "parentChecked",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "c0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c1"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c2"
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "true"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "name",
+                "name": "c0"
+              },
+              {
+                "kind": "name",
+                "name": "c1"
+              },
+              {
+                "kind": "name",
+                "name": "c2"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "UncheckedIffNoChildChecked": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "parentChecked",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "c0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c1"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c2"
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "false"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "or",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "c0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c1"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c2"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "MemoryIsMixedOrEmpty": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "isNone",
+            "args": [
+              {
+                "kind": "name",
+                "name": "m0"
+              },
+              {
+                "kind": "name",
+                "name": "m1"
+              },
+              {
+                "kind": "name",
+                "name": "m2"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "isMixedSet",
+            "args": [
+              {
+                "kind": "name",
+                "name": "m0"
+              },
+              {
+                "kind": "name",
+                "name": "m1"
+              },
+              {
+                "kind": "name",
+                "name": "m2"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "FocusValid": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focus"
+              },
+              {
+                "kind": "str",
+                "value": "none"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focus"
+              },
+              {
+                "kind": "str",
+                "value": "parent"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focus"
+              },
+              {
+                "kind": "str",
+                "value": "c0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focus"
+              },
+              {
+                "kind": "str",
+                "value": "c1"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focus"
+              },
+              {
+                "kind": "str",
+                "value": "c2"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "RequestsNonNegative": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "igte",
+        "args": [
+          {
+            "kind": "name",
+            "name": "requests"
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          }
+        ]
+      }
+    },
+    "ControlledFollowsProp": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "nowPacked"
+              },
+              {
+                "kind": "name",
+                "name": "valueProp"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "RejectedRequestUntouched": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "outcome"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "rejected"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "nowPacked"
+              },
+              {
+                "kind": "name",
+                "name": "base"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "AcceptedRequestCommits": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "outcome"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "accepted"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "nowPacked"
+              },
+              {
+                "kind": "name",
+                "name": "requested"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "actions": [
+    {
+      "name": "init",
+      "assignments": [
+        {
+          "field": "c0",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "c1",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "c2",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "m0",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "m1",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "m2",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "remember",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        }
+      ]
+    },
+    {
+      "name": "focus_on",
+      "nondet": {
+        "name": "target",
+        "kind": "str",
+        "pool": [
+          "parent",
+          "c0",
+          "c1",
+          "c2"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "c0",
+          "rhs": {
+            "kind": "name",
+            "name": "c0"
+          }
+        },
+        {
+          "field": "c1",
+          "rhs": {
+            "kind": "name",
+            "name": "c1"
+          }
+        },
+        {
+          "field": "c2",
+          "rhs": {
+            "kind": "name",
+            "name": "c2"
+          }
+        },
+        {
+          "field": "m0",
+          "rhs": {
+            "kind": "name",
+            "name": "m0"
+          }
+        },
+        {
+          "field": "m1",
+          "rhs": {
+            "kind": "name",
+            "name": "m1"
+          }
+        },
+        {
+          "field": "m2",
+          "rhs": {
+            "kind": "name",
+            "name": "m2"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "name",
+            "name": "target"
+          }
+        },
+        {
+          "field": "remember",
+          "rhs": {
+            "kind": "name",
+            "name": "remember"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "valueProp"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        }
+      ]
+    },
+    {
+      "name": "blur",
+      "assignments": [
+        {
+          "field": "c0",
+          "rhs": {
+            "kind": "name",
+            "name": "c0"
+          }
+        },
+        {
+          "field": "c1",
+          "rhs": {
+            "kind": "name",
+            "name": "c1"
+          }
+        },
+        {
+          "field": "c2",
+          "rhs": {
+            "kind": "name",
+            "name": "c2"
+          }
+        },
+        {
+          "field": "m0",
+          "rhs": {
+            "kind": "name",
+            "name": "m0"
+          }
+        },
+        {
+          "field": "m1",
+          "rhs": {
+            "kind": "name",
+            "name": "m1"
+          }
+        },
+        {
+          "field": "m2",
+          "rhs": {
+            "kind": "name",
+            "name": "m2"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "remember",
+          "rhs": {
+            "kind": "name",
+            "name": "remember"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "valueProp"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        }
+      ]
+    },
+    {
+      "name": "key_tab",
+      "assignments": [
+        {
+          "field": "c0",
+          "rhs": {
+            "kind": "name",
+            "name": "c0"
+          }
+        },
+        {
+          "field": "c1",
+          "rhs": {
+            "kind": "name",
+            "name": "c1"
+          }
+        },
+        {
+          "field": "c2",
+          "rhs": {
+            "kind": "name",
+            "name": "c2"
+          }
+        },
+        {
+          "field": "m0",
+          "rhs": {
+            "kind": "name",
+            "name": "m0"
+          }
+        },
+        {
+          "field": "m1",
+          "rhs": {
+            "kind": "name",
+            "name": "m1"
+          }
+        },
+        {
+          "field": "m2",
+          "rhs": {
+            "kind": "name",
+            "name": "m2"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "app",
+            "opcode": "nextFocus",
+            "args": [
+              {
+                "kind": "name",
+                "name": "focus"
+              }
+            ]
+          }
+        },
+        {
+          "field": "remember",
+          "rhs": {
+            "kind": "name",
+            "name": "remember"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "valueProp"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        }
+      ]
+    },
+    {
+      "name": "key_space",
+      "assignments": [
+        {
+          "field": "c0",
+          "rhs": {
+            "kind": "app",
+            "opcode": "landed",
+            "args": [
+              {
+                "kind": "name",
+                "name": "holds"
+              },
+              {
+                "kind": "name",
+                "name": "c0"
+              },
+              {
+                "kind": "app",
+                "opcode": "intent",
+                "args": [
+                  {
+                    "kind": "str",
+                    "value": "c0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "m0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "c1",
+          "rhs": {
+            "kind": "app",
+            "opcode": "landed",
+            "args": [
+              {
+                "kind": "name",
+                "name": "holds"
+              },
+              {
+                "kind": "name",
+                "name": "c1"
+              },
+              {
+                "kind": "app",
+                "opcode": "intent",
+                "args": [
+                  {
+                    "kind": "str",
+                    "value": "c1"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c1"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "m1"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "c2",
+          "rhs": {
+            "kind": "app",
+            "opcode": "landed",
+            "args": [
+              {
+                "kind": "name",
+                "name": "holds"
+              },
+              {
+                "kind": "name",
+                "name": "c2"
+              },
+              {
+                "kind": "app",
+                "opcode": "intent",
+                "args": [
+                  {
+                    "kind": "str",
+                    "value": "c2"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c2"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "m2"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "m0",
+          "rhs": {
+            "kind": "app",
+            "opcode": "keepMemory",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isMixedSet",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "c0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c1"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c2"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "c0"
+              },
+              {
+                "kind": "name",
+                "name": "m0"
+              }
+            ]
+          }
+        },
+        {
+          "field": "m1",
+          "rhs": {
+            "kind": "app",
+            "opcode": "keepMemory",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isMixedSet",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "c0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c1"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c2"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "c1"
+              },
+              {
+                "kind": "name",
+                "name": "m1"
+              }
+            ]
+          }
+        },
+        {
+          "field": "m2",
+          "rhs": {
+            "kind": "app",
+            "opcode": "keepMemory",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isMixedSet",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "c0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c1"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c2"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "c2"
+              },
+              {
+                "kind": "name",
+                "name": "m2"
+              }
+            ]
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "name",
+            "name": "focus"
+          }
+        },
+        {
+          "field": "remember",
+          "rhs": {
+            "kind": "name",
+            "name": "remember"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "app",
+            "opcode": "propAfter",
+            "args": [
+              {
+                "kind": "name",
+                "name": "follows"
+              },
+              {
+                "kind": "name",
+                "name": "valueProp"
+              },
+              {
+                "kind": "app",
+                "opcode": "intentPacked",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "moves",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "intentPacked",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "requested"
+              }
+            ]
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "moves",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "verdict"
+              },
+              {
+                "kind": "name",
+                "name": "outcome"
+              }
+            ]
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "moves",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "nowPacked"
+              },
+              {
+                "kind": "name",
+                "name": "base"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "moves",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "focus"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "requests"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "requests"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "click",
+      "nondet": {
+        "name": "target",
+        "kind": "str",
+        "pool": [
+          "parent",
+          "c0",
+          "c1",
+          "c2"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "c0",
+          "rhs": {
+            "kind": "app",
+            "opcode": "landed",
+            "args": [
+              {
+                "kind": "name",
+                "name": "holds"
+              },
+              {
+                "kind": "name",
+                "name": "c0"
+              },
+              {
+                "kind": "app",
+                "opcode": "intent",
+                "args": [
+                  {
+                    "kind": "str",
+                    "value": "c0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "m0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "target"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "c1",
+          "rhs": {
+            "kind": "app",
+            "opcode": "landed",
+            "args": [
+              {
+                "kind": "name",
+                "name": "holds"
+              },
+              {
+                "kind": "name",
+                "name": "c1"
+              },
+              {
+                "kind": "app",
+                "opcode": "intent",
+                "args": [
+                  {
+                    "kind": "str",
+                    "value": "c1"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c1"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "m1"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "target"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "c2",
+          "rhs": {
+            "kind": "app",
+            "opcode": "landed",
+            "args": [
+              {
+                "kind": "name",
+                "name": "holds"
+              },
+              {
+                "kind": "name",
+                "name": "c2"
+              },
+              {
+                "kind": "app",
+                "opcode": "intent",
+                "args": [
+                  {
+                    "kind": "str",
+                    "value": "c2"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c2"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "m2"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "target"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "m0",
+          "rhs": {
+            "kind": "app",
+            "opcode": "keepMemory",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isMixedSet",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "c0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c1"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c2"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "c0"
+              },
+              {
+                "kind": "name",
+                "name": "m0"
+              }
+            ]
+          }
+        },
+        {
+          "field": "m1",
+          "rhs": {
+            "kind": "app",
+            "opcode": "keepMemory",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isMixedSet",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "c0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c1"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c2"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "c1"
+              },
+              {
+                "kind": "name",
+                "name": "m1"
+              }
+            ]
+          }
+        },
+        {
+          "field": "m2",
+          "rhs": {
+            "kind": "app",
+            "opcode": "keepMemory",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "isMixedSet",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "c0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c1"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "c2"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "c2"
+              },
+              {
+                "kind": "name",
+                "name": "m2"
+              }
+            ]
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "name",
+            "name": "target"
+          }
+        },
+        {
+          "field": "remember",
+          "rhs": {
+            "kind": "name",
+            "name": "remember"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "app",
+            "opcode": "propAfter",
+            "args": [
+              {
+                "kind": "name",
+                "name": "follows"
+              },
+              {
+                "kind": "name",
+                "name": "valueProp"
+              },
+              {
+                "kind": "app",
+                "opcode": "intentPacked",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "target"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "moves",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "target"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "intentPacked",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "target"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "requested"
+              }
+            ]
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "moves",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "target"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "verdict"
+              },
+              {
+                "kind": "name",
+                "name": "outcome"
+              }
+            ]
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "moves",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "target"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "nowPacked"
+              },
+              {
+                "kind": "name",
+                "name": "base"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "moves",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "target"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "requests"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "requests"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_remember",
+      "nondet": {
+        "name": "value",
+        "kind": "bool",
+        "pool": [
+          true,
+          false
+        ]
+      },
+      "assignments": [
+        {
+          "field": "c0",
+          "rhs": {
+            "kind": "name",
+            "name": "c0"
+          }
+        },
+        {
+          "field": "c1",
+          "rhs": {
+            "kind": "name",
+            "name": "c1"
+          }
+        },
+        {
+          "field": "c2",
+          "rhs": {
+            "kind": "name",
+            "name": "c2"
+          }
+        },
+        {
+          "field": "m0",
+          "rhs": {
+            "kind": "name",
+            "name": "m0"
+          }
+        },
+        {
+          "field": "m1",
+          "rhs": {
+            "kind": "name",
+            "name": "m1"
+          }
+        },
+        {
+          "field": "m2",
+          "rhs": {
+            "kind": "name",
+            "name": "m2"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "name",
+            "name": "focus"
+          }
+        },
+        {
+          "field": "remember",
+          "rhs": {
+            "kind": "name",
+            "name": "value"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "valueProp"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        }
+      ]
+    },
+    {
+      "name": "setValue",
+      "nondet": {
+        "name": "v",
+        "kind": "int",
+        "pool": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "c0",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "app",
+                "opcode": "bitAt",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "v"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "c0"
+              }
+            ]
+          }
+        },
+        {
+          "field": "c1",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "app",
+                "opcode": "bitAt",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "v"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "c1"
+              }
+            ]
+          }
+        },
+        {
+          "field": "c2",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "app",
+                "opcode": "bitAt",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "v"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "c2"
+              }
+            ]
+          }
+        },
+        {
+          "field": "m0",
+          "rhs": {
+            "kind": "name",
+            "name": "m0"
+          }
+        },
+        {
+          "field": "m1",
+          "rhs": {
+            "kind": "name",
+            "name": "m1"
+          }
+        },
+        {
+          "field": "m2",
+          "rhs": {
+            "kind": "name",
+            "name": "m2"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "name",
+            "name": "focus"
+          }
+        },
+        {
+          "field": "remember",
+          "rhs": {
+            "kind": "name",
+            "name": "remember"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "name",
+                "name": "v"
+              },
+              {
+                "kind": "name",
+                "name": "valueProp"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "str",
+                "value": "none"
+              },
+              {
+                "kind": "name",
+                "name": "outcome"
+              }
+            ]
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        }
+      ]
+    },
+    {
+      "name": "hostToggle",
+      "nondet": {
+        "name": "panel",
+        "kind": "int",
+        "pool": [
+          "0",
+          "1",
+          "2"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "c0",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "app",
+                "opcode": "bitAt",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "flipAt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "valueProp"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "panel"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "c0"
+              }
+            ]
+          }
+        },
+        {
+          "field": "c1",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "app",
+                "opcode": "bitAt",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "flipAt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "valueProp"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "panel"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "c1"
+              }
+            ]
+          }
+        },
+        {
+          "field": "c2",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "app",
+                "opcode": "bitAt",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "flipAt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "valueProp"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "panel"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "c2"
+              }
+            ]
+          }
+        },
+        {
+          "field": "m0",
+          "rhs": {
+            "kind": "name",
+            "name": "m0"
+          }
+        },
+        {
+          "field": "m1",
+          "rhs": {
+            "kind": "name",
+            "name": "m1"
+          }
+        },
+        {
+          "field": "m2",
+          "rhs": {
+            "kind": "name",
+            "name": "m2"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "name",
+            "name": "focus"
+          }
+        },
+        {
+          "field": "remember",
+          "rhs": {
+            "kind": "name",
+            "name": "remember"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "app",
+                "opcode": "flipAt",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "valueProp"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "panel"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "valueProp"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "str",
+                "value": "none"
+              },
+              {
+                "kind": "name",
+                "name": "outcome"
+              }
+            ]
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        }
+      ]
+    },
+    {
+      "name": "control",
+      "assignments": [
+        {
+          "field": "c0",
+          "rhs": {
+            "kind": "name",
+            "name": "c0"
+          }
+        },
+        {
+          "field": "c1",
+          "rhs": {
+            "kind": "name",
+            "name": "c1"
+          }
+        },
+        {
+          "field": "c2",
+          "rhs": {
+            "kind": "name",
+            "name": "c2"
+          }
+        },
+        {
+          "field": "m0",
+          "rhs": {
+            "kind": "name",
+            "name": "m0"
+          }
+        },
+        {
+          "field": "m1",
+          "rhs": {
+            "kind": "name",
+            "name": "m1"
+          }
+        },
+        {
+          "field": "m2",
+          "rhs": {
+            "kind": "name",
+            "name": "m2"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "name",
+            "name": "focus"
+          }
+        },
+        {
+          "field": "remember",
+          "rhs": {
+            "kind": "name",
+            "name": "remember"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "nowPacked"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        }
+      ]
+    },
+    {
+      "name": "acceptRequests",
+      "assignments": [
+        {
+          "field": "c0",
+          "rhs": {
+            "kind": "name",
+            "name": "c0"
+          }
+        },
+        {
+          "field": "c1",
+          "rhs": {
+            "kind": "name",
+            "name": "c1"
+          }
+        },
+        {
+          "field": "c2",
+          "rhs": {
+            "kind": "name",
+            "name": "c2"
+          }
+        },
+        {
+          "field": "m0",
+          "rhs": {
+            "kind": "name",
+            "name": "m0"
+          }
+        },
+        {
+          "field": "m1",
+          "rhs": {
+            "kind": "name",
+            "name": "m1"
+          }
+        },
+        {
+          "field": "m2",
+          "rhs": {
+            "kind": "name",
+            "name": "m2"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "name",
+            "name": "focus"
+          }
+        },
+        {
+          "field": "remember",
+          "rhs": {
+            "kind": "name",
+            "name": "remember"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "valueProp"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        }
+      ]
+    }
+  ],
+  "step": [
+    "init",
+    "focus_on",
+    "blur",
+    "key_tab",
+    "key_space",
+    "click",
+    "set_remember",
+    "setValue",
+    "hostToggle",
+    "control",
+    "acceptRequests"
+  ]
+}

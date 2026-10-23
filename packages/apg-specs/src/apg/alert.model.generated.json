@@ -1,0 +1,871 @@
+{
+  "generatedFrom": "../../specs/apg/alert.qnt",
+  "specHash": "9624ecb9dc3eaa1b5c9d5ccc0a44d695fd0e0f46e384e8248b28ab0f73844bc2",
+  "module": "apg_alert",
+  "vars": [
+    {
+      "name": "loaded",
+      "type": "bool"
+    },
+    {
+      "name": "mounted",
+      "type": "bool"
+    },
+    {
+      "name": "role",
+      "type": "str"
+    },
+    {
+      "name": "message",
+      "type": "int"
+    },
+    {
+      "name": "nextId",
+      "type": "int"
+    },
+    {
+      "name": "announced",
+      "type": "int"
+    },
+    {
+      "name": "announcements",
+      "type": "int"
+    },
+    {
+      "name": "preloaded",
+      "type": "int"
+    },
+    {
+      "name": "focus",
+      "type": "str"
+    },
+    {
+      "name": "dismissals",
+      "type": "int"
+    }
+  ],
+  "defs": {
+    "FocusNeverOnAlert": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "neq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "focus"
+          },
+          {
+            "kind": "str",
+            "value": "alert"
+          }
+        ]
+      }
+    },
+    "RoleWhenMounted": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "role"
+              },
+              {
+                "kind": "str",
+                "value": "alert"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "mounted"
+          }
+        ]
+      }
+    },
+    "MountedHasMessage": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "mounted"
+          },
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "message"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "PreloadedNotAnnounced": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "preloaded"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "neq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "announced"
+              },
+              {
+                "kind": "name",
+                "name": "preloaded"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "LiveMessageAnnounced": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "loaded"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "mounted"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "message"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "preloaded"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "announced"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "message"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "SilentBeforeLoad": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "name",
+            "name": "loaded"
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "announcements"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "CountersConsistent": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "announced"
+              },
+              {
+                "kind": "name",
+                "name": "nextId"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "announcements"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "igte",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "dismissals"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "actions": [
+    {
+      "name": "init",
+      "assignments": [
+        {
+          "field": "loaded",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "mounted",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "role",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "message",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "nextId",
+          "rhs": {
+            "kind": "int",
+            "value": "1"
+          }
+        },
+        {
+          "field": "announced",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "announcements",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "preloaded",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "str",
+            "value": "task"
+          }
+        },
+        {
+          "field": "dismissals",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        }
+      ]
+    },
+    {
+      "name": "show",
+      "assignments": [
+        {
+          "field": "loaded",
+          "rhs": {
+            "kind": "name",
+            "name": "loaded"
+          }
+        },
+        {
+          "field": "mounted",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "role",
+          "rhs": {
+            "kind": "str",
+            "value": "alert"
+          }
+        },
+        {
+          "field": "message",
+          "rhs": {
+            "kind": "name",
+            "name": "nextId"
+          }
+        },
+        {
+          "field": "nextId",
+          "rhs": {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "nextId"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        },
+        {
+          "field": "announced",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "loaded"
+              },
+              {
+                "kind": "name",
+                "name": "nextId"
+              },
+              {
+                "kind": "name",
+                "name": "announced"
+              }
+            ]
+          }
+        },
+        {
+          "field": "announcements",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "loaded"
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "announcements"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "announcements"
+              }
+            ]
+          }
+        },
+        {
+          "field": "preloaded",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "loaded"
+              },
+              {
+                "kind": "name",
+                "name": "preloaded"
+              },
+              {
+                "kind": "name",
+                "name": "nextId"
+              }
+            ]
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "name",
+            "name": "focus"
+          }
+        },
+        {
+          "field": "dismissals",
+          "rhs": {
+            "kind": "name",
+            "name": "dismissals"
+          }
+        }
+      ]
+    },
+    {
+      "name": "load",
+      "assignments": [
+        {
+          "field": "loaded",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "mounted",
+          "rhs": {
+            "kind": "name",
+            "name": "mounted"
+          }
+        },
+        {
+          "field": "role",
+          "rhs": {
+            "kind": "name",
+            "name": "role"
+          }
+        },
+        {
+          "field": "message",
+          "rhs": {
+            "kind": "name",
+            "name": "message"
+          }
+        },
+        {
+          "field": "nextId",
+          "rhs": {
+            "kind": "name",
+            "name": "nextId"
+          }
+        },
+        {
+          "field": "announced",
+          "rhs": {
+            "kind": "name",
+            "name": "announced"
+          }
+        },
+        {
+          "field": "announcements",
+          "rhs": {
+            "kind": "name",
+            "name": "announcements"
+          }
+        },
+        {
+          "field": "preloaded",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "loaded"
+              },
+              {
+                "kind": "name",
+                "name": "preloaded"
+              },
+              {
+                "kind": "name",
+                "name": "message"
+              }
+            ]
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "name",
+            "name": "focus"
+          }
+        },
+        {
+          "field": "dismissals",
+          "rhs": {
+            "kind": "name",
+            "name": "dismissals"
+          }
+        }
+      ]
+    },
+    {
+      "name": "dismiss",
+      "assignments": [
+        {
+          "field": "loaded",
+          "rhs": {
+            "kind": "name",
+            "name": "loaded"
+          }
+        },
+        {
+          "field": "mounted",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "role",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "message",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "nextId",
+          "rhs": {
+            "kind": "name",
+            "name": "nextId"
+          }
+        },
+        {
+          "field": "announced",
+          "rhs": {
+            "kind": "name",
+            "name": "announced"
+          }
+        },
+        {
+          "field": "announcements",
+          "rhs": {
+            "kind": "name",
+            "name": "announcements"
+          }
+        },
+        {
+          "field": "preloaded",
+          "rhs": {
+            "kind": "name",
+            "name": "preloaded"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "name",
+            "name": "focus"
+          }
+        },
+        {
+          "field": "dismissals",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "mounted"
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "dismissals"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "dismissals"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "focusTask",
+      "assignments": [
+        {
+          "field": "loaded",
+          "rhs": {
+            "kind": "name",
+            "name": "loaded"
+          }
+        },
+        {
+          "field": "mounted",
+          "rhs": {
+            "kind": "name",
+            "name": "mounted"
+          }
+        },
+        {
+          "field": "role",
+          "rhs": {
+            "kind": "name",
+            "name": "role"
+          }
+        },
+        {
+          "field": "message",
+          "rhs": {
+            "kind": "name",
+            "name": "message"
+          }
+        },
+        {
+          "field": "nextId",
+          "rhs": {
+            "kind": "name",
+            "name": "nextId"
+          }
+        },
+        {
+          "field": "announced",
+          "rhs": {
+            "kind": "name",
+            "name": "announced"
+          }
+        },
+        {
+          "field": "announcements",
+          "rhs": {
+            "kind": "name",
+            "name": "announcements"
+          }
+        },
+        {
+          "field": "preloaded",
+          "rhs": {
+            "kind": "name",
+            "name": "preloaded"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "str",
+            "value": "task"
+          }
+        },
+        {
+          "field": "dismissals",
+          "rhs": {
+            "kind": "name",
+            "name": "dismissals"
+          }
+        }
+      ]
+    },
+    {
+      "name": "focusOther",
+      "assignments": [
+        {
+          "field": "loaded",
+          "rhs": {
+            "kind": "name",
+            "name": "loaded"
+          }
+        },
+        {
+          "field": "mounted",
+          "rhs": {
+            "kind": "name",
+            "name": "mounted"
+          }
+        },
+        {
+          "field": "role",
+          "rhs": {
+            "kind": "name",
+            "name": "role"
+          }
+        },
+        {
+          "field": "message",
+          "rhs": {
+            "kind": "name",
+            "name": "message"
+          }
+        },
+        {
+          "field": "nextId",
+          "rhs": {
+            "kind": "name",
+            "name": "nextId"
+          }
+        },
+        {
+          "field": "announced",
+          "rhs": {
+            "kind": "name",
+            "name": "announced"
+          }
+        },
+        {
+          "field": "announcements",
+          "rhs": {
+            "kind": "name",
+            "name": "announcements"
+          }
+        },
+        {
+          "field": "preloaded",
+          "rhs": {
+            "kind": "name",
+            "name": "preloaded"
+          }
+        },
+        {
+          "field": "focus",
+          "rhs": {
+            "kind": "str",
+            "value": "other"
+          }
+        },
+        {
+          "field": "dismissals",
+          "rhs": {
+            "kind": "name",
+            "name": "dismissals"
+          }
+        }
+      ]
+    }
+  ],
+  "step": [
+    "init",
+    "show",
+    "load",
+    "dismiss",
+    "focusTask",
+    "focusOther"
+  ]
+}

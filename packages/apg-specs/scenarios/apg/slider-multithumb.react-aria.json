@@ -1,0 +1,363 @@
+{
+  "pattern": "slider-multithumb",
+  "source": "react-aria",
+  "commit": "99e610236887da619ad9d54a1cd87983166c043d",
+  "license": "Apache-2.0",
+  "skipped": [],
+  "scenarios": [
+    {
+      "id": "slider-multithumb.react-aria.two-thumbs-values",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Slider.test.js#L251",
+      "upstreamTest": "Slider > should support two thumbs",
+      "apg": "aria",
+      "config": { "thumbs": 2, "values": [30, 60] },
+      "steps": [
+        {
+          "expect": {
+            "value": [30, 60],
+            "attrs": {
+              "thumb:0": { "aria-valuenow": "30" },
+              "thumb:1": { "aria-valuenow": "60" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "slider-multithumb.react-aria.three-thumbs-values",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Slider.test.js#L271",
+      "upstreamTest": "Slider > should support three thumbs",
+      "apg": "aria",
+      "config": { "thumbs": 3, "values": [30, 60, 80] },
+      "steps": [
+        {
+          "expect": {
+            "value": [30, 60, 80],
+            "attrs": {
+              "thumb:0": { "aria-valuenow": "30" },
+              "thumb:1": { "aria-valuenow": "60" },
+              "thumb:2": { "aria-valuenow": "80" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "slider-multithumb.react-aria.thumb-bounds-derived-from-neighbours",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/slider/useSliderThumb.test.js#L92",
+      "upstreamTest": "useSliderThumb > aria labels > should have the right labels with Slider thumb aria-label",
+      "apg": "aria",
+      "config": {
+        "thumbs": 2,
+        "values": [50, 70],
+        "min": 10,
+        "max": 200,
+        "step": 2
+      },
+      "steps": [
+        {
+          "expect": {
+            "value": [50, 70],
+            "attrs": {
+              "thumb:0": { "min": "10", "max": "70", "step": "2" },
+              "thumb:1": { "min": "50", "max": "200", "step": "2" }
+            }
+          }
+        }
+      ],
+      "notes": "Each thumb's native min/max is bounded by its neighbour's value, so thumbs cannot cross through the browser input."
+    },
+    {
+      "id": "slider-multithumb.react-aria.controlled-thumb-focus-and-keyboard",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Slider.test.js#L292",
+      "upstreamTest": "Slider > should support multiple thumbs (controlled)",
+      "apg": "keyboard",
+      "config": { "thumbs": 2, "values": [0, 100], "min": 0, "max": 100 },
+      "steps": [
+        { "event": "focus", "target": "thumb:0" },
+        { "event": "key", "target": "thumb:0", "key": "ArrowRight" },
+        { "event": "key", "target": "thumb:0", "key": "ArrowRight" },
+        { "event": "key", "target": "thumb:0", "key": "ArrowRight" },
+        { "expect": { "value": [3, 100], "focus": "thumb:0" } },
+        { "event": "focus", "target": "thumb:1" },
+        { "event": "key", "target": "thumb:1", "key": "ArrowLeft" },
+        { "event": "key", "target": "thumb:1", "key": "ArrowLeft" },
+        { "event": "key", "target": "thumb:1", "key": "ArrowLeft" },
+        { "expect": { "value": [0, 97], "focus": "thumb:1" } }
+      ]
+    },
+    {
+      "id": "slider-multithumb.react-aria.track-click-selects-nearest-thumb",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/slider/useSlider.test.js#L87",
+      "upstreamTest": "useSlider > interactions on track > should allow you to set value of closest thumb by clicking on track",
+      "apg": "pointer",
+      "config": { "thumbs": 2, "values": [10, 80], "min": 0, "max": 100 },
+      "steps": [
+        { "event": "pointerdown", "target": "track", "position": 0.2 },
+        { "event": "pointerup", "target": "track", "position": 0.2 },
+        {
+          "expect": {
+            "value": [20, 80],
+            "events": { "onChange": [[[20, 80]]] }
+          }
+        },
+        { "event": "pointerdown", "target": "track", "position": 0.9 },
+        { "event": "pointerup", "target": "track", "position": 0.9 },
+        {
+          "expect": {
+            "value": [20, 90],
+            "events": { "onChange": [[[20, 80]], [[20, 90]]] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "slider-multithumb.react-aria.track-drag-selects-nearest-thumb",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/slider/useSlider.test.js#L116",
+      "upstreamTest": "useSlider > interactions on track > should allow you to set value of closest thumb by dragging on track",
+      "apg": "pointer",
+      "config": { "thumbs": 2, "values": [10, 80], "min": 0, "max": 100 },
+      "steps": [
+        { "event": "pointerdown", "target": "track", "position": 0.2 },
+        { "event": "pointermove", "target": "track", "position": 0.3 },
+        { "expect": { "value": [30, 80] } },
+        { "event": "pointermove", "target": "track", "position": 0.4 },
+        { "expect": { "value": [40, 80], "events": { "onChangeEnd": [] } } },
+        { "event": "pointerup", "target": "track", "position": 0.4 },
+        { "expect": { "events": { "onChangeEnd": [[[40, 80]]] } } }
+      ]
+    },
+    {
+      "id": "slider-multithumb.react-aria.vertical-track-drag-selects-nearest-thumb",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/slider/useSlider.test.js#L179",
+      "upstreamTest": "useSlider > interactions on track > should allow you to set value of closest thumb by dragging on track (vertical)",
+      "apg": "pointer",
+      "config": {
+        "thumbs": 2,
+        "values": [10, 80],
+        "orientation": "vertical",
+        "min": 0,
+        "max": 100
+      },
+      "steps": [
+        { "event": "pointerdown", "target": "track", "position": 0.2 },
+        { "expect": { "value": [20, 80] } },
+        { "event": "pointermove", "target": "track", "position": 0.3 },
+        { "expect": { "value": [30, 80] } },
+        { "event": "pointermove", "target": "track", "position": 0.4 },
+        { "expect": { "value": [40, 80] } },
+        { "event": "pointerup", "target": "track", "position": 0.4 },
+        { "expect": { "events": { "onChangeEnd": [[[40, 80]]] } } }
+      ],
+      "notes": "position is the fraction from the minimum end of the track; vertical tracks put the minimum at the bottom, so 0.2 is 20% up from the bottom."
+    },
+    {
+      "id": "slider-multithumb.react-aria.thumb-drag-clamps-to-sibling",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/slider/useSliderThumb.test.js#L208",
+      "upstreamTest": "useSliderThumb > using PointerEvents > can be moved by dragging",
+      "apg": "pointer",
+      "config": { "thumbs": 2, "values": [10, 80], "min": 0, "max": 100 },
+      "steps": [
+        { "event": "pointerdown", "target": "thumb:0", "position": 0.1 },
+        { "event": "pointermove", "target": "thumb:0", "position": 0.2 },
+        { "event": "pointermove", "target": "thumb:0", "position": 0.3 },
+        { "event": "pointermove", "target": "thumb:0", "position": 0.4 },
+        { "event": "pointerup", "target": "thumb:0", "position": 0.4 },
+        { "expect": { "value": [40, 80] } },
+        { "event": "pointerdown", "target": "thumb:1", "position": 0.8 },
+        { "event": "pointermove", "target": "thumb:1", "position": 0.6 },
+        { "expect": { "value": [40, 60] } },
+        { "event": "pointermove", "target": "thumb:1", "position": 0.3 },
+        { "expect": { "value": [40, 40] } },
+        { "event": "pointerup", "target": "thumb:1", "position": 0.3 },
+        { "expect": { "events": { "onChangeEnd": [[[40, 40]]] } } }
+      ],
+      "notes": "Thumb 1 is clamped at thumb 0's value; react-aria enforces no crossing by default."
+    },
+    {
+      "id": "slider-multithumb.react-aria.stacked-thumbs-select-the-before-thumb",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/slider/useSlider.test.js#L300",
+      "upstreamTest": "useSlider > interactions on track using pointerEvents > should allow you to set value of before thumbs when thumbs stacked",
+      "apg": "pointer",
+      "config": { "thumbs": 2, "values": [40, 40], "min": 0, "max": 100 },
+      "steps": [
+        { "event": "pointerdown", "target": "track", "position": 0.2 },
+        { "expect": { "value": [20, 40] } }
+      ]
+    },
+    {
+      "id": "slider-multithumb.react-aria.stacked-thumbs-select-the-after-thumb",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/slider/useSlider.test.js#L320",
+      "upstreamTest": "useSlider > interactions on track using pointerEvents > should allow you to set value of after thumbs when thumbs stacked",
+      "apg": "pointer",
+      "config": { "thumbs": 2, "values": [40, 40], "min": 0, "max": 100 },
+      "steps": [
+        { "event": "pointerdown", "target": "track", "position": 0.6 },
+        { "expect": { "value": [40, 60] } }
+      ]
+    },
+    {
+      "id": "slider-multithumb.react-aria.many-stacked-thumbs-select-nearest-index",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/slider/useSlider.test.js#L340",
+      "upstreamTest": "useSlider > interactions on track using pointerEvents > should allow you to set value of before thumbs when many thumbs and stacked",
+      "apg": "pointer",
+      "config": {
+        "thumbs": 5,
+        "values": [25, 25, 50, 75, 75],
+        "min": 0,
+        "max": 100
+      },
+      "steps": [
+        { "event": "pointerdown", "target": "track", "position": 0.7 },
+        { "expect": { "value": [25, 25, 50, 70, 75] } },
+        { "event": "pointerup", "target": "track", "position": 0.7 },
+        { "expect": { "events": { "onChangeEnd": [[[25, 25, 50, 70, 75]]] } } },
+        { "event": "pointerdown", "target": "track", "position": 0.2 },
+        { "expect": { "value": [20, 25, 50, 70, 75] } }
+      ]
+    },
+    {
+      "id": "slider-multithumb.react-aria.disabled-track-ignores-pointer",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/slider/useSlider.test.js#L396",
+      "upstreamTest": "useSlider > interactions on track using pointerEvents > should not allow you to set value if disabled",
+      "apg": "extension",
+      "config": {
+        "thumbs": 2,
+        "values": [10, 80],
+        "min": 0,
+        "max": 100,
+        "disabled": true
+      },
+      "steps": [
+        { "event": "pointerdown", "target": "track", "position": 0.2 },
+        { "event": "pointermove", "target": "track", "position": 0.3 },
+        { "event": "pointerup", "target": "track", "position": 0.4 },
+        {
+          "expect": {
+            "value": [10, 80],
+            "events": { "onChange": [], "onChangeEnd": [] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "slider-multithumb.react-aria.range-horizontal-drag-clamps-each-thumb",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/slider/RangeSlider.test.tsx#L433",
+      "upstreamTest": "RangeSlider > mouse interactions > can click and drag handle",
+      "apg": "pointer",
+      "config": { "thumbs": 2, "values": [20, 50], "min": 0, "max": 100 },
+      "steps": [
+        { "event": "pointerdown", "target": "thumb:0", "position": 0.2 },
+        { "event": "pointermove", "target": "thumb:0", "position": 0.1 },
+        { "expect": { "value": [10, 50] } },
+        { "event": "pointermove", "target": "thumb:0", "position": -0.1 },
+        { "expect": { "value": [0, 50] } },
+        { "event": "pointermove", "target": "thumb:0", "position": 1.2 },
+        { "expect": { "value": [50, 50] } },
+        { "event": "pointerup", "target": "thumb:0", "position": 1.2 },
+        { "event": "pointerdown", "target": "thumb:1", "position": 0.5 },
+        { "event": "pointermove", "target": "thumb:1", "position": 0.6 },
+        { "expect": { "value": [50, 60] } },
+        { "event": "pointermove", "target": "thumb:1", "position": -0.1 },
+        { "expect": { "value": [50, 50] } },
+        { "event": "pointermove", "target": "thumb:1", "position": 1.2 },
+        { "expect": { "value": [50, 100] } },
+        { "event": "pointerup", "target": "thumb:1", "position": 1.2 }
+      ]
+    },
+    {
+      "id": "slider-multithumb.react-aria.disabled-range-ignores-drag",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/slider/RangeSlider.test.tsx#L478",
+      "upstreamTest": "RangeSlider > mouse interactions > cannot click and drag handle when disabled",
+      "apg": "extension",
+      "config": {
+        "thumbs": 2,
+        "values": [20, 50],
+        "min": 0,
+        "max": 100,
+        "disabled": true
+      },
+      "steps": [
+        { "event": "pointerdown", "target": "thumb:0", "position": 0.2 },
+        { "event": "pointermove", "target": "thumb:0", "position": 0.1 },
+        { "event": "pointerup", "target": "thumb:0", "position": 0.1 },
+        {
+          "expect": {
+            "value": [20, 50],
+            "focus": null,
+            "events": { "onChange": [] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "slider-multithumb.react-aria.rtl-keyboard-reverses-both-thumbs",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/slider/RangeSlider.test.tsx#L347",
+      "upstreamTest": "RangeSlider > keyboard interactions > (left/right arrows, rtl) moves the slider in the correct direction",
+      "apg": "keyboard",
+      "config": {
+        "thumbs": 2,
+        "values": [20, 50],
+        "dir": "rtl",
+        "min": 0,
+        "max": 100
+      },
+      "steps": [
+        { "event": "focus", "target": "thumb:0" },
+        { "event": "key", "target": "thumb:0", "key": "ArrowRight" },
+        { "expect": { "value": [19, 50] } },
+        { "event": "key", "target": "thumb:0", "key": "ArrowLeft" },
+        { "expect": { "value": [20, 50] } },
+        { "event": "focus", "target": "thumb:1" },
+        { "event": "key", "target": "thumb:1", "key": "ArrowRight" },
+        { "expect": { "value": [20, 49] } },
+        { "event": "key", "target": "thumb:1", "key": "ArrowLeft" },
+        { "expect": { "value": [20, 50] } }
+      ]
+    },
+    {
+      "id": "slider-multithumb.react-aria.keyboard-respects-step",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/slider/RangeSlider.test.tsx#L367",
+      "upstreamTest": "RangeSlider > keyboard interactions > (left/right arrows, ltr) respects the step size",
+      "apg": "keyboard",
+      "config": {
+        "thumbs": 2,
+        "values": [20, 50],
+        "step": 10,
+        "min": 0,
+        "max": 100
+      },
+      "steps": [
+        { "event": "focus", "target": "thumb:0" },
+        { "event": "key", "target": "thumb:0", "key": "ArrowRight" },
+        { "expect": { "value": [30, 50] } },
+        { "event": "key", "target": "thumb:0", "key": "ArrowLeft" },
+        { "expect": { "value": [20, 50] } },
+        { "event": "focus", "target": "thumb:1" },
+        { "event": "key", "target": "thumb:1", "key": "ArrowRight" },
+        { "expect": { "value": [20, 60] } },
+        { "event": "key", "target": "thumb:1", "key": "ArrowLeft" },
+        { "expect": { "value": [20, 50] } }
+      ]
+    },
+    {
+      "id": "slider-multithumb.react-aria.keyboard-clamped-by-min-and-max",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/slider/RangeSlider.test.tsx#L381",
+      "upstreamTest": "RangeSlider > keyboard interactions > (left/right arrows, ltr) is clamped by min/max",
+      "apg": "keyboard",
+      "config": { "thumbs": 2, "values": [-4, 4], "min": -5, "max": 5 },
+      "steps": [
+        { "event": "focus", "target": "thumb:0" },
+        { "event": "key", "target": "thumb:0", "key": "ArrowLeft" },
+        { "expect": { "value": [-5, 4] } },
+        { "event": "key", "target": "thumb:0", "key": "ArrowLeft" },
+        { "expect": { "value": [-5, 4] } },
+        { "event": "focus", "target": "thumb:1" },
+        { "event": "key", "target": "thumb:1", "key": "ArrowRight" },
+        { "expect": { "value": [-5, 5] } },
+        { "event": "key", "target": "thumb:1", "key": "ArrowRight" },
+        { "expect": { "value": [-5, 5] } }
+      ]
+    }
+  ]
+}

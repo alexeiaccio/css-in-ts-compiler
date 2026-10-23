@@ -1,0 +1,2444 @@
+{
+  "pattern": "combobox",
+  "source": "base-ui",
+  "commit": "19511bb171f3b360b006c94cf6d07e53cb446505",
+  "license": "MIT",
+  "scenarios": [
+    {
+      "id": "combobox.base-ui.keyboard-arrow-down-first-up-last",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L3742",
+      "upstreamTest": "keyboard interaction > focuses first item on ArrowDown and last item on ArrowUp",
+      "apg": "keyboard",
+      "config": {
+        "items": ["apple", "banana", "cherry"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "input"
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "ArrowDown"
+        },
+        {
+          "expect": {
+            "visible": ["popup", "option:0", "option:1", "option:2"],
+            "attrs": {
+              "input": {
+                "aria-activedescendant": "option:0",
+                "aria-expanded": "true"
+              }
+            }
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Escape"
+        },
+        {
+          "expect": {
+            "visible": []
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "ArrowUp"
+        },
+        {
+          "expect": {
+            "visible": ["popup", "option:0", "option:1", "option:2"],
+            "attrs": {
+              "input": {
+                "aria-activedescendant": "option:2"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "ArrowDown highlights the first option, ArrowUp the last; the input keeps DOM focus and uses aria-activedescendant."
+    },
+    {
+      "id": "combobox.base-ui.keyboard-open-navigate-enter",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L3784",
+      "upstreamTest": "keyboard interaction > opens, navigates with ArrowDown, and Enter selects",
+      "apg": "keyboard",
+      "config": {
+        "items": ["apple", "banana", "cherry"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "visible": ["popup", "option:0", "option:1", "option:2"]
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "ArrowDown"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "input": {
+                "aria-activedescendant": "option:0"
+              }
+            }
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Enter"
+        },
+        {
+          "expect": {
+            "visible": [],
+            "value": "apple"
+          }
+        }
+      ],
+      "notes": "Keyboard selection writes the option label into the input and closes the popup."
+    },
+    {
+      "id": "combobox.base-ui.keyboard-enter-manual-indices-filter",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L3819",
+      "upstreamTest": "keyboard interaction > Enter selects with manual indices provided to items",
+      "apg": "keyboard",
+      "config": {
+        "items": ["apple", "banana", "cherry"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "event": "type",
+          "target": "input",
+          "text": "c"
+        },
+        {
+          "expect": {
+            "visible": ["popup", "option:0"]
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "ArrowDown"
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Enter"
+        },
+        {
+          "expect": {
+            "value": "cherry",
+            "visible": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.keyboard-list-click-keeps-input-focus",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L3857",
+      "upstreamTest": "keyboard interaction > clicking on \"listbox\" keeps the focus on the input",
+      "apg": "keyboard",
+      "config": {
+        "items": ["apple", "banana", "cherry"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "visible": ["popup"]
+          }
+        },
+        {
+          "event": "click",
+          "target": "popup"
+        },
+        {
+          "expect": {
+            "focus": "input",
+            "visible": ["popup"]
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "ArrowDown"
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Enter"
+        },
+        {
+          "expect": {
+            "value": "apple"
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.keyboard-escape-closes-no-commit",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L3898",
+      "upstreamTest": "keyboard interaction > Escape closes the popup without committing when nothing highlighted",
+      "apg": "keyboard",
+      "config": {
+        "items": ["a", "b"],
+        "defaultOpen": true
+      },
+      "steps": [
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Escape"
+        },
+        {
+          "expect": {
+            "visible": [],
+            "value": ""
+          }
+        }
+      ],
+      "notes": "The popup starts open (defaultOpen); Escape leaves the input untouched."
+    },
+    {
+      "id": "combobox.base-ui.keyboard-escape-bubbles-inline",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L3923",
+      "upstreamTest": "keyboard interaction > bubbles Escape key when rendered inline without Positioner/Popup",
+      "apg": "extension",
+      "config": {
+        "inline": true,
+        "defaultOpen": true,
+        "items": ["a", "b"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "visible": ["popup"]
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Escape"
+        },
+        {
+          "expect": {
+            "events": {
+              "onOuterKeyDown": ["Escape"]
+            }
+          }
+        }
+      ],
+      "notes": "An inline list has no popup to close, so Escape must reach ancestor keydown handlers."
+    },
+    {
+      "id": "combobox.base-ui.keyboard-enter-inline-keeps-value",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L3957",
+      "upstreamTest": "keyboard interaction > keeps input value on Enter when inline and no item is highlighted",
+      "apg": "extension",
+      "config": {
+        "inline": true,
+        "items": ["Apple", "Banana"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "event": "type",
+          "target": "input",
+          "text": "Ba"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "input": {
+                "aria-activedescendant": null
+              }
+            },
+            "value": "Ba"
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Enter"
+        },
+        {
+          "expect": {
+            "value": "Ba"
+          }
+        }
+      ],
+      "notes": "With no highlighted item Enter must not clear or commit the typed text."
+    },
+    {
+      "id": "combobox.base-ui.keyboard-escape-bubbles-empty-css-hidden",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L3984",
+      "upstreamTest": "keyboard interaction > bubbles Escape key when list is empty and popup hidden with CSS",
+      "apg": "extension",
+      "config": {
+        "items": [],
+        "popupHiddenByCss": true,
+        "defaultOpen": true
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Escape"
+        },
+        {
+          "expect": {
+            "events": {
+              "onOuterKeyDown": ["Escape"]
+            }
+          }
+        }
+      ],
+      "notes": "A list that is empty and CSS-hidden is treated as closed; Escape propagates."
+    },
+    {
+      "id": "combobox.base-ui.keyboard-escape-not-bubbled-with-empty-part",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L4024",
+      "upstreamTest": "keyboard interaction > does not bubble Escape key when Empty component is present",
+      "apg": "extension",
+      "config": {
+        "items": [],
+        "hasEmptyPart": true,
+        "defaultOpen": true
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Escape"
+        },
+        {
+          "expect": {
+            "events": {
+              "onOuterKeyDown": []
+            }
+          }
+        }
+      ],
+      "notes": "A rendered empty state keeps the popup logically open, so Escape is consumed."
+    },
+    {
+      "id": "combobox.base-ui.keyboard-tab-closes-popup",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/input/ComboboxInput.test.tsx#L964",
+      "upstreamTest": "interaction behavior > closes the popup when tabbing out",
+      "apg": "keyboard",
+      "config": {
+        "items": ["apple", "banana"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "visible": ["popup"]
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Tab"
+        },
+        {
+          "expect": {
+            "visible": [],
+            "focus": "next-button"
+          }
+        }
+      ],
+      "notes": "Tabbing away closes the popup and moves focus to the next focusable element."
+    },
+    {
+      "id": "combobox.base-ui.aria-input-closed",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L4067",
+      "upstreamTest": "aria attributes > sets all aria attributes on the input when closed",
+      "apg": "aria",
+      "config": {
+        "items": []
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "input": {
+                "role": "combobox",
+                "aria-expanded": "false",
+                "aria-autocomplete": "list",
+                "aria-haspopup": "listbox",
+                "aria-controls": null,
+                "aria-activedescendant": null
+              }
+            }
+          }
+        }
+      ],
+      "notes": "The editable input is the combobox; controls/activedescendant appear only while open."
+    },
+    {
+      "id": "combobox.base-ui.aria-input-open",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L4087",
+      "upstreamTest": "aria attributes > sets all aria attributes on the input when open",
+      "apg": "aria",
+      "config": {
+        "defaultOpen": true,
+        "items": []
+      },
+      "steps": [
+        {
+          "expect": {
+            "visible": ["popup"],
+            "attrs": {
+              "input": {
+                "role": "combobox",
+                "aria-expanded": "true",
+                "aria-autocomplete": "list",
+                "aria-haspopup": "listbox",
+                "aria-controls": "popup",
+                "aria-activedescendant": null
+              }
+            }
+          }
+        }
+      ],
+      "notes": "aria-controls points at the listbox popup; the highlight is still absent before navigation."
+    },
+    {
+      "id": "combobox.base-ui.aria-inline-open-expanded",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L4112",
+      "upstreamTest": "aria attributes > sets aria-expanded on the input when rendered inline and open",
+      "apg": "aria",
+      "config": {
+        "inline": true,
+        "open": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "input": {
+                "role": "combobox",
+                "aria-expanded": "true",
+                "aria-controls": "popup"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.aria-inline-grid-popup-type",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L4128",
+      "upstreamTest": "aria attributes > sets the popup type on the input when rendered inline as a grid",
+      "apg": "aria",
+      "config": {
+        "inline": true,
+        "open": true,
+        "grid": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "input": {
+                "aria-expanded": "true",
+                "aria-haspopup": "grid",
+                "aria-controls": "popup"
+              },
+              "popup": {
+                "role": "grid"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.aria-inline-without-open-expanded",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L4144",
+      "upstreamTest": "aria attributes > keeps the input expanded when rendered inline without the open prop",
+      "apg": "aria",
+      "config": {
+        "inline": true,
+        "items": ["apple", "banana"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "input": {
+                "aria-expanded": "true",
+                "aria-controls": "popup"
+              }
+            }
+          }
+        },
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "input": {
+                "aria-expanded": "true",
+                "aria-controls": "popup"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "An inline list renders regardless of internal open state, so the input must not claim to be collapsed."
+    },
+    {
+      "id": "combobox.base-ui.aria-item-highlighted-attributes",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L4172",
+      "upstreamTest": "aria attributes > sets correct attributes on the item when highlighted",
+      "apg": "aria",
+      "config": {
+        "defaultOpen": true,
+        "items": ["a", "b"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "input": {
+                "aria-activedescendant": null
+              }
+            }
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "ArrowDown"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "option:0": {
+                "aria-selected": "false"
+              },
+              "option:1": {
+                "aria-selected": "false"
+              },
+              "input": {
+                "aria-activedescendant": "option:0"
+              }
+            }
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Enter"
+        },
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "option:0": {
+                "aria-selected": "true"
+              },
+              "option:1": {
+                "aria-selected": "false"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "aria-selected tracks the committed value; aria-activedescendant tracks the highlight."
+    },
+    {
+      "id": "combobox.base-ui.select-only.trigger-controls-dialog",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L4215",
+      "upstreamTest": "aria attributes > sets aria-controls to the dialog popup on trigger",
+      "apg": "aria",
+      "config": {
+        "variant": "select-only",
+        "inputInPopup": true,
+        "defaultOpen": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "visible": ["popup"],
+            "attrs": {
+              "trigger": {
+                "role": "combobox",
+                "aria-expanded": "true",
+                "aria-controls": "popup"
+              },
+              "popup": {
+                "role": "dialog"
+              }
+            }
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "trigger": {
+                "aria-expanded": "false",
+                "aria-controls": null
+              }
+            }
+          }
+        }
+      ],
+      "notes": "When the input lives inside the popup, the trigger is the combobox and controls the dialog."
+    },
+    {
+      "id": "combobox.base-ui.select-only.trigger-custom-popup-id",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L4247",
+      "upstreamTest": "aria attributes > points aria-controls at a custom popup id on the trigger",
+      "apg": "aria",
+      "config": {
+        "variant": "select-only",
+        "inputInPopup": true,
+        "defaultOpen": true,
+        "popupId": "custom-popup-id"
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger": {
+                "aria-controls": "custom-popup-id"
+              },
+              "popup": {
+                "id": "custom-popup-id"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "A caller-supplied popup id flows through to aria-controls."
+    },
+    {
+      "id": "combobox.base-ui.aria-popup-role-presentation",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/popup/ComboboxPopup.test.tsx#L39",
+      "upstreamTest": "sets role to presentation when input renders outside the popup",
+      "apg": "aria",
+      "config": {
+        "defaultOpen": true,
+        "items": ["Apple"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "visible": ["popup"],
+            "attrs": {
+              "popup": {
+                "role": "presentation"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "The plain popup wrapper is presentational; the listbox carries the semantics."
+    },
+    {
+      "id": "combobox.base-ui.select-only.popup-role-dialog",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/popup/ComboboxPopup.test.tsx#L57",
+      "upstreamTest": "sets role to dialog when input renders inside the popup",
+      "apg": "aria",
+      "config": {
+        "variant": "select-only",
+        "inputInPopup": true,
+        "defaultOpen": true,
+        "items": ["Apple"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "visible": ["popup"],
+            "attrs": {
+              "popup": {
+                "role": "dialog"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.aria-listbox-multiselectable",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/list/ComboboxList.test.tsx#L17",
+      "upstreamTest": "sets role=listbox and aria-multiselectable in multiple mode",
+      "apg": "aria",
+      "config": {
+        "multiple": true,
+        "defaultOpen": true,
+        "items": ["a"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "visible": ["popup"],
+            "attrs": {
+              "popup": {
+                "role": "listbox",
+                "aria-multiselectable": "true"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.aria-listbox-readonly",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/list/ComboboxList.test.tsx#L36",
+      "upstreamTest": "sets aria-readonly on the listbox when the root is readOnly",
+      "apg": "aria",
+      "config": {
+        "readOnly": true,
+        "defaultOpen": true,
+        "items": ["a"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "visible": ["popup"],
+            "attrs": {
+              "popup": {
+                "role": "listbox",
+                "aria-readonly": "true"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.aria-listbox-no-readonly-default",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/list/ComboboxList.test.tsx#L77",
+      "upstreamTest": "does not set aria-readonly on the listbox by default",
+      "apg": "aria",
+      "config": {
+        "defaultOpen": true,
+        "items": ["a"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "visible": ["popup"],
+            "attrs": {
+              "popup": {
+                "aria-readonly": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.keyboard-list-enter-selects-highlighted",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/list/ComboboxList.test.tsx#L135",
+      "upstreamTest": "selects the highlighted item with Enter",
+      "apg": "keyboard",
+      "config": {
+        "defaultOpen": true,
+        "items": ["a"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "ArrowDown"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "input": {
+                "aria-activedescendant": "option:0"
+              }
+            }
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Enter"
+        },
+        {
+          "expect": {
+            "events": {
+              "onValueChange": ["a"]
+            }
+          }
+        }
+      ],
+      "notes": "The list handles Enter once an item is highlighted."
+    },
+    {
+      "id": "combobox.base-ui.keyboard-list-enter-ignored-when-readonly",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/list/ComboboxList.test.tsx#L162",
+      "upstreamTest": "ignores Enter when interaction is disabled: readOnly",
+      "apg": "keyboard",
+      "config": {
+        "readOnly": true,
+        "defaultOpen": true,
+        "items": ["a"]
+      },
+      "steps": [
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Enter"
+        },
+        {
+          "expect": {
+            "events": {
+              "onValueChange": []
+            }
+          }
+        }
+      ],
+      "notes": "readOnly and disabled both suppress the list's Enter handling."
+    },
+    {
+      "id": "combobox.base-ui.pointer-open-change-reason-item-press",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L1228",
+      "upstreamTest": "selection behavior > single > fires onOpenChange once with reason item-press on mouse click",
+      "apg": "pointer",
+      "config": {
+        "items": ["apple", "banana"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "visible": ["popup"]
+          }
+        },
+        {
+          "event": "click",
+          "target": "option:0"
+        },
+        {
+          "expect": {
+            "visible": [],
+            "events": {
+              "onOpenChange": [false]
+            }
+          }
+        }
+      ],
+      "notes": "The change reason is item-press with the originating MouseEvent."
+    },
+    {
+      "id": "combobox.base-ui.keyboard-enter-open-change-reason",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L1268",
+      "upstreamTest": "selection behavior > single > fires onOpenChange once with reason item-press on Enter selection",
+      "apg": "keyboard",
+      "config": {
+        "items": ["apple", "banana"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "visible": ["popup"]
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "ArrowDown"
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Enter"
+        },
+        {
+          "expect": {
+            "visible": [],
+            "events": {
+              "onOpenChange": [false]
+            }
+          }
+        }
+      ],
+      "notes": "The same item-press reason is reported for keyboard selection."
+    },
+    {
+      "id": "combobox.base-ui.pointer-auto-close-uncontrolled",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L1309",
+      "upstreamTest": "selection behavior > single > should auto-close popup after selection when open state is uncontrolled",
+      "apg": "pointer",
+      "config": {
+        "items": ["apple", "banana", "cherry"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "expect": {
+            "visible": ["popup"],
+            "attrs": {
+              "input": {
+                "aria-expanded": "true"
+              }
+            }
+          }
+        },
+        {
+          "event": "click",
+          "target": "option:0"
+        },
+        {
+          "expect": {
+            "visible": [],
+            "attrs": {
+              "input": {
+                "aria-expanded": "false"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "An uncontrolled open state closes on selection."
+    },
+    {
+      "id": "combobox.base-ui.extension-no-auto-close-controlled",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L1365",
+      "upstreamTest": "selection behavior > single > should not auto-close popup when open state is controlled",
+      "apg": "extension",
+      "config": {
+        "items": ["apple", "banana", "cherry"],
+        "open": true
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "option:0"
+        },
+        {
+          "expect": {
+            "visible": ["popup"]
+          }
+        }
+      ],
+      "notes": "A controlled open prop keeps the popup open after selection."
+    },
+    {
+      "id": "combobox.base-ui.aria-show-all-items-empty-query",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L1392",
+      "upstreamTest": "selection behavior > single > should show all items when query is empty with enhanced filter",
+      "apg": "aria",
+      "config": {
+        "items": ["apple", "banana", "cherry"],
+        "defaultOpen": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "visible": ["popup", "option:0", "option:1", "option:2"]
+          }
+        }
+      ],
+      "notes": "The default enhanced filter shows every item for an empty query."
+    },
+    {
+      "id": "combobox.base-ui.aria-query-matches-selection-shows-all",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L1419",
+      "upstreamTest": "selection behavior > single > should show all items when query matches current selection",
+      "apg": "aria",
+      "config": {
+        "items": ["apple", "banana", "cherry"],
+        "defaultValue": "apple"
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "expect": {
+            "visible": ["popup", "option:0", "option:1", "option:2"]
+          }
+        },
+        {
+          "event": "click",
+          "target": "option:0"
+        },
+        {
+          "expect": {
+            "value": "apple",
+            "visible": []
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "expect": {
+            "visible": ["popup", "option:0", "option:1", "option:2"]
+          }
+        }
+      ],
+      "notes": "Reopening with the selection as the query must not filter the list down to the selection only."
+    },
+    {
+      "id": "combobox.base-ui.extension-reset-input-on-close-without-selection",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L1459",
+      "upstreamTest": "selection behavior > single > should reset input value to selected value when popup closes without selection",
+      "apg": "extension",
+      "config": {
+        "items": ["apple", "banana", "cherry"],
+        "defaultValue": "apple"
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "event": "click",
+          "target": "option:0"
+        },
+        {
+          "expect": {
+            "value": "apple",
+            "visible": []
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "event": "type",
+          "target": "input",
+          "text": "xyz"
+        },
+        {
+          "expect": {
+            "value": "applexyz"
+          }
+        },
+        {
+          "event": "click",
+          "target": "body"
+        },
+        {
+          "expect": {
+            "value": "apple",
+            "events": {
+              "onInputValueChange": ["apple"]
+            }
+          }
+        }
+      ],
+      "notes": "Closing without committing reverts the input to the selected label; the reset reports reason 'none'."
+    },
+    {
+      "id": "combobox.base-ui.multiple-selection-value-change",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L2830",
+      "upstreamTest": "selection behavior > multiple > should handle multiple selection",
+      "apg": "pointer",
+      "config": {
+        "multiple": true,
+        "items": ["a", "b", "c"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "option:0"
+        },
+        {
+          "expect": {
+            "events": {
+              "onValueChange": [["a"]]
+            }
+          }
+        },
+        {
+          "event": "click",
+          "target": "option:1"
+        },
+        {
+          "expect": {
+            "events": {
+              "onValueChange": [["a"], ["a", "b"]]
+            }
+          }
+        }
+      ],
+      "notes": "Each click toggles membership and reports the accumulated value array."
+    },
+    {
+      "id": "combobox.base-ui.multiple-single-select-close-reopen-focused",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L7118",
+      "upstreamTest": "prop multiple > \"single\" selects and closes, then reopens with selection focused",
+      "apg": "pointer",
+      "config": {
+        "defaultOpen": true,
+        "items": ["a", "b", "c"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "option:1"
+        },
+        {
+          "expect": {
+            "visible": [],
+            "value": "b"
+          }
+        },
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "visible": ["popup"],
+            "attrs": {
+              "option:1": {
+                "aria-selected": "true"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Reopening restores aria-selected on the committed option."
+    },
+    {
+      "id": "combobox.base-ui.extension-single-canceled-keeps-open",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L7146",
+      "upstreamTest": "prop multiple > \"single\" keeps the popup open when selection is canceled",
+      "apg": "extension",
+      "config": {
+        "defaultOpen": true,
+        "items": ["a", "b"],
+        "cancelValueChange": true
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "option:1"
+        },
+        {
+          "expect": {
+            "visible": ["popup"],
+            "events": {
+              "onValueChange": ["b"]
+            }
+          }
+        }
+      ],
+      "notes": "A canceled onValueChange leaves the value uncommitted and the popup open."
+    },
+    {
+      "id": "combobox.base-ui.multiple-clears-input-after-select",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L7175",
+      "upstreamTest": "prop multiple > \"multiple\" clears uncontrolled input after select when filtering",
+      "apg": "keyboard",
+      "config": {
+        "multiple": true,
+        "items": ["apple", "banana"]
+      },
+      "steps": [
+        {
+          "event": "type",
+          "target": "input",
+          "text": "app"
+        },
+        {
+          "expect": {
+            "visible": ["popup", "option:0"]
+          }
+        },
+        {
+          "event": "click",
+          "target": "option:0"
+        },
+        {
+          "expect": {
+            "value": ""
+          }
+        }
+      ],
+      "notes": "In multiple mode the filter query is cleared after committing."
+    },
+    {
+      "id": "combobox.base-ui.pointer-item-selects-and-closes",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/item/ComboboxItem.test.tsx#L18",
+      "upstreamTest": "selects item and closes in single mode",
+      "apg": "pointer",
+      "config": {
+        "defaultOpen": true,
+        "items": ["one", "two"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "option:1"
+        },
+        {
+          "expect": {
+            "value": "two",
+            "visible": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.pointer-disabled-item-not-selected",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/item/ComboboxItem.test.tsx#L136",
+      "upstreamTest": "does not select disabled item",
+      "apg": "pointer",
+      "config": {
+        "defaultOpen": true,
+        "items": ["one", "two"],
+        "disabledItems": [1]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "option:1"
+        },
+        {
+          "expect": {
+            "value": "",
+            "visible": ["popup"]
+          }
+        }
+      ],
+      "notes": "A disabled option is ignored by pointer selection."
+    },
+    {
+      "id": "combobox.base-ui.keyboard-item-enter-selects-highlighted",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/item/ComboboxItem.test.tsx#L192",
+      "upstreamTest": "Enter selects highlighted item",
+      "apg": "keyboard",
+      "config": {
+        "items": ["one", "two"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "visible": ["popup"]
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "ArrowDown"
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Enter"
+        },
+        {
+          "expect": {
+            "value": "one",
+            "visible": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.pointer-item-multiple-toggles-stays-open",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/item/ComboboxItem.test.tsx#L280",
+      "upstreamTest": "multiple mode toggles selection and stays open",
+      "apg": "pointer",
+      "config": {
+        "multiple": true,
+        "items": ["a", "b"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "visible": ["popup"]
+          }
+        },
+        {
+          "event": "click",
+          "target": "option:0"
+        },
+        {
+          "expect": {
+            "visible": ["popup"],
+            "attrs": {
+              "option:0": {
+                "aria-selected": "true"
+              }
+            }
+          }
+        },
+        {
+          "event": "click",
+          "target": "option:0"
+        },
+        {
+          "expect": {
+            "visible": ["popup"],
+            "attrs": {
+              "option:0": {
+                "aria-selected": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.aria-item-selected-on-reopen",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/item/ComboboxItem.test.tsx#L312",
+      "upstreamTest": "reflects selected value with aria-selected when reopening",
+      "apg": "aria",
+      "config": {
+        "defaultValue": "two",
+        "items": ["one", "two"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "visible": ["popup"],
+            "attrs": {
+              "option:1": {
+                "aria-selected": "true"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.pointer-item-mousedown-prevented",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/item/ComboboxItem.test.tsx#L251",
+      "upstreamTest": "prevents default on mousedown so pointer selection does not steal input focus",
+      "apg": "pointer",
+      "config": {
+        "defaultOpen": true,
+        "items": ["one", "two"]
+      },
+      "steps": [
+        {
+          "event": "pointerdown",
+          "target": "option:1"
+        },
+        {
+          "expect": {
+            "events": {
+              "onMousedownDefaultPrevented": [true]
+            }
+          }
+        }
+      ],
+      "notes": "Item mousedown is canceled so the input keeps focus during pointer selection."
+    },
+    {
+      "id": "combobox.base-ui.aria-readonly-input",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L5237",
+      "upstreamTest": "prop readOnly > should render readOnly state on the input",
+      "apg": "aria",
+      "config": {
+        "readOnly": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "input": {
+                "aria-readonly": "true",
+                "readonly": "true"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.aria-readonly-autocomplete-none",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L5250",
+      "upstreamTest": "prop readOnly > should expose aria-autocomplete=\"none\" when readOnly",
+      "apg": "aria",
+      "config": {
+        "readOnly": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "input": {
+                "aria-autocomplete": "none"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.select-only.readonly-opens-from-input-and-trigger",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L5260",
+      "upstreamTest": "prop readOnly > should open the popup from the input and the trigger when readOnly",
+      "apg": "keyboard",
+      "config": {
+        "variant": "select-only",
+        "inputInPopup": true,
+        "readOnly": true,
+        "items": ["a", "b"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "visible": ["popup"],
+            "attrs": {
+              "popup": {
+                "aria-readonly": "true"
+              }
+            }
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Escape"
+        },
+        {
+          "expect": {
+            "visible": []
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "expect": {
+            "visible": ["popup"]
+          }
+        }
+      ],
+      "notes": "readOnly still allows browsing the list."
+    },
+    {
+      "id": "combobox.base-ui.keyboard-readonly-arrow-browses",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L5290",
+      "upstreamTest": "prop readOnly > should browse the items with the arrow keys when readOnly",
+      "apg": "keyboard",
+      "config": {
+        "readOnly": true,
+        "items": ["a", "b"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "visible": ["popup"]
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "ArrowDown"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "input": {
+                "aria-activedescendant": "option:0"
+              }
+            }
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "ArrowDown"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "input": {
+                "aria-activedescendant": "option:1"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.extension-readonly-typing-no-change",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L5322",
+      "upstreamTest": "prop readOnly > should not change the input value when typing while readOnly",
+      "apg": "extension",
+      "config": {
+        "readOnly": true,
+        "items": ["a", "b"]
+      },
+      "steps": [
+        {
+          "event": "type",
+          "target": "input",
+          "text": "a"
+        },
+        {
+          "expect": {
+            "value": "",
+            "events": {
+              "onInputValueChange": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.extension-readonly-no-value-change",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L5368",
+      "upstreamTest": "prop readOnly > should prevent value changes when readOnly with items",
+      "apg": "extension",
+      "config": {
+        "readOnly": true,
+        "defaultOpen": true,
+        "items": ["a", "b"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "option:0"
+        },
+        {
+          "expect": {
+            "value": "",
+            "events": {
+              "onValueChange": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.keyboard-readonly-enter-no-commit",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L5468",
+      "upstreamTest": "prop readOnly > should not commit a value with Enter on a highlighted item when readOnly",
+      "apg": "keyboard",
+      "config": {
+        "readOnly": true,
+        "items": ["a", "b"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "visible": ["popup"]
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "ArrowDown"
+        },
+        {
+          "expect": {
+            "attrs": {
+              "input": {
+                "aria-activedescendant": "option:0"
+              }
+            }
+          }
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Enter"
+        },
+        {
+          "expect": {
+            "value": "",
+            "events": {
+              "onValueChange": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.extension-disabled-render-and-no-open",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L5105",
+      "upstreamTest": "prop disabled > should render disabled state on all interactive components",
+      "apg": "extension",
+      "config": {
+        "disabled": true,
+        "items": ["a", "b"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "input": {
+                "disabled": "true"
+              },
+              "trigger": {
+                "disabled": "true"
+              }
+            }
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "expect": {
+            "visible": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.extension-disabled-no-keyboard",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L5166",
+      "upstreamTest": "prop disabled > should prevent keyboard interactions when disabled",
+      "apg": "extension",
+      "config": {
+        "disabled": true,
+        "items": ["a", "b"]
+      },
+      "steps": [
+        {
+          "event": "type",
+          "target": "input",
+          "text": "a"
+        },
+        {
+          "expect": {
+            "visible": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.select-only.aria-required-on-trigger",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/trigger/ComboboxTrigger.test.tsx#L812",
+      "upstreamTest": "aria attributes > sets aria-required attribute when required (input inside popup)",
+      "apg": "aria",
+      "config": {
+        "variant": "select-only",
+        "inputInPopup": true,
+        "required": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger": {
+                "aria-required": "true"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.aria-required-not-on-trigger-input-outside",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/trigger/ComboboxTrigger.test.tsx#L823",
+      "upstreamTest": "aria attributes > does not set aria-required attribute when the input is outside the popup",
+      "apg": "aria",
+      "config": {
+        "required": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger": {
+                "aria-required": null
+              }
+            }
+          }
+        }
+      ],
+      "notes": "When the input is outside the popup the trigger is a plain button; the required state lives on the input."
+    },
+    {
+      "id": "combobox.base-ui.extension-custom-filter-narrows",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L8232",
+      "upstreamTest": "prop filter > uses custom filter to narrow results",
+      "apg": "extension",
+      "config": {
+        "items": ["alpha", "beta", "alphabet", "alpine"],
+        "filter": "startsWith"
+      },
+      "steps": [
+        {
+          "event": "type",
+          "target": "input",
+          "text": "alp"
+        },
+        {
+          "expect": {
+            "visible": ["popup", "option:0", "option:1", "option:2"],
+            "value": "alp"
+          }
+        }
+      ],
+      "notes": "A startsWith filter keeps alpha, alphabet and alpine but drops beta."
+    },
+    {
+      "id": "combobox.base-ui.pointer-open-on-input-click-default",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L8634",
+      "upstreamTest": "prop openOnInputClick > opens on input click by default",
+      "apg": "pointer",
+      "config": {
+        "items": ["a"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "visible": ["popup"]
+          }
+        },
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "visible": ["popup"]
+          }
+        }
+      ],
+      "notes": "Clicking the input again does not toggle the popup closed."
+    },
+    {
+      "id": "combobox.base-ui.keyboard-open-on-typing-when-click-disabled",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L8659",
+      "upstreamTest": "prop openOnInputClick > does not open on input click when false, but opens on typing",
+      "apg": "keyboard",
+      "config": {
+        "openOnInputClick": false,
+        "items": ["a"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "expect": {
+            "visible": []
+          }
+        },
+        {
+          "event": "type",
+          "target": "input",
+          "text": "a"
+        },
+        {
+          "expect": {
+            "visible": ["popup", "option:0"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.keyboard-autohighlight-first-match",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L9379",
+      "upstreamTest": "prop autoHighlight > highlights the first matching item after typing (single mode)",
+      "apg": "keyboard",
+      "config": {
+        "autoHighlight": true,
+        "items": ["apple", "banana", "cherry"]
+      },
+      "steps": [
+        {
+          "event": "type",
+          "target": "input",
+          "text": "ch"
+        },
+        {
+          "expect": {
+            "visible": ["popup", "option:0"],
+            "attrs": {
+              "input": {
+                "aria-activedescendant": "option:0"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Opening this scenario the query 'ch' filters to cherry, the first match."
+    },
+    {
+      "id": "combobox.base-ui.keyboard-autohighlight-static-list-space",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L9436",
+      "upstreamTest": "prop autoHighlight > highlights the first matching item for a static list without the items prop",
+      "apg": "keyboard",
+      "config": {
+        "autoHighlight": true,
+        "items": ["alpha", "alphabet", "beta"]
+      },
+      "steps": [
+        {
+          "event": "type",
+          "target": "input",
+          "text": "al"
+        },
+        {
+          "expect": {
+            "visible": ["popup", "option:0"],
+            "attrs": {
+              "input": {
+                "aria-activedescendant": "option:0"
+              }
+            }
+          }
+        },
+        {
+          "event": "type",
+          "target": "input",
+          "text": " "
+        },
+        {
+          "expect": {
+            "attrs": {
+              "input": {
+                "aria-activedescendant": "option:0"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Typing a space keeps the first match highlighted instead of selecting it."
+    },
+    {
+      "id": "combobox.base-ui.aria-initial-input-from-default-value",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L5633",
+      "upstreamTest": "initial input value derivation > derives input from defaultValue on first mount when unspecified",
+      "apg": "aria",
+      "config": {
+        "items": ["apple", "banana", "cherry"],
+        "defaultValue": "banana"
+      },
+      "steps": [
+        {
+          "expect": {
+            "value": "banana"
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.extension-multiple-initial-input-empty",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L5684",
+      "upstreamTest": "initial input value derivation > multiple mode initial input remains empty",
+      "apg": "extension",
+      "config": {
+        "multiple": true,
+        "items": ["apple", "banana", "cherry"],
+        "defaultValue": ["banana"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "value": ""
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.select-only.keyboard-composition-select-and-restore",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L595",
+      "upstreamTest": "input inside popup composition > selects with the keyboard, restores focus, and resets the query on reopen",
+      "apg": "keyboard",
+      "config": {
+        "variant": "select-only",
+        "inputInPopup": true,
+        "items": ["Apple", "Banana", "Cherry"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "expect": {
+            "visible": ["popup"],
+            "focus": "input"
+          }
+        },
+        {
+          "event": "type",
+          "target": "input",
+          "text": "ban"
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "ArrowDown"
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Enter"
+        },
+        {
+          "expect": {
+            "visible": [],
+            "focus": "trigger",
+            "value": "Banana"
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "expect": {
+            "value": "",
+            "attrs": {
+              "option:1": {
+                "aria-selected": "true"
+              },
+              "input": {
+                "aria-activedescendant": "option:1"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "Select-only composition: the trigger shows the value, the popup input is cleared and the selection is restored and highlighted on reopen."
+    },
+    {
+      "id": "combobox.base-ui.select-only.keyboard-escape-discards-query",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L642",
+      "upstreamTest": "input inside popup composition > discards an uncommitted query on Escape and preserves the selection",
+      "apg": "keyboard",
+      "config": {
+        "variant": "select-only",
+        "inputInPopup": true,
+        "items": ["Apple", "Banana", "Cherry"],
+        "defaultValue": "Apple"
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "event": "type",
+          "target": "input",
+          "text": "ban"
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Escape"
+        },
+        {
+          "expect": {
+            "visible": [],
+            "focus": "trigger",
+            "value": "Apple",
+            "events": {
+              "onValueChange": []
+            }
+          }
+        }
+      ],
+      "notes": "Escape abandons the query and keeps the previously selected Apple."
+    },
+    {
+      "id": "combobox.base-ui.select-only.pointer-trigger-close-returns-focus",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L557",
+      "upstreamTest": "does not focus input when closing via trigger click (input inside popup)",
+      "apg": "pointer",
+      "config": {
+        "variant": "select-only",
+        "inputInPopup": true,
+        "items": ["One", "Two", "Three"]
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "expect": {
+            "visible": ["popup"],
+            "focus": "input"
+          }
+        },
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "expect": {
+            "focus": "trigger"
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.select-only.keyboard-trigger-typeahead",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/trigger/ComboboxTrigger.test.tsx#L914",
+      "upstreamTest": "typeahead > selects item when typing on focused trigger (input inside popup)",
+      "apg": "keyboard",
+      "config": {
+        "variant": "select-only",
+        "inputInPopup": true,
+        "items": ["apple", "banana", "cherry"]
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "trigger"
+        },
+        {
+          "event": "key",
+          "target": "trigger",
+          "key": "a"
+        },
+        {
+          "expect": {
+            "value": "apple",
+            "visible": []
+          }
+        }
+      ],
+      "notes": "Typeahead on a closed select-only trigger selects without opening the popup."
+    },
+    {
+      "id": "combobox.base-ui.keyboard-escape-moves-focus-to-clear",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/input/ComboboxInput.test.tsx#L450",
+      "upstreamTest": "interaction behavior > should move focus to clear button when pressing Escape and popup is closed",
+      "apg": "keyboard",
+      "config": {
+        "items": ["apple", "banana"],
+        "defaultValue": "apple",
+        "hasClear": true
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "input"
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Escape"
+        },
+        {
+          "expect": {
+            "value": ""
+          }
+        }
+      ],
+      "notes": "On a closed combobox with a clear button, Escape clears the value instead of bubbling."
+    },
+    {
+      "id": "combobox.base-ui.keyboard-backspace-removes-last-chip",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/input/ComboboxInput.test.tsx#L902",
+      "upstreamTest": "interaction behavior > removes the last rendered chip when pressing Backspace in an empty input",
+      "apg": "keyboard",
+      "config": {
+        "multiple": true,
+        "defaultValue": ["apple", "banana", "cherry"],
+        "renderedChips": 2
+      },
+      "steps": [
+        {
+          "event": "click",
+          "target": "input"
+        },
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Backspace"
+        },
+        {
+          "expect": {
+            "events": {
+              "onValueChange": [["apple", "cherry"]]
+            }
+          }
+        }
+      ],
+      "notes": "With only two chips rendered, the last selected value is removed."
+    },
+    {
+      "id": "combobox.base-ui.extension-paste-opens-popup",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L5026",
+      "upstreamTest": "opens on paste input events",
+      "apg": "extension",
+      "config": {
+        "items": ["apple", "banana"]
+      },
+      "steps": [
+        {
+          "event": "type",
+          "target": "input",
+          "text": "app",
+          "inputEvent": "paste"
+        },
+        {
+          "expect": {
+            "visible": ["popup", "option:0"]
+          }
+        }
+      ],
+      "notes": "A paste input event is treated as typing and opens the popup."
+    },
+    {
+      "id": "combobox.base-ui.extension-programmatic-input-does-not-open",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L5002",
+      "upstreamTest": "does not open on programmatic input events",
+      "apg": "extension",
+      "config": {
+        "items": ["apple", "banana"]
+      },
+      "steps": [
+        {
+          "event": "type",
+          "target": "input",
+          "text": "app",
+          "inputEvent": "programmatic"
+        },
+        {
+          "expect": {
+            "visible": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.extension-popup-initial-focus-false",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/popup/ComboboxPopup.test.tsx#L100",
+      "upstreamTest": "honors initialFocus={false}",
+      "apg": "extension",
+      "config": {
+        "variant": "select-only",
+        "inputInPopup": true,
+        "initialFocus": false
+      },
+      "steps": [
+        {
+          "event": "focus",
+          "target": "trigger"
+        },
+        {
+          "event": "click",
+          "target": "trigger"
+        },
+        {
+          "expect": {
+            "visible": ["popup"],
+            "focus": "trigger"
+          }
+        }
+      ],
+      "notes": "initialFocus=false keeps focus on the trigger when the popup opens."
+    },
+    {
+      "id": "combobox.base-ui.extension-popup-returns-final-focus",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/popup/ComboboxPopup.test.tsx#L122",
+      "upstreamTest": "returns focus to an explicitly provided element when the popup closes",
+      "apg": "extension",
+      "config": {
+        "defaultOpen": true,
+        "finalFocus": "final-focus-button",
+        "items": ["a"]
+      },
+      "steps": [
+        {
+          "event": "key",
+          "target": "input",
+          "key": "Escape"
+        },
+        {
+          "expect": {
+            "focus": "final-focus-button"
+          }
+        }
+      ],
+      "notes": "Closing the popup restores focus to the element named by finalFocus."
+    },
+    {
+      "id": "combobox.base-ui.select-only.popup-focus-on-touch",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/popup/ComboboxPopup.test.tsx#L76",
+      "upstreamTest": "focuses the popup instead of its input when opened by touch",
+      "apg": "pointer",
+      "config": {
+        "variant": "select-only",
+        "inputInPopup": true
+      },
+      "steps": [
+        {
+          "event": "pointerdown",
+          "target": "trigger",
+          "pointerType": "touch"
+        },
+        {
+          "expect": {
+            "visible": ["popup"],
+            "focus": "popup"
+          }
+        }
+      ],
+      "notes": "Touch opening focuses the dialog so the on-screen keyboard does not appear immediately."
+    },
+    {
+      "id": "combobox.base-ui.aria-trigger-tabindex-minus-one",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/trigger/ComboboxTrigger.test.tsx#L23",
+      "upstreamTest": "sets tabIndex to -1 when not used as the main anchor",
+      "apg": "aria",
+      "config": {
+        "variant": "select-only",
+        "inputInPopup": false,
+        "items": ["a"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger": {
+                "tabindex": "-1"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "With an input outside the popup the trigger is not a separate tab stop."
+    },
+    {
+      "id": "combobox.base-ui.extension-trigger-disabled-aria",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/trigger/ComboboxTrigger.test.tsx#L44",
+      "upstreamTest": "prop disabled > should render aria-disabled attribute when disabled",
+      "apg": "extension",
+      "config": {
+        "disabled": true,
+        "inputInPopup": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger": {
+                "aria-disabled": "true"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "combobox.base-ui.extension-trigger-readonly",
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/trigger/ComboboxTrigger.test.tsx#L228",
+      "upstreamTest": "prop readOnly > applies the data-readonly style hook only when readOnly",
+      "apg": "extension",
+      "config": {
+        "readOnly": true,
+        "inputInPopup": true
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "trigger": {
+                "aria-readonly": "true"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "skipped": [
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L4296",
+      "upstreamTest": "should handle browser autofill / shows all items after autofill / autofill matches",
+      "reason": "Browser autofill platform behaviour."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L4927",
+      "upstreamTest": "touch scroll lock",
+      "reason": "Touch scroll-lock platform behaviour."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L6657",
+      "upstreamTest": "prop grid > arrow keys navigate across rows and columns / uneven rows / RTL grid navigation",
+      "reason": "Grid layout geometry beyond the combobox pattern's listbox variant (the single grid role/aria test is ported)."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L5502",
+      "upstreamTest": "prop itemToStringLabel / itemToStringValue",
+      "reason": "Value-to-label stringification internals."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L5720",
+      "upstreamTest": "input value synchronization edge cases (async items, frozen query, mirrored selection)",
+      "reason": "Async item loading and controlled-sync internals; the observable derivations are ported elsewhere."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L182",
+      "upstreamTest": "manual unmount lifecycle / server-side rendering",
+      "reason": "Mount lifecycle and SSR internals."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L3629",
+      "upstreamTest": "should create multiple hidden inputs for form submission / disabled / readOnly hidden inputs",
+      "reason": "Form hidden-input internals."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L5054",
+      "upstreamTest": "prop id",
+      "reason": "id propagation internals (the aria-controls target is ported)."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L8684",
+      "upstreamTest": "scroll reset on input value change",
+      "reason": "Scroll position internals."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L9036",
+      "upstreamTest": "asynchronous autoHighlight candidates / controlled popup waits",
+      "reason": "Async item-loading internals."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L465",
+      "upstreamTest": "item link handling (anchor href / hash)",
+      "reason": "DOM link navigation internals."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/input/ComboboxInput.test.tsx#L90",
+      "upstreamTest": "rendering as a different element (textarea)",
+      "reason": "React polymorphic rendering of a textarea; not APG combobox behaviour."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/input/ComboboxInput.test.tsx#L576",
+      "upstreamTest": "preserves caret position when controlled and inserting in the middle / Home and End scroll",
+      "reason": "Caret and scroll internals."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/input/ComboboxInput.test.tsx#L609",
+      "upstreamTest": "navigates an existing chip highlight when focus returns to the input",
+      "reason": "Chip highlight internals for a multiple-selection extension."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/item/ComboboxItem.test.tsx#L429",
+      "upstreamTest": "virtualized without explicit index / virtualized with explicit index",
+      "reason": "Virtualization internals."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/trigger/ComboboxTrigger.test.tsx#L485",
+      "upstreamTest": "drag selection / cancel-open",
+      "reason": "Pointer-drag gesture internals."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/popup/ComboboxPopup.test.tsx#L143",
+      "upstreamTest": "popup data attributes mapping",
+      "reason": "Styling data attributes."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L5211",
+      "upstreamTest": "prop required > hidden input required state in multiple mode",
+      "reason": "Form hidden-input internals; the APG-relevant aria-required on the select-only trigger is ported."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/input/ComboboxInput.test.tsx#L417",
+      "upstreamTest": "interaction behavior > multiple selection with chips when readOnly / disabled",
+      "reason": "Chips are a multiple-selection extension outside the four combobox parts."
+    },
+    {
+      "upstream": "https://github.com/mui/base-ui/blob/19511bb171f3b360b006c94cf6d07e53cb446505/packages/react/src/combobox/root/ComboboxRoot.test.tsx#L5104",
+      "upstreamTest": "prop disabled > should set disabled attribute on hidden input",
+      "reason": "Form hidden-input internals."
+    }
+  ]
+}

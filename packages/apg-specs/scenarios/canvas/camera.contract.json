@@ -1,0 +1,237 @@
+{
+  "pattern": "camera",
+  "source": "contract",
+  "license": "authored in this repository (no upstream); numbers derived from specs/canvas/camera.qnt",
+  "scenarios": [
+    {
+      "id": "camera.contract.zoom-about-the-centre-keeps-the-anchor",
+      "area": "zoom",
+      "config": {},
+      "steps": [
+        {
+          "event": "prop",
+          "prop": "zoom",
+          "value": { "factor": 2, "anchor": "centre" }
+        },
+        {
+          "expect": {
+            "attrs": {
+              "layer": {
+                "--canvas-x": "-200",
+                "--canvas-y": "-150",
+                "--canvas-zoom": "2"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "800 x 600 viewport, anchor (400, 300): screen = (world + t) * 2 maps world (400, 300) to the same pixel only with t = (-200, -150)."
+    },
+    {
+      "id": "camera.contract.a-limit-clamp-re-anchors",
+      "area": "zoom",
+      "config": {},
+      "steps": [
+        {
+          "event": "prop",
+          "prop": "zoom",
+          "value": { "factor": 16, "anchor": "centre" }
+        },
+        {
+          "expect": {
+            "attrs": {
+              "layer": {
+                "--canvas-x": "-350",
+                "--canvas-y": "-262.5",
+                "--canvas-zoom": "8"
+              }
+            }
+          }
+        },
+        {
+          "event": "prop",
+          "prop": "zoom",
+          "value": { "factor": 2, "anchor": "centre" }
+        },
+        {
+          "expect": {
+            "attrs": {
+              "layer": {
+                "--canvas-x": "-350",
+                "--canvas-y": "-262.5",
+                "--canvas-zoom": "8"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "x16 is clamped to ZMAX = 8, and the translation is solved for the clamped zoom (not the requested one), so the anchor stays put; a further zoom-in at the limit changes nothing. The y offset is a whole 1/256 fraction: -262.5 units."
+    },
+    {
+      "id": "camera.contract.pan-clamps-the-viewport-origin-at-the-world-bound",
+      "area": "pan",
+      "config": {},
+      "steps": [
+        { "event": "prop", "prop": "pan", "value": [9000000, 0] },
+        {
+          "expect": {
+            "attrs": { "layer": { "--canvas-x": "1000000", "--canvas-y": "0" } }
+          }
+        }
+      ],
+      "notes": "A 9e6 px pan is far beyond the +-1e6 unit bound: the move is clamped, not refused."
+    },
+    {
+      "id": "camera.contract.zoom-limit-min-about-the-centre",
+      "area": "zoom",
+      "config": {},
+      "steps": [
+        {
+          "event": "prop",
+          "prop": "zoomLimit",
+          "value": { "limit": "min", "anchor": "centre" }
+        },
+        {
+          "expect": {
+            "attrs": {
+              "layer": {
+                "--canvas-x": "6000",
+                "--canvas-y": "4500",
+                "--canvas-zoom": "0.0625"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "ZMIN = 1/16 about (400, 300): the world point under the centre stays there, so the camera offset grows to (6000, 4500)."
+    },
+    {
+      "id": "camera.contract.reduced-motion-jumps-to-the-tween-target",
+      "area": "tween",
+      "config": { "reducedMotion": true },
+      "steps": [
+        {
+          "event": "prop",
+          "prop": "tween",
+          "value": { "centre": [1000, 500] }
+        },
+        {
+          "expect": {
+            "attrs": {
+              "layer": { "--canvas-x": "-600", "--canvas-y": "-200" },
+              "state": { "tweening": "false", "reducedMotion": "true" }
+            }
+          }
+        }
+      ],
+      "notes": "Centring world (1000, 500) in an 800 x 600 viewport at zoom 1 needs t = (-600, -200); with reduced motion the camera is there at once."
+    },
+    {
+      "id": "camera.contract.a-tween-ends-where-the-jump-lands",
+      "area": "tween",
+      "config": {},
+      "steps": [
+        {
+          "event": "prop",
+          "prop": "tween",
+          "value": { "centre": [1000, 500] }
+        },
+        {
+          "expect": {
+            "attrs": {
+              "layer": { "--canvas-x": "0", "--canvas-y": "0" },
+              "state": { "tweening": "true" }
+            }
+          }
+        },
+        { "event": "prop", "prop": "tick" },
+        {
+          "expect": {
+            "attrs": { "layer": { "--canvas-x": "-150", "--canvas-y": "-50" } }
+          }
+        },
+        { "event": "prop", "prop": "tick" },
+        { "event": "prop", "prop": "tick" },
+        {
+          "expect": {
+            "attrs": {
+              "layer": { "--canvas-x": "-450", "--canvas-y": "-150" },
+              "state": { "tweening": "true" }
+            }
+          }
+        },
+        { "event": "prop", "prop": "tick" },
+        {
+          "expect": {
+            "attrs": {
+              "layer": { "--canvas-x": "-600", "--canvas-y": "-200" },
+              "state": { "tweening": "false" }
+            }
+          }
+        },
+        { "event": "prop", "prop": "tick" },
+        {
+          "expect": {
+            "attrs": { "layer": { "--canvas-x": "-600", "--canvas-y": "-200" } }
+          }
+        }
+      ],
+      "notes": "Four linear ticks, the last exact; a tick at rest is a no-op. The end state equals the reduced-motion jump of the previous scenario."
+    },
+    {
+      "id": "camera.contract.a-gesture-stops-a-tween-in-place",
+      "area": "tween",
+      "config": {},
+      "steps": [
+        {
+          "event": "prop",
+          "prop": "tween",
+          "value": { "centre": [1000, 500] }
+        },
+        { "event": "prop", "prop": "tick" },
+        { "event": "prop", "prop": "pan", "value": [5, 0] },
+        {
+          "expect": {
+            "attrs": {
+              "layer": { "--canvas-x": "-145", "--canvas-y": "-50" },
+              "state": { "tweening": "false" }
+            }
+          }
+        },
+        { "event": "prop", "prop": "tick" },
+        {
+          "expect": {
+            "attrs": { "layer": { "--canvas-x": "-145", "--canvas-y": "-50" } }
+          }
+        }
+      ],
+      "notes": "Any pan or zoom cancels a running tween where the camera is; the interrupted tween never resumes."
+    },
+    {
+      "id": "camera.contract.resize-keeps-the-top-left",
+      "area": "resize",
+      "config": {},
+      "steps": [
+        {
+          "event": "prop",
+          "prop": "zoom",
+          "value": { "factor": 2, "anchor": "centre" }
+        },
+        { "event": "prop", "prop": "resize", "value": 3 },
+        {
+          "expect": {
+            "attrs": {
+              "layer": {
+                "--canvas-x": "-200",
+                "--canvas-y": "-150",
+                "--canvas-zoom": "2"
+              },
+              "state": { "viewport": "{\"width\":1920,\"height\":1080}" }
+            }
+          }
+        }
+      ],
+      "notes": "Resizing changes only the viewport size; the camera (and so the world point at the top-left corner) is untouched."
+    }
+  ]
+}

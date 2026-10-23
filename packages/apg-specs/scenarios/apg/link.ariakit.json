@@ -1,0 +1,83 @@
+{
+  "pattern": "link",
+  "source": "ariakit",
+  "commit": "404c72257b879569feb08465da4ff9915fd873da",
+  "license": "MIT",
+  "skipped": [
+    {
+      "reason": "ariakit-ui-link > keeps the focus ring against an inline link (visual)"
+    },
+    {
+      "reason": "ariakit-ui-link > offsets the focus ring of a standalone link (visual)"
+    },
+    {
+      "reason": "keeps anchor props, events, and refs on a wrapped link (class/parent styling assertions)"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "link.ariakit.named-by-label-described-by-description",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/ariakit-ui-nav/test.ts#L88",
+      "upstreamTest": "names a link by its label and describes it by its description",
+      "apg": "aria",
+      "config": {
+        "labelId": "settings-link",
+        "descriptionId": "settings-description"
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "link": {
+                "href": "#settings",
+                "aria-labelledby": "settings-link",
+                "aria-describedby": "settings-description"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "The label gives the accessible name; the description is exposed via aria-describedby."
+    },
+    {
+      "id": "link.ariakit.anchor-props-retained",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/ariakit-ui-nav/test.ts#L95",
+      "upstreamTest": "keeps anchor props, events, and refs on a wrapped link",
+      "apg": "aria",
+      "config": { "title": "Overview destination" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "link": { "href": "#overview", "title": "Overview destination" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "link.ariakit.link-is-focusable",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/ariakit-ui-nav/test.ts#L105",
+      "upstreamTest": "keeps anchor props, events, and refs on a wrapped link (focus)",
+      "apg": "aria",
+      "config": {},
+      "steps": [
+        { "event": "click", "target": "button" },
+        { "expect": { "focus": "link" } }
+      ],
+      "notes": "The wrapped anchor keeps its DOM node, so moving focus to it works."
+    },
+    {
+      "id": "link.ariakit.click-activates-link",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/ariakit-ui-nav/test.ts#L107",
+      "upstreamTest": "keeps anchor props, events, and refs on a wrapped link (activation)",
+      "apg": "keyboard",
+      "config": {},
+      "steps": [
+        { "event": "click", "target": "link" },
+        { "expect": { "events": { "onClick": ["A"] } } }
+      ],
+      "notes": "Clicking the anchor runs the consumer handler; the sandbox records the activated element tag."
+    }
+  ]
+}

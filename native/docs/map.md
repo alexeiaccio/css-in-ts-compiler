@@ -433,6 +433,115 @@ Each step ends in a check that fails when it breaks.
    the no-JS path, which is what the board already is.
 
 
+## What Rune's research gives us (2026-10-23)
+
+[Rune](https://github.com/anomalyco/rune) (Maukea) is a Rust UI framework with its own wgpu renderer, Taffy layout,
+Parley text and per-platform shells — not our stack, and none of its code is portable. What is portable is the method:
+25 documents in `research/`, with a handful of measured spikes. What we would take, by value for the price:
+
+1. **Idle frames, and a frame on the input.** `solid/main.ts` sleeps 16 ms and declares, lays out and draws every frame
+   whether anything changed or not; a key press waits for that tick. Take: poll, then draw at once if there was an
+   event; if there was none and the packed tree did not change (a hash of the command array), skip `ui_draw` and sleep.
+   On the desktop this stops a static page from burning a core; on the board it turns 22 ms a frame at rest into 0.
+   Check: a frame counter with no input stays at 0 draws, one key draws one.
+2. **Motion as a first-class track.** We have no animation at all. Rune's model transfers unchanged: a spring from
+   `(duration, bounce)` (SwiftUI's parameterisation), a track `{t0, x0, v0, target, spring}` that retargets from the
+   presented `(x, v)`, `spatial` and `effect` classes (colour and opacity never overshoot), a settle rule with a snap
+   (`1/64 px` for geometry), nothing animating on first mount, reduced motion, and a `Decay` track for scroll physics
+   (`0.998/ms`, rubber band `0.55`). It is cheaper for us than for them: the value is packed into the style each frame
+   anyway, so `solid/src/motion.ts` is ~150 lines and the Dialog, the menu, the tab underline, hover and the feed's
+   scroll come alive. Checks are theirs too: `x` and `v` continuous at a retarget, `1x16.6 ms == 2x8.3 ms == seek`, and
+   an exact stop.
+3. **Metamorphic tests of layout and raster.** ~30 lines each, and they catch the bug classes we actually have:
+   wrapping a page in a style-less box leaves the pixels identical; shifting a subtree by whole px shifts the picture
+   exactly; a wider container never adds a text line (the Sky body); building the tree fresh versus reusing it gives
+   the same frame (ours lives across frames); a scroll offset, a resize and a theme are the same relations. Where:
+   `solid/metamorphic.test.ts`, over the frames that already exist.
+4. **A scene as a file (record/replay).** `--keys/--click/--wheel` are ad-hoc; Rune's scripts are a typed event log
+   with timestamps, window size and theme. One `scenes/*.json` should drive the Solid page, the generated C page, the
+   wasm in the browser and (where the handlers exist) the board build, so "the same commands on every target" is
+   checked for a sequence of input, not only for one state. A bug report becomes a replay.
+5. **Command-stream goldens, not only pixels.** When a frame differs by 300 pixels the image does not say what changed;
+   a JSON of `cmds` plus the a11y snapshot does (Rune keeps `golden/*-tree.json`). We already compare command arrays
+   field by field in `examples/sensors/gen.c` and `browser/dump-commands.c`; one `ui_dump_json` for every target, with
+   the raster as the final gate, is a small step.
+6. **Text quality against an oracle.** Rune built a CoreText oracle and an ink-weight + SSIM metric, and found its text
+   thin; a centred emboldening of ~0.1 pt fixed most of it. We know our own drift (ThorVG against Canvas2D: 6-10 % of
+   pixels, up to 3 px of line width), so the same method applies: one font and strings through Chrome's Canvas2D as the
+   reference, the same metric, then a weight correction in ThorVG.
+7. **Later:** a dev panel with the a11y tree, bounds and phase timings plus `tune!`-style live values; style reload
+   without a restart (our "reload on save"); and a static first frame shown by the window before Bun and the first
+   layout are ready.
+
+Not taking: Rust, Taffy, wgpu, Parley, AccessKit, their per-OS shells, split-process development, subsecond
+hot-patching, and animation owned by a render thread (we have no render thread). Their verdict on GPU-evaluated
+springs — keep it opt-in, CPU stays the default — is independent confirmation of our own WebGPU probe.
+
+### TypeGPU: checked, not adopted (2026-10-23)
+
+[TypeGPU](https://docs.swmansion.com/TypeGPU/) is Software Mansion's TypeScript toolkit for WebGPU: shaders in TS with
+`'use gpu'`, typed buffers and layouts, `tgpu.resolve` to WGSL. [`@typegpu/gl`](https://docs.swmansion.com/TypeGPU/ecosystem/typegpu-gl/)
+adds a WebGL 2 backend for a subset (vertex and fragment stages, uniforms, 2D textures; no vertex buffers, bind groups
+or compute) and a GLSL generator.
+
+- **Browser: the only target where it runs for us, and it does run.** The headless Chrome our checks use exposes
+  `navigator.gpu` on a served `https` page — adapter, device and a `webgpu` canvas context, no flags. (`about:blank`,
+  `data:` URLs and `chrome://gpu` report no `navigator.gpu`, so a probe must serve the page; `browser/check.mjs`
+  already does.) A TypeGPU renderer over the same Clay command array is therefore testable headlessly. It would not be
+  faster: the page is 0.08 ms a frame and the compositor is the cost. It is worth it only for what Canvas2D cannot do
+  (backdrop blur, dithered gradients, glass) or as a TS prototype of a GPU renderer we would port.
+- **Desktop: no.** Bun and Node have no `navigator.gpu`; a Deno subprocess or Dawn (`webgpu`) would put a second
+  runtime or a large binary between the C host and the page, and ThorVG's own WebGPU canvas already measured slower
+  than its CPU raster (0.69-1.06 vs 0.31-0.47 ms) before the compositor.
+- **`@typegpu/gl`**: WebGL 2 is everywhere, but the subset has no buffers, bind groups or compute, so it is a
+  full-screen-effects path, not a UI renderer.
+- **Board and terminal**: no GPU at all.
+
+Verdict: keep as the named option for a browser effects layer or a GPU-renderer prototype, with `browser/render.js`
+(the same commands, WebGPU instead of Canvas2D) as the entry point. Not a dependency of anything today.
+
+## Effects (2026-10-23)
+
+The raster can do more than we ask of it. ThorVG 1.1.3 (the installed one) already ships scene effects and masks, and
+we use neither: `tvg_scene_add_effect_gaussian_blur(scene, sigma, direction, quality)`, `..._drop_shadow(r,g,b,a,
+angle, distance, sigma, quality)`, `..._motion_blur`, `..._fill`, `..._tint`, `..._tritone`, and `Paint::mask()` with
+alpha, luma and their inverses. An effect is not a Clay declaration, so it cannot be a style field Clay lays out: it is
+a renderer side table keyed by Clay's element id. The command stream already carries that id, so `ui_effect(id, kind,
+params)` (called from JS, or printed by `header()` for the C targets) plus a lookup at draw time is the whole API, and
+the style keeps only its own layout.
+
+What each target can actually do — the "no" cells are as important as the rest:
+
+| Effect | Desktop (ThorVG, CPU) | Browser (WebGPU) | Board (S3/P4) | Terminal |
+| --- | --- | --- | --- | --- |
+| Card, panel, menu shadow | `drop_shadow` on a one-shape scene, drawn before the command | one pass | a pre-baked 9-slice sprite | none |
+| Blur of the element itself (a menu, a card leaving in place) | `gaussian_blur` on its scene | one pass | none | none |
+| Backdrop blur ("glass" over our own content) | our own buffer: copy the region under the panel, blur it, draw the panel over it | dual Kawase pass | none | none |
+| Gradients | ThorVG linear and radial fills; a new style member, dithered | Canvas 2D or WGSL | banded, dithered | 256 colours, dithered |
+| Group opacity | a scene with opacity (not a Clay concept today; per-command alpha is what we have) | yes | per-command alpha | none |
+| Tint and tritone (themes, disabled states) | ThorVG effect | a pass | a palette swap | the palette |
+| Grain, vignette | one tiled 64x64 alpha PNG | a pass | the same tile | none |
+
+The order, each with its own frame and its own number:
+
+1. **Shadow** (`css.shadow(...)`) — the largest felt difference for the smallest piece of work: the Dialog, the menu
+   and the Sky cards float today on colour alone. The shadow is the same box and radius, drawn before the command.
+2. **Backdrop blur from our buffer** — `ui.c` owns `pixels`, so the content under a panel is already in the buffer when
+   the panel is drawn: copy the region, blur it separably, draw the panel over it with its own alpha. That is glass
+   over our content, not over the window; the desktop behind the window is out of reach, as it is for Rune without the
+   window server.
+3. **Gradients** as a member (`css.backgroundImage("linear-gradient(...)")`, the grammar is already in cssints) filled
+   by ThorVG, with a dither step — an undithered dark card shows bands.
+4. **Tint and tritone** for themes and disabled states, worth it once a theme switch is animated.
+5. The terminal gets none of the blurs; its equivalents are the palette and the attributes it already has.
+6. The board gets only what `render.c` can do without a filter: dithered gradients, shadows as pre-baked sprites, PPA
+   for scaling and blending on the P4. A full-screen blur does not fit a 22 ms frame.
+
+Rules to keep from Rune's research: blur only what enters or leaves in place, never persistent text; dither every
+gradient; soft masks on clips; an effect is opt-in with a plain fallback, and ships with a measured cost on both the
+desktop frame and the board where it exists. The GPU raster does not buy the cost back (0.69-1.06 vs 0.31-0.47 ms,
+before the compositor), so the first pass is the CPU raster.
+
 ## Not doing
 
 - JS on a microcontroller. A GPU path on the ESP32-S3. One style for cells and pixels. A layout engine of our own.

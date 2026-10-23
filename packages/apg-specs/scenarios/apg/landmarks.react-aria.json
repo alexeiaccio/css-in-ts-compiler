@@ -1,0 +1,330 @@
+{
+  "pattern": "landmarks",
+  "source": "react-aria",
+  "commit": "99e610236887da619ad9d54a1cd87983166c043d",
+  "license": "Apache-2.0",
+  "skipped": [
+    {
+      "reason": "LandmarkManager > focuses the landmark again after toggling browser tabs"
+    },
+    {
+      "reason": "LandmarkManager > focuses the landmark again after toggling browser windows"
+    },
+    {
+      "reason": "LandmarkManager > cleans up event listeners if all landmarks are unmounted"
+    },
+    {
+      "reason": "LandmarkManager > landmark navigation fires custom event when wrapping forward/backward"
+    },
+    {
+      "reason": "LandmarkController > should ensure keyboard listeners are active"
+    },
+    {
+      "reason": "LandmarkController > should navigate forward/backward, should focus main"
+    },
+    {
+      "reason": "singleton > should store the landmark manager on the document"
+    },
+    { "reason": "singleton > should replace the singleton with a new version" },
+    {
+      "reason": "LandmarkManager > components that already handle focus management should handle focus themselves"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "landmarks.react-aria.roles-are-exposed",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/landmark/useLandmark.test.tsx#L140",
+      "upstreamTest": "LandmarkManager > can tab into a landmark region",
+      "apg": "aria",
+      "config": { "landmarks": ["navigation", "main"] },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "navigation": { "role": "navigation" },
+              "main": { "role": "main" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "landmarks.react-aria.tab-enters-first-link",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/landmark/useLandmark.test.tsx#L119",
+      "upstreamTest": "LandmarkManager > can tab into a landmark region",
+      "apg": "keyboard",
+      "config": { "landmarks": ["navigation", "main"] },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "expect": { "focus": "link:0" } }
+      ]
+    },
+    {
+      "id": "landmarks.react-aria.f6-cycles-landmarks",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/landmark/useLandmark.test.tsx#L149",
+      "upstreamTest": "LandmarkManager > can F6 to a landmark region",
+      "apg": "extension",
+      "config": { "landmarks": ["navigation", "main"] },
+      "steps": [
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "navigation" } },
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "main" } },
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "navigation" } }
+      ],
+      "notes": "F6 landmark cycling is a react-aria extension, not part of the APG landmarks pattern."
+    },
+    {
+      "id": "landmarks.react-aria.f6-single-landmark",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/landmark/useLandmark.test.tsx#L180",
+      "upstreamTest": "LandmarkManager > can F6 to a landmark region when there is only one landmark",
+      "apg": "extension",
+      "config": { "landmarks": ["main"] },
+      "steps": [
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "main" } }
+      ]
+    },
+    {
+      "id": "landmarks.react-aria.f6-visits-nested-region",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/landmark/useLandmark.test.tsx#L194",
+      "upstreamTest": "LandmarkManager > can F6 to a nested landmark region that is first",
+      "apg": "extension",
+      "config": { "landmarks": ["main", "region"] },
+      "steps": [
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "main" } },
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "region:0" } },
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "main" } }
+      ]
+    },
+    {
+      "id": "landmarks.react-aria.shift-f6-moves-backward",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/landmark/useLandmark.test.tsx#L398",
+      "upstreamTest": "LandmarkManager > can shift+F6 to a landmark region",
+      "apg": "extension",
+      "config": { "landmarks": ["navigation", "main"] },
+      "steps": [
+        { "event": "key", "key": "Shift+F6" },
+        { "expect": { "focus": "main" } },
+        { "event": "key", "key": "Shift+F6" },
+        { "expect": { "focus": "navigation" } }
+      ]
+    },
+    {
+      "id": "landmarks.react-aria.forward-navigation-wraps",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/landmark/useLandmark.test.tsx#L336",
+      "upstreamTest": "LandmarkManager > landmark navigation forward wraps",
+      "apg": "extension",
+      "config": { "landmarks": ["navigation", "main"] },
+      "steps": [
+        { "event": "key", "key": "Tab" },
+        { "expect": { "focus": "link:0" } },
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "main" } },
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "link:0" } }
+      ]
+    },
+    {
+      "id": "landmarks.react-aria.alt-f6-jumps-to-main",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/landmark/useLandmark.test.tsx#L912",
+      "upstreamTest": "LandmarkManager > can alt+F6 to main landmark",
+      "apg": "extension",
+      "config": { "landmarks": ["navigation", "region", "main"] },
+      "steps": [
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "navigation" } },
+        { "event": "key", "key": "Alt+F6" },
+        { "expect": { "focus": "main" } },
+        { "event": "key", "key": "Alt+F6" },
+        { "expect": { "focus": "main" } }
+      ]
+    },
+    {
+      "id": "landmarks.react-aria.alt-f6-noop-without-main",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/landmark/useLandmark.test.tsx#L952",
+      "upstreamTest": "LandmarkManager > alt+F6 does nothing if no main landmark",
+      "apg": "extension",
+      "config": { "landmarks": ["navigation", "region"] },
+      "steps": [
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "navigation" } },
+        { "event": "key", "key": "Alt+F6" },
+        { "expect": { "focus": "navigation" } }
+      ]
+    },
+    {
+      "id": "landmarks.react-aria.tabindex-only-on-focused",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/landmark/useLandmark.test.tsx#L1002",
+      "upstreamTest": "LandmarkManager > landmark has tabIndex=\"-1\" when focused",
+      "apg": "aria",
+      "config": { "landmarks": ["navigation", "main"] },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "navigation": { "tabindex": null },
+              "main": { "tabindex": null }
+            }
+          }
+        },
+        { "event": "key", "key": "F6" },
+        {
+          "expect": {
+            "attrs": {
+              "navigation": { "tabindex": "-1" },
+              "main": { "tabindex": null }
+            }
+          }
+        },
+        { "event": "key", "key": "F6" },
+        {
+          "expect": {
+            "attrs": {
+              "navigation": { "tabindex": null },
+              "main": { "tabindex": "-1" }
+            }
+          }
+        }
+      ],
+      "notes": "Only the currently focused landmark is made programmatically focusable."
+    },
+    {
+      "id": "landmarks.react-aria.tabindex-cleared-on-blur",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/landmark/useLandmark.test.tsx#L1133",
+      "upstreamTest": "LandmarkManager > loses the tabIndex=-1 if something else is focused",
+      "apg": "aria",
+      "config": { "landmarks": ["navigation", "main"] },
+      "steps": [
+        { "event": "key", "key": "F6" },
+        { "expect": { "attrs": { "navigation": { "tabindex": "-1" } } } },
+        { "event": "key", "key": "Tab" },
+        {
+          "expect": {
+            "focus": "link:0",
+            "attrs": { "navigation": { "tabindex": null } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "landmarks.react-aria.skips-aria-hidden-landmarks",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/landmark/useLandmark.test.tsx#L1412",
+      "upstreamTest": "LandmarkManager > skips over aria-hidden landmarks",
+      "apg": "extension",
+      "config": { "landmarks": ["main", "region", "region"] },
+      "steps": [
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "main" } },
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "region:1" } },
+        { "event": "key", "key": "Shift+F6" },
+        { "expect": { "focus": "main" } }
+      ],
+      "notes": "The first region sits inside an aria-hidden subtree and is skipped."
+    },
+    {
+      "id": "landmarks.react-aria.reclick-landmark-keeps-focus",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/landmark/useLandmark.test.tsx#L1291",
+      "upstreamTest": "LandmarkManager > focus restores to previously focused landmark after blur and F6",
+      "apg": "extension",
+      "config": { "landmarks": ["navigation", "main"] },
+      "steps": [
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "navigation" } },
+        { "event": "blur", "target": "navigation" },
+        { "expect": { "focus": null } },
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "navigation" } }
+      ]
+    },
+    {
+      "id": "landmarks.react-aria.duplicate-roles-must-be-labelled",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/landmark/useLandmark.test.tsx#L593",
+      "upstreamTest": "LandmarkManager > Should allow 2+ landmarks with same role if they are labelled",
+      "apg": "aria",
+      "config": {
+        "landmarks": ["navigation", "navigation"],
+        "labels": ["First nav", "Second nav"]
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "navigation:0": { "aria-label": "First nav" },
+              "navigation:1": { "aria-label": "Second nav" }
+            }
+          }
+        }
+      ],
+      "notes": "Warn-free when repeated landmark roles have unique labels."
+    },
+    {
+      "id": "landmarks.react-aria.unlabelled-duplicate-warns",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/landmark/useLandmark.test.tsx#L634",
+      "upstreamTest": "LandmarkManager > Should warn if 2+ landmarks with same role are used but not labelled",
+      "apg": "aria",
+      "config": { "landmarks": ["navigation", "navigation"] },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "navigation:0": { "aria-label": null },
+              "navigation:1": { "aria-label": null }
+            }
+          }
+        }
+      ],
+      "notes": "React-aria emits a console warning here; the accessible-name gap is the modelled contract."
+    },
+    {
+      "id": "landmarks.react-aria.added-landmark-is-reachable",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/landmark/useLandmark.test.tsx#L777",
+      "upstreamTest": "LandmarkManager > Should navigate to a landmark that has been added to the DOM",
+      "apg": "extension",
+      "config": { "landmarks": ["navigation", "main"] },
+      "steps": [
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "navigation" } },
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "main" } },
+        {
+          "event": "prop",
+          "target": "region:0",
+          "prop": "mounted",
+          "value": true
+        },
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "region:0" } }
+      ],
+      "notes": "A region mounted later joins the F6 cycle in DOM order."
+    },
+    {
+      "id": "landmarks.react-aria.removed-landmark-is-skipped",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/landmark/useLandmark.test.tsx#L725",
+      "upstreamTest": "LandmarkManager > Should not navigate to a landmark that has been removed from the DOM",
+      "apg": "extension",
+      "config": { "landmarks": ["navigation", "region", "main"] },
+      "steps": [
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "navigation" } },
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "region:0" } },
+        { "event": "key", "key": "F6" },
+        { "expect": { "focus": "main" } },
+        {
+          "event": "prop",
+          "target": "region:0",
+          "prop": "mounted",
+          "value": false
+        },
+        { "event": "key", "key": "Shift+F6" },
+        { "expect": { "focus": "navigation" } }
+      ]
+    }
+  ]
+}

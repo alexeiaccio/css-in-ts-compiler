@@ -1,0 +1,29 @@
+{
+  "name": "@cssints/apg-specs",
+  "version": "0.0.0",
+  "private": true,
+  "description": "APG widget specs: Quint sources, generated models/scaffolding, scenario bridges and ported scenario sets, with spec-only verification",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "generate:all": "node scripts/generate-all.ts",
+    "scxml": "node scripts/emit-scxml.ts",
+    "check": "bun run generate:all && bun run typecheck:quint && bun run test",
+    "test": "vp test run",
+    "typecheck": "node ../../scripts/typecheck.mjs",
+    "typecheck:quint": "node scripts/typecheck-quint.ts"
+  },
+  "dependencies": {
+    "@quint-machine/core": "0.1.0",
+    "@typeonce/effect-machine": "0.40.0",
+    "effect": "4.0.0"
+  },
+  "devDependencies": {
+    "@effect/platform-node": "4.0.0",
+    "@informalsystems/quint": "0.32.0",
+    "vite-plus": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

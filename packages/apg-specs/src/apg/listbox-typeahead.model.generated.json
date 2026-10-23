@@ -1,0 +1,5615 @@
+{
+  "generatedFrom": "../../specs/apg/listbox-typeahead.qnt",
+  "specHash": "33e6bfa4349668310585be4a77d778f1d6e1d024def185d506938da91129c108",
+  "module": "apg_listbox_typeahead",
+  "vars": [
+    {
+      "name": "hasFocus",
+      "type": "bool"
+    },
+    {
+      "name": "active",
+      "type": "int"
+    },
+    {
+      "name": "buf",
+      "type": "int"
+    },
+    {
+      "name": "bufLen",
+      "type": "int"
+    },
+    {
+      "name": "armed",
+      "type": "bool"
+    },
+    {
+      "name": "matched",
+      "type": "bool"
+    },
+    {
+      "name": "controlled",
+      "type": "bool"
+    },
+    {
+      "name": "accepting",
+      "type": "bool"
+    },
+    {
+      "name": "valueProp",
+      "type": "int"
+    },
+    {
+      "name": "requested",
+      "type": "int"
+    },
+    {
+      "name": "outcome",
+      "type": "str"
+    },
+    {
+      "name": "base",
+      "type": "int"
+    },
+    {
+      "name": "requests",
+      "type": "int"
+    }
+  ],
+  "defs": {
+    "optionCount": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "6"
+      }
+    },
+    "lastIndex": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "5"
+      }
+    },
+    "noOption": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "6"
+      }
+    },
+    "maxBuffer": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "int",
+        "value": "3"
+      }
+    },
+    "nameCode": {
+      "kind": "function",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "5"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "i"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "6"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "i"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "i"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "3"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "9"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "i"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "4"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "int",
+                            "value": "11"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "3"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nameLen": {
+      "kind": "function",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "or",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "i"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "2"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "i"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "5"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          },
+          {
+            "kind": "int",
+            "value": "2"
+          }
+        ]
+      }
+    },
+    "pow4": {
+      "kind": "function",
+      "params": [
+        "n"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "n"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "n"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "4"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "n"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "16"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "64"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nextIndex": {
+      "kind": "function",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "name",
+                "name": "lastIndex"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "i"
+          }
+        ]
+      }
+    },
+    "prevIndex": {
+      "kind": "function",
+      "params": [
+        "i"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "isub",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "i"
+          }
+        ]
+      }
+    },
+    "startsWith": {
+      "kind": "function",
+      "params": [
+        "i",
+        "buffer",
+        "len"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "len"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "len"
+              },
+              {
+                "kind": "app",
+                "opcode": "nameLen",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "i"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "idiv",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "nameCode",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "i"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "pow4",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "isub",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "nameLen",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "i"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "name",
+                            "name": "len"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "buffer"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "candidate": {
+      "kind": "function",
+      "params": [
+        "start",
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ariaCycle0",
+        "args": [
+          {
+            "kind": "name",
+            "name": "optionCount"
+          },
+          {
+            "kind": "name",
+            "name": "start"
+          },
+          {
+            "kind": "name",
+            "name": "k"
+          }
+        ]
+      }
+    },
+    "matchFrom": {
+      "kind": "function",
+      "params": [
+        "start",
+        "buffer",
+        "len"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "startsWith",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "candidate",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "start"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "buffer"
+              },
+              {
+                "kind": "name",
+                "name": "len"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "candidate",
+            "args": [
+              {
+                "kind": "name",
+                "name": "start"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "startsWith",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "candidate",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "start"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "buffer"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "len"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "candidate",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "start"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "startsWith",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "candidate",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "start"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "2"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "buffer"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "len"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "candidate",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "start"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "startsWith",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "candidate",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "start"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "3"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "name",
+                            "name": "buffer"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "len"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "candidate",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "start"
+                          },
+                          {
+                            "kind": "int",
+                            "value": "3"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "startsWith",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "candidate",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "start"
+                                  },
+                                  {
+                                    "kind": "int",
+                                    "value": "4"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "name",
+                                "name": "buffer"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "len"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "candidate",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "start"
+                              },
+                              {
+                                "kind": "int",
+                                "value": "4"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "ite",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "startsWith",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "candidate",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "start"
+                                      },
+                                      {
+                                        "kind": "int",
+                                        "value": "5"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "buffer"
+                                  },
+                                  {
+                                    "kind": "name",
+                                    "name": "len"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "candidate",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "start"
+                                  },
+                                  {
+                                    "kind": "int",
+                                    "value": "5"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "name",
+                                "name": "noOption"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "nextBuffer": {
+      "kind": "function",
+      "params": [
+        "buffer",
+        "len",
+        "ch"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "len"
+              },
+              {
+                "kind": "name",
+                "name": "maxBuffer"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "imul",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "buffer"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "4"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "ch"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "buffer"
+          }
+        ]
+      }
+    },
+    "nextLength": {
+      "kind": "function",
+      "params": [
+        "len"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "len"
+              },
+              {
+                "kind": "name",
+                "name": "maxBuffer"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "len"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "len"
+          }
+        ]
+      }
+    },
+    "typeTarget": {
+      "kind": "function",
+      "params": [
+        "act",
+        "buffer",
+        "len",
+        "ch"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "matchFrom",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ariaTaStart0",
+            "args": [
+              {
+                "kind": "name",
+                "name": "optionCount"
+              },
+              {
+                "kind": "name",
+                "name": "act"
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "len"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "nextBuffer",
+            "args": [
+              {
+                "kind": "name",
+                "name": "buffer"
+              },
+              {
+                "kind": "name",
+                "name": "len"
+              },
+              {
+                "kind": "name",
+                "name": "ch"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "nextLength",
+            "args": [
+              {
+                "kind": "name",
+                "name": "len"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "holds": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "controlled"
+          },
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "accepting"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "hostWrites": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "name",
+            "name": "controlled"
+          },
+          {
+            "kind": "name",
+            "name": "accepting"
+          }
+        ]
+      }
+    },
+    "verdict": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "holds"
+          },
+          {
+            "kind": "str",
+            "value": "rejected"
+          },
+          {
+            "kind": "str",
+            "value": "accepted"
+          }
+        ]
+      }
+    },
+    "landed": {
+      "kind": "function",
+      "params": [
+        "h",
+        "current",
+        "want"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "h"
+          },
+          {
+            "kind": "name",
+            "name": "current"
+          },
+          {
+            "kind": "name",
+            "name": "want"
+          }
+        ]
+      }
+    },
+    "typedIntent": {
+      "kind": "function",
+      "params": [
+        "ch"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "hasFocus"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "typeTarget",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "active"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "buf"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "bufLen"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "ch"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "noOption"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "app",
+                "opcode": "typeTarget",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "buf"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "bufLen"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ch"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "active"
+          }
+        ]
+      }
+    },
+    "downIntent": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "hasFocus"
+          },
+          {
+            "kind": "app",
+            "opcode": "nextIndex",
+            "args": [
+              {
+                "kind": "name",
+                "name": "active"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "active"
+          }
+        ]
+      }
+    },
+    "upIntent": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "hasFocus"
+          },
+          {
+            "kind": "app",
+            "opcode": "prevIndex",
+            "args": [
+              {
+                "kind": "name",
+                "name": "active"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "active"
+          }
+        ]
+      }
+    },
+    "homeIntent": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "hasFocus"
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          },
+          {
+            "kind": "name",
+            "name": "active"
+          }
+        ]
+      }
+    },
+    "endIntent": {
+      "kind": "function",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "hasFocus"
+          },
+          {
+            "kind": "name",
+            "name": "lastIndex"
+          },
+          {
+            "kind": "name",
+            "name": "active"
+          }
+        ]
+      }
+    },
+    "ariaActiveDescendant": {
+      "kind": "function",
+      "params": [
+        "focused",
+        "idx"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "focused"
+          },
+          {
+            "kind": "name",
+            "name": "idx"
+          },
+          {
+            "kind": "name",
+            "name": "noOption"
+          }
+        ]
+      }
+    },
+    "ActiveInRange": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "name",
+                "name": "lastIndex"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ActiveDescendantTracksFocus": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "ariaActiveDescendant",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "hasFocus"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "noOption"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hasFocus"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "BufferWellFormed": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "bufLen"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "bufLen"
+              },
+              {
+                "kind": "name",
+                "name": "maxBuffer"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "buf"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "buf"
+              },
+              {
+                "kind": "app",
+                "opcode": "pow4",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "bufLen"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "TimerArmedIffBuffered": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "armed"
+          },
+          {
+            "kind": "app",
+            "opcode": "igt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "bufLen"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "BufferOnlyWhileFocused": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "bufLen"
+              },
+              {
+                "kind": "int",
+                "value": "0"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        ]
+      }
+    },
+    "MatchedImpliesPrefix": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "matched"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "igt",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "bufLen"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "startsWith",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "buf"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "bufLen"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "RequestsNonNegative": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "igte",
+        "args": [
+          {
+            "kind": "name",
+            "name": "requests"
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          }
+        ]
+      }
+    },
+    "ControlledFollowsProp": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "name",
+                "name": "valueProp"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "RejectedRequestUntouched": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "outcome"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "rejected"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "name",
+                "name": "base"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "AcceptedRequestCommits": {
+      "kind": "invariant",
+      "params": [],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "not",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "outcome"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "accepted"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "name",
+                "name": "requested"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ariaCycle0": {
+      "kind": "function",
+      "params": [
+        "n",
+        "cur",
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "n"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "cur"
+          },
+          {
+            "kind": "app",
+            "opcode": "imod",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "cur"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "k"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "n"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ariaCycle1": {
+      "kind": "function",
+      "params": [
+        "n",
+        "cur",
+        "k"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilt",
+            "args": [
+              {
+                "kind": "name",
+                "name": "n"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "cur"
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "imod",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "isub",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "iadd",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "iadd",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "cur"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "k"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "name",
+                            "name": "n"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "n"
+                  }
+                ]
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ariaWrapNext1": {
+      "kind": "function",
+      "params": [
+        "i",
+        "n"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "igte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "name",
+                "name": "n"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          },
+          {
+            "kind": "app",
+            "opcode": "iadd",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ariaWrapPrev1": {
+      "kind": "function",
+      "params": [
+        "i",
+        "n"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "n"
+          },
+          {
+            "kind": "app",
+            "opcode": "isub",
+            "args": [
+              {
+                "kind": "name",
+                "name": "i"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ariaTaStart0": {
+      "kind": "function",
+      "params": [
+        "n",
+        "cur",
+        "fresh"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "fresh"
+          },
+          {
+            "kind": "app",
+            "opcode": "ariaCycle0",
+            "args": [
+              {
+                "kind": "name",
+                "name": "n"
+              },
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "cur"
+          }
+        ]
+      }
+    },
+    "ariaTaStart1": {
+      "kind": "function",
+      "params": [
+        "n",
+        "cur",
+        "fresh"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "fresh"
+          },
+          {
+            "kind": "app",
+            "opcode": "ariaCycle1",
+            "args": [
+              {
+                "kind": "name",
+                "name": "n"
+              },
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "name",
+            "name": "cur"
+          }
+        ]
+      }
+    },
+    "ariaTaRepeatStart0": {
+      "kind": "function",
+      "params": [
+        "n",
+        "cur",
+        "typedBefore",
+        "ch"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "typedBefore"
+              },
+              {
+                "kind": "name",
+                "name": "ch"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ariaCycle0",
+            "args": [
+              {
+                "kind": "name",
+                "name": "n"
+              },
+              {
+                "kind": "name",
+                "name": "cur"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "0"
+          }
+        ]
+      }
+    },
+    "ariaTaFold": {
+      "kind": "function",
+      "params": [
+        "c"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "c"
+              },
+              {
+                "kind": "str",
+                "value": "A"
+              }
+            ]
+          },
+          {
+            "kind": "str",
+            "value": "a"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "c"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "B"
+                  }
+                ]
+              },
+              {
+                "kind": "str",
+                "value": "b"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "c"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "C"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "str",
+                    "value": "c"
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "c"
+                          },
+                          {
+                            "kind": "str",
+                            "value": "D"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "str",
+                        "value": "d"
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "eq",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "c"
+                              },
+                              {
+                                "kind": "str",
+                                "value": "E"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "str",
+                            "value": "e"
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "ite",
+                            "args": [
+                              {
+                                "kind": "app",
+                                "opcode": "eq",
+                                "args": [
+                                  {
+                                    "kind": "name",
+                                    "name": "c"
+                                  },
+                                  {
+                                    "kind": "str",
+                                    "value": "F"
+                                  }
+                                ]
+                              },
+                              {
+                                "kind": "str",
+                                "value": "f"
+                              },
+                              {
+                                "kind": "app",
+                                "opcode": "ite",
+                                "args": [
+                                  {
+                                    "kind": "app",
+                                    "opcode": "eq",
+                                    "args": [
+                                      {
+                                        "kind": "name",
+                                        "name": "c"
+                                      },
+                                      {
+                                        "kind": "str",
+                                        "value": "G"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "kind": "str",
+                                    "value": "g"
+                                  },
+                                  {
+                                    "kind": "app",
+                                    "opcode": "ite",
+                                    "args": [
+                                      {
+                                        "kind": "app",
+                                        "opcode": "eq",
+                                        "args": [
+                                          {
+                                            "kind": "name",
+                                            "name": "c"
+                                          },
+                                          {
+                                            "kind": "str",
+                                            "value": "H"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "kind": "str",
+                                        "value": "h"
+                                      },
+                                      {
+                                        "kind": "app",
+                                        "opcode": "ite",
+                                        "args": [
+                                          {
+                                            "kind": "app",
+                                            "opcode": "eq",
+                                            "args": [
+                                              {
+                                                "kind": "name",
+                                                "name": "c"
+                                              },
+                                              {
+                                                "kind": "str",
+                                                "value": "I"
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "kind": "str",
+                                            "value": "i"
+                                          },
+                                          {
+                                            "kind": "app",
+                                            "opcode": "ite",
+                                            "args": [
+                                              {
+                                                "kind": "app",
+                                                "opcode": "eq",
+                                                "args": [
+                                                  {
+                                                    "kind": "name",
+                                                    "name": "c"
+                                                  },
+                                                  {
+                                                    "kind": "str",
+                                                    "value": "J"
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "kind": "str",
+                                                "value": "j"
+                                              },
+                                              {
+                                                "kind": "app",
+                                                "opcode": "ite",
+                                                "args": [
+                                                  {
+                                                    "kind": "app",
+                                                    "opcode": "eq",
+                                                    "args": [
+                                                      {
+                                                        "kind": "name",
+                                                        "name": "c"
+                                                      },
+                                                      {
+                                                        "kind": "str",
+                                                        "value": "K"
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "kind": "str",
+                                                    "value": "k"
+                                                  },
+                                                  {
+                                                    "kind": "app",
+                                                    "opcode": "ite",
+                                                    "args": [
+                                                      {
+                                                        "kind": "app",
+                                                        "opcode": "eq",
+                                                        "args": [
+                                                          {
+                                                            "kind": "name",
+                                                            "name": "c"
+                                                          },
+                                                          {
+                                                            "kind": "str",
+                                                            "value": "L"
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "kind": "str",
+                                                        "value": "l"
+                                                      },
+                                                      {
+                                                        "kind": "app",
+                                                        "opcode": "ite",
+                                                        "args": [
+                                                          {
+                                                            "kind": "app",
+                                                            "opcode": "eq",
+                                                            "args": [
+                                                              {
+                                                                "kind": "name",
+                                                                "name": "c"
+                                                              },
+                                                              {
+                                                                "kind": "str",
+                                                                "value": "M"
+                                                              }
+                                                            ]
+                                                          },
+                                                          {
+                                                            "kind": "str",
+                                                            "value": "m"
+                                                          },
+                                                          {
+                                                            "kind": "app",
+                                                            "opcode": "ite",
+                                                            "args": [
+                                                              {
+                                                                "kind": "app",
+                                                                "opcode": "eq",
+                                                                "args": [
+                                                                  {
+                                                                    "kind": "name",
+                                                                    "name": "c"
+                                                                  },
+                                                                  {
+                                                                    "kind": "str",
+                                                                    "value": "N"
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "kind": "str",
+                                                                "value": "n"
+                                                              },
+                                                              {
+                                                                "kind": "app",
+                                                                "opcode": "ite",
+                                                                "args": [
+                                                                  {
+                                                                    "kind": "app",
+                                                                    "opcode": "eq",
+                                                                    "args": [
+                                                                      {
+                                                                        "kind": "name",
+                                                                        "name": "c"
+                                                                      },
+                                                                      {
+                                                                        "kind": "str",
+                                                                        "value": "O"
+                                                                      }
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "kind": "str",
+                                                                    "value": "o"
+                                                                  },
+                                                                  {
+                                                                    "kind": "app",
+                                                                    "opcode": "ite",
+                                                                    "args": [
+                                                                      {
+                                                                        "kind": "app",
+                                                                        "opcode": "eq",
+                                                                        "args": [
+                                                                          {
+                                                                            "kind": "name",
+                                                                            "name": "c"
+                                                                          },
+                                                                          {
+                                                                            "kind": "str",
+                                                                            "value": "P"
+                                                                          }
+                                                                        ]
+                                                                      },
+                                                                      {
+                                                                        "kind": "str",
+                                                                        "value": "p"
+                                                                      },
+                                                                      {
+                                                                        "kind": "app",
+                                                                        "opcode": "ite",
+                                                                        "args": [
+                                                                          {
+                                                                            "kind": "app",
+                                                                            "opcode": "eq",
+                                                                            "args": [
+                                                                              {
+                                                                                "kind": "name",
+                                                                                "name": "c"
+                                                                              },
+                                                                              {
+                                                                                "kind": "str",
+                                                                                "value": "Q"
+                                                                              }
+                                                                            ]
+                                                                          },
+                                                                          {
+                                                                            "kind": "str",
+                                                                            "value": "q"
+                                                                          },
+                                                                          {
+                                                                            "kind": "app",
+                                                                            "opcode": "ite",
+                                                                            "args": [
+                                                                              {
+                                                                                "kind": "app",
+                                                                                "opcode": "eq",
+                                                                                "args": [
+                                                                                  {
+                                                                                    "kind": "name",
+                                                                                    "name": "c"
+                                                                                  },
+                                                                                  {
+                                                                                    "kind": "str",
+                                                                                    "value": "R"
+                                                                                  }
+                                                                                ]
+                                                                              },
+                                                                              {
+                                                                                "kind": "str",
+                                                                                "value": "r"
+                                                                              },
+                                                                              {
+                                                                                "kind": "app",
+                                                                                "opcode": "ite",
+                                                                                "args": [
+                                                                                  {
+                                                                                    "kind": "app",
+                                                                                    "opcode": "eq",
+                                                                                    "args": [
+                                                                                      {
+                                                                                        "kind": "name",
+                                                                                        "name": "c"
+                                                                                      },
+                                                                                      {
+                                                                                        "kind": "str",
+                                                                                        "value": "S"
+                                                                                      }
+                                                                                    ]
+                                                                                  },
+                                                                                  {
+                                                                                    "kind": "str",
+                                                                                    "value": "s"
+                                                                                  },
+                                                                                  {
+                                                                                    "kind": "app",
+                                                                                    "opcode": "ite",
+                                                                                    "args": [
+                                                                                      {
+                                                                                        "kind": "app",
+                                                                                        "opcode": "eq",
+                                                                                        "args": [
+                                                                                          {
+                                                                                            "kind": "name",
+                                                                                            "name": "c"
+                                                                                          },
+                                                                                          {
+                                                                                            "kind": "str",
+                                                                                            "value": "T"
+                                                                                          }
+                                                                                        ]
+                                                                                      },
+                                                                                      {
+                                                                                        "kind": "str",
+                                                                                        "value": "t"
+                                                                                      },
+                                                                                      {
+                                                                                        "kind": "app",
+                                                                                        "opcode": "ite",
+                                                                                        "args": [
+                                                                                          {
+                                                                                            "kind": "app",
+                                                                                            "opcode": "eq",
+                                                                                            "args": [
+                                                                                              {
+                                                                                                "kind": "name",
+                                                                                                "name": "c"
+                                                                                              },
+                                                                                              {
+                                                                                                "kind": "str",
+                                                                                                "value": "U"
+                                                                                              }
+                                                                                            ]
+                                                                                          },
+                                                                                          {
+                                                                                            "kind": "str",
+                                                                                            "value": "u"
+                                                                                          },
+                                                                                          {
+                                                                                            "kind": "app",
+                                                                                            "opcode": "ite",
+                                                                                            "args": [
+                                                                                              {
+                                                                                                "kind": "app",
+                                                                                                "opcode": "eq",
+                                                                                                "args": [
+                                                                                                  {
+                                                                                                    "kind": "name",
+                                                                                                    "name": "c"
+                                                                                                  },
+                                                                                                  {
+                                                                                                    "kind": "str",
+                                                                                                    "value": "V"
+                                                                                                  }
+                                                                                                ]
+                                                                                              },
+                                                                                              {
+                                                                                                "kind": "str",
+                                                                                                "value": "v"
+                                                                                              },
+                                                                                              {
+                                                                                                "kind": "app",
+                                                                                                "opcode": "ite",
+                                                                                                "args": [
+                                                                                                  {
+                                                                                                    "kind": "app",
+                                                                                                    "opcode": "eq",
+                                                                                                    "args": [
+                                                                                                      {
+                                                                                                        "kind": "name",
+                                                                                                        "name": "c"
+                                                                                                      },
+                                                                                                      {
+                                                                                                        "kind": "str",
+                                                                                                        "value": "W"
+                                                                                                      }
+                                                                                                    ]
+                                                                                                  },
+                                                                                                  {
+                                                                                                    "kind": "str",
+                                                                                                    "value": "w"
+                                                                                                  },
+                                                                                                  {
+                                                                                                    "kind": "app",
+                                                                                                    "opcode": "ite",
+                                                                                                    "args": [
+                                                                                                      {
+                                                                                                        "kind": "app",
+                                                                                                        "opcode": "eq",
+                                                                                                        "args": [
+                                                                                                          {
+                                                                                                            "kind": "name",
+                                                                                                            "name": "c"
+                                                                                                          },
+                                                                                                          {
+                                                                                                            "kind": "str",
+                                                                                                            "value": "X"
+                                                                                                          }
+                                                                                                        ]
+                                                                                                      },
+                                                                                                      {
+                                                                                                        "kind": "str",
+                                                                                                        "value": "x"
+                                                                                                      },
+                                                                                                      {
+                                                                                                        "kind": "app",
+                                                                                                        "opcode": "ite",
+                                                                                                        "args": [
+                                                                                                          {
+                                                                                                            "kind": "app",
+                                                                                                            "opcode": "eq",
+                                                                                                            "args": [
+                                                                                                              {
+                                                                                                                "kind": "name",
+                                                                                                                "name": "c"
+                                                                                                              },
+                                                                                                              {
+                                                                                                                "kind": "str",
+                                                                                                                "value": "Y"
+                                                                                                              }
+                                                                                                            ]
+                                                                                                          },
+                                                                                                          {
+                                                                                                            "kind": "str",
+                                                                                                            "value": "y"
+                                                                                                          },
+                                                                                                          {
+                                                                                                            "kind": "app",
+                                                                                                            "opcode": "ite",
+                                                                                                            "args": [
+                                                                                                              {
+                                                                                                                "kind": "app",
+                                                                                                                "opcode": "eq",
+                                                                                                                "args": [
+                                                                                                                  {
+                                                                                                                    "kind": "name",
+                                                                                                                    "name": "c"
+                                                                                                                  },
+                                                                                                                  {
+                                                                                                                    "kind": "str",
+                                                                                                                    "value": "Z"
+                                                                                                                  }
+                                                                                                                ]
+                                                                                                              },
+                                                                                                              {
+                                                                                                                "kind": "str",
+                                                                                                                "value": "z"
+                                                                                                              },
+                                                                                                              {
+                                                                                                                "kind": "name",
+                                                                                                                "name": "c"
+                                                                                                              }
+                                                                                                            ]
+                                                                                                          }
+                                                                                                        ]
+                                                                                                      }
+                                                                                                    ]
+                                                                                                  }
+                                                                                                ]
+                                                                                              }
+                                                                                            ]
+                                                                                          }
+                                                                                        ]
+                                                                                      }
+                                                                                    ]
+                                                                                  }
+                                                                                ]
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        ]
+                                                                      }
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ariaTaSameChar": {
+      "kind": "function",
+      "params": [
+        "a",
+        "b"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "ariaTaFold",
+            "args": [
+              {
+                "kind": "name",
+                "name": "a"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "ariaTaFold",
+            "args": [
+              {
+                "kind": "name",
+                "name": "b"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ariaOrientationKnown": {
+      "kind": "function",
+      "params": [
+        "o"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "o"
+              },
+              {
+                "kind": "str",
+                "value": "horizontal"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "o"
+              },
+              {
+                "kind": "str",
+                "value": "vertical"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ariaAxisForward": {
+      "kind": "function",
+      "params": [
+        "o",
+        "key"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "o"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "horizontal"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "ArrowRight"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "o"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "vertical"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "ArrowDown"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ariaAxisBackward": {
+      "kind": "function",
+      "params": [
+        "o",
+        "key"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "o"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "horizontal"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "ArrowLeft"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "and",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "o"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "vertical"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "ArrowUp"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ariaFlipped": {
+      "kind": "function",
+      "params": [
+        "o",
+        "d"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "and",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "o"
+              },
+              {
+                "kind": "str",
+                "value": "horizontal"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "d"
+              },
+              {
+                "kind": "str",
+                "value": "rtl"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ariaValueArrow": {
+      "kind": "function",
+      "params": [
+        "key",
+        "o",
+        "d"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "key"
+              },
+              {
+                "kind": "str",
+                "value": "ArrowUp"
+              }
+            ]
+          },
+          {
+            "kind": "int",
+            "value": "1"
+          },
+          {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "eq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "key"
+                  },
+                  {
+                    "kind": "str",
+                    "value": "ArrowDown"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iuminus",
+                "args": [
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "eq",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "key"
+                      },
+                      {
+                        "kind": "str",
+                        "value": "ArrowRight"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "ariaFlipped",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "o"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "d"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "iuminus",
+                        "args": [
+                          {
+                            "kind": "int",
+                            "value": "1"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "ite",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "eq",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "key"
+                          },
+                          {
+                            "kind": "str",
+                            "value": "ArrowLeft"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "app",
+                        "opcode": "ite",
+                        "args": [
+                          {
+                            "kind": "app",
+                            "opcode": "ariaFlipped",
+                            "args": [
+                              {
+                                "kind": "name",
+                                "name": "o"
+                              },
+                              {
+                                "kind": "name",
+                                "name": "d"
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "int",
+                            "value": "1"
+                          },
+                          {
+                            "kind": "app",
+                            "opcode": "iuminus",
+                            "args": [
+                              {
+                                "kind": "int",
+                                "value": "1"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "int",
+                        "value": "0"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ariaSelModeKnown": {
+      "kind": "function",
+      "params": [
+        "m"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "m"
+              },
+              {
+                "kind": "str",
+                "value": "single"
+              }
+            ]
+          },
+          {
+            "kind": "app",
+            "opcode": "eq",
+            "args": [
+              {
+                "kind": "name",
+                "name": "m"
+              },
+              {
+                "kind": "str",
+                "value": "multi"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ariaSelIsMulti": {
+      "kind": "function",
+      "params": [
+        "m"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "eq",
+        "args": [
+          {
+            "kind": "name",
+            "name": "m"
+          },
+          {
+            "kind": "str",
+            "value": "multi"
+          }
+        ]
+      }
+    },
+    "ariaSingleHoldsAtMostOne": {
+      "kind": "function",
+      "params": [
+        "controlled",
+        "multi",
+        "cnt"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "or",
+        "args": [
+          {
+            "kind": "name",
+            "name": "controlled"
+          },
+          {
+            "kind": "name",
+            "name": "multi"
+          },
+          {
+            "kind": "app",
+            "opcode": "ilte",
+            "args": [
+              {
+                "kind": "name",
+                "name": "cnt"
+              },
+              {
+                "kind": "int",
+                "value": "1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ariaBoolToken": {
+      "kind": "function",
+      "params": [
+        "b"
+      ],
+      "body": {
+        "kind": "app",
+        "opcode": "ite",
+        "args": [
+          {
+            "kind": "name",
+            "name": "b"
+          },
+          {
+            "kind": "str",
+            "value": "true"
+          },
+          {
+            "kind": "str",
+            "value": "false"
+          }
+        ]
+      }
+    }
+  },
+  "actions": [
+    {
+      "name": "init",
+      "assignments": [
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "buf",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "bufLen",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "armed",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "matched",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "str",
+            "value": "none"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        }
+      ]
+    },
+    {
+      "name": "focus_in",
+      "assignments": [
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "name",
+            "name": "active"
+          }
+        },
+        {
+          "field": "buf",
+          "rhs": {
+            "kind": "name",
+            "name": "buf"
+          }
+        },
+        {
+          "field": "bufLen",
+          "rhs": {
+            "kind": "name",
+            "name": "bufLen"
+          }
+        },
+        {
+          "field": "armed",
+          "rhs": {
+            "kind": "name",
+            "name": "armed"
+          }
+        },
+        {
+          "field": "matched",
+          "rhs": {
+            "kind": "name",
+            "name": "matched"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "valueProp"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        }
+      ]
+    },
+    {
+      "name": "blur",
+      "assignments": [
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "name",
+            "name": "active"
+          }
+        },
+        {
+          "field": "buf",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "bufLen",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "armed",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "matched",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "valueProp"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        }
+      ]
+    },
+    {
+      "name": "type_char",
+      "nondet": {
+        "name": "ch",
+        "kind": "int",
+        "pool": [
+          "1",
+          "2",
+          "3"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "app",
+            "opcode": "landed",
+            "args": [
+              {
+                "kind": "name",
+                "name": "holds"
+              },
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "app",
+                "opcode": "typedIntent",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ch"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "field": "buf",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hasFocus"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextBuffer",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "buf"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "bufLen"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "ch"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "buf"
+              }
+            ]
+          }
+        },
+        {
+          "field": "bufLen",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hasFocus"
+              },
+              {
+                "kind": "app",
+                "opcode": "nextLength",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "bufLen"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "bufLen"
+              }
+            ]
+          }
+        },
+        {
+          "field": "armed",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hasFocus"
+              },
+              {
+                "kind": "bool",
+                "value": true
+              },
+              {
+                "kind": "name",
+                "name": "armed"
+              }
+            ]
+          }
+        },
+        {
+          "field": "matched",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hasFocus"
+              },
+              {
+                "kind": "app",
+                "opcode": "and",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "neq",
+                    "args": [
+                      {
+                        "kind": "app",
+                        "opcode": "typeTarget",
+                        "args": [
+                          {
+                            "kind": "name",
+                            "name": "active"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "buf"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "bufLen"
+                          },
+                          {
+                            "kind": "name",
+                            "name": "ch"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "name": "noOption"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "not",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "holds"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "matched"
+              }
+            ]
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hostWrites"
+              },
+              {
+                "kind": "app",
+                "opcode": "typedIntent",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ch"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "valueProp"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "typedIntent",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "ch"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "typedIntent",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "ch"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "requested"
+              }
+            ]
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "typedIntent",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "ch"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "verdict"
+              },
+              {
+                "kind": "name",
+                "name": "outcome"
+              }
+            ]
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "typedIntent",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "ch"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "name",
+                "name": "base"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "typedIntent",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "ch"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "requests"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "requests"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "timeout",
+      "assignments": [
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "name",
+            "name": "active"
+          }
+        },
+        {
+          "field": "buf",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "bufLen",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "armed",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "matched",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "valueProp"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        }
+      ]
+    },
+    {
+      "name": "arrow_down",
+      "assignments": [
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "app",
+            "opcode": "landed",
+            "args": [
+              {
+                "kind": "name",
+                "name": "holds"
+              },
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "name",
+                "name": "downIntent"
+              }
+            ]
+          }
+        },
+        {
+          "field": "buf",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "bufLen",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "armed",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "matched",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hostWrites"
+              },
+              {
+                "kind": "name",
+                "name": "downIntent"
+              },
+              {
+                "kind": "name",
+                "name": "valueProp"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "downIntent"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "downIntent"
+              },
+              {
+                "kind": "name",
+                "name": "requested"
+              }
+            ]
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "downIntent"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "verdict"
+              },
+              {
+                "kind": "name",
+                "name": "outcome"
+              }
+            ]
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "downIntent"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "name",
+                "name": "base"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "downIntent"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "requests"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "requests"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "arrow_up",
+      "assignments": [
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "app",
+            "opcode": "landed",
+            "args": [
+              {
+                "kind": "name",
+                "name": "holds"
+              },
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "name",
+                "name": "upIntent"
+              }
+            ]
+          }
+        },
+        {
+          "field": "buf",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "bufLen",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "armed",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "matched",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hostWrites"
+              },
+              {
+                "kind": "name",
+                "name": "upIntent"
+              },
+              {
+                "kind": "name",
+                "name": "valueProp"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "upIntent"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "upIntent"
+              },
+              {
+                "kind": "name",
+                "name": "requested"
+              }
+            ]
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "upIntent"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "verdict"
+              },
+              {
+                "kind": "name",
+                "name": "outcome"
+              }
+            ]
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "upIntent"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "name",
+                "name": "base"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "upIntent"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "requests"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "requests"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "home",
+      "assignments": [
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "app",
+            "opcode": "landed",
+            "args": [
+              {
+                "kind": "name",
+                "name": "holds"
+              },
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "name",
+                "name": "homeIntent"
+              }
+            ]
+          }
+        },
+        {
+          "field": "buf",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "bufLen",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "armed",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "matched",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hostWrites"
+              },
+              {
+                "kind": "name",
+                "name": "homeIntent"
+              },
+              {
+                "kind": "name",
+                "name": "valueProp"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "homeIntent"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "homeIntent"
+              },
+              {
+                "kind": "name",
+                "name": "requested"
+              }
+            ]
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "homeIntent"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "verdict"
+              },
+              {
+                "kind": "name",
+                "name": "outcome"
+              }
+            ]
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "homeIntent"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "name",
+                "name": "base"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "homeIntent"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "requests"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "requests"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "end",
+      "assignments": [
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "app",
+            "opcode": "landed",
+            "args": [
+              {
+                "kind": "name",
+                "name": "holds"
+              },
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "name",
+                "name": "endIntent"
+              }
+            ]
+          }
+        },
+        {
+          "field": "buf",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "bufLen",
+          "rhs": {
+            "kind": "int",
+            "value": "0"
+          }
+        },
+        {
+          "field": "armed",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "matched",
+          "rhs": {
+            "kind": "bool",
+            "value": false
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "hostWrites"
+              },
+              {
+                "kind": "name",
+                "name": "endIntent"
+              },
+              {
+                "kind": "name",
+                "name": "valueProp"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "endIntent"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "endIntent"
+              },
+              {
+                "kind": "name",
+                "name": "requested"
+              }
+            ]
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "endIntent"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "verdict"
+              },
+              {
+                "kind": "name",
+                "name": "outcome"
+              }
+            ]
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "endIntent"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "active"
+              },
+              {
+                "kind": "name",
+                "name": "base"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "app",
+                "opcode": "neq",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "endIntent"
+                  },
+                  {
+                    "kind": "name",
+                    "name": "active"
+                  }
+                ]
+              },
+              {
+                "kind": "app",
+                "opcode": "iadd",
+                "args": [
+                  {
+                    "kind": "name",
+                    "name": "requests"
+                  },
+                  {
+                    "kind": "int",
+                    "value": "1"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "requests"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "setValue",
+      "nondet": {
+        "name": "v",
+        "kind": "int",
+        "pool": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ]
+      },
+      "assignments": [
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "name",
+                "name": "v"
+              },
+              {
+                "kind": "name",
+                "name": "active"
+              }
+            ]
+          }
+        },
+        {
+          "field": "buf",
+          "rhs": {
+            "kind": "name",
+            "name": "buf"
+          }
+        },
+        {
+          "field": "bufLen",
+          "rhs": {
+            "kind": "name",
+            "name": "bufLen"
+          }
+        },
+        {
+          "field": "armed",
+          "rhs": {
+            "kind": "name",
+            "name": "armed"
+          }
+        },
+        {
+          "field": "matched",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "bool",
+                "value": false
+              },
+              {
+                "kind": "name",
+                "name": "matched"
+              }
+            ]
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "name",
+                "name": "v"
+              },
+              {
+                "kind": "name",
+                "name": "valueProp"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "str",
+                "value": "none"
+              },
+              {
+                "kind": "name",
+                "name": "outcome"
+              }
+            ]
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        }
+      ]
+    },
+    {
+      "name": "hostToggle",
+      "assignments": [
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "ilt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "active"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "lastIndex"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "active"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "active"
+              }
+            ]
+          }
+        },
+        {
+          "field": "buf",
+          "rhs": {
+            "kind": "name",
+            "name": "buf"
+          }
+        },
+        {
+          "field": "bufLen",
+          "rhs": {
+            "kind": "name",
+            "name": "bufLen"
+          }
+        },
+        {
+          "field": "armed",
+          "rhs": {
+            "kind": "name",
+            "name": "armed"
+          }
+        },
+        {
+          "field": "matched",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "bool",
+                "value": false
+              },
+              {
+                "kind": "name",
+                "name": "matched"
+              }
+            ]
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "app",
+                "opcode": "ite",
+                "args": [
+                  {
+                    "kind": "app",
+                    "opcode": "ilt",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "active"
+                      },
+                      {
+                        "kind": "name",
+                        "name": "lastIndex"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "app",
+                    "opcode": "iadd",
+                    "args": [
+                      {
+                        "kind": "name",
+                        "name": "active"
+                      },
+                      {
+                        "kind": "int",
+                        "value": "1"
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "int",
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "kind": "name",
+                "name": "valueProp"
+              }
+            ]
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "app",
+            "opcode": "ite",
+            "args": [
+              {
+                "kind": "name",
+                "name": "controlled"
+              },
+              {
+                "kind": "str",
+                "value": "none"
+              },
+              {
+                "kind": "name",
+                "name": "outcome"
+              }
+            ]
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        }
+      ]
+    },
+    {
+      "name": "control",
+      "assignments": [
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "name",
+            "name": "active"
+          }
+        },
+        {
+          "field": "buf",
+          "rhs": {
+            "kind": "name",
+            "name": "buf"
+          }
+        },
+        {
+          "field": "bufLen",
+          "rhs": {
+            "kind": "name",
+            "name": "bufLen"
+          }
+        },
+        {
+          "field": "armed",
+          "rhs": {
+            "kind": "name",
+            "name": "armed"
+          }
+        },
+        {
+          "field": "matched",
+          "rhs": {
+            "kind": "name",
+            "name": "matched"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "name",
+            "name": "accepting"
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "active"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        }
+      ]
+    },
+    {
+      "name": "acceptRequests",
+      "assignments": [
+        {
+          "field": "hasFocus",
+          "rhs": {
+            "kind": "name",
+            "name": "hasFocus"
+          }
+        },
+        {
+          "field": "active",
+          "rhs": {
+            "kind": "name",
+            "name": "active"
+          }
+        },
+        {
+          "field": "buf",
+          "rhs": {
+            "kind": "name",
+            "name": "buf"
+          }
+        },
+        {
+          "field": "bufLen",
+          "rhs": {
+            "kind": "name",
+            "name": "bufLen"
+          }
+        },
+        {
+          "field": "armed",
+          "rhs": {
+            "kind": "name",
+            "name": "armed"
+          }
+        },
+        {
+          "field": "matched",
+          "rhs": {
+            "kind": "name",
+            "name": "matched"
+          }
+        },
+        {
+          "field": "controlled",
+          "rhs": {
+            "kind": "name",
+            "name": "controlled"
+          }
+        },
+        {
+          "field": "accepting",
+          "rhs": {
+            "kind": "bool",
+            "value": true
+          }
+        },
+        {
+          "field": "valueProp",
+          "rhs": {
+            "kind": "name",
+            "name": "valueProp"
+          }
+        },
+        {
+          "field": "requested",
+          "rhs": {
+            "kind": "name",
+            "name": "requested"
+          }
+        },
+        {
+          "field": "outcome",
+          "rhs": {
+            "kind": "name",
+            "name": "outcome"
+          }
+        },
+        {
+          "field": "base",
+          "rhs": {
+            "kind": "name",
+            "name": "base"
+          }
+        },
+        {
+          "field": "requests",
+          "rhs": {
+            "kind": "name",
+            "name": "requests"
+          }
+        }
+      ]
+    }
+  ],
+  "step": [
+    "init",
+    "focus_in",
+    "blur",
+    "type_char",
+    "timeout",
+    "arrow_down",
+    "arrow_up",
+    "home",
+    "end",
+    "setValue",
+    "hostToggle",
+    "control",
+    "acceptRequests"
+  ]
+}

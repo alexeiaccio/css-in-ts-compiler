@@ -1,0 +1,186 @@
+{
+  "pattern": "link",
+  "source": "react-aria",
+  "commit": "99e610236887da619ad9d54a1cd87983166c043d",
+  "license": "Apache-2.0",
+  "skipped": [
+    { "reason": "Link > should render a link with default class" },
+    { "reason": "Link > should render a link with custom class" },
+    { "reason": "Link > should support DOM props" },
+    { "reason": "Link > should support id prop" },
+    { "reason": "Link > should support render props" },
+    { "reason": "Link > should support custom render function" },
+    { "reason": "Link > should support hover" },
+    { "reason": "Link > should support focus ring" },
+    { "reason": "Link > should support press state" },
+    { "reason": "Link > should support slot" },
+    { "reason": "Link > should work with RouterProvider" },
+    { "reason": "@adobe Link > supports UNSAFE_className" },
+    { "reason": "@adobe Link > supports autofocus" },
+    { "reason": "@adobe Link > supports a wrapping tooltip trigger" }
+  ],
+  "scenarios": [
+    {
+      "id": "link.react-aria.native-anchor-needs-no-role",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/link/useLink.test.js#L23",
+      "upstreamTest": "useLink > handles defaults",
+      "apg": "aria",
+      "config": { "native": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "link": { "role": null } },
+            "focus": null
+          }
+        }
+      ],
+      "notes": "A native <a href> is focusable and activatable on its own; onKeyDown is still attached for react-aria press handling."
+    },
+    {
+      "id": "link.react-aria.custom-element-gets-role-link",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/link/useLink.test.js#L30",
+      "upstreamTest": "useLink > handles custom element type",
+      "apg": "aria",
+      "config": { "elementType": "div" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "link": { "role": "link" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "link.react-aria.custom-element-is-tabbable",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/link/useLink.test.js#L30",
+      "upstreamTest": "useLink > handles custom element type",
+      "apg": "aria",
+      "config": { "elementType": "div" },
+      "steps": [
+        { "event": "focus", "target": "link" },
+        { "expect": { "focus": "link" } }
+      ],
+      "notes": "The custom element must supply focusability itself (tabindex=0); the hook only adds role and the Enter handler."
+    },
+    {
+      "id": "link.react-aria.disabled-custom-link",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/link/useLink.test.js#L36",
+      "upstreamTest": "useLink > handles isDisabled",
+      "apg": "aria",
+      "config": { "elementType": "span", "isDisabled": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "link": { "role": "link", "aria-disabled": "true" } },
+            "focus": null
+          }
+        }
+      ],
+      "notes": "A disabled link role is removed from the tab order and marked aria-disabled."
+    },
+    {
+      "id": "link.react-aria.accessible-props-passed-through",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Link.test.js#L51",
+      "upstreamTest": "Link > should support accessibility props",
+      "apg": "aria",
+      "config": {},
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "link": { "aria-current": "page" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "link.react-aria.href-renders-anchor",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Link.test.js#L92",
+      "upstreamTest": "Link > should render a link with <a> element",
+      "apg": "aria",
+      "config": { "href": "test" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "link": { "role": null } }
+          }
+        }
+      ],
+      "notes": "With href the component renders a native anchor; the role query still resolves to a link."
+    },
+    {
+      "id": "link.react-aria.disabled-link-aria-disabled",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Link.test.js#L189",
+      "upstreamTest": "Link > should support disabled state",
+      "apg": "aria",
+      "config": { "isDisabled": true },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "link": { "aria-disabled": "true" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "link.react-aria.enabled-link-navigates-on-click",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Link.test.js#L201",
+      "upstreamTest": "Link > should work with RouterProvider",
+      "apg": "extension",
+      "config": { "href": "/foo" },
+      "steps": [
+        { "event": "key", "key": "Enter", "target": "link" },
+        { "expect": { "events": { "onNavigate": ["/foo"] } } }
+      ],
+      "notes": "Router integration: activation runs the supplied navigate callback with the href."
+    },
+    {
+      "id": "link.react-aria.disabled-link-does-not-navigate",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Link.test.js#L217",
+      "upstreamTest": "Link > should not navigate if disabled",
+      "apg": "aria",
+      "config": { "href": "/foo", "isDisabled": true },
+      "steps": [
+        { "event": "key", "key": "Enter", "target": "link" },
+        { "expect": { "events": { "onNavigate": [] } } }
+      ]
+    },
+    {
+      "id": "link.react-aria.adobe-string-wraps-in-tabbable-span",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/link/Link.test.js#L60",
+      "upstreamTest": "Link > Wraps string to span",
+      "apg": "aria",
+      "config": {},
+      "steps": [
+        { "event": "focus", "target": "link" },
+        { "expect": { "focus": "link" } }
+      ],
+      "notes": "Without href the link is rendered as a span with tabindex=0."
+    },
+    {
+      "id": "link.react-aria.adobe-href-renders-anchor",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/link/Link.test.js#L68",
+      "upstreamTest": "Link > supports href",
+      "apg": "aria",
+      "config": { "href": "https://adobe.com" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": { "link": { "role": null } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "link.react-aria.adobe-press-fires-on-activation",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/@adobe/react-spectrum/test/link/Link.test.js#L40",
+      "upstreamTest": "Link > Link handles defaults",
+      "apg": "keyboard",
+      "config": {},
+      "steps": [
+        { "event": "click", "target": "link" },
+        { "expect": { "events": { "onPress": ["link"] } } }
+      ],
+      "notes": "Pointer activation fires onPress once."
+    }
+  ]
+}

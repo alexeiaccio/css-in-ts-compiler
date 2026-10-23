@@ -1,0 +1,454 @@
+{
+  "pattern": "tooltip",
+  "source": "react-aria",
+  "commit": "99e610236887da619ad9d54a1cd87983166c043d",
+  "license": "Apache-2.0",
+  "skipped": [
+    {
+      "reason": "styling, class and placement assertions (react-aria-Tooltip class, data-placement, position: absolute, OverlayArrow, style overrides, data-entering / data-exiting)"
+    },
+    {
+      "reason": "portal container tests (UNSAFE_PortalProvider / UNSTABLE_portalContainer) and React refs"
+    },
+    {
+      "reason": "custom trigger render APIs (Focusable, Pressable, slot/context, render props) and excludeFromTabOrder / tabindex pass-through"
+    },
+    {
+      "reason": "scroll-dismissal tests - the scroll event is not part of the scenario vocabulary"
+    },
+    {
+      "reason": "instant warm-up animation (`animates the first, swaps subsequent instantly, and animates out the last`) - data-instant animation lifecycle"
+    },
+    {
+      "reason": "controlled open/hidden and the manual warmup-timeout tests that call state.open()/state.close() directly through a test harness"
+    },
+    {
+      "reason": "@adobe/react-spectrum TooltipTrigger 'can be disabled from the TooltipTrigger'/'from the trigger' variants - duplicated disabled semantics"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "tooltip.react-aria.hover-shows-with-describedby",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tooltip.test.js#L51",
+      "upstreamTest": "Tooltip > shows on hover",
+      "apg": "pointer",
+      "config": { "delay": 0 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        {
+          "expect": {
+            "visible": ["tooltip:0"],
+            "attrs": { "trigger:0": { "aria-describedby": "*" } }
+          }
+        }
+      ],
+      "notes": "The upstream also asserts class, placement, position and OverlayArrow styling, which are skipped. aria-describedby value \"*\" means any non-empty IDREF matching the tooltip id."
+    },
+    {
+      "id": "tooltip.react-aria.focus-shows-with-describedby",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tooltip.test.js#L89",
+      "upstreamTest": "Tooltip > shows on focus",
+      "apg": "aria",
+      "config": { "delay": 0 },
+      "steps": [
+        { "event": "key", "key": "Tab", "target": "trigger:0" },
+        {
+          "expect": {
+            "visible": ["tooltip:0"],
+            "focus": "trigger:0",
+            "attrs": { "trigger:0": { "aria-describedby": "*" } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "tooltip.react-aria.hover-shows-when-trigger-is-pending",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria-components/test/Tooltip.test.js#L70",
+      "upstreamTest": "Tooltip > shows on hover when button has isPending",
+      "apg": "extension",
+      "config": { "delay": 0, "pending": true },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } }
+      ]
+    },
+    {
+      "id": "tooltip.react-aria.hover-shows-and-unhover-hides",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/tooltip/useTooltip.test.js#L24",
+      "upstreamTest": "useTooltip > opens tooltip on hover after delay",
+      "apg": "pointer",
+      "config": { "delay": 1500 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 750 },
+        { "expect": { "visible": [] } },
+        { "event": "wait", "ms": 750 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "wait", "ms": 350 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "wait", "ms": 350 },
+        { "expect": { "visible": [] } }
+      ],
+      "notes": "Default delay is 1500ms and the close grace is 350-500ms; the halved waits bracket both."
+    },
+    {
+      "id": "tooltip.react-aria.hover-immediate-with-delay-zero",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/tooltip/useTooltip.test.js#L55",
+      "upstreamTest": "useTooltip > opens tooltip immediately on hover with `delay: 0`",
+      "apg": "pointer",
+      "config": { "delay": 0 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "expect": { "visible": ["tooltip:0"] } }
+      ]
+    },
+    {
+      "id": "tooltip.react-aria.hover-leave-hides",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/tooltip/useTooltip.test.js#L83",
+      "upstreamTest": "useTooltip > hides tooltip when hover leaves the trigger",
+      "apg": "pointer",
+      "config": { "delay": 0 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": [] } }
+      ]
+    },
+    {
+      "id": "tooltip.react-aria.focus-shows-and-blur-hides",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/%40adobe/react-spectrum/test/tooltip/TooltipTrigger.test.js#L53",
+      "upstreamTest": "TooltipTrigger > immediate > opens for focus",
+      "apg": "focus",
+      "config": { "delay": 0 },
+      "steps": [
+        { "event": "focus", "target": "trigger:0" },
+        {
+          "expect": {
+            "visible": ["tooltip:0"],
+            "focus": "trigger:0",
+            "events": { "onOpenChange": [true] }
+          }
+        },
+        { "event": "blur", "target": "trigger:0" },
+        { "event": "wait", "ms": 350 },
+        {
+          "expect": {
+            "visible": [],
+            "events": { "onOpenChange": [true, false] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "tooltip.react-aria.focus-bypasses-pending-hover-delay",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/%40adobe/react-spectrum/test/tooltip/TooltipTrigger.test.js#L480",
+      "upstreamTest": "TooltipTrigger > delay > opens for focus even if the delay was already in process",
+      "apg": "focus",
+      "config": { "delay": 1500 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 750 },
+        { "expect": { "visible": [] } },
+        { "event": "focus", "target": "trigger:0" },
+        { "expect": { "visible": ["tooltip:0"], "focus": "trigger:0" } },
+        { "event": "blur", "target": "trigger:0" },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "wait", "ms": 350 },
+        { "expect": { "visible": [] } }
+      ]
+    },
+    {
+      "id": "tooltip.react-aria.blur-before-delay-never-opens",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/%40adobe/react-spectrum/test/tooltip/TooltipTrigger.test.js#L451",
+      "upstreamTest": "TooltipTrigger > delay > never opens if blurred before it opens",
+      "apg": "extension",
+      "config": { "delay": 1500 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 750 },
+        { "expect": { "visible": [] } },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "wait", "ms": 1500 },
+        { "expect": { "visible": [] } }
+      ],
+      "notes": "Leaving during the show delay cancels the pending open."
+    },
+    {
+      "id": "tooltip.react-aria.hovered-and-focused-hides-when-hover-leaves",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/%40adobe/react-spectrum/test/tooltip/TooltipTrigger.test.js#L116",
+      "upstreamTest": "TooltipTrigger > immediate > if hovered and focused, will hide if hover leaves",
+      "apg": "extension",
+      "config": { "delay": 0 },
+      "steps": [
+        { "event": "focus", "target": "trigger:0" },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "wait", "ms": 350 },
+        { "expect": { "visible": [] } },
+        { "event": "blur", "target": "trigger:0" }
+      ],
+      "notes": "APG-relevant: both modalities must disengage before it hides; withering either one keeps it open until the grace expires."
+    },
+    {
+      "id": "tooltip.react-aria.hovered-and-focused-hides-when-focus-leaves",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/%40adobe/react-spectrum/test/tooltip/TooltipTrigger.test.js#L161",
+      "upstreamTest": "TooltipTrigger > immediate > if hovered and focused, will hide if focus leaves",
+      "apg": "extension",
+      "config": { "delay": 0 },
+      "steps": [
+        { "event": "focus", "target": "trigger:0" },
+        { "event": "hover", "target": "trigger:0" },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "blur", "target": "trigger:0" },
+        { "event": "wait", "ms": 350 },
+        { "expect": { "visible": [] } },
+        { "event": "unhover", "target": "trigger:0" }
+      ]
+    },
+    {
+      "id": "tooltip.react-aria.escape-closes-and-notifies",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/%40adobe/react-spectrum/test/tooltip/TooltipTrigger.test.js#L204",
+      "upstreamTest": "TooltipTrigger > immediate > can be keyboard force closed",
+      "apg": "keyboard",
+      "config": { "delay": 0 },
+      "steps": [
+        { "event": "focus", "target": "trigger:0" },
+        {
+          "expect": {
+            "visible": ["tooltip:0"],
+            "events": { "onOpenChange": [true] }
+          }
+        },
+        { "event": "key", "key": "Escape", "target": "trigger:0" },
+        { "event": "wait", "ms": 350 },
+        {
+          "expect": {
+            "visible": [],
+            "events": { "onOpenChange": [true, false] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "tooltip.react-aria.escape-closes-from-anywhere",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/%40adobe/react-spectrum/test/tooltip/TooltipTrigger.test.js#L235",
+      "upstreamTest": "TooltipTrigger > immediate > can be keyboard force closed from anywhere",
+      "apg": "keyboard",
+      "config": { "delay": 0 },
+      "steps": [
+        { "event": "focus", "target": "trigger:1" },
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "key", "key": "Escape", "target": "trigger:1" },
+        { "event": "wait", "ms": 350 },
+        { "expect": { "visible": [] } }
+      ],
+      "notes": "trigger:1 is the textbox that holds focus; Escape reaches the open tooltip even when focus is elsewhere."
+    },
+    {
+      "id": "tooltip.react-aria.click-closes-tooltip",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/%40adobe/react-spectrum/test/tooltip/TooltipTrigger.test.js#L273",
+      "upstreamTest": "TooltipTrigger > immediate > is closed if the trigger is clicked",
+      "apg": "extension",
+      "config": { "delay": 0 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "click", "target": "trigger:0" },
+        { "event": "wait", "ms": 350 },
+        { "expect": { "visible": [] } }
+      ],
+      "notes": "APG does not prescribe click dismissal; this is React Spectrum's shouldCloseOnPress default."
+    },
+    {
+      "id": "tooltip.react-aria.should-close-on-press-false-keeps-open",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/%40adobe/react-spectrum/test/tooltip/TooltipTrigger.test.js#L336",
+      "upstreamTest": "TooltipTrigger > does not close if the trigger is clicked when shouldCloseOnPress is false",
+      "apg": "extension",
+      "config": { "delay": 0, "shouldCloseOnPress": false },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "click", "target": "trigger:0" },
+        { "expect": { "visible": ["tooltip:0"] } }
+      ]
+    },
+    {
+      "id": "tooltip.react-aria.only-one-tooltip-open-at-a-time",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/%40adobe/react-spectrum/test/tooltip/TooltipTrigger.test.js#L672",
+      "upstreamTest": "TooltipTrigger > multiple tooltips > can only show one tooltip at a time",
+      "apg": "extension",
+      "config": { "delay": 0 },
+      "steps": [
+        { "event": "focus", "target": "trigger:0" },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "focus", "target": "trigger:1" },
+        { "expect": { "visible": ["tooltip:1"] } }
+      ],
+      "notes": "Opening a second tooltip replaces the first, matching the spec's AtMostOneVisible invariant."
+    },
+    {
+      "id": "tooltip.react-aria.leaving-during-warmup-never-opens",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/%40adobe/react-spectrum/test/tooltip/TooltipTrigger.test.js#L710",
+      "upstreamTest": "TooltipTrigger > multiple tooltips > will not show a tooltip if the trigger is left during warmup, nor will warmup complete",
+      "apg": "extension",
+      "config": { "delay": 1500 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 750 },
+        { "event": "unhover", "target": "trigger:0" },
+        { "expect": { "visible": [] } },
+        { "event": "hover", "target": "trigger:1" },
+        { "event": "wait", "ms": 750 },
+        { "expect": { "visible": [] } },
+        { "event": "wait", "ms": 750 },
+        { "expect": { "visible": ["tooltip:1"] } }
+      ],
+      "notes": "Leaving during warm-up neither opens the first tooltip nor contributes to the second's warm-up."
+    },
+    {
+      "id": "tooltip.react-aria.warm-reopen-instant-then-cold-again",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/%40adobe/react-spectrum/test/tooltip/TooltipTrigger.test.js#L524",
+      "upstreamTest": "TooltipTrigger > delay > once opened, it can be closed and opened instantly for a period of time",
+      "apg": "extension",
+      "config": { "delay": 1500, "cooldown": 500 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 750 },
+        { "expect": { "visible": [] } },
+        { "event": "wait", "ms": 750 },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "key", "key": "Escape", "target": "trigger:0" },
+        { "event": "wait", "ms": 350 },
+        { "expect": { "visible": [] } },
+        { "event": "hover", "target": "trigger:0" },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "wait", "ms": 1500 },
+        { "expect": { "visible": [] } },
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 750 },
+        { "expect": { "visible": [] } },
+        { "event": "wait", "ms": 750 },
+        { "expect": { "visible": ["tooltip:0"] } }
+      ],
+      "notes": "After the warm window (TOOLTIP_COOLDOWN) elapses the full delay is required again."
+    },
+    {
+      "id": "tooltip.react-aria.trigger-focus-only-ignores-hover",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/%40adobe/react-spectrum/test/tooltip/TooltipTrigger.test.js#L1052",
+      "upstreamTest": "TooltipTrigger > trigger = focus > will not open for hover",
+      "apg": "focus",
+      "config": { "delay": 0, "trigger": "focus" },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": [] } }
+      ]
+    },
+    {
+      "id": "tooltip.react-aria.trigger-focus-only-opens-and-closes-on-blur",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/%40adobe/react-spectrum/test/tooltip/TooltipTrigger.test.js#L1019",
+      "upstreamTest": "TooltipTrigger > trigger = focus > will open for focus",
+      "apg": "focus",
+      "config": { "delay": 0, "trigger": "focus" },
+      "steps": [
+        { "event": "focus", "target": "trigger:0" },
+        { "expect": { "visible": ["tooltip:0"], "focus": "trigger:0" } },
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "unhover", "target": "trigger:0" },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "blur", "target": "trigger:0" },
+        { "event": "wait", "ms": 350 },
+        { "expect": { "visible": [] } }
+      ],
+      "notes": "With trigger=focus, pointer movement around the anchor neither opens nor closes it."
+    },
+    {
+      "id": "tooltip.react-aria.hoverable-content-keeps-tooltip-open",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/tooltip/useTooltip.test.js#L116",
+      "upstreamTest": "useTooltip > keeps tooltip open when it gets hovered",
+      "apg": "extension",
+      "config": { "delay": 0 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "expect": { "visible": ["tooltip:0"] } },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "hover", "target": "tooltip:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } }
+      ],
+      "notes": "WCAG 1.4.13 hoverable: the pointer may move onto the tooltip and it stays open."
+    },
+    {
+      "id": "tooltip.react-aria.hoverable-content-return-to-trigger-keeps-open",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/tooltip/useTooltip.test.js#L189",
+      "upstreamTest": "useTooltip > keeps tooltip open when hover returns to trigger from the tooltip",
+      "apg": "extension",
+      "config": { "delay": 0 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "hover", "target": "tooltip:0" },
+        { "event": "unhover", "target": "tooltip:0" },
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": ["tooltip:0"] } }
+      ]
+    },
+    {
+      "id": "tooltip.react-aria.hoverable-content-leave-hides",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/react-aria/test/tooltip/useTooltip.test.js#L152",
+      "upstreamTest": "useTooltip > hides tooltip when hover leaves",
+      "apg": "extension",
+      "config": { "delay": 0 },
+      "steps": [
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "hover", "target": "tooltip:0" },
+        { "event": "unhover", "target": "tooltip:0" },
+        { "event": "wait", "ms": 600 },
+        { "expect": { "visible": [] } }
+      ]
+    },
+    {
+      "id": "tooltip.react-aria.describedby-removed-when-tooltip-closes",
+      "upstream": "https://github.com/adobe/react-spectrum/blob/99e610236887da619ad9d54a1cd87983166c043d/packages/%40adobe/react-spectrum/test/tooltip/TooltipTrigger.test.js#L997",
+      "upstreamTest": "TooltipTrigger > accessibility > has a trigger described by the tooltip when open",
+      "apg": "aria",
+      "config": { "delay": 0 },
+      "steps": [
+        {
+          "expect": { "attrs": { "trigger:0": { "aria-describedby": null } } }
+        },
+        { "event": "hover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        {
+          "expect": {
+            "visible": ["tooltip:0"],
+            "attrs": { "trigger:0": { "aria-describedby": "*" } }
+          }
+        },
+        { "event": "unhover", "target": "trigger:0" },
+        { "event": "wait", "ms": 600 },
+        {
+          "expect": {
+            "visible": [],
+            "attrs": { "trigger:0": { "aria-describedby": null } }
+          }
+        }
+      ],
+      "notes": "aria-describedby is present exactly while the tooltip is visible; value \"*\" means any non-empty IDREF matching the tooltip."
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "pattern": "landmarks",
+  "source": "ariakit",
+  "commit": "404c72257b879569feb08465da4ff9915fd873da",
+  "license": "MIT",
+  "skipped": [
+    {
+      "reason": "renders every nav row without repeated or important gap classes"
+    },
+    { "reason": "lets a nav disclosure override the defaults of its row" },
+    {
+      "reason": "keeps a disclosure badge beside the label without a description"
+    },
+    {
+      "reason": "keeps a disclosure badge beside a consumer label component with a description"
+    },
+    {
+      "reason": "keeps a bare fragment label separate from its description and badge"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "landmarks.ariakit.navigation-named-landmark",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/ariakit-ui-nav/test.ts#L88",
+      "upstreamTest": "names a link by its label and describes it by its description",
+      "apg": "aria",
+      "config": { "label": "Link descriptions" },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "navigation": {
+                "role": "navigation",
+                "aria-label": "Link descriptions"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "landmarks.ariakit.navigation-lists-its-rows",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/ariakit-ui-nav/test.ts#L95",
+      "upstreamTest": "keeps anchor props, events, and refs on a wrapped link",
+      "apg": "aria",
+      "config": { "label": "Link wrappers", "items": 3 },
+      "steps": [
+        {
+          "expect": {
+            "visible": ["navigation", "listitem:0", "listitem:1", "listitem:2"]
+          }
+        }
+      ],
+      "notes": "Navigation rows are listitems; the wrapped link keeps its <li> parent."
+    },
+    {
+      "id": "landmarks.ariakit.single-link-nav-has-no-listitems",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/ariakit-ui-nav/test.ts#L109",
+      "upstreamTest": "keeps anchor props, events, and refs on a wrapped link (single link nav)",
+      "apg": "aria",
+      "config": { "label": "Single link" },
+      "steps": [
+        {
+          "expect": { "visible": ["navigation", "link:0"] }
+        }
+      ],
+      "notes": "A navigation landmark that holds a lone link renders no list/listitem wrapper."
+    },
+    {
+      "id": "landmarks.ariakit.disclosure-button-labelled-and-described",
+      "upstream": "https://github.com/ariakit/ariakit/blob/404c72257b879569feb08465da4ff9915fd873da/app/src/sandbox/ariakit-ui-nav/test.ts#L60",
+      "upstreamTest": "keeps a disclosure badge beside a consumer label component with a description",
+      "apg": "extension",
+      "config": {
+        "labelId": "nav-pages-label",
+        "descriptionId": "nav-pages-description"
+      },
+      "steps": [
+        {
+          "expect": {
+            "attrs": {
+              "button": {
+                "aria-labelledby": "nav-pages-label",
+                "aria-describedby": "nav-pages-description"
+              }
+            }
+          }
+        }
+      ],
+      "notes": "The consumer label component supplies the accessible name; the description is exposed through aria-describedby."
+    }
+  ]
+}
