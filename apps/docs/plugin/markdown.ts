@@ -9,6 +9,7 @@ import { createHighlighter } from "shiki";
 import ts from "typescript";
 
 import { exampleHash } from "../src/playground/share.ts";
+import { PDS_FILES, docsSource, loadPdsPages, pdsConfig } from "./pds.ts";
 
 const root = join(import.meta.dirname, "../../..");
 
@@ -99,8 +100,20 @@ const hovers = process.env.DOCS_HOVERS !== "0";
 // `base` is the site's base path (ends with a slash): the links between pages start with it
 export async function buildPages(base = "/"): Promise<Page[]> {
   const marked = new Marked();
-  const sections: { file: string; tokens: Token[] }[] = [];
+  // DOCS_SOURCE=pds (plugin/pds.ts): README.md and docs/API.md come from the CMS, one document per page, cut already and with
+  // the slug the document names. The other files are read from the repository either way.
+  const served = docsSource() === "pds" ? await loadPdsPages() : undefined;
+  if (served)
+    process.stdout.write(
+      `docs: ${served.length} pages of README.md and docs/API.md from ${pdsConfig().service}\n`,
+    );
+  const sections: { file: string; tokens: Token[]; slug?: string }[] = [];
   for (const { path, split } of files) {
+    if (served && PDS_FILES.some((file) => file === path)) {
+      for (const page of served.filter((page) => page.file === path))
+        sections.push({ file: path, tokens: marked.lexer(page.markdown), slug: page.slug });
+      continue;
+    }
     const tokens = marked.lexer(readFileSync(join(root, path), "utf8"));
     let current: Token[] = [];
     for (const t of tokens) {
@@ -114,7 +127,7 @@ export async function buildPages(base = "/"): Promise<Page[]> {
   }
 
   // the first pass: titles, slugs, the ids of headings and terms (links need all of them before anything is rendered)
-  const pages = sections.map(({ file, tokens }, i) => {
+  const pages = sections.map(({ file, tokens, slug: named }, i) => {
     const head = tokens[0] as Heading;
     const raw = file === "docs/API.md" && head.depth === 1 ? "API reference" : head.text;
     const [, title = raw, meta = ""] =
@@ -152,7 +165,7 @@ export async function buildPages(base = "/"): Promise<Page[]> {
       file,
       tokens,
       page: {
-        slug: i === 0 ? "overview" : pageSlug(title),
+        slug: named ?? (i === 0 ? "overview" : pageSlug(title)),
         title: i === 0 ? "Overview" : plain(title),
         titleHtml: marked.parseInline(title) as string,
         meta: plain(meta),
