@@ -20,6 +20,10 @@ typedef struct { int unused; } Clay_WgTarget; // only the GPU build (desktop/bui
 
 #define MAX_FONTS 8
 #define ARENA_SIZE (1 << 16)
+// a style is a compile-time literal (solid/plugin.ts packs it once), so the only way one of its numbers moves between
+// frames is the value channel: a page's per-frame overrides of a packed style, by element id
+#define STYLE_FIELDS 45
+#define FIELD_SHADOW_BLUR 45 // the one value outside the 45 floats: the blur of the element's shadow (a renderer table)
 
 static Clay_ThorVGRendererData tvg;
 static const char *font_names[MAX_FONTS];
@@ -51,6 +55,15 @@ static struct {
     float stops[MAX_GRADIENT_STOPS][5]; // offset (0..1), then r, g, b, a 0-255
 } pending_gradient;
 static int has_pending_gradient;
+// the value channel: this frame's overrides of a packed style, by element id, written by the page's tick (after
+// `ui_begin`, before the tree is declared) and read by `ui_open`
+#define MAX_VALUES 64
+static struct {
+    uint32_t id;
+    uint16_t field;
+    float value;
+} values[MAX_VALUES];
+static int value_count;
 
 static SDL_Window *window;
 static SDL_Renderer *renderer;
@@ -171,6 +184,7 @@ void ui_begin(float px, float py, int down, float dt)
     has_pending_shadow = 0;
     pending_backdrop = -1;
     has_pending_gradient = 0;
+    value_count = 0; // the value channel is a frame's, as the shadows and the backdrops are
     tvg.shadowCount = 0; // the frame's shadows go with the rest of the frame
     tvg.backdropCount = 0;
     tvg.gradientCount = 0;
@@ -243,11 +257,51 @@ void ui_backgroundImage(int kind, float angle, int count, const float *stops)
     has_pending_gradient = 1;
 }
 
+/** An override of one number of the style of the element with that id, for this frame only: field 0..44 is a packed
+ *  field (their order in solid/README.md), 45 is the blur of the element's shadow. `ui_open` copies the element's own
+ *  floats, applies the overrides of its id and declares from the copy, so the style's literal is what it falls back to
+ *  (a track that settles on the style's own value leaves the frame identical). Out of range, or past 64 a frame, is
+ *  counted as an error and dropped. Width, height, padding, gap and the colours are Clay's layout and its fill: they are
+ *  legal but a moving one re-lays-out its parent's box, so an offset or a blur is what reads as motion. */
+void ui_value(const char *id, int len, int field, float value)
+{
+    // ponytail: 64 overrides a frame (a page animating a dozen elements needs that many); more needs a bigger table
+    if (field < 0 || field > FIELD_SHADOW_BLUR || value_count == MAX_VALUES) {
+        errors++;
+        return;
+    }
+    values[value_count].id = Clay__HashString(slice(id, len), 0).id;
+    values[value_count].field = (uint16_t)field;
+    values[value_count].value = value;
+    value_count++;
+}
+
 /** Opens an element. id is NULL for an anonymous one; f is 45 floats: the box fields, then the floating ones. */
-void ui_open(const char *id, int len, const float *f)
+void ui_open(const char *id, int len, const float *style)
 {
     static const Clay_LayoutAlignmentX ax[3] = {CLAY_ALIGN_X_LEFT, CLAY_ALIGN_X_CENTER, CLAY_ALIGN_X_RIGHT};
     static const Clay_LayoutAlignmentY ay[3] = {CLAY_ALIGN_Y_TOP, CLAY_ALIGN_Y_CENTER, CLAY_ALIGN_Y_BOTTOM};
+    Clay_ElementId eid = {0};
+    if (id) eid = Clay__HashString(slice(id, len), 0);
+    // the value channel (ui_value): this element's overrides, applied to a copy of its own floats. Without one the
+    // declaration reads the style's literal, so a frame that uses no channel is the frame it was (180 bytes copied for
+    // an element that has an override, nothing for one that does not)
+    float over[STYLE_FIELDS];
+    const float *f = style;
+    float shadow_blur = -1;
+    if (id && value_count) {
+        int mine = 0;
+        for (int i = 0; i < value_count; i++) mine += values[i].id == eid.id;
+        if (mine) {
+            memcpy(over, style, sizeof over);
+            for (int i = 0; i < value_count; i++) {
+                if (values[i].id != eid.id) continue;
+                if (values[i].field == FIELD_SHADOW_BLUR) shadow_blur = values[i].value;
+                else over[values[i].field] = values[i].value;
+            }
+            f = over;
+        }
+    }
     Clay_ElementDeclaration d = {0};
     d.layout.sizing.width = axis(f + 0);
     d.layout.sizing.height = axis(f + 3);
@@ -277,13 +331,12 @@ void ui_open(const char *id, int len, const float *f)
         d.image.imageData = (void *)pending_image;
         pending_image = NULL;
     }
-    Clay_ElementId eid = {0};
-    if (id) eid = Clay__HashString(slice(id, len), 0);
     // the style's shadow (css.shadow), set by ui_shadow just before this call: the renderer keys it by the element's
     // 32-bit id hash, which is also what its commands carry. An anonymous element has no id to key it by.
     if (has_pending_shadow) {
-        if (id) Clay_ThorVG_SetShadow(&tvg, eid.id, pending_shadow[0], pending_shadow[1], pending_shadow[2],
-                                      pending_shadow_color);
+        if (id)
+            Clay_ThorVG_SetShadow(&tvg, eid.id, pending_shadow[0], pending_shadow[1],
+                                  shadow_blur >= 0 ? shadow_blur : pending_shadow[2], pending_shadow_color);
         has_pending_shadow = 0;
     }
     // ... and its backdrop (css.backdrop): the renderer cuts the frame there, blurs the element's box and carries on

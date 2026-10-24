@@ -483,9 +483,29 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    the exact settle, effect's clamp, the decay's projection) and the sky test's four scroll blocks, whose stored-frame
    check is a 0-pixel `diffPng`. Mutation: `Track.retarget` setting `v0 = 0` after sampling makes the mid-flight block
    fail — `FAIL and it turns the throw back: the rest is 64, ten px above the 74 it was heading to: 27.87, wanted
-   64.05`. Not covered yet: **opacity and transform animation** (a Clay style is a compile-time literal, so a field
-   needs a runtime style-value channel before a track can drive it), the Dialog/menu/tab underline/hover, first-mount
-   entry, reduced motion, a rubber band (the feed clamps hard), drag/touch, and the terminal, browser and board.
+   64.05`.
+   **Done: the value channel, and the Dialog's menu and panel** (2026-10-24). A style is packed once, so a field could
+   not move; now a page's `tick` calls `ui_value(id, len, field, value)` for an element and `ui_open` copies that
+   element's 45 floats, applies the frame's overrides of its id and declares from the copy — a renderer-level side table
+   as the shadow's and the backdrop's, cleared in `ui_begin`, no cache, 64 overrides and a 180-byte `memcpy` per
+   overridden element (0.008 ms of declare for the Dialog's two). Fields 0..44 are the packed ones (`pack.ts`'s `FIELDS`
+   names the offsets 38/39, the expand 40/41, `Z_INDEX` 42, radius, colours, padding, gap, width and height); 45 is
+   `ui_shadow`'s blur. Offsets, expand, z and the blur are what reads as motion; a width, a gap or a colour re-lays-out
+   the parent every frame (a layout change, not a transform) and is documented as such. The Dialog is the first user:
+   the menu's float offset y slides -10 → its style's -20 on `spatial(0.22, 0.1)` with its shadow's blur 0 → 14 on
+   `effect(0.22)`, the panel drops -14 → 0 and 0 → 32 on the same pair, both ending on the style's own literal (the
+   settled `frames/dialog-menu.png` and `dialog-menu-light.png` came out byte-identical; `dialog-open`/`dialog-light`
+   were regenerated, since the panel's own blur is now 32). The clock is the page's and stops with the element, so a
+   reopen retargets from the value it froze on (measured: closed at -10.85, reopened at -10.85, a 0.000 jump). Measured
+   per frame: the menu's offset `-10.00, -10.85, -12.58, -14.42, -16.04, -17.32, -18.26, -18.92, -19.36, -19.64,
+   -19.82, -19.92, -19.97, -20.00` and at rest exactly -20, the pixel beside the menu 18.0 → 13.9 (the shadow's blur);
+   the panel's y `149.88, 151.07, 153.49, …163.88` and still. Stored: `frames/dialog-menu-mid.png`, three frames in.
+   Mutation: `ui_value` dropping `OFFSET_Y` gives offsets of -20 on every frame — `FAIL every frame of the slide moves
+   it towards the offset: false, wanted true` — and the mid frame's menu sits at the settled place, only the shadow band
+   differing. Not covered yet: **exit animations (presence)**, **opacity of a whole subtree** (a text's colours are not
+   in its box's floats), **transform/scale** (Clay has none: an expand moves a float's children, not its glyphs), the
+   tab underline and hover, first-mount entry on the other pages, reduced motion, a rubber band (the feed clamps hard),
+   drag/touch, and the terminal, browser and board (no Solid page, no wheel, no value channel).
 3. **Metamorphic tests of layout and raster.** ~30 lines each, and they catch the bug classes we actually have:
    wrapping a page in a style-less box leaves the pixels identical; shifting a subtree by whole px shifts the picture
    exactly; a wider container never adds a text line (the Sky body); building the tree fresh versus reusing it gives

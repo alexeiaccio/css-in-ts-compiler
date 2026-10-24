@@ -86,6 +86,7 @@ with an `id`: Clay tells whether the pointer is over it. `onClick` runs on relea
 | `ui_init_gpu(w, h)` | the same on ThorVG's WebGPU canvas (`--raster thorvg-gpu`); only a `libui.dylib` from `desktop/build-thorvg-gpu.sh solid` |
 | `ui_begin(px, py, down, dt)` | pointer for this frame, then Clay's scroll containers move by the wheel this frame took (`Clay_UpdateScrollContainers(false, delta, dt)`, before the layout), then `Clay_BeginLayout` |
 | `ui_open(id, len, f32[45])` | open an element; `id` NULL for none; the style as below |
+| `ui_value(id, len, field, f32)` | an override of one number of that element's style for this frame: a packed field 0..44 (the table below), or 45, its shadow's blur. `ui_open` declares from a copy of the 45 floats with the frame's overrides applied; the table is cleared in `ui_begin`, 64 overrides a frame (`src/pack.ts`'s `FIELDS` names the ones a page uses) |
 | `ui_image(bytes, len)` | the image of the element the next `ui_open` declares (a `css.image` style): the path as UTF-8, no terminator. Interned once per distinct path, so the renderer's picture cache (keyed by that pointer) sees one address every frame |
 | `ui_shadow(x, y, blur, r, g, b, a)` | the shadow of the element the next `ui_open` declares (a `css.shadow` style): Clay has no shadow field, so it waits here and the element id's hash carries it to the renderer's table (one a frame, 32 at most, one draw an element) |
 | `ui_text(bytes, len, f32[10])` | a text element; the bytes are copied for the frame |
@@ -149,6 +150,22 @@ pointer. `root: true` attaches to the window (`Clay__RootContainer`), so `width`
 `parent: "<id>"` + `attach: { element: "left top", parent: "left bottom" }` hangs a menu off its trigger.
 
 Sizing type: 0 fit, 1 grow, 2 percent, 3 fixed (Clay's order).
+
+### The value channel: a field that moves
+
+A variant is packed once and kept, so a page cannot change a style's number by rebuilding it. Instead its `View.tick`
+runs before the tree is declared and calls `ui.value(id, field, value)`: `ui_open` copies that element's 45 floats,
+applies the frame's overrides of its id and declares from the copy. It is the shadow's and the backdrop's kind of side
+table — cleared in `ui_begin`, nothing cached — and a frame without overrides declares exactly the literal, which is why
+the Dialog's settled frames stayed byte-identical. `field` is a packed field (0..44), or `FIELDS.SHADOW_BLUR` (45), which
+is `ui_shadow`'s blur and not one of the floats.
+
+Naming them is `pack.ts`'s `FIELDS`: `OFFSET_X` 38 and `OFFSET_Y` 39 of a float, `EXPAND_W`/`EXPAND_H` 40/41, `Z_INDEX`
+42, `RADIUS` 18 (the four corners), `BACKGROUND` 14 (rgba), `PADDING` 6, `GAP` 10, `WIDTH` 0, `HEIGHT` 3. The first group
+is what reads as motion; width, height, padding, gap and the colours are legal but Clay lays the page out from the
+declaration each frame, so a changing one re-lays-out the element's parent and its siblings — a layout change, not a
+transform. The cost is a 180-byte copy per overridden element and one scan of the table per `ui_open` on a frame that
+uses it.
 
 ### `ui_text` fields (`packText`)
 
@@ -293,23 +310,46 @@ seventeen stored frames in `frames/`:
 | Widget | What it is | Keys and pointer |
 | --- | --- | --- |
 | Settings dialog | `createDialogModal` (role `dialog`): a float 280 wide centred on the root (`css.float({ root: true, attach: { element: "center center", parent: "center center" }, zIndex: 2 })`) over a backdrop float that is the whole window (`root: true`, `left top`, `stretch`, `zIndex: 1`, `rgb(0 0 0 / 0.55)`) and takes the pointer | "Open settings" opens it by click or Enter; focus moves to Cancel and Tab/Shift+Tab cycle Cancel and OK and never leave; Escape and Cancel close without a write; OK writes `Volume: 55%` onto the page. The backdrop swallows every press, so the page behind is unreachable by pointer, and `input.modal` keeps it unreachable by keyboard. Closing returns focus to the trigger |
-| Zoom menu | `createMenu` (plain, `100% 125% 150% 200%`): a float attached to `zoom-trigger`, `attach: { element: "left top", parent: "left bottom" }`, 4px down, `zIndex: 10` | Tab reaches the trigger; Enter, Space, Down or Up open it on the first/last item; Up/Down wrap, Home/End go to the ends; Enter picks and closes, Escape closes and returns focus to the trigger, Tab closes and leaves. The picked zoom is shown in the pill and the menu's dot |
+| Zoom menu | `createMenu` (plain, `100% 125% 150% 200%`): a float attached to `zoom-trigger`, `attach: { element: "left top", parent: "left bottom" }`, offset y -20 (it overlaps the trigger's bottom edge by 20px, so the glass has a border and a text stroke under it), `zIndex: 10` | Tab reaches the trigger; Enter, Space, Down or Up open it on the first/last item; Up/Down wrap, Home/End go to the ends; Enter picks and closes, Escape closes and returns focus to the trigger, Tab closes and leaves. The picked zoom is shown in the pill and the menu's dot |
 
 The dialog's container and the backdrop carry an `onPress` that does nothing: a press inside the dialog or on the
 backdrop must not read as a press on empty space (`onPressMiss` would blur).
 
+**The arrival.** The two overlays animate through the value channel (`ui.value`, above): each frame the page's tick
+overrides two numbers of their packed styles — the float's offset y and the shadow's blur — and both targets are the
+style's own literals, so a settled frame is the literal's frame, pixel for pixel. The menu slides out of its trigger:
+offset y `-10` → `-20` on `spatial(0.22, 0.1)` (a light bounce) and its shadow's blur `0` → `14` on `effect(0.22)`; the
+dialog drops in: offset y `-14` → `0` and its shadow's blur `0` → `32`. The blur takes the `effect` class because a blur
+has no negative side and must not ring in a luminance field, the offset `spatial` because position may carry a little
+velocity. The clocks are the page's and only run while the element is declared (`Show` unmounts it), so a menu closed
+mid-slide freezes there and a reopen retargets from that value: it comes back exactly where it was, no jump and no
+restart. There is no exit animation: presence (keeping the node alive past `Show`) is not something immediate mode gives
+for free.
+
 | Frame | Keys | Shows |
 | --- | --- | --- |
 | `dialog-closed` | | the page at rest: `Volume: 40%`, Zoom `100%`, no menu |
-| `dialog-open` | Tab Enter | the dimmed page and the dialog centred on it, ring on Cancel, `Volume` still 40% |
-| `dialog-light` | Tab Enter, `THEME=light` | the same in the light theme: a white dialog over a greyed page |
-| `dialog-menu` | Tab Tab Enter | the menu hanging off the Zoom trigger's left-bottom corner, ring and dot on `100%`, the trigger's `-` |
+| `dialog-open` | Tab Enter, settled | the dimmed page and the dialog centred on it, ring on Cancel, `Volume` still 40% |
+| `dialog-light` | Tab Enter, settled, `THEME=light` | the same in the light theme: a white dialog over a greyed page |
+| `dialog-menu` | Tab Tab Enter, settled | the menu hanging off the Zoom trigger's left-bottom corner, ring and dot on `100%`, the trigger's `-` |
+| `dialog-menu-mid` | Tab Tab Enter, 3 frames after the key | the menu 7.4px lower than it rests (offset -12.58), its shadow at about a fifth of its blur |
 
 Checked by `bun solid/dialog.test.ts`: opening by click and by keyboard, the trap's two-control cycle, the page's trigger
 never a stop while open, Escape and Cancel writing nothing, OK writing 55%, a press on the backdrop doing nothing and not
 reaching the page behind, `ui.bounds` of the backdrop (the window) and the dialog (centred on the root), the page's
-layout unchanged behind the backdrop, and the menu's arrows, Home/End, Escape back to the trigger, Enter and a click
-picking.
+layout unchanged behind the backdrop, the menu's arrows, Home/End, Escape back to the trigger, Enter and a click
+picking, and the motion: the menu's offset `-10.00, -10.85, -12.58, -14.42, -16.04, -17.32, -18.26, -18.92, -19.36,
+-19.64, -19.82, -19.92, -19.97, -20.00` and at rest exactly its style's -20, every frame towards it and none past it,
+the shadow with no blur on its first frame (the page beside it) and its blur darkening that page 18.0 → 13.9 as it
+settles, a reopen mid-slide at -10.85 coming back at -10.85 (a jump of 0.000), and the dialog's drop `149.88, 151.07,
+153.49, … 163.88` finite and still. The frames are taken at rest (`--settle 30`) because a stored frame of a moving page
+would pin an instant of the spring; `dialog-menu` and `dialog-menu-light` came out **byte-identical** to the frames
+before the channel, `dialog-open` and `dialog-light` were regenerated (the panel's shadow is now the style's own 32 at
+rest, and only the shadow band outside its box and its 1px border changed).
+
+**Mutation.** `ui_value` dropping `OFFSET_Y` leaves every frame at -20 — `FAIL every frame of the slide moves it towards
+the offset: false, wanted true` and `FAIL the menu appears 10px below the style's offset` — and the mid frame's menu
+sits at the settled place, only its shadow band differing; `ui.c` is compared with its backup after the revert.
 
 ## The Text field page
 

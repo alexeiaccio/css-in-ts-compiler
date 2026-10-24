@@ -10,6 +10,31 @@ export const STYLE_FIELDS = 45;
 /** The fields of a text, by index (ui.c's ui_text). */
 export const TEXT_FIELDS = 10;
 
+/**
+ * The fields a page may animate through the value channel (`ui.value`, `ui_open`'s copy of the packed floats), named.
+ * The rest of the 45 are in solid/README.md's table; only these are worth a name, and one of them is not a float at all:
+ * `SHADOW_BLUR` is `ui_shadow`'s argument, the blur of the element's shadow (45, one past the packed array).
+ *
+ * A page writes these from its `View.tick` (before the tree is declared) for the element's `id`. What reads as motion:
+ * `OFFSET_X`/`OFFSET_Y` of a float and `SHADOW_BLUR` (a renderer effect, no layout); `EXPAND_W`/`EXPAND_H` and
+ * `Z_INDEX` too. `WIDTH`/`HEIGHT`, `PADDING`, `GAP` and the colours are legal but move Clay's layout: a field that
+ * changes a box's size re-lays-out its parent and its siblings each frame, so animate a transform-like field, not a size.
+ */
+export const FIELDS = {
+  WIDTH: 0, // 0-2: type, min or percent, max
+  HEIGHT: 3, // 3-5
+  PADDING: 6, // 6-9: left, right, top, bottom
+  GAP: 10,
+  BACKGROUND: 14, // 14-17: r, g, b, a
+  RADIUS: 18, // 18-21: top-left, top-right, bottom-right, bottom-left
+  OFFSET_X: 38, // a float's offset, the field a slide animates
+  OFFSET_Y: 39,
+  EXPAND_W: 40, // 40-41: a float's expand
+  EXPAND_H: 41,
+  Z_INDEX: 42,
+  SHADOW_BLUR: 45, // ui_shadow's blur, not one of the 45: ui.c's FIELD_SHADOW_BLUR
+} as const;
+
 const SIZING = { FIT: 0, GROW: 1, PERCENT: 2, FIXED: 3 } as const;
 const ALIGN_X = { LEFT: 0, CENTER: 1, RIGHT: 2 } as const;
 const ALIGN_Y = { TOP: 0, CENTER: 1, BOTTOM: 2 } as const;

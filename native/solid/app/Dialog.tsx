@@ -9,8 +9,11 @@ import {
   createDialogModal,
   createMenu,
 } from "../../headless/src/index.ts";
-import type { Input } from "../src/input.ts";
 import { a11y } from "../a11y.ts";
+import { ui } from "../src/ffi.ts";
+import type { Input } from "../src/input.ts";
+import { effect, spatial, track } from "../src/motion.ts";
+import { FIELDS } from "../src/pack.ts";
 
 const t = css.createTokens({
   color: {
@@ -103,6 +106,7 @@ const backdrop = css.cn(
   css.float({ root: true, attach: { element: "left top", parent: "left top" }, zIndex: 1, capture: true }),
 );
 // the dialog: a root float centred on the page, above the backdrop
+const panelBlur = 32;
 const panel = css.cn(
   css.width(280),
   css.p(18),
@@ -111,7 +115,7 @@ const panel = css.cn(
   css.bg(t.color.surface),
   css.borderRadius(12),
   css.border(1, t.color.muted),
-  css.shadow({ y: 12, blur: 24, color: "rgb(0 0 0 / 0.45)" }),
+  css.shadow({ y: 12, blur: panelBlur, color: "rgb(0 0 0 / 0.45)" }),
   css.float({
     root: true,
     attach: { element: "center center", parent: "center center" },
@@ -124,6 +128,8 @@ const actions = css.cn(css.width("stretch"), css.gap(10));
 
 // the menu: a float attached to its trigger's left-bottom corner, one row per item. It overlaps the trigger by 20px so
 // there is a border and a text stroke under the glass, and its fill is translucent for the blur to show through.
+const menuDrop = -20; // its float's offset y: it overlaps the trigger's bottom edge by 20px
+const menuBlur = 14; // its shadow's blur
 const menu = css.cn(
   css.width(150),
   css.p(6),
@@ -133,11 +139,11 @@ const menu = css.cn(
   css.borderRadius(10),
   css.border(1, t.color.muted),
   // a smaller shadow than the dialog's: it hangs off a row, not over the whole page; under the glass, on the page
-  css.shadow({ y: 6, blur: 14, color: "rgb(0 0 0 / 0.45)" }),
+  css.shadow({ y: 6, blur: menuBlur, color: "rgb(0 0 0 / 0.45)" }),
   css.float({
     parent: "zoom-trigger",
     attach: { element: "left top", parent: "left bottom" },
-    offset: { y: -20 },
+    offset: { y: menuDrop },
     zIndex: 10,
   }),
 );
@@ -181,6 +187,50 @@ export const s = {
 /** The window of the page. */
 export const size = { width: 360, height: 480 };
 
+// The two overlays arrive with motion (src/motion.ts) through the value channel: each frame the page overrides two
+// numbers of the packed style by the element's id (`ui.value`) — its float's offset y and its shadow's blur (field 45,
+// the one value outside the 45 floats). Both targets are the style's own literals, so a settled frame is the frame the
+// literal makes, pixel for pixel.
+const SLIDE = spatial(0.22, 0.1); // a light bounce: the overlay grows out of its trigger, it does not fly in
+const BLUR = effect(0.22); // a blur has no negative side and must not ring: clamped and critically damped
+// where each arrival starts, in px from its settled offset y: the menu 10px lower (under its trigger), the panel 14px
+// higher (dropping in), and both shadows from 0
+const ENTRY = { menu: 10, panel: -14 };
+
+/**
+ * One element's arrival: its float's offset y and its shadow's blur, on a clock that runs only while the element is on
+ * screen. A menu closed mid-slide freezes where it was, so a reopen continues from what was presented rather than
+ * starting over.
+ */
+function arrival(id: string, to: number, from: number, blur: number) {
+  return { id: Buffer.from(id), to, from, blur, clock: 0, shown: false, y: track(to, SLIDE), shade: track(blur, BLUR) };
+}
+type Arrival = ReturnType<typeof arrival>;
+
+/** Starts an arrival at t: from its entry value when the element is at rest, from the presented (x, v) when it was
+ *  caught mid-flight, so a reopen neither jumps nor starts over. */
+function begin(a: Arrival, t: number) {
+  if (a.y.at(t).done && a.shade.at(t).done) {
+    a.y = track(a.from, SLIDE, t);
+    a.shade = track(0, BLUR, t);
+  }
+  a.y.retarget(t, a.to, SLIDE);
+  a.shade.retarget(t, a.blur, BLUR);
+}
+
+/** This frame's values of an arrival into the renderer; no track reads the time, so the clock is the page's own. The
+ *  clock is the time of the last presented frame: the frame an element appears on shows the entry exactly (a blur of 0,
+ *  the offset 10px low), and a reopen shows the value it froze on. */
+function step(a: Arrival, shown: boolean, dt: number) {
+  const appears = shown && !a.shown;
+  if (appears) begin(a, a.clock);
+  else if (shown) a.clock += dt; // a shown frame is one dt after the one before it
+  a.shown = shown;
+  if (!shown) return;
+  ui.value(a.id, FIELDS.OFFSET_Y, a.y.at(a.clock).x);
+  ui.value(a.id, FIELDS.SHADOW_BLUR, a.shade.at(a.clock).x);
+}
+
 const ZOOMS = ["100%", "125%", "150%", "200%"];
 
 /**
@@ -188,8 +238,9 @@ const ZOOMS = ["100%", "125%", "150%", "200%"];
  * every press and `input.modal` every key, so the page behind is unreachable. OK writes 55% onto the page, Cancel and
  * Escape close without writing. The menu reports the zoom it last picked next to its trigger; its panel is glass over
  * the page, unless `glass` is false (what the pixel test renders to compare the blur against the same page without it).
+ * `motion` is the host's frame hook (`solid/main.ts` wires it): the menu and the dialog animate through it.
  */
-export function Dialog(props: { input: Input; glass?: boolean }) {
+export function Dialog(props: { input: Input; glass?: boolean; motion?: { tick?: (dt: number) => void } }) {
   const { input } = props;
   const [volume, setVolume] = createSignal(40);
   const [changed, setChanged] = createSignal(false);
@@ -224,6 +275,15 @@ export function Dialog(props: { input: Input; glass?: boolean }) {
 
   // the modal trap: tab cycles the dialog's controls, Escape closes it; other keys go to the focused control
   input.modal = (name, repeat) => dialog.open() && dialog.keyDown(name, repeat);
+
+  // the two arrivals: the menu slides out of its trigger, the dialog drops in (both end on the style's own values)
+  const menuArrival = arrival(menu.menu.id, menuDrop, menuDrop + ENTRY.menu, menuBlur);
+  const panelArrival = arrival(dialog.dialog.id, 0, ENTRY.panel, panelBlur);
+  if (props.motion)
+    props.motion.tick = (dt) => {
+      step(menuArrival, menu.open(), dt);
+      step(panelArrival, dialog.open(), dt);
+    };
 
   return (
     <box id="Root" style={s.root}>

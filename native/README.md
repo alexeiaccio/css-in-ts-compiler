@@ -51,10 +51,10 @@ covers the shadow's middle. One shadow an element; **the element needs an `id`**
 The effect's sigma is in the scene's own units, so the root scene's scale carries it: the same sigma under a root at
 pixel density 2 blurs twice as many device pixels, which is why it is not multiplied by the density. Ceilings, on
 purpose: 32 shadows a frame, no spread and no inner shadow (the box is the element's own), nothing cached between
-frames (the blur runs again each frame), and the cost is real — the Dialog page's 280x152 panel at blur 24 takes the
-360x480 frame from 1.07 to 1.93 ms (Apple M2, one thread, `--bench 300`; light 1.00 → 1.76, quality 50 and 30 are 1.47
-and 1.31 ms for 5/255 and 15/255 at the edge). The C pages — `examples/`, the terminal, the browser — ignore a shadow:
-`header()` prints nothing for it and the generated declarations are unchanged.
+frames (the blur runs again each frame), and the cost is real — the Dialog page's 280x152 panel at blur 32 takes the
+frame's draw from 0.58 to 1.92 ms (Apple M2, one thread, `--bench 300`, two back-to-back runs; the price grows with the
+blur's area). The C pages — `examples/`, the terminal, the browser — ignore a shadow: `header()` prints nothing for it
+and the generated declarations are unchanged.
 
 ### A backdrop: glass over our own content
 
@@ -133,6 +133,35 @@ The Sky page's cards are the first gradient: `180deg` from `rgb(27 32 38)` to `r
 not an inversion. A hover overrides the whole gradient with the hover tokens (`34 40 49` to `28 33 40`): a state cannot
 unset one, so it replaces it.
 
+### A value channel: one field of a style, per frame
+
+A packed style is a **compile-time literal**: `solid/plugin.ts` runs cssints at build time, `pack.ts` resolves a theme
+and a state, and the 45 floats are packed once and kept per variant, so no number in a style can change between frames.
+The value channel is the hole in that, kept as small as the shadow's and the backdrop's side tables: a page's `tick`
+(which runs after `ui_begin` and after the events, before the tree is declared) calls
+`ui_value(id, len, field, value)` for an element's id, and `ui_open` copies that element's 45 floats, applies the frame's
+overrides of its id and declares from the copy. Nothing is cached between frames, the table is cleared in `ui_begin`, and
+a frame that uses no channel declares exactly what the literal says — which is how the Dialog's settled frames came out
+byte-identical after the menu and the panel learned to move.
+
+`field` 0..44 is a packed field, in `solid/README.md`'s table order; `pack.ts`'s `FIELDS` names the ones worth a name
+(`WIDTH` 0, `HEIGHT` 3, `PADDING` 6, `GAP` 10, `BACKGROUND` 14, `RADIUS` 18, `OFFSET_X` 38, `OFFSET_Y` 39, `EXPAND_W`/
+`EXPAND_H` 40/41, `Z_INDEX` 42). **45 is not a float of the style at all**: it is `ui_shadow`'s blur, the one number of
+a shadow a page can move, which the channel hands to the pending shadow before `ui_open` hangs it on the renderer's
+table. Out of range, or a 65th override in a frame, is counted as an error and dropped.
+
+What a page may animate, and what is meaningless mid-frame: an **offset** (`OFFSET_X`/`OFFSET_Y`), `EXPAND_*`,
+`Z_INDEX` and the **shadow's blur** are read as the element is placed and drawn, and nothing else moves. `WIDTH`/`HEIGHT`,
+`PADDING`, `GAP` and the colours are legal — the override is applied to the floats the declaration is built from — but
+Clay's layout is computed from the declaration every frame, so a width or a gap that changes re-lays-out the element's
+parent and its siblings each frame: it is a **layout** change, not a transform, and an animation of one reads as a jitter
+of everything around it. A slide belongs on a float's offset; a fade or a scale is not this channel's (the last
+paragraph of this section says why).
+
+The cost is one scan of the table per `ui_open` on a frame that uses the channel, and a 180-byte `memcpy` of the 45
+floats for each element that has an override (the Dialog writes two elements a frame: 360 bytes, and its declare phase is
+0.008 ms of a 2.0 ms frame). The table holds 64 overrides, which is more than a page animating a dozen elements needs.
+
 ## Motion
 
 `solid/src/motion.ts` is Rune's model, and the first user is the Sky feed's scroll. A **spring** is made from
@@ -177,14 +206,33 @@ frame-to-frame increase 1.64px against the notch's 10. The four stored `frames/s
 `--settle 60` and are **byte-identical**: the settle is the same -78 the clamp had, so the motion changes the frames
 between the ends, not the committed ones.
 
-Not here: **opacity and transform animation**. A Clay style is a compile-time literal (`css.cn(...)` becomes a packed
-`Float32Array` at module load), and `frame.ts` reads it whole each frame, so animating one field needs a runtime
-style-value channel — a way for a page to say "this field, this frame" without a new literal — and that is a separate
-change; today a track can only drive a value the page already consumes itself (`ui.scrollTo` here). So the Dialog, the
-menu, the tab underline and hover are not animated yet, nor is anything on first mount. Also not here: reduced motion,
-a rubber band at the ends (the Sky feed clamps hard), drag scrolling and touch (a pointer's velocity is the host's; the
-List page still has no momentum and keeps Clay's instant wheel step), and the terminal, browser and board targets
-(they have no Solid page or no wheel).
+The Dialog page is the value channel's first user, and it animates the two overlays of `headless/`. Both end on the
+style's own literal, so a settled frame is the literal's frame: the **menu** slides out of its trigger — its float's
+offset y from -10 to its style's -20 on `spatial(0.22, 0.1)`, and its shadow's blur from 0 to its style's 14 on
+`effect(0.22)`, which is clamped and critically damped because a blur has no negative side and must not ring; the
+**dialog** drops in — offset y from -14 to 0 and its shadow's blur 0 to 32, the same two tracks. Both use the `effect`
+class for the blur and `spatial` for the offset for the same reason: position may carry a little velocity, a luminance
+field may not. The pair that reads best in a frame is the offset with the blur at once: the menu grows out of the
+trigger (it starts 10px lower, over the 20px it overlaps) while its shadow appears under it, so by the third frame
+(2/60s in) the menu is 7.4px low with a shadow at a quarter of its blur — legible as "arriving" rather than as a jump;
+the blur alone would look like a fade and the offset alone like a slide with no depth.
+
+The clocks are the page's, and they run only while the element is declared: `Show` unmounts the menu, so the tick stops
+advancing its clock (an arrival's clock is the time of its last presented frame), and a reopen retargets from the value
+it froze on — a menu closed 2 frames in comes back exactly where it was, no jump and no restart (measured: closed at
+-10.85, reopened at -10.85, a jump of 0.000). At rest it retargets from the entry instead. There is **no exit
+animation**: presence would need the page to keep the node alive after `Show` drops it, which the renderer's immediate
+mode does not give it for free.
+
+Not here: **opacity and transform animation**. The value channel (above) moves a numeric field of a style — an offset, an
+expand, a shadow's blur — by element id, so a track can now drive a box; what it cannot do is fade a whole subtree
+(every element's colours would need an override, and a text's colours are not in its box's 45 floats), scale or rotate a
+box (Clay has no transform; a scale of a float's `EXPAND_W`/`EXPAND_H` moves its children, not its glyphs), or keep an
+element alive after `Show` drops it (an exit animation needs presence: a page would have to keep the node and hide it when
+the animation ends — out of scope, so closing the menu and the dialog is still instant). With them: reduced motion, a
+rubber band at the feed's ends (the Sky feed clamps hard), drag scrolling and touch (a pointer's velocity is the host's;
+the List page still has no momentum and keeps Clay's instant wheel step), the tab underline and hover, and the terminal,
+browser and board targets (they have no Solid page, no wheel and no value channel).
 
 ## Test
 

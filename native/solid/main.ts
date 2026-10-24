@@ -22,7 +22,8 @@
 //                                        notch is 10px: Clay's scroll on the List page, the Sky feed's own track)
 //   --wheel-over ID                      the element the wheel's pointer goes onto (default "list")
 //   --settle N                           headless: N more frames at 1/60 after the wheel and the keys, for a page whose
-//                                        motion has to come to rest (the Sky feed's spring and fling)
+//                                        motion has to come to rest (the Sky feed's spring and fling, the Dialog's menu
+//                                        slide and panel drop)
 //   --bench N                            headless: N more frames, the ms a frame by phase
 //   --raster thorvg|thorvg-gpu           the ThorVG software canvas (the default) or its WebGPU canvas, the frame read
 //                                        back; the latter needs a libui.dylib from desktop/build-thorvg-gpu.sh solid
@@ -91,13 +92,13 @@ const input = createInput();
 // `t` is the page's shortcut only while no text field has focus: a letter typed into one is a character, not a key
 input.fallback = (name) => (name === "t" && !input.editing() ? ((theme = theme ? undefined : "light"), true) : false);
 const dragState: Drag = {};
-// the Sky feed's frame hook: the page puts its wheel handler and its tick on it, the host calls them
+// the page's frame hook: the pages put their wheel handler and their tick on it, the host calls them
 const motion: Motion = {};
 const dispose = render(
   page === "widgets"
     ? () => Widgets({ input, drag: dragState })
     : page === "dialog"
-      ? () => Dialog({ input })
+      ? () => Dialog({ input, motion })
       : page === "form"
         ? () => Field({ input })
         : page === "list"
