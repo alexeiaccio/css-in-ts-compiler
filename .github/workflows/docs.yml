@@ -15,6 +15,12 @@ on:
       - bun.lock
       - .github/workflows/docs.yml
   workflow_dispatch:
+    inputs:
+      # sent by the site-hook relay (effects-of-atmosphere, apps/site-hook) when the pages in the PDS changed: what moved
+      nudge:
+        description: What changed in the CMS
+        required: false
+        type: string
 
 concurrency:
   group: docs-deploy
@@ -38,5 +44,8 @@ jobs:
         run: bun alchemy deploy --stage prod --yes
         env:
           CI: "true"
+          # "pds" builds README.md and docs/API.md from the cssints PDS (apps/docs/plugin/pds.ts); unset is the files. A repository
+          # variable, so the switch (and the way back) is not a commit.
+          DOCS_SOURCE: ${{ vars.DOCS_SOURCE }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

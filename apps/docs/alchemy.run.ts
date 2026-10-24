@@ -11,6 +11,9 @@ export default Alchemy.Stack(
     const site = yield* Cloudflare.Website.StaticSite("Docs", {
       command: "bun run build",
       outdir: "dist",
+      // the build reads the PDS (DOCS_SOURCE=pds, plugin/pds.ts), which Alchemy cannot hash: with the default it skips a build
+      // whose files did not change, and a deploy that a CMS edit started would ship the last build again
+      memo: false,
       assets: { notFoundHandling: "404-page" },
       domain: "cssints.dev",
     });
