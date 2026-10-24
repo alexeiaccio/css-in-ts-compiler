@@ -11,6 +11,9 @@ packages/mise-en-mode/test/fixtures
 # Recorded API responses (apps/csssky/scripts/record-fixtures.mjs), kept compact.
 apps/csssky/test/fixtures
 
+# The importer's output for a page with every construct (effects-of-atmosphere, tools/cms-import), byte for byte: test/pds.mjs.
+apps/docs/test/fixtures/pds
+
 # Written by docs/research/sublayers-proto (node run.mjs, node audit.mjs).
 docs/research/sublayers-proto/fixtures
 docs/research/sublayers-proto/*.json

@@ -1,0 +1,497 @@
+[
+ {
+  "_type": "block",
+  "_key": "b0",
+  "style": "h1",
+  "children": [
+   {
+    "_type": "span",
+    "_key": "s1",
+    "text": "Title (decided 2026-10-01, cssints-abcd)",
+    "marks": []
+   }
+  ],
+  "markDefs": []
+ },
+ {
+  "_type": "block",
+  "_key": "b2",
+  "style": "normal",
+  "children": [
+   {
+    "_type": "span",
+    "_key": "s3",
+    "text": "Plain text with ",
+    "marks": []
+   },
+   {
+    "_type": "span",
+    "_key": "s4",
+    "text": "bold",
+    "marks": [
+     "strong"
+    ]
+   },
+   {
+    "_type": "span",
+    "_key": "s5",
+    "text": ", ",
+    "marks": []
+   },
+   {
+    "_type": "span",
+    "_key": "s6",
+    "text": "em",
+    "marks": [
+     "em"
+    ]
+   },
+   {
+    "_type": "span",
+    "_key": "s7",
+    "text": ", ",
+    "marks": []
+   },
+   {
+    "_type": "span",
+    "_key": "s8",
+    "text": "code",
+    "marks": [
+     "code"
+    ]
+   },
+   {
+    "_type": "span",
+    "_key": "s9",
+    "text": ", ",
+    "marks": []
+   },
+   {
+    "_type": "span",
+    "_key": "sa",
+    "text": "gone",
+    "marks": [
+     "strike-through"
+    ]
+   },
+   {
+    "_type": "span",
+    "_key": "sb",
+    "text": ", a ",
+    "marks": []
+   },
+   {
+    "_type": "span",
+    "_key": "sd",
+    "text": "link",
+    "marks": [
+     "lc"
+    ]
+   },
+   {
+    "_type": "span",
+    "_key": "se",
+    "text": ", ",
+    "marks": []
+   },
+   {
+    "_type": "span",
+    "_key": "sf",
+    "text": "bold code",
+    "marks": [
+     "strong",
+     "code"
+    ]
+   },
+   {
+    "_type": "span",
+    "_key": "sg",
+    "text": " and snake_case.\nA second line of the same paragraph.",
+    "marks": []
+   }
+  ],
+  "markDefs": [
+   {
+    "_key": "lc",
+    "_type": "link",
+    "href": "https://example.com",
+    "title": "T"
+   }
+  ]
+ },
+ {
+  "_type": "block",
+  "_key": "bh",
+  "style": "blockquote",
+  "children": [
+   {
+    "_type": "span",
+    "_key": "si",
+    "text": "quoted one\nquoted two",
+    "marks": []
+   }
+  ],
+  "markDefs": []
+ },
+ {
+  "_type": "block",
+  "_key": "bj",
+  "style": "h2",
+  "children": [
+   {
+    "_type": "span",
+    "_key": "sk",
+    "text": "Lists",
+    "marks": []
+   }
+  ],
+  "markDefs": []
+ },
+ {
+  "_type": "block",
+  "_key": "bl",
+  "style": "normal",
+  "listItem": "bullet",
+  "level": 1,
+  "children": [
+   {
+    "_type": "span",
+    "_key": "sm",
+    "text": "tight one",
+    "marks": []
+   }
+  ],
+  "markDefs": []
+ },
+ {
+  "_type": "block",
+  "_key": "bn",
+  "style": "normal",
+  "listItem": "bullet",
+  "level": 1,
+  "children": [
+   {
+    "_type": "span",
+    "_key": "so",
+    "text": "tight ",
+    "marks": []
+   },
+   {
+    "_type": "span",
+    "_key": "sp",
+    "text": "two",
+    "marks": [
+     "strong"
+    ]
+   }
+  ],
+  "markDefs": []
+ },
+ {
+  "_type": "block",
+  "_key": "bq",
+  "style": "normal",
+  "listItem": "bullet",
+  "level": 2,
+  "children": [
+   {
+    "_type": "span",
+    "_key": "sr",
+    "text": "nested a",
+    "marks": []
+   }
+  ],
+  "markDefs": []
+ },
+ {
+  "_type": "block",
+  "_key": "bs",
+  "style": "normal",
+  "listItem": "bullet",
+  "level": 2,
+  "children": [
+   {
+    "_type": "span",
+    "_key": "st",
+    "text": "nested b",
+    "marks": []
+   }
+  ],
+  "markDefs": []
+ },
+ {
+  "_type": "block",
+  "_key": "bu",
+  "style": "normal",
+  "listItem": "bullet",
+  "level": 1,
+  "children": [
+   {
+    "_type": "span",
+    "_key": "sv",
+    "text": "tight three",
+    "marks": []
+   }
+  ],
+  "markDefs": []
+ },
+ {
+  "_type": "block",
+  "_key": "bw",
+  "style": "normal",
+  "listItem": "number",
+  "level": 1,
+  "children": [
+   {
+    "_type": "span",
+    "_key": "sx",
+    "text": "first",
+    "marks": []
+   }
+  ],
+  "markDefs": []
+ },
+ {
+  "_type": "block",
+  "_key": "by",
+  "style": "normal",
+  "listItem": "number",
+  "level": 1,
+  "children": [
+   {
+    "_type": "span",
+    "_key": "sz",
+    "text": "second",
+    "marks": []
+   }
+  ],
+  "markDefs": []
+ },
+ {
+  "_type": "block",
+  "_key": "b10",
+  "style": "normal",
+  "listItem": "bullet",
+  "level": 1,
+  "loose": true,
+  "children": [
+   {
+    "_type": "span",
+    "_key": "s11",
+    "text": "Loose term",
+    "marks": [
+     "strong"
+    ]
+   },
+   {
+    "_type": "span",
+    "_key": "s12",
+    "text": ": text",
+    "marks": []
+   }
+  ],
+  "markDefs": []
+ },
+ {
+  "_type": "code",
+  "_key": "k13",
+  "language": "ts",
+  "meta": "skip",
+  "code": "const a = 1;",
+  "itemLevel": 1
+ },
+ {
+  "_type": "table",
+  "_key": "t14",
+  "align": [
+   "none",
+   "center"
+  ],
+  "header": [
+   {
+    "_type": "cell",
+    "_key": "c15",
+    "children": [
+     {
+      "_type": "span",
+      "_key": "s16",
+      "text": "A",
+      "marks": []
+     }
+    ],
+    "markDefs": []
+   },
+   {
+    "_type": "cell",
+    "_key": "c17",
+    "children": [
+     {
+      "_type": "span",
+      "_key": "s18",
+      "text": "B",
+      "marks": []
+     }
+    ],
+    "markDefs": []
+   }
+  ],
+  "rows": [
+   [
+    {
+     "_type": "cell",
+     "_key": "c19",
+     "children": [
+      {
+       "_type": "span",
+       "_key": "s1a",
+       "text": "x|y",
+       "marks": [
+        "code"
+       ]
+      }
+     ],
+     "markDefs": []
+    },
+    {
+     "_type": "cell",
+     "_key": "c1b",
+     "children": [
+      {
+       "_type": "span",
+       "_key": "s1c",
+       "text": "z",
+       "marks": [
+        "strong"
+       ]
+      }
+     ],
+     "markDefs": []
+    }
+   ]
+  ],
+  "itemLevel": 1
+ },
+ {
+  "_type": "block",
+  "_key": "b1d",
+  "style": "normal",
+  "itemLevel": 1,
+  "children": [
+   {
+    "_type": "span",
+    "_key": "s1e",
+    "text": "after the table",
+    "marks": []
+   }
+  ],
+  "markDefs": []
+ },
+ {
+  "_type": "block",
+  "_key": "b1f",
+  "style": "normal",
+  "listItem": "bullet",
+  "level": 1,
+  "loose": true,
+  "children": [
+   {
+    "_type": "span",
+    "_key": "s1g",
+    "text": "Second",
+    "marks": [
+     "strong"
+    ]
+   },
+   {
+    "_type": "span",
+    "_key": "s1h",
+    "text": " item",
+    "marks": []
+   }
+  ],
+  "markDefs": []
+ },
+ {
+  "_type": "code",
+  "_key": "k1i",
+  "language": "bash",
+  "code": "npm i"
+ },
+ {
+  "_type": "table",
+  "_key": "t1j",
+  "align": [
+   "none",
+   "none"
+  ],
+  "header": [
+   {
+    "_type": "cell",
+    "_key": "c1k",
+    "children": [
+     {
+      "_type": "span",
+      "_key": "s1l",
+      "text": "Option",
+      "marks": []
+     }
+    ],
+    "markDefs": []
+   },
+   {
+    "_type": "cell",
+    "_key": "c1m",
+    "children": [
+     {
+      "_type": "span",
+      "_key": "s1n",
+      "text": "What",
+      "marks": []
+     }
+    ],
+    "markDefs": []
+   }
+  ],
+  "rows": [
+   [
+    {
+     "_type": "cell",
+     "_key": "c1o",
+     "children": [
+      {
+       "_type": "span",
+       "_key": "s1p",
+       "text": "a",
+       "marks": [
+        "code"
+       ]
+      }
+     ],
+     "markDefs": []
+    },
+    {
+     "_type": "cell",
+     "_key": "c1q",
+     "children": [
+      {
+       "_type": "span",
+       "_key": "s1r",
+       "text": "b",
+       "marks": []
+      }
+     ],
+     "markDefs": []
+    }
+   ]
+  ]
+ },
+ {
+  "_type": "html",
+  "_key": "h1s",
+  "html": "<img src=\"x.svg\" alt=\"\" width=\"1\">"
+ },
+ {
+  "_type": "thematicBreak",
+  "_key": "r1t"
+ }
+]
