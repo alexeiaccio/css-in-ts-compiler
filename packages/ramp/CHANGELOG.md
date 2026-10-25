@@ -1,5 +1,15 @@
 # @cssints/ramp
 
+## 0.7.0
+
+### Patch Changes
+
+- Updated dependencies [135e011]
+- Updated dependencies [561fc47]
+- Updated dependencies [a269a19]
+- Updated dependencies [91616c0]
+  - cssints@0.7.0
+
 ## 0.6.1
 
 No changes in this release.
