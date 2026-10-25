@@ -1,4 +1,8 @@
 {
+  "chain.ts": {
+    "tsc": 273741,
+    "tsgo": 284664
+  },
   "empty.ts": {
     "tsc": 0,
     "tsgo": 0
@@ -24,8 +28,8 @@
     "tsgo": 72254
   },
   "plugins-defs.ts": {
-    "tsc": 55391,
-    "tsgo": 64212
+    "tsc": 62146,
+    "tsgo": 69918
   },
   "plugins.ts": {
     "tsc": 77044,
@@ -44,8 +48,8 @@
     "tsgo": 193704
   },
   "unused.ts": {
-    "tsc": 46297,
-    "tsgo": 51992
+    "tsc": 53029,
+    "tsgo": 59964
   },
   "users.ts": {
     "tsc": 960498,

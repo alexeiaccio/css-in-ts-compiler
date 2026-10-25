@@ -1,6 +1,7 @@
 // What user code sees of flex(), grid() and cv(): `tsgo -p tsconfig.json` checks this file (`bun run typecheck`).
 import * as css from "cssints" with { type: "cssints" };
 import {
+  chain,
   cn,
   cv,
   flex,
@@ -109,3 +110,44 @@ cv({ variants: { size: { sm: "_abc" } } });
 cv({ variants: { size: { sm: [p(1)] } } });
 // @ts-expect-error a runtime string is not a build-time style
 cv({ base: css.cn(p(1), "x") });
+
+// chain(): one style built by chaining properties, no cn(). Every step is still a class string, and it can be merged,
+// given to cv(), wrapped in a condition, or held in a variable.
+export const chained: Style = chain().flex().bg("red").p(4).gap(2).fontSize("1rem");
+export const chainedGrid: string = chain().grid().gridTemplateColumns("1fr 2fr").gap(1);
+export const chainedVar: Style = chain().p(2);
+export const chainedMerged: string = cn(chainedVar, chain().bg("blue"));
+export const chainedCond: Style = hover(chain().bg("red"));
+export const chainedCv = cv({
+  base: chain().p(2).bg("red"),
+  variants: { big: { yes: chain().p(4), no: chain().p(1) } },
+});
+// @ts-expect-error the value is checked like a property's
+chain().bg("sideways");
+// @ts-expect-error not a property of a chain
+chain().cn(p(1));
+
+// A chain sets each property once: the second method is `never`. cn() stays the tool for a later value.
+// @ts-expect-error bg twice
+chain().bg("red").bg("blue");
+// @ts-expect-error bg and backgroundColor are one property
+chain().bg("red").backgroundColor("blue");
+// @ts-expect-error in either order
+chain().backgroundColor("blue").bg("red");
+// @ts-expect-error p and padding are one property
+chain().p(4).padding("1rem");
+// @ts-expect-error and so are pt and paddingTop
+chain().paddingTop("1rem").pt("2rem");
+// @ts-expect-error display is set by flex() with no argument
+chain().flex().display("block");
+// @ts-expect-error and display is set once
+chain().flex().grid();
+// @ts-expect-error the flex property too
+chain().flex(1).flex(2);
+// A layout context and the flex property are different properties: a container that is also an item.
+export const containerItem: Style = chain().flex().flex(1).flexGrow(2);
+export const gridItem: Style = chain().grid().flex(1);
+// A shorthand and a longhand of it are different properties: the sheet orders them, as for cn().
+export const longhand: Style = chain().p(4).paddingLeft("1rem");
+export const bothProps: Style = chain().bg("red").background("blue");
+export const contextThenItem: Style = chain().flex().flexDirection("column").flexGrow(1);
