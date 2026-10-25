@@ -7,7 +7,7 @@ created_at: 2026-10-25T15:20:32Z
 updated_at: 2026-10-25T20:10:00Z
 ---
 
-A chaining builder as a separate export from `css`: `import { chain } from "cssints"` and `sx().flex().bg("red")` builds one style with no `cn()`. Every property is a method; `.flex()` / `.grid()` with no argument set display and keep chaining, with parts they are the property. Setting the same property twice in one chain is a type error (the method is gone / takes never), so the later-wins rewrite of cn() cannot be written by accident; shorthand over longhand stays legal (the sheet orders it).
+A chaining builder as a separate export from `css`: `import { sx } from "cssints"` and `sx().flex().bg("red")` builds one style with no `cn()`. Every property is a method; `.flex()` / `.grid()` with no argument set display and keep chaining, with parts they are the property. Setting the same property twice in one chain is a type error (the method is gone / takes never), so the later-wins rewrite of cn() cannot be written by accident; shorthand over longhand stays legal (the sheet orders it).
 
 ## Todo
 - [x] Spike: the site transform sees a bare `sx()` root as one maximal site (a fixture compiles to classes, no cn)
