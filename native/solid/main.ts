@@ -28,6 +28,8 @@
 //   --raster thorvg|thorvg-gpu           the ThorVG software canvas (the default) or its WebGPU canvas, the frame read
 //                                        back; the latter needs a libui.dylib from desktop/build-thorvg-gpu.sh solid
 //   --frames N                           window: close after N frames (a smoke test)
+//   --reduced-motion                     no travel and no waiting: a retarget lands on its target at once and a node
+//                                        that leaves unmounts on the frame it closes (also REDUCED_MOTION=1)
 //   THEME=light                          the light theme
 import "./plugin.ts";
 import type { Motion } from "./app/Sky.tsx";
@@ -56,12 +58,16 @@ const bench = Number(arg("--bench")?.[0] ?? 0);
 // the raster: ThorVG's software canvas (the default) or its WebGPU one, when the dylib was built for it
 const gpu = arg("--raster")?.[0] === "thorvg-gpu";
 const maxFrames = Number(arg("--frames")?.[0] ?? Infinity);
+// reduced motion is the platform's ask, not a page's: one flag, read here and by the window alike
+const reducedMotion = process.argv.includes("--reduced-motion") || process.env.REDUCED_MOTION === "1";
 let theme = process.env.THEME === "light" ? "light" : undefined;
 
 const { ui } = await import("./src/ffi.ts");
 const { createFrame } = await import("./src/frame.ts");
 const { createInput, selectionName } = await import("./src/input.ts");
 const { El, render } = await import("./src/renderer.ts");
+const { setReducedMotion } = await import("./src/motion.ts");
+if (reducedMotion) setReducedMotion(true);
 const { Sensors } = await import("./app/Sensors.tsx");
 const { Widgets, size } = await import("./app/Widgets.tsx");
 const { Dialog, size: dialogSize } = await import("./app/Dialog.tsx");

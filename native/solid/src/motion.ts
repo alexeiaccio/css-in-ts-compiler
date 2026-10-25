@@ -13,9 +13,15 @@
 // that is v0·e^(-kt), k = -1000·ln r ≈ 2.002, and x(t) = x0 + v0·(1 - e^(-kt))/k, so it stops at v0/k and `project()` is
 // where it lands. It stops when |v| < 5px/s and snaps to the projection, the fraction of a pixel a mouse would not see.
 //
-// Not here: a rubber band (Rune's 0.55), a velocity-only track for a drag (a pointer's speed is the host's), reduced
-// motion, and a value channel for anything but the style a page already packs (a page passes the value to ui.scrollTo or
-// into its own draw; a style is a compile-time literal and cannot be animated yet).
+// A node that leaves needs one thing the tracks cannot say: it must stay mounted while its exit runs, and come back
+// where it is if it returns mid-exit (Rune's rule) — that is `presence`. Reduced motion is a module flag the host sets
+// once (`--reduced-motion`): a retarget then lands on its target at once and a presence unmounts at once, so the pages
+// keep one code path and the flag only changes what an instant means. `channel` is the page side of the value
+// channel (`ui.value`): one call per element a frame instead of a loop over its fields.
+//
+// Not here: a rubber band (Rune's 0.55), a velocity-only track for a drag (a pointer's speed is the host's), and a value
+// channel for anything but the style a page already packs (a page passes the value to ui.scrollTo or into its own
+// draw; a style is a compile-time literal and a page animates it through ui.value).
 
 /** A spring's parameters: the natural frequency and damping ratio, and whether its output may overshoot. */
 export interface Spring {
@@ -50,6 +56,21 @@ export interface Sample {
 
 const EPS = 0.5; // px
 const EPS_V = 0.5; // px/s
+
+// Reduced motion: the platform asks for less, so nothing travels and nothing waits. A module flag rather than a
+// parameter of every call, because the host sets it once and no page should have to know.
+let reducedMotion = false;
+
+/** Whether the platform asked for reduced motion (the host's `--reduced-motion` / `REDUCED_MOTION=1`). */
+export const reduced = (): boolean => reducedMotion;
+
+/**
+ * Sets reduced motion: a retarget then lands on its target with v = 0 (settled in the same call) and a `presence`
+ * unmounts at once. A page needs no branch of its own.
+ */
+export const setReducedMotion = (on: boolean): void => {
+  reducedMotion = on;
+};
 
 /** The displacement and velocity of a damped oscillator t seconds after (d0, v0), from rest at the target. */
 function solve(spring: Spring, d0: number, v0: number, t: number): { d: number; v: number } {
@@ -114,14 +135,23 @@ export class Track {
     return { x, v: vv, done: false };
   }
 
-  /** Starts a new segment at t from the presented (x, v), so the value and the velocity are continuous. */
+  /** Starts a new segment at t from the presented (x, v), so the value and the velocity are continuous. Under reduced
+   *  motion there is no segment: the value lands on the target with v = 0, settled in the same call. */
   retarget(t: number, target: number, spring?: Spring): void {
+    if (reducedMotion) {
+      if (spring) this.spring = spring;
+      this.x0 = this.target = target;
+      this.v0 = 0;
+      this.t0 = t;
+      return;
+    }
+    // the presented sample is the old segment's: it is taken before the new one starts
     const p = this.at(t);
+    if (spring) this.spring = spring;
     this.x0 = p.x;
     this.v0 = p.v;
     this.target = target;
     this.t0 = t;
-    if (spring) this.spring = spring;
   }
 }
 
@@ -159,3 +189,58 @@ export class Decay {
 
 /** A fling from x moving at v px/s (positive to the right or down) at t0. */
 export const decay = (x: number, v: number, t0 = 0): Decay => new Decay(x, v, t0);
+
+/** What a frame says about a node that may leave: whether it is mounted this frame, and whether it is on its way out. */
+export interface Shown {
+  readonly mounted: boolean;
+  readonly closing: boolean;
+}
+
+/**
+ * A node that leaves. `when` false keeps it mounted while its exit tracks run — `exit` seconds of it — and then unmounts
+ * it; `when` true again during the exit revives it, and since the tracks retarget from what they present it does not
+ * jump. The exit is `exit` seconds, not "until the tracks settle": the tracks are the page's, and a spring's settle time
+ * is not a number the presence could hold. A page makes them agree by settling inside `exit` (the Dialog's 0.2s exits
+ * inside a 0.35s presence, which is what its 32px blur needs). Under reduced motion, or with `exit` 0, it unmounts on the
+ * falling edge.
+ *
+ * `update` is called once a frame from the page's tick, before the tree is declared; the page keeps the two booleans in
+ * its own signal, because whether a node is in the tree is Solid's business, not this file's.
+ */
+export function presence(when: boolean, exit = 0.3): { update(when: boolean, dt: number): Shown } {
+  let mounted = when;
+  let closing = false;
+  let left = 0;
+  return {
+    update(next, dt) {
+      if (next) {
+        mounted = true;
+        closing = false;
+        return { mounted, closing };
+      }
+      if (!mounted) return { mounted, closing };
+      if (!closing) {
+        // the frame it closes on is the exit's first: the page retargets there, so it is drawn at the start of it
+        closing = true;
+        left = reducedMotion ? 0 : exit;
+        if (left <= 0) (mounted = false), (closing = false);
+        return { mounted, closing };
+      }
+      left -= dt;
+      if (left <= 0) (mounted = false), (closing = false);
+      return { mounted, closing };
+    },
+  };
+}
+
+/**
+ * The page's per-frame write of animated numbers into a style's value channel: `write` is `ui.value` (id, field, value),
+ * and the result takes one element's fields at t. A page's `View.tick` is then one call per element rather than a loop
+ * over its fields. A field given as a number rather than a track is written as it is — a flag that is on for the length
+ * of an exit, say.
+ */
+export function channel(write: (id: Uint8Array, field: number, value: number) => void) {
+  return (id: Uint8Array, at: number, ...fields: readonly (readonly [number, Track | number])[]): void => {
+    for (const [field, v] of fields) write(id, field, typeof v === "number" ? v : v.at(at).x);
+  };
+}

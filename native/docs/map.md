@@ -502,10 +502,31 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    the panel's y `149.88, 151.07, 153.49, …163.88` and still. Stored: `frames/dialog-menu-mid.png`, three frames in.
    Mutation: `ui_value` dropping `OFFSET_Y` gives offsets of -20 on every frame — `FAIL every frame of the slide moves
    it towards the offset: false, wanted true` — and the mid frame's menu sits at the settled place, only the shadow band
-   differing. Not covered yet: **exit animations (presence)**, **opacity of a whole subtree** (a text's colours are not
-   in its box's floats), **transform/scale** (Clay has none: an expand moves a float's children, not its glyphs), the
-   tab underline and hover, first-mount entry on the other pages, reduced motion, a rubber band (the feed clamps hard),
-   drag/touch, and the terminal, browser and board (no Solid page, no wheel, no value channel).
+   differing.
+   **Done: exits, presence and reduced motion** (2026-10-25). `motion.ts` gained `presence(when, exit)`:
+   `update(when, dt)` returns `{ mounted, closing }`, the falling edge keeps the node mounted (that frame being the
+   exit's first) for `exit` seconds and then unmounts it, and a return mid-exit revives it where it is — Rune's rule —
+   since the tracks retarget from what they present (the reopen frame is the exit's own next value). `channel(write)`
+   makes a page's tick one call an element (`write(id, t, [field, track], …)`), and a reduced-motion flag
+   (`setReducedMotion`/`reduced`, `--reduced-motion` or `REDUCED_MOTION=1` in `main.ts`) makes a retarget land with
+   v = 0 in the same call and a presence mount/unmount at once, so the pages carry no branch. The Dialog is the user:
+   closing runs the arrival tracks backwards — panel offset y 0 → 14 (`spatial(0.2, 0)`) and blur 32 → 0, backdrop alpha
+   140 → 0 through field 17 (its box is the window, so the alpha is the dim), menu -20 → -10 and 14 → 0 — for the
+   presence's 0.35s (the 0.2s tracks settle at 0.333, so no frame is cut), then both nodes leave and the page's pixels
+   are back (0 differ from the frame before opening). The trap stays the open state's timing: a Tab right after Escape
+   reaches the page (the Zoom trigger) while the panel fades, and a closing overlay writes `CAPTURE` 43 = 1 so a press
+   goes through it. Measured: the panel's y `163.88, 165.24, 167.82, 170.39, 172.54, 174.18 … 177.88` (rest 163.88),
+   the title pixel behind the backdrop `103 … 230` (140 of 255 of dim to the page), the menu `-20.00, -19.03, -17.18,
+   -15.34, -13.81, -12.64, -11.79, -11.19, -10.79, -10.51, -10.33`, and a reopen after four frames presenting 174.18
+   (the exit's own next frame) and settling on 163.88. Reduced motion opens on the literal's frame and removes both
+   nodes in the frame it closes. Stored: a new `frames/dialog-exit-mid.png` (three frames after Escape, the panel 3.94px
+   into its exit, its blur at 22.9 of 32, the dim at 100.6 of 140), every other dialog frame byte-identical, and a
+   `--reduced-motion` run against `frames/dialog-open.png`. Mutation: mounting the dialog on `dialog.open()` again
+   (dropping the presence) fails `FAIL the panel is still in the layout right after Escape: false, wanted true`.
+   Not covered yet: **opacity of a whole subtree** (a text's colours are not in its box's floats), **transform/scale**
+   (Clay has none: an expand moves a float's children, not its glyphs), hover and tab transitions, first-mount entry on
+   the other pages, a rubber band (the feed clamps hard), drag/touch, and the terminal, browser and board (no Solid page,
+   no wheel and no value channel).
 3. **Metamorphic tests of layout and raster.** ~30 lines each, and they catch the bug classes we actually have:
    wrapping a page in a style-less box leaves the pixels identical; shifting a subtree by whole px shifts the picture
    exactly; a wider container never adds a text line (the Sky body); building the tree fresh versus reusing it gives

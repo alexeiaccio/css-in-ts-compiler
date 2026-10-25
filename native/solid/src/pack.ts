@@ -26,12 +26,14 @@ export const FIELDS = {
   PADDING: 6, // 6-9: left, right, top, bottom
   GAP: 10,
   BACKGROUND: 14, // 14-17: r, g, b, a
+  BACKGROUND_ALPHA: 17, // the fourth of the background: the dim of a backdrop
   RADIUS: 18, // 18-21: top-left, top-right, bottom-right, bottom-left
   OFFSET_X: 38, // a float's offset, the field a slide animates
   OFFSET_Y: 39,
   EXPAND_W: 40, // 40-41: a float's expand
   EXPAND_H: 41,
   Z_INDEX: 42,
+  CAPTURE: 43, // a float's pointer capture: 0 captures the press, 1 lets it through to the page under it
   SHADOW_BLUR: 45, // ui_shadow's blur, not one of the 45: ui.c's FIELD_SHADOW_BLUR
 } as const;
 

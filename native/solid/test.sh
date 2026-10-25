@@ -38,13 +38,18 @@ bun solid/widgets.test.ts
 # the Dialog page (a modal dialog on a root-float backdrop and a menu floated off its trigger): its frames and asserts.
 # The panel drops in (its float's offset y -14 -> 0, its shadow's blur 0 -> 32) and the menu slides out of its trigger
 # (offset y -10 -> -20, blur 0 -> 14) through the value channel, so a stored frame is taken at rest (`--settle 30`) and
-# the mid-slide one three frames after the key opens it (one for the key, two settles, dt = 1/60).
+# the mid-slide one three frames after the key opens it (one for the key, two settles, dt = 1/60). Closing runs the same
+# tracks the other way (panel 0 -> 14 and 32 -> 0, backdrop 140 -> 0, menu -20 -> -10 and 14 -> 0) while the node stays
+# mounted (`presence`), so `dialog-exit-mid` is two frames into the exit; the other settled frames are unchanged, and a
+# `--reduced-motion` run lands on `dialog-open` in one frame (no entry, no exit: the flag is the platform's)
 D="bun solid/main.ts dialog"
 $D --expect solid/frames/dialog-closed.png
 $D --keys Tab,Enter --settle 30 --expect solid/frames/dialog-open.png
 THEME=light $D --keys Tab,Enter --settle 30 --expect solid/frames/dialog-light.png
 $D --keys Tab,Tab,Enter --settle 30 --expect solid/frames/dialog-menu.png
 $D --keys Tab,Tab,Enter --settle 2 --expect solid/frames/dialog-menu-mid.png
+$D --keys Tab,Enter,Escape --settle 2 --expect solid/frames/dialog-exit-mid.png
+$D --reduced-motion --keys Tab,Enter --expect solid/frames/dialog-open.png
 # the menu's glass (css.backdrop) over the light page: a translucent white, the blurred page showing through
 THEME=light $D --keys Tab,Tab,Enter --settle 30 --expect solid/frames/dialog-menu-light.png
 bun solid/dialog.test.ts

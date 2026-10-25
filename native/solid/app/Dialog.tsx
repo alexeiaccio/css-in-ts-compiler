@@ -12,7 +12,7 @@ import {
 import { a11y } from "../a11y.ts";
 import { ui } from "../src/ffi.ts";
 import type { Input } from "../src/input.ts";
-import { effect, spatial, track } from "../src/motion.ts";
+import { channel, effect, presence, spatial, track } from "../src/motion.ts";
 import { FIELDS } from "../src/pack.ts";
 
 const t = css.createTokens({
@@ -187,48 +187,91 @@ export const s = {
 /** The window of the page. */
 export const size = { width: 360, height: 480 };
 
-// The two overlays arrive with motion (src/motion.ts) through the value channel: each frame the page overrides two
-// numbers of the packed style by the element's id (`ui.value`) — its float's offset y and its shadow's blur (field 45,
-// the one value outside the 45 floats). Both targets are the style's own literals, so a settled frame is the frame the
-// literal makes, pixel for pixel.
+// The two overlays arrive and leave with motion (src/motion.ts) through the value channel: each frame the page overrides
+// numbers of the packed style by the element's id (`ui.value`) — its float's offset y, its shadow's blur (field 45, the
+// one value outside the 45 floats) and, for the backdrop, the alpha of its dim (field 17) — so a settled frame is the
+// frame the literal makes, pixel for pixel. A node that leaves stays mounted while its exit runs (`presence`), and while
+// it fades it passes the press through, so the page under it is reachable the moment it closes.
 const SLIDE = spatial(0.22, 0.1); // a light bounce: the overlay grows out of its trigger, it does not fly in
 const BLUR = effect(0.22); // a blur has no negative side and must not ring: clamped and critically damped
-// where each arrival starts, in px from its settled offset y: the menu 10px lower (under its trigger), the panel 14px
-// higher (dropping in), and both shadows from 0
+const OUT_SLIDE = spatial(0.2, 0); // the exit: no bounce, a node on its way out may not overshoot where it came from
+const OUT = effect(0.2); // ... and its blur and the dim: a luminance field goes out quietly, clamped
+// where each arrival starts and where each exit goes, in px from the settled offset y: the menu 10px lower (under its
+// trigger) on the way in and 10px lower on the way out, the panel 14px higher in and 14px lower out, and both shadows
+// from 0 in and to 0 out
 const ENTRY = { menu: 10, panel: -14 };
+const EXIT = { menu: 10, panel: 14 };
+// presence: as long as the tracks above take to settle exactly (the 32px effect falls under the 0.5px/s settle rule at
+// its twenty-first frame, 0.333s), so the last frame an exiting node is on screen is the literal and nothing is cut off
+const EXIT_SECONDS = 0.35;
+// the backdrop's dim: `rgb(0 0 0 / 0.55)`, whose alpha cssints packs as 140 (0..255)
+const DIM = Math.round(0.55 * 255);
+// the page's own clock, and its writes into the value channel: one call per element a frame
+const write = channel((id, field, value) => ui.value(id, field, value));
 
 /**
- * One element's arrival: its float's offset y and its shadow's blur, on a clock that runs only while the element is on
- * screen. A menu closed mid-slide freezes where it was, so a reopen continues from what was presented rather than
- * starting over.
+ * One overlay's numbers: the settled offset y of its float (the style's literal), the deltas it comes in and goes out
+ * by, the settled blur of its shadow, and — the backdrop's only — the alpha of its dim. The presence decides whether it
+ * is in the tree, the tracks what it looks like, and both are the page's because a track's clock is.
  */
-function arrival(id: string, to: number, from: number, blur: number) {
-  return { id: Buffer.from(id), to, from, blur, clock: 0, shown: false, y: track(to, SLIDE), shade: track(blur, BLUR) };
+function overlay(id: string, rest: number, entry: number, exit: number, blur = -1, dim = -1) {
+  return {
+    id: Buffer.from(id),
+    rest,
+    entry,
+    exit,
+    blur,
+    dim,
+    present: presence(false, EXIT_SECONDS),
+    mounted: false, // the frame before, for the edges
+    open: false, // ... and whether it was open, so a target that moved is the one that is retargeted
+    clock: 0,
+    y: track(rest, SLIDE),
+    shade: track(0, BLUR),
+    alpha: track(dim < 0 ? 0 : dim, OUT),
+  };
 }
-type Arrival = ReturnType<typeof arrival>;
+type Overlay = ReturnType<typeof overlay>;
 
-/** Starts an arrival at t: from its entry value when the element is at rest, from the presented (x, v) when it was
- *  caught mid-flight, so a reopen neither jumps nor starts over. */
-function begin(a: Arrival, t: number) {
-  if (a.y.at(t).done && a.shade.at(t).done) {
-    a.y = track(a.from, SLIDE, t);
-    a.shade = track(0, BLUR, t);
+/**
+ * One frame of an overlay: the presence decides whether it is mounted (and whether it is closing), the tracks follow
+ * `open`, and the numbers go into the value channel. A fresh arrival starts at the entry values — the reset the style's
+ * own literal cannot do — and a target that moves (the node closing, or coming back mid-exit) is retargeted from what is
+ * presented, so nothing jumps and nothing starts over. The clock runs only while the node is mounted, so it is the time
+ * of the last presented frame: the frame an overlay appears on shows its entry exactly, as the frame it settles on shows
+ * the literal.
+ */
+function step(o: Overlay, open: boolean, dt: number) {
+  const before = o.mounted;
+  const { mounted, closing } = o.present.update(open, dt);
+  o.mounted = mounted;
+  if (!mounted) return;
+  const y = open ? o.rest : o.rest + o.exit;
+  const blur = open ? o.blur : 0;
+  const dim = open ? o.dim : 0;
+  if (!before) {
+    o.y = track(o.rest + o.entry, SLIDE, o.clock);
+    o.shade = track(0, BLUR, o.clock);
+    if (o.dim >= 0) o.alpha = track(o.dim, OUT, o.clock);
+    o.y.retarget(o.clock, y, SLIDE);
+    if (o.blur >= 0) o.shade.retarget(o.clock, blur, BLUR);
+    if (o.dim >= 0) o.alpha.retarget(o.clock, dim, OUT);
+  } else {
+    o.clock += dt; // a shown frame is one dt after the one before it
+    // the target moved: on its way out, or back in mid-exit — from the presented (x, v), never from the entry
+    if (open !== o.open) {
+      o.y.retarget(o.clock, y, open ? SLIDE : OUT_SLIDE);
+      if (o.blur >= 0) o.shade.retarget(o.clock, blur, open ? BLUR : OUT);
+      if (o.dim >= 0) o.alpha.retarget(o.clock, dim, OUT);
+    }
   }
-  a.y.retarget(t, a.to, SLIDE);
-  a.shade.retarget(t, a.blur, BLUR);
-}
-
-/** This frame's values of an arrival into the renderer; no track reads the time, so the clock is the page's own. The
- *  clock is the time of the last presented frame: the frame an element appears on shows the entry exactly (a blur of 0,
- *  the offset 10px low), and a reopen shows the value it froze on. */
-function step(a: Arrival, shown: boolean, dt: number) {
-  const appears = shown && !a.shown;
-  if (appears) begin(a, a.clock);
-  else if (shown) a.clock += dt; // a shown frame is one dt after the one before it
-  a.shown = shown;
-  if (!shown) return;
-  ui.value(a.id, FIELDS.OFFSET_Y, a.y.at(a.clock).x);
-  ui.value(a.id, FIELDS.SHADOW_BLUR, a.shade.at(a.clock).x);
+  o.open = open;
+  const fields: [number, Track | number][] = [[FIELDS.OFFSET_Y, o.y]];
+  if (o.blur >= 0) fields.push([FIELDS.SHADOW_BLUR, o.shade]);
+  if (o.dim >= 0) fields.push([FIELDS.BACKGROUND_ALPHA, o.alpha]);
+  // a closing overlay takes no press: the pointer reaches the page under it while it fades
+  if (closing) fields.push([FIELDS.CAPTURE, 1]);
+  write(o.id, o.clock, ...fields);
 }
 
 const ZOOMS = ["100%", "125%", "150%", "200%"];
@@ -245,6 +288,9 @@ export function Dialog(props: { input: Input; glass?: boolean; motion?: { tick?:
   const [volume, setVolume] = createSignal(40);
   const [changed, setChanged] = createSignal(false);
   const [zoom, setZoom] = createSignal(0);
+  // what is in the tree: the overlays' presence, one signal each, set by the tick (before flush, so in this frame)
+  const [menuShown, setMenuShown] = createSignal(false);
+  const [dialogShown, setDialogShown] = createSignal(false);
 
   const dialog = createDialogModal({ id: "settings", focus: input.focus, labelledby: "settings-title" });
   const cancel = createButton({ id: "cancel", onClick: () => dialog.close() });
@@ -273,17 +319,27 @@ export function Dialog(props: { input: Input; glass?: boolean; motion?: { tick?:
     items: ZOOMS.map((_label, index) => input.bind(menu.item(index))),
   };
 
-  // the modal trap: tab cycles the dialog's controls, Escape closes it; other keys go to the focused control
+  // the modal trap: tab cycles the dialog's controls, Escape closes it; other keys go to the focused control. It is the
+  // open state that decides, so it is released on the frame that closes — not when the panel's exit is over and the node
+  // leaves the tree: a Tab right after Escape reaches the page's own controls while the panel is still fading.
   input.modal = (name, repeat) => dialog.open() && dialog.keyDown(name, repeat);
 
-  // the two arrivals: the menu slides out of its trigger, the dialog drops in (both end on the style's own values)
-  const menuArrival = arrival(menu.menu.id, menuDrop, menuDrop + ENTRY.menu, menuBlur);
-  const panelArrival = arrival(dialog.dialog.id, 0, ENTRY.panel, panelBlur);
+  // the three overlays: the menu slides out of its trigger, the dialog drops in over a dim that goes out with it
+  const menuOverlay = overlay(menu.menu.id, menuDrop, ENTRY.menu, EXIT.menu, menuBlur);
+  const panelOverlay = overlay(dialog.dialog.id, 0, ENTRY.panel, EXIT.panel, panelBlur);
+  const dimOverlay = overlay(dialog.backdrop.id, 0, 0, 0, -1, DIM);
   if (props.motion)
     props.motion.tick = (dt) => {
-      step(menuArrival, menu.open(), dt);
-      step(panelArrival, dialog.open(), dt);
+      step(menuOverlay, menu.open(), dt);
+      step(panelOverlay, dialog.open(), dt);
+      step(dimOverlay, dialog.open(), dt);
+      setMenuShown(menuOverlay.mounted);
+      setDialogShown(panelOverlay.mounted);
     };
+  // what the tree shows: the presence's answer when the host ticks the page, the open state itself when it does not (the
+  // accessibility test builds the page without a frame hook, and a page with no motion has nothing to wait for)
+  const menuIn = () => (props.motion ? menuShown() : menu.open());
+  const dialogIn = () => (props.motion ? dialogShown() : dialog.open());
 
   return (
     <box id="Root" style={s.root}>
@@ -300,7 +356,7 @@ export function Dialog(props: { input: Input; glass?: boolean; motion?: { tick?:
         </box>
         <text style={s.mark}>{menu.open() ? "-" : "+"}</text>
       </box>
-      <Show when={menu.open()}>
+      <Show when={menuIn()}>
         <box {...a11y(menu.menu)} label="Zoom" style={props.glass === false ? s.menu : s.menuPanel}>
           {ZOOMS.map((name, index) => (
             <box {...menuBind.items[index]!} {...a11y(menu.item(index))} style={s.item}>
@@ -312,7 +368,7 @@ export function Dialog(props: { input: Input; glass?: boolean; motion?: { tick?:
           ))}
         </box>
       </Show>
-      <Show when={dialog.open()}>
+      <Show when={dialogIn()}>
         <box id={dialog.backdrop.id} style={s.backdrop} onPress={() => {}} />
         <box {...a11y(dialog.dialog)} style={s.panel} onPress={() => {}}>
           <text id="settings-title" style={s.dialogTitle}>Set the volume</text>

@@ -1,8 +1,9 @@
 // The motion model, without a page: the spring's analytic solution (one path at any dt), a retarget that keeps x and v
-// continuous, the settle rule's exact snap, the effect class's clamp, and the decay's projection. Plain bun, no Clay.
+// continuous, the settle rule's exact snap, the effect class's clamp, the decay's projection, presence (a node that
+// leaves stays mounted for its exit), the value channel's one call an element, and reduced motion. Plain bun, no Clay.
 import assert from "node:assert/strict";
 
-import { decay, effect, spatial, track } from "./src/motion.ts";
+import { channel, decay, effect, presence, reduced, setReducedMotion, spatial, track } from "./src/motion.ts";
 
 const close = (a: number, b: number, eps = 1e-9) => Math.abs(a - b) <= eps;
 const DT = 1 / 60;
@@ -126,4 +127,94 @@ const DT = 1 / 60;
   assert.ok(s.x < 0 && close(t.at(20).x, -200), `did not come back: ${s.x}`);
 }
 
-console.log("solid/motion.test.ts: the spring at any dt, a continuous retarget, the exact settle, spatial vs effect, the decay's projection");
+// --- presence: a node that leaves stays mounted while its exit runs, then unmounts; it comes back when the node does
+{
+  const p = presence(true, 0.25);
+  assert.deepEqual(p.update(true, DT), { mounted: true, closing: false });
+  const edge = p.update(false, DT);
+  assert.deepEqual(edge, { mounted: true, closing: true }, "the falling edge keeps the node mounted and closing");
+  let drawn = 1; // the frame it closes on is drawn at the start of the exit
+  let s = p.update(false, DT);
+  while (s.mounted) (drawn++, (s = p.update(false, DT)));
+  // the exit is 0.25s, to a frame: fifteen frames at 1/60, plus the frame it closes on
+  assert.ok(Math.abs(drawn * DT - 0.25) <= DT + 1e-9, `the exit is 0.25s, to a frame: ${drawn} frames`);
+  assert.deepEqual(p.update(false, DT), { mounted: false, closing: false }, "stays unmounted");
+  assert.deepEqual(p.update(true, DT), { mounted: true, closing: false }, "a mount is mounted, not closing");
+
+  // an exit of no time at all is no exit
+  const zero = presence(true, 0);
+  assert.deepEqual(zero.update(false, DT), { mounted: false, closing: false });
+
+  // a node that was never in the tree reports nothing to close
+  const never = presence(false, 0.25);
+  assert.deepEqual(never.update(false, DT), { mounted: false, closing: false });
+}
+
+// --- a revive mid-exit: the presence stops closing at once and a track retargeted there presents the exit's own value
+// (a jump would be the entry, 14px away)
+{
+  const exit = track(0, spatial(0.2, 0));
+  const revive = track(0, spatial(0.2, 0));
+  exit.retarget(0, 14, spatial(0.2, 0));
+  revive.retarget(0, 14, spatial(0.2, 0));
+  const p = presence(true, 0.25);
+  p.update(true, DT);
+  assert.deepEqual(p.update(false, DT), { mounted: true, closing: true }, "the exit starts");
+  const at = 4 * DT;
+  const was = exit.at(at);
+  assert.ok(was.x > 2 && !was.done, `four frames in the exit is underway (${was.x})`);
+  assert.deepEqual(p.update(true, DT), { mounted: true, closing: false }, "a revive is not closing, and does not remount");
+  const before = revive.at(at);
+  revive.retarget(at, 0, spatial(0.2, 0));
+  const now = revive.at(at);
+  assert.equal(now.x, before.x, "the revive is where the exit presented it");
+  assert.equal(now.x, was.x, "... which is the exit's value at that instant");
+  assert.ok(close(now.v, was.v), `the velocity carries over: ${now.v} != ${was.v}`);
+  // and it goes back to the rest it was revived to
+  assert.ok(close(revive.at(at + 10).x, 0, 1e-9), `it came back: ${revive.at(at + 10).x}`);
+}
+
+// --- the channel: one call per element writes its fields at t, a number written as it is (a flag for the length of an
+// exit), the value of a track as its presented x
+{
+  const wrote: [string, number, number][] = [];
+  const write = channel((id, field, v) => wrote.push([new TextDecoder().decode(id), field, v]));
+  const y = track(0, spatial(0.2));
+  y.retarget(0, 10);
+  write(new Uint8Array([1, 2]), DT, [39, y], [45, 0], [43, 1]);
+  assert.deepEqual(
+    wrote.map(([id, field]) => [id, field]),
+    [["\u0001\u0002", 39], ["\u0001\u0002", 45], ["\u0001\u0002", 43]],
+  );
+  assert.equal(wrote[0]![2], y.at(DT).x);
+  assert.deepEqual([wrote[1]![2], wrote[2]![2]], [0, 1]);
+}
+
+// --- reduced motion: a retarget lands on its target in the same call with v = 0, a presence unmounts at once, and a
+// zero-duration presence is the same without the flag
+{
+  assert.equal(reduced(), false);
+  setReducedMotion(true);
+  assert.equal(reduced(), true);
+  const t = track(0, spatial());
+  t.retarget(0, 100);
+  assert.deepEqual(t.at(0), { x: 100, v: 0, done: true }, "settled on the frame of the retarget");
+  assert.equal(t.at(10).x, 100, "and it stays there");
+  // a velocity a bounce left does not carry into the new segment
+  const u = track(0, spatial());
+  u.retarget(0, 50);
+  u.v0 = 900;
+  u.retarget(0.1, 10);
+  assert.deepEqual(u.at(0.1), { x: 10, v: 0, done: true });
+
+  const p = presence(true, 0.25);
+  p.update(true, DT);
+  assert.deepEqual(p.update(false, DT), { mounted: false, closing: false }, "no frame with the node on its way out");
+  assert.deepEqual(p.update(true, DT), { mounted: true, closing: false }, "and it mounts at once");
+
+  setReducedMotion(false);
+  const q = presence(true, 0.25);
+  assert.deepEqual(q.update(false, DT), { mounted: true, closing: true }, "with the flag off the exit is back");
+}
+
+console.log("solid/motion.test.ts: the spring at any dt, a continuous retarget, the exact settle, spatial vs effect, the decay's projection, presence, a revive mid-exit, the channel, reduced motion");

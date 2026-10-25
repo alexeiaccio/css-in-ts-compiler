@@ -145,10 +145,11 @@ a frame that uses no channel declares exactly what the literal says — which is
 byte-identical after the menu and the panel learned to move.
 
 `field` 0..44 is a packed field, in `solid/README.md`'s table order; `pack.ts`'s `FIELDS` names the ones worth a name
-(`WIDTH` 0, `HEIGHT` 3, `PADDING` 6, `GAP` 10, `BACKGROUND` 14, `RADIUS` 18, `OFFSET_X` 38, `OFFSET_Y` 39, `EXPAND_W`/
-`EXPAND_H` 40/41, `Z_INDEX` 42). **45 is not a float of the style at all**: it is `ui_shadow`'s blur, the one number of
-a shadow a page can move, which the channel hands to the pending shadow before `ui_open` hangs it on the renderer's
-table. Out of range, or a 65th override in a frame, is counted as an error and dropped.
+(`WIDTH` 0, `HEIGHT` 3, `PADDING` 6, `GAP` 10, `BACKGROUND` 14, `BACKGROUND_ALPHA` 17, `RADIUS` 18, `OFFSET_X` 38,
+`OFFSET_Y` 39, `EXPAND_W`/`EXPAND_H` 40/41, `Z_INDEX` 42, `CAPTURE` 43). **45 is not a float of the style at all**: it
+is `ui_shadow`'s blur, the one number of a shadow a page can move, which the channel hands to the pending shadow before
+`ui_open` hangs it on the renderer's table. Out of range, or a 65th override in a frame, is counted as an error and
+dropped.
 
 What a page may animate, and what is meaningless mid-frame: an **offset** (`OFFSET_X`/`OFFSET_Y`), `EXPAND_*`,
 `Z_INDEX` and the **shadow's blur** are read as the element is placed and drawn, and nothing else moves. `WIDTH`/`HEIGHT`,
@@ -178,8 +179,10 @@ clamped to the start..target range, so a colour or an opacity cannot overshoot e
 and it stops at `|v| < 5px/s` on the projection. **The clock is passed in**: nothing in the file reads the time, so a
 headless frame at 1/60 and a window frame at the real dt take one path and a test can ask for any instant.
 `bun solid/motion.test.ts` checks 16.6ms against two 8.3ms steps, the continuity of a retarget (both limits), the exact
-settle, `effect` staying inside its range, and the decay's monotonicity and projection. The mutation is the model's:
-`Track.retarget` dropping the sampled velocity (setting `v0 = 0`) fails the sky test's mid-flight block.
+settle, `effect` staying inside its range, and the decay's monotonicity and projection; with presence and reduced motion
+it also checks an exit's length to a frame and its unmount, a revive mid-exit (the value is the exit's own, the velocity
+carries), the channel's one call an element, and reduced motion's instant land and instant unmount. The mutation is the
+model's: `Track.retarget` dropping the sampled velocity (setting `v0 = 0`) fails the sky test's mid-flight block.
 
 Two host members carry the wheel to a page. `ui_window_poll` still adds every SDL wheel event through `ui_wheel`, and
 `ui_wheel` now fills two channels: Clay's (as before, for a page that keeps Clay's scroll container) and the page's,
@@ -217,22 +220,55 @@ trigger (it starts 10px lower, over the 20px it overlaps) while its shadow appea
 (2/60s in) the menu is 7.4px low with a shadow at a quarter of its blur — legible as "arriving" rather than as a jump;
 the blur alone would look like a fade and the offset alone like a slide with no depth.
 
-The clocks are the page's, and they run only while the element is declared: `Show` unmounts the menu, so the tick stops
-advancing its clock (an arrival's clock is the time of its last presented frame), and a reopen retargets from the value
-it froze on — a menu closed 2 frames in comes back exactly where it was, no jump and no restart (measured: closed at
--10.85, reopened at -10.85, a jump of 0.000). At rest it retargets from the entry instead. There is **no exit
-animation**: presence would need the page to keep the node alive after `Show` drops it, which the renderer's immediate
-mode does not give it for free.
+The clocks are the page's and run only while the node is mounted: a fresh arrival starts at the entry values, and every
+later frame is one dt after the one before it — through the exit too — so a reopen mid-exit presents the value the exit
+would have shown next (measured: leaving at -19.03, reopened at -17.18, which is the exit's own next frame), no jump and
+no restart. When the presence's exit ends the node leaves the tree and the clock stops with it; the next open starts
+from the entry again.
 
-Not here: **opacity and transform animation**. The value channel (above) moves a numeric field of a style — an offset, an
-expand, a shadow's blur — by element id, so a track can now drive a box; what it cannot do is fade a whole subtree
-(every element's colours would need an override, and a text's colours are not in its box's 45 floats), scale or rotate a
-box (Clay has no transform; a scale of a float's `EXPAND_W`/`EXPAND_H` moves its children, not its glyphs), or keep an
-element alive after `Show` drops it (an exit animation needs presence: a page would have to keep the node and hide it when
-the animation ends — out of scope, so closing the menu and the dialog is still instant). With them: reduced motion, a
+**Presence: a node that leaves stays.** `Show` no longer follows the open state. The page keeps a signal per overlay
+(`menuShown`, `dialogShown`) that its tick sets from `presence(when, exit)` (`src/motion.ts`): `update(open, dt)` returns
+`{ mounted, closing }` — on the falling edge the node stays mounted and `closing` is true, that frame being the exit's
+first (the page retargets there, so it is drawn at the offset the exit starts from); after `exit` seconds (0.35 for the
+Dialog) it returns `mounted: false` and `Show` drops the node. `when` true again during the exit revives it: `closing`
+goes false and the tracks retarget from what they present, so the reopen frame is the value the exit's own next frame
+would have had — no jump and no restart. The page's clock keeps running for as long as the node is mounted, which is
+what makes both true. A page's tick is one call an element now: `channel(write)` (`motion.ts`) wraps `ui.value` and
+writes an element's fields together (`write(id, t, [field, track], …)`).
+
+The exit runs the arrival tracks the other way. The **panel**'s offset y 0 → 14 on `spatial(0.2, 0)` (an exit must not
+bounce past where it came from) and its shadow's blur 32 → 0 on `effect(0.2)`; the **backdrop**'s background alpha 140 →
+0 on `effect(0.2)` — field 17 of the rgba, and since the backdrop's box is the whole window, its alpha *is* the dim (the
+0.55 of `rgb(0 0 0 / 0.55)` packs as 140); the **menu**'s offset y -20 → -10 and its blur 14 → 0. The presence's 0.35s
+is longer than the tracks take to settle exactly (~0.333 for the 32px blur), so the last frame an exiting node is on
+screen is the literal's. Measured (`solid/dialog.test.ts`, `ui.bounds` and the pixels per frame): the panel's y
+`163.88, 165.24, 167.82, 170.39, 172.54, 174.18 … 177.88` (its rest 163.88, the exit 14 below), the reddest title pixel
+behind the backdrop `103, 115, 139, 162, 181, 196, 206, 214, 219, 222, 225, 227, 228, 228, 230` from the dim to the page,
+the menu's offset `-20.00, -19.03, -17.18, -15.34, -13.81, -12.64, -11.79, -11.19, -10.79, -10.51, -10.33` with its
+shadow lightening 13.9 → 18.0 (the page). After the exit both the panel and the backdrop are out of the layout and the
+page's own pixels are back (0 pixels differ from the frame before opening).
+
+**The trap is the open state's timing, not the node's.** `input.modal` asks `dialog.open()`, so it is released on the
+frame the dialog closes: a Tab right after Escape reaches the page's own next stop (the Zoom trigger) while the panel is
+still fading, and Enter on it reopens the dialog mid-exit (which is the revive above). The pointer follows the same
+rule: a `closing` overlay writes `FIELDS.CAPTURE` 1 (passthrough) for the length of its exit, so a press goes through
+it to the page instead of hitting a node on its way out.
+
+**Reduced motion** is a module flag (`setReducedMotion`, `reduced` in `motion.ts`), read once by `solid/main.ts` from
+`--reduced-motion` or `REDUCED_MOTION=1`, so a headless frame and the window take the same path. With it on, a retarget
+lands on its target with v = 0 (settled in the same call) and a `presence` mounts or unmounts on the frame it changes,
+so opening is the literal's frame in one frame and closing has no frame with the panel in it; the pages carry no branch
+of their own. The dialog test checks it against the settled frame pixel for pixel, and `test.sh` runs the page with the
+flag against `frames/dialog-open.png`.
+
+Not here: **opacity or transform of a whole subtree**. The value channel moves one number of one element by its id, so
+presence can fade a box's own fill (the backdrop's dim through field 17) and slide a float; what it cannot do is fade a
+subtree (every element's colours would need an override, and a text's colours are not in its box's 45 floats), scale or
+rotate a box (Clay has no transform; a scale of a float's `EXPAND_W`/`EXPAND_H` moves its children, not its glyphs),
+animate a tab's underline or a hover/tab transition, or give the other pages a first-mount entry. Also not here: a
 rubber band at the feed's ends (the Sky feed clamps hard), drag scrolling and touch (a pointer's velocity is the host's;
-the List page still has no momentum and keeps Clay's instant wheel step), the tab underline and hover, and the terminal,
-browser and board targets (they have no Solid page, no wheel and no value channel).
+the List page still has no momentum and keeps Clay's instant wheel step), and the terminal, browser and board targets
+(they have no Solid page, no wheel and no value channel).
 
 ## Test
 

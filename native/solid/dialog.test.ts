@@ -1,14 +1,16 @@
 // What the stored frames of the Dialog page cannot show: the trap (Tab cycles Cancel and OK and never reaches the page
 // behind), Escape and Cancel closing without a write, OK writing the volume onto the page, a press on the backdrop doing
 // nothing and not reaching the page under it, where Clay put the two floats (`ui.bounds`), the menu's arrows, Escape
-// and Enter, and the motion of the two overlays (the value channel's offset y and shadow blur, frame by frame). Driven
-// as the window does: pointer and keys in, then one frame.
+// and Enter, and the motion of the two overlays (the value channel's offset y, shadow blur and dim, frame by frame):
+// their arrival, their exit (the node stays mounted while its tracks run, then unmounts), a revive mid-exit, and
+// reduced motion. Driven as the window does: pointer and keys in, then one frame.
 import "./plugin.ts";
 
 const { ui } = await import("./src/ffi.ts");
 const { createFrame } = await import("./src/frame.ts");
 const { createInput } = await import("./src/input.ts");
 const { El, render, Txt } = await import("./src/renderer.ts");
+const { setReducedMotion } = await import("./src/motion.ts");
 const { Dialog, size } = await import("./app/Dialog.tsx");
 
 ui.init(size.width, size.height);
@@ -56,9 +58,13 @@ function fresh(theme?: string, glass = true) {
     volume,
     zoom,
     focused: () => input.focus.focused(),
-    open: () => find((el) => el.props.id === "settings-dialog").length > 0,
-    menuOpen: () => find((el) => el.props.id === "zoom-menu").length > 0,
+    // open is what the part says, not whether its box is in the tree: a closed overlay stays mounted while it leaves
+    // (presence), and its `hidden` is the part's own answer, so a screen reader and this test agree on "closed"
+    open: () => find((el) => el.props.id === "settings-dialog" && el.props.hidden !== true).length > 0,
+    menuOpen: () => find((el) => el.props.id === "zoom-menu" && el.props.hidden !== true).length > 0,
     exists: (id: string) => find((el) => el.props.id === id).length > 0,
+    /** Is the element laid out this frame (its box in the tree, even while it is leaving)? */
+    onScreen: (id: string) => ui.bounds(Buffer.from(id)) !== undefined,
     down: (name: string, repeat = false) => (input.down(name, repeat), step()),
     up: (name: string) => (input.up(name), step()),
     tap(name: string) {
@@ -316,24 +322,55 @@ for (const theme of [undefined, "light"]) {
   check("its blur darkens the page beside the menu as it grows", besideLum.at(-1)! < page - 3, true);
   check("frame by frame, never lighter", besideLum.every((v, i) => i === 0 || v <= besideLum[i - 1]! + 0.01), true);
 
-  // a reopen mid-slide: `Show` unmounts the menu, so its clock stops with it (there is no exit animation yet) and the
-  // track keeps the value it froze on; the reopen retargets from that, never from the entry
-  const q = fresh();
-  q.tap("Tab"), q.tap("Tab");
-  const anchor = q.box("zoom-trigger");
-  const off = () => q.box("zoom-menu")[1]! - (anchor[1]! + anchor[3]!);
-  q.down("Enter");
-  q.step();
-  const mid = off();
-  q.tap("Escape");
-  check("Escape closes the menu mid-slide", q.menuOpen(), false);
-  q.down("Enter");
-  const back = off();
-  console.log(`reopen: closed at ${mid.toFixed(2)}, reopened at ${back.toFixed(2)} (a jump of ${(back - mid).toFixed(3)})`);
-  check("a reopen starts from the value it froze on, not from the entry", Math.abs(back - mid) < 0.005, true);
-  check("so its step is no bigger than the opening's first", Math.abs(back - mid) <= Math.abs(offsets[1]! - offsets[0]!), true);
-  q.settle();
-  check("and it goes on to settle on the style's offset", Math.abs(off() + 20) < 0.005, true);
+  // the exit: Escape closes the menu at once for keys and focus (the trigger has them back), but the node stays on
+  // screen while it slides back under the trigger (its float's offset y -20 -> -10) and its shadow's blur goes to 0
+  const m = fresh();
+  m.tap("Tab"), m.tap("Tab"), m.tap("Enter");
+  m.settle(); // the menu is at the style's own -20, its blur at 14
+  const anchor = m.box("zoom-trigger");
+  // a leaving node that is already gone reads NaN, so a dropped presence fails the checks below instead of throwing
+  const leaving = () => (m.onScreen("zoom-menu") ? m.box("zoom-menu")[1]! : NaN) - (anchor[1]! + anchor[3]!);
+  const beside2 = () => {
+    const b = m.onScreen("zoom-menu") ? m.box("zoom-menu") : undefined;
+    return b ? at(b[0]! - 1, b[1]! + b[3]! / 2) : NaN;
+  };
+  const pageLum = at(4, 470);
+  const lum0 = beside2();
+  m.down("Escape");
+  check("Escape closes the menu at once", [m.menuOpen(), m.focused()], [false, "zoom-trigger"]);
+  check("and its node is still on screen while it leaves", m.onScreen("zoom-menu"), true);
+  const outs = [leaving()];
+  const lums = [beside2()];
+  for (let n = 0; n < 10; n++) m.step(), outs.push(leaving()), lums.push(beside2());
+  m.up("Escape");
+  console.log(
+    `menu exit: offsets ${outs.map((v) => v.toFixed(2)).join(", ")}; beside the menu ` +
+      `${lum0.toFixed(1)} -> ${lums.at(-1)!.toFixed(1)} (the page ${pageLum.toFixed(1)})`,
+  );
+  check("it leaves from the style's own -20", Math.abs(outs[0]! + 20) < 0.005, true);
+  check("every frame of the exit moves it down, towards -10", outs.every((v, i) => i === 0 || v >= outs[i - 1]!), true);
+  check("and none past it", outs.every((v) => v <= -10 + 1e-6), true);
+  check("its shadow fades to the page as it goes", lums.at(-1)! > lum0, true);
+  m.settle(30);
+  check("then the node is gone", [m.menuOpen(), m.onScreen("zoom-menu")], [false, false]);
+
+  // a reopen mid-exit starts where the exit presented it, not at the entry 10px away
+  const r2 = fresh();
+  r2.tap("Tab"), r2.tap("Tab"), r2.tap("Enter");
+  r2.settle();
+  const anchor2 = r2.box("zoom-trigger");
+  const off2 = () => r2.box("zoom-menu")[1]! - (anchor2[1]! + anchor2[3]!);
+  r2.down("Escape");
+  r2.step();
+  const mid2 = off2();
+  r2.down("Enter"); // the reopen
+  const back2 = off2();
+  r2.up("Enter");
+  console.log(`menu reopen mid-exit: leaving at ${mid2.toFixed(2)}, reopened at ${back2.toFixed(2)}`);
+  check("a reopen mid-exit presents the value the exit was at", back2, outs[2]);
+  check("not the entry (-10)", Math.abs(back2 + 10) > 5, true);
+  r2.settle();
+  check("and it goes on to settle on the style's offset", Math.abs(off2() + 20) < 0.005, true);
 }
 
 // --- the dialog's drop: its float's offset y from 14px above its place to 0, and its shadow's blur 0 to the style's 32
@@ -355,6 +392,148 @@ for (const theme of [undefined, "light"]) {
   check("it drops towards its place every frame", ys.slice(0, 10).every((v, i) => i === 0 || v > ys[i - 1]!), true);
   check("and is at its place, not past it", Math.abs(ys.at(-1)! - rest) < 0.01, true);
   check("the drop is finite: its last frames are the same", new Set(ys.slice(-5).map((v) => v.toFixed(3))).size, 1);
+}
+
+// --- closing (presence): the panel and the dim stay mounted while their exit runs, then unmount. The panel's offset y
+// goes from 0 to 14 (spatial(0.2, 0)) and its shadow's blur 32 -> 0, the backdrop's alpha 140 -> 0 (both effect(0.2)),
+// while the modal trap is already released: the open state is what keys read, not whether the node is on screen.
+// The page pixel sampled is the reddest of the title (47, 35): under the dim it goes 103 -> 230 as the backdrop clears.
+const pixels = () => {
+  const px = new Uint32Array(size.width * size.height);
+  for (let y = 0; y < size.height; y++)
+    for (let x = 0; x < size.width; x++) {
+      const [r, g, b, a] = ui.pixel(x, y);
+      px[y * size.width + x] = (r! | (g! << 8) | (b! << 16) | (a! << 24)) >>> 0;
+    }
+  return px;
+};
+const changedPixels = (a: Uint32Array, b: Uint32Array) => {
+  let n = 0;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) n++;
+  return n;
+};
+{
+  const p = fresh();
+  for (let n = 0; n < 4 && p.focused() !== "settings-trigger"; n++) p.tap("Tab");
+  const before = pixels(); // the page with the trigger focused: the frame closing has to come back to
+  p.tap("Enter");
+  p.settle(); // the panel is at its place, the blur at 32, the dim at 140
+  const rest = p.box("settings-dialog")[1]!;
+  const title = () => ui.pixel(47, 35)[0]!;
+  check("the dim is at its own alpha while open (the title is dimmed)", title(), 103);
+  p.down("Escape"); // the close: the exit starts on this frame, the trap is already released
+  const ys = [p.box("settings-dialog")?.[1] ?? NaN];
+  const clears = [title()];
+  const shown = [p.onScreen("settings-dialog")];
+  for (let n = 0; n < 16; n++)
+    p.step(), ys.push(p.box("settings-dialog")?.[1] ?? NaN), clears.push(title()), shown.push(p.onScreen("settings-dialog"));
+  p.up("Escape");
+  console.log(
+    `dialog exit: y ${ys.slice(0, 14).map((v) => v.toFixed(2)).join(", ")} (at rest ${rest.toFixed(2)}); ` +
+      `the title ${clears.slice(0, 14).join(", ")}`,
+  );
+  check("the panel is still in the layout right after Escape", shown[0], true);
+  check("its exit starts at its place", Math.abs(ys[0]! - rest) < 0.01, true);
+  check("it moves down towards 14 below it, every frame", ys.every((v, i) => i === 0 || v >= ys[i - 1]!), true);
+  check("and it is on its way there (by the tenth frame)", ys[9]! - rest > 10, true);
+  check("the backdrop gets lighter every frame, or stays (the pixels are 8-bit)", clears.every((v, i) => i === 0 || v >= clears[i - 1]!), true);
+  check("and it is the page again by the fifteenth frame", clears[15], 230);
+  check("so it is not an instant close", clears[3]! - clears[0]! > 20, true);
+  p.settle(30);
+  check("after the exit the panel is gone from the layout", p.onScreen("settings-dialog"), false);
+  check("and so is the backdrop", p.onScreen("settings-backdrop"), false);
+  check("the page's own pixels are back", changedPixels(before, pixels()), 0);
+}
+
+// --- the trap is released on the frame the dialog closes, not when the panel's exit is over: a Tab right after
+// Escape reaches the page's own controls (the Zoom trigger is the next stop after the settings trigger), and a press
+// goes through the fading overlay (it is passthrough while it closes) to the page's Open button
+{
+  const p = fresh();
+  p.openDialog();
+  p.settle();
+  p.down("Escape");
+  check("the panel is still on screen when the Tab comes", p.onScreen("settings-dialog"), true);
+  p.tap("Tab");
+  check("a Tab after Escape reaches the page", [p.focused(), p.open()], ["zoom-trigger", false]);
+  check("and the panel is still fading", p.onScreen("settings-dialog"), true);
+  p.click("settings-trigger"); // through the backdrop, still on its way out
+  check("a press through the fading overlay reaches the page", [p.open(), p.focused()], [true, "cancel"]);
+  p.settle(30); // the reopen revived the tracks from the exit: it settles back on its place
+  const box = p.box("settings-dialog");
+  check("the revived panel settles centred", box[1]! + box[3]! / 2, size.height / 2);
+  p.down("Escape"), p.up("Escape");
+  p.settle(30);
+  check(
+    "and it leaves after all, with the page's pixels and its focus",
+    [p.onScreen("settings-dialog"), p.onScreen("settings-backdrop"), p.focused()],
+    [false, false, "settings-trigger"],
+  );
+}
+
+// --- a reopen mid-exit: the tracks retarget from what they present, so the reopen frame is the value the exit's own
+// next frame would have had — no jump, and no restart from the entry 14px above
+{
+  // how the panel leaves when nothing interrupts it
+  const a = fresh();
+  a.openDialog();
+  a.settle();
+  const rest = a.box("settings-dialog")[1]!;
+  a.down("Escape");
+  const exit = [a.box("settings-dialog")[1]!];
+  for (let n = 0; n < 7; n++) a.step(), exit.push(a.box("settings-dialog")[1]!);
+  a.up("Escape");
+
+  const b = fresh();
+  b.openDialog();
+  b.settle();
+  b.down("Escape");
+  for (let n = 0; n < 4; n++) b.step(); // ... four frames into the exit
+  const mid = b.box("settings-dialog")[1]!;
+  b.down("Enter"); // the reopen
+  const back = b.box("settings-dialog")[1]!;
+  b.up("Enter");
+  console.log(
+    `exit: ${exit.map((v) => v.toFixed(2)).join(", ")}; reopen after ${mid.toFixed(2)} presents ${back.toFixed(2)} ` +
+      `(the exit's own next frame is ${exit[5]!.toFixed(2)})`,
+  );
+  check("a reopen mid-exit presents the value the exit was at", back, exit[5]);
+  check(
+    "so its step is no bigger than the exit's step into it",
+    Math.abs(back - mid) <= Math.abs(mid - exit[3]!) + 1e-9,
+    true,
+  );
+  check("it did not restart from the entry", Math.abs(back - (rest - 14)) > 5, true);
+  b.settle(30);
+  check("and it settles back on its place", Math.abs(b.box("settings-dialog")[1]! - rest) < 0.01, true);
+  check("the reopen takes the keys back", [b.focused(), b.open()], ["cancel", true]);
+}
+
+// --- reduced motion: a retarget lands on its target at once, so closing removes the nodes in the frame it closes and
+// opening is the settled frame in one frame (no frame shows the entry offset or a partial dim)
+{
+  setReducedMotion(true);
+  const p = fresh();
+  for (let n = 0; n < 4 && p.focused() !== "settings-trigger"; n++) p.tap("Tab");
+  const before = pixels();
+  p.tap("Enter");
+  const opened = pixels();
+  const box = p.box("settings-dialog");
+  check("reduced motion: the panel is at its place on its first frame", box[1]!, size.height / 2 - box[3]! / 2);
+  check("and the dim is full on its first frame", ui.pixel(47, 35)[0], 103);
+  p.down("Escape");
+  check(
+    "closing removes the panel and the backdrop in the same frame",
+    [p.onScreen("settings-dialog"), p.onScreen("settings-backdrop")],
+    [false, false],
+  );
+  check("and the page is back in that frame", changedPixels(before, pixels()), 0);
+  setReducedMotion(false);
+  // the one-frame open is the settled frame: the same page with the motion left to rest
+  const q = fresh();
+  q.tap("Tab"), q.tap("Enter");
+  q.settle(30);
+  check("reduced motion's one frame is the settled frame, pixel for pixel", changedPixels(opened, pixels()), 0);
 }
 
 // --- the backdrop (css.backdrop): the page under the menu is blurred, the menu's own pixels are not
@@ -453,6 +632,6 @@ for (const theme of [undefined, "light"]) {
 dispose();
 if (failed) process.exit(1);
 console.log(
-  "solid/dialog.test.ts: the modal trap, Escape and Cancel, OK's write, the backdrop, the floats' placement, the menu's keys, the shadows, the backdrop blur, the menu's slide and the dialog's drop",
+  "solid/dialog.test.ts: the modal trap, Escape and Cancel, OK's write, the backdrop, the floats' placement, the menu's keys, the shadows, the backdrop blur, the menu's slide and the dialog's drop, the two exits with presence, a revive mid-exit and reduced motion",
 );
 process.exit(0);

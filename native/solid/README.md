@@ -32,6 +32,7 @@ bun solid/main.ts form --keys Tab,Tab,text:Ada --expect solid/frames/field-typed
 bun solid/main.ts list --wheel 32 --expect solid/frames/list-wheel.png      # headless: the pointer onto the list, 32 notches down
 bun solid/main.ts sky --click 180 32 --wheel 8 --wheel-over sky-feed --png out.png   # headless: Science, its feed 8 notches down
 bun solid/main.ts widgets --drag 0.25 0.75 --png out.png                 # headless: press the slider's rail at a quarter, hold, move to three quarters
+bun solid/main.ts dialog --reduced-motion --keys Tab,Enter --png out.png # no travel, no waiting (also REDUCED_MOTION=1)
 bun solid/main.ts --expect examples/sensors/expected-thorvg.png          # one frame against a stored PNG
 bun solid/main.ts --click 180 250 --expect examples/sensors/expected-thorvg-g.png   # host.c's scripted click
 THEME=light bun solid/main.ts --expect examples/sensors/expected-thorvg-light.png
@@ -86,7 +87,7 @@ with an `id`: Clay tells whether the pointer is over it. `onClick` runs on relea
 | `ui_init_gpu(w, h)` | the same on ThorVG's WebGPU canvas (`--raster thorvg-gpu`); only a `libui.dylib` from `desktop/build-thorvg-gpu.sh solid` |
 | `ui_begin(px, py, down, dt)` | pointer for this frame, then Clay's scroll containers move by the wheel this frame took (`Clay_UpdateScrollContainers(false, delta, dt)`, before the layout), then `Clay_BeginLayout` |
 | `ui_open(id, len, f32[45])` | open an element; `id` NULL for none; the style as below |
-| `ui_value(id, len, field, f32)` | an override of one number of that element's style for this frame: a packed field 0..44 (the table below), or 45, its shadow's blur. `ui_open` declares from a copy of the 45 floats with the frame's overrides applied; the table is cleared in `ui_begin`, 64 overrides a frame (`src/pack.ts`'s `FIELDS` names the ones a page uses) |
+| `ui_value(id, len, field, f32)` | an override of one number of that element's style for this frame: a packed field 0..44 (the table below), or 45, its shadow's blur. `ui_open` declares from a copy of the 45 floats with the frame's overrides applied; the table is cleared in `ui_begin`, 64 overrides a frame (`src/pack.ts`'s `FIELDS` names the ones a page uses; `src/motion.ts`'s `channel(write)` writes one element's fields in one call) |
 | `ui_image(bytes, len)` | the image of the element the next `ui_open` declares (a `css.image` style): the path as UTF-8, no terminator. Interned once per distinct path, so the renderer's picture cache (keyed by that pointer) sees one address every frame |
 | `ui_shadow(x, y, blur, r, g, b, a)` | the shadow of the element the next `ui_open` declares (a `css.shadow` style): Clay has no shadow field, so it waits here and the element id's hash carries it to the renderer's table (one a frame, 32 at most, one draw an element) |
 | `ui_text(bytes, len, f32[10])` | a text element; the bytes are copied for the frame |
@@ -161,10 +162,11 @@ the Dialog's settled frames stayed byte-identical. `field` is a packed field (0.
 is `ui_shadow`'s blur and not one of the floats.
 
 Naming them is `pack.ts`'s `FIELDS`: `OFFSET_X` 38 and `OFFSET_Y` 39 of a float, `EXPAND_W`/`EXPAND_H` 40/41, `Z_INDEX`
-42, `RADIUS` 18 (the four corners), `BACKGROUND` 14 (rgba), `PADDING` 6, `GAP` 10, `WIDTH` 0, `HEIGHT` 3. The first group
-is what reads as motion; width, height, padding, gap and the colours are legal but Clay lays the page out from the
-declaration each frame, so a changing one re-lays-out the element's parent and its siblings — a layout change, not a
-transform. The cost is a 180-byte copy per overridden element and one scan of the table per `ui_open` on a frame that
+42, `CAPTURE` 43 (a closing overlay sets it to 1, passthrough, so the page under it takes the press), `RADIUS` 18 (the
+four corners), `BACKGROUND` 14 (rgba) and `BACKGROUND_ALPHA` 17 (the dim of a backdrop), `PADDING` 6, `GAP` 10, `WIDTH` 0,
+`HEIGHT` 3. The first group is what reads as motion; width, height, padding, gap and the colours are legal but Clay lays
+the page out from the declaration each frame, so a changing one re-lays-out the element's parent and its siblings — a
+layout change, not a transform. The cost is a 180-byte copy per overridden element and one scan of the table per `ui_open` on a frame that
 uses it.
 
 ### `ui_text` fields (`packText`)
@@ -315,16 +317,26 @@ seventeen stored frames in `frames/`:
 The dialog's container and the backdrop carry an `onPress` that does nothing: a press inside the dialog or on the
 backdrop must not read as a press on empty space (`onPressMiss` would blur).
 
-**The arrival.** The two overlays animate through the value channel (`ui.value`, above): each frame the page's tick
-overrides two numbers of their packed styles — the float's offset y and the shadow's blur — and both targets are the
-style's own literals, so a settled frame is the literal's frame, pixel for pixel. The menu slides out of its trigger:
-offset y `-10` → `-20` on `spatial(0.22, 0.1)` (a light bounce) and its shadow's blur `0` → `14` on `effect(0.22)`; the
-dialog drops in: offset y `-14` → `0` and its shadow's blur `0` → `32`. The blur takes the `effect` class because a blur
-has no negative side and must not ring in a luminance field, the offset `spatial` because position may carry a little
-velocity. The clocks are the page's and only run while the element is declared (`Show` unmounts it), so a menu closed
-mid-slide freezes there and a reopen retargets from that value: it comes back exactly where it was, no jump and no
-restart. There is no exit animation: presence (keeping the node alive past `Show`) is not something immediate mode gives
-for free.
+**The arrival, and the exit.** The two overlays animate through the value channel (`ui.value`, above): each frame the
+page's tick overrides numbers of their packed styles — the float's offset y, the shadow's blur and, for the backdrop, the
+alpha of its dim — and every target is the style's own literal, so a settled frame is the literal's frame, pixel for
+pixel. The menu slides out of its trigger: offset y `-10` → `-20` on `spatial(0.22, 0.1)` (a light bounce) and its
+shadow's blur `0` → `14` on `effect(0.22)`; the dialog drops in: offset y `-14` → `0` and its shadow's blur `0` → `32`.
+The blur takes the `effect` class because a blur has no negative side and must not ring in a luminance field, the offset
+`spatial` because position may carry a little velocity.
+
+A node that leaves stays in the tree while it leaves (`presence` in `src/motion.ts`): the page's tick asks
+`presence(open, 0.35)` for each overlay, keeps a signal of its `mounted` answer and puts it on `Show`, so closing runs
+the same tracks the other way — the panel's offset y `0` → `14` on `spatial(0.2, 0)` and its blur `32` → `0`, the
+backdrop's alpha `140` → `0` (field 17; its box is the whole window, so the alpha is the dim), the menu's offset y
+`-20` → `-10` and its blur `14` → `0` — and the node leaves the tree when the 0.35s is up (its 0.2s tracks settle at
+0.333, so no frame is cut). The trap is the *open state's*, not the node's: `input.modal` asks `dialog.open()`, so a Tab
+right after Escape reaches the page's own next stop (the Zoom trigger) while the panel is still fading, and a closing
+overlay writes `FIELDS.CAPTURE` 1 so a press goes through it to the page. A reopen during the exit retargets from what
+is presented (the reopen frame is the exit's own next value, no jump and no restart), and the clocks keep running for
+as long as the node is mounted. With reduced motion (`--reduced-motion`, `REDUCED_MOTION=1`) a retarget lands on its
+target in the same call and a presence unmounts at once, so opening is the literal's frame in one frame and closing has
+no frame with the panel in it.
 
 | Frame | Keys | Shows |
 | --- | --- | --- |
@@ -333,6 +345,7 @@ for free.
 | `dialog-light` | Tab Enter, settled, `THEME=light` | the same in the light theme: a white dialog over a greyed page |
 | `dialog-menu` | Tab Tab Enter, settled | the menu hanging off the Zoom trigger's left-bottom corner, ring and dot on `100%`, the trigger's `-` |
 | `dialog-menu-mid` | Tab Tab Enter, 3 frames after the key | the menu 7.4px lower than it rests (offset -12.58), its shadow at about a fifth of its blur |
+| `dialog-exit-mid` | Tab Enter Escape, 3 frames after the key | the panel 3.94px below its place, its shadow at 22.9 of 32, the page behind it at 100.6 of the 140 dim |
 
 Checked by `bun solid/dialog.test.ts`: opening by click and by keyboard, the trap's two-control cycle, the page's trigger
 never a stop while open, Escape and Cancel writing nothing, OK writing 55%, a press on the backdrop doing nothing and not
@@ -341,15 +354,32 @@ layout unchanged behind the backdrop, the menu's arrows, Home/End, Escape back t
 picking, and the motion: the menu's offset `-10.00, -10.85, -12.58, -14.42, -16.04, -17.32, -18.26, -18.92, -19.36,
 -19.64, -19.82, -19.92, -19.97, -20.00` and at rest exactly its style's -20, every frame towards it and none past it,
 the shadow with no blur on its first frame (the page beside it) and its blur darkening that page 18.0 → 13.9 as it
-settles, a reopen mid-slide at -10.85 coming back at -10.85 (a jump of 0.000), and the dialog's drop `149.88, 151.07,
-153.49, … 163.88` finite and still. The frames are taken at rest (`--settle 30`) because a stored frame of a moving page
-would pin an instant of the spring; `dialog-menu` and `dialog-menu-light` came out **byte-identical** to the frames
-before the channel, `dialog-open` and `dialog-light` were regenerated (the panel's shadow is now the style's own 32 at
-rest, and only the shadow band outside its box and its 1px border changed).
+settles, and the dialog's drop `149.88, 151.07, 153.49, … 163.88` finite and still.
+
+The exits and presence (`presence`, `channel`, `setReducedMotion` in `src/motion.ts`):
+the panel's offset y `163.88, 165.24, 167.82, 170.39, 172.54, 174.18, 175.37, 176.20, 176.77, 177.16, 177.41, 177.58,
+177.68, 177.75 … 177.88` and still at that 14 below its place, the title pixel behind the backdrop (47, 35) `103, 115,
+139, 162, 181, 196, 206, 214, 219, 222, 225, 227, 228, 228, 230` (140 of 255 of dim to the page), the menu's exit
+`-20.00, -19.03, -17.18, -15.34, -13.81, -12.64, -11.79, -11.19, -10.79, -10.51, -10.33` with its shadow lightening
+13.9 → 18.0 (the page), the panel still in the layout on the frame Escape closes it and for the exit after, then gone
+with the backdrop, and the page's own pixels back to the frame before opening (0 pixels differ, the trigger's ring
+included). The trap is released on that same frame: a Tab right after Escape reaches `zoom-trigger` while the panel is
+still fading. A reopen after four frames of the exit presents `174.18` — the exit's own next value — and settles back
+on 163.88 with the keys back in the dialog. Reduced motion (`setReducedMotion(true)` in the test) opens on the
+literal's frame (0 pixels differ from the settled frame) and removes both nodes on the frame it closes (the page back
+in that frame); `test.sh` also runs `$D --reduced-motion --keys Tab,Enter --expect solid/frames/dialog-open.png`.
+
+The frames are taken at rest (`--settle 30`) because a stored frame of a moving page would pin an instant of the spring;
+`dialog-menu`, `dialog-menu-light`, `dialog-menu-mid`, `dialog-open`, `dialog-light` and `dialog-closed` came out
+**byte-identical** to the frames before the exits (the entry's end is still the literal, and the closed page is the page
+before anything was opened); the new `dialog-exit-mid` is three frames after Escape, the panel 3.94px into its exit.
 
 **Mutation.** `ui_value` dropping `OFFSET_Y` leaves every frame at -20 — `FAIL every frame of the slide moves it towards
 the offset: false, wanted true` and `FAIL the menu appears 10px below the style's offset` — and the mid frame's menu
 sits at the settled place, only its shadow band differing; `ui.c` is compared with its backup after the revert.
+Dropping the presence (mounting the dialog on `dialog.open()` again, so it unmounts on close) fails `FAIL the panel is
+still in the layout right after Escape: false, wanted true`, with every sampled y `NaN` and the title already `230`
+(the dim gone in the same frame) — `Dialog.tsx` is compared with its backup after the revert.
 
 ## The Text field page
 
@@ -482,7 +512,9 @@ and status still), eight notches flinging to the clamped 78 in 31 frames and the
 keyboard (Down/Up 40, PageDown a viewport, Home/End, all on the same track and clamped), the feed's focus ring's pixels,
 the tabs switching the feed, News' empty box and its centred muted line, the status naming a clicked card, and the page
 fitting 360x760. `bun solid/motion.test.ts` is the model itself: one path at any dt, a retarget's continuity, the exact
-settle, `effect`'s clamp, the decay's projection.
+settle, `effect`'s clamp, the decay's projection, `presence` (the exit's length to a frame, a revive mid-exit at the
+value the exit presented), `channel`'s one call an element, and reduced motion (a retarget settled in the call that
+makes it, a presence that does not wait).
 
 **Mutations.** Dropping `css.image` from Michael's avatar box (a bare 40x40 box) fails the two disc asserts (the middle
 and the body are the panel `[23,27,32]`, not `[99,178,255]`/`[74,132,214]`). Making the body `nowrap` fails the wrap
