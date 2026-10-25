@@ -50,6 +50,7 @@ import {
   positionTryFallbacks,
   pr,
   pt,
+  scv,
   supports,
   textAlign,
   textDecoration,
@@ -178,6 +179,16 @@ export const button = cv({
     layout: { row: flex().gap(2), stack: flex().direction("column").gap(2) },
   },
   defaultVariants: { size: "md", tone: "primary" },
+});
+
+export const card = scv({
+  slots: { base: cn(p(4), borderRadius("0.25rem")), title: fontSize("1.125rem"), body: p(2) },
+  variants: {
+    size: { sm: p(2), lg: { base: p(6), title: fontSize("1.5rem") } },
+    tone: { quiet: bg("transparent"), loud: { base: bg("#dc2626"), body: color("white") } },
+  },
+  defaultVariants: { size: "sm" },
+  compoundVariants: [{ size: "lg", tone: "loud", class: p(8) }],
 });
 
 export const className = cn(...base, ...spacing, ...layouts, ...conditions, merged);
