@@ -7,6 +7,7 @@ import "./registry/theme.css";
 import { render } from "@solidjs/web";
 import { createSignal } from "solid-js";
 
+import { Disclosure } from "./registry/disclosure/disclosure.tsx";
 import { Switch } from "./registry/switch/switch.tsx";
 import { card, page, row } from "./page.ts";
 
@@ -19,6 +20,7 @@ const Page = () => {
           <Switch value={checked()} onValueChange={setChecked}>
             {checked() ? "On" : "Off"}
           </Switch>
+          <Disclosure summary="Details">The panel a disclosure shows.</Disclosure>
         </div>
       </div>
     </div>

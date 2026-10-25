@@ -9,9 +9,9 @@ export default defineConfig({
   plugins: [cssints(), solid()],
   css: { transformer: "lightningcss", lightningcss: { targets } },
   test: {
-    // `test/` in a project that added a component; `registry/` in this repository, where the
-    // items are authored next to the page that renders them.
-    include: ["test/**/*.browser.test.tsx", "src/registry/**/*.browser.test.tsx"],
+    // `src/components/ui/` is where a copy lands; `registry/` is where the items are authored
+    // in this repository, next to the page that renders them.
+    include: ["src/components/ui/**/*.browser.test.tsx", "src/registry/**/*.browser.test.tsx"],
     browser: {
       enabled: true,
       provider: playwright(),

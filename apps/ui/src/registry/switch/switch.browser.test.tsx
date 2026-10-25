@@ -18,7 +18,7 @@ import { describe, expect, it } from "vite-plus/test";
 import baseUi from "@cssints/apg-specs/scenarios/apg/switch.base-ui.json";
 import definitionJson from "@cssints/apg-specs/apg/switch.model.json";
 import { domDriver } from "./dom-driver";
-import { mountSwitch } from "./fixture";
+import { mountSwitch } from "./switch.fixture";
 import reactAria from "@cssints/apg-specs/scenarios/apg/switch.react-aria.json";
 
 // The copy's own conformance: the same scenarios the primitive is checked against,
