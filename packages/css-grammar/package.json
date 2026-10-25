@@ -1,6 +1,6 @@
 {
   "name": "@cssints/css-grammar",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Type-level and runtime recognizer of CSS values over mdn-data grammars (the engine of cssints)",
   "license": "MIT",
   "repository": {

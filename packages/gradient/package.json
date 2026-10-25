@@ -1,6 +1,6 @@
 {
   "name": "@cssints/gradient",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Eased gradients for cssints: an easing curve expanded into colour stops (mixed in oklab) at build time",
   "license": "MIT",
   "repository": {
@@ -51,7 +51,7 @@
     "vite": "catalog:"
   },
   "peerDependencies": {
-    "cssints": "^0.7.0"
+    "cssints": "^0.8.0"
   },
   "engines": {
     "node": ">=22"
