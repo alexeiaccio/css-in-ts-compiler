@@ -15,3 +15,7 @@ the reference's indigo ships as `[data-tint="indigo"]`, and the rest are a line 
 and a theme that cannot fail its own check is not checked.
 
 Portions restate React Aria's starter theme, licensed under the Apache License 2.0; see [NOTICE](NOTICE).
+
+The switch in `src/main.tsx` is styled the way the starters will be: `surface()` for colour (the page is the outermost
+surface, the card is it lightened, the row is the card darkened) and `frame()` for the padding and the radius — the card
+names 16px, the row inherits the inner 7px with no radius of its own. Neither is a fixed value per element.
