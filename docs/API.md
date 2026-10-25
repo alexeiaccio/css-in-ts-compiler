@@ -709,10 +709,7 @@ export const badSlot = scv({
   slot and a slot's own name styles that slot.
 - **The rules are `cv()`'s, per slot.** A variant wins over the slot's base (its class is dropped while active), a compound
   wins over both, and two things that can be active together and overlap without containment are a build error. Each
-  error names the slot: `cssints: scv() slot base: base and variant active.yes: border-bottom and border-color overlap
-  without one containing the other, so the sheet cannot order them: set one of them, or the longhands`. A slot a value
-  does not style is simply not in that slot's config, and the compound entries it has no style for keep their index, so
-  the errors name the entry you wrote.
+  error names the slot, for example `cssints: scv() slot base: base and variant active.yes: border-bottom and border-color overlap without one containing the other`. A slot a value does not style is simply not in that slot's config, and the compound entries it has no style for keep their index, so the errors name the entry you wrote.
 - **Props and result.** The props are `cv()`'s, typed from `variants` (`CvProps`): a typo in a name or a value is a type
   error, and a boolean variant takes a boolean. The result is `{ [K in keyof slots]: string }`, so `button().label` is a
   `string` and a slot that is not there is a type error.
@@ -720,6 +717,38 @@ export const badSlot = scv({
   value is a `css.*` style (or a `cn()`/a chain). A slot may not share its name with a variant: a compound entry would
   name both with one key, and the types make that entry impossible to write. A `scv()` site has no readable class in the
   dev overlay yet (a `cn()` or `cv()` site has one).
+
+**A slot that reads another slot's state uses `group()` and `within()`, not its class.** A class is a mark on the element
+it is put on: passing `base`'s class to a condition of `label` would style `label`'s own state, not the root's. The root
+marks itself a group and the other slots read that ancestor's state, one condition each:
+
+```ts
+import {
+  bg,
+  cn,
+  color,
+  focusVisible,
+  fontSize,
+  group,
+  hover,
+  opacity,
+  p,
+  scv,
+  within,
+} from "cssints" with { type: "cssints" };
+
+const card = scv({
+  slots: {
+    base: cn(group(), p(4), bg("white")),
+    label: cn(fontSize("1rem"), within(hover)(color("red"))),
+    icon: within(focusVisible)(opacity(1)),
+  },
+});
+```
+
+`group()` puts `_g` on the element the `base` class is on, and `within(hover)` becomes `:where(._g:hover) .label`, one
+class of specificity, so the sheet's order still decides. `group("card")` with `within(hover, "card")` tells nested cards
+apart. A slot needs no dependency on another slot's value for this, which is why `scv()` takes no slot functions.
 
 ### Errors
 
