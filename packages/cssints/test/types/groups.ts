@@ -33,6 +33,10 @@ export const ok: string[] = [
   wide.cv({ base: wide.display("flex"), variants: { size: { sm: wide.padding(1) } } })({
     size: "sm",
   }),
+  wide.scv({
+    slots: { base: wide.display("flex"), label: wide.padding(1) },
+    variants: { size: { sm: { label: wide.padding(2) } } },
+  })({ size: "sm" }).label,
   wide.container("sidebar (width >= 20rem)")(wide.padding(1)),
   wide.supports("(display: grid)")(wide.display("grid")),
   color4.color("oklch(0.5 0.1 200)"),

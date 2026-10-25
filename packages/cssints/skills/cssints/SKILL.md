@@ -3,7 +3,7 @@ name: cssints
 description: >-
   Write, review and fix styles in a project that uses cssints, the CSS-in-TypeScript compiler (a Vite plugin that
   runs css.* calls at build time and replaces them with atomic class strings). Load it when code imports from
-  "cssints" with { type: "cssints" }, uses cn(), cv(), css.* members, media()/hover()/container()/within(),
+  "cssints" with { type: "cssints" }, uses cn(), cv(), scv(), css.* members, media()/hover()/container()/within(),
   createTokens, createGlobalTheme, check.contrast, or an @cssints/* package (layout, motion, fluid, fonts, reset,
   tokens, icons, ...), and when a build fails with a "cssints:" message such as "must be known at build time",
   "without the attribute", "unexpected ... expected <...>", "overlap without one containing the other" or
@@ -15,7 +15,7 @@ description: >-
 Every `css.*` call runs at build time in Vite's Module Runner and is replaced by a class string. The values are
 checked against the CSS grammars (mdn-data) twice: in the types, where the call is, and again by the build, with the
 file and the place of the call. One sheet, `virtual:cssints.css`, holds every rule once, in `@layer`s. The browser
-gets class strings and the few lines behind `cn` with runtime arguments and `cv`. The reference is `docs/API.md` of the cssints repository; the
+gets class strings and the few lines behind `cn` with runtime arguments, `cv` and `scv`. The reference is `docs/API.md` of the cssints repository; the
 parts below are what you need most of the time.
 
 If the cssints MCP server is configured, prefer it for checks: `check_declaration` (is this value valid, and the
@@ -92,7 +92,7 @@ the run does not reach (`false && p(4)`, a branch) still gets its class string.
 - `firstThatWorks("100dvh", "100vh")` is a value with fallbacks in one class.
 - `keyframes({ from: opacity(0), to: opacity(1) })` returns a name for `animation(fade, "200ms")`.
 
-## Merging: cn, cv
+## Merging: cn, cv, scv
 
 - `cn(...)` merges at build time into one string; the later of one property wins (`cn(p(4), p(2))` is `p(2)`). A
   longhand beats its shorthand whatever the order. Two properties that overlap without one containing the other
@@ -114,6 +114,11 @@ const button = cv({
 });
 button({ size: "lg", disabled: true });
 ```
+
+- `scv({ slots, variants, defaultVariants, compoundVariants })` is the slot recipe: `button({ size: "lg" })` gives the
+  class string of every slot (`{ base, label, icon }`). A variant value that is a style styles the `base` slot, a record
+  by slot styles those slots (`{ base: p(4), label: fontSize("1.25rem") }`); in a compound, `class` is `base` and a slot's
+  name styles that slot. The rules are `cv()`'s, per slot.
 
 ## Conditions and layers
 

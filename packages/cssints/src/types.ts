@@ -75,6 +75,19 @@ export interface CvConfig<V extends Record<string, Record<string, Style>>> {
   /** Styles added when every value named here is active, and that win over the variants they combine. */
   compoundVariants?: (CvProps<NoInfer<V>> & { class: Style })[];
 }
+/** The value of one variant of an `scv()`: a style for the `base` slot, or a style for each slot it names. */
+export type ScvValue<S extends Record<string, Style>> = Style | Partial<Record<keyof S, Style>>;
+export interface ScvConfig<
+  S extends Record<string, Style>,
+  V extends Record<string, Record<string, ScvValue<S>>> = Record<never, never>,
+> {
+  /** The slots it styles, `base` and the others: a variant value that is a style styles `base`. */
+  slots: S;
+  variants?: V;
+  defaultVariants?: CvProps<NoInfer<V>>;
+  /** Styles added when every value named here is active: `class` is the `base` slot, a slot's name styles that slot. */
+  compoundVariants?: (CvProps<NoInfer<V>> & { class: Style } & Partial<Record<keyof S, Style>>)[];
+}
 
 /**
  * Merges styles into one class string. What is known at build time merges (the later property wins); a runtime value
@@ -167,6 +180,14 @@ export declare const cv: <V extends Record<string, Record<string, Style>> = Reco
   config: CvConfig<V>,
 ) => (props?: CvProps<V>) => string;
 
+/** The plugin replaces the call by one runtime function per slot: `button({ size: "lg" })` gives each slot's classes. */
+export declare const scv: <
+  S extends Record<string, Style>,
+  V extends Record<string, Record<string, ScvValue<S>>> = Record<never, never>,
+>(
+  config: ScvConfig<S, V>,
+) => (props?: CvProps<V>) => { [K in keyof S]: string };
+
 export declare const css: typeof import("./members.ts") & {
   cn: typeof cn;
   firstThatWorks: typeof firstThatWorks;
@@ -183,6 +204,7 @@ export declare const css: typeof import("./members.ts") & {
   token: typeof token;
   style: typeof style;
   cv: typeof cv;
+  scv: typeof scv;
   CSS: typeof CSS;
   CSSColorValue: typeof CSSColorValue;
   CSSImageValue: typeof CSSImageValue;

@@ -1899,3 +1899,60 @@ The user's decision: a new named export beside `css`, `import { sx } from "cssin
 **Tests**: `test/chain.mjs` with `fixtures/chain.ts` (the spike, one site), `chain-use.ts` (a chain in `cn()`, `hover()`, `media()`, `cv()` base and variant, the runtime half of a `cn()`, a function, and a `keyframes()` name whose at-rule reaches the sheet), `chain-dupe.ts` (the later value wins at build time), and the overlap and unknown-method build errors with their call site; `test/types/chain.ts` (a duplicate, an alias in either order, `p` then `paddingLeft` legal, `flex` then `bg`, `.flex(1)` as the property, `.flex().grid()`); `docs/API.md` "sx()".
 
 Left: plugin members (`frame()`, `surface()`, a scope's) and conditions are not chainable, so `cn(frame(), sx().p(2))` and `hover(sx()...)` are the spellings; the import-floor cost is paid by every module, not only by those that use a chain; and a second `.flex()`/`.grid()` says "Expected 1 arguments" rather than naming `display`.
+
+## `scv()`: slot variants, one class string per slot (cssints-43rj, 2026-10-25)
+
+The user's decision: `scv({ slots: { base, label, icon }, variants, defaultVariants, compoundVariants })` is one function,
+and `button({ size: "lg" })` gives the class string of every slot (`{ base, label, icon }`), the slot recipe users know
+from tailwind-variants. A variant value that is a style styles the slot named `base`; a record of styles is by slot, so
+one variant can style several slots; in a compound, `class` is the base slot and a slot's own name styles that slot.
+
+**The build is one `cv()` config per slot.** Rather than a second engine, `scvOf` (macro.ts) builds, for each slot, the
+config `cv()` already takes: the slot's base, the variant values that style it, the compounds that style it, and the
+config's `defaultVariants`, then calls `cvOf` on it. So the rules are `cv()`'s by construction — a variant wins over the
+base, a compound over both, drops are computed by `settled()`, an overlap without containment is a build error — and a new
+cv rule arrives in `scv()` for free. Two things were added to `cvOf`: a variant value may be `undefined` (a slot an scv
+value does not style: the value is left out of that slot's config, while the variant keeps its key, which is what a
+compound matches the props on), and a compound entry may have no style for a slot (it keeps its index in the `whens` of
+`settled`, so the errors still name the entry as written). `settled` and `styleOf` take the name of the engine for their
+messages (`cv()` by default, `scv() slot base:` from scv), so an overlap reads `cssints: scv() slot base: base and
+variant active.yes: border-bottom and border-color overlap ...`, at the `scv()` call site.
+
+**The client** holds `__scv({ base: { base, variants, defaultVariants, drops?, compound? }, label: {...}, ... })`, class
+strings only, and `import { _scv as __scv } from "cssints"`; `_scv` (runtime.ts) builds each slot's `_cv` runtime once
+and returns `(props) => ({ slot: classes })`. Nothing else ships. `scv()` is a build-time member in `named` (macro.ts), in
+`group-common.ts` (every export group has it) and in `BUILDERS`, and the plugin finds the site by the import's binding as
+it does for `cv()`; `runtimeImport` adds `_scv`.
+
+**Types** (types.ts): `ScvValue<S> = Style | Partial<Record<keyof S, Style>>`, `ScvConfig<S, V>` with `slots: S` required
+and the compound entry `CvProps<V> & { class: Style } & Partial<Record<keyof S, Style>>`, and
+`scv<S, V>(config) => (props?: CvProps<V>) => { [K in keyof S]: string }`. Props come from `variants` exactly as `cv()`'s;
+an unknown slot in a record, an unknown variant or value, and a compound without `class` are type errors, and the build
+repeats the unknown slot (`cssints: scv() variant size.sm styles labl, which is not a slot: base, label`) and the missing
+`base` slot for a bare style (`cssints: scv() variant size.sm is a style, and slots has no slot named base: ...`).
+
+**Cost.** The import floor did not move measurably: `bench/unused.ts` 53 412 against the recorded 53 029, the drift every
+row shows on this machine (`chain.ts` 273 741 → 274 124), so no row was re-baselined; a three-slot `scv` with three
+variants and a compound in `bench/users.ts` costs 1 972 instantiations (967 380 → 969 352, +0.2 %). Editor latency on
+`bench/lsp.mjs`: initialize 49 ms, first diagnostics 494 ms, an edit 221–292 ms, hover 27–79 ms (this worktree's own
+install).
+
+**The dev server's model is untouched.** No await point moved and no existing site's output changed: `scv()` is one more
+kind of replacement, so `spec/runner.qnt` and its replays still describe the plugin as it is.
+
+**Tests**: `test/scv.mjs` with `fixtures/scv.ts` (three slots, a bare-style value and a record, a boolean variant, two
+compounds, drops per slot, the compound's placeholders, the call at the top of a module and an `scv()` inside a function),
+`fixtures/scv-group.ts` (an export group has it), and the build errors with their call site: an overlap per slot, an
+unknown slot in a variant and in a compound, a bare style with no `base` slot; `test/types/scv.ts` (props, slots, a bad
+slot, a bad value, a bad default, a compound without `class`, `css.scv`) and a `wide.scv(...)` line in
+`test/types/groups.ts`; `docs/API.md` "scv()". Finding: `bun run typecheck` (effect-tsrs) in this worktree reports no
+TypeScript diagnostic for `test/types/*.ts` at all — a blatant `export const x: number = "x"` added to the existing
+`chain.ts` is missed too — so the type tests were also checked with `tsc` 5.9
+(`node ../../node_modules/typescript/bin/tsc -p tsconfig.json`) and `bunx vp lint`, which do report them (on the property
+line of a multi-line call, so an `@ts-expect-error` sits inside the object, above the property).
+
+**Left**: a `cv()` function as a slot value and an `scv()` in `compoundVariants` (both deferred by the decision); a slot
+may not share its name with a variant, since a compound entry would name both with one key and the types make that entry
+impossible; an `scv()` site gets no readable `cs-` class in the dev overlay, which a `cn()` or `cv()` site has; and
+`scv(...)(props)` in one expression is a call of a site-root call, which the plugin evaluates as one site (name the
+function first, as `const kit = scv({...}); kit(props)`).

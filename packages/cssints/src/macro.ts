@@ -72,8 +72,8 @@ import {
   type Rule,
   warn,
 } from "./registry.ts";
-import { CV_CALL, CX_CALL } from "./instrument.ts";
-import { _cv as runtimeCv, type CvRuntimeConfig } from "./runtime.ts";
+import { CV_CALL, CX_CALL, SCV_CALL } from "./instrument.ts";
+import { _cv as runtimeCv, _scv as runtimeScv, type CvRuntimeConfig } from "./runtime.ts";
 import {
   addTheme,
   check,
@@ -510,12 +510,15 @@ const conditions = {
   ...Object.fromEntries(Object.entries(PSEUDOS).map(([n, c]) => [n, wrapper(c)])),
 };
 
-type Styles = Record<string, Record<string, unknown>>;
+// A style as user code writes it, where a style goes: a css.* node, or (in scv) a record of them by slot. What the
+// evaluation hands over is what the public types promised; a value that is neither is caught by styleOf, which sees it.
+type SlotValue = CssNode | Readonly<Record<string, CssNode>>;
+type Styles = Record<string, Record<string, SlotValue | undefined>>;
 interface CvConfig {
-  base?: unknown;
+  base?: SlotValue;
   variants?: Styles;
   defaultVariants?: Record<string, string | boolean>;
-  compoundVariants?: Record<string, string | boolean | CssNode>[];
+  compoundVariants?: Record<string, string | boolean | CssNode | undefined>[];
 }
 /** What cv(config) is while a module is evaluated: the function the browser gets, and the config as written. */
 interface CvFn {
@@ -742,37 +745,50 @@ const styleOf = Effect.fnUntraced(function* (
   s: unknown,
   where: string,
   at?: At,
+  engine: string = "cv()",
 ): Effect.fn.Return<string, Invalid | MacroError | MemberError> {
   if (!isNode(s))
     return yield* new MacroError({
-      message: `cssints: cv() ${where} must be a css.* value (cn(...), a flex() chain or one property), got ${Formatter.formatJson(s)}. CSS strings are gone: write cn(p(4), fontSize("1rem"))`,
+      message: `cssints: ${engine} ${where} must be a css.* value (cn(...), a flex() chain or one property), got ${Formatter.formatJson(s)}. CSS strings are gone: write cn(p(4), fontSize("1rem"))`,
     });
   return yield* classesOf(s, at);
 });
 
-// cv(config with css.* values) -> the CvRuntimeConfig of class strings that the runtime `_cv` takes.
+// cv(config with css.* values) -> the CvRuntimeConfig of class strings that the runtime `_cv` takes. `engine` is the name
+// the errors use: scv() builds one cv config per slot of its own config, and names the slot there.
 const cvOf = Effect.fnUntraced(function* (
   config: CvConfig,
   at?: At,
+  engine: string = "cv()",
 ): Effect.fn.Return<string, Invalid | MacroError | MemberError> {
   const variants: Record<string, Record<string, string>> = {};
-  const base = config.base === undefined ? "" : yield* styleOf(config.base, "base", at);
+  const base = config.base === undefined ? "" : yield* styleOf(config.base, "base", at, engine);
   for (const [k, vs] of Object.entries(config.variants ?? {})) {
     const classes: Record<string, string> = {};
+    // a value that styles no slot of an scv() is left out of that slot's config; the key stays, for the compounds (the
+    // runtime reads the props, not the config's values, to know what is active)
     for (const [n, s] of Object.entries(vs))
-      classes[n] = yield* styleOf(s, `variant ${k}.${n}`, at);
+      if (s !== undefined) classes[n] = yield* styleOf(s, `variant ${k}.${n}`, at, engine);
     variants[k] = classes;
   }
   const compound: { when: Record<string, string>; class: string; drops?: string }[] = [];
   const whens: { when: Record<string, string>; decls: Decl[] }[] = [];
+  // where each compound stands in `whens`: one a slot has no style for keeps its index, so the errors name the entry the
+  // user wrote and not the one of this slot's shorter list
+  const kept: number[] = [];
   for (const [i, { class: style, ...values }] of (config.compoundVariants ?? []).entries()) {
     const named = values as Record<string, string | boolean>; // the values are the variants' keys, `class` the style
     const when = Object.fromEntries(Object.entries(named).map(([k, v]) => [k, String(v)]));
-    compound.push({ when, class: yield* styleOf(style, `compoundVariants[${i}] class`, at) });
-    whens.push({ when, decls: (style as CssNode).__cssints });
+    whens.push({ when, decls: style === undefined ? [] : (style as CssNode).__cssints });
+    if (style === undefined) continue;
+    compound.push({
+      when,
+      class: yield* styleOf(style, `compoundVariants[${i}] class`, at, engine),
+    });
+    kept.push(whens.length - 1);
   }
-  // every value is a node now (styleOf checked)
-  const declsOf = (s: unknown) => (s as CssNode).__cssints;
+  // every value is a node now (styleOf checked), or undefined (a slot of an scv() the value does not style)
+  const declsOf = (s: SlotValue | undefined) => (s === undefined ? [] : (s as CssNode).__cssints);
   const { drops, compound: gone } = yield* Effect.try({
     try: () =>
       settled(
@@ -784,6 +800,7 @@ const cvOf = Effect.fnUntraced(function* (
           ]),
         ),
         whens,
+        engine,
       ),
     catch: (e) => {
       if (e instanceof MacroError) return e;
@@ -796,7 +813,7 @@ const cvOf = Effect.fnUntraced(function* (
     defaultVariants: config.defaultVariants ?? {},
     ...(Object.keys(drops).length && { drops }),
     ...(compound.length && {
-      compound: compound.map((c, i) => (gone[i] ? { ...c, drops: gone[i] } : c)),
+      compound: compound.map((c, i) => (gone[kept[i]!] ? { ...c, drops: gone[kept[i]!] } : c)),
     }),
   });
 });
@@ -816,6 +833,111 @@ export const cv = (config: CvConfig) => {
   return Object.assign(
     (props?: Record<string, string | boolean | undefined>) => (built[0] ??= build())(props),
     { __cv: config },
+  );
+};
+
+/** What scv(config) is while a module is evaluated: the function the browser gets, and the config as written. */
+interface ScvConfig {
+  slots: Record<string, SlotValue>;
+  variants?: Record<string, Record<string, SlotValue>>;
+  defaultVariants?: Record<string, string | boolean>;
+  compoundVariants?: Record<string, CssNode | string | boolean>[];
+}
+interface ScvFn {
+  (props?: Record<string, string | boolean | undefined>): Record<string, string>;
+  __scv: ScvConfig;
+}
+const isScv = (v: unknown): v is ScvFn => Predicate.hasProperty(v, "__scv");
+
+// A variant value that is a record by slot (`{ base, label }`), not a style for the base slot.
+const isBySlot = (v: SlotValue): v is Record<string, CssNode> =>
+  !isNode(v) && Predicate.isObject(v);
+
+// The cv() config of one slot: its base, the variant values that style it, the compounds that do, and the config's
+// defaultVariants (the runtime needs them to know which values are active). A value that is a style styles the slot named
+// base, one that is a record is by slot; the values a slot has nothing for are left out, but every variant keeps its key,
+// which is what a compound matches the props on. `base` is the slot named base, when the config has one.
+const slotOf = (config: ScvConfig, slot: string, base: string | undefined) => {
+  const variants = config.variants ?? {};
+  const pick = (v: SlotValue) => {
+    if (isNode(v)) return slot === base ? v : undefined;
+    return isBySlot(v) ? v[slot] : v;
+  };
+  return {
+    base: config.slots[slot],
+    variants: Object.fromEntries(
+      Object.entries(variants).map(([k, vs]) => [
+        k,
+        Object.fromEntries(Object.entries(vs).map(([n, s]) => [n, pick(s)])),
+      ]),
+    ),
+    defaultVariants: config.defaultVariants,
+    compoundVariants: (config.compoundVariants ?? []).map(({ class: style, ...rest }) => {
+      // `class` is the base slot, a slot's own name styles that slot; the whens are the variant values, in the order
+      // they are written (a name that is neither a variant nor a slot stays, and matches nothing, as in cv())
+      const when = Object.fromEntries(
+        Object.entries(rest).filter(
+          ([k]) => Object.hasOwn(variants, k) || !Object.hasOwn(config.slots, k),
+        ),
+      );
+      return { ...when, class: rest[slot] ?? (slot === base ? style : undefined) };
+    }),
+  };
+};
+
+// scv(config with css.* values) -> `{ <slot>: <cv config of class strings> }` for the runtime `_scv`. Each slot is one
+// cv() config, so the rules are cv()'s: a variant wins over the base, a compound over both, and an overlap without
+// containment is a build error, per slot.
+const scvOf = Effect.fnUntraced(function* (config: ScvConfig, at?: At) {
+  const slots = Object.keys(config.slots);
+  const base = slots.includes("base") ? "base" : undefined;
+  const variants = config.variants ?? {};
+  for (const [k, vs] of Object.entries(variants))
+    for (const [n, v] of Object.entries(vs)) {
+      if (isNode(v)) {
+        // a style styles the base slot: without one it would style nothing
+        if (base === undefined)
+          return yield* new MacroError({
+            message: `cssints: scv() variant ${k}.${n} is a style, and slots has no slot named base: name it, { base: … }, or write { ${slots[0] ?? "…"}: … }`,
+            ...at,
+          });
+      } else if (isBySlot(v))
+        for (const s of Object.keys(v))
+          if (!slots.includes(s))
+            return yield* new MacroError({
+              message: `cssints: scv() variant ${k}.${n} styles ${s}, which is not a slot: ${slots.join(", ")}`,
+              ...at,
+            });
+    }
+  for (const [i, entry] of (config.compoundVariants ?? []).entries())
+    for (const k of Object.keys(entry))
+      if (k !== "class" && !slots.includes(k) && !Object.hasOwn(variants, k))
+        return yield* new MacroError({
+          message: `cssints: scv() compoundVariants[${i}] styles ${k}, which is not a slot: ${slots.join(", ")}`,
+          ...at,
+        });
+  const configs: [string, CssNode | Readonly<Record<string, CssNode>>][] = [];
+  for (const slot of slots)
+    configs.push([
+      slot,
+      fromJson(yield* cvOf(slotOf(config, slot, base), at, `scv() slot ${slot}:`)) as SlotValue,
+    ]);
+  return Formatter.formatJson(Object.fromEntries(configs));
+});
+
+// During evaluation scv() is the function the browser will have, built from the config on its first call (one cv runtime
+// per slot), so a module that calls it at its top level works; the plugin replaces the site by `__scv({ <slot>: <cv
+// config>, ... })` for the client.
+export const scv = (config: ScvConfig) => {
+  const built: ReturnType<typeof runtimeScv>[] = [];
+  const build = () => {
+    const exit = Effect.runSyncExit(scvOf(config));
+    if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
+    return runtimeScv(fromJson(exit.value) as Record<string, CvRuntimeConfig>);
+  };
+  return Object.assign(
+    (props?: Record<string, string | boolean | undefined>) => (built[0] ??= build())(props),
+    { __scv: config },
   );
 };
 
@@ -871,6 +993,7 @@ const named: Record<string, unknown> = {
   flex,
   grid,
   cv,
+  scv,
   group,
   global: globalRule,
   layers: layersRule,
@@ -943,6 +1066,7 @@ const replacementOf = Effect.fnUntraced(function* (
 ): Effect.fn.Return<string | undefined, Invalid | MacroError | MemberError> {
   if (isNode(value)) return Formatter.formatJson(yield* classesOf(value, at));
   if (isCv(value)) return `${CV_CALL}${yield* cvOf(value.__cv, at)})`;
+  if (isScv(value)) return `${SCV_CALL}${yield* scvOf(value.__scv, at)})`;
   if (isGroup(value)) return yield* headOf(value, at);
   if (isStyle(value)) return yield* inlineOf(value);
   const tokens = tokensOf(value);
