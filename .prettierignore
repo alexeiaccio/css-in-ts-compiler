@@ -25,6 +25,7 @@ packages/css-grammar/src/functions.ts
 packages/css-grammar/src/keywords.ts
 packages/css-grammar/src/longhands.ts
 packages/cssints/src/members.ts
+packages/cssints/src/chain-members.ts
 **/dist
 
 # Vendored (dmmulroy/anti-slop), keeps its upstream style.
