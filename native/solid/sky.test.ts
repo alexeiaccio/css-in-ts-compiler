@@ -23,6 +23,7 @@ const check = (what: string, got: unknown, want: unknown) => {
 const PAGE = [16, 19, 22]; // the page token of the dark theme
 const PANEL = [27, 32, 38]; // the card's gradient at its top (the panel token)
 const PANEL_DEEP = [21, 25, 30]; // ... and at its bottom
+const INK = [230, 233, 236]; // the card's name and body text
 const MUTED = [139, 152, 165]; // the muted token
 const HOVER = [34, 40, 49]; // a card or tab under the pointer: the hover gradient's top
 const RING = [92, 176, 255]; // the feed's focus ring
@@ -31,6 +32,18 @@ const LIGHT_PANEL_DEEP = [240, 243, 246]; // ... and at its bottom
 // a gradient's pixel is the stop interpolated at that y, so it is matched within a channel or two
 const near = (got: number[], want: number[], d = 2) =>
   got.length === 3 && want.every((v, i) => Math.abs(got[i]! - v) <= d);
+/** The bands a column of a card shows: runs of one luminance, and the longest of them (the dither's own measure). */
+const bands = (col: number[][]) => {
+  const lum = (c: number[]) => Math.round(0.2126 * c[0]! + 0.7152 * c[1]! + 0.0722 * c[2]!);
+  let runs = 1,
+    longest = 1,
+    at = 1;
+  for (let i = 1; i < col.length; i++) {
+    if (lum(col[i]!) === lum(col[i - 1]!)) at++;
+    else runs++, (longest = Math.max(longest, at)), (at = 1);
+  }
+  return { runs, longest: Math.max(longest, at) };
+};
 /** Is a colour strictly between two others, channel by channel (a fade's mid frame)? */
 const between = (c: number[], a: number[], b: number[]) =>
   c.length === 3 &&
@@ -208,12 +221,12 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
   const a = p.avatar(0);
   check("the avatar is a 40x40 box", a, [24, 88, 40, 40]);
   check("its corner is the card's panel: the disc's outside is transparent", near(p.pixel(a[0]! + 1, a[1]! + 1), PANEL), true);
-  check("the disc's middle is the head, a lighter tint of the hue", p.pixel(a[0]! + 20, a[1]! + 20), [99, 178, 255]);
-  check("and its body is michaelwarburton's hue", p.pixel(a[0]! + 10, a[1]! + 10), [74, 132, 214]);
+  check("the disc's middle is the head, a lighter tint of the hue", near(p.pixel(a[0]! + 20, a[1]! + 20), [99, 178, 255], 1), true);
+  check("and its body is michaelwarburton's hue", near(p.pixel(a[0]! + 10, a[1]! + 10), [74, 132, 214], 1), true);
   p.science();
   const e = p.avatar(0);
   check("the Science feed's first post has a box in the same place", e, [24, 88, 40, 40]);
-  check("Erik's hue is the one committed for erikstrub", p.pixel(e[0]! + 10, e[1]! + 10), [126, 108, 200]);
+  check("Erik's hue is the one committed for erikstrub", near(p.pixel(e[0]! + 10, e[1]! + 10), [126, 108, 200], 1), true);
   check("and not the panel", p.pixel(e[0]! + 10, e[1]! + 10).join() !== PANEL.join(), true);
 }
 
@@ -318,36 +331,68 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
   const top = column[0]!,
     bottom = column[column.length - 1]!;
   check("the card's gradient runs top to bottom: its top is lighter", top[0]! >= bottom[0]! + 3, true);
-  check("by 5/255 over these 182px", top[0]! - bottom[0]!, 5);
+  // the two ends are single pixels, each dithered by one level either way: 5/255, give or take two
+  check("by 5/255 over these 182px, within the dither at each end", Math.abs(top[0]! - bottom[0]! - 5) <= 2, true);
   check("it starts at the panel token", near(top, PANEL), true);
   check("and ends at the deep one", near(bottom, PANEL_DEEP), true);
   // a row in the card's top padding, above the avatar and the name: a vertical gradient does not vary across
   const row: number[][] = [];
   for (let x = x0 + 8; x < x0 + w - 8; x++) row.push(p.pixel(x, y0 + 4));
   const across = Math.max(...row.map((c) => c[0]!)) - Math.min(...row.map((c) => c[0]!));
-  check("the gradient is vertical: one row varies by at most 1/255", across <= 1, true);
+  check("the gradient is vertical: one row varies by the dither's two levels at most", across <= 2, true);
   // its edges: one pixel outside the card is the page, the card's own first pixel is the gradient
   const mid = y0 + Math.floor(h / 2);
   check("above the card is the page, not the gradient", p.pixel(180, y0 - 1), PAGE);
   check("left of it is the page too", p.pixel(x0 - 1, mid), PAGE);
   check("and its own left edge is the gradient", p.pixel(x0, mid).join() === PAGE.join(), false);
   check("its own top edge is the gradient", p.pixel(180, y0).join() === PAGE.join(), false);
-  // the bands: how many runs of one luminance a vertical scan of a 190px card shows (this is where a dither step would
-  // come in; none is built, and the count is reported)
-  const lum = (c: number[]) => Math.round(0.2126 * c[0]! + 0.7152 * c[1]! + 0.0722 * c[2]!);
-  let runs = 1;
-  for (let i = 1; i < column.length; i++) if (lum(column[i]!) !== lum(column[i - 1]!)) runs++;
-  check("the bands are runs of one luminance down the card", runs >= 2, true);
+  // the bands: the dither's own measure. A column of the card is one luminance a row; an 8-bit ramp shows 6 runs of ~30px
+  // in the dark theme (12 of ~15px in the light one), and a dither breaks them into stipple, so the count rises and the
+  // longest run falls. Both are printed; the threshold below is what the dither measured.
+  const dark = bands(column);
+  check("the dither breaks the bands: no run of one luminance is 12px or longer", dark.longest < 12, true);
+  check("and the runs are many more than the six the ramp had", dark.runs > 100, true);
   console.log(
     `solid/sky.test.ts: the card's gradient down ${column.length}px: ${new Set(column.map((c) => c.join())).size} colours, ` +
-      `${runs} bands of ${(column.length / runs).toFixed(1)}px on average`,
+      `${dark.runs} runs, the longest ${dark.longest}px`,
   );
+  // the text: the body's ink is inside the box, so it takes the same one-level step. Its core is the ink token when
+  // undithered, so a core pixel is at most 1/255 away from it; and the ink's mask at half the token cannot move, because
+  // no pixel of the text sits at the threshold a step could cross — so the ink's box is the undithered one.
+  const body = p.body(0);
+  const box = (b: number[], pred: (c: number[]) => boolean) => {
+    const hit: [number, number][] = [];
+    for (let y = b[1]!; y < b[1]! + b[3]!; y++)
+      for (let x = b[0]!; x < b[0]! + b[2]!; x++) if (pred(p.pixel(x, y))) hit.push([x, y]);
+    return hit;
+  };
+  const ink = box(body, (c) => c[1]! >= 128);
+  const peak = Math.max(...box(body, () => true).map(([x, y]) => p.pixel(x, y)[1]!));
+  const flat = box(body, (c) => c[1]! === peak);
+  const inkBox = [Math.min(...ink.map(([x]) => x)), Math.min(...ink.map(([, y]) => y)), Math.max(...ink.map(([x]) => x)), Math.max(...ink.map(([, y]) => y))];
+  // the only pixels a one-level step can move across the mask's threshold are those at it: if none of them is on the
+  // ink's edge, the mask's box is the undithered one — the edge pixels are blends 60+ levels off, nothing to flip
+  const edge = box(body, (c) => c[1]! === 127 || c[1]! === 128);
+  check("the body draws ink", ink.length > 100, true);
+  check("its flat core is the ink token, stepped by at most 1/255", flat.every(([x, y]) => apart(p.pixel(x, y), INK) <= 1), true);
+  check("the ink's edge is no blend at the mask's threshold, so its box cannot move", edge.filter(([x, y]) => x <= inkBox[0]! || x >= inkBox[2]! || y <= inkBox[1]! || y >= inkBox[3]!).length, 0);
+  check("the ink lies inside the body's box", inkBox[0]! >= body[0]! && inkBox[1]! >= body[1]! && inkBox[2]! < body[0]! + body[2]! && inkBox[3]! < body[1]! + body[3]!, true);
+  console.log(
+    `solid/sky.test.ts: the body's ink ${ink.length}px in a ${inkBox[2]! - inkBox[0]! + 1}x${inkBox[3]! - inkBox[1]! + 1} box, ` +
+      `its ${flat.length} flat pixels at most 1/255 off the token, ${edge.length} at the threshold and none on the edge`,
+  );
+  // the dither is the pixels' position and nothing else: a second page at rest draws the identical frame
+  const q = fresh();
+  const again: number[][] = [];
+  for (let y = y0 + 4; y < y0 + h - 4; y++) again.push(q.pixel(x0 + w - 8, y));
+  check("the dither is deterministic: the same settled frame twice is identical", again.join(), column.join());
   // the hover overrides the whole gradient: the card under the pointer starts at the hover token
-  const card1 = p.card(1);
-  const at = p.pixel(180, card1[1]! + 30);
-  p.point(180, card1[1]! + 30);
-  p.settle(20);
-  const hovered = p.pixel(180, card1[1]! + 30);
+  const p2 = fresh();
+  const card1 = p2.card(1);
+  const at = p2.pixel(180, card1[1]! + 30);
+  p2.point(180, card1[1]! + 30);
+  p2.settle(20);
+  const hovered = p2.pixel(180, card1[1]! + 30);
   check("the hover replaces the gradient: lighter by more than 3/255", hovered[0]! >= at[0]! + 3, true);
   check("at the hover token", near(hovered, [33, 39, 48], 2), true);
 }
@@ -364,6 +409,14 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
   check("and ends at the light deep token", near(bottom, LIGHT_PANEL_DEEP, 1), true);
   check("lighter at its top by at least 3/255", top[0]! >= bottom[0]! + 3, true);
   check("the page around it is the light one", p.pixel(180, y0 - 1), [243, 245, 247]);
+  // ... and the same measure of the bands: 12 runs of ~15px undithered, stipple after the dither
+  const light = bands(column);
+  check("the light card's bands are stipple too: no run of one luminance is 12px or longer", light.longest < 12, true);
+  check("with many more runs than the twelve", light.runs > 100, true);
+  console.log(
+    `solid/sky.test.ts: the light card's gradient down ${column.length}px: ` +
+      `${new Set(column.map((c) => c.join())).size} colours, ${light.runs} runs, the longest ${light.longest}px`,
+  );
 }
 
 // --- the text wraps: the body of Erik's long post is four 20px lines, and Titania's long media line makes her card
@@ -612,7 +665,7 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
   p.clickOn("sky-card-1");
   check("the status names the selected post", p.status(), "Titania — 2 of 3");
   check("the card keeps its box", p.card(1), card);
-  check("the selected card has the accent border", p.pixel(card[0]!, card[1]! + 100), [59, 156, 240]);
+  check("the selected card has the accent border", near(p.pixel(card[0]!, card[1]! + 100), [59, 156, 240], 1), true);
   check("and the hover gradient it was clicked under", near(p.pixel(180, 300), HOVER, 2), true);
   check("a click on the background keeps it too", (p.point(180, 60), p.status()), "Titania — 2 of 3");
   p.news();

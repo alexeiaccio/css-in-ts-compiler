@@ -113,9 +113,9 @@ centre plus half. ThorVG's gradient coordinates are the shape's own, the same sp
 the root scene carries the pixel density, as it does for a shadow's sigma.
 
 Ceilings, on purpose: one gradient an element (16 a frame), 8 stops (a ninth is counted as an error and dropped), linear
-only (ThorVG has radial and conic, the style's grammar takes neither), no dither, the solid fill under a gradient is not
-drawn (not blended), no gradient on text, a border or an image, and the C targets — `examples/`, the terminal, the
-browser — keep the solid fill: `header()` prints nothing for a gradient and the generated declarations are unchanged.
+only (ThorVG has radial and conic, the style's grammar takes neither), the solid fill under a gradient is not drawn (not
+blended), no gradient on text, a border or an image, and the C targets — `examples/`, the terminal, the browser — keep the
+solid fill: `header()` prints nothing for a gradient and the generated declarations are unchanged.
 
 Cost: the Sky page's three cards (336x190 each) with gradients against the same page with the gradients dropped,
 `--bench 1000`, Apple M2, one thread, the least-loaded of three back-to-back pairs: 3.735 against 3.631 ms a frame
@@ -123,10 +123,24 @@ Cost: the Sky page's three cards (336x190 each) with gradients against the same 
 (±0.5 ms). The fill covers the same pixels either way; a gradient's per-pixel lerp is what a solid fill does with one
 colour.
 
-Banding, reported rather than hidden: the dark card's 190px is **6 luminance steps of about 30px** (18 distinct colours),
-the light one 12 steps of about 15px (30 colours). The dark gradient from `27 32 38` to `21 25 30` has 6 channel values
-to spread over 190px, so one step every 30px is a strap the eye can see on a large flat surface. The cure is a dither
-step (a 4x4 ordered offset before the 8-bit write), not built; the Sky cards are the first surface where it would matter.
+Banding, and the dither that goes with it: an 8-bit channel turns the dark card's 190px into **6 runs of one luminance of
+about 30px** (18 distinct colours, the longest 32px), the light one into 12 of about 15px (30 colours, the longest 17px); the
+dark gradient from `27 32 38` to `21 25 30` has 6 channel values to spread over 190px, so one step every 30px is a strap the
+eye sees on a large flat surface. After the frame, `Clay_ThorVG_RenderClayCommands` ends with
+`Clay_ThorVG_DitherGradients`: a **4x4 ordered (Bayer) dither of one level either way** (±1/255, the mean kept) on the RGB of
+every pixel inside each gradient's box — cut to the canvas, to the clips (a scrolled feed) and to the corners' arcs, one
+pixel inside the radius, so no pixel of the page moves. It is done in the buffer because there is no shader here: ThorVG's
+CPU raster writes 8 bits a channel, and a second pass over the element's own pixels is the smallest place to break a step.
+A card's column then shows **182 runs of 1-2px instead of 6 of 30** (the light card the same), and the three cards' ink is
+unchanged by more than the step: a body's 828 ink pixels, its 44 flat ones at most 1/255 off the ink token, and none of the
+15 pixels at the ink mask's threshold on its edge, so the mask — and the text's box — is the one the undithered frame had.
+Cost: **0.22 ms for the three cards** (0.07 a card over 191,520 pixels: `--bench 400`, the least-loaded of three
+back-to-back pairs 3.56 against 3.79 ms a frame) — the second pass over 766 KB of the target, which the run-to-run noise
+of `--bench 1000` (±0.5 ms) cannot show. A per-row pre-scan (dither only the rows a band boundary falls in) was measured
+against this and dropped: the step is one row of a 30px run, so the plateaus stay flat and the count above would not move.
+`CLAY_THORVG_DITHER` picks the variant the build compiles (2: ±1 with the mean kept; 1: +1 on half the pixels, whose
+0.5/255 mean shift is invisible but whose +1 clips the light card's white top into a flat band; 0: none) — those are the
+three that were measured.
 
 The Sky page's cards are the first gradient: `180deg` from `rgb(27 32 38)` to `rgb(21 25 30)` in the dark theme and
 `rgb(255 255 255)` to `rgb(240 243 246)` in the light one — both top-lighter, so the light theme is the same direction,
