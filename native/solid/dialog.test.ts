@@ -452,7 +452,7 @@ const between = (v: number[], a: number[], b: number[], slack = 2) =>
       `edges ${midEdges.join("..")} inside ${restEdges.join("..")}; the box ${entry.map((v) => v.toFixed(1)).join(",")} ` +
       `-> ${mid.map((v) => v.toFixed(1)).join(",")} -> ${rest.map((v) => v.toFixed(1)).join(",")}`,
   );
-  check("the panel is laid out on the frame it opens on, at alpha 0", entrySpot, page);
+  check("the panel is laid out on the frame it opens on, at 78% of the entry fade", between(entrySpot, page, restSpot, 1), true);
   check(
     "the scale is not a layout: x, width and height are the style's at the entry, mid-entry and rest",
     [entry, mid, rest].map((b) => [b[0], b[2], b[3]].map((v) => Math.round(v!))).flat(),
@@ -460,7 +460,8 @@ const between = (v: number[], a: number[], b: number[], slack = 2) =>
   );
   check("only the float's offset moves the box (it drops in from 14px above)", entry[1]! < mid[1]! && mid[1]! < rest[1]!, true);
   check("the settled spot is the panel's own surface", restSpot, [36, 40, 52]);
-  check("mid-entry the spot is a blend of the dimmed page and the panel", between(midSpot, page, restSpot), true);
+  check("mid-entry the spot is still short of the settled panel", between(midSpot, page, restSpot, 0), true);
+  check("... and it is close to it: the fade is 88%, not 0", Math.max(...midSpot.map((v, i) => Math.abs(v - restSpot[i]!))) <= 4, true);
   check("the title's ink at rest is the text's colour", lum(restInk) > 200, true);
   check("mid-entry the ink is a blend, not the settled text", between(midInk, page, restInk), true);
   check("mid-entry the panel's left edge is inside its settled one", midEdges[0]! - restEdges[0]! >= 2, true);

@@ -39,9 +39,9 @@ bun solid/widgets.test.ts
 # The panel drops in (its float's offset y -14 -> 0, its shadow's blur 0 -> 32) and the menu slides out of its trigger
 # (offset y -10 -> -20, blur 0 -> 14) through the value channel, so a stored frame is taken at rest (`--settle 30`) and
 # the mid-slide one three frames after the key opens it (one for the key, two settles, dt = 1/60). The panel and the
-# menu also arrive as one scene each (the group: alpha 0 -> 255 and scale 96% -> 100%, fields 46 and 47), so
+# menu also arrive as one scene each (the group: alpha 88% -> 100% and scale 96% -> 100%, fields 46 and 47), so
 # `dialog-entry-mid` is three frames in and `dialog-menu-mid` two. Closing runs the same tracks the other way (panel
-# 0 -> 14, 32 -> 0, 255 -> 0 and 100% -> 96%; backdrop 140 -> 0; menu -20 -> -10, 14 -> 0 and the same fade) while the
+# 0 -> 14, 32 -> 0, 225 -> 0 and 100% -> 96%; backdrop 140 -> 0; menu -20 -> -10, 14 -> 0 and the same fade) while the
 # node stays mounted (`presence`), so `dialog-exit-mid` is two frames into the exit and is the one stored frame whose
 # pixels moved for the group (a settled frame writes alpha 255 and scale 1, which makes no scene at all); a
 # `--reduced-motion` run lands on `dialog-open` in one frame (no entry, no exit: the flag is the platform's)

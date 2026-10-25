@@ -536,7 +536,7 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    fifth is ungrouped), 16 a frame, eight nested scissors, one backdrop cut a frame — a cut inside a group settles the
    open groups into pass 1 and makes them again after it (the menu's glass is exactly that), and a shadow is drawn
    inside its element's group, so it fades with the panel. The Dialog's panel and menu arrive and leave as a group
-   beside their offsets (alpha 0 → 255 and 96% → 100% on `effect(0.2)` and `spatial(0.22, 0.1)`; the backdrop keeps its
+   beside their offsets (alpha 225 → 255 and 96% → 100% on `effect(0.2)` and `spatial(0.22, 0.1)`; the backdrop keeps its
    own dim through field 17). Measured (`solid/dialog.test.ts`, `dialog-entry-mid` three frames in): alpha 119 of 255,
    scale 97.8%, the panel's box `40, 156.1, 280x152.3` against `40, 163.9, 280x152.3` at rest (x, width and height the
    literal's on every frame), a flat spot `24,27,36` between the dimmed page `7,8,10` and the settled panel `36,40,52`,

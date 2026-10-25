@@ -207,7 +207,7 @@ subtree is composited with the same alpha and scale — the Dialog's menu is exa
 cut) and its shadow, fill, text and border all sit at the same opacity. A group whose range never meets its end (only a
 hand-made command array could) is composited as it is at the end of the loop.
 
-The Dialog page is the first user. The **panel** and the **menu** arrive as a group: `ALPHA` 0 → 255 on `effect(0.2)`
+The Dialog page is the first user. The **panel** and the **menu** arrive as a group: `ALPHA` 225 → 255 on `effect(0.2)`
 (a luminance field is clamped, as the dim is) and `SCALE` 96 → 100 on `spatial(0.22, 0.1)` — percent, not a fraction,
 because a track's settle rule is 0.5 of its own unit, so 0.96..1 would be "settled" on its first sample; 96..100 snaps at
 99.5, a 0.5% jump nobody sees. The exit runs both back (0, 96) on `effect(0.2)` and `spatial(0.2, 0)` beside the offsets
@@ -278,7 +278,7 @@ field may not. The pair that reads best in a frame is the offset with the blur a
 trigger (it starts 10px lower, over the 20px it overlaps) while its shadow appears under it, so by the third frame
 (2/60s in) the menu is 7.4px low with a shadow at a quarter of its blur — legible as "arriving" rather than as a jump;
 the blur alone would look like a fade and the offset alone like a slide with no depth. The group is the third layer of
-the same arrival and the one that reaches the panel's text: alpha 0 → 255 and scale 96% → 100% (`dialog-entry-mid` is
+the same arrival and the one that reaches the panel's text: alpha 225 → 255 and scale 96% → 100% (`dialog-entry-mid` is
 three frames in: 119 of 255 and 97.8%), so the panel is translucent and a shade small while it drops, and its own text
 fades with its fill instead of standing at full ink over a ghost of a box.
 

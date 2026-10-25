@@ -199,10 +199,13 @@ const OUT = effect(0.2); // ... and its blur and the dim: a luminance field goes
 // the group: the panel and the menu fade and grow as one subtree (`FIELDS.ALPHA`/`SCALE`). The scale is a percentage of
 // the element's box, not a fraction: a track's settle rule is 0.5 of its own unit, so 0.96..1 would settle on its first
 // sample — 96..100 settles at 99.5, a 0.5% snap nobody sees. The entry may carry a little velocity (spatial), the exit
-// must not overshoot; the opacity is an effect, as every luminance field here.
+// must not overshoot; the opacity is an effect, as every luminance field here. It fades from ENTRY_FADE, not from 0: a
+// panel at half opacity over the page's own text double-exposes, and the dim behind is doing the darkening — a nearly
+// opaque arrival reads as a fade without the ghost of the page showing through the panel's own glyphs.
 const GROW = spatial(0.22, 0.1);
 const SHRINK = spatial(0.2, 0);
 const ENTRY_SCALE = 96; // percent: the panel and the menu start 4% small
+const ENTRY_FADE = 225; // of 255: the group starts at 88% opacity: a fade that does not double-expose the page under the panel
 // where each arrival starts and where each exit goes, in px from the settled offset y: the menu 10px lower (under its
 // trigger) on the way in and 10px lower on the way out, the panel 14px higher in and 14px lower out, and both shadows
 // from 0 in and to 0 out
@@ -263,13 +266,13 @@ function step(o: Overlay, open: boolean, dt: number) {
   if (!before) {
     o.y = track(o.rest + o.entry, SLIDE, o.clock);
     o.shade = track(0, BLUR, o.clock);
-    if (o.dim >= 0) o.alpha = track(o.dim, OUT, o.clock);
+    if (o.dim >= 0) o.alpha = track(0, OUT, o.clock); // the dim itself fades in: the page darkens under the panel
     o.y.retarget(o.clock, y, SLIDE);
     if (o.blur >= 0) o.shade.retarget(o.clock, blur, BLUR);
     if (o.dim >= 0) o.alpha.retarget(o.clock, dim, OUT);
-    // a group arrives from nothing: fully transparent and 4% small, on the same frame as the offset it starts from
+    // a group arrives nearly opaque and 4% small, on the same frame as the offset it starts from
     if (o.group) {
-      o.fade = track(0, OUT, o.clock);
+      o.fade = track(ENTRY_FADE, OUT, o.clock);
       o.scale = track(ENTRY_SCALE, GROW, o.clock);
       o.fade.retarget(o.clock, 255, OUT);
       o.scale.retarget(o.clock, 100, GROW);
