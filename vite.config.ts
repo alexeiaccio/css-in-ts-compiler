@@ -23,6 +23,10 @@ const inputs = [
   "packages/cssints/test/pkg/**",
   "packages/css-grammar/bench/err.ts",
   "packages/cssints/bench/errors.ts",
+  // The starters ship a copy of the headless driver and its scenario test; both are linted where
+  // they come from (packages/headless/test), and a copy here is the file a consumer receives.
+  "apps/ui/src/registry/*/dom-driver.ts",
+  "apps/ui/src/registry/*/*.browser.test.tsx",
 ];
 
 // The type-aware no-unsafe-* family: on untyped `.mjs` scripts every import and JSON value is `any`, so it flags all

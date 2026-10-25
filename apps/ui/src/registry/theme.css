@@ -1,0 +1,145 @@
+/* Generated from tokens.ts by scripts/theme-css.ts. Do not edit. */
+/* Derived from React Aria's starter theme (Apache-2.0); see NOTICE. */
+:root {
+  --lightness-100: 0.981187;
+  --lightness-200: 0.952045;
+  --lightness-300: 0.911434;
+  --lightness-400: 0.851751;
+  --lightness-500: 0.791773;
+  --lightness-600: 0.723297;
+  --lightness-700: 0.670121;
+  --lightness-800: 0.623039;
+  --lightness-900: 0.579699;
+  --lightness-1000: 0.519076;
+  --lightness-1100: 0.469058;
+  --lightness-1200: 0.410821;
+  --lightness-1300: 0.353616;
+  --lightness-1400: 0.296725;
+  --lightness-1500: 0.245366;
+  --lightness-1600: 0.166959;
+  --hue-tint: 0;
+  --hue-invalid: 27.0726;
+  --chroma-100: calc(var(--chroma-tint) * 0.5);
+  --chroma-200: calc(var(--chroma-tint) * 0.6);
+  --chroma-300: calc(var(--chroma-tint) * 0.7);
+  --chroma-400: calc(var(--chroma-tint) * 0.8);
+  --chroma-500: calc(var(--chroma-tint) * 0.9);
+  --chroma-tint: 0;
+  --chroma-invalid: 0.181447;
+  --color-gray-100: oklch(0.981187 0 0);
+  --color-gray-200: oklch(0.952045 0 0);
+  --color-gray-300: oklch(0.911434 0 0);
+  --color-gray-400: oklch(0.851751 0 0);
+  --color-gray-500: oklch(0.791773 0 0);
+  --color-gray-600: oklch(0.723297 0 0);
+  --color-gray-700: oklch(0.670121 0 0);
+  --color-gray-800: oklch(0.623039 0 0);
+  --color-gray-900: oklch(0.579699 0 0);
+  --color-gray-1000: oklch(0.519076 0 0);
+  --color-gray-1100: oklch(0.469058 0 0);
+  --color-gray-1200: oklch(0.410821 0 0);
+  --color-gray-1300: oklch(0.353616 0 0);
+  --color-gray-1400: oklch(0.296725 0 0);
+  --color-gray-1500: oklch(0.245366 0 0);
+  --color-gray-1600: oklch(0.166959 0 0);
+  --color-tint-100: oklch(0.981187 var(--chroma-100) var(--hue-tint));
+  --color-tint-200: oklch(0.952045 var(--chroma-200) var(--hue-tint));
+  --color-tint-300: oklch(0.911434 var(--chroma-300) var(--hue-tint));
+  --color-tint-400: oklch(0.851751 var(--chroma-400) var(--hue-tint));
+  --color-tint-500: oklch(0.791773 var(--chroma-500) var(--hue-tint));
+  --color-tint-600: oklch(0.723297 var(--chroma-tint) var(--hue-tint));
+  --color-tint-700: oklch(0.670121 var(--chroma-tint) var(--hue-tint));
+  --color-tint-800: oklch(0.623039 var(--chroma-tint) var(--hue-tint));
+  --color-tint-900: oklch(0.579699 var(--chroma-tint) var(--hue-tint));
+  --color-tint-1000: oklch(0.519076 var(--chroma-tint) var(--hue-tint));
+  --color-tint-1100: oklch(0.469058 var(--chroma-tint) var(--hue-tint));
+  --color-tint-1200: oklch(0.410821 var(--chroma-tint) var(--hue-tint));
+  --color-tint-1300: oklch(0.353616 var(--chroma-tint) var(--hue-tint));
+  --color-tint-1400: oklch(0.296725 var(--chroma-tint) var(--hue-tint));
+  --color-tint-1500: oklch(0.245366 var(--chroma-tint) var(--hue-tint));
+  --color-tint-1600: oklch(0.166959 var(--chroma-tint) var(--hue-tint));
+  --color-page: #f8f8f8;
+  --color-surface: #ffffff;
+  --color-text: var(--color-gray-1200);
+  --color-text-hover: var(--color-gray-1300);
+  --color-muted: var(--color-gray-1100);
+  --color-placeholder: var(--color-gray-1000);
+  --color-text-disabled: var(--color-gray-600);
+  --color-link: var(--color-tint-1200);
+  --color-link-pressed: var(--color-tint-1300);
+  --color-border: var(--color-gray-400);
+  --color-border-hover: var(--color-gray-500);
+  --color-border-disabled: var(--color-gray-300);
+  --color-field-text: var(--color-gray-1400);
+  --color-focus-ring: var(--color-tint-1000);
+  --color-highlight: oklch(55% var(--chroma-tint) var(--hue-tint));
+  --color-highlight-pressed: oklch(50% var(--chroma-tint) var(--hue-tint));
+  --color-on-highlight: white;
+  --color-invalid: oklch(0.519076 var(--chroma-invalid) var(--hue-invalid));
+  --color-highlight-invalid: oklch(0.579699 var(--chroma-invalid) var(--hue-invalid));
+  --color-button-background: var(--color-tint-100);
+  --color-button-background-pressed: var(--color-tint-200);
+  --color-overlay-background: var(--color-surface);
+  --color-overlay-border: rgb(0 0 0 / 0.06);
+  --shadow-popover: 0 8px 20px 0 rgb(0 0 0 / 0.12);
+  --space-1: var(--space-base);
+  --space-2: calc(var(--space-base) * 2);
+  --space-3: calc(var(--space-base) * 3);
+  --space-4: calc(var(--space-base) * 4);
+  --space-5: calc(var(--space-base) * 5);
+  --space-6: calc(var(--space-base) * 6);
+  --space-7: calc(var(--space-base) * 7);
+  --space-8: calc(var(--space-base) * 8);
+  --space-9: calc(var(--space-base) * 9);
+  --space-10: calc(var(--space-base) * 10);
+  --space-base: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 16px;
+  --font-size-sm: 0.75rem;
+  --font-size: 0.875rem;
+  --font-size-lg: 1rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-gray-100: oklch(0.296725 0 0);
+    --color-gray-200: oklch(0.353616 0 0);
+    --color-gray-300: oklch(0.410821 0 0);
+    --color-gray-400: oklch(0.469058 0 0);
+    --color-gray-500: oklch(0.519076 0 0);
+    --color-gray-600: oklch(0.579699 0 0);
+    --color-gray-700: oklch(0.561347 0 0);
+    --color-gray-800: oklch(0.592866 0 0);
+    --color-gray-900: oklch(0.623039 0 0);
+    --color-gray-1000: oklch(0.670121 0 0);
+    --color-gray-1100: oklch(0.723297 0 0);
+    --color-gray-1200: oklch(0.791773 0 0);
+    --color-gray-1300: oklch(0.851751 0 0);
+    --color-gray-1400: oklch(0.911434 0 0);
+    --color-gray-1500: oklch(0.952045 0 0);
+    --color-gray-1600: oklch(1 0 0);
+    --color-tint-100: oklch(0.296725 var(--chroma-100) var(--hue-tint));
+    --color-tint-200: oklch(0.353616 var(--chroma-200) var(--hue-tint));
+    --color-tint-300: oklch(0.410821 var(--chroma-300) var(--hue-tint));
+    --color-tint-400: oklch(0.469058 var(--chroma-400) var(--hue-tint));
+    --color-tint-500: oklch(0.519076 var(--chroma-500) var(--hue-tint));
+    --color-tint-600: oklch(0.579699 var(--chroma-tint) var(--hue-tint));
+    --color-tint-700: oklch(0.561347 var(--chroma-tint) var(--hue-tint));
+    --color-tint-800: oklch(0.592866 var(--chroma-tint) var(--hue-tint));
+    --color-tint-900: oklch(0.623039 var(--chroma-tint) var(--hue-tint));
+    --color-tint-1000: oklch(0.670121 var(--chroma-tint) var(--hue-tint));
+    --color-tint-1100: oklch(0.723297 var(--chroma-tint) var(--hue-tint));
+    --color-tint-1200: oklch(0.791773 var(--chroma-tint) var(--hue-tint));
+    --color-tint-1300: oklch(0.851751 var(--chroma-tint) var(--hue-tint));
+    --color-tint-1400: oklch(0.911434 var(--chroma-tint) var(--hue-tint));
+    --color-tint-1500: oklch(0.952045 var(--chroma-tint) var(--hue-tint));
+    --color-tint-1600: oklch(1 var(--chroma-tint) var(--hue-tint));
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+  }
+}

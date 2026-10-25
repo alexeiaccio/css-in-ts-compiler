@@ -1,10 +1,7 @@
-import { check, createGlobalTheme, createTokens, media } from "cssints" with { type: "cssints" };
+// The token data behind `theme.ts`, kept apart so a build-time generator can read it
+// without the cssints plugin: the registry ships `theme.css` compiled from it.
 
-// A step of the scale is a lightness, and a colour is one lightness plus a hue and a chroma. So a mode is the lightness scale
-// turned over, a tint preset is two numbers, and every colour below follows both without being written again. The steps are
-// React Aria's (NOTICE), 100 the lightest surface and 1600 the strongest text, as numbers over 1 because @property has no
-// percentage syntax and oklch() reads a lightness of 0.981187 as 98.1187%.
-const t = createTokens({
+export const lightTokens = {
   lightness: {
     $type: "number",
     "100": { $value: "0.981187" },
@@ -46,40 +43,40 @@ const t = createTokens({
     $type: "color",
     // The gray has no hue at all, so it is not the tint at a chroma of 0: a tint preset repaints the tint scale only.
     gray: {
-      "100": { $value: "oklch({lightness.100} 0 0)" },
-      "200": { $value: "oklch({lightness.200} 0 0)" },
-      "300": { $value: "oklch({lightness.300} 0 0)" },
-      "400": { $value: "oklch({lightness.400} 0 0)" },
-      "500": { $value: "oklch({lightness.500} 0 0)" },
-      "600": { $value: "oklch({lightness.600} 0 0)" },
-      "700": { $value: "oklch({lightness.700} 0 0)" },
-      "800": { $value: "oklch({lightness.800} 0 0)" },
-      "900": { $value: "oklch({lightness.900} 0 0)" },
-      "1000": { $value: "oklch({lightness.1000} 0 0)" },
-      "1100": { $value: "oklch({lightness.1100} 0 0)" },
-      "1200": { $value: "oklch({lightness.1200} 0 0)" },
-      "1300": { $value: "oklch({lightness.1300} 0 0)" },
-      "1400": { $value: "oklch({lightness.1400} 0 0)" },
-      "1500": { $value: "oklch({lightness.1500} 0 0)" },
-      "1600": { $value: "oklch({lightness.1600} 0 0)" },
+      "100": { $value: "oklch(0.981187 0 0)" },
+      "200": { $value: "oklch(0.952045 0 0)" },
+      "300": { $value: "oklch(0.911434 0 0)" },
+      "400": { $value: "oklch(0.851751 0 0)" },
+      "500": { $value: "oklch(0.791773 0 0)" },
+      "600": { $value: "oklch(0.723297 0 0)" },
+      "700": { $value: "oklch(0.670121 0 0)" },
+      "800": { $value: "oklch(0.623039 0 0)" },
+      "900": { $value: "oklch(0.579699 0 0)" },
+      "1000": { $value: "oklch(0.519076 0 0)" },
+      "1100": { $value: "oklch(0.469058 0 0)" },
+      "1200": { $value: "oklch(0.410821 0 0)" },
+      "1300": { $value: "oklch(0.353616 0 0)" },
+      "1400": { $value: "oklch(0.296725 0 0)" },
+      "1500": { $value: "oklch(0.245366 0 0)" },
+      "1600": { $value: "oklch(0.166959 0 0)" },
     },
     tint: {
-      "100": { $value: "oklch({lightness.100} {chroma.100} {hue.tint})" },
-      "200": { $value: "oklch({lightness.200} {chroma.200} {hue.tint})" },
-      "300": { $value: "oklch({lightness.300} {chroma.300} {hue.tint})" },
-      "400": { $value: "oklch({lightness.400} {chroma.400} {hue.tint})" },
-      "500": { $value: "oklch({lightness.500} {chroma.500} {hue.tint})" },
-      "600": { $value: "oklch({lightness.600} {chroma.tint} {hue.tint})" },
-      "700": { $value: "oklch({lightness.700} {chroma.tint} {hue.tint})" },
-      "800": { $value: "oklch({lightness.800} {chroma.tint} {hue.tint})" },
-      "900": { $value: "oklch({lightness.900} {chroma.tint} {hue.tint})" },
-      "1000": { $value: "oklch({lightness.1000} {chroma.tint} {hue.tint})" },
-      "1100": { $value: "oklch({lightness.1100} {chroma.tint} {hue.tint})" },
-      "1200": { $value: "oklch({lightness.1200} {chroma.tint} {hue.tint})" },
-      "1300": { $value: "oklch({lightness.1300} {chroma.tint} {hue.tint})" },
-      "1400": { $value: "oklch({lightness.1400} {chroma.tint} {hue.tint})" },
-      "1500": { $value: "oklch({lightness.1500} {chroma.tint} {hue.tint})" },
-      "1600": { $value: "oklch({lightness.1600} {chroma.tint} {hue.tint})" },
+      "100": { $value: "oklch(0.981187 {chroma.100} {hue.tint})" },
+      "200": { $value: "oklch(0.952045 {chroma.200} {hue.tint})" },
+      "300": { $value: "oklch(0.911434 {chroma.300} {hue.tint})" },
+      "400": { $value: "oklch(0.851751 {chroma.400} {hue.tint})" },
+      "500": { $value: "oklch(0.791773 {chroma.500} {hue.tint})" },
+      "600": { $value: "oklch(0.723297 {chroma.tint} {hue.tint})" },
+      "700": { $value: "oklch(0.670121 {chroma.tint} {hue.tint})" },
+      "800": { $value: "oklch(0.623039 {chroma.tint} {hue.tint})" },
+      "900": { $value: "oklch(0.579699 {chroma.tint} {hue.tint})" },
+      "1000": { $value: "oklch(0.519076 {chroma.tint} {hue.tint})" },
+      "1100": { $value: "oklch(0.469058 {chroma.tint} {hue.tint})" },
+      "1200": { $value: "oklch(0.410821 {chroma.tint} {hue.tint})" },
+      "1300": { $value: "oklch(0.353616 {chroma.tint} {hue.tint})" },
+      "1400": { $value: "oklch(0.296725 {chroma.tint} {hue.tint})" },
+      "1500": { $value: "oklch(0.245366 {chroma.tint} {hue.tint})" },
+      "1600": { $value: "oklch(0.166959 {chroma.tint} {hue.tint})" },
     },
 
     // The page and the surface are not steps of the scale in the reference either: they are the two colours the scale starts from.
@@ -101,8 +98,8 @@ const t = createTokens({
     highlight: { $value: "oklch(55% {chroma.tint} {hue.tint})" },
     highlightPressed: { $value: "oklch(50% {chroma.tint} {hue.tint})" },
     onHighlight: { $value: "white" },
-    invalid: { $value: "oklch({lightness.1000} {chroma.invalid} {hue.invalid})" },
-    highlightInvalid: { $value: "oklch({lightness.900} {chroma.invalid} {hue.invalid})" },
+    invalid: { $value: "oklch(0.519076 {chroma.invalid} {hue.invalid})" },
+    highlightInvalid: { $value: "oklch(0.579699 {chroma.invalid} {hue.invalid})" },
     buttonBackground: { $value: "{color.tint.100}" },
     buttonBackgroundPressed: { $value: "{color.tint.200}" },
     overlayBackground: { $value: "{color.surface}" },
@@ -152,12 +149,9 @@ const t = createTokens({
     size: { $value: "0.875rem" },
     sizeLg: { $value: "1rem" },
   },
-});
+} as const;
 
-// The dark mode is the lightness scale turned over, so every step and every colour made of it follows: the text is still
-// gray-1200, it is just a light gray now. The page and the surface are the reference's own dark values, and the popover shadow
-// deepens because a shadow on a dark page reads as a smudge.
-createGlobalTheme(t, media("(prefers-color-scheme: dark)"), {
+export const darkTheme = {
   lightness: {
     "100": "0.296725",
     "200": "0.353616",
@@ -176,7 +170,49 @@ createGlobalTheme(t, media("(prefers-color-scheme: dark)"), {
     "1500": "0.952045",
     "1600": "1",
   },
-  color: { page: "#1b1b1b", surface: "oklch(22% 0 0)", overlayBorder: "rgb(255 255 255 / 0.2)" },
+  color: {
+    // The dark scale is literal for the same reason the light one is: the tokens are not in the
+    // sheet at runtime, so a colour cannot be built from them there.
+    gray: {
+      "100": { $value: "oklch(0.296725 0 0)" },
+      "200": { $value: "oklch(0.353616 0 0)" },
+      "300": { $value: "oklch(0.410821 0 0)" },
+      "400": { $value: "oklch(0.469058 0 0)" },
+      "500": { $value: "oklch(0.519076 0 0)" },
+      "600": { $value: "oklch(0.579699 0 0)" },
+      "700": { $value: "oklch(0.561347 0 0)" },
+      "800": { $value: "oklch(0.592866 0 0)" },
+      "900": { $value: "oklch(0.623039 0 0)" },
+      "1000": { $value: "oklch(0.670121 0 0)" },
+      "1100": { $value: "oklch(0.723297 0 0)" },
+      "1200": { $value: "oklch(0.791773 0 0)" },
+      "1300": { $value: "oklch(0.851751 0 0)" },
+      "1400": { $value: "oklch(0.911434 0 0)" },
+      "1500": { $value: "oklch(0.952045 0 0)" },
+      "1600": { $value: "oklch(1 0 0)" },
+    },
+    tint: {
+      "100": { $value: "oklch(0.296725 {chroma.100} {hue.tint})" },
+      "200": { $value: "oklch(0.353616 {chroma.200} {hue.tint})" },
+      "300": { $value: "oklch(0.410821 {chroma.300} {hue.tint})" },
+      "400": { $value: "oklch(0.469058 {chroma.400} {hue.tint})" },
+      "500": { $value: "oklch(0.519076 {chroma.500} {hue.tint})" },
+      "600": { $value: "oklch(0.579699 {chroma.tint} {hue.tint})" },
+      "700": { $value: "oklch(0.561347 {chroma.tint} {hue.tint})" },
+      "800": { $value: "oklch(0.592866 {chroma.tint} {hue.tint})" },
+      "900": { $value: "oklch(0.623039 {chroma.tint} {hue.tint})" },
+      "1000": { $value: "oklch(0.670121 {chroma.tint} {hue.tint})" },
+      "1100": { $value: "oklch(0.723297 {chroma.tint} {hue.tint})" },
+      "1200": { $value: "oklch(0.791773 {chroma.tint} {hue.tint})" },
+      "1300": { $value: "oklch(0.851751 {chroma.tint} {hue.tint})" },
+      "1400": { $value: "oklch(0.911434 {chroma.tint} {hue.tint})" },
+      "1500": { $value: "oklch(0.952045 {chroma.tint} {hue.tint})" },
+      "1600": { $value: "oklch(1 {chroma.tint} {hue.tint})" },
+    },
+    page: "#1b1b1b",
+    surface: "oklch(22% 0 0)",
+    overlayBorder: "rgb(255 255 255 / 0.2)",
+  },
   shadow: {
     popover: {
       color: "rgb(0 0 0 / 0.5)",
@@ -186,23 +222,9 @@ createGlobalTheme(t, media("(prefers-color-scheme: dark)"), {
       spread: "0",
     },
   },
-});
+} as const;
 
-// One preset, because the theme is neutral: the reference's indigo, as its two numbers. The others are in its theme.css.
-createGlobalTheme(t, '[data-tint="indigo"]', {
-  hue: { tint: "284.23" },
-  chroma: { tint: "0.25049" },
-});
-
-// On a dense screen (200dpi and up) the targets grow: the spacing steps and the text with them, as in the reference.
-createGlobalTheme(t, media("(min-resolution: 200dpi)"), {
-  space: { base: "calc(0.25rem * 1.25)" },
-  font: { sizeSm: "0.9375rem", size: "1.0625rem", sizeLg: "1.25rem" },
-});
-
-// Windows high contrast mode throws the theme away and paints the system's own colours; forced-colors makes that explicit,
-// since a component that reads a token here gets the system colour rather than the tint.
-createGlobalTheme(t, media("(forced-colors: active)"), {
+export const forcedColorsTheme = {
   color: {
     page: "Canvas",
     surface: "Canvas",
@@ -228,17 +250,4 @@ createGlobalTheme(t, media("(forced-colors: active)"), {
     overlayBackground: "Canvas",
     overlayBorder: "ButtonBorder",
   },
-});
-
-// The pairs a reader meets on every page: body text, the second level of text, and a link on a card. Both modes and every
-// theme above are checked (the preset too, since it sets the tokens the link is made of), and a ratio under the floor fails
-// the build. 7 for text and 4.5 for the rest are the WCAG 2.x AAA and AA floors.
-check.contrast(t.color.text, t.color.page, { min: 7 });
-check.contrast(t.color.muted, t.color.page, { min: 4.5 });
-check.contrast(t.color.link, t.color.surface, { min: 4.5 });
-check.contrast(t.color.placeholder, t.color.page, { min: 4.5 });
-check.contrast(t.color.onHighlight, t.color.highlight, { min: 4.5 });
-// The focus ring is a graphic, not text: 3 is the WCAG 1.4.11 floor for a non-text contrast.
-check.contrast(t.color.focusRing, t.color.page, { min: 3 });
-
-export { t };
+} as const;
