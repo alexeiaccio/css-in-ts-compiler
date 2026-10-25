@@ -1,6 +1,6 @@
 {
   "name": "@cssints/gradient-2d",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "mesh-gradient() and freeform-gradient() for cssints: the native function where the browser has it, else a canvas drawn by a runtime",
   "license": "MIT",
   "repository": {
