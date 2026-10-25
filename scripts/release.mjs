@@ -15,7 +15,7 @@ import { join } from "node:path";
 
 import semver from "semver";
 
-import { packageDirs, read, root, stage, versions } from "./stage.mjs";
+import { packageDirs, read, stage, versions } from "./stage.mjs";
 
 const REPOSITORY = "git+https://github.com/alexeiaccio/css-in-ts-compiler.git";
 const problems = [];
