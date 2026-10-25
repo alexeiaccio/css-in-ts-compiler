@@ -7,6 +7,7 @@ import {
   alignItems,
   attr,
   border,
+  borderColor,
   borderRadius,
   color,
   cn,
@@ -50,7 +51,11 @@ const Switch = () => {
           inner radius (16px less 8px of padding and 1px of border, so 7px) without writing one. A third frame inside would
           follow the row the same way. */}
       <div
-        class={cn(frame().radius(t.radius.xl).padding(2).border("1px"), surface().lighten(0.05))}
+        class={cn(
+          frame().radius(t.radius.xl).padding(2).border("1px"),
+          surface().lighten(0.05),
+          borderColor(t.color.border),
+        )}
       >
         <div
           class={cn(
