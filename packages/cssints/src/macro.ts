@@ -100,18 +100,18 @@ const member =
       ? node(toDecls(k, args), {}, flexChain(k))
       : node(toDecls(k, args), { kernels: kernelsOf(args) });
 
-// chain(): every property is a method, so one style needs no cn(). The declarations merge as cn() does (the later value
+// sx(): every property is a method, so one style needs no cn(). The declarations merge as cn() does (the later value
 // of a property wins, and two that overlap without containment are an error), and every step keeps what the value
 // carries (kernels of a keyframes() name, a plugin's markers and plugs).
 const chainStep = (name: string, args: unknown[], self: CssNode) => {
   if (!Object.hasOwn(PROPS, name) && !CONTEXTS[name])
     throw fail(
-      `cssints: chain() has no .${name}(); it chains properties (p, bg, padding) and flex()/grid(), and cn() merges styles`,
+      `cssints: sx() has no .${name}(); it chains properties (p, bg, padding) and flex()/grid(), and cn() merges styles`,
     );
   const add = node(toDecls(name, args), { kernels: kernelsOf(args) });
   return node(merged([...self.__cssints, ...add.__cssints]), carried([self, add]), chainStep);
 };
-export const chain = () => node([], {}, chainStep);
+export const sx = () => node([], {}, chainStep);
 
 // firstThatWorks(wanted, ...fallbacks): one part of a property that is several values; the build prints them all in one
 // class. Typed OM values (tokens) become their text.
@@ -863,7 +863,7 @@ export const __nocn = () => undefined;
 // here too: the plugin rewrites them to destructure `css`, so the property list stays derived from the grammar.
 const named: Record<string, unknown> = {
   cn,
-  chain,
+  sx,
   firstThatWorks,
   ...fns,
   keyframes,

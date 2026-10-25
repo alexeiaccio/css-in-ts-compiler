@@ -1,4 +1,4 @@
-import { chain } from "cssints" with { type: "cssints" };
+import { sx } from "cssints" with { type: "cssints" };
 
-export const a = chain().flex().bg("red");
-export const b = chain().p(4).bg("blue").fontSize("1rem");
+export const a = sx().flex().bg("red");
+export const b = sx().p(4).bg("blue").fontSize("1rem");

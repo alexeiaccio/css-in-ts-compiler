@@ -12,7 +12,7 @@ Every `ts` block here is type-checked against the workspace `cssints` types by `
 - **Values.** A property takes one or more parts joined by a space. Each part is a string or a Typed OM value: `border("1px solid", accent)`, `padding(CSS.rem(1), CSS.rem(2))`, `padding("1rem 2rem")`. Parts are checked against the mdn grammar in types and again at build time. `CSS.px`, `rem`, `em`, `percent`, `number`, `CSSUnitValue` and `CSSColorValue` come from `cssints`, imported with the attribute.
 - **Editor.** A bad part is marked on that part: `padding("2px", "red")` puts the error on `"red"`, with the message of the whole value. While a string is not a value yet, the editor offers the keywords of the property that the word under the cursor begins (`display("fl…")` gives `flex`, `flow`, `flow-root`; `border("1px", "so…")` gives `solid`), and all of them in an empty part (`border("1px", "")`; an empty part is an error). The offer is the keywords of the whole grammar, not only those that fit at that point, it stops once the string is valid, and functions such as `rgb(` are not offered.
 - **Math.** `calc()`, `min()`, `max()`, `clamp()` and the other CSS Values 4 math functions are accepted wherever their type is, as strings (`width("calc(100% - 2rem)")`, checked by the build: `calc(1px + 2s)` is an error) and as calls that take tokens (`calc(t.space.md, "*", 2)`, see "Functions").
-- **Layout contexts.** `flex()` and `grid()` without arguments set `display` and chain only their container properties. Names drop only the context prefix: `flex().direction("column").wrap("wrap").alignItems("center").justifyContent("space-between")`, `grid().templateColumns("1fr 2fr").gap(4)`. Plain styles do not chain; merge them with `cn(...)`, or write the style as a `chain()` (below), which chains every property. Item properties (`flexGrow`, `alignSelf`, `gridColumn`, `order`) are plain functions.
+- **Layout contexts.** `flex()` and `grid()` without arguments set `display` and chain only their container properties. Names drop only the context prefix: `flex().direction("column").wrap("wrap").alignItems("center").justifyContent("space-between")`, `grid().templateColumns("1fr 2fr").gap(4)`. Plain styles do not chain; merge them with `cn(...)`, or write the style as a `sx()` (below), which chains every property. Item properties (`flexGrow`, `alignSelf`, `gridColumn`, `order`) are plain functions.
 - **`flex(...parts)` and `grid(...parts)` are the shorthand properties.** With at least one argument the call is the `flex` (or `grid`) property, checked by its grammar like any member: `flex("1")`, `flex(1)` and `flex("1 1 0")` are `flex: 1`, `flex: 1` and `flex: 1 1 0`, `grid("auto / 1fr 1fr")` is `grid: auto / 1fr 1fr`. A bare number is a `<number>` here, not a spacing step. The result is a plain style: it sets no `display` and does not chain. The types tell the two forms apart by overload.
 - **`container` is the condition.** `container("sidebar (width < 30rem)")` is a query; the `container` shorthand property is written with its longhands `containerName` and `containerType`.
 - **Arguments are build-time values.** The plugin runs your module at build time and replaces each call with a class string. A literal, a `const`, a token or a value from another attributed module works. A value that exists only at runtime (a prop, state) does not: `p(n)` with `n` a parameter is a build error (`css arguments must be known at build time: n is not defined where the call is evaluated`) that points at the call, also when the local is named like a global (`open`, `name`) or like a module binding. The types do not catch it: a helper module may take parameters (below), so a `string` or `number` is a fine argument there. Choose between styles with `cn(base, on && p(4))` (see "Runtime: `cn`, `cv`"), a `cv` variant, or a token set in a `style` prop. A helper module imported with the attribute may take parameters, because each call of it is a site with its own arguments: `stack(4)` below is a build-time call in the file that makes it.
@@ -566,41 +566,41 @@ export const f = positionTryFallbacks(fade); // error: a keyframes name is not a
 }
 ```
 
-### `chain()`: one style without `cn()` (decided 2026-10-25, cssints-ysyp)
+### `sx()`: one style without `cn()` (decided 2026-10-25, cssints-ysyp)
 
-`chain()` builds one style by chaining properties. Every property is a method, the methods return the chain, and the
+`sx()` builds one style by chaining properties. Every property is a method, the methods return the chain, and the
 build merges the declarations as `cn()` does. `cn()` stays the tool for merging runtime values, and for `cv()` variants.
 
 ```ts
-import { chain, cn, hover } from "cssints" with { type: "cssints" };
+import { sx, cn, hover } from "cssints" with { type: "cssints" };
 
-export const card = chain().flex().flexDirection("column").gap(2).p(4).bg("white");
-export const row = chain().grid().gridTemplateColumns("1fr 2fr").gap(1);
-export const box = cn(chain().p(2), hover(chain().bg("blue")));
+export const card = sx().flex().flexDirection("column").gap(2).p(4).bg("white");
+export const row = sx().grid().gridTemplateColumns("1fr 2fr").gap(1);
+export const box = cn(sx().p(2), hover(sx().bg("blue")));
 ```
 
 `card` is `"_1s47490 _1njigwa _g2iyum _lwugp7 _1ebepn0"`: one class per declaration, one string, no `cn()`.
 
 - **Every property is a method**, by its member name: `p`, `bg`, `paddingLeft`, `gridTemplateColumns`. `.flex()` and
   `.grid()` with no argument set `display` and keep chaining; with parts they are the `flex` and `grid` property. A
-  chain does not drop a prefix the way a context does: `chain().flex().flexDirection("column")` is the property,
+  chain does not drop a prefix the way a context does: `sx().flex().flexDirection("column")` is the property,
   where `css.flex().direction("column")` drops `flex-`.
 - **A chain sets each property once: a second one is a type error.** The second method is `never`
   (`This expression is not callable. Type 'never' has no call signatures.`), so the rewrite that `cn()` allows cannot
   be written by accident. `bg` and `backgroundColor` are one property, as are `p` and `padding`, so
-  `chain().bg("red").backgroundColor("blue")` and `chain().p(4).padding("1rem")` fail in either order. A second
+  `sx().bg("red").backgroundColor("blue")` and `sx().p(4).padding("1rem")` fail in either order. A second
   `.flex()` or `.grid()` is `Expected 1 arguments, but got 0`, since the no-argument form is what sets `display`.
   Write a later value with `cn()`, which keeps the later one of a property, or a longhand.
-- **A shorthand and a longhand of it are different properties**, and stay legal: `chain().p(4).paddingLeft("0.5rem")`
+- **A shorthand and a longhand of it are different properties**, and stay legal: `sx().p(4).paddingLeft("0.5rem")`
   is both declarations, which the sheet orders (a longhand after its shorthand), exactly as in `cn()`. The types do not
-  compare containment, only the property: `chain().bg("red").background("blue")` is `background-color` and
+  compare containment, only the property: `sx().bg("red").background("blue")` is `background-color` and
   `background`, not a duplicate.
 - **A chain is a site**, like any `css.*` call: it compiles to its class string, so it works in a variable, in `cn()`,
-  in a condition (`hover(chain().bg("blue"))`), and as the `base` or a variant of `cv()`. A `keyframes()` or
+  in a condition (`hover(sx().bg("blue"))`), and as the `base` or a variant of `cv()`. A `keyframes()` or
   `positionTry()` name in a chain carries its at-rule, as in `css.*`.
 - **Not in a chain:** conditions (`hover`, `media`), other builders (`cn`, `keyframes`, `cv`) and plugin members
-  (`frame()`, `surface()`, a scope's members). A build error names the method (`cssints: chain() has no .hover()`).
-  Wrap the chain instead: `hover(chain().bg("blue"))`, `cn(frame(), chain().p(2))`.
+  (`frame()`, `surface()`, a scope's members). A build error names the method (`cssints: sx() has no .hover()`).
+  Wrap the chain instead: `hover(sx().bg("blue"))`, `cn(frame(), sx().p(2))`.
 - **The cost.** The chain surface is a second member list in the types, so every module that imports `cssints` pays
   about 6.7 k more instantiations (`bench/unused.ts` 46 297 → 53 029, +14.5 %). A chain costs about what the `cn()`
   form of the same declarations costs: 12 chains of five properties are 273 741 instantiations against 264 798 for the

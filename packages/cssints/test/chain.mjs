@@ -1,4 +1,4 @@
-// chain(): one style from chained properties, with no cn(). The plugin sees the whole chain as one site (fixtures/chain.ts),
+// sx(): one style from chained properties, with no cn(). The plugin sees the whole chain as one site (fixtures/chain.ts),
 // the build merges its declarations as cn() does, and a chain works in cn(), cv() and a condition. Run: node chain.mjs
 import assert from "node:assert/strict";
 
@@ -37,7 +37,7 @@ assert.ok(!bareCss.includes("display:flex;display"), "flex() with no part sets o
 const out = await code("chain-use.ts");
 const c = cls(out);
 assert.equal(c.base.split(" ").length, 2);
-assert.equal(c.merged.split(" ").length, 3, "cn(chain(), chain()): every declaration of both");
+assert.equal(c.merged.split(" ").length, 3, "cn(sx(), sx()): every declaration of both");
 assert.equal(c.button, undefined, "cv() keeps its config; only the classes are strings");
 assert.match(out, /"base": "_\w+",/, out);
 assert.match(out, /"variants": \{ "size": \{ "lg": "_\w+ _\w+" \} \}/, out);
@@ -68,7 +68,7 @@ for (const [f, text, line] of [
     /^cssints: border-top and border-color overlap without one containing the other/,
     4,
   ],
-  ["chain-unknown", /^cssints: chain\(\) has no \.hover\(\)/, 4],
+  ["chain-unknown", /^cssints: sx\(\) has no \.hover\(\)/, 4],
 ]) {
   await assert.rejects(code(`${f}.ts`), (e) => {
     assert.match(e.message.split("\n")[0], text);

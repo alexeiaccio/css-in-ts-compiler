@@ -41,19 +41,19 @@ export type Chain<M extends Record<string, keyof typeof properties>> = Style & {
   readonly [K in keyof M]: Prop<M[K], Chain<M>>;
 };
 /**
- * What `chain()` is: a style whose every property is a method, so one style needs no `cn()`. Each method marks the
+ * What `sx()` is: a style whose every property is a method, so one style needs no `cn()`. Each method marks the
  * property it set, so setting one twice in a chain is a type error (the later-wins rewrite of `cn()` is `cn()`'s);
  * a shorthand and a longhand of it (`p` then `paddingLeft`) are different properties and stay legal, ordered by the
  * sheet. `bg` and `backgroundColor` are one property, as are `p` and `padding`.
  */
 export type ChainStyle = Style & ChainMembers;
 /**
- * `chain().flex().bg("red").p(4)`: one style, one class string, no `cn()`. Every property is a method; `.flex()` and
+ * `sx().flex().bg("red").p(4)`: one style, one class string, no `cn()`. Every property is a method; `.flex()` and
  * `.grid()` with no argument set `display`, with parts they are the property. A chain sets each property once: a second
  * `bg` makes the method `never`, a type error. Merge two chains with `cn()`, which is still the tool for runtime values
  * and variants.
  */
-export declare function chain(): ChainStyle;
+export declare function sx(): ChainStyle;
 
 /** A condition: styles in, the same styles under it out (media(), container(), supports(), hover, ...). */
 export type Wrap = (...styles: Style[]) => Style;
