@@ -15,9 +15,10 @@ import { ImportError } from "./errors.ts";
 import { groups } from "./groups-data.ts";
 
 export const RUNTIME = "cssints";
-// A cv() site and a cn() with runtime arguments become calls of the runtime; the plugin imports them as `__cv` and
-// `__cx` into the modules that have one.
+// A cv() or scv() site and a cn() with runtime arguments become calls of the runtime; the plugin imports them as `__cv`,
+// `__scv` and `__cx` into the modules that have one.
 export const CV_CALL = "__cv(";
+export const SCV_CALL = "__scv(";
 export const CX_CALL = "__cx(";
 
 const rootIdent = (n: Node): string | null =>
@@ -454,6 +455,7 @@ export const runtimeImport = (replacements: Iterable<string>) => {
   const all = [...replacements];
   const names = [
     ...(all.some((r) => r.startsWith(CV_CALL)) ? ["_cv as __cv"] : []),
+    ...(all.some((r) => r.startsWith(SCV_CALL)) ? ["_scv as __scv"] : []),
     ...(all.some((r) => r.startsWith(CX_CALL)) ? ["_cx as __cx"] : []),
   ];
   return names.length

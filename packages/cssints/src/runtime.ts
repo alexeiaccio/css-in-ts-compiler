@@ -19,6 +19,15 @@ export interface CvRuntimeConfig {
   compound?: { when: Record<string, string>; class: string; drops?: string }[];
 }
 
+// What the plugin puts in place of an `scv({...})` site: one cv() runtime per slot, built once, and a call that gives
+// the class string of every slot (`{ base, label, icon }`).
+export function _scv(
+  config: Record<string, CvRuntimeConfig>,
+): (props?: Record<string, string | boolean | undefined>) => Record<string, string> {
+  const slots = Object.entries(config).map(([slot, c]) => [slot, _cv(c)] as const);
+  return (props = {}) => Object.fromEntries(slots.map(([slot, of]) => [slot, of(props)]));
+}
+
 // What the plugin puts in place of a `cv({...})` site (user code never names it).
 export function _cv(
   config: CvRuntimeConfig,

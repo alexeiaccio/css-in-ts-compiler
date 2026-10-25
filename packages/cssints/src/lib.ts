@@ -123,6 +123,7 @@ export const BUILDERS = new Set([
   "flex",
   "grid",
   "cv",
+  "scv",
   "media",
   "container",
   "supports",
@@ -282,6 +283,7 @@ export function settled(
   base: Decl[],
   variants: Record<string, Record<string, Decl[]>>,
   compounds: { when: Record<string, string>; decls: Decl[] }[] = [],
+  engine = "cv()",
 ) {
   const at = (d: Decl) => (d[2] ?? []).map((c) => c.text).join(" > ");
   const under = (d: Decl) => (at(d) ? ` (under ${at(d)})` : "");
@@ -290,7 +292,7 @@ export function settled(
     const r = relation(o[0], d[0]);
     if (r === "overlap")
       throw fail(
-        `cssints: cv() ${who} ${o[0]} and ${d[0]} overlap without one containing the other${under(d)}, so the sheet cannot order them: set one of them, or the longhands`,
+        `cssints: ${engine} ${who} ${o[0]} and ${d[0]} overlap without one containing the other${under(d)}, so the sheet cannot order them: set one of them, or the longhands`,
       );
     return r;
   };
@@ -312,7 +314,7 @@ export function settled(
     for (const x of o)
       if (meet(d, x, `${a} and ${b}:`) === "same")
         throw fail(
-          `cssints: cv() ${a} and ${b} both set ${x[0]}${under(d)} and can be active together, so nothing says which wins: set it in one of them, or in the base`,
+          `cssints: ${engine} ${a} and ${b} both set ${x[0]}${under(d)} and can be active together, so nothing says which wins: set it in one of them, or in the base`,
         );
   };
   const out: Record<string, Record<string, string>> = {};
