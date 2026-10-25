@@ -28,6 +28,9 @@
 //   --settle N                           headless: N more frames at 1/60 after the wheel and the keys, for a page whose
 //                                        motion has to come to rest (the Sky feed's spring and fling, the Dialog's menu
 //                                        slide and panel drop)
+//   --idle N                             headless, after everything else: N frames with no input, printing how many of
+//                                        them drew (a page at rest draws none: "idle: draws 0 of 60")
+//   --idle-keys K                        headless with --idle: a Tab pressed every K idle frames, which must draw
 //   --bench N                            headless: N more frames, the ms a frame by phase
 //   --raster thorvg|thorvg-gpu           the ThorVG software canvas (the default) or its WebGPU canvas, the frame read
 //                                        back; the latter needs a libui.dylib from desktop/build-thorvg-gpu.sh solid
@@ -63,6 +66,9 @@ const wheel = Number(arg("--wheel")?.[0] ?? 0);
 const wheelOver = arg("--wheel-over")?.[0] ?? "list";
 const settle = Number(arg("--settle")?.[0] ?? 0);
 const bench = Number(arg("--bench")?.[0] ?? 0);
+// headless: frames with no input after everything else, and how many of them drew (all of them only for the keys)
+const idle = Number(arg("--idle")?.[0] ?? 0);
+const idleKeys = Number(arg("--idle-keys")?.[0] ?? 0);
 // the raster: ThorVG's software canvas (the default) or its WebGPU one, when the dylib was built for it
 const gpu = arg("--raster")?.[0] === "thorvg-gpu";
 const maxFrames = Number(arg("--frames")?.[0] ?? Infinity);
@@ -71,7 +77,7 @@ const reducedMotion = process.argv.includes("--reduced-motion") || process.env.R
 let theme = process.env.THEME === "light" ? "light" : undefined;
 
 const { ui } = await import("./src/ffi.ts");
-const { createFrame } = await import("./src/frame.ts");
+const { createFrame, createDrawer } = await import("./src/frame.ts");
 const { createInput, selectionName } = await import("./src/input.ts");
 const { El, render } = await import("./src/renderer.ts");
 const { setReducedMotion } = await import("./src/motion.ts");
@@ -133,34 +139,43 @@ const frame = createFrame(root, {
   tick: (dt) => motion.tick?.(dt),
   stats,
 });
+// the loop's decision: the frame is declared and laid out every iteration, but drawn only when its hash changed or a
+// discrete input came in (keys, text, a press or release, the wheel); a pointer move draws through the hash only
+const draw = createDrawer(frame);
 // the wheel the host took since the last frame goes to the page before the frame is declared; a page that keeps Clay's
 // own scrolling (the List) has no onWheel, so this is only a drain
 const wheelOut = new Float32Array(2);
 const pumpWheel = () => {
-  while (ui.wheelPop(wheelOut)) motion.onWheel?.(wheelOut[0]!, wheelOut[1]!);
+  let had = false;
+  while (ui.wheelPop(wheelOut)) had = true, motion.onWheel?.(wheelOut[0]!, wheelOut[1]!);
+  return had;
 };
 
-const headless = png || expect;
+const headless = png || expect || idle > 0;
 if (headless) {
+  // every headless frame is the loop's: declared and laid out, drawn only when the hash changed or the input was a
+  // discrete one. The buffer keeps the last drawn pixels, so a skipped frame is the frame it would have drawn.
+  const step = (x: number, y: number, down: boolean, input = false) => draw(x, y, down, 1 / 60, input);
   // where the last frame left the pointer: a settle frame keeps it there, so a hover is the frame's, not the settle's
   let settleAt: [number, number] = [-1, -1];
   // frames at rest before any input, for a page whose mount animation has to be over (the Sky cards' entry)
-  for (let n = 0; n < warm; n++) frame(-1, -1, false, 1 / 60);
+  for (let n = 0; n < warm; n++) step(-1, -1, false);
   if (drag) {
     // a drag on the widgets slider: frame 0 lays out, 1 puts the pointer on the rail, 2 presses at the first fraction,
     // then the pointer moves to the second with the button held and the last frame (still held) is written
-    frame(-1, -1, false, 1 / 60);
+    step(-1, -1, false);
     const [left, top, width, height] = ui.bounds(Buffer.from("volume-rail"))!;
     const at = (f: number): [number, number] => [left! + width! * f, top! + height! / 2];
     const [ax, ay] = at(drag[0]!);
     const [bx, by] = at(drag[1]!);
-    frame(ax, ay, false, 1 / 60);
-    frame(ax, ay, true, 1 / 60);
-    frame(bx, by, true, 1 / 60);
-    frame(bx, by, true, 1 / 60);
+    step(ax, ay, false);
+    step(ax, ay, true, true);
+    step(bx, by, true);
+    step(bx, by, true);
   } else {
     // as host.c: a scripted click is frames 0 to 2 at the point, pressed in frame 1, and frame 3 is written
-    for (let n = 0; n < (click ? 4 : 1); n++) frame(click?.[0] ?? -1, click?.[1] ?? -1, n === 1, 1 / 60);
+    for (let n = 0; n < (click ? 4 : 1); n++)
+      step(click?.[0] ?? -1, click?.[1] ?? -1, n === 1, n === 1 || n === 2);
     if (click) settleAt = [click[0]!, click[1]!];
   }
   // the wheel: Clay scrolls the container under the pointer (unless the page owns it: the Sky feed), so the pointer goes
@@ -168,11 +183,11 @@ if (headless) {
   if (wheel) {
     const [left, top, width, height] = ui.bounds(Buffer.from(wheelOver)) ?? [W / 2, H / 2, 0, 0];
     const [px, py] = [left + width / 2, top + height / 2];
-    frame(px, py, false, 1 / 60);
+    step(px, py, false);
     for (let n = 0; n < wheel; n++) {
       ui.wheel(0, -1); // one notch down
       pumpWheel();
-      frame(px, py, false, 1 / 60);
+      step(px, py, false, true);
     }
     settleAt = [px, py];
   }
@@ -184,13 +199,31 @@ if (headless) {
       input.down(name);
       input.up(name);
     }
-    frame(-1, -1, false, 1 / 60);
+    step(-1, -1, false, true);
   }
   // the motion at rest: a page with a track needs frames after the input, not one
-  for (let n = 0; n < settle; n++) frame(settleAt[0], settleAt[1], false, 1 / 60);
+  for (let n = 0; n < settle; n++) step(settleAt[0], settleAt[1], false);
   // a hover, at a page that is at rest: the pointer moves there and N frames run, no press (a mid-fade frame is what a
   // stored one is for; the last of the N is written)
-  if (move) for (let n = 0; n < (move[2] ?? 3); n++) frame(move[0]!, move[1]!, false, 1 / 60);
+  if (move) for (let n = 0; n < (move[2] ?? 3); n++) step(move[0]!, move[1]!, false);
+  // the page at rest: frames with nothing in, and how many of them the hash made draw. A key every `--idle-keys` frames
+  // is a discrete input and draws on its own frame.
+  if (idle) {
+    const before = ui.draws();
+    const started = performance.now();
+    let pressed = 0;
+    for (let n = 0; n < idle; n++) {
+      const key = idleKeys > 0 && (n + 1) % idleKeys === 0;
+      if (key) pressed++, input.down("Tab"), input.up("Tab");
+      step(settleAt[0], settleAt[1], false, key);
+    }
+    const drew = ui.draws() - before;
+    const ms = performance.now() - started;
+    console.log(
+      `idle: draws ${drew} of ${idle}${pressed ? `, ${pressed} of them the keys` : ""} in ${ms.toFixed(1)} ms ` +
+        `(${(ms / idle).toFixed(2)} ms a frame: poll, declare, lay out, hash)`,
+    );
+  }
   let status = ui.errors() ? 1 : 0;
   if (png) ui.savePng(png);
   if (expect) {
@@ -240,29 +273,49 @@ const CHORD = { 99: "copy", 120: "cut", 118: "paste" } as const;
 const CTRL_GUI = 0x40 | 0x80 | 0x400 | 0x800;
 let textOn = false;
 let last = performance.now();
+// the button of the last iteration: a press or release is a discrete input, a pointer's move is not
+let wasDown = false;
+let drew = 0;
+let frames = 0;
+const start = performance.now();
 for (let n = 0; n < maxFrames; n++) {
   ui.windowPoll(pointer);
   if (pointer[3]) break;
-  pumpWheel();
-  while ((got = ui.textPop(typed)) > 0) input.textInput(decoder.decode(typed.subarray(0, got)));
+  const [x, y, down] = [pointer[0]!, pointer[1]!, pointer[2] !== 0];
+  let wheeled = pumpWheel();
+  let text = false;
+  while ((got = ui.textPop(typed)) > 0) (text = true), input.textInput(decoder.decode(typed.subarray(0, got)));
+  let key = false;
   while (ui.keyPop(event)) {
-    const [down, code, mod, repeat] = [event[0] !== 0, event[1]!, event[2]!, event[3] !== 0];
-    const chord = down && mod & CTRL_GUI ? CHORD[code as keyof typeof CHORD] : undefined;
+    const [isDown, code, mod, repeat] = [event[0] !== 0, event[1]!, event[2]!, event[3] !== 0];
+    key = true;
+    const chord = isDown && mod & CTRL_GUI ? CHORD[code as keyof typeof CHORD] : undefined;
     if (chord !== undefined) {
       const out = input.clipboard(chord, chord === "paste" ? decoder.decode(clip.subarray(0, ui.clipboardGet(clip))) : "");
       if (out != null) ui.clipboardSet(out);
       continue;
     }
     const name = selectionName(code, mod);
-    if (name) (down ? input.down(name, repeat) : input.up(name));
+    if (name) (isDown ? input.down(name, repeat) : input.up(name));
   }
   // SDL starts and stops the platform's text input with the field's focus (an IME needs it; so does TEXT_INPUT)
   if (input.editing() !== textOn) ui.setTextInput((textOn = input.editing()));
   const now = performance.now();
-  frame(pointer[0]!, pointer[1]!, pointer[2] !== 0, (now - last) / 1000);
+  // declare and lay out every iteration (a page's tick reads and writes there, so a timer or a track animates); draw and
+  // present only when the hash changed or a key, typed text, a wheel notch or the button came in. A pointer move goes
+  // through the hash: it draws when it changes a hover, and not once the hover has settled.
+  const drewNow = draw(x, y, down, (now - last) / 1000, wheeled || text || key || down !== wasDown);
   last = now;
-  ui.windowPresent();
-  await Bun.sleep(16);
+  wasDown = down;
+  if (drewNow) {
+    drew++;
+    ui.windowPresent();
+  } else await Bun.sleep(16); // nothing to show: one tick's rest, and no wait before the frame an input caused
+  frames++;
+}
+if (maxFrames !== Infinity) {
+  const ms = performance.now() - start;
+  console.log(`window: ${frames} frames, ${drew} draw${drew === 1 ? "" : "s"}, ${ui.presents()} presents, ${ms.toFixed(0)} ms`);
 }
 dispose();
 process.exit(0);

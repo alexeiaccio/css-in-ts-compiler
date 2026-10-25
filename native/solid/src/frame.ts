@@ -53,6 +53,27 @@ export interface View {
   stats?: [number, number, number, number][];
 }
 
+export type Frame = (px: number, py: number, down: boolean, dt: number, render?: boolean) => number;
+
+/**
+ * A frame loop's draw decision. The frame is declared and laid out every iteration — that is what a page's tick reads
+ * and writes, and it catches a timer or a track — but `ui_draw` runs only when the packed frame changed (`ui_hash`)
+ * or the iteration carried a discrete input (a key, typed text, a press or release, a wheel): at rest it draws and
+ * presents nothing, so a static page costs a layout and no pixels. A pointer move is not by itself an input here: it
+ * draws through the hash when it changes a hover, and not at all once the hover has settled. Returns whether it drew.
+ */
+export function createDrawer(frame: Frame) {
+  let last: bigint | undefined;
+  return (px: number, py: number, down: boolean, dt: number, discrete = false): boolean => {
+    frame(px, py, down, dt, false);
+    const hash = ui.hash();
+    const draw = discrete || hash !== last;
+    last = hash;
+    if (draw) ui.draw();
+    return draw;
+  };
+}
+
 /**
  * The frame function of a tree. `onClick` of an element with an `id` runs on release over it, when the press was on
  * it too; `onPress` runs when the button goes down over it (a browser focuses on mousedown); both are called with the

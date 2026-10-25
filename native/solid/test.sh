@@ -96,6 +96,11 @@ $S --settle 9 --expect solid/frames/sky-entry.png
 $S --settle 40 --move 180 300 3 --expect solid/frames/sky-hover.png
 $S --warm 40 --wheel 4 --wheel-over sky-status --expect solid/frames/sky-band.png
 bun solid/sky.test.ts
+# idle frames: a page at rest declares and lays out every frame but draws and presents none (`--idle N` prints the draws
+# it made), and a key is a discrete input that draws its own frame
+$S --settle 60 --idle 60 | grep -q "draws 0 of 60"
+$S --settle 60 --idle 60 --idle-keys 20 | grep -q "draws 3 of 60, 3 of them the keys"
+bun solid/idle.test.ts
 # the inline-styles page (styles in the .tsx) against the same page with a .styles.ts: identical pixel for pixel, and its frame
 bun solid/inline.test.ts
 bun solid/main.ts --png "${TMPDIR:-/tmp}/cssints-native-solid.png" --bench 1000

@@ -76,6 +76,12 @@ static struct {
 } values[MAX_VALUES];
 static int value_count;
 
+// what the last ui_end hashed: a settled frame hashes the same as the frame before it, so the host can skip the draw
+// and the present. It is filled in ui_end, not by ui_hash, so it survives a draw (which may write its tables' `drawn`)
+static uint64_t frame_hash = 0xcbf29ce484222325ull;
+// ui_draw and ui_window_present calls of the process, for a test: a page at rest keeps both still
+static int draw_count, present_count;
+
 static SDL_Window *window;
 static SDL_Renderer *renderer;
 static SDL_Texture *texture;
@@ -436,16 +442,156 @@ void ui_text(const char *s, int len, const float *f)
     Clay__OpenTextElement(slice(copy, len), c);
 }
 
-/** Closes the layout: Clay computes the boxes. Returns the command count. */
+static void hash_frame(void);
+
+/** Closes the layout: Clay computes the boxes. Returns the command count, and hashes the frame for `ui_hash`. */
 int ui_end(float dt)
 {
     cmds = Clay_EndLayout(dt);
+    hash_frame();
     return cmds.length;
 }
+
+// The frame's hash: FNV-1a over what a draw reads, and nothing else. A frame whose hash is the same as the last one
+// draws the same pixels, so the host may draw and present it not at all. The command array carries the types, the
+// element ids, the boxes, the colours, the corner radii, the border widths and, per type, the text (its bytes, colour,
+// font and size), an image's pointer, a clip's axes or a custom's pointer. The renderer's tables ride beside the
+// commands (css.shadow, css.backdrop, css.backgroundImage and the value channel's group), so they are hashed too:
+// a shadow's blur or a group's opacity can animate without moving one byte of the command array.
+static uint64_t hash_bytes(uint64_t h, const void *p, size_t n)
+{
+    const unsigned char *b = p;
+    for (size_t i = 0; i < n; i++) h = (h ^ b[i]) * 0x100000001b3ull;
+    return h;
+}
+
+static uint64_t hash_u32(uint64_t h, uint32_t v) { return hash_bytes(h, &v, sizeof v); }
+
+// a float by its bit pattern: -0 and 0 are two frames here, which costs a draw and never skips one
+static uint64_t hash_f32(uint64_t h, float v)
+{
+    uint32_t bits;
+    memcpy(&bits, &v, sizeof bits);
+    return hash_u32(h, bits);
+}
+
+static uint64_t hash_color(uint64_t h, Clay_Color c)
+{
+    h = hash_f32(h, c.r), h = hash_f32(h, c.g), h = hash_f32(h, c.b);
+    return hash_f32(h, c.a);
+}
+
+static uint64_t hash_corners(uint64_t h, Clay_CornerRadius c)
+{
+    h = hash_f32(h, c.topLeft), h = hash_f32(h, c.topRight);
+    h = hash_f32(h, c.bottomRight);
+    return hash_f32(h, c.bottomLeft);
+}
+
+static uint64_t hash_rect(uint64_t h, Clay_BoundingBox b)
+{
+    h = hash_f32(h, b.x), h = hash_f32(h, b.y), h = hash_f32(h, b.width);
+    return hash_f32(h, b.height);
+}
+
+static void hash_frame(void)
+{
+    uint64_t h = 0xcbf29ce484222325ull;
+    for (int32_t i = 0; i < cmds.length; i++) {
+        const Clay_RenderCommand *c = &cmds.internalArray[i];
+        h = hash_u32(h, (uint32_t)c->commandType);
+        h = hash_u32(h, c->id);
+        h = hash_rect(h, c->boundingBox);
+        switch (c->commandType) {
+        case CLAY_RENDER_COMMAND_TYPE_RECTANGLE:
+            h = hash_color(h, c->renderData.rectangle.backgroundColor);
+            h = hash_corners(h, c->renderData.rectangle.cornerRadius);
+            break;
+        case CLAY_RENDER_COMMAND_TYPE_BORDER:
+            h = hash_color(h, c->renderData.border.color);
+            h = hash_corners(h, c->renderData.border.cornerRadius);
+            h = hash_u32(h, c->renderData.border.width.left), h = hash_u32(h, c->renderData.border.width.right);
+            h = hash_u32(h, c->renderData.border.width.top), h = hash_u32(h, c->renderData.border.width.bottom);
+            h = hash_u32(h, c->renderData.border.width.betweenChildren);
+            break;
+        case CLAY_RENDER_COMMAND_TYPE_TEXT: {
+            const Clay_StringSlice s = c->renderData.text.stringContents;
+            h = hash_color(h, c->renderData.text.textColor);
+            h = hash_u32(h, c->renderData.text.fontId), h = hash_u32(h, c->renderData.text.fontSize);
+            h = hash_u32(h, c->renderData.text.letterSpacing), h = hash_u32(h, c->renderData.text.lineHeight);
+            h = hash_u32(h, (uint32_t)(s.length > 0 ? s.length : 0));
+            if (s.length > 0) h = hash_bytes(h, s.chars, (size_t)s.length);
+            break;
+        }
+        case CLAY_RENDER_COMMAND_TYPE_IMAGE:
+            h = hash_color(h, c->renderData.image.backgroundColor);
+            h = hash_corners(h, c->renderData.image.cornerRadius);
+            h = hash_bytes(h, &c->renderData.image.imageData, sizeof c->renderData.image.imageData);
+            break;
+        case CLAY_RENDER_COMMAND_TYPE_SCISSOR_START:
+        case CLAY_RENDER_COMMAND_TYPE_SCISSOR_END:
+            h = hash_u32(h, c->renderData.clip.horizontal);
+            h = hash_u32(h, c->renderData.clip.vertical);
+            break;
+        case CLAY_RENDER_COMMAND_TYPE_OVERLAY_COLOR_START:
+        case CLAY_RENDER_COMMAND_TYPE_OVERLAY_COLOR_END:
+            h = hash_color(h, c->renderData.overlayColor.color);
+            break;
+        case CLAY_RENDER_COMMAND_TYPE_CUSTOM:
+            h = hash_color(h, c->renderData.custom.backgroundColor);
+            h = hash_corners(h, c->renderData.custom.cornerRadius);
+            h = hash_bytes(h, &c->renderData.custom.customData, sizeof c->renderData.custom.customData);
+            break;
+        default: break;
+        }
+    }
+    // the renderer's effects: a shadow, a backdrop, a gradient, or a subtree's scene
+    for (int i = 0; i < tvg.shadowCount; i++) {
+        const Clay_Color color = tvg.shadows[i].color;
+        h = hash_u32(h, tvg.shadows[i].id);
+        h = hash_f32(h, tvg.shadows[i].x), h = hash_f32(h, tvg.shadows[i].y);
+        h = hash_f32(h, tvg.shadows[i].blur);
+        h = hash_color(h, color);
+    }
+    for (int i = 0; i < tvg.backdropCount; i++) {
+        h = hash_u32(h, tvg.backdrops[i].id);
+        h = hash_f32(h, tvg.backdrops[i].blur);
+    }
+    for (int i = 0; i < tvg.gradientCount; i++) {
+        h = hash_u32(h, tvg.gradients[i].id), h = hash_u32(h, (uint32_t)tvg.gradients[i].kind);
+        h = hash_f32(h, tvg.gradients[i].angle);
+        h = hash_u32(h, (uint32_t)tvg.gradients[i].count), h = hash_u32(h, (uint32_t)tvg.gradients[i].alpha);
+        for (int k = 0; k < tvg.gradients[i].count; k++) {
+            h = hash_f32(h, tvg.gradients[i].offset[k]);
+            h = hash_color(h, tvg.gradients[i].color[k]);
+        }
+    }
+    for (int i = 0; i < tvg.groupCount; i++) {
+        // a group at alpha 255, scale 1 and no offset is a scene that draws what it would have drawn without one (the
+        // renderer skips it too): the page may still declare it, a track that has just landed, and its arrival or
+        // departure is not a frame
+        if (tvg.groups[i].alpha >= 255 && tvg.groups[i].scale == 1 && tvg.groups[i].tx == 0 && tvg.groups[i].ty == 0)
+            continue;
+        h = hash_u32(h, (uint32_t)tvg.groups[i].at), h = hash_u32(h, (uint32_t)tvg.groups[i].alpha);
+        h = hash_f32(h, tvg.groups[i].scale), h = hash_f32(h, tvg.groups[i].tx);
+        h = hash_f32(h, tvg.groups[i].ty);
+    }
+    frame_hash = h;
+}
+
+/** The hash of the last frame's commands and renderer effects: the same value twice means the same pixels. */
+uint64_t ui_hash(void) { return frame_hash; }
+
+/** Draws of the process (ui_draw calls); a test's counter for the frames a page at rest does not draw. */
+int ui_draws(void) { return draw_count; }
+
+/** Presents of the process (ui_window_present calls). */
+int ui_presents(void) { return present_count; }
 
 /** Draws the commands of the last ui_end on black into the buffer. */
 void ui_draw(void)
 {
+    draw_count++;
     const int n = (int)(width * tvg.scale) * (int)(height * tvg.scale);
     if (!gpu) for (int i = 0; i < n; i++) pixels[i] = 0xff000000; // the WebGPU texture carries the ground
     Clay_ThorVG_RenderClayCommands(&tvg, &cmds);
@@ -662,6 +808,7 @@ void ui_window_poll(float *out)
 
 void ui_window_present(void)
 {
+    present_count++;
     SDL_UpdateTexture(texture, NULL, pixels, (int)(width * tvg.scale) * 4);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);

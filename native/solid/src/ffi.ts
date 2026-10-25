@@ -24,6 +24,9 @@ const { symbols: s } = dlopen(new URL("../../build/solid/libui.dylib", import.me
   ui_close: { args: [], returns: T.void },
   ui_text: { args: [T.ptr, T.i32, T.ptr], returns: T.void },
   ui_end: { args: [T.f32], returns: T.i32 },
+  ui_hash: { args: [], returns: T.u64 },
+  ui_draws: { args: [], returns: T.i32 },
+  ui_presents: { args: [], returns: T.i32 },
   ui_draw: { args: [], returns: T.void },
   ui_pixel: { args: [T.i32, T.i32], returns: T.u32 },
   ui_save_png: { args: [T.cstring], returns: T.i32 },
@@ -80,6 +83,13 @@ export const ui = {
   close: s.ui_close,
   text: (bytes: Uint8Array, style: Float32Array) => s.ui_text(ptr(bytes), bytes.length, ptr(style)),
   end: s.ui_end,
+  /** The FNV-1a hash of the last frame's commands and renderer effects: the same value twice means the same pixels, so
+   *  a host that sees it unchanged may skip `draw` (and its present). */
+  hash: (): bigint => s.ui_hash(),
+  /** ui_draw calls of the process: a page at rest keeps it still. */
+  draws: () => s.ui_draws(),
+  /** ui_window_present calls of the process. */
+  presents: () => s.ui_presents(),
   draw: s.ui_draw,
   /** The pixel at x, y of the last frame as [r, g, b, a]. */
   pixel: (x: number, y: number) => {
