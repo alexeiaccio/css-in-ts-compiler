@@ -755,11 +755,27 @@ The order, each with its own frame and its own number:
    of three back-to-back pairs: 3.735 against 3.631 ms a frame, light 3.625 against 3.458), i.e. what the solid fill of the
    same pixels costs, within the machine's noise. Checks: `test/clay.mjs` (the literal at 180deg and at `to right`, the
    even spreading, a themed stop, the offsets, the errors), `solid/sky.test.ts` (the vertical scan, the row, the edge, the
-   hover, the light theme) and the four frames; a mutation of the angle to `90deg` fails the vertical scan. **It bands**:
-   the dark card's 190px is 6 luminance steps of about 30px, the light one 12 of about 15px — a dither step is the cure
-   and is not built. Open: radial and conic (ThorVG has both), dithering, a gradient under a translucent fill (one fill per
-   element today), a gradient on text, a border or an image, and the browser, the board and the terminal (the board would
-   band hardest; a dithered gradient is PPA work on the P4).
+   hover, the light theme) and the four frames; a mutation of the angle to `90deg` fails the vertical scan. **Bands, and the
+   dither (2026-10-25)**: before it, a card's column is 6 runs of one luminance of about 30px in the dark theme (18 colours,
+   the longest 32px) and 12 of about 15px in the light one (30 colours, longest 17px). Now `Clay_ThorVG_RenderClayCommands`
+   ends after its final `tvg_canvas_sync` with a 4x4 ordered (Bayer) dither of the buffer: ±1/255 on the RGB inside each
+   gradient's box, the box mapped by the groups around it (a card's entry slides), cut to the canvas, to the clips (a
+   scrolled feed) and one pixel inside the corners' arcs — and the same column is 182 runs with the longest 1px, in both
+   themes (26 and 50 colours). The three variants, measured: ±1 with the mean kept (chosen), +1 on half the pixels (182 runs
+   but the longest 2px in the light theme, whose 255 top clips a +1 step into a flat band, and a 0.5/255 lift on every
+   card), and none (the numbers above). The seven Sky frames were regenerated: of 273,600 pixels, 203,712 differ (sky),
+   213,217 (science), 203,712 (light), 213,217 (scrolled), 202,766 (entry), 203,712 (hover) and 200,445 (band) — every one
+   inside a card's box or the feed's clip; the bar, the status line, the 8px gaps and the columns outside the cards are
+   untouched. The text takes the step and stays legible: a body's 44 flat ink pixels are at most 1/255 off the ink token,
+   and none of its 15 pixels at the ink mask's threshold is on the ink's edge, so the mask (and the text's box) is the
+   undithered frame's; the same settled frame drawn twice is byte-identical. Cost 0.22 ms for the three cards (`--bench 400`,
+   the least-loaded of three back-to-back pairs: 3.56 against 3.79 ms a frame; 0.07 ms a card over 191,520 pixels), the
+   price of a second pass over 766 KB of the target. A per-row pre-scan was measured against it and dropped: a stippled
+   boundary row inside a 30px plateau leaves the plateau flat, so the run count would not move. Open: radial and conic
+   (ThorVG has both), a gradient under a translucent fill (one fill per element today), a gradient on text, a border or an
+   image, and the browser, the board and the terminal — none of them dithers, and the board would band hardest (a dithered
+   gradient there is PPA work on the P4). A dither the raster itself carried (ThorVG's gradient shader, or 10-bit channels)
+   is the real fix; this one is a pass over pixels that are already drawn, in the one target that is a buffer.
 4. **Tint and tritone** for themes and disabled states, worth it once a theme switch is animated.
 5. The terminal gets none of the blurs; its equivalents are the palette and the attributes it already has.
 6. The board gets only what `render.c` can do without a filter: dithered gradients, shadows as pre-baked sprites, PPA
