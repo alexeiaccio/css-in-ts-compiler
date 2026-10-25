@@ -1,0 +1,10 @@
+The theme in src/theme.ts restates the starter theme of React Aria:
+
+  https://raw.githubusercontent.com/adobe/react-spectrum/main/starters/docs/src/theme.css
+
+Copyright Adobe. Licensed under the Apache License, Version 2.0:
+
+  https://www.apache.org/licenses/LICENSE-2.0
+
+Portions restated in cssints tokens: the 16 lightness steps of the scale, its chroma curve, the named hue presets, the
+semantic colours, the 4px spacing steps, the radii and the font sizes.
