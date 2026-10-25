@@ -117,7 +117,7 @@ const one =
     if (parts.length !== 1) throw fail(`cssints: ${prop} takes one value, got ${parts.length}`);
     return [[key, read(prop, parts[0])]];
   };
-const COLOURS = new Set(["backgroundColor", "color", "borderColor"]);
+const COLOURS = new Set(["backgroundColor", "color", "borderColor", "shadowColor"]);
 // 1 to 4 values in CSS order, spread over `keys`
 const sides =
   (keys: readonly string[], read: (prop: string, v: unknown) => Value): Build =>
@@ -282,6 +282,133 @@ const imageOf: Build = (prop, parts) => {
   ];
 };
 
+// A shadow (css.shadow): Clay 1.0's declaration has no shadow field, so it travels beside the declaration as an image's
+// path does — a sibling `shadow` key of the literal, which header() drops (the renderer owns the effect, keyed by the
+// element's id) and whose fields a state's overlay merges one by one.
+const SHADOW_OPTIONS = ["x", "y", "blur", "color"];
+const SHADOW_FIELDS = ["shadowX", "shadowY", "shadowBlur", "shadowColor"];
+const SHADOW_COLOUR = "rgb(0 0 0 / 0.4)";
+const SHADOW_DEFAULT = { x: 0, y: 2, blur: 12, color: SHADOW_COLOUR };
+const shadowOf: Build = (prop, parts) => {
+  if (parts.length > 1)
+    throw fail(`cssints: ${prop} takes one object of options, got ${parts.length} values`);
+  const o = options(prop, parts[0] ?? {}, SHADOW_OPTIONS);
+  // no options is the whole default shadow; some set only the fields they name, so a state's
+  // css.hover(css.shadow({ blur: 20 })) keeps the base's x, y and colour
+  const given = Object.keys(o).length ? o : SHADOW_DEFAULT;
+  const out: [string, Value][] = [];
+  if (given.x !== undefined) out.push(["shadowX", offset(`${prop}.x`, given.x)]);
+  if (given.y !== undefined) out.push(["shadowY", offset(`${prop}.y`, given.y)]);
+  if (given.blur !== undefined) out.push(["shadowBlur", px(`${prop}.blur`, given.blur)]);
+  if (given.color !== undefined) out.push(["shadowColor", colour(`${prop}.color`, given.color)]);
+  return out;
+};
+
+// ---------- a background image: a linear gradient
+
+// A gradient (CSS's linear-gradient()) as one string: an optional direction and two or more colour stops. As a shadow,
+// no Clay field holds one: a sibling `backgroundImage` key of the literal, `{ kind: "linear", angle, stops: [{ offset,
+// color }] }`, which header() drops and the renderer draws by the element's id.
+const GRADIENT =
+  "a linear-gradient() as one string: an optional direction (<number>deg, or to top | to bottom | to left | to right; " +
+  "180deg by default) and two or more colour stops with an optional <number>% each";
+const DEGREES = /^(-?(?:\d+\.?\d*|\.\d+))deg$/;
+const PLAIN_NUMBER = /^-?(?:\d+\.?\d*|\.\d+)$/;
+const OTHER_ANGLE = /^-?(?:\d+\.?\d*|\.\d+)(?:turn|rad|grad)$/;
+const PERCENT_ONLY = /^-?(?:\d+\.?\d*|\.\d+)%$/;
+// a stop's offset: the last whitespace-separated word, a percentage (`red 50%`; `hsl(0 100% 50%)` keeps its `%` inside
+// its own parentheses and does not match)
+const OFFSET_AT_END = /^(.*\S)\s+(-?(?:\d+\.?\d*|\.\d+)%)$/;
+const LENGTH_AT_END = /^(.*\S)\s+(-?(?:\d+\.?\d*|\.\d+)(?:px|em|rem|vh|vw|pt))$/;
+const TO = { "to top": 0, "to right": 90, "to bottom": 180, "to left": 270 };
+// the commas that separate stops: not the ones inside a colour's own parentheses (`rgb(1, 2, 3)`, `color-mix(in srgb, ...)`)
+const splitStops = (text: string) =>
+  text.trim() ? text.split(/,(?![^(]*\))/).map((stop) => stop.trim()) : [];
+// the direction of a gradient, and whether the first part was one: a colour is a stop, and CSS's default is `to bottom`
+const directionOf = (prop: string, first: string) => {
+  const deg = DEGREES.exec(first);
+  if (deg) return { angle: Number(deg[1]), skip: true };
+  if (Object.hasOwn(TO, first)) return { angle: TO[first as keyof typeof TO], skip: true };
+  if (OTHER_ANGLE.test(first) || PLAIN_NUMBER.test(first) || first.startsWith("to "))
+    throw fail(
+      `cssints: ${prop}: unexpected ${say(first)} as a direction, expected <number>deg or ${Object.keys(TO).join(" | ")}`,
+    );
+  return { angle: 180, skip: false };
+};
+const gradientOf = (prop: string, text: string) => {
+  const m = /^linear-gradient\((.*)\)$/s.exec(text.trim());
+  if (!m) throw fail(`cssints: ${prop}: unexpected ${say(text)}, expected ${GRADIENT}`);
+  const parts = splitStops(m[1]!);
+  const { angle, skip } = directionOf(prop, parts[0] ?? "");
+  // each stop is a colour through the same parser as bg's and shadow's (tokens too), with an optional percentage
+  const stops = parts.slice(skip ? 1 : 0).map((token) => {
+    const end = OFFSET_AT_END.exec(token);
+    const text = end ? end[1]! : token;
+    const length = end ? null : LENGTH_AT_END.exec(token);
+    if (length)
+      throw fail(
+        `cssints: ${prop}: unexpected ${say(length[2]!)} as a stop, expected a percentage ("50%", or no offset)`,
+      );
+    if (!end && PERCENT_ONLY.test(token))
+      throw fail(
+        `cssints: ${prop}: unexpected ${say(token)}, expected a colour (colour hints are not drawn)`,
+      );
+    colour(prop, text);
+    return { text, percent: end ? Number.parseFloat(end[2]!) : undefined };
+  });
+  if (stops.length < 2)
+    throw fail(`cssints: ${prop}: a gradient needs two or more colour stops, got ${stops.length}`);
+  // CSS's placement: an unpositioned first stop is 0%, an unpositioned last one 100%, and an unpositioned stop takes the
+  // place between its nearest positioned neighbours that spaces them evenly (which is even spacing for a list with none)
+  const numbers = stops.map((s) => s.percent);
+  const edges = numbers.map((p, i) =>
+    p !== undefined ? p : i === 0 ? 0 : i === numbers.length - 1 ? 100 : undefined,
+  );
+  const at = edges.map((percent, i) => {
+    if (percent !== undefined) return percent;
+    const before = edges.findLastIndex((p, k) => k < i && p !== undefined);
+    const after = edges.findIndex((p, k) => k > i && p !== undefined);
+    const [from, to] = [edges[before]!, edges[after]!];
+    return from + ((to - from) * (i - before)) / (after - before);
+  });
+  return {
+    angle,
+    stops: stops.map((s, i) => {
+      const percent = at[i]!;
+      if (percent < 0 || percent > 100)
+        throw fail(
+          `cssints: ${prop}: unexpected ${say(`${percent}%`)} as an offset, expected 0% to 100%`,
+        );
+      if (i && percent < at[i - 1]!)
+        throw fail(
+          `cssints: ${prop}: the stops go backwards: ${say(`${at[i - 1]!}%`)} then ${say(`${percent}%`)}`,
+        );
+      return { text: s.text, offset: percent / 100 };
+    }),
+  };
+};
+const backgroundImageOf: Build = (prop, parts) => {
+  if (parts.length !== 1)
+    throw fail(`cssints: ${prop} takes one string, got ${parts.length} values`);
+  if (typeof parts[0] !== "string")
+    throw fail(`cssints: ${prop}: unexpected ${say(parts[0])}, expected ${GRADIENT}`);
+  gradientOf(prop, parts[0]);
+  return [["backgroundImage", parts[0]]];
+};
+
+// A backdrop (css.backdrop): the pixels under the element, blurred before its own commands, so a translucent panel is
+// glass over the content behind it. As a shadow, no Clay field holds one: a sibling `backdrop` key of the literal, which
+// header() drops and the renderer reads by the element's id.
+const BACKDROP_OPTIONS = ["blur"];
+const BACKDROP_DEFAULT = 12;
+const backdropOf: Build = (prop, parts) => {
+  if (parts.length > 1)
+    throw fail(`cssints: ${prop} takes one object of options, got ${parts.length} values`);
+  const o = options(prop, parts[0] ?? {}, BACKDROP_OPTIONS);
+  // the only field: an empty object is the default, as a bare call is
+  return [["backdropBlur", px(`${prop}.blur`, o.blur ?? BACKDROP_DEFAULT)]];
+};
+
 const PADDING = ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"];
 const BORDER = ["borderTop", "borderRight", "borderBottom", "borderLeft"];
 const RADIUS = ["topLeft", "topRight", "bottomRight", "bottomLeft"];
@@ -324,6 +451,9 @@ const MEMBERS: Record<string, Build> = {
   whiteSpace: one("whiteSpace", keyword("normal", "pre-line", "nowrap")),
   float: floating,
   image: imageOf,
+  backgroundImage: backgroundImageOf,
+  shadow: shadowOf,
+  backdrop: backdropOf,
 };
 
 const member =
@@ -422,6 +552,9 @@ export const {
   whiteSpace,
   float,
   image,
+  backgroundImage,
+  shadow,
+  backdrop,
 } = members;
 
 // ---------- the site: Clay's structs, field for field
@@ -545,6 +678,29 @@ const shapeOf = (entries: Entry[], values?: Map<string, string>): Shape => {
   if (FLOATING.some((k) => p.has(k))) out.floating = floatingOf(p);
   if (p.has("imageSrc")) out.image = { imageData: get("imageSrc")! };
   if (p.get("aspectRatio")) out.aspectRatio = { aspectRatio: get("aspectRatio")! };
+  // a gradient has no Clay field either: its own key of the literal, resolved with the theme's values
+  if (p.has("backgroundImage")) {
+    const g = gradientOf("backgroundImage", String(p.get("backgroundImage")));
+    out.backgroundImage = {
+      kind: "linear",
+      angle: g.angle,
+      // a stop list is an array, which no Shape field holds: isLeaf replaces it whole, so nothing walks into it
+      stops: g.stops.map((s) => ({
+        offset: s.offset,
+        color: rgba("backgroundImage", s.text, values),
+      })) as unknown as Shape,
+    };
+  }
+  // a shadow has no Clay field: its own key of the literal, for the renderer; unset fields take CSS's defaults
+  if (SHADOW_FIELDS.some((k) => p.has(k)))
+    out.shadow = {
+      x: get("shadowX") ?? SHADOW_DEFAULT.x,
+      y: get("shadowY") ?? SHADOW_DEFAULT.y,
+      blur: get("shadowBlur") ?? SHADOW_DEFAULT.blur,
+      color: rgba("shadow.color", String(get("shadowColor") ?? SHADOW_COLOUR), values),
+    };
+  // a backdrop has no Clay field either: its own key, for the renderer, one blur
+  if (p.has("backdropBlur")) out.backdrop = { blur: get("backdropBlur")! };
   const text: Shape = {};
   if (p.has("color")) text.textColor = colourOf("color");
   for (const k of ["fontId", "fontSize", "letterSpacing", "lineHeight"])
@@ -561,8 +717,12 @@ const HIDDEN = { horizontal: 1, vertical: 1 };
 const VISIBLE = { horizontal: 0, vertical: 0 };
 
 // A leaf of the literal: a number, a keyword, a colour or a sizing axis (replaced whole, never merged field by field).
+// An array is a leaf too: a gradient's stops are one value, and merging them field by field would make an object of them.
 const isLeaf = (v: unknown): boolean =>
-  typeof v !== "object" || Object.hasOwn(v as object, "r") || Object.hasOwn(v as object, "type");
+  typeof v !== "object" ||
+  Array.isArray(v) ||
+  Object.hasOwn(v as object, "r") ||
+  Object.hasOwn(v as object, "type");
 // The fields of `full` that `mask` has
 const pick = (full: Shape, mask: Shape): Shape =>
   Object.fromEntries(
@@ -613,7 +773,13 @@ const literalOf = (n: ClayNode, values?: Map<string, string>): Shape => {
 // ... and what each theme changes of it, by name
 const replacement = (n: ClayNode): Shape => {
   const out = literalOf(n);
-  if (!n.__clay.some(([k, v]) => COLOURS.has(k) && String(v).includes("var("))) return out;
+  // a token in a colour, or in a gradient's stops, is what a theme can change
+  if (
+    !n.__clay.some(
+      ([k, v]) => (COLOURS.has(k) || k === "backgroundImage") && String(v).includes("var("),
+    )
+  )
+    return out;
   const themes: Shape = {};
   for (const { label, values } of together({ themed: tables.themed, layers: registry.layers })) {
     const d = diff(literalOf(n, values), out);
@@ -671,6 +837,9 @@ const SHAPE = new Set([
   "clip",
   "floating",
   "image",
+  "backgroundImage",
+  "shadow",
+  "backdrop",
   "aspectRatio",
   "text",
   "themes",
@@ -709,7 +878,12 @@ export const header = (styles: Record<string, unknown>): string => {
       ["", base],
       ...STATES.flatMap((s) => (v[s] ? [[`_${s.slice(1)}`, merge(base, v[s] as Shape)]] : [])),
     ] as [string, Shape][]) {
+      // a shadow, a backdrop or a gradient is no Clay field (clay.h 1.0 has none): the declaration keeps its layout,
+      // the renderer its effect
       const { text, ...decl } = shape;
+      delete decl.shadow;
+      delete decl.backdrop;
+      delete decl.backgroundImage;
       if (Object.keys(decl).length)
         lines.push(
           `static const Clay_ElementDeclaration ${name}${suffix}${theme} = ${c("", decl)};`,

@@ -37,6 +37,363 @@ browser/                   the same page as WebAssembly on a canvas: page.c (Cla
 docs/map.md                targets, layers, order of work
 ```
 
+## Effects
+
+`css.shadow({ x, y, blur, color })` is the first one: a renderer effect, because Clay 1.0's declaration has no shadow
+field. The style's literal carries it as a sibling `shadow` key, `solid/src/pack.ts`'s `variant()` pulls it out beside
+the image's path (the packed box itself stays 45 floats), `solid/src/frame.ts` calls `ui_shadow(x, y, blur, r, g, b, a)`
+before `ui_open`, and `ui.c` hangs it on a side table keyed by the element id's 32-bit hash (`Clay_ElementId.id`),
+cleared in `ui_begin` with the rest of the frame. `desktop/clay_renderer_thorvg.c` draws it for the element's first
+command that carries that id — the command's box and corner radii, offset and filled with the shadow's colour, as a
+scene with `tvg_scene_add_effect_gaussian_blur` (sigma `blur / 2`, CSS's reading, quality 80), then the command, which
+covers the shadow's middle. One shadow an element; **the element needs an `id`**.
+
+The effect's sigma is in the scene's own units, so the root scene's scale carries it: the same sigma under a root at
+pixel density 2 blurs twice as many device pixels, which is why it is not multiplied by the density. Ceilings, on
+purpose: 32 shadows a frame, no spread and no inner shadow (the box is the element's own), nothing cached between
+frames (the blur runs again each frame), and the cost is real — the Dialog page's 280x152 panel at blur 32 takes the
+frame's draw from 0.58 to 1.92 ms (Apple M2, one thread, `--bench 300`, two back-to-back runs; the price grows with the
+blur's area). The C pages — `examples/`, the terminal, the browser — ignore a shadow: `header()` prints nothing for it
+and the generated declarations are unchanged.
+
+### A backdrop: glass over our own content
+
+`css.backdrop({ blur })` blurs the page under an element, so a translucent fill is glass. It travels as the shadow
+does — a sibling `backdrop: { blur }` key, pulled out by `variant()`, `ui_backdrop(blur)` before `ui_open`, a side table
+in `ui.c` keyed by `Clay_ElementId.id`, one an element, cleared in `ui_begin` — and the hard part is the draw, not the
+style: the pixels under the panel must be blurred **before** the panel's own commands, and ThorVG draws the whole
+command array in one `tvg_canvas_draw`.
+
+So the renderer cuts the frame. When the first command carrying a backdrop element's id arrives (a rectangle: only one
+cuts), it draws what it has built as pass 1, blurs the element's box in the buffer, starts a new scene, and carries on
+from there: the element's fill, text, border and focus ring are in pass 2, over the blurred pixels, so they stay crisp.
+`tvg_canvas_draw(d->canvas, d->clear)` clears for pass 1 only. Two things in ThorVG made this fiddly, both measured:
+the software canvas seeds its working surface from the target on its **first** draw and replaces what a later draw's
+paints touch (so a second draw of a translucent fill comes out as its own alpha — the renderer sets the same target
+again before pass 2, which re-seeds it; and a scene effect drawn in an earlier pass wipes the frame if it does not), and
+`tvg_paint_rel` on a scene the canvas has owned is a double free, so the pass-1 scene is only removed.
+
+The blur is on the CPU, on the box alone, clipped to the canvas, intersecting nothing else: three box passes each way
+(a gaussian to the eye, no kernel to build), radius from CSS's reading of a blur radius — sigma `blur / 2`, as the
+shadow's, and a pass of radius r three times has the variance `r² + r`, so `r = (sqrt(1 + 4σ²) - 1) / 2`. The window
+clamps at the box's edges, so nothing outside the box is read or written (the pixel test checks the rest of the frame is
+byte-identical), and alpha is carried through untouched (it is 255 everywhere; a straight average per channel is
+correct). The two buffers are the box's size, `malloc`'d a blur. One cut a frame: a second backdrop, or a nested one, is
+not drawn — glass under glass would read a frame the first cut has already drawn. A backdrop inside a scissor scene does
+not cut either, neither does one on the WebGPU canvas (its frame is read back after the whole draw, so there is nothing
+to blur). The panel's own shadow is drawn before the cut, so it lies on the unblurred page under the glass; the part of
+it under the box is blurred with the rest of the page, and the panel covers it.
+
+Cost, measured on the Dialog page's menu (150x133, blur 10 → r = 5) at 360x480, `--bench 300`, Apple M2, one thread: the
+frame's draw is 2.2 ms without the glass and 3.0 ms with it (back-to-back runs of 300 frames on a loaded machine, so
+0.7-1.0 ms for one glass). The radius is not the lever: blur 18 costs ~0.2 ms more than 10, and a cut with blur 0 is
+the same within the noise — the price is the second `tvg_canvas_draw` and the target re-seed, not the six box passes over
+about 20k pixels each. Cheap enough for a menu; a full-window backdrop at blur 24 would be ~8× the area and is not free.
+
+The Dialog page's menu is the first glass: `blur 10`, a fill of `rgb(23 27 32 / 0.72)` in the dark theme and
+`rgb(255 255 255 / 0.78)` in the light one, overlapping its trigger by 20px so there is a border and a text stroke under
+it. The modal dialog keeps its opaque fill and its shadow: the dimmed float under it is one flat colour, so a blur there
+would show nothing.
+
+### A gradient: a fill the renderer draws
+
+`css.backgroundImage("linear-gradient(...)")` is a fill, not an effect on the buffer: the element's box is painted with
+ThorVG's linear gradient instead of its solid `backgroundColor`. It travels as the shadow does — a sibling
+`backgroundImage: { kind, angle, stops }` key of the style literal, `pack.ts`'s `variant()` pulls it out, `frame.ts` calls
+`ui.backgroundImage(kind, angle, count, stops)` (the C function `ui_backgroundImage`, five floats a stop: offset 0..1, r,
+g, b, a) before `ui_open`, and `ui.c` fills a pending value that `ui_open` hangs on the renderer's table by
+`Clay_ElementId.id`, cleared in `ui_begin` with the rest of the frame. At the element's first **rectangle** command the
+renderer fills the box's rounded rect with the gradient and does not draw the solid colour; a border is a command of its
+own and stays. The element needs an `id`, and a solid `backgroundColor` too: Clay emits a rectangle only for a fill that
+is not transparent, so the gradient is what that command draws, and the solid fill is what the C targets keep.
+
+Geometry is CSS's gradient line: the direction is `(sin θ, -cos θ)` (0deg up, 90 right, 180 down — the default), the line
+is `|w·sinθ| + |h·cosθ|` long (the box's projection on it), and it runs from the box's centre minus half of that to the
+centre plus half. ThorVG's gradient coordinates are the shape's own, the same space as its path, so they are Clay units:
+the root scene carries the pixel density, as it does for a shadow's sigma.
+
+Ceilings, on purpose: one gradient an element (16 a frame), 8 stops (a ninth is counted as an error and dropped), linear
+only (ThorVG has radial and conic, the style's grammar takes neither), no dither, the solid fill under a gradient is not
+drawn (not blended), no gradient on text, a border or an image, and the C targets — `examples/`, the terminal, the
+browser — keep the solid fill: `header()` prints nothing for a gradient and the generated declarations are unchanged.
+
+Cost: the Sky page's three cards (336x190 each) with gradients against the same page with the gradients dropped,
+`--bench 1000`, Apple M2, one thread, the least-loaded of three back-to-back pairs: 3.735 against 3.631 ms a frame
+(light 3.625 against 3.458), so **under 0.2 ms for the three cards**, inside the run-to-run noise of this machine
+(±0.5 ms). The fill covers the same pixels either way; a gradient's per-pixel lerp is what a solid fill does with one
+colour.
+
+Banding, reported rather than hidden: the dark card's 190px is **6 luminance steps of about 30px** (18 distinct colours),
+the light one 12 steps of about 15px (30 colours). The dark gradient from `27 32 38` to `21 25 30` has 6 channel values
+to spread over 190px, so one step every 30px is a strap the eye can see on a large flat surface. The cure is a dither
+step (a 4x4 ordered offset before the 8-bit write), not built; the Sky cards are the first surface where it would matter.
+
+The Sky page's cards are the first gradient: `180deg` from `rgb(27 32 38)` to `rgb(21 25 30)` in the dark theme and
+`rgb(255 255 255)` to `rgb(240 243 246)` in the light one — both top-lighter, so the light theme is the same direction,
+not an inversion. A hover overrides the whole gradient with the hover tokens (`34 40 49` to `28 33 40`): a state cannot
+unset one, so it replaces it.
+
+### A value channel: one field of a style, per frame
+
+A packed style is a **compile-time literal**: `solid/plugin.ts` runs cssints at build time, `pack.ts` resolves a theme
+and a state, and the 45 floats are packed once and kept per variant, so no number in a style can change between frames.
+The value channel is the hole in that, kept as small as the shadow's and the backdrop's side tables: a page's `tick`
+(which runs after `ui_begin` and after the events, before the tree is declared) calls
+`ui_value(id, len, field, value)` for an element's id, and `ui_open` copies that element's 45 floats, applies the frame's
+overrides of its id and declares from the copy. Nothing is cached between frames, the table is cleared in `ui_begin`, and
+a frame that uses no channel declares exactly what the literal says — which is how the Dialog's settled frames came out
+byte-identical after the menu and the panel learned to move.
+
+`field` 0..44 is a packed field, in `solid/README.md`'s table order; `pack.ts`'s `FIELDS` names the ones worth a name
+(`WIDTH` 0, `HEIGHT` 3, `PADDING` 6, `GAP` 10, `BACKGROUND` 14, `BACKGROUND_ALPHA` 17, `RADIUS` 18, `BORDER` 26,
+`BORDER_ALPHA` 29, `OFFSET_X` 38, `OFFSET_Y` 39, `EXPAND_W`/`EXPAND_H` 40/41, `Z_INDEX` 42, `CAPTURE` 43). **45 to 50 are
+not floats of the style**: 45 is `ui_shadow`'s blur, the one number of a shadow a page can move, which the channel hands
+to the pending shadow before `ui_open` hangs it on the renderer's table; **46 (`ALPHA`), 47 (`SCALE`) and 48/49
+(`TRANSLATE_X`/`TRANSLATE_Y`) are one element's whole subtree as a ThorVG scene** (the section below), and they go to the
+renderer's table the same way; **50 (`GRADIENT_ALPHA`)** is the opacity of the element's background image, which the
+renderer uses to composite that gradient over the box's solid fill (255 is the gradient alone, the only way it was drawn
+before). Out of range, or a 65th override in a frame, is counted as an error and dropped.
+
+What a page may animate, and what is meaningless mid-frame: an **offset** (`OFFSET_X`/`OFFSET_Y`), `EXPAND_*`,
+`Z_INDEX`, the **shadow's blur**, the subtree's **alpha**, **scale** and **translate**, and a **gradient's opacity** are
+read as the element is placed and drawn, and nothing else moves. `WIDTH`/`HEIGHT`, `PADDING`, `GAP` and the colours are
+legal — the override is applied to the floats the declaration is built from — but Clay's layout is computed from the
+declaration every frame, so a width or a gap that changes re-lays-out the element's parent and its siblings each frame:
+it is a **layout** change, not a transform, and an animation of one reads as a jitter of everything around it. A slide
+belongs on a float's offset; a fade, a scale or an arrival belongs on the group.
+
+The cost is one scan of the table per `ui_open` on a frame that uses the channel, and a 180-byte `memcpy` of the 45
+floats for each element that has an override (the Dialog writes two elements a frame: 360 bytes, and its declare phase is
+0.008 ms of a 2.0 ms frame). The table holds 64 overrides, which is more than a page animating a dozen elements needs.
+
+### Group opacity and scale: an element's whole subtree
+
+A packed style can move one element's own numbers, and a text's colour is not in its parent's floats, so a panel could
+not fade its children. Clay has no opacity and no transform either, and its command stream is flat. What the renderer
+does have is the **element tree** and each command's element, and that is enough for the two effects that were missing.
+
+`ui.c` keeps the frame's tree as the page declares it: `ui_open` pushes a node `{id, parent}` (the parent being the
+element that was open before it; Clay gives an anonymous element an id of its own on open, so it is read back after, and
+an anonymous element is a parent like any other), `ui_close` pops, and `ui_text` adds a node for the text — a text is
+never open, but a group's subtree has to reach through it. The nodes are in declaration order, at most 1024 a frame, and
+cleared in `ui_begin`. Every element's declaration carries its node as `userData` (`index + 1`), which Clay copies into
+each command it emits from that element, so at draw time every command says which element it belongs to.
+
+The two fields are the value channel's, above the shadow's blur: **46 `ALPHA`** (0..255) and **47 `SCALE`** (1 = none);
+48/49 `TRANSLATE_X`/`TRANSLATE_Y` are a visual offset of the same subtree (px, 0 = none). `ui_open` reads them into the
+renderer's group table instead of into the floats (they are not floats of the style), and they carry no layout:
+`ui_bounds` does not move while a group scales or slides. A page writes them from its `tick` as it writes an offset, one
+call an element.
+
+The renderer then turns each group into a **range**: the commands whose element is the group's element or under it.
+Clay's commands are in depth-first order, so a subtree's commands are contiguous and a min/max over the ancestry is the
+whole of it (the panel's range is 15..25 of the Dialog's frame, the menu's 14..21). A command that carries no node — a
+scissor's own start or end — belongs to the last element that had one; it is emitted inside that element's subtree, so
+it cannot widen a range past it. A group at alpha 255, scale 1 and no offset gets no range at all: a settled frame is
+drawn exactly as the literal makes it, which is why the Dialog's settled frames came out byte-identical.
+
+In the draw loop, the first command of a range opens a scene and makes it `into`; the last one gives the scene
+`tvg_paint_set_opacity(scene, alpha)` and, if the scale is not 1 or the offset is not 0, a matrix, then adds it to the
+scene that was current when it opened. The scale is about the **box centre of the range's first command**, and ThorVG
+carries a matrix's translation in its third column (`x' = x·e11 + y·e12 + e13`; its third row is unused, so a
+translation written into `e31`/`e32` is silently dropped — measured), which makes the whole transform `scale` on the
+diagonal, `centre·(1 - scale) + translate` in `e13`/`e23`: `x' = scale·(x - c) + c + tx`, the scale about the centre and
+the offset after it, unscaled. Everything in the range inherits it: the element's own fill, its text, an image, a
+gradient, and — because the loop opens a group before the element's shadow is drawn — its shadow. A shadow fades, scales
+and slides with the panel it belongs to, which is what the eye expects.
+
+Limits, stated rather than hidden. **Nesting**: four groups may be open at once (a group inside a group inside …), and a
+fifth is drawn ungrouped; 16 groups a frame. **A scissor** (`css.overflow`, a float's clip) opens its own scene *inside*
+whatever is current, so a group's subtree that contains a clipped element fades and scales as a whole; the scissor stack
+is eight deep. **A backdrop's cut** mid-group is the one thing that splits a scene: the cut draws pass 1 over the target,
+so the groups open at that moment are settled into it first and made again in the new root after it, and the rest of the
+subtree is composited with the same alpha, scale and offset — the Dialog's menu is exactly this case (its own rectangle
+is the cut) and its shadow, fill, text and border all sit at the same opacity. A group whose range never meets its end
+(only a hand-made command array could) is composited as it is at the end of the loop.
+
+The Dialog page is the first user. The **panel** and the **menu** arrive as a group: `ALPHA` 225 → 255 on `effect(0.2)`
+(a luminance field is clamped, as the dim is) and `SCALE` 96 → 100 on `spatial(0.22, 0.1)` — percent, not a fraction,
+because a track's settle rule is 0.5 of its own unit, so 0.96..1 would be "settled" on its first sample; 96..100 snaps at
+99.5, a 0.5% jump nobody sees. The exit runs both back (0, 96) on `effect(0.2)` and `spatial(0.2, 0)` beside the offsets
+and the blur that were already there, and the backdrop keeps its own dim through field 17: its box is the window, so its
+alpha *is* the dim, and a scene around it would composite the page's own pixels. Measured on the third frame after the
+panel opens (`dialog-entry-mid`, t = 0.05s): alpha 119 of 255, scale 97.8%, the box `40, 156.1, 280x152.3` against
+`40, 163.9, 280x152.3` at rest — the x, width and height are the literal's at every frame, only the float's offset moves
+the y. A flat spot of the panel reads `24,27,36` between the dimmed page's `7,8,10` and the settled panel's `36,40,52`;
+the title's brightest pixel `163,163,166` against the settled ink's `235,235,240`; and the panel's visible edges `43..316`
+inside its settled `40..319`. The mutation is the renderer's: dropping `tvg_paint_set_opacity` from a group fails
+`FAIL mid-entry the spot is a blend of the dimmed page and the panel: false, wanted true` and
+`FAIL mid-entry the ink is a blend, not the settled text: false, wanted true`, and nothing else — the scale alone does
+not fade.
+
+## Motion
+
+`solid/src/motion.ts` is Rune's model, and the first user is the Sky feed's scroll. A **spring** is made from
+SwiftUI's `(duration, bounce)`: `ω = 2π / duration`, `ζ = 1 - bounce`, and the analytic solution of
+`d'' + 2ζω d' + ω² d = 0` for the three regimes — a decaying sinusoid under-damped, `e^(-ωt)(d0 + (v0 + ω d0)t)`
+critically damped, two real exponentials over-damped. It is exact at any instant, so there is no integration and no
+frame-rate dependence. A **track** is one segment `{x0, v0, target, t0, spring}`; `at(t)` returns `{x, v, done}` and
+`retarget(t, target)` first samples the presented `(x, v)`, so the value and the velocity are continuous. The settle
+rule is 0.5px and 0.5px/s: within it the value *is* the target and the velocity 0, an exact snap like Rune's 1/64px
+idea without the grid. Two classes: `spatial()` (0.35s, bounce 0, may overshoot) and `effect()` (critically damped and
+clamped to the start..target range, so a colour or an opacity cannot overshoot even when a bounce is asked for). A
+**decay** is a fling: `v(t) = v0·r^t` with `r = 0.998` per millisecond (iOS's normal deceleration), i.e.
+`v0·e^(-kt)`, `k = -1000 ln r ≈ 2.002`, and `x(t) = x0 + v0(1 - e^(-kt))/k`; `project()` is `x0 + v0/k`, where it lands,
+and it stops at `|v| < 5px/s` on the projection. **The clock is passed in**: nothing in the file reads the time, so a
+headless frame at 1/60 and a window frame at the real dt take one path and a test can ask for any instant.
+`bun solid/motion.test.ts` checks 16.6ms against two 8.3ms steps, the continuity of a retarget (both limits), the exact
+settle, `effect` staying inside its range, and the decay's monotonicity and projection; with presence and reduced motion
+it also checks an exit's length to a frame and its unmount, a revive mid-exit (the value is the exit's own, the velocity
+carries), the channel's one call an element, and reduced motion's instant land and instant unmount. The mutation is the
+model's: `Track.retarget` dropping the sampled velocity (setting `v0 = 0`) fails the sky test's mid-flight block.
+
+Two host members carry the wheel to a page. `ui_window_poll` still adds every SDL wheel event through `ui_wheel`, and
+`ui_wheel` now fills two channels: Clay's (as before, for a page that keeps Clay's scroll container) and the page's,
+drained by `ui_wheel_pop(float out[2])`. `ui_auto_scroll(0)` stops `ui_begin` from calling
+`Clay_UpdateScrollContainers` with that delta (the delta is still drained), so a page that owns its offset does not get
+the notch twice; the default is on, and **only the Sky page turns it off** — the List page is unchanged. On the host
+side, `View.onWheel(dx, dy)` gets the polled delta before the frame (the window loop pops it after `ui_window_poll`;
+`--wheel N` in headless mode calls the same pop after each notch) and `View.tick(dt)` is called once a frame after the
+events and before `flush()`. `main.ts` wires a page's `motion` object to both; `Sky` puts its handler there.
+
+The Sky feed's offset is a positive-down value the page owns. A wheel notch adds 10px (as before) to a clamped target
+and retargets the track; a notch from rest starts at the velocity a critically damped spring needs to glide the step
+without overshoot (`ω·d`), so the notch moves on its first frame and each frame after it less. A burst of notches
+(≥2, frames or notches) is a flick: on the release the track's presented velocity is handed to a decay, its
+`project()` is clamped to the content, and the motion either runs the decay to that landing (inside the content) or
+springs to the clamped end from the presented `(x, v)`. A wheel during a throw retargets from the presented `(x, v)`,
+so nothing jumps or stops. The keyboard retargets the same track: Down/Up 40px, PageUp/PageDown a viewport, Home/End
+to the ends. The clamp is explicit: the last card's `ui.bounds` bottom plus the 12px padding, less the viewport's
+bottom and Clay's offset, so a shorter feed clamps to 0. `ui.scrollTo("sky-feed", -x)` puts the presented value on
+Clay's clip element each frame. Measured (`solid/sky.test.ts`): one notch moves `2.59, 1.92, 1.42, 1.05, 0.78, 0.58…`
+px a frame and rests at exactly 10px; eight notches step `2.59, 2.28, 2.64, 3.32, 4.14, 4.99, 5.79`, peak at 6.69 and
+decay to rest at 78px after 20 frames; a notch up 13.51px into that throw lands at 64.05 (10px back), the worst
+frame-to-frame increase 1.64px against the notch's 10. The four stored `frames/sky*.png` were regenerated with the new
+`--settle 60` and are **byte-identical**: the settle is the same -78 the clamp had, so the motion changes the frames
+between the ends, not the committed ones.
+
+**The rubber band at the feed's ends.** Past an end the wheel is not scrolling, it is pulling the edge, and the content
+moves by Rune's and iOS's resistance: `rubber(x, d) = (1 - 1/(x·c/d + 1))·d` with `c = 0.55` (`BAND_C` in `motion.ts`)
+and `d` the viewport's height (the feed's 664px). `x` is the raw overshoot the notches have accumulated, so a notch's
+first 10px past the end move 5.45 and the fourth only 5.19 (21.29 for the raw 40 — the resistance is *less* than the
+push, and never reaches `d`). A notch is a **pull** only when the content is already at the end it pushes past (or over
+it): a notch that merely *reaches* the end while the content is still gliding there is a scroll like any other, and
+snapping it into the band would jump it — measured, an eight-notch flick's peak step is 6.69px either way. A pull is
+where the wheel puts it on that frame, because that is direct manipulation; the return is a spring. **80ms**
+(`BAND_HOLD`) without a notch and the band lets go on `spatial(0.35, 0.1)` from what it presents, settling exactly on
+the clamp (measured: held four frames, back on 78 twenty-two frames later); a key drops it on the frame it is pressed;
+a notch the other way walks it back towards the end. The fling is not a pull — a banded stroke's release is a spring to
+the clamp, not a decay (`!band` in the release branch) — and a feed switch (a clamp that changed) is still a hard
+clamp. The band goes on Clay's clip element through a second host member, `ui_scroll_put(id, y)`: `ui_scroll_to` clamps
+to the content (Clay's own range), and a band is out of it on purpose. Reduced motion has no band at all: the offset is
+clamped hard, and `reduced()` folds the raw overshoot to 0 before the resistance is asked for. `sky-band.png` is
+Discover — whose three posts are shorter than the viewport, so its first notch is already past its end — four notches
+past it, at `21.29px` of the raw 40.
+
+**The feed's entry.** On its first mount the Sky page's cards arrive: each starts 12px lower than its box and at 0
+opacity, and settles on its literals in 0.3s (`TRANSLATE_Y` on `spatial(0.3)`, `ALPHA` on `effect(0.3)` — the group of
+the whole subtree, so the card's shadow, fill, avatar, text and gradient all move and fade together and `ui_bounds` is
+the settled box from the first frame). Each card waits 50ms (3 frames at 60Hz) longer than the one above it, so the
+feed fills in rather than popping. A card's tracks start on the frame its delay is up, from the entry's own values, and
+the page writes nothing at all once both have settled: a card at rest is the literal's frame, and `sky.png` is
+byte-identical with and without the entry. The stagger is on the first mount only — a tab switch draws the new feed at
+rest, so `sky-science.png` is unchanged. Measured (`solid/sky.test.ts`): the first frame draws none of the three; eight
+frames in they are 4, 8 and 12px below their boxes, each further behind the one above it; thirty frames later they are
+exactly on them. `sky-entry.png` is ten frames in, at 2, 4 and 10px. Reduced motion starts no track at all: no stagger,
+no wait, the settled frame on the first frame.
+
+**A hover is a fade, and the tab's underline with it.** A card's and a tab's hover used to swap a style variant; now it
+is 120ms of `effect` (a luminance field is clamped and critically damped). A tab has no gradient, so the four
+background floats (`BACKGROUND` 14–17) from the resting tone to the hover's are the whole of it — and a tab at rest has
+no background at all, so the fade starts from the page it sits on (`variant(s.root)`'s packed colour, which is what a
+transparent box shows) and lands on its `:hover` variant, the literal. A card has a gradient, which is drawn *instead*
+of its solid fill, so the four floats alone would fade behind it: the card's fade also moves the gradient's opacity
+(`GRADIENT_ALPHA` 50, from 0 to 255) and the renderer composites a gradient below 255 over the box's solid fill, so the
+two gradients cross-fade through the tones between them and the settled hover is the hover gradient, pixel for pixel.
+The card alternates two styles (`card` with the resting gradient, `cardHover` with the hover one) and the page keeps the
+hover one while the fade runs *either way*: a `:hover` state would swap the gradient back the moment the pointer left,
+and the fade out would never be seen. One consequence, stated: the gradient's identity changes at the two ends of a
+fade, so the last 6/255 at the card's bottom edge appears when the fade hands over (the flat panel and the panel
+gradient's top are the same colour; only the far end differs). A tab's **2px underline** is its own border colour
+(`BORDER_ALPHA` 29): the tab that becomes active fades it in and the one that was fades it out — a colour, not a slide,
+and the border is 2px on both (Clay draws a border inside the box, so no box moves) — and the tab that is leaving keeps
+the border (and the tab that is arriving keeps it too) while its colour fades. A text's colour is not in its box's
+floats: the label swaps `tabText` for `tabTextOn` at once, and that transition is not covered. Both fades retarget from
+the presented colour, so a fast leave and re-enter never jumps (measured: the widest frame of one is 3/255); the ends
+are read from the packed variants under the *frame's* theme, so the light palette fades between its own tones; a
+selected card keeps `cardOn` and does not fade at all. Measured: a card's colour `28/33/41 → 31/37/44 → 32/37/46 →
+32/38/46` a frame, between its resting `26/31/36` and its hover `34/40/49`; a newly active tab's underline
+`42/64/87` on the way up and the old tab's `49/126/191` on the way down; `sky-hover.png` is three frames into a card's
+fade.
+
+The Dialog page is the value channel's first user, and it animates the two overlays of `headless/`. Both end on the
+style's own literal, so a settled frame is the literal's frame: the **menu** slides out of its trigger — its float's
+offset y from -10 to its style's -20 on `spatial(0.22, 0.1)`, and its shadow's blur from 0 to its style's 14 on
+`effect(0.22)`, which is clamped and critically damped because a blur has no negative side and must not ring; the
+**dialog** drops in — offset y from -14 to 0 and its shadow's blur 0 to 32, the same two tracks. Both use the `effect`
+class for the blur and `spatial` for the offset for the same reason: position may carry a little velocity, a luminance
+field may not. The pair that reads best in a frame is the offset with the blur at once: the menu grows out of the
+trigger (it starts 10px lower, over the 20px it overlaps) while its shadow appears under it, so by the third frame
+(2/60s in) the menu is 7.4px low with a shadow at a quarter of its blur — legible as "arriving" rather than as a jump;
+the blur alone would look like a fade and the offset alone like a slide with no depth. The group is the third layer of
+the same arrival and the one that reaches the panel's text: alpha 225 → 255 and scale 96% → 100% (`dialog-entry-mid` is
+three frames in: 119 of 255 and 97.8%), so the panel is translucent and a shade small while it drops, and its own text
+fades with its fill instead of standing at full ink over a ghost of a box.
+
+The clocks are the page's and run only while the node is mounted: a fresh arrival starts at the entry values, and every
+later frame is one dt after the one before it — through the exit too — so a reopen mid-exit presents the value the exit
+would have shown next (measured: leaving at -19.03, reopened at -17.18, which is the exit's own next frame), no jump and
+no restart. When the presence's exit ends the node leaves the tree and the clock stops with it; the next open starts
+from the entry again.
+
+**Presence: a node that leaves stays.** `Show` no longer follows the open state. The page keeps a signal per overlay
+(`menuShown`, `dialogShown`) that its tick sets from `presence(when, exit)` (`src/motion.ts`): `update(open, dt)` returns
+`{ mounted, closing }` — on the falling edge the node stays mounted and `closing` is true, that frame being the exit's
+first (the page retargets there, so it is drawn at the offset the exit starts from); after `exit` seconds (0.35 for the
+Dialog) it returns `mounted: false` and `Show` drops the node. `when` true again during the exit revives it: `closing`
+goes false and the tracks retarget from what they present, so the reopen frame is the value the exit's own next frame
+would have had — no jump and no restart. The page's clock keeps running for as long as the node is mounted, which is
+what makes both true. A page's tick is one call an element now: `channel(write)` (`motion.ts`) wraps `ui.value` and
+writes an element's fields together (`write(id, t, [field, track], …)`).
+
+The exit runs the arrival tracks the other way. The **panel**'s offset y 0 → 14 on `spatial(0.2, 0)` (an exit must not
+bounce past where it came from) and its shadow's blur 32 → 0 on `effect(0.2)`; the **backdrop**'s background alpha 140 →
+0 on `effect(0.2)` — field 17 of the rgba, and since the backdrop's box is the whole window, its alpha *is* the dim (the
+0.55 of `rgb(0 0 0 / 0.55)` packs as 140); the **menu**'s offset y -20 → -10 and its blur 14 → 0. The presence's 0.35s
+is longer than the tracks take to settle exactly (~0.333 for the 32px blur), so the last frame an exiting node is on
+screen is the literal's. Both overlays also leave as a group (alpha 255 → 0, scale 100% → 96%, the section on group
+opacity and scale). Measured (`solid/dialog.test.ts`, `ui.bounds` and the pixels per frame): the panel's y
+`163.88, 165.24, 167.82, 170.39, 172.54, 174.18 … 177.88` (its rest 163.88, the exit 14 below), the reddest title pixel
+behind the backdrop `103, 115, 139, 162, 181, 196, 206, 214, 219, 222, 225, 227, 228, 228, 230` from the dim to the page,
+the menu's offset `-20.00, -19.03, -17.18, -15.34, -13.81, -12.64, -11.79, -11.19, -10.79, -10.51, -10.33` with its
+shadow lightening 13.9 → 18.0 (the page). After the exit both the panel and the backdrop are out of the layout and the
+page's own pixels are back (0 pixels differ from the frame before opening).
+
+**The trap is the open state's timing, not the node's.** `input.modal` asks `dialog.open()`, so it is released on the
+frame the dialog closes: a Tab right after Escape reaches the page's own next stop (the Zoom trigger) while the panel is
+still fading, and Enter on it reopens the dialog mid-exit (which is the revive above). The pointer follows the same
+rule: a `closing` overlay writes `FIELDS.CAPTURE` 1 (passthrough) for the length of its exit, so a press goes through
+it to the page instead of hitting a node on its way out.
+
+**Reduced motion** is a module flag (`setReducedMotion`, `reduced` in `motion.ts`), read once by `solid/main.ts` from
+`--reduced-motion` or `REDUCED_MOTION=1`, so a headless frame and the window take the same path. With it on, a retarget
+lands on its target with v = 0 (settled in the same call) and a `presence` mounts or unmounts on the frame it changes,
+so opening is the literal's frame in one frame and closing has no frame with the panel in it; the pages carry no branch
+of their own. The dialog test checks it against the settled frame pixel for pixel, and `test.sh` runs the page with the
+flag against `frames/dialog-open.png`. On the Sky page the same flag means no stagger and no wait (the cards start on
+their boxes) and no rubber band (the wheel is clamped hard); its hovers are instant too, because a fade is a retarget and
+a retarget under reduced motion lands at once — the sky test checks all three against the settled frames.
+
+Not here: **rotate**, a transform on a *non-float* element's own siblings (a group is a scale about the element's box
+centre, a whole-subtree opacity and a visual offset; a rotation would be the same scene with a different matrix,
+unbuilt), a group deeper than four levels or a fifth open at once, a group whose subtree is cut in two by a *second*
+backdrop's cut in the same frame (one cut a frame), a page that names a text element (a text is a node but has no id to
+animate), **text-colour transitions** (a text's colour is 0-4 of its own `ui_text` fields, not its box's, so a label
+whose colour changes swaps its style; the tab's label does), a *drag* (a pointer's velocity is the host's: touch and drag
+scrolling are the List page's next step, and it keeps Clay's instant wheel step), the first-mount entry on the other
+pages, a second gradient on one element (a card cross-fades two by fading one over its solid fill), and the terminal,
+browser and board targets (they have no Solid page, no wheel and no value channel).
+
 ## Test
 
 ```sh

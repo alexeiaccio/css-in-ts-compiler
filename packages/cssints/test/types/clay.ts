@@ -17,7 +17,7 @@ css.width("10rem");
 css.bg("blu");
 // @ts-expect-error Clay has no space-between
 css.justifyContent("space-between");
-// @ts-expect-error no such member: Clay draws no shadow
+// @ts-expect-error a shadow is no CSS box-shadow string, and no Clay field: css.shadow() is the member
 css.boxShadow("0 0 1px red");
 // @ts-expect-error cn() takes styles only
 css.cn("x");
@@ -86,3 +86,39 @@ css.image("a.png", { width: 1, height: 1, fit: "cover" });
 css.image("a.png", { width: 1 });
 // @ts-expect-error no such option: the path is the first argument
 css.image({ src: "a.png", width: 1, height: 1 });
+
+export const shadows = css.cn(
+  css.shadow(),
+  css.shadow({ x: 0, y: 12, blur: 24, color: "rgb(0 0 0 / 0.45)" }),
+  css.shadow({ blur: "20px" }),
+  css.hover(css.shadow({ blur: 20 })),
+);
+// @ts-expect-error a spread is not drawn: the box is the element's own
+css.shadow({ spread: 2 });
+// @ts-expect-error a length is pixels
+css.shadow({ blur: "1rem" });
+// @ts-expect-error one object of options
+css.shadow(4);
+
+export const backdrops = css.cn(
+  css.backdrop(),
+  css.backdrop({ blur: 10 }),
+  css.backdrop({ blur: "10px" }),
+  css.hover(css.backdrop({ blur: 16 })),
+);
+// @ts-expect-error a blur is pixels
+css.backdrop({ blur: "1rem" });
+// @ts-expect-error the only option
+css.backdrop({ radius: 2 });
+// @ts-expect-error one object of options
+css.backdrop(8);
+
+export const gradients = css.cn(
+  css.backgroundImage("linear-gradient(180deg, rgb(27 32 38), rgb(21 25 30))"),
+  css.backgroundImage("linear-gradient(to right, #fff, red 50%)"),
+  css.hover(css.backgroundImage("linear-gradient(45deg, red 25%, blue)")),
+);
+// @ts-expect-error the gradient is one string, not options
+css.backgroundImage({ angle: 180 });
+// @ts-expect-error and it is required
+css.backgroundImage();
