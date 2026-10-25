@@ -587,11 +587,14 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    and drag scrolling are not here, and the List page keeps Clay's instant wheel step), first-mount entry on the other
    pages, a second gradient on one element, and the terminal, browser and board (no Solid page, no wheel and no value
    channel).
-3. **Metamorphic tests of layout and raster.** ~30 lines each, and they catch the bug classes we actually have:
-   wrapping a page in a style-less box leaves the pixels identical; shifting a subtree by whole px shifts the picture
-   exactly; a wider container never adds a text line (the Sky body); building the tree fresh versus reusing it gives
-   the same frame (ours lives across frames); a scroll offset, a resize and a theme are the same relations. Where:
-   `solid/metamorphic.test.ts`, over the frames that already exist.
+3. **Done: metamorphic tests** (`solid/metamorphic.test.tsx`, 2026-10-25). Four relations over the Sensors page and a
+   two-width text, no oracle and no stored frame: a fixed-size wrapper leaves the pixels identical (0 of 129,600 differ);
+   a whole-pixel move (13, 7) shifts the picture exactly (0 differ); a wider box never adds a text line (82px at 160
+   wide against 49px at 300); and the same tree drawn twice in one process is the same frame (0 differ), which is the
+   stale-cache check Clay's scroll offsets and the renderer's picture caches need. Mutations: a one-pixel slip in the
+   move fails with 5,869 pixels, a 1px padding in the wrapper with 6,859. Left: scale equivariance (a 2x render
+   downsampled against 1x), order independence of non-overlapping siblings, and the springs' time-split relation
+   (`motion.test.ts` already holds `1x16.6 == 2x8.3`).
 4. **A scene as a file (record/replay).** `--keys/--click/--wheel` are ad-hoc; Rune's scripts are a typed event log
    with timestamps, window size and theme. One `scenes/*.json` should drive the Solid page, the generated C page, the
    wasm in the browser and (where the handlers exist) the board build, so "the same commands on every target" is

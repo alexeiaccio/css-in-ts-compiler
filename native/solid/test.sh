@@ -100,3 +100,6 @@ bun solid/sky.test.ts
 bun solid/inline.test.ts
 bun solid/main.ts --png "${TMPDIR:-/tmp}/cssints-native-solid.png" --bench 1000
 bun solid/a11y.test.ts
+# metamorphic relations (Rune's research 14): a pass-through wrapper, a whole-pixel move, wrap monotonicity, and the same
+# tree twice in one process — properties with no stored frame and no oracle
+bun solid/metamorphic.test.ts
