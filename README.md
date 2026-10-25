@@ -2,10 +2,10 @@
 
 <img src="https://cssints.dev/logo.svg" alt="" width="96" height="96">
 
-cssints is compile-time CSS-in-TypeScript. You write calls such as `css.flex().alignItems("center")`. A Vite plugin runs them at build time and replaces each one with atomic, content-hashed class names in `@layer`s. Nothing of the styling code ships to the browser except a few lines that join class names: for a `cn()` with runtime arguments and for `cv`.
+cssints is compile-time CSS-in-TypeScript. You write calls such as `css.flex().alignItems("center")`. A Vite plugin runs them at build time and replaces each one with atomic, content-hashed class names in `@layer`s. Nothing of the styling code ships to the browser except a few lines that join class names: for a `cn()` with runtime arguments and for `cv`/`scv`.
 
 - Values are checked against the spec grammars (mdn-data) in the types and again at build time. A typo is an error in the editor and in the build.
-- Conditions (`media`, `container`, `supports`, `hover`), variants (`cv`), design tokens and themes (`createTokens`, `createGlobalTheme`, `check.contrast`) are all build-time, and all typed.
+- Conditions (`media`, `container`, `supports`, `hover`), variants (`cv`, `scv`), design tokens and themes (`createTokens`, `createGlobalTheme`, `check.contrast`) are all build-time, and all typed.
 - LightningCSS optimizes the output. Browser support (`@mdn/browser-compat-data` against your browserslist) is reported as warnings, except for what LightningCSS lowers for those targets.
 
 > **Alpha.** cssints is on npm at 0.x. The API can still change between minor versions, the plugin packages

@@ -608,7 +608,7 @@ export const box = cn(sx().p(2), hover(sx().bg("blue")));
 
 ### Runtime: `cn`, `cv` (decided 2026-09-29, cssints-lo9x; `cv` without `_cv` 2026-10-07, cssints-ep2l; `cx` folded into `cn` 2026-10-11, cssints-4e9f)
 
-- **One runtime package: `cssints` itself.** You import nothing for the browser. A module with a `cn()` that has runtime arguments, or a `cv()`, gets `import { _cx as __cx, _cv as __cv } from "cssints"` from the plugin, and those few lines are the only code that ships. `@cssints/variants` is gone.
+- **One runtime package: `cssints` itself.** You import nothing for the browser. A module with a `cn()` that has runtime arguments, or a `cv()`/`scv()`, gets `import { _cx as __cx, _cv as __cv, _scv as __scv } from "cssints"` from the plugin (the ones it needs), and those few lines are the only code that ships. `@cssints/variants` is gone.
 - **`cn(...)` is the one function that merges.** Arguments known at build time merge into one class string, as above. An argument that depends on a runtime value is joined when the code runs, and the `css.*` calls inside it are still class strings made at build time: only the choice is left.
 
 ```ts
@@ -669,7 +669,57 @@ export const bad2 = cv({ base: "padding: 1rem" }); // error: a base is a css val
 - **Overlap is an error, as in `cn()`.** A base property and a variant property that overlap without one containing the other are a build error at the `cv()` call: `cssints: cv() base and variant active.yes: border-bottom and border-color overlap without one containing the other, so the sheet cannot order them: set one of them, or the longhands` (both set `border-bottom-color`; write `borderBottomColor` in the variant). The same holds for two variants of different keys, which can be active together. Two such variants that set the same property are an error too, since nothing says which wins: `cssints: cv() variants a.x and b.x both set color and can be active together, so nothing says which wins: set it in one of them, or in the base`. Values of one key are never compared, since only one is active.
 - **A compound wins over what it combines.** It is the most specific style, so under one condition it replaces what it sets again in the base and in the variant values it names (the same rule as a variant over the base): `compoundVariants: [{ size: "lg", tone: "loud", class: p(6) }]` drops the base's padding, `size.lg`'s padding and `tone.loud`'s padding while both are active, in the `compound` entry of the config (`{ when: { size: "lg", tone: "loud" }, class: "_x", drops: "_a _b" }`). The sheet order never decides. What a compound shares with other things that can be active together is compared as for variants: an overlap without containment is an error, and so is the same property in a compound and a variant of a key it does not name (it is active with any of its values), or in two compounds that can be active together (no key they both name with different values). Write the property in one of them, or in the base.
 
-Slot variants (`scv`) are not part of 0.1.
+### `scv()`: slot variants (decided 2026-10-25, cssints-43rj)
+
+`scv()` is one function whose result is the class string of each slot (`{ base, label, icon }`): slots, variants worth a
+style per slot, defaults and compound variants, as in tailwind-variants. The rules are `cv()`'s, computed per slot.
+
+```ts
+import { bg, cn, color, fontSize, opacity, p, scv, width } from "cssints" with { type: "cssints" };
+
+const button = scv({
+  slots: { base: cn(p(2), color("white")), label: fontSize("1rem"), icon: width("1rem") },
+  variants: {
+    size: { sm: p(1), lg: { base: p(4), label: fontSize("1.25rem") } },
+    tone: { quiet: color("gray"), loud: { base: color("black"), icon: color("red") } },
+    disabled: { true: opacity(0.5), false: opacity(1) },
+  },
+  defaultVariants: { size: "sm", disabled: false },
+  compoundVariants: [
+    { size: "lg", tone: "loud", class: p(6) },
+    { size: "lg", class: bg("crimson"), label: color("blue") },
+  ],
+});
+
+export const slots = () => button({ size: "lg" }); // { base: "...", label: "...", icon: "..." }
+export const bad = () => button({ size: "xl" }); // error: not a size
+export const badSlot = scv({
+  slots: { base: p(2), label: p(1) },
+  variants: { size: { sm: { labl: p(1) } } }, // error: labl is not a slot
+});
+```
+
+- **What ships** for `button` is `__scv({ base: { base, variants, defaultVariants, drops?, compound? }, label: {...}, icon: {...} })`,
+  one `cv()` config per slot, with `import { _scv as __scv } from "cssints"` added to the module: class strings only, and
+  one runtime function per slot, built once when the module loads. `scv()` works in a function, at the top of a module and
+  in a library; put the config at the top of the module so the per-slot runtimes are built once.
+- **A slot value is a style, or a record by slot.** A variant value that is a style styles the slot named `base`, so a
+  config that gives a bare style and has no `base` slot is a build error; a record styles the slots it names, and a name
+  that is not a slot is a type error and a build error at the `scv()` call. In `compoundVariants`, `class` is the `base`
+  slot and a slot's own name styles that slot.
+- **The rules are `cv()`'s, per slot.** A variant wins over the slot's base (its class is dropped while active), a compound
+  wins over both, and two things that can be active together and overlap without containment are a build error. Each
+  error names the slot: `cssints: scv() slot base: base and variant active.yes: border-bottom and border-color overlap
+  without one containing the other, so the sheet cannot order them: set one of them, or the longhands`. A slot a value
+  does not style is simply not in that slot's config, and the compound entries it has no style for keep their index, so
+  the errors name the entry you wrote.
+- **Props and result.** The props are `cv()`'s, typed from `variants` (`CvProps`): a typo in a name or a value is a type
+  error, and a boolean variant takes a boolean. The result is `{ [K in keyof slots]: string }`, so `button().label` is a
+  `string` and a slot that is not there is a type error.
+- **Limits.** A `cv()` function as a slot value, and an `scv()` in `compoundVariants`, are not in this release: a slot
+  value is a `css.*` style (or a `cn()`/a chain). A slot may not share its name with a variant: a compound entry would
+  name both with one key, and the types make that entry impossible to write. A `scv()` site has no readable class in the
+  dev overlay yet (a `cn()` or `cv()` site has one).
 
 ### Errors
 
