@@ -40,6 +40,7 @@ bun solid/main.ts --click 180 250 --expect examples/sensors/expected-thorvg-g.pn
 THEME=light bun solid/main.ts --expect examples/sensors/expected-thorvg-light.png
 bun solid/main.ts --png out.png --bench 1000     # ms a frame by phase
 sh solid/test.sh                                 # all of it; `bun run test` calls it last
+bun solid/metamorphic.test.ts                     # the relations with no stored frame: a wrapper, a move, wrap, twice
 ```
 
 ## Layout
