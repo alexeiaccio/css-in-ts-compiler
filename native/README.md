@@ -394,6 +394,52 @@ scrolling are the List page's next step, and it keeps Clay's instant wheel step)
 pages, a second gradient on one element (a card cross-fades two by fading one over its solid fill), and the terminal,
 browser and board targets (they have no Solid page, no wheel and no value channel).
 
+## Idle: a frame's hash, and a draw only when it changes
+
+Rune's rule for the shell: a static page ticks at zero, and a discrete input draws at once. The host can tell because
+`ui_end` hashes the frame it has just laid out. `uint64_t ui_hash()` is FNV-1a over what a draw reads — every command's
+type, element id, box, colours, corner radii and border widths, a text's bytes with its colour, font id, size, spacing
+and line height, an image's pointer, a clip's axes, a custom's pointer — and over the renderer's tables beside the
+commands: a shadow's offset, blur and colour, a backdrop's blur, a gradient's angle, stops and alpha, a group's alpha,
+scale and translate (a group at alpha 255, scale 1 and no offset is skipped, because it draws what it would have drawn
+without one). Padding, `userData` and `zIndex` are not hashed: they do not reach the pixels. A settled frame hashes the
+same value frame after frame; `ui_draws()` and `ui_presents()` count the calls, for a test.
+
+`solid/main.ts` takes the shape Rune asks for: poll (`ui_window_poll`), then keys, typed text, the pointer and the
+wheel; **declare and lay out every iteration** (a page's tick reads and writes values there, so a timer or a track
+animates); hash; and draw and present only when the hash changed or the iteration carried a *discrete* input — a key,
+typed text, a press or release, a wheel notch. A pointer move is not discrete: it draws through the hash, so a move that
+starts a hover draws and a move inside a hover that has settled draws nothing. Nothing drawn means `await Bun.sleep(16)`
+at the end of the iteration; a drawn frame does not sleep, and an input's frame is never behind one (the poll is the
+first thing an iteration does). The decision is `createDrawer(frame)` in `solid/src/frame.ts`: it runs
+`frame(px, py, down, dt, render = false)` and then `ui.draw()` only when the hash changed or its `discrete` argument is
+true, returning whether it drew. The headless path uses the same drawer for every `--keys`/`--wheel`/`--settle`/`--move`
+frame, so the stored frames go through the skipping loop and come out **byte-identical** (a skipped frame holds exactly
+the pixels the previous draw left). `--idle N` runs N more frames with nothing in and prints
+`idle: draws 0 of 60 in 1.2 ms (0.02 ms a frame: poll, declare, lay out, hash)`; `--idle-keys K` presses Tab every K of
+them, and each key draws its own frame (`--idle 600 --idle-keys 10` is 60 draws of 600).
+
+Measured (macOS, a 360x760 window at pixel density 2, 2026-10-25):
+
+- headless, `--idle 600`: **0 draws**; Sky 21 ms (0.04 ms a frame) and Sensors 11 ms (0.02 ms a frame) for the tick
+  that still declares, lays out and hashes.
+- the window, Sensors at rest, `--frames 600`: **1 draw, 1 present**, 599 idle iterations of 17.7 ms each — the 16 ms
+  sleep is most of it, the tick is the rest.
+- the same 600 frames with the draw forced (an instrumented run): **600 draws, 600 presents, 5.00 s**, 8.29 ms a drawn
+  frame, of which `ui_draw` is 0.30 ms (`--bench 1000`) and `ui_window_present` **6.43 ms** — the compositor's wait is
+  measurable in the loop and it is the bulk of a present. So an idle frame skips ~6.7 ms of draw and present work, and
+  the loop's own cost at rest is 0.04 ms a frame.
+- the bench's phases are unchanged: events+flush 0.001, declare 0.004, layout 0.013, draw 0.30 ms (Sensors, 1000
+  frames).
+
+Not here: a **blocked** poll (`SDL_WaitEventTimeout`) instead of the 16 ms sleep, so the loop would wake only for an
+event and hand back the tick's latency (the sleep bounds the input latency at ≤16 ms, with the frame drawn at once on
+wake); the board's equivalent (its 22 ms frame at rest is where this would pay most, but the board has no hash and no
+loop yet); dirty rects (a changed frame draws all of it — a hover fade re-renders the page, where a wrapped-frame diff
+could redraw only the boxes that moved); a window-expose present (SDL asks for a redraw when the window is uncovered,
+and an idle loop has none in hand, so the next input redraws it); and the terminal and browser targets, which have no
+hash loop of their own.
+
 ## Test
 
 ```sh
@@ -405,6 +451,8 @@ sh desktop/build-thorvg-gpu.sh examples/sensors               # ThorVG built fro
 ./build/sensors/app-gpu --raster thorvg-gpu --bench 500       # the same page on Metal through wgpu-native; needs brew meson ninja pkgconf wgpu-native
 sh desktop/build-wg-window.sh && ./build/sensors/wg-window --capture out.png   # ThorVG into the window's own WebGPU surface, no readback; --capture checks the frame
 bun solid/main.ts widgets                                     # Solid: headless button, switch, checkboxes, disclosure, radio, tabs, slider, toolbar; Tab, arrows, Space work
+bun solid/main.ts sky --settle 60 --idle 600                  # the page at rest: 0 draws of 600, and the ms the tick takes
+bun solid/main.ts sky --settle 60 --idle 600 --idle-keys 10   # ... and 60 keys, each drawing its own frame (60 draws)
 ./build/sensors/app --press 180 250 --png out.png             # headless: a press held at 180,250, the frame written while pressed
 IMAGE=1 ./build/sensors/app --raster thorvg --png out.png    # the IMAGE=1 variant: the page's 32x32 image, loaded by ThorVG from its path
 sh terminal/build.sh && ./terminal/demo                       # the Sensors page in characters: Tab, Up/Down, Space, t; q quits

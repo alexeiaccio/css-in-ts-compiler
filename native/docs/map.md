@@ -453,6 +453,25 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    event; if there was none and the packed tree did not change (a hash of the command array), skip `ui_draw` and sleep.
    On the desktop this stops a static page from burning a core; on the board it turns 22 ms a frame at rest into 0.
    Check: a frame counter with no input stays at 0 draws, one key draws one.
+   **Done: the frame hash and the idle loop** (2026-10-25). `ui_end` hashes the frame into 64 bits (`ui_hash`, FNV-1a
+   over every command's visible fields and the renderer's tables beside them — shadows, backdrops, gradients, groups;
+   padding, `userData` and `zIndex` are left out, and a neutral group is skipped because it draws what it would have
+   drawn without one), and `ui_draws`/`ui_presents` count the calls. `solid/src/frame.ts` has the decision as
+   `createDrawer(frame)`: declare and lay out every iteration, draw only when the hash changed or a *discrete* input
+   came in (a key, typed text, a press or release, a wheel notch), and the pointer's moves go through the hash alone —
+   a hover that starts draws, a move inside a settled hover does not. `solid/main.ts` sleeps only when nothing was
+   drawn, and the headless path (`--keys`/`--wheel`/`--settle`/`--move`, and the new `--idle N`/`--idle-keys K`) takes
+   the same drawer, so every stored frame is byte-identical. Measured: headless `--idle 600` is **0 draws** (Sky 21 ms,
+   0.04 ms a frame; Sensors 11 ms, 0.02 ms a frame for the tick that still declares, lays out and hashes); the Sensors
+   window at rest with `--frames 600` is **1 draw, 1 present**, 599 idle iterations of 17.7 ms (the 16 ms sleep most of
+   it); with the draw forced those 600 frames are 5.00 s, 8.29 ms a frame, of which `ui_draw` 0.30 and
+   `ui_window_present` 6.43 ms — **the compositor's wait is in the loop and is the bulk of a present**, so an idle
+   frame skips ~6.7 ms of work. `--idle 600 --idle-keys 10` gives 60 draws of 600, one a key, and the sky page's
+   settling tracks still draw every frame until they settle (`solid/idle.test.ts`). Open: a blocked poll
+   (`SDL_WaitEventTimeout`) in place of the 16 ms sleep, which would both stop the tick and cut the ≤16 ms input
+   latency; the board's own loop (22 ms a frame at rest, no hash yet); and dirty rects, where a changed frame draws all
+   of it. The terminal and browser targets have no such loop, and a window-expose present is not handled (the next input
+   redraws the window).
 2. **Motion as a first-class track.** We have no animation at all. Rune's model transfers unchanged: a spring from
    `(duration, bounce)` (SwiftUI's parameterisation), a track `{t0, x0, v0, target, spring}` that retargets from the
    presented `(x, v)`, `spatial` and `effect` classes (colour and opacity never overshoot), a settle rule with a snap

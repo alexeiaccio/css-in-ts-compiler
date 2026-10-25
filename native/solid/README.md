@@ -39,6 +39,7 @@ bun solid/main.ts --expect examples/sensors/expected-thorvg.png          # one f
 bun solid/main.ts --click 180 250 --expect examples/sensors/expected-thorvg-g.png   # host.c's scripted click
 THEME=light bun solid/main.ts --expect examples/sensors/expected-thorvg-light.png
 bun solid/main.ts --png out.png --bench 1000     # ms a frame by phase
+bun solid/main.ts sky --settle 60 --idle 600     # the page at rest: 0 draws of 600, and the ms the tick takes
 sh solid/test.sh                                 # all of it; `bun run test` calls it last
 bun solid/metamorphic.test.ts                     # the relations with no stored frame: a wrapper, a move, wrap, twice
 ```
@@ -96,7 +97,8 @@ with an `id`: Clay tells whether the pointer is over it. `onClick` runs on relea
 | `ui_text(bytes, len, f32[10])` | a text element; the bytes are copied for the frame |
 | `ui_close()` | close the element |
 | `ui_pointer_over(id, len)` | Clay's `Clay_PointerOver`, on the last frame's layout |
-| `ui_end(dt)`, `ui_draw()` | `Clay_EndLayout` (returns the command count); ThorVG draws the commands into the buffer |
+| `ui_end(dt)`, `ui_draw()` | `Clay_EndLayout` (returns the command count), then the frame's hash; ThorVG draws the commands into the buffer |
+| `ui_hash()`, `ui_draws()`, `ui_presents()` | the last frame's 64-bit FNV-1a over its commands and renderer effects, and the counts of those calls: the same hash twice draws the same pixels, so the host skips both |
 | `ui_save_png(path)`, `ui_diff_png(ref, actual)`, `ui_pixel(x, y)` | the frame out; pixels that differ from a PNG; one pixel |
 | `ui_window_open(title)`, `ui_window_poll(f32[5])`, `ui_window_present()` | SDL3 window (Metal); poll fills pointer x, y, button, quit, the last key's character |
 | `ui_key_pop(i32[4])` | the oldest key event the polls queued: down (1) or up (0), SDL keycode, `SDL_Keymod`, repeat. 0 when none; 64 are kept |
@@ -111,6 +113,14 @@ with an `id`: Clay tells whether the pointer is over it. `onClick` runs on relea
 | `ui_errors()` | Clay errors so far |
 
 Text is measured by ThorVG, as in `host.c`.
+
+**Idle.** `ui_end` hashes the frame it has just laid out (`ui_hash`): every command's visible fields and the renderer's
+tables beside them (a shadow, a backdrop, a gradient, a group; a neutral group is skipped). `main.ts` draws and presents
+only when that hash changed or the iteration carried a discrete input (a key, typed text, a press or release, a wheel
+notch); a pointer move draws through the hash alone, so a settled hover draws nothing. Nothing drawn means
+`Bun.sleep(16)` at the end of the iteration; `createDrawer` (`src/frame.ts`) is that decision, and the headless flags
+take it too. `--idle N` runs N frames with nothing in and prints the draws, `--idle-keys K` presses a Tab every K of
+them. `native/README.md` ("Idle") has the fields and the numbers.
 
 An image is the one part of a style that is not a float: `css.image` becomes `d.image.imageData`, a pointer, so
 `frame.ts` calls `ui_image` with the path just before the element's `ui_open` (`pack.ts` keeps the path beside the
