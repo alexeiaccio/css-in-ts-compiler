@@ -31,6 +31,8 @@ bun solid/main.ts dialog --keys Tab,Enter --expect solid/frames/dialog-open.png 
 bun solid/main.ts form --keys Tab,Tab,text:Ada --expect solid/frames/field-typed.png        # typed text, not a key
 bun solid/main.ts list --wheel 32 --expect solid/frames/list-wheel.png      # headless: the pointer onto the list, 32 notches down
 bun solid/main.ts sky --click 180 32 --wheel 8 --wheel-over sky-feed --png out.png   # headless: Science, its feed 8 notches down
+bun solid/main.ts sky --settle 40 --move 180 300 3 --png out.png          # headless: a hover, three frames into its fade, at a page at rest
+bun solid/main.ts sky --warm 40 --wheel 4 --wheel-over sky-status --png out.png   # headless: rest first, then four notches past the end (the band)
 bun solid/main.ts widgets --drag 0.25 0.75 --png out.png                 # headless: press the slider's rail at a quarter, hold, move to three quarters
 bun solid/main.ts dialog --reduced-motion --keys Tab,Enter --png out.png # no travel, no waiting (also REDUCED_MOTION=1)
 bun solid/main.ts --expect examples/sensors/expected-thorvg.png          # one frame against a stored PNG
@@ -104,6 +106,7 @@ with an `id`: Clay tells whether the pointer is over it. `onClick` runs on relea
 | `ui_wheel(dx, dy)` | adds a wheel delta for the next frame, in Clay's units and SDL's sign: positive is away from the user (the content moves down). `ui_window_poll` calls it for every `SDL_EVENT_MOUSE_WHEEL`, and Clay moves the container the pointer is over by 10px a notch |
 | `ui_scroll_offset(id, len)` | the scroll offset of a clip element, in pixels (negative is scrolled down); 0 when there is none |
 | `ui_scroll_to(id, len, y)` | scrolls a clip element to `y`, clamped to its content (the same range Clay clamps to); returns the offset it took |
+| `ui_scroll_put(id, len, y)` | puts a clip element's offset where the page says, **with the content's clamp left out** — a rubber band past an end is past the content on purpose; returns the offset |
 | `ui_errors()` | Clay errors so far |
 
 Text is measured by ThorVG, as in `host.c`.
@@ -159,17 +162,21 @@ runs before the tree is declared and calls `ui.value(id, field, value)`: `ui_ope
 applies the frame's overrides of its id and declares from the copy. It is the shadow's and the backdrop's kind of side
 table — cleared in `ui_begin`, nothing cached — and a frame without overrides declares exactly the literal, which is why
 the Dialog's settled frames stayed byte-identical. `field` is a packed field (0..44), or `FIELDS.SHADOW_BLUR` (45), which
-is `ui_shadow`'s blur and not one of the floats, or the two **group** fields: `FIELDS.ALPHA` (46, 0..255) and
-`FIELDS.SCALE` (47, 1 = none), which are the element's whole subtree as one ThorVG scene — its opacity, and a scale about
-its box centre that is not a layout (`ui_bounds` does not move). Neither goes into the floats.
+is `ui_shadow`'s blur and not one of the floats, or the four **group** fields: `FIELDS.ALPHA` (46, 0..255),
+`FIELDS.SCALE` (47, 1 = none) and `FIELDS.TRANSLATE_X`/`TRANSLATE_Y` (48/49, px), which are the element's whole subtree
+as one ThorVG scene — its opacity, a scale about its box centre and a visual offset, none of which is a layout
+(`ui_bounds` does not move). None of them goes into the floats. `FIELDS.GRADIENT_ALPHA` (50) is the opacity of the
+element's own background image: 255 is the gradient alone, as an opaque one has always been drawn; below it the gradient
+is composited over the box's solid fill, which is how two gradients cross-fade through the colours between them.
 
 Naming them is `pack.ts`'s `FIELDS`: `OFFSET_X` 38 and `OFFSET_Y` 39 of a float, `EXPAND_W`/`EXPAND_H` 40/41, `Z_INDEX`
 42, `CAPTURE` 43 (a closing overlay sets it to 1, passthrough, so the page under it takes the press), `RADIUS` 18 (the
-four corners), `BACKGROUND` 14 (rgba) and `BACKGROUND_ALPHA` 17 (the dim of a backdrop), `PADDING` 6, `GAP` 10, `WIDTH` 0,
-`HEIGHT` 3. The first group is what reads as motion; width, height, padding, gap and the colours are legal but Clay lays
-the page out from the declaration each frame, so a changing one re-lays-out the element's parent and its siblings — a
-layout change, not a transform. The cost is a 180-byte copy per overridden element and one scan of the table per `ui_open` on a frame that
-uses it.
+four corners), `BACKGROUND` 14 (rgba) and `BACKGROUND_ALPHA` 17 (the dim of a backdrop), `BORDER` 26 and `BORDER_ALPHA` 29
+(a tab's 2px underline, and the alpha it fades by), `PADDING` 6, `GAP` 10, `WIDTH` 0, `HEIGHT` 3, `GRADIENT_ALPHA` 50. The
+first group is what reads as motion; width, height, padding, gap and the colours are legal but Clay lays the page out
+from the declaration each frame, so a changing one re-lays-out the element's parent and its siblings — a layout change,
+not a transform. The cost is a 180-byte copy per overridden element and one scan of the table per `ui_open` on a frame
+that uses it.
 
 ### The element tree and the groups (`ui.c`, `clay_renderer_thorvg.c`)
 
@@ -179,10 +186,10 @@ in its parent's floats). `ui_open`/`ui_close` keep the frame's tree of `{id, par
 declaration hands its node to Clay as `userData` (index + 1), so each command says which element it belongs to. Clay's
 commands are in depth-first order, so a subtree's commands are contiguous: a group's range is the min and max command
 index whose element is that node or a descendant. The renderer opens a scene at the first command of the range, gives it
-`tvg_paint_set_opacity` and a scale matrix about the box centre of the range's first command at the last one, and adds it
-to the scene that was current when it opened; the element's shadow is drawn inside it. A group at 255 and 1 makes no
-scene. Four groups may be open at once, 16 a frame, eight nested scissors; a backdrop's cut inside a group settles it
-into pass 1 and makes it again after the cut.
+`tvg_paint_set_opacity` and one matrix at the last one, and adds it to the scene that was current when it opened; the
+element's shadow is drawn inside it. A group at 255, scale 1 and no offset makes no scene. Four groups may be open at
+once, 16 a frame, eight nested scissors; a backdrop's cut inside a group settles it into pass 1 and makes it again after
+the cut.
 
 ### `ui_text` fields (`packText`)
 
@@ -509,27 +516,41 @@ post count, or the card a click selected.
 | The avatars | `css.image(path, { width: 40, height: 40 })` — the six committed 64x64 PNGs of `examples/sky/avatars.py` (a disc in the author's hue, transparent outside it, so the panel shows at the box's corners). The path is a literal per author because a css style is evaluated when its module loads: a page cannot build one from a loop variable. This is the first page that uses `css.image` in the Solid path. |
 | Wrapping | new on this page: a body is a `text` with `whiteSpace("normal")` and `lineHeight(20)` inside a stretch box inside a card of percent width, and Clay wraps it. (A clip element lets its children grow past the viewport for their content, so a card that must wrap cannot take its width from a stretch inside the feed: the card is `width("100%")`.) |
 | Scrolling | the feed's offset is a page-owned motion track (`solid/src/motion.ts`): a wheel notch is 10px on a spring that glides it, a burst of notches is a flick whose decay lands (clamped) at the end, and one Tab stop on the feed retargets the same track with Down/Up 40px, PageDown/PageUp a viewport and Home/End. The page turns `ui_auto_scroll` off, so Clay's own container does not also move; `ui.scrollTo("sky-feed", -x)` puts the value on it each frame. Discover's three short posts fit the 664px viewport (max 0), so the wheel frame and the test scroll **Science** (742px of content, 78px of travel). |
+| The rubber band | a notch past an end is a **pull** of that end, not a scroll: while the content is at the end (or already past it) the wheel moves it by Rune's and iOS's resistance, `f(x) = (1 - 1/(x·c/d + 1))·d` with `c = 0.55` and `d` the viewport's 664 (`motion.ts`'s `rubber`); `x` is the raw overshoot the notches have accumulated, so the first 10px past the end move 5.45 and the 40th only 21.29. Eight frames without a notch — 80ms — and it springs back on `spatial(0.35, 0.1)` to the clamp, settling exactly on it; a key drops it at once; a notch the other way walks it back. A notch that only *reaches* the end while the content is still travelling there is a scroll like any other (the flick's clamp), so nothing jumps. The band goes on Clay's clip element through `ui_scroll_put` (the unclamped sibling of `ui_scroll_to`, since Clay's own clamp is the content's). Reduced motion has no band: the wheel is clamped hard. |
+| The entry | on mount (once — a tab switch draws its feed at rest) every card starts 12px low and at 0 opacity and settles on its literals in 0.3s: `TRANSLATE_Y` on `spatial(0.3)` and `ALPHA` on `effect(0.3)`, the group of the element's whole subtree, so not one box moves (`ui_bounds` is the settled one on the first frame). Each card starts 50ms (3 frames) after the one above it. Reduced motion starts no track at all: the settled frame at once. |
+| Hover | the card's and the tab's hover is a 120ms fade (`effect`), not a style switch. The card fades its four background floats from the panel tone to the hover tone **and** its gradient's opacity (`GRADIENT_ALPHA`), so the resting gradient fades out under the hover one: the card alternates two styles (`card`, `cardHover`) and the page keeps the hover one while the fade runs either way (a `:hover` state would drop the gradient the moment the pointer left). A tab has no gradient, so its four channels are enough; a tab's 2px underline is its own border colour (`BORDER_ALPHA`), which fades in on the tab that becomes active and out of the one that was — a colour, not a slide. A text's colour is not in its box's floats: the label swaps style instead. The ends are read from the packed variants under the frame's theme, so the light palette fades between its own tones; a selected card keeps `cardOn` and does not fade. |
 
 | Frame | Keys | Shows |
 | --- | --- | --- |
-| `sky` | | Discover: the bar, three cards (Michael, Titania, alexjungle), the status `Discover — 3 posts` |
-| `sky-science` | a click on `(180, 32)` | Science: Erik's four-line body and its link line, David, Jason (cut at the feed's bottom), the ring on the clicked tab |
-| `sky-light` | `THEME=light` | the same Discover feed in the palette's light theme |
+| `sky` | `--settle 40` | Discover at rest: the bar, three cards (Michael, Titania, alexjungle), the status `Discover — 3 posts` |
+| `sky-science` | a click on `(180, 32)`, `--settle 40` | Science: Erik's four-line body and its link line, David, Jason (cut at the feed's bottom), the ring on the clicked tab |
+| `sky-light` | `THEME=light --settle 40` | the same Discover feed in the palette's light theme |
 | `sky-scrolled` | the Science click, `--wheel 8 --wheel-over sky-feed --settle 60` | the Science feed eight notches down, settled at the clamped 78px: Erik's card cut at the top, Jason's at the bottom, the bar and status unmoved |
+| `sky-entry` | `--settle 9` | ten frames in: the three cards arriving, 2, 4 and 10px of their 12 below their boxes, translucent, each further behind the one above it |
+| `sky-hover` | `--settle 40 --move 180 300 3` | the pointer on the second card three frames into its 120ms fade: its colour between the panel and the hover tone |
+| `sky-band` | `--warm 40 --wheel 4 --wheel-over sky-status` | Discover four notches past its end (its content is shorter than the viewport, so the first notch is already past it): the cards 21.3px out of the clamp, the top one cut, the bar and status unmoved |
 
 Checked by `bun solid/sky.test.ts`: `ago()`/`num()`, the bar 64 / feed 664 / status 32 layout with 8px card gaps, the
 avatars' pixels (the panel at the box's corner where the PNG is transparent, the head's tint at the middle, the author's
 exact hue in the disc — `74 132 214` for michaelwarburton, `126 108 200` for erikstrub — and the change of author with
 the tab), the body and media wrapping (Erik's body four 20px lines, Titania's card one media line taller than
-Michael's), hover on a card and a tab, one wheel notch gliding `2.59, 1.92, 1.42…` px a frame to exactly 10 (the bar
-and status still), eight notches flinging to the clamped 78 in 31 frames and the settled frame matching
-`sky-scrolled.png` pixel for pixel, a wheel up mid-throw landing 10px back at 64.05 with no frame's step jumping, the
-keyboard (Down/Up 40, PageDown a viewport, Home/End, all on the same track and clamped), the feed's focus ring's pixels,
-the tabs switching the feed, News' empty box and its centred muted line, the status naming a clicked card, and the page
-fitting 360x760. `bun solid/motion.test.ts` is the model itself: one path at any dt, a retarget's continuity, the exact
-settle, `effect`'s clamp, the decay's projection, `presence` (the exit's length to a frame, a revive mid-exit at the
-value the exit presented), `channel`'s one call an element, and reduced motion (a retarget settled in the call that
-makes it, a presence that does not wait).
+Michael's), hover on a card and a tab, **the entry** (the boxes are the settled ones while the cards arrive, the first
+frame draws none of them, eight frames in they are 4, 8 and 12px low — each further behind the one above it, so the
+stagger is there — and the last frame is the literal's; reduced motion draws them at rest at once), **the hover's fade**
+(a mid frame strictly between the resting and the hover colour, the colour continuing the same way, the leave the same
+path back to the literal, and a quick leave and re-enter whose widest frame is 3/255), **the tab's underline** (a mid
+frame of the new tab's a blend of the page and the ring, the old one's a blend of the accent and the page, the tabs'
+boxes unmoved, then the ring and the page), **the rubber band** (four notches past 78 land at 99.29 = the formula's
+21.29 of the raw 40, a notch back walks it to 97.95, it is still out of the end for four frames and back on the clamp 22
+frames later, a flick into the end never steps more than 20px and rests at 78, and reduced motion clamps hard), one wheel
+notch gliding `2.59, 1.92, 1.42…` px a frame to exactly 10 (the bar and status still), eight notches flinging to the
+clamped 78 and the settled frame matching `sky-scrolled.png` pixel for pixel, a wheel up mid-throw landing 10px back at
+64.05 with no frame's step jumping, the keyboard (Down/Up 40, PageDown a viewport, Home/End, all on the same track and
+clamped), the feed's focus ring's pixels, the tabs switching the feed, News' empty box and its centred muted line, the
+status naming a clicked card, and the page fitting 360x760. `bun solid/motion.test.ts` is the model itself: one path at
+any dt, a retarget's continuity, the exact settle, `effect`'s clamp, the decay's projection, `presence` (the exit's
+length to a frame, a revive mid-exit at the value the exit presented), `channel`'s one call an element, and reduced
+motion (a retarget settled in the call that makes it, a presence that does not wait).
 
 **Mutations.** Dropping `css.image` from Michael's avatar box (a bare 40x40 box) fails the two disc asserts (the middle
 and the body are the panel `[23,27,32]`, not `[99,178,255]`/`[74,132,214]`). Making the body `nowrap` fails the wrap

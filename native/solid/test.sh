@@ -79,12 +79,22 @@ bun solid/list.test.ts
 # settle, the effect class's clamp, the decay's projection): no page, no Clay
 bun solid/motion.test.ts
 # the Sky page (csssky's feed: the tablist, the cards with drawn avatars, the wrapped bodies, the feed's own motion track):
-# Discover, the Science tab, the light theme, and the Science feed eight notches down, settled (the track flings to the end)
+# Discover, the Science tab, the light theme, and the Science feed eight notches down, settled (the track flings to the end).
+# The cards arrive on mount (12px low, at 0 opacity, each 50ms after the one above, 0.3s: the group's translate and alpha),
+# a card's and a tab's hover is a 120ms fade and a tab's underline fades with it, so the resting frames are taken after
+# `--settle` (the entry is over 0.4s from the mount) — every one of them is byte-identical to its old self, the entry and
+# the hover are the frames that moved. `sky-entry` is ten frames in (the three cards at 2, 4 and 10px of their 12),
+# `sky-hover` is the pointer on the second card three frames into its fade (no press: `--move`), and `sky-band` is
+# Discover four notches past its end (its content is shorter than the viewport, so the first notch is already past it):
+# the resistance's f(40) puts it 21.3px out, and the band has let go 80ms later
 S="bun solid/main.ts sky"
-$S --expect solid/frames/sky.png
-$S --click 180 32 --expect solid/frames/sky-science.png
-THEME=light $S --expect solid/frames/sky-light.png
+$S --settle 40 --expect solid/frames/sky.png
+$S --click 180 32 --settle 40 --expect solid/frames/sky-science.png
+THEME=light $S --settle 40 --expect solid/frames/sky-light.png
 $S --click 180 32 --wheel 8 --wheel-over sky-feed --settle 60 --expect solid/frames/sky-scrolled.png
+$S --settle 9 --expect solid/frames/sky-entry.png
+$S --settle 40 --move 180 300 3 --expect solid/frames/sky-hover.png
+$S --warm 40 --wheel 4 --wheel-over sky-status --expect solid/frames/sky-band.png
 bun solid/sky.test.ts
 # the inline-styles page (styles in the .tsx) against the same page with a .styles.ts: identical pixel for pixel, and its frame
 bun solid/inline.test.ts

@@ -19,9 +19,10 @@
 // keep one code path and the flag only changes what an instant means. `channel` is the page side of the value
 // channel (`ui.value`): one call per element a frame instead of a loop over its fields.
 //
-// Not here: a rubber band (Rune's 0.55), a velocity-only track for a drag (a pointer's speed is the host's), and a value
-// channel for anything but the style a page already packs (a page passes the value to ui.scrollTo or into its own
-// draw; a style is a compile-time literal and a page animates it through ui.value).
+// Not here: a velocity-only track for a drag (a pointer's speed is the host's), and a value channel for anything but the
+// style a page already packs (a page passes the value to ui.scrollTo or into its own draw; a style is a compile-time
+// literal and a page animates it through ui.value). The rubber band is here because its resistance is geometry, not a
+// page's business: `rubber`.
 
 /** A spring's parameters: the natural frequency and damping ratio, and whether its output may overshoot. */
 export interface Spring {
@@ -189,6 +190,18 @@ export class Decay {
 
 /** A fling from x moving at v px/s (positive to the right or down) at t0. */
 export const decay = (x: number, v: number, t0 = 0): Decay => new Decay(x, v, t0);
+
+/** Rune's and iOS's resistance constant: the band moves c px for the first px past an end. */
+export const BAND_C = 0.55;
+
+/**
+ * The rubber band: how far the content moves for `x` px of wheel past an end, in a viewport `d` px tall,
+ * `f(x) = (1 - 1/(x·c/d + 1))·d`. It starts at slope `c` (0.55: a notch past the end moves 5.5 of its 10px), it is
+ * always shorter than the push, and it never reaches `d` however hard it is pushed. `x` is the raw overscroll, so a
+ * notch further past the end moves less than the one before it; a notch back inside the content is the wheel's own.
+ */
+export const rubber = (x: number, d: number, c = BAND_C): number =>
+  x <= 0 || d <= 0 ? 0 : (1 - 1 / ((x * c) / d + 1)) * d;
 
 /** What a frame says about a node that may leave: whether it is mounted this frame, and whether it is on its way out. */
 export interface Shown {

@@ -13,6 +13,10 @@
 //                                        ref.png.actual.png on a difference
 //   --click X Y                          headless: a press and a release at X,Y before the frame that is written
 //                                        (frame 0 lays out, pressed in 1, released in 2, frame 3 is written)
+//   --move X Y [N]                       headless, after --keys and --settle: the pointer to X,Y, N frames (default 3),
+//                                        and no press — a hover a frame or two into its fade, at a page that is at rest
+//   --warm N                             headless: N frames at rest before the click and the wheel, for a page whose
+//                                        mount animation (the Sky cards arriving) has to be over first
 //   --keys Tab,Tab,Space                 headless: a frame, then each key pressed and released with a frame after it
 //                                        (names as the focus manager and the parts take them: Shift+Tab, Enter, ArrowLeft,
 //                                        Space for " "); the last frame is written. A step `text:Ada` is typed text
@@ -47,6 +51,10 @@ const arg = (name: string, n = 1) => {
 const png = arg("--png")?.[0];
 const expect = arg("--expect")?.[0];
 const click = arg("--click", 2)?.map(Number);
+// headless: a hover: the pointer to X,Y after the settle, N frames there (no press)
+const move = arg("--move", 3)?.map(Number);
+// headless: frames at rest before the input, so a page's mount animation is over (the Sky cards' entry)
+const warm = Number(arg("--warm")?.[0] ?? 0);
 // headless: a drag on the widgets slider: two fractions of the rail (press at the first, held, then move to the second)
 const drag = arg("--drag", 2)?.map(Number);
 const keys = arg("--keys")?.[0]?.split(",");
@@ -110,7 +118,7 @@ const dispose = render(
         : page === "list"
           ? () => List({ input })
           : page === "sky"
-            ? () => Sky({ input, motion })
+            ? () => Sky({ input, motion, theme: () => theme })
             : Sensors,
   root,
 );
@@ -136,6 +144,8 @@ const headless = png || expect;
 if (headless) {
   // where the last frame left the pointer: a settle frame keeps it there, so a hover is the frame's, not the settle's
   let settleAt: [number, number] = [-1, -1];
+  // frames at rest before any input, for a page whose mount animation has to be over (the Sky cards' entry)
+  for (let n = 0; n < warm; n++) frame(-1, -1, false, 1 / 60);
   if (drag) {
     // a drag on the widgets slider: frame 0 lays out, 1 puts the pointer on the rail, 2 presses at the first fraction,
     // then the pointer moves to the second with the button held and the last frame (still held) is written
@@ -178,6 +188,9 @@ if (headless) {
   }
   // the motion at rest: a page with a track needs frames after the input, not one
   for (let n = 0; n < settle; n++) frame(settleAt[0], settleAt[1], false, 1 / 60);
+  // a hover, at a page that is at rest: the pointer moves there and N frames run, no press (a mid-fade frame is what a
+  // stored one is for; the last of the N is written)
+  if (move) for (let n = 0; n < (move[2] ?? 3); n++) frame(move[0]!, move[1]!, false, 1 / 60);
   let status = ui.errors() ? 1 : 0;
   if (png) ui.savePng(png);
   if (expect) {

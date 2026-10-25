@@ -20,7 +20,8 @@ export const TEXT_FIELDS = 10;
  * `Z_INDEX` too. `WIDTH`/`HEIGHT`, `PADDING`, `GAP` and the colours are legal but move Clay's layout: a field that
  * changes a box's size re-lays-out its parent and its siblings each frame, so animate a transform-like field, not a size.
  * `ALPHA` and `SCALE` are the renderer's group of the element's whole subtree (one scene: a text over its own fill fades
- * as a group, and a scale moves nothing in the layout).
+ * as a group, and a scale moves nothing in the layout), and so are `TRANSLATE_X`/`TRANSLATE_Y`: a visual offset of the
+ * subtree, which is how a card arrives without moving the layout it sits in.
  */
 export const FIELDS = {
   WIDTH: 0, // 0-2: type, min or percent, max
@@ -30,6 +31,8 @@ export const FIELDS = {
   BACKGROUND: 14, // 14-17: r, g, b, a
   BACKGROUND_ALPHA: 17, // the fourth of the background: the dim of a backdrop
   RADIUS: 18, // 18-21: top-left, top-right, bottom-right, bottom-left
+  BORDER: 26, // 26-29: r, g, b, a of a border: a tab's 2px underline
+  BORDER_ALPHA: 29, // the fourth of the border colour: an underline fading in or out
   OFFSET_X: 38, // a float's offset, the field a slide animates
   OFFSET_Y: 39,
   EXPAND_W: 40, // 40-41: a float's expand
@@ -39,6 +42,9 @@ export const FIELDS = {
   SHADOW_BLUR: 45, // ui_shadow's blur, not one of the 45: ui.c's FIELD_SHADOW_BLUR
   ALPHA: 46, // the element's whole subtree composited at this opacity (0..255): ui.c's FIELD_ALPHA
   SCALE: 47, // ... and scaled about its box centre (1 = none): ui.c's FIELD_SCALE, a renderer transform
+  TRANSLATE_X: 48, // ... and moved by this many px (0 = none): ui.c's FIELD_TRANSLATE_X, a renderer transform
+  TRANSLATE_Y: 49, // its y, as an entry's 12px drop or a card's arrival: ui.c's FIELD_TRANSLATE_Y
+  GRADIENT_ALPHA: 50, // the opacity of the element's background image (a gradient): ui.c's FIELD_GRADIENT_ALPHA
 } as const;
 
 const SIZING = { FIT: 0, GROW: 1, PERCENT: 2, FIXED: 3 } as const;

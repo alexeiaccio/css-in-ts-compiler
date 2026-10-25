@@ -15,9 +15,11 @@ import { createSignal, onCleanup } from "solid-js";
 
 import { a11y } from "../a11y.ts";
 import { createTabs } from "../../headless/src/index.ts";
-import { decay, spatial, track, type Decay, type Sample } from "../src/motion.ts";
+import { decay, effect, reduced, rubber, spatial, track, type Decay, type Sample, type Spring } from "../src/motion.ts";
 import { ui } from "../src/ffi.ts";
 import type { FocusPart, Input } from "../src/input.ts";
+import { FIELDS, variant } from "../src/pack.ts";
+import type { State } from "../src/pack.ts";
 
 // the sky palette: the page, the card one tonal step above it (its top; the gradient's deep end is a step below), the
 // hover step, the muted step and the accent blue; the ring is the same blue the other pages use.
@@ -53,7 +55,10 @@ const font = css.fonts("Roboto");
 const root = css.cn(css.width("stretch"), css.height("stretch"), css.flexDirection("column"), css.bg(t.color.page));
 
 // the bar: the wordmark in the accent, then the tablist. The active tab is the accent with the app's 2px underline, and
-// a hover lightens the one under the pointer (Clay draws a border inside the box, so the underline moves no layout).
+// a hover lightens the one under the pointer (Clay draws a border inside the box, so the underline moves no layout). Both
+// are colours of the tab's own box — its background floats and its border's alpha — so the page fades them
+// (`FIELDS.BACKGROUND`, `FIELDS.BORDER_ALPHA`) and the tab keeps its `:hover` state, which is the literal a settled hover
+// lands on. A text's colour is not in its box's floats: the label swaps style, it does not fade.
 const bar = css.cn(css.width("stretch"), css.height(64), css.p(0, 16), css.gap(20), css.alignItems("center"), css.bg(t.color.page));
 const wordmark = css.cn(font.Roboto, css.color(t.color.accent), css.fontSize(24));
 const tablist = css.cn(css.gap(2), css.alignItems("center"));
@@ -85,11 +90,17 @@ const view = css.cn(
 
 // a card: the panel, 12px radius and padding, a column of avatar, identity, body, media and counts. The panel is a
 // vertical gradient (a renderer effect: Clay draws the solid colour under it, and the desktop renderer fills the gradient
-// instead), the selected card is the hover panel with an accent border (a border draws inside, so it moves nothing), and
-// the hover lightens the gradient: a state overrides `backgroundImage` whole.
+// instead), the selected card is the hover panel with an accent border (a border draws inside, so it moves nothing).
+// A hover is not a style state here (no `css.hover`): the page fades the box's own four background floats
+// (`FIELDS.BACKGROUND`) from the resting panel to the hover tone *and* the opacity of its gradient (`GRADIENT_ALPHA`), so
+// what is under the gradient is the tone the fade is between. The two ends are two styles: `card`, with the resting
+// gradient, and `cardHover`, the same box with the hover one. Both gradients are opaque at rest; the page puts the hover
+// style on the card while the fade runs either way (`hot`), because a `:hover` state would swap the gradient back the
+// moment the pointer left and the fade out would never be seen. A card at rest and a settled hover are exactly their
+// style's literals.
 const cardTint = css.backgroundImage(`linear-gradient(180deg, ${t.color.panel}, ${t.color.panelDeep})`);
 const cardHoverTint = css.backgroundImage(`linear-gradient(180deg, ${t.color.hover}, ${t.color.hoverDeep})`);
-const card = css.cn(
+const cardBase = css.cn(
   // a percent width: a clip element lets its children grow past the viewport for their content, so a card that must
   // wrap its body takes the feed's width from the parent, not from what its text wants
   css.width("100%"),
@@ -98,9 +109,9 @@ const card = css.cn(
   css.flexDirection("column"),
   css.bg(t.color.panel),
   css.borderRadius(12),
-  cardTint,
-  css.hover(cardHoverTint, css.bg(t.color.hover)),
 );
+const card = css.cn(cardBase, cardTint);
+const cardHover = css.cn(cardBase, css.bg(t.color.hover), cardHoverTint);
 const cardOn = css.cn(card, cardHoverTint, css.bg(t.color.hover), css.border(1, t.color.accent));
 // the app's one <text> of spans, split in two here: a name and handle side by side do not fit a 312px card (the longest
 // pair is about 340px) and Clay has no ellipsis, so the handle and age take the line under the name
@@ -137,6 +148,7 @@ export const s = {
   tabTextOn,
   view,
   card,
+  cardHover,
   cardOn,
   nameLine,
   name,
@@ -294,18 +306,54 @@ export interface Motion {
   tick?: (dt: number) => void;
 }
 
+// The motion the page owns (src/motion.ts). A hover is 120ms of `effect`: a luminance field is clamped and critically
+// damped, so it cannot overshoot. The entry is a 12px slide on `spatial` with the opacity's `effect` beside it, each card
+// 3 frames after the one before. The band's return is `spatial(0.35, 0.1)` — Rune's light bounce — so it settles exactly
+// on the clamp. Reduced motion (the platform's, `motion.ts`'s flag) makes every retarget land at once, and the page skips
+// the entry and the band altogether, so the frame is the settled one.
+const HOVER = effect(0.12); // the card's and the tab's background
+const UNDERLINE = effect(0.12); // the tab's 2px underline fading in or out
+const ENTRY = { delay: 0.05, y: 12, time: 0.3 }; // seconds, px: a card starts 50ms after the one before it, 12px low
+const ENTRY_Y = spatial(ENTRY.time);
+const ENTRY_A = effect(ENTRY.time);
+const BAND_BACK = spatial(0.35, 0.1); // the band lets go with a light bounce, and settles exactly on the clamp
+const BAND_HOLD = 0.08; // seconds without a notch before the band lets go
+
+/**
+ * Four 0..255 channels of a style's background under a theme and a state: the two ends a fade runs between. The theme is
+ * the frame's (`View.theme`), so the page asks for the packed variant of each end instead of hard-coding a palette: the
+ * light theme fades between its own tones. A style with no box has no colour at all.
+ */
+function backgroundOf(shape: css.ClayStyle, theme: string | undefined, hover = false): number[] {
+  const states: State[] = hover ? [":hover"] : [];
+  const box = variant(shape, theme, states).box;
+  return box ? [box[14]!, box[15]!, box[16]!, box[17]!] : [0, 0, 0, 0];
+}
+
+/** The four channels from `from` to `to` at `m` percent: a fade's colour at that instant. */
+const mixColor = (from: number[], to: number[], m: number): number[] =>
+  from.map((v, i) => v + ((to[i]! - v) * m) / 100);
+
 /**
  * The page. Two Tab stops: the tablist (one stop on the active tab, arrows move and switch) and the feed. The feed's keys
  * scroll it: Down and Up 40px, PageDown and PageUp a viewport, Home and End to the ends. The wheel adds 10px a notch and
  * a flick keeps going (a decay) to its projection, clamped to the content; both are one motion track (src/motion.ts) the
  * page owns, retargeted from the presented (x, v), and `ui.scrollTo` puts the value on Clay's clip element each frame.
- * The bar and the status line are the feed's siblings, so they stay put. A card press only records the selection until
- * there is a thread screen to open.
+ * Past an end the wheel pushes into a rubber band (Rune's `f(x)`), which lets go 80ms after the last notch and settles on
+ * the clamp. The bar and the status line are the feed's siblings, so they stay put. A card press only records the
+ * selection until there is a thread screen to open. On mount the cards arrive staggered (translate + opacity through the
+ * group fields, so nothing moves in the layout), a card and a tab fade their hover, and the tabs fade the 2px underline
+ * from the one that was active to the one that is.
  */
-export function Sky(props: { input: Input; motion?: Motion }) {
+export function Sky(props: { input: Input; motion?: Motion; theme?: () => string | undefined }) {
   const { input } = props;
   const [focused, setFocused] = createSignal(false);
   const [selected, setSelected] = createSignal<{ feed: number; i: number } | null>(null);
+  // what the tree wears this frame, set by the tick (before the flush, so in this frame): the cards on their hover style
+  // (kept while the fade leaves, or the resting gradient would come back under it before the fade was out), and the tabs
+  // that keep the 2px underline while its colour fades. A page with no motion hook has neither (the a11y test builds one).
+  const [hot, setHot] = createSignal([false, false, false]);
+  const [underlined, setUnderlined] = createSignal([true, false, false]);
 
   // the feed scrolls itself: Clay's own wheel scrolling is off for this page, and the page takes the notch through
   // `onWheel` instead. The offset is positive-down (Clay's is negative-down) and is what the track presents.
@@ -317,19 +365,52 @@ export function Sky(props: { input: Input; motion?: Motion }) {
   let notchDir = 0; // the last notch's direction: a fling only continues that way
   let burst = 0; // how many notches have come without a frame between them: one notch is a step, two are a flick
   let chasing = false; // the last tick had a notch, so this one decides whether a fling follows
-  let target = 0; // what the wheel and the keys accumulate towards, clamped to the content
+  let target = 0; // where the track is going: the wheel's, clamped, plus the rubber band at an end
+  let want = 0; // the wheel's own target before the clamp: past an end it feeds the band
+  let band = 0; // raw px past an end (positive past the bottom, negative past the top): 0 is not over-scrolled
+  let idle = 0; // seconds since the last notch, for the band's hold
+  let maxWas = -1; // the content's clamp last frame: a changed one is a feed switch, and is clamped hard
   let keyed = false;
   ui.autoScroll(false);
   onCleanup(() => ui.autoScroll(true));
 
+  // the cards' and the tabs' motion, by the ids the tree gives them
+  const cards = [0, 1, 2].map((i) => ({
+    id: Buffer.from(`sky-card-${i}`),
+    delay: i * ENTRY.delay,
+    started: -1, // the clock the entry started at: -1 before it, and forever under reduced motion
+    arrived: false, // the entry is over: no write at all, so the card is its literal frame
+    on: false, // the pointer is on it this frame
+    hover: track(0, HOVER), // percent: a track settles within 0.5 of its unit, and 0.5 of 1 would be settled at once
+    y: track(ENTRY.y, ENTRY_Y), // where the entry starts: 12px low until its delay, then 0
+    a: track(0, ENTRY_A), // ... and 0 opacity
+  }));
+  const tabFx = [0, 1, 2].map((i) => ({
+    id: Buffer.from(`sky-tabs-tab-${i}`),
+    on: false,
+    hover: track(0, HOVER),
+    under: track(i === 0 ? 255 : 0, UNDERLINE), // the underline's alpha (field 29): 255 on the tab that is active
+  }));
+  let activeWas = 0;
+
   const clamp = (y: number, max: number) => Math.min(Math.max(y, 0), max);
 
-  // the tablist is the page's first stop and the feed the second. The panels are not stops of their own: the feed is one
-  // (the tabs' `focusablePanels` says so, or Tab would land on a panel the page draws no box for).
+  /** The ends of a fade, from the page's own packed styles: the card rests on the panel and lands on the hover tone; a
+   *  tab rests on the page it sits on (its box has no background at rest) and lands on its hover tone. */
+  const cardEnds = () => [backgroundOf(s.card, props.theme?.()), backgroundOf(s.cardHover, props.theme?.())];
+  const tabEnds = () => [backgroundOf(s.root, props.theme?.()), backgroundOf(s.tab, props.theme?.(), true)];
+
+  /** The tablist is the page's first stop and the feed the second. The panels are not stops of their own: the feed is one
+   *  (the tabs' `focusablePanels` says so, or Tab would land on a panel the page draws no box for). */
   const tabs = createTabs({ id: "sky-tabs", items: FEEDS.length, focus: input.focus, focusablePanels: [0, 1, 2] });
   const binds = tabs.tabs.map((tab) => input.bind(tab));
   const active = () => tabs.selected();
   const feed = () => FEEDS[active()]!;
+
+  /** Whether that tab wears the 2px underline this frame: the active one, and one whose underline is still fading out. */
+  const under = (i: number) => (props.motion ? underlined()[i]! : active() === i);
+  /** Whether that card wears the hover style: the pointer is on it, or its fade is still leaving it. */
+  const isHot = (i: number) => (props.motion ? hot()[i]! : false);
 
   /** How far the feed can scroll: the last card's bottom (in screen coordinates, already shifted by Clay's offset) plus
    *  the 12px bottom padding, less the viewport's bottom, less the offset's own lift. 0 when the feed fits. */
@@ -342,14 +423,25 @@ export function Sky(props: { input: Input; motion?: Motion }) {
     return Math.max(0, last[1]! + last[3]! + 12 - (view[1]! + view[3]!) - ui.scrollOffset(VIEW));
   };
 
+  /** The viewport's height: the rubber band's `d`. */
+  const viewHeight = () => ui.bounds(Buffer.from(VIEW))?.[3] ?? 0;
+
+  /** Where the wheel's own target sits: clamped to the content, and past an end the band's resistance (`rubber` in
+   *  motion.ts, Rune's f(x) = (1 - 1/(x·c/d + 1))·d, c = 0.55). Sets `band` to the raw overscroll it was given. */
+  const place = (w: number, max: number): number => {
+    const c = clamp(w, max);
+    band = reduced() ? 0 : w - c; // reduced motion has no band: the wheel is clamped hard
+    return band ? c + Math.sign(band) * rubber(Math.abs(band), viewHeight()) : c;
+  };
+
   /** Where the feed is at t: the fling while one runs, the spring otherwise. */
   const presented = (t: number): Sample => (fling ? fling.at(t) : anim.at(t));
 
   /** Starts a segment at t from a presented (x, v), so position and velocity are continuous across a retarget. */
-  const restart = (p: { x: number; v: number }, t: number, to: number) => {
-    anim = track(p.x, spring, t);
+  const restart = (p: { x: number; v: number }, t: number, to: number, s: Spring = spring) => {
+    anim = track(p.x, s, t);
     anim.v0 = p.v;
-    anim.retarget(t, to, spring); // samples the (x, v) above and starts the new segment from it
+    anim.retarget(t, to, s); // samples the (x, v) above and starts the new segment from it
     fling = null;
   };
 
@@ -359,60 +451,165 @@ export function Sky(props: { input: Input; motion?: Motion }) {
     if (n) (notches += n), (notchDir = Math.sign(n));
   };
 
+  /** One card a frame: its hover fade, and its entry while that runs (once, on mount). Writes nothing at all once both
+   *  are the literals, so a frame at rest is the frame the style's literals make. */
+  const cardFrame = (c: (typeof cards)[number], i: number, t: number) => {
+    if (!c.arrived) {
+      if (c.started < 0 && !reduced() && t >= c.delay) {
+        // the frame its delay is up on: from the entry's 12px and 0 opacity, both retargeted from what they present
+        c.started = t;
+        c.y = track(ENTRY.y, ENTRY_Y, t);
+        c.a = track(0, ENTRY_A, t);
+        c.y.retarget(t, 0);
+        c.a.retarget(t, 255);
+      }
+      const y = c.y.at(t),
+        a = c.a.at(t);
+      // before its delay these are the entry's own values, so a card waits 12px low and transparent
+      if (reduced() || (c.started >= 0 && y.done && a.done)) c.arrived = true;
+      else ui.value(c.id, FIELDS.TRANSLATE_Y, y.x), ui.value(c.id, FIELDS.ALPHA, a.x);
+    }
+    const on = ui.over(c.id);
+    if (on !== c.on) (c.on = on), c.hover.retarget(t, on ? 100 : 0, HOVER);
+    // a selected card wears `cardOn` whatever the pointer does, so the fade writes nothing for it: its frame is the
+    // literal's, as it was before the hover learned to fade
+    if (selected()?.feed === active() && selected()?.i === i) return;
+    const m = c.hover.at(t);
+    // a fade in, or one still leaving: the four channels from the resting tone to the hover's, and the opacity of the
+    // card's gradient, so the two gradients cross-fade through the tones under them. The card wears the hover style
+    // while this runs (`hot`), which is the one whose gradient is fading in.
+    if (c.on || !m.done) {
+      const [rest, hover] = cardEnds();
+      const [r, g, b, a] = mixColor(rest, hover, m.x);
+      ui.value(c.id, FIELDS.BACKGROUND, r);
+      ui.value(c.id, FIELDS.BACKGROUND + 1, g);
+      ui.value(c.id, FIELDS.BACKGROUND + 2, b);
+      ui.value(c.id, FIELDS.BACKGROUND_ALPHA, a);
+      ui.value(c.id, FIELDS.GRADIENT_ALPHA, (m.x / 100) * 255);
+    }
+  };
+
+  /** One tab a frame: its hover fade and the 2px underline's colour while that fades. */
+  const tabFrame = (f: (typeof tabFx)[number], i: number, t: number) => {
+    const on = ui.over(f.id);
+    if (on !== f.on) (f.on = on), f.hover.retarget(t, on ? 100 : 0, HOVER);
+    const m = f.hover.at(t);
+    if (f.on || !m.done) {
+      const [rest, hover] = tabEnds();
+      const [r, g, b, a] = mixColor(rest, hover, m.x);
+      ui.value(f.id, FIELDS.BACKGROUND, r);
+      ui.value(f.id, FIELDS.BACKGROUND + 1, g);
+      ui.value(f.id, FIELDS.BACKGROUND + 2, b);
+      ui.value(f.id, FIELDS.BACKGROUND_ALPHA, a);
+    }
+    // the underline is the tab's own border, so its colour is a field of the box: no text colour is (0-9 of a text, a
+    // style of its own), and that transition is not covered
+    const u = f.under.at(t);
+    if (!u.done) ui.value(f.id, FIELDS.BORDER_ALPHA, u.x);
+    return i === active() || f.under.at(t).x > 0;
+  };
+
   /** One frame: the wheel and the keys retarget, the release may fling, and the value goes to Clay. Input is applied at
-   *  the frame's start and the frame presents the state one dt later, so the notch that arrived in this frame moves it. */
+   *  the frame's start and the frame presents the state one dt later, so the notch that arrived in this frame moves it.
+   *  The cards and the tabs are written at the clock the frame is showing (`t`), so the entry's first frame is exactly
+   *  its 12px and 0. */
   const tick = (dt: number) => {
+    const t = now;
+    // the selection first: a tab that becomes active starts its underline at once (a frame later would flash the
+    // literal's full colour before the fade's first 0), and the one that had it fades out
+    const sel = active();
+    if (sel !== activeWas) {
+      activeWas = sel;
+      for (const [i, f] of tabFx.entries()) f.under.retarget(t, i === sel ? 255 : 0, UNDERLINE);
+    }
+    const keep = tabFx.map((f, i) => tabFrame(f, i, t));
+    for (const [i, c] of cards.entries()) cardFrame(c, i, t);
+    if (keep.join() !== underlined().join()) setUnderlined(keep);
+    const hotNow = cards.map((c) => c.on || c.hover.at(t).x > 0);
+    if (hotNow.join() !== hot().join()) setHot(hotNow);
+
     const max = maxScroll();
     const n = notches;
     notches = 0;
     const key = keyed;
     keyed = false;
+    idle = n ? 0 : idle + dt;
+    if (!band) want = clamp(want, max);
     target = clamp(target, max);
-    // a shorter feed (a tab switch) or an overshoot from an earlier frame must not leave the offset past an end
-    const before = presented(now);
-    if (before.x < 0 || before.x > max) {
+    // A shorter feed (a tab switch) must not leave the offset past the new end — its content would not fill the viewport
+    // — so a clamp that moved is hard. A band past an end, and its spring back, are on purpose: those are the tracks'.
+    const shrank = Math.abs(max - maxWas) > 0.01;
+    maxWas = max;
+    const before = presented(t);
+    if (shrank && (before.x < 0 || before.x > max)) {
       const x = clamp(before.x, max);
-      restart({ x, v: before.x === x ? before.v : 0 }, now, x);
-      target = x;
+      restart({ x, v: 0 }, t, x);
+      target = want = x;
     }
     if (n) {
       burst += Math.abs(n);
-      target = clamp(target + n * 10, max);
-      const p = presented(now);
-      restart(p, now, target);
-      // a notch from rest starts with the velocity a critically damped spring needs to glide the 10px without overshoot
-      // (ω·d): the offset moves on the first frame and each frame after it moves less. A notch during a burst keeps the
-      // presented velocity, so the steps grow with the accumulated target.
-      if (Math.abs(p.v) < 1) anim.v0 = spring.omega * (target - p.x);
+      want += n * 10;
+      const p = presented(t);
+      const to = place(want, max);
+      // a notch past an end is a pull of the edge, not a scroll of the content: once the content has arrived at the end
+      // it is pushed past (or is already over it), the band is where the wheel puts it on this frame. A notch that only
+      // reaches the end while the content is still travelling there is a scroll like any other: a snap would jump it.
+      const pull = band !== 0 && (n > 0 ? p.x >= max - 0.5 : p.x <= 0.5);
+      target = to;
+      if (pull) (anim = track(to, spring, t)), (fling = null);
+      else {
+        restart(p, t, to);
+        // a notch from rest starts with the velocity a critically damped spring needs to glide the 10px without
+        // overshoot (ω·d): the offset moves on the first frame and each frame after it moves less. A notch during a
+        // burst keeps the presented velocity, so the steps grow with the accumulated target.
+        if (Math.abs(p.v) < 1) anim.v0 = spring.omega * (to - p.x);
+      }
       chasing = true;
     } else if (key) {
+      // a key drops the band and retargets the same track
       chasing = false;
       burst = 0;
-      restart(presented(now), now, target);
+      want = clamp(want, max);
+      band = 0;
+      target = want;
+      restart(presented(t), t, target);
     } else if (chasing) {
       chasing = false;
-      const p = anim.at(now);
-      // a fling only for a burst (a flick, not one notch) whose presented velocity still follows the wheel
-      if (burst >= 2 && Math.abs(p.v) > 10 && Math.sign(p.v) === notchDir) {
-        const d = decay(p.x, p.v, now);
+      const p = anim.at(t);
+      // a fling only for a burst (a flick, not one notch) whose presented velocity still follows the wheel — and not at
+      // all over an end: a stroke that ends past one is a band's pull, and it lets go on the band's own clock
+      if (!band && burst >= 2 && Math.abs(p.v) > 10 && Math.sign(p.v) === notchDir) {
+        const d = decay(p.x, p.v, t);
         const raw = d.project();
         const land = clamp(notchDir > 0 ? Math.max(raw, target) : Math.min(raw, target), max);
         // inside the content: the decay runs to its projection. Past an end (or short of the wheel's target): a spring
         // from the presented (x, v) to the clamped end.
         if (land === raw) (fling = d), (target = land);
-        else restart(p, now, land), (target = land);
+        else restart(p, t, land), (target = land);
+        // the throw's landing is where the wheel's next notch counts from, as its target always was
+        want = land;
       }
       burst = 0;
     } else if (fling) {
-      const d = fling.at(now);
-      if (d.done) restart({ x: d.x, v: 0 }, now, d.x), (target = d.x);
+      const d = fling.at(t);
+      if (d.done) restart({ x: d.x, v: 0 }, t, d.x), (target = want = d.x);
       else if (d.x < 0 || d.x > max) {
         const x = clamp(d.x, max);
-        restart({ x, v: 0 }, now, x), (target = x);
+        restart({ x, v: 0 }, t, x), (target = want = x);
       }
     }
+    // the wheel has stopped past an end: the band lets go, from what it presents, and settles exactly on the clamp
+    if (band && !chasing && idle >= BAND_HOLD) {
+      want = clamp(want, max);
+      band = 0;
+      target = want;
+      restart(presented(t), t, target, BAND_BACK);
+    }
     now += dt;
-    ui.scrollTo(VIEW, -presented(now).x);
+    // the offset goes on Clay's clip element: clamped to the content as always, and past an end only while the band is
+    // (it is out of the content on purpose there, and only the page knows how far)
+    if (band) ui.scrollPut(VIEW, -presented(now).x);
+    else ui.scrollTo(VIEW, -presented(now).x);
   };
   if (props.motion) (props.motion.onWheel = wheel), (props.motion.tick = tick);
 
@@ -430,8 +627,9 @@ export function Sky(props: { input: Input; motion?: Motion }) {
       // the offset is positive going down, so Down adds
       const step = key === "ArrowDown" ? 40 : key === "ArrowUp" ? -40 : key === "PageDown" ? page : key === "PageUp" ? -page : 0;
       if (!step && key !== "Home" && key !== "End") return false;
-      // Home and End are targets too: the track eases to them, it does not jump
-      target = clamp(key === "Home" ? 0 : key === "End" ? max : target + step, max);
+      // Home and End are targets too: the track eases to them, it does not jump. A key inside a band comes back to the
+      // content first: it is not the wheel, so the band lets go.
+      want = clamp(key === "Home" ? 0 : key === "End" ? max : clamp(want, max) + step, max);
       keyed = true;
       return true;
     },
@@ -455,7 +653,7 @@ export function Sky(props: { input: Input; motion?: Motion }) {
         <text style={s.wordmark}>sky</text>
         <box {...a11y(tabs.tablist)} style={s.tablist}>
           {tabs.tabs.map((tab, i) => (
-            <box {...binds[i]!} {...a11y(tab)} style={tab.selected ? s.tabOn : s.tab}>
+            <box {...binds[i]!} {...a11y(tab)} style={under(i) ? s.tabOn : s.tab}>
               <text style={tab.selected ? s.tabTextOn : s.tabText}>{FEEDS[i]!.name}</text>
             </box>
           ))}
@@ -465,7 +663,7 @@ export function Sky(props: { input: Input; motion?: Motion }) {
         {feed().posts.map((p, i) => (
           <box
             id={`sky-card-${i}`}
-            style={selected()?.feed === active() && selected()?.i === i ? s.cardOn : s.card}
+            style={selected()?.feed === active() && selected()?.i === i ? s.cardOn : isHot(i) ? s.cardHover : s.card}
             onClick={() => setSelected({ feed: active(), i })}
           >
             <box id={`sky-avatar-${i}`} style={AVATARS[p.handle.split(".")[0]!]!} />

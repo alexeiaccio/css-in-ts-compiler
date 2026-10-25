@@ -9,6 +9,7 @@ const { createFrame } = await import("./src/frame.ts");
 const { createInput } = await import("./src/input.ts");
 const { El, render, Txt } = await import("./src/renderer.ts");
 const { Sky, size, ago, num } = await import("./app/Sky.tsx");
+const { rubber, setReducedMotion } = await import("./src/motion.ts");
 
 ui.init(size.width, size.height);
 ui.font(new URL("../vendor/fonts/Roboto-Regular.ttf", import.meta.url).pathname);
@@ -30,17 +31,28 @@ const LIGHT_PANEL_DEEP = [240, 243, 246]; // ... and at its bottom
 // a gradient's pixel is the stop interpolated at that y, so it is matched within a channel or two
 const near = (got: number[], want: number[], d = 2) =>
   got.length === 3 && want.every((v, i) => Math.abs(got[i]! - v) <= d);
+/** Is a colour strictly between two others, channel by channel (a fade's mid frame)? */
+const between = (c: number[], a: number[], b: number[]) =>
+  c.length === 3 &&
+  c.join() !== a.join() &&
+  c.join() !== b.join() &&
+  c.every((v, i) => v >= Math.min(a[i]!, b[i]!) && v <= Math.max(a[i]!, b[i]!));
+/** How far two colours are apart, their widest channel. */
+const apart = (a: number[], b: number[]) => Math.max(...a.map((v, i) => Math.abs(v - b[i]!)));
 /** An offset from layout, to the pixel: Clay's float32 turns 78 into 77.99998. */
 const r = (x: number) => Math.round(x * 100) / 100;
 
 let dispose = () => {};
-function fresh(theme?: string) {
+/** A fresh page. `entry: true` leaves the cards' first-mount entry running: the frames before it are what the entry
+ *  test looks at, and every other block wants a page at rest. */
+function fresh(theme?: string, opts: { entry?: boolean } = {}) {
   dispose();
   const root = new El("root");
   const input = createInput();
-  // the page's frame hook, as the host wires it: the wheel in, one tick a frame
+  // the page's frame hook, as the host wires it: the wheel in, one tick a frame, the theme the palette asks for
   const motion: { onWheel?: (dx: number, dy: number) => void; tick?: (dt: number) => void } = {};
-  dispose = render(() => Sky({ input, motion }), root);
+  const palette = theme;
+  dispose = render(() => Sky({ input, motion, theme: () => palette }), root);
   const frame = createFrame(root, {
     theme,
     onPressMiss: () => input.pressMiss(),
@@ -53,6 +65,8 @@ function fresh(theme?: string) {
   // Clay keeps a scroll container's offset by its id across `fresh()` calls: put the feed back at its top first
   ui.scrollTo("sky-feed", 0);
   step();
+  // the cards arrive staggered on mount (0.3s from the last one's 2 x 50ms start): a page at rest is 30 frames later
+  if (!opts.entry) for (let i = 0; i < 40; i++) step();
 
   const find = (pred: (el: El) => boolean, from: El = root): El[] =>
     from.children.flatMap((c) => (c instanceof El ? [...(pred(c) ? [c] : []), ...find(pred, c)] : []));
@@ -67,6 +81,12 @@ function fresh(theme?: string) {
     pixel,
     texts,
     step,
+    /** The first page row below a card's box: the card's drawn bottom edge is one above it (the entry lifts the whole
+     *  group down into the 8px gap below, which is the page). -1 when the card is not drawn there at all. */
+    below(x: number, bottom: number, n = 16) {
+      for (let y = bottom; y < bottom + n; y++) if (pixel(x, y).join() === PAGE.join()) return y;
+      return -1;
+    },
     /** The status line: "Discover — 3 posts" or the selected card's "name — 1 of 3". */
     status: () => texts().find((s) => / — \d+ (of \d+|posts?)$/.test(s))!,
     /** Puts the pointer at x, y and lays out a frame: `ui.bounds` and Clay's "what is under it" follow. */
@@ -152,6 +172,35 @@ function fresh(theme?: string) {
   check("and nothing is scrolled", p.offset(), 0);
 }
 
+// --- the feed's first mount: every card arrives 12px low and at 0 opacity, on `spatial` (the group's translate) and
+//     `effect` (its opacity), each one 50ms after the one above it, 0.3s long; the layout does not move while they
+//     arrive, they settle exactly on the literals, and reduced motion has them there at once
+{
+  const p = fresh(undefined, { entry: true });
+  const bottoms = [266, 482, 700];
+  /** How far each card is drawn below its box: its drawn bottom edge, less where the box ends. A card that is not drawn
+   *  at all (still at 0 opacity) counts as the full 12, which is where it waits before its delay is up. */
+  const offs = () =>
+    bottoms.map((b) => (apart(p.pixel(180, b - 20), PAGE) <= 1 ? 12 : p.below(180, b) - b));
+  check("the cards' boxes are the settled ones while they arrive", [p.card(0), p.card(1), p.card(2)].map((b) => b.slice(0, 2)), [[12, 76], [12, 274], [12, 490]]);
+  check("the first frame draws no card at all: 12px low and at 0", offs(), [12, 12, 12]);
+  check("... and the feed's own top is the page, where the first card will be", p.pixel(180, 80), PAGE);
+  for (let i = 0; i < 6; i++) p.step();
+  const mid = offs();
+  check("six frames in, the cards are drawn below their boxes", mid.every((d) => d > 0), true);
+  check("each card further behind the one above it: the entry is staggered", mid[0]! < mid[1]! && mid[1]! < mid[2]!, true);
+  check("and none is past the 12px it starts at", mid.every((d) => d <= 12), true);
+  console.log(`solid/sky.test.ts: the entry 8 frames in: card offsets ${mid.join(", ")} px of 12`);
+  p.settle(30);
+  check("the entry settles exactly on the boxes", offs(), [0, 0, 0]);
+  check("and the first card is the gradient's literal again", near(p.pixel(180, 80), PANEL, 2), true);
+  // reduced motion: no stagger and nothing to wait for — the settled frame on the first one
+  setReducedMotion(true);
+  const q = fresh(undefined, { entry: true });
+  check("reduced motion draws the cards at rest at once", [q.below(180, 266), q.below(180, 482), q.below(180, 700)], bottoms);
+  setReducedMotion(false);
+}
+
 // --- the avatars: the card's panel at the corners of the box, the author's hue inside the disc, and another author on
 //     the Science feed (the pictures are drawn, not fills: transparent outside the disc, so the panel shows through)
 {
@@ -168,18 +217,93 @@ function fresh(theme?: string) {
   check("and not the panel", p.pixel(e[0]! + 10, e[1]! + 10).join() !== PANEL.join(), true);
 }
 
-// --- hover: the card and the tab under the pointer lighten, and neither moves
+// --- hover: the card and the tab under the pointer lighten, and neither moves. It is a 120ms fade (the next block is
+//     the frames of it), so the settled colours are a handful of frames in
 {
   const p = fresh();
   const card = p.card(1);
   check("a card at rest is the panel", near(p.pixel(180, 300), PANEL), true);
   p.point(180, 300);
+  p.settle(20);
   check("under the pointer the card is the hover step", near(p.pixel(180, 300), HOVER, 2), true);
   check("with its box unchanged", p.card(1), card);
   const tab = p.box("sky-tabs-tab-1");
   check("a tab at rest is the page behind it", p.pixel(tab[0]! + 4, tab[1]! + 14), PAGE);
   p.point(tab[0]! + 4, tab[1]! + 14);
+  p.settle(20);
   check("the tab under the pointer lightens too", p.pixel(tab[0]! + 4, tab[1]! + 14), HOVER);
+}
+
+// --- a hover is a fade, not a switch: 120ms of `effect` through the four background channels and the gradient's own
+//     opacity, retargeted from the presented colour, so a fast leave and re-enter never jumps; the frame at rest and the
+//     settled hover are the literals
+{
+  const p = fresh();
+  const rest = p.pixel(180, 300);
+  p.point(180, 300);
+  const entering: number[][] = [];
+  for (let f = 0; f < 6; f++) {
+    p.step();
+    entering.push(p.pixel(180, 300));
+  }
+  p.settle(20);
+  const hover = p.pixel(180, 300);
+  check("the settled hover is the hover tone", near(hover, HOVER, 2), true);
+  check("the third frame of the hover is between the resting colour and the hover's", between(entering[2]!, rest, hover), true);
+  check("... and the colour keeps going the same way", apart(entering[4]!, rest) > apart(entering[1]!, rest), true);
+  // the leave runs back down the same path, and the card rests on its gradient again
+  p.point(180, 60);
+  const leaving: number[][] = [];
+  for (let f = 0; f < 6; f++) {
+    p.step();
+    leaving.push(p.pixel(180, 300));
+  }
+  check("the third frame of the leave is between the hover and the resting colour", between(leaving[2]!, rest, hover), true);
+  p.settle(20);
+  check("and the card at rest is the gradient's literal", p.pixel(180, 300).join(), rest.join());
+  // a quick leave and re-enter: the track retargets from the presented colour, so no frame may jump
+  const q = fresh();
+  q.point(180, 300);
+  q.settle(20);
+  const path: number[][] = [];
+  q.point(180, 60);
+  for (let f = 0; f < 2; f++) {
+    q.step();
+    path.push(q.pixel(180, 300));
+  }
+  q.point(180, 300);
+  for (let f = 0; f < 6; f++) {
+    q.step();
+    path.push(q.pixel(180, 300));
+  }
+  const steps = path.slice(1).map((c, i) => apart(c, path[i]!));
+  check("a quick leave and re-enter never jumps (no frame over 5/255)", Math.max(...steps) <= 5, true);
+  console.log(`solid/sky.test.ts: the hover's colour up ${entering.slice(0, 5).map((c) => c.join("/")).join(" ")}, a jump back in: the widest frame ${Math.max(...steps)}/255`);
+}
+
+// --- the tab's 2px underline is the tab's own border colour, so it fades: in on the tab that becomes active and out of
+//     the one that was (a colour, not a slide, and the border is 2px on both, so nothing moves)
+{
+  const p = fresh();
+  const b0 = p.box("sky-tabs-tab-0");
+  const b1 = p.box("sky-tabs-tab-1");
+  // the last row of the 2px bottom border, 4px in from the left edge (clear of the glyph)
+  const line = (b: number[]): [number, number] => [b[0]! + 4, Math.floor(b[1]! + b[3]! - 1)];
+  const [x0, y0] = line(b0);
+  const [x1, y1] = line(b1);
+  check("at rest the active tab's underline is the accent", p.pixel(x0, y0), [59, 156, 240]);
+  check("and the tab that is not active has none: the page", p.pixel(x1, y1), PAGE);
+  const box0 = p.box("sky-tabs-tab-0");
+  p.clickOn("sky-tabs-tab-1");
+  const midNew = p.pixel(x1, y1);
+  const midOld = p.pixel(x0, y0);
+  check("a mid frame of the new tab's underline is a blend of the page and the ring", between(midNew, PAGE, [92, 176, 255]), true);
+  check("and the old tab's is a blend of the accent and the page", between(midOld, PAGE, [59, 156, 240]), true);
+  check("the tabs keep their boxes: nothing slides", [p.box("sky-tabs-tab-0"), p.box("sky-tabs-tab-1")], [box0, b1]);
+  p.settle(20);
+  check("the settled underline is the ring, the clicked tab having the focus", p.pixel(x1, y1), [92, 176, 255]);
+  check("and the old tab's is gone", p.pixel(x0, y0), PAGE);
+  console.log(`solid/sky.test.ts: the underline's fade ${midNew.join("/")} on the way up, ${midOld.join("/")} on the way down`);
 }
 
 // --- the card's gradient (css.backgroundImage): a vertical linear gradient, 180deg, from the panel token at the top to
@@ -222,6 +346,7 @@ function fresh(theme?: string) {
   const card1 = p.card(1);
   const at = p.pixel(180, card1[1]! + 30);
   p.point(180, card1[1]! + 30);
+  p.settle(20);
   const hovered = p.pixel(180, card1[1]! + 30);
   check("the hover replaces the gradient: lighter by more than 3/255", hovered[0]! >= at[0]! + 3, true);
   check("at the hover token", near(hovered, [33, 39, 48], 2), true);
@@ -318,6 +443,69 @@ function fresh(theme?: string) {
     ),
     0,
   );
+}
+
+// --- the rubber band at the feed's ends: a wheel past the clamp moves the content with an end's resistance
+//     (f(x) = (1 - 1/(x·c/d + 1))·d, c = 0.55, d the viewport's 664), it holds while the notches come, and 80ms after
+//     the last one it springs back to the clamp (spatial(0.35, 0.1)), settling exactly on it. A notch the other way
+//     moves it back; reduced motion has no band at all.
+{
+  const p = fresh();
+  p.science();
+  p.wheel(8);
+  p.settle(60);
+  const end = -p.offset();
+  check("the feed is at its end first: 78", r(end), 78);
+  // four notches down, each one at the end or over it: the band, at the resistance's own bound for the raw 40px
+  for (let i = 0; i < 4; i++) p.notch(1);
+  const banded = -p.offset();
+  check("a wheel past the end pushes the content out of it", banded > end, true);
+  check("by the resistance, not by the raw 40px", banded - end < 40, true);
+  check("and exactly its f(40) on the 664px viewport", r(banded), r(end + rubber(40, 664)));
+  check("... 21.3px of the raw 40 past the end", Math.abs(banded - end - 21.3) < 0.1, true);
+  // a notch up while banded comes back towards the end
+  p.notch(-1);
+  const back = -p.offset();
+  check("a notch the other way while banded moves it back", back < banded && back > end, true);
+  // the hold: four frames (67ms) without a notch and it is still out of the end, then it lets go
+  let held = 0;
+  for (let i = 0; i < 4; i++) {
+    p.step();
+    if (-p.offset() > end) held++;
+  }
+  check("the band is held for the first frames after the last notch", held, 4);
+  let frames = 0;
+  for (let i = 0; i < 60; i++) {
+    const before = -p.offset();
+    p.step();
+    if (Math.abs(-p.offset() - before) > 0.01) frames = i + 1;
+  }
+  check("it springs back to the clamp, exactly", r(p.offset()), -78);
+  check("in a finite number of frames", frames > 0 && frames < 60, true);
+  console.log(`solid/sky.test.ts: the band 4 notches past 78: ${r(banded)} (+${r(banded - end)} of 40 raw), one up to ${r(back)}, held ${held} frames, back at 78 after ${frames} more`);
+  // a fling into the end is a scroll, not a pull: it stops at the clamp (the frame of the last notch is a glide, so it
+  // does not jump into the band)
+  const q = fresh();
+  q.science();
+  q.point(180, 396);
+  const ys = [0];
+  for (let i = 0; i < 8; i++) {
+    q.notch(1);
+    ys.push(-q.offset());
+  }
+  const steps = ys.map((y, i) => (i ? y - ys[i - 1]! : 0));
+  check("a flick into the end never jumps into the band", Math.max(...steps) < 20, true);
+  q.settle(60);
+  check("and it rests on the clamp", r(q.offset()), -78);
+  // reduced motion: no band, a hard clamp
+  setReducedMotion(true);
+  const b = fresh();
+  b.science();
+  b.wheel(8);
+  b.settle(20);
+  for (let i = 0; i < 4; i++) b.notch(1);
+  check("reduced motion clamps hard: no band", r(b.offset()), -78);
+  setReducedMotion(false);
 }
 
 // --- a second wheel mid-flight: it retargets from the presented (x, v), so no frame jumps, and it bends the throw back
@@ -452,9 +640,13 @@ if (failed) process.exit(1);
 console.log(
   "solid/sky.test.ts: ago() and the compact numbers, the bar/feed/status layout, the six drawn avatars (the panel at the " +
     "corner, the author's hue in the disc) and their change with the feed, the card's vertical gradient (top to bottom, " +
-    "constant across, gone at its edge, the hover's own), the body and media wrapping, the wheel's 10px notch on a track " +
-    "with decaying steps and the bar still, a flick to the clamped end and its stored frame, a wheel mid-flight turning " +
-    "without a jump, the keyboard scrolling the same track (Down/Up 40, PageDown a viewport, Home/End), the tabs " +
-    "switching the feed and the empty News case, a card click recording the selection, the page fitting",
+    "constant across, gone at its edge, the hover's own), the cards' staggered entry (12px low and at 0 opacity, a layout " +
+    "that does not move, the literals at rest, reduced motion), the hover's 120ms fade and its leave (a mid colour " +
+    "between the two ends, no jump on a quick in and out), the tab's underline fading in and out, the body and media " +
+    "wrapping, the wheel's 10px notch on a track with decaying steps and the bar still, a flick to the clamped end and " +
+    "its stored frame, a wheel mid-flight turning without a jump, the rubber band at an end (the resistance's f(40), a " +
+    "notch back, the 80ms hold, the exact clamp, reduced motion), the keyboard scrolling the same track (Down/Up 40, " +
+    "PageDown a viewport, Home/End), the tabs switching the feed and the empty News case, a card click recording the " +
+    "selection, the page fitting",
 );
 process.exit(0);

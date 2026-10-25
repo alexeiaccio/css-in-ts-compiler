@@ -456,7 +456,8 @@ Parley text and per-platform shells — not our stack, and none of its code is p
 2. **Motion as a first-class track.** We have no animation at all. Rune's model transfers unchanged: a spring from
    `(duration, bounce)` (SwiftUI's parameterisation), a track `{t0, x0, v0, target, spring}` that retargets from the
    presented `(x, v)`, `spatial` and `effect` classes (colour and opacity never overshoot), a settle rule with a snap
-   (`1/64 px` for geometry), nothing animating on first mount, reduced motion, and a `Decay` track for scroll physics
+   (`1/64 px` for geometry), a first mount that can arrive (the Sky page's cards do, staggered; reduced motion skips
+   it), reduced motion, and a `Decay` track for scroll physics
    (`0.998/ms`, rubber band `0.55`). It is cheaper for us than for them: the value is packed into the style each frame
    anyway, so `solid/src/motion.ts` is ~150 lines and the Dialog, the menu, the tab underline, hover and the feed's
    scroll come alive. Checks are theirs too: `x` and `v` continuous at a retarget, `1x16.6 ms == 2x8.3 ms == seek`, and
@@ -543,9 +544,49 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    the title's brightest pixel `163,163,166` against `235,235,240`, the visible edges `43..316` inside `40..319`.
    Mutation: no `tvg_paint_set_opacity` fails the two blend checks and nothing else. Stored: `frames/dialog-entry-mid.png`,
    and `dialog-menu-mid`/`dialog-exit-mid` were re-stored (a mid-exit panel now fades and shrinks).
-   Not covered yet: rotation (the same scene, a different matrix), hover and tab transitions, first-mount entry on the
-   other pages, a rubber band (the feed clamps hard), drag/touch, and the terminal, browser and board (no Solid page,
-   no wheel and no value channel).
+   **Done: the group's translate, the feed's entry and hover, and the rubber band** (2026-10-25). A group gained a
+   **translate** (fields **48/49 `TRANSLATE_X`/`TRANSLATE_Y`**, px): the scene's one matrix is
+   `x' = scale·(x - c) + c + t`, the scale about the box centre with the offset after it and unscaled, so a subtree
+   slides without moving anything in the layout (`ui_bounds` is the settled box on every frame), and a group at
+   255, scale 1 and offset 0 still makes no scene — the Dialog's frames stayed byte-identical. The Sky page is the user,
+   with the three pieces of motion it was missing: **the entry** (on the first mount every card starts 12px low and at
+   0 opacity and settles on its literals in 0.3s, `TRANSLATE_Y` on `spatial(0.3)` and `ALPHA` on `effect(0.3)`, each card
+   50ms after the one above it; measured, eight frames in the offsets are 4, 8 and 12px of their 12 and thirty frames
+   later exactly 0; only the first mount — a tab switch draws its feed at rest — and reduced motion starts no track at
+   all), **the hover fades** (`effect(0.12)` through four background floats, and because a card's gradient is drawn
+   *instead* of its solid fill, also through a new field **50 `GRADIENT_ALPHA`**: below 255 the renderer draws the solid
+   fill under the gradient, so the resting and hover gradients cross-fade and a settled hover is the hover gradient
+   pixel for pixel; the card alternates `card`/`cardHover` and the page keeps the hover one while the fade runs either
+   way, since a `:hover` state would drop the gradient the moment the pointer left — the one cost is the 6/255 at the
+   card's bottom edge where the gradient changes identity; a tab's 2px underline is its own border colour
+   (**`BORDER_ALPHA` 29**), faded in on the tab that becomes active and out of the one that was — a colour, not a slide,
+   and Clay draws a border inside the box, so no tab moves; a text's colour is not in its box's floats and its label
+   swaps style instead), and **the rubber band** (a notch past an end is a pull of the edge while the content is at the
+   end, `f(x) = (1 - 1/(x·c/d + 1))·d` with `c = 0.55` in `motion.ts` and `d` the viewport's 664 — the raw 10px of a
+   notch is 5.45, the raw 40 is 21.29 — where a notch that only *reaches* the end while the content still glides is a
+   scroll like any other, so nothing jumps; 80ms without a notch and it lets go on `spatial(0.35, 0.1)` from what it
+   presents, settling exactly on the clamp; a key drops it, a notch back walks it in, a flick's release is a spring and
+   not a decay, a feed switch is still a hard clamp, and reduced motion has no band). The band needed one host member,
+   `ui_scroll_put(id, y)`: `ui_scroll_to` clamps to Clay's content range, and a band is past it on purpose. Measured
+   (`solid/sky.test.ts`): the card's hover `28/33/41, 31/37/44, 32/37/46…` between its resting `26/31/36` and hover
+   `34/40/49`, the leave the same path back, a quick leave and re-enter's widest frame 3/255; a new tab's underline
+   `42/64/87` on the way up and the old one's `49/126/191` on the way down; four notches past the clamped 78 land at
+   99.29 (+21.29 of the raw 40), a notch back at 97.95, the band held four frames and back on 78 twenty-two later.
+   Stored: `frames/sky-entry.png` (ten frames in, the three cards at 2, 4 and 10px), `sky-hover.png` (the pointer on the
+   second card three frames into its fade, `--move X Y N`, a new headless option) and `sky-band.png` (Discover four
+   notches past a feed shorter than its viewport), and the four older `sky*.png` are **byte-identical** with
+   `--settle 40` (the entry and a settled hover are their literals; `--warm N` is the other new option, rest before the
+   input). Mutations: a hover that starts its track at the target rather than retargeting it fails `FAIL the third frame
+   of the hover is between the resting colour and the hover's: false, wanted true` and three more of that block; a
+   stagger of 0 fails `FAIL each card further behind the one above it: the entry is staggered: false, wanted true`; a
+   band that clamps hard fails `FAIL a wheel past the end pushes the content out of it: false, wanted true`,
+   `FAIL and exactly its f(40) on the 664px viewport: 78, wanted 99.29`, the hold and the exact return, and nothing
+   else.
+   Not covered yet: rotation (the same scene, a different matrix), text-colour transitions (a text's colour is its own
+   fields, not its box's; a label swaps style — the tab's does), a drag (a pointer's velocity is the host's, so touch
+   and drag scrolling are not here, and the List page keeps Clay's instant wheel step), first-mount entry on the other
+   pages, a second gradient on one element, and the terminal, browser and board (no Solid page, no wheel and no value
+   channel).
 3. **Metamorphic tests of layout and raster.** ~30 lines each, and they catch the bug classes we actually have:
    wrapping a page in a style-less box leaves the pixels identical; shifting a subtree by whole px shifts the picture
    exactly; a wider container never adds a text line (the Sky body); building the tree fresh versus reusing it gives

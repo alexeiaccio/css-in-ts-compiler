@@ -24,11 +24,17 @@ typedef struct { int unused; } Clay_WgTarget; // only the GPU build (desktop/bui
 // frames is the value channel: a page's per-frame overrides of a packed style, by element id
 #define STYLE_FIELDS 45
 #define FIELD_SHADOW_BLUR 45 // the one value outside the 45 floats: the blur of the element's shadow (a renderer table)
-// ... and two more that are not in the floats either: the element's whole subtree as one scene. ALPHA is that scene's
-// opacity (0..255), so a text over its own fill fades as a group, and SCALE is a transform about the element's box
-// centre (1 = none), which is not a layout: `ui_bounds` does not move as it animates
+// ... and four more that are not in the floats either: the element's whole subtree as one scene. ALPHA is that scene's
+// opacity (0..255), so a text over its own fill fades as a group; SCALE is a scale about the element's box centre
+// (1 = none); TRANSLATE_X/Y are a visual offset of the whole subtree (px). None of them is a layout: `ui_bounds` does
+// not move as any of them animates
 #define FIELD_ALPHA 46
 #define FIELD_SCALE 47
+#define FIELD_TRANSLATE_X 48
+#define FIELD_TRANSLATE_Y 49
+// ... and the opacity of the element's own background image (a gradient), so a page can fade one in or out: at 255 it is
+// drawn alone, as an opaque gradient is; below it, it is composited over the element's solid fill
+#define FIELD_GRADIENT_ALPHA 50
 
 static Clay_ThorVGRendererData tvg;
 static const char *font_names[MAX_FONTS];
@@ -266,16 +272,17 @@ void ui_backgroundImage(int kind, float angle, int count, const float *stops)
 }
 
 /** An override of one number of the style of the element with that id, for this frame only: field 0..44 is a packed
- *  field (their order in solid/README.md), 45 is the blur of the element's shadow, 46 the opacity of its whole subtree
- *  and 47 a scale about its box centre. `ui_open` copies the element's own floats, applies the overrides of its id and
- *  declares from the copy, so the style's literal is what it falls back to (a track that settles on the style's own
- *  value leaves the frame identical). Out of range, or past 64 a frame, is counted as an error and dropped. Width,
- *  height, padding, gap and the colours are Clay's layout and its fill: they are legal but a moving one re-lays-out its
- *  parent's box, so an offset or a blur is what reads as motion. */
+ *  field (their order in solid/README.md), 45 is the blur of the element's shadow, 46 the opacity of its whole subtree,
+ *  47 a scale about its box centre, 48/49 a visual offset of it in x and y, and 50 the opacity of its background image.
+ *  `ui_open` copies the element's own floats,
+ *  applies the overrides of its id and declares from the copy, so the style's literal is what it falls back to (a track
+ *  that settles on the style's own value leaves the frame identical). Out of range, or past 64 a frame, is counted as an
+ *  error and dropped. Width, height, padding, gap and the colours are Clay's layout and its fill: they are legal but a
+ *  moving one re-lays-out its parent's box, so an offset, a blur or the group is what reads as motion. */
 void ui_value(const char *id, int len, int field, float value)
 {
     // ponytail: 64 overrides a frame (a page animating a dozen elements needs that many); more needs a bigger table
-    if (field < 0 || field > FIELD_SCALE || value_count == MAX_VALUES) {
+    if (field < 0 || field > FIELD_GRADIENT_ALPHA || value_count == MAX_VALUES) {
         errors++;
         return;
     }
@@ -299,7 +306,8 @@ void ui_open(const char *id, int len, const float *style)
     const float *f = style;
     float shadow_blur = -1;
     int alpha = 255, grouped = 0;
-    float scale = 1;
+    float scale = 1, tx = 0, ty = 0;
+    float gradient_alpha = 255;
     if (id && value_count) {
         int mine = 0;
         for (int i = 0; i < value_count; i++) mine += values[i].id == eid.id;
@@ -311,6 +319,9 @@ void ui_open(const char *id, int len, const float *style)
                 // the group fields are not floats of the style: they go to the renderer's table, as the shadow's blur
                 else if (values[i].field == FIELD_ALPHA) alpha = (int)(values[i].value + 0.5f), grouped = 1;
                 else if (values[i].field == FIELD_SCALE) scale = values[i].value, grouped = 1;
+                else if (values[i].field == FIELD_TRANSLATE_X) tx = values[i].value, grouped = 1;
+                else if (values[i].field == FIELD_TRANSLATE_Y) ty = values[i].value, grouped = 1;
+                else if (values[i].field == FIELD_GRADIENT_ALPHA) gradient_alpha = values[i].value;
                 else over[values[i].field] = values[i].value;
             }
             f = over;
@@ -362,7 +373,7 @@ void ui_open(const char *id, int len, const float *style)
     if (has_pending_gradient) {
         if (id)
             Clay_ThorVG_SetBackgroundImage(&tvg, eid.id, pending_gradient.kind, pending_gradient.angle,
-                                           pending_gradient.count, pending_gradient.stops);
+                                           pending_gradient.count, pending_gradient.stops, gradient_alpha);
         has_pending_gradient = 0;
     }
     if (id) Clay__OpenElementWithId(eid);
@@ -377,7 +388,7 @@ void ui_open(const char *id, int len, const float *style)
         tvg.tree[node].id = open->id;
         tvg.tree[node].parent = tvg.openDepth ? tvg.open[tvg.openDepth - 1] : -1;
         d.userData = (void *)(uintptr_t)(node + 1);
-        if (grouped) Clay_ThorVG_SetGroup(&tvg, node, alpha, scale);
+        if (grouped) Clay_ThorVG_SetGroup(&tvg, node, alpha, scale, tx, ty);
         // ponytail: CLAY_THORVG_MAX_DEPTH elements deep; a deeper page keeps the deepest parent it recorded
         if (tvg.openDepth < CLAY_THORVG_MAX_DEPTH) tvg.open[tvg.openDepth++] = node;
     } else errors++; // ponytail: CLAY_THORVG_MAX_TREE elements a frame; a deeper page needs a bigger tree
@@ -599,6 +610,16 @@ float ui_scroll_to(const char *id, int len, float y)
     const float lowest = -fmaxf(d.contentDimensions.height - d.scrollContainerDimensions.height, 0);
     d.scrollPosition->y = fminf(fmaxf(y, lowest), 0);
     return d.scrollPosition->y;
+}
+
+/** Puts a clip element's offset where the page says, with the content's clamp left out: a rubber band past an end is
+ *  past the content on purpose, and only the page knows how far. 0 when the element is no clip element. */
+float ui_scroll_put(const char *id, int len, float y)
+{
+    const Clay_ScrollContainerData d = Clay_GetScrollContainerData(Clay__HashString(slice(id, len), 0));
+    if (!d.found) return 0;
+    d.scrollPosition->y = y;
+    return y;
 }
 
 /** Drains the window's events into out[5]: pointer x, y, button down, quit, and the last key pressed (its

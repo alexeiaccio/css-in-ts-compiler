@@ -3,7 +3,7 @@
 // leaves stays mounted for its exit), the value channel's one call an element, and reduced motion. Plain bun, no Clay.
 import assert from "node:assert/strict";
 
-import { channel, decay, effect, presence, reduced, setReducedMotion, spatial, track } from "./src/motion.ts";
+import { BAND_C, channel, decay, effect, presence, reduced, rubber, setReducedMotion, spatial, track } from "./src/motion.ts";
 
 const close = (a: number, b: number, eps = 1e-9) => Math.abs(a - b) <= eps;
 const DT = 1 / 60;
@@ -217,4 +217,22 @@ const DT = 1 / 60;
   assert.deepEqual(q.update(false, DT), { mounted: true, closing: true }, "with the flag off the exit is back");
 }
 
-console.log("solid/motion.test.ts: the spring at any dt, a continuous retarget, the exact settle, spatial vs effect, the decay's projection, presence, a revive mid-exit, the channel, reduced motion");
+// --- the rubber band: Rune's and iOS's resistance f(x) = (1 - 1/(x·c/d + 1))·d — a slope of c at 0, always shorter
+// than the push, asymptotic to the viewport, and 0 for nothing (or with no viewport to measure against)
+{
+  const d = 664;
+  assert.ok(close(rubber(0, d), 0), "nothing past the end moves nothing");
+  assert.ok(close(rubber(1e-6, d) / 1e-6, BAND_C, 1e-4), "the first pixel moves by c (0.55)");
+  assert.ok(close(rubber(10, d), 5.4548, 1e-3), `a notch's 10px is ${rubber(10, d)}`);
+  assert.ok(close(rubber(40, d), 21.294, 1e-3), `the raw 40 is ${rubber(40, d)}`);
+  let last = 0;
+  for (let x = 1; x < 2000; x++) {
+    const y = rubber(x, d);
+    assert.ok(y > last && y < x, `x ${x}: ${y} is not between the last (${last}) and the push`);
+    last = y;
+  }
+  assert.ok(rubber(1e6, d) < d, "it never reaches the viewport");
+  assert.ok(close(rubber(-5, d), 0) && close(rubber(5, 0), 0), "behind the end, or with no viewport, there is no band");
+}
+
+console.log("solid/motion.test.ts: the spring at any dt, a continuous retarget, the exact settle, spatial vs effect, the decay's projection, the rubber band, presence, a revive mid-exit, the channel, reduced motion");

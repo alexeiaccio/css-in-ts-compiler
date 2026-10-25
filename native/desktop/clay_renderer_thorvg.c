@@ -6,9 +6,9 @@
 #include <thorvg_capi.h>
 
 // The frame's element tree and its groups. A group is one element's subtree drawn into a ThorVG scene of its own, so a
-// scene effect (opacity) and a scene transform (scale) reach everything in it — a text over its own fill, an image, a
-// gradient — which per-command alpha cannot. Clay's commands are in depth-first tree order, so a subtree's commands are
-// contiguous and a group is the range [first, last] of them.
+// scene effect (opacity) and a scene transform (scale and translate) reach everything in it — a text over its own fill,
+// an image, a gradient — which per-command alpha cannot. Clay's commands are in depth-first tree order, so a subtree's
+// commands are contiguous and a group is the range [first, last] of them.
 // ponytail: 1024 elements and 16 groups a frame, four groups open at once (a group in a group in ...); past that the
 // tree counts an error and a fifth open group is drawn ungrouped. A page bigger than the tree needs a table that grows.
 #define CLAY_THORVG_MAX_TREE 1024
@@ -54,6 +54,7 @@ typedef struct {
         int count;
         float offset[8];
         Clay_Color color[8];
+        int alpha; // 255: the gradient alone, as an opaque one; below it, composited over the box's solid fill
         bool drawn;
     } gradients[16];
     int gradientCount;
@@ -68,13 +69,16 @@ typedef struct {
     int treeCount;
     int32_t open[CLAY_THORVG_MAX_DEPTH];
     int openDepth;
-    // the frame's groups (the value channel's ALPHA and SCALE), one per element that has either: a scene around the
-    // element's whole subtree, composited at the alpha (tvg_paint_set_opacity, 0..255) and scaled about the centre of
-    // the element's box on the first command of the range (tvg_paint_set_transform: no layout, `ui_bounds` does not move)
+    // the frame's groups (the value channel's ALPHA, SCALE and TRANSLATE_X/Y), one per element that has one: a scene
+    // around the element's whole subtree, composited at the alpha (tvg_paint_set_opacity, 0..255), scaled about the
+    // centre of the element's box on the first command of the range and moved by the translate
+    // (tvg_paint_set_transform: no layout, `ui_bounds` does not move)
     struct {
-        int32_t at;  // the element's index in the tree
-        int alpha;   // 0..255; 255 is nothing, and no scene is made
-        float scale; // 1 is nothing
+        int32_t at;   // the element's index in the tree
+        int alpha;    // 0..255; 255 is nothing, and no scene is made
+        float scale;  // 1 is nothing
+        float tx;     // a visual offset of the subtree, px; 0 is nothing
+        float ty;
     } groups[CLAY_THORVG_MAX_GROUPS];
     int groupCount;
     bool cut; // this frame's one cut has happened (the first backdrop's first rectangle)
@@ -230,22 +234,25 @@ static float Clay_ThorVG_BackdropOf(Clay_ThorVGRendererData *d, uint32_t id)
 }
 
 /** Gives the element at that index of the frame's tree a group for the next draw (one a frame): its subtree as one scene
- *  at `alpha` (0..255) and `scale` about its box centre (1 = none). A renderer effect, as the shadow: the page writes it
- *  through the value channel (fields 46 and 47), and the command stream's userData is what finds the subtree again. */
-static void Clay_ThorVG_SetGroup(Clay_ThorVGRendererData *d, int at, int alpha, float scale)
+ *  at `alpha` (0..255), `scale` about its box centre (1 = none) and a `tx`/`ty` offset (px, 0 = none). Renderer effects,
+ *  as the shadow: the page writes them through the value channel (fields 46 to 49), and the command stream's userData is
+ *  what finds the subtree again. */
+static void Clay_ThorVG_SetGroup(Clay_ThorVGRendererData *d, int at, int alpha, float scale, float tx, float ty)
 {
     if (alpha < 0) alpha = 0;
     if (alpha > 255) alpha = 255;
     if (scale < 0.01f) scale = 0.01f;
     for (int i = 0; i < d->groupCount; i++)
         if (d->groups[i].at == at) {
-            d->groups[i].alpha = alpha, d->groups[i].scale = scale;
+            d->groups[i].alpha = alpha, d->groups[i].scale = scale, d->groups[i].tx = tx, d->groups[i].ty = ty;
             return;
         }
     if (d->groupCount == CLAY_THORVG_MAX_GROUPS) return; // ponytail: 16 groups a frame; more needs a table that grows
     d->groups[d->groupCount].at = at;
     d->groups[d->groupCount].alpha = alpha;
     d->groups[d->groupCount].scale = scale;
+    d->groups[d->groupCount].tx = tx;
+    d->groups[d->groupCount].ty = ty;
     d->groupCount++;
 }
 
@@ -255,6 +262,7 @@ typedef struct {
     int32_t start, end;
     int alpha;
     float scale;
+    float tx, ty;
     float cx, cy;
 } Clay_ThorVG_GroupSpan;
 
@@ -266,14 +274,16 @@ static bool Clay_ThorVG_Under(Clay_ThorVGRendererData *d, int32_t at, int32_t no
     return false;
 }
 
-/** Puts a group's scene into its parent scene with its opacity and its scale, around the range's box centre. ThorVG's
- *  matrix carries the translation in its third column (`x' = x·e11 + y·e12 + e13`; its third row is not used), so a
- *  scale about c is `scale` on the diagonal and `c·(1 - scale)` in e13/e23. */
+/** Puts a group's scene into its parent scene with its opacity, its scale around the range's box centre and its
+ *  translate. ThorVG's matrix carries the translation in its third column (`x' = x·e11 + y·e12 + e13`; its third row is
+ *  not used), so a scale about c is `scale` on the diagonal and `c·(1 - scale)` in e13/e23, and the subtree's own offset
+ *  is added after it: `x' = scale·(x - c) + c + tx`. */
 static void Clay_ThorVG_SettleGroup(const Clay_ThorVG_GroupSpan *g, Tvg_Paint scene)
 {
     if (g->alpha < 255) tvg_paint_set_opacity(scene, (uint8_t)g->alpha);
-    if (g->scale != 1) {
-        const Tvg_Matrix m = {g->scale, 0, g->cx * (1 - g->scale), 0, g->scale, g->cy * (1 - g->scale), 0, 0, 1};
+    if (g->scale != 1 || g->tx != 0 || g->ty != 0) {
+        const Tvg_Matrix m = {g->scale, 0, g->cx * (1 - g->scale) + g->tx, 0, g->scale,
+                              g->cy * (1 - g->scale) + g->ty, 0, 0, 1};
         tvg_paint_set_transform(scene, &m);
     }
 }
@@ -282,17 +292,20 @@ static void Clay_ThorVG_SettleGroup(const Clay_ThorVG_GroupSpan *g, Tvg_Paint sc
  *  the element's box instead of its solid background. `stops` is `count` rows of (offset 0..1, r, g, b, a). A renderer
  *  effect, as the shadow: no Clay field holds one, and the command stream's id is what finds it again. */
 static void Clay_ThorVG_SetBackgroundImage(Clay_ThorVGRendererData *d, uint32_t id, int kind, float angle, int count,
-                                           const float stops[][5])
+                                           const float stops[][5], int alpha)
 {
     // ponytail: 16 gradients a frame, 8 stops each, one an element; more needs a table that grows
     if (d->gradientCount == (int)(sizeof d->gradients / sizeof *d->gradients)) return;
     if (count < 2) return;
     if (count > 8) count = 8;
+    if (alpha < 0) alpha = 0;
+    if (alpha > 255) alpha = 255;
     int i = d->gradientCount++;
     d->gradients[i].id = id;
     d->gradients[i].kind = kind;
     d->gradients[i].angle = angle;
     d->gradients[i].count = count;
+    d->gradients[i].alpha = alpha;
     for (int k = 0; k < count; k++) {
         d->gradients[i].offset[k] = stops[k][0];
         d->gradients[i].color[k] = (Clay_Color){stops[k][1], stops[k][2], stops[k][3], stops[k][4]};
@@ -432,14 +445,16 @@ static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_Rend
     // last element that had one; it is emitted inside that element's subtree, so it cannot widen a group past it.
     const int32_t n = rcommands->length;
     // Each group's range: the commands whose element is the group's element or under it. A group with nothing animated
-    // (alpha 255 and scale 1) gets no range, so a settled page is drawn exactly as the literal makes it.
+    // (alpha 255, scale 1, no translate) gets no range, so a settled page is drawn exactly as the literal makes it.
     Clay_ThorVG_GroupSpan spans[CLAY_THORVG_MAX_GROUPS];
     int32_t spanAt[CLAY_THORVG_MAX_GROUPS];
     int spanCount = 0;
     for (int g = 0; g < d->groupCount; g++) {
-        if (d->groups[g].alpha >= 255 && d->groups[g].scale == 1) continue;
+        if (d->groups[g].alpha >= 255 && d->groups[g].scale == 1 && d->groups[g].tx == 0 && d->groups[g].ty == 0)
+            continue;
         spans[spanCount] = (Clay_ThorVG_GroupSpan){.start = n, .end = -1, .alpha = d->groups[g].alpha,
-                                                   .scale = d->groups[g].scale};
+                                                   .scale = d->groups[g].scale, .tx = d->groups[g].tx,
+                                                   .ty = d->groups[g].ty};
         spanAt[spanCount++] = d->groups[g].at;
     }
     int32_t last = -1;
@@ -559,7 +574,18 @@ static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_Rend
             int gradient;
             if (Clay_ThorVG_GradientOf(d, rcmd->id, &gradient)) {
                 d->gradients[gradient].drawn = true;
-                // ponytail: the solid background under a gradient is not drawn at all, not blended with it
+                const int alpha = d->gradients[gradient].alpha;
+                // an opaque gradient is the box's fill, as it always was. A fading one (a hover's) is composited over the
+                // element's own solid colour, so what is under it is the background the page is animating: a cross-fade
+                // between the two, and the solid is not drawn at 255 at all
+                if (alpha < 255) {
+                    Tvg_Paint under = tvg_shape_new();
+                    Clay_ThorVG_RoundRect(under, x, y, w, h, rad, rad);
+                    tvg_shape_set_fill_color(under, r->backgroundColor.r, r->backgroundColor.g, r->backgroundColor.b,
+                                             r->backgroundColor.a);
+                    tvg_scene_add(into, under);
+                    tvg_paint_set_opacity(s, (uint8_t)alpha);
+                }
                 Clay_ThorVG_FillGradient(s, d->gradients[gradient].angle, d->gradients[gradient].count,
                                          d->gradients[gradient].offset, d->gradients[gradient].color, x, y, w, h);
             } else

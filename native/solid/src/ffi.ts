@@ -39,6 +39,7 @@ const { symbols: s } = dlopen(new URL("../../build/solid/libui.dylib", import.me
   ui_bounds: { args: [T.ptr, T.i32, T.ptr], returns: T.i32 },
   ui_scroll_offset: { args: [T.ptr, T.i32], returns: T.f32 },
   ui_scroll_to: { args: [T.ptr, T.i32, T.f32], returns: T.f32 },
+  ui_scroll_put: { args: [T.ptr, T.i32, T.f32], returns: T.f32 },
 });
 
 const cstr = (x: string) => Buffer.from(`${x}\0`);
@@ -61,8 +62,9 @@ export const ui = {
   over: (id: Uint8Array) => s.ui_pointer_over(ptr(id), id.length) !== 0,
   open: (id: Uint8Array | undefined, style: Float32Array) => s.ui_open(id ? ptr(id) : null, id?.length ?? 0, ptr(style)),
   /** An override of one number of that element's style for this frame only: a packed field 0..44 (`FIELDS` in pack.ts),
-   *  or 45 for its shadow's blur. The next `open` declares from a copy with the overrides applied, so a value that is
-   *  the style's own leaves the frame as the literal made it. Called from a page's `View.tick`, before the tree. */
+   *  45 for its shadow's blur, 46/47/48/49 for its whole subtree's opacity, scale and translate, 50 for the opacity of
+   *  its background image. The next `open` declares from a copy with the overrides applied, so a value that is the
+   *  style's own leaves the frame as the literal made it. Called from a page's `View.tick`, before the tree. */
   value: (id: Uint8Array, field: number, v: number) => s.ui_value(ptr(id), id.length, field, v),
   /** The image of the element the next `open` declares (a css.image style): the path UTF-8, no terminator. */
   image: (path: Uint8Array) => s.ui_image(ptr(path), path.length),
@@ -111,6 +113,11 @@ export const ui = {
   scrollTo: (id: string, y: number) => {
     const bytes = Buffer.from(id);
     return s.ui_scroll_to(ptr(bytes), bytes.length, y);
+  },
+  /** Puts a clip element's offset where the page says, past its content too: a rubber band's overscroll. */
+  scrollPut: (id: string, y: number) => {
+    const bytes = Buffer.from(id);
+    return s.ui_scroll_put(ptr(bytes), bytes.length, y);
   },
   /** x, y, width, height of the element in the last layout, or undefined. */
   bounds: (id: Uint8Array) => {
