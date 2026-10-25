@@ -174,7 +174,7 @@
   "dependencies": {
     "@cssints/css-grammar": "workspace:*",
     "culori": "^4.0.2",
-    "effect": "4.0.0",
+    "effect": "4.0.6",
     "happy-dom": "^20.14.5",
     "lightningcss": "^1.32.0",
     "magic-string": "^0.30.0",

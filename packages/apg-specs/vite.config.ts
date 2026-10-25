@@ -30,6 +30,9 @@ export default defineConfig({
   test: {
     include: ["test/**/*.test.ts"],
     environment: "node",
-    testTimeout: 120_000,
+    // A bounded exploration is a CPU-bound walk of the model and runs beside the eight other tasks of `vp run -r test`
+    // (cssints, css-grammar, the apps' Chromium suites): at 120 s the same file measured 32 s alone and timed out in the
+    // full run, so the ceiling is generous and the quiet-machine cost is unchanged.
+    testTimeout: 300_000,
   },
 });

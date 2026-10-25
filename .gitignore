@@ -8,22 +8,8 @@ dist
 # the publishable copy of a package (scripts/stage.mjs)
 .publish
 
-# The four publishable packages are consumed over git: their exports default to
-# dist (src is the `development` condition), so the built dist is tracked.
-!packages/cssints/dist/
-!packages/cssints/dist/**
-!packages/css-grammar/dist/
-!packages/css-grammar/dist/**
-!packages/icons/dist/
-!packages/icons/dist/**
-!packages/mise-en-mode/dist/
-!packages/mise-en-mode/dist/**
-# the apps (demo, csssky, docs) call reset(): CI builds them without building the package first
-!packages/reset/dist/
-!packages/reset/dist/**
-# the docs site's overlay: CI deploys it without a build
-!packages/devtools/dist/
-!packages/devtools/dist/**
+# No package's dist/ is tracked: it is built (bun run build:packages) before anything bundles a package,
+# by the docs deploy and by the release, and it is what the packages publish.
 
 # code coverage
 coverage

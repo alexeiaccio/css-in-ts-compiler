@@ -7,7 +7,7 @@
 // the repository (exactly the URL of the trusted publisher) and the access are set; every file that `exports` and `bin`
 // name exists; a sibling's range is met by the sibling's version; the tarball holds only dist/, docs/, skills/,
 // README, LICENSE, THIRD_PARTY_NOTICES.md and package.json (and src/core when `files` names it, and the data of
-// `shippedData`), never a test or a fixture. Over the whole repository: the tracked dist/ folders equal a fresh build.
+// `shippedData`), never a test or a fixture. dist/ is not tracked, so it is the build made just before this run.
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -91,12 +91,6 @@ for (const dir of packageDirs) {
   );
   staged.push({ published, dest });
 }
-
-const stale = run("git", ["status", "--porcelain", "--", ":(glob)packages/*/dist/**"], root).trim();
-if (stale)
-  problems.push(
-    `the tracked dist/ differs from a fresh build (bun run build:packages, then commit the change on master):\n${stale}`,
-  );
 
 if (!problems.length && process.argv.includes("--install")) {
   // The tarballs install together into a project of their own; the siblings are not on the registry yet, so each

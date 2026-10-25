@@ -145,11 +145,11 @@
     "@effect/platform-node": "4.0.0",
     "@informalsystems/quint": "0.32.0",
     "@typeonce/effect-machine": "0.40.0",
-    "effect": "4.0.0",
+    "effect": "4.0.6",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
-    "effect": "^4.0.0"
+    "effect": "^4.0.6"
   },
   "engines": {
     "node": ">=22"

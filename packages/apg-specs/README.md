@@ -32,7 +32,7 @@ Run in `packages/apg-specs`:
 - `bun run generate:all [specs/apg/tabs.qnt ...]` — regenerate artifacts (`node scripts/generate-all.ts`). Each generated file carries the sha256 of its spec; edit a spec, then regenerate. The formatter skips the generated files (`.prettierignore`).
 - `bun run typecheck:quint` — Quint's own typechecker over every spec (~90 s).
 - `bun run test` — spec-only verification (`vp test run`). The exhaustive explorations (player, camera) take a minute each and can time out on a loaded machine; run them alone before calling a failure real.
-- `bun run typecheck` — `tsc-rs` over `src`, `test` and `scripts`.
+- `bun run typecheck` — `effect-tsrs` over `src`, `test` and `scripts`.
 - `bun run check` — all of the above, in order.
 - `bun run build` — `vp pack`: `dist/` (the runner and the bridges as ESM with `.d.mts`, the generated models as `.json`).
 

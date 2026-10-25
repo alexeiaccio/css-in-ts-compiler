@@ -128,7 +128,7 @@ Left to the host: pane bounds in pixels (percent only), nested groups, and F6 (w
 ```sh
 cd packages/headless
 bun run test       # vp test run: vitest browser mode, real Chromium (playwright; needs the browser installed: bunx playwright install chromium)
-bun run typecheck  # tsc-rs
+bun run typecheck  # effect-tsrs
 bun run build      # vp pack: dist/ (ESM and declarations; solid-js is a peer)
 ```
 

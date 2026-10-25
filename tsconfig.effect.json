@@ -1,8 +1,9 @@
 {
   "$schema": "./node_modules/@effect/tsgo/schema.json",
-  // Shared by the packages with Effect code (cssints, css-grammar, icons): every Effect language service diagnostic as an
-  // error (the off-by-default ones and the suggestions too), the rest left off for the reasons below. `bun run typecheck`
-  // runs them through `tsc-rs` (scripts/typecheck.mjs), the Rust port of tsc 7 with these diagnostics built in.
+  // Shared by the packages with Effect code (cssints, css-grammar, icons, mcp, and the plugin packages): every Effect
+  // diagnostic of the 0.56 rule set as an error (the off-by-default ones and the suggestions too), the rest left off for
+  // the reasons below. `bun run typecheck` runs them through `effect-tsrs` (scripts/typecheck.mjs), the Rust port of the
+  // Effect language service on `tsrs`, the Rust port of tsc 7.
   "compilerOptions": {
     "customConditions": ["development"],
     "plugins": [
@@ -12,22 +13,26 @@
         // @opencode/client (the devtools' OpenCode prompt box, an optional peer of cssints) pins effect 4.0.0-rc.112 for its own
         // schemas; its Promise client shares no value with ours
         "allowedDuplicatedPackages": ["effect"],
+        // effect/ai and effect/http in @cssints/mcp (see unstableApiUsage below): permitted by module, so any other
+        // unstable API is still reported
+        "allowedUnstableApis": ["effect/ai", "effect/http"],
         "diagnosticSeverity": {
           "abortControllerInEffect": "error",
           "acquireReleaseDisposable": "error",
           "allOfMapToForEach": "error",
-          // tsc-rs 0.7.0 reports TS2590 (no file, no position) while running this rule: it walks the error types of every
-          // Effect, and over the recognizer's unions and the variadic-property types (css-grammar/src/api-typed.ts,
-          // cssints/test/types/errors.ts) that walk ends in a union too complex to represent. @effect/tsgo 0.48.0 and
-          // 0.51.1 report nothing with the same config, so it is a port bug; a per-file override did not silence it. Off
-          // until a tsc-rs release fixes it (nothing in the repo has an `any` in an error channel today).
-          "anyUnknownInErrorContext": "off",
+          "anyUnknownInErrorContext": "error",
+          // 8 reports, all @cssints/mcp: its `tools` and `layer` exports carry effect/ai's own types (Tool, Toolkit,
+          // McpServer), which the 0.56 rule set calls unstable; the package is a thin wrapper over effect/ai and those
+          // types are its contract by design (see allowedUnstableApis below).
+          "apiStabilityLeak": "off",
           "asyncFunction": "error",
           "catchAllTagDispatchToCatchTag": "error",
           "catchAllToMapError": "error",
           "catchChainToFirstSuccessOf": "error",
           "catchConditionalRefailToCatchIf": "error",
           "catchDieToOrDie": "error",
+          "catchIfTagToCatchTag": "error",
+          "catchRefailToTapError": "error",
           "catchTagToCatchReason": "error",
           "catchToIgnore": "error",
           "catchToOrElseSucceed": "error",
@@ -46,15 +51,16 @@
           "effectInVoidSuccess": "error",
           "effectMapFlatten": "error",
           "effectMapVoid": "error",
+          "effectSleepZeroToYieldNow": "error",
           "effectSucceedWithVoid": "error",
+          "errorPayloadShadowsName": "error",
+          // 0 reports with the 0.56 rule set: on.
+          "experimentalApiUsage": "error",
           "extendsNativeError": "error",
-          // 53 reports, all in @cssints/mcp: effect/http and effect/ai are unstable APIs in effect 4; the repo's stance on
-          // them is not decided yet, and these two rules arrive with the 0.51.1 rule set that tsc-rs ports (the 0.48.0 one
-          // has neither). `tsc-rs` also counts a warning as a failure (upstream exits 0), so a warning would turn the
-          // typecheck red. Decide with the policy, then allow effect/http and effect/ai or fix the calls.
-          "experimentalApiUsage": "off",
           "flatMapConditionalToFilterOrFail": "error",
+          "flatMapIgnoredParamToAndThen": "error",
           "flatMapToMap": "error",
+          "flatMapToTap": "error",
           "floatingEffect": "error",
           "floatingEffectInVitest": "error",
           "genericEffectServices": "error",
@@ -100,7 +106,19 @@
           "optionMatchToFromOption": "error",
           "outdatedApi": "error",
           "overriddenSchemaConstructor": "error",
+          "preferBarrelImport": "error",
+          // 1034 reports: the engine's hot paths, the twin's lexer and the class walk use native array methods; the Effect
+          // equivalents return Effect values and would turn plain code into effects.
+          "preferEffectArray": "off",
+          // 193 reports, same reason as preferEffectArray: a record is read in plain code, not inside an Effect.
+          "preferEffectRecord": "off",
+          // 570 reports, same reason as preferEffectArray: String methods on plain strings.
+          "preferEffectString": "off",
+          "preferNamespaceImport": "error",
           "preferSchemaOverJson": "error",
+          // 15 reports: AGENTS.md mandates `Data.TaggedError` for the engine's errors; Schema.TaggedError would add a
+          // schema to each error and nothing decodes them.
+          "preferSchemaTaggedError": "off",
           "preferSchemaTypeProperty": "error",
           "preferSucceedSomeOrNone": "error",
           "preferTypedSchemaDecoder": "error",
@@ -116,6 +134,8 @@
           "returnEffectInGen": "error",
           "runEffectInsideEffect": "error",
           "runOfExitToRunExit": "error",
+          "schemaClassMissingBrand": "error",
+          "schemaClassObjectLiteral": "error",
           "schemaLiteralNonFinite": "error",
           "schemaNumber": "error",
           "schemaOpaqueInstanceMember": "error",
@@ -138,9 +158,11 @@
           "unnecessaryPipe": "error",
           "unnecessaryPipeChain": "error",
           "unnecessaryTypeofType": "error",
-          // see experimentalApiUsage above
-          "unstableApiUsage": "off",
-          "unsafeEffectTypeAssertion": "error"
+          "unsafeEffectTypeAssertion": "error",
+          // 53 reports, all in @cssints/mcp: effect/ai and effect/http are unstable APIs in effect 4 and the package's
+          // whole surface is built on them, so allowedUnstableApis below permits those two modules and every other
+          // unstable API stays an error.
+          "unstableApiUsage": "error"
         },
         "overrides": [
           {

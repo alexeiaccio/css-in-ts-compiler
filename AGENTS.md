@@ -45,6 +45,10 @@ docs/wayfinder.md      decisions and findings log (start here); docs/API.md the 
 docs/research/         comparisons with other libraries; docs/archive/ outdated plans
 ```
 
+No package's `dist/` is in git: `bun run build:packages` builds the 27 packages, and everything that bundles one
+(the docs deploy, `bun run release:check`, an app's production build) runs it first; development resolves the sources
+through the `development` export condition.
+
 ## Commands
 
 ```bash
@@ -67,7 +71,7 @@ cd packages/cssints && node test/trace.mjs   # CSSINTS_TRACE=otlp against an in-
 cd packages/cssints && node bench/lsp.mjs     # editor latency on the demo's Button.tsx over tsgo's language server
 cd packages/cssints && bun run members        # regenerate src/members.ts (the names of "cssints" in user code)
 cd packages/cssints && bun run groups         # regenerate src/groups/<id>.ts and src/groups-data.ts (cssints/widely-available, cssints/css-grid-2, ...: web-features, @webref/css 6, BCD); then bun run build
-bun run typecheck                             # per package: node ../../scripts/typecheck.mjs (tsc-rs: tsc 7 and the Effect diagnostics in one pass, tsconfig.effect.json); the apps also run tsc 5.9
+bun run typecheck                             # per package: node ../../scripts/typecheck.mjs (effect-tsrs: tsc 7 and the Effect diagnostics in one pass, tsconfig.effect.json); the apps also run tsc 5.9
 bun run diff:check                            # the lines added since master, linted by the anti-slop rules, plus key-file changes (bun.lock, vite.config.ts, ...); exit 1 on a warning
 cd packages/tui && bun run test               # the system theme (node test/system.ts), cssints/tui through the plugin (node --conditions=development test/tui.mjs), the OpenTUI adapter under Bun (test/render.ts), the bomb.sh adapter (node test/bomb.ts)
 cd tools/ai-automation && bun run test        # the rule tests and the diff-check tests (vp test run)
@@ -169,22 +173,27 @@ Other deps:
 
 ### Typechecking Effect code
 
-Every package with Effect code has a `typecheck` script that runs one compiler, `tsc-rs` ([ts-rust](https://github.com/pingdotgg/ts-rust), a Rust port of tsc 7) with the Effect language service diagnostics built in:
+Every workspace has a `typecheck` script that runs one compiler, `effect-tsrs`
+([yielded-dev/effect-tsrs](https://github.com/yielded-dev/effect-tsrs)): the Effect language service diagnostics on
+[tsrs](https://github.com/oxc-project/tsrs), a Rust port of tsc 7:
 
 ```bash
 bun run typecheck    # all packages; per package: node ../../scripts/typecheck.mjs
-                     #   runs `tsc-rs -p tsconfig.json --noEmit`
+                     #   runs `effect-tsrs diagnostics --project tsconfig.json`
 ```
 
-The TypeScript and Effect checks are one pass, not two: `tsgo` plus `effect-tsgo diagnostics` took 46 s across the 30
-workspaces, `tsc-rs` 7 s, with the same diagnostics. `scripts/typecheck.mjs` prints everything and fails on errors only,
-because `tsc-rs` 0.7.0 fails the run on a warning (`tsc` and `effect-tsgo` exit 0) and the docs app type-checks the
-engine's sources, whose `@effect-diagnostics` directives have no effect under the app's defaults.
+The TypeScript and Effect checks are one pass, not two: `tsgo` plus `effect-tsgo diagnostics` took 46 s across the then 30
+workspaces, the current 32 take 15 s summed (cssints's 188 files: 1.3 s), 24 s for the full `bun run typecheck`, the rest
+being the tsc 5.9 pass of the four apps and the two token checks. `effect-tsrs` exits 1 on errors only, so
+`scripts/typecheck.mjs` is a pass-through: the docs app type-checks the engine's sources under its own defaults, where
+three `@effect-diagnostics` directives have no effect, and those three warnings are printed and not fatal, as under `tsc`.
 
-`tsc-rs` reads the same plugin entry as `@effect/language-service`, so the rule set of `tsconfig.effect.json` (every
-diagnostic an error, the reasons for the off ones beside them) is unchanged. `anyUnknownInErrorContext` is off there:
-`tsc-rs` reports TS2590 (no file, no position) running it over the recognizer's unions, where `@effect/tsgo` 0.48.0 and
-0.51.1 are clean, so it is a port bug to revisit with a tsc-rs release.
+It reads the same plugin entry as `@effect/language-service`, so `tsconfig.effect.json` keeps its shape: every diagnostic
+of the 0.56 rule set an error (the off-by-default ones and the suggestions too), the reasons for the off ones beside them.
+The port is why three of them are on now: `anyUnknownInErrorContext` (tsc-rs answered TS2590, no file, no position),
+`experimentalApiUsage` (0 reports) and `unstableApiUsage` (53 uses of effect/ai and effect/http in `@cssints/mcp`, permitted
+by module through `allowedUnstableApis`). tsc-rs 0.7.0 and 0.8.0 also report a TS2790 false positive on
+`packages/cssints/src/clay.ts` (a `delete` on `Shape`, an index signature) that neither tsrs nor TypeScript 5.9 reports.
 
 `@effect/tsgo` stays in devDependencies for the editor: `effect-tsgo patch --typescript` (root `prepare`, runs on `bun
 install`) patches the native TypeScript 7 package, and that alias takes over `node_modules/.bin/tsc`, so the places that
@@ -457,7 +466,7 @@ const camel = (p: string) => p.replace(/-([a-z])/g, (_, c: string) => c.toUpperC
 
 ### Testing
 
-Tests are plain `node` scripts with `node:assert`, run through `bun run test` (`vp run -r test`); there is no test runner, except in tools/ai-automation, packages/apg-specs and packages/headless (vitest, `vp test run`). A fixture in `packages/cssints/test/fixtures` is a module the plugin transforms (`node run.mjs fixtures/x.ts` prints its code and css). A type test is a file that `tsc-rs` checks, with `@ts-expect-error` for what must fail (`packages/cssints/test/types/`, `packages/css-grammar/test/`). The doc test is `packages/cssints/test/docs.mjs`.
+Tests are plain `node` scripts with `node:assert`, run through `bun run test` (`vp run -r test`); there is no test runner, except in tools/ai-automation, packages/apg-specs and packages/headless (vitest, `vp test run`). A fixture in `packages/cssints/test/fixtures` is a module the plugin transforms (`node run.mjs fixtures/x.ts` prints its code and css). A type test is a file that `effect-tsrs` checks, with `@ts-expect-error` for what must fail (`packages/cssints/test/types/`, `packages/css-grammar/test/`). The doc test is `packages/cssints/test/docs.mjs`.
 
 ### File Structure
 
