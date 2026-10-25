@@ -9,8 +9,11 @@ import {
   createDialogModal,
   createMenu,
 } from "../../headless/src/index.ts";
-import type { Input } from "../src/input.ts";
 import { a11y } from "../a11y.ts";
+import { ui } from "../src/ffi.ts";
+import type { Input } from "../src/input.ts";
+import { channel, effect, presence, spatial, track } from "../src/motion.ts";
+import { FIELDS } from "../src/pack.ts";
 
 const t = css.createTokens({
   color: {
@@ -26,6 +29,8 @@ const t = css.createTokens({
     active: { $value: "rgb(64 70 90)" },
     ring: { $value: "rgb(90 170 255)" },
     shadow: { $value: "rgb(8 10 14)" },
+    // the menu's glass: a fill the blurred page shows through (css.backdrop)
+    glass: { $value: "rgb(23 27 32 / 0.72)" },
   },
 });
 css.createGlobalTheme(t, "light", {
@@ -41,6 +46,7 @@ css.createGlobalTheme(t, "light", {
     active: "rgb(216 221 231)",
     ring: "rgb(20 100 220)",
     shadow: "rgb(60 64 78)",
+    glass: "rgb(255 255 255 / 0.78)",
   },
 });
 const font = css.fonts("Roboto");
@@ -100,6 +106,7 @@ const backdrop = css.cn(
   css.float({ root: true, attach: { element: "left top", parent: "left top" }, zIndex: 1, capture: true }),
 );
 // the dialog: a root float centred on the page, above the backdrop
+const panelBlur = 32;
 const panel = css.cn(
   css.width(280),
   css.p(18),
@@ -108,6 +115,7 @@ const panel = css.cn(
   css.bg(t.color.surface),
   css.borderRadius(12),
   css.border(1, t.color.muted),
+  css.shadow({ y: 12, blur: panelBlur, color: "rgb(0 0 0 / 0.45)" }),
   css.float({
     root: true,
     attach: { element: "center center", parent: "center center" },
@@ -118,22 +126,30 @@ const panel = css.cn(
 const dialogTitle = css.cn(font.Roboto, css.color(t.color.ink), css.fontSize(20));
 const actions = css.cn(css.width("stretch"), css.gap(10));
 
-// the menu: a float attached to its trigger's left-bottom corner, one row per item
-const menuPanel = css.cn(
+// the menu: a float attached to its trigger's left-bottom corner, one row per item. It overlaps the trigger by 20px so
+// there is a border and a text stroke under the glass, and its fill is translucent for the blur to show through.
+const menuDrop = -20; // its float's offset y: it overlaps the trigger's bottom edge by 20px
+const menuBlur = 14; // its shadow's blur
+const menu = css.cn(
   css.width(150),
   css.p(6),
   css.gap(2),
   css.flexDirection("column"),
-  css.bg(t.color.surface),
+  css.bg(t.color.glass),
   css.borderRadius(10),
   css.border(1, t.color.muted),
+  // a smaller shadow than the dialog's: it hangs off a row, not over the whole page; under the glass, on the page
+  css.shadow({ y: 6, blur: menuBlur, color: "rgb(0 0 0 / 0.45)" }),
   css.float({
     parent: "zoom-trigger",
     attach: { element: "left top", parent: "left bottom" },
-    offset: { y: 4 },
+    offset: { y: menuDrop },
     zIndex: 10,
   }),
 );
+// the glass: the page under the menu, blurred (the desktop's renderer reads it from its own frame); the same style
+// without it is what the test renders to see what the blur does
+const menuPanel = css.cn(menu, css.backdrop({ blur: 10 }));
 const item = css.cn(
   css.width("stretch"),
   css.p(5, 8),
@@ -162,6 +178,7 @@ export const s = {
   panel,
   dialogTitle,
   actions,
+  menu,
   menuPanel,
   item,
   dot,
@@ -170,18 +187,137 @@ export const s = {
 /** The window of the page. */
 export const size = { width: 360, height: 480 };
 
+// The two overlays arrive and leave with motion (src/motion.ts) through the value channel: each frame the page overrides
+// numbers of the packed style by the element's id (`ui.value`) — its float's offset y, its shadow's blur (field 45, the
+// one value outside the 45 floats) and, for the backdrop, the alpha of its dim (field 17) — so a settled frame is the
+// frame the literal makes, pixel for pixel. A node that leaves stays mounted while its exit runs (`presence`), and while
+// it fades it passes the press through, so the page under it is reachable the moment it closes.
+const SLIDE = spatial(0.22, 0.1); // a light bounce: the overlay grows out of its trigger, it does not fly in
+const BLUR = effect(0.22); // a blur has no negative side and must not ring: clamped and critically damped
+const OUT_SLIDE = spatial(0.2, 0); // the exit: no bounce, a node on its way out may not overshoot where it came from
+const OUT = effect(0.2); // ... and its blur and the dim: a luminance field goes out quietly, clamped
+// the group: the panel and the menu fade and grow as one subtree (`FIELDS.ALPHA`/`SCALE`). The scale is a percentage of
+// the element's box, not a fraction: a track's settle rule is 0.5 of its own unit, so 0.96..1 would settle on its first
+// sample — 96..100 settles at 99.5, a 0.5% snap nobody sees. The entry may carry a little velocity (spatial), the exit
+// must not overshoot; the opacity is an effect, as every luminance field here. It fades from ENTRY_FADE, not from 0: a
+// panel at half opacity over the page's own text double-exposes, and the dim behind is doing the darkening — a nearly
+// opaque arrival reads as a fade without the ghost of the page showing through the panel's own glyphs.
+const GROW = spatial(0.22, 0.1);
+const SHRINK = spatial(0.2, 0);
+const ENTRY_SCALE = 96; // percent: the panel and the menu start 4% small
+const ENTRY_FADE = 225; // of 255: the group starts at 88% opacity: a fade that does not double-expose the page under the panel
+// where each arrival starts and where each exit goes, in px from the settled offset y: the menu 10px lower (under its
+// trigger) on the way in and 10px lower on the way out, the panel 14px higher in and 14px lower out, and both shadows
+// from 0 in and to 0 out
+const ENTRY = { menu: 10, panel: -14 };
+const EXIT = { menu: 10, panel: 14 };
+// presence: as long as the tracks above take to settle exactly (the 32px effect falls under the 0.5px/s settle rule at
+// its twenty-first frame, 0.333s), so the last frame an exiting node is on screen is the literal and nothing is cut off
+const EXIT_SECONDS = 0.35;
+// the backdrop's dim: `rgb(0 0 0 / 0.55)`, whose alpha cssints packs as 140 (0..255)
+const DIM = Math.round(0.55 * 255);
+// the page's own clock, and its writes into the value channel: one call per element a frame
+const write = channel((id, field, value) => ui.value(id, field, value));
+
+/**
+ * One overlay's numbers: the settled offset y of its float (the style's literal), the deltas it comes in and goes out
+ * by, the settled blur of its shadow, and — the backdrop's only — the alpha of its dim. The presence decides whether it
+ * is in the tree, the tracks what it looks like, and both are the page's because a track's clock is. An overlay with no
+ * dim is a group: its whole subtree fades (`fade`, 0..255) and scales (`scale`, percent) about its box.
+ */
+function overlay(id: string, rest: number, entry: number, exit: number, blur = -1, dim = -1) {
+  return {
+    id: Buffer.from(id),
+    rest,
+    entry,
+    exit,
+    blur,
+    dim,
+    group: dim < 0, // the panel and the menu: the backdrop dims through its own fill instead
+    present: presence(false, EXIT_SECONDS),
+    mounted: false, // the frame before, for the edges
+    open: false, // ... and whether it was open, so a target that moved is the one that is retargeted
+    clock: 0,
+    y: track(rest, SLIDE),
+    shade: track(0, BLUR),
+    alpha: track(dim < 0 ? 0 : dim, OUT),
+    fade: track(0, OUT),
+    scale: track(ENTRY_SCALE, GROW),
+  };
+}
+type Overlay = ReturnType<typeof overlay>;
+
+/**
+ * One frame of an overlay: the presence decides whether it is mounted (and whether it is closing), the tracks follow
+ * `open`, and the numbers go into the value channel. A fresh arrival starts at the entry values — the reset the style's
+ * own literal cannot do — and a target that moves (the node closing, or coming back mid-exit) is retargeted from what is
+ * presented, so nothing jumps and nothing starts over. The clock runs only while the node is mounted, so it is the time
+ * of the last presented frame: the frame an overlay appears on shows its entry exactly, as the frame it settles on shows
+ * the literal.
+ */
+function step(o: Overlay, open: boolean, dt: number) {
+  const before = o.mounted;
+  const { mounted, closing } = o.present.update(open, dt);
+  o.mounted = mounted;
+  if (!mounted) return;
+  const y = open ? o.rest : o.rest + o.exit;
+  const blur = open ? o.blur : 0;
+  const dim = open ? o.dim : 0;
+  if (!before) {
+    o.y = track(o.rest + o.entry, SLIDE, o.clock);
+    o.shade = track(0, BLUR, o.clock);
+    if (o.dim >= 0) o.alpha = track(0, OUT, o.clock); // the dim itself fades in: the page darkens under the panel
+    o.y.retarget(o.clock, y, SLIDE);
+    if (o.blur >= 0) o.shade.retarget(o.clock, blur, BLUR);
+    if (o.dim >= 0) o.alpha.retarget(o.clock, dim, OUT);
+    // a group arrives nearly opaque and 4% small, on the same frame as the offset it starts from
+    if (o.group) {
+      o.fade = track(ENTRY_FADE, OUT, o.clock);
+      o.scale = track(ENTRY_SCALE, GROW, o.clock);
+      o.fade.retarget(o.clock, 255, OUT);
+      o.scale.retarget(o.clock, 100, GROW);
+    }
+  } else {
+    o.clock += dt; // a shown frame is one dt after the one before it
+    // the target moved: on its way out, or back in mid-exit — from the presented (x, v), never from the entry
+    if (open !== o.open) {
+      o.y.retarget(o.clock, y, open ? SLIDE : OUT_SLIDE);
+      if (o.blur >= 0) o.shade.retarget(o.clock, blur, open ? BLUR : OUT);
+      if (o.dim >= 0) o.alpha.retarget(o.clock, dim, OUT);
+      if (o.group) {
+        o.fade.retarget(o.clock, open ? 255 : 0, OUT);
+        o.scale.retarget(o.clock, open ? 100 : ENTRY_SCALE, open ? GROW : SHRINK);
+      }
+    }
+  }
+  o.open = open;
+  const fields: [number, Track | number][] = [[FIELDS.OFFSET_Y, o.y]];
+  if (o.blur >= 0) fields.push([FIELDS.SHADOW_BLUR, o.shade]);
+  if (o.dim >= 0) fields.push([FIELDS.BACKGROUND_ALPHA, o.alpha]);
+  // the group: the page's own track is percent, the renderer wants 1 = none
+  if (o.group) fields.push([FIELDS.ALPHA, o.fade], [FIELDS.SCALE, o.scale.at(o.clock).x / 100]);
+  // a closing overlay takes no press: the pointer reaches the page under it while it fades
+  if (closing) fields.push([FIELDS.CAPTURE, 1]);
+  write(o.id, o.clock, ...fields);
+}
+
 const ZOOMS = ["100%", "125%", "150%", "200%"];
 
 /**
  * The settings screen. The dialog's Open button is the page's own button: while the dialog is open the backdrop takes
  * every press and `input.modal` every key, so the page behind is unreachable. OK writes 55% onto the page, Cancel and
- * Escape close without writing. The menu reports the zoom it last picked next to its trigger.
+ * Escape close without writing. The menu reports the zoom it last picked next to its trigger; its panel is glass over
+ * the page, unless `glass` is false (what the pixel test renders to compare the blur against the same page without it).
+ * `motion` is the host's frame hook (`solid/main.ts` wires it): the menu and the dialog animate through it.
  */
-export function Dialog(props: { input: Input }) {
+export function Dialog(props: { input: Input; glass?: boolean; motion?: { tick?: (dt: number) => void } }) {
   const { input } = props;
   const [volume, setVolume] = createSignal(40);
   const [changed, setChanged] = createSignal(false);
   const [zoom, setZoom] = createSignal(0);
+  // what is in the tree: the overlays' presence, one signal each, set by the tick (before flush, so in this frame)
+  const [menuShown, setMenuShown] = createSignal(false);
+  const [dialogShown, setDialogShown] = createSignal(false);
 
   const dialog = createDialogModal({ id: "settings", focus: input.focus, labelledby: "settings-title" });
   const cancel = createButton({ id: "cancel", onClick: () => dialog.close() });
@@ -210,8 +346,27 @@ export function Dialog(props: { input: Input }) {
     items: ZOOMS.map((_label, index) => input.bind(menu.item(index))),
   };
 
-  // the modal trap: tab cycles the dialog's controls, Escape closes it; other keys go to the focused control
+  // the modal trap: tab cycles the dialog's controls, Escape closes it; other keys go to the focused control. It is the
+  // open state that decides, so it is released on the frame that closes — not when the panel's exit is over and the node
+  // leaves the tree: a Tab right after Escape reaches the page's own controls while the panel is still fading.
   input.modal = (name, repeat) => dialog.open() && dialog.keyDown(name, repeat);
+
+  // the three overlays: the menu slides out of its trigger, the dialog drops in over a dim that goes out with it
+  const menuOverlay = overlay(menu.menu.id, menuDrop, ENTRY.menu, EXIT.menu, menuBlur);
+  const panelOverlay = overlay(dialog.dialog.id, 0, ENTRY.panel, EXIT.panel, panelBlur);
+  const dimOverlay = overlay(dialog.backdrop.id, 0, 0, 0, -1, DIM);
+  if (props.motion)
+    props.motion.tick = (dt) => {
+      step(menuOverlay, menu.open(), dt);
+      step(panelOverlay, dialog.open(), dt);
+      step(dimOverlay, dialog.open(), dt);
+      setMenuShown(menuOverlay.mounted);
+      setDialogShown(panelOverlay.mounted);
+    };
+  // what the tree shows: the presence's answer when the host ticks the page, the open state itself when it does not (the
+  // accessibility test builds the page without a frame hook, and a page with no motion has nothing to wait for)
+  const menuIn = () => (props.motion ? menuShown() : menu.open());
+  const dialogIn = () => (props.motion ? dialogShown() : dialog.open());
 
   return (
     <box id="Root" style={s.root}>
@@ -228,8 +383,8 @@ export function Dialog(props: { input: Input }) {
         </box>
         <text style={s.mark}>{menu.open() ? "-" : "+"}</text>
       </box>
-      <Show when={menu.open()}>
-        <box {...a11y(menu.menu)} label="Zoom" style={s.menuPanel}>
+      <Show when={menuIn()}>
+        <box {...a11y(menu.menu)} label="Zoom" style={props.glass === false ? s.menu : s.menuPanel}>
           {ZOOMS.map((name, index) => (
             <box {...menuBind.items[index]!} {...a11y(menu.item(index))} style={s.item}>
               <text style={s.label}>{name}</text>
@@ -240,7 +395,7 @@ export function Dialog(props: { input: Input }) {
           ))}
         </box>
       </Show>
-      <Show when={dialog.open()}>
+      <Show when={dialogIn()}>
         <box id={dialog.backdrop.id} style={s.backdrop} onPress={() => {}} />
         <box {...a11y(dialog.dialog)} style={s.panel} onPress={() => {}}>
           <text id="settings-title" style={s.dialogTitle}>Set the volume</text>

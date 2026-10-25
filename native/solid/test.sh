@@ -35,12 +35,27 @@ $W --keys $TREE,ArrowDown,ArrowDown,ArrowDown,ArrowRight --expect solid/frames/w
 $W --keys $TREE,ArrowDown,ArrowDown,ArrowDown,ArrowRight,Space --expect solid/frames/widgets-tree-select.png
 THEME=light $W --keys $TREE,ArrowDown,Space --expect solid/frames/widgets-tree-light.png
 bun solid/widgets.test.ts
-# the Dialog page (a modal dialog on a root-float backdrop and a menu floated off its trigger): its frames and asserts
+# the Dialog page (a modal dialog on a root-float backdrop and a menu floated off its trigger): its frames and asserts.
+# The panel drops in (its float's offset y -14 -> 0, its shadow's blur 0 -> 32) and the menu slides out of its trigger
+# (offset y -10 -> -20, blur 0 -> 14) through the value channel, so a stored frame is taken at rest (`--settle 30`) and
+# the mid-slide one three frames after the key opens it (one for the key, two settles, dt = 1/60). The panel and the
+# menu also arrive as one scene each (the group: alpha 88% -> 100% and scale 96% -> 100%, fields 46 and 47), so
+# `dialog-entry-mid` is three frames in and `dialog-menu-mid` two. Closing runs the same tracks the other way (panel
+# 0 -> 14, 32 -> 0, 225 -> 0 and 100% -> 96%; backdrop 140 -> 0; menu -20 -> -10, 14 -> 0 and the same fade) while the
+# node stays mounted (`presence`), so `dialog-exit-mid` is two frames into the exit and is the one stored frame whose
+# pixels moved for the group (a settled frame writes alpha 255 and scale 1, which makes no scene at all); a
+# `--reduced-motion` run lands on `dialog-open` in one frame (no entry, no exit: the flag is the platform's)
 D="bun solid/main.ts dialog"
 $D --expect solid/frames/dialog-closed.png
-$D --keys Tab,Enter --expect solid/frames/dialog-open.png
-THEME=light $D --keys Tab,Enter --expect solid/frames/dialog-light.png
-$D --keys Tab,Tab,Enter --expect solid/frames/dialog-menu.png
+$D --keys Tab,Enter --settle 30 --expect solid/frames/dialog-open.png
+$D --keys Tab,Enter --settle 3 --expect solid/frames/dialog-entry-mid.png
+THEME=light $D --keys Tab,Enter --settle 30 --expect solid/frames/dialog-light.png
+$D --keys Tab,Tab,Enter --settle 30 --expect solid/frames/dialog-menu.png
+$D --keys Tab,Tab,Enter --settle 2 --expect solid/frames/dialog-menu-mid.png
+$D --keys Tab,Enter,Escape --settle 2 --expect solid/frames/dialog-exit-mid.png
+$D --reduced-motion --keys Tab,Enter --expect solid/frames/dialog-open.png
+# the menu's glass (css.backdrop) over the light page: a translucent white, the blurred page showing through
+THEME=light $D --keys Tab,Tab,Enter --settle 30 --expect solid/frames/dialog-menu-light.png
 bun solid/dialog.test.ts
 # the Text field page (the neutral createTextField on SDL's text input): an empty field with the caret, "Ada",
 # a selection with Shift+ArrowLeft twice, a submit, and the light theme; then the caret and selection pixels and the keys
@@ -60,13 +75,26 @@ $L --wheel 32 --expect solid/frames/list-wheel.png
 $L --keys $DOWN12 --expect solid/frames/list-select.png
 THEME=light $L --keys $DOWN12 --expect solid/frames/list-light.png
 bun solid/list.test.ts
-# the Sky page (csssky's feed: the tablist, the cards with drawn avatars, the wrapped bodies, Clay's scroll container):
-# Discover, the Science tab, the light theme, and the Science feed 8 notches down (Discover's three posts fit the viewport)
+# the motion model (a spring from duration and bounce, a track that retargets from the presented x and v, the exact
+# settle, the effect class's clamp, the decay's projection): no page, no Clay
+bun solid/motion.test.ts
+# the Sky page (csssky's feed: the tablist, the cards with drawn avatars, the wrapped bodies, the feed's own motion track):
+# Discover, the Science tab, the light theme, and the Science feed eight notches down, settled (the track flings to the end).
+# The cards arrive on mount (12px low, at 0 opacity, each 50ms after the one above, 0.3s: the group's translate and alpha),
+# a card's and a tab's hover is a 120ms fade and a tab's underline fades with it, so the resting frames are taken after
+# `--settle` (the entry is over 0.4s from the mount) — every one of them is byte-identical to its old self, the entry and
+# the hover are the frames that moved. `sky-entry` is ten frames in (the three cards at 2, 4 and 10px of their 12),
+# `sky-hover` is the pointer on the second card three frames into its fade (no press: `--move`), and `sky-band` is
+# Discover four notches past its end (its content is shorter than the viewport, so the first notch is already past it):
+# the resistance's f(40) puts it 21.3px out, and the band has let go 80ms later
 S="bun solid/main.ts sky"
-$S --expect solid/frames/sky.png
-$S --click 180 32 --expect solid/frames/sky-science.png
-THEME=light $S --expect solid/frames/sky-light.png
-$S --click 180 32 --wheel 8 --wheel-over sky-feed --expect solid/frames/sky-scrolled.png
+$S --settle 40 --expect solid/frames/sky.png
+$S --click 180 32 --settle 40 --expect solid/frames/sky-science.png
+THEME=light $S --settle 40 --expect solid/frames/sky-light.png
+$S --click 180 32 --wheel 8 --wheel-over sky-feed --settle 60 --expect solid/frames/sky-scrolled.png
+$S --settle 9 --expect solid/frames/sky-entry.png
+$S --settle 40 --move 180 300 3 --expect solid/frames/sky-hover.png
+$S --warm 40 --wheel 4 --wheel-over sky-status --expect solid/frames/sky-band.png
 bun solid/sky.test.ts
 # the inline-styles page (styles in the .tsx) against the same page with a .styles.ts: identical pixel for pixel, and its frame
 bun solid/inline.test.ts

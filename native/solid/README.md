@@ -31,7 +31,10 @@ bun solid/main.ts dialog --keys Tab,Enter --expect solid/frames/dialog-open.png 
 bun solid/main.ts form --keys Tab,Tab,text:Ada --expect solid/frames/field-typed.png        # typed text, not a key
 bun solid/main.ts list --wheel 32 --expect solid/frames/list-wheel.png      # headless: the pointer onto the list, 32 notches down
 bun solid/main.ts sky --click 180 32 --wheel 8 --wheel-over sky-feed --png out.png   # headless: Science, its feed 8 notches down
+bun solid/main.ts sky --settle 40 --move 180 300 3 --png out.png          # headless: a hover, three frames into its fade, at a page at rest
+bun solid/main.ts sky --warm 40 --wheel 4 --wheel-over sky-status --png out.png   # headless: rest first, then four notches past the end (the band)
 bun solid/main.ts widgets --drag 0.25 0.75 --png out.png                 # headless: press the slider's rail at a quarter, hold, move to three quarters
+bun solid/main.ts dialog --reduced-motion --keys Tab,Enter --png out.png # no travel, no waiting (also REDUCED_MOTION=1)
 bun solid/main.ts --expect examples/sensors/expected-thorvg.png          # one frame against a stored PNG
 bun solid/main.ts --click 180 250 --expect examples/sensors/expected-thorvg-g.png   # host.c's scripted click
 THEME=light bun solid/main.ts --expect examples/sensors/expected-thorvg-light.png
@@ -86,7 +89,9 @@ with an `id`: Clay tells whether the pointer is over it. `onClick` runs on relea
 | `ui_init_gpu(w, h)` | the same on ThorVG's WebGPU canvas (`--raster thorvg-gpu`); only a `libui.dylib` from `desktop/build-thorvg-gpu.sh solid` |
 | `ui_begin(px, py, down, dt)` | pointer for this frame, then Clay's scroll containers move by the wheel this frame took (`Clay_UpdateScrollContainers(false, delta, dt)`, before the layout), then `Clay_BeginLayout` |
 | `ui_open(id, len, f32[45])` | open an element; `id` NULL for none; the style as below |
+| `ui_value(id, len, field, f32)` | an override of one number of that element's style for this frame: a packed field 0..44 (the table below), 45 its shadow's blur, or 46/47 its whole subtree's alpha and scale (a ThorVG scene of its own: `FIELDS.ALPHA`, `FIELDS.SCALE`, the section below). `ui_open` declares from a copy of the 45 floats with the frame's overrides applied; the table is cleared in `ui_begin`, 64 overrides a frame (`src/pack.ts`'s `FIELDS` names the ones a page uses; `src/motion.ts`'s `channel(write)` writes one element's fields in one call) |
 | `ui_image(bytes, len)` | the image of the element the next `ui_open` declares (a `css.image` style): the path as UTF-8, no terminator. Interned once per distinct path, so the renderer's picture cache (keyed by that pointer) sees one address every frame |
+| `ui_shadow(x, y, blur, r, g, b, a)` | the shadow of the element the next `ui_open` declares (a `css.shadow` style): Clay has no shadow field, so it waits here and the element id's hash carries it to the renderer's table (one a frame, 32 at most, one draw an element) |
 | `ui_text(bytes, len, f32[10])` | a text element; the bytes are copied for the frame |
 | `ui_close()` | close the element |
 | `ui_pointer_over(id, len)` | Clay's `Clay_PointerOver`, on the last frame's layout |
@@ -101,6 +106,7 @@ with an `id`: Clay tells whether the pointer is over it. `onClick` runs on relea
 | `ui_wheel(dx, dy)` | adds a wheel delta for the next frame, in Clay's units and SDL's sign: positive is away from the user (the content moves down). `ui_window_poll` calls it for every `SDL_EVENT_MOUSE_WHEEL`, and Clay moves the container the pointer is over by 10px a notch |
 | `ui_scroll_offset(id, len)` | the scroll offset of a clip element, in pixels (negative is scrolled down); 0 when there is none |
 | `ui_scroll_to(id, len, y)` | scrolls a clip element to `y`, clamped to its content (the same range Clay clamps to); returns the offset it took |
+| `ui_scroll_put(id, len, y)` | puts a clip element's offset where the page says, **with the content's clamp left out** — a rubber band past an end is past the content on purpose; returns the offset |
 | `ui_errors()` | Clay errors so far |
 
 Text is measured by ThorVG, as in `host.c`.
@@ -112,6 +118,13 @@ packed box in its variant). `ui.c` interns the path, because Clay's config is th
 The packed style does not carry Clay's `aspectRatio`, so `fit: "contain"` is the C header's; `fill` (the default) is what
 a Solid page gets. The SDL renderer path still reads `imageData` as an `SDL_Texture` and does not draw a path: the image
 element is ThorVG-only, as on the C side.
+
+A shadow is the second part of a style that is not a float, for the other reason: Clay 1.0's declaration has no shadow
+field, and a shadow is an effect of the raster, not a box. `frame.ts` calls `ui_shadow` just before `ui_open`, and
+`ui.c` files it under `Clay_ElementId.id` — the id the element's render commands carry — so the renderer draws it before
+the element's first command (`clay_renderer_thorvg.c`: the command's box and radii, offset, filled and blurred, sigma
+`blur / 2` in the scene's own units, quality 80). `pack.ts` keeps the `Shadow` object in its variant beside the image's
+path; the element needs an `id`, or the shadow is dropped.
 
 ### `ui_open` fields (`pack.ts` `packBox`, `ui.c` `ui_open`)
 
@@ -141,6 +154,42 @@ pointer. `root: true` attaches to the window (`Clay__RootContainer`), so `width`
 `parent: "<id>"` + `attach: { element: "left top", parent: "left bottom" }` hangs a menu off its trigger.
 
 Sizing type: 0 fit, 1 grow, 2 percent, 3 fixed (Clay's order).
+
+### The value channel: a field that moves
+
+A variant is packed once and kept, so a page cannot change a style's number by rebuilding it. Instead its `View.tick`
+runs before the tree is declared and calls `ui.value(id, field, value)`: `ui_open` copies that element's 45 floats,
+applies the frame's overrides of its id and declares from the copy. It is the shadow's and the backdrop's kind of side
+table — cleared in `ui_begin`, nothing cached — and a frame without overrides declares exactly the literal, which is why
+the Dialog's settled frames stayed byte-identical. `field` is a packed field (0..44), or `FIELDS.SHADOW_BLUR` (45), which
+is `ui_shadow`'s blur and not one of the floats, or the four **group** fields: `FIELDS.ALPHA` (46, 0..255),
+`FIELDS.SCALE` (47, 1 = none) and `FIELDS.TRANSLATE_X`/`TRANSLATE_Y` (48/49, px), which are the element's whole subtree
+as one ThorVG scene — its opacity, a scale about its box centre and a visual offset, none of which is a layout
+(`ui_bounds` does not move). None of them goes into the floats. `FIELDS.GRADIENT_ALPHA` (50) is the opacity of the
+element's own background image: 255 is the gradient alone, as an opaque one has always been drawn; below it the gradient
+is composited over the box's solid fill, which is how two gradients cross-fade through the colours between them.
+
+Naming them is `pack.ts`'s `FIELDS`: `OFFSET_X` 38 and `OFFSET_Y` 39 of a float, `EXPAND_W`/`EXPAND_H` 40/41, `Z_INDEX`
+42, `CAPTURE` 43 (a closing overlay sets it to 1, passthrough, so the page under it takes the press), `RADIUS` 18 (the
+four corners), `BACKGROUND` 14 (rgba) and `BACKGROUND_ALPHA` 17 (the dim of a backdrop), `BORDER` 26 and `BORDER_ALPHA` 29
+(a tab's 2px underline, and the alpha it fades by), `PADDING` 6, `GAP` 10, `WIDTH` 0, `HEIGHT` 3, `GRADIENT_ALPHA` 50. The
+first group is what reads as motion; width, height, padding, gap and the colours are legal but Clay lays the page out
+from the declaration each frame, so a changing one re-lays-out the element's parent and its siblings — a layout change,
+not a transform. The cost is a 180-byte copy per overridden element and one scan of the table per `ui_open` on a frame
+that uses it.
+
+### The element tree and the groups (`ui.c`, `clay_renderer_thorvg.c`)
+
+A group is one element's subtree drawn into a scene of its own, which per-command alpha cannot do (a text's colour is not
+in its parent's floats). `ui_open`/`ui_close` keep the frame's tree of `{id, parent}` nodes in declaration order and
+`ui_text` adds a node for a text — a text is never open, but a group's subtree must reach through it — and every
+declaration hands its node to Clay as `userData` (index + 1), so each command says which element it belongs to. Clay's
+commands are in depth-first order, so a subtree's commands are contiguous: a group's range is the min and max command
+index whose element is that node or a descendant. The renderer opens a scene at the first command of the range, gives it
+`tvg_paint_set_opacity` and one matrix at the last one, and adds it to the scene that was current when it opened; the
+element's shadow is drawn inside it. A group at 255, scale 1 and no offset makes no scene. Four groups may be open at
+once, 16 a frame, eight nested scissors; a backdrop's cut inside a group settles it into pass 1 and makes it again after
+the cut.
 
 ### `ui_text` fields (`packText`)
 
@@ -285,23 +334,74 @@ seventeen stored frames in `frames/`:
 | Widget | What it is | Keys and pointer |
 | --- | --- | --- |
 | Settings dialog | `createDialogModal` (role `dialog`): a float 280 wide centred on the root (`css.float({ root: true, attach: { element: "center center", parent: "center center" }, zIndex: 2 })`) over a backdrop float that is the whole window (`root: true`, `left top`, `stretch`, `zIndex: 1`, `rgb(0 0 0 / 0.55)`) and takes the pointer | "Open settings" opens it by click or Enter; focus moves to Cancel and Tab/Shift+Tab cycle Cancel and OK and never leave; Escape and Cancel close without a write; OK writes `Volume: 55%` onto the page. The backdrop swallows every press, so the page behind is unreachable by pointer, and `input.modal` keeps it unreachable by keyboard. Closing returns focus to the trigger |
-| Zoom menu | `createMenu` (plain, `100% 125% 150% 200%`): a float attached to `zoom-trigger`, `attach: { element: "left top", parent: "left bottom" }`, 4px down, `zIndex: 10` | Tab reaches the trigger; Enter, Space, Down or Up open it on the first/last item; Up/Down wrap, Home/End go to the ends; Enter picks and closes, Escape closes and returns focus to the trigger, Tab closes and leaves. The picked zoom is shown in the pill and the menu's dot |
+| Zoom menu | `createMenu` (plain, `100% 125% 150% 200%`): a float attached to `zoom-trigger`, `attach: { element: "left top", parent: "left bottom" }`, offset y -20 (it overlaps the trigger's bottom edge by 20px, so the glass has a border and a text stroke under it), `zIndex: 10` | Tab reaches the trigger; Enter, Space, Down or Up open it on the first/last item; Up/Down wrap, Home/End go to the ends; Enter picks and closes, Escape closes and returns focus to the trigger, Tab closes and leaves. The picked zoom is shown in the pill and the menu's dot |
 
 The dialog's container and the backdrop carry an `onPress` that does nothing: a press inside the dialog or on the
 backdrop must not read as a press on empty space (`onPressMiss` would blur).
 
+**The arrival, and the exit.** The two overlays animate through the value channel (`ui.value`, above): each frame the
+page's tick overrides numbers of their packed styles — the float's offset y, the shadow's blur and, for the backdrop, the
+alpha of its dim — and every target is the style's own literal, so a settled frame is the literal's frame, pixel for
+pixel. The menu slides out of its trigger: offset y `-10` → `-20` on `spatial(0.22, 0.1)` (a light bounce) and its
+shadow's blur `0` → `14` on `effect(0.22)`; the dialog drops in: offset y `-14` → `0` and its shadow's blur `0` → `32`.
+The blur takes the `effect` class because a blur has no negative side and must not ring in a luminance field, the offset
+`spatial` because position may carry a little velocity.
+
+A node that leaves stays in the tree while it leaves (`presence` in `src/motion.ts`): the page's tick asks
+`presence(open, 0.35)` for each overlay, keeps a signal of its `mounted` answer and puts it on `Show`, so closing runs
+the same tracks the other way — the panel's offset y `0` → `14` on `spatial(0.2, 0)` and its blur `32` → `0`, the
+backdrop's alpha `140` → `0` (field 17; its box is the whole window, so the alpha is the dim), the menu's offset y
+`-20` → `-10` and its blur `14` → `0` — and the node leaves the tree when the 0.35s is up (its 0.2s tracks settle at
+0.333, so no frame is cut). The trap is the *open state's*, not the node's: `input.modal` asks `dialog.open()`, so a Tab
+right after Escape reaches the page's own next stop (the Zoom trigger) while the panel is still fading, and a closing
+overlay writes `FIELDS.CAPTURE` 1 so a press goes through it to the page. A reopen during the exit retargets from what
+is presented (the reopen frame is the exit's own next value, no jump and no restart), and the clocks keep running for
+as long as the node is mounted. With reduced motion (`--reduced-motion`, `REDUCED_MOTION=1`) a retarget lands on its
+target in the same call and a presence unmounts at once, so opening is the literal's frame in one frame and closing has
+no frame with the panel in it.
+
 | Frame | Keys | Shows |
 | --- | --- | --- |
 | `dialog-closed` | | the page at rest: `Volume: 40%`, Zoom `100%`, no menu |
-| `dialog-open` | Tab Enter | the dimmed page and the dialog centred on it, ring on Cancel, `Volume` still 40% |
-| `dialog-light` | Tab Enter, `THEME=light` | the same in the light theme: a white dialog over a greyed page |
-| `dialog-menu` | Tab Tab Enter | the menu hanging off the Zoom trigger's left-bottom corner, ring and dot on `100%`, the trigger's `-` |
+| `dialog-open` | Tab Enter, settled | the dimmed page and the dialog centred on it, ring on Cancel, `Volume` still 40% |
+| `dialog-light` | Tab Enter, settled, `THEME=light` | the same in the light theme: a white dialog over a greyed page |
+| `dialog-menu` | Tab Tab Enter, settled | the menu hanging off the Zoom trigger's left-bottom corner, ring and dot on `100%`, the trigger's `-` |
+| `dialog-menu-mid` | Tab Tab Enter, 3 frames after the key | the menu 7.4px lower than it rests (offset -12.58), its shadow at about a fifth of its blur |
+| `dialog-exit-mid` | Tab Enter Escape, 3 frames after the key | the panel 3.94px below its place, its shadow at 22.9 of 32, the page behind it at 100.6 of the 140 dim |
 
 Checked by `bun solid/dialog.test.ts`: opening by click and by keyboard, the trap's two-control cycle, the page's trigger
 never a stop while open, Escape and Cancel writing nothing, OK writing 55%, a press on the backdrop doing nothing and not
 reaching the page behind, `ui.bounds` of the backdrop (the window) and the dialog (centred on the root), the page's
-layout unchanged behind the backdrop, and the menu's arrows, Home/End, Escape back to the trigger, Enter and a click
-picking.
+layout unchanged behind the backdrop, the menu's arrows, Home/End, Escape back to the trigger, Enter and a click
+picking, and the motion: the menu's offset `-10.00, -10.85, -12.58, -14.42, -16.04, -17.32, -18.26, -18.92, -19.36,
+-19.64, -19.82, -19.92, -19.97, -20.00` and at rest exactly its style's -20, every frame towards it and none past it,
+the shadow with no blur on its first frame (the page beside it) and its blur darkening that page 18.0 → 13.9 as it
+settles, and the dialog's drop `149.88, 151.07, 153.49, … 163.88` finite and still.
+
+The exits and presence (`presence`, `channel`, `setReducedMotion` in `src/motion.ts`):
+the panel's offset y `163.88, 165.24, 167.82, 170.39, 172.54, 174.18, 175.37, 176.20, 176.77, 177.16, 177.41, 177.58,
+177.68, 177.75 … 177.88` and still at that 14 below its place, the title pixel behind the backdrop (47, 35) `103, 115,
+139, 162, 181, 196, 206, 214, 219, 222, 225, 227, 228, 228, 230` (140 of 255 of dim to the page), the menu's exit
+`-20.00, -19.03, -17.18, -15.34, -13.81, -12.64, -11.79, -11.19, -10.79, -10.51, -10.33` with its shadow lightening
+13.9 → 18.0 (the page), the panel still in the layout on the frame Escape closes it and for the exit after, then gone
+with the backdrop, and the page's own pixels back to the frame before opening (0 pixels differ, the trigger's ring
+included). The trap is released on that same frame: a Tab right after Escape reaches `zoom-trigger` while the panel is
+still fading. A reopen after four frames of the exit presents `174.18` — the exit's own next value — and settles back
+on 163.88 with the keys back in the dialog. Reduced motion (`setReducedMotion(true)` in the test) opens on the
+literal's frame (0 pixels differ from the settled frame) and removes both nodes on the frame it closes (the page back
+in that frame); `test.sh` also runs `$D --reduced-motion --keys Tab,Enter --expect solid/frames/dialog-open.png`.
+
+The frames are taken at rest (`--settle 30`) because a stored frame of a moving page would pin an instant of the spring;
+`dialog-menu`, `dialog-menu-light`, `dialog-menu-mid`, `dialog-open`, `dialog-light` and `dialog-closed` came out
+**byte-identical** to the frames before the exits (the entry's end is still the literal, and the closed page is the page
+before anything was opened); the new `dialog-exit-mid` is three frames after Escape, the panel 3.94px into its exit.
+
+**Mutation.** `ui_value` dropping `OFFSET_Y` leaves every frame at -20 — `FAIL every frame of the slide moves it towards
+the offset: false, wanted true` and `FAIL the menu appears 10px below the style's offset` — and the mid frame's menu
+sits at the settled place, only its shadow band differing; `ui.c` is compared with its backup after the revert.
+Dropping the presence (mounting the dialog on `dialog.open()` again, so it unmounts on close) fails `FAIL the panel is
+still in the layout right after Escape: false, wanted true`, with every sampled y `NaN` and the title already `230`
+(the dim gone in the same frame) — `Dialog.tsx` is compared with its backup after the revert.
 
 ## The Text field page
 
@@ -415,32 +515,55 @@ post count, or the card a click selected.
 | The cards | the panel, radius 12, padding 12, gap 8, the author's 40x40 avatar, the name and the handle with its age, the body, the media line and the counts; the palette is `terminal/sky_styles.ts`'s (the sky dark and light themes, not the web app's Mu theme). A click records the card in a signal (the status line names it) and nothing else: there is no thread screen yet. |
 | The avatars | `css.image(path, { width: 40, height: 40 })` — the six committed 64x64 PNGs of `examples/sky/avatars.py` (a disc in the author's hue, transparent outside it, so the panel shows at the box's corners). The path is a literal per author because a css style is evaluated when its module loads: a page cannot build one from a loop variable. This is the first page that uses `css.image` in the Solid path. |
 | Wrapping | new on this page: a body is a `text` with `whiteSpace("normal")` and `lineHeight(20)` inside a stretch box inside a card of percent width, and Clay wraps it. (A clip element lets its children grow past the viewport for their content, so a card that must wrap cannot take its width from a stretch inside the feed: the card is `width("100%")`.) |
-| Scrolling | the wheel moves the feed under the pointer (Clay's own container, 10px a notch, as on the List page); one Tab stop on the feed takes Down/Up 40px, PageDown/PageUp a viewport and Home/End to the ends through `ui_scroll_to` (clamped by `ui.c`). Discover's three short posts fit the 664px viewport, so the wheel frame and the test scroll **Science** (742px of content). |
+| Scrolling | the feed's offset is a page-owned motion track (`solid/src/motion.ts`): a wheel notch is 10px on a spring that glides it, a burst of notches is a flick whose decay lands (clamped) at the end, and one Tab stop on the feed retargets the same track with Down/Up 40px, PageDown/PageUp a viewport and Home/End. The page turns `ui_auto_scroll` off, so Clay's own container does not also move; `ui.scrollTo("sky-feed", -x)` puts the value on it each frame. Discover's three short posts fit the 664px viewport (max 0), so the wheel frame and the test scroll **Science** (742px of content, 78px of travel). |
+| The rubber band | a notch past an end is a **pull** of that end, not a scroll: while the content is at the end (or already past it) the wheel moves it by Rune's and iOS's resistance, `f(x) = (1 - 1/(x·c/d + 1))·d` with `c = 0.55` and `d` the viewport's 664 (`motion.ts`'s `rubber`); `x` is the raw overshoot the notches have accumulated, so the first 10px past the end move 5.45 and the 40th only 21.29. Eight frames without a notch — 80ms — and it springs back on `spatial(0.35, 0.1)` to the clamp, settling exactly on it; a key drops it at once; a notch the other way walks it back. A notch that only *reaches* the end while the content is still travelling there is a scroll like any other (the flick's clamp), so nothing jumps. The band goes on Clay's clip element through `ui_scroll_put` (the unclamped sibling of `ui_scroll_to`, since Clay's own clamp is the content's). Reduced motion has no band: the wheel is clamped hard. |
+| The entry | on mount (once — a tab switch draws its feed at rest) every card starts 12px low and at 0 opacity and settles on its literals in 0.3s: `TRANSLATE_Y` on `spatial(0.3)` and `ALPHA` on `effect(0.3)`, the group of the element's whole subtree, so not one box moves (`ui_bounds` is the settled one on the first frame). Each card starts 50ms (3 frames) after the one above it. Reduced motion starts no track at all: the settled frame at once. |
+| Hover | the card's and the tab's hover is a 120ms fade (`effect`), not a style switch. The card fades its four background floats from the panel tone to the hover tone **and** its gradient's opacity (`GRADIENT_ALPHA`), so the resting gradient fades out under the hover one: the card alternates two styles (`card`, `cardHover`) and the page keeps the hover one while the fade runs either way (a `:hover` state would drop the gradient the moment the pointer left). A tab has no gradient, so its four channels are enough; a tab's 2px underline is its own border colour (`BORDER_ALPHA`), which fades in on the tab that becomes active and out of the one that was — a colour, not a slide. A text's colour is not in its box's floats: the label swaps style instead. The ends are read from the packed variants under the frame's theme, so the light palette fades between its own tones; a selected card keeps `cardOn` and does not fade. |
 
 | Frame | Keys | Shows |
 | --- | --- | --- |
-| `sky` | | Discover: the bar, three cards (Michael, Titania, alexjungle), the status `Discover — 3 posts` |
-| `sky-science` | a click on `(180, 32)` | Science: Erik's four-line body and its link line, David, Jason (cut at the feed's bottom), the ring on the clicked tab |
-| `sky-light` | `THEME=light` | the same Discover feed in the palette's light theme |
-| `sky-scrolled` | the Science click, `--wheel 8 --wheel-over sky-feed` | the Science feed 80px down: Erik's card cut at the top, Jason's at the bottom, the bar and status unmoved |
+| `sky` | `--settle 40` | Discover at rest: the bar, three cards (Michael, Titania, alexjungle), the status `Discover — 3 posts` |
+| `sky-science` | a click on `(180, 32)`, `--settle 40` | Science: Erik's four-line body and its link line, David, Jason (cut at the feed's bottom), the ring on the clicked tab |
+| `sky-light` | `THEME=light --settle 40` | the same Discover feed in the palette's light theme |
+| `sky-scrolled` | the Science click, `--wheel 8 --wheel-over sky-feed --settle 60` | the Science feed eight notches down, settled at the clamped 78px: Erik's card cut at the top, Jason's at the bottom, the bar and status unmoved |
+| `sky-entry` | `--settle 9` | ten frames in: the three cards arriving, 2, 4 and 10px of their 12 below their boxes, translucent, each further behind the one above it |
+| `sky-hover` | `--settle 40 --move 180 300 3` | the pointer on the second card three frames into its 120ms fade: its colour between the panel and the hover tone |
+| `sky-band` | `--warm 40 --wheel 4 --wheel-over sky-status` | Discover four notches past its end (its content is shorter than the viewport, so the first notch is already past it): the cards 21.3px out of the clamp, the top one cut, the bar and status unmoved |
 
 Checked by `bun solid/sky.test.ts`: `ago()`/`num()`, the bar 64 / feed 664 / status 32 layout with 8px card gaps, the
 avatars' pixels (the panel at the box's corner where the PNG is transparent, the head's tint at the middle, the author's
 exact hue in the disc — `74 132 214` for michaelwarburton, `126 108 200` for erikstrub — and the change of author with
 the tab), the body and media wrapping (Erik's body four 20px lines, Titania's card one media line taller than
-Michael's), hover on a card and a tab, the wheel moving Clay's offset 10px a notch with the bar and status still, the
-keyboard (Down/Up 40, PageDown a viewport, Home/End, all clamped), the feed's focus ring's pixels, the tabs switching the
-feed, News' empty box and its centred muted line, the status naming a clicked card, and the page fitting 360x760.
+Michael's), hover on a card and a tab, **the entry** (the boxes are the settled ones while the cards arrive, the first
+frame draws none of them, eight frames in they are 4, 8 and 12px low — each further behind the one above it, so the
+stagger is there — and the last frame is the literal's; reduced motion draws them at rest at once), **the hover's fade**
+(a mid frame strictly between the resting and the hover colour, the colour continuing the same way, the leave the same
+path back to the literal, and a quick leave and re-enter whose widest frame is 3/255), **the tab's underline** (a mid
+frame of the new tab's a blend of the page and the ring, the old one's a blend of the accent and the page, the tabs'
+boxes unmoved, then the ring and the page), **the rubber band** (four notches past 78 land at 99.29 = the formula's
+21.29 of the raw 40, a notch back walks it to 97.95, it is still out of the end for four frames and back on the clamp 22
+frames later, a flick into the end never steps more than 20px and rests at 78, and reduced motion clamps hard), one wheel
+notch gliding `2.59, 1.92, 1.42…` px a frame to exactly 10 (the bar and status still), eight notches flinging to the
+clamped 78 and the settled frame matching `sky-scrolled.png` pixel for pixel, a wheel up mid-throw landing 10px back at
+64.05 with no frame's step jumping, the keyboard (Down/Up 40, PageDown a viewport, Home/End, all on the same track and
+clamped), the feed's focus ring's pixels, the tabs switching the feed, News' empty box and its centred muted line, the
+status naming a clicked card, and the page fitting 360x760. `bun solid/motion.test.ts` is the model itself: one path at
+any dt, a retarget's continuity, the exact settle, `effect`'s clamp, the decay's projection, `presence` (the exit's
+length to a frame, a revive mid-exit at the value the exit presented), `channel`'s one call an element, and reduced
+motion (a retarget settled in the call that makes it, a presence that does not wait).
 
 **Mutations.** Dropping `css.image` from Michael's avatar box (a bare 40x40 box) fails the two disc asserts (the middle
 and the body are the panel `[23,27,32]`, not `[99,178,255]`/`[74,132,214]`). Making the body `nowrap` fails the wrap
 asserts (alexjungle's body 20px, Erik's 60, David's 20) and, because the Science content then shrinks to 678, the scroll
-asserts too (the offset stops at -14). Both files are compared with their backup after the revert.
+asserts too (the offset stops at -14). `Track.retarget` resetting `v0` to 0 after sampling fails the mid-flight block
+(`FAIL and it turns the throw back: the rest is 64, ten px above the 74 it was heading to: 27.87, wanted 64.05`). Both
+files are compared with their backup after the revert.
 
 **What is not here.** No fetching and no paging: one recorded fixture per feed (three posts), News empty as in the app.
 No thread screen, so a card click only selects. No images in post media — the media is a line (`[image]`, `[image: …]`,
 `[video]`, `[link: …]`), as in the terminal. No avatars beyond the six committed PNGs (a real author's avatar is a remote
-file). No scroll momentum and no drag scrolling (the press belongs to the cards). The name and the handle are two lines,
+file). No drag scrolling (the press belongs to the cards; the wheel's momentum is the page's motion track, item 2 of
+Rune's research). The name and the handle are two lines,
 not the app's one row: the longest pair does not fit the 312px card and Clay has no ellipsis. A media line wraps at
 spaces only, so a word wider than the card would run over the gutter: the Science link carries the app's own fallback
 for an embed with no title, the host (`[link: sciencedirect.com]`), not its 60-character URI. And the light theme is the
@@ -486,7 +609,7 @@ on every role that requires one. Mutation: dropping `label` from the disclosure 
   radio, tabs or toolbar on the page (the parts take the option; the page has the horizontal ones), the tree's
   multi-select (`selection: 'multiple'` is in the part; the page is single) and its type-ahead (not ported), and disabled
   tree nodes (the part has none). The list scrolls one axis and one way: no horizontal scrolling, no momentum (Clay's
-  wheel step is instant; momentum comes from dragging, which the page leaves off), no pointer drag of its contents, no
+  wheel step is instant; the Sky feed has the first motion track, this page opts out), no pointer drag of its contents, no
   scrollbar to drag (the `n of 30` readout stands in for it), and the wheel reaches the viewport only while the pointer is
   over it: Clay scrolls the container under the pointer, and the window is not itself a scroll container.
 - The text field is ours, not a port, and it stops at the simple text model: an index is a UTF-16 code unit (a `selection`

@@ -20,6 +20,21 @@ typedef struct { int unused; } Clay_WgTarget; // only the GPU build (desktop/bui
 
 #define MAX_FONTS 8
 #define ARENA_SIZE (1 << 16)
+// a style is a compile-time literal (solid/plugin.ts packs it once), so the only way one of its numbers moves between
+// frames is the value channel: a page's per-frame overrides of a packed style, by element id
+#define STYLE_FIELDS 45
+#define FIELD_SHADOW_BLUR 45 // the one value outside the 45 floats: the blur of the element's shadow (a renderer table)
+// ... and four more that are not in the floats either: the element's whole subtree as one scene. ALPHA is that scene's
+// opacity (0..255), so a text over its own fill fades as a group; SCALE is a scale about the element's box centre
+// (1 = none); TRANSLATE_X/Y are a visual offset of the whole subtree (px). None of them is a layout: `ui_bounds` does
+// not move as any of them animates
+#define FIELD_ALPHA 46
+#define FIELD_SCALE 47
+#define FIELD_TRANSLATE_X 48
+#define FIELD_TRANSLATE_Y 49
+// ... and the opacity of the element's own background image (a gradient), so a page can fade one in or out: at 255 it is
+// drawn alone, as an opaque gradient is; below it, it is composited over the element's solid fill
+#define FIELD_GRADIENT_ALPHA 50
 
 static Clay_ThorVGRendererData tvg;
 static const char *font_names[MAX_FONTS];
@@ -36,6 +51,30 @@ static int arena_used;
 static const char *image_paths[MAX_IMAGES];
 static int image_count;
 static const char *pending_image;
+// the shadow (css.shadow) the next ui_open declares: Clay has no shadow field, so it rides the renderer's table instead
+static float pending_shadow[3];
+static Clay_Color pending_shadow_color;
+static int has_pending_shadow;
+// the backdrop (css.backdrop) the next ui_open declares: the renderer blurs the pixels under that element
+static float pending_backdrop = -1;
+// the background image (css.backgroundImage) the next ui_open declares: a linear gradient, 8 stops at most
+#define MAX_GRADIENT_STOPS 8
+static struct {
+    int kind;  // 1: linear (the only one cssints/clay writes)
+    float angle;
+    int count;
+    float stops[MAX_GRADIENT_STOPS][5]; // offset (0..1), then r, g, b, a 0-255
+} pending_gradient;
+static int has_pending_gradient;
+// the value channel: this frame's overrides of a packed style, by element id, written by the page's tick (after
+// `ui_begin`, before the tree is declared) and read by `ui_open`
+#define MAX_VALUES 64
+static struct {
+    uint32_t id;
+    uint16_t field;
+    float value;
+} values[MAX_VALUES];
+static int value_count;
 
 static SDL_Window *window;
 static SDL_Renderer *renderer;
@@ -45,9 +84,32 @@ static int gpu;          // 0: the software canvas; 1: the WebGPU canvas, the fr
 
 // the wheel the polls took, in Clay's units (positive scrolls the content down, the wheel up), for the next ui_begin
 static float wheel_x, wheel_y;
+// ... and the same delta for the page: `ui_wheel_pop` drains it (a page that scrolls itself reads it, so it sees a notch
+// even while `ui_begin` leaves Clay's containers alone)
+static float page_wheel_x, page_wheel_y;
+// whether `ui_begin` feeds the wheel to Clay's scroll containers (the default); a page that animates its own offset
+// turns it off, so the same notch is not applied twice
+static int auto_scroll = 1;
 
 /** Adds a wheel delta to the next frame, in Clay's units: positive scrolls the content down, as SDL's wheel y. */
-void ui_wheel(float dx, float dy) { wheel_x += dx, wheel_y += dy; }
+void ui_wheel(float dx, float dy)
+{
+    wheel_x += dx, wheel_y += dy;
+    page_wheel_x += dx, page_wheel_y += dy;
+}
+
+/** The wheel the polls (or the headless `ui_wheel` calls) took since the last pop into out[2], drained; 0 when there is
+ *  none. The delta is SDL's: positive y is away from the user. */
+int ui_wheel_pop(float *out)
+{
+    if (page_wheel_x == 0 && page_wheel_y == 0) return 0;
+    out[0] = page_wheel_x, out[1] = page_wheel_y;
+    page_wheel_x = page_wheel_y = 0;
+    return 1;
+}
+
+/** Turns Clay's own wheel scrolling on (1, the default) or off (0): a page that scrolls itself owns the offset. */
+void ui_auto_scroll(int on) { auto_scroll = on != 0; }
 
 static void on_error(Clay_ErrorData e)
 {
@@ -62,6 +124,8 @@ static int retarget(float scale)
     free(pixels);
     pixels = malloc((size_t)tw * th * 4);
     tvg.scale = scale;
+    // the CPU blur of a backdrop (css.backdrop) works on this buffer; the WebGPU canvas has none until its readback
+    tvg.target = NULL;
     if (gpu) {
 #ifdef CLAY_THORVG_WG
         // ponytail: a new device and texture on every retarget (init, then the window's scale); the old one is left to
@@ -72,6 +136,7 @@ static int retarget(float scale)
         return 1;
 #endif
     }
+    tvg.target = pixels, tvg.targetWidth = tw, tvg.targetHeight = th;
     return tvg_swcanvas_set_target(tvg.canvas, pixels, tw, tw, th, TVG_COLORSPACE_ABGR8888);
 }
 
@@ -127,11 +192,22 @@ void ui_begin(float px, float py, int down, float dt)
 {
     arena_used = 0;
     pending_image = NULL;
+    has_pending_shadow = 0;
+    pending_backdrop = -1;
+    has_pending_gradient = 0;
+    value_count = 0; // the value channel is a frame's, as the shadows and the backdrops are
+    tvg.treeCount = 0; // ... and so is the element tree and its groups
+    tvg.openDepth = 0;
+    tvg.groupCount = 0;
+    tvg.shadowCount = 0; // the frame's shadows go with the rest of the frame
+    tvg.backdropCount = 0;
+    tvg.gradientCount = 0;
     Clay_SetPointerState((Clay_Vector2){px, py}, down);
     // Clay's scroll containers: the wheel delta of the polls moves the container the pointer is over, before the layout
     // reads the offsets (ui_open hands each clip element its own through Clay_GetScrollOffset). No drag scrolling: a
-    // press belongs to the page's parts.
-    Clay_UpdateScrollContainers(0, (Clay_Vector2){wheel_x, wheel_y}, dt);
+    // press belongs to the page's parts. A page that owns its offset (ui_auto_scroll(0)) has already taken the delta
+    // through ui_wheel_pop, so the drain still happens and Clay moves nothing.
+    if (auto_scroll) Clay_UpdateScrollContainers(0, (Clay_Vector2){wheel_x, wheel_y}, dt);
     wheel_x = 0, wheel_y = 0;
     Clay_BeginLayout();
 }
@@ -169,11 +245,88 @@ void ui_image(const char *path, int len)
     pending_image = image_paths[image_count++];
 }
 
+/** The shadow of the next element (a css.shadow style): the element's box moved by x and y, blurred by blur, in that
+ *  colour. Clay has no shadow field, so this is a renderer effect keyed by the element's id. */
+void ui_shadow(float x, float y, float blur, float r, float g, float b, float a)
+{
+    pending_shadow[0] = x, pending_shadow[1] = y, pending_shadow[2] = blur;
+    pending_shadow_color = (Clay_Color){r, g, b, a};
+    has_pending_shadow = 1;
+}
+
+/** The backdrop of the next element (a css.backdrop style): the pixels under its box are blurred, then the element is
+ *  drawn over them, so a translucent fill is glass over what is behind it. A renderer effect, as the shadow. */
+void ui_backdrop(float blur) { pending_backdrop = blur; }
+
+/** The background image of the next element (a css.backgroundImage style): a linear gradient at `angle` degrees in CSS's
+ *  reading (0 up, 90 right), `count` stops of (offset 0..1, r, g, b, a) each, flattened. A renderer effect, as the shadow:
+ *  the renderer fills the element's box with it instead of its solid background. */
+void ui_backgroundImage(int kind, float angle, int count, const float *stops)
+{
+    // ponytail: 8 stops a gradient, one gradient an element; a ninth is counted as an error and dropped
+    if (count > MAX_GRADIENT_STOPS) errors++, count = MAX_GRADIENT_STOPS;
+    if (count < 2) errors++;
+    pending_gradient.kind = kind, pending_gradient.angle = angle, pending_gradient.count = count;
+    memcpy(pending_gradient.stops, stops, (size_t)count * 5 * sizeof(float));
+    has_pending_gradient = 1;
+}
+
+/** An override of one number of the style of the element with that id, for this frame only: field 0..44 is a packed
+ *  field (their order in solid/README.md), 45 is the blur of the element's shadow, 46 the opacity of its whole subtree,
+ *  47 a scale about its box centre, 48/49 a visual offset of it in x and y, and 50 the opacity of its background image.
+ *  `ui_open` copies the element's own floats,
+ *  applies the overrides of its id and declares from the copy, so the style's literal is what it falls back to (a track
+ *  that settles on the style's own value leaves the frame identical). Out of range, or past 64 a frame, is counted as an
+ *  error and dropped. Width, height, padding, gap and the colours are Clay's layout and its fill: they are legal but a
+ *  moving one re-lays-out its parent's box, so an offset, a blur or the group is what reads as motion. */
+void ui_value(const char *id, int len, int field, float value)
+{
+    // ponytail: 64 overrides a frame (a page animating a dozen elements needs that many); more needs a bigger table
+    if (field < 0 || field > FIELD_GRADIENT_ALPHA || value_count == MAX_VALUES) {
+        errors++;
+        return;
+    }
+    values[value_count].id = Clay__HashString(slice(id, len), 0).id;
+    values[value_count].field = (uint16_t)field;
+    values[value_count].value = value;
+    value_count++;
+}
+
 /** Opens an element. id is NULL for an anonymous one; f is 45 floats: the box fields, then the floating ones. */
-void ui_open(const char *id, int len, const float *f)
+void ui_open(const char *id, int len, const float *style)
 {
     static const Clay_LayoutAlignmentX ax[3] = {CLAY_ALIGN_X_LEFT, CLAY_ALIGN_X_CENTER, CLAY_ALIGN_X_RIGHT};
     static const Clay_LayoutAlignmentY ay[3] = {CLAY_ALIGN_Y_TOP, CLAY_ALIGN_Y_CENTER, CLAY_ALIGN_Y_BOTTOM};
+    Clay_ElementId eid = {0};
+    if (id) eid = Clay__HashString(slice(id, len), 0);
+    // the value channel (ui_value): this element's overrides, applied to a copy of its own floats. Without one the
+    // declaration reads the style's literal, so a frame that uses no channel is the frame it was (180 bytes copied for
+    // an element that has an override, nothing for one that does not)
+    float over[STYLE_FIELDS];
+    const float *f = style;
+    float shadow_blur = -1;
+    int alpha = 255, grouped = 0;
+    float scale = 1, tx = 0, ty = 0;
+    float gradient_alpha = 255;
+    if (id && value_count) {
+        int mine = 0;
+        for (int i = 0; i < value_count; i++) mine += values[i].id == eid.id;
+        if (mine) {
+            memcpy(over, style, sizeof over);
+            for (int i = 0; i < value_count; i++) {
+                if (values[i].id != eid.id) continue;
+                if (values[i].field == FIELD_SHADOW_BLUR) shadow_blur = values[i].value;
+                // the group fields are not floats of the style: they go to the renderer's table, as the shadow's blur
+                else if (values[i].field == FIELD_ALPHA) alpha = (int)(values[i].value + 0.5f), grouped = 1;
+                else if (values[i].field == FIELD_SCALE) scale = values[i].value, grouped = 1;
+                else if (values[i].field == FIELD_TRANSLATE_X) tx = values[i].value, grouped = 1;
+                else if (values[i].field == FIELD_TRANSLATE_Y) ty = values[i].value, grouped = 1;
+                else if (values[i].field == FIELD_GRADIENT_ALPHA) gradient_alpha = values[i].value;
+                else over[values[i].field] = values[i].value;
+            }
+            f = over;
+        }
+    }
     Clay_ElementDeclaration d = {0};
     d.layout.sizing.width = axis(f + 0);
     d.layout.sizing.height = axis(f + 3);
@@ -203,15 +356,53 @@ void ui_open(const char *id, int len, const float *f)
         d.image.imageData = (void *)pending_image;
         pending_image = NULL;
     }
-    if (id) Clay__OpenElementWithId(Clay__HashString(slice(id, len), 0));
+    // the style's shadow (css.shadow), set by ui_shadow just before this call: the renderer keys it by the element's
+    // 32-bit id hash, which is also what its commands carry. An anonymous element has no id to key it by.
+    if (has_pending_shadow) {
+        if (id)
+            Clay_ThorVG_SetShadow(&tvg, eid.id, pending_shadow[0], pending_shadow[1],
+                                  shadow_blur >= 0 ? shadow_blur : pending_shadow[2], pending_shadow_color);
+        has_pending_shadow = 0;
+    }
+    // ... and its backdrop (css.backdrop): the renderer cuts the frame there, blurs the element's box and carries on
+    if (pending_backdrop >= 0) {
+        if (id) Clay_ThorVG_SetBackdrop(&tvg, eid.id, pending_backdrop);
+        pending_backdrop = -1;
+    }
+    // ... and its gradient (css.backgroundImage): the renderer fills the element's box with it, over its shadow
+    if (has_pending_gradient) {
+        if (id)
+            Clay_ThorVG_SetBackgroundImage(&tvg, eid.id, pending_gradient.kind, pending_gradient.angle,
+                                           pending_gradient.count, pending_gradient.stops, gradient_alpha);
+        has_pending_gradient = 0;
+    }
+    if (id) Clay__OpenElementWithId(eid);
     else Clay__OpenElement();
+    // The frame's element tree, in declaration order: the node's parent is the element that was open before it. Clay
+    // gives an anonymous element an id of its own on open, so it is read back after; the node's index is what the
+    // commands carry (userData) and what a group names, so an anonymous element is a parent like any other. A text
+    // (ui_text) is a node too, since a group's subtree must reach the text inside it.
+    if (tvg.treeCount < CLAY_THORVG_MAX_TREE) {
+        Clay_LayoutElement *open = Clay__GetOpenLayoutElement();
+        const int32_t node = tvg.treeCount++;
+        tvg.tree[node].id = open->id;
+        tvg.tree[node].parent = tvg.openDepth ? tvg.open[tvg.openDepth - 1] : -1;
+        d.userData = (void *)(uintptr_t)(node + 1);
+        if (grouped) Clay_ThorVG_SetGroup(&tvg, node, alpha, scale, tx, ty);
+        // ponytail: CLAY_THORVG_MAX_DEPTH elements deep; a deeper page keeps the deepest parent it recorded
+        if (tvg.openDepth < CLAY_THORVG_MAX_DEPTH) tvg.open[tvg.openDepth++] = node;
+    } else errors++; // ponytail: CLAY_THORVG_MAX_TREE elements a frame; a deeper page needs a bigger tree
     // a clip element is a scroll container: the offset Clay kept for it across frames is what shifts its children (its
     // debug view feeds its own the same way). Before Clay__ConfigureOpenElement, which reads this declaration.
     if (d.clip.horizontal || d.clip.vertical) d.clip.childOffset = Clay_GetScrollOffset();
     Clay__ConfigureOpenElement(d);
 }
 
-void ui_close(void) { Clay__CloseElement(); }
+void ui_close(void)
+{
+    Clay__CloseElement();
+    if (tvg.openDepth) tvg.openDepth--;
+}
 
 /** A text element: the bytes are copied for the frame; f is 10 floats. */
 void ui_text(const char *s, int len, const float *f)
@@ -231,6 +422,17 @@ void ui_text(const char *s, int len, const float *f)
     c.textColor = color(f);
     c.fontId = f[4], c.fontSize = f[5], c.letterSpacing = f[6], c.lineHeight = f[7];
     c.textAlignment = al[(int)f[8]], c.wrapMode = wm[(int)f[9]];
+    // the text's node in the frame's tree: Clay derives a text element's id from the parent and its place among the
+    // parent's children (the expression below is the one Clay__OpenTextElement uses), and it is the id its commands
+    // carry. A page cannot name a text, so no group starts here, but a group's subtree must reach through it.
+    if (tvg.treeCount < CLAY_THORVG_MAX_TREE) {
+        Clay_LayoutElement *parent = Clay__GetOpenLayoutElement();
+        const int32_t node = tvg.treeCount++;
+        tvg.tree[node].id =
+            Clay__HashNumber(parent->children.length + parent->floatingChildrenCount, parent->id).id;
+        tvg.tree[node].parent = tvg.openDepth ? tvg.open[tvg.openDepth - 1] : -1;
+        c.userData = (void *)(uintptr_t)(node + 1);
+    } else errors++;
     Clay__OpenTextElement(slice(copy, len), c);
 }
 
@@ -410,6 +612,16 @@ float ui_scroll_to(const char *id, int len, float y)
     return d.scrollPosition->y;
 }
 
+/** Puts a clip element's offset where the page says, with the content's clamp left out: a rubber band past an end is
+ *  past the content on purpose, and only the page knows how far. 0 when the element is no clip element. */
+float ui_scroll_put(const char *id, int len, float y)
+{
+    const Clay_ScrollContainerData d = Clay_GetScrollContainerData(Clay__HashString(slice(id, len), 0));
+    if (!d.found) return 0;
+    d.scrollPosition->y = y;
+    return y;
+}
+
 /** Drains the window's events into out[5]: pointer x, y, button down, quit, and the last key pressed (its
  *  character; 0 for none). The pointer and the button keep their last values between polls. Every key down and up
  *  (a repeat too) is also queued for ui_key_pop (the oldest are dropped past 64), every typed run for ui_text_pop,
@@ -420,8 +632,9 @@ void ui_window_poll(float *out)
     out[3] = 0, out[4] = 0;
     while (SDL_PollEvent(&e)) {
         if (e.type == SDL_EVENT_QUIT) out[3] = 1;
-        // SDL's wheel y is positive away from the user, and so is Clay's scroll delta: no sign to flip
-        if (e.type == SDL_EVENT_MOUSE_WHEEL) wheel_x += e.wheel.x, wheel_y += e.wheel.y;
+        // SDL's wheel y is positive away from the user, and so is Clay's scroll delta: no sign to flip. ui_wheel feeds
+        // Clay's containers and the page's own channel at once.
+        if (e.type == SDL_EVENT_MOUSE_WHEEL) ui_wheel(e.wheel.x, e.wheel.y);
         if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP) {
             if (keys_len == KEY_QUEUE) keys_head = (keys_head + 1) % KEY_QUEUE, keys_len--;
             int *k = keys[(keys_head + keys_len++) % KEY_QUEUE];

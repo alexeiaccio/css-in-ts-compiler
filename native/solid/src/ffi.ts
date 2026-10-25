@@ -9,9 +9,18 @@ const { symbols: s } = dlopen(new URL("../../build/solid/libui.dylib", import.me
   ui_errors: { args: [], returns: T.i32 },
   ui_begin: { args: [T.f32, T.f32, T.i32, T.f32], returns: T.void },
   ui_wheel: { args: [T.f32, T.f32], returns: T.void },
+  ui_wheel_pop: { args: [T.ptr], returns: T.i32 },
+  ui_auto_scroll: { args: [T.i32], returns: T.void },
   ui_pointer_over: { args: [T.ptr, T.i32], returns: T.i32 },
   ui_open: { args: [T.ptr, T.i32, T.ptr], returns: T.void },
+  ui_value: { args: [T.ptr, T.i32, T.i32, T.f32], returns: T.void },
   ui_image: { args: [T.ptr, T.i32], returns: T.void },
+  ui_shadow: {
+    args: [T.f32, T.f32, T.f32, T.f32, T.f32, T.f32, T.f32],
+    returns: T.void,
+  },
+  ui_backdrop: { args: [T.f32], returns: T.void },
+  ui_backgroundImage: { args: [T.i32, T.f32, T.i32, T.ptr], returns: T.void },
   ui_close: { args: [], returns: T.void },
   ui_text: { args: [T.ptr, T.i32, T.ptr], returns: T.void },
   ui_end: { args: [T.f32], returns: T.i32 },
@@ -30,6 +39,7 @@ const { symbols: s } = dlopen(new URL("../../build/solid/libui.dylib", import.me
   ui_bounds: { args: [T.ptr, T.i32, T.ptr], returns: T.i32 },
   ui_scroll_offset: { args: [T.ptr, T.i32], returns: T.f32 },
   ui_scroll_to: { args: [T.ptr, T.i32, T.f32], returns: T.f32 },
+  ui_scroll_put: { args: [T.ptr, T.i32, T.f32], returns: T.f32 },
 });
 
 const cstr = (x: string) => Buffer.from(`${x}\0`);
@@ -42,13 +52,31 @@ export const ui = {
   errors: () => s.ui_errors(),
   begin: s.ui_begin,
   /** Adds a wheel delta to the next frame: positive scrolls the content down (away from the user), as SDL's wheel y.
-   *  Clay moves the scroll container the pointer is over by it at the next `begin`. */
+   *  Clay moves the scroll container the pointer is over by it at the next `begin`, unless the page turned that off. */
   wheel: s.ui_wheel,
+  /** The wheel the polls (or `wheel`) took since the last pop, into out[2] and drained; false when there is none. */
+  wheelPop: (out: Float32Array) => s.ui_wheel_pop(ptr(out)) !== 0,
+  /** Clay's own wheel scrolling of its scroll containers: on by default, off while a page animates its own offset. */
+  autoScroll: (on: boolean) => s.ui_auto_scroll(on ? 1 : 0),
   /** Is the pointer over the element with that id (UTF-8, no terminator) in the layout of the last frame? */
   over: (id: Uint8Array) => s.ui_pointer_over(ptr(id), id.length) !== 0,
   open: (id: Uint8Array | undefined, style: Float32Array) => s.ui_open(id ? ptr(id) : null, id?.length ?? 0, ptr(style)),
+  /** An override of one number of that element's style for this frame only: a packed field 0..44 (`FIELDS` in pack.ts),
+   *  45 for its shadow's blur, 46/47/48/49 for its whole subtree's opacity, scale and translate, 50 for the opacity of
+   *  its background image. The next `open` declares from a copy with the overrides applied, so a value that is the
+   *  style's own leaves the frame as the literal made it. Called from a page's `View.tick`, before the tree. */
+  value: (id: Uint8Array, field: number, v: number) => s.ui_value(ptr(id), id.length, field, v),
   /** The image of the element the next `open` declares (a css.image style): the path UTF-8, no terminator. */
   image: (path: Uint8Array) => s.ui_image(ptr(path), path.length),
+  /** The shadow of the element the next `open` declares (a css.shadow style): offset, blur, colour 0-255. */
+  shadow: (x: number, y: number, blur: number, r: number, g: number, b: number, a: number) =>
+    s.ui_shadow(x, y, blur, r, g, b, a),
+  /** The backdrop of the element the next `open` declares (a css.backdrop style): the blur radius in pixels. */
+  backdrop: (blur: number) => s.ui_backdrop(blur),
+  /** The background image of the element the next `open` declares (a css.backgroundImage style): a linear gradient at
+   *  `angle` degrees (0 up, 90 right), `count` stops of (offset, r, g, b, a) flattened. */
+  backgroundImage: (kind: number, angle: number, count: number, stops: Float32Array) =>
+    s.ui_backgroundImage(kind, angle, count, ptr(stops)),
   close: s.ui_close,
   text: (bytes: Uint8Array, style: Float32Array) => s.ui_text(ptr(bytes), bytes.length, ptr(style)),
   end: s.ui_end,
@@ -85,6 +113,11 @@ export const ui = {
   scrollTo: (id: string, y: number) => {
     const bytes = Buffer.from(id);
     return s.ui_scroll_to(ptr(bytes), bytes.length, y);
+  },
+  /** Puts a clip element's offset where the page says, past its content too: a rubber band's overscroll. */
+  scrollPut: (id: string, y: number) => {
+    const bytes = Buffer.from(id);
+    return s.ui_scroll_put(ptr(bytes), bytes.length, y);
   },
   /** x, y, width, height of the element in the last layout, or undefined. */
   bounds: (id: Uint8Array) => {
