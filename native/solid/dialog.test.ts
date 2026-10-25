@@ -11,6 +11,7 @@ const { createFrame } = await import("./src/frame.ts");
 const { createInput } = await import("./src/input.ts");
 const { El, render, Txt } = await import("./src/renderer.ts");
 const { setReducedMotion } = await import("./src/motion.ts");
+const { FIELDS, packBox } = await import("./src/pack.ts");
 const { Dialog, size } = await import("./app/Dialog.tsx");
 
 ui.init(size.width, size.height);
@@ -394,9 +395,111 @@ for (const theme of [undefined, "light"]) {
   check("the drop is finite: its last frames are the same", new Set(ys.slice(-5).map((v) => v.toFixed(3))).size, 1);
 }
 
+// --- the group (`FIELDS.ALPHA`/`SCALE`): the panel's whole subtree arrives as one scene, composited at an opacity and
+// scaled about the panel's box centre by the renderer. That is a scene, not a layout: `ui.bounds` is the style's box
+// from the frame the panel opens on (where it is fully transparent) to rest. The frame read is the third after the
+// opening one (t = 0.05s): alpha 119 of 255 and scale 97.8%, so the drawn panel is translucent and 3px inside its box.
+const between = (v: number[], a: number[], b: number[], slack = 2) =>
+  v.every((c, i) => c > Math.min(a[i]!, b[i]!) + slack && c < Math.max(a[i]!, b[i]!) - slack);
+{
+  const p = fresh();
+  for (let n = 0; n < 4 && p.focused() !== "settings-trigger"; n++) p.tap("Tab");
+  check("no panel is laid out before the dialog opens", p.onScreen("settings-dialog"), false);
+  p.down("Enter");
+  const entry = [...p.box("settings-dialog")];
+  const entrySpot = Array.from(ui.pixel(Math.round(entry[0]! + 60), Math.round(entry[1]! + 46)).slice(0, 3));
+  p.step(), p.step(), p.step();
+  const mid = [...p.box("settings-dialog")];
+  const page = Array.from(ui.pixel(4, 470).slice(0, 3)); // the flat page under the backdrop's dim
+  // a flat spot of the panel — the gap between its title and its note — read at the same offset in both frames
+  const spot = (b: number[], dy: number) =>
+    Array.from(ui.pixel(Math.round(b[0]! + 60), Math.round(b[1]! + dy)).slice(0, 3));
+  const midSpot = spot(mid, 46);
+  // the title's brightest pixel: the ink of the settled panel, a blend of it mid-entry
+  const ink = (b: number[]) => {
+    let best = { l: -1, c: [0, 0, 0] };
+    for (let y = Math.round(b[1]! + 14); y < Math.round(b[1]! + 48); y++)
+      for (let x = Math.round(b[0]! + 14); x < Math.round(b[0]! + 220); x++) {
+        const c = Array.from(ui.pixel(x, y).slice(0, 3));
+        const l = lum(c);
+        if (l > best.l) best = { l, c };
+      }
+    return best.c;
+  };
+  const midInk = ink(mid);
+  // the visible edge: the first pixel of the panel's own light along a row through its middle, from outside in
+  const guard = lum(page) + 15;
+  const leftEdge = (b: number[], y: number) => {
+    for (let x = Math.round(b[0]!) - 8; x < Math.round(b[0]!) + 40; x++) if (lum(Array.from(ui.pixel(x, y).slice(0, 3))) > guard) return x;
+    return NaN;
+  };
+  const rightEdge = (b: number[], y: number) => {
+    for (let x = Math.round(b[0]! + b[2]!) + 8; x > Math.round(b[0]! + 100); x--)
+      if (lum(Array.from(ui.pixel(x, y).slice(0, 3))) > guard) return x;
+    return NaN;
+  };
+  const row = (b: number[]) => Math.round(b[1]! + b[3]! / 2);
+  const midEdges = [leftEdge(mid, row(mid)), rightEdge(mid, row(mid))];
+
+  p.settle(30);
+  const rest = [...p.box("settings-dialog")];
+  const restSpot = spot(rest, 46);
+  const restInk = ink(rest);
+  const restEdges = [leftEdge(rest, row(rest)), rightEdge(rest, row(rest))];
+  console.log(
+    `the group's entry: the spot ${midSpot.join(",")} between the page ${page.join(",")} and the panel ` +
+      `${restSpot.join(",")}; the title's ink ${midInk.join(",")} against ${restInk.join(",")}; ` +
+      `edges ${midEdges.join("..")} inside ${restEdges.join("..")}; the box ${entry.map((v) => v.toFixed(1)).join(",")} ` +
+      `-> ${mid.map((v) => v.toFixed(1)).join(",")} -> ${rest.map((v) => v.toFixed(1)).join(",")}`,
+  );
+  check("the panel is laid out on the frame it opens on, at alpha 0", entrySpot, page);
+  check(
+    "the scale is not a layout: x, width and height are the style's at the entry, mid-entry and rest",
+    [entry, mid, rest].map((b) => [b[0], b[2], b[3]].map((v) => Math.round(v!))).flat(),
+    Array(3).fill([40, 280, 152]).flat(),
+  );
+  check("only the float's offset moves the box (it drops in from 14px above)", entry[1]! < mid[1]! && mid[1]! < rest[1]!, true);
+  check("the settled spot is the panel's own surface", restSpot, [36, 40, 52]);
+  check("mid-entry the spot is a blend of the dimmed page and the panel", between(midSpot, page, restSpot), true);
+  check("the title's ink at rest is the text's colour", lum(restInk) > 200, true);
+  check("mid-entry the ink is a blend, not the settled text", between(midInk, page, restInk), true);
+  check("mid-entry the panel's left edge is inside its settled one", midEdges[0]! - restEdges[0]! >= 2, true);
+  check("... and so is its right edge", restEdges[1]! - midEdges[1]! >= 2, true);
+}
+
+// --- a group inside a group: two scenes, the inner one added to the outer, so the inner's alpha composites over the
+// outer's own content and the outer's alpha then applies to both. No page declares two nested groups, so the frame is
+// built from the renderer's own calls: a white 100x100 box at half alpha, a black 50x50 box inside it at half alpha
+// too, on the black ground. The black box at 128 over the white one's 255 is 127, and the outer's 128 over the black
+// ground halves that to 64 inside the inner box, against 128 in the outer one's ring and 0 outside. (The same frame
+// also proves a page with no ids at all still draws.)
+{
+  const style = (w: number, fill: { r: number; g: number; b: number; a: number }) =>
+    packBox({
+      layout: { sizing: { width: { type: "fixed", min: w }, height: { type: "fixed", min: w } } },
+      backgroundColor: fill,
+    });
+  const id = (name: string) => Buffer.from(name);
+  ui.begin(-1, -1, 0, 1 / 60);
+  ui.value(id("outer"), FIELDS.ALPHA, 128);
+  ui.value(id("inner"), FIELDS.ALPHA, 128);
+  ui.open(id("outer"), style(100, { r: 255, g: 255, b: 255, a: 255 }));
+  ui.open(id("inner"), style(50, { r: 0, g: 0, b: 0, a: 255 }));
+  ui.close();
+  ui.close();
+  ui.end(1 / 60);
+  ui.draw();
+  const c = (x: number, y: number) => ui.pixel(x, y)[0]!;
+  console.log(`two nested groups: inside the inner ${c(20, 20)}, the outer's ring ${c(80, 80)}, outside ${c(200, 200)}`);
+  check("a group inside a group: the inner scene is composited inside the outer one", Math.abs(c(20, 20) - 64) <= 2, true);
+  check("and the outer ring is one opacity", Math.abs(c(80, 80) - 128) <= 2, true);
+  check("outside both the ground is untouched", c(200, 200), 0);
+}
+
 // --- closing (presence): the panel and the dim stay mounted while their exit runs, then unmount. The panel's offset y
 // goes from 0 to 14 (spatial(0.2, 0)) and its shadow's blur 32 -> 0, the backdrop's alpha 140 -> 0 (both effect(0.2)),
 // while the modal trap is already released: the open state is what keys read, not whether the node is on screen.
+
 // The page pixel sampled is the reddest of the title (47, 35): under the dim it goes 103 -> 230 as the backdrop clears.
 const pixels = () => {
   const px = new Uint32Array(size.width * size.height);
@@ -632,6 +735,6 @@ for (const theme of [undefined, "light"]) {
 dispose();
 if (failed) process.exit(1);
 console.log(
-  "solid/dialog.test.ts: the modal trap, Escape and Cancel, OK's write, the backdrop, the floats' placement, the menu's keys, the shadows, the backdrop blur, the menu's slide and the dialog's drop, the two exits with presence, a revive mid-exit and reduced motion",
+  "solid/dialog.test.ts: the modal trap, Escape and Cancel, OK's write, the backdrop, the floats' placement, the menu's keys, the shadows, the backdrop blur, the menu's slide and the dialog's drop, the group's fade and scale (its blend and its edges, with the layout still), the two exits with presence, a revive mid-exit and reduced motion",
 );
 process.exit(0);

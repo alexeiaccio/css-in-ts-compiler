@@ -196,6 +196,13 @@ const SLIDE = spatial(0.22, 0.1); // a light bounce: the overlay grows out of it
 const BLUR = effect(0.22); // a blur has no negative side and must not ring: clamped and critically damped
 const OUT_SLIDE = spatial(0.2, 0); // the exit: no bounce, a node on its way out may not overshoot where it came from
 const OUT = effect(0.2); // ... and its blur and the dim: a luminance field goes out quietly, clamped
+// the group: the panel and the menu fade and grow as one subtree (`FIELDS.ALPHA`/`SCALE`). The scale is a percentage of
+// the element's box, not a fraction: a track's settle rule is 0.5 of its own unit, so 0.96..1 would settle on its first
+// sample — 96..100 settles at 99.5, a 0.5% snap nobody sees. The entry may carry a little velocity (spatial), the exit
+// must not overshoot; the opacity is an effect, as every luminance field here.
+const GROW = spatial(0.22, 0.1);
+const SHRINK = spatial(0.2, 0);
+const ENTRY_SCALE = 96; // percent: the panel and the menu start 4% small
 // where each arrival starts and where each exit goes, in px from the settled offset y: the menu 10px lower (under its
 // trigger) on the way in and 10px lower on the way out, the panel 14px higher in and 14px lower out, and both shadows
 // from 0 in and to 0 out
@@ -212,7 +219,8 @@ const write = channel((id, field, value) => ui.value(id, field, value));
 /**
  * One overlay's numbers: the settled offset y of its float (the style's literal), the deltas it comes in and goes out
  * by, the settled blur of its shadow, and — the backdrop's only — the alpha of its dim. The presence decides whether it
- * is in the tree, the tracks what it looks like, and both are the page's because a track's clock is.
+ * is in the tree, the tracks what it looks like, and both are the page's because a track's clock is. An overlay with no
+ * dim is a group: its whole subtree fades (`fade`, 0..255) and scales (`scale`, percent) about its box.
  */
 function overlay(id: string, rest: number, entry: number, exit: number, blur = -1, dim = -1) {
   return {
@@ -222,6 +230,7 @@ function overlay(id: string, rest: number, entry: number, exit: number, blur = -
     exit,
     blur,
     dim,
+    group: dim < 0, // the panel and the menu: the backdrop dims through its own fill instead
     present: presence(false, EXIT_SECONDS),
     mounted: false, // the frame before, for the edges
     open: false, // ... and whether it was open, so a target that moved is the one that is retargeted
@@ -229,6 +238,8 @@ function overlay(id: string, rest: number, entry: number, exit: number, blur = -
     y: track(rest, SLIDE),
     shade: track(0, BLUR),
     alpha: track(dim < 0 ? 0 : dim, OUT),
+    fade: track(0, OUT),
+    scale: track(ENTRY_SCALE, GROW),
   };
 }
 type Overlay = ReturnType<typeof overlay>;
@@ -256,6 +267,13 @@ function step(o: Overlay, open: boolean, dt: number) {
     o.y.retarget(o.clock, y, SLIDE);
     if (o.blur >= 0) o.shade.retarget(o.clock, blur, BLUR);
     if (o.dim >= 0) o.alpha.retarget(o.clock, dim, OUT);
+    // a group arrives from nothing: fully transparent and 4% small, on the same frame as the offset it starts from
+    if (o.group) {
+      o.fade = track(0, OUT, o.clock);
+      o.scale = track(ENTRY_SCALE, GROW, o.clock);
+      o.fade.retarget(o.clock, 255, OUT);
+      o.scale.retarget(o.clock, 100, GROW);
+    }
   } else {
     o.clock += dt; // a shown frame is one dt after the one before it
     // the target moved: on its way out, or back in mid-exit — from the presented (x, v), never from the entry
@@ -263,12 +281,18 @@ function step(o: Overlay, open: boolean, dt: number) {
       o.y.retarget(o.clock, y, open ? SLIDE : OUT_SLIDE);
       if (o.blur >= 0) o.shade.retarget(o.clock, blur, open ? BLUR : OUT);
       if (o.dim >= 0) o.alpha.retarget(o.clock, dim, OUT);
+      if (o.group) {
+        o.fade.retarget(o.clock, open ? 255 : 0, OUT);
+        o.scale.retarget(o.clock, open ? 100 : ENTRY_SCALE, open ? GROW : SHRINK);
+      }
     }
   }
   o.open = open;
   const fields: [number, Track | number][] = [[FIELDS.OFFSET_Y, o.y]];
   if (o.blur >= 0) fields.push([FIELDS.SHADOW_BLUR, o.shade]);
   if (o.dim >= 0) fields.push([FIELDS.BACKGROUND_ALPHA, o.alpha]);
+  // the group: the page's own track is percent, the renderer wants 1 = none
+  if (o.group) fields.push([FIELDS.ALPHA, o.fade], [FIELDS.SCALE, o.scale.at(o.clock).x / 100]);
   // a closing overlay takes no press: the pointer reaches the page under it while it fades
   if (closing) fields.push([FIELDS.CAPTURE, 1]);
   write(o.id, o.clock, ...fields);

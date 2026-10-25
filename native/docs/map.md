@@ -523,9 +523,28 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    into its exit, its blur at 22.9 of 32, the dim at 100.6 of 140), every other dialog frame byte-identical, and a
    `--reduced-motion` run against `frames/dialog-open.png`. Mutation: mounting the dialog on `dialog.open()` again
    (dropping the presence) fails `FAIL the panel is still in the layout right after Escape: false, wanted true`.
-   Not covered yet: **opacity of a whole subtree** (a text's colours are not in its box's floats), **transform/scale**
-   (Clay has none: an expand moves a float's children, not its glyphs), hover and tab transitions, first-mount entry on
-   the other pages, a rubber band (the feed clamps hard), drag/touch, and the terminal, browser and board (no Solid page,
+   **Done: group opacity and scale** (2026-10-25). The value channel moves one number of one element, and a text's
+   colour is not in its parent's floats, so a panel could not fade its children; Clay has no opacity and no transform.
+   `ui.c` now keeps the frame's **element tree** (`ui_open`/`ui_close`, and `ui_text`, as `{id, parent}` nodes in
+   declaration order, cleared in `ui_begin`) and every declaration carries its node as `userData`, which Clay copies
+   into each command it emits; the renderer turns an element's **subtree into the contiguous range of its commands** and
+   gives the range a ThorVG scene: `tvg_paint_set_opacity(scene, alpha)` (fields **46 `ALPHA`**, 0..255, so a text fades
+   with its own fill) and `tvg_paint_set_transform` about the **box centre** of the range's first command (field **47
+   `SCALE`**, 1 = none, from `centre·(1 - scale)` in e13/e23 — ThorVG's matrix takes the translation in its third
+   column and silently drops it from e31/e32, measured). Neither is a layout: `ui_bounds` does not move. A settled group
+   (255, 1) makes no scene, so the Dialog's settled frames stayed byte-identical. Limits: four groups open at once (a
+   fifth is ungrouped), 16 a frame, eight nested scissors, one backdrop cut a frame — a cut inside a group settles the
+   open groups into pass 1 and makes them again after it (the menu's glass is exactly that), and a shadow is drawn
+   inside its element's group, so it fades with the panel. The Dialog's panel and menu arrive and leave as a group
+   beside their offsets (alpha 0 → 255 and 96% → 100% on `effect(0.2)` and `spatial(0.22, 0.1)`; the backdrop keeps its
+   own dim through field 17). Measured (`solid/dialog.test.ts`, `dialog-entry-mid` three frames in): alpha 119 of 255,
+   scale 97.8%, the panel's box `40, 156.1, 280x152.3` against `40, 163.9, 280x152.3` at rest (x, width and height the
+   literal's on every frame), a flat spot `24,27,36` between the dimmed page `7,8,10` and the settled panel `36,40,52`,
+   the title's brightest pixel `163,163,166` against `235,235,240`, the visible edges `43..316` inside `40..319`.
+   Mutation: no `tvg_paint_set_opacity` fails the two blend checks and nothing else. Stored: `frames/dialog-entry-mid.png`,
+   and `dialog-menu-mid`/`dialog-exit-mid` were re-stored (a mid-exit panel now fades and shrinks).
+   Not covered yet: rotation (the same scene, a different matrix), hover and tab transitions, first-mount entry on the
+   other pages, a rubber band (the feed clamps hard), drag/touch, and the terminal, browser and board (no Solid page,
    no wheel and no value channel).
 3. **Metamorphic tests of layout and raster.** ~30 lines each, and they catch the bug classes we actually have:
    wrapping a page in a style-less box leaves the pixels identical; shifting a subtree by whole px shifts the picture
@@ -593,7 +612,7 @@ What each target can actually do — the "no" cells are as important as the rest
 | Blur of the element itself (a menu, a card leaving in place) | `gaussian_blur` on its scene | one pass | none | none |
 | Backdrop blur ("glass" over our own content) | our own buffer: copy the region under the panel, blur it, draw the panel over it | dual Kawase pass | none | none |
 | Gradients | ThorVG linear and radial fills; a new style member, dithered | Canvas 2D or WGSL | banded, dithered | 256 colours, dithered |
-| Group opacity | a scene with opacity (not a Clay concept today; per-command alpha is what we have) | yes | per-command alpha | none |
+| Group opacity | **done**: a scene per element subtree, at the alpha of value field 46 (and a scale, field 47) | yes | per-command alpha | none |
 | Tint and tritone (themes, disabled states) | ThorVG effect | a pass | a palette swap | the palette |
 | Grain, vignette | one tiled 64x64 alpha PNG | a pass | the same tile | none |
 

@@ -146,22 +146,81 @@ byte-identical after the menu and the panel learned to move.
 
 `field` 0..44 is a packed field, in `solid/README.md`'s table order; `pack.ts`'s `FIELDS` names the ones worth a name
 (`WIDTH` 0, `HEIGHT` 3, `PADDING` 6, `GAP` 10, `BACKGROUND` 14, `BACKGROUND_ALPHA` 17, `RADIUS` 18, `OFFSET_X` 38,
-`OFFSET_Y` 39, `EXPAND_W`/`EXPAND_H` 40/41, `Z_INDEX` 42, `CAPTURE` 43). **45 is not a float of the style at all**: it
-is `ui_shadow`'s blur, the one number of a shadow a page can move, which the channel hands to the pending shadow before
-`ui_open` hangs it on the renderer's table. Out of range, or a 65th override in a frame, is counted as an error and
-dropped.
+`OFFSET_Y` 39, `EXPAND_W`/`EXPAND_H` 40/41, `Z_INDEX` 42, `CAPTURE` 43). **45, 46 and 47 are not floats of the style**:
+45 is `ui_shadow`'s blur, the one number of a shadow a page can move, which the channel hands to the pending shadow
+before `ui_open` hangs it on the renderer's table; **46 (`ALPHA`) and 47 (`SCALE`) are one element's whole subtree as a
+ThorVG scene** (the section below), and they go to the renderer's table the same way. Out of range, or a 65th override
+in a frame, is counted as an error and dropped.
 
 What a page may animate, and what is meaningless mid-frame: an **offset** (`OFFSET_X`/`OFFSET_Y`), `EXPAND_*`,
-`Z_INDEX` and the **shadow's blur** are read as the element is placed and drawn, and nothing else moves. `WIDTH`/`HEIGHT`,
-`PADDING`, `GAP` and the colours are legal — the override is applied to the floats the declaration is built from — but
-Clay's layout is computed from the declaration every frame, so a width or a gap that changes re-lays-out the element's
-parent and its siblings each frame: it is a **layout** change, not a transform, and an animation of one reads as a jitter
-of everything around it. A slide belongs on a float's offset; a fade or a scale is not this channel's (the last
-paragraph of this section says why).
+`Z_INDEX`, the **shadow's blur** and the subtree's **alpha** and **scale** are read as the element is placed and drawn,
+and nothing else moves. `WIDTH`/`HEIGHT`, `PADDING`, `GAP` and the colours are legal — the override is applied to the
+floats the declaration is built from — but Clay's layout is computed from the declaration every frame, so a width or a
+gap that changes re-lays-out the element's parent and its siblings each frame: it is a **layout** change, not a
+transform, and an animation of one reads as a jitter of everything around it. A slide belongs on a float's offset; a
+fade or a scale belongs on the group.
 
 The cost is one scan of the table per `ui_open` on a frame that uses the channel, and a 180-byte `memcpy` of the 45
 floats for each element that has an override (the Dialog writes two elements a frame: 360 bytes, and its declare phase is
 0.008 ms of a 2.0 ms frame). The table holds 64 overrides, which is more than a page animating a dozen elements needs.
+
+### Group opacity and scale: an element's whole subtree
+
+A packed style can move one element's own numbers, and a text's colour is not in its parent's floats, so a panel could
+not fade its children. Clay has no opacity and no transform either, and its command stream is flat. What the renderer
+does have is the **element tree** and each command's element, and that is enough for the two effects that were missing.
+
+`ui.c` keeps the frame's tree as the page declares it: `ui_open` pushes a node `{id, parent}` (the parent being the
+element that was open before it; Clay gives an anonymous element an id of its own on open, so it is read back after, and
+an anonymous element is a parent like any other), `ui_close` pops, and `ui_text` adds a node for the text — a text is
+never open, but a group's subtree has to reach through it. The nodes are in declaration order, at most 1024 a frame, and
+cleared in `ui_begin`. Every element's declaration carries its node as `userData` (`index + 1`), which Clay copies into
+each command it emits from that element, so at draw time every command says which element it belongs to.
+
+The two fields are the value channel's, above the shadow's blur: **46 `ALPHA`** (0..255) and **47 `SCALE`** (1 = none).
+`ui_open` reads them into the renderer's group table instead of into the floats (they are not floats of the style), and
+they carry no layout: `ui_bounds` does not move while a group scales. A page writes them from its `tick` as it writes an
+offset, one call an element.
+
+The renderer then turns each group into a **range**: the commands whose element is the group's element or under it.
+Clay's commands are in depth-first order, so a subtree's commands are contiguous and a min/max over the ancestry is the
+whole of it (the panel's range is 15..25 of the Dialog's frame, the menu's 14..21). A command that carries no node — a
+scissor's own start or end — belongs to the last element that had one; it is emitted inside that element's subtree, so
+it cannot widen a range past it. A group at alpha 255 and scale 1 gets no range at all: a settled frame is drawn exactly
+as the literal makes it, which is why the Dialog's settled frames came out byte-identical.
+
+In the draw loop, the first command of a range opens a scene and makes it `into`; the last one gives the scene
+`tvg_paint_set_opacity(scene, alpha)` and, if the scale is not 1, a matrix, then adds it to the scene that was current
+when it opened. The scale is about the **box centre of the range's first command**, and ThorVG carries a matrix's
+translation in its third column (`x' = x·e11 + y·e12 + e13`; its third row is unused, so a translation written into
+`e31`/`e32` is silently dropped — measured), which makes the whole transform `scale` on the diagonal and
+`centre·(1 - scale)` in `e13`/`e23`. Everything in the range inherits it: the element's own fill, its text, an image, a
+gradient, and — because the loop opens a group before the element's shadow is drawn — its shadow. A shadow fades and
+scales with the panel it belongs to, which is what the eye expects.
+
+Limits, stated rather than hidden. **Nesting**: four groups may be open at once (a group inside a group inside …), and a
+fifth is drawn ungrouped; 16 groups a frame. **A scissor** (`css.overflow`, a float's clip) opens its own scene *inside*
+whatever is current, so a group's subtree that contains a clipped element fades and scales as a whole; the scissor stack
+is eight deep. **A backdrop's cut** mid-group is the one thing that splits a scene: the cut draws pass 1 over the target,
+so the groups open at that moment are settled into it first and made again in the new root after it, and the rest of the
+subtree is composited with the same alpha and scale — the Dialog's menu is exactly this case (its own rectangle is the
+cut) and its shadow, fill, text and border all sit at the same opacity. A group whose range never meets its end (only a
+hand-made command array could) is composited as it is at the end of the loop.
+
+The Dialog page is the first user. The **panel** and the **menu** arrive as a group: `ALPHA` 0 → 255 on `effect(0.2)`
+(a luminance field is clamped, as the dim is) and `SCALE` 96 → 100 on `spatial(0.22, 0.1)` — percent, not a fraction,
+because a track's settle rule is 0.5 of its own unit, so 0.96..1 would be "settled" on its first sample; 96..100 snaps at
+99.5, a 0.5% jump nobody sees. The exit runs both back (0, 96) on `effect(0.2)` and `spatial(0.2, 0)` beside the offsets
+and the blur that were already there, and the backdrop keeps its own dim through field 17: its box is the window, so its
+alpha *is* the dim, and a scene around it would composite the page's own pixels. Measured on the third frame after the
+panel opens (`dialog-entry-mid`, t = 0.05s): alpha 119 of 255, scale 97.8%, the box `40, 156.1, 280x152.3` against
+`40, 163.9, 280x152.3` at rest — the x, width and height are the literal's at every frame, only the float's offset moves
+the y. A flat spot of the panel reads `24,27,36` between the dimmed page's `7,8,10` and the settled panel's `36,40,52`;
+the title's brightest pixel `163,163,166` against the settled ink's `235,235,240`; and the panel's visible edges `43..316`
+inside its settled `40..319`. The mutation is the renderer's: dropping `tvg_paint_set_opacity` from a group fails
+`FAIL mid-entry the spot is a blend of the dimmed page and the panel: false, wanted true` and
+`FAIL mid-entry the ink is a blend, not the settled text: false, wanted true`, and nothing else — the scale alone does
+not fade.
 
 ## Motion
 
@@ -218,7 +277,10 @@ class for the blur and `spatial` for the offset for the same reason: position ma
 field may not. The pair that reads best in a frame is the offset with the blur at once: the menu grows out of the
 trigger (it starts 10px lower, over the 20px it overlaps) while its shadow appears under it, so by the third frame
 (2/60s in) the menu is 7.4px low with a shadow at a quarter of its blur — legible as "arriving" rather than as a jump;
-the blur alone would look like a fade and the offset alone like a slide with no depth.
+the blur alone would look like a fade and the offset alone like a slide with no depth. The group is the third layer of
+the same arrival and the one that reaches the panel's text: alpha 0 → 255 and scale 96% → 100% (`dialog-entry-mid` is
+three frames in: 119 of 255 and 97.8%), so the panel is translucent and a shade small while it drops, and its own text
+fades with its fill instead of standing at full ink over a ghost of a box.
 
 The clocks are the page's and run only while the node is mounted: a fresh arrival starts at the entry values, and every
 later frame is one dt after the one before it — through the exit too — so a reopen mid-exit presents the value the exit
@@ -241,7 +303,8 @@ bounce past where it came from) and its shadow's blur 32 → 0 on `effect(0.2)`;
 0 on `effect(0.2)` — field 17 of the rgba, and since the backdrop's box is the whole window, its alpha *is* the dim (the
 0.55 of `rgb(0 0 0 / 0.55)` packs as 140); the **menu**'s offset y -20 → -10 and its blur 14 → 0. The presence's 0.35s
 is longer than the tracks take to settle exactly (~0.333 for the 32px blur), so the last frame an exiting node is on
-screen is the literal's. Measured (`solid/dialog.test.ts`, `ui.bounds` and the pixels per frame): the panel's y
+screen is the literal's. Both overlays also leave as a group (alpha 255 → 0, scale 100% → 96%, the section on group
+opacity and scale). Measured (`solid/dialog.test.ts`, `ui.bounds` and the pixels per frame): the panel's y
 `163.88, 165.24, 167.82, 170.39, 172.54, 174.18 … 177.88` (its rest 163.88, the exit 14 below), the reddest title pixel
 behind the backdrop `103, 115, 139, 162, 181, 196, 206, 214, 219, 222, 225, 227, 228, 228, 230` from the dim to the page,
 the menu's offset `-20.00, -19.03, -17.18, -15.34, -13.81, -12.64, -11.79, -11.19, -10.79, -10.51, -10.33` with its
@@ -261,14 +324,13 @@ so opening is the literal's frame in one frame and closing has no frame with the
 of their own. The dialog test checks it against the settled frame pixel for pixel, and `test.sh` runs the page with the
 flag against `frames/dialog-open.png`.
 
-Not here: **opacity or transform of a whole subtree**. The value channel moves one number of one element by its id, so
-presence can fade a box's own fill (the backdrop's dim through field 17) and slide a float; what it cannot do is fade a
-subtree (every element's colours would need an override, and a text's colours are not in its box's 45 floats), scale or
-rotate a box (Clay has no transform; a scale of a float's `EXPAND_W`/`EXPAND_H` moves its children, not its glyphs),
-animate a tab's underline or a hover/tab transition, or give the other pages a first-mount entry. Also not here: a
-rubber band at the feed's ends (the Sky feed clamps hard), drag scrolling and touch (a pointer's velocity is the host's;
-the List page still has no momentum and keeps Clay's instant wheel step), and the terminal, browser and board targets
-(they have no Solid page, no wheel and no value channel).
+Not here: **rotate** and a transform on a *non-float* element's own siblings (a group is a scale about the element's
+box centre and a whole-subtree opacity; a rotation would be the same scene with a different matrix, unbuilt), a group
+deeper than four levels or a fifth open at once, a group whose subtree is cut in two by a *second* backdrop's cut in the
+same frame (one cut a frame), a page that names a text element (a text is a node but has no id to animate), hover and
+tab transitions, first-mount entry on the other pages, a rubber band at the feed's ends (the Sky feed clamps hard), drag
+scrolling and touch (a pointer's velocity is the host's; the List page still has no momentum and keeps Clay's instant
+wheel step), and the terminal, browser and board targets (they have no Solid page, no wheel and no value channel).
 
 ## Test
 

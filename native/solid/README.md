@@ -87,7 +87,7 @@ with an `id`: Clay tells whether the pointer is over it. `onClick` runs on relea
 | `ui_init_gpu(w, h)` | the same on ThorVG's WebGPU canvas (`--raster thorvg-gpu`); only a `libui.dylib` from `desktop/build-thorvg-gpu.sh solid` |
 | `ui_begin(px, py, down, dt)` | pointer for this frame, then Clay's scroll containers move by the wheel this frame took (`Clay_UpdateScrollContainers(false, delta, dt)`, before the layout), then `Clay_BeginLayout` |
 | `ui_open(id, len, f32[45])` | open an element; `id` NULL for none; the style as below |
-| `ui_value(id, len, field, f32)` | an override of one number of that element's style for this frame: a packed field 0..44 (the table below), or 45, its shadow's blur. `ui_open` declares from a copy of the 45 floats with the frame's overrides applied; the table is cleared in `ui_begin`, 64 overrides a frame (`src/pack.ts`'s `FIELDS` names the ones a page uses; `src/motion.ts`'s `channel(write)` writes one element's fields in one call) |
+| `ui_value(id, len, field, f32)` | an override of one number of that element's style for this frame: a packed field 0..44 (the table below), 45 its shadow's blur, or 46/47 its whole subtree's alpha and scale (a ThorVG scene of its own: `FIELDS.ALPHA`, `FIELDS.SCALE`, the section below). `ui_open` declares from a copy of the 45 floats with the frame's overrides applied; the table is cleared in `ui_begin`, 64 overrides a frame (`src/pack.ts`'s `FIELDS` names the ones a page uses; `src/motion.ts`'s `channel(write)` writes one element's fields in one call) |
 | `ui_image(bytes, len)` | the image of the element the next `ui_open` declares (a `css.image` style): the path as UTF-8, no terminator. Interned once per distinct path, so the renderer's picture cache (keyed by that pointer) sees one address every frame |
 | `ui_shadow(x, y, blur, r, g, b, a)` | the shadow of the element the next `ui_open` declares (a `css.shadow` style): Clay has no shadow field, so it waits here and the element id's hash carries it to the renderer's table (one a frame, 32 at most, one draw an element) |
 | `ui_text(bytes, len, f32[10])` | a text element; the bytes are copied for the frame |
@@ -159,7 +159,9 @@ runs before the tree is declared and calls `ui.value(id, field, value)`: `ui_ope
 applies the frame's overrides of its id and declares from the copy. It is the shadow's and the backdrop's kind of side
 table — cleared in `ui_begin`, nothing cached — and a frame without overrides declares exactly the literal, which is why
 the Dialog's settled frames stayed byte-identical. `field` is a packed field (0..44), or `FIELDS.SHADOW_BLUR` (45), which
-is `ui_shadow`'s blur and not one of the floats.
+is `ui_shadow`'s blur and not one of the floats, or the two **group** fields: `FIELDS.ALPHA` (46, 0..255) and
+`FIELDS.SCALE` (47, 1 = none), which are the element's whole subtree as one ThorVG scene — its opacity, and a scale about
+its box centre that is not a layout (`ui_bounds` does not move). Neither goes into the floats.
 
 Naming them is `pack.ts`'s `FIELDS`: `OFFSET_X` 38 and `OFFSET_Y` 39 of a float, `EXPAND_W`/`EXPAND_H` 40/41, `Z_INDEX`
 42, `CAPTURE` 43 (a closing overlay sets it to 1, passthrough, so the page under it takes the press), `RADIUS` 18 (the
@@ -168,6 +170,19 @@ four corners), `BACKGROUND` 14 (rgba) and `BACKGROUND_ALPHA` 17 (the dim of a ba
 the page out from the declaration each frame, so a changing one re-lays-out the element's parent and its siblings — a
 layout change, not a transform. The cost is a 180-byte copy per overridden element and one scan of the table per `ui_open` on a frame that
 uses it.
+
+### The element tree and the groups (`ui.c`, `clay_renderer_thorvg.c`)
+
+A group is one element's subtree drawn into a scene of its own, which per-command alpha cannot do (a text's colour is not
+in its parent's floats). `ui_open`/`ui_close` keep the frame's tree of `{id, parent}` nodes in declaration order and
+`ui_text` adds a node for a text — a text is never open, but a group's subtree must reach through it — and every
+declaration hands its node to Clay as `userData` (index + 1), so each command says which element it belongs to. Clay's
+commands are in depth-first order, so a subtree's commands are contiguous: a group's range is the min and max command
+index whose element is that node or a descendant. The renderer opens a scene at the first command of the range, gives it
+`tvg_paint_set_opacity` and a scale matrix about the box centre of the range's first command at the last one, and adds it
+to the scene that was current when it opened; the element's shadow is drawn inside it. A group at 255 and 1 makes no
+scene. Four groups may be open at once, 16 a frame, eight nested scissors; a backdrop's cut inside a group settles it
+into pass 1 and makes it again after the cut.
 
 ### `ui_text` fields (`packText`)
 

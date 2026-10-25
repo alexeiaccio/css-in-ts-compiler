@@ -19,6 +19,8 @@ export const TEXT_FIELDS = 10;
  * `OFFSET_X`/`OFFSET_Y` of a float and `SHADOW_BLUR` (a renderer effect, no layout); `EXPAND_W`/`EXPAND_H` and
  * `Z_INDEX` too. `WIDTH`/`HEIGHT`, `PADDING`, `GAP` and the colours are legal but move Clay's layout: a field that
  * changes a box's size re-lays-out its parent and its siblings each frame, so animate a transform-like field, not a size.
+ * `ALPHA` and `SCALE` are the renderer's group of the element's whole subtree (one scene: a text over its own fill fades
+ * as a group, and a scale moves nothing in the layout).
  */
 export const FIELDS = {
   WIDTH: 0, // 0-2: type, min or percent, max
@@ -35,6 +37,8 @@ export const FIELDS = {
   Z_INDEX: 42,
   CAPTURE: 43, // a float's pointer capture: 0 captures the press, 1 lets it through to the page under it
   SHADOW_BLUR: 45, // ui_shadow's blur, not one of the 45: ui.c's FIELD_SHADOW_BLUR
+  ALPHA: 46, // the element's whole subtree composited at this opacity (0..255): ui.c's FIELD_ALPHA
+  SCALE: 47, // ... and scaled about its box centre (1 = none): ui.c's FIELD_SCALE, a renderer transform
 } as const;
 
 const SIZING = { FIT: 0, GROW: 1, PERCENT: 2, FIXED: 3 } as const;

@@ -5,6 +5,18 @@
 #include <math.h>
 #include <thorvg_capi.h>
 
+// The frame's element tree and its groups. A group is one element's subtree drawn into a ThorVG scene of its own, so a
+// scene effect (opacity) and a scene transform (scale) reach everything in it — a text over its own fill, an image, a
+// gradient — which per-command alpha cannot. Clay's commands are in depth-first tree order, so a subtree's commands are
+// contiguous and a group is the range [first, last] of them.
+// ponytail: 1024 elements and 16 groups a frame, four groups open at once (a group in a group in ...); past that the
+// tree counts an error and a fifth open group is drawn ungrouped. A page bigger than the tree needs a table that grows.
+#define CLAY_THORVG_MAX_TREE 1024
+#define CLAY_THORVG_MAX_DEPTH 64
+#define CLAY_THORVG_MAX_GROUPS 16
+#define CLAY_THORVG_MAX_NESTING 4
+#define CLAY_THORVG_MAX_SCISSORS 8
+
 typedef struct {
     Tvg_Canvas canvas;
     float scale;        // device pixels per Clay unit (the window's pixel density); the buffer is that much larger
@@ -45,6 +57,26 @@ typedef struct {
         bool drawn;
     } gradients[16];
     int gradientCount;
+    // the frame's element tree (ui_open/ui_close and ui_text), in declaration order: a node's id and the index of the
+    // element it was declared in (-1 at the root). Every command carries its node as `userData` (index + 1), so a
+    // subtree becomes the range of command indices whose node is that element or a descendant. `open` is the elements
+    // still open (a text is a node but is never open: Clay adds it to its parent and it holds no children).
+    struct {
+        uint32_t id;
+        int32_t parent;
+    } tree[CLAY_THORVG_MAX_TREE];
+    int treeCount;
+    int32_t open[CLAY_THORVG_MAX_DEPTH];
+    int openDepth;
+    // the frame's groups (the value channel's ALPHA and SCALE), one per element that has either: a scene around the
+    // element's whole subtree, composited at the alpha (tvg_paint_set_opacity, 0..255) and scaled about the centre of
+    // the element's box on the first command of the range (tvg_paint_set_transform: no layout, `ui_bounds` does not move)
+    struct {
+        int32_t at;  // the element's index in the tree
+        int alpha;   // 0..255; 255 is nothing, and no scene is made
+        float scale; // 1 is nothing
+    } groups[CLAY_THORVG_MAX_GROUPS];
+    int groupCount;
     bool cut; // this frame's one cut has happened (the first backdrop's first rectangle)
     // the software canvas's target, for the CPU blur of a backdrop: the WebGPU canvas reads its frame back only after
     // the whole draw, so it sets none and a backdrop is not blurred there (the frame is not cut either)
@@ -197,6 +229,55 @@ static float Clay_ThorVG_BackdropOf(Clay_ThorVGRendererData *d, uint32_t id)
     return -1;
 }
 
+/** Gives the element at that index of the frame's tree a group for the next draw (one a frame): its subtree as one scene
+ *  at `alpha` (0..255) and `scale` about its box centre (1 = none). A renderer effect, as the shadow: the page writes it
+ *  through the value channel (fields 46 and 47), and the command stream's userData is what finds the subtree again. */
+static void Clay_ThorVG_SetGroup(Clay_ThorVGRendererData *d, int at, int alpha, float scale)
+{
+    if (alpha < 0) alpha = 0;
+    if (alpha > 255) alpha = 255;
+    if (scale < 0.01f) scale = 0.01f;
+    for (int i = 0; i < d->groupCount; i++)
+        if (d->groups[i].at == at) {
+            d->groups[i].alpha = alpha, d->groups[i].scale = scale;
+            return;
+        }
+    if (d->groupCount == CLAY_THORVG_MAX_GROUPS) return; // ponytail: 16 groups a frame; more needs a table that grows
+    d->groups[d->groupCount].at = at;
+    d->groups[d->groupCount].alpha = alpha;
+    d->groups[d->groupCount].scale = scale;
+    d->groupCount++;
+}
+
+/** A group's command range in the frame, and what its scene is made to look like: the range's first command's box
+ *  centre is the scale's origin. */
+typedef struct {
+    int32_t start, end;
+    int alpha;
+    float scale;
+    float cx, cy;
+} Clay_ThorVG_GroupSpan;
+
+/** Is the tree node `node` the element `at`, or one of its descendants? */
+static bool Clay_ThorVG_Under(Clay_ThorVGRendererData *d, int32_t at, int32_t node)
+{
+    for (int32_t n = node, guard = 0; n >= 0 && guard <= d->treeCount; n = d->tree[n].parent, guard++)
+        if (n == at) return true;
+    return false;
+}
+
+/** Puts a group's scene into its parent scene with its opacity and its scale, around the range's box centre. ThorVG's
+ *  matrix carries the translation in its third column (`x' = x·e11 + y·e12 + e13`; its third row is not used), so a
+ *  scale about c is `scale` on the diagonal and `c·(1 - scale)` in e13/e23. */
+static void Clay_ThorVG_SettleGroup(const Clay_ThorVG_GroupSpan *g, Tvg_Paint scene)
+{
+    if (g->alpha < 255) tvg_paint_set_opacity(scene, (uint8_t)g->alpha);
+    if (g->scale != 1) {
+        const Tvg_Matrix m = {g->scale, 0, g->cx * (1 - g->scale), 0, g->scale, g->cy * (1 - g->scale), 0, 0, 1};
+        tvg_paint_set_transform(scene, &m);
+    }
+}
+
 /** Gives the element with this id's hash a background image for the next draw (one a frame): a linear gradient that fills
  *  the element's box instead of its solid background. `stops` is `count` rows of (offset 0..1, r, g, b, a). A renderer
  *  effect, as the shadow: no Clay field holds one, and the command stream's id is what finds it again. */
@@ -346,10 +427,77 @@ static void Clay_ThorVG_BlurBackdrop(Clay_ThorVGRendererData *d, Clay_RenderComm
 static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_RenderCommandArray *rcommands)
 {
     tvg_canvas_remove(d->canvas, NULL);
+    // Which element each command belongs to: `userData` is the node's index in the frame's tree + 1 (ui.c). A command
+    // that carries none — a scissor's own start or end, which Clay emits from an id it derives itself — belongs to the
+    // last element that had one; it is emitted inside that element's subtree, so it cannot widen a group past it.
+    const int32_t n = rcommands->length;
+    // Each group's range: the commands whose element is the group's element or under it. A group with nothing animated
+    // (alpha 255 and scale 1) gets no range, so a settled page is drawn exactly as the literal makes it.
+    Clay_ThorVG_GroupSpan spans[CLAY_THORVG_MAX_GROUPS];
+    int32_t spanAt[CLAY_THORVG_MAX_GROUPS];
+    int spanCount = 0;
+    for (int g = 0; g < d->groupCount; g++) {
+        if (d->groups[g].alpha >= 255 && d->groups[g].scale == 1) continue;
+        spans[spanCount] = (Clay_ThorVG_GroupSpan){.start = n, .end = -1, .alpha = d->groups[g].alpha,
+                                                   .scale = d->groups[g].scale};
+        spanAt[spanCount++] = d->groups[g].at;
+    }
+    int32_t last = -1;
+    for (int32_t i = 0; i < n; i++) {
+        Clay_RenderCommand *rcmd = Clay_RenderCommandArray_Get(rcommands, i);
+        const uintptr_t node = (uintptr_t)rcmd->userData;
+        if (node) last = (int32_t)(node - 1);
+        for (int s = 0; s < spanCount; s++) {
+            if (!Clay_ThorVG_Under(d, spanAt[s], last)) continue;
+            if (spans[s].start > spans[s].end) spans[s].start = i;
+            spans[s].end = i;
+        }
+    }
+    // the empty ones go, and the rest are ordered so a group that contains another is opened first: by start, and the
+    // longer range first where two start together
+    int kept = 0;
+    for (int s = 0; s < spanCount; s++) {
+        if (spans[s].start > spans[s].end) continue;
+        Clay_RenderCommand *first = Clay_RenderCommandArray_Get(rcommands, spans[s].start);
+        spans[s].cx = first->boundingBox.x + first->boundingBox.width / 2;
+        spans[s].cy = first->boundingBox.y + first->boundingBox.height / 2;
+        spans[kept++] = spans[s];
+    }
+    spanCount = kept;
+    for (int a = 1; a < spanCount; a++) {
+        const Clay_ThorVG_GroupSpan s = spans[a];
+        int b = a - 1;
+        while (b >= 0 && (spans[b].start > s.start || (spans[b].start == s.start && spans[b].end < s.end))) {
+            spans[b + 1] = spans[b];
+            b--;
+        }
+        spans[b + 1] = s;
+    }
+
     Tvg_Paint root = tvg_scene_new(), into = root;
     tvg_paint_scale(root, d->scale);
     d->cut = false;
-    for (int32_t i = 0; i < rcommands->length; i++) {
+    // the scenes open at this command: a group (whose scene may be closed by a backdrop's cut and made again) and a
+    // scissor (whose scene is always inside the one that was current when it started)
+    const Clay_ThorVG_GroupSpan *openSpan[CLAY_THORVG_MAX_NESTING];
+    Tvg_Paint openScene[CLAY_THORVG_MAX_NESTING], openParent[CLAY_THORVG_MAX_NESTING];
+    int openCount = 0;
+    Tvg_Paint clipParent[CLAY_THORVG_MAX_SCISSORS];
+    int clipDepth = 0;
+    int nextSpan = 0;
+    for (int32_t i = 0; i < n; i++) {
+        // a group starts at the first command of its subtree, before the element's shadow, so the shadow is inside it (a
+        // shadow fades with the panel it belongs to) and before the cut test below, which may have to close it
+        while (nextSpan < spanCount && spans[nextSpan].start <= i) {
+            const Clay_ThorVG_GroupSpan *g = &spans[nextSpan++];
+            if (openCount == CLAY_THORVG_MAX_NESTING) continue; // ponytail: four open groups; a fifth is ungrouped
+            openSpan[openCount] = g;
+            openParent[openCount] = into;
+            openScene[openCount] = tvg_scene_new();
+            tvg_scene_add(into, openScene[openCount]);
+            into = openScene[openCount];
+            openCount++;
+        }
         Clay_RenderCommand *rcmd = Clay_RenderCommandArray_Get(rcommands, i);
         // a shadow of this element (css.shadow) goes before its first command, in the same scene as the command
         Clay_ThorVG_DrawShadow(d, rcmd, into);
@@ -362,10 +510,19 @@ static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_Rend
         // crisp. One cut a frame: glass under glass would need the first panel's pixels, and a second cut would read a
         // frame the first one has already drawn.
         // ponytail: only a rectangle cuts, and only outside a scissor scene; a backdrop inside a clip is not blurred, and
-        // neither is one on the WebGPU canvas (it has no target to read before the whole frame is drawn).
-        if (d->target && !d->cut && into == root && rcmd->commandType == CLAY_RENDER_COMMAND_TYPE_RECTANGLE &&
+        // neither is one on the WebGPU canvas (it has no target to read before the whole frame is drawn). A cut inside a
+        // group wins over it: the groups open here are settled into pass 1 (their scenes are already in it) and made
+        // again in the new root after the cut, so the rest of the subtree is composited the same way — a group is never
+        // cut in two by the scene, only by the frame's own pass.
+        if (d->target && !d->cut && clipDepth == 0 && rcmd->commandType == CLAY_RENDER_COMMAND_TYPE_RECTANGLE &&
             Clay_ThorVG_BackdropOf(d, rcmd->id) >= 0) {
             d->cut = true;
+            const int reopened = openCount;
+            for (int k = openCount - 1; k >= 0; k--) {
+                Clay_ThorVG_SettleGroup(openSpan[k], openScene[k]);
+                into = openParent[k];
+            }
+            openCount = 0;
             tvg_canvas_add(d->canvas, root);
             tvg_canvas_draw(d->canvas, d->clear);
             if (tvg_canvas_sync(d->canvas) != TVG_RESULT_SUCCESS) return false;
@@ -375,6 +532,13 @@ static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_Rend
             Clay_ThorVG_BlurBackdrop(d, rcmd, Clay_ThorVG_BackdropOf(d, rcmd->id));
             root = tvg_scene_new(), into = root;
             tvg_paint_scale(root, d->scale);
+            for (int k = 0; k < reopened; k++) {
+                openParent[k] = into;
+                openScene[k] = tvg_scene_new();
+                tvg_scene_add(into, openScene[k]);
+                into = openScene[k];
+            }
+            openCount = reopened;
             // ThorVG's software canvas seeds its working surface from the target on its first draw and replaces what a
             // later draw's paints touch: setting the same target again is what lets this pass composite the panel over
             // the blurred pixels (measured: without it a translucent fill comes out as its own alpha, and a scene
@@ -434,15 +598,19 @@ static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_Rend
             tvg_scene_add(into, t);
         } break;
         case CLAY_RENDER_COMMAND_TYPE_SCISSOR_START: {
-            // ponytail: one level, as Clay's SDL3 renderer (SCISSOR_END goes back to no clip); a stack of scenes
-            // when nested scroll containers need it
+            // the clip's scene goes inside whatever is current — the root, or a group's scene, which then clips with the
+            // rest of the subtree — and SCISSOR_END goes back to it
             Tvg_Paint clip = tvg_shape_new();
             tvg_shape_append_rect(clip, x, y, w, h, 0, 0, true);
+            Tvg_Paint parent = into;
+            // ponytail: eight nested clip elements; a ninth is clamped, its scene going into the root as before
+            if (clipDepth == CLAY_THORVG_MAX_SCISSORS) clipDepth--, parent = root;
+            clipParent[clipDepth++] = parent;
             into = tvg_scene_new();
             tvg_paint_set_clip(into, clip);
-            tvg_scene_add(root, into);
+            tvg_scene_add(parent, into);
         } break;
-        case CLAY_RENDER_COMMAND_TYPE_SCISSOR_END: into = root; break;
+        case CLAY_RENDER_COMMAND_TYPE_SCISSOR_END: into = clipDepth ? clipParent[--clipDepth] : root; break;
         case CLAY_RENDER_COMMAND_TYPE_IMAGE: {
             // imageData is the path of the picture (Clay's image config is that pointer alone), loaded once per path;
             // the command's box is where it goes, and ThorVG scales the picture into it
@@ -455,6 +623,19 @@ static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_Rend
         } break;
         default: SDL_Log("Unknown render command type: %d", rcmd->commandType);
         }
+        // a group ends at the last command of its subtree: the scene is composited (opacity, scale) into the scene that
+        // was current when it opened — a group's own border comes after its children, so this is its last command
+        while (openCount && openSpan[openCount - 1]->end <= i) {
+            --openCount;
+            Clay_ThorVG_SettleGroup(openSpan[openCount], openScene[openCount]);
+            into = openParent[openCount];
+        }
+    }
+    // a range that never met its end (only possible with a hand-made command array) is composite as it is
+    while (openCount) {
+        --openCount;
+        Clay_ThorVG_SettleGroup(openSpan[openCount], openScene[openCount]);
+        into = openParent[openCount];
     }
     tvg_canvas_add(d->canvas, root);
     // the second pass overdraws the first: it must not clear what the blur left there

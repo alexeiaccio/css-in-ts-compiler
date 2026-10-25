@@ -24,6 +24,11 @@ typedef struct { int unused; } Clay_WgTarget; // only the GPU build (desktop/bui
 // frames is the value channel: a page's per-frame overrides of a packed style, by element id
 #define STYLE_FIELDS 45
 #define FIELD_SHADOW_BLUR 45 // the one value outside the 45 floats: the blur of the element's shadow (a renderer table)
+// ... and two more that are not in the floats either: the element's whole subtree as one scene. ALPHA is that scene's
+// opacity (0..255), so a text over its own fill fades as a group, and SCALE is a transform about the element's box
+// centre (1 = none), which is not a layout: `ui_bounds` does not move as it animates
+#define FIELD_ALPHA 46
+#define FIELD_SCALE 47
 
 static Clay_ThorVGRendererData tvg;
 static const char *font_names[MAX_FONTS];
@@ -185,6 +190,9 @@ void ui_begin(float px, float py, int down, float dt)
     pending_backdrop = -1;
     has_pending_gradient = 0;
     value_count = 0; // the value channel is a frame's, as the shadows and the backdrops are
+    tvg.treeCount = 0; // ... and so is the element tree and its groups
+    tvg.openDepth = 0;
+    tvg.groupCount = 0;
     tvg.shadowCount = 0; // the frame's shadows go with the rest of the frame
     tvg.backdropCount = 0;
     tvg.gradientCount = 0;
@@ -258,15 +266,16 @@ void ui_backgroundImage(int kind, float angle, int count, const float *stops)
 }
 
 /** An override of one number of the style of the element with that id, for this frame only: field 0..44 is a packed
- *  field (their order in solid/README.md), 45 is the blur of the element's shadow. `ui_open` copies the element's own
- *  floats, applies the overrides of its id and declares from the copy, so the style's literal is what it falls back to
- *  (a track that settles on the style's own value leaves the frame identical). Out of range, or past 64 a frame, is
- *  counted as an error and dropped. Width, height, padding, gap and the colours are Clay's layout and its fill: they are
- *  legal but a moving one re-lays-out its parent's box, so an offset or a blur is what reads as motion. */
+ *  field (their order in solid/README.md), 45 is the blur of the element's shadow, 46 the opacity of its whole subtree
+ *  and 47 a scale about its box centre. `ui_open` copies the element's own floats, applies the overrides of its id and
+ *  declares from the copy, so the style's literal is what it falls back to (a track that settles on the style's own
+ *  value leaves the frame identical). Out of range, or past 64 a frame, is counted as an error and dropped. Width,
+ *  height, padding, gap and the colours are Clay's layout and its fill: they are legal but a moving one re-lays-out its
+ *  parent's box, so an offset or a blur is what reads as motion. */
 void ui_value(const char *id, int len, int field, float value)
 {
     // ponytail: 64 overrides a frame (a page animating a dozen elements needs that many); more needs a bigger table
-    if (field < 0 || field > FIELD_SHADOW_BLUR || value_count == MAX_VALUES) {
+    if (field < 0 || field > FIELD_SCALE || value_count == MAX_VALUES) {
         errors++;
         return;
     }
@@ -289,6 +298,8 @@ void ui_open(const char *id, int len, const float *style)
     float over[STYLE_FIELDS];
     const float *f = style;
     float shadow_blur = -1;
+    int alpha = 255, grouped = 0;
+    float scale = 1;
     if (id && value_count) {
         int mine = 0;
         for (int i = 0; i < value_count; i++) mine += values[i].id == eid.id;
@@ -297,6 +308,9 @@ void ui_open(const char *id, int len, const float *style)
             for (int i = 0; i < value_count; i++) {
                 if (values[i].id != eid.id) continue;
                 if (values[i].field == FIELD_SHADOW_BLUR) shadow_blur = values[i].value;
+                // the group fields are not floats of the style: they go to the renderer's table, as the shadow's blur
+                else if (values[i].field == FIELD_ALPHA) alpha = (int)(values[i].value + 0.5f), grouped = 1;
+                else if (values[i].field == FIELD_SCALE) scale = values[i].value, grouped = 1;
                 else over[values[i].field] = values[i].value;
             }
             f = over;
@@ -353,13 +367,31 @@ void ui_open(const char *id, int len, const float *style)
     }
     if (id) Clay__OpenElementWithId(eid);
     else Clay__OpenElement();
+    // The frame's element tree, in declaration order: the node's parent is the element that was open before it. Clay
+    // gives an anonymous element an id of its own on open, so it is read back after; the node's index is what the
+    // commands carry (userData) and what a group names, so an anonymous element is a parent like any other. A text
+    // (ui_text) is a node too, since a group's subtree must reach the text inside it.
+    if (tvg.treeCount < CLAY_THORVG_MAX_TREE) {
+        Clay_LayoutElement *open = Clay__GetOpenLayoutElement();
+        const int32_t node = tvg.treeCount++;
+        tvg.tree[node].id = open->id;
+        tvg.tree[node].parent = tvg.openDepth ? tvg.open[tvg.openDepth - 1] : -1;
+        d.userData = (void *)(uintptr_t)(node + 1);
+        if (grouped) Clay_ThorVG_SetGroup(&tvg, node, alpha, scale);
+        // ponytail: CLAY_THORVG_MAX_DEPTH elements deep; a deeper page keeps the deepest parent it recorded
+        if (tvg.openDepth < CLAY_THORVG_MAX_DEPTH) tvg.open[tvg.openDepth++] = node;
+    } else errors++; // ponytail: CLAY_THORVG_MAX_TREE elements a frame; a deeper page needs a bigger tree
     // a clip element is a scroll container: the offset Clay kept for it across frames is what shifts its children (its
     // debug view feeds its own the same way). Before Clay__ConfigureOpenElement, which reads this declaration.
     if (d.clip.horizontal || d.clip.vertical) d.clip.childOffset = Clay_GetScrollOffset();
     Clay__ConfigureOpenElement(d);
 }
 
-void ui_close(void) { Clay__CloseElement(); }
+void ui_close(void)
+{
+    Clay__CloseElement();
+    if (tvg.openDepth) tvg.openDepth--;
+}
 
 /** A text element: the bytes are copied for the frame; f is 10 floats. */
 void ui_text(const char *s, int len, const float *f)
@@ -379,6 +411,17 @@ void ui_text(const char *s, int len, const float *f)
     c.textColor = color(f);
     c.fontId = f[4], c.fontSize = f[5], c.letterSpacing = f[6], c.lineHeight = f[7];
     c.textAlignment = al[(int)f[8]], c.wrapMode = wm[(int)f[9]];
+    // the text's node in the frame's tree: Clay derives a text element's id from the parent and its place among the
+    // parent's children (the expression below is the one Clay__OpenTextElement uses), and it is the id its commands
+    // carry. A page cannot name a text, so no group starts here, but a group's subtree must reach through it.
+    if (tvg.treeCount < CLAY_THORVG_MAX_TREE) {
+        Clay_LayoutElement *parent = Clay__GetOpenLayoutElement();
+        const int32_t node = tvg.treeCount++;
+        tvg.tree[node].id =
+            Clay__HashNumber(parent->children.length + parent->floatingChildrenCount, parent->id).id;
+        tvg.tree[node].parent = tvg.openDepth ? tvg.open[tvg.openDepth - 1] : -1;
+        c.userData = (void *)(uintptr_t)(node + 1);
+    } else errors++;
     Clay__OpenTextElement(slice(copy, len), c);
 }
 
