@@ -19,7 +19,7 @@ node scripts/release.mjs --install     # the same, then install all 27 tarballs 
 cd packages/cssints && bun run test:smoke   # a Vite app built from the tarballs
 ```
 
-`scripts/release.mjs` fails when, in a package: `private`, `workspace:` or `catalog:` is left; the `development` condition is left; `repository` is not exactly `git+https://github.com/alexeiaccio/css-in-ts-compiler.git` with its directory (the trusted publisher compares it); a file named by `exports` or `bin` is missing; a sibling's range is not met by the sibling's version; the tarball holds a test, a fixture or TypeScript source (except `src/core` of devtools); there is no README or LICENSE. And for the repository: a tracked `dist/` folder differs from a fresh build (commit the rebuilt `dist/` on master first).
+`scripts/release.mjs` fails when, in a package: `private`, `workspace:` or `catalog:` is left; the `development` condition is left; `repository` is not exactly `git+https://github.com/alexeiaccio/css-in-ts-compiler.git` with its directory (the trusted publisher compares it); a file named by `exports` or `bin` is missing; a sibling's range is not met by the sibling's version; the tarball holds a test, a fixture or TypeScript source (except `src/core` of devtools); there is no README or LICENSE.
 
 ## New packages: `@cssints/headless` and `@cssints/apg-specs` (0.5.1)
 
@@ -107,7 +107,6 @@ Checks run with the token of the Actions bot do not start on the version pull re
 
 - `ENEEDAUTH` in CI: the workflow file name or case differs from the trusted publisher, `id-token: write` is missing, the npm version is under 11.5.1, or the package has no trusted publisher yet.
 - `E404` on the package when adding a trusted publisher: it was never published.
-- "the tracked dist/ differs from a fresh build": on master run `bun run build:packages`, commit `dist/`.
 - A package published, the rest did not: run the publish again, `changeset publish` skips the ones on npm.
 
 ## After a CI release (from 0.4.0, 2026-10-21)

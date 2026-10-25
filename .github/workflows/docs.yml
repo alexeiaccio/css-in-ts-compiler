@@ -1,6 +1,7 @@
 # Deploys apps/docs to Cloudflare (https://cssints.dev) with Alchemy on every push to master that can change it.
 # Secrets: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (see apps/docs/README.md "Deploy"). The state is in the account
-# (Cloudflare.state()), shared with local deploys. The packages are not built: Vite bundles the tracked packages/*/dist.
+# (Cloudflare.state()), shared with local deploys. No package's dist/ is tracked, and Vite bundles it, so the packages
+# are built first.
 name: docs
 
 on:
@@ -11,7 +12,6 @@ on:
       - docs/**
       - apps/docs/**
       - packages/*/src/**
-      - packages/*/dist/**
       - bun.lock
       - .github/workflows/docs.yml
   workflow_dispatch:
@@ -33,6 +33,8 @@ jobs:
         with:
           node-version: 24
       - run: bun install --frozen-lockfile
+      # the apps import the built packages: their exports default to dist, src is the `development` condition
+      - run: bun run build:packages
       - name: Deploy
         working-directory: apps/docs
         run: bun alchemy deploy --stage prod --yes

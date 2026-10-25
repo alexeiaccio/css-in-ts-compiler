@@ -45,6 +45,10 @@ docs/wayfinder.md      decisions and findings log (start here); docs/API.md the 
 docs/research/         comparisons with other libraries; docs/archive/ outdated plans
 ```
 
+No package's `dist/` is in git: `bun run build:packages` builds the 27 packages, and everything that bundles one
+(the docs deploy, `bun run release:check`, an app's production build) runs it first; development resolves the sources
+through the `development` export condition.
+
 ## Commands
 
 ```bash
@@ -462,7 +466,7 @@ const camel = (p: string) => p.replace(/-([a-z])/g, (_, c: string) => c.toUpperC
 
 ### Testing
 
-Tests are plain `node` scripts with `node:assert`, run through `bun run test` (`vp run -r test`); there is no test runner, except in tools/ai-automation, packages/apg-specs and packages/headless (vitest, `vp test run`). A fixture in `packages/cssints/test/fixtures` is a module the plugin transforms (`node run.mjs fixtures/x.ts` prints its code and css). A type test is a file that `tsc-rs` checks, with `@ts-expect-error` for what must fail (`packages/cssints/test/types/`, `packages/css-grammar/test/`). The doc test is `packages/cssints/test/docs.mjs`.
+Tests are plain `node` scripts with `node:assert`, run through `bun run test` (`vp run -r test`); there is no test runner, except in tools/ai-automation, packages/apg-specs and packages/headless (vitest, `vp test run`). A fixture in `packages/cssints/test/fixtures` is a module the plugin transforms (`node run.mjs fixtures/x.ts` prints its code and css). A type test is a file that `effect-tsrs` checks, with `@ts-expect-error` for what must fail (`packages/cssints/test/types/`, `packages/css-grammar/test/`). The doc test is `packages/cssints/test/docs.mjs`.
 
 ### File Structure
 
