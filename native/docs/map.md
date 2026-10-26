@@ -601,11 +601,38 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    band that clamps hard fails `FAIL a wheel past the end pushes the content out of it: false, wanted true`,
    `FAIL and exactly its f(40) on the 664px viewport: 78, wanted 99.29`, the hold and the exact return, and nothing
    else.
-   Not covered yet: rotation (the same scene, a different matrix), text-colour transitions (a text's colour is its own
-   fields, not its box's; a label swaps style — the tab's does), a drag (a pointer's velocity is the host's, so touch
-   and drag scrolling are not here, and the List page keeps Clay's instant wheel step), first-mount entry on the other
-   pages, a second gradient on one element, and the terminal, browser and board (no Solid page, no wheel and no value
-   channel).
+   **Done: the text channel and rotation** (2026-10-26). The value channel's last two holes. **A text's colour** is its
+   own four floats, not its parent's box's, so no box override could reach it and a label whose colour changed swapped
+   its style in one frame. `ui_text` now takes the text's **id** (`ui_text(id, id_len, bytes, len, floats)`, NULL for an
+   anonymous one, which is the ceiling: a text without an id cannot be named and keeps its literal), and the table's
+   fields **51..54 (`TEXT_COLOR`)** override the four colour floats of the text's copy — Clay's text command carries the
+   colour, so the hash sees it and a fading frame draws. The Sky page's tab labels are the user: each `<text>` has an id
+   and the page fades its colour on `effect(0.15)` from the muted token to the accent and back, retargeted from the
+   presented percent, beside the 2px underline that was already fading (measured: the new label `139/152/165 → 126/152/176
+   → 106/153/195 → 89/154/211 → 77/155/222 → 59/156/240`, the old one the same path back, a quick switch back inside the
+   two ends with its widest frame 15/255; `sky-tab-mid.png` is a switch two frames in). **Rotation**: the group gained a
+   fifth number, **55 `ROTATE`** (degrees about the box centre), composed with the scale and the translate into one
+   matrix — **scale, then rotate, then translate**, `x' = s·R·(x - c) + c + t`, `s·R` in the 2×2 and `c + t - (s·R)·c`
+   in the third column of ThorVG's matrix (`x' = x·e11 + y·e12 + e13`, its third row unused). The Dialog's menu leans
+   `-2° → 0` on `spatial(0.22, 0.1)` as it slides out of its trigger and back to `-2°` on the way out; 2° over its 150px
+   is 5px of top edge. It is drawn, not laid out: `ui.bounds` is the style's box on every frame (`40,·,150,133`) while
+   the top border's insets a row below the box's top read `112/11, 108/10, 60/8, 25/7` as the lean decays and `5/5` at
+   rest. The composition is proved on a hand-built non-square box: a 200x40 box with `SCALE` 0.5, `ROTATE` 90° and
+   `TRANSLATE_X` 40 is the rect x 130..150, y -30..70 — the long side standing up about the centre (100, 20) and the
+   40px after the rotation, unscaled. One arithmetic detail stated: a rotation of 0 takes the scale's own matrix
+   expression, because `c·(1 - s)` and `c - s·c` round differently and three glyph pixels of the scaled panel moved by
+   one level otherwise. Stored:
+   `sky-tab-mid.png` (a new frame) and `dialog-menu-mid.png` regenerated (the tilt); every other frame is byte-identical,
+   the settled ones included (the lean lands on 0 and a group at 255, scale 1, offset 0 and rotation 0 makes no scene).
+   Mutations: dropping the four `TEXT_COLOR` writes fails `FAIL and the next frame is strictly between the muted token and
+   the accent: false, wanted true` (both labels at their ends throughout) and three more of that block; dropping the
+   `ROTATE` write fails `FAIL mid-lean the top edge is not horizontal: the border's two insets differ: false, wanted
+   true` (the insets flat). Files are compared with their backups after the reverts.
+   Not covered yet: a gradient or a clip inside a *rotated* group (the dither's mark and the clip's rect are axis-aligned
+   maps of the groups around them, so such a thing would be stippled or cut as its unrotated box), first-mount entry on
+   the other pages, a drag (a pointer's velocity is the host's: touch and drag scrolling are the List page's next step,
+   and it keeps Clay's instant wheel step), a second gradient on one element, and the terminal, browser and board
+   targets (no Solid page, no wheel and no value channel).
 3. **Done: metamorphic tests** (`solid/metamorphic.test.tsx`, 2026-10-25). Four relations over the Sensors page and a
    two-width text, no oracle and no stored frame: a fixed-size wrapper leaves the pixels identical (0 of 129,600 differ);
    a whole-pixel move (13, 7) shifts the picture exactly (0 differ); a wider box never adds a text line (82px at 160

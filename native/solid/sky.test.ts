@@ -319,6 +319,74 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
   console.log(`solid/sky.test.ts: the underline's fade ${midNew.join("/")} on the way up, ${midOld.join("/")} on the way down`);
 }
 
+// --- the tab labels' colour is a text's own: a text's colour is not in its tab's box, so the page fades the text
+//     itself (`FIELDS.TEXT_COLOR` on the `<text>`'s id, fields 51..54) on `effect(0.15)`, the underline's 120ms fade
+//     beside it. A label that has settled writes nothing: its literal is the end it is on
+{
+  const p = fresh();
+  const ACCENT = [59, 156, 240]; // the accent token: the active label and the underline
+  /** The label's ink in the tab's box: the pixel furthest from the page among the box's inner rows — the glyph's core,
+   *  not a blend of an edge, and clear of the focus ring (2px inside the box) and of the underline. */
+  const ink = (i: number): number[] => {
+    const b = p.box(`sky-tabs-tab-${i}`);
+    const [x0, y0, x1, y1] = [b[0]! + 4, b[1]! + 4, b[0]! + b[2]! - 4, b[1]! + b[3]! - 5];
+    let best = { d: -1, c: [0, 0, 0] };
+    for (let y = Math.floor(y0); y < Math.floor(y1); y++)
+      for (let x = Math.floor(x0); x < Math.floor(x1); x++) {
+        const c = p.pixel(x, y);
+        const d = Math.max(...c.map((v, i) => Math.abs(v - PAGE[i]!)));
+        if (d > best.d) best = { d, c };
+      }
+    return best.c;
+  };
+  check("at rest the active tab's label is the accent", near(ink(0), ACCENT, 1), true);
+  check("and the one next to it the muted token", near(ink(1), MUTED, 1), true);
+  // the tablist is the page's first stop, on the active tab: an arrow switches the feed without a pointer on it, so no
+  // hover colour is in the way of the label's own
+  p.tap("Tab");
+  check("Tab focuses the tablist on the active tab", p.input.focus.focused(), "sky-tabs-tab-0");
+  p.input.down("ArrowRight");
+  p.step(); // the switch: both labels retarget, this frame shows where each one was
+  const up: number[][] = [ink(1)];
+  const down: number[][] = [ink(0)];
+  for (let f = 0; f < 4; f++) p.step(), up.push(ink(1)), down.push(ink(0));
+  p.settle(20);
+  const settledNew = ink(1);
+  const settledOld = ink(0);
+  p.input.up("ArrowRight");
+  p.step();
+  console.log(
+    `tab labels: the new one ${up.map((c) => c.join("/")).join(" ")} -> ${settledNew.join("/")}, ` +
+      `the old one ${down.map((c) => c.join("/")).join(" ")} -> ${settledOld.join("/")}`,
+  );
+  check("the label that became active starts where it was: the muted token", near(up[0]!, MUTED, 1), true);
+  check("and the next frame is strictly between the muted token and the accent", between(up[1]!, MUTED, ACCENT), true);
+  check("the colour keeps going the same way", apart(up[3]!, MUTED) > apart(up[1]!, MUTED), true);
+  check("it reaches the accent, the literal its style now is", near(settledNew, ACCENT, 1), true);
+  check("the label that was active fades the other way: between the accent and the muted token", between(down[1]!, ACCENT, MUTED), true);
+  check("and ends on the muted token", near(settledOld, MUTED, 1), true);
+  check("the tabs' boxes did not move", p.box("sky-tabs-tab-0").length, 4);
+  // a quick switch back: the tracks retarget from the presented colour, so no frame leaves the two ends
+  const q = fresh();
+  q.tap("Tab");
+  q.input.down("ArrowRight");
+  for (let f = 0; f < 3; f++) q.step();
+  q.input.up("ArrowRight"), q.step();
+  q.input.down("ArrowLeft");
+  const path: number[][] = [];
+  for (let f = 0; f < 6; f++) q.step(), path.push(ink(1));
+  q.input.up("ArrowLeft");
+  const ends = [MUTED, ACCENT];
+  check(
+    "a quick switch back never leaves the two ends",
+    path.every((c) => c.every((v, i) => v >= Math.min(ends[0]![i]!, ends[1]![i]!) - 1 && v <= Math.max(ends[0]![i]!, ends[1]![i]!) + 1)),
+    true,
+  );
+  const steps = path.slice(1).map((c, i) => apart(c, path[i]!));
+  check("and no frame of it jumps: the widest step is a fifth of the range at most", Math.max(...steps) <= 20, true);
+  console.log(`tab labels: the quick switch back ${path.map((c) => c.join("/")).join(" ")}, the widest frame ${Math.max(...steps)}/255`);
+}
+
 // --- the card's gradient (css.backgroundImage): a vertical linear gradient, 180deg, from the panel token at the top to
 //     the deep one at the bottom; the same across the card, gone at its edge, and the hover overrides it whole
 {
@@ -695,7 +763,8 @@ console.log(
     "corner, the author's hue in the disc) and their change with the feed, the card's vertical gradient (top to bottom, " +
     "constant across, gone at its edge, the hover's own), the cards' staggered entry (12px low and at 0 opacity, a layout " +
     "that does not move, the literals at rest, reduced motion), the hover's 120ms fade and its leave (a mid colour " +
-    "between the two ends, no jump on a quick in and out), the tab's underline fading in and out, the body and media " +
+    "between the two ends, no jump on a quick in and out), the tab's underline fading in and out and its label's own " +
+    "colour fading with it (a text's fields, by its id; a quick switch back inside the two ends), the body and media " +
     "wrapping, the wheel's 10px notch on a track with decaying steps and the bar still, a flick to the clamped end and " +
     "its stored frame, a wheel mid-flight turning without a jump, the rubber band at an end (the resistance's f(40), a " +
     "notch back, the 80ms hold, the exact clamp, reduced motion), the keyboard scrolling the same track (Down/Up 40, " +

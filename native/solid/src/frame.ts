@@ -92,7 +92,9 @@ export function createFrame(root: El, view: View = {}) {
   function emit(el: El, down: boolean) {
     const style = el.props.style;
     if (el.tag === "text") {
-      ui.text(bytesOf(el), (style && variant(style, view.theme).text) || WHITE_14);
+      // a text with an id can have its colour moved (the value channel's fields 51..54), so the id goes in with it
+      const tid = el.props.id ? idBytes(el.props.id) : undefined;
+      ui.text(tid, bytesOf(el), (style && variant(style, view.theme).text) || WHITE_14);
       return;
     }
     const id = el.props.id ? idBytes(el.props.id) : undefined;

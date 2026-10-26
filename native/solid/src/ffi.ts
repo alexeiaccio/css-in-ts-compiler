@@ -22,7 +22,7 @@ const { symbols: s } = dlopen(new URL("../../build/solid/libui.dylib", import.me
   ui_backdrop: { args: [T.f32], returns: T.void },
   ui_backgroundImage: { args: [T.i32, T.f32, T.i32, T.ptr], returns: T.void },
   ui_close: { args: [], returns: T.void },
-  ui_text: { args: [T.ptr, T.i32, T.ptr], returns: T.void },
+  ui_text: { args: [T.ptr, T.i32, T.ptr, T.i32, T.ptr], returns: T.void },
   ui_end: { args: [T.f32], returns: T.i32 },
   ui_hash: { args: [], returns: T.u64 },
   ui_draws: { args: [], returns: T.i32 },
@@ -66,8 +66,10 @@ export const ui = {
   open: (id: Uint8Array | undefined, style: Float32Array) => s.ui_open(id ? ptr(id) : null, id?.length ?? 0, ptr(style)),
   /** An override of one number of that element's style for this frame only: a packed field 0..44 (`FIELDS` in pack.ts),
    *  45 for its shadow's blur, 46/47/48/49 for its whole subtree's opacity, scale and translate, 50 for the opacity of
-   *  its background image. The next `open` declares from a copy with the overrides applied, so a value that is the
-   *  style's own leaves the frame as the literal made it. Called from a page's `View.tick`, before the tree. */
+   *  its background image, 51..54 for the colour of the text element with that id (its own fields, not its box's) and 55
+   *  for its subtree's rotation in degrees. The next `open` (or `text`) declares from a copy with the overrides applied,
+   *  so a value that is the style's own leaves the frame as the literal made it. Called from a page's `View.tick`,
+   *  before the tree. */
   value: (id: Uint8Array, field: number, v: number) => s.ui_value(ptr(id), id.length, field, v),
   /** The image of the element the next `open` declares (a css.image style): the path UTF-8, no terminator. */
   image: (path: Uint8Array) => s.ui_image(ptr(path), path.length),
@@ -81,7 +83,10 @@ export const ui = {
   backgroundImage: (kind: number, angle: number, count: number, stops: Float32Array) =>
     s.ui_backgroundImage(kind, angle, count, ptr(stops)),
   close: s.ui_close,
-  text: (bytes: Uint8Array, style: Float32Array) => s.ui_text(ptr(bytes), bytes.length, ptr(style)),
+  /** A text: its bytes (UTF-8, a pointer and a length) and its 10 floats. With an id, the page can move its colour
+   *  through `value` (fields 51..54): a text's colour is its own, not its parent's box. */
+  text: (id: Uint8Array | undefined, bytes: Uint8Array, style: Float32Array) =>
+    s.ui_text(id ? ptr(id) : null, id?.length ?? 0, ptr(bytes), bytes.length, ptr(style)),
   end: s.ui_end,
   /** The FNV-1a hash of the last frame's commands and renderer effects: the same value twice means the same pixels, so
    *  a host that sees it unchanged may skip `draw` (and its present). */

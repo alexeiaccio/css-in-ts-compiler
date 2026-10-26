@@ -395,6 +395,87 @@ for (const theme of [undefined, "light"]) {
   check("the drop is finite: its last frames are the same", new Set(ys.slice(-5).map((v) => v.toFixed(3))).size, 1);
 }
 
+// --- rotation (`FIELDS.ROTATE`): the menu leans into its place (a -2° tilt that settles on 0) and leans back out, the
+// one scene transform that is not a scale or a translate. It is drawn, not laid out: `ui.bounds` is the style's box on
+// every frame (x, width and height are the literal's; only the float's offset moves y), while the drawn top edge is not
+// horizontal. Measured off the pixels: a row near the box's top, and the border's x on its two sides — at rest the top
+// border is a horizontal line, so both insets are the corner's; mid-lean the row crosses the tilted top border on the
+// left and the right border on the right, so the two insets are far apart.
+{
+  // the menu's border (t.color.muted, rgb(150 155 170)) is the one near-grey bright line of the glass: not the focus
+  // ring's blue (b - r is 165 there), not the item's ink (235 235 240, further down the panel)
+  const isBorder = (x: number, y: number) => {
+    const [r, g, b] = Array.from(ui.pixel(x, y).slice(0, 3)) as [number, number, number];
+    const l = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return l > 105 && Math.max(r, g, b) - Math.min(r, g, b) < 45 && b - r < 60;
+  };
+  /** The menu's box, and the border's x on the left and on the right of the row one pixel below its top, each as an
+   *  inset from the box's own edge. */
+  const edgesOf = (page: ReturnType<typeof fresh>) => {
+    const b = page.box("zoom-menu");
+    const [x0, y0, w] = [Math.round(b[0]), Math.round(b[1]), Math.round(b[2])];
+    const row = y0 + 1;
+    let left = NaN,
+      right = NaN;
+    for (let x = x0 - 4; x <= x0 + w + 4; x++)
+      if (isBorder(x, row)) {
+        left = x;
+        break;
+      }
+    for (let x = x0 + w + 4; x >= x0 - 4; x--)
+      if (isBorder(x, row)) {
+        right = x;
+        break;
+      }
+    return { box: [x0, y0, w, Math.round(b[3])], row, left: left - x0, right: x0 + w - 1 - right };
+  };
+  const p = fresh();
+  p.tap("Tab"), p.tap("Tab");
+  p.down("Enter");
+  const leans = [edgesOf(p)];
+  for (let n = 0; n < 3; n++) p.step(), leans.push(edgesOf(p));
+  p.up("Enter");
+  const mid = leans[2]!; // the frame `frames/dialog-menu-mid.png` is: two frames in
+  p.settle(30);
+  const rest = edgesOf(p);
+  console.log(
+    `menu tilt: the border's insets a row below the top ${leans.map((e) => `${e.left}/${e.right}`).join(", ")}, ` +
+      `at rest ${rest.left}/${rest.right}; the boxes ${leans.map((e) => e.box.join(",")).join(" ")}`,
+  );
+  check(
+    "the menu is 150x133 at the style's x on every frame of the lean",
+    leans.every((e) => e.box[0] === 40 && e.box[2] === 150 && e.box[3] === 133),
+    true,
+  );
+  check("and its box at rest is the layout's", [rest.box[0], rest.box[2], rest.box[3]], [40, 150, 133]);
+  check(
+    "mid-lean the top edge is not horizontal: the border's two insets differ",
+    Math.abs(mid.left - mid.right) >= 2,
+    true,
+  );
+  check("at rest the edge is horizontal: the two insets are the corner's, within a pixel", Math.abs(rest.left - rest.right) <= 1, true);
+
+  // the exit leans back: the same track to -2°, on the way out
+  const q = fresh();
+  q.tap("Tab"), q.tap("Tab"), q.tap("Enter");
+  q.settle(30);
+  const still = edgesOf(q);
+  q.down("Escape");
+  const outs = [edgesOf(q)];
+  for (let n = 0; n < 5; n++) q.step(), outs.push(edgesOf(q));
+  q.up("Escape");
+  console.log(`menu tilt on the way out: ${outs.map((e) => `${e.left}/${e.right}`).join(", ")}`);
+  // the lean is there for the first frames of the exit: the fade to 0 (effect(0.2)) takes the ink with it, so the border
+  // is under the brightness the check above measures by the fourth frame — one frame of the first four is enough
+  const leaning = outs.slice(1, 5).some((e) => Math.abs(e.left - e.right) >= 2);
+  check("the exit leans the other way: its top edge is not horizontal either", leaning, true);
+  check(
+    "and the menu leaving is still the box the layout gave it",
+    [outs[3]!.box[0], outs[3]!.box[2], outs[3]!.box[3]],
+    [still.box[0], still.box[2], still.box[3]],
+  );
+}
+
 // --- the group (`FIELDS.ALPHA`/`SCALE`): the panel's whole subtree arrives as one scene, composited at an opacity and
 // scaled about the panel's box centre by the renderer. That is a scene, not a layout: `ui.bounds` is the style's box
 // from the frame the panel opens on (where it is fully transparent) to rest. The frame read is the third after the
@@ -495,6 +576,46 @@ const between = (v: number[], a: number[], b: number[], slack = 2) =>
   check("a group inside a group: the inner scene is composited inside the outer one", Math.abs(c(20, 20) - 64) <= 2, true);
   check("and the outer ring is one opacity", Math.abs(c(80, 80) - 128) <= 2, true);
   check("outside both the ground is untouched", c(200, 200), 0);
+}
+
+// --- the group's matrix: **scale, then rotate, then translate**, about the box centre, one matrix. No page needs this
+// proved, a hand-built non-square box does: a 200x40 box at the root (its centre (100, 20)) with SCALE 0.5, ROTATE 90°
+// and TRANSLATE_X 40 is a 20x100 rect at x 130..150, y -30..70 — 90° turns the long side upright, the half scale keeps
+// it about the centre, and the 40px lands after the rotation, unscaled (a translate before the transform would put it at
+// x 110..130, and no rotation at all at x 40..140). The box itself never moves: `ui.bounds` is 200x40.
+{
+  const style = packBox({
+    layout: { sizing: { width: { type: "fixed", min: 200 }, height: { type: "fixed", min: 40 } } },
+    backgroundColor: { r: 255, g: 255, b: 255, a: 255 },
+  });
+  const id = Buffer.from("order");
+  const draw = (scale: number, rotate: number, tx: number) => {
+    ui.begin(-1, -1, 0, 1 / 60);
+    ui.value(id, FIELDS.SCALE, scale);
+    ui.value(id, FIELDS.ROTATE, rotate);
+    if (tx) ui.value(id, FIELDS.TRANSLATE_X, tx);
+    ui.open(id, style);
+    ui.close();
+    ui.end(1 / 60);
+    ui.draw();
+  };
+  const at = (x: number, y: number) => ui.pixel(x, y)[0]!;
+  draw(1, 90, 0);
+  const box = [...ui.bounds(id)!];
+  const turned = [at(100, 60), at(60, 20), at(140, 20)];
+  draw(0.5, 90, 40);
+  const moved = [at(140, 30), at(120, 30), at(100, 30)];
+  draw(1, 0, 0);
+  const flat = [at(60, 20), at(100, 60)];
+  console.log(
+    `the group's matrix: 90° alone ${turned.join(",")} (inside at the centre's top, outside left and right), ` +
+      `half and 40px right ${moved.join(",")} (inside the moved rect, outside where a translate before the transform ` +
+      `would put it), flat ${flat.join(",")}`,
+  );
+  check("the rotation is about the box centre: the 200x40 box stands up as 40x200", [turned[0]! > 200, turned[1]!, turned[2]!], [true, 0, 0]);
+  check("the box is the layout's while it turns", box, [0, 0, 200, 40]);
+  check("scale and translate compose after the rotation: the rect is at 130..150", [moved[0]! > 200, moved[1]!, moved[2]!], [true, 0, 0]);
+  check("and 0° is the box's own rect, unrotated", [flat[0]! > 200, flat[1]!], [true, 0]);
 }
 
 // --- closing (presence): the panel and the dim stay mounted while their exit runs, then unmount. The panel's offset y
@@ -736,6 +857,6 @@ for (const theme of [undefined, "light"]) {
 dispose();
 if (failed) process.exit(1);
 console.log(
-  "solid/dialog.test.ts: the modal trap, Escape and Cancel, OK's write, the backdrop, the floats' placement, the menu's keys, the shadows, the backdrop blur, the menu's slide and the dialog's drop, the group's fade and scale (its blend and its edges, with the layout still), the two exits with presence, a revive mid-exit and reduced motion",
+  "solid/dialog.test.ts: the modal trap, Escape and Cancel, OK's write, the backdrop, the floats' placement, the menu's keys, the shadows, the backdrop blur, the menu's slide and the dialog's drop, the group's fade and scale (its blend and its edges, with the layout still), the menu's tilt (its top edge out of horizontal mid-lean and flat at rest, the box the layout gave it), the group's matrix order (a non-square box stood up, scaled and moved after it), the two exits with presence, a revive mid-exit and reduced motion",
 );
 process.exit(0);

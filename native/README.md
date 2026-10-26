@@ -168,9 +168,33 @@ renderer's table the same way; **50 (`GRADIENT_ALPHA`)** is the opacity of the e
 renderer uses to composite that gradient over the box's solid fill (255 is the gradient alone, the only way it was drawn
 before). Out of range, or a 65th override in a frame, is counted as an error and dropped.
 
+**51..54 (`TEXT_COLOR`, r g b a) are a text's, not a box's.** A text's colour lives in its own 10 floats (`ui_text`), not
+in the parent's box, so the box channel could not reach it and a changing label swapped its style in one frame. A text now
+takes an id like a box does (`ui_text(id, id_len, bytes, len, floats)`, NULL for an anonymous one), and `ui_value` on that
+id's field 51..54 overrides the four colour floats of the text's copy. **The ceiling: a text without an id cannot be
+named**, so its colour is its style's literal and cannot be animated — the Sky page's tab labels are the user
+(`<text id="sky-tabs-label-i">`, `effect(0.15)` from the muted token to the accent and back, beside the 2px underline
+that is the tab's own border). Only the colour moves: the font, the size, the spacing, the line height, the alignment and
+the wrap stay the literal's.
+
+**55 (`ROTATE`) is the group's fifth number**: degrees about the element's box centre, in the same scene as `SCALE` and
+the translate, which the renderer composes into **one matrix — scale, then rotate, then translate**,
+`x' = s·R(θ)·(x - c) + c + t` (`Clay_ThorVG_SettleGroup`; ThorVG reads a matrix as `x' = x·e11 + y·e12 + e13`,
+`y' = x·e21 + y·e22 + e23`, its third row unused, so `s·R` is the 2×2 and `c + t - (s·R)·c` is the third column). A
+positive angle turns clockwise on screen (y runs down). It is drawn, not laid out: `ui_bounds` is the style's box on every
+frame, which is the point — the Dialog's menu settles out of a `-2°` tilt as it slides out of its trigger (`-2 → 0` on
+`spatial(0.22, 0.1)`, and back to `-2°` on the way out). The order is proved on a hand-built non-square box
+(`solid/dialog.test.ts`): a 200x40 box at the root with `SCALE` 0.5, `ROTATE` 90° and `TRANSLATE_X` 40 is drawn as the
+rect x 130..150, y -30..70 — the long side stood up about the centre (100, 20), and the 40px after the rotation,
+unscaled: a translate taken before the transform would put the rect at x 110..130, and a rotation of 0° leaves the box
+where it was. A rotation of exactly 0 takes the scale's own expression rather than the rotation's arithmetic at 0°,
+because `c·(1 - s)` and `c - s·c` do not round the same and a page that never leans must keep its frames (measured:
+three glyph pixels of the scaled panel moved by one level).
+
 What a page may animate, and what is meaningless mid-frame: an **offset** (`OFFSET_X`/`OFFSET_Y`), `EXPAND_*`,
-`Z_INDEX`, the **shadow's blur**, the subtree's **alpha**, **scale** and **translate**, and a **gradient's opacity** are
-read as the element is placed and drawn, and nothing else moves. `WIDTH`/`HEIGHT`, `PADDING`, `GAP` and the colours are
+`Z_INDEX`, the **shadow's blur**, the subtree's **alpha**, **scale**, **translate** and **rotation**, a **gradient's
+opacity** and a text's **colour** are read as the element is placed and drawn, and nothing else moves.
+`WIDTH`/`HEIGHT`, `PADDING`, `GAP` and the colours are
 legal — the override is applied to the floats the declaration is built from — but Clay's layout is computed from the
 declaration every frame, so a width or a gap that changes re-lays-out the element's parent and its siblings each frame:
 it is a **layout** change, not a transform, and an animation of one reads as a jitter of everything around it. A slide
@@ -194,10 +218,11 @@ cleared in `ui_begin`. Every element's declaration carries its node as `userData
 each command it emits from that element, so at draw time every command says which element it belongs to.
 
 The two fields are the value channel's, above the shadow's blur: **46 `ALPHA`** (0..255) and **47 `SCALE`** (1 = none);
-48/49 `TRANSLATE_X`/`TRANSLATE_Y` are a visual offset of the same subtree (px, 0 = none). `ui_open` reads them into the
+48/49 `TRANSLATE_X`/`TRANSLATE_Y` are a visual offset of the same subtree (px, 0 = none) and 55 `ROTATE` its angle in
+degrees about the same centre. `ui_open` reads them into the
 renderer's group table instead of into the floats (they are not floats of the style), and they carry no layout:
-`ui_bounds` does not move while a group scales or slides. A page writes them from its `tick` as it writes an offset, one
-call an element.
+`ui_bounds` does not move while a group scales, slides or turns. A page writes them from its `tick` as it writes an
+offset, one call an element.
 
 The renderer then turns each group into a **range**: the commands whose element is the group's element or under it.
 Clay's commands are in depth-first order, so a subtree's commands are contiguous and a min/max over the ancestry is the
@@ -207,28 +232,41 @@ it cannot widen a range past it. A group at alpha 255, scale 1 and no offset get
 drawn exactly as the literal makes it, which is why the Dialog's settled frames came out byte-identical.
 
 In the draw loop, the first command of a range opens a scene and makes it `into`; the last one gives the scene
-`tvg_paint_set_opacity(scene, alpha)` and, if the scale is not 1 or the offset is not 0, a matrix, then adds it to the
-scene that was current when it opened. The scale is about the **box centre of the range's first command**, and ThorVG
+`tvg_paint_set_opacity(scene, alpha)` and, if the scale is not 1, the offset is not 0 or the rotation is not 0, a
+matrix, then adds it to the
+scene that was current when it opened. The scale and the rotation are about the **box centre of the range's first
+command**, and ThorVG
 carries a matrix's translation in its third column (`x' = x·e11 + y·e12 + e13`; its third row is unused, so a
 translation written into `e31`/`e32` is silently dropped — measured), which makes the whole transform `scale` on the
 diagonal, `centre·(1 - scale) + translate` in `e13`/`e23`: `x' = scale·(x - c) + c + tx`, the scale about the centre and
-the offset after it, unscaled. Everything in the range inherits it: the element's own fill, its text, an image, a
+the offset after it, unscaled. With a rotation the linear part is `s·R(θ)` and the third column `c + t - (s·R)·c`:
+**scale, then rotate, then translate**, one matrix, about the box centre (the order is in the section above). Everything
+in the range inherits it: the element's own fill, its text, an image, a
 gradient, and — because the loop opens a group before the element's shadow is drawn — its shadow. A shadow fades, scales
 and slides with the panel it belongs to, which is what the eye expects.
 
 Limits, stated rather than hidden. **Nesting**: four groups may be open at once (a group inside a group inside …), and a
 fifth is drawn ungrouped; 16 groups a frame. **A scissor** (`css.overflow`, a float's clip) opens its own scene *inside*
 whatever is current, so a group's subtree that contains a clipped element fades and scales as a whole; the scissor stack
-is eight deep. **A backdrop's cut** mid-group is the one thing that splits a scene: the cut draws pass 1 over the target,
+is eight deep. **A gradient's stipple and a clip's rect are axis-aligned** maps of the groups around them (the dither's
+`Clay_ThorVG_Map`), so a gradient or a clipped element inside a *rotated* group is marked as its unrotated box would be:
+no page has one (the one rotated group, the Dialog's menu, has neither a gradient nor a clip). **A backdrop's cut**
+mid-group is the one thing that splits a scene: the cut draws pass 1 over the target,
 so the groups open at that moment are settled into it first and made again in the new root after it, and the rest of the
-subtree is composited with the same alpha, scale and offset — the Dialog's menu is exactly this case (its own rectangle
-is the cut) and its shadow, fill, text and border all sit at the same opacity. A group whose range never meets its end
+subtree is composited with the same alpha, scale, rotation and offset — the Dialog's menu is exactly this case (its own
+rectangle is the cut) and its shadow, fill, text and border all sit at the same opacity and lean. A group whose range
+never meets its end
 (only a hand-made command array could) is composited as it is at the end of the loop.
 
 The Dialog page is the first user. The **panel** and the **menu** arrive as a group: `ALPHA` 225 → 255 on `effect(0.2)`
 (a luminance field is clamped, as the dim is) and `SCALE` 96 → 100 on `spatial(0.22, 0.1)` — percent, not a fraction,
 because a track's settle rule is 0.5 of its own unit, so 0.96..1 would be "settled" on its first sample; 96..100 snaps at
-99.5, a 0.5% jump nobody sees. The exit runs both back (0, 96) on `effect(0.2)` and `spatial(0.2, 0)` beside the offsets
+99.5, a 0.5% jump nobody sees. The **menu** also leans out of `ROTATE` `-2°` → `0` on the same `spatial(0.22, 0.1)`
+(field 55, the rotation of the same scene), so it settles into place instead of arriving square: 2° over its 150px is
+5px of top edge, which reads as a settle rather than a spin — measured (`solid/dialog.test.ts`, the insets of the top
+border a row below the box's top) `112/11` on the frame it opens on, `108/10`, `60/8`, `25/7` and `5/5` at rest, with the
+box `40,·,150,133` on every frame of it (`ui.bounds` is the style's: the rotation is drawn). The exit runs both back
+(0, 96, -2°) on `effect(0.2)` and `spatial(0.2, 0)` beside the offsets
 and the blur that were already there, and the backdrop keeps its own dim through field 17: its box is the window, so its
 alpha *is* the dim, and a scene around it would composite the page's own pixels. Measured on the third frame after the
 panel opens (`dialog-entry-mid`, t = 0.05s): alpha 119 of 255, scale 97.8%, the box `40, 156.1, 280x152.3` against
@@ -331,8 +369,15 @@ fade, so the last 6/255 at the card's bottom edge appears when the fade hands ov
 gradient's top are the same colour; only the far end differs). A tab's **2px underline** is its own border colour
 (`BORDER_ALPHA` 29): the tab that becomes active fades it in and the one that was fades it out — a colour, not a slide,
 and the border is 2px on both (Clay draws a border inside the box, so no box moves) — and the tab that is leaving keeps
-the border (and the tab that is arriving keeps it too) while its colour fades. A text's colour is not in its box's
-floats: the label swaps `tabText` for `tabTextOn` at once, and that transition is not covered. Both fades retarget from
+the border (and the tab that is arriving keeps it too) while its colour fades. **The label beside it fades with it**:
+a text's colour is not in its box's floats, so the tab's `<text>` carries an id and the page fades the text's own four
+floats (`TEXT_COLOR` 51–54, `effect(0.15)`) from the muted token to the accent on the tab that becomes active and back
+on the one that was — the first use of the channel on something that is not a box. A settled label writes nothing: its
+literal is the end it is on (the page still swaps `tabText`/`tabTextOn` at the switch), so the resting frames are
+byte-identical to the ones before the label could fade. Measured (`solid/sky.test.ts`, the ink's core as the pixel
+furthest from the page): the new label `139/152/165 → 126/152/176 → 106/153/195 → 89/154/211 → 77/155/222 → 59/156/240`
+and the old one the same path back; a quick switch back never leaves the two ends, its widest frame 15/255; the one
+stored frame of it is `sky-tab-mid.png`, a switch two frames in. Both fades retarget from
 the presented colour, so a fast leave and re-enter never jumps (measured: the widest frame of one is 3/255); the ends
 are read from the packed variants under the *frame's* theme, so the light palette fades between its own tones; a
 selected card keeps `cardOn` and does not fade at all. Measured: a card's colour `28/33/41 → 31/37/44 → 32/37/46 →
@@ -398,12 +443,13 @@ flag against `frames/dialog-open.png`. On the Sky page the same flag means no st
 their boxes) and no rubber band (the wheel is clamped hard); its hovers are instant too, because a fade is a retarget and
 a retarget under reduced motion lands at once — the sky test checks all three against the settled frames.
 
-Not here: **rotate**, a transform on a *non-float* element's own siblings (a group is a scale about the element's box
-centre, a whole-subtree opacity and a visual offset; a rotation would be the same scene with a different matrix,
-unbuilt), a group deeper than four levels or a fifth open at once, a group whose subtree is cut in two by a *second*
-backdrop's cut in the same frame (one cut a frame), a page that names a text element (a text is a node but has no id to
-animate), **text-colour transitions** (a text's colour is 0-4 of its own `ui_text` fields, not its box's, so a label
-whose colour changes swaps its style; the tab's label does), a *drag* (a pointer's velocity is the host's: touch and drag
+Not here: a transform on a *non-float* element's own siblings (a group is a whole-subtree opacity, a scale, a rotation
+and a visual offset — one scene; a rotation is there now, but a *gradient or clip inside* a rotated group is marked by
+an axis-aligned map, so its stipple or clip is the unrotated box's), a group deeper than four levels or a fifth open at
+once, a group whose subtree is cut in two by a *second*
+backdrop's cut in the same frame (one cut a frame), **a text without an id** (a text's colour moves through the channel
+only when it is named: an anonymous text is its style's literal, which is the ceiling of the fix, and nothing else of a
+text's 10 floats moves), a *drag* (a pointer's velocity is the host's: touch and drag
 scrolling are the List page's next step, and it keeps Clay's instant wheel step), the first-mount entry on the other
 pages, a second gradient on one element (a card cross-fades two by fading one over its solid fill), and the terminal,
 browser and board targets (they have no Solid page, no wheel and no value channel).
@@ -415,7 +461,8 @@ Rune's rule for the shell: a static page ticks at zero, and a discrete input dra
 type, element id, box, colours, corner radii and border widths, a text's bytes with its colour, font id, size, spacing
 and line height, an image's pointer, a clip's axes, a custom's pointer — and over the renderer's tables beside the
 commands: a shadow's offset, blur and colour, a backdrop's blur, a gradient's angle, stops and alpha, a group's alpha,
-scale and translate (a group at alpha 255, scale 1 and no offset is skipped, because it draws what it would have drawn
+scale, translate and rotation (a group at alpha 255, scale 1, no offset and no rotation is skipped, because it draws
+what it would have drawn
 without one). Padding, `userData` and `zIndex` are not hashed: they do not reach the pixels. A settled frame hashes the
 same value frame after frame; `ui_draws()` and `ui_presents()` count the calls, for a test.
 

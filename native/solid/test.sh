@@ -39,9 +39,12 @@ bun solid/widgets.test.ts
 # The panel drops in (its float's offset y -14 -> 0, its shadow's blur 0 -> 32) and the menu slides out of its trigger
 # (offset y -10 -> -20, blur 0 -> 14) through the value channel, so a stored frame is taken at rest (`--settle 30`) and
 # the mid-slide one three frames after the key opens it (one for the key, two settles, dt = 1/60). The panel and the
-# menu also arrive as one scene each (the group: alpha 88% -> 100% and scale 96% -> 100%, fields 46 and 47), so
-# `dialog-entry-mid` is three frames in and `dialog-menu-mid` two. Closing runs the same tracks the other way (panel
-# 0 -> 14, 32 -> 0, 225 -> 0 and 100% -> 96%; backdrop 140 -> 0; menu -20 -> -10, 14 -> 0 and the same fade) while the
+# menu also arrive as one scene each (the group: alpha 88% -> 100% and scale 96% -> 100%, fields 46 and 47), and the
+# menu leans out of a -2° tilt (`FIELDS.ROTATE`, field 55, about its box centre: a scene transform, so no box moves), so
+# `dialog-entry-mid` is three frames in and `dialog-menu-mid` two.
+# Closing runs the same tracks the other way (panel
+# 0 -> 14, 32 -> 0, 225 -> 0 and 100% -> 96%; backdrop 140 -> 0; menu -20 -> -10, 14 -> 0, the tilt back to -2° and the
+# same fade) while the
 # node stays mounted (`presence`), so `dialog-exit-mid` is two frames into the exit and is the one stored frame whose
 # pixels moved for the group (a settled frame writes alpha 255 and scale 1, which makes no scene at all); a
 # `--reduced-motion` run lands on `dialog-open` in one frame (no entry, no exit: the flag is the platform's)
@@ -86,7 +89,8 @@ bun solid/motion.test.ts
 # the hover are the frames that moved. `sky-entry` is ten frames in (the three cards at 2, 4 and 10px of their 12),
 # `sky-hover` is the pointer on the second card three frames into its fade (no press: `--move`), and `sky-band` is
 # Discover four notches past its end (its content is shorter than the viewport, so the first notch is already past it):
-# the resistance's f(40) puts it 21.3px out, and the band has let go 80ms later
+# the resistance's f(40) puts it 21.3px out, and the band has let go 80ms later. `sky-tab-mid` is a tab switch two
+# frames in: the label's colour fading between the muted token and the accent (`FIELDS.TEXT_COLOR` on the text's id).
 S="bun solid/main.ts sky"
 $S --settle 40 --expect solid/frames/sky.png
 $S --click 180 32 --settle 40 --expect solid/frames/sky-science.png
@@ -95,6 +99,9 @@ $S --click 180 32 --wheel 8 --wheel-over sky-feed --settle 60 --expect solid/fra
 $S --settle 9 --expect solid/frames/sky-entry.png
 $S --settle 40 --move 180 300 3 --expect solid/frames/sky-hover.png
 $S --warm 40 --wheel 4 --wheel-over sky-status --expect solid/frames/sky-band.png
+# a tab switch two frames in (the tablist's first stop, then ArrowRight): the label's colour and the 2px underline both
+# mid-fade, the new label between the muted token and the accent — the text's own four floats, not the tab's box's
+$S --warm 40 --keys Tab,ArrowRight --settle 2 --expect solid/frames/sky-tab-mid.png
 bun solid/sky.test.ts
 # idle frames: a page at rest declares and lays out every frame but draws and presents none (`--idle N` prints the draws
 # it made), and a key is a discrete input that draws its own frame
