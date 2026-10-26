@@ -269,6 +269,31 @@ Each step ends in a check that fails when it breaks.
    not tried by hand (the screen is not visible to me). Left: horizontal scrolling and scrolling the page itself when the
    wheel is outside the viewport (it is the viewport's own track); the scrollbar and the dragging of one came later (item
    2's last paragraph).
+   **Done: the window** (`solid/src/virtual.ts`, `solid/virtual.test.ts`): both scrolling pages now declare what the screen
+   shows, not the data. `fixedWindow` is arithmetic (the List's rows: `item + gap` a row, row `i` at `i·30`); it returns
+   the indexes to declare, the spacer heights above and below, and the real content (`count·item + (count−1)·gap`). The
+   Sky's cards differ, so `measuredWindow` keeps a height cache by index from `ui.bounds` of each declared card and places
+   an unseen card at the mean of the measured ones (190px until anything is measured) — a card the window jumped over still
+   has a place and is measured the frame it is shown. The spacer boxes are cells of the same column as the items, their
+   heights written through the value channel's FIXED axis (fields 4 and 5, as the thumb's are), and their own gap is taken
+   out (`above = first·slot − gap`; no spacer at an end, or a zero-height box would add a gap): the declared items are
+   exactly where the full page would have put them. The clamp and the thumb read the real content, never the declared
+   subset's, and a measured feed's content moves as cards are measured, so a track that was at the end follows it. The
+   List takes a `count` (`bun solid/main.ts list --count 1000`), the Sky a `posts` feed (`--posts 200`,
+   `synthetic(200)`). Check: `solid/virtual.test.ts` — the fixed window's arithmetic (29,998px for 1,000 rows, the spacers
+   sum to it at the top, 1,000px down and the end), the measured window's fallback (100, unseen 200, 300 is 616 of
+   content), 1,000 rows at the top, 1,000px down and the exact end 29,758 (nine to eleven declared boxes, row 33 at 990px,
+   the last row's bottom on the viewport's, the thumb from 29,998), the keyboard revealing a row outside the window, 200
+   cards of mixed height (at most ten declared, the gaps 8 at the measured heights, End at the real end with the last card
+   and the thumb's bottom at the feed's, a jumped-over card placed by the fallback and then measured), and the declare
+   cost: 30 rows 0.086 → 0.032ms, 1,000 rows 2.084 → 0.030ms, 3 cards 0.022 → 0.028ms, 200 cards 0.683 → 0.042ms
+   (`--bench 500`). The stored List and Sky frames are byte-identical. Mutations: dropping the top spacer fails
+   `FAIL row 33 is at the viewport's top: -970, wanted -10` (the rows jump by the spacer they lost) and four more of the
+   block, the Sky's `FAIL the jumped-over cards are placed on the screen by the fallback: false, wanted true`, and the
+   stored `list-wheel.png` **5,074 pixels differ**; using the declared subset's height for the clamp fails the List's
+   `FAIL the thumb is the content's: max(24, 240²/29,998): 175.61, wanted 24` (its top `64.39, wanted 7.26`, and the
+   wheel stops at −88), the Sky's `FAIL twenty viewports down: 13,280: 1100, wanted 13280` and
+   `FAIL the last card is declared there: false, wanted true`.
    **Done: the accessibility tree** (`solid/a11y.ts`, `solid/a11y.test.ts`). `snapshot(root, { parts, containers })`
    walks the rendered tree in document order and returns `{ role, name, value, states: { checked, expanded, selected,
    disabled, focused, hidden }, hasPopup, level, bounds, children }`: the name from the part's `label` / `labelledBy`
@@ -684,10 +709,13 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    the accent: false, wanted true` (both labels at their ends throughout) and three more of that block; dropping the
    `ROTATE` write fails `FAIL mid-lean the top edge is not horizontal: the border's two insets differ: false, wanted
    true` (the insets flat). Files are compared with their backups after the reverts.
-   Not covered yet: a second gradient on one element, and the terminal, browser and board targets (no Solid page, no wheel
-   and no value channel). A gradient or a clip inside a *rotated* group is covered: the dither's mark is the gradient's
-   rotated quad and a clip is cut by its own mapped quad (`solid/rotated.test.ts`); the drag, the pages' entry and the
-   List's own track are covered by item 2.
+   Not covered yet: a second gradient on one element; horizontal scrolling (both pages scroll down only); the thread screen
+   (Sky's card click records the selection and nothing opens); a finger on real glass — SDL3's finger events go through
+   `ui_touch_map` into the same pointer the mouse uses and both pages' touch behaviour is tested, but no touchscreen has
+   been used; and the terminal, browser and board targets (no Solid page, no wheel and no value channel). A gradient or a
+   clip inside a *rotated* group is covered: the dither's mark is the gradient's rotated quad and a clip is cut by its own
+   mapped quad (`solid/rotated.test.ts`); the drag, the pages' entry, the List's own track and the window are covered by
+   item 2.
 3. **Done: metamorphic tests** (`solid/metamorphic.test.tsx`, 2026-10-25). Four relations over the Sensors page and a
    two-width text, no oracle and no stored frame: a fixed-size wrapper leaves the pixels identical (0 of 129,600 differ);
    a whole-pixel move (13, 7) shifts the picture exactly (0 differ); a wider box never adds a text line (82px at 160

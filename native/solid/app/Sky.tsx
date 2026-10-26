@@ -16,8 +16,9 @@ import { createSignal, onCleanup } from "solid-js";
 import { a11y } from "../a11y.ts";
 import { createTabs } from "../../headless/src/index.ts";
 import type { Motion } from "../src/entry.ts";
-import { effect, reduced, spatial, track } from "../src/motion.ts";
+import { effect, reduced, spatial, track, type Track } from "../src/motion.ts";
 import { scroll } from "../src/vscroll.ts";
+import { measuredWindow, type Window } from "../src/virtual.ts";
 import { ui } from "../src/ffi.ts";
 import type { FocusPart, Input } from "../src/input.ts";
 import { FIELDS, variant } from "../src/pack.ts";
@@ -98,6 +99,14 @@ const view = css.cn(
 // them. Discover's three posts are shorter than the feed, so there the machine gives it height 0: no scrollbar when there
 // is nothing to scroll.
 const BAR = "sky-thumb";
+const ABOVE = "sky-above";
+const BELOW = "sky-below";
+/** The window's two spacer cells. They and the cards are cells of one `For`, and not `Show`s either side of it, because
+ *  Solid's renderer inserts a `For`'s items at its parent's end — a spacer declared after the `For` would come before its
+ *  cards. A card's cell is `${feed}:${index}`, so a tab switch makes new cells (new nodes, created in the card's own child
+ *  order) while a moved window keeps the nodes it shares. */
+const TOP = "top";
+const BOTTOM = "bottom";
 const thumb = css.cn(
   css.width(4),
   css.height(24),
@@ -157,6 +166,9 @@ const counts = css.cn(font.Roboto, css.color(t.color.muted), css.fontSize(13), c
 // the empty feed: the app's own line, centred in the viewport
 const empty = css.cn(css.width("100%"), css.height("stretch"), css.justifyContent("center"), css.alignItems("center"));
 const emptyText = css.cn(font.Roboto, css.color(t.color.muted), css.fontSize(14));
+// a window's spacer: an empty box in the feed's own gap-spaced column, its height written every frame through the value
+// channel's FIXED axis (fields 4 and 5, as the scrollbar's thumb writes its own), so no style depends on the data
+const spacer = css.cn(css.width("stretch"), css.height(0));
 
 const status = css.cn(css.width("stretch"), css.height(32), css.p(0, 16), css.alignItems("center"), css.bg(t.color.page));
 const statusText = css.cn(font.Roboto, css.color(t.color.muted), css.fontSize(12));
@@ -186,6 +198,7 @@ export const s = {
   counts,
   empty,
   emptyText,
+  spacer,
   status,
   statusText,
 };
@@ -225,7 +238,7 @@ export function num(v: number, unit = 1000, suffix = "K"): string {
 }
 
 /** One post of a feed: the record's fields as the fixtures carry them (terminal/sky.c's SkyPost). */
-interface Post {
+export interface Post {
   readonly name: string; // "" when the record has no display name: the handle is the name then
   readonly handle: string;
   readonly text: string;
@@ -314,6 +327,44 @@ const FEEDS: readonly Feed[] = [
   { name: "News", posts: [] },
 ];
 
+/** The record a card renders for the frame a tab switch empties its feed: the node is removed in the same flush, but a
+ *  card content's effect can run before the `For` takes it away, and `posts[i]` is not there any more. */
+const BLANK: Post = { name: "", handle: "", text: "", replies: 0, reposts: 0, likes: 0, created: 0 };
+
+/** The feed's gap and padding, as the styles above have them (8 and 12): the measured window's arithmetic. */
+const GAP = 8;
+const PAD = 12;
+/** The cards declared either side of the feed: four or five are on screen, so the page declares at most nine. */
+const OVERSCAN = 2;
+
+/**
+ * A synthetic feed for the window's page test: `count` posts cycling the six recorded authors (so every card has its
+ * avatar), with bodies of one to four 20px lines and a media line every fourth, so the heights differ the way a real
+ * feed's do. It is the same card the fixtures draw; only the records are made up.
+ */
+export function synthetic(count: number): readonly Post[] {
+  const authors = [DISCOVER[0]!, DISCOVER[1]!, DISCOVER[2]!, SCIENCE[0]!, SCIENCE[1]!, SCIENCE[2]!];
+  const bodies = [
+    "A short one.",
+    "A body that wraps to two lines in a 312px card, which is enough to make it taller than a card with one line.",
+    "Three lines of body: the card grows by a line, then by another, and the feed's heights stop being the same. A measured window is what this feed is for.",
+    "Four lines: a body long enough that a card is unmistakably taller than its neighbours, so the fallback for a card that was jumped over is one height among several.",
+  ];
+  return Array.from({ length: count }, (_unused, i) => {
+    const a = authors[i % authors.length]!;
+    return {
+      name: a.name,
+      handle: a.handle,
+      text: bodies[i % bodies.length]!,
+      media: i % 4 === 0 ? "[image]" : undefined,
+      replies: (i * 3) % 40,
+      reposts: (i * 7) % 90,
+      likes: (i * 11) % 500,
+      created: SKY_NOW - i * 600,
+    };
+  });
+}
+
 // The avatars: the committed 64x64 PNGs (examples/sky/avatars.py) drawn at 40x40. A css style is evaluated when the
 // module loads, so each author is a style of its own with a literal path; a page cannot build one from a loop variable.
 const SKY = new URL("../../examples/sky/", import.meta.url).pathname;
@@ -337,6 +388,9 @@ const LABEL = effect(0.15); // the tab label's colour, from the muted token to t
 const ENTRY = { delay: 0.05, y: 12, time: 0.3 }; // seconds, px: a card starts 50ms after the one before it, 12px low
 const ENTRY_Y = spatial(ENTRY.time);
 const ENTRY_A = effect(ENTRY.time);
+/** The cards whose mount entry the first frame starts: a screenful (four or five at the fixtures' heights) and the
+ *  overscan, so a card that is only just below the feed does not pop in on the frame after it. */
+const ENTRY_CARDS = 7;
 
 /**
  * Four 0..255 channels of a style's background under a theme and a state: the two ends a fade runs between. The theme is
@@ -360,7 +414,8 @@ const mixColor = (from: number[], to: number[], m: number): number[] =>
   from.map((v, i) => v + ((to[i]! - v) * m) / 100);
 
 /**
- * The page. Two Tab stops: the tablist (one stop on the active tab, arrows move and switch) and the feed. The feed's keys
+ * The page (`posts` replaces Discover's fixture, which is what the page shows by default; Science and News stay the
+ * app's). Two Tab stops: the tablist (one stop on the active tab, arrows move and switch) and the feed. The feed's keys
  * scroll it: Down and Up 40px, PageDown and PageUp a viewport, Home and End to the ends. The wheel adds 10px a notch and
  * a flick keeps going (a decay) to its projection, clamped to the content; both are one motion track (src/motion.ts) the
  * page owns, retargeted from the presented (x, v), and `ui.scrollTo` puts the value on Clay's clip element each frame.
@@ -372,33 +427,76 @@ const mixColor = (from: number[], to: number[], m: number): number[] =>
  * cards arrive staggered (translate + opacity through the group fields, so nothing moves in the layout), a card and a tab
  * fade their hover, and the tabs fade the 2px underline and the label's colour from the one that was active to the one
  * that is — the label through the text's own four floats (`ui.value` on its id), which its box does not hold.
+ *
+ * The feed is **windowed** (src/virtual.ts): only the cards the viewport shows plus an overscan are declared, with a
+ * spacer above and below. The cards' heights differ, so the window is measured: each declared card's `ui.bounds` height
+ * is kept by index, unseen cards use the mean of the measured ones, and the spacers reproduce the whole feed's layout.
+ * The scroll's clamp and the thumb read the *real* content (`src/virtual.ts`'s `content`, the block plus the feed's two
+ * 12px paddings), never the declared subset's, so the bar and both ends behave as they did with every card declared.
  */
-export function Sky(props: { input: Input; motion?: Motion; theme?: () => string | undefined }) {
+export function Sky(props: {
+  input: Input;
+  motion?: Motion;
+  theme?: () => string | undefined;
+  posts?: readonly Post[];
+}) {
   const { input } = props;
   const [focused, setFocused] = createSignal(false);
   const [selected, setSelected] = createSignal<{ feed: number; i: number } | null>(null);
   // what the tree wears this frame, set by the tick (before the flush, so in this frame): the cards on their hover style
   // (kept while the fade leaves, or the resting gradient would come back under it before the fade was out), and the tabs
-  // that keep the 2px underline while its colour fades. A page with no motion hook has neither (the a11y test builds one).
-  const [hot, setHot] = createSignal([false, false, false]);
+  // that keep the 2px underline while its colour fades. A page with no motion hook has neither.
+  const [hot, setHot] = createSignal<ReadonlySet<number>>(new Set());
   const [underlined, setUnderlined] = createSignal([true, false, false]);
+  // the declared window: the cells the tree renders (the cards' keys, and a spacer's sentinel at either end) — a signal,
+  // so the tree updates only when the window moved; the spacer heights go to their boxes through the value channel
+  const [cells, setCells] = createSignal<string[]>([]);
+  // the heights the window has measured, by card index: a feed switch clears them (another feed, other posts)
+  const heights: (number | undefined)[] = [];
+  // the feed's real content this frame, paddings included: what the clamp and the thumb read
+  let content = 0;
 
   // the feed scrolls itself: Clay's own wheel scrolling is off for this page, and the scroll (src/vscroll.ts) takes the
   // wheel, the pointer's drag and the band on a track of its own. The offset is positive-down (Clay's is negative-down).
   ui.autoScroll(false);
   onCleanup(() => ui.autoScroll(true));
 
-  // the cards' and the tabs' motion, by the ids the tree gives them
-  const cards = [0, 1, 2].map((i) => ({
-    id: Buffer.from(`sky-card-${i}`),
-    delay: i * ENTRY.delay,
-    started: -1, // the clock the entry started at: -1 before it, and forever under reduced motion
-    arrived: false, // the entry is over: no write at all, so the card is its literal frame
-    on: false, // the pointer is on it this frame
-    hover: track(0, HOVER), // percent: a track settles within 0.5 of its unit, and 0.5 of 1 would be settled at once
-    y: track(ENTRY.y, ENTRY_Y), // where the entry starts: 12px low until its delay, then 0
-    a: track(0, ENTRY_A), // ... and 0 opacity
-  }));
+  // the feeds: the `posts` prop (a synthetic feed in the window's test) takes Discover's place; the other two are the app's
+  const feeds: readonly Feed[] = props.posts ? [{ name: FEEDS[0]!.name, posts: props.posts }, FEEDS[1]!, FEEDS[2]!] : FEEDS;
+
+  // the cards' motion, by the ids the tree gives them: one state a card, made when the card is first declared (and the
+  // first screenful's made here, so their entry starts on the first frame as it always did)
+  interface CardFx {
+    readonly id: Buffer;
+    readonly delay: number;
+    started: number; // the clock the entry started at: -1 before it, and forever under reduced motion
+    arrived: boolean; // the entry is over: no write at all, so the card is its literal frame
+    on: boolean; // the pointer is on it this frame
+    hover: Track; // percent: a track settles within 0.5 of its unit, and 0.5 of 1 would be settled at once
+    y: Track; // where the entry starts: 12px low until its delay, then 0
+    a: Track; // ... and 0 opacity
+  }
+  const fx = new Map<number, CardFx>();
+  const cardFx = (i: number): CardFx => {
+    let c = fx.get(i);
+    if (!c) {
+      // a card the first screenful had: it waits its delay and arrives, as every card did when all of them were
+      // declared; one that scrolled in later is simply there (its entry is the mount's, not the window's)
+      const entry = i < ENTRY_CARDS;
+      c = {
+        id: Buffer.from(`sky-card-${i}`),
+        delay: i * ENTRY.delay,
+        started: -1,
+        arrived: !entry,
+        on: false,
+        hover: track(0, HOVER),
+        y: track(entry ? ENTRY.y : 0, ENTRY_Y),
+        a: track(entry ? 0 : 255, ENTRY_A),
+      };
+      fx.set(i, c);
+    }
+    return c;
+  };
   const tabFx = [0, 1, 2].map((i) => ({
     id: Buffer.from(`sky-tabs-tab-${i}`),
     // the label is a text of its own: its colour is not in the tab's box, so it has an id to fade through
@@ -411,6 +509,11 @@ export function Sky(props: { input: Input; motion?: Motion; theme?: () => string
     ink: track(i === 0 ? 100 : 0, LABEL),
   }));
   let activeWas = 0;
+  // the last window the tree was given, so a frame at rest sets no signal
+  let shownFirst = -1;
+  let shownLast = -1;
+  let shownTop = false;
+  let shownBottom = false;
 
   const clamp = (y: number, max: number) => Math.min(Math.max(y, 0), max);
 
@@ -426,32 +529,54 @@ export function Sky(props: { input: Input; motion?: Motion; theme?: () => string
   const tabs = createTabs({ id: "sky-tabs", items: FEEDS.length, focus: input.focus, focusablePanels: [0, 1, 2] });
   const binds = tabs.tabs.map((tab) => input.bind(tab));
   const active = () => tabs.selected();
-  const feed = () => FEEDS[active()]!;
+  const feed = () => feeds[active()]!;
+
+  // the first screenful's cards, so their mount entry starts on the first frame; and the window the tree shows before the
+  // first tick (the first layout has no height yet, which is the overscan around the top)
+  for (let i = 0; i < Math.min(ENTRY_CARDS, feed().posts.length); i++) cardFx(i);
+  const firstWin = measuredWindow({
+    offset: 0,
+    view: 0,
+    count: feed().posts.length,
+    heights: [],
+    gap: GAP,
+    overscan: OVERSCAN,
+  });
+  /** The window's cells: the top spacer when there is one, the cards of the feed on screen, the bottom spacer. A card's
+   *  cell carries the feed, so a tab switch gives it a node of its own (its child order is created, not toggled). */
+  const cellsOf = (w: Window, feedIndex: number): string[] => {
+    const list: string[] = [];
+    if (w.above > 0) list.push(TOP);
+    for (let i = w.first; i <= w.last; i++) list.push(`${feedIndex}:${i}`);
+    if (w.below > 0) list.push(BOTTOM);
+    return list;
+  };
+  setCells(cellsOf(firstWin, active()));
 
   /** Whether that tab wears the 2px underline this frame: the active one, and one whose underline is still fading out. */
   const under = (i: number) => (props.motion ? underlined()[i]! : active() === i);
   /** Whether that card wears the hover style: the pointer is on it, or its fade is still leaving it. */
-  const isHot = (i: number) => (props.motion ? hot()[i]! : false);
+  const isHot = (i: number) => (props.motion ? hot().has(i) : false);
 
-  /** How far the feed can scroll: the last card's bottom (in screen coordinates, already shifted by Clay's offset) plus
-   *  the 12px bottom padding, less the viewport's bottom, less the offset's own lift. 0 when the feed fits. */
-  const maxScroll = () => {
-    const posts = feed().posts.length;
-    if (!posts) return 0;
-    const view = ui.bounds(Buffer.from(VIEW));
-    const last = ui.bounds(Buffer.from(`sky-card-${posts - 1}`));
-    if (!view || !last) return 0;
-    return Math.max(0, last[1]! + last[3]! + 12 - (view[1]! + view[3]!) - ui.scrollOffset(VIEW));
-  };
+  const feedId = Buffer.from(VIEW);
+  const aboveId = Buffer.from(ABOVE);
+  const belowId = Buffer.from(BELOW);
+  /** The feed's height from the last layout (0 on the first frame). */
+  const viewH = () => ui.bounds(feedId)?.[3] ?? 0;
+
+  /** How far the feed can scroll: the real content (the cards' block from the measured cache, and the feed's two 12px
+   *  paddings) less the viewport. 0 when the feed fits; never the declared subset's height, or the bar and both ends
+   *  would move with what happens to be on screen. */
+  const maxScroll = () => Math.max(0, content - viewH());
 
   /** The feed's scroll (src/vscroll.ts): the wheel, the drag, the band and the fling, on a track of its own; the feed's
-   *  end is its last card plus the 12px bottom padding, as `maxScroll` measures it. The scrollbar's thumb (`BAR`) is the
-   *  machine's too: it writes its box and its fade every frame. */
+   *  end is its real content's, as `maxScroll` measures it. The scrollbar's thumb (`BAR`) is the machine's too: it writes
+   *  its box and its fade every frame. */
   const feedScroll = scroll(VIEW, maxScroll, BAR);
 
   /** One card a frame: its hover fade, and its entry while that runs (once, on mount). Writes nothing at all once both
    *  are the literals, so a frame at rest is the frame the style's literals make. */
-  const cardFrame = (c: (typeof cards)[number], i: number, t: number) => {
+  const cardFrame = (c: CardFx, i: number, t: number) => {
     if (!c.arrived) {
       if (c.started < 0 && !reduced() && t >= c.delay) {
         // the frame its delay is up on: from the entry's 12px and 0 opacity, both retargeted from what they present
@@ -519,25 +644,77 @@ export function Sky(props: { input: Input; motion?: Motion; theme?: () => string
   };
 
   /** One frame: the cards' and the tabs' motion at the scroll's clock (so a frame is one instant), then the feed's own
-   *  scroll (src/vscroll.ts), which retargets on the wheel and a key and writes the offset to Clay's clip element. */
+   *  scroll (src/vscroll.ts), which retargets on the wheel and a key and writes the offset to Clay's clip element; then
+   *  the window that offset shows. The heights are the last frame's `ui.bounds` of each declared card: a card's own
+   *  height does not depend on where the window put it, so one measurement serves every frame after its first. */
   const tick = (dt: number) => {
     const t = feedScroll.now;
     // the selection first: a tab that becomes active starts its underline at once (a frame later would flash the
-    // literal's full colour before the fade's first 0), and the one that had it fades out
+    // literal's full colour before the fade's first 0), and the one that had it fades out; a new feed's cards are other
+    // posts, so the heights measured for the old feed are not theirs
     const sel = active();
-    if (sel !== activeWas) {
+    const switched = sel !== activeWas;
+    if (switched) {
       activeWas = sel;
+      heights.length = 0;
       for (const [i, f] of tabFx.entries()) {
         f.under.retarget(t, i === sel ? 255 : 0, UNDERLINE);
         f.ink.retarget(t, i === sel ? 100 : 0, LABEL);
       }
     }
+    if (!switched)
+      for (let i = shownFirst; i <= shownLast; i++) {
+        const b = ui.bounds(cardFx(i).id);
+        if (b && b[3]! > 0) heights[i] = b[3]!;
+      }
     const keep = tabFx.map((f, i) => tabFrame(f, i, t));
-    for (const [i, c] of cards.entries()) cardFrame(c, i, t);
+    // the cards this frame: the window the last frame declared, and any state still running (an entry, or a hover
+    // leaving) — nothing else, so a feed of hundreds costs what is on screen
+    const live = new Set<number>();
+    for (let i = shownFirst; i <= shownLast; i++) live.add(i);
+    for (const [i, c] of fx) if (!c.arrived || c.on || !c.hover.at(t).done) live.add(i);
+    const hotNow = new Set<number>();
+    for (const i of live) {
+      const c = cardFx(i);
+      cardFrame(c, i, t);
+      if (c.on || c.hover.at(t).x > 0) hotNow.add(i);
+    }
     if (keep.join() !== underlined().join()) setUnderlined(keep);
-    const hotNow = cards.map((c) => c.on || c.hover.at(t).x > 0);
-    if (hotNow.join() !== hot().join()) setHot(hotNow);
+    if (hotNow.size !== hot().size || [...hotNow].some((i) => !hot().has(i))) setHot(hotNow);
+    // the real content (all the cards, the measured ones and the fallback for the rest, and both paddings), then the
+    // offset as the track presents it, then the window it shows. A track that was at the old end follows the content's
+    // new one: as the last cards are measured the estimate moves, and a key's End must still land on the real end.
+    const oldMax = Math.max(0, content - viewH());
+    const atEnd = oldMax > 0 && Math.abs(feedScroll.target() - oldMax) <= 0.5;
+    const count = feed().posts.length;
+    content = measuredWindow({ offset: 0, view: 0, count, heights, gap: GAP, overscan: OVERSCAN }).content + 2 * PAD;
+    const max = Math.max(0, content - viewH());
+    if (atEnd && max > oldMax + 0.5) feedScroll.seek(max);
     feedScroll.tick(dt);
+    const w = measuredWindow({
+      // the feed's padding is above the first card and below the last: the children's visible range starts that much
+      // earlier than the clip's offset says, and is the clip's whole height tall
+      offset: -ui.scrollOffset(VIEW) - PAD,
+      view: viewH(),
+      count,
+      heights,
+      gap: GAP,
+      overscan: OVERSCAN,
+    });
+    const top = w.above > 0;
+    const bottom = w.below > 0;
+    if (w.first !== shownFirst || w.last !== shownLast || top !== shownTop || bottom !== shownBottom) {
+      shownFirst = w.first;
+      shownLast = w.last;
+      shownTop = top;
+      shownBottom = bottom;
+      setCells(cellsOf(w, sel));
+    }
+    // a spacer's height is a FIXED axis's min and max, written every frame (the channel is a frame's) as the thumb's are
+    ui.value(aboveId, FIELDS.HEIGHT + 1, w.above);
+    ui.value(aboveId, FIELDS.HEIGHT + 2, w.above);
+    ui.value(belowId, FIELDS.HEIGHT + 1, w.below);
+    ui.value(belowId, FIELDS.HEIGHT + 2, w.below);
   };
   if (props.motion)
     (props.motion.onWheel = feedScroll.wheel),
@@ -584,33 +761,50 @@ export function Sky(props: { input: Input; motion?: Motion; theme?: () => string
         <box {...a11y(tabs.tablist)} style={s.tablist}>
           {tabs.tabs.map((tab, i) => (
             <box {...binds[i]!} {...a11y(tab)} style={under(i) ? s.tabOn : s.tab}>
-              <text id={`sky-tabs-label-${i}`} style={tab.selected ? s.tabTextOn : s.tabText}>{FEEDS[i]!.name}</text>
+              <text id={`sky-tabs-label-${i}`} style={tab.selected ? s.tabTextOn : s.tabText}>{feeds[i]!.name}</text>
             </box>
           ))}
         </box>
       </box>
       <box {...bind} onPress={() => (bind.onPress(), feedScroll.press())} style={s.view}>
-        {feed().posts.map((p, i) => (
-          <box
-            id={`sky-card-${i}`}
-            style={selected()?.feed === active() && selected()?.i === i ? s.cardOn : isHot(i) ? s.cardHover : s.card}
-            onClick={() => {
-              // a press that dragged the feed is not a click on the card it started on
-              if (!feedScroll.dragged) setSelected({ feed: active(), i });
-            }}
-          >
-            <box id={`sky-avatar-${i}`} style={AVATARS[p.handle.split(".")[0]!]!} />
-            <box style={s.nameLine}>
-              <text style={s.name}>{p.name || p.handle}</text>
-              <text style={s.meta}>{p.name ? `@${p.handle} · ${ago(p.created)}` : ago(p.created)}</text>
-            </box>
-            <box id={`sky-body-${i}`} style={s.bodyBox}>
-              <text style={s.body}>{p.text}</text>
-            </box>
-            {p.media ? <text style={s.media}>{p.media}</text> : null}
-            <text style={s.counts}>{`${num(p.replies)} replies · ${num(p.reposts)} reposts · ${num(p.likes)} likes`}</text>
-          </box>
-        ))}
+        {/* the window: a spacer for the cards above, the declared cards, a spacer for the ones below — all cells of one
+            `For`, so they are in that order in the feed's gap-spaced column and the declared cards are where the whole
+            feed would have put them */}
+        <For each={cells()}>
+          {(cell) => {
+            if (cell === TOP) return <box id={ABOVE} style={s.spacer} />;
+            if (cell === BOTTOM) return <box id={BELOW} style={s.spacer} />;
+            const i = Number(cell.slice(cell.indexOf(":") + 1));
+            const post = (): Post => feed().posts[i] ?? BLANK;
+            return (
+              <box
+                id={`sky-card-${i}`}
+                style={
+                  selected()?.feed === active() && selected()?.i === i ? s.cardOn : isHot(i) ? s.cardHover : s.card
+                }
+                onClick={() => {
+                  // a press that dragged the feed is not a click on the card it started on
+                  if (!feedScroll.dragged) setSelected({ feed: active(), i });
+                }}
+              >
+                <box id={`sky-avatar-${i}`} style={AVATARS[post().handle.split(".")[0]!]!} />
+                <box style={s.nameLine}>
+                  <text style={s.name}>{post().name || post().handle}</text>
+                  <text style={s.meta}>
+                    {post().name ? `@${post().handle} · ${ago(post().created)}` : ago(post().created)}
+                  </text>
+                </box>
+                <box id={`sky-body-${i}`} style={s.bodyBox}>
+                  <text style={s.body}>{post().text}</text>
+                </box>
+                {post().media ? <text style={s.media}>{post().media}</text> : null}
+                <text style={s.counts}>
+                  {`${num(post().replies)} replies · ${num(post().reposts)} reposts · ${num(post().likes)} likes`}
+                </text>
+              </box>
+            );
+          }}
+        </For>
         {feed().posts.length === 0 ? (
           <box id="sky-empty" style={s.empty}>
             <text style={s.emptyText}>Nothing here yet</text>

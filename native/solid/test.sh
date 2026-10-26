@@ -119,6 +119,10 @@ $S --warm 40 --keys Tab,ArrowRight --settle 2 --expect solid/frames/sky-tab-mid.
 $S --click 180 380 --png "${TMPDIR:-/tmp}/cssints-touch.png" >/dev/null
 $S --touch 0.5 0.5 --expect "${TMPDIR:-/tmp}/cssints-touch.png"
 bun solid/sky.test.ts
+# the window (src/virtual.ts) with more data than a screen: 1,000 fixed rows and 200 cards of mixed height — the declared
+# subset (nine to eleven rows, at most ten cards), the spacers are the real content, the reveal outside the window, the
+# fallback for a jumped-over card, and the declare cost of 1,000 rows against 30 (and 200 cards against 3)
+bun solid/virtual.test.ts
 # a gradient and a clip inside a *rotated* group (no page has one): the clip paint turns with its scene, the gradient with
 # its shape, and the dither's mark is the rotated quad, so no page pixel around it is stippled (a hand-built tree, no page)
 bun solid/rotated.test.ts
