@@ -16,7 +16,8 @@ import { createSignal, onCleanup } from "solid-js";
 import { a11y } from "../a11y.ts";
 import { createTabs } from "../../headless/src/index.ts";
 import type { Motion } from "../src/entry.ts";
-import { decay, effect, reduced, rubber, spatial, track, type Decay, type Sample, type Spring } from "../src/motion.ts";
+import { effect, reduced, spatial, track } from "../src/motion.ts";
+import { scroll } from "../src/vscroll.ts";
 import { ui } from "../src/ffi.ts";
 import type { FocusPart, Input } from "../src/input.ts";
 import { FIELDS, variant } from "../src/pack.ts";
@@ -304,20 +305,15 @@ const AVATARS: Record<string, css.ClayStyle> = {
 
 // The motion the page owns (src/motion.ts). A hover is 120ms of `effect`: a luminance field is clamped and critically
 // damped, so it cannot overshoot. The entry is a 12px slide on `spatial` with the opacity's `effect` beside it, each card
-// 3 frames after the one before. The band's return is `spatial(0.35, 0.1)` — Rune's light bounce — so it settles exactly
-// on the clamp. Reduced motion (the platform's, `motion.ts`'s flag) makes every retarget land at once, and the page skips
-// the entry and the band altogether, so the frame is the settled one.
+// 3 frames after the one before. The feed's scroll is the page's own track too (src/vscroll.ts: the wheel, the drag, the
+// band and the fling — the List's viewport is the same machine). Reduced motion (the platform's, `motion.ts`'s flag) makes
+// every retarget land at once, and the page skips the entry and the band altogether, so the frame is the settled one.
 const HOVER = effect(0.12); // the card's and the tab's background
 const UNDERLINE = effect(0.12); // the tab's 2px underline fading in or out
 const LABEL = effect(0.15); // the tab label's colour, from the muted token to the accent and back
 const ENTRY = { delay: 0.05, y: 12, time: 0.3 }; // seconds, px: a card starts 50ms after the one before it, 12px low
 const ENTRY_Y = spatial(ENTRY.time);
 const ENTRY_A = effect(ENTRY.time);
-const BAND_BACK = spatial(0.35, 0.1); // the band lets go with a light bounce, and settles exactly on the clamp
-const BAND_HOLD = 0.08; // seconds without a notch before the band lets go
-const DRAG_SLOP = 4; // px of travel: past it the press was a drag, and the card under it is not clicked on release
-const FLING_FRAMES = 5; // the last frames' positions the release's speed is estimated from
-const FLING_MIN = 1 / 120; // s: a span shorter than this is one frame's jitter, not a speed
 
 /**
  * Four 0..255 channels of a style's background under a theme and a state: the two ends a fade runs between. The theme is
@@ -364,35 +360,8 @@ export function Sky(props: { input: Input; motion?: Motion; theme?: () => string
   const [hot, setHot] = createSignal([false, false, false]);
   const [underlined, setUnderlined] = createSignal([true, false, false]);
 
-  // the feed scrolls itself: Clay's own wheel scrolling is off for this page, and the page takes the notch through
-  // `onWheel` instead. The offset is positive-down (Clay's is negative-down) and is what the track presents.
-  const spring = spatial();
-  let anim = track(0, spring);
-  let fling: Decay | null = null;
-  let now = 0; // seconds, the clock the tracks are given; no track reads the time
-  let notches = 0; // the wheel's notches since the last tick, positive down (a notch is 10px)
-  let notchDir = 0; // the last notch's direction: a fling only continues that way
-  let burst = 0; // how many notches have come without a frame between them: one notch is a step, two are a flick
-  let chasing = false; // the last tick had a notch, so this one decides whether a fling follows
-  let target = 0; // where the track is going: the wheel's, clamped, plus the rubber band at an end
-  let want = 0; // the wheel's own target before the clamp: past an end it feeds the band
-  let band = 0; // raw px past an end (positive past the bottom, negative past the top): 0 is not over-scrolled
-  let idle = 0; // seconds since the last notch, for the band's hold
-  let maxWas = -1; // the content's clamp last frame: a changed one is a feed switch, and is clamped hard
-  let keyed = false;
-  // The drag is direct manipulation: a press inside the feed grabs it, and while the pointer holds it the offset is the
-  // press point's offset less the pointer's own travel — no track between them, so a drag lags nothing. Past an end the
-  // same `rubber` resists it as the wheel's pull. A press that travels past DRAG_SLOP is a drag and not a click. The
-  // release starts whatever follows from where the finger left it: a `decay` from the speed of the last frames (a fling),
-  // the band's way back at an end, or nothing at all (a click, or reduced motion).
-  let held = false; // the pointer holds the feed: the offset is its own
-  let pressed = false; // a press landed inside the feed (the feed's `onPress`), and this frame grabs it
-  let dragX = 0; // the offset the pointer presents while it holds the feed
-  let grabFrom = 0; // the offset when it grabbed, and ...
-  let grabX = 0;
-  let grabY = 0; // ... the pointer's x and y there: the drag is 1:1 from this pair
-  let dragMoved = false; // the press passed DRAG_SLOP: the card under it is not clicked on release
-  let trail: { t: number; x: number }[] = []; // the last frames' (clock, offset) while held
+  // the feed scrolls itself: Clay's own wheel scrolling is off for this page, and the scroll (src/vscroll.ts) takes the
+  // wheel, the pointer's drag and the band on a track of its own. The offset is positive-down (Clay's is negative-down).
   ui.autoScroll(false);
   onCleanup(() => ui.autoScroll(true));
 
@@ -452,113 +421,9 @@ export function Sky(props: { input: Input; motion?: Motion; theme?: () => string
     return Math.max(0, last[1]! + last[3]! + 12 - (view[1]! + view[3]!) - ui.scrollOffset(VIEW));
   };
 
-  /** The viewport's height: the rubber band's `d`. */
-  const viewHeight = () => ui.bounds(Buffer.from(VIEW))?.[3] ?? 0;
-
-  /** Where the wheel's own target sits: clamped to the content, and past an end the band's resistance (`rubber` in
-   *  motion.ts, Rune's f(x) = (1 - 1/(x·c/d + 1))·d, c = 0.55). Sets `band` to the raw overscroll it was given. */
-  const place = (w: number, max: number): number => {
-    const c = clamp(w, max);
-    band = reduced() ? 0 : w - c; // reduced motion has no band: the wheel is clamped hard
-    return band ? c + Math.sign(band) * rubber(Math.abs(band), viewHeight()) : c;
-  };
-
-  /** Where the feed is at t: the drag that holds it, the fling while one runs, the spring otherwise. */
-  const presented = (t: number): Sample =>
-    held ? { x: dragX, v: 0, done: false } : fling ? fling.at(t) : anim.at(t);
-
-  /** Starts a segment at t from a presented (x, v), so position and velocity are continuous across a retarget. */
-  const restart = (p: { x: number; v: number }, t: number, to: number, s: Spring = spring) => {
-    anim = track(p.x, s, t);
-    anim.v0 = p.v;
-    anim.retarget(t, to, s); // samples the (x, v) above and starts the new segment from it
-    fling = null;
-  };
-
-  /** The wheel: 10px a notch, accumulated for the next tick (positive down). A horizontal delta has no page to move. */
-  const wheel = (_dx: number, dy: number) => {
-    if (held) return; // the finger is the offset's: a wheel under it is not a scroll
-    const n = -dy;
-    if (n) (notches += n), (notchDir = Math.sign(n));
-  };
-
-  /** The speed the last frames carry at the release, px/s positive down: the last `FLING_FRAMES` samples' offsets over
-   *  their span. A span under `FLING_MIN` is one frame's jitter and not a speed (Rune's rule: no single-sample spikes). */
-  const speed = (): number => {
-    const last = trail[trail.length - 1];
-    const first = trail[Math.max(0, trail.length - FLING_FRAMES)];
-    if (!last || !first) return 0;
-    const dt = last.t - first.t;
-    return dt < FLING_MIN ? 0 : (last.x - first.x) / dt;
-  };
-
-  /** The pointer moves the grab: the offset follows it from the press point, resisted at the ends as the wheel is. */
-  const dragTo = (x: number, y: number, t: number) => {
-    dragX = place(grabFrom - (y - grabY), maxScroll());
-    if (!dragMoved && Math.hypot(x - grabX, y - grabY) > DRAG_SLOP) dragMoved = true;
-    trail.push({ t, x: dragX });
-    if (trail.length > FLING_FRAMES) trail.shift();
-  };
-
-  /** The release: the drag stops being the offset's owner, and what follows starts from where the finger left it. */
-  const release = (x: number, y: number, t: number) => {
-    held = false;
-    dragTo(x, y, t); // the release's own point counts: the pointer may have moved into it
-    const max = maxScroll();
-    const end = clamp(dragX, max);
-    const v = reduced() || !dragMoved || band ? 0 : speed();
-    trail = [];
-    fling = null;
-    if (band) {
-      // past an end: the band lets go on the next tick, from where the finger left it, and settles on the clamp
-      anim = track(dragX, spring, t);
-      want = dragX;
-      target = end;
-      idle = BAND_HOLD;
-      return;
-    }
-    if (!v) {
-      // a click (no travel), no speed, or reduced motion: the offset stops where the finger left it, clamped
-      anim = track(end, spring, t);
-      want = target = end;
-      return;
-    }
-    const d = decay(dragX, v, t);
-    const raw = d.project();
-    const land = clamp(raw, max);
-    want = target = land;
-    if (land === raw) fling = d;
-    else restart({ x: dragX, v }, t, land);
-  };
-
-  /** The host's pointer, once a frame: a press inside the feed grabs it, a held pointer drags the offset, a release
-   *  hands the feed to the fling (or to the band at an end). A press elsewhere leaves the feed alone. */
-  const pointer = (x: number, y: number, down: boolean) => {
-    const t = now;
-    if (!down) {
-      pressed = false;
-      if (held) release(x, y, t);
-      return;
-    }
-    if (pressed) {
-      // the press was inside the feed: grab it where it is, so the frame it lands on shows the offset it had
-      pressed = false;
-      held = true;
-      grabX = x, grabY = y;
-      grabFrom = dragX = clamp(presented(t).x, maxScroll());
-      dragMoved = false;
-      trail = [{ t, x: dragX }];
-      // a glide or a fling under the finger stops, and the band has no hold: the pointer owns the offset from here
-      fling = null;
-      notches = 0;
-      chasing = false;
-      keyed = false;
-      idle = 0;
-      band = 0;
-      return;
-    }
-    if (held) dragTo(x, y, t);
-  };
+  /** The feed's scroll (src/vscroll.ts): the wheel, the drag, the band and the fling, on a track of its own; the feed's
+   *  end is its last card plus the 12px bottom padding, as `maxScroll` measures it. */
+  const feedScroll = scroll(VIEW, maxScroll);
 
   /** One card a frame: its hover fade, and its entry while that runs (once, on mount). Writes nothing at all once both
    *  are the literals, so a frame at rest is the frame the style's literals make. */
@@ -629,12 +494,10 @@ export function Sky(props: { input: Input; motion?: Motion; theme?: () => string
     return i === active() || f.under.at(t).x > 0;
   };
 
-  /** One frame: the wheel and the keys retarget, the release may fling, and the value goes to Clay. Input is applied at
-   *  the frame's start and the frame presents the state one dt later, so the notch that arrived in this frame moves it.
-   *  The cards and the tabs are written at the clock the frame is showing (`t`), so the entry's first frame is exactly
-   *  its 12px and 0. */
+  /** One frame: the cards' and the tabs' motion at the scroll's clock (so a frame is one instant), then the feed's own
+   *  scroll (src/vscroll.ts), which retargets on the wheel and a key and writes the offset to Clay's clip element. */
   const tick = (dt: number) => {
-    const t = now;
+    const t = feedScroll.now;
     // the selection first: a tab that becomes active starts its underline at once (a frame later would flash the
     // literal's full colour before the fade's first 0), and the one that had it fades out
     const sel = active();
@@ -650,100 +513,12 @@ export function Sky(props: { input: Input; motion?: Motion; theme?: () => string
     if (keep.join() !== underlined().join()) setUnderlined(keep);
     const hotNow = cards.map((c) => c.on || c.hover.at(t).x > 0);
     if (hotNow.join() !== hot().join()) setHot(hotNow);
-
-    const max = maxScroll();
-    if (held) {
-      // the pointer owns the offset: this frame only writes it — a band cannot let go under the finger, and no notch or
-      // key retargets the track until the release
-      maxWas = max;
-      now += dt;
-      if (band) ui.scrollPut(VIEW, -dragX);
-      else ui.scrollTo(VIEW, -dragX);
-      return;
-    }
-    const n = notches;
-    notches = 0;
-    const key = keyed;
-    keyed = false;
-    idle = n ? 0 : idle + dt;
-    if (!band) want = clamp(want, max);
-    target = clamp(target, max);
-    // A shorter feed (a tab switch) must not leave the offset past the new end — its content would not fill the viewport
-    // — so a clamp that moved is hard. A band past an end, and its spring back, are on purpose: those are the tracks'.
-    const shrank = Math.abs(max - maxWas) > 0.01;
-    maxWas = max;
-    const before = presented(t);
-    if (shrank && (before.x < 0 || before.x > max)) {
-      const x = clamp(before.x, max);
-      restart({ x, v: 0 }, t, x);
-      target = want = x;
-    }
-    if (n) {
-      burst += Math.abs(n);
-      want += n * 10;
-      const p = presented(t);
-      const to = place(want, max);
-      // a notch past an end is a pull of the edge, not a scroll of the content: once the content has arrived at the end
-      // it is pushed past (or is already over it), the band is where the wheel puts it on this frame. A notch that only
-      // reaches the end while the content is still travelling there is a scroll like any other: a snap would jump it.
-      const pull = band !== 0 && (n > 0 ? p.x >= max - 0.5 : p.x <= 0.5);
-      target = to;
-      if (pull) (anim = track(to, spring, t)), (fling = null);
-      else {
-        restart(p, t, to);
-        // a notch from rest starts with the velocity a critically damped spring needs to glide the 10px without
-        // overshoot (ω·d): the offset moves on the first frame and each frame after it moves less. A notch during a
-        // burst keeps the presented velocity, so the steps grow with the accumulated target.
-        if (Math.abs(p.v) < 1) anim.v0 = spring.omega * (to - p.x);
-      }
-      chasing = true;
-    } else if (key) {
-      // a key drops the band and retargets the same track
-      chasing = false;
-      burst = 0;
-      want = clamp(want, max);
-      band = 0;
-      target = want;
-      restart(presented(t), t, target);
-    } else if (chasing) {
-      chasing = false;
-      const p = anim.at(t);
-      // a fling only for a burst (a flick, not one notch) whose presented velocity still follows the wheel — and not at
-      // all over an end: a stroke that ends past one is a band's pull, and it lets go on the band's own clock
-      if (!band && burst >= 2 && Math.abs(p.v) > 10 && Math.sign(p.v) === notchDir) {
-        const d = decay(p.x, p.v, t);
-        const raw = d.project();
-        const land = clamp(notchDir > 0 ? Math.max(raw, target) : Math.min(raw, target), max);
-        // inside the content: the decay runs to its projection. Past an end (or short of the wheel's target): a spring
-        // from the presented (x, v) to the clamped end.
-        if (land === raw) (fling = d), (target = land);
-        else restart(p, t, land), (target = land);
-        // the throw's landing is where the wheel's next notch counts from, as its target always was
-        want = land;
-      }
-      burst = 0;
-    } else if (fling) {
-      const d = fling.at(t);
-      if (d.done) restart({ x: d.x, v: 0 }, t, d.x), (target = want = d.x);
-      else if (d.x < 0 || d.x > max) {
-        const x = clamp(d.x, max);
-        restart({ x, v: 0 }, t, x), (target = want = x);
-      }
-    }
-    // the wheel has stopped past an end: the band lets go, from what it presents, and settles exactly on the clamp
-    if (band && !chasing && idle >= BAND_HOLD) {
-      want = clamp(want, max);
-      band = 0;
-      target = want;
-      restart(presented(t), t, target, BAND_BACK);
-    }
-    now += dt;
-    // the offset goes on Clay's clip element: clamped to the content as always, and past an end only while the band is
-    // (it is out of the content on purpose there, and only the page knows how far)
-    if (band) ui.scrollPut(VIEW, -presented(now).x);
-    else ui.scrollTo(VIEW, -presented(now).x);
+    feedScroll.tick(dt);
   };
-  if (props.motion) (props.motion.onWheel = wheel), (props.motion.tick = tick), (props.motion.onPointer = pointer);
+  if (props.motion)
+    (props.motion.onWheel = feedScroll.wheel),
+      (props.motion.tick = tick),
+      (props.motion.onPointer = feedScroll.pointer);
 
   const part: FocusPart & { readonly disabled: boolean } = {
     id: VIEW,
@@ -761,8 +536,7 @@ export function Sky(props: { input: Input; motion?: Motion; theme?: () => string
       if (!step && key !== "Home" && key !== "End") return false;
       // Home and End are targets too: the track eases to them, it does not jump. A key inside a band comes back to the
       // content first: it is not the wheel, so the band lets go.
-      want = clamp(key === "Home" ? 0 : key === "End" ? max : clamp(want, max) + step, max);
-      keyed = true;
+      feedScroll.seek(key === "Home" ? 0 : key === "End" ? max : feedScroll.target() + step);
       return true;
     },
     keyUp: () => false,
@@ -791,14 +565,14 @@ export function Sky(props: { input: Input; motion?: Motion; theme?: () => string
           ))}
         </box>
       </box>
-      <box {...bind} onPress={() => (bind.onPress(), (pressed = true))} style={s.view}>
+      <box {...bind} onPress={() => (bind.onPress(), feedScroll.press())} style={s.view}>
         {feed().posts.map((p, i) => (
           <box
             id={`sky-card-${i}`}
             style={selected()?.feed === active() && selected()?.i === i ? s.cardOn : isHot(i) ? s.cardHover : s.card}
             onClick={() => {
               // a press that dragged the feed is not a click on the card it started on
-              if (!(held && dragMoved)) setSelected({ feed: active(), i });
+              if (!feedScroll.dragged) setSelected({ feed: active(), i });
             }}
           >
             <box id={`sky-avatar-${i}`} style={AVATARS[p.handle.split(".")[0]!]!} />

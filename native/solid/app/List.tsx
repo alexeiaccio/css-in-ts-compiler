@@ -1,16 +1,17 @@
-// The List page: thirty rows in a fixed-height viewport that Clay itself clips and scrolls. The viewport is one clip
-// element (`css.overflow("hidden")`), so Clay keeps its scroll offset across frames: `ui_begin` moves it by the frame's
-// wheel delta (`Clay_UpdateScrollContainers`), `ui_open` hands the offset back to the element before the layout, and the
-// page moves it for the keyboard (`ui.scrollTo`) so that a selected row is always inside the viewport. The header and the
-// footer are the viewport's siblings: they do not move. **The pointer drags the viewport 1:1** from the press point,
-// through Clay's own offset (`ui_scroll_to`, which clamps to the content), and stops at the release: the offset stays
-// Clay's, so the wheel and the keyboard keep their routes, and Clay's container has no rubber band to pull past an end
-// (it clamps every frame) and no decay to hand a release to — that is the Sky feed's route, where the page owns the
-// offset (item 2 of docs/map.md).
+// The List page: thirty rows in a fixed-height viewport whose offset the page owns (src/vscroll.ts — the Sky feed's
+// machine). The viewport is still one clip element (`css.overflow("hidden")`) with the same id, so Clay lays out the rows
+// in it and the renderer's scissor cuts what leaves the box, but the offset is the page's: `ui.scrollPut`/`ui.scrollTo`
+// write it every frame before the tree is declared, and `ui.autoScroll(false)` keeps Clay's own wheel scrolling out of the
+// way. The wheel accumulates 10px notches (a flick flings), a press inside the viewport drags it 1:1 with a 4px click
+// threshold (the selection is keyboard-only, so the drag changes nothing about it), a drag or a wheel past an end pulls a
+// rubber band that springs back 80ms after the last input, and the keyboard eases the track to the offset that shows the
+// moved row (the reveal). Reduced motion has no band and no fling, and a key lands at once. The header and the footer are
+// the viewport's siblings: they do not move.
 import * as css from "cssints/clay" with { type: "cssints" };
-import { createSignal } from "solid-js";
+import { createSignal, onCleanup } from "solid-js";
 
 import { pageEntry, type Motion } from "../src/entry.ts";
+import { scroll } from "../src/vscroll.ts";
 import { ui } from "../src/ffi.ts";
 import type { FocusPart, Input } from "../src/input.ts";
 
@@ -113,44 +114,48 @@ const ROWS: readonly Row[] = Array.from({ length: COUNT }, (_unused, i) => ({
 
 /**
  * The page. One Tab stop: the viewport. Up and Down move the selection a row, PageUp and PageDown eight, Home and End go
- * to the ends; it clamps (it never wraps and never leaves 0..29) and every move scrolls the selected row into view. The
- * wheel scrolls the viewport under the pointer (Clay) and leaves the selection alone, and a held pointer drags it 1:1.
- * On its first mount the page rises 8px and fades in once (src/entry.ts).
+ * to the ends; it clamps (it never wraps and never leaves 0..29) and every move eases the viewport to the offset that
+ * shows the selected row. The wheel scrolls the viewport under the pointer 10px a notch (a flick flings) and leaves the
+ * selection alone, and a held pointer drags it 1:1 — the drag never selects. On its first mount the page rises 8px and
+ * fades in once (src/entry.ts).
  */
 export function List(props: { input: Input; motion?: Motion }) {
   const { input } = props;
   const [selected, setSelected] = createSignal(0);
   const [focused, setFocused] = createSignal(false);
   pageEntry(props.motion);
+  // the entry's tick, which the page's own scroll ticks beside (the entry sets `motion.tick` itself)
+  const entry = props.motion?.tick;
+  // the page owns the viewport's offset: Clay's own wheel scrolling is off, and the track (src/vscroll.ts) writes it
+  ui.autoScroll(false);
+  onCleanup(() => ui.autoScroll(true));
 
-  /** Scrolls the viewport the least it takes to show row `i`: the row's bounds (already shifted by the offset) against
-   *  the viewport's, from the last frame. With both in view nothing moves. */
+  /** How far the viewport can scroll: the last row's bottom (in screen coordinates, already shifted by the offset), less
+   *  the viewport's bottom, less the offset's own lift. The column has no padding; 0 when it fits (it does not). */
+  const maxScroll = () => {
+    const view = ui.bounds(Buffer.from(VIEW));
+    const last = ui.bounds(Buffer.from(ROWS[COUNT - 1]!.id));
+    if (!view || !last) return 0;
+    return Math.max(0, last[1]! + last[3]! - (view[1]! + view[3]!) - ui.scrollOffset(VIEW));
+  };
+
+  /** The viewport's scroll: the wheel's 10px, the drag, the band and the fling, on the page's track. */
+  const viewScroll = scroll(VIEW, maxScroll);
+
+  /** Eases the viewport to the least offset that shows row `i`: the row's place in the content (its bounds from the last
+   *  frame are shifted by the offset, so the offset is added back) against the track's own target — not the presented
+   *  offset, so a key pressed while the track is still travelling still lands where the row is. With the row in view
+   *  nothing moves. */
   const reveal = (i: number) => {
     const row = ui.bounds(Buffer.from(ROWS[i]!.id));
     const view = ui.bounds(Buffer.from(VIEW));
     if (!row || !view) return;
-    const [, top, , height] = view;
-    const [, rowTop, , rowHeight] = row;
-    const below = rowTop! + rowHeight! - (top! + height!);
-    const dy = rowTop! < top! ? top! - rowTop! : below > 0 ? -below : 0;
-    if (dy) ui.scrollTo(VIEW, ui.scrollOffset(VIEW) + dy);
+    const top = row[1]! - view[1]! - ui.scrollOffset(VIEW); // the row's top in the content, positive down
+    const at = viewScroll.target();
+    const to =
+      top < at ? top : top + row[3]! > at + view[3]! ? top + row[3]! - view[3]! : at;
+    if (to !== at) viewScroll.seek(to);
   };
-
-  // The drag (direct manipulation): a press inside the viewport grabs Clay's offset, and while the pointer holds it the
-  // offset is the press point's offset plus the pointer's own travel — 1:1, no track in between — clamped to the content,
-  // as Clay's container is. The release stops it there: a fling needs a decay the page would have to own (the Sky feed),
-  // and Clay's own momentum is several times the drag it came from.
-  let held = false; // the pointer holds the viewport
-  let pending = false; // a press landed inside the viewport (its `onPress`), and this frame grabs it
-  let pressY = 0; // the pointer's y there, and ...
-  let pressOffset = 0; // ... Clay's offset: the drag is 1:1 from this pair
-  /** The host's pointer, once a frame: a press inside the viewport grabs the offset, a held pointer moves it. */
-  const pointer = (_x: number, y: number, down: boolean) => {
-    if (!down) held = pending = false;
-    else if (pending) (pending = false), (held = true), (pressY = y), (pressOffset = ui.scrollOffset(VIEW));
-    else if (held) ui.scrollTo(VIEW, pressOffset + (y - pressY));
-  };
-  if (props.motion) props.motion.onPointer = pointer;
 
   const select = (i: number) => {
     setSelected(i);
@@ -181,6 +186,23 @@ export function List(props: { input: Input; motion?: Motion }) {
   };
   const bind = input.add(part);
 
+  // the frame: the entry writes its two group fields, then the scroll retargets on the wheel and a key and writes the
+  // viewport's offset, all before the tree is declared
+  const tick = (dt: number) => {
+    entry?.(dt);
+    viewScroll.tick(dt);
+  };
+  // Clay scrolled the container under the pointer only; a page that owns the offset has to keep that rule itself, or a
+  // wheel over the title would scroll the rows
+  const viewId = Buffer.from(VIEW);
+  const wheel = (dx: number, dy: number) => {
+    if (ui.over(viewId)) viewScroll.wheel(dx, dy);
+  };
+  if (props.motion)
+    (props.motion.onWheel = wheel),
+      (props.motion.onPointer = viewScroll.pointer),
+      (props.motion.tick = tick);
+
   const current = () => ROWS[selected()]!;
 
   return (
@@ -189,7 +211,7 @@ export function List(props: { input: Input; motion?: Motion }) {
       <box id="list-head" style={s.head}>
         <text style={s.note}>{`${current().label} — ${selected() + 1} of ${COUNT}`}</text>
       </box>
-      <box {...bind} onPress={() => (bind.onPress(), (pending = true))} style={s.view}>
+      <box {...bind} onPress={() => (bind.onPress(), viewScroll.press())} style={s.view}>
         {ROWS.map((r, i) => (
           <box id={r.id} focused={i === selected() && focused()} style={i === selected() ? s.rowSelected : s.row}>
             <box style={s.number}>

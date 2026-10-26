@@ -27,8 +27,10 @@
 //                                        (`Input.textInput`), not a key: --keys Tab,text:Ada,Shift+ArrowLeft
 //   --wheel N                            headless, before --keys: the pointer onto the element `--wheel-over` names (the
 //                                        list's viewport by default), then N wheel notches down, a frame each (one
-//                                        notch is 10px: Clay's scroll on the List page, the Sky feed's own track)
+//                                        notch is 10px; a run of notches a frame apart is a flick and flings)
 //   --wheel-over ID                      the element the wheel's pointer goes onto (default "list")
+//   --wheel-rest                         headless, with --wheel: a frame of rest between notches, so a long run is the
+//                                        notches' own 10px each (the List's stored frames)
 //   --settle N                           headless: N more frames at 1/60 after the wheel and the keys, for a page whose
 //                                        motion has to come to rest (the Sky feed's spring and fling, the Dialog's menu
 //                                        slide and panel drop)
@@ -70,6 +72,8 @@ const keys = arg("--keys")?.[0]?.split(",");
 // headless: wheel notches down over the element --wheel-over names, a frame each
 const wheel = Number(arg("--wheel")?.[0] ?? 0);
 const wheelOver = arg("--wheel-over")?.[0] ?? "list";
+// headless: a frame of rest between wheel notches, so a long scripted run is the notches' own 10px each and not a flick
+const wheelRest = process.argv.includes("--wheel-rest");
 const settle = Number(arg("--settle")?.[0] ?? 0);
 const bench = Number(arg("--bench")?.[0] ?? 0);
 // headless: frames with no input after everything else, and how many of them drew (all of them only for the keys)
@@ -199,8 +203,10 @@ if (headless) {
     step(x!, y, false, true);
     settleAt = [x!, y];
   }
-  // the wheel: Clay scrolls the container under the pointer (unless the page owns it: the Sky feed), so the pointer goes
-  // onto the viewport for a frame first; every notch goes to both channels, and the page's handler sees it before the frame
+  // the wheel: a page's own track gets the delta before the frame; Clay scrolls the container under the pointer only for a
+  // page that keeps Clay's scrolling, so the pointer goes onto the viewport for a frame first. `--wheel-rest` puts a frame
+  // of rest between notches: a run of notches 60Hz apart is a flick and flings (the Sky feed's and the List's), and a rest
+  // frame keeps a scripted run at its notches' own 10px each — the List's stored frames are that run
   if (wheel) {
     const [left, top, width, height] = ui.bounds(Buffer.from(wheelOver)) ?? [W / 2, H / 2, 0, 0];
     const [px, py] = [left + width / 2, top + height / 2];
@@ -209,6 +215,7 @@ if (headless) {
       ui.wheel(0, -1); // one notch down
       pumpWheel();
       step(px, py, false, true);
+      if (wheelRest) step(px, py, false);
     }
     settleAt = [px, py];
   }

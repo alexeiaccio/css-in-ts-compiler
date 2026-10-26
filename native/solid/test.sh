@@ -74,16 +74,17 @@ F --keys Tab,Tab,text:Ada,Shift+ArrowLeft,Shift+ArrowLeft --expect solid/frames/
 F --keys Tab,Tab,text:Ada,Enter --expect solid/frames/field-submit.png
 THEME=light bun solid/main.ts form --warm 30 --keys Tab,Tab,text:Ada --expect solid/frames/field-light.png
 bun solid/field.test.ts
-# the List page (Clay's own scroll container: the wheel moves its offset, the keys move the selection and scroll it into
-# view): the top, scrolled by the wheel (both edges cut), the selection moved past the viewport, the light theme
+# the List page (its viewport on the page's own track: the wheel's 10px, the keyboard's reveal, the drag, the band): the
+# top, scrolled 32 notches (a rest frame between them, so the run is the notches' own 320 and not a flick), the selection
+# moved past the viewport and eased into view, the light theme
 L() { bun solid/main.ts list --warm 30 "$@"; }
 # the entry's own frame: four frames in, the page a blend of its colour over the ground (main.ts --settle 3)
 bun solid/main.ts list --settle 3 --expect solid/frames/list-entry.png
 DOWN12="Tab,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown"
 L --expect solid/frames/list-top.png
-L --wheel 32 --expect solid/frames/list-wheel.png
-L --keys $DOWN12 --expect solid/frames/list-select.png
-THEME=light bun solid/main.ts list --warm 30 --keys $DOWN12 --expect solid/frames/list-light.png
+L --wheel 32 --wheel-rest --settle 60 --expect solid/frames/list-wheel.png
+L --keys $DOWN12 --settle 60 --expect solid/frames/list-select.png
+THEME=light bun solid/main.ts list --warm 30 --keys $DOWN12 --settle 60 --expect solid/frames/list-light.png
 bun solid/list.test.ts
 # the motion model (a spring from duration and bounce, a track that retargets from the presented x and v, the exact
 # settle, the effect class's clamp, the decay's projection): no page, no Clay

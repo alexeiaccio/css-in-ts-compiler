@@ -208,8 +208,8 @@ const inBox = (x: number, y: number) =>
 }
 
 // --- the clip and the dither together: the same tree with the gradient *inside* the clipped subtree — the mark is cut to
-//     the clip (its quad's bounding box, the conservative bound) and to the gradient's own quad, so no page pixel outside
-//     the gradient's quad is stippled
+//     the clip's own quad and to the gradient's own quad, so neither a page pixel outside the gradient's quad nor a pixel
+//     the clip cut away (the box of a 30° clip's quad holds pixels outside the clip) is stippled
 {
   const withClip = (gradient: boolean) => {
     ui.begin(-1, -1, 0, 1 / 60);
@@ -232,20 +232,29 @@ const inBox = (x: number, y: number) =>
   const clipped = frame();
   // the gradient's box in this tree (inside the clip, so another place): its own quad
   const inClipQuad = quadOf([...ui.bounds(id("grad"))!] as number[]);
+  // ... and the clip's box: its quad, which the dither's cut must follow, not the box around it
+  const clipQuad = quadOf([...ui.bounds(id("clip"))!] as number[]);
   withClip(false);
   const solid = frame();
   let outside = 0,
-    changed = 0;
+    cut = 0,
+    inside = 0;
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
       const a = clipped[y]![x]!,
         b = solid[y]![x]!;
       if (a.join() === b.join()) continue;
-      changed++;
       if (!inQuadOf(inClipQuad, x, y)) outside++;
+      if (!inQuadOf(clipQuad, x, y)) cut++;
+      else inside++;
     }
-  check("a gradient inside a rotated clip is stippled inside its own quad, never on the page around it", changed > 100 && outside === 0, true);
-  console.log(`solid/rotated.test.ts: inside the clip ${changed}px of stipple, ${outside} of them outside the gradient's quad`);
+  check("a gradient inside a rotated clip is stippled inside its own quad, never on the page around it", outside, 0);
+  check("and no pixel the clip cut away is stippled: the mark follows the clip's quad, not its bounding box", cut, 0);
+  check("with the gradient's pixels inside the clip stippled", inside > 100, true);
+  console.log(
+    `solid/rotated.test.ts: inside the clip ${inside}px of stipple, ${cut} of them the clip cut away, ` +
+      `${outside} outside the gradient's own quad`,
+  );
 }
 
 if (failed) process.exit(1);

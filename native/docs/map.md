@@ -248,27 +248,27 @@ Each step ends in a check that fails when it breaks.
    (`--frames 60`, exit 0) but typing in it was not tried by hand. Left: bidi, grapheme clusters (an index is a UTF-16
    unit), wrapping and multiline, undo, IME composition state (SDL's text events are committed characters), drag-select,
    and the caret's 1px layout cost.
-   **Done: scrolling** (`solid/app/List.tsx`, `bun solid/main.ts list`). Clay's own scroll containers, driven by the host:
-   `ui_window_poll` adds every SDL wheel event to the frame (`ui_wheel`), `ui_begin` calls
-   `Clay_UpdateScrollContainers(false, delta, dt)` before `Clay_BeginLayout` so the container under the pointer moves by
-   the wheel and clamps itself to its content, and `ui_open` gives each clip element its offset back through
-   `Clay_GetScrollOffset()` before the declaration is configured — the two calls Clay's debug view makes, so the layout
-   shifts the rows and the renderer's scissor cuts what leaves the box. `cssints/clay` needed **no new member**:
-   `css.overflow("hidden")` was already the declaration and `pack.ts`/`ui_open` already carried the two clip flags for the
-   floats. The page is 30 rows in a 240px viewport with the readout and the footer as its siblings, so they stay put; the
-   wheel scrolls, and one Tab stop takes Up/Down, PageUp/PageDown and Home/End, which move the selection (clamped to
-   0..29) and `ui_scroll_to` the view the least it takes to show the moved row, measured from the row's and the
-   viewport's `ui.bounds` of the last frame. Check: four stored frames (the top, 32 notches down
-   with both edges cut, the selection moved to row 13 with the view scrolled to it, the light theme) and
-   `solid/list.test.ts` (10px a notch and the rows moving by exactly that, both clamps, the clip's pixels above the
-   viewport, the keyboard reveal and its bounds, the wheel not moving the selection, the header and footer unmoved, the
-   ring's pixels, the wheel only under the pointer, the page fitting). Dropping the scroll-into-view fails eleven of them.
-   Seen by eye: the four frames; the window started (`--frames 60`, exit 0) but its wheel and keys were not tried by hand
-   (the screen is not visible to me). Its pointer drag came with item 2's drag (1:1 through `ui_scroll_to`, stopping at the
-   release: see below). Left: horizontal scrolling, momentum (the Sky feed got the first motion tracks; this page keeps
-   Clay's instant wheel step, and a drag's band and fling would need the page to own the offset), a
-   scrollbar (the page has a "n of 30" readout instead) and dragging one, and scrolling the page itself when the wheel is
-   outside the viewport (Clay scrolls the container under the pointer only).
+   **Done: scrolling** (`solid/app/List.tsx`, `bun solid/main.ts list`). The viewport's offset is the page's
+   (`solid/src/vscroll.ts`, the Sky feed's machine): one clip element as before, `ui.autoScroll(0)` keeps Clay's own
+   wheel scrolling out, and the page writes `ui_scroll_put`/`ui_scroll_to` on it every frame. A wheel notch is 10px on a
+   track (it glides and settles at exactly 10; a burst is a flick), a press inside the viewport drags it 1:1 with a 4px
+   click threshold, past an end the `rubber` band resists both and lets go 80ms after the last input, and reduced motion
+   clamps hard, flings nothing and lands a key at once. The wheel is gated on the pointer being over the viewport (Clay's
+   own rule, kept by the page). The 30 rows sit in a 240px viewport with the readout and the footer as its siblings, so
+   they stay put; one Tab stop takes Up/Down (a row), PageUp/PageDown (eight), Home/End, which move the selection (clamped
+   to 0..29) and then ease the track to the least offset that shows the moved row — the reveal is measured from the row's
+   place in the content and against the track's *target*, so a key pressed mid-animation still lands right, and the drag
+   never selects (the selection is the keyboard's). Check: four stored frames (the top, 32 notches down with both edges
+   cut, the selection eased to row 13, the light theme; all byte-identical, from `--wheel-rest` and `--settle`) and
+   `solid/list.test.ts` (a notch glides `2.59, 1.92, 1.42…` px a frame to exactly 10, both clamps, a 40-notch flick to
+   the clamp, the band's f(40) at both ends and its hold, the drag frame for frame with its fling and its resistance, the
+   clip's pixels above the viewport, the keyboard's reveal and its bounds after the ease, the wheel not moving the
+   selection, the header and footer unmoved, the ring's pixels, the wheel only under the pointer, reduced motion, the page
+   fitting). Mutations: making the notch instant fails the "settles at 10px over frames" check; dropping the reveal fails
+   eleven of them. Seen by eye: the four frames; the window started (`--frames 60`, exit 0) but its wheel and keys were
+   not tried by hand (the screen is not visible to me). Left: horizontal scrolling, a scrollbar (the page has a "n of 30"
+   readout instead) and dragging one, and scrolling the page itself when the wheel is outside the viewport (it is the
+   viewport's own track).
    **Done: the accessibility tree** (`solid/a11y.ts`, `solid/a11y.test.ts`). `snapshot(root, { parts, containers })`
    walks the rendered tree in document order and returns `{ role, name, value, states: { checked, expanded, selected,
    disabled, focused, hidden }, hasPopup, level, bounds, children }`: the name from the part's `label` / `labelledBy`
@@ -325,22 +325,25 @@ Each step ends in a check that fails when it breaks.
    **Done: the drag, the pages' entry, and a rotated clip and gradient.** The Sky feed is dragged as a phone's list is: a
    press inside it grabs the offset, which follows the pointer 1:1 from the press point (the same `rubber` past an end as
    the wheel's pull), a press that travels past 4px is not a click on the card under it, and the release hands the speed of
-   the last five samples to a decay (or lets the band go at an end); reduced motion drags 1:1 and flings nothing. The List
-   page drags by the other route — its offset stays Clay's, so the page writes the drag through `ui_scroll_to` (1:1,
-   clamped, stopping at the release): a band or a fling there would need the page to own the offset, as the Sky feed does
-   (and Clay's own drag scrolling leaves a momentum of ~17x the drag). One helper (`solid/src/entry.ts`) gives List,
-   Widgets, Sensors and the Text field their first mount — the root's subtree rises 8px and fades in over 0.25s once,
-   writing nothing afterwards — and `frames/list-entry.png` is four frames into it, the stored frames of those pages
-   unchanged. In the renderer the groups' map to the target is one affine, so a gradient inside a *rotated* group is
-   stippled on its rotated quad, where an axis-aligned mark stippled the page around it and missed the quad's tips; the
-   clip itself already turned with its scene, and `solid/rotated.test.ts` proves all three on a hand-built tree (the tilt,
-   the ramp, the stipple's pixels inside the quad and nowhere else). Check: the drag's offset frame for frame, the
-   resistance past an end, the fling's deterministic landing, the suppressed click, reduced motion, the entry's blend and
-   still layout, and `sh test.sh`'s 63 stored-frame comparisons. Seen by eye: `list-entry.png`. What is genuinely left:
-   touch hardware (the drag is the window's mouse), a band and a fling on the List, a gradient inside a *rotated clip*
-   stippled a pixel inside the clip's box (the conservative cut, since the clip's dither cut is its quad's bounding box),
-   and the terminal, browser and board targets (no Solid page, no wheel, no pointer and no value channel: the drag is the
-   desktop's).
+   the last five samples to a decay (or lets the band go at an end); reduced motion drags 1:1 and flings nothing. That
+   machine is now one module (`solid/src/vscroll.ts`), and **the List's viewport is on it too**: the same 10px notch and
+   flick, the same 1:1 grab, band and release, with what only a page knows left to the page — where its content ends, its
+   keys, and the reveal (its keys move the selection and then ask the track for the offset that shows the row, measured
+   from the row's place in the content and against the track's target, so it works mid-animation). One helper
+   (`solid/src/entry.ts`) gives List, Widgets, Sensors and the Text field their first mount — the root's subtree rises 8px
+   and fades in over 0.25s once, writing nothing afterwards — and `frames/list-entry.png` is four frames into it, the
+   stored frames of those pages unchanged. In the renderer the groups' map to the target is one affine, so a gradient
+   inside a *rotated* group is stippled on its rotated quad, where an axis-aligned mark stippled the page around it and
+   missed the quad's tips; **a clip is cut by its own mapped quad too** (its rect bounds the scan, the pixel is tested
+   against the quad), so a gradient inside a rotated clip is no longer stippled where the clip cut it away — before, 1898
+   of the ramp's pixels were outside the 30° clip and 3063 inside; after, 0 outside and the same 3063 inside. The clip
+   itself already turned with its scene, and `solid/rotated.test.ts` proves all four on a hand-built tree (the tilt, the
+   ramp, the stipple inside the gradient's quad, and none outside the clip's). Check: the drag's offset frame for frame,
+   the resistance past an end, the fling's deterministic landing, the suppressed click, reduced motion, the entry's blend
+   and still layout, the List's notch/flick/band/drag/reveal on its track, the dither's clip quads, and `sh test.sh`'s 63
+   stored-frame comparisons. Seen by eye: `list-entry.png`. What is genuinely left: touch hardware (the drags are the
+   window's mouse), and the terminal, browser and board targets (no Solid page, no wheel, no pointer and no value channel:
+   the drags are the desktop's).
 5. **JSX to C.** The same component evaluated at build time to C calls, for targets with no JS. Check: its render
    commands equal step 4's for the same state.
    **Done: the evaluator** (`generator/page-to-c.ts`, `bun --conditions=development`). It imports `solid/plugin.ts`
@@ -510,8 +513,8 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    `x0 + v0/k`, stopping at `|v| < 5px/s` on that projection. The clock is passed in, never read. The first user is the
    Sky feed, which is also the first page to own its scroll offset: `ui_wheel` now feeds a second channel
    (`ui_wheel_pop`), `ui_auto_scroll(0)` keeps `ui_begin` from giving the same delta to Clay's containers (the default
-   stays on, and only Sky turns it off — the List page and every other frame are untouched), `View.onWheel(dx, dy)` gets
-   the polled delta before the frame (headless `--wheel` too) and `View.tick(dt)` runs before `flush()`. Sky: a notch is
+   stays on; the Sky feed and, since the List's page-owned track, the List's viewport turn it off), `View.onWheel(dx, dy)`
+   gets the polled delta before the frame (headless `--wheel` too) and `View.tick(dt)` runs before `flush()`. Sky: a notch is
    10px, accumulated and clamped to the last card's height (an explicit `maxScroll` from `ui.bounds`); a notch from rest
    glides from `ω·d` (no overshoot); a burst of two or more is a flick whose presented velocity goes to the decay, whose
    projection is clamped, and the motion then either decays to it or springs to the clamped end; keys retarget the same
@@ -647,11 +650,10 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    the accent: false, wanted true` (both labels at their ends throughout) and three more of that block; dropping the
    `ROTATE` write fails `FAIL mid-lean the top edge is not horizontal: the border's two insets differ: false, wanted
    true` (the insets flat). Files are compared with their backups after the reverts.
-   Not covered yet: a gradient or a clip inside a *rotated* group (the dither's mark and the clip's rect are axis-aligned
-   maps of the groups around them, so such a thing would be stippled or cut as its unrotated box), first-mount entry on
-   the other pages, a drag (a pointer's velocity is the host's: touch and drag scrolling are the List page's next step,
-   and it keeps Clay's instant wheel step), a second gradient on one element, and the terminal, browser and board
-   targets (no Solid page, no wheel and no value channel).
+   Not covered yet: a second gradient on one element, and the terminal, browser and board targets (no Solid page, no wheel
+   and no value channel). A gradient or a clip inside a *rotated* group is covered: the dither's mark is the gradient's
+   rotated quad and a clip is cut by its own mapped quad (`solid/rotated.test.ts`); the drag, the pages' entry and the
+   List's own track are covered by item 2.
 3. **Done: metamorphic tests** (`solid/metamorphic.test.tsx`, 2026-10-25). Four relations over the Sensors page and a
    two-width text, no oracle and no stored frame: a fixed-size wrapper leaves the pixels identical (0 of 129,600 differ);
    a whole-pixel move (13, 7) shifts the picture exactly (0 differ); a wider box never adds a text line (82px at 160
