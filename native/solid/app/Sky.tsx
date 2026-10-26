@@ -80,6 +80,7 @@ const tabTextOn = css.cn(font.Roboto, css.color(t.color.accent), css.fontSize(15
 // the feed: one clip element, the rest of the window's height, with the bar and the status line as its siblings, so they
 // stay put when the wheel scrolls it. No height of its own: `stretch` takes what the bar and the status leave, which is
 // why it scrolls on the Science feed and not on Discover's three short posts.
+const VIEW = "sky-feed";
 const view = css.cn(
   css.width("stretch"),
   css.height("stretch"),
@@ -89,6 +90,28 @@ const view = css.cn(
   css.overflow("hidden"),
   css.bg(t.color.page),
   css.focus(css.border(2, t.color.ring)),
+);
+
+// the scrollbar's thumb (src/vscroll.ts writes its height, its top and its opacity every frame): 4px at the feed's inner
+// right edge, a 2px inset (the float's right edge is the feed's, so the offset x is -2), rounded, the muted token. It is
+// a float on the feed, so Clay positions it from the feed's own box: it draws over the cards and does not travel with
+// them. Discover's three posts are shorter than the feed, so there the machine gives it height 0: no scrollbar when there
+// is nothing to scroll.
+const BAR = "sky-thumb";
+const thumb = css.cn(
+  css.width(4),
+  css.height(24),
+  css.borderRadius(2),
+  css.bg(t.color.muted),
+  css.float({
+    parent: VIEW,
+    attach: { element: "right top", parent: "right top" },
+    offset: { x: -2 },
+    zIndex: 1,
+    // the press: a visible thumb takes it through the value channel (FIELDS.CAPTURE); an invisible one lets the page's
+    // press through, so the strip at the edge is the cards' when there is no thumb
+    capture: false,
+  }),
 );
 
 // a card: the panel, 12px radius and padding, a column of avatar, identity, body, media and counts. The panel is a
@@ -150,6 +173,7 @@ export const s = {
   tabText,
   tabTextOn,
   view,
+  thumb,
   card,
   cardHover,
   cardOn,
@@ -290,7 +314,6 @@ const FEEDS: readonly Feed[] = [
   { name: "News", posts: [] },
 ];
 
-const VIEW = "sky-feed";
 // The avatars: the committed 64x64 PNGs (examples/sky/avatars.py) drawn at 40x40. A css style is evaluated when the
 // module loads, so each author is a style of its own with a literal path; a page cannot build one from a loop variable.
 const SKY = new URL("../../examples/sky/", import.meta.url).pathname;
@@ -422,8 +445,9 @@ export function Sky(props: { input: Input; motion?: Motion; theme?: () => string
   };
 
   /** The feed's scroll (src/vscroll.ts): the wheel, the drag, the band and the fling, on a track of its own; the feed's
-   *  end is its last card plus the 12px bottom padding, as `maxScroll` measures it. */
-  const feedScroll = scroll(VIEW, maxScroll);
+   *  end is its last card plus the 12px bottom padding, as `maxScroll` measures it. The scrollbar's thumb (`BAR`) is the
+   *  machine's too: it writes its box and its fade every frame. */
+  const feedScroll = scroll(VIEW, maxScroll, BAR);
 
   /** One card a frame: its hover fade, and its entry while that runs (once, on mount). Writes nothing at all once both
    *  are the literals, so a frame at rest is the frame the style's literals make. */
@@ -593,6 +617,8 @@ export function Sky(props: { input: Input; motion?: Motion; theme?: () => string
           </box>
         ) : null}
       </box>
+      {/* the scrollbar: a float on the feed, over the cards and outside the clip's child offset (it does not scroll) */}
+      <box id={BAR} style={s.thumb} onPress={() => feedScroll.thumb()} />
       <box id="sky-status" style={s.status}>
         <text style={s.statusText}>{statusOf()}</text>
       </box>

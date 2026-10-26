@@ -266,9 +266,9 @@ Each step ends in a check that fails when it breaks.
    selection, the header and footer unmoved, the ring's pixels, the wheel only under the pointer, reduced motion, the page
    fitting). Mutations: making the notch instant fails the "settles at 10px over frames" check; dropping the reveal fails
    eleven of them. Seen by eye: the four frames; the window started (`--frames 60`, exit 0) but its wheel and keys were
-   not tried by hand (the screen is not visible to me). Left: horizontal scrolling, a scrollbar (the page has a "n of 30"
-   readout instead) and dragging one, and scrolling the page itself when the wheel is outside the viewport (it is the
-   viewport's own track).
+   not tried by hand (the screen is not visible to me). Left: horizontal scrolling and scrolling the page itself when the
+   wheel is outside the viewport (it is the viewport's own track); the scrollbar and the dragging of one came later (item
+   2's last paragraph).
    **Done: the accessibility tree** (`solid/a11y.ts`, `solid/a11y.test.ts`). `snapshot(root, { parts, containers })`
    walks the rendered tree in document order and returns `{ role, name, value, states: { checked, expanded, selected,
    disabled, focused, hidden }, hasPopup, level, bounds, children }`: the name from the part's `label` / `labelledBy`
@@ -340,10 +340,44 @@ Each step ends in a check that fails when it breaks.
    itself already turned with its scene, and `solid/rotated.test.ts` proves all four on a hand-built tree (the tilt, the
    ramp, the stipple inside the gradient's quad, and none outside the clip's). Check: the drag's offset frame for frame,
    the resistance past an end, the fling's deterministic landing, the suppressed click, reduced motion, the entry's blend
-   and still layout, the List's notch/flick/band/drag/reveal on its track, the dither's clip quads, and `sh test.sh`'s 63
-   stored-frame comparisons. Seen by eye: `list-entry.png`. What is genuinely left: touch hardware (the drags are the
-   window's mouse), and the terminal, browser and board targets (no Solid page, no wheel, no pointer and no value channel:
-   the drags are the desktop's).
+   and still layout, the List's notch/flick/band/drag/reveal on its track, the dither's clip quads, and `sh test.sh`'s
+   stored-frame comparisons (56 frames, all identical). Seen by eye: `list-entry.png`.
+   **Done: touch input and a scrollbar on both scrolling pages.** SDL3's finger events (`FINGER_DOWN/MOTION/UP/CANCELED`,
+   `tfinger.x/y` normalised to the window) go through `ui_touch_map` into the same pointer state the mouse writes, so a
+   page still has one pointer: down while a finger is on the window, up at the place it left, and the first finger owns it
+   (a second is ignored until the first lifts — nothing here reads a pinch). `FINGER_CANCELED` is a lift and a mouse
+   event clears the flag; the mouse path is untouched. The flag rides the poll's spare slot (`out[5]`) to the frame's
+   `View.onPointer(x, y, down, touch)` and on to `vscroll.pointer`, which uses it for one rule: a finger's drag has **no
+   4px click threshold** (any travel starts it), while a finger's press that never moves is still a click. Covered
+   without hardware: `main.ts --touch FX FY` goes through the same mapping with the flag on, so `--touch 0.5 0.5` is
+   `--click 180 380`'s frame on the Sky page (`test.sh` compares them), and `sky.test.ts` runs a finger's 2px swipe that
+   does not select the card under it against the mouse's 2px that does, plus a finger's tap that does. **Not verified: no
+   touchscreen on this machine**; the mapping, the flag's path and the pages' two behaviours under it are all that is
+   tested.
+   **The scrollbar** (`solid/src/vscroll.ts`'s `thumbOf`, `BAR`/`sky-thumb` in the pages): both scrolling pages grow a 4px
+   thumb 2px in from the viewport's right edge, `max(24, view²/content)` tall, top `offset/(content-view)·(view-height)`,
+   and none at all when the content fits (height 0, alpha 0 — Discover's three posts). It is a **float on the viewport**
+   (`css.float({ parent: "list" })`), which is the tree decision: Clay positions a float from its parent's box and gives it
+   no `childOffset`, so the thumb is a sibling of the scrolling content, draws over it and does not scroll with it. The
+   machine writes five numbers a frame through the value channel — height (a FIXED axis's min and max), the float's offset
+   y, the background's alpha and the pointer capture — and the fade is a colour on `effect(0.15)`: up while the offset
+   moves (the track's settle, or any frame that moved, which under reduced motion is the jump), down 600ms after the last
+   such frame, and under reduced motion nothing fades (it appears and goes at once). A press on a visible thumb grabs the
+   offset where it is (the thumb does not jump under the pointer) and its travel is the offset's whole range, 1:1 on the
+   bar, clamped at both ends with no band and no fling; a press on an invisible one is the page's, because the capture is
+   written with the fade (Clay reads the previous frame's declaration, so that is one frame of a 0.15s fade). Measured
+   (`solid/list.test.ts`, 898 in 240: thumb `314,4x64.14`, travel 175.86): `0` at the top, `88.2` at 330 and its bottom on
+   the viewport's bottom at 658; a 10px drag on the thumb moves the offset 37.4 and clamps on 658 and 0; the fade's pixel
+   goes `36/40/52 → 53/57/69 → 82/86/99 → 105/111/124 …` into `149/154/169` and back out by frame 64 of the hold. On the
+   Sky (`664` in `742`: `354,4x594.2`, travel 69.8) the drag and the fade are the same, and the thumb is 0 on Discover.
+   No stored frame shows it — every settled frame follows the fade-out — so the frames after a scroll take `--settle 90`
+   instead of 60 and are **byte-identical** to before (`list-wheel`, `list-select`, `list-light`, `sky-scrolled`), as is
+   `sky-band` (Discover has no bar).
+   Seen by eye: `list-entry.png`; the scrollbar was not seen in a window (no window was run for this step). What is
+   genuinely left of this step: a **touchscreen** to try the finger's path on (there is none here), horizontal scrolling,
+   scrolling the page itself when the wheel is outside the viewport (the wheel is the viewport's own track), and the
+   terminal, browser and board targets (no Solid page, no wheel, no pointer, no touch and no value channel: the drags are
+   the desktop's).
 5. **JSX to C.** The same component evaluated at build time to C calls, for targets with no JS. Check: its render
    commands equal step 4's for the same state.
    **Done: the evaluator** (`generator/page-to-c.ts`, `bun --conditions=development`). It imports `solid/plugin.ts`

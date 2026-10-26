@@ -31,6 +31,7 @@ const { symbols: s } = dlopen(new URL("../../build/solid/libui.dylib", import.me
   ui_pixel: { args: [T.i32, T.i32], returns: T.u32 },
   ui_save_png: { args: [T.cstring], returns: T.i32 },
   ui_diff_png: { args: [T.cstring, T.cstring], returns: T.i32 },
+  ui_touch_map: { args: [T.f32, T.f32, T.ptr], returns: T.void },
   ui_window_open: { args: [T.cstring], returns: T.f32 },
   ui_window_poll: { args: [T.ptr], returns: T.void },
   ui_window_present: { args: [], returns: T.void },
@@ -105,6 +106,15 @@ export const ui = {
   /** Pixels of the last frame that differ from a PNG (-1: missing or another size); the frame goes to `actual`. */
   diffPng: (ref: string, actual: string) => s.ui_diff_png(cstr(ref), cstr(actual)),
   windowOpen: (title: string) => s.ui_window_open(cstr(title)),
+  /** A finger's position normalised to the window (0..1) in the layout's pixels, into a Float32Array [x, y]: the same
+   *  mapping the window poll does for SDL's finger events, so a headless script can drive a touch (--touch). */
+  touchMap: (fx: number, fy: number) => {
+    const out = new Float32Array(2);
+    s.ui_touch_map(fx, fy, ptr(out));
+    return out;
+  },
+  /** Drains the window's events into out[6]: pointer x, y, button down, quit, the last key's character, and whether the
+   *  last pointer event was a finger (1) or the mouse (0). */
   windowPoll: (out: Float32Array) => s.ui_window_poll(ptr(out)),
   windowPresent: s.ui_window_present,
   /** The oldest key event the window polled and nobody popped: down or up, SDL keycode, SDL_Keymod, repeat. */

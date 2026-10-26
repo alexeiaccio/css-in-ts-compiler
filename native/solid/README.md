@@ -104,7 +104,8 @@ with an `id`: Clay tells whether the pointer is over it. `onClick` runs on relea
 | `ui_end(dt)`, `ui_draw()` | `Clay_EndLayout` (returns the command count), then the frame's hash; ThorVG draws the commands into the buffer |
 | `ui_hash()`, `ui_draws()`, `ui_presents()` | the last frame's 64-bit FNV-1a over its commands and renderer effects, and the counts of those calls: the same hash twice draws the same pixels, so the host skips both |
 | `ui_save_png(path)`, `ui_diff_png(ref, actual)`, `ui_pixel(x, y)` | the frame out; pixels that differ from a PNG; one pixel |
-| `ui_window_open(title)`, `ui_window_poll(f32[5])`, `ui_window_present()` | SDL3 window (Metal); poll fills pointer x, y, button, quit, the last key's character |
+| `ui_window_open(title)`, `ui_window_poll(f32[6])`, `ui_window_present()` | SDL3 window (Metal); poll fills pointer x, y, button, quit, the last key's character, and whether the last pointer event was a finger's (1) or the mouse's (0). A finger's `SDL_EVENT_FINGER_DOWN/MOTION/UP` goes through `ui_touch_map` (normalised 0..1 of the window → the layout's pixels) into the same x, y and button, and the first finger owns the pointer until it lifts |
+| `ui_touch_map(fx, fy, f32[2])` | a finger's normalised position in the layout's pixels: the one mapping the poll and the headless `--touch` share |
 | `ui_key_pop(i32[4])` | the oldest key event the polls queued: down (1) or up (0), SDL keycode, `SDL_Keymod`, repeat. 0 when none; 64 are kept |
 | `ui_text_pop(bytes)` | the oldest typed run the polls queued: UTF-8, a composed character, never a keycode. Its byte length, 0 when none; 64 runs of up to 128 bytes are kept, a longer run cut at a character boundary |
 | `ui_text_input(on)` | `SDL_StartTextInput` / `SDL_StopTextInput`: only while it runs does the window poll `SDL_EVENT_TEXT_INPUT` (an IME needs it too). The host turns it on while the focused part is a text field (`Input.editing`) |
@@ -542,28 +543,33 @@ the run, Enter and the Submit button each showing the value once, and the page f
 
 ## The List page
 
-`bun solid/main.ts list` is thirty rows in a fixed 240px viewport (360x400) that **Clay scrolls itself**. The viewport is
-one clip element (a `Clay_ClipElementConfig` — to Clay any clip element is a scroll container), its header (`Room A3 — 13
-of 30`) and its footer are the viewport's siblings, so they do not move, and the rows beyond the box are clipped by the
-renderer's `SCISSOR_START`, not drawn outside.
+`bun solid/main.ts list` is thirty rows in a fixed 240px viewport (360x400) whose offset **the page owns**
+(`solid/src/vscroll.ts`, the Sky feed's machine): the viewport is one clip element (a `Clay_ClipElementConfig` — to Clay
+any clip element is a scroll container) with the same id, and the page writes its offset through `ui_scroll_put` /
+`ui_scroll_to` every frame before the tree is declared, with `ui_auto_scroll(0)` keeping Clay's own wheel scrolling out of
+the way. Its header (`Room A3 — 13 of 30`) and its footer are the viewport's siblings, so they do not move, and the rows
+beyond the box are clipped by the renderer's `SCISSOR_START`, not drawn outside. A scrollbar on the viewport's right edge
+is the same machine's (`BAR`, below).
 
 | | |
 | --- | --- |
-| The wheel | `ui_window_poll` adds every `SDL_EVENT_MOUSE_WHEEL` to the next frame (`ui_wheel`; SDL's y is positive away from the user, and so is Clay's delta, so no sign is flipped) and `ui_begin` calls `Clay_UpdateScrollContainers(false, delta, dt)` before `Clay_BeginLayout`: Clay moves the container the pointer is over and clamps it to the content's height. `ui_open` hands each clip element its own offset before the declaration is configured (`d.clip.childOffset = Clay_GetScrollOffset()`, as Clay's debug view does), so the layout shifts the rows and the scissor cuts them. |
-| The drag | a press inside the viewport grabs the offset (`onPress`), and while the button is held the page writes `pressOffset + (y - pressY)` through `ui_scroll_to`, so the rows follow the pointer 1:1 from the press point, clamped to the content by Clay's own range. It stops at the release. The offset stays Clay's — the wheel and `ui_scroll_to` are untouched — which is why the drag is the page's and not a track: a band (Clay clamps every frame) and a fling (Clay's own drag leaves a momentum of ~17x the drag) need the page to own the offset, as the Sky feed does. |
-| The keys | one Tab stop. Up and Down move the selection a row, PageUp and PageDown eight (the viewport holds eight), Home and End to the ends, clamped: no wrap, never out of 0..29. Each move calls `ui_scroll_to` with the least it takes to show the row, measured from the row's and the viewport's `ui.bounds` of the last frame (a row above the top or below the bottom pulls the view just enough; one already in view moves nothing). The active row also comes into view when the list takes the focus, as a browser's does. |
+| The wheel | the machine accumulates `SDL_EVENT_MOUSE_WHEEL` notches (`ui_wheel_pop`, 10px each, sign unchanged) and the tick retargets the track: the offset glides to exactly 10 (a burst of notches in one frame is a flick whose decay lands clamped), and past an end the `rubber` band resists the notch and lets go 80ms after the last one. The wheel is gated on the pointer being over the viewport (Clay scrolled only the container under the pointer; the page keeps that rule itself, in `List`'s `wheel`) or over the visible thumb, which is the viewport's chrome. |
+| The drag | a press inside the viewport (`onPress`) grabs the offset and the host's `onPointer` makes it 1:1 from the press point — no track in between — with the same `rubber` past an end; the release hands the last frames' speed to a decay. Travel past 4px is a drag and not a click; the drag never selects (the selection is the keyboard's). |
+| The scrollbar | `viewScroll.thumb()` is the press's: a visible thumb grabs the offset where it is and its travel is the offset's whole range (`max/(view - thumbHeight)`), clamping at both ends, no fling. The machine writes its box and its fade every frame (see `solid/src/vscroll.ts` and `native/README.md`, "The scrollbar"): height `max(24, 240²/898)` = 64.14, top `offset/658·175.86`, 4px wide 2px in from the right edge, as a float on the viewport so it does not scroll with the rows; 600ms after the offset stops moving it fades out, and a press on the invisible strip is the page's. |
+| A finger | the host's `touch` flag (SDL's finger events, one pointer) drops the 4px click threshold to 0: a touch drag starts at once, and a touch that never moves still clicks. The List's rows have no click, so here it changes only when a press becomes a drag (and therefore whether its release flings). |
+| The keys | one Tab stop. Up and Down move the selection a row, PageUp and PageDown eight (the viewport holds eight), Home and End to the ends, clamped: no wrap, never out of 0..29. Each move asks the track for the least offset that shows the row — the reveal — measured from the row's and the viewport's `ui.bounds` of the last frame and against the track's *target* (not what it presents), so a key pressed mid-animation still lands with the row in view. The active row also comes into view when the list takes the focus, as a browser's does. |
 | The selection | a signal: the selected row is the panel's `surface` with its label in the `accent` (the tree's selected node) and takes the same 2px `ring` while the list has the focus. The wheel does not touch it, so scrolling and the selection only agree when a key moves it. |
 
 | Frame | Keys | Shows |
 | --- | --- | --- |
-| `list-top` | `--warm 30` | the page at rest: `Room A1 — 1 of 30`, rows 1..8 of 30, no ring |
+| `list-top` | `--warm 30` | the page at rest: `Room A1 — 1 of 30`, rows 1..8 of 30, no ring, no thumb (it faded out) |
 | `list-entry` | `--settle 3` | four frames into the first mount: the page `5/6/8` of its `16/18/24`, the selected row `12/14/18` of its `36/40/52` (still lighter), the top 8px the ground |
-| `list-wheel` | `--wheel 32` | rows 12..19 at offset -320: the row above cut to its last 8px and row 19 cut at the viewport's bottom (its glyphs stop at the border), the header still `1 of 30` |
-| `list-select` | Tab, ArrowDown ×12 | `Room A3 — 13 of 30`, the view scrolled by 148px so that row 13 is the last in view, the ring on it |
+| `list-wheel` | `--wheel 32 --settle 90` | rows 12..19 at offset -320: the row above cut to its last 8px and row 19 cut at the viewport's bottom (its glyphs stop at the border), the header still `1 of 30` |
+| `list-select` | Tab, ArrowDown ×12, `--settle 90` | `Room A3 — 13 of 30`, the view scrolled by 148px so that row 13 is the last in view, the ring on it |
 | `list-light` | the same, light | the light theme: the white selected row, the blue ring |
 
 Checked by `bun solid/list.test.ts`: the viewport 240 and its rows 28 on a 30px pitch (898 of content), the wheel moving
-Clay's offset 10px a notch with the rows moving by exactly that, the offset stopping at 0 and at -658 (both clamps), the
+the offset 10px a notch with the rows moving by exactly that, the offset stopping at 0 and at -658 (both clamps), the
 clip (a selected row 10px above the viewport: its bounds are not clipped, the pixel just above the viewport is the page
 and the one 5px inside it the row's fill; past the bottom the page again), the keyboard selection scrolling into view
 (12 Downs scroll by 148, PageDown to 21, End to 30 at -658, Home back to 0 and never past the ends), the wheel leaving the
@@ -572,9 +578,15 @@ at both ends; a press above the viewport grabs nothing; the wheel and the keys s
 mount (four frames in the page is `5/6/8` of its `16/18/24` and the selected row `12/14/18` of its `36/40/52`, the frame
 is `frames/list-entry.png`, the boxes are the settled ones and the literals come back at rest; reduced motion has no
 entry), the header and footer unmoved by the scroll, the ring's pixels (the row's
-edge is its fill before Tab and the ring after), the wheel only reaching the container under the pointer, and the page
-fitting its window. The stored frames are taken after `--warm 30`, which is the settled page the frames before the entry
-were: all four are byte-identical.
+edge is its fill before Tab and the ring after), the wheel only reaching the container under the pointer, **the scrollbar**
+(its box `314,4x64.14` at the top, `314,189.7` at 330 and its bottom on the viewport's bottom at 658; the fade's pixels
+from the row's `36/40/52` into the muted `149/154/169` and back out; a 10px drag on the thumb moving the offset 37.4 and
+clamping at 658 and 0; the invisible strip at rest being the page's own drag), **a finger** (a 1:1 drag, and a 2px one
+that flings where the mouse's rests at 2), reduced motion (no band, no fling, a key at once, and the thumb shown at once
+and dropped at once — 600ms, no fade), and the page fitting its window. The stored frames are taken after `--warm 30`,
+which is the settled page the frames before the entry were: all four are byte-identical, the `--settle 90` ones
+included (90, not 60, because the fade needs 600ms plus its 0.15s after the track stops; the pixels at rest are the
+pixels they were).
 
 **Mutation check.** Dropping `reveal(i)` from `select` (never scroll the selection into view) fails eleven asserts of
 `solid/list.test.ts` (the arrows, PageDown, End and the wheel-then-key move); the file is compared with its backup after
@@ -596,7 +608,8 @@ post count, or the card a click selected.
 | The avatars | `css.image(path, { width: 40, height: 40 })` — the six committed 64x64 PNGs of `examples/sky/avatars.py` (a disc in the author's hue, transparent outside it, so the panel shows at the box's corners). The path is a literal per author because a css style is evaluated when its module loads: a page cannot build one from a loop variable. This is the first page that uses `css.image` in the Solid path. |
 | Wrapping | new on this page: a body is a `text` with `whiteSpace("normal")` and `lineHeight(20)` inside a stretch box inside a card of percent width, and Clay wraps it. (A clip element lets its children grow past the viewport for their content, so a card that must wrap cannot take its width from a stretch inside the feed: the card is `width("100%")`.) |
 | Scrolling | the feed's offset is a page-owned motion track (`solid/src/motion.ts`): a wheel notch is 10px on a spring that glides it, a burst of notches is a flick whose decay lands (clamped) at the end, and one Tab stop on the feed retargets the same track with Down/Up 40px, PageDown/PageUp a viewport and Home/End. The page turns `ui_auto_scroll` off, so Clay's own container does not also move; `ui.scrollTo("sky-feed", -x)` puts the value on it each frame. Discover's three short posts fit the 664px viewport (max 0), so the wheel frame and the test scroll **Science** (742px of content, 78px of travel). |
-| The drag | a press inside the feed grabs the offset (`onPress`, then the host's `onPointer` on the same frame) and, while the button is held, the offset *is* `place(grabFrom - (y - grabY))` — the pointer's travel from the press point, 1:1, with the same `rubber` past an end as the wheel's pull, and no track in between. Travel past 4px makes the press a drag, and the card's `onClick` is dropped (`held && dragMoved`), so a drag never selects and a click that did not move still does. The release hands the speed of the last five samples (no span under 1/120s) to a `decay`: the fling runs to its projection inside the content or springs to the clamp past an end, and a release in the band lets the band go. Reduced motion drags 1:1 and flings nothing. `main.ts --drag-feed X,Y,DY,...` scripts one headless. |
+| The drag | a press inside the feed grabs the offset (`onPress`, then the host's `onPointer` on the same frame) and, while the button is held, the offset *is* `place(grabFrom - (y - grabY))` — the pointer's travel from the press point, 1:1, with the same `rubber` past an end as the wheel's pull, and no track in between. Travel past 4px makes the press a drag, and the card's `onClick` is dropped (`held && dragMoved`), so a drag never selects and a click that did not move still does. A **finger's** drag has no 4px threshold (the host's `touch` flag, 0 instead of 4): any travel is a drag, so a finger's 2px swipe does not select the card under it, while a finger's tap that never moves still does. The release hands the speed of the last five samples (no span under 1/120s) to a `decay`: the fling runs to its projection inside the content or springs to the clamp past an end, and a release in the band lets the band go. Reduced motion drags 1:1 and flings nothing. `main.ts --drag-feed X,Y,DY,...` scripts one headless. |
+| The scrollbar | the feed has one too (`sky-thumb`, the machine's `thumbOf` at the feed's right edge): 4px wide 2px in, `max(24, 664²/742)` = 594.2 tall on Science (whose content is 742 in the 664 viewport), its top at `offset/78·69.8`, and **height 0 on Discover**, whose three short posts fit. It is a float on the feed, so it draws over the cards and does not scroll with them; it fades in while the offset moves and out 600ms after it stops; a press on it drags the offset by the thumb's travel (`78/69.8` a px) and the cards under it are not pressed. `solid/sky.test.ts` checks the box, the fade's pixels, the drag and the 0 on Discover. |
 | The rubber band | a notch past an end is a **pull** of that end, not a scroll: while the content is at the end (or already past it) the wheel moves it by Rune's and iOS's resistance, `f(x) = (1 - 1/(x·c/d + 1))·d` with `c = 0.55` and `d` the viewport's 664 (`motion.ts`'s `rubber`); `x` is the raw overshoot the notches have accumulated, so the first 10px past the end move 5.45 and the 40th only 21.29. Eight frames without a notch — 80ms — and it springs back on `spatial(0.35, 0.1)` to the clamp, settling exactly on it; a key drops it at once; a notch the other way walks it back. A notch that only *reaches* the end while the content is still travelling there is a scroll like any other (the flick's clamp), so nothing jumps. The band goes on Clay's clip element through `ui_scroll_put` (the unclamped sibling of `ui_scroll_to`, since Clay's own clamp is the content's). Reduced motion has no band: the wheel is clamped hard. |
 | The entry | on mount (once — a tab switch draws its feed at rest) every card starts 12px low and at 0 opacity and settles on its literals in 0.3s: `TRANSLATE_Y` on `spatial(0.3)` and `ALPHA` on `effect(0.3)`, the group of the element's whole subtree, so not one box moves (`ui_bounds` is the settled one on the first frame). Each card starts 50ms (3 frames) after the one above it. Reduced motion starts no track at all: the settled frame at once. |
 | Hover | the card's and the tab's hover is a 120ms fade (`effect`), not a style switch. The card fades its four background floats from the panel tone to the hover tone **and** its gradient's opacity (`GRADIENT_ALPHA`), so the resting gradient fades out under the hover one: the card alternates two styles (`card`, `cardHover`) and the page keeps the hover one while the fade runs either way (a `:hover` state would drop the gradient the moment the pointer left). A tab has no gradient, so its four channels are enough; a tab's 2px underline is its own border colour (`BORDER_ALPHA`), which fades in on the tab that becomes active and out of the one that was — a colour, not a slide. **The label beside the underline fades too**: a text's colour is not in the tab's box's floats, so the `<text id="sky-tabs-label-i">` carries an id and the page fades the text's own four floats (`FIELDS.TEXT_COLOR`, 51..54) on `effect(0.15)`, muted → accent on the tab that becomes active and back on the one that was, retargeted from the presented colour, so the label and its underline move together. A label that has settled writes nothing: its literal is the end it is on (the page swaps `tabText`/`tabTextOn` at the switch, and Clay's text command carries the colour, so the fading frames draw and the settled one is the literal's). The ends are read from the packed variants under the frame's theme, so the light palette fades between its own tones; a selected card keeps `cardOn` and does not fade. |
@@ -606,7 +619,7 @@ post count, or the card a click selected.
 | `sky` | `--settle 40` | Discover at rest: the bar, three cards (Michael, Titania, alexjungle), the status `Discover — 3 posts` |
 | `sky-science` | a click on `(180, 32)`, `--settle 40` | Science: Erik's four-line body and its link line, David, Jason (cut at the feed's bottom), the ring on the clicked tab |
 | `sky-light` | `THEME=light --settle 40` | the same Discover feed in the palette's light theme |
-| `sky-scrolled` | the Science click, `--wheel 8 --wheel-over sky-feed --settle 60` | the Science feed eight notches down, settled at the clamped 78px: Erik's card cut at the top, Jason's at the bottom, the bar and status unmoved |
+| `sky-scrolled` | the Science click, `--wheel 8 --wheel-over sky-feed --settle 90` | the Science feed eight notches down, settled at the clamped 78px: Erik's card cut at the top, Jason's at the bottom, the bar and status unmoved. 90 frames, not 60: the scrollbar's 600ms hold and 0.15s fade come after the track stops, so a frame at rest is a little later — and it is the same pixels as before, the thumb being out |
 | `sky-entry` | `--settle 9` | ten frames in: the three cards arriving, 2, 4 and 10px of their 12 below their boxes, translucent, each further behind the one above it |
 | `sky-hover` | `--settle 40 --move 180 300 3` | the pointer on the second card three frames into its 120ms fade: its colour between the panel and the hover tone |
 | `sky-band` | `--warm 40 --wheel 4 --wheel-over sky-status` | Discover four notches past its end (its content is shorter than the viewport, so the first notch is already past it): the cards 21.3px out of the clamp, the top one cut, the bar and status unmoved |
@@ -636,7 +649,10 @@ notch gliding `2.59, 1.92, 1.42…` px a frame to exactly 10 (the bar and status
 clamped 78 and the settled frame matching `sky-scrolled.png` pixel for pixel, a wheel up mid-throw landing 10px back at
 64.05 with no frame's step jumping, the keyboard (Down/Up 40, PageDown a viewport, Home/End, all on the same track and
 clamped), the feed's focus ring's pixels, the tabs switching the feed, News' empty box and its centred muted line, the
-status naming a clicked card, and the page fitting 360x760. `bun solid/motion.test.ts` is the model itself: one path at
+status naming a clicked card, **the scrollbar** (Science's box `354,4x594.2` with its travel 69.8, its height 0 on
+Discover, its fade's pixels in and out of the muted token, a 10px drag on it moving the offset by `78/69.8` a px and
+clamping at 78 and 0), **a finger** (a 2px finger drag not selecting the card under it, a 2px mouse drag selecting it, a
+finger's tap selecting it), and the page fitting 360x760. `bun solid/motion.test.ts` is the model itself: one path at
 any dt, a retarget's continuity, the exact settle, `effect`'s clamp, the decay's projection, `presence` (the exit's
 length to a frame, a revive mid-exit at the value the exit presented), `channel`'s one call an element, and reduced
 motion (a retarget settled in the call that makes it, a presence that does not wait).
@@ -654,7 +670,8 @@ backup after the revert.
 **What is not here.** No fetching and no paging: one recorded fixture per feed (three posts), News empty as in the app.
 No thread screen, so a card click only selects. No images in post media — the media is a line (`[image]`, `[image: …]`,
 `[video]`, `[link: …]`), as in the terminal. No avatars beyond the six committed PNGs (a real author's avatar is a remote
-file). The drag is the window's mouse, not touch (a phone's events are the host's next step). The name and the handle are two lines,
+file). The drag is the window's mouse or a finger's events (SDL's finger events go into the same pointer; there is no
+touchscreen here, so no finger has tried it). The name and the handle are two lines,
 not the app's one row: the longest pair does not fit the 312px card and Clay has no ellipsis. A media line wraps at
 spaces only, so a word wider than the card would run over the gutter: the Science link carries the app's own fallback
 for an embed with no title, the host (`[link: sciencedirect.com]`), not its 60-character URI. And the light theme is the

@@ -323,10 +323,10 @@ the notch twice; the default is on, and **the Sky feed and the List's viewport t
 Clay's container. On the host
 side, `View.onWheel(dx, dy)` gets the polled delta before the frame (the window loop pops it after `ui_window_poll`;
 `--wheel N` in headless mode calls the same pop after each notch, and `--wheel-rest` puts a frame of rest between them, so
-a long scripted run is the notches' own 10px each instead of a 60Hz flick), `View.onPointer(x, y, down)` is called once a
-frame
-after the events (a page that drags keeps its own flag: `onPress` sets it, `down` false clears it), and `View.tick(dt)` is
-called once a frame after the events and before `flush()`. `main.ts` wires a page's `motion` object (`src/entry.ts`: the
+a long scripted run is the notches' own 10px each instead of a 60Hz flick), `View.onPointer(x, y, down, touch)` is called
+once a frame after the events (a page that drags keeps its own flag: `onPress` sets it, `down` false clears it; `touch`
+says the pointer is a finger's — see "Touch input" below), and `View.tick(dt)` is called once a frame after the events and
+before `flush()`. `main.ts` wires a page's `motion` object (`src/entry.ts`: the
 three hooks) to all of them — the Widgets slider and the scrolling pages both take the pointer — and `Sky` and `List` put
 their handlers there.
 
@@ -448,10 +448,61 @@ step `103.44, 86.17, 78.69 …`, peak 103.44, rest on 658 after 40 frames; 4 not
 the 240px viewport), hold four frames and are back on 658; twelve Downs ease to 148 (the first reveal is 3.4px into its
 28), PageDown to 388, End to 658, Home to 0, with the selected row inside the viewport after every settle. The stored
 `list-wheel.png` and `list-select.png` are byte-identical: the run is `--wheel 32 --wheel-rest` (320, the notches' own)
-and the keys get `--settle 60`, and a settled frame is the same rows at the same offset, so the motion changed the frames
-between the ends, not the committed ones. The band's way back is the spring it is on Sky: 4 notches past 658 present
+and the keys get `--settle 90` (the scrollbar's fade needs the extra frames: see "The scrollbar" below), and a settled
+frame is the same rows at the same offset, so the motion changed the frames between the ends, not the committed ones. The band's way back is the spring it is on Sky: 4 notches past 658 present
 `678.15` and hold four frames, then `677.4, 675.6, 673.4, 671, 668.7, 666.7 …` and a dip a hundredth under the clamp
 before it rests on 658.
+
+**The scrollbar: a thumb the machine draws.** Both scrolling pages carry one (`solid/src/vscroll.ts`'s `thumbOf`, `BAR` of
+the List and `sky-thumb` of the Sky): 4px wide, 2px in from the viewport's inner right edge, `max(24, view²/content)`
+tall, with its top at `offset/(content-view)·(view-height)`, and nothing at all when the content fits (height 0, alpha 0).
+`thumbOf(content, view, offset)` is a pure function, so the formula is checked without a frame. The page declares the thumb
+as a **float on its viewport** — `css.float({ parent: "list" })` — which is the decision about the tree: Clay positions a
+float from its parent's box and does not give it the clip's `childOffset`, so the thumb is a sibling of the scrolling
+content, draws over the rows or the cards, and does not travel with them; it needs no clip of its own because it is
+always inside the viewport's box. The machine writes it every frame through the value channel, five numbers: the height
+(a FIXED axis is its min and max, fields 4 and 5), the float's offset y (39), the background's alpha (17) and the
+pointer capture (43). The fade is a colour and an `effect(0.15)`: the thumb comes up on the frame the offset moves and
+goes down `THUMB_HOLD` (600ms) after the last frame it moved — "moved" is the track's own settle, so a spring's tail
+keeps it up, and a frame that moved at all, which under reduced motion is the jump itself. Reduced motion fades nothing:
+the thumb is there on the frame the offset moves and gone 600ms later, at once. A press on the thumb (its `onPress`,
+`scroll.thumb()`) grabs the offset *where it is* — the thumb does not jump under the pointer, as a native scrollbar's
+does — and while it holds it, `offset = grabFrom + (y - grabY)·max/(view - thumbHeight)`: the thumb's travel is the
+offset's whole range, so 1:1 on the bar and `max/travel` on the content. It clamps at both ends (a scrollbar has no band)
+and its release stops it (no fling; a scrollbar is not a throw). A press on an *invisible* thumb is the page's, and a
+press on a visible one is the bar's: the float's pointer capture is written with the fade (`CAPTURE` at alpha ≥ 128,
+`PASSTHROUGH` below), so `Clay_SetPointerState` breaks at the thumb and the viewport (or the card under it) is not pressed
+— a press on the bar therefore never starts a content drag and never clicks a card. That capture is one frame behind the
+fade on purpose and stated: Clay's pointer test reads the previous frame's declaration, and one frame of a 0.15s fade is
+not a press anyone can aim at. Measured (`solid/list.test.ts`: 898 of content in a 240 viewport, travel 175.86): the
+thumb is `314,4x64.14` at the view's top, its top is `88.2` at 330 of the 658 and its bottom is the viewport's bottom at
+658; a 10px drag on the thumb at that point moves the thumb 10px and the offset `37.4` (10·658/175.86), not the content's
+1:1, and clamps on 658 and 0 past its travel; the fade's pixel is the row's own `36/40/52` at rest, `53/57/69`,
+`82/86/99`, `105/111/124`… into the muted `150/155/170` (drawn as `149/154/169`), still there 40 frames into the hold and
+gone by frame 64 of it (`131/137/151`, `103/108/122`… back to `36/40/52`). On the Sky (`solid/sky.test.ts`: Science's 742
+in 664) the thumb is `354,4x594.2`, its travel 69.8, and it is height 0 on Discover, whose three posts fit. No stored
+frame shows it: every settled frame is after the fade-out, so `--settle 60` became `--settle 90` where the frame follows
+a scroll (`list-wheel`, `list-select`, `list-light`, `sky-scrolled`) and the pixels did not change — the frames were
+compared, not re-stored. `sky-band` did not change either: it is Discover, and Discover has no bar.
+
+**Touch input: one pointer, mouse or finger.** SDL3 reports a finger as `SDL_EVENT_FINGER_DOWN/MOTION/UP` (and
+`CANCELED`) with `event.tfinger.x/y` **normalised to the window** — 0..1, (0,0) the top left, not clamped, so a touch in
+the letterbox lands outside every box. `ui.c` maps them through one function, `ui_touch_map(fx, fy, out)`
+(`x = fx·width`, `y = fy·height` in the layout's pixels, the same space the mouse path writes after
+`SDL_ConvertEventToRenderCoordinates`), into the *same* pointer state the pages already read: down while the finger is on
+the window, up at the place it left. One finger owns the pointer — the first `FINGER_DOWN`'s `fingerID`; a second finger
+is **ignored** until that one lifts, because a page here has one pointer and no pinch or two-finger gesture reads the
+second (`CANCELED` is a lift). The mouse path is unchanged, and a mouse event clears the flag. The poll's array grew a
+sixth slot, `out[5]`: 1 when the last pointer event was a finger's, 0 for the mouse; `main.ts` hands it to the frame,
+`View.onPointer(x, y, down, touch)`, and on to `scroll.pointer(x, y, down, touch)`, which uses it for one thing: a
+**touch drag has no 4px click threshold** (a finger has no mouse's precision, so any travel starts the drag,
+`dragSlop = 0`), while a touch press that **never moved** travels 0 and is still a click — the Sky's card still selects.
+The mapping and the flag are covered without a touchscreen: `bun solid/main.ts --touch FX FY` goes through the same
+`ui_touch_map` and marks its frames as a finger's, so `--touch 0.5 0.5` is the frame of `--click 180 380` (the Sky's
+second card selected) and `sh solid/test.sh` compares the two; `solid/sky.test.ts` runs a finger's 2px drag (not a card
+click) against the mouse's (a click) and a finger's tap (a click). **Not verified: there is no touchscreen on this
+machine.** No finger has touched this code: what is tested is the mapping, the flag's path through the host, and the
+pages' two behaviours under it.
 
 **A page's entry, once.** The four plain pages — List, Widgets, Sensors, Text field — get the same first mount from one
 helper (`solid/src/entry.ts`): the root element's subtree (its id is `Root` on all four) starts 8px low and at alpha 0 and
@@ -593,6 +644,7 @@ sh desktop/build-wg-window.sh && ./build/sensors/wg-window --capture out.png   #
 bun solid/main.ts widgets                                     # Solid: headless button, switch, checkboxes, disclosure, radio, tabs, slider, toolbar; Tab, arrows, Space work
 bun solid/main.ts sky --settle 60 --idle 600                  # the page at rest: 0 draws of 600, and the ms the tick takes
 bun solid/main.ts sky --settle 60 --idle 600 --idle-keys 10   # ... and 60 keys, each drawing its own frame (60 draws)
+bun solid/main.ts sky --touch 0.5 0.5 --png out.png           # headless: a finger's tap at the window's middle (ui_touch_map: 0.5,0.5 -> 180,380)
 ./build/sensors/app --press 180 250 --png out.png             # headless: a press held at 180,250, the frame written while pressed
 IMAGE=1 ./build/sensors/app --raster thorvg --png out.png    # the IMAGE=1 variant: the page's 32x32 image, loaded by ThorVG from its path
 sh terminal/build.sh && ./terminal/demo                       # the Sensors page in characters: Tab, Up/Down, Space, t; q quits
