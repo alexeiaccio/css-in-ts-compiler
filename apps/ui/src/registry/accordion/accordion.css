@@ -1,63 +1,12 @@
 /* Generated from accordion.ts by scripts/component-css.ts. Do not edit. */
-.ui-accordion {
-  display: grid;
-  font-size: var(--font-size);
-  color: var(--color-text);
-}
-.ui-accordion__heading {
-  margin: 0;
-  font-size: inherit;
-  font-weight: inherit;
-}
-.ui-accordion__trigger {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  width: 100%;
-  padding: var(--space-2) var(--space-3);
-  border: 0;
-  border-radius: var(--radius-md);
-  background: transparent;
-  font: inherit;
-  font-weight: 600;
-  color: inherit;
-  text-align: start;
-  cursor: pointer;
-}
-.ui-accordion__trigger:hover {
-  background: var(--color-button-background);
-}
-.ui-accordion__trigger:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-.ui-accordion__trigger[aria-disabled="true"] {
-  color: var(--color-text-disabled);
-  cursor: not-allowed;
-}
-.ui-accordion__chevron {
-  width: 0;
-  height: 0;
-  border-block-width: 0.3rem;
-  border-block-style: solid;
-  border-block-color: transparent;
-  border-inline-start-width: 0.4rem;
-  border-inline-start-style: solid;
-  border-inline-start-color: currentColor;
-  transition: rotate 120ms ease;
-}
-.ui-accordion__trigger[aria-expanded="true"] .ui-accordion__chevron {
-  rotate: 90deg;
-}
-.ui-accordion__panel {
-  padding: var(--space-2) var(--space-3) var(--space-4);
-  border-radius: var(--radius-sm);
-  color: var(--color-muted);
-}
-.ui-accordion__panel[hidden] {
-  display: none;
-}
-.ui-accordion__panel:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
+.ui-accordion{display:grid;font-size:var(--font-size);color:var(--color-text)}
+.ui-accordion__heading{margin:0;font-size:inherit;font-weight:inherit}
+.ui-accordion__trigger{display:flex;align-items:center;gap:var(--space-2);width:100%;padding:var(--space-2) var(--space-3);border:0;border-radius:var(--radius-md);background:transparent;font:inherit;font-weight:600;color:inherit;text-align:start;cursor:pointer}
+.ui-accordion__trigger:hover{background:var(--color-button-background)}
+.ui-accordion__trigger:focus-visible{outline:2px solid var(--color-focus-ring);outline-offset:2px}
+.ui-accordion__trigger[aria-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
+.ui-accordion__chevron{width:0;height:0;border-block-width:0.3rem;border-block-style:solid;border-block-color:transparent;border-inline-start-width:0.4rem;border-inline-start-style:solid;border-inline-start-color:currentColor;transition:rotate 120ms ease}
+.ui-accordion__trigger[aria-expanded="true"] .ui-accordion__chevron{rotate:90deg}
+.ui-accordion__panel{padding:var(--space-2) var(--space-3) var(--space-4);border-radius:var(--radius-sm);color:var(--color-muted)}
+.ui-accordion__panel[hidden]{display:none}
+.ui-accordion__panel:focus-visible{outline:2px solid var(--color-focus-ring);outline-offset:2px}
