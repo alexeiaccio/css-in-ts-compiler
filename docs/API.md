@@ -1218,6 +1218,54 @@ More plugins on `scope()`, each a package of its own with its rules and limits i
 | [`@cssints/rybitten`](../packages/rybitten/README.md)       | `color(hue, { cube })`, `wheel(steps, { cube })`, `shades(hue, lightness)`, `overrides(group)` | RYBitten's red-yellow-blue colours (36 historical cubes) as DTCG data for `createTokens`: a hue, a wheel of hues, a hue at several lightnesses                            |
 | [`@cssints/skeleton`](../packages/skeleton/README.md)       | `skeleton().radius().color().highlight()`                                                      | Loading placeholders whose shimmer is in phase across the page (one clock on `:root`), static under reduced motion                                                        |
 
+### Headless: `createField` and `createConfirm` (`@cssints/headless`)
+
+Two primitives with no APG pattern behind them, so no Quint spec: `createField` is the ARIA contract of a form field, `createConfirm` a promise over `createDialogModal({ role: "alertdialog" })`. Like the rest of the package they return state and attribute objects, no elements, no styling; the README has the examples.
+
+```ts skip
+createField(options?: {
+  id?: string;
+  required?: boolean;
+  invalid?: boolean | string; // a string is the flag and the message; false wins over an error
+  hint?: string;
+  error?: string;
+}): {
+  invalid(): boolean;
+  hint(): string | undefined;
+  error(): string | undefined; // only while invalid
+  describedIds(): readonly string[]; // hint, then error; the ones that are shown
+  controlProps: { id; "aria-describedby"; "aria-invalid"; "aria-required"; required };
+  labelProps: { id; for };
+  hintProps: { id; hidden };
+  errorProps: { id; hidden };
+};
+```
+
+The hint and the error are both listed in `aria-describedby` (hint first; the error does not replace it), `aria-invalid` is set only when invalid, and no attribute names an id that is hidden.
+
+```ts skip
+createConfirm(options?: { id?: string; onOpenChange?(open: boolean): void }): {
+  confirm(request: {
+    title: string;
+    description?: string;
+    confirmLabel?: string; // "Confirm"
+    cancelLabel?: string; // "Cancel"
+    destructive?: boolean;
+  }): Promise<boolean>;
+  open(): boolean;
+  request(): ConfirmView | undefined; // the request with its defaults, kept after it settles
+  triggerProps: { id; "aria-haspopup"; "aria-expanded"; "aria-controls" }; // dialog-modal's, without the handlers
+  dialogProps: DialogContentProps; // role alertdialog, aria-labelledby the title, aria-describedby always the description
+  backdropProps: DialogBackdropProps;
+  titleProps: { id };
+  descriptionProps: { id; hidden }; // render it always
+  cancelProps: { id; type; onClick };
+  confirmProps: { id; type; onClick };
+};
+```
+
+`confirm()` resolves `true` on confirm and `false` on cancel, Escape and a backdrop click. A second request while one is pending rejects with `ConfirmPendingError` (it is not queued). Focus goes to the cancel button on open and back to the element that had it when `confirm()` was called.
+
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 
 A package written on cssints ships JavaScript that still has the attribute, and its `.d.ts`. The app that installs it evaluates the package with its own engine: one sheet, the app's browserslist and themes, and a token, a kernel or an `@property` of the package is made once however many modules use it. Nothing is declared: the engine recognises a file by `with { type: "cssints" }`, the same marker as in app code.

@@ -65,7 +65,7 @@ A primitive that has a seam honours an optional `prefs` entry (a `Partial<Prefs>
 - **menu / menubar** — `typeaheadDelayMs` (the typeahead buffer timeout).
 - **tooltip** — `tooltipShowDelayMs` / `tooltipHideDelayMs`, exposed as `showDelayMs()` / `hideDelayMs()` for the host to wire its `setTimeout` from (the spec keeps timers as events).
 
-Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, dialog-modal, disclosure, feed, grid, link, listbox, meter, player, radio, resizable-panels, slider, slider-multithumb, spinbutton, switch, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
+Everything else **ignores** prefs: accordion, alert, alertdialog, breadcrumb, button, carousel, checkbox, checkbox-group, combobox, confirm, dialog-modal, disclosure, feed, field, grid, link, listbox, meter, player, radio, resizable-panels, slider, slider-multithumb, spinbutton, switch, tabs, timeline, toolbar, treegrid, treeview, windowsplitter — they expose no timing / motion / live-region / camera seam. `listbox` / `treeview` / `timeline` typeahead timeouts are host-driven via their reset methods, so they take no delay here either.
 
 `motionDurationMs` is **not consumed**: canvas tweens are tick-driven, not millisecond-driven, and the look layer owns durations. It stays in `Prefs` only so a host's preference record fits the type.
 
@@ -122,6 +122,63 @@ const panels = createResizablePanels({
 Controlled is `sizes` + `onSizesChange` (the request), like every other primitive. `storageKey` persists the layout in localStorage — host storage, so the key belongs to the host's namespace.
 
 Left to the host: pane bounds in pixels (percent only), nested groups, and F6 (with three panes a Tab is enough). Not modelled: react-resizable-panels' collapse-on-drag threshold (a pane collapses on Enter or a host write, never by dragging through MIN) and restoring a pane that was mounted already collapsed (it returns to its own `min`).
+
+## Form field
+
+`createField` is the ARIA contract of a form field: a label, a control, a hint and an error. **There is no APG pattern for it**, so there is no Quint spec and no ported scenarios: the contract is WAI-ARIA (`aria-describedby`, `aria-invalid`, `aria-required`) and HTML (`label[for]`, `required`), and where those are silent the majority of Base UI Field, react-aria TextField and ariakit FormControl. `test/field.browser.test.tsx` is its oracle (plain assertions on the attribute objects; no DOM is needed, the file name is only what `vite.config.ts` includes).
+
+```tsx
+const field = createField({
+  required: true,
+  hint: "At least 8 characters",
+  get invalid() {
+    return touched() && password().length < 8;
+  },
+  get error() {
+    return "Too short";
+  },
+});
+
+<label {...field.labelProps}>Password</label>
+<input type="password" {...field.controlProps} />
+<p {...field.hintProps}>{field.hint()}</p>
+<p {...field.errorProps}>{field.error()}</p>;
+```
+
+- **Ids** are `<id>-control`, `-label`, `-hint`, `-error` from `id` (or a unique one); `labelProps.for` is the control's id.
+- **Render the hint and the error elements always.** They carry `hidden` while absent, and `aria-describedby` lists only the ones that are shown, hint first: a reference never points at a hidden or missing id.
+- **The error does not replace the hint.** Both are listed, hint then error, as Base UI, react-aria and ariakit do: the hint is what tells the user how to fix the error.
+- **`aria-invalid` only when invalid.** An error message makes the field invalid; `invalid: "message"` is both the flag and the message (an `error` wins over it); `invalid: true` without a message marks the control and shows no error; `invalid: false` wins over everything, so a host can keep the message ready and pass `touched() && failed()`.
+- **`required`** sets both `required` and `aria-required` (a native control needs the first, a custom widget the second); use `novalidate` on the form if the browser's own bubbles are not wanted.
+- The error has no `role=alert`: announcing it when it appears is the host's (`createAlert`).
+
+## Confirm
+
+`createConfirm` is a promise-based confirmation over `createDialogModal({ role: "alertdialog" })`. Like the field it is not checked against a spec (the dialog is; `test/confirm.browser.test.tsx` covers the promise around it, in Chromium).
+
+```tsx
+const confirm = createConfirm();
+
+const remove = async () => {
+  if (await confirm.confirm({ title: "Delete post?", description: "This cannot be undone.", confirmLabel: "Delete", destructive: true })) {
+    await deletePost();
+  }
+};
+
+<button {...confirm.triggerProps} onClick={remove}>Delete</button>
+<div {...confirm.backdropProps} />
+<div {...confirm.dialogProps}>
+  <h2 {...confirm.titleProps}>{confirm.request()?.title}</h2>
+  <p {...confirm.descriptionProps}>{confirm.request()?.description}</p>
+  <button {...confirm.cancelProps}>{confirm.request()?.cancelLabel}</button>
+  <button {...confirm.confirmProps}>{confirm.request()?.confirmLabel}</button>
+</div>;
+```
+
+- `confirm(request)` resolves `true` on the confirm button, `false` on cancel, Escape or a click on the backdrop. `onOpenChange` fires when it opens and when it settles.
+- **One request at a time.** A second `confirm()` while one is pending **rejects** with `ConfirmPendingError` and leaves the first alone; it is not queued (a double click on "Delete" would ask twice, and a queued question can outlive the screen that asked it). A pending request is answered `false` when the owner is disposed.
+- **Focus.** The cancel button takes focus on open (the least destructive action); on settle focus returns to the element that had it when `confirm()` was called, before the promise resolves, so the caller may move it on. A focus trap and a scroll lock are the host's, as for dialog-modal.
+- `aria-labelledby` is the title and `aria-describedby` **always** the description (an alertdialog needs one), so render `descriptionProps` always: it is `hidden` when the request has no description. `triggerProps` are dialog-modal's trigger attributes without the handlers; the click that calls `confirm()` is the host's. `request()` keeps the last request after it settles, so a closing animation does not flash empty.
 
 ## Commands
 
