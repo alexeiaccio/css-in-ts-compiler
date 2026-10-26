@@ -43,6 +43,8 @@
 //                                        them drew (a page at rest draws none: "idle: draws 0 of 60")
 //   --idle-keys K                        headless with --idle: a Tab pressed every K idle frames, which must draw
 //   --bench N                            headless: N more frames, the ms a frame by phase
+//   --count N                            the List's rows (default 30): 1,000 is the window's own test page
+//   --posts N                            the Sky's Discover feed: N synthetic posts instead of its three fixtures
 //   --raster thorvg|thorvg-gpu           the ThorVG software canvas (the default) or its WebGPU canvas, the frame read
 //                                        back; the latter needs a libui.dylib from desktop/build-thorvg-gpu.sh solid
 //   --frames N                           window: close after N frames (a smoke test)
@@ -83,6 +85,9 @@ const wheelOver = arg("--wheel-over")?.[0] ?? "list";
 const wheelRest = process.argv.includes("--wheel-rest");
 const settle = Number(arg("--settle")?.[0] ?? 0);
 const bench = Number(arg("--bench")?.[0] ?? 0);
+// the pages' data: the List's rows, and a synthetic Discover feed for the Sky (the window's own test pages)
+const count = Number(arg("--count")?.[0] ?? 30);
+const posts = Number(arg("--posts")?.[0] ?? 0);
 // headless: frames with no input after everything else, and how many of them drew (all of them only for the keys)
 const idle = Number(arg("--idle")?.[0] ?? 0);
 const idleKeys = Number(arg("--idle-keys")?.[0] ?? 0);
@@ -104,7 +109,7 @@ const { Widgets, size } = await import("./app/Widgets.tsx");
 const { Dialog, size: dialogSize } = await import("./app/Dialog.tsx");
 const { Field, size: fieldSize } = await import("./app/Field.tsx");
 const { List, size: listSize } = await import("./app/List.tsx");
-const { Sky, size: skySize } = await import("./app/Sky.tsx");
+const { Sky, size: skySize, synthetic } = await import("./app/Sky.tsx");
 
 const W = 360;
 const H =
@@ -139,9 +144,9 @@ const dispose = render(
       : page === "form"
         ? () => Field({ input, motion })
         : page === "list"
-          ? () => List({ input, motion })
+          ? () => List({ input, motion, count })
           : page === "sky"
-            ? () => Sky({ input, motion, theme: () => theme })
+            ? () => Sky({ input, motion, theme: () => theme, posts: posts ? synthetic(posts) : undefined })
             : () => Sensors({ motion }),
   root,
 );

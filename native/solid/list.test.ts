@@ -153,8 +153,10 @@ function fresh(opts: { entry?: boolean } = {}) {
   const first = p.row(0);
   check("the first row is at the viewport's top", first[1], view[1]);
   check("a row is 28 tall", first[3], 28);
-  const last = p.row(29);
-  check("thirty rows, the last one past the viewport: the content is 30 * 30 - 2", last[1]! + last[3]! - view[1]!, 898);
+  // the window: only the rows it declares are in the tree, and the bottom spacer carries the content's real end
+  check("the window declares the rows it shows and no more: row 29 is not there", p.row(29).length, 0);
+  const below = p.box("list-below");
+  check("the bottom spacer puts the content's end at 30 * 30 - 2", below[1]! + below[3]! - view[1]!, 898);
   check("a row is as wide as the viewport", first[2], view[2]);
   const root = p.box("Root");
   check("the page is the window wide", [root[0], root[2]], [0, size.width]);
@@ -449,7 +451,7 @@ function fresh(opts: { entry?: boolean } = {}) {
   p.settle();
   check("the wheel scrolled the view", p.offset(), -200);
   check("and did not touch the selection", p.selected(), 4);
-  check("the selected row went out of view", p.row(3)[1]! < p.view()[1]!, true);
+  check("the selected row is outside the window: it is not declared", p.row(3).length, 0);
   p.tap("ArrowDown");
   p.settle();
   check("ArrowDown selects 5 of 30", p.selected(), 5);

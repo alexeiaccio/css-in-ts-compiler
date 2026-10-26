@@ -433,15 +433,17 @@ X,Y,DY,DY,...` scripts one headless.
 **The List's viewport is the same machine** (`solid/src/vscroll.ts`: `scroll(id, max)`, which both pages build), not a
 second implementation: the wheel's 10px and the flick's decay, the press's 1:1 grab with its 4px click threshold, the
 band's `rubber` and its 80ms hold, `ui_scroll_put` while banded and `ui_scroll_to` otherwise, and reduced motion's hard
-clamp are one body of code. What a page keeps is where its content ends and what its keys do. Sky's end is its last card
-plus the 12px bottom padding; the List's is its 30th row, in a 240px viewport with no padding (898 - 240 = 658). Sky's
+clamp are one body of code. What a page keeps is where its content ends and what its keys do. Sky's end is its content
+(the cards' real block plus the feed's two 12px paddings); the List's is its whole block of rows — `count·28 + (count−1)·2`,
+898px for the 30 rows in a 240px viewport, so 658 to scroll — and neither is the declared window's. Sky's
 keys move the offset itself (Down/Up 40, Page a viewport, Home/End); the List's keys move the **selection** a row (Page
 eight rows, Home/End the ends) and the page then asks the track for the least offset that shows the moved row — the
-reveal. The reveal is measured from the row's *place in the content* (`row.bounds - view.bounds - Clay's offset`), not
-from where the row is drawn now, and compared with the track's **target** rather than what it presents, so a key pressed
-while the track is still travelling still lands the row inside the viewport: with the row in view nothing moves. A key
-also drops the band, as it does on Sky. The List's wheel is gated on `ui_pointer_over("list")` — Clay scrolled only the
-container under the pointer, and a page that owns the offset has to keep that rule itself (Sky's feed takes a wheel
+reveal. The reveal is measured from the row's *place in the content* (`row.bounds - view.bounds - Clay's offset`) when
+the window declared that row, and from the window's arithmetic (`i·(28 + 2)`) when it did not — the rows are fixed, so a
+key can reveal one the window left out; it is compared with the track's **target** rather than what it presents, so a key
+pressed while the track is still travelling still lands the row inside the viewport: with the row in view nothing moves.
+A key also drops the band, as it does on Sky. The List's wheel is gated on `ui_pointer_over("list")` — Clay scrolled only
+the container under the pointer, and a page that owns the offset has to keep that rule itself (Sky's feed takes a wheel
 anywhere, as a phone feed would). The drag never touches the selection: it is the keyboard's (there is no per-row click).
 Measured (`solid/list.test.ts`): one notch `2.59, 1.92, 1.42 …` px a frame to exactly 10; forty notches in one frame
 step `103.44, 86.17, 78.69 …`, peak 103.44, rest on 658 after 40 frames; 4 notches past 658 present `678.15` (f(40) of
@@ -484,6 +486,47 @@ in 664) the thumb is `354,4x594.2`, its travel 69.8, and it is height 0 on Disco
 frame shows it: every settled frame is after the fade-out, so `--settle 60` became `--settle 90` where the frame follows
 a scroll (`list-wheel`, `list-select`, `list-light`, `sky-scrolled`) and the pixels did not change — the frames were
 compared, not re-stored. `sky-band` did not change either: it is Discover, and Discover has no bar.
+
+**The window: a page declares what the screen shows.** `solid/src/virtual.ts` is what makes a list of thousands cost
+what the screen shows: it returns `{ first, last, above, below, content }` — the indexes to declare, the two spacer
+heights, and the *real* content height — and both pages declare a spacer box, the items, a spacer box, inside the same
+clip element and gap-spaced column. Two shapes, one function each. `fixedWindow` is arithmetic (`List`: every row 28px and
+the column's 2px gap, so row `i` starts at `i·30`). `measuredWindow` is for the Sky's cards, whose heights differ: a cache
+by index, filled from `ui.bounds` of each declared card after the frame (the page's tick reads the last layout's card
+heights before declaring the next), and an
+unseen card placed at **the mean of the measured heights** — 190px until anything has been measured — so a card the
+window jumped over still has a place in the column and is measured the frame it is shown. `List` takes a `count` (30 by
+default; 1,000 is the window's own page, `bun solid/main.ts list --count 1000`), `Sky` a `posts` feed (its Discover
+fixtures by default; 200 synthetic posts are `--posts 200`, or `synthetic(200)` in `solid/virtual.test.ts`).
+
+The spacers take their own gap out of the column (`above = first·slot − gap`), and there is **no** spacer at an end: an
+empty box would still add its gap. So the declared items sit exactly where the whole page would have put them
+(`virtual.test.ts` checks row 33 at 990px, the last row's bottom on the viewport's, and the gaps of 8 between cards), and
+the declared block is the whole content: 1,000 rows are 29,998px whether nine or eleven of them are declared. The spacer
+height is not a style (`css.height` is a build-time literal): the boxes carry the last two numbers of a FIXED axis through
+the value channel, fields 4 and 5, as the scrollbar's thumb writes its own. The window is one `For` over the spacer cells
+and the items' indexes (a `Show` either side would be put *after* the `For`'s items by Solid's renderer); the Sky's cell
+is `${feed}:${index}`, so a tab switch gives each card a node created in its own child order.
+
+**The clamp and the thumb are the real content's.** `maxScroll` is `content − view` from the window's `content` (the Sky
+adds its two 12px paddings), never the declared subset's, so the ends, the band's f(x) and the thumb's
+`max(24, view²/content)` are the same as when every row and card was declared; `thumbOf` writes the bar from `max + view`,
+which is that content. The measured page's content moves as cards are measured — the fallback is an estimate — so a track
+that was at the end follows it: when the content's end grows and the target was the old end, the page seeks the new one,
+and a shrink is the scroll's own hard clamp. The List's reveal needs no declared row: the rows are fixed, so a key reveals
+a row outside the window from its arithmetic (**not** a bounds lookup, which a row that was never declared would not
+have); when the window did declare it, its bounds are used, and the two agree to the pixel. The Sky's keys move the
+offset, so no card is revealed and no card needs to be declared before it is shown. `ponytail:` `measuredWindow` builds a
+prefix sum over the cache on every call (O(n) a frame, n the feed's posts); a persistent prefix or a binary search over a
+running total is the upgrade if hundreds of thousands of items ever matter.
+
+Cost, the same machine and `--png … --bench 500` (declare = the JS walk, the FFI and Clay's declaration and text
+measure), before (the pages of `05e32400`, every row and card declared) and after: **List** 30 rows
+0.086 → 0.032ms, 1,000 rows 2.084 → **0.030ms**; **Sky** 3 cards 0.022 → 0.028ms (its frame's own noise), 200 cards
+0.683 → **0.042ms**. The declaration follows the window (nine rows at the top, eleven 1,000px down; six cards of the 200
+at the top), not the data. `solid/virtual.test.ts` prints the same numbers from the frame stats (`stats[1]`) and holds the
+1,000-row declare within a small factor of the 30-row page's. The stored frames of both pages are **byte-identical**: with
+30 rows the window declares nine of them instead of 30 and a spacer for the rest, and the pixels do not move.
 
 **Touch input: one pointer, mouse or finger.** SDL3 reports a finger as `SDL_EVENT_FINGER_DOWN/MOTION/UP` (and
 `CANCELED`) with `event.tfinger.x/y` **normalised to the window** — 0..1, (0,0) the top left, not clamped, so a touch in
