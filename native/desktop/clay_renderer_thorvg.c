@@ -57,10 +57,17 @@ typedef struct {
         int alpha; // 255: the gradient alone, as an opaque one; below it, composited over the box's solid fill
         bool drawn;
         // where the gradient was drawn, in device pixels, for the dither after the draw: the box mapped by the groups
-        // around it and cut to the canvas and the clips, so the stipple lands on the gradient's own pixels only
+        // around it and cut to the canvas and the clips, so the stipple lands on the gradient's own pixels only. A turned
+        // map (`turn`) marks the quad instead: the pixel's own point, mapped back into the shape's space, against the box
+        // and its corner arcs there.
         struct {
             int x0, y0, x1, y1;
             float cx[4], cy[4], r[4]; // each corner's arc: centre and radius (0 for a square corner)
+            bool turn;
+            float uxx, uxy, utx; // a device pixel back into the shape's own units: u = uxx·x + uxy·y + utx
+            float uyx, uyy, uty; // ... and v = uyx·x + uyy·y + uty
+            float bx0, by0, bx1, by1; // the box in the shape's own units ...
+            float kcx[4], kcy[4], kr[4]; // ... and its corner arcs there
             bool on;
         } area;
     } gradients[16];
@@ -379,26 +386,59 @@ static void Clay_ThorVG_FillGradient(Tvg_Paint s, const float angle, int count, 
     tvg_shape_set_gradient(s, grad);
 }
 
-// The scene's map to the target, as the groups open around a command make it: a scale `a` and a translate `bx`/`by` in
-// Clay units. A group is a scale about its box's centre, a rotation about the same centre and an offset; this map is the
-// first and the last only, because a gradient's mark and a clip's rect are axis-aligned boxes. So a gradient inside a
-// *rotated* group is stippled and clipped as its unrotated box would be — the one thing the rotation does not reach
-// (no page has one: the tilt is the Dialog's menu, which has neither a gradient nor a clip). ponytail: an axis-aligned
-// map; a rotated gradient needs the four corners mapped and a point-in-quad test.
+// The scene's map to the target, as the groups open around a command make it: one affine in Clay units,
+// `x' = xx·x + xy·y + tx`, `y' = yx·x + yy·y + ty` (the root scene's scale is applied after it). A group is a scale
+// about its box's centre, a rotation about the same centre and an offset; the map composes them down the open groups, so
+// a command inside a rotated group knows where its box really is. The drawn clip needs nothing from this (its scene is
+// inside the group's, so ThorVG turns it), but the dither works on the target's pixels after the draw, and it uses the
+// map to know a gradient's pixels: `turn` says a rotation is in the map, and then a gradient's mark is the four mapped
+// corners' quad, tested a pixel at a time, instead of the axis-aligned box an unrotated map gives — that box would stipple
+// the page around the quad and miss the quad's tips. A clip's cut for the dither stays the quad's bounding box there (a
+// gradient inside a *rotated clip* is stippled within the clip's box, not its tilt), which no page has: the Dialog's menu
+// is the one rotated group and it has neither. solid/rotated.test.ts proves the turned path on a hand-built tree.
 typedef struct {
-    float a, bx, by;
+    float xx, xy, yx, yy; // the linear part
+    float tx, ty;         // ... and the offset
+    bool turn;            // a rotation is in the map: a mark is a quad, not an axis-aligned box
 } Clay_ThorVG_Map;
+
+/** A point through the map, in Clay units. Without a turn the expressions are the ones the renderer always had, so a page
+ *  that never leans keeps its frames byte for byte (`a·x + b` and `a·y + b`, no cross term added). */
+static inline float Clay_ThorVG_MapX(const Clay_ThorVG_Map *m, float x, float y)
+{
+    return m->turn ? m->xx * x + m->xy * y + m->tx : m->xx * x + m->tx;
+}
+
+static inline float Clay_ThorVG_MapY(const Clay_ThorVG_Map *m, float x, float y)
+{
+    return m->turn ? m->yx * x + m->yy * y + m->ty : m->yy * y + m->ty;
+}
 
 /** Where the gradient at `at` was drawn, for the dither after the draw: its box under the groups' map `m`, cut to the
  *  canvas and to the clips (which are already in device pixels, from the map of the scene they were made in), with each
- *  corner's arc so the page beyond a rounded corner gets no noise. */
+ *  corner's arc so the page beyond a rounded corner gets no noise. An unrotated map marks the box; a turned one marks the
+ *  quad its four corners make, and keeps the inverse map so the dither can ask a pixel where it is in the shape. */
 static void Clay_ThorVG_MarkGradient(Clay_ThorVGRendererData *d, int at, float x, float y, float w, float h,
                                      const float rad[4], Clay_ThorVG_Map m, const int (*clips)[4], int clipCount)
 {
     if (!d->target) return; // no buffer to stipple: the WebGPU canvas reads its frame back after the draw
     const float s = d->scale;
-    int x0 = (int)ceilf((m.a * x + m.bx) * s), x1 = (int)floorf((m.a * (x + w) + m.bx) * s);
-    int y0 = (int)ceilf((m.a * y + m.by) * s), y1 = (int)floorf((m.a * (y + h) + m.by) * s);
+    int x0, y0, x1, y1;
+    if (m.turn) {
+        // the box's four corners through the map: the quad the gradient covers, and the box of that quad
+        const float xs[4] = {x, x + w, x + w, x}, ys[4] = {y, y, y + h, y + h};
+        float lo[2] = {1e30f, 1e30f}, hi[2] = {-1e30f, -1e30f};
+        for (int k = 0; k < 4; k++) {
+            const float mx = Clay_ThorVG_MapX(&m, xs[k], ys[k]) * s, my = Clay_ThorVG_MapY(&m, xs[k], ys[k]) * s;
+            lo[0] = fminf(lo[0], mx), hi[0] = fmaxf(hi[0], mx);
+            lo[1] = fminf(lo[1], my), hi[1] = fmaxf(hi[1], my);
+        }
+        x0 = (int)floorf(lo[0]), x1 = (int)ceilf(hi[0]);
+        y0 = (int)floorf(lo[1]), y1 = (int)ceilf(hi[1]);
+    } else {
+        x0 = (int)ceilf((m.xx * x + m.tx) * s), x1 = (int)floorf((m.xx * (x + w) + m.tx) * s);
+        y0 = (int)ceilf((m.yy * y + m.ty) * s), y1 = (int)floorf((m.yy * (y + h) + m.ty) * s);
+    }
     if (x0 < 0) x0 = 0;
     if (y0 < 0) y0 = 0;
     if (x1 > d->targetWidth) x1 = d->targetWidth;
@@ -410,25 +450,46 @@ static void Clay_ThorVG_MarkGradient(Clay_ThorVGRendererData *d, int at, float x
         if (clips[c][3] < y1) y1 = clips[c][3];
     }
     if (x1 <= x0 || y1 <= y0) return;
-    // the corners' arcs, as the shape was given them: each centre in target pixels, its radius in the map's scale
     const float ccx[4] = {x + rad[0], x + w - rad[1], x + w - rad[2], x + rad[3]};
     const float ccy[4] = {y + rad[0], y + rad[1], y + h - rad[2], y + h - rad[3]};
-    for (int c = 0; c < 4; c++) {
-        d->gradients[at].area.cx[c] = (m.a * ccx[c] + m.bx) * s;
-        d->gradients[at].area.cy[c] = (m.a * ccy[c] + m.by) * s;
-        d->gradients[at].area.r[c] = rad[c] * m.a * s;
+    if (m.turn) {
+        // the inverse of the map, in device pixels: u = (m.yy·(X/s - tx) - m.xy·(Y/s - ty)) / det, and v with the other
+        // row. The box and the arcs stay the shape's own, so a pixel outside the quad (or beyond a rounded corner's arc)
+        // is the page and is not stippled
+        const float det = m.xx * m.yy - m.xy * m.yx;
+        const float ixx = m.yy / det, ixy = -m.xy / det, iyx = -m.yx / det, iyy = m.xx / det;
+        d->gradients[at].area.uxx = ixx / s, d->gradients[at].area.uxy = ixy / s;
+        d->gradients[at].area.uyx = iyx / s, d->gradients[at].area.uyy = iyy / s;
+        d->gradients[at].area.utx = -(ixx * m.tx + ixy * m.ty);
+        d->gradients[at].area.uty = -(iyx * m.tx + iyy * m.ty);
+        d->gradients[at].area.bx0 = x, d->gradients[at].area.bx1 = x + w;
+        d->gradients[at].area.by0 = y, d->gradients[at].area.by1 = y + h;
+        for (int c = 0; c < 4; c++) {
+            d->gradients[at].area.kcx[c] = ccx[c];
+            d->gradients[at].area.kcy[c] = ccy[c];
+            d->gradients[at].area.kr[c] = rad[c];
+        }
+        d->gradients[at].area.turn = true;
+    } else {
+        // the corners' arcs, as the shape was given them: each centre in target pixels, its radius in the map's scale
+        for (int c = 0; c < 4; c++) {
+            d->gradients[at].area.cx[c] = (m.xx * ccx[c] + m.tx) * s;
+            d->gradients[at].area.cy[c] = (m.yy * ccy[c] + m.ty) * s;
+            d->gradients[at].area.r[c] = rad[c] * m.xx * s;
+        }
+        d->gradients[at].area.turn = false;
     }
     d->gradients[at].area.x0 = x0, d->gradients[at].area.y0 = y0;
     d->gradients[at].area.x1 = x1, d->gradients[at].area.y1 = y1;
     d->gradients[at].area.on = true;
 }
 
-/** Is the pixel at x, y inside the rounded box: outside a corner's arc it is not, and that is the page. The test is one
- *  pixel inside the arc's radius, so the raster's antialiased fringe at a corner (a blend of the page and the gradient,
- *  which can come out as the page itself) is left as drawn: no pixel of the page moves. */
-static bool Clay_ThorVG_InRoundBox(const float *cx, const float *cy, const float *r, int x, int y)
+/** Is the point (px, py), in the box's own units, inside the rounded box: outside a corner's arc it is not, and that is
+ *  the page. The test is one pixel inside the arc's radius, so the raster's antialiased fringe at a corner (a blend of the
+ *  page and the gradient, which can come out as the page itself) is left as drawn: no pixel of the page moves. A turned
+ *  mark asks the same question of the same box, of the point its pixel maps back to. */
+static bool Clay_ThorVG_InRoundBoxAt(const float *cx, const float *cy, const float *r, float px, float py)
 {
-    const float px = x + 0.5f, py = y + 0.5f;
     for (int c = 0; c < 4; c++) {
         if (r[c] <= 1) continue;
         const bool left = c == 0 || c == 3, top = c < 2;
@@ -438,6 +499,12 @@ static bool Clay_ThorVG_InRoundBox(const float *cx, const float *cy, const float
         }
     }
     return true;
+}
+
+/** The same for the pixel at x, y: its centre is the point, as it always was. */
+static bool Clay_ThorVG_InRoundBox(const float *cx, const float *cy, const float *r, int x, int y)
+{
+    return Clay_ThorVG_InRoundBoxAt(cx, cy, r, x + 0.5f, y + 0.5f);
 }
 
 // The dither: 4x4 ordered (Bayer), thresholds 0..15. An 8-bit channel turns the cards' 6/255 ramp over 190px into six
@@ -461,9 +528,11 @@ static inline void Clay_ThorVG_DitherPixel(uint8_t *q, int d)
     }
 }
 
-/** Stipples the pixels each gradient drew, in the target, after the frame: nothing outside a gradient's box is read or
- *  written, and a frame with no gradient (which the table then holds none of) is untouched. A row between the corner
- *  bands is the box's whole width, untested; only a corner's band tests its arc, a pixel at a time. */
+/** Stipples the pixels each gradient drew, in the target, after the frame: nothing outside a gradient's mark is read or
+ *  written, and a frame with no gradient (which the table then holds none of) is untouched. An unrotated mark is the
+ *  box: a row between the corner bands is its whole width, untested, and only a corner's band tests its arc, a pixel at a
+ *  time. A turned mark is the quad: every pixel of its bounding box is mapped back into the shape and tested against the
+ *  box and its arcs, so the page around the quad — which an axis-aligned box would have covered — is left alone. */
 static void Clay_ThorVG_DitherGradients(Clay_ThorVGRendererData *d)
 {
 #if CLAY_THORVG_DITHER == 0
@@ -474,12 +543,10 @@ static void Clay_ThorVG_DitherGradients(Clay_ThorVGRendererData *d)
     const int tw = d->targetWidth;
     for (int i = 0; i < d->gradientCount; i++) {
         if (!d->gradients[i].area.on) continue;
+        const bool turn = d->gradients[i].area.turn;
         const float *cx = d->gradients[i].area.cx, *cy = d->gradients[i].area.cy, *r = d->gradients[i].area.r;
         const int x0 = d->gradients[i].area.x0, x1 = d->gradients[i].area.x1;
         const int y0 = d->gradients[i].area.y0, y1 = d->gradients[i].area.y1;
-        // each corner's band, in whole pixels outwards: the arc's test then covers every pixel the corner can reach
-        int rc[4];
-        for (int c = 0; c < 4; c++) rc[c] = (int)ceilf(r[c]);
         for (int y = y0; y < y1; y++) {
             // the row's four thresholds, from the tile's row of the matrix
             const int phase = (y & 3) * 4;
@@ -494,6 +561,28 @@ static void Clay_ThorVG_DitherGradients(Clay_ThorVGRendererData *d)
 #endif
             }
             uint8_t *row = (uint8_t *)(px + (size_t)y * tw);
+            if (turn) {
+                // the quad: the pixel's centre through the inverse map, then the shape's own box and corner arcs
+                const float py = y + 0.5f;
+                for (int x = x0; x < x1; x++) {
+                    const float pxf = x + 0.5f;
+                    const float u = d->gradients[i].area.uxx * pxf + d->gradients[i].area.uxy * py +
+                                    d->gradients[i].area.utx;
+                    const float v = d->gradients[i].area.uyx * pxf + d->gradients[i].area.uyy * py +
+                                    d->gradients[i].area.uty;
+                    if (u < d->gradients[i].area.bx0 || u > d->gradients[i].area.bx1 || v < d->gradients[i].area.by0 ||
+                        v > d->gradients[i].area.by1)
+                        continue;
+                    if (!Clay_ThorVG_InRoundBoxAt(d->gradients[i].area.kcx, d->gradients[i].area.kcy,
+                                                  d->gradients[i].area.kr, u, v))
+                        continue;
+                    Clay_ThorVG_DitherPixel(row + (size_t)x * 4, add[x & 3]);
+                }
+                continue;
+            }
+            // each corner's band, in whole pixels outwards: the arc's test then covers every pixel the corner can reach
+            int rc[4];
+            for (int c = 0; c < 4; c++) rc[c] = (int)ceilf(r[c]);
             // the corner columns this row has (the arc's radius, if the row is in that corner's band)
             const int rl = y < y0 + rc[0] ? rc[0] : (y >= y1 - rc[3] ? rc[3] : 0);
             const int rr = y < y0 + rc[1] ? rc[1] : (y >= y1 - rc[2] ? rc[2] : 0);
@@ -666,9 +755,9 @@ static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_Rend
     Tvg_Paint clipParent[CLAY_THORVG_MAX_SCISSORS];
     int clipDepth = 0;
     // the clips open at the current command, in device pixels, and the groups' map to the target: what cuts a gradient's
-    // box for the dither (both are needed because a gradient may sit in a clipped, scrolled feed)
+    // mark for the dither (both are needed because a gradient may sit in a clipped, scrolled feed)
     int clipRect[CLAY_THORVG_MAX_SCISSORS][4];
-    Clay_ThorVG_Map map = {1, 0, 0}, openMap[CLAY_THORVG_MAX_NESTING];
+    Clay_ThorVG_Map map = {1, 0, 0, 1, 0, 0, false}, openMap[CLAY_THORVG_MAX_NESTING];
     int nextSpan = 0;
     for (int32_t i = 0; i < n; i++) {
         // a group starts at the first command of its subtree, before the element's shadow, so the shadow is inside it (a
@@ -681,11 +770,29 @@ static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_Rend
             openScene[openCount] = tvg_scene_new();
             tvg_scene_add(into, openScene[openCount]);
             into = openScene[openCount];
-            // the group's own map, under the one already open: a scale about its box's centre, then its offset
+            // the group's own map, under the one already open (see Clay_ThorVG_Map). A page with no lean keeps the two
+            // expressions it always had, so a scaled group's frames stay byte-identical; the general form composes a
+            // rotation into the linear part, and turns the map, so a mark is the quad from there on.
             openMap[openCount] = map;
-            map.a = g->scale * map.a;
-            map.bx = g->scale * (map.bx - g->cx) + g->cx + g->tx;
-            map.by = g->scale * (map.by - g->cy) + g->cy + g->ty;
+            if (g->rotate == 0 && !map.turn) {
+                map.xx = g->scale * map.xx;
+                map.yy = g->scale * map.yy;
+                map.tx = g->scale * (map.tx - g->cx) + g->cx + g->tx;
+                map.ty = g->scale * (map.ty - g->cy) + g->cy + g->ty;
+            } else {
+                const float rad = g->rotate * CLAY_THORVG_PI / 180.0f;
+                const float cosv = cosf(rad), sinv = sinf(rad);
+                const float gxx = g->scale * cosv, gxy = -g->scale * sinv;
+                const float gyx = g->scale * sinv, gyy = g->scale * cosv;
+                const float gtx = g->cx + g->tx - (gxx * g->cx + gxy * g->cy);
+                const float gty = g->cy + g->ty - (gyx * g->cx + gyy * g->cy);
+                const float xx = gxx * map.xx + gxy * map.yx, xy = gxx * map.xy + gxy * map.yy;
+                const float yx = gyx * map.xx + gyy * map.yx, yy = gyx * map.xy + gyy * map.yy;
+                const float tx = gxx * map.tx + gxy * map.ty + gtx;
+                const float ty = gyx * map.tx + gyy * map.ty + gty;
+                map.xx = xx, map.xy = xy, map.yx = yx, map.yy = yy, map.tx = tx, map.ty = ty;
+                map.turn = true;
+            }
             openCount++;
         }
         Clay_RenderCommand *rcmd = Clay_RenderCommandArray_Get(rcommands, i);
@@ -810,11 +917,29 @@ static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_Rend
             if (clipDepth == CLAY_THORVG_MAX_SCISSORS) clipDepth--, parent = root;
             clipParent[clipDepth++] = parent;
             // the clip's own box in device pixels, for the dither: a gradient scrolled out of a feed must not be stippled
-            // over the page above it. The clip's coordinates are the current scene's, so the groups' map applies.
-            clipRect[clipDepth - 1][0] = (int)ceilf((map.a * x + map.bx) * d->scale);
-            clipRect[clipDepth - 1][1] = (int)ceilf((map.a * y + map.by) * d->scale);
-            clipRect[clipDepth - 1][2] = (int)floorf((map.a * (x + w) + map.bx) * d->scale);
-            clipRect[clipDepth - 1][3] = (int)floorf((map.a * (y + h) + map.by) * d->scale);
+            // over the page above it. The clip's coordinates are the current scene's, so the groups' map applies; inside a
+            // rotated group the box the dither cuts to is the quad's bounding box (the conservative bound: the drawn clip
+            // turns with its scene, so the dither may still reach a gradient pixel a tilted clip cut away, never a page
+            // pixel outside the gradient's own quad).
+            if (map.turn) {
+                const float xs[4] = {x, x + w, x + w, x}, ys[4] = {y, y, y + h, y + h};
+                float lo[2] = {1e30f, 1e30f}, hi[2] = {-1e30f, -1e30f};
+                for (int k = 0; k < 4; k++) {
+                    const float mx = Clay_ThorVG_MapX(&map, xs[k], ys[k]) * d->scale;
+                    const float my = Clay_ThorVG_MapY(&map, xs[k], ys[k]) * d->scale;
+                    lo[0] = fminf(lo[0], mx), hi[0] = fmaxf(hi[0], mx);
+                    lo[1] = fminf(lo[1], my), hi[1] = fmaxf(hi[1], my);
+                }
+                clipRect[clipDepth - 1][0] = (int)ceilf(lo[0]);
+                clipRect[clipDepth - 1][1] = (int)ceilf(lo[1]);
+                clipRect[clipDepth - 1][2] = (int)floorf(hi[0]);
+                clipRect[clipDepth - 1][3] = (int)floorf(hi[1]);
+            } else {
+                clipRect[clipDepth - 1][0] = (int)ceilf((map.xx * x + map.tx) * d->scale);
+                clipRect[clipDepth - 1][1] = (int)ceilf((map.yy * y + map.ty) * d->scale);
+                clipRect[clipDepth - 1][2] = (int)floorf((map.xx * (x + w) + map.tx) * d->scale);
+                clipRect[clipDepth - 1][3] = (int)floorf((map.yy * (y + h) + map.ty) * d->scale);
+            }
             into = tvg_scene_new();
             tvg_paint_set_clip(into, clip);
             tvg_scene_add(parent, into);

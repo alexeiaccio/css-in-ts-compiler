@@ -37,23 +37,29 @@ function open(which: Page, theme?: string) {
   dispose();
   const root = new El("root");
   const input = createInput();
-  const motion: { onWheel?: (dx: number, dy: number) => void; tick?: (dt: number) => void } = {};
+  const motion: {
+    onWheel?: (dx: number, dy: number) => void;
+    onPointer?: (x: number, y: number, down: boolean) => void;
+    tick?: (dt: number) => void;
+  } = {};
   const drag: Drag = {};
   let palette = theme;
   // as main.ts wires the page's `t`: the page's shortcut while no text field has focus
   input.fallback = (name) =>
     name === "t" && !input.editing() ? ((palette = palette ? undefined : "light"), true) : false;
+  // every page gets the host's hook: the four plain pages' first-mount entry (src/entry.ts), the List's drag, the Sky
+  // page's own tracks
   dispose = render(
     which === "sensors"
-      ? Sensors
+      ? () => Sensors({ motion })
       : which === "widgets"
-        ? () => Widgets({ input, drag })
+        ? () => Widgets({ input, drag, motion })
         : which === "dialog"
           ? () => Dialog({ input, motion })
           : which === "form"
-            ? () => Field({ input })
+            ? () => Field({ input, motion })
             : which === "list"
-              ? () => List({ input })
+              ? () => List({ input, motion })
               : () => Sky({ input, motion, theme: () => palette }),
     root,
   );
@@ -62,6 +68,7 @@ function open(which: Page, theme?: string) {
       return palette;
     },
     onPressMiss: () => input.pressMiss(),
+    onPointer: (x, y, down) => motion.onPointer?.(x, y, down),
     onWheel: (dx, dy) => motion.onWheel?.(dx, dy),
     tick: (dt) => motion.tick?.(dt),
   });
@@ -107,16 +114,32 @@ function open(which: Page, theme?: string) {
 }
 
 // --- the first frame draws once, and 60 frames with nothing in draw none: the hash of a settled frame is the same one
+//     (the page's first-mount entry is over 0.4s in: 30 frames later it is at rest)
 {
   const p = open("sensors");
   const first = p.draws();
   p.step();
   check("the first frame draws", p.draws() - first, 1);
+  p.settle(30); // the entry
   const before = p.draws();
   const hash = p.hash();
   p.settle(60);
   check("60 frames at rest draw none", p.draws() - before, 0);
   check("and the settled hash is the frame's", p.hash() === hash, true);
+}
+
+// --- the entry is a motion like any other: it draws every frame while it runs and stops for good on the frame it settles
+{
+  const p = open("list");
+  p.step();
+  const started = p.draws();
+  let n = 0;
+  while (p.step() && n < 60) n++;
+  check("the entry draws frame after frame until it settles", n >= 10 && n < 30, true);
+  const rest = p.draws();
+  p.settle(60);
+  check("and then not one frame draws", p.draws() - rest, 0);
+  console.log(`solid/idle.test.ts: the list page's entry drew ${n + 1} frames, then stopped`);
 }
 
 // --- every page at rest draws none, 60 frames each (Sky's cards arrive on mount: its 40 settle frames are the entry)

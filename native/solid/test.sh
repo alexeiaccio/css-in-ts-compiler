@@ -4,36 +4,41 @@
 set -e
 cd "$(dirname "$0")/.."
 sh solid/native/build.sh >/dev/null
-bun solid/main.ts --expect examples/sensors/expected-thorvg.png
-bun solid/main.ts --click 180 250 --expect examples/sensors/expected-thorvg-g.png
-THEME=light bun solid/main.ts --expect examples/sensors/expected-thorvg-light.png
+# every page now has a first-mount entry (src/entry.ts: the root's subtree rises 8px and fades in over 0.25s, ~21 frames
+# to its settle): a stored frame of a page at rest is taken after `--warm 30`, which is the settled frame the frames below
+# have always been. The Sensors page gets it too.
+S0="bun solid/main.ts --warm 30"
+$S0 --expect examples/sensors/expected-thorvg.png
+$S0 --click 180 250 --expect examples/sensors/expected-thorvg-g.png
+THEME=light $S0 --expect examples/sensors/expected-thorvg-light.png
 bun solid/test.ts
 # the Widgets page (headless button, switch, checkbox, disclosure, radio, tabs, slider, toolbar; the focus manager): scripted keys, then the frame
-W="bun solid/main.ts widgets"
-$W --expect solid/frames/widgets-initial.png
-$W --keys Tab,Tab --expect solid/frames/widgets-tab2.png
-$W --keys Tab,Tab,Space --expect solid/frames/widgets-switch-on.png
-$W --keys Tab,Tab,Tab,Tab,Space --expect solid/frames/widgets-mixed.png
-$W --keys Tab,Tab,Space,Tab,Tab,Tab,Tab,Enter --expect solid/frames/widgets-disclosure.png
+# the page's entry is over by the first key: every frame below is at rest (`--warm 30`)
+W() { bun solid/main.ts widgets --warm 30 "$@"; }
+W --expect solid/frames/widgets-initial.png
+W --keys Tab,Tab --expect solid/frames/widgets-tab2.png
+W --keys Tab,Tab,Space --expect solid/frames/widgets-switch-on.png
+W --keys Tab,Tab,Tab,Tab,Space --expect solid/frames/widgets-mixed.png
+W --keys Tab,Tab,Space,Tab,Tab,Tab,Tab,Enter --expect solid/frames/widgets-disclosure.png
 # the groups: Tab to each (6 stops before the radio, then the tab, its panel, the slider, the toolbar, the tree), then its keys
-$W --keys Tab,Tab,Tab,Tab,Tab,Tab,Tab,ArrowRight --expect solid/frames/widgets-radio.png
-$W --keys Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,ArrowRight --expect solid/frames/widgets-tabs.png
-$W --keys Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,ArrowRight --expect solid/frames/widgets-slider.png
+W --keys Tab,Tab,Tab,Tab,Tab,Tab,Tab,ArrowRight --expect solid/frames/widgets-radio.png
+W --keys Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,ArrowRight --expect solid/frames/widgets-tabs.png
+W --keys Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,ArrowRight --expect solid/frames/widgets-slider.png
 # a drag: press the slider's rail at a quarter, hold, move to three quarters (the knob follows, 80% at this step)
-$W --drag 0.25 0.75 --expect solid/frames/widgets-slider-drag.png
+W --drag 0.25 0.75 --expect solid/frames/widgets-slider-drag.png
 # the toolbar: Bold on, to Italic, Tab away to the slider and back: Italic has the ring again (memory)
-$W --keys Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Enter,ArrowRight,Shift+Tab,Tab --expect solid/frames/widgets-toolbar.png
+W --keys Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Enter,ArrowRight,Shift+Tab,Tab --expect solid/frames/widgets-toolbar.png
 # the toolbar's menu button: to Size, Down opens the menu under the item (the checked Medium has the dot and the focus ring)
-$W --keys Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,ArrowRight,ArrowRight,ArrowDown --expect solid/frames/widgets-toolbar-menu.png
-THEME=light $W --keys Tab,Tab,Space,Tab,Tab,Space,Tab,Tab,Enter,Tab,ArrowRight,Tab,ArrowRight,Tab,Tab,ArrowRight,ArrowRight,Tab,Enter --expect solid/frames/widgets-light.png
+W --keys Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,ArrowRight,ArrowRight,ArrowDown --expect solid/frames/widgets-toolbar-menu.png
+THEME=light bun solid/main.ts widgets --warm 30 --keys Tab,Tab,Space,Tab,Tab,Space,Tab,Tab,Enter,Tab,ArrowRight,Tab,ArrowRight,Tab,Tab,ArrowRight,ArrowRight,Tab,Enter --expect solid/frames/widgets-light.png
 # the settings tree, 12 Tabs in: the ring on Network, the first visible row; Down moves it without selecting;
 # Right on the closed Display opens it; Space selects the roving node
 TREE="Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab"
-$W --keys $TREE --expect solid/frames/widgets-tree-focus.png
-$W --keys $TREE,ArrowDown --expect solid/frames/widgets-tree-down.png
-$W --keys $TREE,ArrowDown,ArrowDown,ArrowDown,ArrowRight --expect solid/frames/widgets-tree-expanded.png
-$W --keys $TREE,ArrowDown,ArrowDown,ArrowDown,ArrowRight,Space --expect solid/frames/widgets-tree-select.png
-THEME=light $W --keys $TREE,ArrowDown,Space --expect solid/frames/widgets-tree-light.png
+W --keys $TREE --expect solid/frames/widgets-tree-focus.png
+W --keys $TREE,ArrowDown --expect solid/frames/widgets-tree-down.png
+W --keys $TREE,ArrowDown,ArrowDown,ArrowDown,ArrowRight --expect solid/frames/widgets-tree-expanded.png
+W --keys $TREE,ArrowDown,ArrowDown,ArrowDown,ArrowRight,Space --expect solid/frames/widgets-tree-select.png
+THEME=light bun solid/main.ts widgets --warm 30 --keys $TREE,ArrowDown,Space --expect solid/frames/widgets-tree-light.png
 bun solid/widgets.test.ts
 # the Dialog page (a modal dialog on a root-float backdrop and a menu floated off its trigger): its frames and asserts.
 # The panel drops in (its float's offset y -14 -> 0, its shadow's blur 0 -> 32) and the menu slides out of its trigger
@@ -62,21 +67,23 @@ THEME=light $D --keys Tab,Tab,Enter --settle 30 --expect solid/frames/dialog-men
 bun solid/dialog.test.ts
 # the Text field page (the neutral createTextField on SDL's text input): an empty field with the caret, "Ada",
 # a selection with Shift+ArrowLeft twice, a submit, and the light theme; then the caret and selection pixels and the keys
-F="bun solid/main.ts form"
-$F --keys Tab,Tab --expect solid/frames/field-empty.png
-$F --keys Tab,Tab,text:Ada --expect solid/frames/field-typed.png
-$F --keys Tab,Tab,text:Ada,Shift+ArrowLeft,Shift+ArrowLeft --expect solid/frames/field-selection.png
-$F --keys Tab,Tab,text:Ada,Enter --expect solid/frames/field-submit.png
-THEME=light $F --keys Tab,Tab,text:Ada --expect solid/frames/field-light.png
+F() { bun solid/main.ts form --warm 30 "$@"; }
+F --keys Tab,Tab --expect solid/frames/field-empty.png
+F --keys Tab,Tab,text:Ada --expect solid/frames/field-typed.png
+F --keys Tab,Tab,text:Ada,Shift+ArrowLeft,Shift+ArrowLeft --expect solid/frames/field-selection.png
+F --keys Tab,Tab,text:Ada,Enter --expect solid/frames/field-submit.png
+THEME=light bun solid/main.ts form --warm 30 --keys Tab,Tab,text:Ada --expect solid/frames/field-light.png
 bun solid/field.test.ts
 # the List page (Clay's own scroll container: the wheel moves its offset, the keys move the selection and scroll it into
 # view): the top, scrolled by the wheel (both edges cut), the selection moved past the viewport, the light theme
-L="bun solid/main.ts list"
+L() { bun solid/main.ts list --warm 30 "$@"; }
+# the entry's own frame: four frames in, the page a blend of its colour over the ground (main.ts --settle 3)
+bun solid/main.ts list --settle 3 --expect solid/frames/list-entry.png
 DOWN12="Tab,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown"
-$L --expect solid/frames/list-top.png
-$L --wheel 32 --expect solid/frames/list-wheel.png
-$L --keys $DOWN12 --expect solid/frames/list-select.png
-THEME=light $L --keys $DOWN12 --expect solid/frames/list-light.png
+L --expect solid/frames/list-top.png
+L --wheel 32 --expect solid/frames/list-wheel.png
+L --keys $DOWN12 --expect solid/frames/list-select.png
+THEME=light bun solid/main.ts list --warm 30 --keys $DOWN12 --expect solid/frames/list-light.png
 bun solid/list.test.ts
 # the motion model (a spring from duration and bounce, a track that retargets from the presented x and v, the exact
 # settle, the effect class's clamp, the decay's projection): no page, no Clay
@@ -103,6 +110,9 @@ $S --warm 40 --wheel 4 --wheel-over sky-status --expect solid/frames/sky-band.pn
 # mid-fade, the new label between the muted token and the accent — the text's own four floats, not the tab's box's
 $S --warm 40 --keys Tab,ArrowRight --settle 2 --expect solid/frames/sky-tab-mid.png
 bun solid/sky.test.ts
+# a gradient and a clip inside a *rotated* group (no page has one): the clip paint turns with its scene, the gradient with
+# its shape, and the dither's mark is the rotated quad, so no page pixel around it is stippled (a hand-built tree, no page)
+bun solid/rotated.test.ts
 # idle frames: a page at rest declares and lays out every frame but draws and presents none (`--idle N` prints the draws
 # it made), and a key is a discrete input that draws its own frame
 $S --settle 60 --idle 60 | grep -q "draws 0 of 60"

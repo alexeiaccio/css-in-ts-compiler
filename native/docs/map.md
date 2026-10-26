@@ -264,8 +264,9 @@ Each step ends in a check that fails when it breaks.
    viewport, the keyboard reveal and its bounds, the wheel not moving the selection, the header and footer unmoved, the
    ring's pixels, the wheel only under the pointer, the page fitting). Dropping the scroll-into-view fails eleven of them.
    Seen by eye: the four frames; the window started (`--frames 60`, exit 0) but its wheel and keys were not tried by hand
-   (the screen is not visible to me). Left: horizontal scrolling, momentum (the Sky feed got the first motion tracks,
-   item 2; this page keeps Clay's instant wheel step), dragging the list with the pointer, a
+   (the screen is not visible to me). Its pointer drag came with item 2's drag (1:1 through `ui_scroll_to`, stopping at the
+   release: see below). Left: horizontal scrolling, momentum (the Sky feed got the first motion tracks; this page keeps
+   Clay's instant wheel step, and a drag's band and fling would need the page to own the offset), a
    scrollbar (the page has a "n of 30" readout instead) and dragging one, and scrolling the page itself when the wheel is
    outside the viewport (Clay scrolls the container under the pointer only).
    **Done: the accessibility tree** (`solid/a11y.ts`, `solid/a11y.test.ts`). `snapshot(root, { parts, containers })`
@@ -316,12 +317,30 @@ Each step ends in a check that fails when it breaks.
    the tabs switching the feed and News' empty centred muted line; the page fitting). Mutations: a bare 40x40 avatar box
    fails the disc asserts, a `nowrap` body fails the wrap asserts and (the content then short) the scroll ones, and
    `Track.retarget` dropping the sampled velocity fails the mid-flight block. Seen
-   by eye: the four frames, zoomed — the bar's underline, the name and handle, the counts' `·`, the avatar discs. Left:
-   no fetching or paging (three recorded posts per feed), no thread screen, no post images (a media line), no avatars
-   beyond the six committed, no drag scrolling (the wheel is the only input; touch has no host yet), the name and handle
-   on two lines because the pair does not
+   by eye: the four frames, zoomed — the bar's underline, the name and handle, the counts' `·`, the avatar discs. What is
+   left of it: no fetching or paging (three recorded posts per feed), no thread screen, no post images (a media line), no
+   avatars beyond the six committed, the name and handle on two lines because the pair does not
    fit 312px (Clay has no ellipsis), and media lines that wrap at spaces only, so the Science link shows the embed's host
    instead of its 60-character URI (the app's own fallback when a link has no title).
+   **Done: the drag, the pages' entry, and a rotated clip and gradient.** The Sky feed is dragged as a phone's list is: a
+   press inside it grabs the offset, which follows the pointer 1:1 from the press point (the same `rubber` past an end as
+   the wheel's pull), a press that travels past 4px is not a click on the card under it, and the release hands the speed of
+   the last five samples to a decay (or lets the band go at an end); reduced motion drags 1:1 and flings nothing. The List
+   page drags by the other route — its offset stays Clay's, so the page writes the drag through `ui_scroll_to` (1:1,
+   clamped, stopping at the release): a band or a fling there would need the page to own the offset, as the Sky feed does
+   (and Clay's own drag scrolling leaves a momentum of ~17x the drag). One helper (`solid/src/entry.ts`) gives List,
+   Widgets, Sensors and the Text field their first mount — the root's subtree rises 8px and fades in over 0.25s once,
+   writing nothing afterwards — and `frames/list-entry.png` is four frames into it, the stored frames of those pages
+   unchanged. In the renderer the groups' map to the target is one affine, so a gradient inside a *rotated* group is
+   stippled on its rotated quad, where an axis-aligned mark stippled the page around it and missed the quad's tips; the
+   clip itself already turned with its scene, and `solid/rotated.test.ts` proves all three on a hand-built tree (the tilt,
+   the ramp, the stipple's pixels inside the quad and nowhere else). Check: the drag's offset frame for frame, the
+   resistance past an end, the fling's deterministic landing, the suppressed click, reduced motion, the entry's blend and
+   still layout, and `sh test.sh`'s 63 stored-frame comparisons. Seen by eye: `list-entry.png`. What is genuinely left:
+   touch hardware (the drag is the window's mouse), a band and a fling on the List, a gradient inside a *rotated clip*
+   stippled a pixel inside the clip's box (the conservative cut, since the clip's dither cut is its quad's bounding box),
+   and the terminal, browser and board targets (no Solid page, no wheel, no pointer and no value channel: the drag is the
+   desktop's).
 5. **JSX to C.** The same component evaluated at build time to C calls, for targets with no JS. Check: its render
    commands equal step 4's for the same state.
    **Done: the evaluator** (`generator/page-to-c.ts`, `bun --conditions=development`). It imports `solid/plugin.ts`

@@ -1,14 +1,16 @@
 // What the stored frames of the List page cannot show: the wheel moving Clay's own scroll offset and the rows with it,
 // the clamps at both ends, the viewport's clip (a selected row's fill cut at the edge, not drawn above it), the keyboard
 // selection scrolling the selected row into view, the selection staying in 0..29, the wheel leaving the selection alone,
-// the header and footer staying put, and the page fitting. Driven as the window does it: pointer and wheel in, then a
-// frame.
+// the held pointer dragging the viewport 1:1 through Clay's offset, the page's first-mount entry (the root's subtree
+// rising and fading in, once, with the layout still), the header and footer staying put, and the page fitting. Driven as
+// the window does it: pointer and wheel in, then a frame.
 import "./plugin.ts";
 
 const { ui } = await import("./src/ffi.ts");
 const { createFrame } = await import("./src/frame.ts");
 const { createInput } = await import("./src/input.ts");
 const { El, render, Txt } = await import("./src/renderer.ts");
+const { setReducedMotion } = await import("./src/motion.ts");
 const { List, size } = await import("./app/List.tsx");
 
 ui.init(size.width, size.height);
@@ -27,12 +29,22 @@ const SURFACE = [36, 40, 52]; // the selected row's fill
 const RING = [90, 170, 255]; // the focus ring
 
 let dispose = () => {};
-function fresh() {
+/** A fresh page, the host's frame loop over it, and the entry's 0.25s over unless `entry` asks for it running. */
+function fresh(opts: { entry?: boolean } = {}) {
   dispose();
   const root = new El("root");
   const input = createInput();
-  dispose = render(() => List({ input }), root);
-  const frame = createFrame(root, { onPressMiss: () => input.pressMiss() });
+  // the page's frame hook, as main.ts wires it: the entry's tick and the pointer the drag reads
+  const motion: {
+    onPointer?: (x: number, y: number, down: boolean) => void;
+    tick?: (dt: number) => void;
+  } = {};
+  dispose = render(() => List({ input, motion }), root);
+  const frame = createFrame(root, {
+    onPressMiss: () => input.pressMiss(),
+    onPointer: (x, y, down) => motion.onPointer?.(x, y, down),
+    tick: (dt) => motion.tick?.(dt),
+  });
   let at = [-1, -1];
   const step = (down = false) => frame(at[0]!, at[1]!, down, 1 / 60);
   step();
@@ -40,6 +52,8 @@ function fresh() {
   // the page starts where the last test left it unless it is put back (the window is a new process every run)
   ui.scrollTo("list", 0);
   step();
+  // the entry settles in ~0.4s: 30 frames is past it, and every other block wants a page at rest
+  if (!opts.entry) for (let i = 0; i < 30; i++) step();
 
   const find = (pred: (el: El) => boolean, from: El = root): El[] =>
     from.children.flatMap((c) => (c instanceof El ? [...(pred(c) ? [c] : []), ...find(pred, c)] : []));
@@ -57,6 +71,26 @@ function fresh() {
     pixel,
     readout,
     selected,
+    step,
+    /** `n` frames with nothing in: a motion's settle. */
+    settle(n = 30) {
+      for (let i = 0; i < n; i++) step();
+    },
+    /** A pointer drag on the viewport: a press at x 180, y, then a frame a dy with the button held, then the release.
+     *  Returns the offset each held frame presented, so a test can follow the pointer exactly. */
+    drag(y: number, dys: number[]) {
+      at = [180, y];
+      step(false);
+      step(true);
+      const held: number[] = [];
+      for (const dy of dys) {
+        at = [180, (y += dy)];
+        step(true);
+        held.push(ui.scrollOffset("list"));
+      }
+      step(false);
+      return held;
+    },
     /** The view's top and height, the offset Clay keeps: a row's top is its own plus this. */
     view: () => box("list"),
     offset: () => ui.scrollOffset("list"),
@@ -112,6 +146,77 @@ function fresh() {
   check("the viewport is not shrunk by the window", view[3], 240);
   check("nothing is focused at first", p.input.focus.focused(), null);
   check("and nothing is scrolled", p.offset(), 0);
+}
+
+// --- the page's first mount (src/entry.ts): the root's subtree starts 8px low and at 0 alpha and rises and fades in over
+//     0.25s, once. The fourth frame is frames/list-entry.png (main.ts --settle 3); the page is a blend with its own colour
+//     there and the selected row is still lighter than the page, and by rest both are their literals. Nothing in the
+//     layout moves: the two fields are the renderer's group, not a re-layout
+{
+  const p = fresh({ entry: true });
+  const view = p.view();
+  const boxes = () => [p.box("Root"), view, p.row(0), p.box("list-head"), p.box("list-foot")];
+  const early = boxes(); // two frames in
+  const page = () => p.pixel(20, 30); // the page's own colour, left of the content's 40px padding
+  const rowFill = () => p.pixel(view[0]! + 1, p.row(0)[1]! + 14); // the selected row's fill, at its left edge
+  p.step();
+  p.step(); // four frames in: the third and fourth of the entry's clock
+  const midPage = page();
+  const midRow = rowFill();
+  check("four frames in, the page is a blend of its colour and the ground, not the literal", midPage.join() !== PAGE.join() && midPage.every((v, i) => v > 0 && v < PAGE[i]!), true);
+  check("and the selected row is still lighter than it", midRow[0]! > midPage[0]! && midRow[1]! > midPage[1]!, true);
+  check("the layout does not move during the entry", boxes(), early);
+  check(
+    "the frame is frames/list-entry.png",
+    ui.diffPng(
+      new URL("./frames/list-entry.png", import.meta.url).pathname,
+      new URL("./frames/list-entry.png.actual.png", import.meta.url).pathname,
+    ),
+    0,
+  );
+  p.settle(30);
+  check("by rest the page is the literal", page(), PAGE);
+  check("and the selected row is its surface", rowFill(), SURFACE);
+  check("with the boxes where they were", boxes(), early);
+  console.log(`solid/list.test.ts: the entry four frames in: the page ${midPage.join("/")} of ${PAGE.join("/")}, the row ${midRow.join("/")} of ${SURFACE.join("/")}`);
+  // reduced motion: no entry at all — the first frame is the settled one
+  setReducedMotion(true);
+  const r = fresh({ entry: true });
+  check("reduced motion has no entry: the first frame is the literal", r.pixel(20, 30), PAGE);
+  setReducedMotion(false);
+}
+
+// --- the drag: a press inside the viewport grabs Clay's offset and the pointer moves it 1:1 from the press point,
+//     clamped to the content at both ends; it stops at the release (no decay: the offset is Clay's, and a band or a fling
+//     is the Sky feed's own track). The wheel and the keyboard are untouched by it
+{
+  const p = fresh();
+  const held = p.drag(160, [-10, -10, -10]);
+  check("each held frame's offset is the pointer's travel from the press point", held, [-10, -20, -30]);
+  check("and the rows moved with it", p.row(0)[1], p.view()[1]! - 30);
+  p.settle(30);
+  check("the release stops the viewport where the finger left it", p.offset(), -30);
+  check("with the selection still the first row", p.selected(), 1);
+  // a drag past the end is clamped by Clay's own range, not carried past it
+  p.drag(160, [-100, -100, -100, -100, -100, -100, -100, -100]);
+  p.settle(30);
+  check("a drag past the end clamps at the content's end: 898 - 240", p.offset(), -658);
+  p.drag(160, [100, 100, 100, 100, 100, 100, 100, 100]);
+  p.settle(30);
+  check("and at the top it is 0", p.offset(), 0);
+  // a press above the viewport grabs nothing
+  const q = fresh();
+  q.point(180, 60);
+  q.drag(60, [-40, -40]);
+  check("a press above the viewport does not drag it", q.offset(), 0);
+  // the wheel still works beside the drag, and so do the keys
+  q.point(180, 160);
+  q.notch(2);
+  check("the wheel scrolls the viewport as before", q.offset(), -20);
+  q.tap("Tab");
+  check("the keyboard still focuses the list and reveals the selection from the wheel's offset", [q.selected(), q.offset()], [1, 0]);
+  q.tap("ArrowDown");
+  check("and a key still moves it", q.selected(), 2);
 }
 
 // --- the wheel: Clay's offset moves by 10px a notch, and the rows move with it
@@ -248,6 +353,8 @@ if (failed) process.exit(1);
 console.log(
   "solid/list.test.ts: the wheel moving Clay's scroll offset and the rows with it, the clamps at both ends, the clip at " +
     "the viewport's edge, the keyboard selection scrolling into view and staying in range, the wheel leaving the " +
-    "selection alone, the header and footer staying put, the focus ring, the page fitting",
+    "selection alone, the held pointer dragging the viewport 1:1 and stopping at the release, the page's first-mount " +
+    "entry (a blend four frames in, the literals at rest, the layout still), the header and footer staying put, the " +
+    "focus ring, the page fitting",
 );
 process.exit(0);

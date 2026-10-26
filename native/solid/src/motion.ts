@@ -19,10 +19,11 @@
 // keep one code path and the flag only changes what an instant means. `channel` is the page side of the value
 // channel (`ui.value`): one call per element a frame instead of a loop over its fields.
 //
-// Not here: a velocity-only track for a drag (a pointer's speed is the host's), and a value channel for anything but the
-// style a page already packs (a page passes the value to ui.scrollTo or into its own draw; a style is a compile-time
-// literal and a page animates it through ui.value). The rubber band is here because its resistance is geometry, not a
-// page's business: `rubber`.
+// Not here: a velocity-only track for a drag (the host hands the page the pointer's positions and the page keeps the last
+// few: Sky's `speed()` estimates the release's velocity from them, so a file that reads no clock has nothing to hold), and
+// a value channel for anything but the style a page already packs (a page passes the value to ui.scrollTo or into its own
+// draw; a style is a compile-time literal and a page animates it through ui.value). The rubber band is here because its
+// resistance is geometry, not a page's business: `rubber`.
 
 /** A spring's parameters: the natural frequency and damping ratio, and whether its output may overshoot. */
 export interface Spring {
