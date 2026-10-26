@@ -4,9 +4,16 @@
   "type": "registry:ui",
   "title": "Disclosure",
   "description": "APG disclosure on @cssints/headless, on the neutral theme, with its scenario test",
-  "dependencies": ["@cssints/headless"],
-  "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
-  "registryDependencies": ["@cssints/theme"],
+  "dependencies": [
+    "@cssints/headless"
+  ],
+  "devDependencies": [
+    "@cssints/apg-specs@^0.6.0",
+    "@quint-machine/core@0.1.0"
+  ],
+  "registryDependencies": [
+    "@cssints/theme"
+  ],
   "files": [
     {
       "path": "disclosure.tsx",

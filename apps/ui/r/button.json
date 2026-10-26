@@ -4,15 +4,22 @@
   "type": "registry:ui",
   "title": "Button",
   "description": "APG button and toggle button on @cssints/headless, on the neutral theme",
-  "dependencies": ["@cssints/headless"],
-  "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
-  "registryDependencies": ["@cssints/theme"],
+  "dependencies": [
+    "@cssints/headless"
+  ],
+  "devDependencies": [
+    "@cssints/apg-specs@^0.6.0",
+    "@quint-machine/core@0.1.0"
+  ],
+  "registryDependencies": [
+    "@cssints/theme"
+  ],
   "files": [
     {
       "path": "button.tsx",
       "target": "src/components/ui/button.tsx",
       "type": "registry:ui",
-      "content": "import { type Button as ButtonController, type ButtonOptions, createButton } from \"@cssints/headless\";\nimport type { JSX } from \"@solidjs/web\";\n\nimport \"./button.css\";\n\n/**\n * APG button, styled: a command button, and a toggle button with `isToggle`.\n *\n * A native `<button>` carries the platform (Enter, Space, focus, pointer); the primitive adds the\n * APG contract — `aria-pressed` on a toggle, and `aria-disabled` rather than the native attribute,\n * so a disabled button stays focusable and reads out.\n *\n * `value` makes a toggle controlled; without it the button owns the state. `onValueChange` is a\n * request — a controlled host may ignore it.\n */\nexport interface ButtonProps extends Omit<ButtonOptions, \"id\"> {\n  readonly children?: JSX.Element;\n  /** The primitive, once: a scenario fixture needs it; a page rarely does. */\n  readonly onReady?: (button: ButtonController) => void;\n}\n\nexport const Button = (props: ButtonProps): JSX.Element => {\n  const button = createButton({\n    get isToggle() {\n      return props.isToggle;\n    },\n    get value() {\n      return props.value;\n    },\n    defaultValue: props.defaultValue,\n    get disabled() {\n      return props.disabled;\n    },\n    get onClick() {\n      return props.onClick;\n    },\n    get onValueChange() {\n      return props.onValueChange;\n    },\n  });\n  props.onReady?.(button);\n  return (\n    <button {...button.buttonProps} data-part=\"button\" class=\"ui-button\">\n      {props.children}\n    </button>\n  );\n};\n"
+      "content": "import {\n  type Button as ButtonController,\n  type ButtonOptions,\n  createButton,\n} from \"@cssints/headless\";\nimport type { JSX } from \"@solidjs/web\";\n\nimport \"./button.css\";\n\n/**\n * APG button, styled: a command button, and a toggle button with `isToggle`.\n *\n * A native `<button>` carries the platform (Enter, Space, focus, pointer); the primitive adds the\n * APG contract — `aria-pressed` on a toggle, and `aria-disabled` rather than the native attribute,\n * so a disabled button stays focusable and reads out.\n *\n * `value` makes a toggle controlled; without it the button owns the state. `onValueChange` is a\n * request — a controlled host may ignore it.\n */\nexport interface ButtonProps extends Omit<ButtonOptions, \"id\"> {\n  readonly children?: JSX.Element;\n  /** The primitive, once: a scenario fixture needs it; a page rarely does. */\n  readonly onReady?: (button: ButtonController) => void;\n}\n\nexport const Button = (props: ButtonProps): JSX.Element => {\n  const button = createButton({\n    get isToggle() {\n      return props.isToggle;\n    },\n    get value() {\n      return props.value;\n    },\n    defaultValue: props.defaultValue,\n    get disabled() {\n      return props.disabled;\n    },\n    get onClick() {\n      return props.onClick;\n    },\n    get onValueChange() {\n      return props.onValueChange;\n    },\n  });\n  props.onReady?.(button);\n  return (\n    <button {...button.buttonProps} data-part=\"button\" class=\"ui-button\">\n      {props.children}\n    </button>\n  );\n};\n"
     },
     {
       "path": "button.css",

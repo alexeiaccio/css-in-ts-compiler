@@ -23,9 +23,16 @@
       "type": "registry:ui",
       "title": "Switch",
       "description": "APG switch on @cssints/headless, on the neutral theme, with its scenario test",
-      "dependencies": ["@cssints/headless"],
-      "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
-      "registryDependencies": ["@cssints/theme"],
+      "dependencies": [
+        "@cssints/headless"
+      ],
+      "devDependencies": [
+        "@cssints/apg-specs@^0.6.0",
+        "@quint-machine/core@0.1.0"
+      ],
+      "registryDependencies": [
+        "@cssints/theme"
+      ],
       "files": [
         {
           "path": "switch.tsx",
@@ -65,9 +72,16 @@
       "type": "registry:ui",
       "title": "Disclosure",
       "description": "APG disclosure on @cssints/headless, on the neutral theme, with its scenario test",
-      "dependencies": ["@cssints/headless"],
-      "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
-      "registryDependencies": ["@cssints/theme"],
+      "dependencies": [
+        "@cssints/headless"
+      ],
+      "devDependencies": [
+        "@cssints/apg-specs@^0.6.0",
+        "@quint-machine/core@0.1.0"
+      ],
+      "registryDependencies": [
+        "@cssints/theme"
+      ],
       "files": [
         {
           "path": "disclosure.tsx",
@@ -107,9 +121,16 @@
       "type": "registry:ui",
       "title": "Button",
       "description": "APG button and toggle button on @cssints/headless, on the neutral theme",
-      "dependencies": ["@cssints/headless"],
-      "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
-      "registryDependencies": ["@cssints/theme"],
+      "dependencies": [
+        "@cssints/headless"
+      ],
+      "devDependencies": [
+        "@cssints/apg-specs@^0.6.0",
+        "@quint-machine/core@0.1.0"
+      ],
+      "registryDependencies": [
+        "@cssints/theme"
+      ],
       "files": [
         {
           "path": "button.tsx",
@@ -149,9 +170,16 @@
       "type": "registry:ui",
       "title": "Checkbox",
       "description": "APG checkbox, including the mixed tri-state, on @cssints/headless",
-      "dependencies": ["@cssints/headless"],
-      "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
-      "registryDependencies": ["@cssints/theme"],
+      "dependencies": [
+        "@cssints/headless"
+      ],
+      "devDependencies": [
+        "@cssints/apg-specs@^0.6.0",
+        "@quint-machine/core@0.1.0"
+      ],
+      "registryDependencies": [
+        "@cssints/theme"
+      ],
       "files": [
         {
           "path": "checkbox.tsx",
@@ -191,9 +219,16 @@
       "type": "registry:ui",
       "title": "Radio group",
       "description": "APG radio group with roving tabindex or aria-activedescendant focus",
-      "dependencies": ["@cssints/headless"],
-      "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
-      "registryDependencies": ["@cssints/theme"],
+      "dependencies": [
+        "@cssints/headless"
+      ],
+      "devDependencies": [
+        "@cssints/apg-specs@^0.6.0",
+        "@quint-machine/core@0.1.0"
+      ],
+      "registryDependencies": [
+        "@cssints/theme"
+      ],
       "files": [
         {
           "path": "radio.tsx",
@@ -233,9 +268,16 @@
       "type": "registry:ui",
       "title": "Tabs",
       "description": "APG tabs: roving tabindex, automatic or manual activation, wrapped arrows",
-      "dependencies": ["@cssints/headless"],
-      "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
-      "registryDependencies": ["@cssints/theme"],
+      "dependencies": [
+        "@cssints/headless"
+      ],
+      "devDependencies": [
+        "@cssints/apg-specs@^0.6.0",
+        "@quint-machine/core@0.1.0"
+      ],
+      "registryDependencies": [
+        "@cssints/theme"
+      ],
       "files": [
         {
           "path": "tabs.tsx",
@@ -275,9 +317,16 @@
       "type": "registry:ui",
       "title": "Accordion",
       "description": "APG accordion: multiple or single expansion, headed triggers, collapsible",
-      "dependencies": ["@cssints/headless"],
-      "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
-      "registryDependencies": ["@cssints/theme"],
+      "dependencies": [
+        "@cssints/headless"
+      ],
+      "devDependencies": [
+        "@cssints/apg-specs@^0.6.0",
+        "@quint-machine/core@0.1.0"
+      ],
+      "registryDependencies": [
+        "@cssints/theme"
+      ],
       "files": [
         {
           "path": "accordion.tsx",
