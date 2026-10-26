@@ -1,13 +1,10 @@
-/* The panel is a frame inside the card that holds the disclosure: it takes the inner radius
-   from `--radius-frame` when the host sets one, and keeps the theme's small radius otherwise.
-   Every colour is a theme custom property. */
+/* Generated from disclosure.ts by scripts/component-css.ts. Do not edit. */
 .ui-disclosure {
   display: grid;
   gap: var(--space-2);
   font-size: var(--font-size);
   color: var(--color-text);
 }
-
 .ui-disclosure__trigger {
   display: flex;
   align-items: center;
@@ -22,34 +19,32 @@
   text-align: start;
   cursor: pointer;
 }
-
 .ui-disclosure__trigger:hover {
   background: var(--color-button-background);
 }
-
 .ui-disclosure__trigger:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
-
 .ui-disclosure__chevron {
   width: 0;
   height: 0;
-  border-block: 0.3rem solid transparent;
-  border-inline-start: 0.4rem solid currentColor;
+  border-block-width: 0.3rem;
+  border-block-style: solid;
+  border-block-color: transparent;
+  border-inline-start-width: 0.4rem;
+  border-inline-start-style: solid;
+  border-inline-start-color: currentColor;
   transition: rotate 120ms ease;
 }
-
 .ui-disclosure__trigger[aria-expanded="true"] .ui-disclosure__chevron {
   rotate: 90deg;
 }
-
 .ui-disclosure__panel {
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
   color: var(--color-muted);
 }
-
 .ui-disclosure__panel[hidden] {
   display: none;
 }

@@ -1,21 +1,17 @@
-# cssints ui
+# The starters' site
 
-The neutral theme of the styled starters: a 16-step gray scale and a tint scale built from one hue and one chroma, the
-semantic colours of React Aria's starter theme (text, placeholder, disabled, link, borders, fields, button and highlight,
-invalid, the focus ring, the overlay and the popover shadow), dark mode as the same lightness scale turned over,
-`forced-colors` for Windows high contrast, spacing in 4px steps, radii 6/8/10/16 and text at 14/12/16px with the 200dpi bump.
-`src/theme.ts` is the whole theme; `src/main.tsx` is one switch from `@cssints/headless` wearing it, and the pairs a reader
-meets on a page (text, muted text, links, placeholders, the highlight) are held to WCAG in the build by `check.contrast`.
+The registry items, one page each: a live preview on the neutral theme, the source that ships, the add command, a tint
+picker and the preflight result the published copy passed. `src/docs/catalog.ts` reads the registry build (`r/*.json`), so
+a page cannot describe an item that was not generated.
 
-The theme is neutral because the tint is the gray, `--hue-tint` and `--chroma-tint` both 0. A preset is those two numbers:
-the reference's indigo ships as `[data-tint="indigo"]`, and the rest are a line each from its `theme.css` (red is
-`27.0726`/`0.181447`, blue `266.315`/`0.22049`). The scale is written as derived tokens
-(`oklch({lightness.1200} {chroma.tint} {hue.tint})`) rather than the reference's relative colours
-(`oklch(from var(--tint) …)`) because `check.contrast` cannot evaluate a relative colour: it warns where it cannot compute,
-and a theme that cannot fail its own check is not checked.
+- `bun run dev` — the site and the components' browser tests share `vitest.browser.config.ts`; `bun run test` runs the
+  conformance of every starter in this directory and of any copy in `src/components/ui/`.
+- `node scripts/registry-json.ts` — regenerates `r/<name>.json`, `r/registry.json` and `public/llms.txt` after a component
+  or its styles change. Publishing is `apps/registry-host` in effects-of-atmosphere: it builds each item into one signed
+  `ing.lexicon.plugin.release`, runs the copied test first, and stages the artifacts.
+- `node scripts/starter-smoke.mjs` — copies `templates/solid-vite` into a temporary project, installs it, adds
+  `@cssints/switch` from the live registry and runs the copied test: the whole chain a reader meets.
 
-Portions restate React Aria's starter theme, licensed under the Apache License 2.0; see [NOTICE](NOTICE).
-
-The switch in `src/main.tsx` is styled the way the starters will be: `surface()` for colour (the page is the outermost
-surface, the card is it lightened, the row is the card darkened) and `frame()` for the padding and the radius — the card
-names 16px, the row inherits the inner 7px with no radius of its own. Neither is a fixed value per element.
+The theme (`src/registry/theme.ts`, `tokens.ts`) is compiled to plain custom properties by `scripts/theme-css.ts`; the
+starters' own sheets read those variables and never a cssints macro, because a copied component has to run in a test
+runner as well as in a build.

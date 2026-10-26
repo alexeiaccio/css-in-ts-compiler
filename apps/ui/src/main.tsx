@@ -1,34 +1,14 @@
 import "virtual:cssints.css";
 
 // The registry theme, compiled: plain custom properties, so a copied component reads the same
-// values the demo page does.
+// values the docs page does.
 import "./registry/theme.css";
 
+import { Docs } from "./docs/app.tsx";
 import { render } from "@solidjs/web";
-import { createSignal } from "solid-js";
 
-import { Disclosure } from "./registry/disclosure/disclosure.tsx";
-import { Switch } from "./registry/switch/switch.tsx";
-import { card, page, row } from "./page.ts";
-
-const Page = () => {
-  const [checked, setChecked] = createSignal(true);
-  return (
-    <div class={page}>
-      <div class={card}>
-        <div class={row}>
-          <Switch value={checked()} onValueChange={setChecked}>
-            {checked() ? "On" : "Off"}
-          </Switch>
-          <Disclosure summary="Details">The panel a disclosure shows.</Disclosure>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// The build runs this module to collect its classes, and there it is the server build of Solid, which has no render: only the
-// page mounts.
+// The build runs this module to collect its classes, and there it is the server build of Solid,
+// which has no render: only the page mounts.
 if (!import.meta.env.SSR) {
-  render(() => <Page />, document.getElementById("root")!);
+  render(() => <Docs />, document.getElementById("root")!);
 }

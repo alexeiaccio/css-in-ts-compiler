@@ -79,7 +79,7 @@ describe("Disclosure x ported scenarios (real DOM)", () => {
 describe("Disclosure x spec (differential walk)", () => {
   // an uncontrolled primitive, then a controlled host that accepts every
   // request, one that pins the value (rejects), and one that pins it while disabled
-  for (const config of [
+  const CONFIGS: ReadonlyArray<ScenarioConfig> = [
     {},
     { defaultExpanded: true },
     { disabled: true },
@@ -87,7 +87,8 @@ describe("Disclosure x spec (differential walk)", () => {
     { controlled: true, initialOpen: true },
     { controlled: true, expanded: false },
     { controlled: true, expanded: true, disabled: true },
-  ]) {
+  ];
+  for (const config of CONFIGS) {
     it(`matches the generated model for ${JSON.stringify(config)}`, async () => {
       await differentialWalk({
         alphabet: disclosureSteps,

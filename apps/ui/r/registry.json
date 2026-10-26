@@ -100,6 +100,216 @@
           "type": "registry:file"
         }
       ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "button",
+      "type": "registry:ui",
+      "title": "Button",
+      "description": "APG button and toggle button on @cssints/headless, on the neutral theme",
+      "dependencies": ["@cssints/headless"],
+      "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "button.tsx",
+          "target": "src/components/ui/button.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "button.css",
+          "target": "src/components/ui/button.css",
+          "type": "registry:file"
+        },
+        {
+          "path": "button.fixture.tsx",
+          "target": "src/components/ui/button.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "dom-driver.ts",
+          "target": "src/components/ui/dom-driver.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "button.browser.test.tsx",
+          "target": "src/components/ui/button.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "checkbox",
+      "type": "registry:ui",
+      "title": "Checkbox",
+      "description": "APG checkbox, including the mixed tri-state, on @cssints/headless",
+      "dependencies": ["@cssints/headless"],
+      "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "checkbox.tsx",
+          "target": "src/components/ui/checkbox.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "checkbox.css",
+          "target": "src/components/ui/checkbox.css",
+          "type": "registry:file"
+        },
+        {
+          "path": "checkbox.fixture.tsx",
+          "target": "src/components/ui/checkbox.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "dom-driver.ts",
+          "target": "src/components/ui/dom-driver.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "checkbox.browser.test.tsx",
+          "target": "src/components/ui/checkbox.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "radio",
+      "type": "registry:ui",
+      "title": "Radio group",
+      "description": "APG radio group with roving tabindex or aria-activedescendant focus",
+      "dependencies": ["@cssints/headless"],
+      "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "radio.tsx",
+          "target": "src/components/ui/radio.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "radio.css",
+          "target": "src/components/ui/radio.css",
+          "type": "registry:file"
+        },
+        {
+          "path": "radio.fixture.tsx",
+          "target": "src/components/ui/radio.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "dom-driver.ts",
+          "target": "src/components/ui/dom-driver.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "radio.browser.test.tsx",
+          "target": "src/components/ui/radio.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "tabs",
+      "type": "registry:ui",
+      "title": "Tabs",
+      "description": "APG tabs: roving tabindex, automatic or manual activation, wrapped arrows",
+      "dependencies": ["@cssints/headless"],
+      "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "tabs.tsx",
+          "target": "src/components/ui/tabs.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "tabs.css",
+          "target": "src/components/ui/tabs.css",
+          "type": "registry:file"
+        },
+        {
+          "path": "tabs.fixture.tsx",
+          "target": "src/components/ui/tabs.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "dom-driver.ts",
+          "target": "src/components/ui/dom-driver.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "tabs.browser.test.tsx",
+          "target": "src/components/ui/tabs.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "accordion",
+      "type": "registry:ui",
+      "title": "Accordion",
+      "description": "APG accordion: multiple or single expansion, headed triggers, collapsible",
+      "dependencies": ["@cssints/headless"],
+      "devDependencies": ["@cssints/apg-specs@^0.6.0", "@quint-machine/core@0.1.0"],
+      "registryDependencies": ["@cssints/theme"],
+      "files": [
+        {
+          "path": "accordion.tsx",
+          "target": "src/components/ui/accordion.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "accordion.css",
+          "target": "src/components/ui/accordion.css",
+          "type": "registry:file"
+        },
+        {
+          "path": "accordion.fixture.tsx",
+          "target": "src/components/ui/accordion.fixture.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "dom-driver.ts",
+          "target": "src/components/ui/dom-driver.ts",
+          "type": "registry:file"
+        },
+        {
+          "path": "accordion.browser.test.tsx",
+          "target": "src/components/ui/accordion.browser.test.tsx",
+          "type": "registry:file"
+        },
+        {
+          "path": "src/vitest.browser.config.ts",
+          "target": "src/vitest.browser.config.ts",
+          "type": "registry:file"
+        }
+      ]
     }
   ]
 }

@@ -1,5 +1,4 @@
-/* Every value is a theme custom property: a switch inside a rethemed page follows it, and
-   nothing here names a colour of its own. */
+/* Generated from switch.ts by scripts/component-css.ts. Do not edit. */
 .ui-switch {
   box-sizing: border-box;
   display: flex;
@@ -13,22 +12,18 @@
   color: var(--color-text);
   cursor: pointer;
 }
-
 .ui-switch[aria-checked="true"] {
   background: var(--color-highlight);
   color: var(--color-on-highlight);
   justify-content: flex-end;
 }
-
 .ui-switch[aria-disabled="true"] {
   cursor: not-allowed;
 }
-
 .ui-switch:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
-
 .ui-switch__thumb {
   display: block;
   width: 1.25rem;
@@ -36,7 +31,6 @@
   border-radius: 999px;
   background: var(--color-surface);
 }
-
 .ui-switch__label {
   padding-inline: var(--space-2);
 }

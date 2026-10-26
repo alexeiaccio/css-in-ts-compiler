@@ -71,7 +71,7 @@ describe("Switch x ported scenarios (real DOM)", () => {
 });
 
 describe("Switch x spec (differential walk)", () => {
-  for (const config of [
+  const CONFIGS: ReadonlyArray<ScenarioConfig> = [
     {},
     { defaultChecked: true },
     { disabled: true },
@@ -81,7 +81,8 @@ describe("Switch x spec (differential walk)", () => {
     { checked: true },
     { isSelected: false },
     { isSelected: true, disabled: true },
-  ]) {
+  ];
+  for (const config of CONFIGS) {
     it(`matches the generated model for ${JSON.stringify(config)}`, async () => {
       await differentialWalk({
         alphabet: switchSteps,

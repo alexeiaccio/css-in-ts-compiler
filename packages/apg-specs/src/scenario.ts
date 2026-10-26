@@ -168,7 +168,9 @@ const ScenarioFile = Schema.Struct({
 export type ScenarioFile = typeof ScenarioFile.Type;
 
 /** Decode a scenario JSON document (the trust boundary for ported data). */
-export const parseScenarioFile = (input: Schema.Json): ScenarioFile =>
+// `unknown`, not `Schema.Json`: a scenario file arrives as a JSON import, whose type has no index
+// signature, and the schema below is the check that matters.
+export const parseScenarioFile = (input: unknown): ScenarioFile =>
   Schema.decodeUnknownSync(ScenarioFile)(input);
 
 /** A step or observation the target does not model. Skips, never fails. */
