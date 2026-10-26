@@ -45,6 +45,11 @@ export const FIELDS = {
   TRANSLATE_X: 48, // ... and moved by this many px (0 = none): ui.c's FIELD_TRANSLATE_X, a renderer transform
   TRANSLATE_Y: 49, // its y, as an entry's 12px drop or a card's arrival: ui.c's FIELD_TRANSLATE_Y
   GRADIENT_ALPHA: 50, // the opacity of the element's background image (a gradient): ui.c's FIELD_GRADIENT_ALPHA
+  // a text's own colour (its packed fields 0..3), which its parent's box does not hold: `ui.value` on the id of a
+  // `<text id="...">`, read by `ui_text`. A text without an id cannot be named, so its colour is its style's literal:
+  TEXT_COLOR: 51, // 51-54: r, g, b, a; ui.c's FIELD_TEXT_COLOR_R/G/B/A
+  TEXT_COLOR_ALPHA: 54,
+  ROTATE: 55, // degrees, about the element's box centre, beside its group's scale and translate: ui.c's FIELD_ROTATE
 } as const;
 
 const SIZING = { FIT: 0, GROW: 1, PERCENT: 2, FIXED: 3 } as const;

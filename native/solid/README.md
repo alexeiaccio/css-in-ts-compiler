@@ -91,10 +91,10 @@ with an `id`: Clay tells whether the pointer is over it. `onClick` runs on relea
 | `ui_init_gpu(w, h)` | the same on ThorVG's WebGPU canvas (`--raster thorvg-gpu`); only a `libui.dylib` from `desktop/build-thorvg-gpu.sh solid` |
 | `ui_begin(px, py, down, dt)` | pointer for this frame, then Clay's scroll containers move by the wheel this frame took (`Clay_UpdateScrollContainers(false, delta, dt)`, before the layout), then `Clay_BeginLayout` |
 | `ui_open(id, len, f32[45])` | open an element; `id` NULL for none; the style as below |
-| `ui_value(id, len, field, f32)` | an override of one number of that element's style for this frame: a packed field 0..44 (the table below), 45 its shadow's blur, or 46/47 its whole subtree's alpha and scale (a ThorVG scene of its own: `FIELDS.ALPHA`, `FIELDS.SCALE`, the section below). `ui_open` declares from a copy of the 45 floats with the frame's overrides applied; the table is cleared in `ui_begin`, 64 overrides a frame (`src/pack.ts`'s `FIELDS` names the ones a page uses; `src/motion.ts`'s `channel(write)` writes one element's fields in one call) |
+| `ui_value(id, len, field, f32)` | an override of one number of that element's style for this frame: a packed field 0..44 (the table below), 45 its shadow's blur, 46/47 its whole subtree's alpha and scale (a ThorVG scene of its own: `FIELDS.ALPHA`, `FIELDS.SCALE`, the section below), 48/49 its subtree's translate, 50 the opacity of its background image, 51..54 the colour of the **text** with that id (a text's own floats, not its box's: `FIELDS.TEXT_COLOR`) and 55 its subtree's rotation in degrees (`FIELDS.ROTATE`). `ui_open` declares from a copy of the 45 floats with the frame's overrides applied, `ui_text` from a copy of its 10; the table is cleared in `ui_begin`, 64 overrides a frame (`src/pack.ts`'s `FIELDS` names the ones a page uses; `src/motion.ts`'s `channel(write)` writes one element's fields in one call) |
 | `ui_image(bytes, len)` | the image of the element the next `ui_open` declares (a `css.image` style): the path as UTF-8, no terminator. Interned once per distinct path, so the renderer's picture cache (keyed by that pointer) sees one address every frame |
 | `ui_shadow(x, y, blur, r, g, b, a)` | the shadow of the element the next `ui_open` declares (a `css.shadow` style): Clay has no shadow field, so it waits here and the element id's hash carries it to the renderer's table (one a frame, 32 at most, one draw an element) |
-| `ui_text(bytes, len, f32[10])` | a text element; the bytes are copied for the frame |
+| `ui_text(id, id_len, bytes, len, f32[10])` | a text element, with an id or NULL: with one, the text's colour can be moved through `ui_value` (fields 51..54, applied to a copy of its 10 floats). The bytes are copied for the frame |
 | `ui_close()` | close the element |
 | `ui_pointer_over(id, len)` | Clay's `Clay_PointerOver`, on the last frame's layout |
 | `ui_end(dt)`, `ui_draw()` | `Clay_EndLayout` (returns the command count), then the frame's hash; ThorVG draws the commands into the buffer |
@@ -180,11 +180,30 @@ as one ThorVG scene — its opacity, a scale about its box centre and a visual o
 element's own background image: 255 is the gradient alone, as an opaque one has always been drawn; below it the gradient
 is composited over the box's solid fill, which is how two gradients cross-fade through the colours between them.
 
+**`FIELDS.ROTATE` (55)** is the fifth number of that scene: degrees about the same box centre, composed with the scale
+and the translate into one matrix — **scale, then rotate, then translate**, `x' = s·R·(x - c) + c + t`. ThorVG's matrix
+is read as `x' = x·e11 + y·e12 + e13`, `y' = x·e21 + y·e22 + e23` (`tvg::operator*` in its `tvgMath.cpp`; the third row
+is unused), so the linear part is `s·R(θ)` in `e11/e12/e21/e22` and the third column is `c + t - (s·R)·c`. A positive
+angle turns clockwise on screen (y runs down), a page's tilt is its sign, and a rotation of exactly 0 takes the scale's
+own matrix expression, not the rotation's arithmetic for 0°, so a page that never leans keeps the frames it had
+(`c·(1 - s)` and `c - s·c` round differently; measured: 1-level shifts in three glyph pixels of the scaled panel).
+The order is proved on a hand-built non-square box (`dialog.test.ts`): a 200x40 box at the root with `SCALE` 0.5,
+`ROTATE` 90° and `TRANSLATE_X` 40 draws the rect x 130..150, y -30..70 — the long side stood up about the centre (100,
+20) and the 40px after the rotation, unscaled (a translate taken before the transform would put it at x 110..130).
+
+**A text's colour is the one field a box does not have**, so it is the table's other kind of target: `FIELDS.TEXT_COLOR`
+(51..54, rgba) names a **text** element, and `ui_text` applies it to a copy of its own 10 floats — with the id of the
+`<text id="...">` (`ui_text`'s first argument; a text with no id is anonymous and cannot be named, so its colour is its
+style's literal and cannot be animated). A text's colour is not in its parent's box, which is why the group's opacity
+fades a text but a colour transition needed this. Clay's text command carries the colour, so `ui_hash` sees it and the
+frame draws.
+
 Naming them is `pack.ts`'s `FIELDS`: `OFFSET_X` 38 and `OFFSET_Y` 39 of a float, `EXPAND_W`/`EXPAND_H` 40/41, `Z_INDEX`
 42, `CAPTURE` 43 (a closing overlay sets it to 1, passthrough, so the page under it takes the press), `RADIUS` 18 (the
 four corners), `BACKGROUND` 14 (rgba) and `BACKGROUND_ALPHA` 17 (the dim of a backdrop), `BORDER` 26 and `BORDER_ALPHA` 29
-(a tab's 2px underline, and the alpha it fades by), `PADDING` 6, `GAP` 10, `WIDTH` 0, `HEIGHT` 3, `GRADIENT_ALPHA` 50. The
-first group is what reads as motion; width, height, padding, gap and the colours are legal but Clay lays the page out
+(a tab's 2px underline, and the alpha it fades by), `PADDING` 6, `GAP` 10, `WIDTH` 0, `HEIGHT` 3, `GRADIENT_ALPHA` 50,
+`TEXT_COLOR` 51 (`TEXT_COLOR_ALPHA` 54) and `ROTATE` 55. The first group is what reads as motion; width, height, padding,
+gap and the colours are legal but Clay lays the page out
 from the declaration each frame, so a changing one re-lays-out the element's parent and its siblings — a layout change,
 not a transform. The cost is a 180-byte copy per overridden element and one scan of the table per `ui_open` on a frame
 that uses it.
@@ -197,15 +216,19 @@ in its parent's floats). `ui_open`/`ui_close` keep the frame's tree of `{id, par
 declaration hands its node to Clay as `userData` (index + 1), so each command says which element it belongs to. Clay's
 commands are in depth-first order, so a subtree's commands are contiguous: a group's range is the min and max command
 index whose element is that node or a descendant. The renderer opens a scene at the first command of the range, gives it
-`tvg_paint_set_opacity` and one matrix at the last one, and adds it to the scene that was current when it opened; the
-element's shadow is drawn inside it. A group at 255, scale 1 and no offset makes no scene. Four groups may be open at
+`tvg_paint_set_opacity` and one matrix (scale, rotation, translate: above) at the last one, and adds it to the scene that
+was current when it opened; the element's shadow is drawn inside it. A group at 255, scale 1, no offset and no rotation
+makes no scene. Four groups may be open at
 once, 16 a frame, eight nested scissors; a backdrop's cut inside a group settles it into pass 1 and makes it again after
-the cut.
+the cut. The **dither's** mark of a gradient's area and a clip's rect are axis-aligned maps of the groups around them, so
+a gradient or a clip inside a *rotated* group is stippled as its unrotated box would be: no page has one (the Dialog's
+menu, the one rotated group, has neither).
 
 ### `ui_text` fields (`packText`)
 
 0-3 colour r g b a, 4 fontId, 5 fontSize, 6 letterSpacing, 7 lineHeight, 8 alignment (0 left, 1 centre, 2 right),
-9 wrap (0 words, 1 newlines, 2 none).
+9 wrap (0 words, 1 newlines, 2 none). The colour is also the value channel's `FIELDS.TEXT_COLOR` (51..54) when the text
+carries an id; nothing else of the 10 moves.
 
 ## Keys, focus and the Widgets page
 
@@ -358,6 +381,14 @@ shadow's blur `0` → `14` on `effect(0.22)`; the dialog drops in: offset y `-14
 The blur takes the `effect` class because a blur has no negative side and must not ring in a luminance field, the offset
 `spatial` because position may carry a little velocity.
 
+The menu also **leans**: `FIELDS.ROTATE` (55) `-2°` → `0` on the same `spatial(0.22, 0.1)` as its scale, in the same
+scene (`ALPHA` 225 → 255, `SCALE` 96 → 100), so it settles out of a tilt as it slides out of its trigger. It is a scene
+transform: `ui.bounds` is the style's box on every frame (x, width and height are the literal's, only the float's offset
+moves y) while the drawn top edge is 5px out of horizontal over the menu's 150px. On the way out it leans back to -2°
+on `spatial(0.2, 0)`, though the fade to 0 is faster than the lean: by the fourth frame of the exit the border is under
+the brightness a pixel check needs (measured: 129 → 117 of the muted border's 155 by the third frame, nothing by the
+fourth) — the lean is there, it just has little ink left to show it.
+
 A node that leaves stays in the tree while it leaves (`presence` in `src/motion.ts`): the page's tick asks
 `presence(open, 0.35)` for each overlay, keeps a signal of its `mounted` answer and puts it on `Show`, so closing runs
 the same tracks the other way — the panel's offset y `0` → `14` on `spatial(0.2, 0)` and its blur `32` → `0`, the
@@ -377,7 +408,7 @@ no frame with the panel in it.
 | `dialog-open` | Tab Enter, settled | the dimmed page and the dialog centred on it, ring on Cancel, `Volume` still 40% |
 | `dialog-light` | Tab Enter, settled, `THEME=light` | the same in the light theme: a white dialog over a greyed page |
 | `dialog-menu` | Tab Tab Enter, settled | the menu hanging off the Zoom trigger's left-bottom corner, ring and dot on `100%`, the trigger's `-` |
-| `dialog-menu-mid` | Tab Tab Enter, 3 frames after the key | the menu 7.4px lower than it rests (offset -12.58), its shadow at about a fifth of its blur |
+| `dialog-menu-mid` | Tab Tab Enter, 3 frames after the key | the menu 7.4px lower than it rests (offset -12.58), its shadow at about a fifth of its blur, and its top edge out of horizontal: the border's inset from the box's left 60px against 8px from its right |
 | `dialog-exit-mid` | Tab Enter Escape, 3 frames after the key | the panel 3.94px below its place, its shadow at 22.9 of 32, the page behind it at 100.6 of the 140 dim |
 
 Checked by `bun solid/dialog.test.ts`: opening by click and by keyboard, the trap's two-control cycle, the page's trigger
@@ -388,6 +419,16 @@ picking, and the motion: the menu's offset `-10.00, -10.85, -12.58, -14.42, -16.
 -19.64, -19.82, -19.92, -19.97, -20.00` and at rest exactly its style's -20, every frame towards it and none past it,
 the shadow with no blur on its first frame (the page beside it) and its blur darkening that page 18.0 → 13.9 as it
 settles, and the dialog's drop `149.88, 151.07, 153.49, … 163.88` finite and still.
+
+The lean is measured on the pixels: the menu's border is the one near-grey bright line of the glass, so a row one pixel
+below the box's top finds it on the left and on the right, each as an inset from the box's edge — `112/11` on the frame
+it opens on, `108/10`, `60/8`, `25/7` as the lean decays and `5/5` at rest, the two corner arcs' own. Its box is
+`40,·,150,133` on every frame of that (x, width and height the literal's; y is the float's offset alone), and the exit
+leans back: `5/5`, `6/6`, `6/5`, `22/116` on the first four frames after Escape (the fade then takes the ink past what
+a border check can see). The matrix itself is proved on a hand-built non-square box in the same file: a 200x40 box at the
+root with `SCALE` 0.5, `ROTATE` 90° and `TRANSLATE_X` 40 is drawn as the rect x 130..150, y -30..70 — the long side stood
+up about the centre (100, 20) and the 40px after the rotation, unscaled (a translate before the transform would put it at
+x 110..130, and no rotation at x 40..140); its `ui.bounds` is still 200x40.
 
 The exits and presence (`presence`, `channel`, `setReducedMotion` in `src/motion.ts`):
 the panel's offset y `163.88, 165.24, 167.82, 170.39, 172.54, 174.18, 175.37, 176.20, 176.77, 177.16, 177.41, 177.58,
@@ -413,6 +454,9 @@ sits at the settled place, only its shadow band differing; `ui.c` is compared wi
 Dropping the presence (mounting the dialog on `dialog.open()` again, so it unmounts on close) fails `FAIL the panel is
 still in the layout right after Escape: false, wanted true`, with every sampled y `NaN` and the title already `230`
 (the dim gone in the same frame) — `Dialog.tsx` is compared with its backup after the revert.
+Dropping the `FIELDS.ROTATE` write (so the tilt track is computed and never reaches the scene) fails `FAIL mid-lean the
+top edge is not horizontal: the border's two insets differ: false, wanted true` with the insets `NaN/NaN, NaN/NaN, 9/9,
+7/7` — the flat edge — and nothing else in the test.
 
 ## The Text field page
 
@@ -529,7 +573,7 @@ post count, or the card a click selected.
 | Scrolling | the feed's offset is a page-owned motion track (`solid/src/motion.ts`): a wheel notch is 10px on a spring that glides it, a burst of notches is a flick whose decay lands (clamped) at the end, and one Tab stop on the feed retargets the same track with Down/Up 40px, PageDown/PageUp a viewport and Home/End. The page turns `ui_auto_scroll` off, so Clay's own container does not also move; `ui.scrollTo("sky-feed", -x)` puts the value on it each frame. Discover's three short posts fit the 664px viewport (max 0), so the wheel frame and the test scroll **Science** (742px of content, 78px of travel). |
 | The rubber band | a notch past an end is a **pull** of that end, not a scroll: while the content is at the end (or already past it) the wheel moves it by Rune's and iOS's resistance, `f(x) = (1 - 1/(x·c/d + 1))·d` with `c = 0.55` and `d` the viewport's 664 (`motion.ts`'s `rubber`); `x` is the raw overshoot the notches have accumulated, so the first 10px past the end move 5.45 and the 40th only 21.29. Eight frames without a notch — 80ms — and it springs back on `spatial(0.35, 0.1)` to the clamp, settling exactly on it; a key drops it at once; a notch the other way walks it back. A notch that only *reaches* the end while the content is still travelling there is a scroll like any other (the flick's clamp), so nothing jumps. The band goes on Clay's clip element through `ui_scroll_put` (the unclamped sibling of `ui_scroll_to`, since Clay's own clamp is the content's). Reduced motion has no band: the wheel is clamped hard. |
 | The entry | on mount (once — a tab switch draws its feed at rest) every card starts 12px low and at 0 opacity and settles on its literals in 0.3s: `TRANSLATE_Y` on `spatial(0.3)` and `ALPHA` on `effect(0.3)`, the group of the element's whole subtree, so not one box moves (`ui_bounds` is the settled one on the first frame). Each card starts 50ms (3 frames) after the one above it. Reduced motion starts no track at all: the settled frame at once. |
-| Hover | the card's and the tab's hover is a 120ms fade (`effect`), not a style switch. The card fades its four background floats from the panel tone to the hover tone **and** its gradient's opacity (`GRADIENT_ALPHA`), so the resting gradient fades out under the hover one: the card alternates two styles (`card`, `cardHover`) and the page keeps the hover one while the fade runs either way (a `:hover` state would drop the gradient the moment the pointer left). A tab has no gradient, so its four channels are enough; a tab's 2px underline is its own border colour (`BORDER_ALPHA`), which fades in on the tab that becomes active and out of the one that was — a colour, not a slide. A text's colour is not in its box's floats: the label swaps style instead. The ends are read from the packed variants under the frame's theme, so the light palette fades between its own tones; a selected card keeps `cardOn` and does not fade. |
+| Hover | the card's and the tab's hover is a 120ms fade (`effect`), not a style switch. The card fades its four background floats from the panel tone to the hover tone **and** its gradient's opacity (`GRADIENT_ALPHA`), so the resting gradient fades out under the hover one: the card alternates two styles (`card`, `cardHover`) and the page keeps the hover one while the fade runs either way (a `:hover` state would drop the gradient the moment the pointer left). A tab has no gradient, so its four channels are enough; a tab's 2px underline is its own border colour (`BORDER_ALPHA`), which fades in on the tab that becomes active and out of the one that was — a colour, not a slide. **The label beside the underline fades too**: a text's colour is not in the tab's box's floats, so the `<text id="sky-tabs-label-i">` carries an id and the page fades the text's own four floats (`FIELDS.TEXT_COLOR`, 51..54) on `effect(0.15)`, muted → accent on the tab that becomes active and back on the one that was, retargeted from the presented colour, so the label and its underline move together. A label that has settled writes nothing: its literal is the end it is on (the page swaps `tabText`/`tabTextOn` at the switch, and Clay's text command carries the colour, so the fading frames draw and the settled one is the literal's). The ends are read from the packed variants under the frame's theme, so the light palette fades between its own tones; a selected card keeps `cardOn` and does not fade. |
 
 | Frame | Keys | Shows |
 | --- | --- | --- |
@@ -540,6 +584,7 @@ post count, or the card a click selected.
 | `sky-entry` | `--settle 9` | ten frames in: the three cards arriving, 2, 4 and 10px of their 12 below their boxes, translucent, each further behind the one above it |
 | `sky-hover` | `--settle 40 --move 180 300 3` | the pointer on the second card three frames into its 120ms fade: its colour between the panel and the hover tone |
 | `sky-band` | `--warm 40 --wheel 4 --wheel-over sky-status` | Discover four notches past its end (its content is shorter than the viewport, so the first notch is already past it): the cards 21.3px out of the clamp, the top one cut, the bar and status unmoved |
+| `sky-tab-mid` | `--warm 40 --keys Tab,ArrowRight --settle 2` | a tab switch two frames in: the ring on Science, its label between the muted token and the accent (`139/152/165 → 126/152/176`), Discover's label going the other way, both underlines mid-fade |
 
 Checked by `bun solid/sky.test.ts`: `ago()`/`num()`, the bar 64 / feed 664 / status 32 layout with 8px card gaps, the
 avatars' pixels (the panel at the box's corner where the PNG is transparent, the head's tint at the middle, the author's
@@ -551,7 +596,10 @@ stagger is there — and the last frame is the literal's; reduced motion draws t
 (a mid frame strictly between the resting and the hover colour, the colour continuing the same way, the leave the same
 path back to the literal, and a quick leave and re-enter whose widest frame is 3/255), **the tab's underline** (a mid
 frame of the new tab's a blend of the page and the ring, the old one's a blend of the accent and the page, the tabs'
-boxes unmoved, then the ring and the page), **the rubber band** (four notches past 78 land at 99.29 = the formula's
+boxes unmoved, then the ring and the page), **the label's colour** (the ink's core found as the pixel furthest from the
+page: `139/152/165` muted at rest, `126/152/176`, `106/153/195`, `89/154/211`, `77/155/222` and then exactly the accent
+`59/156/240` on the new tab, the old one the same path back to the muted token, a quick switch back inside the two ends
+with its widest frame 15/255), **the rubber band** (four notches past 78 land at 99.29 = the formula's
 21.29 of the raw 40, a notch back walks it to 97.95, it is still out of the end for four frames and back on the clamp 22
 frames later, a flick into the end never steps more than 20px and rests at 78, and reduced motion clamps hard), one wheel
 notch gliding `2.59, 1.92, 1.42…` px a frame to exactly 10 (the bar and status still), eight notches flinging to the
@@ -567,8 +615,11 @@ motion (a retarget settled in the call that makes it, a presence that does not w
 and the body are the panel `[23,27,32]`, not `[99,178,255]`/`[74,132,214]`). Making the body `nowrap` fails the wrap
 asserts (alexjungle's body 20px, Erik's 60, David's 20) and, because the Science content then shrinks to 678, the scroll
 asserts too (the offset stops at -14). `Track.retarget` resetting `v0` to 0 after sampling fails the mid-flight block
-(`FAIL and it turns the throw back: the rest is 64, ten px above the 74 it was heading to: 27.87, wanted 64.05`). Both
-files are compared with their backup after the revert.
+(`FAIL and it turns the throw back: the rest is 64, ten px above the 74 it was heading to: 27.87, wanted 64.05`).
+Dropping the four `FIELDS.TEXT_COLOR` writes (the label keeps its style's literal and never fades) fails `FAIL and the
+next frame is strictly between the muted token and the accent: false, wanted true` with every frame of both labels at
+their ends (`59/156/240` and `139/152/165` throughout), and three more of that block. All files are compared with their
+backup after the revert.
 
 **What is not here.** No fetching and no paging: one recorded fixture per feed (three posts), News empty as in the app.
 No thread screen, so a card click only selects. No images in post media — the media is a line (`[image]`, `[image: …]`,

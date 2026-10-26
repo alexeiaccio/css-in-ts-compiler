@@ -196,8 +196,9 @@ const SLIDE = spatial(0.22, 0.1); // a light bounce: the overlay grows out of it
 const BLUR = effect(0.22); // a blur has no negative side and must not ring: clamped and critically damped
 const OUT_SLIDE = spatial(0.2, 0); // the exit: no bounce, a node on its way out may not overshoot where it came from
 const OUT = effect(0.2); // ... and its blur and the dim: a luminance field goes out quietly, clamped
-// the group: the panel and the menu fade and grow as one subtree (`FIELDS.ALPHA`/`SCALE`). The scale is a percentage of
-// the element's box, not a fraction: a track's settle rule is 0.5 of its own unit, so 0.96..1 would settle on its first
+// the group: the panel and the menu fade and grow as one subtree (`FIELDS.ALPHA`/`SCALE`), and the menu leans out of a
+// tilt as it comes (`FIELDS.ROTATE`). The scale is a percentage of the element's box, not a fraction: a track's settle
+// rule is 0.5 of its own unit, so 0.96..1 would settle on its first
 // sample — 96..100 settles at 99.5, a 0.5% snap nobody sees. The entry may carry a little velocity (spatial), the exit
 // must not overshoot; the opacity is an effect, as every luminance field here. It fades from ENTRY_FADE, not from 0: a
 // panel at half opacity over the page's own text double-exposes, and the dim behind is doing the darkening — a nearly
@@ -206,6 +207,11 @@ const GROW = spatial(0.22, 0.1);
 const SHRINK = spatial(0.2, 0);
 const ENTRY_SCALE = 96; // percent: the panel and the menu start 4% small
 const ENTRY_FADE = 225; // of 255: the group starts at 88% opacity: a fade that does not double-expose the page under the panel
+// the menu's tilt, in degrees: it settles out of a small counter-clockwise lean as it slides out of its trigger (and
+// leans back on the way out), the one rotation in the value channel (`FIELDS.ROTATE`, about the menu's box centre). It is
+// a scene transform as the scale is: `ui.bounds` does not move. 2° over the menu's 150px is 5px of top edge, which reads
+// as a settle rather than as a spin; larger reads as a wobble in the frames.
+const MENU_TILT = -2;
 // where each arrival starts and where each exit goes, in px from the settled offset y: the menu 10px lower (under its
 // trigger) on the way in and 10px lower on the way out, the panel 14px higher in and 14px lower out, and both shadows
 // from 0 in and to 0 out
@@ -223,9 +229,10 @@ const write = channel((id, field, value) => ui.value(id, field, value));
  * One overlay's numbers: the settled offset y of its float (the style's literal), the deltas it comes in and goes out
  * by, the settled blur of its shadow, and — the backdrop's only — the alpha of its dim. The presence decides whether it
  * is in the tree, the tracks what it looks like, and both are the page's because a track's clock is. An overlay with no
- * dim is a group: its whole subtree fades (`fade`, 0..255) and scales (`scale`, percent) about its box.
+ * dim is a group: its whole subtree fades (`fade`, 0..255), scales (`scale`, percent) and tilts (`tilt`, degrees, 0 for
+ * an overlay that does not lean) about its box.
  */
-function overlay(id: string, rest: number, entry: number, exit: number, blur = -1, dim = -1) {
+function overlay(id: string, rest: number, entry: number, exit: number, blur = -1, dim = -1, lean = 0) {
   return {
     id: Buffer.from(id),
     rest,
@@ -233,6 +240,7 @@ function overlay(id: string, rest: number, entry: number, exit: number, blur = -
     exit,
     blur,
     dim,
+    lean,
     group: dim < 0, // the panel and the menu: the backdrop dims through its own fill instead
     present: presence(false, EXIT_SECONDS),
     mounted: false, // the frame before, for the edges
@@ -243,6 +251,7 @@ function overlay(id: string, rest: number, entry: number, exit: number, blur = -
     alpha: track(dim < 0 ? 0 : dim, OUT),
     fade: track(0, OUT),
     scale: track(ENTRY_SCALE, GROW),
+    tilt: track(0, GROW),
   };
 }
 type Overlay = ReturnType<typeof overlay>;
@@ -270,12 +279,17 @@ function step(o: Overlay, open: boolean, dt: number) {
     o.y.retarget(o.clock, y, SLIDE);
     if (o.blur >= 0) o.shade.retarget(o.clock, blur, BLUR);
     if (o.dim >= 0) o.alpha.retarget(o.clock, dim, OUT);
-    // a group arrives nearly opaque and 4% small, on the same frame as the offset it starts from
+    // a group arrives nearly opaque and 4% small, on the same frame as the offset it starts from; an overlay that leans
+    // arrives (and leaves) at its lean
     if (o.group) {
       o.fade = track(ENTRY_FADE, OUT, o.clock);
       o.scale = track(ENTRY_SCALE, GROW, o.clock);
       o.fade.retarget(o.clock, 255, OUT);
       o.scale.retarget(o.clock, 100, GROW);
+      if (o.lean) {
+        o.tilt = track(o.lean, GROW, o.clock);
+        o.tilt.retarget(o.clock, 0, GROW);
+      }
     }
   } else {
     o.clock += dt; // a shown frame is one dt after the one before it
@@ -287,6 +301,7 @@ function step(o: Overlay, open: boolean, dt: number) {
       if (o.group) {
         o.fade.retarget(o.clock, open ? 255 : 0, OUT);
         o.scale.retarget(o.clock, open ? 100 : ENTRY_SCALE, open ? GROW : SHRINK);
+        if (o.lean) o.tilt.retarget(o.clock, open ? 0 : o.lean, open ? GROW : SHRINK);
       }
     }
   }
@@ -294,8 +309,9 @@ function step(o: Overlay, open: boolean, dt: number) {
   const fields: [number, Track | number][] = [[FIELDS.OFFSET_Y, o.y]];
   if (o.blur >= 0) fields.push([FIELDS.SHADOW_BLUR, o.shade]);
   if (o.dim >= 0) fields.push([FIELDS.BACKGROUND_ALPHA, o.alpha]);
-  // the group: the page's own track is percent, the renderer wants 1 = none
+  // the group: the page's own track is percent, the renderer wants 1 = none, and the tilt is degrees as it is
   if (o.group) fields.push([FIELDS.ALPHA, o.fade], [FIELDS.SCALE, o.scale.at(o.clock).x / 100]);
+  if (o.lean) fields.push([FIELDS.ROTATE, o.tilt]);
   // a closing overlay takes no press: the pointer reaches the page under it while it fades
   if (closing) fields.push([FIELDS.CAPTURE, 1]);
   write(o.id, o.clock, ...fields);
@@ -352,7 +368,7 @@ export function Dialog(props: { input: Input; glass?: boolean; motion?: { tick?:
   input.modal = (name, repeat) => dialog.open() && dialog.keyDown(name, repeat);
 
   // the three overlays: the menu slides out of its trigger, the dialog drops in over a dim that goes out with it
-  const menuOverlay = overlay(menu.menu.id, menuDrop, ENTRY.menu, EXIT.menu, menuBlur);
+  const menuOverlay = overlay(menu.menu.id, menuDrop, ENTRY.menu, EXIT.menu, menuBlur, -1, MENU_TILT);
   const panelOverlay = overlay(dialog.dialog.id, 0, ENTRY.panel, EXIT.panel, panelBlur);
   const dimOverlay = overlay(dialog.backdrop.id, 0, 0, 0, -1, DIM);
   if (props.motion)

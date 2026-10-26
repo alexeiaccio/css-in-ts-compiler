@@ -23,6 +23,9 @@ typedef struct { int unused; } Clay_WgTarget; // only the GPU build (desktop/bui
 // a style is a compile-time literal (solid/plugin.ts packs it once), so the only way one of its numbers moves between
 // frames is the value channel: a page's per-frame overrides of a packed style, by element id
 #define STYLE_FIELDS 45
+// a text's fields (solid/README.md): its colour, font, size, spacing, line height, alignment and wrap. Its colour is
+// here, not in the parent's box, so the box's overrides cannot reach it: ui_text reads the four fields below itself
+#define TEXT_FIELDS 10
 #define FIELD_SHADOW_BLUR 45 // the one value outside the 45 floats: the blur of the element's shadow (a renderer table)
 // ... and four more that are not in the floats either: the element's whole subtree as one scene. ALPHA is that scene's
 // opacity (0..255), so a text over its own fill fades as a group; SCALE is a scale about the element's box centre
@@ -35,6 +38,16 @@ typedef struct { int unused; } Clay_WgTarget; // only the GPU build (desktop/bui
 // ... and the opacity of the element's own background image (a gradient), so a page can fade one in or out: at 255 it is
 // drawn alone, as an opaque gradient is; below it, it is composited over the element's solid fill
 #define FIELD_GRADIENT_ALPHA 50
+// ... and four floats that are not a box's at all: the colour of a text element (its own fields 0..3), reachable only
+// through the text's id, since a text has no box of its own to hold them. A text without an id cannot be named, so its
+// colour is its style's literal and cannot be animated
+#define FIELD_TEXT_COLOR_R 51
+#define FIELD_TEXT_COLOR_G 52
+#define FIELD_TEXT_COLOR_B 53
+#define FIELD_TEXT_COLOR_A 54
+// ... and the rotation of an element's whole subtree in degrees, about its box centre, beside the scale and the
+// translate of the same scene (one matrix: scale, then rotate, then translate; see Clay_ThorVG_SettleGroup)
+#define FIELD_ROTATE 55
 
 static Clay_ThorVGRendererData tvg;
 static const char *font_names[MAX_FONTS];
@@ -280,6 +293,8 @@ void ui_backgroundImage(int kind, float angle, int count, const float *stops)
 /** An override of one number of the style of the element with that id, for this frame only: field 0..44 is a packed
  *  field (their order in solid/README.md), 45 is the blur of the element's shadow, 46 the opacity of its whole subtree,
  *  47 a scale about its box centre, 48/49 a visual offset of it in x and y, and 50 the opacity of its background image.
+ *  51..54 are the colour of the text element with that id (its own floats, not its box's; a text without an id cannot be
+ *  named) and 55 the rotation of an element's subtree in degrees, about its box centre.
  *  `ui_open` copies the element's own floats,
  *  applies the overrides of its id and declares from the copy, so the style's literal is what it falls back to (a track
  *  that settles on the style's own value leaves the frame identical). Out of range, or past 64 a frame, is counted as an
@@ -288,7 +303,7 @@ void ui_backgroundImage(int kind, float angle, int count, const float *stops)
 void ui_value(const char *id, int len, int field, float value)
 {
     // ponytail: 64 overrides a frame (a page animating a dozen elements needs that many); more needs a bigger table
-    if (field < 0 || field > FIELD_GRADIENT_ALPHA || value_count == MAX_VALUES) {
+    if (field < 0 || field > FIELD_ROTATE || value_count == MAX_VALUES) {
         errors++;
         return;
     }
@@ -312,7 +327,7 @@ void ui_open(const char *id, int len, const float *style)
     const float *f = style;
     float shadow_blur = -1;
     int alpha = 255, grouped = 0;
-    float scale = 1, tx = 0, ty = 0;
+    float scale = 1, tx = 0, ty = 0, rotate = 0;
     float gradient_alpha = 255;
     if (id && value_count) {
         int mine = 0;
@@ -327,8 +342,10 @@ void ui_open(const char *id, int len, const float *style)
                 else if (values[i].field == FIELD_SCALE) scale = values[i].value, grouped = 1;
                 else if (values[i].field == FIELD_TRANSLATE_X) tx = values[i].value, grouped = 1;
                 else if (values[i].field == FIELD_TRANSLATE_Y) ty = values[i].value, grouped = 1;
+                else if (values[i].field == FIELD_ROTATE) rotate = values[i].value, grouped = 1;
                 else if (values[i].field == FIELD_GRADIENT_ALPHA) gradient_alpha = values[i].value;
-                else over[values[i].field] = values[i].value;
+                // 51..54 are a text's, not a box's: ui_text reads them, and they would be past the end of these floats
+                else if (values[i].field < STYLE_FIELDS) over[values[i].field] = values[i].value;
             }
             f = over;
         }
@@ -394,7 +411,7 @@ void ui_open(const char *id, int len, const float *style)
         tvg.tree[node].id = open->id;
         tvg.tree[node].parent = tvg.openDepth ? tvg.open[tvg.openDepth - 1] : -1;
         d.userData = (void *)(uintptr_t)(node + 1);
-        if (grouped) Clay_ThorVG_SetGroup(&tvg, node, alpha, scale, tx, ty);
+        if (grouped) Clay_ThorVG_SetGroup(&tvg, node, alpha, scale, tx, ty, rotate);
         // ponytail: CLAY_THORVG_MAX_DEPTH elements deep; a deeper page keeps the deepest parent it recorded
         if (tvg.openDepth < CLAY_THORVG_MAX_DEPTH) tvg.open[tvg.openDepth++] = node;
     } else errors++; // ponytail: CLAY_THORVG_MAX_TREE elements a frame; a deeper page needs a bigger tree
@@ -410,8 +427,11 @@ void ui_close(void)
     if (tvg.openDepth) tvg.openDepth--;
 }
 
-/** A text element: the bytes are copied for the frame; f is 10 floats. */
-void ui_text(const char *s, int len, const float *f)
+/** A text element, with an id or NULL for an anonymous one. A text's colour is its own four floats, not its parent's
+ *  box, so it is the value channel's second kind of target: with an id, fields 51..54 of that id override the colour of
+ *  its copy of the 10 floats (a label fading from muted to accent). Without an id nothing can name the text, so it is
+ *  its style's literal — a text without an id cannot be animated. The bytes are copied for the frame. */
+void ui_text(const char *id, int id_len, const char *s, int len, const float *f)
 {
     static const Clay_TextAlignment al[3] = {CLAY_TEXT_ALIGN_LEFT, CLAY_TEXT_ALIGN_CENTER, CLAY_TEXT_ALIGN_RIGHT};
     static const Clay_TextElementConfigWrapMode wm[3] = {CLAY_TEXT_WRAP_WORDS, CLAY_TEXT_WRAP_NEWLINES,
@@ -424,18 +444,38 @@ void ui_text(const char *s, int len, const float *f)
     char *copy = arena + arena_used;
     memcpy(copy, s, len);
     arena_used += len;
+    Clay_ElementId eid = {0};
+    float over[TEXT_FIELDS];
+    const float *tf = f;
+    if (id) {
+        eid = Clay__HashString(slice(id, id_len), 0);
+        // the value channel (ui_value): this text's colour overrides, applied to a copy of its own floats. Only the
+        // colour: the font, the size and the rest stay the style's literal
+        int mine = 0;
+        for (int i = 0; i < value_count; i++)
+            mine += values[i].id == eid.id && values[i].field >= FIELD_TEXT_COLOR_R &&
+                    values[i].field <= FIELD_TEXT_COLOR_A;
+        if (mine) {
+            memcpy(over, f, sizeof over);
+            for (int i = 0; i < value_count; i++)
+                if (values[i].id == eid.id && values[i].field <= FIELD_TEXT_COLOR_A)
+                    over[values[i].field - FIELD_TEXT_COLOR_R] = values[i].value;
+            tf = over;
+        }
+    }
     Clay_TextElementConfig c = {0};
-    c.textColor = color(f);
-    c.fontId = f[4], c.fontSize = f[5], c.letterSpacing = f[6], c.lineHeight = f[7];
-    c.textAlignment = al[(int)f[8]], c.wrapMode = wm[(int)f[9]];
+    c.textColor = color(tf);
+    c.fontId = tf[4], c.fontSize = tf[5], c.letterSpacing = tf[6], c.lineHeight = tf[7];
+    c.textAlignment = al[(int)tf[8]], c.wrapMode = wm[(int)tf[9]];
     // the text's node in the frame's tree: Clay derives a text element's id from the parent and its place among the
     // parent's children (the expression below is the one Clay__OpenTextElement uses), and it is the id its commands
-    // carry. A page cannot name a text, so no group starts here, but a group's subtree must reach through it.
+    // carry. A page cannot turn a text into a group, but a group's subtree must reach through it; a text with an id of
+    // its own is named by it (the id is what the colour's overrides are keyed by).
     if (tvg.treeCount < CLAY_THORVG_MAX_TREE) {
         Clay_LayoutElement *parent = Clay__GetOpenLayoutElement();
         const int32_t node = tvg.treeCount++;
         tvg.tree[node].id =
-            Clay__HashNumber(parent->children.length + parent->floatingChildrenCount, parent->id).id;
+            id ? eid.id : Clay__HashNumber(parent->children.length + parent->floatingChildrenCount, parent->id).id;
         tvg.tree[node].parent = tvg.openDepth ? tvg.open[tvg.openDepth - 1] : -1;
         c.userData = (void *)(uintptr_t)(node + 1);
     } else errors++;
@@ -567,14 +607,15 @@ static void hash_frame(void)
         }
     }
     for (int i = 0; i < tvg.groupCount; i++) {
-        // a group at alpha 255, scale 1 and no offset is a scene that draws what it would have drawn without one (the
-        // renderer skips it too): the page may still declare it, a track that has just landed, and its arrival or
-        // departure is not a frame
-        if (tvg.groups[i].alpha >= 255 && tvg.groups[i].scale == 1 && tvg.groups[i].tx == 0 && tvg.groups[i].ty == 0)
+        // a group at alpha 255, scale 1, no offset and no rotation is a scene that draws what it would have drawn
+        // without one (the renderer skips it too): the page may still declare it, a track that has just landed, and its
+        // arrival or departure is not a frame
+        if (tvg.groups[i].alpha >= 255 && tvg.groups[i].scale == 1 && tvg.groups[i].tx == 0 && tvg.groups[i].ty == 0 &&
+            tvg.groups[i].rotate == 0)
             continue;
         h = hash_u32(h, (uint32_t)tvg.groups[i].at), h = hash_u32(h, (uint32_t)tvg.groups[i].alpha);
         h = hash_f32(h, tvg.groups[i].scale), h = hash_f32(h, tvg.groups[i].tx);
-        h = hash_f32(h, tvg.groups[i].ty);
+        h = hash_f32(h, tvg.groups[i].ty), h = hash_f32(h, tvg.groups[i].rotate);
     }
     frame_hash = h;
 }

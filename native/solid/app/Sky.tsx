@@ -58,7 +58,8 @@ const root = css.cn(css.width("stretch"), css.height("stretch"), css.flexDirecti
 // a hover lightens the one under the pointer (Clay draws a border inside the box, so the underline moves no layout). Both
 // are colours of the tab's own box — its background floats and its border's alpha — so the page fades them
 // (`FIELDS.BACKGROUND`, `FIELDS.BORDER_ALPHA`) and the tab keeps its `:hover` state, which is the literal a settled hover
-// lands on. A text's colour is not in its box's floats: the label swaps style, it does not fade.
+// lands on. The label is a text: its colour is the text's own four floats, not its box's, so the page fades it through
+// the text's id (`FIELDS.TEXT_COLOR`, an id on the `<text>`), with the underline beside it.
 const bar = css.cn(css.width("stretch"), css.height(64), css.p(0, 16), css.gap(20), css.alignItems("center"), css.bg(t.color.page));
 const wordmark = css.cn(font.Roboto, css.color(t.color.accent), css.fontSize(24));
 const tablist = css.cn(css.gap(2), css.alignItems("center"));
@@ -313,6 +314,7 @@ export interface Motion {
 // the entry and the band altogether, so the frame is the settled one.
 const HOVER = effect(0.12); // the card's and the tab's background
 const UNDERLINE = effect(0.12); // the tab's 2px underline fading in or out
+const LABEL = effect(0.15); // the tab label's colour, from the muted token to the accent and back
 const ENTRY = { delay: 0.05, y: 12, time: 0.3 }; // seconds, px: a card starts 50ms after the one before it, 12px low
 const ENTRY_Y = spatial(ENTRY.time);
 const ENTRY_A = effect(ENTRY.time);
@@ -330,6 +332,12 @@ function backgroundOf(shape: css.ClayStyle, theme: string | undefined, hover = f
   return box ? [box[14]!, box[15]!, box[16]!, box[17]!] : [0, 0, 0, 0];
 }
 
+/** The four channels of a style's text colour under a theme: one end of a label's fade. */
+function textColorOf(shape: css.ClayStyle, theme: string | undefined): number[] {
+  const text = variant(shape, theme).text;
+  return text ? [text[0]!, text[1]!, text[2]!, text[3]!] : [0, 0, 0, 0];
+}
+
 /** The four channels from `from` to `to` at `m` percent: a fade's colour at that instant. */
 const mixColor = (from: number[], to: number[], m: number): number[] =>
   from.map((v, i) => v + ((to[i]! - v) * m) / 100);
@@ -343,7 +351,8 @@ const mixColor = (from: number[], to: number[], m: number): number[] =>
  * the clamp. The bar and the status line are the feed's siblings, so they stay put. A card press only records the
  * selection until there is a thread screen to open. On mount the cards arrive staggered (translate + opacity through the
  * group fields, so nothing moves in the layout), a card and a tab fade their hover, and the tabs fade the 2px underline
- * from the one that was active to the one that is.
+ * and the label's colour from the one that was active to the one that is — the label through the text's own four floats
+ * (`ui.value` on its id), which its box does not hold.
  */
 export function Sky(props: { input: Input; motion?: Motion; theme?: () => string | undefined }) {
   const { input } = props;
@@ -387,9 +396,14 @@ export function Sky(props: { input: Input; motion?: Motion; theme?: () => string
   }));
   const tabFx = [0, 1, 2].map((i) => ({
     id: Buffer.from(`sky-tabs-tab-${i}`),
+    // the label is a text of its own: its colour is not in the tab's box, so it has an id to fade through
+    label: Buffer.from(`sky-tabs-label-${i}`),
     on: false,
     hover: track(0, HOVER),
     under: track(i === 0 ? 255 : 0, UNDERLINE), // the underline's alpha (field 29): 255 on the tab that is active
+    // the label's colour, as a percent from the muted token (0) to the accent (100): linear in it, so a track on the
+    // percent is a track on the colour, continuous across a retarget
+    ink: track(i === 0 ? 100 : 0, LABEL),
   }));
   let activeWas = 0;
 
@@ -399,6 +413,8 @@ export function Sky(props: { input: Input; motion?: Motion; theme?: () => string
    *  tab rests on the page it sits on (its box has no background at rest) and lands on its hover tone. */
   const cardEnds = () => [backgroundOf(s.card, props.theme?.()), backgroundOf(s.cardHover, props.theme?.())];
   const tabEnds = () => [backgroundOf(s.root, props.theme?.()), backgroundOf(s.tab, props.theme?.(), true)];
+  /** The label's two ends: the muted token and the accent, as the packed text styles carry them under the frame's theme. */
+  const labelEnds = () => [textColorOf(s.tabText, props.theme?.()), textColorOf(s.tabTextOn, props.theme?.())];
 
   /** The tablist is the page's first stop and the feed the second. The panels are not stops of their own: the feed is one
    *  (the tabs' `focusablePanels` says so, or Tab would land on a panel the page draws no box for). */
@@ -489,7 +505,7 @@ export function Sky(props: { input: Input; motion?: Motion; theme?: () => string
     }
   };
 
-  /** One tab a frame: its hover fade and the 2px underline's colour while that fades. */
+  /** One tab a frame: its hover fade, the 2px underline's colour while that fades, and its label's colour. */
   const tabFrame = (f: (typeof tabFx)[number], i: number, t: number) => {
     const on = ui.over(f.id);
     if (on !== f.on) (f.on = on), f.hover.retarget(t, on ? 100 : 0, HOVER);
@@ -502,10 +518,21 @@ export function Sky(props: { input: Input; motion?: Motion; theme?: () => string
       ui.value(f.id, FIELDS.BACKGROUND + 2, b);
       ui.value(f.id, FIELDS.BACKGROUND_ALPHA, a);
     }
-    // the underline is the tab's own border, so its colour is a field of the box: no text colour is (0-9 of a text, a
-    // style of its own), and that transition is not covered
+    // the underline is the tab's own border, so its colour is a field of the box
     const u = f.under.at(t);
     if (!u.done) ui.value(f.id, FIELDS.BORDER_ALPHA, u.x);
+    // ... and the label is a text, whose colour is its own four floats: the muted token (0) to the accent (100), so the
+    // label and the underline move together. A label that has settled writes nothing: its literal is the end it is on
+    // (the page swaps tabText for tabTextOn at the switch), so a frame at rest is the literal's.
+    const ink = f.ink.at(t);
+    if (!ink.done) {
+      const [muted, accent] = labelEnds();
+      const [r, g, b, a] = mixColor(muted, accent, ink.x);
+      ui.value(f.label, FIELDS.TEXT_COLOR, r);
+      ui.value(f.label, FIELDS.TEXT_COLOR + 1, g);
+      ui.value(f.label, FIELDS.TEXT_COLOR + 2, b);
+      ui.value(f.label, FIELDS.TEXT_COLOR_ALPHA, a);
+    }
     return i === active() || f.under.at(t).x > 0;
   };
 
@@ -520,7 +547,10 @@ export function Sky(props: { input: Input; motion?: Motion; theme?: () => string
     const sel = active();
     if (sel !== activeWas) {
       activeWas = sel;
-      for (const [i, f] of tabFx.entries()) f.under.retarget(t, i === sel ? 255 : 0, UNDERLINE);
+      for (const [i, f] of tabFx.entries()) {
+        f.under.retarget(t, i === sel ? 255 : 0, UNDERLINE);
+        f.ink.retarget(t, i === sel ? 100 : 0, LABEL);
+      }
     }
     const keep = tabFx.map((f, i) => tabFrame(f, i, t));
     for (const [i, c] of cards.entries()) cardFrame(c, i, t);
@@ -654,7 +684,7 @@ export function Sky(props: { input: Input; motion?: Motion; theme?: () => string
         <box {...a11y(tabs.tablist)} style={s.tablist}>
           {tabs.tabs.map((tab, i) => (
             <box {...binds[i]!} {...a11y(tab)} style={under(i) ? s.tabOn : s.tab}>
-              <text style={tab.selected ? s.tabTextOn : s.tabText}>{FEEDS[i]!.name}</text>
+              <text id={`sky-tabs-label-${i}`} style={tab.selected ? s.tabTextOn : s.tabText}>{FEEDS[i]!.name}</text>
             </box>
           ))}
         </box>

@@ -76,16 +76,17 @@ typedef struct {
     int treeCount;
     int32_t open[CLAY_THORVG_MAX_DEPTH];
     int openDepth;
-    // the frame's groups (the value channel's ALPHA, SCALE and TRANSLATE_X/Y), one per element that has one: a scene
-    // around the element's whole subtree, composited at the alpha (tvg_paint_set_opacity, 0..255), scaled about the
-    // centre of the element's box on the first command of the range and moved by the translate
-    // (tvg_paint_set_transform: no layout, `ui_bounds` does not move)
+    // the frame's groups (the value channel's ALPHA, SCALE, TRANSLATE_X/Y and ROTATE), one per element that has one: a
+    // scene around the element's whole subtree, composited at the alpha (tvg_paint_set_opacity, 0..255), scaled about the
+    // centre of the element's box on the first command of the range, rotated about the same centre and moved by the
+    // translate (tvg_paint_set_transform: no layout, `ui_bounds` does not move)
     struct {
         int32_t at;   // the element's index in the tree
         int alpha;    // 0..255; 255 is nothing, and no scene is made
         float scale;  // 1 is nothing
         float tx;     // a visual offset of the subtree, px; 0 is nothing
         float ty;
+        float rotate; // degrees about the box centre; 0 is nothing
     } groups[CLAY_THORVG_MAX_GROUPS];
     int groupCount;
     bool cut; // this frame's one cut has happened (the first backdrop's first rectangle)
@@ -100,6 +101,8 @@ typedef struct {
 #define CLAY_THORVG_SHADOW_SIGMA(blur) ((blur) / 2.0f)
 // the effect's steps: 80 is smooth at a 24px edge and costs one pass a shadow
 #define CLAY_THORVG_SHADOW_QUALITY 80
+
+#define CLAY_THORVG_PI 3.14159265358979323846f
 
 // Clay sizes are CSS pixels; ThorVG sizes text in points at 96 dpi
 #define CLAY_THORVG_PT 0.75f
@@ -241,17 +244,19 @@ static float Clay_ThorVG_BackdropOf(Clay_ThorVGRendererData *d, uint32_t id)
 }
 
 /** Gives the element at that index of the frame's tree a group for the next draw (one a frame): its subtree as one scene
- *  at `alpha` (0..255), `scale` about its box centre (1 = none) and a `tx`/`ty` offset (px, 0 = none). Renderer effects,
- *  as the shadow: the page writes them through the value channel (fields 46 to 49), and the command stream's userData is
- *  what finds the subtree again. */
-static void Clay_ThorVG_SetGroup(Clay_ThorVGRendererData *d, int at, int alpha, float scale, float tx, float ty)
+ *  at `alpha` (0..255), `scale` about its box centre (1 = none), a `tx`/`ty` offset (px, 0 = none) and a `rotate` in
+ *  degrees about the same centre (0 = none). Renderer effects, as the shadow: the page writes them through the value
+ *  channel (fields 46 to 49 and 55), and the command stream's userData is what finds the subtree again. */
+static void Clay_ThorVG_SetGroup(Clay_ThorVGRendererData *d, int at, int alpha, float scale, float tx, float ty,
+                                 float rotate)
 {
     if (alpha < 0) alpha = 0;
     if (alpha > 255) alpha = 255;
     if (scale < 0.01f) scale = 0.01f;
     for (int i = 0; i < d->groupCount; i++)
         if (d->groups[i].at == at) {
-            d->groups[i].alpha = alpha, d->groups[i].scale = scale, d->groups[i].tx = tx, d->groups[i].ty = ty;
+            d->groups[i].alpha = alpha, d->groups[i].scale = scale, d->groups[i].tx = tx, d->groups[i].ty = ty,
+            d->groups[i].rotate = rotate;
             return;
         }
     if (d->groupCount == CLAY_THORVG_MAX_GROUPS) return; // ponytail: 16 groups a frame; more needs a table that grows
@@ -260,16 +265,18 @@ static void Clay_ThorVG_SetGroup(Clay_ThorVGRendererData *d, int at, int alpha, 
     d->groups[d->groupCount].scale = scale;
     d->groups[d->groupCount].tx = tx;
     d->groups[d->groupCount].ty = ty;
+    d->groups[d->groupCount].rotate = rotate;
     d->groupCount++;
 }
 
 /** A group's command range in the frame, and what its scene is made to look like: the range's first command's box
- *  centre is the scale's origin. */
+ *  centre is the scale's and the rotation's origin. */
 typedef struct {
     int32_t start, end;
     int alpha;
     float scale;
     float tx, ty;
+    float rotate;
     float cx, cy;
 } Clay_ThorVG_GroupSpan;
 
@@ -281,18 +288,39 @@ static bool Clay_ThorVG_Under(Clay_ThorVGRendererData *d, int32_t at, int32_t no
     return false;
 }
 
-/** Puts a group's scene into its parent scene with its opacity, its scale around the range's box centre and its
- *  translate. ThorVG's matrix carries the translation in its third column (`x' = x·e11 + y·e12 + e13`; its third row is
- *  not used), so a scale about c is `scale` on the diagonal and `c·(1 - scale)` in e13/e23, and the subtree's own offset
- *  is added after it: `x' = scale·(x - c) + c + tx`. */
+/** Puts a group's scene into its parent scene with its opacity, its scale and rotation about the range's box centre and
+ *  its translate. ThorVG's matrix is read as `x' = x·e11 + y·e12 + e13`, `y' = x·e21 + y·e22 + e23` (tvg::operator* in
+ *  its tvgMath.cpp; its third row is not used), so one matrix carries all three: the scale, then the rotation, then the
+ *  translate, about c —
+ *  `x' = s·((x - cx)·cos − (y - cy)·sin) + cx + tx`, `y' = s·((x - cx)·sin + (y - cy)·cos) + cy + ty`
+ *  — which is `s·R` on the diagonal and `c - (s·R)·c + t` in e13/e23, and reduces to the old `scale`/`c·(1 - scale) + t`
+ *  at 0 degrees. A positive angle turns the scene clockwise on screen (y runs down), so a page's tilt is its sign. */
 static void Clay_ThorVG_SettleGroup(const Clay_ThorVG_GroupSpan *g, Tvg_Paint scene)
 {
     if (g->alpha < 255) tvg_paint_set_opacity(scene, (uint8_t)g->alpha);
-    if (g->scale != 1 || g->tx != 0 || g->ty != 0) {
+    if (g->scale == 1 && g->tx == 0 && g->ty == 0 && g->rotate == 0) return;
+    if (g->rotate == 0) {
+        // the matrix a page without a lean has always got, expression and all: `c·(1 - scale) + t` rounds differently
+        // from the rotation's `c + t - scale·c`, and the mid-frames of a scaled group must stay byte-identical
         const Tvg_Matrix m = {g->scale, 0, g->cx * (1 - g->scale) + g->tx, 0, g->scale,
                               g->cy * (1 - g->scale) + g->ty, 0, 0, 1};
         tvg_paint_set_transform(scene, &m);
+        return;
     }
+    // scale, then rotate, then translate, about c: s·R on the diagonal and c - (s·R)·c + t in the third column
+    const float rad = g->rotate * CLAY_THORVG_PI / 180.0f;
+    const float cosv = cosf(rad), sinv = sinf(rad);
+    const float a = g->scale * cosv, b = -g->scale * sinv; // e11, e12 of the linear part
+    const Tvg_Matrix m = {a,
+                          b,
+                          g->cx + g->tx - (a * g->cx + b * g->cy),
+                          -b,
+                          a,
+                          g->cy + g->ty - (-b * g->cx + a * g->cy),
+                          0,
+                          0,
+                          1};
+    tvg_paint_set_transform(scene, &m);
 }
 
 /** Gives the element with this id's hash a background image for the next draw (one a frame): a linear gradient that fills
@@ -329,8 +357,6 @@ static bool Clay_ThorVG_GradientOf(Clay_ThorVGRendererData *d, uint32_t id, int 
     return false;
 }
 
-#define CLAY_THORVG_PI 3.14159265358979323846f
-
 /** Fills a shape with a linear gradient along CSS's gradient line: the direction (sin θ, -cos θ) (0deg is up, 90 right),
  *  the line's length |w·sinθ| + |h·cosθ| (the box's projection on it), from the box's centre out to both ends. The
  *  coordinates are the shape's own, the same space as its path: the root scene carries the pixel density, as for a
@@ -354,8 +380,11 @@ static void Clay_ThorVG_FillGradient(Tvg_Paint s, const float angle, int count, 
 }
 
 // The scene's map to the target, as the groups open around a command make it: a scale `a` and a translate `bx`/`by` in
-// Clay units. A group is a scale about its box's centre plus an offset, and those compose into one such map, so the box a
-// gradient draws in maps to the target's pixels exactly (no rotation exists in the value channel).
+// Clay units. A group is a scale about its box's centre, a rotation about the same centre and an offset; this map is the
+// first and the last only, because a gradient's mark and a clip's rect are axis-aligned boxes. So a gradient inside a
+// *rotated* group is stippled and clipped as its unrotated box would be — the one thing the rotation does not reach
+// (no page has one: the tilt is the Dialog's menu, which has neither a gradient nor a clip). ponytail: an axis-aligned
+// map; a rotated gradient needs the four corners mapped and a point-in-quad test.
 typedef struct {
     float a, bx, by;
 } Clay_ThorVG_Map;
@@ -586,11 +615,12 @@ static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_Rend
     int32_t spanAt[CLAY_THORVG_MAX_GROUPS];
     int spanCount = 0;
     for (int g = 0; g < d->groupCount; g++) {
-        if (d->groups[g].alpha >= 255 && d->groups[g].scale == 1 && d->groups[g].tx == 0 && d->groups[g].ty == 0)
+        if (d->groups[g].alpha >= 255 && d->groups[g].scale == 1 && d->groups[g].tx == 0 && d->groups[g].ty == 0 &&
+            d->groups[g].rotate == 0)
             continue;
         spans[spanCount] = (Clay_ThorVG_GroupSpan){.start = n, .end = -1, .alpha = d->groups[g].alpha,
                                                    .scale = d->groups[g].scale, .tx = d->groups[g].tx,
-                                                   .ty = d->groups[g].ty};
+                                                   .ty = d->groups[g].ty, .rotate = d->groups[g].rotate};
         spanAt[spanCount++] = d->groups[g].at;
     }
     int32_t last = -1;
