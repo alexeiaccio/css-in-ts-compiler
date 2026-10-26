@@ -3,6 +3,16 @@
 **Solid 2 (`2.0.0-rc.13`) is required.** `@cssints/headless` is built on Solid 2's reactivity, so
 the plugin is `@solidjs/vite-plugin` 3.x; `vite-plugin-solid` 2.x will not run this template.
 
+## Get it
+
+Copy this directory out of the repository (it is private for now, so there is no `npm create` package yet):
+
+```sh
+git clone --depth=1 --branch ui/theme https://github.com/alexeiaccio/css-in-ts-compiler /tmp/cssints
+cp -R /tmp/cssints/templates/solid-vite my-app
+cd my-app
+```
+
 ## Two commands
 
 ```sh
