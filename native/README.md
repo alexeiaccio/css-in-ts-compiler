@@ -129,7 +129,15 @@ dark gradient from `27 32 38` to `21 25 30` has 6 channel values to spread over 
 eye sees on a large flat surface. After the frame, `Clay_ThorVG_RenderClayCommands` ends with
 `Clay_ThorVG_DitherGradients`: a **4x4 ordered (Bayer) dither of one level either way** (±1/255, the mean kept) on the RGB of
 every pixel inside each gradient's box — cut to the canvas, to the clips (a scrolled feed) and to the corners' arcs, one
-pixel inside the radius, so no pixel of the page moves. It is done in the buffer because there is no shader here: ThorVG's
+pixel inside the radius, so no pixel of the page moves. **The mark is the shape's pixels, not an axis-aligned box**: the
+groups' map to the target is one affine (`Clay_ThorVG_Map`), and with a rotation in it the mark is the four mapped corners'
+quad and every pixel of its bounding box is mapped *back* into the shape's own space and tested against the box and its
+arcs. An axis-aligned mark inside a rotated group stippled the page around the quad (2216 of its 5637 pixels on the test
+tree) and missed the quad's tips (none of them): a black gradient over a black fill shows the dither alone, since its ±1
+clamps at 0. The quad test leaves the page alone and covers the tips (0 outside, 1151 inside the quad but outside the
+unrotated box: `solid/rotated.test.ts`). A *clip's* cut for the dither is the clip's quad bounding box — the conservative
+bound: the drawn clip turns with its scene (a clip is a paint in the transformed scene) and so does the gradient's quad.
+It is done in the buffer because there is no shader here: ThorVG's
 CPU raster writes 8 bits a channel, and a second pass over the element's own pixels is the smallest place to break a step.
 A card's column then shows **182 runs of 1-2px instead of 6 of 30** (the light card the same), and the three cards' ink is
 unchanged by more than the step: a body's 828 ink pixels, its 44 flat ones at most 1/255 off the ink token, and none of the
@@ -248,9 +256,13 @@ and slides with the panel it belongs to, which is what the eye expects.
 Limits, stated rather than hidden. **Nesting**: four groups may be open at once (a group inside a group inside …), and a
 fifth is drawn ungrouped; 16 groups a frame. **A scissor** (`css.overflow`, a float's clip) opens its own scene *inside*
 whatever is current, so a group's subtree that contains a clipped element fades and scales as a whole; the scissor stack
-is eight deep. **A gradient's stipple and a clip's rect are axis-aligned** maps of the groups around them (the dither's
-`Clay_ThorVG_Map`), so a gradient or a clipped element inside a *rotated* group is marked as its unrotated box would be:
-no page has one (the one rotated group, the Dialog's menu, has neither a gradient nor a clip). **A backdrop's cut**
+is eight deep. **A clip is a ThorVG paint in the transformed scene, so it turns with its group** — its edge is drawn
+tilted, and `solid/rotated.test.ts` proves it (the clipped child's right edge at x 101 on one row and 89 on another
+inside a 30° group) — while the dither, which works on the target's pixels after the draw, marks a gradient by the
+groups' affine map: the box's four corners' quad, tested a pixel at a time, so a gradient in a rotated group is stippled
+where it really is and never on the page around it. A clip's *cut* for the dither is that clip's quad bounding box, the
+conservative bound (a gradient inside a rotated clip may be stippled a pixel inside the clip's box, never outside the
+gradient's own quad). **A backdrop's cut**
 mid-group is the one thing that splits a scene: the cut draws pass 1 over the target,
 so the groups open at that moment are settled into it first and made again in the new root after it, and the rest of the
 subtree is composited with the same alpha, scale, rotation and offset — the Dialog's menu is exactly this case (its own
@@ -305,8 +317,11 @@ drained by `ui_wheel_pop(float out[2])`. `ui_auto_scroll(0)` stops `ui_begin` fr
 `Clay_UpdateScrollContainers` with that delta (the delta is still drained), so a page that owns its offset does not get
 the notch twice; the default is on, and **only the Sky page turns it off** — the List page is unchanged. On the host
 side, `View.onWheel(dx, dy)` gets the polled delta before the frame (the window loop pops it after `ui_window_poll`;
-`--wheel N` in headless mode calls the same pop after each notch) and `View.tick(dt)` is called once a frame after the
-events and before `flush()`. `main.ts` wires a page's `motion` object to both; `Sky` puts its handler there.
+`--wheel N` in headless mode calls the same pop after each notch), `View.onPointer(x, y, down)` is called once a frame
+after the events (a page that drags keeps its own flag: `onPress` sets it, `down` false clears it), and `View.tick(dt)` is
+called once a frame after the events and before `flush()`. `main.ts` wires a page's `motion` object (`src/entry.ts`: the
+three hooks) to all of them — the Widgets slider and the Sky feed both take the pointer — and `Sky` puts its handlers
+there.
 
 The Sky feed's offset is a positive-down value the page owns. A wheel notch adds 10px (as before) to a clamped target
 and retargets the track; a notch from rest starts at the velocity a critically damped spring needs to glide the step
@@ -385,6 +400,39 @@ selected card keeps `cardOn` and does not fade at all. Measured: a card's colour
 `42/64/87` on the way up and the old tab's `49/126/191` on the way down; `sky-hover.png` is three frames into a card's
 fade.
 
+**The drag: the pointer is the offset.** A press inside the feed grabs it (the feed's `onPress`, then the host's
+`onPointer` on the same frame), and while the button is held the offset *is* the press point's offset less the pointer's
+own travel — `dragX = place(grabFrom - (y - grabY), max)` every frame, no track between them, so the drag lags by nothing
+and follows the pointer 1:1 (measured: 2px a frame presents 2, 4, 6, 8, 10). Past an end the same `rubber` resists it as
+the wheel's pull is resisted (a 153px drag up presents 116.84, the clamp's 78 plus the resistance's f(75)). The tick
+writes the value and nothing else while the finger is down: no notch, no key and no band release retargets the track under
+it. Travel past `DRAG_SLOP` (4px, in x or y) makes the press a **drag**, and the card under it is not clicked on the
+release: the card's `onClick` is dropped while `held && dragMoved`. A press that never moved is a click, and selects as
+before. The release hands the drag to the spring/decay: the **speed** is the offset's over the last `FLING_FRAMES` (5)
+samples' span, and a span under `FLING_MIN` (1/120s) is one frame's jitter and no speed at all (Rune's rule: no
+single-sample spikes) — no travel or no speed means no fling, the offset stops where the finger left it, clamped. A fling
+projects `decay(dragX, v)`, runs the decay inside the content and springs to the clamp past an end; a release in the band
+lets the band go on its own way back. Reduced motion still drags 1:1 (it is direct manipulation) and flings nothing: the
+offset stops where the finger left it, clamped. Measured (`solid/sky.test.ts`): a 10px drag in five frames is released at
+11.48 (the release frame is the fling's own first frame), the next frame at 12.9, and it rests at 54.95 — the speed of the
+last five samples projected; the same drag past 78 springs back to the clamp and rests on it. `main.ts --drag-feed
+X,Y,DY,DY,...` scripts one headless. **The List page drags too, by the other route**: its offset stays Clay's, so the page
+writes the drag through `ui.scrollTo` (1:1 from the press, clamped to the content, stopping at the release). No band and
+no fling there: Clay's container has no overscroll to give (it clamps every frame) and its own drag scrolling leaves a
+momentum of ~17× a short drag (measured: 30px dragged, 507px flown), so a band and a decay on the List are what moving it
+onto a page track would buy — the Sky feed's route, item 2 of `docs/map.md`.
+
+**A page's entry, once.** The four plain pages — List, Widgets, Sensors, Text field — get the same first mount from one
+helper (`solid/src/entry.ts`): the root element's subtree (its id is `Root` on all four) starts 8px low and at alpha 0 and
+settles on its literals over `spatial(0.25, 0)` for `TRANSLATE_Y` and `effect(0.25)` for `ALPHA` — the group fields, so
+no box moves and `ui.bounds` is the settled one on every frame — and then the tick writes nothing at all, so a page at
+rest is the frame its literals make. The clock is the host's tick, so a headless frame and a window frame take one path.
+The settle is ~21 frames (a spring's duration is not its settle time), so the stored frames of those pages are taken after
+`--warm 30` and are byte-identical to the frames before the entry existed. Reduced motion has no entry: the first frame
+is the settled one. `frames/list-entry.png` is four frames in (t = 3/60): the page is `5/6/8` of its `16/18/24` and the
+selected row `12/14/18` of its `36/40/52`, still lighter than the page around it; `solid/list.test.ts` checks the blend,
+the literals at rest and that the layout never moved.
+
 The Dialog page is the value channel's first user, and it animates the two overlays of `headless/`. Both end on the
 style's own literal, so a settled frame is the literal's frame: the **menu** slides out of its trigger — its float's
 offset y from -10 to its style's -20 on `spatial(0.22, 0.1)`, and its shadow's blur from 0 to its style's 14 on
@@ -444,14 +492,15 @@ their boxes) and no rubber band (the wheel is clamped hard); its hovers are inst
 a retarget under reduced motion lands at once — the sky test checks all three against the settled frames.
 
 Not here: a transform on a *non-float* element's own siblings (a group is a whole-subtree opacity, a scale, a rotation
-and a visual offset — one scene; a rotation is there now, but a *gradient or clip inside* a rotated group is marked by
-an axis-aligned map, so its stipple or clip is the unrotated box's), a group deeper than four levels or a fifth open at
+and a visual offset — one scene; a rotation is there, and a *gradient or clip inside* a rotated group is drawn with it and
+stippled on its quad, with a clip's dither cut still its quad's bounding box), a group deeper than four levels or a fifth
+open at
 once, a group whose subtree is cut in two by a *second*
 backdrop's cut in the same frame (one cut a frame), **a text without an id** (a text's colour moves through the channel
 only when it is named: an anonymous text is its style's literal, which is the ceiling of the fix, and nothing else of a
-text's 10 floats moves), a *drag* (a pointer's velocity is the host's: touch and drag
-scrolling are the List page's next step, and it keeps Clay's instant wheel step), the first-mount entry on the other
-pages, a second gradient on one element (a card cross-fades two by fading one over its solid fill), and the terminal,
+text's 10 floats moves), the List's drag leaving a band or a fling (its offset is Clay's: that needs the page to own the
+offset, as the Sky feed does), touch hardware (the drag is the window's mouse; a phone's touch events are the host's
+next step), a second gradient on one element (a card cross-fades two by fading one over its solid fill), and the terminal,
 browser and board targets (they have no Solid page, no wheel and no value channel).
 
 ## Idle: a frame's hash, and a draw only when it changes

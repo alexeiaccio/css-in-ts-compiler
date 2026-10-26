@@ -2,10 +2,15 @@
 // element (`css.overflow("hidden")`), so Clay keeps its scroll offset across frames: `ui_begin` moves it by the frame's
 // wheel delta (`Clay_UpdateScrollContainers`), `ui_open` hands the offset back to the element before the layout, and the
 // page moves it for the keyboard (`ui.scrollTo`) so that a selected row is always inside the viewport. The header and the
-// footer are the viewport's siblings: they do not move.
+// footer are the viewport's siblings: they do not move. **The pointer drags the viewport 1:1** from the press point,
+// through Clay's own offset (`ui_scroll_to`, which clamps to the content), and stops at the release: the offset stays
+// Clay's, so the wheel and the keyboard keep their routes, and Clay's container has no rubber band to pull past an end
+// (it clamps every frame) and no decay to hand a release to — that is the Sky feed's route, where the page owns the
+// offset (item 2 of docs/map.md).
 import * as css from "cssints/clay" with { type: "cssints" };
 import { createSignal } from "solid-js";
 
+import { pageEntry, type Motion } from "../src/entry.ts";
 import { ui } from "../src/ffi.ts";
 import type { FocusPart, Input } from "../src/input.ts";
 
@@ -109,12 +114,14 @@ const ROWS: readonly Row[] = Array.from({ length: COUNT }, (_unused, i) => ({
 /**
  * The page. One Tab stop: the viewport. Up and Down move the selection a row, PageUp and PageDown eight, Home and End go
  * to the ends; it clamps (it never wraps and never leaves 0..29) and every move scrolls the selected row into view. The
- * wheel scrolls the viewport under the pointer (Clay) and leaves the selection alone.
+ * wheel scrolls the viewport under the pointer (Clay) and leaves the selection alone, and a held pointer drags it 1:1.
+ * On its first mount the page rises 8px and fades in once (src/entry.ts).
  */
-export function List(props: { input: Input }) {
+export function List(props: { input: Input; motion?: Motion }) {
   const { input } = props;
   const [selected, setSelected] = createSignal(0);
   const [focused, setFocused] = createSignal(false);
+  pageEntry(props.motion);
 
   /** Scrolls the viewport the least it takes to show row `i`: the row's bounds (already shifted by the offset) against
    *  the viewport's, from the last frame. With both in view nothing moves. */
@@ -128,6 +135,22 @@ export function List(props: { input: Input }) {
     const dy = rowTop! < top! ? top! - rowTop! : below > 0 ? -below : 0;
     if (dy) ui.scrollTo(VIEW, ui.scrollOffset(VIEW) + dy);
   };
+
+  // The drag (direct manipulation): a press inside the viewport grabs Clay's offset, and while the pointer holds it the
+  // offset is the press point's offset plus the pointer's own travel — 1:1, no track in between — clamped to the content,
+  // as Clay's container is. The release stops it there: a fling needs a decay the page would have to own (the Sky feed),
+  // and Clay's own momentum is several times the drag it came from.
+  let held = false; // the pointer holds the viewport
+  let pending = false; // a press landed inside the viewport (its `onPress`), and this frame grabs it
+  let pressY = 0; // the pointer's y there, and ...
+  let pressOffset = 0; // ... Clay's offset: the drag is 1:1 from this pair
+  /** The host's pointer, once a frame: a press inside the viewport grabs the offset, a held pointer moves it. */
+  const pointer = (_x: number, y: number, down: boolean) => {
+    if (!down) held = pending = false;
+    else if (pending) (pending = false), (held = true), (pressY = y), (pressOffset = ui.scrollOffset(VIEW));
+    else if (held) ui.scrollTo(VIEW, pressOffset + (y - pressY));
+  };
+  if (props.motion) props.motion.onPointer = pointer;
 
   const select = (i: number) => {
     setSelected(i);
@@ -166,7 +189,7 @@ export function List(props: { input: Input }) {
       <box id="list-head" style={s.head}>
         <text style={s.note}>{`${current().label} — ${selected() + 1} of ${COUNT}`}</text>
       </box>
-      <box {...bind} style={s.view}>
+      <box {...bind} onPress={() => (bind.onPress(), (pending = true))} style={s.view}>
         {ROWS.map((r, i) => (
           <box id={r.id} focused={i === selected() && focused()} style={i === selected() ? s.rowSelected : s.row}>
             <box style={s.number}>

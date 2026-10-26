@@ -223,9 +223,11 @@ void ui_begin(float px, float py, int down, float dt)
     tvg.gradientCount = 0;
     Clay_SetPointerState((Clay_Vector2){px, py}, down);
     // Clay's scroll containers: the wheel delta of the polls moves the container the pointer is over, before the layout
-    // reads the offsets (ui_open hands each clip element its own through Clay_GetScrollOffset). No drag scrolling: a
-    // press belongs to the page's parts. A page that owns its offset (ui_auto_scroll(0)) has already taken the delta
-    // through ui_wheel_pop, so the drain still happens and Clay moves nothing.
+    // reads the offsets (ui_open hands each clip element its own through Clay_GetScrollOffset). No drag scrolling:
+    // Clay's drag leaves a momentum of ~17x a short drag, and its container clamps any overscroll it is given, so the
+    // pages that drag write the offset themselves (the Sky feed's own track, the List's through `ui_scroll_to`). A page
+    // that owns its offset (ui_auto_scroll(0)) has already taken the delta through ui_wheel_pop, so the drain still
+    // happens and Clay moves nothing.
     if (auto_scroll) Clay_UpdateScrollContainers(0, (Clay_Vector2){wheel_x, wheel_y}, dt);
     wheel_x = 0, wheel_y = 0;
     Clay_BeginLayout();

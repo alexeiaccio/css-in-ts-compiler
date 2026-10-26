@@ -16,7 +16,11 @@
 //   --move X Y [N]                       headless, after --keys and --settle: the pointer to X,Y, N frames (default 3),
 //                                        and no press — a hover a frame or two into its fade, at a page that is at rest
 //   --warm N                             headless: N frames at rest before the click and the wheel, for a page whose
-//                                        mount animation (the Sky cards arriving) has to be over first
+//                                        mount animation (the Sky cards arriving, the four plain pages' entry) has to be
+//                                        over first: 30 frames is past both
+//   --drag-feed X,Y,DY,DY,...            headless, after --warm: a pointer drag on the Sky feed: a press at X,Y, then
+//                                        one frame a pointer moved by that many px in y (the button held), then the
+//                                        release at the last point; --settle runs the fling after it
 //   --keys Tab,Tab,Space                 headless: a frame, then each key pressed and released with a frame after it
 //                                        (names as the focus manager and the parts take them: Shift+Tab, Enter, ArrowLeft,
 //                                        Space for " "); the last frame is written. A step `text:Ada` is typed text
@@ -39,7 +43,7 @@
 //                                        that leaves unmounts on the frame it closes (also REDUCED_MOTION=1)
 //   THEME=light                          the light theme
 import "./plugin.ts";
-import type { Motion } from "./app/Sky.tsx";
+import type { Motion } from "./src/entry.ts";
 import type { Drag } from "./app/Widgets.tsx";
 
 const page = process.argv[2]?.startsWith("--") ? "sensors" : (process.argv[2] ?? "sensors");
@@ -60,6 +64,8 @@ const move = arg("--move", 3)?.map(Number);
 const warm = Number(arg("--warm")?.[0] ?? 0);
 // headless: a drag on the widgets slider: two fractions of the rail (press at the first, held, then move to the second)
 const drag = arg("--drag", 2)?.map(Number);
+// headless: a drag on the Sky feed: the press point, then a dy a frame, then the release at the last point
+const dragFeed = arg("--drag-feed")?.[0]?.split(",").map(Number);
 const keys = arg("--keys")?.[0]?.split(",");
 // headless: wheel notches down over the element --wheel-over names, a frame each
 const wheel = Number(arg("--wheel")?.[0] ?? 0);
@@ -116,16 +122,16 @@ const dragState: Drag = {};
 const motion: Motion = {};
 const dispose = render(
   page === "widgets"
-    ? () => Widgets({ input, drag: dragState })
+    ? () => Widgets({ input, drag: dragState, motion })
     : page === "dialog"
       ? () => Dialog({ input, motion })
       : page === "form"
-        ? () => Field({ input })
+        ? () => Field({ input, motion })
         : page === "list"
-          ? () => List({ input })
+          ? () => List({ input, motion })
           : page === "sky"
             ? () => Sky({ input, motion, theme: () => theme })
-            : Sensors,
+            : () => Sensors({ motion }),
   root,
 );
 const stats: [number, number, number, number][] = [];
@@ -133,7 +139,11 @@ const frame = createFrame(root, {
   get theme() {
     return theme;
   },
-  onPointer: (x, y, down) => dragState.onPointer?.(x, y, down),
+  // the pointer goes to both hooks: the Widgets slider's drag and the page's own (the Sky feed)
+  onPointer: (x, y, down) => {
+    dragState.onPointer?.(x, y, down);
+    motion.onPointer?.(x, y, down);
+  },
   onPressMiss: () => input.pressMiss(),
   onWheel: (dx, dy) => motion.onWheel?.(dx, dy),
   tick: (dt) => motion.tick?.(dt),
@@ -177,6 +187,17 @@ if (headless) {
     for (let n = 0; n < (click ? 4 : 1); n++)
       step(click?.[0] ?? -1, click?.[1] ?? -1, n === 1, n === 1 || n === 2);
     if (click) settleAt = [click[0]!, click[1]!];
+  }
+  if (dragFeed) {
+    // a pointer drag on the Sky feed: frame 0 lays out, 1 puts the pointer at the press point, 2 presses, then a frame a
+    // dy with the button held, and the release at the last point (the --settle frames after it are the fling's)
+    const [x, top, ...dys] = dragFeed;
+    let y = top!;
+    step(x!, y, false);
+    step(x!, y, true, true);
+    for (const dy of dys) step(x!, (y += dy), true);
+    step(x!, y, false, true);
+    settleAt = [x!, y];
   }
   // the wheel: Clay scrolls the container under the pointer (unless the page owns it: the Sky feed), so the pointer goes
   // onto the viewport for a frame first; every notch goes to both channels, and the page's handler sees it before the frame

@@ -62,13 +62,18 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
   dispose();
   const root = new El("root");
   const input = createInput();
-  // the page's frame hook, as the host wires it: the wheel in, one tick a frame, the theme the palette asks for
-  const motion: { onWheel?: (dx: number, dy: number) => void; tick?: (dt: number) => void } = {};
+  // the page's frame hook, as the host wires it: the wheel in, one tick a frame, the pointer for the feed's drag
+  const motion: {
+    onWheel?: (dx: number, dy: number) => void;
+    onPointer?: (x: number, y: number, down: boolean) => void;
+    tick?: (dt: number) => void;
+  } = {};
   const palette = theme;
   dispose = render(() => Sky({ input, motion, theme: () => palette }), root);
   const frame = createFrame(root, {
     theme,
     onPressMiss: () => input.pressMiss(),
+    onPointer: (x, y, down) => motion.onPointer?.(x, y, down),
     onWheel: (dx, dy) => motion.onWheel?.(dx, dy),
     tick: (dt) => motion.tick?.(dt),
   });
@@ -134,6 +139,22 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
     /** Frames with no input: the track comes to rest. */
     settle(n = 60) {
       for (let i = 0; i < n; i++) step();
+    },
+    /** A pointer drag on the feed: a frame with the pointer there, the press, then a frame a dy with the button held.
+     *  Returns the offset each held frame presented and then the release, so a test can follow the pointer exactly. */
+    drag(x: number, y: number, dys: number[]) {
+      at = [x, y];
+      step(false);
+      step(true);
+      const held: number[] = [];
+      for (const dy of dys) {
+        at = [x, (y += dy)];
+        step(true);
+        held.push(-ui.scrollOffset("sky-feed"));
+      }
+      // the release at the last point of the drag
+      step(false);
+      return held;
     },
     /** A key pressed and released with a frame after each. */
     tap(name: string) {
@@ -629,6 +650,73 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
   setReducedMotion(false);
 }
 
+// --- the drag (direct manipulation): a press inside the feed grabs the offset and the pointer moves it 1:1 from the
+//     press point, with no animation in between; past an end `rubber` resists it as the wheel is resisted; the release
+//     flings on the speed of the last frames and settles, or lets the band go at an end; a press that travelled is not a
+//     click on the card under it; reduced motion stops at the release
+{
+  const p = fresh();
+  p.science();
+  p.point(180, 300);
+  // five held frames, 2px up each: the offset is the pointer's own travel from the press point, frame for frame
+  const dys = [-2, -2, -2, -2, -2];
+  const held = p.drag(180, 300, dys);
+  const travelled = dys.map((_, i) => -dys.slice(0, i + 1).reduce((a, b) => a + b, 0));
+  check("each held frame's offset is the pointer's travel from the press point", held, travelled);
+  const released = -p.offset();
+  check("the release frame is already the fling's, a step on from where the finger left it", released > 10 && released < 13, true);
+  p.step();
+  const next = -p.offset();
+  check("the frame after the release keeps moving the same way", next > released, true);
+  p.settle(150);
+  const land = -p.offset();
+  check("and the fling settles inside the content, farther than the release", land > released && land < 78, true);
+  check("at a deterministic place: the speed of the last five frames, projected", r(land), 54.95);
+  console.log(
+    `solid/sky.test.ts: the drag 10px in five frames, released at ${r(released)}, the next frame ${r(next)}, rest ${r(land)}`,
+  );
+  // a drag past the end is resisted by the same f(x) as the wheel's pull on the 664px viewport
+  const q = fresh();
+  q.science();
+  q.point(180, 300);
+  const far = q.drag(180, 300, [-9, -9, -9, -9, -9, -9, -9, -9, -9, -9, -9, -9, -9, -9, -9, -9, -9]); // 153px up
+  const raw = r(far[far.length - 1]!);
+  check("a drag past the end is resisted by rubber, not followed 1:1", raw, r(78 + rubber(153 - 78, 664)));
+  check("and it is short of the raw travel", raw < 153, true);
+  q.step();
+  q.settle(60);
+  check("after the release the band lets go and the feed rests on the clamp", r(q.offset()), -78);
+  console.log(`solid/sky.test.ts: a 153px drag past the end presents ${raw} (rubber's f(75) of it), back on 78 at rest`);
+  // a drag that travelled is not a click on the card it started on; one that did not is
+  const c = fresh();
+  const card = c.card(1);
+  c.drag(card[0]! + 100, card[1]! + 40, [-30]);
+  check("a drag does not select the card under it", c.status(), "Discover — 3 posts");
+  c.settle(60);
+  check("the drag left the feed at its end: Discover's content is shorter than the viewport", r(c.offset()), 0);
+  c.clickOn("sky-card-1");
+  check("a click without movement still selects", c.status(), "Titania — 2 of 3");
+  // a press outside the feed grabs nothing: the bar keeps its own press and the feed stays where it is
+  const b = fresh();
+  b.science();
+  b.drag(300, 20, [-10, -10, -10]);
+  check("a press on the bar does not drag the feed", r(b.offset()), 0);
+  // reduced motion: the drag is still 1:1 (it is direct manipulation), and the release flings nothing: the offset stops
+  // where the finger left it, clamped
+  setReducedMotion(true);
+  const rm = fresh();
+  rm.science();
+  rm.point(180, 300);
+  const rmHeld = rm.drag(180, 300, [-10, -10, -10, -10, -10]);
+  check("reduced motion drags 1:1 too", rmHeld, [10, 20, 30, 40, 50]);
+  check("and the release stops the feed where the finger left it", r(rm.offset()), -50);
+  rm.settle(60);
+  check("with no fling after it", r(rm.offset()), -50);
+  rm.drag(180, 300, [-10, -10, -10, -10, -10, -10, -10, -10]);
+  check("a drag past the end is clamped hard, without a band", r(rm.offset()), -78);
+  setReducedMotion(false);
+}
+
 // --- a second wheel mid-flight: it retargets from the presented (x, v), so no frame jumps, and it bends the throw back
 //     by its notch (two notches fling towards 74; one notch up mid-decay lands at 64 instead)
 {
@@ -767,7 +855,10 @@ console.log(
     "colour fading with it (a text's fields, by its id; a quick switch back inside the two ends), the body and media " +
     "wrapping, the wheel's 10px notch on a track with decaying steps and the bar still, a flick to the clamped end and " +
     "its stored frame, a wheel mid-flight turning without a jump, the rubber band at an end (the resistance's f(40), a " +
-    "notch back, the 80ms hold, the exact clamp, reduced motion), the keyboard scrolling the same track (Down/Up 40, " +
+    "notch back, the 80ms hold, the exact clamp, reduced motion), the pointer's drag of the feed (the offset frame for " +
+    "frame from the press point, the resistance past an end, the fling's projected landing, a drag that is not a click, " +
+    "a press outside the feed that grabs nothing, and reduced motion's 1:1 drag with no fling), the keyboard scrolling " +
+    "the same track (Down/Up 40, " +
     "PageDown a viewport, Home/End), the tabs switching the feed and the empty News case, a card click recording the " +
     "selection, the page fitting",
 );

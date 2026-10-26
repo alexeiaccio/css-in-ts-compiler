@@ -26,18 +26,20 @@ bun solid/main.ts list                           # the List page (360x400): the 
 bun solid/main.ts sky                            # the Sky page (360x760): csssky's feed, the tabs switch the three
                                                  # feeds, Tab reaches the feed and Up/Down, PageUp/PageDown, Home/End
                                                  # scroll it (the wheel scrolls it under the pointer)
-bun solid/main.ts widgets --keys Tab,Tab,Space --expect solid/frames/widgets-switch-on.png   # scripted keys, then the frame
+bun solid/main.ts widgets --warm 30 --keys Tab,Tab,Space --expect solid/frames/widgets-switch-on.png   # scripted keys, then the frame
 bun solid/main.ts dialog --keys Tab,Enter --expect solid/frames/dialog-open.png             # keyboard, headless
 bun solid/main.ts form --keys Tab,Tab,text:Ada --expect solid/frames/field-typed.png        # typed text, not a key
-bun solid/main.ts list --wheel 32 --expect solid/frames/list-wheel.png      # headless: the pointer onto the list, 32 notches down
+bun solid/main.ts list --warm 30 --wheel 32 --expect solid/frames/list-wheel.png   # headless: the pointer onto the list, 32 notches down
+bun solid/main.ts list --settle 3 --png out.png       # headless: four frames into the page's entry (frames/list-entry.png)
+bun solid/main.ts sky --warm 40 --drag-feed 180,300,-2,-2,-2,-2,-2 --settle 60 --png out.png   # headless: a drag on the feed, then its fling
 bun solid/main.ts sky --click 180 32 --wheel 8 --wheel-over sky-feed --png out.png   # headless: Science, its feed 8 notches down
 bun solid/main.ts sky --settle 40 --move 180 300 3 --png out.png          # headless: a hover, three frames into its fade, at a page at rest
 bun solid/main.ts sky --warm 40 --wheel 4 --wheel-over sky-status --png out.png   # headless: rest first, then four notches past the end (the band)
 bun solid/main.ts widgets --drag 0.25 0.75 --png out.png                 # headless: press the slider's rail at a quarter, hold, move to three quarters
 bun solid/main.ts dialog --reduced-motion --keys Tab,Enter --png out.png # no travel, no waiting (also REDUCED_MOTION=1)
-bun solid/main.ts --expect examples/sensors/expected-thorvg.png          # one frame against a stored PNG
-bun solid/main.ts --click 180 250 --expect examples/sensors/expected-thorvg-g.png   # host.c's scripted click
-THEME=light bun solid/main.ts --expect examples/sensors/expected-thorvg-light.png
+bun solid/main.ts --warm 30 --expect examples/sensors/expected-thorvg.png          # one frame against a stored PNG
+bun solid/main.ts --warm 30 --click 180 250 --expect examples/sensors/expected-thorvg-g.png   # host.c's scripted click
+THEME=light bun solid/main.ts --warm 30 --expect examples/sensors/expected-thorvg-light.png
 bun solid/main.ts --png out.png --bench 1000     # ms a frame by phase
 bun solid/main.ts sky --settle 60 --idle 600     # the page at rest: 0 draws of 600, and the ms the tick takes
 sh solid/test.sh                                 # all of it; `bun run test` calls it last
@@ -50,6 +52,8 @@ bun solid/metamorphic.test.ts                     # the relations with no stored
 native/ui.c        Clay + desktop/clay_renderer_thorvg.c + SDL3 window behind flat C functions (libui.dylib)
 src/renderer.ts    createRenderer: El (tag, props, children) and Txt nodes; <box id style onClick>, <text style>
 src/pack.ts        a ClayShape + theme + state -> Float32Array, once per variant
+src/motion.ts      the motion model: tracks (spatial/effect), decay, rubber, presence, reduced motion, the value channel
+src/entry.ts       the page's frame hook (Motion: onWheel, onPointer, tick) and its first-mount entry
 src/frame.ts       one frame: pointer in, events, flush(), the tree declared, layout, draw
 src/ffi.ts         bun:ffi bindings
 plugin.ts          Bun plugin: JSX through @solidjs/compiler, `styles.ts` and a page's own styles through cssints, solid-js client build
@@ -220,9 +224,23 @@ index whose element is that node or a descendant. The renderer opens a scene at 
 was current when it opened; the element's shadow is drawn inside it. A group at 255, scale 1, no offset and no rotation
 makes no scene. Four groups may be open at
 once, 16 a frame, eight nested scissors; a backdrop's cut inside a group settles it into pass 1 and makes it again after
-the cut. The **dither's** mark of a gradient's area and a clip's rect are axis-aligned maps of the groups around them, so
-a gradient or a clip inside a *rotated* group is stippled as its unrotated box would be: no page has one (the Dialog's
-menu, the one rotated group, has neither).
+the cut. The groups' map to the target is one affine (`Clay_ThorVG_Map`): a **clip** is a ThorVG paint in the transformed
+scene, so it already turns with its group (the test tree's clipped child ends its bright fill at x 101 on one row and 89
+on another inside a 30° group), and the **dither**'s mark of a gradient is the box's four mapped corners' quad — every
+pixel of its bounding box is mapped back into the shape's own space and tested against the box and its corner arcs — so a
+gradient in a rotated group is stippled where it really is (0 pixels of the page around the quad, 1151 inside the quad
+but outside the unrotated box: `solid/rotated.test.ts`); a clip's cut for the dither is that clip's quad bounding box,
+the conservative bound.
+
+### A page's first mount (`src/entry.ts`)
+
+`Motion` (`onWheel`, `onPointer`, `tick`) is the page's half of the host: `main.ts` wires all three to the page it
+renders. `pageEntry(motion, root = "Root")` gives List, Widgets, Sensors and the Text field their entry: the root's
+subtree starts 8px low and at alpha 0, and settles on its literals in 0.25s — `TRANSLATE_Y` on `spatial(0.25, 0)` and
+`ALPHA` on `effect(0.25)`, the group fields, so `ui.bounds` is the settled box on every frame — and then the tick writes
+nothing at all, so a page at rest is the frame its literals make. The settle is ~21 frames; the stored frames are taken
+after `--warm 30` and are byte-identical. Reduced motion has no entry. The Sky page's entry is its cards' stagger and the
+Dialog's its overlays; both own their ticks.
 
 ### `ui_text` fields (`packText`)
 
@@ -531,13 +549,15 @@ renderer's `SCISSOR_START`, not drawn outside.
 
 | | |
 | --- | --- |
-| The wheel | `ui_window_poll` adds every `SDL_EVENT_MOUSE_WHEEL` to the next frame (`ui_wheel`; SDL's y is positive away from the user, and so is Clay's delta, so no sign is flipped) and `ui_begin` calls `Clay_UpdateScrollContainers(false, delta, dt)` before `Clay_BeginLayout`: Clay moves the container the pointer is over and clamps it to the content's height. `ui_open` hands each clip element its own offset before the declaration is configured (`d.clip.childOffset = Clay_GetScrollOffset()`, as Clay's debug view does), so the layout shifts the rows and the scissor cuts them. Drag scrolling is off: a press belongs to the page's parts. |
+| The wheel | `ui_window_poll` adds every `SDL_EVENT_MOUSE_WHEEL` to the next frame (`ui_wheel`; SDL's y is positive away from the user, and so is Clay's delta, so no sign is flipped) and `ui_begin` calls `Clay_UpdateScrollContainers(false, delta, dt)` before `Clay_BeginLayout`: Clay moves the container the pointer is over and clamps it to the content's height. `ui_open` hands each clip element its own offset before the declaration is configured (`d.clip.childOffset = Clay_GetScrollOffset()`, as Clay's debug view does), so the layout shifts the rows and the scissor cuts them. |
+| The drag | a press inside the viewport grabs the offset (`onPress`), and while the button is held the page writes `pressOffset + (y - pressY)` through `ui_scroll_to`, so the rows follow the pointer 1:1 from the press point, clamped to the content by Clay's own range. It stops at the release. The offset stays Clay's — the wheel and `ui_scroll_to` are untouched — which is why the drag is the page's and not a track: a band (Clay clamps every frame) and a fling (Clay's own drag leaves a momentum of ~17x the drag) need the page to own the offset, as the Sky feed does. |
 | The keys | one Tab stop. Up and Down move the selection a row, PageUp and PageDown eight (the viewport holds eight), Home and End to the ends, clamped: no wrap, never out of 0..29. Each move calls `ui_scroll_to` with the least it takes to show the row, measured from the row's and the viewport's `ui.bounds` of the last frame (a row above the top or below the bottom pulls the view just enough; one already in view moves nothing). The active row also comes into view when the list takes the focus, as a browser's does. |
 | The selection | a signal: the selected row is the panel's `surface` with its label in the `accent` (the tree's selected node) and takes the same 2px `ring` while the list has the focus. The wheel does not touch it, so scrolling and the selection only agree when a key moves it. |
 
 | Frame | Keys | Shows |
 | --- | --- | --- |
-| `list-top` | | the page at rest: `Room A1 — 1 of 30`, rows 1..8 of 30, no ring |
+| `list-top` | `--warm 30` | the page at rest: `Room A1 — 1 of 30`, rows 1..8 of 30, no ring |
+| `list-entry` | `--settle 3` | four frames into the first mount: the page `5/6/8` of its `16/18/24`, the selected row `12/14/18` of its `36/40/52` (still lighter), the top 8px the ground |
 | `list-wheel` | `--wheel 32` | rows 12..19 at offset -320: the row above cut to its last 8px and row 19 cut at the viewport's bottom (its glyphs stop at the border), the header still `1 of 30` |
 | `list-select` | Tab, ArrowDown ×12 | `Room A3 — 13 of 30`, the view scrolled by 148px so that row 13 is the last in view, the ring on it |
 | `list-light` | the same, light | the light theme: the white selected row, the blue ring |
@@ -547,9 +567,14 @@ Clay's offset 10px a notch with the rows moving by exactly that, the offset stop
 clip (a selected row 10px above the viewport: its bounds are not clipped, the pixel just above the viewport is the page
 and the one 5px inside it the row's fill; past the bottom the page again), the keyboard selection scrolling into view
 (12 Downs scroll by 148, PageDown to 21, End to 30 at -658, Home back to 0 and never past the ends), the wheel leaving the
-selection alone and a key bringing it back, the header and footer unmoved by the scroll, the ring's pixels (the row's
+selection alone and a key bringing it back, a held pointer dragging the viewport 1:1 and stopping at the release (clamped
+at both ends; a press above the viewport grabs nothing; the wheel and the keys still work beside it), the page's first
+mount (four frames in the page is `5/6/8` of its `16/18/24` and the selected row `12/14/18` of its `36/40/52`, the frame
+is `frames/list-entry.png`, the boxes are the settled ones and the literals come back at rest; reduced motion has no
+entry), the header and footer unmoved by the scroll, the ring's pixels (the row's
 edge is its fill before Tab and the ring after), the wheel only reaching the container under the pointer, and the page
-fitting its window.
+fitting its window. The stored frames are taken after `--warm 30`, which is the settled page the frames before the entry
+were: all four are byte-identical.
 
 **Mutation check.** Dropping `reveal(i)` from `select` (never scroll the selection into view) fails eleven asserts of
 `solid/list.test.ts` (the arrows, PageDown, End and the wheel-then-key move); the file is compared with its backup after
@@ -571,6 +596,7 @@ post count, or the card a click selected.
 | The avatars | `css.image(path, { width: 40, height: 40 })` — the six committed 64x64 PNGs of `examples/sky/avatars.py` (a disc in the author's hue, transparent outside it, so the panel shows at the box's corners). The path is a literal per author because a css style is evaluated when its module loads: a page cannot build one from a loop variable. This is the first page that uses `css.image` in the Solid path. |
 | Wrapping | new on this page: a body is a `text` with `whiteSpace("normal")` and `lineHeight(20)` inside a stretch box inside a card of percent width, and Clay wraps it. (A clip element lets its children grow past the viewport for their content, so a card that must wrap cannot take its width from a stretch inside the feed: the card is `width("100%")`.) |
 | Scrolling | the feed's offset is a page-owned motion track (`solid/src/motion.ts`): a wheel notch is 10px on a spring that glides it, a burst of notches is a flick whose decay lands (clamped) at the end, and one Tab stop on the feed retargets the same track with Down/Up 40px, PageDown/PageUp a viewport and Home/End. The page turns `ui_auto_scroll` off, so Clay's own container does not also move; `ui.scrollTo("sky-feed", -x)` puts the value on it each frame. Discover's three short posts fit the 664px viewport (max 0), so the wheel frame and the test scroll **Science** (742px of content, 78px of travel). |
+| The drag | a press inside the feed grabs the offset (`onPress`, then the host's `onPointer` on the same frame) and, while the button is held, the offset *is* `place(grabFrom - (y - grabY))` — the pointer's travel from the press point, 1:1, with the same `rubber` past an end as the wheel's pull, and no track in between. Travel past 4px makes the press a drag, and the card's `onClick` is dropped (`held && dragMoved`), so a drag never selects and a click that did not move still does. The release hands the speed of the last five samples (no span under 1/120s) to a `decay`: the fling runs to its projection inside the content or springs to the clamp past an end, and a release in the band lets the band go. Reduced motion drags 1:1 and flings nothing. `main.ts --drag-feed X,Y,DY,...` scripts one headless. |
 | The rubber band | a notch past an end is a **pull** of that end, not a scroll: while the content is at the end (or already past it) the wheel moves it by Rune's and iOS's resistance, `f(x) = (1 - 1/(x·c/d + 1))·d` with `c = 0.55` and `d` the viewport's 664 (`motion.ts`'s `rubber`); `x` is the raw overshoot the notches have accumulated, so the first 10px past the end move 5.45 and the 40th only 21.29. Eight frames without a notch — 80ms — and it springs back on `spatial(0.35, 0.1)` to the clamp, settling exactly on it; a key drops it at once; a notch the other way walks it back. A notch that only *reaches* the end while the content is still travelling there is a scroll like any other (the flick's clamp), so nothing jumps. The band goes on Clay's clip element through `ui_scroll_put` (the unclamped sibling of `ui_scroll_to`, since Clay's own clamp is the content's). Reduced motion has no band: the wheel is clamped hard. |
 | The entry | on mount (once — a tab switch draws its feed at rest) every card starts 12px low and at 0 opacity and settles on its literals in 0.3s: `TRANSLATE_Y` on `spatial(0.3)` and `ALPHA` on `effect(0.3)`, the group of the element's whole subtree, so not one box moves (`ui_bounds` is the settled one on the first frame). Each card starts 50ms (3 frames) after the one above it. Reduced motion starts no track at all: the settled frame at once. |
 | Hover | the card's and the tab's hover is a 120ms fade (`effect`), not a style switch. The card fades its four background floats from the panel tone to the hover tone **and** its gradient's opacity (`GRADIENT_ALPHA`), so the resting gradient fades out under the hover one: the card alternates two styles (`card`, `cardHover`) and the page keeps the hover one while the fade runs either way (a `:hover` state would drop the gradient the moment the pointer left). A tab has no gradient, so its four channels are enough; a tab's 2px underline is its own border colour (`BORDER_ALPHA`), which fades in on the tab that becomes active and out of the one that was — a colour, not a slide. **The label beside the underline fades too**: a text's colour is not in the tab's box's floats, so the `<text id="sky-tabs-label-i">` carries an id and the page fades the text's own four floats (`FIELDS.TEXT_COLOR`, 51..54) on `effect(0.15)`, muted → accent on the tab that becomes active and back on the one that was, retargeted from the presented colour, so the label and its underline move together. A label that has settled writes nothing: its literal is the end it is on (the page swaps `tabText`/`tabTextOn` at the switch, and Clay's text command carries the colour, so the fading frames draw and the settled one is the literal's). The ends are read from the packed variants under the frame's theme, so the light palette fades between its own tones; a selected card keeps `cardOn` and does not fade. |
@@ -601,7 +627,11 @@ page: `139/152/165` muted at rest, `126/152/176`, `106/153/195`, `89/154/211`, `
 `59/156/240` on the new tab, the old one the same path back to the muted token, a quick switch back inside the two ends
 with its widest frame 15/255), **the rubber band** (four notches past 78 land at 99.29 = the formula's
 21.29 of the raw 40, a notch back walks it to 97.95, it is still out of the end for four frames and back on the clamp 22
-frames later, a flick into the end never steps more than 20px and rests at 78, and reduced motion clamps hard), one wheel
+frames later, a flick into the end never steps more than 20px and rests at 78, and reduced motion clamps hard), **the
+drag** (each held frame's offset is the pointer's travel — 2, 4, 6, 8, 10 — released at 11.48, the next frame 12.9 and
+the rest at 54.95, the speed of the last five samples projected; a 153px drag up presents rubber's f(75) on the clamp and
+springs back to 78; a 30px drag on a card does not select it while a click without movement does; a press on the bar grabs
+nothing; reduced motion drags 1:1 and stops at the release without a band), one wheel
 notch gliding `2.59, 1.92, 1.42…` px a frame to exactly 10 (the bar and status still), eight notches flinging to the
 clamped 78 and the settled frame matching `sky-scrolled.png` pixel for pixel, a wheel up mid-throw landing 10px back at
 64.05 with no frame's step jumping, the keyboard (Down/Up 40, PageDown a viewport, Home/End, all on the same track and
@@ -624,8 +654,7 @@ backup after the revert.
 **What is not here.** No fetching and no paging: one recorded fixture per feed (three posts), News empty as in the app.
 No thread screen, so a card click only selects. No images in post media — the media is a line (`[image]`, `[image: …]`,
 `[video]`, `[link: …]`), as in the terminal. No avatars beyond the six committed PNGs (a real author's avatar is a remote
-file). No drag scrolling (the press belongs to the cards; the wheel's momentum is the page's motion track, item 2 of
-Rune's research). The name and the handle are two lines,
+file). The drag is the window's mouse, not touch (a phone's events are the host's next step). The name and the handle are two lines,
 not the app's one row: the longest pair does not fit the 312px card and Clay has no ellipsis. A media line wraps at
 spaces only, so a word wider than the card would run over the gutter: the Science link carries the app's own fallback
 for an embed with no title, the host (`[link: sciencedirect.com]`), not its 60-character URI. And the light theme is the

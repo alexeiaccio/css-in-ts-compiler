@@ -4,6 +4,7 @@
 import { createSignal } from "solid-js";
 
 import * as s from "../../examples/sensors/styles.ts";
+import { pageEntry, type Motion } from "../src/entry.ts";
 
 const f = Math.fround;
 const ACCEL = [1.159, -0.718, 10.044].map(f);
@@ -13,8 +14,9 @@ const G = f(1 / f(9.80665));
 const signed = (x: number, digits: number) => (x < 0 ? "-" : "+") + Math.abs(x).toFixed(digits);
 const sum = (v: number[]) => v.reduce((acc, x) => f(acc + f(x * x)), 0);
 
-export function Sensors() {
+export function Sensors(props: { motion?: Motion } = {}) {
   const [useG, setUseG] = createSignal(false);
+  pageEntry(props.motion);
   const scale = () => (useG() ? G : 1);
   const unit = () => (useG() ? "g" : "m/s\u00b2");
 
