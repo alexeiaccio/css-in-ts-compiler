@@ -38,10 +38,11 @@ export interface View {
   /** The theme of the styles (`"light"`), or none for the base. */
   theme?: string;
   /**
-   * The pointer this frame, once, before the tree is declared: `down` is the button. A page that drags keeps its own
-   * flag (`onPress` sets it, `down` false clears it) and follows x while it holds.
+   * The pointer this frame, once, before the tree is declared: `down` is the button, `touch` says the pointer is a
+   * finger's (a mouse and a finger are one pointer). A page that drags keeps its own flag (`onPress` sets it, `down`
+   * false clears it) and follows x while it holds.
    */
-  onPointer?: (x: number, y: number, down: boolean) => void;
+  onPointer?: (x: number, y: number, down: boolean, touch: boolean) => void;
   /** A press (the button going down) that no element with `onPress` was under: a click on empty space. */
   onPressMiss?: () => void;
   /** The wheel the host polled since the last frame, before this one: SDL's delta, positive y away from the user. */
@@ -53,7 +54,16 @@ export interface View {
   stats?: [number, number, number, number][];
 }
 
-export type Frame = (px: number, py: number, down: boolean, dt: number, render?: boolean) => number;
+/** A frame: the pointer (x, y, the button, and whether it is a finger's), the elapsed seconds, whether to draw, and the
+ *  touch flag again for the page (the drawer passes it through). */
+export type Frame = (
+  px: number,
+  py: number,
+  down: boolean,
+  dt: number,
+  render?: boolean,
+  touch?: boolean,
+) => number;
 
 /**
  * A frame loop's draw decision. The frame is declared and laid out every iteration — that is what a page's tick reads
@@ -64,8 +74,8 @@ export type Frame = (px: number, py: number, down: boolean, dt: number, render?:
  */
 export function createDrawer(frame: Frame) {
   let last: bigint | undefined;
-  return (px: number, py: number, down: boolean, dt: number, discrete = false): boolean => {
-    frame(px, py, down, dt, false);
+  return (px: number, py: number, down: boolean, dt: number, discrete = false, touch = false): boolean => {
+    frame(px, py, down, dt, false, touch);
     const hash = ui.hash();
     const draw = discrete || hash !== last;
     last = hash;
@@ -137,11 +147,11 @@ export function createFrame(root: El, view: View = {}) {
   }
 
   /** Returns the number of render commands. `render: false` stops after the layout. */
-  return (px: number, py: number, down: boolean, dt: number, render = true): number => {
+  return (px: number, py: number, down: boolean, dt: number, render = true, touch = false): number => {
     const t0 = Bun.nanoseconds();
     ui.begin(px, py, down ? 1 : 0, dt);
     events(down, px, py);
-    view.onPointer?.(px, py, down);
+    view.onPointer?.(px, py, down, touch);
     view.tick?.(dt);
     flush();
     const t1 = Bun.nanoseconds();

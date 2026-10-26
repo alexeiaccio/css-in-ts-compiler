@@ -77,14 +77,16 @@ bun solid/field.test.ts
 # the List page (its viewport on the page's own track: the wheel's 10px, the keyboard's reveal, the drag, the band): the
 # top, scrolled 32 notches (a rest frame between them, so the run is the notches' own 320 and not a flick), the selection
 # moved past the viewport and eased into view, the light theme
+# (the settles after a scroll are 90 frames, not 60: the scrollbar holds 0.6s after the track stops and fades out in
+# 0.15s, so a frame at rest — today's pixels, no thumb on it — is a little later than the offset's own settle)
 L() { bun solid/main.ts list --warm 30 "$@"; }
 # the entry's own frame: four frames in, the page a blend of its colour over the ground (main.ts --settle 3)
 bun solid/main.ts list --settle 3 --expect solid/frames/list-entry.png
 DOWN12="Tab,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown"
 L --expect solid/frames/list-top.png
-L --wheel 32 --wheel-rest --settle 60 --expect solid/frames/list-wheel.png
-L --keys $DOWN12 --settle 60 --expect solid/frames/list-select.png
-THEME=light bun solid/main.ts list --warm 30 --keys $DOWN12 --settle 60 --expect solid/frames/list-light.png
+L --wheel 32 --wheel-rest --settle 90 --expect solid/frames/list-wheel.png
+L --keys $DOWN12 --settle 90 --expect solid/frames/list-select.png
+THEME=light bun solid/main.ts list --warm 30 --keys $DOWN12 --settle 90 --expect solid/frames/list-light.png
 bun solid/list.test.ts
 # the motion model (a spring from duration and bounce, a track that retargets from the presented x and v, the exact
 # settle, the effect class's clamp, the decay's projection): no page, no Clay
@@ -103,13 +105,19 @@ S="bun solid/main.ts sky"
 $S --settle 40 --expect solid/frames/sky.png
 $S --click 180 32 --settle 40 --expect solid/frames/sky-science.png
 THEME=light $S --settle 40 --expect solid/frames/sky-light.png
-$S --click 180 32 --wheel 8 --wheel-over sky-feed --settle 60 --expect solid/frames/sky-scrolled.png
+$S --click 180 32 --wheel 8 --wheel-over sky-feed --settle 90 --expect solid/frames/sky-scrolled.png
 $S --settle 9 --expect solid/frames/sky-entry.png
 $S --settle 40 --move 180 300 3 --expect solid/frames/sky-hover.png
 $S --warm 40 --wheel 4 --wheel-over sky-status --expect solid/frames/sky-band.png
 # a tab switch two frames in (the tablist's first stop, then ArrowRight): the label's colour and the 2px underline both
 # mid-fade, the new label between the muted token and the accent — the text's own four floats, not the tab's box's
 $S --warm 40 --keys Tab,ArrowRight --settle 2 --expect solid/frames/sky-tab-mid.png
+# a finger's tap is the mouse's click through the same mapping (ui_touch_map: SDL's normalised 0..1 of the window to the
+# layout's pixels): a tap at the window's middle (0.5,0.5 -> 180,380) is the frame of a click at 180,380 (the second card
+# selected). No touchscreen here: this is the mapping, and what a page does with the flag is sky.test.ts's (a finger's 2px
+# drag is not a card click, the mouse's is).
+$S --click 180 380 --png "${TMPDIR:-/tmp}/cssints-touch.png" >/dev/null
+$S --touch 0.5 0.5 --expect "${TMPDIR:-/tmp}/cssints-touch.png"
 bun solid/sky.test.ts
 # a gradient and a clip inside a *rotated* group (no page has one): the clip paint turns with its scene, the gradient with
 # its shape, and the dither's mark is the rotated quad, so no page pixel around it is stippled (a hand-built tree, no page)

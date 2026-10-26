@@ -811,10 +811,30 @@ float ui_scroll_put(const char *id, int len, float y)
     return y;
 }
 
-/** Drains the window's events into out[5]: pointer x, y, button down, quit, and the last key pressed (its
- *  character; 0 for none). The pointer and the button keep their last values between polls. Every key down and up
- *  (a repeat too) is also queued for ui_key_pop (the oldest are dropped past 64), every typed run for ui_text_pop,
- *  and every wheel event adds to the next frame's scroll (ui_wheel). */
+/** A finger's position, normalised to the window (SDL's tfinger.x/y: 0..1, (0,0) the top left), in the logical pixels
+ *  of the pointer (ui_window_poll, out[0..1]). The window is presented at the layout's size with letterboxing, so the
+ *  layout's width and height are the window's. The one place the mapping happens: the poll calls it for every finger
+ *  event, and so does the headless `--touch` option (solid/main.ts), so the mapping is covered without a touchscreen.
+ *  SDL's coordinates are normalised but not clamped (a touch in the letterbox is outside 0..1): no clamp here either,
+ *  the pointer simply lands outside every box. */
+void ui_touch_map(float fx, float fy, float *out)
+{
+    out[0] = fx * width;
+    out[1] = fy * height;
+}
+
+// The finger that owns the pointer: a mouse and a finger are one pointer (the pages have one), so the first finger down
+// is the pointer's, and a second finger is ignored until the first lifts (no pinch, no two-finger gesture: nothing in a
+// page reads one).
+static Uint64 finger_owner;
+static int finger_held;
+
+/** Drains the window's events into out[6]: pointer x, y, button down, quit, the last key pressed (its character; 0 for
+ *  none), and whether the last pointer event was a finger (1) or the mouse (0). The pointer and the button keep their
+ *  last values between polls. Every key down and up (a repeat too) is also queued for ui_key_pop (the oldest are
+ *  dropped past 64), every typed run for ui_text_pop, and every wheel event adds to the next frame's scroll (ui_wheel).
+ *  SDL's finger events (FINGER_DOWN/MOTION/UP) go through ui_touch_map into the same pointer state as the mouse's:
+ *  down while the finger is on the window, up at the place it left, and a FINGER_CANCELED is a lift too. */
 void ui_window_poll(float *out)
 {
     SDL_Event e;
@@ -838,6 +858,16 @@ void ui_window_poll(float *out)
                 text_lens[at] = len, texts_len++;
             }
         }
+        if (e.type == SDL_EVENT_FINGER_DOWN || e.type == SDL_EVENT_FINGER_MOTION || e.type == SDL_EVENT_FINGER_UP ||
+            e.type == SDL_EVENT_FINGER_CANCELED) {
+            if (e.type == SDL_EVENT_FINGER_DOWN && !finger_held) finger_owner = e.tfinger.fingerID, finger_held = 1;
+            if (finger_held && e.tfinger.fingerID == finger_owner) {
+                ui_touch_map(e.tfinger.x, e.tfinger.y, out);
+                if (e.type == SDL_EVENT_FINGER_DOWN) out[2] = 1;
+                if (e.type == SDL_EVENT_FINGER_UP || e.type == SDL_EVENT_FINGER_CANCELED) out[2] = 0, finger_held = 0;
+                out[5] = 1;
+            }
+        }
         if (e.type == SDL_EVENT_MOUSE_MOTION || e.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
             e.type == SDL_EVENT_MOUSE_BUTTON_UP) {
             SDL_ConvertEventToRenderCoordinates(renderer, &e);
@@ -845,6 +875,7 @@ void ui_window_poll(float *out)
             out[1] = e.type == SDL_EVENT_MOUSE_MOTION ? e.motion.y : e.button.y;
             if (e.type == SDL_EVENT_MOUSE_BUTTON_DOWN) out[2] = 1;
             if (e.type == SDL_EVENT_MOUSE_BUTTON_UP) out[2] = 0;
+            out[5] = 0;
         }
     }
 }

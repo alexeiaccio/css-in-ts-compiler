@@ -5,8 +5,9 @@
 // way. The wheel accumulates 10px notches (a flick flings), a press inside the viewport drags it 1:1 with a 4px click
 // threshold (the selection is keyboard-only, so the drag changes nothing about it), a drag or a wheel past an end pulls a
 // rubber band that springs back 80ms after the last input, and the keyboard eases the track to the offset that shows the
-// moved row (the reveal). Reduced motion has no band and no fling, and a key lands at once. The header and the footer are
-// the viewport's siblings: they do not move.
+// moved row (the reveal). Reduced motion has no band and no fling, and a key lands at once. The scrollbar is the machine's
+// too (`BAR`): a 4px thumb on the viewport's right edge that fades in while the rows move, fades out 600ms after they stop,
+// and drags the viewport from where it is pressed. The header and the footer are the viewport's siblings: they do not move.
 import * as css from "cssints/clay" with { type: "cssints" };
 import { createSignal, onCleanup } from "solid-js";
 
@@ -70,6 +71,25 @@ const view = css.cn(
   css.border(1, t.color.muted),
 );
 
+// the viewport's id: the clip element, Clay's scroll container, and the float's parent
+const VIEW = "list";
+// the scrollbar's thumb (src/vscroll.ts writes its height, its top and its opacity every frame): 4px at the viewport's
+// inner right edge, a 2px inset (the float's right edge is the viewport's, so the offset x is -2), rounded, the muted
+// token. It is a float on the viewport, so Clay positions it from the viewport's own box: it does not travel with the rows.
+const thumb = css.cn(
+  css.width(4),
+  css.height(24),
+  css.borderRadius(2),
+  css.bg(t.color.muted),
+  css.float({
+    parent: VIEW,
+    attach: { element: "right top", parent: "right top" },
+    offset: { x: -2 },
+    zIndex: 1,
+    capture: false, // a visible thumb takes the press through the value channel (FIELDS.CAPTURE); at rest the page's
+  }),
+);
+
 // a row: the number dim and right-aligned, the label, the detail at the end. The selected row is the panel's surface with
 // its label in the accent (as the tree's selected node) and takes the focus ring while the list has focus.
 const row = css.cn(
@@ -87,7 +107,25 @@ const numberText = css.cn(font.Roboto, css.color(t.color.muted), css.fontSize(12
 const name = css.cn(css.width("stretch"));
 const labelSelected = css.cn(font.Roboto, css.color(t.color.accent), css.fontSize(16));
 
-export const s = { t, font, root, title, label, note, detail, head, foot, view, row, rowSelected, number, numberText, name, labelSelected };
+export const s = {
+  t,
+  font,
+  root,
+  title,
+  label,
+  note,
+  detail,
+  head,
+  foot,
+  view,
+  thumb,
+  row,
+  rowSelected,
+  number,
+  numberText,
+  name,
+  labelSelected,
+};
 
 /** The window: 28 + the title (37.5) + the header (20), the 240 viewport and the footer (20) end at 369.5, so the 24px
  *  bottom padding fits a 400 window with slack. */
@@ -96,7 +134,7 @@ export const size = { width: 360, height: 400 };
 const COUNT = 30;
 /** The rows a PageUp or a PageDown jumps: the viewport holds eight of the 30 (240 / 30). */
 const PAGE = 8;
-const VIEW = "list";
+const BAR = "list-thumb";
 /** One row: its number, its name and a dim temperature. No state, no tree of its own. */
 interface Row {
   readonly number: string;
@@ -139,8 +177,9 @@ export function List(props: { input: Input; motion?: Motion }) {
     return Math.max(0, last[1]! + last[3]! - (view[1]! + view[3]!) - ui.scrollOffset(VIEW));
   };
 
-  /** The viewport's scroll: the wheel's 10px, the drag, the band and the fling, on the page's track. */
-  const viewScroll = scroll(VIEW, maxScroll);
+  /** The viewport's scroll: the wheel's 10px, the drag, the band and the fling, on the page's track. The scrollbar's thumb
+   *  (`BAR`) is the machine's too: it writes its box and its fade every frame. */
+  const viewScroll = scroll(VIEW, maxScroll, BAR);
 
   /** Eases the viewport to the least offset that shows row `i`: the row's place in the content (its bounds from the last
    *  frame are shifted by the offset, so the offset is added back) against the track's own target — not the presented
@@ -193,10 +232,11 @@ export function List(props: { input: Input; motion?: Motion }) {
     viewScroll.tick(dt);
   };
   // Clay scrolled the container under the pointer only; a page that owns the offset has to keep that rule itself, or a
-  // wheel over the title would scroll the rows
+  // wheel over the title would scroll the rows. The visible thumb is chrome of the viewport: the wheel over it scrolls too.
   const viewId = Buffer.from(VIEW);
+  const barId = Buffer.from(BAR);
   const wheel = (dx: number, dy: number) => {
-    if (ui.over(viewId)) viewScroll.wheel(dx, dy);
+    if (ui.over(viewId) || ui.over(barId)) viewScroll.wheel(dx, dy);
   };
   if (props.motion)
     (props.motion.onWheel = wheel),
@@ -224,6 +264,8 @@ export function List(props: { input: Input; motion?: Motion }) {
           </box>
         ))}
       </box>
+      {/* the scrollbar: a float on the viewport, over the rows and outside the clip's child offset (it does not scroll) */}
+      <box id={BAR} style={s.thumb} onPress={() => viewScroll.thumb()} />
       <box id="list-foot" style={s.foot}>
         <text style={s.note}>Wheel, Up/Down, Page, Home/End.</text>
       </box>

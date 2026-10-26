@@ -29,7 +29,16 @@ const fixed = (x: number) => Math.round(x * 100) / 100;
 const PAGE = [16, 18, 24]; // the page token of the dark theme
 const SURFACE = [36, 40, 52]; // the selected row's fill
 const RING = [90, 170, 255]; // the focus ring
+const MUTED = [150, 155, 170]; // the muted token: the scrollbar's thumb
 const END = 658; // the content's end: 898 of rows in a 240 viewport
+/** Is a colour the token, within a channel or two (the renderer's own rounding)? */
+const same = (c: number[], t: number[], d = 1) => c.length === 3 && t.every((v, i) => Math.abs(c[i]! - v) <= d);
+/** Is a colour strictly between two others, channel by channel (a fade's mid frame)? */
+const between = (c: number[], a: number[], b: number[]) =>
+  c.length === 3 &&
+  c.join() !== a.join() &&
+  c.join() !== b.join() &&
+  c.every((v, i) => v >= Math.min(a[i]!, b[i]!) && v <= Math.max(a[i]!, b[i]!));
 
 let dispose = () => {};
 /** A fresh page, the host's frame loop over it, and the entry's 0.25s over unless `entry` asks for it running. */
@@ -40,18 +49,18 @@ function fresh(opts: { entry?: boolean } = {}) {
   // the page's frame hook, as main.ts wires it: the page's scroll takes the wheel, the pointer's drag, and one tick a frame
   const motion: {
     onWheel?: (dx: number, dy: number) => void;
-    onPointer?: (x: number, y: number, down: boolean) => void;
+    onPointer?: (x: number, y: number, down: boolean, touch: boolean) => void;
     tick?: (dt: number) => void;
   } = {};
   dispose = render(() => List({ input, motion }), root);
   const frame = createFrame(root, {
     onPressMiss: () => input.pressMiss(),
     onWheel: (dx, dy) => motion.onWheel?.(dx, dy),
-    onPointer: (x, y, down) => motion.onPointer?.(x, y, down),
+    onPointer: (x, y, down, touch) => motion.onPointer?.(x, y, down, touch),
     tick: (dt) => motion.tick?.(dt),
   });
   let at = [-1, -1];
-  const step = (down = false) => frame(at[0]!, at[1]!, down, 1 / 60);
+  const step = (down = false, touch = false) => frame(at[0]!, at[1]!, down, 1 / 60, true, touch);
   // frame 0 lays out, frame 1 is the one a page at rest shows when the caller wants to look at its first two frames
   step();
   step();
@@ -79,23 +88,26 @@ function fresh(opts: { entry?: boolean } = {}) {
     settle(n = 60) {
       for (let i = 0; i < n; i++) step();
     },
-    /** A pointer drag on the viewport: a press at x 180, y, then a frame a dy with the button held, then the release.
-     *  Returns the offset each held frame presented (positive down), so a test can follow the pointer exactly. */
-    drag(y: number, dys: number[]) {
-      at = [180, y];
-      step(false);
-      step(true);
+    /** A pointer drag on the viewport: a press at x 180 (or x, for the scrollbar's thumb), then a frame a dy with the
+     *  button held, then the release. Returns the offset each held frame presented (positive down), so a test can follow
+     *  the pointer exactly. `touch` marks the frames as a finger's. */
+    drag(y: number, dys: number[], x = 180, touch = false) {
+      at = [x, y];
+      step(false, touch);
+      step(true, touch);
       const held: number[] = [];
       for (const dy of dys) {
-        at = [180, (y += dy)];
-        step(true);
+        at = [x, (y += dy)];
+        step(true, touch);
         held.push(-ui.scrollOffset("list"));
       }
-      step(false);
+      step(false, touch);
       return held;
     },
     /** The view's top and height, the offset Clay keeps: a row's top is its own plus this. */
     view: () => box("list"),
+    /** The scrollbar's thumb, from the last frame's layout. */
+    thumb: () => box("list-thumb"),
     offset: () => ui.scrollOffset("list"),
     /** The offset positive down, as the page's track says it. */
     scrolled: () => -ui.scrollOffset("list"),
@@ -472,6 +484,16 @@ function fresh(opts: { entry?: boolean } = {}) {
   }
   check("a flick under reduced motion is the notches' own 20px, not a throw", fixed(q.scrolled()), 20);
   check("and no frame passes it", peak <= 20, true);
+  // the scrollbar is not motion: under reduced motion it is there the frame the offset moves, with no fade, and gone
+  // just as abruptly 600ms later
+  const b = fresh();
+  const bv = b.view();
+  const strip: [number, number] = [bv[0]! + bv[2]! - 4, bv[1]! + 10];
+  b.point(180, 160);
+  b.notch(1);
+  check("reduced motion shows the thumb at once, with no fade", same(b.pixel(strip[0], strip[1]), MUTED), true);
+  b.settle(40);
+  check("and drops it at once when the 600ms are up", b.pixel(strip[0], strip[1]), SURFACE);
   // a drag is still 1:1 (it is direct manipulation), and its release stops where the finger left it
   const d = fresh();
   check("reduced motion drags 1:1 too", d.drag(160, [-10, -10, -10]), [10, 20, 30]);
@@ -520,6 +542,126 @@ function fresh(opts: { entry?: boolean } = {}) {
   p.notch(2);
   p.settle();
   check("with the pointer off the viewport the same wheel scrolls nothing", p.offset(), -20);
+}
+
+// --- the scrollbar: a 4px thumb 2px in from the viewport's right edge, as tall as a screenful of the content is of it
+//     (max(24, 240²/898)) and at offset/(898-240) of its travel; only when the content is taller than the viewport
+{
+  const p = fresh();
+  const view = p.view();
+  const content = 898; // the rows' own end, the page's `maxScroll` plus the viewport
+  const height = Math.max(24, (view[3]! * view[3]!) / content);
+  const travel = view[3]! - height;
+  const top = p.thumb();
+  check("the thumb is 4px wide, 2px in from the viewport's right edge", [top[0], top[2], top[0]! + top[2]!], [view[0]! + view[2]! - 6, 4, view[0]! + view[2]! - 2]);
+  check("its height is max(24, 240²/898): a screenful of the content", fixed(top[3]!), fixed(height));
+  check("at the top it starts at the viewport's top", fixed(top[1]!), fixed(view[1]!));
+  // a middle: 33 notches a rest apart are 330px of the 658 the viewport can scroll
+  p.wheel(33);
+  p.settle(120);
+  check("33 notches are 330 of 658", fixed(p.scrolled()), 330);
+  check("halfway, the thumb's top is halfway down its travel", fixed(p.thumb()[1]! - view[1]!), fixed((330 / END) * travel));
+  // the end: the thumb's bottom is the viewport's bottom
+  p.wheel(200);
+  p.settle(120);
+  check("the viewport is at its end", p.offset(), -658);
+  check("and the thumb's bottom is the viewport's bottom", fixed(p.thumb()[1]! + p.thumb()[3]!), fixed(view[1]! + view[3]!));
+  console.log(
+    `solid/list.test.ts: the thumb ${p.thumb().slice(0, 2).map((v) => fixed(v!)).join(",")} 4x${fixed(height)} px, ` +
+      `the travel ${fixed(travel)}: its top 0 at the top, ${fixed((330 / END) * travel)} at 330, ${fixed(travel)} at 658`,
+  );
+}
+
+// --- the fade: the thumb is not drawn at rest (it is a colour fade on its own background), comes in over ~10 frames on
+//     the frame the offset starts to move, and goes out 600ms after the track settles
+{
+  const p = fresh();
+  const view = p.view();
+  // 10px into the viewport, on the thumb's strip: the selected row's fill at rest
+  const at: [number, number] = [view[0]! + view[2]! - 4, view[1]! + 10];
+  const seen = () => p.pixel(at[0], at[1]);
+  check("at rest the thumb is not drawn: the selected row shows through", seen(), SURFACE);
+  p.point(180, 160);
+  p.notch(1);
+  const fade: number[][] = [];
+  for (let i = 0; i < 8; i++) p.step(), fade.push(seen());
+  check("a notch brings it in: a mid frame is between the row and the muted token", fade.some((c) => between(c, SURFACE, MUTED)), true);
+  p.settle(6);
+  check("and it settles on the muted token", same(seen(), MUTED), true);
+  // the hold: the offset stops ~18 frames in, so this is still inside the 600ms after it
+  p.settle(40);
+  check("it stays up while the 600ms of rest runs", same(seen(), MUTED), true);
+  const out: number[][] = [];
+  for (let i = 0; i < 24; i++) p.step(), out.push(seen());
+  check("then it fades out: a frame between the muted token and the row", out.some((c) => between(c, MUTED, SURFACE)), true);
+  check("and once it is out the row is the row again", seen(), SURFACE);
+  console.log(
+    `solid/list.test.ts: the thumb's fade in ${fade.slice(0, 4).map((c) => c.join("/")).join(" ")}, ` +
+      `out ${out.slice(0, 4).map((c) => c.join("/")).join(" ")}`,
+  );
+}
+
+// --- the drag on the thumb: a press on it (only while it is visible) grabs it, and the pointer's travel in y moves the
+//     thumb by the same distance — the offset's whole range over the thumb's travel, not the content's 1:1 — and clamps
+//     at both ends, no band and no fling. At rest, with no thumb drawn, the same press is the page's.
+{
+  const p = fresh();
+  const view = p.view();
+  const content = 898;
+  const height = Math.max(24, (view[3]! * view[3]!) / content);
+  const travel = view[3]! - height;
+  const per = END / travel; // px of offset a px of the thumb's travel is
+  p.point(180, 160);
+  p.wheel(3); // 30px, settled (notches a rest apart: no fling)
+  p.settle(24);
+  check("the thumb is up before the press", same(p.pixel(view[0]! + view[2]! - 4, p.thumb()[1]! + 10), MUTED), true);
+  const from = p.scrolled();
+  const mid = p.thumb()[1]! + height / 2;
+  const held = p.drag(mid, [10, 10], 316);
+  const close = (got: number, want: number) => Math.abs(got - want) < 0.1;
+  check(
+    "10px of the pointer moves the thumb 10px, and the offset by the content's whole range over its travel",
+    held.every((y, i) => close(y - from, (i + 1) * 10 * per)),
+    true,
+  );
+  check("... which is much more than the content's own 1:1 drag would move it", 10 * per > 20, true);
+  check("the thumb moved with the pointer, by the same 20px", fixed(p.thumb()[1]! - (mid - height / 2)), fixed(20));
+  p.settle(30);
+  check("the release stops it: a scrollbar's drag does not fling", p.scrolled(), held[held.length - 1]!);
+  // the ends: past the thumb's travel the offset clamps on the content, and past the top it clamps on 0
+  const q = fresh();
+  q.point(180, 160);
+  q.wheel(2);
+  q.settle(24);
+  q.drag(q.thumb()[1]! + height / 2, [travel + 200], 316);
+  check("a drag past the thumb's travel stops on the content's end", q.offset(), -658);
+  q.drag(q.thumb()[1]! + height / 2, [-travel - 200], 316);
+  check("and the other way on the top", q.offset(), 0);
+  // at rest there is no thumb to grab: the press is the viewport's own drag
+  const r = fresh();
+  check("at rest the strip has no thumb on it", r.pixel(view[0]! + view[2]! - 4, view[1]! + 10), SURFACE);
+  check("so a press there drags the viewport 1:1", r.drag(view[1]! + 50, [-10], 316), [10]);
+}
+
+// --- a finger is a pointer too: the host passes SDL's flag through, and a touch drag has no 4px slop (it starts at
+//     once), while a 2px touch whose pointer never moves is still a click. The List's drag is direct either way.
+{
+  const p = fresh();
+  check("a touch drag is 1:1 like the mouse's", p.drag(160, [-10, -10, -10], 180, true), [10, 20, 30]);
+  p.settle(120);
+  check("and its release lands inside the content", p.scrolled() > 30 && p.scrolled() < END, true);
+  // 2px of travel: a mouse's is inside the click slop (no speed, no fling), a finger's is a drag, and its release flings
+  const m = fresh();
+  m.drag(160, [-2]);
+  m.settle(120);
+  const mouse = m.scrolled();
+  const f = fresh();
+  f.drag(160, [-2], 180, true);
+  f.settle(120);
+  const finger = f.scrolled();
+  check("a mouse's 2px is a click: the offset stops at 2", fixed(mouse), 2);
+  check("a finger's 2px is a drag: the offset flies past it", finger > mouse + 10, true);
+  console.log(`solid/list.test.ts: 2px of travel: a mouse rests at ${fixed(mouse)}, a finger flings to ${fixed(finger)}`);
 }
 
 dispose();

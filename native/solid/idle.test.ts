@@ -39,7 +39,7 @@ function open(which: Page, theme?: string) {
   const input = createInput();
   const motion: {
     onWheel?: (dx: number, dy: number) => void;
-    onPointer?: (x: number, y: number, down: boolean) => void;
+    onPointer?: (x: number, y: number, down: boolean, touch: boolean) => void;
     tick?: (dt: number) => void;
   } = {};
   const drag: Drag = {};
@@ -68,7 +68,7 @@ function open(which: Page, theme?: string) {
       return palette;
     },
     onPressMiss: () => input.pressMiss(),
-    onPointer: (x, y, down) => motion.onPointer?.(x, y, down),
+    onPointer: (x, y, down, touch) => motion.onPointer?.(x, y, down, touch),
     onWheel: (dx, dy) => motion.onWheel?.(dx, dy),
     tick: (dt) => motion.tick?.(dt),
   });
@@ -177,9 +177,12 @@ for (const which of PAGES) {
   const glide = p.draws();
   p.settle(40);
   check("the glide draws while it moves", p.draws() - glide > 0, true);
+  // the scrollbar is a motion of its own: it fades out 0.6s after the track settles, another 0.15s, so the page is at
+  // rest a little later than the feed is
+  p.settle(60);
   const rest = p.draws();
   p.settle(30);
-  check("and stops when it is at rest", p.draws() - rest, 0);
+  check("then the thumb's fade is over and the page stops drawing", p.draws() - rest, 0);
 }
 
 // --- a pointer move that changes nothing draws nothing; one that starts a hover draws through the hash alone, and a

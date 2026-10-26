@@ -4,12 +4,25 @@
 // 4px is not a click), and a release hands the speed of the last frames to a decay. Past an end the same `rubber` resists
 // wheel and drag, and the band lets go 80ms after the last notch (or at once on a key) and springs back to the clamp.
 //
+// The scrollbar is here too: `thumbOf` is its geometry (a pure function, so a test can check it against the formula), and
+// with a `bar` id the machine writes the thumb's box and its fade every frame into the value channel. The thumb is a
+// float attached to the viewport (`css.float({ parent: <the viewport's id> })`), so Clay positions it from the viewport's
+// own box: it is a sibling of the scrolling content, sits over it, and does not travel with the clip's childOffset. It
+// fades in while the offset moves and out 600ms after it stops; a press on it (only while it is visible: the float
+// captures the press then, and passes it through when it is invisible) drags it, mapping the thumb's travel to the
+// offset's 1:1, and the wheel and the keys move it as the offset moves because it is drawn from the offset.
+//
+// A touch is a pointer too. The host passes a flag for a finger (SDL's finger events), and a finger's 4px click threshold
+// is 0: a touch drag starts at once (a finger has no mouse's precision), while a touch press that never moves is still a
+// click (the pointer travelled no distance at all).
+//
 // Sky's feed and the List's viewport are this machine. What stays with a page is where its content ends (its own last box,
 // its own padding), its keys, and what a key reveals: Sky moves the offset by 40px a Down, the List moves the selection a
 // row and then asks the track for the offset that shows it (the reveal, measured from the content's own place, so it works
 // while the track is still travelling). The wheel's 10px, the drag's 1:1 and the band's f(x) are the same on both.
 import { ui } from "./ffi.ts";
-import { decay, reduced, rubber, spatial, track, type Decay, type Sample, type Spring } from "./motion.ts";
+import { decay, effect, reduced, rubber, spatial, track, type Decay, type Sample, type Spring } from "./motion.ts";
+import { FIELDS } from "./pack.ts";
 
 const SPRING = spatial(); // a retarget: 0.35s, no bounce
 const BAND_BACK = spatial(0.35, 0.1); // the band lets go with a light bounce, and settles exactly on the clamp
@@ -18,6 +31,23 @@ const DRAG_SLOP = 4; // px of travel: past it the press was a drag, and the elem
 const FLING_FRAMES = 5; // the last frames' positions the release's speed is estimated from
 const FLING_MIN = 1 / 120; // s: a span shorter than this is one frame's jitter, not a speed
 const BAND_EPS = 0.01; // px: less past an end than this is the clamp's own float noise, not a band
+const THUMB_MIN = 24; // px: the thumb never shrinks below this ...
+const THUMB_HOLD = 0.6; // ... s of rest before it starts to fade out ...
+const THUMB_FADE = effect(0.15); // ... and s of the fade itself (a colour, so `effect`: clamped, no overshoot)
+
+/**
+ * The thumb of a viewport `view` px tall over `content` px of content, at `offset` (positive down): its height and the
+ * distance of its top from the viewport's own top, or null when the content fits (no thumb, no scrollbar). The height is
+ * max(24, view²/content) — the fraction of the content a screenful is, and never shorter than a target one can hit — and
+ * the thumb's travel (view - height) is where the offset's 0..(content - view) goes:
+ * top = offset / (content - view) · (view - height). Its width, its inset and its colour are the page's style.
+ */
+export function thumbOf(content: number, view: number, offset: number): { top: number; height: number } | null {
+  if (!(content > view) || !(view > 0)) return null;
+  const height = Math.max(THUMB_MIN, (view * view) / content);
+  const max = content - view;
+  return { top: (Math.min(Math.max(offset, 0), max) / max) * (view - height), height };
+}
 
 /** A page's scroll over the clip element `id`: the wheel, a drag, a band and a fling on one track. */
 export interface Scroll {
@@ -27,16 +57,25 @@ export interface Scroll {
   wheel(dx: number, dy: number): void;
   /** The page's `onPress` landed inside the viewport: the next pointer call grabs the offset. */
   press(): void;
-  /** The host's pointer once a frame: a press inside the viewport grabs the offset, a held pointer drags it, a release
-   *  hands it to the fling (or to the band at an end). A press elsewhere leaves it alone. */
-  pointer(x: number, y: number, down: boolean): void;
+  /** The page's `onPress` landed on the scrollbar's thumb: the next pointer call drags the thumb instead of the content.
+   *  A thumb that is not visible (the content fits, or it has faded out) does not grab: the press was the page's. */
+  thumb(): void;
+  /**
+   * The host's pointer once a frame: a press inside the viewport grabs the offset, a held pointer drags it, a release
+   * hands it to the fling (or to the band at an end). A press elsewhere leaves it alone. `touch` says the pointer is a
+   * finger's: a touch drag starts at once (no 4px slop), a touch that does not move still clicks.
+   */
+  pointer(x: number, y: number, down: boolean, touch?: boolean): void;
   /** A key's target: retargets the track (animated; at once under reduced motion), clamped, and drops the band and any
    *  fling. */
   seek(to: number): void;
-  /** One tick: the wheel and a key retarget, the band lets go, the fling clamps, and the offset goes to Clay. */
+  /** One tick: the wheel and a key retarget, the band lets go, the fling clamps, the offset goes to Clay, and the
+   *  scrollbar (when the page gave one) is written. */
   tick(dt: number): void;
   /** Where the track is going, positive down and clamped: what a key's reveal measures from. */
   target(): number;
+  /** The scrollbar's opacity as the last tick wrote it (0..255): 0 at rest, 255 while the offset moves. */
+  readonly alpha: number;
   /** The pointer holds the offset, and the press travelled past the click threshold (so it is not a click). */
   readonly held: boolean;
   readonly dragged: boolean;
@@ -44,9 +83,12 @@ export interface Scroll {
 
 /**
  * The scroll of the clip element `id`. `max` is the page's content end this frame, positive down (0 when it fits): the
- * page computes it from its own last box and the viewport, so no rule of it lives here.
+ * page computes it from its own last box and the viewport, so no rule of it lives here. `bar` is the element id of the
+ * page's thumb (a float on `id`): with one, the machine writes its height, its top and its opacity every frame, and it
+ * needs nothing else from the page.
  */
-export function scroll(id: string, max: () => number): Scroll {
+export function scroll(id: string, max: () => number, bar?: string): Scroll {
+  const barId = bar === undefined ? undefined : Buffer.from(bar);
   let anim = track(0, SPRING);
   let fling: Decay | null = null;
   let clock = 0; // seconds, the clock the track and a page's other motion are given
@@ -69,8 +111,25 @@ export function scroll(id: string, max: () => number): Scroll {
   let grabFrom = 0; // the offset when it grabbed, and ...
   let grabX = 0;
   let grabY = 0; // ... the pointer's x and y there: the drag is 1:1 from this pair
-  let dragMoved = false; // the press passed DRAG_SLOP: the element under it is not clicked on release
+  let dragSlop = DRAG_SLOP; // px of travel past which the press is a drag: 0 for a finger (it drags at once)
+  let dragMoved = false; // the press passed the slop: the element under it is not clicked on release
   let trail: { t: number; x: number }[] = []; // the last frames' (clock, offset) while held
+  // The scrollbar's drag: a press on the thumb (the page's `onPress` there) holds it, and the pointer's travel in y moves
+  // the thumb by the same distance, which is the offset's travel over (view - thumb). A press keeps the place on the
+  // thumb it landed on, as a native scrollbar's does: the thumb does not jump under the finger.
+  let thumbWant = false; // a press landed on the visible thumb this frame, and this frame grabs it
+  let thumbHeld = false;
+  let thumbX = 0; // the offset the thumb presents while it holds it
+  let thumbFrom = 0; // the offset when it grabbed, and ...
+  let thumbGrabY = 0; // ... the pointer's y there
+  let thumbMoved = false;
+  // The fade: the thumb's opacity, written to its background's alpha (a colour, so the frame's own hash reads it), the
+  // clock it has been at rest, and the value the last tick wrote (a test's, and nothing the page reads)
+  const fade = track(0, THUMB_FADE);
+  let fadeTo = 0;
+  let rest = THUMB_HOLD; // seconds since the offset last moved (at rest: no thumb on the first frame)
+  let was = 0; // the presented offset at the last tick
+  let alpha = 0;
 
   const clamp = (y: number, m: number) => Math.min(Math.max(y, 0), m);
 
@@ -87,7 +146,13 @@ export function scroll(id: string, max: () => number): Scroll {
 
   /** Where the scroll is at t: the drag that holds it, the fling while one runs, the spring otherwise. */
   const presented = (t: number): Sample =>
-    held ? { x: dragX, v: 0, done: false } : fling ? fling.at(t) : anim.at(t);
+    held
+      ? { x: dragX, v: 0, done: false }
+      : thumbHeld
+        ? { x: thumbX, v: 0, done: false }
+        : fling
+          ? fling.at(t)
+          : anim.at(t);
 
   /** Starts a segment at t from a presented (x, v), so position and velocity are continuous across a retarget. */
   const restart = (p: { x: number; v: number }, t: number, to: number, s: Spring = SPRING) => {
@@ -99,7 +164,7 @@ export function scroll(id: string, max: () => number): Scroll {
 
   /** The wheel: 10px a notch, accumulated for the next tick (positive down). */
   const wheel = (_dx: number, dy: number) => {
-    if (held) return; // the finger is the offset's: a wheel under it is not a scroll
+    if (held || thumbHeld) return; // the finger is the offset's: a wheel under it is not a scroll
     const n = -dy;
     if (n) (notches += n), (notchDir = Math.sign(n));
   };
@@ -117,7 +182,7 @@ export function scroll(id: string, max: () => number): Scroll {
   /** The pointer moves the grab: the offset follows it from the press point, resisted at the ends as the wheel is. */
   const dragTo = (x: number, y: number, t: number) => {
     dragX = place(grabFrom - (y - grabY), max());
-    if (!dragMoved && Math.hypot(x - grabX, y - grabY) > DRAG_SLOP) dragMoved = true;
+    if (!dragMoved && Math.hypot(x - grabX, y - grabY) > dragSlop) dragMoved = true;
     trail.push({ t, x: dragX });
     if (trail.length > FLING_FRAMES) trail.shift();
   };
@@ -153,13 +218,55 @@ export function scroll(id: string, max: () => number): Scroll {
     else restart({ x: dragX, v }, t, land);
   };
 
+  /** The pointer's y on the thumb at t, px from the thumb's top: what the press kept, so the drag starts from where it
+   *  landed (a press in the thumb's middle drags from its middle). */
+  const grabThumb = (y: number, t: number) => {
+    const m = max();
+    // the offset the thumb presents now, before `thumbHeld` is set (or `presented` would give the drag's own 0)
+    thumbFrom = thumbX = clamp(presented(t).x, m);
+    thumbGrabY = y;
+    thumbMoved = false;
+    anim = track(thumbX, SPRING, t);
+    fling = null;
+    pressed = false;
+    notches = 0;
+    chasing = false;
+    keyed = false;
+    band = 0;
+    idle = 0;
+  };
+
+  /** The pointer moves the thumb: the offset follows the thumb's own travel, so the drag is 1:1 on the bar and the offset
+   *  covers the content's whole range over the thumb's travel. It clamps at both ends: a scrollbar has no band. */
+  const dragThumb = (y: number, t: number) => {
+    const m = max();
+    const view = height();
+    const box = thumbOf(m + view, view, 0);
+    const travel = box ? view - box.height : 0;
+    thumbX = !box || travel <= 0 ? thumbFrom : clamp(thumbFrom + ((y - thumbGrabY) * m) / travel, m);
+    if (y !== thumbGrabY) thumbMoved = true;
+    anim = track(thumbX, SPRING, t); // the release starts from here, so the track is kept in step while the thumb holds it
+  };
+
   /** The host's pointer, once a frame: a press inside the viewport grabs it, a held pointer drags the offset, a release
-   *  hands it to the fling (or to the band at an end). A press elsewhere leaves it alone. */
-  const pointer = (x: number, y: number, down: boolean) => {
+   *  hands it to the fling (or to the band at an end). A press elsewhere leaves it alone. A press the page reported on the
+   *  thumb (`thumb()`) grabs the thumb instead, and the content's own press is dropped. */
+  const pointer = (x: number, y: number, down: boolean, touch = false) => {
     const t = clock;
     if (!down) {
-      pressed = false;
+      pressed = thumbWant = false;
       if (held) release(x, y, t);
+      if (thumbHeld) {
+        // the bar stops where it is: no fling (a scrollbar is not a throw), and the track takes the value as its target
+        thumbHeld = false;
+        want = target = clamp(thumbX, max());
+      }
+      return;
+    }
+    if (thumbWant) {
+      thumbWant = false;
+      grabThumb(y, t); // before `thumbHeld`: the thumb's drag starts from the offset the track presents
+      thumbHeld = true;
       return;
     }
     if (pressed) {
@@ -170,6 +277,7 @@ export function scroll(id: string, max: () => number): Scroll {
       held = true;
       grabX = x, grabY = y;
       grabFrom = dragX = from;
+      dragSlop = touch ? 0 : DRAG_SLOP;
       dragMoved = false;
       trail = [{ t, x: dragX }];
       // a glide or a fling under the finger stops, and the band has no hold: the pointer owns the offset from here
@@ -182,26 +290,56 @@ export function scroll(id: string, max: () => number): Scroll {
       return;
     }
     if (held) dragTo(x, y, t);
+    else if (thumbHeld) dragThumb(y, t);
   };
 
   /** A key's target, as the wheel's own: the track eases to it, it does not jump (and under reduced motion it lands at
    *  once), and it comes back to the content first — a key is not the wheel, so the band lets go. */
   const seek = (to: number) => {
+    if (thumbHeld) return; // the pointer owns the bar's offset
     want = clamp(to, max());
     keyed = true;
+  };
+
+  /** The scrollbar: the thumb's box from the presented offset and its fade, written into the value channel for the
+   *  frame about to be declared. Five numbers: a FIXED height is its axis's min and max (ui.c's `axis`), the float's
+   *  offset y is the thumb's top, the background's alpha is the fade, and a visible thumb captures the press (a press on
+   *  an invisible one is the page's: the fade decides, one frame late, which is a frame of a 0.15s fade). */
+  const writeBar = (dt: number) => {
+    if (!barId) return;
+    const p = presented(clock);
+    const x = p.x;
+    const view = height();
+    const box = thumbOf(max() + view, view, x);
+    // the fade: the thumb is up while the offset moves — the track's own settle, so a spring's tail counts as moving, and
+    // a frame that moved at all, which under reduced motion is the jump itself — and it goes down 600ms after the last
+    // frame that did
+    rest = p.done && Math.abs(x - was) <= 0.01 ? rest + dt : 0;
+    was = x;
+    const to = rest < THUMB_HOLD ? 255 : 0;
+    if (to !== fadeTo) fade.retarget(clock, (fadeTo = to));
+    alpha = box ? fade.at(clock).x : 0;
+    const h = box ? box.height : 0;
+    ui.value(barId, FIELDS.HEIGHT + 1, h);
+    ui.value(barId, FIELDS.HEIGHT + 2, h);
+    ui.value(barId, FIELDS.OFFSET_Y, box ? box.top : 0);
+    ui.value(barId, FIELDS.BACKGROUND_ALPHA, alpha);
+    ui.value(barId, FIELDS.CAPTURE, alpha >= 128 ? 0 : 1);
   };
 
   /** One tick: the wheel and the keys retarget, the release may fling, and the value goes to Clay. */
   const tick = (dt: number) => {
     const t = clock;
     const m = max();
-    if (held) {
+    if (held || thumbHeld) {
       // the pointer owns the offset: this tick only writes it — a band cannot let go under the finger, and no notch or
       // key retargets the track until the release
       maxWas = m;
       clock += dt;
-      if (dragX < -BAND_EPS || dragX > m + BAND_EPS) ui.scrollPut(id, -dragX);
-      else ui.scrollTo(id, -dragX);
+      const x = held ? dragX : thumbX;
+      if (x < -BAND_EPS || x > m + BAND_EPS) ui.scrollPut(id, -x);
+      else ui.scrollTo(id, -x);
+      writeBar(dt);
       return;
     }
     const n = notches;
@@ -237,8 +375,9 @@ export function scroll(id: string, max: () => number): Scroll {
         restart(p, t, to);
         // a notch from rest starts with the velocity a critically damped spring needs to glide the 10px without
         // overshoot (ω·d): the offset moves on the first frame and each frame after it moves less. A notch during a
-        // burst keeps the presented velocity, so the steps grow with the accumulated target.
-        if (Math.abs(p.v) < 1) anim.v0 = SPRING.omega * (to - p.x);
+        // burst keeps the presented velocity, so the steps grow with the accumulated target. Reduced motion has no
+        // glide: its retarget has already landed on the target, and a velocity here would send it past (and back).
+        if (!reduced() && Math.abs(p.v) < 1) anim.v0 = SPRING.omega * (to - p.x);
       }
       chasing = true;
     } else if (key) {
@@ -290,6 +429,7 @@ export function scroll(id: string, max: () => number): Scroll {
     const x = presented(clock).x;
     if (x < -BAND_EPS || x > m + BAND_EPS) ui.scrollPut(id, -x);
     else ui.scrollTo(id, -x);
+    writeBar(dt);
   };
 
   return {
@@ -298,15 +438,23 @@ export function scroll(id: string, max: () => number): Scroll {
     },
     wheel,
     press: () => (pressed = true),
+    thumb: () => {
+      // an invisible thumb is not there to grab: the press belongs to the page under it
+      if (barId && alpha >= 128) thumbWant = true;
+    },
     pointer,
     seek,
     tick,
     target: () => clamp(want, max()),
+    get alpha() {
+      return alpha;
+    },
     get held() {
       return held;
     },
     get dragged() {
-      return held && dragMoved;
+      return (held && dragMoved) || (thumbHeld && thumbMoved);
     },
   };
 }
+

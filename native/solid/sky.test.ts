@@ -65,7 +65,7 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
   // the page's frame hook, as the host wires it: the wheel in, one tick a frame, the pointer for the feed's drag
   const motion: {
     onWheel?: (dx: number, dy: number) => void;
-    onPointer?: (x: number, y: number, down: boolean) => void;
+    onPointer?: (x: number, y: number, down: boolean, touch: boolean) => void;
     tick?: (dt: number) => void;
   } = {};
   const palette = theme;
@@ -73,12 +73,12 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
   const frame = createFrame(root, {
     theme,
     onPressMiss: () => input.pressMiss(),
-    onPointer: (x, y, down) => motion.onPointer?.(x, y, down),
+    onPointer: (x, y, down, touch) => motion.onPointer?.(x, y, down, touch),
     onWheel: (dx, dy) => motion.onWheel?.(dx, dy),
     tick: (dt) => motion.tick?.(dt),
   });
   let at = [-1, -1];
-  const step = (down = false) => frame(at[0]!, at[1]!, down, 1 / 60);
+  const step = (down = false, touch = false) => frame(at[0]!, at[1]!, down, 1 / 60, true, touch);
   step();
   // Clay keeps a scroll container's offset by its id across `fresh()` calls: put the feed back at its top first
   ui.scrollTo("sky-feed", 0);
@@ -141,19 +141,20 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
       for (let i = 0; i < n; i++) step();
     },
     /** A pointer drag on the feed: a frame with the pointer there, the press, then a frame a dy with the button held.
-     *  Returns the offset each held frame presented and then the release, so a test can follow the pointer exactly. */
-    drag(x: number, y: number, dys: number[]) {
+     *  Returns the offset each held frame presented and then the release, so a test can follow the pointer exactly.
+     *  `touch` marks the frames as a finger's. */
+    drag(x: number, y: number, dys: number[], touch = false) {
       at = [x, y];
-      step(false);
-      step(true);
+      step(false, touch);
+      step(true, touch);
       const held: number[] = [];
       for (const dy of dys) {
         at = [x, (y += dy)];
-        step(true);
+        step(true, touch);
         held.push(-ui.scrollOffset("sky-feed"));
       }
       // the release at the last point of the drag
-      step(false);
+      step(false, touch);
       return held;
     },
     /** A key pressed and released with a frame after each. */
@@ -175,6 +176,8 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
     avatar: (i: number) => box(`sky-avatar-${i}`),
     /** Clay's offset, negative down. */
     offset: () => ui.scrollOffset("sky-feed"),
+    /** The scrollbar's thumb, from the last frame's layout. */
+    thumb: () => box("sky-thumb"),
   };
 }
 
@@ -559,7 +562,9 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
     ys.push(-p.offset());
   }
   let frames = 0;
-  for (let i = 0; i < 60; i++) {
+  // 90 frames, not 60: the feed stops after ~20, and the scrollbar then holds 0.6s and fades out in 0.15s (the stored
+  // frame is the one at rest, no thumb on it)
+  for (let i = 0; i < 90; i++) {
     const before = -p.offset();
     p.step();
     const y = -p.offset();
@@ -842,6 +847,118 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
   p.science();
   check("the bar, feed and status stay in the window on Science", [p.box("sky-bar"), p.box("sky-feed"), p.box("sky-status")], [[0, 0, 360, 64], [0, 64, 360, 664], [0, 728, 360, 32]]);
   check("the feed is the page's colour", p.pixel(180, 70), PAGE);
+}
+
+// --- the scrollbar: a 4px thumb 2px in from the feed's right edge, and none at all when the feed fits (Discover's three
+//     short posts). On Science the content is 742 in a 664 viewport: the thumb is 664²/742 tall and travels the rest of
+//     the viewport, from the feed's top at 0 to its bottom at the content's end (78)
+{
+  const p = fresh();
+  check("Discover's three posts fit the feed: no thumb (height 0)", [p.box("sky-thumb")[0], p.box("sky-thumb")[3]], [354, 0]);
+  p.science();
+  const feed = p.box("sky-feed");
+  const content = 742;
+  const height = Math.max(24, (feed[3]! * feed[3]!) / content);
+  const travel = feed[3]! - height;
+  const top = p.thumb();
+  check("the thumb is 4px wide, 2px in from the feed's right edge", [top[0], top[2], top[0]! + top[2]!], [feed[0]! + feed[2]! - 6, 4, feed[0]! + feed[2]! - 2]);
+  check("its height is max(24, 664²/742)", r(top[3]!), r(height));
+  check("at the top it starts at the feed's top", r(top[1]!), r(feed[1]!));
+  p.point(180, 396);
+  p.notch(1);
+  p.settle();
+  check("one notch moves it by 10 of its 69.8px of travel", r(p.thumb()[1]! - feed[1]!), r((10 / 78) * travel));
+  p.wheel(200);
+  p.settle(120);
+  check("at the end the thumb's bottom is the feed's bottom", [r(p.offset()), r(p.thumb()[1]! + p.thumb()[3]!)], [-78, r(feed[1]! + feed[3]!)]);
+  console.log(
+    `solid/sky.test.ts: Science's thumb ${p.thumb().slice(0, 2).map(r).join(",")} 4x${r(height)} px, its travel ${r(travel)}: ` +
+      `top 0 at the top, ${r((10 / 78) * travel)} at 10, ${r(travel)} at 78`,
+  );
+}
+
+// --- the fade: at rest the feed's padding shows (no thumb), a notch brings it in over ~10 frames, and it goes out 600ms
+//     after the track settles
+{
+  const p = fresh();
+  p.science();
+  const feed = p.box("sky-feed");
+  const at: [number, number] = [feed[0]! + feed[2]! - 4, feed[1]! + 12];
+  const seen = () => p.pixel(at[0], at[1]);
+  check("at rest the thumb is not drawn: the feed's padding shows", seen(), PAGE);
+  p.point(180, 396);
+  p.notch(1);
+  const fade: number[][] = [];
+  for (let i = 0; i < 8; i++) p.step(), fade.push(seen());
+  check("a notch brings it in: a mid frame is between the page and the muted token", fade.some((c) => between(c, PAGE, MUTED)), true);
+  p.settle(6);
+  check("and it settles on the muted token", near(seen(), MUTED, 1), true);
+  p.settle(40);
+  check("it stays up while the 600ms of rest runs", near(seen(), MUTED, 1), true);
+  const out: number[][] = [];
+  for (let i = 0; i < 24; i++) p.step(), out.push(seen());
+  check("then it fades out: a frame between the muted token and the page", out.some((c) => between(c, MUTED, PAGE)), true);
+  check("and once it is out the page is the page again", seen(), PAGE);
+  console.log(
+    `solid/sky.test.ts: the thumb's fade in ${fade.slice(0, 4).map((c) => c.join("/")).join(" ")}, ` +
+      `out ${out.slice(0, 4).map((c) => c.join("/")).join(" ")}`,
+  );
+}
+
+// --- the thumb drags the feed: a press on it (while it is visible) grabs it, and the pointer's travel moves the thumb by
+//     the same distance — the whole 78px of the content's range over its 69.8px of travel — not the feed's 1:1, and it
+//     clamps at both ends
+{
+  const p = fresh();
+  p.science();
+  const feed = p.box("sky-feed");
+  const content = 742;
+  const height = Math.max(24, (feed[3]! * feed[3]!) / content);
+  const travel = feed[3]! - height;
+  const per = 78 / travel;
+  // a key, not a notch: a key's seek starts from rest and settles on its target (a notch carries a velocity into the next
+  // one and overshoots), and the thumb is up while the 600ms of rest after it run
+  p.tap("Tab");
+  p.tap("ArrowDown");
+  p.settle(30);
+  check("a Down has scrolled 40", r(-p.offset()), 40);
+  check("the thumb is up before the press", near(p.pixel(feed[0]! + feed[2]! - 4, p.thumb()[1]! + 12), MUTED, 1), true);
+  const from = -p.offset();
+  const mid = p.thumb()[1]! + height / 2;
+  const held = p.drag(356, mid, [10, 10]);
+  check(
+    "10px of the pointer moves the thumb 10px, and the offset by the content's range over its travel",
+    held.every((y, i) => Math.abs(y - from - (i + 1) * 10 * per) < 0.1),
+    true,
+  );
+  check("... not the feed's own 1:1 drag", Math.abs(held[1]! - from) > 20, true);
+  check("the thumb moved with the pointer, by about the same 20px", Math.abs(p.thumb()[1]! - (mid - height / 2) - 20) < 1.5, true);
+  p.settle(30);
+  check("the release stops it: no fling on a scrollbar", -p.offset(), held[held.length - 1]!);
+  // the ends
+  p.drag(356, p.thumb()[1]! + height / 2, [travel + 100]);
+  check("a drag past the thumb's travel stops on the content's end", p.offset(), -78);
+  p.drag(356, p.thumb()[1]! + height / 2, [-travel - 100]);
+  check("and the other way on the top", p.offset(), 0);
+}
+
+// --- a finger is a pointer: the host's flag reaches the page, a 2px finger drag is already a drag (no 4px mouse slop) so
+//     the release is not a card's click, while a 2px mouse drag and a finger's tap that never moves both click
+{
+  const p = fresh();
+  const card = p.card(0);
+  const [x, y] = [180, card[1]! + 40];
+  p.drag(x, y, [-2]);
+  check("a mouse's 2px drag is a click: the card is selected", p.status(), "Michael Warburton — 1 of 3");
+  const q = fresh();
+  q.drag(x, y, [-2], true);
+  check("a finger's 2px drag is not: the status is the feed's", q.status(), "Discover — 3 posts");
+  check("... but the feed did move with it", q.offset() < 0, true);
+  const t = fresh();
+  t.drag(x, y, [-2], true); // a finger's 2px up: the feed scrolls 2px, so the release is still a drag
+  const u = fresh();
+  u.drag(x, y, [], true);
+  check("a finger's tap that never moves still clicks", u.status(), "Michael Warburton — 1 of 3");
 }
 
 dispose();

@@ -1,6 +1,7 @@
 // The Solid host, the counterpart of desktop/host.c. Run with Bun:
 //
-//   bun solid/main.ts [sensors|widgets|dialog|form|list|sky]  a window; the mouse is the pointer, `t` flips the theme;
+//   bun solid/main.ts [sensors|widgets|dialog|form|list|sky]  a window; the mouse or a finger is the pointer (one
+//                                        pointer: SDL's touch events go through the same state), `t` flips the theme;
 //                                        on widgets Tab, Shift+Tab, Space and Enter drive the widgets; on dialog Enter
 //                                        opens the settings dialog and Space opens the menu; on form Tab reaches the
 //                                        text field, typing fills it, Enter submits, Escape blurs (and `t` flips the
@@ -13,6 +14,10 @@
 //                                        ref.png.actual.png on a difference
 //   --click X Y                          headless: a press and a release at X,Y before the frame that is written
 //                                        (frame 0 lays out, pressed in 1, released in 2, frame 3 is written)
+//   --touch FX FY                        headless: the same click as a finger's, at the window's normalised FX,FY
+//                                        (0..1, so 0.5,0.5 is its middle): the point goes through ui_touch_map, the same
+//                                        mapping the window poll gives SDL's finger events, and the frames carry the
+//                                        touch flag a page reads (a touch drag starts at once; a tap still clicks)
 //   --move X Y [N]                       headless, after --keys and --settle: the pointer to X,Y, N frames (default 3),
 //                                        and no press — a hover a frame or two into its fade, at a page that is at rest
 //   --warm N                             headless: N frames at rest before the click and the wheel, for a page whose
@@ -60,6 +65,8 @@ const arg = (name: string, n = 1) => {
 const png = arg("--png")?.[0];
 const expect = arg("--expect")?.[0];
 const click = arg("--click", 2)?.map(Number);
+// headless: a finger's click, at a point normalised to the window (ui_touch_map turns it into the pointer's pixels)
+const touch = arg("--touch", 2)?.map(Number);
 // headless: a hover: the pointer to X,Y after the settle, N frames there (no press)
 const move = arg("--move", 3)?.map(Number);
 // headless: frames at rest before the input, so a page's mount animation is over (the Sky cards' entry)
@@ -143,10 +150,10 @@ const frame = createFrame(root, {
   get theme() {
     return theme;
   },
-  // the pointer goes to both hooks: the Widgets slider's drag and the page's own (the Sky feed)
-  onPointer: (x, y, down) => {
+  // the pointer goes to both hooks: the Widgets slider's drag and the page's own (the Sky feed, the List's viewport)
+  onPointer: (x, y, down, touch) => {
     dragState.onPointer?.(x, y, down);
-    motion.onPointer?.(x, y, down);
+    motion.onPointer?.(x, y, down, touch);
   },
   onPressMiss: () => input.pressMiss(),
   onWheel: (dx, dy) => motion.onWheel?.(dx, dy),
@@ -165,11 +172,12 @@ const pumpWheel = () => {
   return had;
 };
 
-const headless = png || expect || idle > 0;
+const headless = png || expect || idle > 0 || touch !== undefined;
 if (headless) {
   // every headless frame is the loop's: declared and laid out, drawn only when the hash changed or the input was a
   // discrete one. The buffer keeps the last drawn pixels, so a skipped frame is the frame it would have drawn.
-  const step = (x: number, y: number, down: boolean, input = false) => draw(x, y, down, 1 / 60, input);
+  const step = (x: number, y: number, down: boolean, input = false, touch = false) =>
+    draw(x, y, down, 1 / 60, input, touch);
   // where the last frame left the pointer: a settle frame keeps it there, so a hover is the frame's, not the settle's
   let settleAt: [number, number] = [-1, -1];
   // frames at rest before any input, for a page whose mount animation has to be over (the Sky cards' entry)
@@ -187,10 +195,15 @@ if (headless) {
     step(bx, by, true);
     step(bx, by, true);
   } else {
-    // as host.c: a scripted click is frames 0 to 2 at the point, pressed in frame 1, and frame 3 is written
-    for (let n = 0; n < (click ? 4 : 1); n++)
-      step(click?.[0] ?? -1, click?.[1] ?? -1, n === 1, n === 1 || n === 2);
-    if (click) settleAt = [click[0]!, click[1]!];
+    // as host.c: a scripted click is frames 0 to 2 at the point, pressed in frame 1, and frame 3 is written. A finger's
+    // click (`--touch`) is the same script at the point ui_touch_map gives for the normalised one, its frames marked as
+    // a finger's: the mapping and the flag are the window's path, exercised without a touchscreen.
+    const finger = touch ? ui.touchMap(touch[0]!, touch[1]!) : undefined;
+    const [cx, cy] = finger ? [finger[0]!, finger[1]!] : [click?.[0] ?? -1, click?.[1] ?? -1];
+    const pressed = click !== undefined || finger !== undefined;
+    for (let n = 0; n < (pressed ? 4 : 1); n++)
+      step(cx, cy, n === 1, n === 1 || n === 2, finger !== undefined);
+    if (pressed) settleAt = [cx, cy];
   }
   if (dragFeed) {
     // a pointer drag on the Sky feed: frame 0 lays out, 1 puts the pointer at the press point, 2 presses, then a frame a
@@ -290,7 +303,8 @@ if (!scale) {
   process.exit(1);
 }
 console.log(`window: pixel density ${scale}`);
-const pointer = new Float32Array([-1, -1, 0, 0, 0]);
+// the poll's out[6]: x, y, down, quit, the last key's character, and whether the last pointer event was a finger
+const pointer = new Float32Array([-1, -1, 0, 0, 0, 0]);
 const event = new Int32Array(4);
 const typed = new Uint8Array(256);
 let got = 0;
@@ -309,7 +323,7 @@ const start = performance.now();
 for (let n = 0; n < maxFrames; n++) {
   ui.windowPoll(pointer);
   if (pointer[3]) break;
-  const [x, y, down] = [pointer[0]!, pointer[1]!, pointer[2] !== 0];
+  const [x, y, down, finger] = [pointer[0]!, pointer[1]!, pointer[2] !== 0, pointer[5] !== 0];
   let wheeled = pumpWheel();
   let text = false;
   while ((got = ui.textPop(typed)) > 0) (text = true), input.textInput(decoder.decode(typed.subarray(0, got)));
@@ -332,7 +346,7 @@ for (let n = 0; n < maxFrames; n++) {
   // declare and lay out every iteration (a page's tick reads and writes there, so a timer or a track animates); draw and
   // present only when the hash changed or a key, typed text, a wheel notch or the button came in. A pointer move goes
   // through the hash: it draws when it changes a hover, and not once the hover has settled.
-  const drewNow = draw(x, y, down, (now - last) / 1000, wheeled || text || key || down !== wasDown);
+  const drewNow = draw(x, y, down, (now - last) / 1000, wheeled || text || key || down !== wasDown, finger);
   last = now;
   wasDown = down;
   if (drewNow) {
