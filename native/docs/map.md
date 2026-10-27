@@ -266,9 +266,9 @@ Each step ends in a check that fails when it breaks.
    selection, the header and footer unmoved, the ring's pixels, the wheel only under the pointer, reduced motion, the page
    fitting). Mutations: making the notch instant fails the "settles at 10px over frames" check; dropping the reveal fails
    eleven of them. Seen by eye: the four frames; the window started (`--frames 60`, exit 0) but its wheel and keys were
-   not tried by hand (the screen is not visible to me). Left: horizontal scrolling and scrolling the page itself when the
-   wheel is outside the viewport (it is the viewport's own track); the scrollbar and the dragging of one came later (item
-   2's last paragraph).
+   not tried by hand (the screen is not visible to me). Left: scrolling the page itself when the wheel is outside the
+   viewport (it is the viewport's own track); the scrollbar and the dragging of one came later (item 2's last paragraph),
+   and so did the horizontal axis and the wide List.
    **Done: the window** (`solid/src/virtual.ts`, `solid/virtual.test.ts`): both scrolling pages now declare what the screen
    shows, not the data. `fixedWindow` is arithmetic (the List's rows: `item + gap` a row, row `i` at `i·30`); it returns
    the indexes to declare, the spacer heights above and below, and the real content (`count·item + (count−1)·gap`). The
@@ -414,10 +414,27 @@ Each step ends in a check that fails when it breaks.
    instead of 60 and are **byte-identical** to before (`list-wheel`, `list-select`, `list-light`, `sky-scrolled`), as is
    `sky-band` (Discover has no bar).
    Seen by eye: `list-entry.png`; the scrollbar was not seen in a window (no window was run for this step). What is
-   genuinely left of this step: a **touchscreen** to try the finger's path on (there is none here), horizontal scrolling,
-   scrolling the page itself when the wheel is outside the viewport (the wheel is the viewport's own track), and the
-   terminal, browser and board targets (no Solid page, no wheel, no pointer, no touch and no value channel: the drags are
-   the desktop's).
+   genuinely left of this step: a **touchscreen** to try the finger's path on (there is none here), scrolling the page
+   itself when the wheel is outside the viewport (the wheel is the viewport's own track), and the terminal, browser and
+   board targets (no Solid page, no wheel, no pointer, no touch and no value channel: the drags are the desktop's).
+   **Done: the horizontal axis, and a wide List.** `scroll(id, max, bar, across?)` builds the vertical axis as before and,
+   with `across` (`{ max, bar }`), a second axis from the same `axis()` closure: the notches, the burst's fling, the band
+   and its hold, the 4px drag threshold and the bar's fade are one body of code with the coordinate (dx, the pointer's x)
+   and the extent (`ui.bounds`'s width) swapped, and the clock and the fade are the machine's, so both bars show while
+   either axis moves. `barOf(content, view, offset, reserve)` is `thumbOf` turned (the same formula with a reserve) — the
+   horizontal thumb is 4px tall at the viewport's inner bottom edge, `max(24, view²/content)` wide, its left
+   `offset/(content−view)·(view−width)` — and both bars shorten the vertical one's travel by 6px, so they meet and do not
+   overlap. The wheel's x delta was always in `ui_wheel_pop`; a shift+vertical wheel becomes an x delta in
+   `ui_window_poll` (`SDL_GetModState()`), and `--wheel-x N` is the headless notch. `List({ wide })` (`--wide`) is a prop:
+   900px rows in the same 280px viewport — number, a 150px name, a 320px note cell that clips (`overflow: hidden`), the
+   temperature, and a second column past the edge — with the vertical window, keys and clamps untouched, so the default
+   page's four stored frames are byte-identical and `list-wide.png` is the new one (12 notches right, 120 of the 620).
+   Measured (`solid/list.test.ts`): one horizontal notch `2.59, 1.92 …` to exactly 10; forty in one frame peak 103.44 and
+   rest on 620 after 39; the thumb `232.89,335.5 87.11x4`, travel 192.89, left `0`/`102.67`/`192.89`; a 10px bar drag is
+   3.21 of offset a px; the two bars' boxes meet at `335.5` and never overlap. Mutation: the horizontal thumb's width from
+   the content's width instead of the viewport's fails `FAIL its width is max(24, 280²/900): a screenful of the content`.
+   Not covered: a horizontal *content* drag in the viewport (the wide page drags vertically; the bar is the horizontal
+   handle), and horizontal content on any page but the List.
 5. **JSX to C.** The same component evaluated at build time to C calls, for targets with no JS. Check: its render
    commands equal step 4's for the same state.
    **Done: the evaluator** (`generator/page-to-c.ts`, `bun --conditions=development`). It imports `solid/plugin.ts`
@@ -724,7 +741,7 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    the accent: false, wanted true` (both labels at their ends throughout) and three more of that block; dropping the
    `ROTATE` write fails `FAIL mid-lean the top edge is not horizontal: the border's two insets differ: false, wanted
    true` (the insets flat). Files are compared with their backups after the reverts.
-   Not covered yet: a second gradient on one element; horizontal scrolling (both pages scroll down only); the thread screen
+   Not covered yet: a second gradient on one element; the thread screen
    (Sky's card click records the selection and nothing opens); a finger on real glass — SDL3's finger events go through
    `ui_touch_map` into the same pointer the mouse uses and both pages' touch behaviour is tested, but no touchscreen has
    been used; and the terminal, browser and board targets (no Solid page, no wheel and no value channel). A gradient or a

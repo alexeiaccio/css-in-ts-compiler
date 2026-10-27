@@ -487,6 +487,52 @@ frame shows it: every settled frame is after the fade-out, so `--settle 60` beca
 a scroll (`list-wheel`, `list-select`, `list-light`, `sky-scrolled`) and the pixels did not change — the frames were
 compared, not re-stored. `sky-band` did not change either: it is Discover, and Discover has no bar.
 
+**The horizontal axis, and a wide List.** The machine is one axis instantiated twice rather than a second
+implementation: `scroll(id, max, bar, across?)` always builds the vertical axis, and with `across` (`{ max, bar }`, the
+page's horizontal content end and thumb id) a second one from the same `axis()` closure — the wheel's accumulating
+notches, the burst's fling, the `rubber` band and its 80ms hold, the drag's 4px click threshold, the fling's decay and
+the thumb's fade are one body of code, and only the coordinate (`dx` for the notch, the pointer's x for a drag and a
+thumb), the extent it reads (`ui.bounds`'s width or height) and what it writes (`ui_scroll_to`/`put`'s x or y, the
+thumb's width and offset x or height and offset y) swap. The clock and the fade are the machine's, not an axis's: both
+bars come up while *either* axis moves and go down 600ms after both stop. `barOf(content, view, offset, reserve)` is
+`thumbOf` with the reserve `thumbOf` never needs, and `thumbOf` is `barOf(…, 0)` — the same formula turned: the
+horizontal thumb is 4px tall at the viewport's inner bottom edge (2px up, as the vertical one is 2px in from the right),
+its width is `max(24, view²/content)` of the viewport's width, its left is `offset/(content−view)·(view−width)`, and it
+is hidden (width 0, alpha 0) when the content fits. With both bars the machine takes 6px (the bar's 4 and its 2px inset)
+off the vertical thumb's travel, so the vertical bar's bottom is the horizontal bar's top: they meet, they do not
+overlap.
+
+The wheel's x delta reaches the page as it always did (`ui_wheel_pop` has always carried both), and a **shift+vertical
+wheel is a horizontal scroll**: `ui_window_poll` swaps the delta onto x when the wheel has none of its own and
+`SDL_GetModState()` has shift, which is a browser's rule and costs one branch (a trackpad's two-finger swipe already
+sends x, and it is left alone). Headless, `--wheel-x N` is N notches to the right: `ui.wheel(-1, 0)` a notch, the same
+sign rule as `--wheel`'s `(0, -1)` a notch down (the machine's offset is positive down or right).
+
+The page that has horizontal content is the **List's wide layout** (`bun solid/main.ts list --wide`, `List({ wide })`):
+the same 240px viewport and the same 28px rows with a 2px gap — the vertical window, the clamps, the band and the keys
+are untouched, because the widths are a layout matter — with rows **900px wide**. A row stays the same three cells and
+adds two: the number, the name as a 150px cell, the note as a 320px cell with `overflow: hidden` (a clip element of its
+own, so a long note is cut at the cell instead of widening the row), the temperature, and a second column of values
+(`10 seats · 5 sockets · wing C`) past the viewport's 280px edge, which is what there is to scroll to. The horizontal
+clamp is `900 − 280 = 620`. The wide layout is a **prop**: the default page's tree is the one it always declared, so
+`list-top`, `list-wheel`, `list-select` and `list-light` are byte-identical, and `list-wide.png` is the new frame
+(`--wide --wheel-x 12 --wheel-rest --settle 90`: 120px of the 620, the notches' own step, after the bar's fade-out).
+
+Measured (`solid/list.test.ts`, the wide page: the viewport `40,101.5,280x240`, the content 900 of rows): one horizontal
+notch glides `2.59, 1.92, 1.42 …` px a frame to exactly 10, the rows' left `40 → 30`; forty notches in one frame step
+`103.44, 84.78, 75.47 …`, peak 103.44, and rest on the clamp `620` after 39 frames; the thumb is
+`232.89,335.5 87.11x4` px at rest, its travel 192.89, its left `0` at the start, `102.67` at 330 of the 620 and `192.89`
+(the viewport's right edge its right) at 620; a 10px drag on the bar is `3.21` px of offset a px (62.1 and 94.24 from
+30 over travel 192.89), and the drag clamps on 620 and 0; both bars at once: the vertical thumb's travel is 169.86
+(240 − 6 − 64.14) and its bottom at the end `335.5` is the horizontal thumb's top, so nothing overlaps, and a vertical
+notch shows the horizontal bar too (one fade). Cost (`--bench 500`, headless, the same 360x400 frame): the wide page is
+declare 0.022-0.027 ms a frame against the default's 0.018-0.022 and layout 0.022 against 0.018-0.019, and draw 1.34
+against 0.56 — the draw is the wide rows' own glyphs (a long note and a second column on nine rows), not the axis: one
+more axis on the same tick is a few arithmetic branches, and its bar is five more numbers a frame through the value
+channel (its length, its start, the alpha and the capture). The default pages write one extra call a frame
+(`ui_scroll_to_x(id, 0)`, so a clip element's x does not survive a page with the same id in one process); their stored
+frames are unchanged (66 comparisons, `test.sh`).
+
 **The window: a page declares what the screen shows.** `solid/src/virtual.ts` is what makes a list of thousands cost
 what the screen shows: it returns `{ first, last, above, below, content }` — the indexes to declare, the two spacer
 heights, and the *real* content height — and both pages declare a spacer box, the items, a spacer box, inside the same

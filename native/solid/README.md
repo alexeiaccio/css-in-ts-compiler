@@ -111,10 +111,10 @@ with an `id`: Clay tells whether the pointer is over it. `onClick` runs on relea
 | `ui_text_input(on)` | `SDL_StartTextInput` / `SDL_StopTextInput`: only while it runs does the window poll `SDL_EVENT_TEXT_INPUT` (an IME needs it too). The host turns it on while the focused part is a text field (`Input.editing`) |
 | `ui_clipboard_get(bytes)`, `ui_clipboard_set(text, len)` | `SDL_GetClipboardText` / `SDL_SetClipboardText`: UTF-8 in and out (the get writes NUL-terminated bytes and returns their count) |
 | `ui_bounds(id, len, f32[4])` | x, y, width, height of an element in the last layout (tests click at the middle of a part). A scroll container's children are outside its box and their bounds are not clipped |
-| `ui_wheel(dx, dy)` | adds a wheel delta for the next frame, in Clay's units and SDL's sign: positive is away from the user (the content moves down). `ui_window_poll` calls it for every `SDL_EVENT_MOUSE_WHEEL`, and Clay moves the container the pointer is over by 10px a notch |
-| `ui_scroll_offset(id, len)` | the scroll offset of a clip element, in pixels (negative is scrolled down); 0 when there is none |
-| `ui_scroll_to(id, len, y)` | scrolls a clip element to `y`, clamped to its content (the same range Clay clamps to); returns the offset it took |
-| `ui_scroll_put(id, len, y)` | puts a clip element's offset where the page says, **with the content's clamp left out** — a rubber band past an end is past the content on purpose; returns the offset |
+| `ui_wheel(dx, dy)` | adds a wheel delta for the next frame, in Clay's units and SDL's sign: positive is away from the user (the content moves down). `ui_window_poll` calls it for every `SDL_EVENT_MOUSE_WHEEL`, and a shift+vertical wheel is moved onto x there (`SDL_GetModState()`), so a mouse can scroll sideways as a browser's does; Clay moves the container the pointer is over by 10px a notch |
+| `ui_scroll_offset(id, len, axis)` | the scroll offset of a clip element, in pixels along `axis` (0 y, 1 x; negative is scrolled down or right); 0 when there is none |
+| `ui_scroll_to(id, len, axis, v)` | scrolls a clip element to `v` on `axis`, clamped to its content (the same range Clay clamps to); returns the offset it took |
+| `ui_scroll_put(id, len, axis, v)` | puts a clip element's offset on `axis` where the page says, **with the content's clamp left out** — a rubber band past an end is past the content on purpose; returns the offset |
 | `ui_errors()` | Clay errors so far |
 
 Text is measured by ThorVG, as in `host.c`.

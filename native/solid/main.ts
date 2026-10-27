@@ -33,6 +33,8 @@
 //   --wheel N                            headless, before --keys: the pointer onto the element `--wheel-over` names (the
 //                                        list's viewport by default), then N wheel notches down, a frame each (one
 //                                        notch is 10px; a run of notches a frame apart is a flick and flings)
+//   --wheel-x N                          headless, with --wheel: the same notches along the horizontal axis instead (N to
+//                                        the right: the wide List's rows)
 //   --wheel-over ID                      the element the wheel's pointer goes onto (default "list")
 //   --wheel-rest                         headless, with --wheel: a frame of rest between notches, so a long run is the
 //                                        notches' own 10px each (the List's stored frames)
@@ -44,6 +46,9 @@
 //   --idle-keys K                        headless with --idle: a Tab pressed every K idle frames, which must draw
 //   --bench N                            headless: N more frames, the ms a frame by phase
 //   --count N                            the List's rows (default 30): 1,000 is the window's own test page
+//   --wide                               the List's wide layout: 900px rows in the same 280px viewport, a horizontal bar,
+//                                        and a second column past the viewport's edge (the horizontal axis of the scroll
+//                                        machine: --wheel-x scrolls it, and a shift+vertical wheel in the window does too)
 //   --posts N                            the Sky's Discover feed: N synthetic posts instead of its three fixtures
 //   --raster thorvg|thorvg-gpu           the ThorVG software canvas (the default) or its WebGPU canvas, the frame read
 //                                        back; the latter needs a libui.dylib from desktop/build-thorvg-gpu.sh solid
@@ -80,6 +85,8 @@ const dragFeed = arg("--drag-feed")?.[0]?.split(",").map(Number);
 const keys = arg("--keys")?.[0]?.split(",");
 // headless: wheel notches down over the element --wheel-over names, a frame each
 const wheel = Number(arg("--wheel")?.[0] ?? 0);
+// headless: the same notches along the horizontal axis (positive is to the right, the wide List's rows)
+const wheelX = Number(arg("--wheel-x")?.[0] ?? 0);
 const wheelOver = arg("--wheel-over")?.[0] ?? "list";
 // headless: a frame of rest between wheel notches, so a long scripted run is the notches' own 10px each and not a flick
 const wheelRest = process.argv.includes("--wheel-rest");
@@ -88,6 +95,8 @@ const bench = Number(arg("--bench")?.[0] ?? 0);
 // the pages' data: the List's rows, and a synthetic Discover feed for the Sky (the window's own test pages)
 const count = Number(arg("--count")?.[0] ?? 30);
 const posts = Number(arg("--posts")?.[0] ?? 0);
+// headless: the List's wide layout (900px rows in the same 280px viewport, a horizontal bar and a second column)
+const wide = process.argv.includes("--wide");
 // headless: frames with no input after everything else, and how many of them drew (all of them only for the keys)
 const idle = Number(arg("--idle")?.[0] ?? 0);
 const idleKeys = Number(arg("--idle-keys")?.[0] ?? 0);
@@ -144,7 +153,7 @@ const dispose = render(
       : page === "form"
         ? () => Field({ input, motion })
         : page === "list"
-          ? () => List({ input, motion, count })
+          ? () => List({ input, motion, count, wide })
           : page === "sky"
             ? () => Sky({ input, motion, theme: () => theme, posts: posts ? synthetic(posts) : undefined })
             : () => Sensors({ motion }),
@@ -225,12 +234,16 @@ if (headless) {
   // page that keeps Clay's scrolling, so the pointer goes onto the viewport for a frame first. `--wheel-rest` puts a frame
   // of rest between notches: a run of notches 60Hz apart is a flick and flings (the Sky feed's and the List's), and a rest
   // frame keeps a scripted run at its notches' own 10px each — the List's stored frames are that run
-  if (wheel) {
+  if (wheel || wheelX) {
     const [left, top, width, height] = ui.bounds(Buffer.from(wheelOver)) ?? [W / 2, H / 2, 0, 0];
     const [px, py] = [left + width / 2, top + height / 2];
     step(px, py, false);
-    for (let n = 0; n < wheel; n++) {
-      ui.wheel(0, -1); // one notch down
+    // a notch down is (0, -1); a notch to the right is (-1, 0), the same sign rule: the machine's offset is positive down or
+    // right, and SDL's delta is positive away from the user or to the right
+    const n = wheel || wheelX;
+    for (let i = 0; i < n; i++) {
+      if (wheel) ui.wheel(0, -1);
+      else ui.wheel(-1, 0);
       pumpWheel();
       step(px, py, false, true);
       if (wheelRest) step(px, py, false);

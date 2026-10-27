@@ -41,9 +41,9 @@ const { symbols: s } = dlopen(new URL("../../build/solid/libui.dylib", import.me
   ui_clipboard_get: { args: [T.ptr, T.i32], returns: T.i32 },
   ui_clipboard_set: { args: [T.ptr, T.i32], returns: T.void },
   ui_bounds: { args: [T.ptr, T.i32, T.ptr], returns: T.i32 },
-  ui_scroll_offset: { args: [T.ptr, T.i32], returns: T.f32 },
-  ui_scroll_to: { args: [T.ptr, T.i32, T.f32], returns: T.f32 },
-  ui_scroll_put: { args: [T.ptr, T.i32, T.f32], returns: T.f32 },
+  ui_scroll_offset: { args: [T.ptr, T.i32, T.i32], returns: T.f32 },
+  ui_scroll_to: { args: [T.ptr, T.i32, T.i32, T.f32], returns: T.f32 },
+  ui_scroll_put: { args: [T.ptr, T.i32, T.i32, T.f32], returns: T.f32 },
 });
 
 const cstr = (x: string) => Buffer.from(`${x}\0`);
@@ -132,17 +132,32 @@ export const ui = {
   /** The scroll offset of a clip element (negative is scrolled down), 0 when there is none. */
   scrollOffset: (id: string) => {
     const bytes = Buffer.from(id);
-    return s.ui_scroll_offset(ptr(bytes), bytes.length);
+    return s.ui_scroll_offset(ptr(bytes), bytes.length, 0);
+  },
+  /** The horizontal scroll offset of a clip element (negative is scrolled right), 0 when there is none. */
+  scrollOffsetX: (id: string) => {
+    const bytes = Buffer.from(id);
+    return s.ui_scroll_offset(ptr(bytes), bytes.length, 1);
   },
   /** Scrolls a clip element to y, clamped to its content; the offset it took. */
   scrollTo: (id: string, y: number) => {
     const bytes = Buffer.from(id);
-    return s.ui_scroll_to(ptr(bytes), bytes.length, y);
+    return s.ui_scroll_to(ptr(bytes), bytes.length, 0, y);
+  },
+  /** ... and its x. */
+  scrollToX: (id: string, x: number) => {
+    const bytes = Buffer.from(id);
+    return s.ui_scroll_to(ptr(bytes), bytes.length, 1, x);
   },
   /** Puts a clip element's offset where the page says, past its content too: a rubber band's overscroll. */
   scrollPut: (id: string, y: number) => {
     const bytes = Buffer.from(id);
-    return s.ui_scroll_put(ptr(bytes), bytes.length, y);
+    return s.ui_scroll_put(ptr(bytes), bytes.length, 0, y);
+  },
+  /** ... and its x. */
+  scrollPutX: (id: string, x: number) => {
+    const bytes = Buffer.from(id);
+    return s.ui_scroll_put(ptr(bytes), bytes.length, 1, x);
   },
   /** x, y, width, height of the element in the last layout, or undefined. */
   bounds: (id: Uint8Array) => {

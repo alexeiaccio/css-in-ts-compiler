@@ -5,7 +5,11 @@
 // the drag leaving the selection alone (the drag never selects) and the selected row it leaves behind still declared as a
 // range of its own, held pointer dragging the viewport 1:1 and its release flinging, reduced motion's hard clamp and
 // instant keys, the page's first-mount entry (the root's subtree rising and fading in, once, with the layout still), the
-// header and footer staying put, and the page fitting. Driven as the window does it: pointer and wheel in, then a frame.
+// header and footer staying put, and the page fitting. The wide page adds the horizontal axis of the same machine: a dx
+// notch gliding 10px and settling, a flick to the horizontal clamp, the horizontal bar's width and left at the start, the
+// middle and the end, a 1:1 drag on that bar, both bars at once with the vertical one inset above the horizontal one, and
+// the default page's frames still byte-identical (they are `test.sh`'s comparisons). Driven as the window does it: pointer
+// and wheel in, then a frame.
 import "./plugin.ts";
 
 const { ui } = await import("./src/ffi.ts");
@@ -13,7 +17,7 @@ const { createFrame } = await import("./src/frame.ts");
 const { createInput } = await import("./src/input.ts");
 const { El, render, Txt } = await import("./src/renderer.ts");
 const { rubber, setReducedMotion } = await import("./src/motion.ts");
-const { List, size } = await import("./app/List.tsx");
+const { List, s, size } = await import("./app/List.tsx");
 
 ui.init(size.width, size.height);
 ui.font(new URL("../vendor/fonts/Roboto-Regular.ttf", import.meta.url).pathname);
@@ -42,7 +46,7 @@ const between = (c: number[], a: number[], b: number[]) =>
 
 let dispose = () => {};
 /** A fresh page, the host's frame loop over it, and the entry's 0.25s over unless `entry` asks for it running. */
-function fresh(opts: { entry?: boolean } = {}) {
+function fresh(opts: { entry?: boolean; wide?: boolean } = {}) {
   dispose();
   const root = new El("root");
   const input = createInput();
@@ -52,7 +56,7 @@ function fresh(opts: { entry?: boolean } = {}) {
     onPointer?: (x: number, y: number, down: boolean, touch: boolean) => void;
     tick?: (dt: number) => void;
   } = {};
-  dispose = render(() => List({ input, motion }), root);
+  dispose = render(() => List({ input, motion, wide: opts.wide }), root);
   const frame = createFrame(root, {
     onPressMiss: () => input.pressMiss(),
     onWheel: (dx, dy) => motion.onWheel?.(dx, dy),
@@ -104,13 +108,32 @@ function fresh(opts: { entry?: boolean } = {}) {
       step(false, touch);
       return held;
     },
+    /** The same on the horizontal bar: a press at x, y, then a frame an dx with the button held, then the release.
+     *  Returns the horizontal offset (positive right) each held frame presented. */
+    dragX(x: number, dxs: number[], y: number) {
+      at = [x, y];
+      step(false);
+      step(true);
+      const held: number[] = [];
+      for (const dx of dxs) {
+        at = [(x += dx), y];
+        step(true);
+        held.push(-ui.scrollOffsetX("list"));
+      }
+      step(false);
+      return held;
+    },
     /** The view's top and height, the offset Clay keeps: a row's top is its own plus this. */
     view: () => box("list"),
-    /** The scrollbar's thumb, from the last frame's layout. */
+    /** The scrollbar's thumbs, from the last frame's layout. */
     thumb: () => box("list-thumb"),
+    thumbX: () => box("list-thumb-x"),
     offset: () => ui.scrollOffset("list"),
     /** The offset positive down, as the page's track says it. */
     scrolled: () => -ui.scrollOffset("list"),
+    /** The horizontal offset positive right. */
+    offsetX: () => ui.scrollOffsetX("list"),
+    scrolledX: () => -ui.scrollOffsetX("list"),
     /** Puts the pointer at x, y and lays out a frame: `ui.bounds` and Clay's "what is under it" follow. */
     point(x: number, y: number) {
       at = [x, y];
@@ -119,6 +142,11 @@ function fresh(opts: { entry?: boolean } = {}) {
     /** One wheel event of `n` notches (positive down) and a frame: n > 1 in one frame is a burst, and the track flings. */
     notch(n = 1) {
       motion.onWheel?.(0, -n);
+      step();
+    },
+    /** One wheel event of `n` horizontal notches (positive right) and a frame. */
+    notchX(n = 1) {
+      motion.onWheel?.(-n, 0);
       step();
     },
     /** `n` notches down over the viewport, each a frame and then a frame of rest as the host's scripted `--wheel` does
@@ -131,6 +159,11 @@ function fresh(opts: { entry?: boolean } = {}) {
     wheelUp(n: number) {
       this.point(180, 160);
       for (let i = 0; i < n; i++) this.notch(-1), this.step();
+    },
+    /** `n` horizontal notches to the right, each a frame and then a frame of rest (the notches' own 10px each). */
+    wheelX(n: number) {
+      this.point(180, 160);
+      for (let i = 0; i < n; i++) this.notchX(1), this.step();
     },
     /** A key pressed and released with a frame after each. */
     tap(name: string) {
@@ -711,6 +744,193 @@ function fresh(opts: { entry?: boolean } = {}) {
   check("so a press there drags the viewport 1:1", r.drag(view[1]! + 50, [-10], 316), [10]);
 }
 
+// --- the wide layout (`wide`, `--wide`): the same 240px viewport and 28px rows, 900px wide, so the page gets the
+//     machine's horizontal axis: a dx notch glides 10px and settles, a flick decays to the horizontal clamp, and the rows
+//     move left with it while the vertical offset stays where it was
+{
+  const p = fresh({ wide: true });
+  const view = p.view();
+  const maxX = s.WIDE - view[2]!; // 900 - 280
+  check("the wide page keeps the viewport's 280 x 240", [view[2], view[3]], [280, 240]);
+  check("a row is 900 wide: wider than the viewport, narrower than nothing", p.row(0)[2], s.WIDE);
+  check("and still 28 tall: the widths are a layout matter only", p.row(0)[3], 28);
+  check("the wide row's second column is declared past the viewport", p.row(0)[0]! + p.row(0)[2]! > view[0]! + view[2]!, true);
+  check("nothing is scrolled sideways at first", p.offsetX(), 0);
+  check("and the horizontal clamp is the row less the viewport: 620", maxX, 620);
+  const below = p.box("list-below");
+  check("the vertical window still ends the content at 30 * 30 - 2", below[1]! + below[3]! - view[1]!, 898);
+  p.point(180, 160);
+  const xs = [0];
+  p.notchX(1);
+  xs.push(p.scrolledX());
+  for (let i = 0; i < 40; i++) p.step(), xs.push(p.scrolledX());
+  const steps = xs.map((x, i) => (i ? x - xs[i - 1]! : 0));
+  check("one horizontal notch is not instant: its first frame is short of 10px", steps[1]! > 0 && steps[1]! < 10, true);
+  check("one horizontal notch settles at exactly 10px", fixed(xs[xs.length - 1]!), 10);
+  check("its first frame is its largest step (a glide, not a jump)", fixed(steps[1]!), fixed(Math.max(...steps)));
+  check("and the steps decay", steps[1]! > steps[5]! && steps[5]! > steps[20]!, true);
+  check("the rows moved left with it", fixed(p.row(0)[0]!), fixed(view[0]! - 10));
+  check("and the vertical offset did not move", p.offset(), 0);
+  console.log(
+    `solid/list.test.ts: one horizontal notch, ${steps.slice(1, 7).map((x) => x.toFixed(2)).join(" ")} … px a frame`,
+  );
+  // a flick: 40 notches in one frame carry the track past the notch and to the horizontal clamp, in finite frames
+  const q = fresh({ wide: true });
+  q.point(180, 160);
+  const ys = [0];
+  q.notchX(40);
+  ys.push(q.scrolledX());
+  let frames = 0;
+  for (let i = 0; i < 120; i++) {
+    const before = q.scrolledX();
+    q.step();
+    const y = q.scrolledX();
+    ys.push(y);
+    if (y !== before) frames = i + 1;
+  }
+  const fsteps = ys.map((y, i) => (i ? y - ys[i - 1]! : 0));
+  const peak = Math.max(...fsteps);
+  check("the horizontal flick reaches the content's end: 900 - 280", q.offsetX(), -maxX);
+  check("its fastest frame is farther than any notch's 10px", peak > 10, true);
+  check("and its tail has stopped", fsteps.slice(-10).every((x) => Math.abs(x) < 0.5), true);
+  check("it comes to rest in a finite number of frames", frames > 0 && frames < 120, true);
+  check("the row's right edge is the viewport's right edge at the end", fixed(q.row(0)[0]! + q.row(0)[2]!), fixed(view[0]! + view[2]!));
+  console.log(
+    `solid/list.test.ts: forty horizontal notches, the steps ${fsteps.slice(1, 8).map((x) => x.toFixed(2)).join(" ")} px, ` +
+      `peak ${peak.toFixed(2)}, rest on ${fixed(q.scrolledX())} after ${frames} frames`,
+  );
+  // the vertical axis of the same page is untouched by the horizontal one
+  const v = fresh({ wide: true });
+  v.wheel(2);
+  v.settle();
+  check("the vertical wheel still scrolls a wide page by 20", v.offset(), -20);
+  check("and leaves the horizontal offset alone", v.offsetX(), 0);
+  v.wheelX(3);
+  v.settle();
+  check("three horizontal notches are 30, beside the 20", [v.offsetX(), v.offset()], [-30, -20]);
+  setReducedMotion(true);
+  const r = fresh({ wide: true });
+  r.point(180, 160);
+  r.notchX(1);
+  check("reduced motion puts a horizontal notch on its 10px at once, no glide", r.offsetX(), -10);
+  setReducedMotion(false);
+}
+
+// --- the horizontal thumb: the same geometry turned (4px tall, width max(24, view²/content), its left the offset's place
+//     of its travel), 2px in from the viewport's bottom edge, only when the content is wider than the viewport
+{
+  const p = fresh({ wide: true });
+  const view = p.view();
+  const content = s.WIDE; // 900
+  const maxX = content - view[2]!; // 620
+  const width = Math.max(24, (view[2]! * view[2]!) / content);
+  const travel = view[2]! - width;
+  const start = p.thumbX();
+  check("the horizontal thumb is 4px tall, 2px in from the viewport's bottom edge", [start[1], start[3]], [view[1]! + view[3]! - 6, 4]);
+  check("its width is max(24, 280²/900): a screenful of the content", fixed(start[2]!), fixed(width));
+  check("at the start it begins at the viewport's left edge", [start[0], fixed(start[2]!)], [view[0], fixed(width)]);
+  // a middle: 33 notches a rest apart are 330px of the 620 the viewport can scroll
+  p.wheelX(33);
+  p.settle(120);
+  check("33 horizontal notches are 330 of 620", fixed(p.scrolledX()), 330);
+  check("a third of the way, the thumb's left is the offset's place of its travel", fixed(p.thumbX()[0]! - view[0]!), fixed((330 / maxX) * travel));
+  // the end: the thumb's right edge is the viewport's right edge
+  p.wheelX(200);
+  p.settle(120);
+  check("the viewport is at its horizontal end", p.offsetX(), -maxX);
+  check("and the thumb's right edge is the viewport's right edge", fixed(p.thumbX()[0]! + p.thumbX()[2]!), fixed(view[0]! + view[2]!));
+  console.log(
+    `solid/list.test.ts: the horizontal thumb ${p.thumbX().slice(0, 2).map((v) => fixed(v!)).join(",")} ` +
+      `${fixed(width)}x4 px, the travel ${fixed(travel)}: its left 0 at the start, ${fixed((330 / maxX) * travel)} at 330, ` +
+      `${fixed(travel)} at 620`,
+  );
+  // the default page has no horizontal bar at all
+  const d = fresh();
+  check("the default page declares no horizontal thumb", d.thumbX().length, 0);
+  check("and its horizontal clamp is 0", d.offsetX(), 0);
+}
+
+// --- the horizontal thumb's drag: a press on it (only while it is visible) moves the content by the whole range over the
+//     bar's travel (not 1:1 on the content), clamps at both ends, and its release does not fling
+{
+  const p = fresh({ wide: true });
+  const view = p.view();
+  const content = s.WIDE;
+  const maxX = content - view[2]!;
+  const width = Math.max(24, (view[2]! * view[2]!) / content);
+  const travel = view[2]! - width;
+  const per = maxX / travel; // px of offset a px of the bar's travel is
+  p.point(180, 160);
+  p.wheelX(3); // 30px, settled
+  p.settle(24);
+  const bar = p.thumbX();
+  check("the horizontal thumb is up before the press", same(p.pixel(bar[0]! + 10, bar[1]! + 2), MUTED), true);
+  const from = p.scrolledX();
+  const mid = bar[0]! + width / 2;
+  const held = p.dragX(mid, [10, 10], bar[1]! + 2);
+  const close = (got: number, want: number) => Math.abs(got - want) < 0.1;
+  check(
+    "10px of the pointer moves the horizontal thumb 10px, and the offset by the content's range over its travel",
+    held.every((x, i) => close(x - from, (i + 1) * 10 * per)),
+    true,
+  );
+  check("... which is much more than the content's own 1:1 drag would move it", 10 * per > 20, true);
+  check("the thumb moved with the pointer, by the same 20px", fixed(p.thumbX()[0]! - bar[0]!), fixed(20));
+  p.settle(30);
+  check("the release stops it: a scrollbar's drag does not fling", p.scrolledX(), held[held.length - 1]!);
+  console.log(
+    `solid/list.test.ts: a 20px drag on the horizontal bar at 30: ${held.map((x) => fixed(x)).join(", ")} ` +
+      `(${fixed(per)} of offset a px), the bar ${fixed(p.thumbX()[0]! - bar[0]!)}px right`,
+  );
+  // the ends: past the bar's travel the offset clamps on the content, and past the start it clamps on 0
+  const q = fresh({ wide: true });
+  q.point(180, 160);
+  q.wheelX(2);
+  q.settle(24);
+  q.dragX(q.thumbX()[0]! + width / 2, [travel + 200], q.thumbX()[1]! + 2);
+  check("a drag past the bar's travel stops on the content's horizontal end", q.offsetX(), -maxX);
+  q.dragX(q.thumbX()[0]! + width / 2, [-travel - 200], q.thumbX()[1]! + 2);
+  check("and the other way on the start", q.offsetX(), 0);
+  // at rest there is no bar to grab: the press is the viewport's own drag (vertical)
+  const r = fresh({ wide: true });
+  check("at rest the horizontal strip has no thumb on it", r.pixel(view[0]! + 10, r.thumbX()[1]! + 2), PAGE);
+  check("so a press there drags the viewport 1:1 vertically", r.drag(r.thumbX()[1]! + 2, [-10], 60), [10]);
+}
+
+// --- both bars at once: one fade for the machine, so a vertical notch shows the horizontal bar too; the vertical thumb's
+//     travel ends at the horizontal bar's top (6px off the viewport's bottom), so the two never overlap
+{
+  const p = fresh({ wide: true });
+  const view = p.view();
+  const content = s.WIDE;
+  const width = Math.max(24, (view[2]! * view[2]!) / content);
+  const height = Math.max(24, (view[3]! * view[3]!) / 898);
+  const travelY = view[3]! - 6 - height;
+  const barY = p.thumb();
+  const barX = p.thumbX();
+  check("both bars are declared, and they do not overlap at rest", barY[1]! + barY[3]! <= barX[1]! + 0.01, true);
+  check("the vertical thumb's travel is 240 - 6 - 64.14", fixed(travelY), 169.86);
+  p.point(180, 160);
+  p.notch(1); // vertical only, and the fade is the machine's: both bars come up
+  p.settle(12);
+  check("a vertical notch shows the horizontal bar too (one fade, not two)", same(p.pixel(barX[0]! + 10, barX[1]! + 2), MUTED), true);
+  check("and the vertical bar", same(p.pixel(barY[0]! + 1, barY[1]! + 10), MUTED), true);
+  p.wheel(200);
+  p.settle(120);
+  check("the vertical viewport is at its end", p.offset(), -658);
+  check("its thumb's bottom is 6px above the viewport's bottom: the horizontal bar's top", fixed(p.thumb()[1]! + p.thumb()[3]!), fixed(view[1]! + view[3]! - 6));
+  check("so the two bars do not overlap", p.thumb()[1]! + p.thumb()[3]! <= p.thumbX()[1]! + 0.01, true);
+  check("and vertically at the end, sideways nothing moved", p.offsetX(), 0);
+  p.wheelX(200);
+  p.settle(120);
+  check("with both ends reached: 658 down and 620 right", [p.offset(), p.offsetX()], [-658, -620]);
+  check("the horizontal thumb's right edge is the viewport's", fixed(p.thumbX()[0]! + p.thumbX()[2]!), fixed(view[0]! + view[2]!));
+  console.log(
+    `solid/list.test.ts: both bars: the vertical ${fixed(view[1]! + view[3]! - 6 - barY[1]!)}px of travel to its top, ` +
+      `the horizontal ${fixed(barX[0]! - view[0]!)}px of left, ${fixed(width)} wide, no overlap`,
+  );
+}
+
 // --- a finger is a pointer too: the host passes SDL's flag through, and a touch drag has no 4px slop (it starts at
 //     once), while a 2px touch whose pointer never moves is still a click. The List's drag is direct either way.
 {
@@ -740,6 +960,7 @@ console.log(
     "selection alone and the row it left behind declared outside the viewport (its own range, the stored frame still " +
     "byte-identical), the held pointer dragging the viewport 1:1 and stopping at the release, the page's first-mount " +
     "entry (a blend four frames in, the literals at rest, the layout still), the header and footer staying put, the " +
-    "focus ring, the page fitting",
+    "focus ring, the page fitting, and the wide page's horizontal axis (a notch and a flick on the same track, the " +
+    "horizontal thumb's geometry and 1:1 drag, both bars at once without overlap)",
 );
 process.exit(0);

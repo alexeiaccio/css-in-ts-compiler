@@ -783,32 +783,41 @@ int ui_bounds(const char *id, int len, float *out)
     return 1;
 }
 
-/** The scroll offset of the clip element with that id, in pixels (negative is scrolled down); 0 when there is none. */
-float ui_scroll_offset(const char *id, int len)
-{
-    const Clay_ScrollContainerData d = Clay_GetScrollContainerData(Clay__HashString(slice(id, len), 0));
-    return d.found ? d.scrollPosition->y : 0;
-}
-
-/** Scrolls the clip element with that id to y (negative is down), clamped to its content; returns the offset it took. */
-float ui_scroll_to(const char *id, int len, float y)
+/** The scroll offset of the clip element with that id along `axis` (0 y, 1 x), in pixels (negative is scrolled down or
+ *  right); 0 when there is none. */
+float ui_scroll_offset(const char *id, int len, int axis)
 {
     const Clay_ScrollContainerData d = Clay_GetScrollContainerData(Clay__HashString(slice(id, len), 0));
     if (!d.found) return 0;
-    // the range Clay itself clamps to: from the top to the last screenful of the content
+    return axis ? d.scrollPosition->x : d.scrollPosition->y;
+}
+
+/** Scrolls the clip element with that id to `v` on `axis` (0 y, 1 x; negative is down or right), clamped to its content;
+ *  returns the offset it took. */
+float ui_scroll_to(const char *id, int len, int axis, float v)
+{
+    const Clay_ScrollContainerData d = Clay_GetScrollContainerData(Clay__HashString(slice(id, len), 0));
+    if (!d.found) return 0;
+    // the range Clay itself clamps to: from the start to the last screenful of the content
+    if (axis) {
+        const float lowest = -fmaxf(d.contentDimensions.width - d.scrollContainerDimensions.width, 0);
+        d.scrollPosition->x = fminf(fmaxf(v, lowest), 0);
+        return d.scrollPosition->x;
+    }
     const float lowest = -fmaxf(d.contentDimensions.height - d.scrollContainerDimensions.height, 0);
-    d.scrollPosition->y = fminf(fmaxf(y, lowest), 0);
+    d.scrollPosition->y = fminf(fmaxf(v, lowest), 0);
     return d.scrollPosition->y;
 }
 
-/** Puts a clip element's offset where the page says, with the content's clamp left out: a rubber band past an end is
- *  past the content on purpose, and only the page knows how far. 0 when the element is no clip element. */
-float ui_scroll_put(const char *id, int len, float y)
+/** Puts a clip element's offset on `axis` where the page says, with the content's clamp left out: a rubber band past an
+ *  end is past the content on purpose, and only the page knows how far. 0 when the element is no clip element. */
+float ui_scroll_put(const char *id, int len, int axis, float v)
 {
     const Clay_ScrollContainerData d = Clay_GetScrollContainerData(Clay__HashString(slice(id, len), 0));
     if (!d.found) return 0;
-    d.scrollPosition->y = y;
-    return y;
+    if (axis) d.scrollPosition->x = v;
+    else d.scrollPosition->y = v;
+    return v;
 }
 
 /** A finger's position, normalised to the window (SDL's tfinger.x/y: 0..1, (0,0) the top left), in the logical pixels
@@ -842,8 +851,13 @@ void ui_window_poll(float *out)
     while (SDL_PollEvent(&e)) {
         if (e.type == SDL_EVENT_QUIT) out[3] = 1;
         // SDL's wheel y is positive away from the user, and so is Clay's scroll delta: no sign to flip. ui_wheel feeds
-        // Clay's containers and the page's own channel at once.
-        if (e.type == SDL_EVENT_MOUSE_WHEEL) ui_wheel(e.wheel.x, e.wheel.y);
+        // Clay's containers and the page's own channel at once. A shift+wheel is a horizontal scroll, as a browser's is:
+        // the window's mod state swaps a vertical delta onto x when the wheel has none of its own (a trackpad sends x).
+        if (e.type == SDL_EVENT_MOUSE_WHEEL) {
+            float dx = e.wheel.x, dy = e.wheel.y;
+            if (dx == 0 && (SDL_GetModState() & SDL_KMOD_SHIFT)) dx = dy, dy = 0;
+            ui_wheel(dx, dy);
+        }
         if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP) {
             if (keys_len == KEY_QUEUE) keys_head = (keys_head + 1) % KEY_QUEUE, keys_len--;
             int *k = keys[(keys_head + keys_len++) % KEY_QUEUE];

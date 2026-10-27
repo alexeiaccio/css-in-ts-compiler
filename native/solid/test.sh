@@ -85,6 +85,10 @@ bun solid/main.ts list --settle 3 --expect solid/frames/list-entry.png
 DOWN12="Tab,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown,ArrowDown"
 L --expect solid/frames/list-top.png
 L --wheel 32 --wheel-rest --settle 90 --expect solid/frames/list-wheel.png
+# the wide layout: the same 240px viewport with 900px rows, 12 horizontal notches right (120px of the 620 the rows are
+# wider than the viewport) a rest frame apart, so the run is the notches' own 120 and not a flick; the page's tree is the
+# default one plus the wide cells and the horizontal bar, so list-top/list-wheel/list-select/list-light are untouched
+L --wide --wheel-x 12 --wheel-rest --settle 90 --expect solid/frames/list-wide.png
 L --keys $DOWN12 --settle 90 --expect solid/frames/list-select.png
 THEME=light bun solid/main.ts list --warm 30 --keys $DOWN12 --settle 90 --expect solid/frames/list-light.png
 bun solid/list.test.ts
