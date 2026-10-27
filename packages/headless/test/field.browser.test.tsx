@@ -117,6 +117,116 @@ describe("createField", () => {
     expect(createField({ id: "f", required: false }).controlProps.required).toBeUndefined();
   });
 
+  it("makes the error an alert only while it is shown, and never the hint", () => {
+    const state: { error: string | undefined; invalid: boolean | undefined } = {
+      error: undefined,
+      invalid: undefined,
+    };
+    const field = createField({
+      id: "f",
+      hint: "Hint",
+      get error() {
+        return state.error;
+      },
+      get invalid() {
+        return state.invalid;
+      },
+    });
+    expect(field.errorProps.role).toBeUndefined();
+    state.error = "Wrong";
+    expect(field.errorProps.role).toBe("alert");
+    expect(field.errorProps.hidden).toBe(false);
+    state.invalid = false;
+    expect(field.errorProps.role).toBeUndefined();
+    expect(field.errorProps.hidden).toBe(true);
+    state.invalid = undefined;
+    state.error = "";
+    expect(field.errorProps.role).toBeUndefined();
+    expect("role" in field.hintProps).toBe(false);
+    expect(createField({ id: "f", invalid: true }).errorProps.role).toBeUndefined();
+    expect(createField({ id: "f", invalid: "Pick one" }).errorProps.role).toBe("alert");
+  });
+
+  it("appends the host's describedby after the hint and the error", () => {
+    const field = createField({
+      id: "f",
+      hint: "Hint",
+      error: "Bad",
+      describedby: "form-error",
+    });
+    expect(field.describedIds()).toEqual([field.hintProps.id, field.errorProps.id, "form-error"]);
+    expect(field.controlProps["aria-describedby"]).toBe("f-hint f-error form-error");
+    const list = createField({ id: "g", hint: "Hint", describedby: ["a", "b"] });
+    expect(list.controlProps["aria-describedby"]).toBe("g-hint a b");
+  });
+
+  it("lists the host's describedby alone, and drops it when empty", () => {
+    expect(
+      createField({ id: "f", describedby: "form-error" }).controlProps["aria-describedby"],
+    ).toBe("form-error");
+    for (const empty of [undefined, "", [], [""]] as const) {
+      const field = createField({ id: "f", describedby: empty });
+      expect(field.controlProps["aria-describedby"]).toBeUndefined();
+      expect(field.describedIds()).toEqual([]);
+    }
+    expect(createField({ id: "f", describedby: ["", "x", ""] }).describedIds()).toEqual(["x"]);
+  });
+
+  it("follows a describedby getter: one refusal named by two controls", () => {
+    const state: { refusal: string | undefined } = { refusal: undefined };
+    const refusal = (): string | undefined =>
+      state.refusal === undefined ? undefined : "form-error";
+    const password = createField({
+      id: "password",
+      hint: "8 characters",
+      get describedby() {
+        return refusal();
+      },
+    });
+    const confirmation = createField({
+      id: "confirm",
+      get describedby() {
+        return refusal();
+      },
+    });
+    expect(confirmation.controlProps["aria-describedby"]).toBeUndefined();
+    state.refusal = "The passwords differ";
+    expect(password.controlProps["aria-describedby"]).toBe("password-hint form-error");
+    expect(confirmation.controlProps["aria-describedby"]).toBe("form-error");
+    state.refusal = undefined;
+    expect(password.controlProps["aria-describedby"]).toBe("password-hint");
+  });
+
+  it("takes undefined for every option, as a getter does under exactOptionalPropertyTypes", () => {
+    createRoot((dispose) => {
+      const field = createField({
+        id: undefined,
+        required: undefined,
+        invalid: undefined,
+        hint: undefined,
+        error: undefined,
+        describedby: undefined,
+      });
+      const other = createField({ id: undefined });
+      expect(field.labelProps.for).toBe(field.controlProps.id);
+      expect(other.controlProps.id).not.toBe(field.controlProps.id);
+      expect(field.controlProps.required).toBeUndefined();
+      expect(field.controlProps["aria-required"]).toBeUndefined();
+      expect(field.controlProps["aria-describedby"]).toBeUndefined();
+      dispose();
+    });
+    const props: { required?: boolean } = {};
+    const fromGetter = createField({
+      id: "g",
+      get required() {
+        return props.required;
+      },
+    });
+    expect(fromGetter.controlProps.required).toBeUndefined();
+    props.required = true;
+    expect(fromGetter.controlProps.required).toBe(true);
+  });
+
   it("never references an id whose element is hidden", () => {
     const hints = [undefined, "Hint"];
     const errors = [undefined, "Error"];

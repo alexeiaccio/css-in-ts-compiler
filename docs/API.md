@@ -1224,33 +1224,34 @@ Two primitives with no APG pattern behind them, so no Quint spec: `createField` 
 
 ```ts skip
 createField(options?: {
-  id?: string;
-  required?: boolean;
-  invalid?: boolean | string; // a string is the flag and the message; false wins over an error
-  hint?: string;
-  error?: string;
+  id?: string | undefined;
+  required?: boolean | undefined;
+  invalid?: boolean | string | undefined; // a string is the flag and the message; false wins over an error
+  hint?: string | undefined;
+  error?: string | undefined;
+  describedby?: string | readonly string[] | undefined; // host-owned ids, after the hint and the error
 }): {
   invalid(): boolean;
   hint(): string | undefined;
   error(): string | undefined; // only while invalid
-  describedIds(): readonly string[]; // hint, then error; the ones that are shown
+  describedIds(): readonly string[]; // hint, then error (the ones that are shown), then describedby
   controlProps: { id; "aria-describedby"; "aria-invalid"; "aria-required"; required };
   labelProps: { id; for };
   hintProps: { id; hidden };
-  errorProps: { id; hidden };
+  errorProps: { id; hidden; role }; // role "alert" while the error is shown, else undefined
 };
 ```
 
-The hint and the error are both listed in `aria-describedby` (hint first; the error does not replace it), `aria-invalid` is set only when invalid, and no attribute names an id that is hidden.
+The hint and the error are both listed in `aria-describedby` (hint first; the error does not replace it), `aria-invalid` is set only when invalid, and no attribute names an id that is hidden. `errorProps.role` is `"alert"` only while the error is shown; `hintProps` has no role. `describedby` is for one refusal that belongs to two controls: a form-level error element, with its own id and role, whose id is passed to both fields (a getter, so the id is there only while the element is shown); it follows the field's own ids in `aria-describedby` and is dropped when empty. Every option accepts `undefined`, so a getter over an optional prop typechecks under `exactOptionalPropertyTypes`.
 
 ```ts skip
-createConfirm(options?: { id?: string; onOpenChange?(open: boolean): void }): {
+createConfirm(options?: { id?: string | undefined; onOpenChange?(open: boolean): void }): {
   confirm(request: {
     title: string;
-    description?: string;
-    confirmLabel?: string; // "Confirm"
-    cancelLabel?: string; // "Cancel"
-    destructive?: boolean;
+    description?: string | undefined;
+    confirmLabel?: string | undefined; // "Confirm": English; a translating host passes both labels
+    cancelLabel?: string | undefined; // "Cancel"
+    destructive?: boolean | undefined;
   }): Promise<boolean>;
   open(): boolean;
   request(): ConfirmView | undefined; // the request with its defaults, kept after it settles
@@ -1264,7 +1265,7 @@ createConfirm(options?: { id?: string; onOpenChange?(open: boolean): void }): {
 };
 ```
 
-`confirm()` resolves `true` on confirm and `false` on cancel, Escape and a backdrop click. A second request while one is pending rejects with `ConfirmPendingError` (it is not queued). Focus goes to the cancel button on open and back to the element that had it when `confirm()` was called.
+`confirm()` resolves `true` on confirm and `false` on cancel, Escape and a backdrop click. A second request while one is pending rejects with `ConfirmPendingError` (it is not queued). Focus goes to the cancel button on open and back to the element that had it when `confirm()` was called. While it is open the dialog has a shell: Tab and Shift+Tab cycle inside it, `overflow: hidden` is set on `document.documentElement` (restored on close; counted, so nested confirms restore it once), and Escape is read from the document in the capture phase, so it works with the focus outside the dialog. Confirms from different `createConfirm` calls may be open together: the last opened gets Escape and Tab. The default labels stay English; a translating host passes `confirmLabel` and `cancelLabel` with each request.
 
 ### Publishing a library (decided 2026-10-02, cssints-0l3f)
 
