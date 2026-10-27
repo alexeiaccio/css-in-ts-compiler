@@ -8,7 +8,7 @@
 // the same id, so the renderer's scissor cuts what leaves the box, but the offset is the page's:
 // `ui.scrollPut`/`ui.scrollTo` write it every frame before the tree is declared, and `ui.autoScroll(false)` keeps Clay's
 // own wheel scrolling out of the way. The wheel accumulates 10px notches (a flick flings), a press inside the viewport
-// drags it 1:1 with a 4px click threshold (the selection is keyboard-only, so the drag changes nothing about it), a drag
+// drags it 1:1 with a 4px click threshold (a click that does not travel selects the row under it; a drag does not), a drag
 // or a wheel past an end pulls a rubber band that springs back 80ms after the last input, and the keyboard eases the
 // track to the offset that shows the moved row (the reveal). Reduced motion has no band and no fling, and a key lands at
 // once. The scrollbar is the machine's too (`BAR`): a 4px thumb on the viewport's right edge that fades in while the rows
@@ -79,11 +79,17 @@ const view = css.cn(
   css.border(1, t.color.muted),
 );
 
-// the viewport's id: the clip element, Clay's scroll container, and the float's parent
+// the viewport's id: the clip element, Clay's scroll container, and the floats' parent
 const VIEW = "list";
-// the scrollbar's thumb (src/vscroll.ts writes its height, its top and its opacity every frame): 4px at the viewport's
-// inner right edge, a 2px inset (the float's right edge is the viewport's, so the offset x is -2), rounded, the muted
-// token. It is a float on the viewport, so Clay positions it from the viewport's own box: it does not travel with the rows.
+// the scrollbar's vertical thumb (src/vscroll.ts writes its height, its top and its opacity every frame): 4px at the
+// viewport's inner right edge, a 2px inset (the float's right edge is the viewport's, so the offset x is -2), rounded, the
+// muted token. It is a float on the viewport, so Clay positions it from the viewport's own box: it does not travel with the
+// rows.
+const BAR = "list-thumb";
+// ... and the horizontal one, the same 4px bar turned: at the viewport's inner bottom edge, 2px up, its width and its left
+// written every frame by the same machine (`scroll`'s second axis). With both, the machine shortens the vertical thumb's
+// travel by 6px (the bar and its inset), so the two meet at the corner and do not overlap.
+const BAR_X = "list-thumb-x";
 const thumb = css.cn(
   css.width(4),
   css.height(24),
@@ -95,6 +101,19 @@ const thumb = css.cn(
     offset: { x: -2 },
     zIndex: 1,
     capture: false, // a visible thumb takes the press through the value channel (FIELDS.CAPTURE); at rest the page's
+  }),
+);
+const thumbX = css.cn(
+  css.width(24),
+  css.height(4),
+  css.borderRadius(2),
+  css.bg(t.color.muted),
+  css.float({
+    parent: VIEW,
+    attach: { element: "left bottom", parent: "left bottom" },
+    offset: { y: -2 },
+    zIndex: 1,
+    capture: false,
   }),
 );
 
@@ -114,6 +133,19 @@ const number = css.cn(css.width(24), css.justifyContent("flex-end"));
 const numberText = css.cn(font.Roboto, css.color(t.color.muted), css.fontSize(12));
 const name = css.cn(css.width("stretch"));
 const labelSelected = css.cn(font.Roboto, css.color(t.color.accent), css.fontSize(16));
+// the wide layout (`--wide`): the same 28px rows, 900px wide, so the viewport shows their first 280px and the rest is a
+// horizontal scroll. The name is a fixed cell, the note a fixed cell with `overflow: hidden` — a clip of its own, so the
+// long line is cut at the cell instead of widening the row — the temperature stays the row's own text, and a second column
+// of values sits past the viewport's edge, which is what there is to scroll to. The widths are a layout matter only: the
+// vertical window still counts 28px rows with a 2px gap.
+const WIDE = 900;
+const rowWide = css.cn(row, css.width(WIDE));
+const rowWideSelected = css.cn(rowWide, css.bg(t.color.surface));
+const nameWide = css.cn(css.width(150));
+const noteBox = css.cn(css.width(320), css.overflow("hidden"));
+const noteText = css.cn(font.Roboto, css.color(t.color.muted), css.fontSize(13));
+const more = css.cn(css.width(250));
+const moreText = css.cn(font.Roboto, css.color(t.color.muted), css.fontSize(13));
 // a window's spacer: an empty box in the same column as the rows, its height written every frame through the value
 // channel's FIXED axis (fields 4 and 5, as the scrollbar's thumb writes its own), so no style depends on the data
 const spacer = css.cn(css.width("stretch"), css.height(0));
@@ -130,13 +162,22 @@ export const s = {
   foot,
   view,
   thumb,
+  thumbX,
   spacer,
   row,
   rowSelected,
+  rowWide,
+  rowWideSelected,
   number,
   numberText,
   name,
+  nameWide,
+  noteBox,
+  noteText,
+  more,
+  moreText,
   labelSelected,
+  WIDE,
 };
 
 /** The window: 28 + the title (37.5) + the header (20), the 240 viewport and the footer (20) end at 369.5, so the 24px
@@ -151,15 +192,17 @@ const GAP = 2;
 const OVERSCAN = 1;
 /** The rows a PageUp or a PageDown jumps: the viewport holds eight of them (240 / 30). */
 const PAGE = 8;
-const BAR = "list-thumb";
 const ABOVE = "list-above";
 const MIDDLE = "list-mid";
 const BELOW = "list-below";
-/** One row: its number, its name and a dim temperature. No state, no tree of its own. */
+/** One row: its number, its name and a dim temperature (and the wide layout's note and second column). No state, no tree
+ *  of its own. */
 interface Row {
   readonly number: string;
   readonly label: string;
   readonly detail: string;
+  readonly note: string;
+  readonly more: string;
   readonly id: string;
 }
 /** Row `i` ("Room A1" .. "Room F5": six letters, five of each, so thirty read apart — and the same pattern past them). */
@@ -168,6 +211,10 @@ const rowAt = (i: number): Row => ({
   number: String(i + 1).padStart(2, "0"),
   label: `Room ${String.fromCharCode(65 + (i % 6))}${Math.floor(i / 6) + 1}`,
   detail: `${(18 + ((i * 7) % 11))}.${i % 10} °C`,
+  note:
+    `${i % 3 === 0 ? "Long" : "East"} table under the window, six sockets in the floor, ` +
+    "a projector and a whiteboard; booked until 18:00 on weekdays.",
+  more: `${8 + (i % 9)} seats · ${4 + (i % 6)} sockets · wing ${String.fromCharCode(65 + (i % 6))}`,
 });
 
 /**
@@ -176,9 +223,15 @@ const rowAt = (i: number): Row => ({
  * eases the viewport to the offset that shows the selected row. The wheel scrolls the viewport under the pointer 10px a
  * notch (a flick flings) and leaves the selection alone, and a held pointer drags it 1:1 — the drag never selects. On its
  * first mount the page rises 8px and fades in once (src/entry.ts).
+ *
+ * `wide` is the page's horizontal layout (`--wide`): the same 28px rows, 900px wide inside the same 280px viewport, so the
+ * wheel's dx (a trackpad's swipe, or a shift+vertical wheel) and the horizontal bar scroll the row's second half. The
+ * vertical window and the keys are untouched: the widths are a layout matter, the heights and the gaps are not. It is a
+ * prop, so the default page declares the same tree as before and its stored frames are byte-identical.
  */
-export function List(props: { input: Input; motion?: Motion; count?: number }) {
+export function List(props: { input: Input; motion?: Motion; count?: number; wide?: boolean }) {
   const { input } = props;
+  const wide = props.wide === true;
   const count = props.count ?? 30;
   // the rows' whole block: the page's real content, which the clamp and the thumb read — not the declared subset's
   const content = count > 0 ? count * ROW + (count - 1) * GAP : 0;
@@ -197,18 +250,23 @@ export function List(props: { input: Input; motion?: Motion; count?: number }) {
 
   const viewId = Buffer.from(VIEW);
   const barId = Buffer.from(BAR);
+  const barXId = wide ? Buffer.from(BAR_X) : undefined;
   const aboveId = Buffer.from(ABOVE);
   const middleId = Buffer.from(MIDDLE);
   const belowId = Buffer.from(BELOW);
-  /** The viewport's height from the last layout (0 on the first frame). */
+  /** The viewport's height and width from the last layout (0 on the first frame). */
   const viewH = () => ui.bounds(viewId)?.[3] ?? 0;
+  const viewW = () => ui.bounds(viewId)?.[2] ?? 0;
 
   /** How far the viewport can scroll: the rows' whole block, less the viewport's height. 0 when they fit. */
   const maxScroll = () => Math.max(0, content - viewH());
+  /** ... and sideways: the widest row less the viewport's width. 0 unless the page is `wide`. */
+  const maxScrollX = () => (wide ? Math.max(0, WIDE - viewW()) : 0);
 
   /** The viewport's scroll: the wheel's 10px, the drag, the band and the fling, on the page's track. The scrollbar's thumb
-   *  (`BAR`) is the machine's too: it writes its box and its fade every frame. */
-  const viewScroll = scroll(VIEW, maxScroll, BAR);
+   *  (`BAR`) is the machine's too: it writes its box and its fade every frame. A wide page adds the horizontal axis and its
+   *  bar (`BAR_X`); the machine then also tilts the fade, so both bars show and hide together. */
+  const viewScroll = scroll(VIEW, maxScroll, BAR, wide ? { max: maxScrollX, bar: BAR_X } : undefined);
 
   /** Eases the viewport to the least offset that shows row `i`. The row's place is its bounds from the last frame — every
    *  row the column declares has a box, the selected one included when it is outside the viewport (the offset added back,
@@ -288,7 +346,7 @@ export function List(props: { input: Input; motion?: Motion; count?: number }) {
   // Clay scrolled the container under the pointer only; a page that owns the offset has to keep that rule itself, or a
   // wheel over the title would scroll the rows. The visible thumb is chrome of the viewport: the wheel over it scrolls too.
   const wheel = (dx: number, dy: number) => {
-    if (ui.over(viewId) || ui.over(barId)) viewScroll.wheel(dx, dy);
+    if (ui.over(viewId) || ui.over(barId) || (barXId !== undefined && ui.over(barXId))) viewScroll.wheel(dx, dy);
   };
   if (props.motion)
     (props.motion.onWheel = wheel),
@@ -317,25 +375,51 @@ export function List(props: { input: Input; motion?: Motion; count?: number }) {
             return (
               <box
                 id={r.id}
+                // a press that did not travel selects the row, as a browser's list does; a drag belongs to the scroll, and
+                // its release lands on the row it started on, so it must not select
+                onClick={() => {
+                  if (!viewScroll.dragged) select(cell);
+                }}
                 focused={cell === selected() && focused()}
-                style={cell === selected() ? s.rowSelected : s.row}
+                style={
+                  cell === selected()
+                    ? wide
+                      ? s.rowWideSelected
+                      : s.rowSelected
+                    : wide
+                      ? s.rowWide
+                      : s.row
+                }
               >
                 <box style={s.number}>
                   <text style={s.numberText}>{r.number}</text>
                 </box>
-                <box style={s.name}>
+                <box style={wide ? s.nameWide : s.name}>
                   <text style={cell === selected() ? s.labelSelected : s.label}>{r.label}</text>
                 </box>
+                {/* the wide row's note: a fixed cell that clips its line, so a long note never widens the row */}
+                {wide ? (
+                  <box style={s.noteBox}>
+                    <text style={s.noteText}>{r.note}</text>
+                  </box>
+                ) : null}
                 <text style={s.detail}>{r.detail}</text>
+                {/* ... and its second column of values, past the viewport's first 280px */}
+                {wide ? (
+                  <box style={s.more}>
+                    <text style={s.moreText}>{r.more}</text>
+                  </box>
+                ) : null}
               </box>
             );
           }}
         </For>
       </box>
-      {/* the scrollbar: a float on the viewport, over the rows and outside the clip's child offset (it does not scroll) */}
+      {/* the scrollbars: floats on the viewport, over the rows and outside the clip's child offset (they do not scroll) */}
       <box id={BAR} style={s.thumb} onPress={() => viewScroll.thumb()} />
+      {wide ? <box id={BAR_X} style={s.thumbX} onPress={() => viewScroll.thumbX()} /> : null}
       <box id="list-foot" style={s.foot}>
-        <text style={s.note}>Wheel, Up/Down, Page, Home/End.</text>
+        <text style={s.note}>{wide ? "Wheel, sideways, Up/Down." : "Wheel, Up/Down, Page, Home/End."}</text>
       </box>
     </box>
   );
