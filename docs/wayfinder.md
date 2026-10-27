@@ -1956,3 +1956,32 @@ may not share its name with a variant, since a compound entry would name both wi
 impossible; an `scv()` site gets no readable `cs-` class in the dev overlay, which a `cn()` or `cv()` site has; and
 `scv(...)(props)` in one expression is a call of a site-root call, which the plugin evaluates as one site (name the
 function first, as `const kit = scv({...}); kit(props)`).
+
+## A lab instead of Storybook, with CSF 3 stories and the headless shell (2026-10-27)
+
+Asked by the user ("maybe we need a Storybook variant with a cssints panel, mostly for styled UI on headless", then "CSF?",
+then "and the Storybook shell itself on headless components"). **Storybook itself was ruled out by reading, not by taste**:
+`@cssints/headless` is Solid 2.0.0-rc.13 and Storybook's Solid renderer targets Solid 1, so its canvas would be a port and not
+a week; and the CSF Next API it links to (`preview.meta`, `meta.story`, from `definePreview` of the framework package) is a
+**preview** feature that only means something inside a running Storybook — a lookalike factory here would add a fake layer and
+buy no portability, since the file would still import `.storybook/preview`. Storybook 11 keeps CSF 1–3 supported ("None of
+these prior formats are deprecated"), so the lab reads a **CSF 3** file: a default `meta` (`title`, `component`, `args`) and
+one object per named export (`name`, `args`, `render`), which is `src/csf.ts`, ~30 lines of types. Two things the loader does
+that no plain component gallery would: it builds each story's id the way Storybook does (`button--primary`: the file and the
+export, kebab-cased) and puts it in the hash, so a link is a link to a story and the id survives a reload or an HMR update;
+and it merges the meta's `args` with the story's and renders the component through `createComponent`, so the widget's own
+state (which panel is open, which tab is disabled) comes from the args. The order inside a component is the module namespace's,
+which is alphabetical — Storybook's default order too. **The shell is on headless**, as asked: the rail is a `createListbox`
+(single-select, follows focus, roving tabindex, no wrapping at the ends), the dark switch a `createSwitch`, and both are styled
+by the ARIA state they announce — `attr("aria-selected", "true")` on a row, `attr("aria-checked", "true")` on the track, and
+`group()`/`within(attr(...))` for the knob that follows its track — so the shell exercises the same headless-to-styled path the
+stories are about, instead of being a second unstyled harness. A `hashchange` listener feeds a pasted link back through the
+listbox's own `clickOption`; the rail writes the hash with `replaceState`, so the back button is not a walk through the rail.
+**What makes it worth existing** is the overlay, and the test proves that rather than the clicks: `apps/lab/test/lab.mjs` runs
+the dev server (the overlay is dev-only) in Chrome, picks the primary button, and asserts the properties table says
+`background-color: var(--color-accent)` won by a `cv()` variant class whose computed value is the button's, `padding: 10px 16px`
+from `size.md`, and the classes by call at `src/components/Button.tsx:17`. Also checked: the 11 rows of three CSF files, the
+story id in the hash, the meta's args reaching the widget, the arrows, and the switch flipping every token at once (light
+`#ffffff`, dark `#0f1115`). **Left**: no controls panel from `args` (the devtools overlay is the panel; a controls table would
+be a second one), no grouping in the rail (labels carry `Title · Story`), no deploy (the lab is a dev tool: `vp dev` and
+`test:browser`, nothing in `bun run test`), and `scv()` stories are not written yet — `Button` shows `cv()` variants.

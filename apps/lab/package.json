@@ -1,0 +1,25 @@
+{
+  "name": "lab",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vp dev",
+    "build": "vp build",
+    "typecheck": "node ../../scripts/typecheck.mjs && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
+    "test:browser": "node test/lab.mjs",
+    "preview": "vp preview"
+  },
+  "dependencies": {
+    "@cssints/headless": "workspace:*",
+    "@cssints/reset": "workspace:*",
+    "@solidjs/web": "2.0.0-rc.13",
+    "cssints": "workspace:*",
+    "solid-js": "2.0.0-rc.13"
+  },
+  "devDependencies": {
+    "@cssints/devtools": "workspace:*",
+    "@solidjs/vite-plugin": "3.0.0-next.47",
+    "lightningcss": "^1.32.0",
+    "vite": "catalog:"
+  }
+}

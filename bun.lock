@@ -118,6 +118,22 @@
         "vite": "catalog:",
       },
     },
+    "apps/lab": {
+      "name": "lab",
+      "dependencies": {
+        "@cssints/headless": "workspace:*",
+        "@cssints/reset": "workspace:*",
+        "@solidjs/web": "2.0.0-rc.13",
+        "cssints": "workspace:*",
+        "solid-js": "2.0.0-rc.13",
+      },
+      "devDependencies": {
+        "@cssints/devtools": "workspace:*",
+        "@solidjs/vite-plugin": "3.0.0-next.47",
+        "lightningcss": "^1.32.0",
+        "vite": "catalog:",
+      },
+    },
     "native": {
       "name": "cssints-native",
       "dependencies": {
@@ -1968,6 +1984,8 @@
     "jsonc-parser": ["jsonc-parser@3.3.1", "", {}, "sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ=="],
 
     "keyv": ["keyv@5.6.0", "", { "dependencies": { "@keyv/serialize": "^1.1.1" } }, "sha512-CYDD3SOtsHtyXeEORYRx2qBtpDJFjRTGXUtmNEMGyzYOKj1TE3tycdlho7kA1Ufx9OYWZzg52QFBGALTirzDSw=="],
+
+    "lab": ["lab@workspace:apps/lab"],
 
     "launch-editor": ["launch-editor@2.14.2", "", { "dependencies": { "picocolors": "^1.1.1", "shell-quote": "^1.10.0" } }, "sha512-NHJEb30MGBCkmZXLZwz25t37QR4aY03ZzPYUJXOJaOa92uWwExI9SBQUuIznBYc1xkD7cJNGX7oc3Nl3sq2kQQ=="],
 
