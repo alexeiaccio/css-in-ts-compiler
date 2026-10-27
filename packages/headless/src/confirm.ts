@@ -7,20 +7,23 @@ import {
 } from "./dialog-modal";
 
 export interface ConfirmOptions {
-  readonly id?: string;
+  readonly id?: string | undefined;
   /** Called with `true` when a request opens the dialog and `false` when it settles. */
   readonly onOpenChange?: (open: boolean) => void;
 }
 
 export interface ConfirmRequest {
   readonly title: string;
-  readonly description?: string;
-  /** Default `"Confirm"`. */
-  readonly confirmLabel?: string;
-  /** Default `"Cancel"`. */
-  readonly cancelLabel?: string;
+  readonly description?: string | undefined;
+  /**
+   * Default `"Confirm"`. The defaults are English and stay so: a host that
+   * translates passes both labels (and the title) with every request.
+   */
+  readonly confirmLabel?: string | undefined;
+  /** Default `"Cancel"`; see `confirmLabel`. */
+  readonly cancelLabel?: string | undefined;
   /** The confirm action destroys something: the host styles it so. */
-  readonly destructive?: boolean;
+  readonly destructive?: boolean | undefined;
 }
 
 /** The request being shown (or shown last), with the defaults applied. */
@@ -77,6 +80,33 @@ interface Pending {
   readonly invoker: HTMLElement | null;
 }
 
+// Shared by every confirm on the page: the open ones in the order they opened
+// (the last takes Escape and Tab), and how many hold the scroll lock.
+const openDialogs: symbol[] = [];
+let scrollLocks = 0;
+let scrollBefore = "";
+
+const lockScroll = (): (() => void) => {
+  const root = document.documentElement;
+  if (scrollLocks++ === 0) {
+    scrollBefore = root.style.overflow;
+    root.style.overflow = "hidden";
+  }
+  return () => {
+    if (--scrollLocks === 0) {
+      root.style.overflow = scrollBefore;
+    }
+  };
+};
+
+const TABBABLE = "a[href], button, input, select, textarea, [tabindex], [contenteditable]";
+
+const tabbables = (root: HTMLElement): HTMLElement[] =>
+  Array.from(root.querySelectorAll<HTMLElement>(TABBABLE)).filter(
+    (element) =>
+      element.tabIndex >= 0 && !element.matches(":disabled") && element.getClientRects().length > 0,
+  );
+
 /**
  * A promise-based confirmation over `createDialogModal({ role: "alertdialog" })`
  * (APG Alert Dialog: https://www.w3.org/WAI/ARIA/apg/patterns/alertdialog/).
@@ -86,8 +116,19 @@ interface Pending {
  * Focus: the cancel button, the least destructive action, takes focus when the
  * dialog opens; when the request settles, focus goes back to the element that
  * had it when `confirm()` was called, before the promise resolves, so the
- * caller's continuation may move it again. A focus trap and a scroll lock are
- * the host's (as for dialog-modal).
+ * caller's continuation may move it again.
+ *
+ * The shell, while open: Tab and Shift+Tab cycle inside the dialog (and pull
+ * focus back in if it escaped), `overflow: hidden` on the document element, and
+ * Escape is read from the document in the capture phase, so it answers `false`
+ * wherever focus is. The backdrop click is `backdropProps`; keep the backdrop
+ * and the dialog siblings, or a click in the dialog reaches the backdrop. Hiding
+ * the rest of the page (`inert`) stays the host's.
+ *
+ * Nesting: confirms from different `createConfirm` calls may be open together;
+ * only the last one opened gets Escape and Tab (and Escape does not reach a
+ * dialog it sits in), and the scroll lock is counted: the first takes it, the
+ * last to close restores what `overflow` was. One confirm still has one request.
  *
  * One request at a time: a second `confirm()` while one is pending is rejected,
  * not queued. Queued, a double click on "Delete" would ask twice and a stale
@@ -126,12 +167,53 @@ export const createConfirm = (options: ConfirmOptions = {}): Confirm => {
     },
   });
 
+  const self = Symbol(base);
+  const onDocumentKeyDown = (event: KeyboardEvent): void => {
+    if (openDialogs.at(-1) !== self) {
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      settle(false);
+      return;
+    }
+    const root = document.getElementById(dialog.dialogProps.id);
+    if (event.key !== "Tab" || root === null) {
+      return;
+    }
+    const items = tabbables(root);
+    const first = items[0];
+    const last = items.at(-1);
+    const active = document.activeElement;
+    const inside = root.contains(active);
+    if (first === undefined || last === undefined) {
+      event.preventDefault();
+      root.focus();
+    } else if (event.shiftKey && (!inside || active === first || active === root)) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (!inside || active === last)) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
   createEffect(
     () => dialog.open(),
     (isOpen) => {
-      if (isOpen) {
-        document.getElementById(cancelId)?.focus();
+      if (!isOpen) {
+        return;
       }
+      document.getElementById(cancelId)?.focus();
+      const unlock = lockScroll();
+      openDialogs.push(self);
+      document.addEventListener("keydown", onDocumentKeyDown, true);
+      return () => {
+        document.removeEventListener("keydown", onDocumentKeyDown, true);
+        openDialogs.splice(openDialogs.indexOf(self), 1);
+        unlock();
+      };
     },
   );
   onCleanup(() => {

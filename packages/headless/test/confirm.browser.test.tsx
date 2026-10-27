@@ -18,13 +18,13 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-const mount = (): Mounted => {
+const mount = (id = "c"): Mounted => {
   const root = document.createElement("div");
   document.body.append(root);
   const changes: boolean[] = [];
   let api: Confirm | undefined;
   const dispose = render(() => {
-    const confirm = createConfirm({ id: "c", onOpenChange: (open) => changes.push(open) });
+    const confirm = createConfirm({ id, onOpenChange: (open) => changes.push(open) });
     api = confirm;
     return (
       <>
@@ -200,6 +200,196 @@ describe("createConfirm", () => {
     expect(part("cancel").textContent).toBe("Keep");
     part("confirm").click();
     expect(await second).toBe(true);
+  });
+
+  it("takes the host's labels, and falls back to the English defaults", async () => {
+    const { api, part } = mount();
+    const first = api.confirm({
+      title: "Удалить?",
+      confirmLabel: "Удалить",
+      cancelLabel: "Отмена",
+    });
+    await settled();
+    expect(part("confirm").textContent).toBe("Удалить");
+    expect(part("cancel").textContent).toBe("Отмена");
+    part("cancel").click();
+    await first;
+    const second = api.confirm({ title: "Go?", confirmLabel: undefined, cancelLabel: undefined });
+    await settled();
+    expect(part("confirm").textContent).toBe("Confirm");
+    expect(part("cancel").textContent).toBe("Cancel");
+    part("cancel").click();
+    await second;
+  });
+
+  describe("the dialog shell", () => {
+    it("wraps Tab from the last control to the first, and Shift+Tab back", async () => {
+      const { api, part } = mount();
+      const answer = api.confirm({ title: "Go?" });
+      await settled();
+      // the dialog's order is confirm, cancel; cancel has the focus
+      const forward = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+      part("cancel").dispatchEvent(forward);
+      expect(forward.defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(part("confirm"));
+      const backward = new KeyboardEvent("keydown", {
+        key: "Tab",
+        shiftKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+      part("confirm").dispatchEvent(backward);
+      expect(backward.defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(part("cancel"));
+      part("cancel").click();
+      await answer;
+    });
+
+    it("leaves Tab to the browser between the ends", async () => {
+      const { api, part } = mount();
+      const answer = api.confirm({ title: "Go?" });
+      await settled();
+      part("confirm").focus();
+      const forward = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+      part("confirm").dispatchEvent(forward);
+      expect(forward.defaultPrevented).toBe(false);
+      expect(document.activeElement).toBe(part("confirm"));
+      part("cancel").click();
+      await answer;
+    });
+
+    it("pulls focus back in when it escaped the dialog", async () => {
+      const { api, part } = mount();
+      const answer = api.confirm({ title: "Go?" });
+      await settled();
+      part("invoker").focus();
+      keydown(part("invoker"), "Tab");
+      expect(document.activeElement).toBe(part("confirm"));
+      part("invoker").focus();
+      part("invoker").dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Tab",
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+      expect(document.activeElement).toBe(part("cancel"));
+      part("cancel").click();
+      await answer;
+    });
+
+    it("answers false on Escape when focus is outside the dialog", async () => {
+      const { api, changes, part } = mount();
+      part("invoker").focus();
+      const answer = api.confirm({ title: "Go?" });
+      await settled();
+      part("invoker").focus();
+      keydown(document.body, "Escape");
+      expect(await answer).toBe(false);
+      await settled();
+      expect(part("dialog").hidden).toBe(true);
+      expect(document.activeElement).toBe(part("invoker"));
+      expect(changes).toEqual([true, false]);
+    });
+
+    it("keeps Escape from reaching the elements around the dialog", async () => {
+      const { api, part } = mount();
+      const seen: string[] = [];
+      const spy = (event: KeyboardEvent) => seen.push(event.key);
+      document.body.addEventListener("keydown", spy);
+      const answer = api.confirm({ title: "Go?" });
+      await settled();
+      keydown(part("cancel"), "Escape");
+      await answer;
+      document.body.removeEventListener("keydown", spy);
+      expect(seen).toEqual([]);
+    });
+
+    it("ignores the document's keys while closed", async () => {
+      const { part } = mount();
+      await settled();
+      part("invoker").focus();
+      const tab = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+      part("invoker").dispatchEvent(tab);
+      expect(tab.defaultPrevented).toBe(false);
+      expect(document.activeElement).toBe(part("invoker"));
+    });
+
+    it("locks the document's scroll while open and restores it on every way out", async () => {
+      const root = document.documentElement;
+      root.style.overflow = "scroll";
+      try {
+        const { api, part } = mount();
+        for (const close of [
+          () => part("cancel").click(),
+          () => part("confirm").click(),
+          () => keydown(part("cancel"), "Escape"),
+          () => part("backdrop").click(),
+        ]) {
+          const answer = api.confirm({ title: "Go?" });
+          await settled();
+          expect(root.style.overflow).toBe("hidden");
+          close();
+          await answer;
+          await settled();
+          expect(root.style.overflow).toBe("scroll");
+        }
+      } finally {
+        root.style.overflow = "";
+      }
+    });
+
+    it("releases the scroll lock and the key listener when the owner is disposed open", async () => {
+      const root = document.documentElement;
+      const { api } = mount();
+      const answer = api.confirm({ title: "Go?" });
+      await settled();
+      expect(root.style.overflow).toBe("hidden");
+      for (const dispose of disposers.splice(0)) {
+        dispose();
+      }
+      expect(await answer).toBe(false);
+      await settled();
+      expect(root.style.overflow).toBe("");
+      const tab = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+      document.body.dispatchEvent(tab);
+      expect(tab.defaultPrevented).toBe(false);
+    });
+
+    it("stacks: the last opened takes Escape and Tab, and the lock outlives the first to close", async () => {
+      const root = document.documentElement;
+      root.style.overflow = "auto";
+      try {
+        const lower = mount("lower");
+        const upper = mount("upper");
+        const first = lower.api.confirm({ title: "Lower" });
+        await settled();
+        const second = upper.api.confirm({ title: "Upper" });
+        await settled();
+        expect(root.style.overflow).toBe("hidden");
+        expect(document.activeElement).toBe(upper.part("cancel"));
+
+        // Tab is the upper dialog's: it wraps there, and the lower one is not touched
+        const tab = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+        upper.part("cancel").dispatchEvent(tab);
+        expect(document.activeElement).toBe(upper.part("confirm"));
+
+        keydown(document.body, "Escape");
+        expect(await second).toBe(false);
+        await settled();
+        expect(lower.part("dialog").hidden).toBe(false);
+        expect(lower.changes).toEqual([true]);
+        expect(root.style.overflow).toBe("hidden");
+
+        keydown(document.body, "Escape");
+        expect(await first).toBe(false);
+        await settled();
+        expect(root.style.overflow).toBe("auto");
+      } finally {
+        root.style.overflow = "";
+      }
+    });
   });
 
   it("answers false when the owner is disposed with a request pending", async () => {
