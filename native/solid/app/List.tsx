@@ -8,7 +8,7 @@
 // the same id, so the renderer's scissor cuts what leaves the box, but the offset is the page's:
 // `ui.scrollPut`/`ui.scrollTo` write it every frame before the tree is declared, and `ui.autoScroll(false)` keeps Clay's
 // own wheel scrolling out of the way. The wheel accumulates 10px notches (a flick flings), a press inside the viewport
-// drags it 1:1 with a 4px click threshold (the selection is keyboard-only, so the drag changes nothing about it), a drag
+// drags it 1:1 with a 4px click threshold (a click that does not travel selects the row under it; a drag does not), a drag
 // or a wheel past an end pulls a rubber band that springs back 80ms after the last input, and the keyboard eases the
 // track to the offset that shows the moved row (the reveal). Reduced motion has no band and no fling, and a key lands at
 // once. The scrollbar is the machine's too (`BAR`): a 4px thumb on the viewport's right edge that fades in while the rows
@@ -375,6 +375,11 @@ export function List(props: { input: Input; motion?: Motion; count?: number; wid
             return (
               <box
                 id={r.id}
+                // a press that did not travel selects the row, as a browser's list does; a drag belongs to the scroll, and
+                // its release lands on the row it started on, so it must not select
+                onClick={() => {
+                  if (!viewScroll.dragged) select(cell);
+                }}
                 focused={cell === selected() && focused()}
                 style={
                   cell === selected()

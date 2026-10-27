@@ -165,6 +165,13 @@ function fresh(opts: { entry?: boolean; wide?: boolean } = {}) {
       this.point(180, 160);
       for (let i = 0; i < n; i++) this.notchX(1), this.step();
     },
+    /** A click: a press and a release at (x, y), a frame each, as the window's pointer would deliver them. */
+    click(x: number, y: number, touch = false) {
+      at = [x, y];
+      step(false, touch);
+      step(true, touch);
+      step(false, touch);
+    },
     /** A key pressed and released with a frame after each. */
     tap(name: string) {
       input.down(name);
@@ -240,7 +247,7 @@ function fresh(opts: { entry?: boolean; wide?: boolean } = {}) {
 
 // --- the drag: a press inside the viewport grabs the page's offset and the pointer moves it 1:1 from the press point;
 //     the release hands the last frames' speed to a decay (a flick), and past an end the same rubber resists the drag
-//     and lets go at the release. The drag never selects: the List's selection is the keyboard's
+//     and lets go at the release. A click that does not travel selects the row under it; a drag never does
 {
   const p = fresh();
   const view = p.view();
@@ -279,6 +286,31 @@ function fresh(opts: { entry?: boolean; wide?: boolean } = {}) {
   check("a drag past the top pulls the content down with the resistance", fixed(down[down.length - 1]!), fixed(-rubber(200, 240)));
   t.settle(120);
   check("and the band springs back to the top", t.offset(), 0);
+  // --- a click on a row selects it, a drag does not: the press that travels is the scroll's, and its release lands on the
+  // row it started on
+  {
+    const p = fresh();
+    const view = p.box("list") as number[];
+    /** The middle of row `i` (0-based) as the viewport shows it. */
+    const rowY = (i: number) => view[1]! + i * 30 + 14;
+    check("the list starts on its first row", p.selected(), 1);
+    p.click(180, rowY(3));
+    check("a click on the fourth row selects it", p.selected(), 4);
+    p.settle();
+    check("... and the readout still shows it after the settle", p.selected(), 4);
+    // a press that travels 10px and comes back over the same row is a drag: the selection stays
+    p.drag(rowY(6), [5, 5]);
+    p.settle();
+    check("a drag over a row does not select it", p.selected(), 4);
+    // a click on another row, then a key: the selection continues from the click, not from where the keyboard was
+    p.click(180, rowY(1));
+    check("a second click selects its row", p.selected(), 2);
+    p.input.down("ArrowDown");
+    p.input.up("ArrowDown");
+    p.step();
+    check("the keyboard continues from the clicked row", p.selected(), 3);
+  }
+
   // a press above the viewport grabs nothing
   const a = fresh();
   a.point(180, 60);
