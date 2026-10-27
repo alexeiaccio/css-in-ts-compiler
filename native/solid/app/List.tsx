@@ -1,7 +1,10 @@
 // The List page: a fixed-height viewport whose offset the page owns (src/vscroll.ts — the Sky feed's machine), and whose
 // rows are windowed (src/virtual.ts): only the visible ones plus an overscan are declared, with a spacer box above and
 // below standing in for the rest, so the page costs what the screen shows and not what the list holds (`count` rows, 30 by
-// default; the 1,000-row page is the same page). The viewport is still one clip element (`css.overflow("hidden")`) with
+// default; the 1,000-row page is the same page). The selected row is a window of its own (src/virtual.ts's `segments`): a
+// wheel can move the content away from it, and it is still declared, at its own place and clipped out of the viewport, so
+// its box, its fill, its ring and its a11y node exist without declaring the range between it and the visible rows.
+// The viewport is still one clip element (`css.overflow("hidden")`) with
 // the same id, so the renderer's scissor cuts what leaves the box, but the offset is the page's:
 // `ui.scrollPut`/`ui.scrollTo` write it every frame before the tree is declared, and `ui.autoScroll(false)` keeps Clay's
 // own wheel scrolling out of the way. The wheel accumulates 10px notches (a flick flings), a press inside the viewport
@@ -16,7 +19,7 @@ import { createSignal, For, onCleanup } from "solid-js";
 
 import { pageEntry, type Motion } from "../src/entry.ts";
 import { FIELDS } from "../src/pack.ts";
-import { fixedWindow } from "../src/virtual.ts";
+import { fixedWindow, segments, SPACER } from "../src/virtual.ts";
 import { scroll } from "../src/vscroll.ts";
 import { ui } from "../src/ffi.ts";
 import type { FocusPart, Input } from "../src/input.ts";
@@ -150,12 +153,8 @@ const OVERSCAN = 1;
 const PAGE = 8;
 const BAR = "list-thumb";
 const ABOVE = "list-above";
+const MIDDLE = "list-mid";
 const BELOW = "list-below";
-/** The window's two spacer cells: negative, so they cannot collide with a row's index. They are cells of the same `For`
- *  as the rows, and not a `Show` either side of it, because Solid's renderer inserts a `For`'s items at its parent's end
- *  — a spacer declared after the `For` would come before its rows. */
-const TOP = -1;
-const BOTTOM = -2;
 /** One row: its number, its name and a dim temperature. No state, no tree of its own. */
 interface Row {
   readonly number: string;
@@ -199,6 +198,7 @@ export function List(props: { input: Input; motion?: Motion; count?: number }) {
   const viewId = Buffer.from(VIEW);
   const barId = Buffer.from(BAR);
   const aboveId = Buffer.from(ABOVE);
+  const middleId = Buffer.from(MIDDLE);
   const belowId = Buffer.from(BELOW);
   /** The viewport's height from the last layout (0 on the first frame). */
   const viewH = () => ui.bounds(viewId)?.[3] ?? 0;
@@ -210,12 +210,12 @@ export function List(props: { input: Input; motion?: Motion; count?: number }) {
    *  (`BAR`) is the machine's too: it writes its box and its fade every frame. */
   const viewScroll = scroll(VIEW, maxScroll, BAR);
 
-  /** Eases the viewport to the least offset that shows row `i`. The row's place is its bounds from the last frame when
-   *  the window declared it (the offset added back, as the row is drawn shifted by the clip's own offset); a row outside
-   *  the window has no bounds, and its place is the window's arithmetic — `i·(row + gap)` — so a key that leaves the
-   *  window still reveals its row instead of doing nothing. Either way it is compared with the track's own target, not
-   *  the presented offset, so a key pressed while the track is still travelling still lands where the row is. With the
-   *  row in view nothing moves. */
+  /** Eases the viewport to the least offset that shows row `i`. The row's place is its bounds from the last frame — every
+   *  row the column declares has a box, the selected one included when it is outside the viewport (the offset added back,
+   *  as the row is drawn shifted by the clip's own offset); a row declared for the first time on this key's frame (the
+   *  selection moved to one the window did not hold) has no bounds yet, and its place is the window's arithmetic —
+   *  `i·(row + gap)`. Either way it is compared with the track's own target, not the presented offset, so a key pressed
+   *  while the track is still travelling still lands where the row is. With the row in view nothing moves. */
   const reveal = (i: number) => {
     const row = ui.bounds(Buffer.from(`row-${i}`));
     const view = ui.bounds(viewId);
@@ -256,11 +256,9 @@ export function List(props: { input: Input; motion?: Motion; count?: number }) {
   const bind = input.add(part);
 
   // the frame: the entry writes its two group fields, then the scroll retargets on the wheel and a key and writes the
-  // viewport's offset, all before the tree is declared; then the window is the one that offset shows
-  let shownFirst = -1;
-  let shownLast = -1;
-  let shownTop = false;
-  let shownBottom = false;
+  // viewport's offset, all before the tree is declared; then the column is the one that offset shows, plus the selected
+  // row (a range of its own: the wheel can leave it behind, and its box is still declared, outside the viewport)
+  let shown: number[] = [];
   const tick = (dt: number) => {
     entry?.(dt);
     viewScroll.tick(dt);
@@ -272,26 +270,20 @@ export function List(props: { input: Input; motion?: Motion; count?: number }) {
       gap: GAP,
       overscan: OVERSCAN,
     });
-    // the cells are one `For`'s: the top spacer when there is one, the rows, the bottom spacer (see TOP and BOTTOM)
-    const top = w.above > 0;
-    const bottom = w.below > 0;
-    if (w.first !== shownFirst || w.last !== shownLast || top !== shownTop || bottom !== shownBottom) {
-      shownFirst = w.first;
-      shownLast = w.last;
-      shownTop = top;
-      shownBottom = bottom;
-      const list: number[] = [];
-      if (top) list.push(TOP);
-      for (let i = w.first; i <= w.last; i++) list.push(i);
-      if (bottom) list.push(BOTTOM);
-      setCells(list);
+    // the cells are one `For`'s: the spacers and the rows in the column's order (see `segments`)
+    const seg = segments(w, { count, slot: ROW + GAP, gap: GAP, extra: selected() });
+    if (seg.cells.length !== shown.length || seg.cells.some((cell, i) => cell !== shown[i])) {
+      shown = seg.cells;
+      setCells(seg.cells);
     }
     // the spacers' heights are a FIXED axis's min and max, written every frame (the channel is a frame's) as the thumb's
     // are; an absent spacer's write lands on no element, which is nothing
-    ui.value(aboveId, FIELDS.HEIGHT + 1, w.above);
-    ui.value(aboveId, FIELDS.HEIGHT + 2, w.above);
-    ui.value(belowId, FIELDS.HEIGHT + 1, w.below);
-    ui.value(belowId, FIELDS.HEIGHT + 2, w.below);
+    ui.value(aboveId, FIELDS.HEIGHT + 1, seg.above);
+    ui.value(aboveId, FIELDS.HEIGHT + 2, seg.above);
+    ui.value(middleId, FIELDS.HEIGHT + 1, seg.middle);
+    ui.value(middleId, FIELDS.HEIGHT + 2, seg.middle);
+    ui.value(belowId, FIELDS.HEIGHT + 1, seg.below);
+    ui.value(belowId, FIELDS.HEIGHT + 2, seg.below);
   };
   // Clay scrolled the container under the pointer only; a page that owns the offset has to keep that rule itself, or a
   // wheel over the title would scroll the rows. The visible thumb is chrome of the viewport: the wheel over it scrolls too.
@@ -314,11 +306,13 @@ export function List(props: { input: Input; motion?: Motion; count?: number }) {
       <box {...bind} onPress={() => (bind.onPress(), viewScroll.press())} style={s.view}>
         {/* the window: a spacer for the rows above, the declared rows, a spacer for the ones below — all cells of one
             `For`, so they are in that order in the viewport's gap-spaced column and the declared rows are where the full
-            list would have put them */}
+            list would have put them. A selected row the window left behind is a cell of its own, with a spacer between it
+            and the rows when they are not adjacent */}
         <For each={cells()}>
           {(cell) => {
-            if (cell === TOP) return <box id={ABOVE} style={s.spacer} />;
-            if (cell === BOTTOM) return <box id={BELOW} style={s.spacer} />;
+            if (cell === SPACER.above) return <box id={ABOVE} style={s.spacer} />;
+            if (cell === SPACER.middle) return <box id={MIDDLE} style={s.spacer} />;
+            if (cell === SPACER.below) return <box id={BELOW} style={s.spacer} />;
             const r = rowAt(cell);
             return (
               <box

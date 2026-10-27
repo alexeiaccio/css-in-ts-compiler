@@ -493,11 +493,13 @@ heights, and the *real* content height — and both pages declare a spacer box, 
 clip element and gap-spaced column. Two shapes, one function each. `fixedWindow` is arithmetic (`List`: every row 28px and
 the column's 2px gap, so row `i` starts at `i·30`). `measuredWindow` is for the Sky's cards, whose heights differ: a cache
 by index, filled from `ui.bounds` of each declared card after the frame (the page's tick reads the last layout's card
-heights before declaring the next), and an
-unseen card placed at **the mean of the measured heights** — 190px until anything has been measured — so a card the
-window jumped over still has a place in the column and is measured the frame it is shown. `List` takes a `count` (30 by
-default; 1,000 is the window's own page, `bun solid/main.ts list --count 1000`), `Sky` a `posts` feed (its Discover
-fixtures by default; 200 synthetic posts are `--posts 200`, or `synthetic(200)` in `solid/virtual.test.ts`).
+heights before declaring the next). It **measures once, then virtualizes**: while any card's height is unknown the window
+is the whole column (`first` 0, `last` count−1, no spacers), so a feed of 200 declares 200 cards on the frame it mounts,
+measures every one of them on the frame after, and has exact heights from then on. The mean of the measured heights
+(190px until anything is measured) is only the estimate the measuring frames give the content, the clamp and the thumb —
+never a place a card is *measured* at — so the content's end does not move when a card is first seen. `List` takes a
+`count` (30 by default; 1,000 is the window's own page, `bun solid/main.ts list --count 1000`), `Sky` a `posts` feed (its
+Discover fixtures by default; 200 synthetic posts are `--posts 200`, or `synthetic(200)` in `solid/virtual.test.ts`).
 
 The spacers take their own gap out of the column (`above = first·slot − gap`), and there is **no** spacer at an end: an
 empty box would still add its gap. So the declared items sit exactly where the whole page would have put them
@@ -508,15 +510,30 @@ the value channel, fields 4 and 5, as the scrollbar's thumb writes its own. The 
 and the items' indexes (a `Show` either side would be put *after* the `For`'s items by Solid's renderer); the Sky's cell
 is `${feed}:${index}`, so a tab switch gives each card a node created in its own child order.
 
+**A list's selection is a range of its own.** The wheel moves the content and leaves the selection where it was, so the
+selected row can be outside the window; it is declared all the same, because its box is what the reveal reads, its fill
+and ring are what the user sees when a key brings it back, and a11y wants a node. `segments(w, { count, slot, gap, extra })`
+is the column the `List` lays out: the window's rows, the extra index when it is outside the window, and a spacer for
+everything not declared — `SPACER.above`, then the row, then `SPACER.middle` (the items between it and the window), then
+the window's rows, then `SPACER.middle` and the row when the extra one is below, then `SPACER.below` — each spacer taking
+its gap out as the window's do, and none of them when the two ranges are adjacent (a zero-height box would add its gap).
+Three sentinels, three FIXED-axis heights (fields 4 and 5) of three boxes, `list-above`, `list-mid`, `list-below`. The
+order follows the indexes, so every declared row is where the whole list would have put it: at 1,000px down with the
+selection still row 1 the column is 12 rows and 3 spacers instead of 11 rows and 2, the window's rows (32..42) have not
+moved, and the content is still 29,998px; `frames/list-wheel.png` (row 1 selected, 320px down) is **byte-identical** with
+the extra range in the tree, because the clip cuts its box 292px above the viewport and nothing else changed. The Sky has
+no selection, so it does not use it (its cells are strings, `${feed}:${index}`).
+
 **The clamp and the thumb are the real content's.** `maxScroll` is `content − view` from the window's `content` (the Sky
 adds its two 12px paddings), never the declared subset's, so the ends, the band's f(x) and the thumb's
 `max(24, view²/content)` are the same as when every row and card was declared; `thumbOf` writes the bar from `max + view`,
-which is that content. The measured page's content moves as cards are measured — the fallback is an estimate — so a track
-that was at the end follows it: when the content's end grows and the target was the old end, the page seeks the new one,
-and a shrink is the scroll's own hard clamp. The List's reveal needs no declared row: the rows are fixed, so a key reveals
-a row outside the window from its arithmetic (**not** a bounds lookup, which a row that was never declared would not
-have); when the window did declare it, its bounds are used, and the two agree to the pixel. The Sky's keys move the
-offset, so no card is revealed and no card needs to be declared before it is shown. `ponytail:` `measuredWindow` builds a
+which is that content. The Sky's content is the mean's estimate only while the measuring pass runs: a track that was at the
+end follows it if it moves during those frames (when the content's end grows and the target was the old end, the page
+seeks the new one; a shrink is the scroll's own hard clamp), and from the pass's last frame it is exact, so no later frame
+moves it. The List's reveal reads the selected row's **bounds** — the selection is declared even when the wheel has left it
+behind, so there is a box to read — and falls back to the window's arithmetic (`i·(row + gap)`) on the key's own frame,
+when the selection has just moved to a row the last frame did not declare; the two agree to the pixel. The Sky's keys
+move the offset, so no card is revealed. `ponytail:` `measuredWindow` builds a
 prefix sum over the cache on every call (O(n) a frame, n the feed's posts); a persistent prefix or a binary search over a
 running total is the upgrade if hundreds of thousands of items ever matter.
 
@@ -527,6 +544,15 @@ measure), before (the pages of `05e32400`, every row and card declared) and afte
 at the top), not the data. `solid/virtual.test.ts` prints the same numbers from the frame stats (`stats[1]`) and holds the
 1,000-row declare within a small factor of the 30-row page's. The stored frames of both pages are **byte-identical**: with
 30 rows the window declares nine of them instead of 30 and a spacer for the rest, and the pixels do not move.
+
+The measuring pass is the one frame that is *not* the window: 200 cards declared in one frame cost **0.85ms** of declare
+(the suite's own `stats[1]`; medians of five mounts on the same machine 1.07ms) against 0.024ms a frame once the window is
+back, and 1,000 cards 4.9ms. The rule: the pass is one frame while the column fits Clay — about 1,000 cards here (2,000
+declared boxes already overflow this build's default element/ID capacity, `CLAY_ERROR_TYPE_HASH_MAP_CAPACITY_EXCEEDED`,
+before any of it is drawn). A page with thousands of cards would therefore need both Clay's element count raised and the
+pass in chunks over idle frames, with the content's end estimated until the last chunk; no page here has more than a feed
+of hundreds, so there is no chunking (`virtual.ts` keeps the note). The pass costs one frame of a page's life and buys a
+content height that never moves.
 
 **Touch input: one pointer, mouse or finger.** SDL3 reports a finger as `SDL_EVENT_FINGER_DOWN/MOTION/UP` (and
 `CANCELED`) with `event.tfinger.x/y` **normalised to the window** — 0..1, (0,0) the top left, not clamped, so a touch in

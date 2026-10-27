@@ -1,8 +1,9 @@
 // The window (src/virtual.ts) on its own and on the two scrolling pages with more data than a screen: 1,000 fixed rows
 // and 200 cards of mixed height. What a stored frame cannot show: only the window's items are declared (the rest are two
-// spacers), the clamp and the thumb read the whole content, the keyboard's reveal works for a row outside the window, a
-// jumped-over card is placed by the fallback and then measured, and a frame's declare costs what the window holds, not
-// what the list or the feed holds.
+// spacers), the clamp and the thumb read the whole content, a row the window left behind is declared as a range of its
+// own (the segments), the keyboard's reveal works for a row outside the window, a feed is measured once and then
+// virtualized (the whole column on one frame, its end exact from the next), and a frame's declare costs what the window
+// holds, not what the list or the feed holds.
 import "./plugin.ts";
 
 const { ui } = await import("./src/ffi.ts");
@@ -10,7 +11,7 @@ const { createFrame } = await import("./src/frame.ts");
 const { createInput } = await import("./src/input.ts");
 const { El, render } = await import("./src/renderer.ts");
 const { rubber, setReducedMotion } = await import("./src/motion.ts");
-const { fixedWindow, measuredWindow } = await import("./src/virtual.ts");
+const { fixedWindow, measuredWindow, segments, SPACER } = await import("./src/virtual.ts");
 const { List } = await import("./app/List.tsx");
 const { Sky, synthetic } = await import("./app/Sky.tsx");
 
@@ -50,25 +51,66 @@ const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
   check("and the content is still the whole list", fits.content, 898);
 }
 
-// --- the measured window: the cache, the fallback (the mean of what has been measured), and the same spacer arithmetic
+// --- the measured window: the cache, the same spacer arithmetic, and the measuring pass (until every height is in, the
+//     whole column is declared)
 {
-  // 100, unseen (the mean of 100 and 300 is 200), 300: the block is 100 + 8 + 200 + 8 + 300
-  const heights: (number | undefined)[] = [100, undefined, 300];
-  const w = measuredWindow({ offset: 120, view: 100, count: 3, heights, gap: 8, overscan: 0 });
-  check("the unmeasured card takes the mean of the measured ones: 616 of content", w.content, 616);
-  check("a window of one card", [w.first, w.last], [1, 1]);
+  // all measured: 100, 300, 100 in a column of 8px gaps (the tops 0, 108, 416), a 100px window at 120
+  const seen: (number | undefined)[] = [100, 300, 100];
+  const w = measuredWindow({ offset: 120, view: 100, count: 3, heights: seen, gap: 8, overscan: 0 });
+  check("the content is every card and every gap: 516", w.content, 516);
+  check("a window of the middle card", [w.first, w.last], [1, 1]);
   check("its top spacer is the card above, less the gap", w.above, 100);
-  check("and its bottom spacer is the card below, less the gap", w.below, 300);
-  check("the spacers and the card are the content", w.above + 8 + 200 + 8 + w.below, 616);
-  // nothing measured yet: the constant fallback
+  check("and its bottom spacer is the card below, less the gap", w.below, 100);
+  check("the spacers and the card are the content", w.above + 8 + 300 + 8 + w.below, 516);
+  // one height missing: the whole column is declared, so the page measures it this frame, and the mean places the unseen
+  // one (100 + 200 + 300 = 600 of cards, 516 of content) until then
+  const hole: (number | undefined)[] = [100, undefined, 300];
+  const pass = measuredWindow({ offset: 120, view: 100, count: 3, heights: hole, gap: 8, overscan: 0 });
+  check("with a height unknown the whole column is declared", [pass.first, pass.last], [0, 2]);
+  check("and no spacer stands in for anything", [pass.above, pass.below], [0, 0]);
+  check("the content is the estimate: the mean 200 in the hole", pass.content, 616);
+  // nothing measured yet: the constant fallback, and the whole column declared
   const empty = measuredWindow({ offset: 0, view: 0, count: 3, heights: [], gap: 8 });
   check("with nothing measured, 190px a card", empty.content, 3 * 190 + 2 * 8);
-  check("and the first layout declares the overscan's three", [empty.first, empty.last], [0, 2]);
+  check("and the first layout declares every one of them", [empty.first, empty.last], [0, 2]);
   // the measured window over 200 cards: the visible ones plus the overscan, never the feed
   const feed = Array.from({ length: 200 }, (_unused, i) => 150 + (i % 5) * 20);
   const mid = measuredWindow({ offset: 8000, view: 664, count: 200, heights: feed, gap: 8 });
   check("a feed of 200 declares at most ten cards", mid.last - mid.first + 1, 8);
   check("the content is every card and every gap", mid.content, sum(feed) + 199 * 8);
+}
+
+// --- the segments: the window's cells, an extra index outside it (a selection the scroll left behind), and the spacers
+//     that keep the column the whole list's
+{
+  const w = fixedWindow({ offset: 1000, view: 240, count: 1000, item: 28, gap: 2, overscan: 1 });
+  const plain = segments(w, { count: 1000, slot: 30, gap: 2 });
+  check("without an extra index: the spacer, the window's rows, the spacer", [plain.cells[0], plain.cells.at(-1)], [SPACER.above, SPACER.below]);
+  check("and its cells are the window's, framed by the two spacers", plain.cells.length, w.last - w.first + 3);
+  const above = segments(w, { count: 1000, slot: 30, gap: 2, extra: 0 });
+  check(
+    "an extra index above the window: row 1 first (no top spacer at the top), then a spacer to the window",
+    [above.cells[0], above.above, above.middle, above.below],
+    [0, 0, (w.first - 1) * 30 - 2, plain.below],
+  );
+  const below = segments(w, { count: 1000, slot: 30, gap: 2, extra: 999 });
+  check(
+    "and below it: the window, a spacer, the last row, no bottom spacer",
+    [below.cells.at(-1), below.middle, below.below],
+    [999, (999 - w.last - 1) * 30 - 2, 0],
+  );
+  // the column's height is the content's, however the extra index is placed (each box plus the gaps between them)
+  const laid = (s: ReturnType<typeof segments>) => {
+    const heights = s.cells.map((c) => (c === SPACER.above ? s.above : c === SPACER.middle ? s.middle : c === SPACER.below ? s.below : 28));
+    return sum(heights) + (heights.length - 1) * 2;
+  };
+  check("the segments are the whole 29,998px of content", [laid(plain), laid(above), laid(below), w.content], [29998, 29998, 29998, 29998]);
+  // an extra index beside the window needs no spacer (a zero-height box would add its gap), and one inside it is no extra
+  const beside = segments(w, { count: 1000, slot: 30, gap: 2, extra: w.first - 1 });
+  check("an extra row adjacent to the window: no middle spacer", [beside.cells.includes(SPACER.middle), beside.middle], [false, 0]);
+  check("and the column is still the content's", laid(beside), 29998);
+  const inside = segments(w, { count: 1000, slot: 30, gap: 2, extra: w.first + 1 });
+  check("an extra index inside the window changes nothing", inside.cells, plain.cells);
 }
 
 let dispose = () => {};
@@ -160,7 +202,11 @@ function listPage(count: number) {
   for (let i = 0; i < 100; i++) p.notch(1);
   p.settle();
   check("100 notches are 1,000px", p.offset(), -1000);
-  check("the window is eleven rows: 32..42", p.rows().length, 11);
+  // the window is eleven rows (32..42) and the selection's own range (row 1, 1,000px above the viewport): the wheel does
+  // not move the selection, and the row is declared all the same
+  check("the window is eleven rows, 32..42, and the selection's row 0", p.rows().length, 12);
+  check("row 0 is declared above the viewport", [p.row(0)[1]! < view[1]!, p.row(0)[1]! + 28 < view[1]!], [true, true]);
+  check("and row 1, which a spacer stands in for, is not", p.row(1).length, 0);
   check("row 33 is at the viewport's top", fixed(p.row(33)[1]! - view[1]!), 990 - 1000);
   check("row 32 is the overscan above it", p.row(32).length, 4);
   check("and row 31 is not declared at all", p.row(31).length, 0);
@@ -229,14 +275,14 @@ function listPage(count: number) {
   );
 }
 
-// --- the Sky with 200 cards: mixed heights measured as they are shown, the window small, the end exact, and a card that
-//     was jumped over placed by the fallback (the mean) before its own height is measured
+// --- the Sky with 200 cards: mixed heights, measured once in a single frame and then virtualized (the window small, the
+//     content's end and the thumb exact and still), the end of the feed reached with End
 type SkyPage = ReturnType<typeof skyPage>;
 /** Are the declared cards in the order and 8px apart? (Their heights differ, so each card's own height is in the step.) */
 const stacked = (p: SkyPage, list: number[]) =>
   list.slice(1).every((i, k) => near(p.card(i)[1]! - p.card(list[k]!)![1]! - p.card(list[k]!)![3]!, 8));
 
-function skyPage(posts: readonly ReturnType<typeof synthetic>[number][]) {
+function skyPage(posts: readonly ReturnType<typeof synthetic>[number][], opts: { frames?: number } = {}) {
   dispose();
   const root = new El("root");
   const input = createInput();
@@ -257,8 +303,8 @@ function skyPage(posts: readonly ReturnType<typeof synthetic>[number][]) {
   const step = (render = true) => frame(180, 300, false, 1 / 60, render);
   step();
   ui.scrollTo("sky-feed", 0);
-  step();
-  for (let i = 0; i < 60; i++) step();
+  // a page at rest is 61 frames later (the cards' entry is over); a caller counting the measuring pass asks for fewer
+  for (let i = 1; i < (opts.frames ?? 62); i++) step();
   const feed = () => [...(ui.bounds(Buffer.from("sky-feed")) ?? [])];
   return {
     input,
@@ -279,9 +325,11 @@ function skyPage(posts: readonly ReturnType<typeof synthetic>[number][]) {
     },
     offset: () => -ui.scrollOffset("sky-feed"),
     feed,
+    box: (id: string) => [...(ui.bounds(Buffer.from(id)) ?? [])],
     card: (i: number) => [...(ui.bounds(Buffer.from(`sky-card-${i}`)) ?? [])],
     cards: () => ids(root, "sky-card-").map((id) => Number(id.slice("sky-card-".length))),
     thumb: () => [...(ui.bounds(Buffer.from("sky-thumb")) ?? [])],
+    stats,
     cost(n = 300) {
       stats.length = 0;
       for (let i = 0; i < n; i++) step(false);
@@ -309,7 +357,39 @@ function skyPage(posts: readonly ReturnType<typeof synthetic>[number][]) {
   const top = first.map((i) => p.card(i)[1]! - feed[1]!);
   console.log(`solid/virtual.test.ts: 200 cards, the top window ${first.join(",")} at y ${top.map(fixed).join(",")} of 664`);
 
-  // 20 PageDowns: a jump to a place no card has been measured at, under reduced motion so it lands on the key's frame
+  // the measuring pass: no card's height is known on the first frame, so the whole feed is declared (200 cards, one
+  // frame) and the frame after it has every height — from then on the content, the end and the thumb are exact and do not
+  // move as cards are seen again. The fallback is only the estimate those first frames read
+  const mount = skyPage(posts, { frames: 1 });
+  check("the first frame declares the whole feed: nothing is measured yet", mount.cards().length, 200);
+  const declare = mount.stats[0]![1]! / 1e6;
+  console.log(`solid/virtual.test.ts: the measuring pass declares 200 cards on one frame: ${declare.toFixed(3)} ms`);
+  const pass = skyPage(posts, { frames: 2 });
+  check("the frame after it is the window again: measure once, then virtualize", pass.cards().length <= 10, true);
+  /** The feed's real content height, from the last frame's boxes: its last block's bottom, plus the 12px under it, in the
+   *  content's own coordinates (the bounds are drawn ones, so the offset is added back). */
+  const contentOf = (page: SkyPage, last = -1) => {
+    const f = page.feed();
+    const b = last < 0 ? page.box("sky-below") : page.card(last);
+    return b[1]! - f[1]! + b[3]! + page.offset() + 12;
+  };
+  const content0 = contentOf(pass);
+  const thumb0 = pass.thumb()[3]!;
+  console.log(`solid/virtual.test.ts: the feed's content is ${fixed(content0)} on the pass's frame, its thumb ${fixed(thumb0)}`);
+  // to the end: every card measured and seen, and the end is the one the pass's frame already had
+  const e = skyPage(posts, { frames: 2 });
+  e.focusFeed();
+  e.tap("End");
+  e.settle(200);
+  check("End lands on the content's end", fixed(e.offset()), fixed(content0 - e.feed()[3]!));
+  check("and the last card's bottom is that content's end", fixed(contentOf(e, 199)), fixed(content0));
+  check(
+    "the thumb is the same height: max(24, view²/content)",
+    fixed(thumb0),
+    fixed(Math.max(24, (e.feed()[3]! * e.feed()[3]!) / content0)),
+  );
+
+  // 20 PageDowns: a jump into the middle of the feed, on the keys' own frame (reduced motion)
   setReducedMotion(true);
   const q = skyPage(posts);
   q.focusFeed();
@@ -323,13 +403,12 @@ function skyPage(posts: readonly ReturnType<typeof synthetic>[number][]) {
     const b = q.card(i);
     return b.length === 4 && b[1]! + b[3]! > q.feed()[1]! && b[1]! < q.feed()[1]! + q.feed()[3]!;
   });
-  check("the jumped-over cards are placed on the screen by the fallback", onScreen.length >= 3, true);
-  const fallback = seen.map((i) => q.card(i)[3]!);
-  check("their heights are a card's, not zero", fallback.every((h) => h > 100 && h < 400), true);
+  check("the cards at the place the keys jumped to are on the screen", onScreen.length >= 3, true);
+  const shown = seen.map((i) => q.card(i)[3]!);
+  check("their heights are a card's, not zero", shown.every((h) => h > 100 && h < 400), true);
   q.settle(6);
-  const settled = q.cards();
-  check("after a frame they are measured, and the window still small", settled.length <= 10, true);
-  check("with the same 8px gaps at the real heights", stacked(q, settled), true);
+  check("and the window is the same one once they are drawn: every height is known", q.cards(), seen);
+  check("with the same 8px gaps at the real heights", stacked(q, seen), true);
   setReducedMotion(false);
 
   // the end: End, and the last card is shown at the bottom padding, the thumb on the feed's bottom
@@ -377,10 +456,11 @@ function skyPage(posts: readonly ReturnType<typeof synthetic>[number][]) {
 dispose();
 if (failed) process.exit(1);
 console.log(
-  "solid/virtual.test.ts: the fixed and the measured window (the arithmetic, the fallback, the spacers are the content), " +
-    "1,000 rows at the top, 1,000px down and the exact end (nine to eleven declared boxes, the rows in their places, the " +
-    "thumb from 29,998), the reveal of a row outside the window, 200 cards of mixed height (a small window, the heights " +
-    "measured, a jumped-over card placed by the fallback, the last card and the thumb at the end), and a frame's declare " +
-    "cost that follows the window, not the data",
+  "solid/virtual.test.ts: the fixed and the measured window (the arithmetic, the spacers are the content), the segments " +
+    "(a selection's own range outside the window, and the column still the whole list's), 1,000 rows at the top, 1,000px " +
+    "down and the exact end (nine to eleven declared boxes plus the selection's, the rows in their places, the thumb " +
+    "from 29,998), the reveal of a row outside the window, 200 cards of mixed height (one measuring frame that declares " +
+    "them all, then a small window, the content's end and the thumb exact and still), and a frame's declare cost that " +
+    "follows the window, not the data",
 );
 process.exit(0);

@@ -272,25 +272,40 @@ Each step ends in a check that fails when it breaks.
    **Done: the window** (`solid/src/virtual.ts`, `solid/virtual.test.ts`): both scrolling pages now declare what the screen
    shows, not the data. `fixedWindow` is arithmetic (the List's rows: `item + gap` a row, row `i` at `i·30`); it returns
    the indexes to declare, the spacer heights above and below, and the real content (`count·item + (count−1)·gap`). The
-   Sky's cards differ, so `measuredWindow` keeps a height cache by index from `ui.bounds` of each declared card and places
-   an unseen card at the mean of the measured ones (190px until anything is measured) — a card the window jumped over still
-   has a place and is measured the frame it is shown. The spacer boxes are cells of the same column as the items, their
-   heights written through the value channel's FIXED axis (fields 4 and 5, as the thumb's are), and their own gap is taken
-   out (`above = first·slot − gap`; no spacer at an end, or a zero-height box would add a gap): the declared items are
-   exactly where the full page would have put them. The clamp and the thumb read the real content, never the declared
-   subset's, and a measured feed's content moves as cards are measured, so a track that was at the end follows it. The
-   List takes a `count` (`bun solid/main.ts list --count 1000`), the Sky a `posts` feed (`--posts 200`,
-   `synthetic(200)`). Check: `solid/virtual.test.ts` — the fixed window's arithmetic (29,998px for 1,000 rows, the spacers
-   sum to it at the top, 1,000px down and the end), the measured window's fallback (100, unseen 200, 300 is 616 of
-   content), 1,000 rows at the top, 1,000px down and the exact end 29,758 (nine to eleven declared boxes, row 33 at 990px,
-   the last row's bottom on the viewport's, the thumb from 29,998), the keyboard revealing a row outside the window, 200
-   cards of mixed height (at most ten declared, the gaps 8 at the measured heights, End at the real end with the last card
-   and the thumb's bottom at the feed's, a jumped-over card placed by the fallback and then measured), and the declare
-   cost: 30 rows 0.086 → 0.032ms, 1,000 rows 2.084 → 0.030ms, 3 cards 0.022 → 0.028ms, 200 cards 0.683 → 0.042ms
-   (`--bench 500`). The stored List and Sky frames are byte-identical. Mutations: dropping the top spacer fails
+   Sky's cards differ, so `measuredWindow` keeps a height cache by index from `ui.bounds` of each declared card, and it
+   **measures once, then virtualizes**: while any height is unknown the window is the whole column (no spacers), so a feed
+   declares all of itself on its mount frame, measures every card on the next, and has exact heights from then on; the mean
+   of the measured ones (190px until anything is) is only the estimate those frames give the content and the thumb, never
+   a place a card is measured at, so the end does not move when a card is first seen. `segments(w, { count, slot, gap,
+   extra })` is the List's column: the window's rows, the selected row when the scroll has left it outside the window, and
+   the spacers between them (`SPACER.above`, `middle`, `below` — each taking its own gap out, none when the ranges are
+   adjacent), so the selection has a box, a fill, a ring and an a11y node without declaring the range in between, and
+   nothing the viewport shows moves. The spacer boxes are cells of the same column as the items, their heights written
+   through the value channel's FIXED axis (fields 4 and 5, as the thumb's are): the declared items are exactly where the
+   full page would have put them. The clamp and the thumb read the real content, never the declared subset's. The List
+   takes a `count` (`bun solid/main.ts list --count 1000`), the Sky a `posts` feed (`--posts 200`, `synthetic(200)`).
+   Check: `solid/virtual.test.ts` — the fixed window's arithmetic (29,998px for 1,000 rows, the spacers sum to it at the
+   top, 1,000px down and the end), the measured window's spacers (`[100, 300, 100]` is 516 of content, one card declared)
+   and its measuring pass (a hole declares all three), the segments (an extra index above or below the window: the column
+   still 29,998px, no spacer when the ranges are adjacent, nothing when it is inside), 1,000 rows at the top, 1,000px down
+   and the exact end 29,758 (nine to eleven declared boxes plus the selection's, row 33 at 990px, the last row's bottom on
+   the viewport's, the thumb from 29,998), the keyboard revealing a row outside the window, 200 cards of mixed height (the
+   pass declares all 200 on one frame and the window is small on the next, at most ten declared, the gaps 8 at the measured
+   heights, End at the real end with the last card and the thumb's bottom at the feed's, the pass's content == the last
+   card's), `solid/list.test.ts`'s wheel leaving the selection behind (its box 110px above the viewport at 200px, the
+   spacers 88/28/418, the content still 898, `frames/list-wheel.png` byte-identical, and two pages at 348px — the selection
+   above the window and below it — with the same viewport pixels), and the declare cost: 30 rows 0.086 → 0.032ms, 1,000
+   rows 2.084 → 0.030ms, 3 cards 0.022 → 0.028ms, 200 cards 0.683 → 0.042ms (`--bench 500`), and the measuring pass's one
+   frame: 200 cards 0.85ms of declare (1.07 as five mounts' median) against 0.024ms a frame after it, 1,000 cards 4.9ms,
+   while 2,000 already overflow Clay's default element capacity. The stored List and Sky frames are byte-identical.
+   Mutations: dropping the top spacer fails
    `FAIL row 33 is at the viewport's top: -970, wanted -10` (the rows jump by the spacer they lost) and four more of the
-   block, the Sky's `FAIL the jumped-over cards are placed on the screen by the fallback: false, wanted true`, and the
-   stored `list-wheel.png` **5,074 pixels differ**; using the declared subset's height for the clamp fails the List's
+   block, and the stored `list-wheel.png` **5,074 pixels differ**; dropping the selection's range fails the List's
+   `FAIL the selected row is declared although the window left it behind: 0, wanted 4` (and seven more) and
+   `virtual.test.ts`'s `FAIL the window is eleven rows, 32..42, and the selection's row 0: 11, wanted 12`, while the stored
+   frame still matches (that is the frame of the old behaviour); the constant fallback for the whole feed's end fails the
+   Sky's `FAIL End lands on the content's end` and `FAIL and the last card's bottom is that content's end`; using the
+   declared subset's height for the clamp fails the List's
    `FAIL the thumb is the content's: max(24, 240²/29,998): 175.61, wanted 24` (its top `64.39, wanted 7.26`, and the
    wheel stops at −88), the Sky's `FAIL twenty viewports down: 13,280: 1100, wanted 13280` and
    `FAIL the last card is declared there: false, wanted true`.
@@ -715,7 +730,9 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    been used; and the terminal, browser and board targets (no Solid page, no wheel and no value channel). A gradient or a
    clip inside a *rotated* group is covered: the dither's mark is the gradient's rotated quad and a clip is cut by its own
    mapped quad (`solid/rotated.test.ts`); the drag, the pages' entry, the List's own track and the window are covered by
-   item 2.
+   item 2 — its selection, which the wheel leaves behind, is a declared range of its own, and a measured feed is declared
+   once in one frame and then virtualized, so neither the column's layout nor the content's end moves
+   (`solid/list.test.ts`, `solid/virtual.test.ts`).
 3. **Done: metamorphic tests** (`solid/metamorphic.test.tsx`, 2026-10-25). Four relations over the Sensors page and a
    two-width text, no oracle and no stored frame: a fixed-size wrapper leaves the pixels identical (0 of 129,600 differ);
    a whole-pixel move (13, 7) shifts the picture exactly (0 differ); a wider box never adds a text line (82px at 160
