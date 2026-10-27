@@ -2,10 +2,10 @@
 // with it (a notch glides 10px, a flick decays to the clamp), the clamps at both ends and the rubber band past them (its
 // resistance, its 80ms hold and its return), the viewport's clip (a selected row's fill cut at the edge, not drawn above
 // it), the keyboard selection easing the row into view on the same track, the selection staying in 0..29, the wheel and
-// the drag leaving the selection alone (the drag never selects), the held pointer dragging the viewport 1:1 and its
-// release flinging, reduced motion's hard clamp and instant keys, the page's first-mount entry (the root's subtree rising
-// and fading in, once, with the layout still), the header and footer staying put, and the page fitting. Driven as the
-// window does it: pointer and wheel in, then a frame.
+// the drag leaving the selection alone (the drag never selects) and the selected row it leaves behind still declared as a
+// range of its own, held pointer dragging the viewport 1:1 and its release flinging, reduced motion's hard clamp and
+// instant keys, the page's first-mount entry (the root's subtree rising and fading in, once, with the layout still), the
+// header and footer staying put, and the page fitting. Driven as the window does it: pointer and wheel in, then a frame.
 import "./plugin.ts";
 
 const { ui } = await import("./src/ffi.ts");
@@ -441,7 +441,10 @@ function fresh(opts: { entry?: boolean } = {}) {
   check("with nothing scrolled", p.offset(), 0);
 }
 
-// --- the wheel leaves the selection alone, and a key brings it back into view
+// --- the wheel leaves the selection alone, and a key brings it back into view. The selected row the wheel left behind is
+//     declared all the same — a range of its own, outside the viewport, with a spacer between it and the visible rows —
+//     so its box (and its fill, ring and a11y node) exists where the arithmetic says, while the rows and the spacers the
+//     window does show are exactly the ones it showed before the extra range existed
 {
   const p = fresh();
   p.tap("Tab");
@@ -451,11 +454,74 @@ function fresh(opts: { entry?: boolean } = {}) {
   p.settle();
   check("the wheel scrolled the view", p.offset(), -200);
   check("and did not touch the selection", p.selected(), 4);
-  check("the selected row is outside the window: it is not declared", p.row(3).length, 0);
+  const view = p.view();
+  // row 4 starts 90px into the content, and the viewport shows the content from 200px: the row is 110px above its top
+  const row = p.row(3);
+  check("the selected row is declared although the window left it behind", row.length, 4);
+  check("at its place in the content: 3 * 30 less the 200 scrolled", fixed(row[1]! - view[1]!), -110);
+  check("and above the viewport, so not one of its pixels is drawn", row[1]! + row[3]! <= view[1]!, true);
+  // the column: rows 0..2 as the top spacer (row 4 is a box), the row, row 4 as the spacer between it and the window, the
+  // window's rows 5..15 and the rest below — the same totals as the whole 30 rows, so nothing the viewport shows moved
+  check("the window's rows 5..15 are declared where they were", [p.row(5).length, p.row(15).length, p.row(4).length], [4, 4, 0]);
+  check("row 16 is past the window", p.row(16).length, 0);
+  const above = p.box("list-above");
+  const middle = p.box("list-mid");
+  const below = p.box("list-below");
+  check("the spacers are 3 slots, 1 slot and the rest, each less its gap", [above[3], middle[3], below[3]], [88, 28, 418]);
+  check("the row between them is where the spacers put it", [above[1]! + above[3]! + 2, middle[1]! + middle[3]! + 2], [row[1], p.row(5)[1]]);
+  check("and the content still ends at 898", fixed(below[1]! + below[3]! - view[1]! + p.scrolled()), 898);
+  // a key: Down selects 5 of 30, and the reveal eases the view to it — the row is in the window again, no spacer between
   p.tap("ArrowDown");
+  const mid = p.scrolled();
+  check("the reveal is on the track, not a jump: 200 eases towards 120", mid > 120 && mid < 200, true);
+  check("with row 5 still above the viewport's top, coming down to it", p.row(4)[1]! < view[1]!, true);
   p.settle();
   check("ArrowDown selects 5 of 30", p.selected(), 5);
-  check("and eases the view up to row 5", [p.row(4)[1], p.offset()], [p.view()[1], -120]);
+  check("and eases the view up to row 5", [p.row(4)[1], p.offset()], [view[1], -120]);
+  check("which is in the window now: no spacer between, no extra row", [p.box("list-mid").length, p.row(3).length], [0, 4]);
+}
+
+// --- the extra range costs no pixel: 32 notches down (the selection still row 1) is the frame stored before it existed,
+//     byte for byte, and at one scroll position with the selection above the window and with it below, the viewport is
+//     the same picture (the spacers stand in for the rows between)
+{
+  const p = fresh();
+  p.wheel(32);
+  p.settle(90);
+  check("the wheel is 320px down", p.offset(), -320);
+  check("the selected row is declared above the window", [p.row(0).length, p.row(0)[1]! < p.view()[1]!, p.row(10).length], [4, true, 4]);
+  check(
+    "the frame is frames/list-wheel.png: the selection's own range moved no pixel",
+    ui.diffPng(
+      new URL("./frames/list-wheel.png", import.meta.url).pathname,
+      new URL("./frames/list-wheel.png.actual.png", import.meta.url).pathname,
+    ),
+    0,
+  );
+  // the viewport's pixels, as the last frame drew them
+  const picture = (page: ReturnType<typeof fresh>) => {
+    const v = page.view();
+    const out: string[] = [];
+    for (let y = 0; y < v[3]!; y++) for (let x = 0; x < v[2]!; x++) out.push(ui.pixel(v[0]! + x, v[1]! + y).join());
+    return out;
+  };
+  // 348px: 34 notches and 0.8 of one from the top (the selection 0, above the window) ...
+  const a = fresh();
+  a.wheel(34);
+  a.notch(0.8);
+  a.settle(120);
+  check("the first page is at 348 with its selection above the window", [a.offset(), a.selected(), a.row(0)[1]! < a.view()[1]!], [-348, 1, true]);
+  const above = picture(a);
+  // ... and Tab, End, then 31 notches up (the selection 30, below it)
+  const b = fresh();
+  b.tap("Tab");
+  b.tap("End");
+  b.settle(120);
+  b.wheelUp(31);
+  b.settle(120);
+  check("the second is at 348 with its selection below the window", [b.offset(), b.selected(), b.row(29)[1]! > b.view()[1]! + b.view()[3]!], [-348, 30, true]);
+  const below = picture(b);
+  check("and the two viewports are the same picture", above.filter((c, i) => c !== below[i]).length, 0);
 }
 
 // --- reduced motion: the wheel clamps hard (no band), a flick does not fly, a drag's release does not fling, and a key
@@ -671,7 +737,8 @@ if (failed) process.exit(1);
 console.log(
   "solid/list.test.ts: the wheel moving Clay's scroll offset and the rows with it, the clamps at both ends, the clip at " +
     "the viewport's edge, the keyboard selection scrolling into view and staying in range, the wheel leaving the " +
-    "selection alone, the held pointer dragging the viewport 1:1 and stopping at the release, the page's first-mount " +
+    "selection alone and the row it left behind declared outside the viewport (its own range, the stored frame still " +
+    "byte-identical), the held pointer dragging the viewport 1:1 and stopping at the release, the page's first-mount " +
     "entry (a blend four frames in, the literals at rest, the layout still), the header and footer staying put, the " +
     "focus ring, the page fitting",
 );

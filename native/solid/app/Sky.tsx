@@ -429,10 +429,11 @@ const mixColor = (from: number[], to: number[], m: number): number[] =>
  * that is — the label through the text's own four floats (`ui.value` on its id), which its box does not hold.
  *
  * The feed is **windowed** (src/virtual.ts): only the cards the viewport shows plus an overscan are declared, with a
- * spacer above and below. The cards' heights differ, so the window is measured: each declared card's `ui.bounds` height
- * is kept by index, unseen cards use the mean of the measured ones, and the spacers reproduce the whole feed's layout.
- * The scroll's clamp and the thumb read the *real* content (`src/virtual.ts`'s `content`, the block plus the feed's two
- * 12px paddings), never the declared subset's, so the bar and both ends behave as they did with every card declared.
+ * spacer above and below. The cards' heights differ, so the window is measured, and it **measures once, then
+ * virtualizes**: while a card's height is unknown the whole feed is declared (one frame of the full declare), so every
+ * frame after it has exact heights and the content's end and the thumb never move as a card is first seen. The scroll's
+ * clamp and the thumb read the *real* content (`src/virtual.ts`'s `content`, the block plus the feed's two 12px
+ * paddings), never the declared subset's, so the bar and both ends behave as they did with every card declared.
  */
 export function Sky(props: {
   input: Input;
@@ -531,8 +532,8 @@ export function Sky(props: {
   const active = () => tabs.selected();
   const feed = () => feeds[active()]!;
 
-  // the first screenful's cards, so their mount entry starts on the first frame; and the window the tree shows before the
-  // first tick (the first layout has no height yet, which is the overscan around the top)
+  // the first screenful's cards, so their mount entry starts on the first frame; and the column the tree shows before the
+  // first tick: with no height measured yet the window declares the whole feed (the measuring pass)
   for (let i = 0; i < Math.min(ENTRY_CARDS, feed().posts.length); i++) cardFx(i);
   const firstWin = measuredWindow({
     offset: 0,
@@ -646,7 +647,8 @@ export function Sky(props: {
   /** One frame: the cards' and the tabs' motion at the scroll's clock (so a frame is one instant), then the feed's own
    *  scroll (src/vscroll.ts), which retargets on the wheel and a key and writes the offset to Clay's clip element; then
    *  the window that offset shows. The heights are the last frame's `ui.bounds` of each declared card: a card's own
-   *  height does not depend on where the window put it, so one measurement serves every frame after its first. */
+   *  height does not depend on where the window put it, so one measurement serves every frame after its first — and while
+   *  the window is the measuring pass's (every card declared) that is the whole feed in one frame. */
   const tick = (dt: number) => {
     const t = feedScroll.now;
     // the selection first: a tab that becomes active starts its underline at once (a frame later would flash the
@@ -681,9 +683,10 @@ export function Sky(props: {
     }
     if (keep.join() !== underlined().join()) setUnderlined(keep);
     if (hotNow.size !== hot().size || [...hotNow].some((i) => !hot().has(i))) setHot(hotNow);
-    // the real content (all the cards, the measured ones and the fallback for the rest, and both paddings), then the
+    // the real content (every card of the feed, all of them measured once the pass is over, and both paddings), then the
     // offset as the track presents it, then the window it shows. A track that was at the old end follows the content's
-    // new one: as the last cards are measured the estimate moves, and a key's End must still land on the real end.
+    // new one while the pass is running (its frames read the mean's estimate), and a key's End must still land on the
+    // real end.
     const oldMax = Math.max(0, content - viewH());
     const atEnd = oldMax > 0 && Math.abs(feedScroll.target() - oldMax) <= 0.5;
     const count = feed().posts.length;
