@@ -7,13 +7,17 @@
 //
 // The palette is terminal/sky_styles.ts's (apps/csssky-tui's styles.ts, read only): the sky palette in the dark theme here,
 // the light one under THEME=light.
-// A card click records the selection and opens **the thread screen** (the second screen of this page, below the same bar):
-// the post as the focused card, its replies indented by depth, a tombstone row, and the "Show N more replies" row a branch
-// cut at the app's depth limit ends in. The thread is a root float over the content area, so the feed stays declared and
-// untouched under it (its offset and its selected card), and the screen comes in and goes out as one group (12px, alpha,
-// 0.3s) — the page's own card entry, through `presence`. The body is the first text on these pages that wraps: it is a
-// text in a stretch box in a card of percent width, and Clay wraps a text element only when something constrains its
-// width (a clip element lets its children grow past the viewport).
+// A card click records the selection and opens **the thread screen** (the second screen of this page, below the same
+// bar): the post the card's at-uri names, fetched from the AppView, as the focused card, then the app's own flattening of
+// its reply tree (apps/csssky-tui's rowsOf): post rows indented by depth, the tombstones' words, and the "Show N more
+// replies" row a branch cut at the app's depth limit ends in. The screen opens **immediately in its loading state** — the
+// header and one muted row — and the answer lands in the rows, or in an error state with a Retry row: the loader is the
+// page's own prop (`load`, `main.ts`'s is the AppView's getPostThread, the tests' a promise they settle). The thread is a
+// root float over the content area, so the feed stays declared and untouched under it (its offset and its selected card),
+// and the screen comes in and goes out as one group (12px, alpha, 0.3s) — the page's own card entry, through
+// `presence`. The body is the first text on these pages that wraps: it is a text in a stretch box in a card of percent
+// width, and Clay wraps a text element only when something constrains its width (a clip element lets its children grow
+// past the viewport).
 import * as css from "cssints/clay" with { type: "cssints" };
 import { createSignal, For, onCleanup, Show } from "solid-js";
 
@@ -27,9 +31,14 @@ import { ui } from "../src/ffi.ts";
 import type { FocusPart, Input } from "../src/input.ts";
 import { FIELDS, variant } from "../src/pack.ts";
 import type { State } from "../src/pack.ts";
-// the thread's words and its depth limit: the app's own (apps/csssky/src/thread/model.ts, the helpers
-// apps/csssky-tui's rowsOf uses), imported rather than copied, as csssky-tui imports them
-import { goneText, MAX_DEPTH, moreLabel } from "../../../apps/csssky/src/thread/model.ts";
+// the app's own thread model: rowsOf flattens a ThreadScreen (the API's ThreadNode over PostView) the way csssky-tui's
+// rows and the terminal's cells do, and the words (goneText, moreLabel), the sort (topFirst) and the depth cut
+// (MAX_DEPTH) are the app's, imported rather than copied. Its PostView becomes this page's card in `postOf` below.
+import { topFirst } from "../../../apps/csssky/src/api.ts";
+import type { threadScreen, ThreadNode } from "../../../apps/csssky/src/api.ts";
+import { embedParts } from "../../../apps/csssky/src/post/model.ts";
+import { mediaText, rowsOf } from "../../../apps/csssky-tui/src/model.ts";
+import type { AppBskyFeedDefs } from "@atcute/bluesky";
 
 // the sky palette: the page, the card one tonal step above it (its top; the gradient's deep end is a step below), the
 // hover step, the muted step and the accent blue; the ring is the same blue the other pages use.
@@ -253,7 +262,8 @@ const threadRow2 = css.cn(css.width("stretch"), css.paddingLeft(32));
 const threadRow3 = css.cn(css.width("stretch"), css.paddingLeft(48));
 const threadRow4 = css.cn(css.width("stretch"), css.paddingLeft(64));
 const threadRowIndent = [threadRow0, threadRow1, threadRow2, threadRow3, threadRow4];
-// a tombstone: the app's tombstone card, its own words (goneText), no author and no counts
+// a tombstone — and the loader's own one or two rows (loading, the error and its retry): the app's tombstone card, its
+// own words (goneText, or the state's line), no author and no counts
 const tomb = css.cn(css.width("100%"), css.p(12), css.gap(8), css.flexDirection("column"), css.bg(t.color.panel), css.borderRadius(12));
 const tombText = css.cn(font.Roboto, css.color(t.color.muted), css.fontSize(14), css.lineHeight(20), css.whiteSpace("normal"));
 // the "Show N more replies" row: the app's outlined button, the accent's words
@@ -351,8 +361,10 @@ export function num(v: number, unit = 1000, suffix = "K"): string {
   return `${r}${suffix}`;
 }
 
-/** One post of a feed: the record's fields as the fixtures carry them (terminal/sky.c's SkyPost). */
+/** One post of a feed: the fields the card draws (terminal/sky.c's SkyPost), and the at-uri its thread is opened from —
+ *  the loader's argument, so a card that the page cannot open (no uri) does nothing. */
 export interface Post {
+  readonly uri: string; // at://<actor>/app.bsky.feed.post/<rkey>
   readonly name: string; // "" when the record has no display name: the handle is the name then
   readonly handle: string;
   readonly text: string;
@@ -371,6 +383,7 @@ interface Feed {
 // apps/csssky/test/fixtures/home-discover-1.json (feed[20], [23], [9])
 const DISCOVER: readonly Post[] = [
   {
+    uri: "at://did:plc:ccscygoww4uf76s5eyu7pqut/app.bsky.feed.post/3mwviv6b3u22w",
     name: "Michael Warburton",
     handle: "michaelwarburton.bsky.social",
     text: "René Magritte at work in his living room in 1964",
@@ -381,6 +394,7 @@ const DISCOVER: readonly Post[] = [
     created: 1790948585,
   },
   {
+    uri: "at://did:plc:p32pqknh5qh7yjpylmzlgnqo/app.bsky.feed.post/3mwvn4tpt4s23",
     name: "Titania",
     handle: "titaniasrealm.bsky.social",
     text: "The Witch's Cat (1955) by Hilda Boswell",
@@ -391,6 +405,7 @@ const DISCOVER: readonly Post[] = [
     created: 1790953138,
   },
   {
+    uri: "at://did:plc:ljtkbowqaiooic3koshhwsxl/app.bsky.feed.post/3mwvjrzq2pk2i",
     name: "",
     handle: "alexjungle.bsky.social",
     text: "A man in China dislocates his shoulder playing basketball, and a foreigner saves the day.",
@@ -404,6 +419,7 @@ const DISCOVER: readonly Post[] = [
 // apps/csssky/test/fixtures/home-science-1.json (feed[11], [13], [25])
 const SCIENCE: readonly Post[] = [
   {
+    uri: "at://did:plc:5x72aocwx5dlm56hzefcmkhr/app.bsky.feed.post/3mwvpfejk2k2g",
     name: "Erik Strub",
     handle: "erikstrub.bsky.social",
     text:
@@ -416,6 +432,7 @@ const SCIENCE: readonly Post[] = [
     created: 1790955571,
   },
   {
+    uri: "at://did:plc:yh5kl53hwy7rhahgcsuyef5a/app.bsky.feed.post/3mwvoy6gt7k23",
     name: "David Blanchflower BSc",
     handle: "davidbflower.bsky.social",
     text: "Tonight Mars continues to near the Beehive Cluster. Early on Monday morning joined by the Waning Crescent Moon.",
@@ -425,6 +442,7 @@ const SCIENCE: readonly Post[] = [
     created: 1790955129,
   },
   {
+    uri: "at://did:plc:fgg73erlhkthcabpjgaieykp/app.bsky.feed.post/3mwvmpqfeis2v",
     name: "Jason GRIZZLED Bittel",
     handle: "bittelmethis.bsky.social",
     text: "Wondering what the big deal is about a few little bugs? Here's why the wine and beer industries are worried about spotted lanternflies!",
@@ -443,112 +461,121 @@ const FEEDS: readonly Feed[] = [
 
 /** The record a card renders for the frame a tab switch empties its feed: the node is removed in the same flush, but a
  *  card content's effect can run before the `For` takes it away, and `posts[i]` is not there any more. */
-const BLANK: Post = { name: "", handle: "", text: "", replies: 0, reposts: 0, likes: 0, created: 0 };
+const BLANK: Post = { uri: "", name: "", handle: "", text: "", replies: 0, reposts: 0, likes: 0, created: 0 };
 
-// ---- the thread's data: apps/csssky's recorded thread (test/fixtures/thread.json), its posts verbatim ---------------
-// The root is the post whose card was clicked; the replies are the recorded thread's, as a tree the app's own cut walks.
-// A reply is a post with its replies, or a tombstone (the app's three states); `cut` flattens one as
-// apps/csssky-tui/src/model.ts's rowsOf does: a post row at its depth, a tombstone row, and — a branch cut at the app's
-// MAX_DEPTH — a "Show N more replies" row one level in, which opens that post's own thread. rowsOf itself is not reused:
-// its nodes are the API's ThreadNode over PostView (uri, cid, author, record), and this page's cards are the six-field
-// `Post` the feed already draws.
-interface Reply {
-  readonly post?: Post; // absent: a tombstone
-  readonly why?: keyof typeof goneText;
-  readonly kids: readonly Reply[];
+// ---- the thread's data: the AppView's screen, through the app's own model ----------------------------------------------
+// A screen is what `apps/csssky/src/api.ts`'s threadScreen returns: the parents above the post (the chain the screen
+// draws first, all at depth 0) and the root (the post the screen is about, `focus` in rowsOf's rows) with its reply tree.
+// The page's rows are `rowsOf` over it — the app's cut at MAX_DEPTH, its sort (topFirst), its words (goneText,
+// moreLabel) — and each of its PostViews becomes the card below in `postOf`, the six fields the feed draws.
+export type ThreadScreen = Awaited<ReturnType<typeof threadScreen>>;
+
+/** The page's one async boundary: a thread's screen for a post's at-uri. A promise (the AppView's), or the screen itself
+ *  when it is already at hand (the recorded fixture of an offline frame, a test); a throw is the error state. */
+export type Loader = (uri: string) => ThreadScreen | Promise<ThreadScreen>;
+
+/** The AppView's getPostThread, the call `apps/csssky/src/api.ts` makes: the same endpoint, the same query (`depth` 6 is
+ *  the replies' levels, the API's default; `parentHeight` 20 the parents the screen shows). No retry — a thread is a
+ *  screen the reader asked for and can ask again (the error state's Retry row) — and a timeout, so a dead network is
+ *  that error state and not a spinner forever. */
+export const APPVIEW = "https://public.api.bsky.app";
+export const THREAD_TIMEOUT = 8000; // ms
+export const threadUrl = (uri: string) =>
+  `${APPVIEW}/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}&depth=6&parentHeight=20`;
+
+export const fetchThread: Loader = async (uri) => {
+  const r = await fetch(threadUrl(uri), { signal: AbortSignal.timeout(THREAD_TIMEOUT) });
+  if (!r.ok) throw new Error(`getPostThread: HTTP ${r.status}`);
+  const body = (await r.json()) as { thread: unknown };
+  return screenOf(body.thread);
+};
+
+/** A thread view as it comes off the wire: the unions' branches the screen cares about. */
+interface RawNode {
+  $type?: string;
+  post?: AppBskyFeedDefs.PostView;
+  replies?: readonly RawNode[];
+  parent?: RawNode;
+  uri?: string;
 }
-/** One row of the screen, in rowsOf's shape: a post at a depth, a tombstone, or the row a cut branch ends in. */
+
+/** One node of the answer as the API's ThreadNode: a post with its replies (topFirst's order, as the app sorts them),
+ *  or a tombstone. api.ts's node() also moderates by labeler verdict; this page has no labels, so a hidden post would be
+ *  drawn (README's "not here"). */
+function nodeOf(t: RawNode): ThreadNode {
+  if (t.$type === "app.bsky.feed.defs#threadViewPost" && t.post)
+    return { kind: "post", post: t.post, replies: (t.replies ?? []).map(nodeOf).sort(topFirst) };
+  return {
+    kind: "gone",
+    why: t.$type === "app.bsky.feed.defs#blockedPost" ? "blocked" : "notFound",
+    uri: t.uri ?? "",
+  };
+}
+
+/** The recorded (or fetched) `getPostThread` answer's `thread`, as threadScreen's return: the parents from the nearest
+ *  outward (a handle resolves in the at-uri, as in the app), then the root. */
+export function screenOf(thread: unknown): ThreadScreen {
+  const t = thread as RawNode;
+  if (t.$type !== "app.bsky.feed.defs#threadViewPost") return { parents: [], root: nodeOf(t) };
+  const parents: ThreadNode[] = [];
+  for (let p = t.parent; p; p = p.$type === "app.bsky.feed.defs#threadViewPost" ? p.parent : undefined)
+    parents.unshift(nodeOf(p));
+  return { parents, root: nodeOf(t) };
+}
+
+/** A row of the screen: rowsOf's post (at its depth, the root `focus`ed), its tombstone (`note`), the row a cut branch
+ *  ends in (`more`, `open` being the post whose thread it opens), and the loader's own three. */
 type Row =
-  | { readonly kind: "post"; readonly post: Post; readonly depth: number }
-  | { readonly kind: "gone"; readonly text: string; readonly depth: number }
-  | { readonly kind: "more"; readonly text: string; readonly depth: number; readonly open: Thread };
-/** A screen's data: the post the thread is about (the region's name, and the card with the accent border) and its rows,
- *  the root first at depth 0. */
-interface Thread {
-  readonly root: Post;
-  readonly rows: readonly Row[];
+  | { readonly kind: "post"; readonly post: Post; readonly depth: number; readonly focus: boolean }
+  | { readonly kind: "note"; readonly text: string; readonly depth: number }
+  | { readonly kind: "more"; readonly text: string; readonly depth: number; readonly open: string }
+  | { readonly kind: "loading"; readonly depth: 0 }
+  | { readonly kind: "error"; readonly depth: 0 }
+  | { readonly kind: "retry"; readonly depth: 0 };
+
+const LOADING_TEXT = "Loading the thread…";
+const ERROR_TEXT = "The thread could not be loaded";
+const LOADING: readonly Row[] = [{ kind: "loading", depth: 0 }];
+const FAILED: readonly Row[] = [{ kind: "error", depth: 0 }, { kind: "retry", depth: 0 }];
+
+/** A note row's words: the app's tombstone, or the loader's state (the retry row is never a note). */
+const noteText = (r: Row) => (r.kind === "note" ? r.text : r.kind === "loading" ? LOADING_TEXT : ERROR_TEXT);
+
+/** What the screen shows: the loader's request (its uri, and the row's one line), its answer (the screen, and the rows
+ *  the page draws it as), or its failure (the note and the retry row). */
+type State =
+  | { readonly kind: "loading"; readonly uri: string }
+  | { readonly kind: "ready"; readonly uri: string; readonly t: ThreadScreen; readonly rows: readonly Row[] }
+  | { readonly kind: "error"; readonly uri: string };
+
+/** The API's PostView as the card's record: the author, the record's text and time, the media as the terminal's line
+ *  (`mediaText`, csssky-tui's own), the counts. */
+export function postOf(p: AppBskyFeedDefs.PostView): Post {
+  const record = p.record as { text?: string; createdAt?: string };
+  const media = embedParts(p).media;
+  return {
+    uri: p.uri,
+    name: p.author.displayName ?? "",
+    handle: p.author.handle,
+    text: record.text ?? "",
+    media: media ? mediaText(media) : undefined,
+    replies: p.replyCount ?? 0,
+    reposts: p.repostCount ?? 0,
+    likes: p.likeCount ?? 0,
+    created: Math.floor(Date.parse(record.createdAt ?? p.indexedAt) / 1000),
+  };
 }
 
-const JLP: Post = {
-  name: "", // the record has no display name: the handle is the name
-  handle: "jlp2024.bsky.social",
-  text:
-    "Unfortunately you ban and flag acco7nts in accurately. But,  yeah,  you're better than Twitter.... incredible " +
-    'achievement.  \n\n"We beat the nazi bar"   congrats',
-  replies: 0,
-  reposts: 0,
-  likes: 0,
-  created: 1789065437,
-};
-const KATE: Post = {
-  name: "Katie Korth",
-  handle: "katekor.bsky.social",
-  text: "*men's sports",
-  replies: 0,
-  reposts: 0,
-  likes: 0,
-  created: 1789073379,
-};
-const MDUBS: Post = {
-  name: "Mdubs949",
-  handle: "mdubs949.bsky.social",
-  text:
-    "I like this as an aspirational statement, but it's a shame that so many professional and college teams and leagues " +
-    "post content everywhere else but here. To me, it's actually the biggest weakness of BlueSky versus other platforms.",
-  replies: 1,
-  reposts: 0,
-  likes: 4,
-  created: 1789060220,
-};
-const RYAN: Post = {
-  name: "Ryan",
-  handle: "burnercardinals.bsky.social",
-  text:
-    "The complete lack of beat writers who have moved over to Bsky also makes it a necessity to keep my X going. As a " +
-    "Packers fan, this site just doesn't have the juice for day-to-day news (like Josh Jacobs' hearing this morning). And " +
-    "for my other teams like the STL Cardinals, Bsky is useless.",
-  replies: 4,
-  reposts: 0,
-  likes: 1,
-  created: 1789060666,
-};
-
-/** Every node of the subtrees, tombstones too: the app's countAll, the number a "Show N more" row names. */
-const countAll = (nodes: readonly Reply[]): number => nodes.reduce((sum, n) => sum + 1 + countAll(n.kids), 0);
-
-/** A post's thread: the root's card first, then its replies cut at the app's depth limit (rowsOf's tail). */
-function threadOf(root: Post, replies: readonly Reply[]): Thread {
-  return { root, rows: [{ kind: "post", post: root, depth: 0 }, ...replies.flatMap((r) => cut(r, 1))] };
+/** The screen's rows, as the page draws them: the app's `rowsOf`, its PostViews mapped into this page's cards. */
+export function rowsView(t: ThreadScreen): readonly Row[] {
+  return rowsOf(t).map((r) =>
+    r.kind === "post"
+      ? { kind: "post", post: postOf(r.post), depth: r.depth, focus: r.focus === true }
+      : r.open
+        ? { kind: "more", text: r.text, depth: r.depth, open: r.open.uri }
+        : { kind: "note", text: r.text, depth: r.depth },
+  );
 }
-
-/** One reply and its branch, as rows: the post at `depth`, its replies a level in (while that is inside MAX_DEPTH), or
- *  — at the limit — a "Show N more replies" row for the post's own thread. */
-function cut(n: Reply, depth: number): Row[] {
-  if (n.post === undefined) {
-    const why = n.why ?? "notFound";
-    return [{ kind: "gone", text: goneText[why], depth }];
-  }
-  const post = n.post;
-  const rows: Row[] = [{ kind: "post", post, depth }];
-  if (depth < MAX_DEPTH) rows.push(...n.kids.flatMap((kid) => cut(kid, depth + 1)));
-  else if (n.kids.length) {
-    rows.push({ kind: "more", text: moreLabel(countAll(n.kids)), depth: depth + 1, open: threadOf(post, n.kids) });
-  }
-  return rows;
-}
-
-// The recorded replies, as the tree: jlp2024 has two replies — a tombstone (the deleted one) and Katie's — and Katie's
-// reply is Mdubs949's, whose one reply (Ryan's) is behind the cut. Four reply rows at depths 1, 2, 2 and 3, then the
-// "Show 1 more reply" row at depth 4: MAX_DEPTH is 3, so that is where the app cuts this branch too.
-const REPLIES: readonly Reply[] = [
-  {
-    post: JLP,
-    kids: [
-      { why: "notFound", kids: [] },
-      { post: KATE, kids: [{ post: MDUBS, kids: [{ post: RYAN, kids: [] }] }] },
-    ],
-  },
-];
 
 /** The feed's gap and padding, as the styles above have them (8 and 12): the measured window's arithmetic. */
 const GAP = 8;
@@ -572,6 +599,7 @@ export function synthetic(count: number): readonly Post[] {
   return Array.from({ length: count }, (_unused, i) => {
     const a = authors[i % authors.length]!;
     return {
+      uri: `at://did:plc:synthetic/app.bsky.feed.post/${i}`,
       name: a.name,
       handle: a.handle,
       text: bodies[i % bodies.length]!,
@@ -648,13 +676,15 @@ const mixColor = (from: number[], to: number[], m: number): number[] =>
  * that is — the label through the text's own four floats (`ui.value` on its id), which its box does not hold.
  *
  * **A card press opens the thread screen** (or, from a "Show N more replies" row, a deeper thread: the history is one
- * deep, so that row's back returns to the thread it came from and a card's back to the feed). The thread is a root float
+ * deep, so that row's back returns to the thread it came from and a card's back to the feed). The screen is a root float
  * over the content area, so the feed stays declared underneath — its offset and its selected card are the feed's own and
  * are not written while the thread is up — and the screen enters and leaves as one group: 12px up and 0 opacity on the
  * page's card entry's tracks (`spatial(0.3)`/`effect(0.3)`), reversed on the way out, with `presence` keeping it mounted
- * for the exit. Its two Tab stops are the back control and the clip element, which scrolls on the feed's own machine
- * (src/vscroll.ts): the wheel over it, Down/Up 40px, PageDown/PageUp a viewport, Home/End. Escape (from either of them, or
- * from the bar) and a click on a tab return to the feed; the cards are not stops.
+ * for the exit. It opens in its **loading state** (the header and one muted row) and the loader's answer replaces it: the
+ * app's rows, or the error state with a retry row. Its two Tab stops are the back control and the clip element, which
+ * scrolls on the feed's own machine (src/vscroll.ts): the wheel over it, Down/Up 40px, PageDown/PageUp a viewport,
+ * Home/End. Escape (from either of them, or from the bar) and a click on a tab return to the feed; the cards are not
+ * stops.
  *
  * The feed is **windowed** (src/virtual.ts): only the cards the viewport shows plus an overscan are declared, with a
  * spacer above and below. The cards' heights differ, so the window is measured, and it **measures once, then
@@ -668,6 +698,9 @@ export function Sky(props: {
   motion?: Motion;
   theme?: () => string | undefined;
   posts?: readonly Post[];
+  /** The thread's data: a post's at-uri in, its screen out (the AppView's call by default; a test's promise, or the
+   *  recorded fixture of an offline frame, replaces it). */
+  load?: Loader;
 }) {
   const { input } = props;
   const [focused, setFocused] = createSignal(false);
@@ -804,11 +837,12 @@ export function Sky(props: {
   const feedScroll = scroll(VIEW, maxScroll, BAR);
 
   // ---- the thread screen ---------------------------------------------------------------------------------------------
-  // the open thread's data (kept while its exit runs), whether the screen is open, and the thread it was opened from — the
-  // history is one deep, so a "Show N more replies" row's back returns to the thread it came from and a card's to the feed
-  const [thread, setThread] = createSignal<Thread | null>(null);
+  // what the screen shows (a loader's answer, or its own loading or error state — kept while its exit runs), whether it
+  // is open, and the screen it was opened from — the history is one deep, so a "Show N more replies" row's back returns
+  // to the thread it came from and a card's to the feed
+  const [state, setState] = createSignal<State | null>(null);
   const [threadOpen, setThreadOpen] = createSignal(false);
-  const [parent, setParent] = createSignal<Thread | null>(null);
+  const [parent, setParent] = createSignal<{ readonly uri: string; readonly t: ThreadScreen } | null>(null);
   // whether the screen's node is in the tree this frame: the presence's answer, set by the tick before the flush
   const [threadShown, setThreadShown] = createSignal(false);
   const [threadFocused, setThreadFocused] = createSignal(false);
@@ -832,27 +866,74 @@ export function Sky(props: {
    *  starts at its top, even when the thread it replaces was scrolled. */
   let threadScroll: Scroll = scroll(THREAD_VIEW, threadMax, THREAD_BAR);
 
-  /** Opens a thread: its rows, the thread it came from (null for a card's), and the focus on its back control. The entry
-   *  is the presence's (it starts on the frame this is called on, which is the tick's). */
-  const openThread = (next: Thread, from: Thread | null) => {
+  // the loader the page asks (the AppView's by default; main.ts's flag, or a test's promise, replaces it) and the count of
+  // asks, so an answer that a back, a tab or a second open overtook cannot land on the screen it was not asked for
+  const load = props.load ?? fetchThread;
+  let asked = 0;
+  /** Asks the loader for a post's thread and lands the answer in the state it belongs to: the loading state at once, then
+   *  the rows, or the error state the retry row is offered from. Nothing throws out of here: a loader that throws does
+   *  so inside this call, and one that rejects in a promise. */
+  const ask = (uri: string) => {
+    const n = ++asked;
+    const land = (s: State) => {
+      if (n === asked) setState(s);
+    };
+    setState({ kind: "loading", uri });
+    let answer: ThreadScreen | Promise<ThreadScreen>;
+    try {
+      answer = load(uri);
+    } catch {
+      return land({ kind: "error", uri });
+    }
+    if (typeof answer.then !== "function") return land({ kind: "ready", uri, t: answer, rows: rowsView(answer) });
+    answer.then(
+      (t) => land({ kind: "ready", uri, t, rows: rowsView(t) }),
+      () => land({ kind: "error", uri }),
+    );
+  };
+  /** The rows the screen draws this frame: the loader's answer's, or the one or two rows its own state has. */
+  const rows = (): readonly Row[] => {
+    const s = state();
+    if (s === null) return [];
+    return s.kind === "ready" ? s.rows : s.kind === "loading" ? LOADING : FAILED;
+  };
+  /** The post the screen is about: rowsOf's `focus` row (the root; a parent is drawn above it at the same depth). It names
+   *  the region, and it is the card with the accent border, the app's focused post. */
+  const headPost = (): Post | undefined => {
+    for (const r of rows()) if (r.kind === "post" && r.focus) return r.post;
+    return undefined;
+  };
+  /** The screen the history goes back to: this one, once it has an answer. */
+  const here = () => {
+    const s = state();
+    return s?.kind === "ready" ? { uri: s.uri, t: s.t } : null;
+  };
+
+  /** Opens a thread: the loader is asked for its screen, the screen it came from (null for a card's) is kept for back,
+   *  and the open state mounts it — on this frame's tick, in its loading state, so the row's words are what the mount's
+   *  entry draws. The entry is the presence's. */
+  const openThread = (uri: string, from: { readonly uri: string; readonly t: ThreadScreen } | null) => {
     threadScroll = scroll(THREAD_VIEW, threadMax, THREAD_BAR);
-    setThread(next);
     setParent(from);
     setThreadOpen(true);
+    ask(uri);
   };
-  /** Back: one step of the one-deep history, else the feed. */
+  /** Back: one step of the one-deep history, else the feed. The thread it came from is restored as the answer it already
+   *  had (no second request) and an answer still on its way is dropped (`ask`'s token). */
   const leaveThread = () => {
     const up = parent();
+    asked++;
     if (up === null) {
       setThreadOpen(false);
       return;
     }
     threadScroll = scroll(THREAD_VIEW, threadMax, THREAD_BAR);
-    setThread(up);
+    setState({ kind: "ready", uri: up.uri, t: up.t, rows: rowsView(up.t) });
     setParent(null);
   };
   /** The bar's tabs: the feed, whatever the history says. */
   const closeThread = () => {
+    asked++;
     setParent(null);
     setThreadOpen(false);
   };
@@ -1087,14 +1168,14 @@ export function Sky(props: {
     }
     tfx.open = open;
     // the node has left: the data it showed is no longer needed
-    if (!mounted && thread() !== null) setThread(null);
+    if (!mounted && state() !== null) setState(null);
     stops(open);
     if (mounted) {
       // the rows' real content from the last frame's layout (the last row's bottom, the clip's own offset added back, and
       // the 12px padding below it), then the offset the machine presents and the fade of its thumb
-      const rows = thread()?.rows ?? [];
+      const shown = rows();
       const view = ui.bounds(threadViewId);
-      const last = rows.length ? ui.bounds(Buffer.from(`sky-thread-row-${rows.length - 1}`)) : undefined;
+      const last = shown.length ? ui.bounds(Buffer.from(`sky-thread-row-${shown.length - 1}`)) : undefined;
       // the offset is Clay's (negative down), the last row's bounds are drawn shifted by it: adding the presented offset
       // back gives the row's place in the content, and the content ends 12px below it
       if (view && last) threadContent = Math.max(0, last[1] + last[3] - view[1] - ui.scrollOffset(THREAD_VIEW) + PAD);
@@ -1194,12 +1275,12 @@ export function Sky(props: {
                 }
                 onClick={() => {
                   // a press that dragged the feed is not a click on the card it started on; one that did not selects the
-                  // card and opens that post's thread
+                  // card and opens that post's thread, by the record's own at-uri (no uri, no thread)
                   if (feedScroll.dragged) return;
                   const p = feed().posts[i];
-                  if (!p) return;
+                  if (!p?.uri) return;
                   setSelected({ feed: active(), i });
-                  openThread(threadOf(p, REPLIES), null);
+                  openThread(p.uri, null);
                 }}
               >
                 <box id={`sky-avatar-${i}`} style={AVATARS[post().handle.split(".")[0]!]!} />
@@ -1232,10 +1313,11 @@ export function Sky(props: {
         <text style={s.statusText}>{statusOf()}</text>
       </box>
       {/* the thread screen: a root float over the content area, its header (the back control and the title) above its own
-          clip element. The region is named by the post's author; the rows are the root's card and the replies', indented
-          by depth, and a "Show N more replies" row is a button */}
+          clip element. The region is named by the root's author; the rows are the app's: the posts at their depths, a
+          tombstone's words as a note, a "Show N more replies" row as a button, and — while the loader has no answer — the
+          one muted row its state has, the error one beside the retry it offers */}
       <Show when={threadShown()}>
-        <box id={THREAD} role="region" label={`Thread — @${thread()?.root.handle ?? ""}`} style={s.thread}>
+        <box id={THREAD} role="region" label={headPost() ? `Thread — @${headPost()!.handle}` : "Thread"} style={s.thread}>
           <box id={HEAD} style={s.head}>
             <box {...backBind} {...a11y(back.part)} label="Back" style={s.back}>
               <text style={s.backText}>Back</text>
@@ -1247,7 +1329,7 @@ export function Sky(props: {
             onPress={() => (regionBind.onPress(), threadScroll.press())}
             style={s.threadView}
           >
-            <For each={thread()?.rows ?? []}>
+            <For each={rows()}>
               {(row, index) => (
                 <box id={`sky-thread-row-${index()}`} style={s.threadRowIndent[Math.min(row.depth, 4)]!}>
                   {row.kind === "post" ? (
@@ -1255,9 +1337,9 @@ export function Sky(props: {
                       id={`sky-thread-card-${index()}`}
                       role="article"
                       label={row.post.name || row.post.handle}
-                      style={index() === 0 ? s.cardOn : s.card}
+                      style={row.focus ? s.cardOn : s.card}
                     >
-                      {index() === 0 && AVATARS[row.post.handle.split(".")[0]!] ? (
+                      {row.focus && AVATARS[row.post.handle.split(".")[0]!] ? (
                         <box id="sky-thread-avatar" style={AVATARS[row.post.handle.split(".")[0]!]!} />
                       ) : null}
                       <box style={s.nameLine}>
@@ -1266,27 +1348,47 @@ export function Sky(props: {
                           {row.post.name ? `@${row.post.handle} · ${ago(row.post.created)}` : ago(row.post.created)}
                         </text>
                       </box>
-                      <box id={`sky-thread-body-${index()}`} style={s.bodyBox}>
-                        <text style={s.body}>{row.post.text}</text>
-                      </box>
-                      {index() === 0 && row.post.media ? <text style={s.media}>{row.post.media}</text> : null}
+                      {row.post.text ? (
+                        <box id={`sky-thread-body-${index()}`} style={s.bodyBox}>
+                          <text style={s.body}>{row.post.text}</text>
+                        </box>
+                      ) : null}
+                      {row.post.media ? <text style={s.media}>{row.post.media}</text> : null}
                       <text style={s.counts}>
                         {`${num(row.post.replies)} replies · ${num(row.post.reposts)} reposts · ${num(row.post.likes)} likes`}
                       </text>
                     </box>
-                  ) : row.kind === "gone" ? (
-                    <box id={`sky-thread-card-${index()}`} role="note" label={row.text} style={s.tomb}>
-                      <text style={s.tombText}>{row.text}</text>
+                  ) : row.kind === "note" || row.kind === "loading" || row.kind === "error" ? (
+                    <box
+                      id={`sky-thread-card-${index()}`}
+                      role="note"
+                      label={noteText(row)}
+                      style={s.tomb}
+                    >
+                      <text style={s.tombText}>{noteText(row)}</text>
+                    </box>
+                  ) : row.kind === "more" ? (
+                    <box
+                      id={`sky-thread-card-${index()}`}
+                      role="button"
+                      label={row.text}
+                      onClick={() => openThread(row.open, here())}
+                      style={s.more}
+                    >
+                      <text style={s.moreText}>{row.text}</text>
                     </box>
                   ) : (
                     <box
                       id={`sky-thread-card-${index()}`}
                       role="button"
-                      label={row.text}
-                      onClick={() => openThread(row.open, thread())}
+                      label="Retry"
+                      onClick={() => {
+                        const s = state();
+                        if (s) ask(s.uri);
+                      }}
                       style={s.more}
                     >
-                      <text style={s.moreText}>{row.text}</text>
+                      <text style={s.moreText}>Retry</text>
                     </box>
                   )}
                 </box>

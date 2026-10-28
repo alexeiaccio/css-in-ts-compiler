@@ -165,6 +165,15 @@ bun solid/a11y.test.ts
 # metamorphic relations (Rune's research 14): a pass-through wrapper, a whole-pixel move, wrap monotonicity, and the same
 # tree twice in one process — properties with no stored frame and no oracle
 bun solid/metamorphic.test.ts
+# the Sky thread's data is the AppView's now (the page's `load` prop; solid/app/Sky.tsx), and a stored frame never fetches:
+# a --png/--expect run loads apps/csssky's recorded getPostThread answer (apps/csssky/test/fixtures/thread.json) through
+# the page's own shaping of it, which is what the five thread frames above show (`--offline` says so for a run that writes
+# no frame). The loader's other two states have frames of their own: `--pending` a promise that never settles (the
+# muted "Loading the thread…" row) and `--fail` a loader that throws ("The thread could not be loaded" and its Retry).
+# Nothing here makes a request; solid/thread.test.ts injects its own promises.
+$S --offline --warm 40 --click 180 380 --settle 40 --expect solid/frames/sky-thread.png
+$S --offline --warm 40 --click 180 380 --settle 40 --pending --expect solid/frames/sky-thread-loading.png
+$S --offline --warm 40 --click 180 380 --settle 40 --fail --expect solid/frames/sky-thread-error.png
 # the dev page (the map's item 7, first half): the Widgets page with a panel beside it — its a11y tree, the box under the
 # pointer and the frame's four phases (solid/app/Dev.tsx, 660x760). The page on the left is the same component the
 # `widgets` page runs, so the frames below show it unchanged. Its four stored frames are NOT compared: the panel prints
