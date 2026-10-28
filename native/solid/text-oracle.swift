@@ -25,8 +25,11 @@ struct Row: Decodable {
 }
 
 struct Spec: Decodable {
+    /// The layout's size in Clay units.
     let width: Int
     let height: Int
+    /// Device pixels per Clay unit: the window's pixel density (2 on a Retina screen), 1 for the stored frames.
+    let scale: Double?
     let bg: [Double]
     let fg: [Double]
     let font: String
@@ -52,15 +55,17 @@ if !CTFontManagerRegisterFontsForURL(url, .process, &error) {
 guard let descriptors = CTFontManagerCreateFontDescriptorsFromURL(url) as? [CTFontDescriptor], let face = descriptors.first
 else { die("cannot read a font face from \(spec.font)") }
 
+let scale = spec.scale ?? 1
+let width = Int((Double(spec.width) * scale).rounded()), height = Int((Double(spec.height) * scale).rounded())
 guard let ctx = CGContext(
     data: nil,
-    width: spec.width,
-    height: spec.height,
+    width: width,
+    height: height,
     bitsPerComponent: 8,
-    bytesPerRow: spec.width * 4,
+    bytesPerRow: width * 4,
     space: CGColorSpace(name: CGColorSpace.sRGB)!,
     bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
-) else { die("cannot make a \(spec.width)x\(spec.height) bitmap") }
+) else { die("cannot make a \(width)x\(height) bitmap") }
 
 // the spec's colours are 0..255 bytes, as the frame's are
 let srgb = CGColorSpace(name: CGColorSpace.sRGB)!
@@ -69,7 +74,7 @@ func color(_ c: [Double]) -> CGColor {
 }
 let bg = color(spec.bg), fg = color(spec.fg)
 ctx.setFillColor(bg)
-ctx.fill(CGRect(x: 0, y: 0, width: spec.width, height: spec.height))
+ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
 ctx.setAllowsAntialiasing(true)
 ctx.setShouldAntialias(true)
 ctx.setAllowsFontSmoothing(false)
@@ -81,7 +86,7 @@ ctx.setShouldSubpixelQuantizeFonts(false)
 ctx.setFillColor(fg)
 
 for row in spec.rows {
-    let font = CTFontCreateWithFontDescriptor(face, CGFloat(row.size), nil)
+    let font = CTFontCreateWithFontDescriptor(face, CGFloat(row.size * scale), nil)
     let attributed = NSAttributedString(
         string: row.text,
         attributes: [
@@ -91,8 +96,8 @@ for row in spec.rows {
     )
     let line = CTLineCreateWithAttributedString(attributed)
     // Clay's y is the top of the line; CoreGraphics' origin is the bottom-left of the bitmap
-    let baseline = Double(spec.height) - (row.y + Double(CTFontGetAscent(font)))
-    ctx.textPosition = CGPoint(x: row.x, y: baseline)
+    let baseline = Double(height) - (row.y * scale + Double(CTFontGetAscent(font)))
+    ctx.textPosition = CGPoint(x: row.x * scale, y: baseline)
     CTLineDraw(line, ctx)
 }
 

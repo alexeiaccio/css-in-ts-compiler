@@ -50,6 +50,8 @@
 //                                        and a second column past the viewport's edge (the horizontal axis of the scroll
 //                                        machine: --wheel-x scrolls it, and a shift+vertical wheel in the window does too)
 //   --posts N                            the Sky's Discover feed: N synthetic posts instead of its three fixtures
+//   --density N                          the raster's pixel density (the window's, 2 on a Retina screen): the same layout
+//                                        in N times the pixels; the frame written is that much larger (default 1)
 //   --raster thorvg|thorvg-gpu           the ThorVG software canvas (the default) or its WebGPU canvas, the frame read
 //                                        back; the latter needs a libui.dylib from desktop/build-thorvg-gpu.sh solid
 //   --frames N                           window: close after N frames (a smoke test)
@@ -111,6 +113,8 @@ const idleKeys = Number(arg("--idle-keys")?.[0] ?? 0);
 // the raster: ThorVG's software canvas (the default) or its WebGPU one, when the dylib was built for it
 const gpu = arg("--raster")?.[0] === "thorvg-gpu";
 const maxFrames = Number(arg("--frames")?.[0] ?? Infinity);
+// the raster's pixel density: headless is 1, a Retina window is 2
+const density = Number(arg("--density")?.[0] ?? 1);
 // reduced motion is the platform's ask, not a page's: one flag, read here and by the window alike
 const reducedMotion = process.argv.includes("--reduced-motion") || process.env.REDUCED_MOTION === "1";
 let theme = process.env.THEME === "light" ? "light" : undefined;
@@ -146,7 +150,11 @@ const H =
               ? sheetSize.height
               : 360;
 
-if ((gpu ? ui.initGpu(W, H) : ui.init(W, H)) || ui.font(new URL("../vendor/fonts/Roboto-Regular.ttf", import.meta.url).pathname) < 0) {
+if (
+  (gpu ? ui.initGpu(W, H) : ui.init(W, H)) ||
+  (density !== 1 && !ui.density(density)) ||
+  ui.font(new URL("../vendor/fonts/Roboto-Regular.ttf", import.meta.url).pathname) < 0
+) {
   console.error("ui_init or ui_font failed (is thorvg installed, and build/solid/libui.dylib built?)");
   process.exit(1);
 }

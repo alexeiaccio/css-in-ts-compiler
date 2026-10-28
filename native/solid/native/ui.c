@@ -187,6 +187,10 @@ static int init(int w, int h, int want_gpu)
 
 int ui_init(int w, int h) { return init(w, h, 0); }
 
+/** The raster's pixel density, as the window's is (SDL's density: 2 on a Retina screen) and headless 1: the same layout
+ *  drawn into that many more pixels. The text oracle measures 2, which is what a window on this Mac actually draws. */
+int ui_density(float scale) { return retarget(scale > 0.5f ? scale : 1); }
+
 /** The same page on ThorVG's WebGPU canvas (wgpu-native on Metal), its frames read back into the same buffer. */
 int ui_init_gpu(int w, int h) { return init(w, h, 1); }
 
