@@ -71,6 +71,8 @@ jobs:
         with:
           node-version: 24
       - run: bun install --frozen-lockfile
+      # the deploy builds the site here, and its config imports cssints/vite from the packages' dist
+      - run: bun run build:packages
       - name: Deploy
         working-directory: apps/ui
         run: bun alchemy deploy --stage prod --yes
