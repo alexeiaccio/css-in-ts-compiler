@@ -14,6 +14,9 @@
 //                                        ref.png.actual.png on a difference
 //   --click X Y                          headless: a press and a release at X,Y before the frame that is written
 //                                        (frame 0 lays out, pressed in 1, released in 2, frame 3 is written)
+//   --click2 X Y                         headless: a second press and release, after the wheel, the keys and the settle, for a
+//                                        row that only shows once a page has scrolled (the Sky thread's "Show N more replies")
+//   --settle2 N                          headless, with --click2: N more frames at rest after it, for the motion it starts
 //   --touch FX FY                        headless: the same click as a finger's, at the window's normalised FX,FY
 //                                        (0..1, so 0.5,0.5 is its middle): the point goes through ui_touch_map, the same
 //                                        mapping the window poll gives SDL's finger events, and the frames carry the
@@ -82,6 +85,8 @@ const arg = (name: string, n = 1) => {
 const png = arg("--png")?.[0];
 const expect = arg("--expect")?.[0];
 const click = arg("--click", 2)?.map(Number);
+// headless: a second click, after the wheel, the keys and the settle — and the frames at rest after it
+const click2 = arg("--click2", 2)?.map(Number);
 // headless: a finger's click, at a point normalised to the window (ui_touch_map turns it into the pointer's pixels)
 const touch = arg("--touch", 2)?.map(Number);
 // headless: a hover: the pointer to X,Y after the settle, N frames there (no press)
@@ -101,6 +106,7 @@ const wheelOver = arg("--wheel-over")?.[0] ?? "list";
 // headless: a frame of rest between wheel notches, so a long scripted run is the notches' own 10px each and not a flick
 const wheelRest = process.argv.includes("--wheel-rest");
 const settle = Number(arg("--settle")?.[0] ?? 0);
+const settle2 = Number(arg("--settle2")?.[0] ?? 0);
 const bench = Number(arg("--bench")?.[0] ?? 0);
 // the pages' data: the List's rows, and a synthetic Discover feed for the Sky (the window's own test pages)
 const count = Number(arg("--count")?.[0] ?? 30);
@@ -284,6 +290,12 @@ if (headless) {
   }
   // the motion at rest: a page with a track needs frames after the input, not one
   for (let n = 0; n < settle; n++) step(settleAt[0], settleAt[1], false);
+  // a second click, now that a scroll has brought its row into view (the Sky thread's more row), then its own settle
+  if (click2) {
+    for (let n = 0; n < 4; n++) step(click2[0]!, click2[1]!, n === 1, n === 1 || n === 2);
+    for (let n = 0; n < settle2; n++) step(click2[0]!, click2[1]!, false);
+    settleAt = [click2[0]!, click2[1]!];
+  }
   // a hover, at a page that is at rest: the pointer moves there and N frames run, no press (a mid-fade frame is what a
   // stored one is for; the last of the N is written)
   if (move) for (let n = 0; n < (move[2] ?? 3); n++) step(move[0]!, move[1]!, false);

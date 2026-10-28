@@ -25,7 +25,8 @@ bun solid/main.ts list                           # the List page (360x400): the 
                                                  # selection and scroll it into view
 bun solid/main.ts sky                            # the Sky page (360x760): csssky's feed, the tabs switch the three
                                                  # feeds, Tab reaches the feed and Up/Down, PageUp/PageDown, Home/End
-                                                 # scroll it (the wheel scrolls it under the pointer)
+                                                 # scroll it (the wheel scrolls it under the pointer); a click on a card
+                                                 # opens its thread (a second screen: Back/Escape/a tab return to the feed)
 bun solid/main.ts widgets --warm 30 --keys Tab,Tab,Space --expect solid/frames/widgets-switch-on.png   # scripted keys, then the frame
 bun solid/main.ts dialog --keys Tab,Enter --expect solid/frames/dialog-open.png             # keyboard, headless
 bun solid/main.ts form --keys Tab,Tab,text:Ada --expect solid/frames/field-typed.png        # typed text, not a key
@@ -69,12 +70,14 @@ app/Widgets.tsx    the Widgets page: headless button, switch, checkboxes, disclo
 app/Dialog.tsx     the Dialog page: a modal dialog on a backdrop (both Clay root floats) and a menu floated off its trigger
 app/Field.tsx      the Text field page: the headless text field, its caret and selection drawn as runs, and its styles
 app/List.tsx       the List page: thirty rows in a viewport Clay clips and scrolls, the wheel and the keys, and its styles
-app/Sky.tsx        the Sky page: csssky's feed in a phone-sized window, the tablist switching it, drawn avatars, wrapped bodies
+app/Sky.tsx        the Sky page: csssky's feed in a phone-sized window, the tablist switching it, drawn avatars, wrapped
+                   bodies, and the thread screen a card opens (the replies at their depths, the "Show N more" row)
 app/Sheet.tsx      the text sheet: the app's strings at eight sizes, for the CoreText oracle and the ink-weight metric
 frames/            the pages' stored frames (the Sensors page's are in examples/sensors), and the sheet at 1x and 2x with
                    its two references: text-oracle.png and text-oracle-2x.png (CoreText), text-canvas.png (Canvas2D)
 main.ts            the host (window and headless)
-test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, list.test.ts, sky.test.ts, text.test.ts   the checks the stored frames cannot make
+test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, list.test.ts, sky.test.ts, thread.test.ts, text.test.ts
+                   the checks the stored frames cannot make
 test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, a11y.test.ts   the checks the stored frames cannot make
 ```
 
@@ -611,7 +614,8 @@ post count, or the card a click selected.
 | | |
 | --- | --- |
 | The posts | the same six `terminal/sky.c` carries, verbatim from `home-discover-1.json` (Michael Warburton, Titania, alexjungle), `home-science-1.json` (Erik Strub, David Blanchflower BSc, Jason GRIZZLED Bittel) and the app's empty News feed. `created` in seconds against the fixtures' capture moment (`SKY_NOW = 1790955571`), so `ago()` and a frame read the same today as when recorded; the counts are the app's compact numbers (`310`, `3.5K`), with words instead of the app's icons because Roboto has no retweet or heart glyph (`8 replies · 32 reposts · 310 likes`). |
-| The cards | the panel, radius 12, padding 12, gap 8, the author's 40x40 avatar, the name and the handle with its age, the body, the media line and the counts; the palette is `terminal/sky_styles.ts`'s (the sky dark and light themes, not the web app's Mu theme). A click records the card in a signal (the status line names it) and nothing else: there is no thread screen yet. |
+| The cards | the panel, radius 12, padding 12, gap 8, the author's 40x40 avatar, the name and the handle with its age, the body, the media line and the counts; the palette is `terminal/sky_styles.ts`'s (the sky dark and light themes, not the web app's Mu theme). A click records the card in a signal (the status line names it) and opens the post's thread (the row below). |
+| The thread screen | the page's second screen, under the same bar: a card's press opens the post's thread as a **root float over the content area** (696 = 760 less the bar's 64, pointer captured), so the feed stays declared underneath with its offset and its selected card and back returns to the frame the click left (0 bytes of 1,094,400). A 44px header holds the back control (a `createButton`: role `button`, label "Back", Enter/Space, and Escape as the page's back) and the word "Thread"; below it a second clip element on the page's own scroll machine (a fresh instance per opening, so a thread always starts at its top): 900px of rows in 652, 248 to scroll, a thumb `max(24, 652²/900)` = 472.34 tall with 179.66 of travel. The rows are the app's recorded thread (`test/fixtures/thread.json`) as the page's own `Post` literals: the root is the clicked post with its counts and the accent border (`cardOn`, the app's focused post), then replies whose wrapper's left padding is **16px a level** (the app's margin-left), so the cards start at x 12, 28, 44, 44, 60 and 76 — `jlp2024.bsky.social` at 1, a tombstone at 2, `Katie Korth` at 2, `Mdubs949` at 3 and the "Show 1 more reply" row at 4, which is the row a branch cut at the app's `MAX_DEPTH` (3) ends in. The rows are `apps/csssky-tui`'s `rowsOf` transcribed (its nodes are the API's `ThreadNode` over `PostView`); the words and the limit are imported from `apps/csssky/src/thread/model.ts`. Two Tab stops (the back control and the clip: Down/Up 40, PageDown/PageUp a viewport, Home/End) and no card is one; Escape and a click on a tab return to the feed, and the **history is one deep** (a "Show N more" row's thread returns to its thread, a card's to the feed). The screen enters as one group — 12px low, 0 opacity, 0.3s, the card entry's tracks — and leaves the same way reversed under `presence(0.3)`, so reduced motion has neither. The a11y tree: a `region` "Thread — @handle", an `article` per post named by its author, a `note` for the tombstone, a `button` for the more row, the covered feed pruned. |
 | The avatars | `css.image(path, { width: 40, height: 40 })` — the six committed 64x64 PNGs of `examples/sky/avatars.py` (a disc in the author's hue, transparent outside it, so the panel shows at the box's corners). The path is a literal per author because a css style is evaluated when its module loads: a page cannot build one from a loop variable. This is the first page that uses `css.image` in the Solid path. |
 | Wrapping | new on this page: a body is a `text` with `whiteSpace("normal")` and `lineHeight(20)` inside a stretch box inside a card of percent width, and Clay wraps it. (A clip element lets its children grow past the viewport for their content, so a card that must wrap cannot take its width from a stretch inside the feed: the card is `width("100%")`.) |
 | Scrolling | the feed's offset is a page-owned motion track (`solid/src/motion.ts`): a wheel notch is 10px on a spring that glides it, a burst of notches is a flick whose decay lands (clamped) at the end, and one Tab stop on the feed retargets the same track with Down/Up 40px, PageDown/PageUp a viewport and Home/End. The page turns `ui_auto_scroll` off, so Clay's own container does not also move; `ui.scrollTo("sky-feed", -x)` puts the value on it each frame. Discover's three short posts fit the 664px viewport (max 0), so the wheel frame and the test scroll **Science** (742px of content, 78px of travel). |
@@ -631,6 +635,11 @@ post count, or the card a click selected.
 | `sky-hover` | `--settle 40 --move 180 300 3` | the pointer on the second card three frames into its 120ms fade: its colour between the panel and the hover tone |
 | `sky-band` | `--warm 40 --wheel 4 --wheel-over sky-status` | Discover four notches past its end (its content is shorter than the viewport, so the first notch is already past it): the cards 21.3px out of the clamp, the top one cut, the bar and status unmoved |
 | `sky-tab-mid` | `--warm 40 --keys Tab,ArrowRight --settle 2` | a tab switch two frames in: the ring on Science, its label between the muted token and the accent (`139/152/165 → 126/152/176`), Discover's label going the other way, both underlines mid-fade |
+| `sky-thread` | `--warm 40 --click 180 380 --settle 40` | Titania's thread at rest: Back and Thread, the root card with the accent border, jlp's reply, the tombstone, Katie, Mdubs949 cut at the clip's bottom; the status line is behind the screen |
+| `sky-thread-mid` | `--warm 40 --click 180 380 --settle 2` | two frames into the entry: the screen 10px low and faint over the feed |
+| `sky-thread-scrolled` | `--warm 40 --click 180 380 --wheel 6 --wheel-rest --settle 90` | six notches down (60px, a rest frame between them so it is not a flick), the thumb faded out again |
+| `sky-thread-light` | `THEME=light --warm 40 --click 180 380 --settle 40` | the same thread in the palette's light theme |
+| `sky-thread-more` | `--warm 40 --click 180 380 --wheel 20 --wheel-over sky-thread-view --settle 90 --click2 180 730 --settle2 40` | the deeper thread the "Show 1 more reply" row opens (Mdubs949's, with Ryan's reply): the row is only in view at the thread's end, so `main.ts`'s `--click2` presses there after the settle |
 
 Checked by `bun solid/sky.test.ts`: `ago()`/`num()`, the bar 64 / feed 664 / status 32 layout with 8px card gaps, the
 avatars' pixels (the panel at the box's corner where the PNG is transparent, the head's tint at the middle, the author's
@@ -663,6 +672,17 @@ finger's tap selecting it), and the page fitting 360x760. `bun solid/motion.test
 any dt, a retarget's continuity, the exact settle, `effect`'s clamp, the decay's projection, `presence` (the exit's
 length to a frame, a revive mid-exit at the value the exit presented), `channel`'s one call an element, and reduced
 motion (a retarget settled in the call that makes it, a presence that does not wait).
+`bun solid/thread.test.ts` is the screen itself: a click on the second card opens its post's thread (the 696/44/652
+boxes, the root card 336x208 at 12,120 with the accent border, the replies at x 28, 44, 44, 60 and the more row at 76,
+the tombstone's words, the "Show 1 more reply" label, the status line still naming the selected post); its own scroll
+(one notch 10px, End/PageDown 248, Up 40 from the end, the thumb the machine's `thumbOf(900, 652, offset)` at 354 and 4px
+wide, the feed's offset still 0); back — the control, Escape and a click on the tab — with the same offset and the same
+selected card, its frame byte-identical to the one before the click (0 bytes of 1,094,400); the one-deep history (the
+more row's thread returns to the first thread, whose back returns to the feed, and the deeper thread starts at its own
+top); reduced motion (the first frame is the settled screen, which is the stored frame's, and the exit unmounts on the
+falling edge); the entry (the first frame draws none of the screen, two frames in the root's border is a blend between
+the feed's pixel and the accent, the layout still); the a11y tree (13 nodes: the three tabs, the region, Back, four
+articles, the note and the more button); the stored frame; and the two mutations (see below).
 
 **Mutations.** Dropping `css.image` from Michael's avatar box (a bare 40x40 box) fails the two disc asserts (the middle
 and the body are the panel `[23,27,32]`, not `[99,178,255]`/`[74,132,214]`). Making the body `nowrap` fails the wrap
@@ -671,11 +691,16 @@ asserts too (the offset stops at -14). `Track.retarget` resetting `v0` to 0 afte
 (`FAIL and it turns the throw back: the rest is 64, ten px above the 74 it was heading to: 27.87, wanted 64.05`).
 Dropping the four `FIELDS.TEXT_COLOR` writes (the label keeps its style's literal and never fades) fails `FAIL and the
 next frame is strictly between the muted token and the accent: false, wanted true` with every frame of both labels at
-their ends (`59/156/240` and `139/152/165` throughout), and three more of that block. All files are compared with their
-backup after the revert.
+their ends (`59/156/240` and `139/152/165` throughout), and three more of that block. In the thread screen, dropping
+the row wrapper's left padding fails `FAIL a reply's box is its depth's indent in from the clip (drop the wrapper's
+padding and it is 12): 12, wanted 28`, and reusing the thread's offset for the feed on back fails `FAIL the feed's offset
+after back is its own (0; a thread offset reused for it would be 244): -78, wanted 0` and `FAIL the feed's frame after
+back differs in 0 bytes (a reused offset would scroll the feed to its end): 667725, wanted 0`. All files are compared
+with their backup after the revert.
 
-**What is not here.** No fetching and no paging: one recorded fixture per feed (three posts), News empty as in the app.
-No thread screen, so a card click only selects. No images in post media — the media is a line (`[image]`, `[image: …]`,
+**What is not here.** No fetching and no paging: one recorded fixture per feed (three posts), News empty as in the app,
+and the thread is that fixture's for whichever card is pressed (no AppView request, and no reply's own thread beyond the
+one branch the data holds). The profile and the settings screens are not pages yet. No images in post media — the media is a line (`[image]`, `[image: …]`,
 `[video]`, `[link: …]`), as in the terminal. No avatars beyond the six committed PNGs (a real author's avatar is a remote
 file). The drag is the window's mouse or a finger's events (SDL's finger events go into the same pointer; there is no
 touchscreen here, so no finger has tried it). The name and the handle are two lines,
