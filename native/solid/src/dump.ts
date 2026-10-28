@@ -112,6 +112,12 @@ export interface PageDump extends FrameDump {
 }
 
 const file = join(tmpdir(), "cssints-native-dump.json");
+/** The worktree's root: an image's path inside it is stored relative to it, so a golden is the same in every checkout. */
+const ROOT = new URL("../../../", import.meta.url).pathname;
+
+/** A path as a golden stores it: inside the worktree, relative to it (a checkout's path is not part of a frame); outside,
+ *  as it is (a user's own image). */
+const portable = (path: string) => (path.startsWith(ROOT) ? path.slice(ROOT.length) : path);
 
 /** The last frame as data: `ui_dump_json` writes it (no struct crosses the FFI boundary), it is read back, and the
  *  accessibility tree of the same Solid tree goes beside it. Call it after the frame, before the next `ui_begin`.
@@ -121,6 +127,7 @@ export function dumpPage(root: El): PageDump {
   if (ui.dumpJson(file) !== 0) throw new Error(`ui_dump_json failed to write ${file}`);
   const frame = JSON.parse(readFileSync(file, "utf8")) as FrameDump & { hash?: string };
   delete frame.hash;
+  for (const command of frame.commands) if (command.path) command.path = portable(command.path);
   return { ...frame, a11y: snapshot(root) };
 }
 
