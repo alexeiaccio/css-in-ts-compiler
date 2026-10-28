@@ -345,7 +345,8 @@ Each step ends in a check that fails when it breaks.
    (`8 replies · 32 reposts · 310 likes`, `3.5K` from 3,500) because Roboto has no retweet or heart glyph, and a **drawn
    avatar** per post: `css.image` over the six committed 64x64 PNGs, so the Solid path's image support (`5cf6477`) now
    carries a real screen. A card hovers to the next panel tone, a click records the selection in a signal (the status
-   line names it; there is no thread screen), and the bar and status line are the feed's siblings, so they do not move.
+   line names it) and opens the post's thread — the page's second screen, below — and the bar and status line are the
+   feed's siblings, so they do not move.
    Check: four stored frames (Discover, Science after a click on its tab, the light theme, Science 8 notches down) and
    `solid/sky.test.ts` (the avatars' pixels — the panel at the box's transparent corner, the author's hue in the disc,
    michaelwarburton `74 132 214` and erikstrub `126 108 200`, and the change with the tab; Erik's body four 20px lines
@@ -358,8 +359,8 @@ Each step ends in a check that fails when it breaks.
    fails the disc asserts, a `nowrap` body fails the wrap asserts and (the content then short) the scroll ones, and
    `Track.retarget` dropping the sampled velocity fails the mid-flight block. Seen
    by eye: the four frames, zoomed — the bar's underline, the name and handle, the counts' `·`, the avatar discs. What is
-   left of it: no fetching or paging (three recorded posts per feed), no thread screen, no post images (a media line), no
-   avatars beyond the six committed, the name and handle on two lines because the pair does not
+   left of it: no fetching or paging (three recorded posts per feed), no post images (a media line), no avatars beyond
+   the six committed (a thread's replies have none), the name and handle on two lines because the pair does not
    fit 312px (Clay has no ellipsis), and media lines that wrap at spaces only, so the Science link shows the embed's host
    instead of its 60-character URI (the app's own fallback when a link has no title).
    **Done: the drag, the pages' entry, and a rotated clip and gradient.** The Sky feed is dragged as a phone's list is: a
@@ -435,6 +436,33 @@ Each step ends in a check that fails when it breaks.
    the content's width instead of the viewport's fails `FAIL its width is max(24, 280²/900): a screenful of the content`.
    Not covered: a horizontal *content* drag in the viewport (the wide page drags vertically; the bar is the horizontal
    handle), and horizontal content on any page but the List.
+   **Done: the thread screen.** A card press now opens the post's thread — the page's second screen, with the bar (the
+   wordmark and the tabs) staying put. It is a **root float over the content area** (696 = 760 - 64, `zIndex` 2, the
+   pointer captured), so the feed stays declared underneath: its clip's offset and its selected card are not written
+   while the thread is up, and back is the frame the click left (0 bytes of 1,094,400, measured). A 44px header (the back
+   control — a `createButton`, role `button`, label "Back", Enter/Space — and the word "Thread") sits above a second clip
+   element on the page's own scroll machine (one instance per opening, so a thread always starts at its top). The data is
+   the app's recorded thread (`apps/csssky/test/fixtures/thread.json`) as the page's own `Post` literals: the root is the
+   clicked post with its counts, then `jlp2024.bsky.social` (1), a tombstone (2, "Post deleted or not found"), `Katie
+   Korth` (2), `Mdubs949` (3) and the "Show 1 more reply" row (4) a branch cut at the app's `MAX_DEPTH` ends in — the
+   rows are `apps/csssky-tui`'s `rowsOf` transcribed (its nodes are the API's `ThreadNode`; the page's cards are not), its
+   words and limit imported from `apps/csssky/src/thread/model.ts` (`goneText`, `moreLabel`, `MAX_DEPTH`). A row's left
+   padding is the depth's indent, 16px a level (the app's margin-left), so the cards start at x 12, 28, 44, 44, 60 and 76
+   and keep a percent width (they wrap as the feed's do); the root is the app's focused post (the accent border). The
+   screen enters as one group — 12px low and 0 opacity over 0.3s, the card entry's tracks — and leaves the same way
+   reversed with `presence(0.3)`, so reduced motion has neither, and its two Tab stops are the back control and the clip
+   (Down/Up 40, PageDown/PageUp a viewport, Home/End; the cards are not stops). Escape and a click on a tab return to the
+   feed; the history is **one deep** (a "Show N more" row's thread returns to its thread, a card's to the feed). Measured
+   (`solid/thread.test.ts`): 900 of rows in the clip's 652 → 248 to scroll, the thumb 472.34 tall (`max(24, 652²/900)`)
+   with 179.66 of travel, one notch 10; the a11y tree is a `region` "Thread — @handle" over `article`s named by their
+   authors, a `note` and a `button`, the covered feed pruned; reduced motion's first frame is the stored one. Five frames:
+   `sky-thread.png`, `sky-thread-mid.png` (two frames into the entry), `sky-thread-scrolled.png`, `sky-thread-light.png`,
+   `sky-thread-more.png` (the deeper thread; its row is only in view at the thread's end, so `main.ts` grew
+   `--click2`/`--settle2`). Mutations: dropping the wrapper's padding fails `FAIL a reply's box is its depth's indent in
+   from the clip (…)`, and reusing the thread's offset for the feed fails `FAIL the feed's offset after back is its own`
+   (and 667,725 bytes of the frame). What is still not there: a fetch of a real thread from the AppView (the page has one
+   recorded fixture, shown for whichever card is pressed), a reply's own thread beyond the one branch the data holds, and
+   the profile and settings screens.
 5. **JSX to C.** The same component evaluated at build time to C calls, for targets with no JS. Check: its render
    commands equal step 4's for the same state.
    **Done: the evaluator** (`generator/page-to-c.ts`, `bun --conditions=development`). It imports `solid/plugin.ts`

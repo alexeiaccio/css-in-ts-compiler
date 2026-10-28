@@ -619,6 +619,49 @@ click) against the mouse's (a click) and a finger's tap (a click). **Not verifie
 machine.** No finger has touched this code: what is tested is the mapping, the flag's path through the host, and the
 pages' two behaviours under it.
 
+**The thread screen: the page's second screen.** A card press records the selection and opens that post's thread — the
+bar (the wordmark and the three tabs) stays where it is, and the feed stays declared underneath, so its clip's offset and
+its selected card are the feed's own and are not written while the thread is up. The screen is a **root float over the
+content area** (`THREAD_H` 696 = the window's 760 less the bar's 64, at `zIndex` 2, capturing the pointer), with a 44px
+header (the back control and the word "Thread") above its own clip element. The data is the app's recorded thread
+(`apps/csssky/test/fixtures/thread.json`) as the page's own `Post` literals, the six-field records the feed draws: the
+root is the clicked post with its own counts, and the replies are the fixture's tree — `jlp2024.bsky.social` at depth 1,
+a tombstone at 2, `Katie Korth` at 2, `Mdubs949` at 3 and the row a cut branch ends in at 4 — cut at the app's
+`MAX_DEPTH` (3) by the page's `cut`, which is `apps/csssky-tui`'s `rowsOf` transcribed (its rows are the API's
+`ThreadNode` over `PostView`, and this page's records are not): a post row, a tombstone row, and a branch at the limit
+ending in a `moreLabel`-worded row that opens that post's own thread (`moreLabel`, `goneText` and `MAX_DEPTH` are
+imported from `apps/csssky/src/thread/model.ts` — the same strings, not copies). A row is a full-width wrapper whose
+**left padding is the depth's indent, 16px a level** (the app's margin-left), so the card inside keeps a percent width
+and wraps its body as the feed's does: measured, the cards start at x 12 (the root), 28, 44, 44, 60 and 76. The root is
+the app's focused post — the accent border, `cardOn` — and the replies are the same card without the avatar.
+
+The screen scrolls on the page's own machine (`src/vscroll.ts`, a second instance, one per opening, so a thread always
+starts at its top): 900px of rows in the clip's 652 (the window less the bar and the header), so 248 to scroll; its thumb
+is `max(24, 652²/900)` = 472.34 tall with 179.66 of travel, 4px 2px in from the clip's right edge, and it fades as the
+feed's does. Two Tab stops: the back control (a `createButton` part, role `button`, label "Back", Enter and Space) and
+the clip (Down/Up 40px, PageDown/PageUp a viewport, Home/End on the same track); the cards are not stops. Escape (from
+either stop, and as the page's last resort from the bar) and a click on a tab return to the feed — the tab's click also
+switches it — while the **history is one deep**: a thread opened from a "Show N more replies" row returns to the thread it
+came from, and a card's returns to the feed. The a11y tree: the screen is a `region` named `Thread — @<handle>`, the root
+and each reply are `article`s named by their author, the tombstone a `note`, the more row a `button`; the covered feed is
+`hidden` while the screen is mounted.
+
+The screen enters as **one group** and leaves the same way: 12px low and at 0 opacity → its box, on the page's card
+entry's tracks (`TRANSLATE_Y` on `spatial(0.3)`, `ALPHA` on `effect(0.3)`), with `presence(0.3)` keeping the node mounted
+for the exit and passing the press through while it closes; the layout never moves (a group is a renderer scene).
+Reduced motion has neither: the first frame is the settled screen and the exit is the falling edge. Numbers
+(`solid/thread.test.ts`): the feed's frame after back is byte-identical to the one the click left (0 bytes of
+1,094,400) with its offset and its selected card, a "Show N more" row's thread returns to its parent's frame, the entry's
+first frame draws none of the screen and the next two are a blend, and reduced motion's first frame is the stored one.
+Five stored frames: `sky-thread.png` (settled), `sky-thread-mid.png` (two frames into the entry), `sky-thread-scrolled.png`
+(six notches with a rest frame between them), `sky-thread-light.png`, and `sky-thread-more.png` (the deeper thread a
+"Show 1 more reply" row opens — that row is only in view at the thread's end, so `main.ts` takes a second headless click
+after the settle, `--click2`/`--settle2`). The eight frames of the feed (Discover, Science, the light theme, a scroll, the
+entry, a hover, the band and a tab mid-fade) are byte-identical to before the screen existed.
+
+Not here: fetching a real thread from the AppView (the page has the one recorded fixture, for whichever card is
+pressed), a reply's own thread beyond the one branch the data holds, and the profile and settings screens.
+
 **A page's entry, once.** The four plain pages — List, Widgets, Sensors, Text field — get the same first mount from one
 helper (`solid/src/entry.ts`): the root element's subtree (its id is `Root` on all four) starts 8px low and at alpha 0 and
 settles on its literals over `spatial(0.25, 0)` for `TRANSLATE_Y` and `effect(0.25)` for `ALPHA` — the group fields, so
