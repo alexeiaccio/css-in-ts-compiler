@@ -1,5 +1,11 @@
 # @cssints/apg-specs
 
+## 0.11.0
+
+### Patch Changes
+
+- 20c14ca: `parseScenarioFile` takes `unknown` rather than `Schema.Json`: a scenario file arrives as a JSON import, whose type has no index signature, so a copy of a test could not pass `tsc` without a cast. The schema was already the check that matters.
+
 ## 0.10.0
 
 No changes in this release.
