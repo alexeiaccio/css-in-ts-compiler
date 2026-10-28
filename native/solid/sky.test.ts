@@ -56,6 +56,11 @@ const apart = (a: number[], b: number[]) => Math.max(...a.map((v, i) => Math.abs
 const r = (x: number) => Math.round(x * 100) / 100;
 
 let dispose = () => {};
+/** The page's thread loader here: a promise that never settles. The feed's blocks click a card only to see the selection
+ *  and the screen's entry, and no frame in this file may wait on a network — the thread's own states are
+ *  `solid/thread.test.ts`'s, whose loader is a promise the test settles. */
+const never = () => new Promise<never>(() => {});
+
 /** A fresh page. `entry: true` leaves the cards' first-mount entry running: the frames before it are what the entry
  *  test looks at, and every other block wants a page at rest. */
 function fresh(theme?: string, opts: { entry?: boolean } = {}) {
@@ -69,7 +74,7 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
     tick?: (dt: number) => void;
   } = {};
   const palette = theme;
-  dispose = render(() => Sky({ input, motion, theme: () => palette }), root);
+  dispose = render(() => Sky({ input, motion, theme: () => palette, load: never }), root);
   const frame = createFrame(root, {
     theme,
     onPressMiss: () => input.pressMiss(),

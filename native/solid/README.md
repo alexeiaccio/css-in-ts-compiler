@@ -709,6 +709,64 @@ spaces only, so a word wider than the card would run over the gutter: the Scienc
 for an embed with no title, the host (`[link: sciencedirect.com]`), not its 60-character URI. And the light theme is the
 TUI palette's light one, not the system's.
 
+**The thread is fetched now, through an injectable loader.** The rows above are the transcription this replaced: the page
+takes a `load: (uri: string) => ThreadScreen | Promise<ThreadScreen>` (`Sky`'s prop) and asks it for a card's post by the
+record's own at-uri (the `Post` literals carry the fixtures' uris), so `bun solid/main.ts sky` needs a loader from the
+host and `solid/thread.test.ts` injects a promise it settles per ask. `solid/src/skyload.ts` is the host's, by flag:
+**the default is the AppView** — `fetchThread`, `GET
+https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=…&depth=6&parentHeight=20` with
+`AbortSignal.timeout(8000)` and no retry (the API call `apps/csssky/src/api.ts` makes, written out: the page has no
+atcute client); `--offline` is apps/csssky's recorded answer (`test/fixtures/thread.json`, shaped by the page's
+`screenOf`); `--pending` is a promise that never settles (the loading state's frame) and `--fail` a loader that throws
+(the error's). **A headless run is offline whether or not the flag is given** (`--png`/`--expect`): a stored frame that
+depended on a request would be a flaky oracle, and this machine has no network at all. The window fetches, which is the
+page's real path.
+
+The screen has **three states**, all on the same entry (`presence`, 12px and alpha over 0.3s): the press mounts it in
+**loading** — the header, and the tombstone card's style as one muted row, `336x44` at `12,120`, "Loading the thread…";
+the answer lands in the **rows**, which are the app's own flattening — `rowsOf` from `apps/csssky-tui/src/model.ts`
+(over the page's `screenOf`: the parent chain, `nodeOf`'s replies sorted by the app's `topFirst`, tombstones for
+blocked/not-found posts), `MAX_DEPTH` 3 and `moreLabel`/`goneText` the app's — with each `PostView` mapped into the card
+in one function, `postOf` (name, handle, the record's text and `createdAt`, the counts, and the media as the terminal's
+line, `mediaText(embedParts(p).media)`); a post with an empty record draws no text (an empty `ui_text` is not a box). A
+**reject** is the **error** state — "The thread could not be loaded" in the same `44px` card and a **Retry** row
+(`336x36`, the more row's style) under it, which asks again for the same uri. That is the offline choice: the failure is
+shown as a failure with a retry, and the recording is only ever drawn where nothing is asking (an error that fell back to
+a recording would read as the thread that failed to arrive). An answer that a back, a tab or a second press overtook is
+dropped (an ask counter), and a card whose record has no uri opens nothing.
+
+**What the recording makes of it.** `thread.json` is Mina Kimes' *reply by Bluesky* (it has a `parent`), so `--offline`'s
+thread is ten rows: Mina Kimes (the parent, `280` tall: her paragraphs and her link line), Bluesky (the root, `136`, the
+accent border, `@bsky.app · Sep 10`), then the app's sorted replies — Mina again (226 likes), Mdubs949 (4) with Ryan at
+depth 2, then jlp2024, Davide Aversa, Katie Korth, Juanita, rmar124. `1758` of rows in the clip's `652`: `1106` to scroll,
+the thumb `max(24, 652²/1758)` = `241.81`, and the depth-1 cards at x 28, the depth-2 one at 44. The parent's card has no
+avatar and no accent border (it is not the screen's post), and the avatar is still only the six committed PNGs', so the
+answer's authors have none. The import costs ~50 ms of Bun's startup (`time bun -e 'await import("./apps/csssky-tui/src/model.ts")'`),
+not a frame.
+
+| Frame | Keys | Shows |
+| --- | --- | --- |
+| `sky-thread` | `--warm 40 --click 180 380 --settle 40` (offline) | the recording's thread at rest: Back, Thread, Mina Kimes' parent card, Bluesky's with the accent border, then the sorted replies down past the clip |
+| `sky-thread-mid` | `--settle 2` | two frames into the entry: the screen 10px low and faint over the feed |
+| `sky-thread-scrolled` | `--wheel 6 --wheel-rest --settle 90` | six notches down (60px), the thumb faded out |
+| `sky-thread-light` | `THEME=light … --settle 40` | the same thread in the palette's light theme |
+| `sky-thread-more` | `--wheel 20 --wheel-over sky-thread-view --settle 90 --click2 180 730 --settle2 40` | twenty notches down (the flick settles at 508 of the 1106); the second click lands on a post's card, since the recording has no branch to cut |
+| `sky-thread-loading` | `--settle 40 --pending` | the loading state: Back, Thread, one muted "Loading the thread…" row |
+| `sky-thread-error` | `--settle 40 --fail` | the error state: the note, and Retry under it |
+
+The five frames that existed were **re-stored deliberately**, and this is what moved: the root is the answer's post
+(Bluesky, not the pressed card's Titania — offline the recording answers for whichever card is pressed, as the terminal's
+frame does), the old tombstone and its "Show 1 more reply" row are rows the recording does not contain, and the four
+transcribed replies are the recording's middle in the *unsorted* order the transcription had (the page now shows the
+app's: Mina's 226-like reply first, Ryan nested under Mdubs949). `solid/thread.test.ts` is the states': a manual loader
+per ask (a promise the test resolves, rejects or leaves pending) — the loading row and its frame, the answer's ten rows
+and their indents and heights, the error and the retry's second ask for the same uri, a tombstone and the cut's more row
+from a screen built out of the recording's own posts (its press asks for the cut post's uri; back restores the parent
+without a third ask), a pending answer a back overtook, the scroll's `1758`/`1106`/`241.81`, back's byte-identical frame,
+reduced motion's stored frame, the a11y tree of all three states, the stored frame (`the recorded fixture reproduces it
+byte for byte`), and a mutation per state: an at-once loader never draws the loading row (its frame is not the pending
+one), and a reject after a loaded thread shows the error's two rows, not the thread that was up.
+
 ## The text sheet, and the oracles behind it
 
 `app/Sheet.tsx` is not an app page: twelve lines of the strings and sizes the pages draw (11 to 32 px) in one column,

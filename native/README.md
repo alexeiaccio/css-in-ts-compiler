@@ -662,6 +662,61 @@ entry, a hover, the band and a tab mid-fade) are byte-identical to before the sc
 Not here: fetching a real thread from the AppView (the page has the one recorded fixture, for whichever card is
 pressed), a reply's own thread beyond the one branch the data holds, and the profile and settings screens.
 
+**The thread's data is the AppView's, through one injectable loader.** This replaces the transcription above (that
+paragraph's rows and its "not here" line): a card's press now asks the page's `load(uri)` — a post's at-uri in (the
+`Post` literals carry the fixture records' own uris), its `ThreadScreen` out — and the screen opens in its **loading
+state** before the answer lands. The default loader is the call `apps/csssky/src/api.ts` makes, written out in
+`solid/app/Sky.tsx`: `GET https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=<at-uri>&depth=6&parentHeight=20`,
+with `AbortSignal.timeout(8000)` and **no retry** (a thread is a screen the reader asked for, and the error state's Retry
+row is the retry); a non-2xx is that error state too. The body's `thread` goes through the page's `screenOf`, the app's
+shaping of it: the parent chain from the nearest outward, and `nodeOf` — a `threadViewPost` as the API's `ThreadNode` with
+its replies sorted by the app's own `topFirst`, a `blockedPost`/`notFoundPost` as a tombstone. The page's rows are then
+the app's, not a copy: `rowsOf` from `apps/csssky-tui/src/model.ts` (`MAX_DEPTH` 3, the cut's `moreLabel`, `goneText`),
+and each `PostView` becomes the card in one function, `postOf` — display name, handle, the record's text and
+`createdAt`, the counts, and the media as the terminal's line (`mediaText` over `embedParts(p).media`, so Mina's link is
+`[link: Want to Get Off Your Phone? … - wired.com]`); an empty body draws no text at all (the fixture has a post whose
+record is empty, and an empty `ui_text` is not a box). The import is the terminal's precedent, and it costs ~50 ms of
+Bun's startup (`time bun -e 'await import("./apps/csssky-tui/src/model.ts")'`), not a frame.
+
+**Three states.** A press mounts the screen on its entry exactly as before, and what it draws is the loader's:
+**loading** — the header and one muted row, the tombstone card's own style, 336x44 at 12,120, "Loading the thread…";
+**answer** — `rowsOf`'s rows (post rows at their depth, a tombstone's words as a `note`, a "Show N more replies" row at
+the cut as the `button` that opens that post's own thread); **error** — "The thread could not be loaded" in the same card
+and a **Retry** row under it (336x36, the more row's style), which asks the loader again for the same uri. A late answer
+never lands on a screen a back, a tab or a second press replaced (an ask counter, `ask`), and a press on a card whose
+record has no uri does nothing. **The honest failure path is the error state, not a fallback**: the fixture is not
+offered as if it were the answer to a request that failed — it would read as a real thread — so the offline path is the
+error state and its retry, and the recording is used only where nothing is asking: `--offline` (`solid/src/skyload.ts`),
+and every headless run, so **a stored frame never touches a network** (`--png`/`--expect` are offline whether or not
+the flag is given). `--pending` is a loader whose promise never settles (the loading state's stored frame) and `--fail`
+one that throws (the error's).
+
+**What the recording makes of it, and the frames that moved.** The recorded answer is Mina Kimes' *reply by Bluesky*:
+`thread.json` has a parent. So the screen is ten rows — Mina Kimes (the parent, 280 tall: her body's paragraphs and her
+link line), Bluesky (the root, 136, the accent border), then the app's sorted replies: Mina again (226 likes), Mdubs949
+(4) with Ryan at depth 2, then jlp2024, Davide Aversa, Katie Korth, Juanita and rmar124 — 1758px of rows in the clip's
+652 (1106 to scroll, the thumb 241.81 tall). That is **not** the old transcription, and the stored frames were re-stored
+deliberately: the root was Titania's card (the click's own post; offline the recording answers for whichever card is
+pressed, as the terminal's frame does), the old tombstone and its "Show 1 more reply" row are rows the recording does not
+contain, and the four transcribed replies are the recording's middle **unsorted** (the page now shows the app's order, so
+Mina's 226-like reply is first). Five frames, re-stored: `sky-thread.png`, `sky-thread-mid.png` (two frames into the
+entry), `sky-thread-scrolled.png` (six notches), `sky-thread-light.png`, and `sky-thread-more.png` — that one is now
+twenty notches down (the flick settles at 508 of the 1106; the second click lands on a post's card, since the recording
+has no branch to cut), and the more row's own frame is the test's screen, built from the same posts. Two new frames: `sky-thread-loading.png`,
+`sky-thread-error.png`. `solid/thread.test.ts` injects the loader everywhere (a promise per ask, settled by the test):
+the loading row and its frame, the answer's rows and indents (12, 12, 28, 28, 44, 28…), the error and its retry (the
+second ask for the same uri), a tombstone and the cut's more row from a screen built of the recorded posts (its press
+asks for the cut post's uri; back restores the parent without a third ask), a pending answer a back overtook, the
+scroll's numbers, back's byte-identical frame, the a11y tree of all three states, and the mutations — an at-once loader
+never draws the loading row, and a reject after a loaded thread shows the error's two rows, not the thread that was up.
+The frames of the feed are untouched.
+
+Still not here: replies below `depth` 6 and a parent chain longer than 20 (the query's caps), paging a thread's replies
+with a cursor (`getPostThread`'s `parentHeight` and `depth` are the whole request here), a cache (every press asks
+again, and back restores the screen it came from without asking), the moderation `apps/csssky/src/api.ts` applies to a
+logged-out viewer (this page shapes a `hidden`/labelled post as a post — it has no labeler), and a real service's auth
+(the public AppView, no login).
+
 **A page's entry, once.** The four plain pages — List, Widgets, Sensors, Text field — get the same first mount from one
 helper (`solid/src/entry.ts`): the root element's subtree (its id is `Root` on all four) starts 8px low and at alpha 0 and
 settles on its literals over `spatial(0.25, 0)` for `TRANSLATE_Y` and `effect(0.25)` for `ALPHA` — the group fields, so

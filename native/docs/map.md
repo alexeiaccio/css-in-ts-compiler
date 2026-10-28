@@ -463,6 +463,36 @@ Each step ends in a check that fails when it breaks.
    (and 667,725 bytes of the frame). What is still not there: a fetch of a real thread from the AppView (the page has one
    recorded fixture, shown for whichever card is pressed), a reply's own thread beyond the one branch the data holds, and
    the profile and settings screens.
+   **Done: the thread comes from the AppView, through an injectable loader.** The transcription above — and its "what is
+   still not there" list — is replaced: a
+   card's press asks the page's `load(uri)` (a post's at-uri in, the API's `ThreadScreen` out) and the screen opens in its
+   **loading** state — the header and one muted "Loading the thread…" row (336x44 at 12,120) — before the answer lands.
+   The default loader is `apps/csssky/src/api.ts`'s call: `GET
+   https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=…&depth=6&parentHeight=20`, an 8 s
+   `AbortSignal.timeout` and no retry; a non-2xx, a throw and a rejection are the **error** state ("The thread could not be
+   loaded" and a Retry row 336x36, which asks again for the same uri), and a late answer a back, a tab or a second press
+   overtook is dropped (an ask counter). The **answer**'s rows are the app's own: `rowsOf` (`apps/csssky-tui/src/model.ts`:
+   `MAX_DEPTH` 3, `moreLabel`, `goneText`) over the page's `screenOf` shaping of the answer (the parent chain, `nodeOf`'s
+   sorted replies, `topFirst`), and each `PostView` becomes the card in `postOf` (the record's text and time, the counts,
+   `mediaText(embedParts(p).media)` — the terminal's line). The recorded answer is Mina Kimes' reply by Bluesky, so the
+   screen is ten rows: the parent Mina (280 tall, with her link line), the root Bluesky (136, the accent border), then the
+   sorted replies — Mina (226 likes), Mdubs949 with Ryan at depth 2, jlp2024, Davide, Katie, Juanita, rmar124 — 1758 of
+   rows in the clip's 652 (1106 to scroll, the thumb 241.81). **The honest offline path is the error state, not a
+   fallback**: the recording is offered where nothing is asking — `--offline`, and every `--png`/`--expect` run
+   (`solid/src/skyload.ts`), so a stored frame never makes a request; `--pending` and `--fail` are the two states' frames.
+   The five thread frames were re-stored deliberately (the root is the answer's post, not the pressed card's; the old
+   tombstone and "Show 1 more reply" rows are not in the recording; the replies are in the app's order), and
+   `sky-thread-more.png` is now twenty notches down (the flick settles at 508 of the 1106) with its second click on a
+   post's card — the recording has no cut branch, so the more row's frame is `thread.test.ts`'s screen built from the same
+   posts. Two frames are new: `sky-thread-loading.png`,
+   `sky-thread-error.png`. `solid/thread.test.ts` injects its own promises (the loading row and its frame, the rows'
+   indents, the error and the retry's second ask, the tombstone and the more row from a built screen, back's restore
+   without a third ask, a dropped late answer, all three a11y states, the stored frame byte for byte), with a mutation a
+   state: an at-once loader never draws the loading row, and a reject after a loaded thread shows the error's rows, not
+   the thread that was up. The import of the app's model costs ~50 ms of Bun's startup (`time bun -e 'await import(…) '`).
+   What is still not there: replies below `depth` 6 or a parent chain past 20, a cursor's paging, a cache (every press
+   asks; back restores the screen it came from), the labeler moderation `api.ts` applies (this page has no labels), and a
+   real service's auth.
 5. **JSX to C.** The same component evaluated at build time to C calls, for targets with no JS. Check: its render
    commands equal step 4's for the same state.
    **Done: the evaluator** (`generator/page-to-c.ts`, `bun --conditions=development`). It imports `solid/plugin.ts`

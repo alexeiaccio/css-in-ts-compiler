@@ -137,6 +137,7 @@ const { Dialog, size: dialogSize } = await import("./app/Dialog.tsx");
 const { Field, size: fieldSize } = await import("./app/Field.tsx");
 const { List, size: listSize } = await import("./app/List.tsx");
 const { Sky, size: skySize, synthetic } = await import("./app/Sky.tsx");
+const { loadSky } = await import("./src/skyload.ts");
 const { Sheet, size: sheetSize } = await import("./app/Sheet.tsx");
 
 // the sheet is the one page wider than 360: the oracle draws a page, not a window group
@@ -181,7 +182,14 @@ const dispose = render(
         : page === "list"
           ? () => List({ input, motion, count, wide })
           : page === "sky"
-            ? () => Sky({ input, motion, theme: () => theme, posts: posts ? synthetic(posts) : undefined })
+            ? () =>
+                Sky({
+                  input,
+                  motion,
+                  theme: () => theme,
+                  posts: posts ? synthetic(posts) : undefined,
+                  load: loadSky(process.argv),
+                })
             : page === "sheet"
               ? () => Sheet()
               : () => Sensors({ motion }),
