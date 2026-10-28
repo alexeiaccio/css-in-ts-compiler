@@ -116,6 +116,19 @@ $S --warm 40 --wheel 4 --wheel-over sky-status --expect solid/frames/sky-band.pn
 # a tab switch two frames in (the tablist's first stop, then ArrowRight): the label's colour and the 2px underline both
 # mid-fade, the new label between the muted token and the accent — the text's own four floats, not the tab's box's
 $S --warm 40 --keys Tab,ArrowRight --settle 2 --expect solid/frames/sky-tab-mid.png
+# the thread screen (the page's second screen): a click on the second card opens Titania's thread — the header with the
+# Back control, the root card with the accent border, the replies indented 16px a depth, the tombstone and the
+# "Show 1 more reply" row. The screen enters as one group (12px low, 0 opacity, 0.3s: the page's card entry), so the
+# resting frame is 40 frames after the click and `sky-thread-mid` is two frames into the entry. `sky-thread-scrolled` is
+# six notches down with a rest frame between them (the notches' own 60, not a flick) and its thumb faded out by the 90
+# frames; `sky-thread-light` is the light theme. `sky-thread-more` is the deeper thread a "Show 1 more reply" row opens:
+# that row is only in view at the thread's end, so it takes a second click there (`--click2`, a frame's press and release
+# after the settle, then its own settle)
+$S --warm 40 --click 180 380 --settle 40 --expect solid/frames/sky-thread.png
+$S --warm 40 --click 180 380 --settle 2 --expect solid/frames/sky-thread-mid.png
+$S --warm 40 --click 180 380 --wheel 6 --wheel-rest --settle 90 --expect solid/frames/sky-thread-scrolled.png
+THEME=light $S --warm 40 --click 180 380 --settle 40 --expect solid/frames/sky-thread-light.png
+$S --warm 40 --click 180 380 --wheel 20 --wheel-over sky-thread-view --settle 90 --click2 180 730 --settle2 40 --expect solid/frames/sky-thread-more.png
 # a finger's tap is the mouse's click through the same mapping (ui_touch_map: SDL's normalised 0..1 of the window to the
 # layout's pixels): a tap at the window's middle (0.5,0.5 -> 180,380) is the frame of a click at 180,380 (the second card
 # selected). No touchscreen here: this is the mapping, and what a page does with the flag is sky.test.ts's (a finger's 2px
@@ -123,6 +136,9 @@ $S --warm 40 --keys Tab,ArrowRight --settle 2 --expect solid/frames/sky-tab-mid.
 $S --click 180 380 --png "${TMPDIR:-/tmp}/cssints-touch.png" >/dev/null
 $S --touch 0.5 0.5 --expect "${TMPDIR:-/tmp}/cssints-touch.png"
 bun solid/sky.test.ts
+# ... and the thread screen's own test: the rows and their indents, its scroll and thumb, back's frame, the history, the
+# entry and reduced motion, the a11y tree, the stored frame, and the mutations
+bun solid/thread.test.ts
 # the text sheet (the strings and the sizes the app draws) and its oracle: the frame, then the metric against the same
 # lines drawn by CoreText — the ink weight and the shape of every line (solid/text.test.ts). The oracle is a stored PNG;
 # re-draw it with `bun solid/text-oracle.ts --update` (needs swiftc, so only there)

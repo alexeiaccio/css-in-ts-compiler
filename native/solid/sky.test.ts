@@ -819,16 +819,22 @@ function fresh(theme?: string, opts: { entry?: boolean } = {}) {
   check("and Discover comes back", p.card(0).length, 4);
 }
 
-// --- a click selects a card: the signal only records it, and the status line names it
+// --- a click on a card selects it and opens its thread: the same frame records the selection (the status line names it)
+//     and starts the thread's entry, whose first frame is the group at 0 opacity — so this frame still shows the feed
+//     through it; back on the feed, the card is the selected one
 {
   const p = fresh();
   const card = p.card(1);
   p.clickOn("sky-card-1");
   check("the status names the selected post", p.status(), "Titania — 2 of 3");
   check("the card keeps its box", p.card(1), card);
-  check("the selected card has the accent border", near(p.pixel(card[0]!, card[1]! + 100), [59, 156, 240], 1), true);
+  check("the click opened the thread over the feed", p.box("sky-thread").length, 4);
+  check("the selected card has the accent border (the first frame of the screen is transparent)", near(p.pixel(card[0]!, card[1]! + 100), [59, 156, 240], 1), true);
   check("and the hover gradient it was clicked under", near(p.pixel(180, 300), HOVER, 2), true);
   check("a click on the background keeps it too", (p.point(180, 60), p.status()), "Titania — 2 of 3");
+  p.tap("Escape");
+  p.settle(40);
+  check("and back on the feed it is still the selected card", [p.status(), near(p.pixel(card[0]!, card[1]! + 100), [59, 156, 240], 1)], ["Titania — 2 of 3", true]);
   p.news();
   check("and another feed's status has no selection", p.status(), "News — 0 posts");
 }

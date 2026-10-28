@@ -7,22 +7,29 @@
 //
 // The palette is terminal/sky_styles.ts's (apps/csssky-tui's styles.ts, read only): the sky palette in the dark theme here,
 // the light one under THEME=light.
-// A card click records the selection in a signal and nothing more: there is no thread screen yet. The body is the first
-// text on these pages that wraps: it is a text in a stretch box in a card of percent width, and Clay wraps a text
-// element only when something constrains its width (a clip element lets its children grow past the viewport).
+// A card click records the selection and opens **the thread screen** (the second screen of this page, below the same bar):
+// the post as the focused card, its replies indented by depth, a tombstone row, and the "Show N more replies" row a branch
+// cut at the app's depth limit ends in. The thread is a root float over the content area, so the feed stays declared and
+// untouched under it (its offset and its selected card), and the screen comes in and goes out as one group (12px, alpha,
+// 0.3s) — the page's own card entry, through `presence`. The body is the first text on these pages that wraps: it is a
+// text in a stretch box in a card of percent width, and Clay wraps a text element only when something constrains its
+// width (a clip element lets its children grow past the viewport).
 import * as css from "cssints/clay" with { type: "cssints" };
-import { createSignal, onCleanup } from "solid-js";
+import { createSignal, For, onCleanup, Show } from "solid-js";
 
 import { a11y } from "../a11y.ts";
-import { createTabs } from "../../headless/src/index.ts";
+import { createButton, createTabs } from "../../headless/src/index.ts";
 import type { Motion } from "../src/entry.ts";
-import { effect, reduced, spatial, track, type Track } from "../src/motion.ts";
-import { scroll } from "../src/vscroll.ts";
+import { effect, presence, reduced, spatial, track, type Track } from "../src/motion.ts";
+import { scroll, type Scroll } from "../src/vscroll.ts";
 import { measuredWindow, type Window } from "../src/virtual.ts";
 import { ui } from "../src/ffi.ts";
 import type { FocusPart, Input } from "../src/input.ts";
 import { FIELDS, variant } from "../src/pack.ts";
 import type { State } from "../src/pack.ts";
+// the thread's words and its depth limit: the app's own (apps/csssky/src/thread/model.ts, the helpers
+// apps/csssky-tui's rowsOf uses), imported rather than copied, as csssky-tui imports them
+import { goneText, MAX_DEPTH, moreLabel } from "../../../apps/csssky/src/thread/model.ts";
 
 // the sky palette: the page, the card one tonal step above it (its top; the gradient's deep end is a step below), the
 // hover step, the muted step and the accent blue; the ring is the same blue the other pages use.
@@ -173,6 +180,96 @@ const spacer = css.cn(css.width("stretch"), css.height(0));
 const status = css.cn(css.width("stretch"), css.height(32), css.p(0, 16), css.alignItems("center"), css.bg(t.color.page));
 const statusText = css.cn(font.Roboto, css.color(t.color.muted), css.fontSize(12));
 
+// ---- the thread screen ---------------------------------------------------------------------------------------------
+// The ids: the screen (the float and the a11y region), the header, the clip element the page scrolls (the feed's machine,
+// a second instance) and its thumb.
+const THREAD = "sky-thread";
+const HEAD = "sky-thread-head";
+const THREAD_VIEW = "sky-thread-view";
+const THREAD_BAR = "sky-thread-thumb";
+/** The thread's height: the window less the bar (64), which stays put above it. */
+const THREAD_H = 696;
+/** The indent a reply's depth puts between the screen's left padding and its card: the app's marginLeft, 16px a level. */
+const INDENT = 16;
+
+// the screen: a root float over the content area, the bar's width and the rest of the window's height, so the feed and its
+// status line stay declared underneath (their boxes, the selected card and the clip's offset are the feed's, untouched)
+const thread = css.cn(
+  css.width("stretch"),
+  css.height(THREAD_H),
+  css.flexDirection("column"),
+  css.bg(t.color.page),
+  css.float({
+    root: true,
+    attach: { element: "left top", parent: "left top" },
+    offset: { y: 64 },
+    zIndex: 2,
+    capture: true,
+  }),
+);
+// the header: the back control, then the title; a 44px row that stays put while the thread scrolls under it
+const head = css.cn(css.width("stretch"), css.height(44), css.p(0, 12), css.gap(12), css.alignItems("center"), css.bg(t.color.page));
+const back = css.cn(
+  css.height(28),
+  css.p(0, 10),
+  css.justifyContent("center"),
+  css.borderRadius(8),
+  css.bg(t.color.panel),
+  css.border(1, t.color.muted),
+  css.hover(css.bg(t.color.hover)),
+  css.active(css.bg(t.color.hoverDeep)),
+  css.focus(css.border(2, t.color.ring)),
+);
+const backText = css.cn(font.Roboto, css.color(t.color.ink), css.fontSize(14));
+const threadTitle = css.cn(font.Roboto, css.color(t.color.ink), css.fontSize(16));
+// the clip element: the feed's own shape (padding, 8px gap, a column that clips), with the thread's track
+const threadView = css.cn(
+  css.width("stretch"),
+  css.height("stretch"),
+  css.p(12),
+  css.gap(8),
+  css.flexDirection("column"),
+  css.overflow("hidden"),
+  css.bg(t.color.page),
+  css.focus(css.border(2, t.color.ring)),
+);
+const threadThumb = css.cn(
+  css.width(4),
+  css.height(24),
+  css.borderRadius(2),
+  css.bg(t.color.muted),
+  css.float({
+    parent: THREAD_VIEW,
+    attach: { element: "right top", parent: "right top" },
+    offset: { x: -2 },
+    zIndex: 1,
+    capture: false,
+  }),
+);
+// a row's wrapper: the indent is its left padding, so the card keeps a percent width and wraps as the feed's does
+const threadRow0 = css.cn(css.width("stretch"));
+const threadRow1 = css.cn(css.width("stretch"), css.paddingLeft(16));
+const threadRow2 = css.cn(css.width("stretch"), css.paddingLeft(32));
+const threadRow3 = css.cn(css.width("stretch"), css.paddingLeft(48));
+const threadRow4 = css.cn(css.width("stretch"), css.paddingLeft(64));
+const threadRowIndent = [threadRow0, threadRow1, threadRow2, threadRow3, threadRow4];
+// a tombstone: the app's tombstone card, its own words (goneText), no author and no counts
+const tomb = css.cn(css.width("100%"), css.p(12), css.gap(8), css.flexDirection("column"), css.bg(t.color.panel), css.borderRadius(12));
+const tombText = css.cn(font.Roboto, css.color(t.color.muted), css.fontSize(14), css.lineHeight(20), css.whiteSpace("normal"));
+// the "Show N more replies" row: the app's outlined button, the accent's words
+const more = css.cn(
+  css.width("100%"),
+  css.height(36),
+  css.p(0, 12),
+  css.alignItems("center"),
+  css.bg(t.color.panel),
+  css.borderRadius(8),
+  css.border(1, t.color.muted),
+  css.hover(css.bg(t.color.hover)),
+  css.active(css.bg(t.color.hoverDeep)),
+);
+const moreText = css.cn(font.Roboto, css.color(t.color.accent), css.fontSize(13));
+
 export const s = {
   t,
   font,
@@ -201,6 +298,23 @@ export const s = {
   spacer,
   status,
   statusText,
+  thread,
+  head,
+  back,
+  backText,
+  threadTitle,
+  threadView,
+  threadThumb,
+  threadRowIndent,
+  tomb,
+  tombText,
+  more,
+  moreText,
+  THREAD,
+  HEAD,
+  THREAD_VIEW,
+  THREAD_BAR,
+  INDENT,
 };
 
 /** The phone: the bar (64) and the status line (32) around a feed that takes the rest of 760. */
@@ -331,6 +445,111 @@ const FEEDS: readonly Feed[] = [
  *  card content's effect can run before the `For` takes it away, and `posts[i]` is not there any more. */
 const BLANK: Post = { name: "", handle: "", text: "", replies: 0, reposts: 0, likes: 0, created: 0 };
 
+// ---- the thread's data: apps/csssky's recorded thread (test/fixtures/thread.json), its posts verbatim ---------------
+// The root is the post whose card was clicked; the replies are the recorded thread's, as a tree the app's own cut walks.
+// A reply is a post with its replies, or a tombstone (the app's three states); `cut` flattens one as
+// apps/csssky-tui/src/model.ts's rowsOf does: a post row at its depth, a tombstone row, and — a branch cut at the app's
+// MAX_DEPTH — a "Show N more replies" row one level in, which opens that post's own thread. rowsOf itself is not reused:
+// its nodes are the API's ThreadNode over PostView (uri, cid, author, record), and this page's cards are the six-field
+// `Post` the feed already draws.
+interface Reply {
+  readonly post?: Post; // absent: a tombstone
+  readonly why?: keyof typeof goneText;
+  readonly kids: readonly Reply[];
+}
+/** One row of the screen, in rowsOf's shape: a post at a depth, a tombstone, or the row a cut branch ends in. */
+type Row =
+  | { readonly kind: "post"; readonly post: Post; readonly depth: number }
+  | { readonly kind: "gone"; readonly text: string; readonly depth: number }
+  | { readonly kind: "more"; readonly text: string; readonly depth: number; readonly open: Thread };
+/** A screen's data: the post the thread is about (the region's name, and the card with the accent border) and its rows,
+ *  the root first at depth 0. */
+interface Thread {
+  readonly root: Post;
+  readonly rows: readonly Row[];
+}
+
+const JLP: Post = {
+  name: "", // the record has no display name: the handle is the name
+  handle: "jlp2024.bsky.social",
+  text:
+    "Unfortunately you ban and flag acco7nts in accurately. But,  yeah,  you're better than Twitter.... incredible " +
+    'achievement.  \n\n"We beat the nazi bar"   congrats',
+  replies: 0,
+  reposts: 0,
+  likes: 0,
+  created: 1789065437,
+};
+const KATE: Post = {
+  name: "Katie Korth",
+  handle: "katekor.bsky.social",
+  text: "*men's sports",
+  replies: 0,
+  reposts: 0,
+  likes: 0,
+  created: 1789073379,
+};
+const MDUBS: Post = {
+  name: "Mdubs949",
+  handle: "mdubs949.bsky.social",
+  text:
+    "I like this as an aspirational statement, but it's a shame that so many professional and college teams and leagues " +
+    "post content everywhere else but here. To me, it's actually the biggest weakness of BlueSky versus other platforms.",
+  replies: 1,
+  reposts: 0,
+  likes: 4,
+  created: 1789060220,
+};
+const RYAN: Post = {
+  name: "Ryan",
+  handle: "burnercardinals.bsky.social",
+  text:
+    "The complete lack of beat writers who have moved over to Bsky also makes it a necessity to keep my X going. As a " +
+    "Packers fan, this site just doesn't have the juice for day-to-day news (like Josh Jacobs' hearing this morning). And " +
+    "for my other teams like the STL Cardinals, Bsky is useless.",
+  replies: 4,
+  reposts: 0,
+  likes: 1,
+  created: 1789060666,
+};
+
+/** Every node of the subtrees, tombstones too: the app's countAll, the number a "Show N more" row names. */
+const countAll = (nodes: readonly Reply[]): number => nodes.reduce((sum, n) => sum + 1 + countAll(n.kids), 0);
+
+/** A post's thread: the root's card first, then its replies cut at the app's depth limit (rowsOf's tail). */
+function threadOf(root: Post, replies: readonly Reply[]): Thread {
+  return { root, rows: [{ kind: "post", post: root, depth: 0 }, ...replies.flatMap((r) => cut(r, 1))] };
+}
+
+/** One reply and its branch, as rows: the post at `depth`, its replies a level in (while that is inside MAX_DEPTH), or
+ *  — at the limit — a "Show N more replies" row for the post's own thread. */
+function cut(n: Reply, depth: number): Row[] {
+  if (n.post === undefined) {
+    const why = n.why ?? "notFound";
+    return [{ kind: "gone", text: goneText[why], depth }];
+  }
+  const post = n.post;
+  const rows: Row[] = [{ kind: "post", post, depth }];
+  if (depth < MAX_DEPTH) rows.push(...n.kids.flatMap((kid) => cut(kid, depth + 1)));
+  else if (n.kids.length) {
+    rows.push({ kind: "more", text: moreLabel(countAll(n.kids)), depth: depth + 1, open: threadOf(post, n.kids) });
+  }
+  return rows;
+}
+
+// The recorded replies, as the tree: jlp2024 has two replies — a tombstone (the deleted one) and Katie's — and Katie's
+// reply is Mdubs949's, whose one reply (Ryan's) is behind the cut. Four reply rows at depths 1, 2, 2 and 3, then the
+// "Show 1 more reply" row at depth 4: MAX_DEPTH is 3, so that is where the app cuts this branch too.
+const REPLIES: readonly Reply[] = [
+  {
+    post: JLP,
+    kids: [
+      { why: "notFound", kids: [] },
+      { post: KATE, kids: [{ post: MDUBS, kids: [{ post: RYAN, kids: [] }] }] },
+    ],
+  },
+];
+
 /** The feed's gap and padding, as the styles above have them (8 and 12): the measured window's arithmetic. */
 const GAP = 8;
 const PAD = 12;
@@ -423,10 +642,19 @@ const mixColor = (from: number[], to: number[], m: number): number[] =>
  * the clamp. **The pointer drags the feed as a phone would**: a press inside it grabs the offset and follows the pointer
  * 1:1 (the same band past an end), a press that travels past 4px is not a click on the card it started on, and the
  * release flings it on the speed of its last frames (or lets the band go). The bar and the status line are the feed's
- * siblings, so they stay put. A card press only records the selection until there is a thread screen to open. On mount the
+ * siblings, so they stay put. On mount the
  * cards arrive staggered (translate + opacity through the group fields, so nothing moves in the layout), a card and a tab
  * fade their hover, and the tabs fade the 2px underline and the label's colour from the one that was active to the one
  * that is — the label through the text's own four floats (`ui.value` on its id), which its box does not hold.
+ *
+ * **A card press opens the thread screen** (or, from a "Show N more replies" row, a deeper thread: the history is one
+ * deep, so that row's back returns to the thread it came from and a card's back to the feed). The thread is a root float
+ * over the content area, so the feed stays declared underneath — its offset and its selected card are the feed's own and
+ * are not written while the thread is up — and the screen enters and leaves as one group: 12px up and 0 opacity on the
+ * page's card entry's tracks (`spatial(0.3)`/`effect(0.3)`), reversed on the way out, with `presence` keeping it mounted
+ * for the exit. Its two Tab stops are the back control and the clip element, which scrolls on the feed's own machine
+ * (src/vscroll.ts): the wheel over it, Down/Up 40px, PageDown/PageUp a viewport, Home/End. Escape (from either of them, or
+ * from the bar) and a click on a tab return to the feed; the cards are not stops.
  *
  * The feed is **windowed** (src/virtual.ts): only the cards the viewport shows plus an overscan are declared, with a
  * spacer above and below. The cards' heights differ, so the window is measured, and it **measures once, then
@@ -575,6 +803,118 @@ export function Sky(props: {
    *  its box and its fade every frame. */
   const feedScroll = scroll(VIEW, maxScroll, BAR);
 
+  // ---- the thread screen ---------------------------------------------------------------------------------------------
+  // the open thread's data (kept while its exit runs), whether the screen is open, and the thread it was opened from — the
+  // history is one deep, so a "Show N more replies" row's back returns to the thread it came from and a card's to the feed
+  const [thread, setThread] = createSignal<Thread | null>(null);
+  const [threadOpen, setThreadOpen] = createSignal(false);
+  const [parent, setParent] = createSignal<Thread | null>(null);
+  // whether the screen's node is in the tree this frame: the presence's answer, set by the tick before the flush
+  const [threadShown, setThreadShown] = createSignal(false);
+  const [threadFocused, setThreadFocused] = createSignal(false);
+  // the group's motion: 12px low and transparent on the way in — the card entry's own tracks, on the whole screen — and the
+  // same shape reversed on the way out, with `presence` keeping the node mounted for it
+  const tfx = {
+    present: presence(false, ENTRY.time),
+    mounted: false,
+    open: false,
+    y: track(0, ENTRY_Y),
+    a: track(255, ENTRY_A),
+  };
+  const threadId = Buffer.from(THREAD);
+  const threadViewId = Buffer.from(THREAD_VIEW);
+  const threadBarId = Buffer.from(THREAD_BAR);
+  // the thread's real content from the last layout (the rows' block plus the clip's two 12px paddings)
+  let threadContent = 0;
+  /** How far the thread can scroll: its content less the clip's height. 0 when the rows fit. */
+  const threadMax = () => Math.max(0, threadContent - (ui.bounds(threadViewId)?.[3] ?? 0));
+  /** The thread's own scroll (a second instance of the feed's machine). A fresh one on every opening, so a screen always
+   *  starts at its top, even when the thread it replaces was scrolled. */
+  let threadScroll: Scroll = scroll(THREAD_VIEW, threadMax, THREAD_BAR);
+
+  /** Opens a thread: its rows, the thread it came from (null for a card's), and the focus on its back control. The entry
+   *  is the presence's (it starts on the frame this is called on, which is the tick's). */
+  const openThread = (next: Thread, from: Thread | null) => {
+    threadScroll = scroll(THREAD_VIEW, threadMax, THREAD_BAR);
+    setThread(next);
+    setParent(from);
+    setThreadOpen(true);
+  };
+  /** Back: one step of the one-deep history, else the feed. */
+  const leaveThread = () => {
+    const up = parent();
+    if (up === null) {
+      setThreadOpen(false);
+      return;
+    }
+    threadScroll = scroll(THREAD_VIEW, threadMax, THREAD_BAR);
+    setThread(up);
+    setParent(null);
+  };
+  /** The bar's tabs: the feed, whatever the history says. */
+  const closeThread = () => {
+    setParent(null);
+    setThreadOpen(false);
+  };
+
+  // the back control is a headless button (role, Enter and Space, the pointer) and it takes Escape as the page's back
+  // does; the clip element is the second stop, and its keys scroll it
+  const back = createButton({ id: "sky-back", onClick: () => leaveThread() });
+  const backPart: FocusPart & { readonly disabled: boolean } = {
+    id: back.part.id,
+    disabled: false,
+    get focused() {
+      return back.part.focused;
+    },
+    focus: () => back.part.focus(),
+    blur: () => back.part.blur(),
+    press: () => back.part.press(),
+    keyDown: (key) => (key === "Escape" ? (leaveThread(), true) : back.part.keyDown(key)),
+    keyUp: (key) => back.part.keyUp(key),
+  };
+  const backBind = input.bind(backPart);
+  const regionPart: FocusPart & { readonly disabled: boolean } = {
+    id: THREAD_VIEW,
+    disabled: false,
+    get focused() {
+      return threadFocused();
+    },
+    focus: () => setThreadFocused(true),
+    blur: () => setThreadFocused(false),
+    keyDown: (key) => {
+      if (key === "Escape") return leaveThread(), true;
+      const view = ui.bounds(threadViewId)?.[3] ?? 0;
+      const step = key === "ArrowDown" ? 40 : key === "ArrowUp" ? -40 : key === "PageDown" ? view : key === "PageUp" ? -view : 0;
+      if (!step && key !== "Home" && key !== "End") return false;
+      threadScroll.seek(key === "Home" ? 0 : key === "End" ? threadMax() : threadScroll.target() + step);
+      return true;
+    },
+    keyUp: () => false,
+  };
+  const regionBind = input.bind(regionPart);
+  // The Tab stops follow the screen: the feed's stop is disabled while the thread is open (its cards and its clip are
+  // under the float), and the back control and the clip are registered then, in that order after the tablist. Focus
+  // leaves with the screen, so the feed comes back as it was — nothing focused — and the frame is the one before the click.
+  let stopsForThread = false;
+  const stops = (open: boolean) => {
+    if (open === stopsForThread) return;
+    stopsForThread = open;
+    input.focus.register(VIEW, { disabled: open });
+    if (open) {
+      input.add(backPart);
+      input.add(regionPart);
+      input.focus.focus(backPart.id);
+    } else {
+      input.focus.unregister(backPart.id);
+      input.focus.unregister(regionPart.id);
+      input.focus.blur();
+    }
+  };
+  // Escape anywhere else (the bar's tablist) is the page's last resort, with the host's own fallback beside it
+  const hostFallback = input.fallback;
+  input.fallback = (name) => (name === "Escape" && threadOpen() ? (leaveThread(), true) : (hostFallback?.(name) ?? false));
+  onCleanup(() => (input.fallback = hostFallback));
+
   /** One card a frame: its hover fade, and its entry while that runs (once, on mount). Writes nothing at all once both
    *  are the literals, so a frame at rest is the frame the style's literals make. */
   const cardFrame = (c: CardFx, i: number, t: number) => {
@@ -718,11 +1058,62 @@ export function Sky(props: {
     ui.value(aboveId, FIELDS.HEIGHT + 2, w.above);
     ui.value(belowId, FIELDS.HEIGHT + 1, w.below);
     ui.value(belowId, FIELDS.HEIGHT + 2, w.below);
+
+    // ---- the thread screen ----
+    // the presence decides whether its node is mounted; the group's two tracks are the card entry's (12px low, 0 opacity,
+    // 0.3s) and run reversed on the way out. A fresh arrival starts them from the entry, a screen that comes back mid-exit
+    // retargets from what it presents, and a settled screen writes nothing — its frame is the style's literals.
+    const open = threadOpen();
+    const wasMounted = tfx.mounted;
+    const { mounted, closing } = tfx.present.update(open, dt);
+    if (mounted !== tfx.mounted) setThreadShown(mounted);
+    tfx.mounted = mounted;
+    if (mounted) {
+      if (!wasMounted) {
+        tfx.y = track(ENTRY.y, ENTRY_Y, t);
+        tfx.a = track(0, ENTRY_A, t);
+        tfx.y.retarget(t, 0);
+        tfx.a.retarget(t, 255);
+      } else if (open !== tfx.open) {
+        tfx.y.retarget(t, open ? 0 : ENTRY.y);
+        tfx.a.retarget(t, open ? 255 : 0);
+      }
+      const y = tfx.y.at(t),
+        a = tfx.a.at(t);
+      if (!y.done) ui.value(threadId, FIELDS.TRANSLATE_Y, y.x);
+      if (!a.done) ui.value(threadId, FIELDS.ALPHA, a.x);
+      // a closing screen passes the press through, so the feed under it is the feed's again the moment it closes
+      if (closing) ui.value(threadId, FIELDS.CAPTURE, 1);
+    }
+    tfx.open = open;
+    // the node has left: the data it showed is no longer needed
+    if (!mounted && thread() !== null) setThread(null);
+    stops(open);
+    if (mounted) {
+      // the rows' real content from the last frame's layout (the last row's bottom, the clip's own offset added back, and
+      // the 12px padding below it), then the offset the machine presents and the fade of its thumb
+      const rows = thread()?.rows ?? [];
+      const view = ui.bounds(threadViewId);
+      const last = rows.length ? ui.bounds(Buffer.from(`sky-thread-row-${rows.length - 1}`)) : undefined;
+      // the offset is Clay's (negative down), the last row's bounds are drawn shifted by it: adding the presented offset
+      // back gives the row's place in the content, and the content ends 12px below it
+      if (view && last) threadContent = Math.max(0, last[1] + last[3] - view[1] - ui.scrollOffset(THREAD_VIEW) + PAD);
+      threadScroll.tick(dt);
+    }
+  };
+  // The wheel is the screen's under the pointer: the thread's clip (and its thumb) while the thread is open — the bar
+  // above it is nobody's — and the feed's everywhere else, as it always was (a wheel over the status line scrolls it).
+  const wheel = (dx: number, dy: number) => {
+    if (!threadOpen()) return feedScroll.wheel(dx, dy);
+    if (ui.over(threadViewId) || ui.over(threadBarId)) threadScroll.wheel(dx, dy);
+  };
+  // ... and so is the pointer: only the open screen's machine may see a drag, so the feed's press never travels under it
+  const pointer = (x: number, y: number, down: boolean, touch?: boolean) => {
+    if (threadOpen()) threadScroll.pointer(x, y, down, touch);
+    else feedScroll.pointer(x, y, down, touch);
   };
   if (props.motion)
-    (props.motion.onWheel = feedScroll.wheel),
-      (props.motion.tick = tick),
-      (props.motion.onPointer = feedScroll.pointer);
+    (props.motion.onWheel = wheel), (props.motion.tick = tick), (props.motion.onPointer = pointer);
 
   const part: FocusPart & { readonly disabled: boolean } = {
     id: VIEW,
@@ -763,13 +1154,29 @@ export function Sky(props: {
         <text style={s.wordmark}>sky</text>
         <box {...a11y(tabs.tablist)} style={s.tablist}>
           {tabs.tabs.map((tab, i) => (
-            <box {...binds[i]!} {...a11y(tab)} style={under(i) ? s.tabOn : s.tab}>
+            <box
+              {...binds[i]!}
+              {...a11y(tab)}
+              style={under(i) ? s.tabOn : s.tab}
+              // a tab is the feed's: it switches the feed and leaves a thread, whatever the history says
+              onClick={() => {
+                binds[i]!.onClick?.();
+                if (threadOpen()) closeThread();
+              }}
+            >
               <text id={`sky-tabs-label-${i}`} style={tab.selected ? s.tabTextOn : s.tabText}>{feeds[i]!.name}</text>
             </box>
           ))}
         </box>
       </box>
-      <box {...bind} onPress={() => (bind.onPress(), feedScroll.press())} style={s.view}>
+      {/* the feed and its status line stay declared under the thread (its clip keeps its offset, its cards their boxes and
+          the selection); the covered screen is out of the a11y tree while the thread is mounted */}
+      <box
+        {...bind}
+        hidden={threadShown()}
+        onPress={() => (bind.onPress(), feedScroll.press())}
+        style={s.view}
+      >
         {/* the window: a spacer for the cards above, the declared cards, a spacer for the ones below — all cells of one
             `For`, so they are in that order in the feed's gap-spaced column and the declared cards are where the whole
             feed would have put them */}
@@ -786,8 +1193,13 @@ export function Sky(props: {
                   selected()?.feed === active() && selected()?.i === i ? s.cardOn : isHot(i) ? s.cardHover : s.card
                 }
                 onClick={() => {
-                  // a press that dragged the feed is not a click on the card it started on
-                  if (!feedScroll.dragged) setSelected({ feed: active(), i });
+                  // a press that dragged the feed is not a click on the card it started on; one that did not selects the
+                  // card and opens that post's thread
+                  if (feedScroll.dragged) return;
+                  const p = feed().posts[i];
+                  if (!p) return;
+                  setSelected({ feed: active(), i });
+                  openThread(threadOf(p, REPLIES), null);
                 }}
               >
                 <box id={`sky-avatar-${i}`} style={AVATARS[post().handle.split(".")[0]!]!} />
@@ -816,9 +1228,75 @@ export function Sky(props: {
       </box>
       {/* the scrollbar: a float on the feed, over the cards and outside the clip's child offset (it does not scroll) */}
       <box id={BAR} style={s.thumb} onPress={() => feedScroll.thumb()} />
-      <box id="sky-status" style={s.status}>
+      <box id="sky-status" hidden={threadShown()} style={s.status}>
         <text style={s.statusText}>{statusOf()}</text>
       </box>
+      {/* the thread screen: a root float over the content area, its header (the back control and the title) above its own
+          clip element. The region is named by the post's author; the rows are the root's card and the replies', indented
+          by depth, and a "Show N more replies" row is a button */}
+      <Show when={threadShown()}>
+        <box id={THREAD} role="region" label={`Thread — @${thread()?.root.handle ?? ""}`} style={s.thread}>
+          <box id={HEAD} style={s.head}>
+            <box {...backBind} {...a11y(back.part)} label="Back" style={s.back}>
+              <text style={s.backText}>Back</text>
+            </box>
+            <text style={s.threadTitle}>Thread</text>
+          </box>
+          <box
+            {...regionBind}
+            onPress={() => (regionBind.onPress(), threadScroll.press())}
+            style={s.threadView}
+          >
+            <For each={thread()?.rows ?? []}>
+              {(row, index) => (
+                <box id={`sky-thread-row-${index()}`} style={s.threadRowIndent[Math.min(row.depth, 4)]!}>
+                  {row.kind === "post" ? (
+                    <box
+                      id={`sky-thread-card-${index()}`}
+                      role="article"
+                      label={row.post.name || row.post.handle}
+                      style={index() === 0 ? s.cardOn : s.card}
+                    >
+                      {index() === 0 && AVATARS[row.post.handle.split(".")[0]!] ? (
+                        <box id="sky-thread-avatar" style={AVATARS[row.post.handle.split(".")[0]!]!} />
+                      ) : null}
+                      <box style={s.nameLine}>
+                        <text style={s.name}>{row.post.name || row.post.handle}</text>
+                        <text style={s.meta}>
+                          {row.post.name ? `@${row.post.handle} · ${ago(row.post.created)}` : ago(row.post.created)}
+                        </text>
+                      </box>
+                      <box id={`sky-thread-body-${index()}`} style={s.bodyBox}>
+                        <text style={s.body}>{row.post.text}</text>
+                      </box>
+                      {index() === 0 && row.post.media ? <text style={s.media}>{row.post.media}</text> : null}
+                      <text style={s.counts}>
+                        {`${num(row.post.replies)} replies · ${num(row.post.reposts)} reposts · ${num(row.post.likes)} likes`}
+                      </text>
+                    </box>
+                  ) : row.kind === "gone" ? (
+                    <box id={`sky-thread-card-${index()}`} role="note" label={row.text} style={s.tomb}>
+                      <text style={s.tombText}>{row.text}</text>
+                    </box>
+                  ) : (
+                    <box
+                      id={`sky-thread-card-${index()}`}
+                      role="button"
+                      label={row.text}
+                      onClick={() => openThread(row.open, thread())}
+                      style={s.more}
+                    >
+                      <text style={s.moreText}>{row.text}</text>
+                    </box>
+                  )}
+                </box>
+              )}
+            </For>
+          </box>
+          {/* the thread's thumb: a float on its clip, as the feed's is on the feed */}
+          <box id={THREAD_BAR} style={s.threadThumb} onPress={() => threadScroll.thumb()} />
+        </box>
+      </Show>
     </box>
   );
 }
