@@ -77,6 +77,20 @@ assert.ok(css.includes('--font-strong{syntax:"<number>";inherits:true;initial-va
 await client.transformRequest("/fixtures/themes-mapper.ts");
 assert.ok(sheet("themes-mapper.ts").includes("@property --ds-size-large{"));
 
+// A leaf may be its value under a $type (themes-bare.ts): the same tokens as themes-tokens.ts, under `--bare-…` names, and
+// the token part of the sheet (the @property rules and the aliases on :root) with the names put back is the same one. The
+// classes differ by their hash, which holds the call site.
+await client.transformRequest("/fixtures/themes-bare.ts");
+const tokensOf = (s) => s.slice(0, s.indexOf("@layer _.a {"));
+const bare = sheet("themes-bare.ts");
+assert.ok(bare.includes("@property --bare-color-bg{"), bare);
+assert.equal(tokensOf(bare).replaceAll("--bare-", "--"), tokensOf(sheet("themes-tokens.ts")));
+const bareErr = await failure("fixtures/themes-bare-no-type.ts");
+assert.match(
+  bareErr.message,
+  /^cssints: createTokens\(\): color\.bg is a value with no \$type in scope \(a type is not guessed from the value\)/,
+);
+
 // Errors, located at the call of createTokens
 let e = await failure("fixtures/themes-cycle.ts");
 assert.match(

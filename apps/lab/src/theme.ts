@@ -5,33 +5,18 @@ import { createGlobalTheme, createTokens } from "cssints" with { type: "cssints"
 export const t = createTokens({
   color: {
     $type: "color",
-    bg: { $value: "#ffffff" },
-    surface: { $value: "#f4f5f7" },
-    border: { $value: "#dbdfe5" },
-    text: { $value: "#14161a" },
-    muted: { $value: "#5c6270" },
-    accent: { $value: "oklch(58% 0.19 264)" },
-    onAccent: { $value: "#ffffff" },
-    accentSoft: { $value: "#e6ebfd" },
+    bg: "#ffffff",
+    surface: "#f4f5f7",
+    border: "#dbdfe5",
+    text: "#14161a",
+    muted: "#5c6270",
+    accent: "oklch(58% 0.19 264)",
+    onAccent: "#ffffff",
+    accentSoft: "#e6ebfd",
   },
-  space: {
-    $type: "dimension",
-    sm: { $value: "8px" },
-    md: { $value: "16px" },
-    lg: { $value: "24px" },
-  },
-  radius: {
-    $type: "dimension",
-    sm: { $value: "6px" },
-    md: { $value: "10px" },
-    full: { $value: "999px" },
-  },
-  fontSize: {
-    $type: "dimension",
-    sm: { $value: "13px" },
-    md: { $value: "15px" },
-    lg: { $value: "20px" },
-  },
+  space: { $type: "dimension", sm: "8px", md: "16px", lg: "24px" },
+  radius: { $type: "dimension", sm: "6px", md: "10px", full: "999px" },
+  fontSize: { $type: "dimension", sm: "13px", md: "15px", lg: "20px" },
 });
 
 // One override theme: the class `dark` on <html>, which the rail's switch writes. No media query, so what is on screen is

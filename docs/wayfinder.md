@@ -1985,3 +1985,31 @@ story id in the hash, the meta's args reaching the widget, the arrows, and the s
 `#ffffff`, dark `#0f1115`). **Left**: no controls panel from `args` (the devtools overlay is the panel; a controls table would
 be a second one), no grouping in the rail (labels carry `Title · Story`), no deploy (the lab is a dev tool: `vp dev` and
 `test:browser`, nothing in `bun run test`), and `scv()` stories are not written yet — `Button` shows `cv()` variants.
+
+## Tokens: a leaf may be its value, and no value constructors (2026-10-28)
+
+Asked by the user after the lab shipped: "typed utilities for tokens", something like
+`createTokens({ color: t.color({ bg: t.hex("fff"), edge: t.colorMix() }) })` — or is it not worth it, or another API? **Three
+things were on the table and two were turned down by reading the code, not by taste.** `t.hex("fff")`, `t.colorMix(...)` and
+their like would be a **second, weaker grammar**: a value is already CSS text that the engine checks against the grammar built
+from mdn-data (`#fff` through the shortcut for hex colours, `color-mix(in oklab, {color.accent}, black 15%)` with each
+`{path}` in place as a value of its target's type), that gets support warnings for the targets, that flows into `check.contrast`
+and into the fallbacks LightningCSS writes — a constructor would have to re-implement that per colour syntax and would not
+cover `calc()`, `none`, nesting or whatever ships next, so the typed path would be the one with fewer guarantees. A
+`t.color({...})`/`t.dimension({...})` group builder is a **second input format** for one thing: it cannot carry
+`$description`, `$deprecated`, `$extensions` or a DTCG object value, it does not survive `{ ...primitives, ...semantic }` of two
+JSON imports, and every reader would have to know which of the two a given file uses — the type walk of `Tokens<G>` and the
+`collect` walk would both double for punctuation. **What was done instead is the smallest thing that removes the noise, and it
+is not a new API: a leaf may be its value when a `$type` is in scope.** `color: { $type: "color", bg: "#fff", link:
+"{color.accent}" }` — the form `createGlobalTheme`'s overrides already took, since there the token set is the type. That
+asymmetry was the real wart the user felt: one file wrote the same colour as `{ $value: "#ffffff" }` and, four lines down,
+as `"#0f1115"`. A string or a number is the leaf (a number only for `number` and `fontWeight`, so `dimension: 12` is still an
+error); a DTCG object value and a token with its own `$type`, `$description` or `$extensions` stay `{ $value }`. A bare value
+with no `$type` in scope is an error in the types and at build time ("a type is not guessed from the value"). **Evidence:**
+`packages/cssints/test/fixtures/themes-bare.ts` writes the tokens of `themes-tokens.ts` as values and `themes.mjs` asserts the
+token part of the sheet (the `@property` rules, the aliases on `:root`) is byte-identical with the names put back; the lab's
+theme lost 17 `{ $value }` wrappers and now reads like its own override theme. Two type fixes came out of it: `KindAt` learned
+bare leaves (an alias `"{color.bg}"` to one resolved to no token), and `Tokens<>`/`ValidGroup<>` now fold a group's own
+`$type`, so a root-level `$type` reaches its leaves — a gap that only mattered once the root could hold values. **Left:** no
+`token.<type>` change (a standalone token builder already exists), no value constructors, no `$root`/`$extends`/`$ref` of
+DTCG, and arrays are still `{ $value }` (a `cubicBezier`, a shadow list): the rule is one sentence, "a string or a number".

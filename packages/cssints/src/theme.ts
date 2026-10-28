@@ -231,9 +231,19 @@ const collect = Effect.fnUntraced(function* (
         `cssints: createTokens(): the name "${key}" in ${here} has a { } or . (DTCG names cannot)`,
       );
     const at = [...path, key];
+    // A leaf is `{ $value }`, or the value itself when a `$type` is in scope: { $type: "color", bg: "#fff" }, as a theme's
+    // overrides take it.
+    if (typeof child === "string" || typeof child === "number") {
+      if (inherited === undefined)
+        return yield* fail(
+          `cssints: createTokens(): ${at.join(".")} is a value with no $type in scope (a type is not guessed from the value): give its group a $type, or write { $value } with its own`,
+        );
+      out.push({ path: at, dotted: at.join("."), type: inherited, value: child });
+      continue;
+    }
     if (!Predicate.isObject(child))
       return yield* fail(
-        `cssints: createTokens(): ${at.join(".")} is a group or a token ({ $value }), got ${Formatter.formatJson(child)}`,
+        `cssints: createTokens(): ${at.join(".")} is a group, a token ({ $value }), or a string or a number under a $type, got ${Formatter.formatJson(child)}`,
       );
     if (typeof child["type"] === "string" && Object.hasOwn(child, "value"))
       return yield* fail(

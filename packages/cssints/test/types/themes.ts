@@ -3,6 +3,8 @@ import { border, color, padding } from "@cssints/css-grammar/api-typed";
 import type { Token } from "@cssints/css-grammar/token";
 import * as css from "cssints" with { type: "cssints" };
 
+import tokensJson from "../fixtures/tokens.json" with { type: "json" };
+
 const t = css.createTokens({
   color: {
     $type: "color",
@@ -74,6 +76,36 @@ css.createTokens({
 css.createTokens({ c: { $type: "duration", x: { $value: 3 } } });
 // @ts-expect-error a keyword that is not a font weight
 css.createTokens({ c: { $type: "fontWeight", x: { $value: "heavier" } } });
+
+// A leaf may be its value when a `$type` is in scope, as a theme's overrides take it: the same tokens, less punctuation.
+const bare = css.createTokens({
+  $type: "dimension",
+  own: "4px",
+  color: {
+    $type: "color",
+    bg: "#ffffff",
+    link: "{color.bg}",
+    accent: "oklch(62% 0.19 259)",
+  },
+  space: { md: "16px" },
+  hue: { $type: "number", accent: 345 },
+});
+const bareBg: Token<"color", true, "#ffffff"> = bare.color.bg;
+const bareLink: Token<"color", true> = bare.color.link;
+const bareMd: Token<"length", true> = bare.space.md;
+const bareOwn: Token<"length", true> = bare.own; // the root's $type reaches its leaves too
+const bareHue: Token<"number", true> = bare.hue.accent;
+export const bareAll = [bareBg, bareLink, bareMd, bareOwn, bareHue];
+css.padding(bare.space.md);
+// @ts-expect-error a value needs a $type in its group
+css.createTokens({ color: { bg: "#ffffff" } });
+// @ts-expect-error not a colour
+css.createTokens({ color: { $type: "color", bg: "blu" } });
+// @ts-expect-error a DTCG dimension carries its unit
+css.createTokens({ space: { $type: "dimension", md: 12 } });
+// A JSON import widens $type to string: a bare value beside it is a token of any type, checked at build time.
+const merged = css.createTokens({ gap: { ...tokensJson.gap, lg: "24px" } });
+export const mergedGap = [merged.gap.lg];
 
 // A type is needed, and only types with a token type are supported.
 // @ts-expect-error no $type

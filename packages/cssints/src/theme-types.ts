@@ -103,7 +103,9 @@ type KindAt<N, P extends string, Root, Inherited = undefined> = P extends `${inf
   : P extends keyof N
     ? N[P] extends { readonly $value: infer V }
       ? KindOf<V, TypeOf<N[P], Inherited>, Root>
-      : never
+      : N[P] extends string | number
+        ? KindOf<N[P], Inherited, Root>
+        : never
     : never;
 
 // The definition's value as text: a string as written (an alias keeps its `{path}`), a number or a { value, unit } as its CSS
@@ -118,8 +120,9 @@ type Text<V> = V extends string
 type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 
 /**
- * The tokens of a `const` DTCG object: every leaf `{ $value }` is a named token of the type its `$type` maps to, carrying the
- * definition's value as text. A key that starts with a digit is read as `_<key>` (`t.space._2xs`).
+ * The tokens of a `const` DTCG object: every leaf is a named token of the type its `$type` maps to, carrying the definition's
+ * value as text. A leaf is `{ $value }`, or the value itself (a string or a number) when the group's `$type` is in scope. A
+ * key that starts with a digit is read as `_<key>` (`t.space._2xs`).
  */
 export type Tokens<G, Inherited = undefined, Root = G> = {
   readonly [K in keyof G as K extends `$${string}`
@@ -129,8 +132,10 @@ export type Tokens<G, Inherited = undefined, Root = G> = {
       : K]: G[K] extends {
     readonly $value: infer V;
   }
-    ? Token<KindOf<V, TypeOf<G[K], Inherited>, Root>, true, Text<V>>
-    : Tokens<G[K], TypeOf<G[K], Inherited>, Root>;
+    ? Token<KindOf<V, TypeOf<G[K], TypeOf<G, Inherited>>, Root>, true, Text<V>>
+    : G[K] extends string | number
+      ? Token<KindOf<G[K], TypeOf<G, Inherited>, Root>, true, Text<G[K]>>
+      : Tokens<G[K], TypeOf<G, Inherited>, Root>;
 };
 
 // What is wrong with the value V of a leaf, or `true`. The alias target's existence is checked here; its type at build time.
@@ -187,18 +192,32 @@ type ValidLeaf<L, Ty, Root> = L extends { readonly $value: infer V }
       : R
     : never
   : never;
+// A leaf written as its value: a string or a number under a `$type`, checked like the `$value` of a `{ $value }` leaf. With
+// no `$type` in scope there is nothing to check it as (DTCG never guesses), so it is the error; a JSON import widens `$type`
+// to `string`, and there the build checks it.
+type ValidBare<V extends string | number, Ty, Root> = [Ty] extends [DtcgType]
+  ? CheckValue<V, Ty, Root> extends infer R
+    ? [R] extends [true]
+      ? V
+      : R
+    : never
+  : [Ty] extends [string]
+    ? V
+    : Bad<"a value needs a $type in its group">;
 type ValidGroup<G, Inherited, Root> = {
   [K in keyof G]: K extends `$${string}`
     ? G[K]
     : G[K] extends { readonly $value: unknown }
-      ? ValidLeaf<G[K], TypeOf<G[K], Inherited>, Root>
-      : ValidGroup<G[K], TypeOf<G[K], Inherited>, Root>;
+      ? ValidLeaf<G[K], TypeOf<G[K], TypeOf<G, Inherited>>, Root>
+      : G[K] extends string | number
+        ? ValidBare<G[K], TypeOf<G, Inherited>, Root>
+        : ValidGroup<G[K], TypeOf<G, Inherited>, Root>;
 };
 
 /**
- * Tokens from an inline DTCG-shaped `const` object: `$type` is inherited through groups, a leaf is `{ $value }`, a value is
- * a DTCG value or a CSS string of the type's grammar, an alias is `"{group.token}"`. The variable is the kebab-case path
- * (`--color-bg`), or what the mapper returns for the path.
+ * Tokens from an inline DTCG-shaped `const` object: `$type` is inherited through groups, a leaf is `{ $value }` or, when a
+ * `$type` is in scope, the value itself (`bg: "#ffffff"`), a value is a DTCG value or a CSS string of the type's grammar, an
+ * alias is `"{group.token}"`. The variable is the kebab-case path (`--color-bg`), or what the mapper returns for the path.
  */
 export declare const createTokens: <const T extends { readonly [name: string]: unknown }>(
   tokens: T & ValidGroup<T, undefined, T>,

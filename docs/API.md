@@ -327,7 +327,31 @@ css.createGlobalTheme(t, css.hover, { color: { bg: "red" } }); // error: a pseud
 ```
 
 - **Types:** `$type` is inherited through groups, and a token needs one (it is not guessed from the value). It maps to a token type: `color` to `color`, `dimension` to `length`, `number` to `number`, `duration` to `time`, `fontWeight` to `number` (keywords such as `bold` become 700), `cubicBezier` to `easingFunction`, `shadow` to `shadow`. `fontFamily`, `strokeStyle` and the other composite types (`border`, `transition`, `gradient`, `typography`) are an error. A value is a CSS string of the type's grammar, or the DTCG form: `{ colorSpace, components, alpha? }`, `{ value, unit }` (`px` or `rem`, `ms` or `s`), a number, `[x1, y1, x2, y2]` (`cubic-bezier(x1, y1, x2, y2)`), `{ color, offsetX, offsetY, blur, spread, inset? }` or an array of them (the parts are DTCG values or CSS strings, without references). The initial value follows the rule of "Tokens": `{ value: 1, unit: "rem" }` is `initial-value:16px` and `:root{--space-md:1rem}`.
+- **A leaf may be its value:** when the group's `$type` is in scope, a token is the value itself, as a theme's overrides take it — `color: { $type: "color", bg: "#fff", link: "{color.accent}" }`. A string is a value of the group's type, an alias `{path}` included, and a number is one for `number` and `fontWeight`; anything else stays `{ $value }` as in DTCG: a DTCG object (`{ colorSpace, components }`, `{ value, unit }`, a shadow), and a token with its own `$type`, `$description` or `$extensions`. A value with no `$type` in its group is an error, in the types and at build time (a type is not guessed from the value). The same tokens, spelled both ways:
+
+```ts
+import * as css from "cssints" with { type: "cssints" };
+
+const short = css.createTokens({
+  color: { $type: "color", bg: "#fff", edge: "oklch(80% 0.02 259)" },
+  space: { $type: "dimension", sm: "4px", md: "8px" },
+  hue: { $type: "number", accent: 345 },
+});
+const long = css.createTokens({
+  color: {
+    $type: "color",
+    bg: { $value: "#fff" },
+    edge: { $value: "oklch(80% 0.02 259)" },
+  },
+  space: { $type: "dimension", sm: { $value: "4px" }, md: { $value: { value: 8, unit: "px" } } },
+  hue: { $type: "number", accent: { $value: 345 } },
+});
+css.padding(short.space.md, long.space.md);
+css.createTokens({ color: { bg: "#fff" } }); // error: no $type in scope
+```
+
 - **Names:** the variable name is the kebab-case path (`--color-bg`). A second argument to `createTokens` maps a path (an array of names) to a name, or to `{ var, inherit }`.
+
 - **Support warnings** (cssints-tuyw): a token value goes through the same support check as a property value, since it reaches the same browsers: the initial value of `token.<type>()` and of a `createTokens()` leaf, an override of `createGlobalTheme()` (its references replaced by their literals) and a `token.set()` value. It is checked as a value of a property that takes its type (`color` for a colour, `width` for a length, `transform` for a transform list; `custom-ident` and `resolution` have none), so `oklch()` warns for a target without it, like `color: oklch(...)`. A warning is given once per token (or theme value) and BCD feature per build, and a dev server gives it again after each edit, as for properties. It names the token path and, for a theme, the theme: `createTokens(): color.accent value: "oklch()" in "oklch(0.62 0.19 259)" is not supported by chrome 109 (css.types.color.oklch)`, `createGlobalTheme(): color.accent value in .light: "oklch()" in ...`, `token.color() initial value of --name: ...`, `token.set() value of --name: ...`. An alias has the same warning for its own token, since its `@property` rule holds the same literal. A value that goes into the sheet gets no warning when a fallback below handles it for the targets (the bullet "No warning for what LightningCSS lowers" below says what LightningCSS lowers); an inline `token.set()` value never goes through LightningCSS and keeps the warning, as does a value LightningCSS cannot lower (`color-mix()` over a token in a class).
 - **Fallbacks for older targets** (cssints-33pa): a browser that cannot parse the initial value of an `@property` rule (`oklch()` in Chrome 109) drops the rule, and the token has no value at all. When some target lacks a value, the engine writes it for that target (transforming `--x:value` through LightningCSS with the lacking targets and taking the first declaration, `#db4aa7` for `oklch(0.637 0.203 345)`) and nothing changes for a target set that has it, byte for byte:
   - **A plain token** (`token.color("oklch(0.637 0.203 345)", "accent")`, a `createTokens()` leaf): `@property --accent{…initial-value:#db4aa7}` and `:root{--accent:oklch(0.637 0.203 345)}`, which LightningCSS lowers like any custom property (`--accent:#db4aa7`, then the wide-gamut `lab()` under `@supports (color: lab(0% 0 0))`). A browser that parses the value gets the wide one, so a modern browser reads the same colour as before, written as `lab()` (`:where(*)` stands for `:root` when the token does not inherit).
