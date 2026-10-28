@@ -95,6 +95,18 @@ static uint64_t frame_hash = 0xcbf29ce484222325ull;
 // ui_draw and ui_window_present calls of the process, for a test: a page at rest keeps both still
 static int draw_count, present_count;
 
+// the element names of the frame, by Clay's 32-bit id: `ui_dump_json` turns a command's id back into the page's id
+// string, and a text's node is where its alignment and wrap are kept (Clay's text command carries the colour and the
+// font but not those two, which the layout consumed). Both are interned per node in ui_open / ui_text.
+static unsigned char text_align[CLAY_THORVG_MAX_TREE], text_wrap[CLAY_THORVG_MAX_TREE];
+// ponytail: 512 named elements a process; later ids are unnamed in a dump (a page's ids are the same every frame)
+#define MAX_ID_NAMES 512
+static struct {
+    uint32_t id;
+    const char *name;
+} id_names[MAX_ID_NAMES];
+static int id_name_count;
+
 static SDL_Window *window;
 static SDL_Renderer *renderer;
 static SDL_Texture *texture;
@@ -319,6 +331,27 @@ void ui_value(const char *id, int len, int field, float value)
     value_count++;
 }
 
+// The page's id string of an element, kept by Clay's hash of it: a dump names a command's element from it. The name is
+// the page's, so it does not change between frames, and one name a hash is enough (two elements cannot share an id
+// without Clay confusing them too).
+static void intern_id(uint32_t id, const char *s, int len)
+{
+    if (!s || len <= 0) return;
+    for (int i = 0; i < id_name_count; i++)
+        if (id_names[i].id == id) return;
+    if (id_name_count == MAX_ID_NAMES) return;
+    id_names[id_name_count].id = id;
+    id_names[id_name_count].name = strndup(s, (size_t)len);
+    id_name_count++;
+}
+
+static const char *id_name(uint32_t id)
+{
+    for (int i = 0; i < id_name_count; i++)
+        if (id_names[i].id == id) return id_names[i].name;
+    return NULL;
+}
+
 /** Opens an element. id is NULL for an anonymous one; f is 45 floats: the box fields, then the floating ones. */
 void ui_open(const char *id, int len, const float *style)
 {
@@ -326,6 +359,7 @@ void ui_open(const char *id, int len, const float *style)
     static const Clay_LayoutAlignmentY ay[3] = {CLAY_ALIGN_Y_TOP, CLAY_ALIGN_Y_CENTER, CLAY_ALIGN_Y_BOTTOM};
     Clay_ElementId eid = {0};
     if (id) eid = Clay__HashString(slice(id, len), 0);
+    if (id) intern_id(eid.id, id, len);
     // the value channel (ui_value): this element's overrides, applied to a copy of its own floats. Without one the
     // declaration reads the style's literal, so a frame that uses no channel is the frame it was (180 bytes copied for
     // an element that has an override, nothing for one that does not)
@@ -455,6 +489,7 @@ void ui_text(const char *id, int id_len, const char *s, int len, const float *f)
     const float *tf = f;
     if (id) {
         eid = Clay__HashString(slice(id, id_len), 0);
+        intern_id(eid.id, id, id_len);
         // the value channel (ui_value): this text's colour overrides, applied to a copy of its own floats. Only the
         // colour: the font, the size and the rest stay the style's literal
         int mine = 0;
@@ -484,6 +519,8 @@ void ui_text(const char *id, int id_len, const char *s, int len, const float *f)
             id ? eid.id : Clay__HashNumber(parent->children.length + parent->floatingChildrenCount, parent->id).id;
         tvg.tree[node].parent = tvg.openDepth ? tvg.open[tvg.openDepth - 1] : -1;
         c.userData = (void *)(uintptr_t)(node + 1);
+        // the two fields of the text's config that Clay's command does not carry: the dump reads them by the node
+        text_align[node] = (unsigned char)tf[8], text_wrap[node] = (unsigned char)tf[9];
     } else errors++;
     Clay__OpenTextElement(slice(copy, len), c);
 }
@@ -630,6 +667,207 @@ static void hash_frame(void)
 
 /** The hash of the last frame's commands and renderer effects: the same value twice means the same pixels. */
 uint64_t ui_hash(void) { return frame_hash; }
+
+// ---------- the frame as data: solid/src/dump.ts, the goldens in solid/goldens ----------
+
+// JSON's number for a Clay float: nine significant digits round-trips a float32 exactly, so nothing is rounded on the
+// way out and a golden compares an exact value. -0 prints as -0 (two frames, as the hash treats them).
+#define JNUM "%.9g"
+
+static void json_text(FILE *f, const char *s, int len)
+{
+    fputc('"', f);
+    for (int i = 0; i < len; i++) {
+        const unsigned char c = (unsigned char)s[i];
+        if (c == '"' || c == '\\') fprintf(f, "\\%c", c);
+        else if (c < 0x20) fprintf(f, "\\u%04x", c);
+        else fputc(c, f); // UTF-8 passes through: the page's ², °, · and — are the page's own bytes
+    }
+    fputc('"', f);
+}
+
+/** `"id":n,"element":"the page's id"`, the name resolved from the id's hash (null for an element without one). */
+static void json_element(FILE *f, uint32_t id)
+{
+    fprintf(f, "\"id\":%u,\"element\":", id);
+    const char *name = id_name(id);
+    if (name) json_text(f, name, (int)strlen(name));
+    else fputs("null", f);
+}
+
+static void json_color(FILE *f, Clay_Color c)
+{
+    fprintf(f, "[" JNUM "," JNUM "," JNUM "," JNUM "]", c.r, c.g, c.b, c.a);
+}
+
+static void json_corners(FILE *f, Clay_CornerRadius c)
+{
+    fprintf(f, "[" JNUM "," JNUM "," JNUM "," JNUM "]", c.topLeft, c.topRight, c.bottomRight, c.bottomLeft);
+}
+
+static void json_box(FILE *f, Clay_BoundingBox b)
+{
+    fprintf(f, "[" JNUM "," JNUM "," JNUM "," JNUM "]", b.x, b.y, b.width, b.height);
+}
+
+static const char *command_type_name(Clay_RenderCommandType t)
+{
+    switch (t) {
+    case CLAY_RENDER_COMMAND_TYPE_RECTANGLE: return "rectangle";
+    case CLAY_RENDER_COMMAND_TYPE_BORDER: return "border";
+    case CLAY_RENDER_COMMAND_TYPE_TEXT: return "text";
+    case CLAY_RENDER_COMMAND_TYPE_IMAGE: return "image";
+    case CLAY_RENDER_COMMAND_TYPE_SCISSOR_START: return "scissor-start";
+    case CLAY_RENDER_COMMAND_TYPE_SCISSOR_END: return "scissor-end";
+    case CLAY_RENDER_COMMAND_TYPE_OVERLAY_COLOR_START: return "overlay-color-start";
+    case CLAY_RENDER_COMMAND_TYPE_OVERLAY_COLOR_END: return "overlay-color-end";
+    case CLAY_RENDER_COMMAND_TYPE_CUSTOM: return "custom";
+    default: return "none";
+    }
+}
+
+static const char *align_name(unsigned a)
+{
+    return a == CLAY_TEXT_ALIGN_CENTER ? "center" : a == CLAY_TEXT_ALIGN_RIGHT ? "right" : "left";
+}
+
+static const char *wrap_name(unsigned w)
+{
+    return w == CLAY_TEXT_WRAP_NEWLINES ? "newlines" : w == CLAY_TEXT_WRAP_NONE ? "none" : "words";
+}
+
+/**
+ * Writes the last frame as JSON at `path`: every command's fields that a draw reads (type, Clay's element id and the
+ * page's id behind it, the box and z, and per type the text with its colour, font, size, spacing, line height,
+ * alignment and wrap, a rectangle's colour and corner radii, a border's colour, radii and widths, an image's path, a
+ * clip's axes, a custom's pointer), then the renderer's side tables that are not commands (a shadow, a backdrop, a
+ * gradient with its stops, a group's alpha/scale/translate/rotation, the text weight) — they are what `hash_frame`
+ * folds in, so a dump without them could not see a frame that only moved one — and the frame's hash. 0 on success, -1
+ * when the file cannot be written. This is solid/goldens' source; the raster stays the final gate.
+ */
+int ui_dump_json(const char *path)
+{
+    FILE *f = fopen(path, "wb");
+    if (!f) return -1;
+    fprintf(f, "{\"size\":[%d,%d],\"scale\":" JNUM ",\"hash\":\"%016llx\",\"commands\":[\n", width, height,
+            (double)tvg.scale, (unsigned long long)frame_hash);
+    for (int32_t i = 0; i < cmds.length; i++) {
+        const Clay_RenderCommand *c = &cmds.internalArray[i];
+        fprintf(f, "{\"type\":\"%s\",", command_type_name(c->commandType));
+        json_element(f, c->id);
+        fputs(",\"box\":", f), json_box(f, c->boundingBox);
+        fprintf(f, ",\"z\":%d", (int)c->zIndex);
+        switch (c->commandType) {
+        case CLAY_RENDER_COMMAND_TYPE_RECTANGLE:
+            fputs(",\"color\":", f), json_color(f, c->renderData.rectangle.backgroundColor);
+            fputs(",\"radii\":", f), json_corners(f, c->renderData.rectangle.cornerRadius);
+            break;
+        case CLAY_RENDER_COMMAND_TYPE_BORDER: {
+            const Clay_BorderRenderData *b = &c->renderData.border;
+            fputs(",\"color\":", f), json_color(f, b->color);
+            fputs(",\"radii\":", f), json_corners(f, b->cornerRadius);
+            fprintf(f, ",\"widths\":[%d,%d,%d,%d,%d]", (int)b->width.left, (int)b->width.right, (int)b->width.top,
+                    (int)b->width.bottom, (int)b->width.betweenChildren);
+            break;
+        }
+        case CLAY_RENDER_COMMAND_TYPE_TEXT: {
+            const Clay_TextRenderData *t = &c->renderData.text;
+            // alignment and wrap are the text's config, not its command: the node ui_text recorded them on
+            const int32_t node = c->userData ? (int32_t)(uintptr_t)c->userData - 1 : -1;
+            const int known = node >= 0 && node < tvg.treeCount;
+            fputs(",\"text\":", f), json_text(f, t->stringContents.chars, (int)t->stringContents.length);
+            fputs(",\"color\":", f), json_color(f, t->textColor);
+            fprintf(f, ",\"font\":%d,\"size\":%d,\"letterSpacing\":%d,\"lineHeight\":%d", (int)t->fontId,
+                    (int)t->fontSize, (int)t->letterSpacing, (int)t->lineHeight);
+            fprintf(f, ",\"align\":\"%s\",\"wrap\":\"%s\"", align_name(known ? text_align[node] : 0),
+                    wrap_name(known ? text_wrap[node] : 0));
+            break;
+        }
+        case CLAY_RENDER_COMMAND_TYPE_IMAGE: {
+            const char *image = c->renderData.image.imageData;
+            fputs(",\"path\":", f);
+            if (image) json_text(f, image, (int)strlen(image));
+            else fputs("null", f);
+            fputs(",\"color\":", f), json_color(f, c->renderData.image.backgroundColor);
+            fputs(",\"radii\":", f), json_corners(f, c->renderData.image.cornerRadius);
+            break;
+        }
+        case CLAY_RENDER_COMMAND_TYPE_SCISSOR_START:
+        case CLAY_RENDER_COMMAND_TYPE_SCISSOR_END: {
+            const int across = c->renderData.clip.horizontal, down = c->renderData.clip.vertical;
+            fputs(",\"axes\":[", f);
+            if (across) fputs("\"horizontal\"", f);
+            if (across && down) fputc(',', f);
+            if (down) fputs("\"vertical\"", f);
+            fputc(']', f);
+            break;
+        }
+        case CLAY_RENDER_COMMAND_TYPE_OVERLAY_COLOR_START:
+        case CLAY_RENDER_COMMAND_TYPE_OVERLAY_COLOR_END:
+            fputs(",\"color\":", f), json_color(f, c->renderData.overlayColor.color);
+            break;
+        case CLAY_RENDER_COMMAND_TYPE_CUSTOM:
+            fputs(",\"color\":", f), json_color(f, c->renderData.custom.backgroundColor);
+            fputs(",\"radii\":", f), json_corners(f, c->renderData.custom.cornerRadius);
+            // a custom's data is a pointer: an address is the one field of a dump the process decides, not the page
+            fprintf(f, ",\"pointer\":%llu", (unsigned long long)(uintptr_t)c->renderData.custom.customData);
+            break;
+        default:
+            break;
+        }
+        fputs(i + 1 < cmds.length ? "},\n" : "}\n", f);
+    }
+    fprintf(f, "],\"effects\":{\"textWeight\":" JNUM, (double)tvg.textWeight);
+    fputs(",\"shadows\":[", f);
+    for (int k = 0; k < tvg.shadowCount; k++) {
+        fputs(k ? ",\n" : "\n", f);
+        fputc('{', f), json_element(f, tvg.shadows[k].id);
+        fprintf(f, ",\"x\":" JNUM ",\"y\":" JNUM ",\"blur\":" JNUM ",\"color\":", (double)tvg.shadows[k].x,
+                (double)tvg.shadows[k].y, (double)tvg.shadows[k].blur);
+        json_color(f, tvg.shadows[k].color);
+        fputc('}', f);
+    }
+    fputs("],\"backdrops\":[", f);
+    for (int k = 0; k < tvg.backdropCount; k++) {
+        fputs(k ? ",\n" : "\n", f);
+        fputc('{', f), json_element(f, tvg.backdrops[k].id);
+        fprintf(f, ",\"blur\":" JNUM, (double)tvg.backdrops[k].blur);
+        fputc('}', f);
+    }
+    fputs("],\"gradients\":[", f);
+    for (int k = 0; k < tvg.gradientCount; k++) {
+        const int count = tvg.gradients[k].count;
+        fputs(k ? ",\n" : "\n", f);
+        fputc('{', f), json_element(f, tvg.gradients[k].id);
+        fprintf(f, ",\"kind\":%d,\"angle\":" JNUM ",\"alpha\":%d,\"stops\":[", tvg.gradients[k].kind,
+                (double)tvg.gradients[k].angle, tvg.gradients[k].alpha);
+        for (int s = 0; s < count; s++) {
+            fprintf(f, "%s{\"offset\":" JNUM ",\"color\":", s ? "," : "", (double)tvg.gradients[k].offset[s]);
+            json_color(f, tvg.gradients[k].color[s]);
+            fputc('}', f);
+        }
+        fputs("]}", f);
+    }
+    fputs("],\"groups\":[", f);
+    for (int k = 0, written = 0; k < tvg.groupCount; k++) {
+        const int32_t at = tvg.groups[k].at;
+        // a neutral group makes no scene and the hash skips it: the dump does too, so the golden sees a frame's change
+        if (tvg.groups[k].alpha >= 255 && tvg.groups[k].scale == 1 && tvg.groups[k].tx == 0 && tvg.groups[k].ty == 0 &&
+            tvg.groups[k].rotate == 0)
+            continue;
+        fputs(written++ ? ",\n" : "\n", f);
+        fprintf(f, "{\"node\":%d,\"element\":", (int)at);
+        const char *name = at >= 0 && at < tvg.treeCount ? id_name(tvg.tree[at].id) : NULL;
+        if (name) json_text(f, name, (int)strlen(name));
+        else fputs("null", f);
+        fprintf(f, ",\"alpha\":%d,\"scale\":" JNUM ",\"tx\":" JNUM ",\"ty\":" JNUM ",\"rotate\":" JNUM,
+                tvg.groups[k].alpha, (double)tvg.groups[k].scale, (double)tvg.groups[k].tx, (double)tvg.groups[k].ty,
+                (double)tvg.groups[k].rotate);
+        fputc('}', f);
+    }
+    fputs("]}}\n", f);
+    return fclose(f) == 0 ? 0 : -1;
+}
 
 /** Draws of the process (ui_draw calls); a test's counter for the frames a page at rest does not draw. */
 int ui_draws(void) { return draw_count; }
