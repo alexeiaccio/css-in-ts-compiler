@@ -174,3 +174,34 @@ bun solid/metamorphic.test.ts
 $S --offline --warm 40 --click 180 380 --settle 40 --expect solid/frames/sky-thread.png
 $S --offline --warm 40 --click 180 380 --settle 40 --pending --expect solid/frames/sky-thread-loading.png
 $S --offline --warm 40 --click 180 380 --settle 40 --fail --expect solid/frames/sky-thread-error.png
+# the dev page (the map's item 7, first half): the Widgets page with a panel beside it — its a11y tree, the box under the
+# pointer and the frame's four phases (solid/app/Dev.tsx, 660x760). The page on the left is the same component the
+# `widgets` page runs, so the frames below show it unchanged. Its four stored frames are NOT compared: the panel prints
+# the frame's milliseconds, and two runs of a page at rest differ by 13,661 pixels of the 501,600 (the digits, and the
+# reflow they cause) — dev.test.ts is what holds the panel's content and checks the stored four are this page's. The runs
+# below are the smoke test, and the stored frames are what `--png solid/frames/dev*.png` made.
+DEV="bun solid/main.ts dev"
+$DEV --warm 30 --png "${TMPDIR:-/tmp}/cssints-dev.png"
+$DEV --warm 30 --move 180 134 3 --png "${TMPDIR:-/tmp}/cssints-dev-hover.png"
+THEME=light $DEV --warm 30 --png "${TMPDIR:-/tmp}/cssints-dev-light.png"
+$DEV --warm 30 --keys Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab --settle 2 --png "${TMPDIR:-/tmp}/cssints-dev-tree.png"
+# the panel's three sections against the page's own tree: the 28 rows, the ring after Tab, the hovered box, the phases
+# and the counters (and the four frames of the page)
+bun solid/dev.test.ts
+# a scene as a file (Rune's item 4, docs/map.md): one JSON of typed events with times drives the page's own frame loop,
+# so a stored frame is compared against a *sequence* of input and not one state. The four scenes are the record of four
+# stored frames, byte for byte; scene.test.ts replays them in-process (their steps, frames and ending state), mutates two
+# of them to show the frames move (Space before Tab: 964 pixels; the List's settle dropped: 15,445), and pins the
+# validation messages (an unknown kind, a step out of order, a missing size, a size that is not the page's)
+for scene in widgets-switch-on list-select sky-scrolled dialog-menu; do
+  bun solid/main.ts --scene "solid/scenes/$scene.json" --expect "solid/frames/$scene.png"
+done
+bun solid/scene.test.ts
+# the command-stream goldens (Rune's item 5): five pages' last frames as JSON — every command field a draw reads, the
+# renderer's tables beside the commands (a shadow, a backdrop, a gradient, a group, the text weight) and the a11y
+# snapshot — against solid/goldens/. A pixel diff says 300 pixels moved; a miss here says which command and which field:
+# `FAIL sensors: command 2 (text "accel m/s²") colour 150/155/170/255 -> 160/165/180/255`. The frames are the pages'
+# stored ones (Sensors, Widgets, the List's top, the Sky's Discover settled) and the Dialog's menu two frames into its
+# slide, the one frame that carries every table. Re-store a page after a deliberate change — read the diff first — with
+# `bun solid/dump.ts <page> --update`; one page's JSON alone with `bun solid/dump.ts <page>` (stdout).
+bun solid/dump.test.ts

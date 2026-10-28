@@ -26,6 +26,7 @@ const { symbols: s } = dlopen(new URL("../../build/solid/libui.dylib", import.me
   ui_text: { args: [T.ptr, T.i32, T.ptr, T.i32, T.ptr], returns: T.void },
   ui_end: { args: [T.f32], returns: T.i32 },
   ui_hash: { args: [], returns: T.u64 },
+  ui_dump_json: { args: [T.cstring], returns: T.i32 },
   ui_draws: { args: [], returns: T.i32 },
   ui_presents: { args: [], returns: T.i32 },
   ui_draw: { args: [], returns: T.void },
@@ -100,6 +101,9 @@ export const ui = {
   /** The FNV-1a hash of the last frame's commands and renderer effects: the same value twice means the same pixels, so
    *  a host that sees it unchanged may skip `draw` (and its present). */
   hash: (): bigint => s.ui_hash(),
+  /** Writes the last frame as JSON at `path` (the command-stream goldens of `src/dump.ts`): 0 on success, -1 when the
+   *  file cannot be written. Every command field a draw reads, then the renderer's tables beside the commands. */
+  dumpJson: (path: string) => s.ui_dump_json(cstr(path)),
   /** ui_draw calls of the process: a page at rest keeps it still. */
   draws: () => s.ui_draws(),
   /** ui_window_present calls of the process. */

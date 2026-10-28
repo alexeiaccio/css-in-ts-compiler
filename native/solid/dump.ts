@@ -1,0 +1,158 @@
+// A page's last frame as JSON: the command-stream golden of Rune's item 5. It renders a page exactly as `main.ts`'s
+// headless path does for its stored pixel frame — Bun's plugin (JSX, then cssints), the page's own size, its input and
+// its motion hook — runs it to rest, and dumps the frame (`src/dump.ts`: `ui_dump_json` and the a11y snapshot).
+//
+//   bun solid/dump.ts sensors                     # the JSON to stdout, the counts to stderr
+//   bun solid/dump.ts sky --out /tmp/sky.json     # ... or to a file
+//   bun solid/dump.ts widgets --update            # re-store solid/goldens/widgets.json
+//
+// `solid/dump.test.ts` compares every stored golden field by field (and says which command and which field a miss is).
+// Only `./plugin.ts` is imported statically: a static import is resolved before the plugin registers, and Bun would then
+// load solid-js's server build, where signals never update (the reason `main.ts` is shaped the same way).
+import "./plugin.ts";
+
+import { writeFileSync } from "node:fs";
+
+import type { Drag } from "./app/Widgets.tsx";
+import type { A11yNode } from "./a11y.ts";
+import type { Motion } from "./src/entry.ts";
+import type { Input } from "./src/input.ts";
+import type { El } from "./src/renderer.ts";
+import type { PageDump } from "./src/dump.ts";
+
+/** One page of the table: its layout's size, the frames it runs to rest, and the keys it takes before them. */
+interface Page {
+  width: number;
+  height: number;
+  /** Frames at rest (a mount animation has to be over before the frame is dumped). */
+  warm: number;
+  /** Scripted keys, a frame after each, as `main.ts --keys` takes them. */
+  keys?: readonly string[];
+  /** Frames at rest after the keys, for a page whose motion has to be caught on the way (`main.ts --settle`). */
+  settle?: number;
+}
+
+/** The pages a golden covers, with the frames at rest their stored pixel frame is taken at: `--warm 30` is 30 rest
+ *  frames and the one the frame is written on (31) on the plain pages; the Sky's `--settle 40` is one and forty. The
+ *  Dialog is its menu two frames after it opens (`--keys Tab,Tab,Enter --settle 2`, the `dialog-menu-mid` frame): the
+ *  one frame that has every table beside the commands — a group mid-fade and mid-lean, a shadow mid-blur, the menu's
+ *  glass and its floats. Their sizes are the pages' own (`size` in each app). */
+export const PAGES = {
+  sensors: { width: 360, height: 360, warm: 31 },
+  widgets: { width: 360, height: 760, warm: 31 },
+  list: { width: 360, height: 400, warm: 31 },
+  sky: { width: 360, height: 760, warm: 41 },
+  dialog: { width: 360, height: 480, warm: 1, keys: ["Tab", "Tab", "Enter"], settle: 2 },
+} satisfies Record<string, Page>;
+
+export type PageName = keyof typeof PAGES;
+
+/** The pages, imported once per process (the plugin compiles them on the way in). */
+const apps: Record<string, unknown> = {};
+const EXPORT = { sensors: "Sensors", widgets: "Widgets", list: "List", sky: "Sky", dialog: "Dialog" } as const;
+async function app(name: PageName): Promise<unknown> {
+  if (!apps.Sensors) {
+    const [sensors, widgets, list, sky, dialog] = await Promise.all([
+      import("./app/Sensors.tsx"),
+      import("./app/Widgets.tsx"),
+      import("./app/List.tsx"),
+      import("./app/Sky.tsx"),
+      import("./app/Dialog.tsx"),
+    ]);
+    apps.Sensors = sensors.Sensors;
+    apps.Widgets = widgets.Widgets;
+    apps.List = list.List;
+    apps.Sky = sky.Sky;
+    apps.Dialog = dialog.Dialog;
+  }
+  return apps[EXPORT[name]];
+}
+
+// what a second capture in one process needs: ui_init again is a fresh Clay arena and a fresh canvas; the font and the
+// engine are the process's, so they are loaded once
+let started = false;
+
+type Hooks = { input: Input; motion: Motion; drag: Drag; theme?: string };
+
+/**
+ * Renders one page headless and returns its last frame as data. The page is the same component, size and state as its
+ * stored pixel frame; only the raster is skipped (`main.ts` draws when the hash moves, this never draws), which changes
+ * no command, no table and no box.
+ */
+export async function capture(name: PageName, theme?: string): Promise<PageDump> {
+  const component = await app(name);
+  const { ui } = await import("./src/ffi.ts");
+  const { createFrame } = await import("./src/frame.ts");
+  const { createInput } = await import("./src/input.ts");
+  const { El, render } = await import("./src/renderer.ts");
+  const { dumpPage } = await import("./src/dump.ts");
+  const { width, height, warm, keys, settle = 0 } = PAGES[name];
+  if (!started) {
+    const font = new URL("../vendor/fonts/Roboto-Regular.ttf", import.meta.url).pathname;
+    if (ui.init(width, height) || ui.font(font) < 0) throw new Error("ui_init or ui_font failed (thorvg? build/solid)");
+    started = true;
+  } else if (ui.init(width, height)) throw new Error(`ui_init(${width}, ${height}) failed`);
+
+  // the same `View` hooks `main.ts` wires: the pages' tick (their entry and their tracks), the pointer and the wheel
+  const hooks: Hooks = { input: createInput(), motion: {}, drag: {} };
+  const root = new El("root");
+  const page = pageOf(component, hooks);
+  const dispose = render(page, root);
+  const frame = createFrame(root, {
+    get theme() {
+      return theme;
+    },
+    onPointer: (x, y, down, touch) => {
+      hooks.drag.onPointer?.(x, y, down);
+      hooks.motion.onPointer?.(x, y, down, touch);
+    },
+    onPressMiss: () => hooks.input.pressMiss(),
+    onWheel: (dx, dy) => hooks.motion.onWheel?.(dx, dy),
+    tick: (dt) => hooks.motion.tick?.(dt),
+  });
+  for (let n = 0; n < warm; n++) frame(-1, -1, false, 1 / 60, false);
+  // a scripted key is a frame of its own, as `main.ts --keys` gives it: down and up, then the frame that follows
+  for (const key of keys ?? []) hooks.input.down(key), hooks.input.up(key), frame(-1, -1, false, 1 / 60, false);
+  for (let n = 0; n < settle; n++) frame(-1, -1, false, 1 / 60, false);
+  const dump = dumpPage(root);
+  if (ui.errors()) throw new Error(`${name}: ${ui.errors()} Clay errors`);
+  dispose();
+  return dump;
+}
+
+/** A page as a tree, as `main.ts` builds it: every page takes a subset of these props and ignores the rest, and the
+ *  Sky's theme is a getter because the page reads it each frame. */
+function pageOf(module: unknown, hooks: Hooks): () => El {
+  const component = module as (props: object) => El;
+  return () => component({ input: hooks.input, motion: hooks.motion, drag: hooks.drag, theme: () => hooks.theme });
+}
+
+/** The nodes of a snapshot, the document not counted (the count a page's line prints). */
+export function nodes(node: A11yNode): number {
+  let n = 0;
+  for (const child of node.children) n += 1 + nodes(child);
+  return n;
+}
+
+if (import.meta.main) {
+  const argv = process.argv.slice(2);
+  const at = argv.indexOf("--out");
+  const name = argv.find((a, i) => !a.startsWith("--") && (at < 0 || i !== at + 1)) as PageName | undefined;
+  if (name === undefined || !(name in PAGES)) {
+    console.error(`usage: bun solid/dump.ts <${Object.keys(PAGES).join("|")}> [--out path] [--update]`);
+    process.exit(1);
+  }
+  const { format } = await import("./src/dump.ts");
+  const dump = await capture(name);
+  const counts = `${name}: ${dump.commands.length} commands, ${nodes(dump.a11y)} a11y nodes`;
+  const out = at >= 0 ? argv[at + 1] : argv.includes("--update") ? goldens(name) : undefined;
+  if (out === undefined) process.stdout.write(`${format(dump)}\n`);
+  else writeFileSync(out, `${format(dump)}\n`);
+  console.error(out === undefined ? counts : `${counts} -> ${out}`);
+  process.exit(0);
+}
+
+/** The stored golden a page's `--update` rewrites. */
+function goldens(name: PageName): string {
+  return new URL(`./goldens/${name}.json`, import.meta.url).pathname;
+}

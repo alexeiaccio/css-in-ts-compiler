@@ -816,14 +816,52 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    move fails with 5,869 pixels, a 1px padding in the wrapper with 6,859. Left: scale equivariance (a 2x render
    downsampled against 1x), order independence of non-overlapping siblings, and the springs' time-split relation
    (`motion.test.ts` already holds `1x16.6 == 2x8.3`).
-4. **A scene as a file (record/replay).** `--keys/--click/--wheel` are ad-hoc; Rune's scripts are a typed event log
-   with timestamps, window size and theme. One `scenes/*.json` should drive the Solid page, the generated C page, the
-   wasm in the browser and (where the handlers exist) the board build, so "the same commands on every target" is
-   checked for a sequence of input, not only for one state. A bug report becomes a replay.
+4. **Done: a scene as a file (record/replay).** `--keys/--click/--wheel` were ad hoc; Rune's scripts are a typed event
+   log with timestamps, window size and theme. `solid/scenes/*.json` is that file now: `{ name, page, size, theme,
+   reducedMotion?, steps }`, a step a typed event at its time — `key` (`name`, `down`), `text` (`text`), `pointer` (`x`,
+   `y`, `down`, `touch`?), `wheel` (`dx`, `dy`), `settle` (`frames`) or `frame`. Times are seconds from the start,
+   rounded to the nearest 1/60s frame (a frame is what carries input) and never decreasing; the JSON is strings, numbers,
+   booleans and arrays only, so a C or a wasm host can read it too. `solid/src/scene.ts` parses and validates (a bad step
+   fails with its index and why — `step 1: out of order: t 0.1 is frame 6, after a step at t 0.5 (frame 30)`; a size that
+   is not the page's fails before a frame), replays into the page's own `render`/`createFrame`/`createDrawer` loop (no
+   second frame loop), and `bun solid/main.ts --scene <file> --png|--expect` writes or compares the last frame. Four
+   scenes are the record of four stored frames, byte for byte: the Widgets switch (`Tab, Tab, Space`, 33 frames), the
+   List's selection (`Tab, ArrowDown ×12`, settle 90: 133 frames, "Room A3 — 13 of 30" at -148), the Sky after a click
+   and eight notches down (settle 90: 103 frames, 78px down) and the Dialog's menu (`Tab, Tab, Enter`, 34 frames).
+   `solid/scene.test.ts` replays the four in-process (0 pixels each), prints their steps, frames and ending state, and
+   proves the record can lie: Space before Tab is 964 pixels / 2,892 bytes off, and the List's scene without its settle
+   compares the twelfth ArrowDown's frame — selection 13, the reveal still at -33.97 — 15,445 pixels / 46,544 bytes off.
+   The Sky's scene needs `settle 90`, not 60: the scrollbar's 0.6s hold and 0.15s fade leave a 60-frame frame 2,376
+   pixels off the stored one. Not covered yet: the generated C page, the wasm in the browser and the board reading the
+   same scenes (only the Solid host has the replayer); a scene recorded from a live window rather than written by hand;
+   and what a scene cannot say — a drag's velocity, a window resize, a font or a device change, a page's
+   `--count`/`--posts`/`--wide`, and a theme change mid-run.
 5. **Command-stream goldens, not only pixels.** When a frame differs by 300 pixels the image does not say what changed;
    a JSON of `cmds` plus the a11y snapshot does (Rune keeps `golden/*-tree.json`). We already compare command arrays
    field by field in `examples/sensors/gen.c` and `browser/dump-commands.c`; one `ui_dump_json` for every target, with
    the raster as the final gate, is a small step.
+   **Done: `ui_dump_json`, five goldens, a path-aware differ** (2026-10-28). `ui_dump_json(path)` (`solid/native/ui.c`)
+   writes the last frame as JSON: every command with the fields a draw reads (type, Clay's id and the page's id string
+   behind it, box and z, then a text's bytes/colour/font/size/spacing/line height/alignment/wrap — the last two from the
+   node's table, since Clay's command carries neither — a rectangle's colour and radii, a border's colour/radii/five
+   widths, an image's path, a clip's axes, a custom's pointer) and then the renderer's tables that `hash_frame` folds in
+   but no command carries (shadow offset/blur/colour, backdrop blur, gradient kind/angle/alpha/stops, group
+   alpha/scale/translate/rotation — a neutral group left out, as the hash leaves it out — and the text weight).
+   `solid/dump.ts` renders a page as `main.ts`'s headless path does (its size and `View` hooks, `--warm 30`'s 31 frames,
+   the Sky's 41, the Dialog's `Tab,Tab,Enter` + 2) and never draws; `solid/src/dump.ts` adds `snapshot(root)` and writes
+   one command a line with sorted keys and `%.9g` floats, so two processes write the same bytes. Measured: five pages —
+   Sensors 10 commands / 0 a11y nodes, Widgets 59/28, the List's top 36/0, the Sky's Discover settled 35/4, the Dialog's
+   menu two frames into its slide 22/7 (a group at alpha 233, scale 0.971, -1.48°, the menu's shadow at blur 3.45, its
+   backdrop at 10, the Sky's three gradients) — `solid/dump.test.ts`, in `test.sh`. The differ names command and field:
+   `FAIL sensors: command 2 (text "accel m/s²") colour 150/155/170/255 -> 160/165/180/255`. Mutations: the Sensors
+   subtitle's ink `150 155 170 → 160 165 180` fails exactly that line (and command 4, "gyro °/s", on the same token);
+   swapping two commands' emission order in the dump fails
+   `command 2 (text "accel m/s²") id 13290005 -> 836677627 (that is command 3 in the golden: the order moved)`.
+   Not covered: the C pages, the browser and the board still compare commands with their own tables (`gen.c`,
+   `browser/dump-commands.c`), so "one dump for every target" is not there yet — nor is a golden of a page's light
+   theme (a variant is `capture(page, "light")` plus one file), a custom command's pointer (an address, kept out of the
+   goldens) or a frame's hash (with an image it hashes the image's pointer; also kept out). Nothing here sees the
+   pixels, glyph shaping, a shadow's raster or a gradient's dither: the raster stays the final gate.
 6. **Done: text quality against an oracle** (2026-10-28). Rune built a CoreText oracle and an ink-weight + SSIM metric
    and found its text thin (0.1 pt of centred emboldening fixed most of it). We built the same instruments — a sheet page
    (`solid/app/Sheet.tsx`: the app's strings at 11..32 px), CoreText drawing the same lines at the same places
@@ -850,9 +888,28 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    canvas gamma, not our renderer: stored as `frames/text-canvas.png` and pinned in the test as a band, not matched.
    That leaves fonts other than Roboto-Regular (one face is vendored; a second face is a font feature) and the terminal
    and board, whose text is a cell grid.
-7. **Later:** a dev panel with the a11y tree, bounds and phase timings plus `tune!`-style live values; style reload
-   without a restart (our "reload on save"); and a static first frame shown by the window before Bun and the first
-   layout are ready.
+7. **Partly done: the dev panel.** `bun solid/main.ts dev` (`solid/app/Dev.tsx`, 660x760) is the Widgets page in its own
+   360px column with a 300px panel beside it, in the same frame: the page's **a11y tree** as indented rows
+   (`role "name" [states] x,y w×h` — `a11y.ts`'s snapshot of the page's own subtree, bounds from `ui.bounds`, and `no
+   bounds` where the page drew no box; 28 rows for that page), the **box under the pointer** (the innermost box with an
+   id and a role, `ui.over` down the tree, its name from the tree at the same role and bounds, and its `ui.bounds`;
+   `nothing` over the page's background or over the panel) and the **frame's four phases** plus the mean and max of the
+   last 30 frames and `ui.draws()`/`ui.presents()`. The panel reads all three every frame and prints them when they
+   change: it is part of the frame, so a phase line reprinted every frame would change the hash every frame and the page
+   could never rest, which is what its counters are there to show — so the numbers are the last frame that changed the
+   page, and two runs of one frame are 13,661 pixels apart of 501,600 (the four stored frames are stored, not compared).
+   `createDrawer(frame, stats)` writes the host's own `ui.draw()` into the frame's fourth phase. Measured (M2, one
+   thread, `--bench 200`, five runs): the reading (flush + snapshot + the hover walk over ~95 boxes) **0.09 ms** a frame,
+   the 28 rows **+0.02 ms** declare and **+0.008** layout, and **+5.4 ms** of draw on a frame that redraws the panel
+   (ThorVG shapes every text command; the panel is 34 lines, ~3 µs a glyph); at rest **0 draws** of 200 and 0.20 ms a
+   frame against the Widgets page's 0.06. The page's own entry is off (the Widgets page gets no motion hook). Frames:
+   `dev.png`, `dev-hover.png`, `dev-light.png`, `dev-tree.png`. Check: `solid/dev.test.ts` — the 28 rows and their
+   states, the switch's row and the ring after Tab, the hovered box (the tab, not its tablist), the four phases against
+   the frame that changed the page, `0.00` ms of draw and a still `ui.draws()` over 20 idle frames, the light theme,
+   reduced motion — and three mutations with their messages. Still later: **`tune!`-style live values** (a control in
+   the panel that writes a style field through the value channel while the page runs) and picking an element by clicking
+   it into the tree. Also later: style reload without a restart (our "reload on save"); and a static first frame shown
+   by the window before Bun and the first layout are ready.
 
 Not taking: Rust, Taffy, wgpu, Parley, AccessKit, their per-OS shells, split-process development, subsecond
 hot-patching, and animation owned by a render thread (we have no render thread). Their verdict on GPU-evaluated

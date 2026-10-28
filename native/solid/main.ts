@@ -73,9 +73,10 @@ if (
   page !== "form" &&
   page !== "list" &&
   page !== "sky" &&
-  page !== "sheet"
+  page !== "sheet" &&
+  page !== "dev"
 ) {
-  console.error(`unknown page "${page}": sensors, widgets, dialog, form, list, sky or sheet`);
+  console.error(`unknown page "${page}": sensors, widgets, dialog, form, list, sky, sheet or dev`);
   process.exit(1);
 }
 const arg = (name: string, n = 1) => {
@@ -84,6 +85,14 @@ const arg = (name: string, n = 1) => {
 };
 const png = arg("--png")?.[0];
 const expect = arg("--expect")?.[0];
+// headless: a scene, `solid/scenes/*.json` — a typed event log with times that names its own page, size, theme and
+// reduced-motion flag (`solid/src/scene.ts`; the format and the steps are in native/README.md). It runs the same headless
+// loop the flags above run, so `--png`/`--expect` give it a frame, and it exits before any of the page's setup below.
+const sceneFile = arg("--scene")?.[0];
+if (sceneFile) {
+  const { runSceneFile } = await import("./src/scene.ts");
+  process.exit(await runSceneFile(sceneFile, { png, expect }));
+}
 const click = arg("--click", 2)?.map(Number);
 // headless: a second click, after the wheel, the keys and the settle — and the frames at rest after it
 const click2 = arg("--click2", 2)?.map(Number);
@@ -139,9 +148,10 @@ const { List, size: listSize } = await import("./app/List.tsx");
 const { Sky, size: skySize, synthetic } = await import("./app/Sky.tsx");
 const { loadSky } = await import("./src/skyload.ts");
 const { Sheet, size: sheetSize } = await import("./app/Sheet.tsx");
+const { Dev, size: devSize, stats: devStats } = await import("./app/Dev.tsx");
 
 // the sheet is the one page wider than 360: the oracle draws a page, not a window group
-const W = page === "sheet" ? sheetSize.width : 360;
+const W = page === "sheet" ? sheetSize.width : page === "dev" ? devSize.width : 360;
 const H =
   page === "widgets"
     ? size.height
@@ -155,7 +165,9 @@ const H =
             ? skySize.height
             : page === "sheet"
               ? sheetSize.height
-              : 360;
+              : page === "dev"
+                ? devSize.height
+                : 360;
 
 if (
   (gpu ? ui.initGpu(W, H) : ui.init(W, H)) ||
@@ -192,10 +204,14 @@ const dispose = render(
                 })
             : page === "sheet"
               ? () => Sheet()
-              : () => Sensors({ motion }),
+              : page === "dev"
+                ? () => Dev({ input, motion, drag: dragState })
+                : () => Sensors({ motion }),
   root,
 );
-const stats: [number, number, number, number][] = [];
+// the dev page's panel reads the frames' phases (solid/app/Dev.tsx): its own array, so what the panel prints is what the
+// frame pushed
+const stats: [number, number, number, number][] = page === "dev" ? devStats : [];
 const frame = createFrame(root, {
   get theme() {
     return theme;
@@ -212,7 +228,7 @@ const frame = createFrame(root, {
 });
 // the loop's decision: the frame is declared and laid out every iteration, but drawn only when its hash changed or a
 // discrete input came in (keys, text, a press or release, the wheel); a pointer move draws through the hash only
-const draw = createDrawer(frame);
+const draw = createDrawer(frame, stats);
 // the wheel the host took since the last frame goes to the page before the frame is declared; a page that keeps Clay's
 // own scrolling (the List) has no onWheel, so this is only a drain
 const wheelOut = new Float32Array(2);

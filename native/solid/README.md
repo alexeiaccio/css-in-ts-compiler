@@ -38,6 +38,8 @@ bun solid/main.ts sky --settle 40 --move 180 300 3 --png out.png          # head
 bun solid/main.ts sky --warm 40 --wheel 4 --wheel-over sky-status --png out.png   # headless: rest first, then four notches past the end (the band)
 bun solid/main.ts widgets --drag 0.25 0.75 --png out.png                 # headless: press the slider's rail at a quarter, hold, move to three quarters
 bun solid/main.ts dialog --reduced-motion --keys Tab,Enter --png out.png # no travel, no waiting (also REDUCED_MOTION=1)
+bun solid/main.ts --scene solid/scenes/list-select.json --expect solid/frames/list-select.png  # a scene: typed events with times, replayed
+bun solid/main.ts --scene solid/scenes/list-select.json --png out.png   # ... its last frame, headless (native/README.md, "A scene as a file")
 bun solid/main.ts --warm 30 --expect examples/sensors/expected-thorvg.png          # one frame against a stored PNG
 bun solid/main.ts --warm 30 --click 180 250 --expect examples/sensors/expected-thorvg-g.png   # host.c's scripted click
 THEME=light bun solid/main.ts --warm 30 --expect examples/sensors/expected-thorvg-light.png
@@ -64,6 +66,8 @@ compile-styles.ts  Node child of the plugin: Vite + cssints, prints a style modu
 compile.tsx.ts     Node child of a `.tsx` whose styles live in it: Solid's JSX first, then cssints on the JS
 stub-bun.mjs       `bun:ffi` for that child: cssints runs the page to read its tokens, and the dylib has no meaning in Node
 src/input.ts       SDL keys to names, and where a key goes: an open modal, the focus manager, the focused part, the page
+src/scene.ts       a scene file: the schema, its validation (a bad step says its index and why), the replay into the page's
+                   own frame loop (one frame a step at 1/60s), and `main.ts --scene`'s `--png`/`--expect`
 a11y.ts            the accessibility tree of a rendered page: snapshot(root) -> { role, name, states, bounds, children }, and a11y(part), the props a page spreads to make a box the part's box
 app/Sensors.tsx    the Sensors page; styles are examples/sensors/styles.ts, the same file the C page's styles.h comes from
 app/Widgets.tsx    the Widgets page: headless button, switch, checkboxes, disclosure, radio, tabs, slider, toolbar, settings tree, and its styles, in the same file
@@ -75,9 +79,11 @@ app/Sky.tsx        the Sky page: csssky's feed in a phone-sized window, the tabl
 app/Sheet.tsx      the text sheet: the app's strings at eight sizes, for the CoreText oracle and the ink-weight metric
 frames/            the pages' stored frames (the Sensors page's are in examples/sensors), and the sheet at 1x and 2x with
                    its two references: text-oracle.png and text-oracle-2x.png (CoreText), text-canvas.png (Canvas2D)
+scenes/            the record of four stored frames: widgets-switch-on, list-select, sky-scrolled, dialog-menu — each a
+                   page's typed events with times, replayed by scene.test.ts (and by main.ts --scene)
 main.ts            the host (window and headless)
-test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, list.test.ts, sky.test.ts, thread.test.ts, text.test.ts
-                   the checks the stored frames cannot make
+test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, list.test.ts, sky.test.ts, thread.test.ts, text.test.ts,
+scene.test.ts      the checks the stored frames cannot make
 test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, a11y.test.ts   the checks the stored frames cannot make
 ```
 
@@ -810,6 +816,67 @@ trigger `Zoom: 100%` with `hasPopup`; open: the dialog alone, named by its title
 nodes; and its menu), the rules on a hand-built tree, and two rules on every page: a role on every node, a non-empty name
 on every role that requires one. Mutation: dropping `label` from the disclosure trigger fails the name assertions.
 
+## The dev page
+
+`bun solid/main.ts dev` is the Widgets page with a panel beside it (`solid/app/Dev.tsx`, 660x760: the page's own 360 in
+the left column and 300px of panel on the right). The page on the left is the `Widgets` component itself, not a copy —
+it is called once and the element it returns is inserted into the dev page's tree — so its keys, its focus, its mouse
+behaviour, its ids and its `ui.bounds` are the ones the `widgets` page has. The panel is three sections, and the frames
+are `solid/frames/dev.png`, `dev-hover.png`, `dev-light.png` and `dev-tree.png`.
+
+- **The a11y tree**: `snapshot(pageEl)` — the page's subtree only, so the panel's own boxes can never appear in it — as
+  indented rows, 8px a level, one per node, in document order: `role "name" [states] x,y w×h`. The name is the one the
+  tree resolved (a `text` element's runs, a `labelledBy` target), the states are the node's own (`checked=false`,
+  `focused=true`, `disabled=true`, …), and the bounds are `ui.bounds` of the last layout, rounded; a node the page drew
+  no box for says `no bounds`. The Widgets page is 28 rows, `button "Presses: 0"` first and the `tree`'s five
+  `treeitem`s last.
+- **The hovered box**: the innermost box under the pointer that has both an `id` and a `role` (`ui.over` on the way
+  down; Clay's `over` is true for a box and all its ancestors), then its id, its role, the name the node with the same
+  role and the same bounds has, and `ui.bounds(id)` — `wifi  switch "Wi-Fi"` and `40,118 280×32`. Over the page's
+  background, or over the panel, it says `nothing`. A box with no role is not a node (the switch's track and thumb
+  report the switch), and a node with no id (a group the page drew no box for) has nothing to ask `ui.bounds` for, so it
+  is skipped: the answer is the nearest node that has both.
+- **The frame**: the four phases `View.stats` pushes — events+flush, declare, layout, draw, in ms — the mean and the max
+  of the last 30 frames, and `ui.draws()`/`ui.presents()`. The draw is the host's: `createDrawer(frame, stats)` writes
+  the time `ui.draw()` took into the frame's fourth phase, so a panel reads the raster the loop actually did.
+
+The panel prints *when the page changes*, not every frame, and that is the whole point of the page: it is in the same
+Clay frame as the page, so a phase line reprinted every frame changes the frame's hash every frame and a page at rest
+could never be seen at rest. A change prints at once and its frame's numbers on the next reading (the frame's own
+numbers are pushed after the tick that reads them), so the numbers are the last frame that changed the page and the
+counters are the process's as of that reading. Two runs of the same frame therefore differ — 13,661 pixels of the
+501,600 — which is why the four stored frames are not compared (`dev.test.ts` checks they are the page's size, and
+holds the panel's content).
+
+Measured (Apple M2, one thread, `--bench 200`, five runs, a machine with other work on it: medians):
+
+- the panel's reading — Solid's `flush()`, `snapshot` and the hover walk over ~95 boxes with `ui.over` — is **0.09 ms**
+  a frame (events+flush 0.02 without it, 0.11 with).
+- its rows cost **0.02 ms** of declare and **0.008 ms** of layout (declare 0.055 → 0.078, layout 0.030 → 0.038).
+- its draw is **5.4 ms** on a frame that redraws the panel (2.0 → 7.4 ms a frame at 660x760): ThorVG shapes every text
+  command each frame, and the panel is 34 lines of it (~3 µs a glyph). A page at rest never pays it.
+- `--idle 200`: **0 draws**, 0.20 ms a frame against the Widgets page's 0.06 — the panel's tick at a page at rest.
+
+The page's own first-mount entry is off (the Widgets page is given no motion hook), so the stored frames are a resting
+page with `--warm 30`.
+
+`solid/dev.test.ts` asserts the panel's own strings: the 28 rows of the initial state (roles, names, states, bounds),
+the switch's row after two Tabs and the button's after Shift+Tab (the ring's pixel on the same box), Space's
+`checked=true`, the tab's row for the hovered box and the button's, `nothing` over the padding and over the panel, the
+four phases against the frame that changed the page, the mean/max line, the counters, `0.00` ms of draw and a still
+`ui.draws()` over 20 idle frames, the light theme's ground, reduced motion, and the four stored frames' size. Three
+mutations were run and reverted: a tree read once at mount fails `FAIL the switch's row is the one that has it:` with
+`switch "Wi-Fi" [checked=false] 40,118 280×32` where the focused row is wanted (and three more of that block); the hover
+reporting the outermost box fails `FAIL the innermost box under the pointer, not its tablist` (the tablist's id, role and
+228×33 where the tab's 97×33 are wanted); and the phases taken from the frame before the last fail `FAIL the panel prints
+that frame's four, in ms`.
+
+Not here: **editing a value live** (a `tune!`-style slider or a colour swatch that writes one style field through the
+value channel while the page runs) and **picking an element by clicking it into the tree** (a click on the page selects
+nothing: the panel follows the pointer, and the tree has no row to keep selected); the panel is one page's (it holds
+the `Widgets` component's element, so another page needs its own dev page); the tree has no window/scrolling of its own
+(a big page's rows would run off the panel); and the numbers are not resampled while nothing changes.
+
 ## Notes
 
 - `bun solid/main.ts` needs no flag: Bun's `node` condition would load solid-js's server build (signals that never
@@ -835,3 +902,51 @@ on every role that requires one. Mutation: dropping `label` from the disclosure 
   `ui_text_input` starts SDL's text input). The clipboard is a single UTF-8 string up to 4 KB (the host's buffer), and
   copy/cut/paste are Cmd or Ctrl chords only (no middle-click or context menu). The caret's 1px is layout, not an
   overlay: the text after the caret sits 1px right.
+
+## The command-stream goldens
+
+`solid/goldens/` is five pages' last frames as JSON, and `solid/dump.test.ts` is their gate. `ui_dump_json(path)` in
+`solid/native/ui.c` writes the frame (the commands with every field a draw reads, then the renderer's tables beside them:
+the shadows, the backdrops, the gradients, the groups, the text weight), `solid/src/dump.ts` adds the a11y snapshot
+(`dumpPage(root)`) and formats it stably, and `solid/dump.ts` is the script:
+
+```sh
+bun solid/dump.ts sensors                  # the frame to stdout, the counts to stderr
+bun solid/dump.ts sky --out /tmp/sky.json  # ... or a file
+bun solid/dump.ts widgets --update         # re-store solid/goldens/widgets.json
+bun solid/dump.test.ts                     # all five, field by field
+```
+
+| golden | page and state | commands | a11y nodes |
+| --- | --- | --- | --- |
+| `sensors.json` | Sensors at rest | 10 | 0 (no roles: it is not a headless part) |
+| `widgets.json` | Widgets, its initial state | 59 | 28 |
+| `list.json` | the List's top | 36 | 0 (no roles) |
+| `sky.json` | the Sky's Discover, settled | 35 | 4 (the tablist and its tabs) |
+| `dialog.json` | the Dialog's menu two frames into its slide | 22 | 7 |
+
+The dialog's frame is the one that carries every table beside the commands — a group at alpha 233, scale 0.971 and
+-1.48° (the tilt of its slide out of the trigger), the menu's shadow at blur 3.45, its backdrop at 10, and the float it
+hangs off its trigger by — so a change to `ui_shadow`, `ui_backdrop`, the gradient or the group's matrix shows up as a
+field and not only as a count of pixels. The Sky's three cards carry the gradients (three stops lists), and the Widgets
+page is the one with a real a11y tree.
+
+The test prints `sensors: 10 commands, 0 a11y nodes, identical` a page and names a miss exactly:
+
+```
+FAIL sensors: command 2 (text "accel m/s²") colour 150/155/170/255 -> 160/165/180/255
+FAIL sensors: command 2 (text "accel m/s²") id 13290005 -> 836677627 (that is command 3 in the golden: the order moved)
+```
+
+The differ is `solid/dump.test.ts`'s (`compare`): it walks both trees by path, joins a colour or a box to one value, and
+annotates a command with its type and its text. `solid/dump.ts` renders a page the way `main.ts`'s headless path does for
+the same stored pixel frame — the page's size and `View` hooks, `--warm 30`'s 31 frames at rest (the Sky's 41), or the
+Dialog's `Tab,Tab,Enter` and two settles — and never draws: the raster changes no command. Only `./plugin.ts` may be a
+static import in either file; a static import is resolved before the plugin registers and Bun then loads solid-js's
+server build, where signals never update (the List's rows stay empty — the reason `main.ts` is shaped the same way).
+A theme variant is `capture(page, "light")` plus one golden, if a page's light theme ever needs its own.
+
+What the goldens cannot see is the README's list: the pixels (anti-aliasing, a shadow's raster, a backdrop's blurred
+pixels, a gradient's dither), glyph shaping, and everything a frame does not declare (key timing, the focus trap, a
+hover that has not moved the tree). A custom command's pointer is an address and the frame's hash is left out of the
+goldens for the same reason (with an image it hashes the image's pointer).
