@@ -758,6 +758,67 @@ trigger `Zoom: 100%` with `hasPopup`; open: the dialog alone, named by its title
 nodes; and its menu), the rules on a hand-built tree, and two rules on every page: a role on every node, a non-empty name
 on every role that requires one. Mutation: dropping `label` from the disclosure trigger fails the name assertions.
 
+## The dev page
+
+`bun solid/main.ts dev` is the Widgets page with a panel beside it (`solid/app/Dev.tsx`, 660x760: the page's own 360 in
+the left column and 300px of panel on the right). The page on the left is the `Widgets` component itself, not a copy —
+it is called once and the element it returns is inserted into the dev page's tree — so its keys, its focus, its mouse
+behaviour, its ids and its `ui.bounds` are the ones the `widgets` page has. The panel is three sections, and the frames
+are `solid/frames/dev.png`, `dev-hover.png`, `dev-light.png` and `dev-tree.png`.
+
+- **The a11y tree**: `snapshot(pageEl)` — the page's subtree only, so the panel's own boxes can never appear in it — as
+  indented rows, 8px a level, one per node, in document order: `role "name" [states] x,y w×h`. The name is the one the
+  tree resolved (a `text` element's runs, a `labelledBy` target), the states are the node's own (`checked=false`,
+  `focused=true`, `disabled=true`, …), and the bounds are `ui.bounds` of the last layout, rounded; a node the page drew
+  no box for says `no bounds`. The Widgets page is 28 rows, `button "Presses: 0"` first and the `tree`'s five
+  `treeitem`s last.
+- **The hovered box**: the innermost box under the pointer that has both an `id` and a `role` (`ui.over` on the way
+  down; Clay's `over` is true for a box and all its ancestors), then its id, its role, the name the node with the same
+  role and the same bounds has, and `ui.bounds(id)` — `wifi  switch "Wi-Fi"` and `40,118 280×32`. Over the page's
+  background, or over the panel, it says `nothing`. A box with no role is not a node (the switch's track and thumb
+  report the switch), and a node with no id (a group the page drew no box for) has nothing to ask `ui.bounds` for, so it
+  is skipped: the answer is the nearest node that has both.
+- **The frame**: the four phases `View.stats` pushes — events+flush, declare, layout, draw, in ms — the mean and the max
+  of the last 30 frames, and `ui.draws()`/`ui.presents()`. The draw is the host's: `createDrawer(frame, stats)` writes
+  the time `ui.draw()` took into the frame's fourth phase, so a panel reads the raster the loop actually did.
+
+The panel prints *when the page changes*, not every frame, and that is the whole point of the page: it is in the same
+Clay frame as the page, so a phase line reprinted every frame changes the frame's hash every frame and a page at rest
+could never be seen at rest. A change prints at once and its frame's numbers on the next reading (the frame's own
+numbers are pushed after the tick that reads them), so the numbers are the last frame that changed the page and the
+counters are the process's as of that reading. Two runs of the same frame therefore differ — 13,661 pixels of the
+501,600 — which is why the four stored frames are not compared (`dev.test.ts` checks they are the page's size, and
+holds the panel's content).
+
+Measured (Apple M2, one thread, `--bench 200`, five runs, a machine with other work on it: medians):
+
+- the panel's reading — Solid's `flush()`, `snapshot` and the hover walk over ~95 boxes with `ui.over` — is **0.09 ms**
+  a frame (events+flush 0.02 without it, 0.11 with).
+- its rows cost **0.02 ms** of declare and **0.008 ms** of layout (declare 0.055 → 0.078, layout 0.030 → 0.038).
+- its draw is **5.4 ms** on a frame that redraws the panel (2.0 → 7.4 ms a frame at 660x760): ThorVG shapes every text
+  command each frame, and the panel is 34 lines of it (~3 µs a glyph). A page at rest never pays it.
+- `--idle 200`: **0 draws**, 0.20 ms a frame against the Widgets page's 0.06 — the panel's tick at a page at rest.
+
+The page's own first-mount entry is off (the Widgets page is given no motion hook), so the stored frames are a resting
+page with `--warm 30`.
+
+`solid/dev.test.ts` asserts the panel's own strings: the 28 rows of the initial state (roles, names, states, bounds),
+the switch's row after two Tabs and the button's after Shift+Tab (the ring's pixel on the same box), Space's
+`checked=true`, the tab's row for the hovered box and the button's, `nothing` over the padding and over the panel, the
+four phases against the frame that changed the page, the mean/max line, the counters, `0.00` ms of draw and a still
+`ui.draws()` over 20 idle frames, the light theme's ground, reduced motion, and the four stored frames' size. Three
+mutations were run and reverted: a tree read once at mount fails `FAIL the switch's row is the one that has it:` with
+`switch "Wi-Fi" [checked=false] 40,118 280×32` where the focused row is wanted (and three more of that block); the hover
+reporting the outermost box fails `FAIL the innermost box under the pointer, not its tablist` (the tablist's id, role and
+228×33 where the tab's 97×33 are wanted); and the phases taken from the frame before the last fail `FAIL the panel prints
+that frame's four, in ms`.
+
+Not here: **editing a value live** (a `tune!`-style slider or a colour swatch that writes one style field through the
+value channel while the page runs) and **picking an element by clicking it into the tree** (a click on the page selects
+nothing: the panel follows the pointer, and the tree has no row to keep selected); the panel is one page's (it holds
+the `Widgets` component's element, so another page needs its own dev page); the tree has no window/scrolling of its own
+(a big page's rows would run off the panel); and the numbers are not resampled while nothing changes.
+
 ## Notes
 
 - `bun solid/main.ts` needs no flag: Bun's `node` condition would load solid-js's server build (signals that never

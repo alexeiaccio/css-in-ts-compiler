@@ -71,15 +71,23 @@ export type Frame = (
  * or the iteration carried a discrete input (a key, typed text, a press or release, a wheel): at rest it draws and
  * presents nothing, so a static page costs a layout and no pixels. A pointer move is not by itself an input here: it
  * draws through the hash when it changes a hover, and not at all once the hover has settled. Returns whether it drew.
+ *
+ * `stats` is the view's own (`View.stats`): the draw is this loop's, not `frame`'s, so its time is written into the last
+ * frame's entry — a panel that reads the phases then has a draw to show.
  */
-export function createDrawer(frame: Frame) {
+export function createDrawer(frame: Frame, stats?: View["stats"]) {
   let last: bigint | undefined;
   return (px: number, py: number, down: boolean, dt: number, discrete = false, touch = false): boolean => {
     frame(px, py, down, dt, false, touch);
     const hash = ui.hash();
     const draw = discrete || hash !== last;
     last = hash;
-    if (draw) ui.draw();
+    if (draw) {
+      const t = Bun.nanoseconds();
+      ui.draw();
+      const entry = stats?.[stats.length - 1];
+      if (entry) entry[3] = Bun.nanoseconds() - t;
+    }
     return draw;
   };
 }
