@@ -766,10 +766,23 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    a JSON of `cmds` plus the a11y snapshot does (Rune keeps `golden/*-tree.json`). We already compare command arrays
    field by field in `examples/sensors/gen.c` and `browser/dump-commands.c`; one `ui_dump_json` for every target, with
    the raster as the final gate, is a small step.
-6. **Text quality against an oracle.** Rune built a CoreText oracle and an ink-weight + SSIM metric, and found its text
-   thin; a centred emboldening of ~0.1 pt fixed most of it. We know our own drift (ThorVG against Canvas2D: 6-10 % of
-   pixels, up to 3 px of line width), so the same method applies: one font and strings through Chrome's Canvas2D as the
-   reference, the same metric, then a weight correction in ThorVG.
+6. **Done: text quality against an oracle** (2026-10-28). Rune built a CoreText oracle and an ink-weight + SSIM metric
+   and found its text thin (0.1 pt of centred emboldening fixed most of it). We built the same instruments — a sheet page
+   (`solid/app/Sheet.tsx`: the app's strings at 11..32 px), CoreText drawing the same lines at the same places
+   (`solid/text-oracle.swift`, font smoothing off, subpixel positioning on) into a stored PNG, and the metric
+   (`solid/src/textmetric.ts`: per-pixel coverage against the page's and the text's luminance, the line's ink, the best
+   whole-pixel shift, and the standard SSIM over ink-carrying windows) — and the verdict is the opposite: **ThorVG's text
+   already weighs what CoreText weighs**. Mean weight 1.008, and 1.013 over the eleven lines without the fallback one
+   (0.995..1.044: every line within 2.7 % but the 11 px one, which is 4.4 % fat — a stem between pixels, spread by a
+   hinting-free raster), every line at shift 0,0 and within 1 px of CoreText's extent.
+   No correction: the renderer's dial (`ui_text_weight`, a second copy of the line half the weight either side, default
+   0) sweeps to 1.309 mean weight and SSIM 0.883 at 0.25, so an emboldening here is a regression, and the sweep is how
+   that is known. The one real difference the SSIM caught is the **missing fallback font**: the ⅓ in "Wm ¼ ⅓ — “quotes”"
+   is ThorVG's empty box (weight 0.958, SSIM 0.459) and CoreText falls back for it. `solid/text.test.ts` checks every
+   line (no shift, weight 0.95..1.06, SSIM ≥ 0.95, extent within a pixel) against the stored oracle, asserts the
+   fallback line's low SSIM on purpose, and proves the metric can see a 1 px move (SSIM 0.708) and more ink, so the
+   check cannot pass vacuously. Not done: a Canvas2D reference as a second oracle (it measures the web build and has its
+   own 6-10 % drift), the 2x pixel density, and fonts other than Roboto.
 7. **Later:** a dev panel with the a11y tree, bounds and phase timings plus `tune!`-style live values; style reload
    without a restart (our "reload on save"); and a static first frame shown by the window before Bun and the first
    layout are ready.

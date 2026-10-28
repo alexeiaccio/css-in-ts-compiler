@@ -746,6 +746,59 @@ could redraw only the boxes that moved); a window-expose present (SDL asks for a
 and an idle loop has none in hand, so the next input redraws it); and the terminal and browser targets, which have no
 hash loop of their own.
 
+## Text: the oracle, and why there is no weight correction
+
+Rune's item: their text looked thin next to the platform's, so they built an oracle (CoreText drawing the same strings)
+and two numbers per line — the **ink weight** and the **SSIM** — and fixed the drift by emboldening by ~0.1 pt. Same
+method here, other verdict: ThorVG's text on macOS already weighs what CoreText weighs, so a correction would be a
+regression. The instruments are in the tree, because that is what makes the verdict checkable and re-checkable.
+
+`solid/app/Sheet.tsx` is the sheet: twelve lines of the app's strings and eight sizes (11 to 32 px) in Roboto, one page,
+nothing that moves. `solid/text-oracle.swift` draws the same lines at the same places with CoreText — font smoothing off
+(it is a display gamma with no counterpart in ThorVG), antialiasing and subpixel positioning on — into
+`solid/frames/text-oracle.png`. `solid/src/textmetric.ts` is the metric: a crop's **coverage** per pixel (its luminance
+between the page's and the text's), a line's **ink** (the coverage summed, in pixels of the text's colour), the best
+whole-pixel **shift**, and the standard **SSIM** (11x11 Gaussian, sigma 1.5) over the windows that carry ink — over the
+whole crop it would score every pair 1.0 on empty paper. `solid/text.test.ts` renders the sheet in-process, reads the
+stored oracle and checks every line: no shift, weight in 0.95..1.06, SSIM ≥ 0.95, extent within a pixel. It needs
+neither Swift nor a browser, so it runs in the suite; `bun solid/text-oracle.ts` prints the numbers, `--update`
+re-stores both frames, `--weight N` measures the renderer's dial and `--sweep` a table of them.
+
+Measured (macOS, Roboto-Regular.ttf, 1x, 2026-10-28; ink in pixels of the text's colour):
+
+| line                    | size | ThorVG | CoreText | weight | SSIM  |
+| ----------------------- | ---- | ------ | -------- | ------ | ----- |
+| Sensors                 | 32   | 792    | 783      | 1.012  | 0.998 |
+| Network & Sharing       | 24   | 1045   | 1039     | 1.005  | 0.998 |
+| +1.16  -0.72  +10.04    | 20   | 543    | 541      | 1.003  | 0.999 |
+| Wm ¼ ⅓ — “quotes”       | 20   | 559    | 583      | 0.958  | 0.459 |
+| 18.3 °C                 | 17   | 157    | 158      | 0.995  | 0.996 |
+| Room A1                 | 16   | 203    | 203      | 1.001  | 0.997 |
+| The quick brown fox     | 16   | 453    | 450      | 1.005  | 0.983 |
+| switch to g             | 14   | 191    | 189      | 1.008  | 0.991 |
+| accel m/s²              | 14   | 177    | 174      | 1.019  | 0.997 |
+| 18.3 °C                 | 13   | 92     | 89       | 1.027  | 0.993 |
+| gjpqy 0123456789        | 12   | 276    | 269      | 1.025  | 0.994 |
+| settings                | 11   | 100    | 96       | 1.044  | 0.993 |
+
+The mean weight is **1.008** (1.013 without the fallback line): not thin anywhere, and up to 4.4 % *fat* at 11 px, which
+is what a rasteriser without hinting does to a stem that falls between pixels — it spreads it. Every line is where
+CoreText puts it (shift 0,0) and measures within a pixel of its extent (114/113 at 32 px is the widest gap), so the
+advance sum is not drifting either. The one real difference is the **fallback font**: ThorVG sets one face, so the ⅓ of
+"Wm ¼ ⅓ — “quotes”" is the empty box and CoreText falls back for it — weight 0.958, SSIM 0.459. The sheet keeps the line
+because a weight alone would call it thin and the SSIM is what sees a wrong glyph, and the test asserts that low SSIM
+rather than hiding it.
+
+The dial exists and sits at 0: `ui_text_weight(px)` (`ui.textWeight`) makes the renderer draw every line twice, half the
+weight either side of Clay's place, growing the glyph by that much and keeping its centre. The sweep is why 0 is the
+value: a weight of 0.25 already yields **1.309** mean weight and SSIM 0.883, 0.5 → 1.408 / 0.840, 1.0 → 1.635 / 0.684.
+Rune's 0.1 pt is 0.13 px at 96 dpi, in the same direction and the same order — and against CoreText here it is wrong.
+
+Not covered: the browser target's Canvas2D as a second reference (it is a rasteriser with its own drift, already
+recorded at 6-10 % of pixels, and would measure the web build, not the desktop); the window's 2x pixel density (the
+sheet is laid out and rasterised at 1x, as the stored frames are; ink per layout pixel is what a weight compares); any
+font but Roboto; and the terminal and board targets, whose text is a cell grid and termbox2's.
+
 ## Test
 
 ```sh
