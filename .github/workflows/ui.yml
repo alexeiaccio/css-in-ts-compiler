@@ -1,0 +1,78 @@
+# Checks the styled starters and the starter kit, and deploys ui.cssints.dev on master.
+#
+# The check job is what a release rests on: every starter's own conformance test in Chromium, then the starter template
+# smoke test — copy `templates/solid-vite`, install it, `add @cssints/switch` from the live registry, run the copied test.
+# Publishing the items themselves is `apps/registry-host` in effects-of-atmosphere (it needs the PDS credentials).
+#
+# Secrets for the deploy: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (see apps/ui/README.md).
+name: ui
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - apps/ui/**
+      - templates/**
+      - packages/headless/**
+      - packages/apg-specs/**
+      - scripts/starter-smoke.mjs
+      - bun.lock
+      - .github/workflows/ui.yml
+  pull_request:
+    paths:
+      - apps/ui/**
+      - templates/**
+      - packages/headless/**
+      - packages/apg-specs/**
+      - scripts/starter-smoke.mjs
+      - bun.lock
+      - .github/workflows/ui.yml
+  workflow_dispatch:
+
+concurrency:
+  group: ui-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - run: bun install --frozen-lockfile
+      # the conformance walk needs a real browser
+      - run: bunx playwright install --with-deps chromium
+      - name: The generated sheets are current
+        working-directory: apps/ui
+        run: bun run css:check
+      - name: The starters' own conformance
+        working-directory: apps/ui
+        run: bun run test
+      - name: The starter kit, end to end
+        run: bun scripts/starter-smoke.mjs
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - run: bun install --frozen-lockfile
+      - name: Deploy
+        working-directory: apps/ui
+        run: bun alchemy deploy --stage prod --yes
+        env:
+          CI: "true"
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -1,0 +1,35 @@
+{
+  "name": "cssints-ui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vp build",
+    "css": "node --experimental-strip-types scripts/component-css.ts",
+    "css:check": "node --experimental-strip-types scripts/component-css.ts --check",
+    "deploy": "bun alchemy deploy --stage prod --yes",
+    "destroy": "bun alchemy destroy --stage prod",
+    "dev": "vp dev",
+    "preview": "vp preview",
+    "test": "vp test run --config vitest.browser.config.ts",
+    "typecheck": "node ../../scripts/typecheck.mjs && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@cssints/headless": "workspace:*",
+    "@cssints/reset": "workspace:*",
+    "@solidjs/web": "2.0.0-rc.13",
+    "cssints": "workspace:*",
+    "solid-js": "2.0.0-rc.13"
+  },
+  "devDependencies": {
+    "@cssints/apg-specs": "workspace:*",
+    "@quint-machine/core": "0.1.0",
+    "@solidjs/vite-plugin": "3.0.0-next.47",
+    "@vitest/browser-playwright": "5.0.5",
+    "alchemy": "2.0.0-beta.81",
+    "effect": "4.0.6",
+    "lightningcss": "^1.32.0",
+    "playwright": "1.64.1",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

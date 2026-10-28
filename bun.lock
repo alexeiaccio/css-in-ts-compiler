@@ -134,6 +134,28 @@
         "vite": "catalog:",
       },
     },
+    "apps/ui": {
+      "name": "cssints-ui",
+      "dependencies": {
+        "@cssints/headless": "workspace:*",
+        "@cssints/reset": "workspace:*",
+        "@solidjs/web": "2.0.0-rc.13",
+        "cssints": "workspace:*",
+        "solid-js": "2.0.0-rc.13",
+      },
+      "devDependencies": {
+        "@cssints/apg-specs": "workspace:*",
+        "@quint-machine/core": "0.1.0",
+        "@solidjs/vite-plugin": "3.0.0-next.47",
+        "@vitest/browser-playwright": "5.0.5",
+        "alchemy": "2.0.0-beta.81",
+        "effect": "4.0.6",
+        "lightningcss": "^1.32.0",
+        "playwright": "1.64.1",
+        "vite": "catalog:",
+        "vite-plus": "catalog:",
+      },
+    },
     "native": {
       "name": "cssints-native",
       "dependencies": {
@@ -1726,6 +1748,8 @@
     "cssints-docs": ["cssints-docs@workspace:apps/docs"],
 
     "cssints-native": ["cssints-native@workspace:native"],
+
+    "cssints-ui": ["cssints-ui@workspace:apps/ui"],
 
     "csssky": ["csssky@workspace:apps/csssky"],
 

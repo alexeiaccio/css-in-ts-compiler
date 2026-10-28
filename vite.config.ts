@@ -23,6 +23,17 @@ const inputs = [
   "packages/cssints/test/pkg/**",
   "packages/css-grammar/bench/err.ts",
   "packages/cssints/bench/errors.ts",
+  // The starter kit: a standalone project (its own package.json and tsconfig, outside the workspace), so nothing
+  // here resolves its imports. CI runs it end to end instead (scripts/starter-smoke.mjs).
+  "templates/**",
+  // The starters' six Solid components: the linter's type-check resolves these exact paths under React's JSX
+  // runtime (TS7026/TS2875 on every element, whatever tsconfig the app carries) while a copy of the same file
+  // lints clean. `bun run typecheck` and the conformance test a copy ships cover them.
+  "apps/ui/src/registry/**/*.tsx",
+  // The starters ship a copy of the headless driver and its scenario test; both are linted where
+  // they come from (packages/headless/test), and a copy here is the file a consumer receives.
+  "apps/ui/src/registry/*/dom-driver.ts",
+  "apps/ui/src/registry/*/*.browser.test.tsx",
 ];
 
 // The type-aware no-unsafe-* family: on untyped `.mjs` scripts every import and JSON value is `any`, so it flags all
@@ -196,7 +207,9 @@ export default defineConfig({
       // apply. The code is documented by prose (the READMEs), not by JSDoc tags; the tests wait a frame with `new Promise`, and the
       // fixtures print scenario values that are `unknown` on purpose.
       {
-        files: ["packages/headless/**", "packages/apg-specs/**"],
+        // `apps/ui/src/registry/**` is the same code shipped: the starters' fixtures, drivers and tests
+        // are copies of packages/headless/test, so they keep the rules of where they come from.
+        files: ["packages/headless/**", "packages/apg-specs/**", "apps/ui/src/registry/**"],
         rules: {
           "playwright/consistent-spacing-between-blocks": "off",
           "playwright/no-force-option": "off",

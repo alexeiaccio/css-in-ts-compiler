@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new-york",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/components/ui/theme.css",
+    "baseColor": "",
+    "cssVariables": false
+  },
+  "aliases": {
+    "components": "~/components",
+    "ui": "~/components/ui",
+    "lib": "~/lib",
+    "utils": "~/lib/utils"
+  },
+  "registries": {
+    "@cssints": "https://packages.cssints.dev/r/{name}.json"
+  }
+}

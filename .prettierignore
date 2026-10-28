@@ -51,3 +51,7 @@ packages/cssints/docs
 
 # native/: its own style (the C targets, headless in single quotes, vendored specs and fonts); not part of the cssints formatter's scope.
 native
+
+# Generated sheets: scripts/component-css.ts writes them, `bun run css:check` guards them, and a
+# formatter pass would only put them out of step with the items built from them.
+apps/ui/src/registry/*/*.css
