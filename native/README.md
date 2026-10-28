@@ -1013,3 +1013,58 @@ own data options (`--count`, `--posts`, `--wide`: a scene has its page at its ow
 is a key and works, but `theme` is the starting one). And the scenes are written by hand: nothing records a live window
 into one yet.
 
+
+## The frame as data: command-stream goldens
+
+A stored frame answers "did the pixels change" and not "what changed". `ui_dump_json(path)` (solid/native/ui.c) writes
+the last frame as JSON instead, and `bun solid/dump.ts <page>` renders a page exactly as `main.ts`'s headless path does
+for its stored frame — the same size, input and motion hook, run to rest, no raster — and stores it in `solid/goldens/`:
+
+```sh
+bun solid/dump.ts sensors                  # the JSON to stdout, the counts to stderr
+bun solid/dump.ts sky --out /tmp/sky.json  # ... or to a file
+bun solid/dump.ts widgets --update         # re-store solid/goldens/widgets.json
+bun solid/dump.test.ts                     # every golden, field by field (solid/test.sh runs it)
+```
+
+The JSON carries what a draw reads and nothing else, so a diff of it is a diff of the frame:
+
+- the layout's `size` and the raster's `scale`;
+- `commands`, one a line, each with its `type`, Clay's `id` (a 32-bit hash, printed as a number) and the page's own
+  `element` id string behind it when the element has one (null for an anonymous one), its `box` and `z`, and per type:
+  a text's bytes, colour, font, size, letter spacing, line height, alignment and wrap; a rectangle's colour and corner
+  radii; a border's colour, radii and five widths; an image's path; a clip's axes; a custom's pointer;
+- `effects`, the renderer's side tables beside the commands — the ones `hash_frame` folds in but no command carries: each
+  `shadow`'s offset, blur and colour, each `backdrop`'s blur, each `gradient`'s kind, angle, alpha and stops, each
+  `group`'s alpha, scale, translate and rotation (a neutral group, which makes no scene, is left out as the hash leaves
+  it out), and the `textWeight`;
+- `a11y`, the accessibility snapshot of the same tree (`solid/a11y.ts`): role, name, value, states, hasPopup, level and
+  bounds per node.
+
+`solid/dump.test.ts` compares five goldens and prints the counts: Sensors 10 commands and 0 a11y nodes (the page has no
+roles), Widgets 59 and 28, the List's top 36 and 0, the Sky's Discover settled 35 and 4, and the Dialog's menu two frames
+into its slide 22 and 7 — the one frame with every table in play (a group at alpha 233, scale 0.971 and -1.48°, the
+menu's shadow at blur 3.45, its backdrop at 10, and the float it hangs off its trigger by; the Sky's three cards carry
+the gradients). A miss names the command and the field, not a pixel count:
+
+```
+FAIL sensors: command 2 (text "accel m/s²") colour 150/155/170/255 -> 160/165/180/255
+FAIL sensors: command 2 (text "accel m/s²") id 13290005 -> 836677627 (that is command 3 in the golden: the order moved)
+```
+
+The differ joins a colour or a box into one value, calls a field by the name a page reads it by (`colour`), annotates a
+command with its type and its text, and says where an id that moved is in the golden — two commands swapped is a diff,
+not a mystery. Numbers are written as they are (`%.9g`, a float32's exact round trip) and object keys are sorted where
+their order carries no meaning, so a golden is stable: two processes write the same bytes. The one field that is not:
+a custom command's `pointer`, an address. The frame's hash is written by `ui_dump_json` but left out of a golden, because
+with an image in the frame it hashes the image's pointer, which is a process's own address. Re-store after a deliberate
+change with `--update`, and read the diff first: the golden is the frame, not an opinion.
+
+What it cannot see: the pixels — anti-aliasing, a shadow's raster (the geometry is data, the blur is not), a backdrop's
+blurred pixels, a gradient's dither, a glyph's shaping (ThorVG applies no kerning, and the dump has the declared size and
+the finished box, not the advances), and the raster's density beyond the `scale` it records. Nor anything the frame does
+not declare: a part's handlers and key timing (`widgets.test.ts`, `list.test.ts`), the focus trap (`dialog.test.ts`), a
+hover that has not moved the tree, or what a page would draw next. The per-target half is unfinished on purpose: the C
+pages (`examples/sensors/page.c`), the browser's `browser/dump-commands.c` and the board still compare commands with
+their own tables, so only the desktop's Solid pages have goldens; one dump for every target is the next step, together
+with the scene files of item 4 and the board's own loop.

@@ -174,3 +174,11 @@ for scene in widgets-switch-on list-select sky-scrolled dialog-menu; do
   bun solid/main.ts --scene "solid/scenes/$scene.json" --expect "solid/frames/$scene.png"
 done
 bun solid/scene.test.ts
+# the command-stream goldens (Rune's item 5): five pages' last frames as JSON — every command field a draw reads, the
+# renderer's tables beside the commands (a shadow, a backdrop, a gradient, a group, the text weight) and the a11y
+# snapshot — against solid/goldens/. A pixel diff says 300 pixels moved; a miss here says which command and which field:
+# `FAIL sensors: command 2 (text "accel m/s²") colour 150/155/170/255 -> 160/165/180/255`. The frames are the pages'
+# stored ones (Sensors, Widgets, the List's top, the Sky's Discover settled) and the Dialog's menu two frames into its
+# slide, the one frame that carries every table. Re-store a page after a deliberate change — read the diff first — with
+# `bun solid/dump.ts <page> --update`; one page's JSON alone with `bun solid/dump.ts <page>` (stdout).
+bun solid/dump.test.ts
