@@ -786,10 +786,26 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    move fails with 5,869 pixels, a 1px padding in the wrapper with 6,859. Left: scale equivariance (a 2x render
    downsampled against 1x), order independence of non-overlapping siblings, and the springs' time-split relation
    (`motion.test.ts` already holds `1x16.6 == 2x8.3`).
-4. **A scene as a file (record/replay).** `--keys/--click/--wheel` are ad-hoc; Rune's scripts are a typed event log
-   with timestamps, window size and theme. One `scenes/*.json` should drive the Solid page, the generated C page, the
-   wasm in the browser and (where the handlers exist) the board build, so "the same commands on every target" is
-   checked for a sequence of input, not only for one state. A bug report becomes a replay.
+4. **Done: a scene as a file (record/replay).** `--keys/--click/--wheel` were ad hoc; Rune's scripts are a typed event
+   log with timestamps, window size and theme. `solid/scenes/*.json` is that file now: `{ name, page, size, theme,
+   reducedMotion?, steps }`, a step a typed event at its time — `key` (`name`, `down`), `text` (`text`), `pointer` (`x`,
+   `y`, `down`, `touch`?), `wheel` (`dx`, `dy`), `settle` (`frames`) or `frame`. Times are seconds from the start,
+   rounded to the nearest 1/60s frame (a frame is what carries input) and never decreasing; the JSON is strings, numbers,
+   booleans and arrays only, so a C or a wasm host can read it too. `solid/src/scene.ts` parses and validates (a bad step
+   fails with its index and why — `step 1: out of order: t 0.1 is frame 6, after a step at t 0.5 (frame 30)`; a size that
+   is not the page's fails before a frame), replays into the page's own `render`/`createFrame`/`createDrawer` loop (no
+   second frame loop), and `bun solid/main.ts --scene <file> --png|--expect` writes or compares the last frame. Four
+   scenes are the record of four stored frames, byte for byte: the Widgets switch (`Tab, Tab, Space`, 33 frames), the
+   List's selection (`Tab, ArrowDown ×12`, settle 90: 133 frames, "Room A3 — 13 of 30" at -148), the Sky after a click
+   and eight notches down (settle 90: 103 frames, 78px down) and the Dialog's menu (`Tab, Tab, Enter`, 34 frames).
+   `solid/scene.test.ts` replays the four in-process (0 pixels each), prints their steps, frames and ending state, and
+   proves the record can lie: Space before Tab is 964 pixels / 2,892 bytes off, and the List's scene without its settle
+   compares the twelfth ArrowDown's frame — selection 13, the reveal still at -33.97 — 15,445 pixels / 46,544 bytes off.
+   The Sky's scene needs `settle 90`, not 60: the scrollbar's 0.6s hold and 0.15s fade leave a 60-frame frame 2,376
+   pixels off the stored one. Not covered yet: the generated C page, the wasm in the browser and the board reading the
+   same scenes (only the Solid host has the replayer); a scene recorded from a live window rather than written by hand;
+   and what a scene cannot say — a drag's velocity, a window resize, a font or a device change, a page's
+   `--count`/`--posts`/`--wide`, and a theme change mid-run.
 5. **Command-stream goldens, not only pixels.** When a frame differs by 300 pixels the image does not say what changed;
    a JSON of `cmds` plus the a11y snapshot does (Rune keeps `golden/*-tree.json`). We already compare command arrays
    field by field in `examples/sensors/gen.c` and `browser/dump-commands.c`; one `ui_dump_json` for every target, with
