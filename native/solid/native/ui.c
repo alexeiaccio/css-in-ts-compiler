@@ -587,7 +587,9 @@ static void hash_frame(void)
         default: break;
         }
     }
-    // the renderer's effects: a shadow, a backdrop, a gradient, or a subtree's scene
+    // the renderer's effects: a shadow, a backdrop, a gradient, a subtree's scene, and the text weight every line is drawn
+    // with (a host may set it between frames, and a thicker line is other pixels)
+    h = hash_f32(h, tvg.textWeight);
     for (int i = 0; i < tvg.shadowCount; i++) {
         const Clay_Color color = tvg.shadows[i].color;
         h = hash_u32(h, tvg.shadows[i].id);
@@ -631,6 +633,11 @@ int ui_draws(void) { return draw_count; }
 /** Presents of the process (ui_window_present calls). */
 int ui_presents(void) { return present_count; }
 
+/** The text weight the renderer draws with, in Clay units: 0 is ThorVG's own raster, 0.5 draws every line twice, half a
+ *  unit either side of its place. `solid/text-oracle.ts --sweep` measures the alternatives; the sheet's numbers keep this
+ *  at 0 (ThorVG's text already weighs what the platform's does). */
+void ui_text_weight(float px) { tvg.textWeight = px > 0 ? px : 0; }
+
 /** Draws the commands of the last ui_end on black into the buffer. */
 void ui_draw(void)
 {
@@ -647,6 +654,50 @@ void ui_draw(void)
 unsigned ui_pixel(int x, int y)
 {
     return pixels[(int)(y * tvg.scale) * (int)(width * tvg.scale) + (int)(x * tvg.scale)];
+}
+
+/** Copies the last frame's pixels (RGBA32, top row first, at the renderer's scale) into out: the byte count, or -1 when
+ *  cap is short. The headless tests read a crop of it, and the text metric a whole frame. */
+int ui_pixels_copy(void *out, int cap)
+{
+    const int n = (int)(width * tvg.scale) * (int)(height * tvg.scale) * 4;
+    if (cap < n) return -1;
+    memcpy(out, pixels, n);
+    return n;
+}
+
+/** A PNG loaded for a comparison (the text oracle): its size and its RGBA32 bytes. */
+static SDL_Surface *loaded_png;
+
+/** Loads a PNG as RGBA32, replacing the last one: 0 on success, -1 when it is missing or unreadable. */
+int ui_load_png(const char *path)
+{
+    SDL_Surface *raw = IMG_Load(path), *rgba = raw ? SDL_ConvertSurface(raw, SDL_PIXELFORMAT_RGBA32) : NULL;
+    SDL_DestroySurface(raw);
+    if (!rgba) return -1;
+    SDL_DestroySurface(loaded_png);
+    loaded_png = rgba;
+    return 0;
+}
+
+/** The size of the loaded PNG, into out as [width, height]; 0 when nothing is loaded. */
+int ui_png_size(int *out)
+{
+    if (!loaded_png) return 0;
+    out[0] = loaded_png->w, out[1] = loaded_png->h;
+    return 1;
+}
+
+/** Copies the loaded PNG into out: the byte count, or -1 when nothing is loaded or cap is short. */
+int ui_png_copy(void *out, int cap)
+{
+    if (!loaded_png) return -1;
+    const int n = loaded_png->w * loaded_png->h * 4;
+    if (cap < n) return -1;
+    for (int y = 0; y < loaded_png->h; y++)
+        memcpy((Uint8 *)out + y * loaded_png->w * 4, (const Uint8 *)loaded_png->pixels + y * loaded_png->pitch,
+               loaded_png->w * 4);
+    return n;
 }
 
 static SDL_Surface *frame_surface(void)

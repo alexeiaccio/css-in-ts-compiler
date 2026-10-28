@@ -42,6 +42,11 @@ typedef struct {
     const char **fonts; // ThorVG font names by fontId (tvg_font_load names a font by its file name, no extension)
     Tvg_Paint measurer; // a text paint for Clay_ThorVG_MeasureText
     bool clear;         // draw into a target whose last frame is gone (a swapchain): clear it, not just overdraw it
+    // a text weight in Clay units: a line drawn twice, half the weight either side of where Clay put it, grows every
+    // stroke by that much and keeps the line's centre (0, the default: one copy). The text oracle measures it
+    // (solid/text.test.ts): ThorVG's raster already weighs what CoreText weighs, 1.008 of it, so the dial is at 0 and a
+    // weight would be a regression — it is here because that is a measurement, not an assumption
+    float textWeight;
     // an image's picture, by the imageData it was loaded from: a cssints/clay image carries the path in that pointer
     struct {
         const void *imageData;
@@ -128,6 +133,19 @@ static const char *Clay_ThorVG_CString(Clay_StringSlice s)
     memcpy(buf, s.chars, n);
     buf[n] = 0;
     return buf;
+}
+
+/** One paint of a text command: its font, size, string and colour, at x, y. The caller adds it to a scene. */
+static Tvg_Paint Clay_ThorVG_TextPaint(Clay_ThorVGRendererData *d, const Clay_TextRenderData *r, float x, float y)
+{
+    Tvg_Paint t = tvg_text_new();
+    tvg_text_set_font(t, d->fonts[r->fontId]);
+    tvg_text_set_size(t, r->fontSize * CLAY_THORVG_PT);
+    tvg_text_set_text(t, Clay_ThorVG_CString(r->stringContents));
+    tvg_text_set_color(t, r->textColor.r, r->textColor.g, r->textColor.b);
+    tvg_paint_set_opacity(t, r->textColor.a);
+    tvg_paint_translate(t, x, y);
+    return t;
 }
 
 static Clay_Dimensions Clay_ThorVG_MeasureText(Clay_StringSlice text, Clay_TextElementConfig *config, void *user)
@@ -962,14 +980,11 @@ static bool Clay_ThorVG_RenderClayCommands(Clay_ThorVGRendererData *d, Clay_Rend
         } break;
         case CLAY_RENDER_COMMAND_TYPE_TEXT: {
             const Clay_TextRenderData *r = &rcmd->renderData.text;
-            Tvg_Paint t = tvg_text_new();
-            tvg_text_set_font(t, d->fonts[r->fontId]);
-            tvg_text_set_size(t, r->fontSize * CLAY_THORVG_PT);
-            tvg_text_set_text(t, Clay_ThorVG_CString(r->stringContents));
-            tvg_text_set_color(t, r->textColor.r, r->textColor.g, r->textColor.b);
-            tvg_paint_set_opacity(t, r->textColor.a);
-            tvg_paint_translate(t, x, y);
-            tvg_scene_add(into, t);
+            const float w = d->textWeight;
+            tvg_scene_add(into, Clay_ThorVG_TextPaint(d, r, x - w / 2, y - w / 2));
+            // the second copy is the weight: the union of the two is the glyph grown by w/2 in each direction, its centre
+            // where Clay put it (the same line drawn once when w is 0)
+            if (w > 0) tvg_scene_add(into, Clay_ThorVG_TextPaint(d, r, x + w / 2, y + w / 2));
         } break;
         case CLAY_RENDER_COMMAND_TYPE_SCISSOR_START: {
             // the clip's scene goes inside whatever is current — the root, or a group's scene, which then clips with the
