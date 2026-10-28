@@ -820,9 +820,28 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    canvas gamma, not our renderer: stored as `frames/text-canvas.png` and pinned in the test as a band, not matched.
    That leaves fonts other than Roboto-Regular (one face is vendored; a second face is a font feature) and the terminal
    and board, whose text is a cell grid.
-7. **Later:** a dev panel with the a11y tree, bounds and phase timings plus `tune!`-style live values; style reload
-   without a restart (our "reload on save"); and a static first frame shown by the window before Bun and the first
-   layout are ready.
+7. **Partly done: the dev panel.** `bun solid/main.ts dev` (`solid/app/Dev.tsx`, 660x760) is the Widgets page in its own
+   360px column with a 300px panel beside it, in the same frame: the page's **a11y tree** as indented rows
+   (`role "name" [states] x,y w×h` — `a11y.ts`'s snapshot of the page's own subtree, bounds from `ui.bounds`, and `no
+   bounds` where the page drew no box; 28 rows for that page), the **box under the pointer** (the innermost box with an
+   id and a role, `ui.over` down the tree, its name from the tree at the same role and bounds, and its `ui.bounds`;
+   `nothing` over the page's background or over the panel) and the **frame's four phases** plus the mean and max of the
+   last 30 frames and `ui.draws()`/`ui.presents()`. The panel reads all three every frame and prints them when they
+   change: it is part of the frame, so a phase line reprinted every frame would change the hash every frame and the page
+   could never rest, which is what its counters are there to show — so the numbers are the last frame that changed the
+   page, and two runs of one frame are 13,661 pixels apart of 501,600 (the four stored frames are stored, not compared).
+   `createDrawer(frame, stats)` writes the host's own `ui.draw()` into the frame's fourth phase. Measured (M2, one
+   thread, `--bench 200`, five runs): the reading (flush + snapshot + the hover walk over ~95 boxes) **0.09 ms** a frame,
+   the 28 rows **+0.02 ms** declare and **+0.008** layout, and **+5.4 ms** of draw on a frame that redraws the panel
+   (ThorVG shapes every text command; the panel is 34 lines, ~3 µs a glyph); at rest **0 draws** of 200 and 0.20 ms a
+   frame against the Widgets page's 0.06. The page's own entry is off (the Widgets page gets no motion hook). Frames:
+   `dev.png`, `dev-hover.png`, `dev-light.png`, `dev-tree.png`. Check: `solid/dev.test.ts` — the 28 rows and their
+   states, the switch's row and the ring after Tab, the hovered box (the tab, not its tablist), the four phases against
+   the frame that changed the page, `0.00` ms of draw and a still `ui.draws()` over 20 idle frames, the light theme,
+   reduced motion — and three mutations with their messages. Still later: **`tune!`-style live values** (a control in
+   the panel that writes a style field through the value channel while the page runs) and picking an element by clicking
+   it into the tree. Also later: style reload without a restart (our "reload on save"); and a static first frame shown
+   by the window before Bun and the first layout are ready.
 
 Not taking: Rust, Taffy, wgpu, Parley, AccessKit, their per-OS shells, split-process development, subsecond
 hot-patching, and animation owned by a render thread (we have no render thread). Their verdict on GPU-evaluated

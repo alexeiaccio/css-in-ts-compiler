@@ -760,9 +760,10 @@ animates); hash; and draw and present only when the hash changed or the iteratio
 typed text, a press or release, a wheel notch. A pointer move is not discrete: it draws through the hash, so a move that
 starts a hover draws and a move inside a hover that has settled draws nothing. Nothing drawn means `await Bun.sleep(16)`
 at the end of the iteration; a drawn frame does not sleep, and an input's frame is never behind one (the poll is the
-first thing an iteration does). The decision is `createDrawer(frame)` in `solid/src/frame.ts`: it runs
+first thing an iteration does). The decision is `createDrawer(frame, stats)` in `solid/src/frame.ts`: it runs
 `frame(px, py, down, dt, render = false)` and then `ui.draw()` only when the hash changed or its `discrete` argument is
-true, returning whether it drew. The headless path uses the same drawer for every `--keys`/`--wheel`/`--settle`/`--move`
+true, returning whether it drew; the draw is its own, so it writes the time into the frame's fourth phase (`stats`, the
+view's own array) and a dev panel has a raster to show. The headless path uses the same drawer for every `--keys`/`--wheel`/`--settle`/`--move`
 frame, so the stored frames go through the skipping loop and come out **byte-identical** (a skipped frame holds exactly
 the pixels the previous draw left). `--idle N` runs N more frames with nothing in and prints
 `idle: draws 0 of 60 in 1.2 ms (0.02 ms a frame: poll, declare, lay out, hash)`; `--idle-keys K` presses Tab every K of
@@ -788,6 +789,41 @@ loop yet); dirty rects (a changed frame draws all of it — a hover fade re-rend
 could redraw only the boxes that moved); a window-expose present (SDL asks for a redraw when the window is uncovered,
 and an idle loop has none in hand, so the next input redraws it); and the terminal and browser targets, which have no
 hash loop of their own.
+
+### A dev panel: the tree, the bounds, the phases
+
+Rune's item 7, first half: `bun solid/main.ts dev` is the Widgets page with a panel beside it (`solid/app/Dev.tsx`,
+660x760, `solid/README.md` has the details). The page on the left is the `Widgets` component itself in a 360px column, so
+its keys, focus and mouse are the `widgets` page's; the panel is 300px on the right, in the same Clay frame, in three
+sections: the page's **accessibility tree** as indented rows (`role "name" [states] x,y w×h`, from `a11y.ts`'s
+`snapshot` of the page's own subtree, bounds from `ui.bounds`), the **hovered box** (the innermost box under the pointer
+that has an id and a role — `ui.over` on the way down — with its name from the tree and its `ui.bounds`; `nothing` over
+the page's background), and the **frame's phases** (`View.stats`: events+flush, declare, layout, draw), the mean and max
+of the last 30 frames, and `ui.draws()`/`ui.presents()`.
+
+The panel reads all three every frame and prints them when they change. That is what makes the page useful for this
+chapter: it is part of the frame, so a phase line reprinted every frame changes the hash every frame and the page could
+never rest — the counters in the panel are there to show that it does. A change prints at once and the frame's own
+numbers on the next reading (the host pushes them after the tick that reads them), so what is on screen is the last
+frame that changed the page. Two runs of the same frame are therefore 13,661 pixels apart of 501,600, which is why the
+four stored frames (`solid/frames/dev*.png`) are not compared.
+
+Cost (Apple M2, one thread, `--bench 200`, five runs each, medians; the machine was busy with other work):
+
+- the reading — Solid's `flush()`, `snapshot` (28 nodes) and the hover walk over ~95 boxes with `ui.over` — **0.09 ms** a
+  frame: events+flush 0.02 without it, 0.11 with.
+- the panel's 28 rows: **+0.02 ms** declare, **+0.008 ms** layout.
+- its draw: **+5.4 ms** on a frame that redraws the panel (2.0 → 7.4 ms at 660x760) — ThorVG shapes every text command
+  each frame and the panel is 34 lines of it, ~3 µs a glyph. `createDrawer(frame, stats)` now writes the time `ui.draw()`
+  took into the frame's fourth phase, so the panel's draw line is the raster the loop did.
+- at rest, `--idle 200`: **0 draws**, 0.20 ms a frame against the Widgets page's 0.06.
+
+The page's own first-mount entry is off (the Widgets page is given no motion hook): the entry draws ~21 frames over a
+page that does not change, and this page is about the frames after it. `solid/dev.test.ts` holds the panel's content
+(the 28 rows, the ring after Tab, the hovered box, the four phases against the frame that changed the page, the counters,
+0 draws at rest) and lists three mutations with their failure messages. Not there yet: **`tune!`-style live values** (a
+control in the panel that writes a style field through the value channel while the page runs) — item 7's second half,
+still later — and picking an element by clicking it into the tree.
 
 ## Text: the oracles, and why there is no weight correction
 

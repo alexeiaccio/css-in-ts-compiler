@@ -165,3 +165,17 @@ bun solid/a11y.test.ts
 # metamorphic relations (Rune's research 14): a pass-through wrapper, a whole-pixel move, wrap monotonicity, and the same
 # tree twice in one process — properties with no stored frame and no oracle
 bun solid/metamorphic.test.ts
+# the dev page (the map's item 7, first half): the Widgets page with a panel beside it — its a11y tree, the box under the
+# pointer and the frame's four phases (solid/app/Dev.tsx, 660x760). The page on the left is the same component the
+# `widgets` page runs, so the frames below show it unchanged. Its four stored frames are NOT compared: the panel prints
+# the frame's milliseconds, and two runs of a page at rest differ by 13,661 pixels of the 501,600 (the digits, and the
+# reflow they cause) — dev.test.ts is what holds the panel's content and checks the stored four are this page's. The runs
+# below are the smoke test, and the stored frames are what `--png solid/frames/dev*.png` made.
+DEV="bun solid/main.ts dev"
+$DEV --warm 30 --png "${TMPDIR:-/tmp}/cssints-dev.png"
+$DEV --warm 30 --move 180 134 3 --png "${TMPDIR:-/tmp}/cssints-dev-hover.png"
+THEME=light $DEV --warm 30 --png "${TMPDIR:-/tmp}/cssints-dev-light.png"
+$DEV --warm 30 --keys Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab --settle 2 --png "${TMPDIR:-/tmp}/cssints-dev-tree.png"
+# the panel's three sections against the page's own tree: the 28 rows, the ring after Tab, the hovered box, the phases
+# and the counters (and the four frames of the page)
+bun solid/dev.test.ts
