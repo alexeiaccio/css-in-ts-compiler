@@ -28,7 +28,12 @@ const { symbols: s } = dlopen(new URL("../../build/solid/libui.dylib", import.me
   ui_draws: { args: [], returns: T.i32 },
   ui_presents: { args: [], returns: T.i32 },
   ui_draw: { args: [], returns: T.void },
+  ui_text_weight: { args: [T.f32], returns: T.void },
   ui_pixel: { args: [T.i32, T.i32], returns: T.u32 },
+  ui_pixels_copy: { args: [T.ptr, T.i32], returns: T.i32 },
+  ui_load_png: { args: [T.cstring], returns: T.i32 },
+  ui_png_size: { args: [T.ptr], returns: T.i32 },
+  ui_png_copy: { args: [T.ptr, T.i32], returns: T.i32 },
   ui_save_png: { args: [T.cstring], returns: T.i32 },
   ui_diff_png: { args: [T.cstring, T.cstring], returns: T.i32 },
   ui_touch_map: { args: [T.f32, T.f32, T.ptr], returns: T.void },
@@ -97,10 +102,27 @@ export const ui = {
   /** ui_window_present calls of the process. */
   presents: () => s.ui_presents(),
   draw: s.ui_draw,
+  /** How much thicker than ThorVG's own raster a text line is drawn, in Clay units (0: as is). */
+  textWeight: (px: number) => s.ui_text_weight(px),
   /** The pixel at x, y of the last frame as [r, g, b, a]. */
   pixel: (x: number, y: number) => {
     const v = s.ui_pixel(x, y);
     return [v & 255, (v >> 8) & 255, (v >> 16) & 255, v >>> 24];
+  },
+  /** The last frame's pixels, RGBA32 and the top row first, as a copy of 4 * width * height bytes: empty when the frame
+   *  is drawn at another scale (headless is 1:1). */
+  pixels: (width: number, height: number): Uint8Array => {
+    const out = new Uint8Array(width * height * 4);
+    return s.ui_pixels_copy(ptr(out), out.length) < 0 ? new Uint8Array(0) : out;
+  },
+  /** A PNG as { width, height, pixels } (RGBA32), or undefined when it is missing or unreadable. */
+  png: (path: string) => {
+    if (s.ui_load_png(cstr(path)) !== 0) return undefined;
+    const size = new Int32Array(2);
+    if (!s.ui_png_size(ptr(size))) return undefined;
+    const [width, height] = [size[0]!, size[1]!];
+    const pixels = new Uint8Array(width * height * 4);
+    return s.ui_png_copy(ptr(pixels), pixels.length) < 0 ? undefined : { width, height, pixels };
   },
   savePng: (path: string) => s.ui_save_png(cstr(path)) === 0,
   /** Pixels of the last frame that differ from a PNG (-1: missing or another size); the frame goes to `actual`. */

@@ -123,6 +123,12 @@ $S --warm 40 --keys Tab,ArrowRight --settle 2 --expect solid/frames/sky-tab-mid.
 $S --click 180 380 --png "${TMPDIR:-/tmp}/cssints-touch.png" >/dev/null
 $S --touch 0.5 0.5 --expect "${TMPDIR:-/tmp}/cssints-touch.png"
 bun solid/sky.test.ts
+# the text sheet (the strings and the sizes the app draws) and its oracle: the frame, then the metric against the same
+# lines drawn by CoreText — the ink weight and the shape of every line (solid/text.test.ts). The oracle is a stored PNG;
+# re-draw it with `bun solid/text-oracle.ts --update` (needs swiftc, so only there)
+X="bun solid/main.ts sheet"
+$X --expect solid/frames/text-sheet.png
+bun solid/text.test.ts
 # the window (src/virtual.ts) with more data than a screen: 1,000 fixed rows and 200 cards of mixed height — the declared
 # subset (nine to eleven rows, at most ten cards), the spacers are the real content, the reveal outside the window, the
 # fallback for a jumped-over card, and the declare cost of 1,000 rows against 30 (and 200 cards against 3)

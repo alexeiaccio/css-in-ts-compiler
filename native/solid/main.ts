@@ -1,6 +1,6 @@
 // The Solid host, the counterpart of desktop/host.c. Run with Bun:
 //
-//   bun solid/main.ts [sensors|widgets|dialog|form|list|sky]  a window; the mouse or a finger is the pointer (one
+//   bun solid/main.ts [sensors|widgets|dialog|form|list|sky|sheet]  a window; the mouse or a finger is the pointer (one
 //                                        pointer: SDL's touch events go through the same state), `t` flips the theme;
 //                                        on widgets Tab, Shift+Tab, Space and Enter drive the widgets; on dialog Enter
 //                                        opens the settings dialog and Space opens the menu; on form Tab reaches the
@@ -61,8 +61,16 @@ import type { Motion } from "./src/entry.ts";
 import type { Drag } from "./app/Widgets.tsx";
 
 const page = process.argv[2]?.startsWith("--") ? "sensors" : (process.argv[2] ?? "sensors");
-if (page !== "sensors" && page !== "widgets" && page !== "dialog" && page !== "form" && page !== "list" && page !== "sky") {
-  console.error(`unknown page "${page}": sensors, widgets, dialog, form, list or sky`);
+if (
+  page !== "sensors" &&
+  page !== "widgets" &&
+  page !== "dialog" &&
+  page !== "form" &&
+  page !== "list" &&
+  page !== "sky" &&
+  page !== "sheet"
+) {
+  console.error(`unknown page "${page}": sensors, widgets, dialog, form, list, sky or sheet`);
   process.exit(1);
 }
 const arg = (name: string, n = 1) => {
@@ -119,8 +127,10 @@ const { Dialog, size: dialogSize } = await import("./app/Dialog.tsx");
 const { Field, size: fieldSize } = await import("./app/Field.tsx");
 const { List, size: listSize } = await import("./app/List.tsx");
 const { Sky, size: skySize, synthetic } = await import("./app/Sky.tsx");
+const { Sheet, size: sheetSize } = await import("./app/Sheet.tsx");
 
-const W = 360;
+// the sheet is the one page wider than 360: the oracle draws a page, not a window group
+const W = page === "sheet" ? sheetSize.width : 360;
 const H =
   page === "widgets"
     ? size.height
@@ -132,7 +142,9 @@ const H =
           ? listSize.height
           : page === "sky"
             ? skySize.height
-            : 360;
+            : page === "sheet"
+              ? sheetSize.height
+              : 360;
 
 if ((gpu ? ui.initGpu(W, H) : ui.init(W, H)) || ui.font(new URL("../vendor/fonts/Roboto-Regular.ttf", import.meta.url).pathname) < 0) {
   console.error("ui_init or ui_font failed (is thorvg installed, and build/solid/libui.dylib built?)");
@@ -156,7 +168,9 @@ const dispose = render(
           ? () => List({ input, motion, count, wide })
           : page === "sky"
             ? () => Sky({ input, motion, theme: () => theme, posts: posts ? synthetic(posts) : undefined })
-            : () => Sensors({ motion }),
+            : page === "sheet"
+              ? () => Sheet()
+              : () => Sensors({ motion }),
   root,
 );
 const stats: [number, number, number, number][] = [];
