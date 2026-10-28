@@ -45,6 +45,8 @@ jobs:
         with:
           node-version: 24
       - run: bun install --frozen-lockfile
+      # the app reads `cssints/vite` from the workspace's dist (AGENTS.md), so the packages are built first
+      - run: bun run build:packages
       # the conformance walk needs a real browser
       - run: bunx playwright install --with-deps chromium
       - name: The generated sheets are current
