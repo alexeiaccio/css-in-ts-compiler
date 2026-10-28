@@ -980,3 +980,127 @@ is what a web build gets. `native` is a workspace of the repository's `bun.lock`
 has no `test` script, so `bun run test` at the root (`vp run -r test`) does not need a C toolchain, SDL3 or ThorVG; the
 script is `test:native`. `headless/` is a workspace too (`native/headless` in the root `workspaces`; TypeScript 7 and `@types/bun` of its own, the specs from
 `@cssints/apg-specs`); its scripts are `typecheck:native` and `test:native` for the same reason, and `test.sh` runs them.
+
+## A scene as a file
+
+A scene is a page's input as data: `solid/scenes/*.json` holds a page, the window's size, the theme, an optional
+reduced-motion flag and a list of typed steps with times. `--keys`, `--click` and `--wheel` each store a state; a scene
+stores the sequence that made it, so a bug report is a file, and "the same commands" can be checked as a sequence rather
+than as one state.
+
+```sh
+bun solid/main.ts --scene solid/scenes/list-select.json --png out.png                            # replay it, write the last frame
+bun solid/main.ts --scene solid/scenes/list-select.json --expect solid/frames/list-select.png   # ... or compare it
+bun solid/scene.test.ts                                    # four scenes in-process: steps, frames, ending state, mutations
+```
+
+The file:
+
+| field | what it is |
+| --- | --- |
+| `name` | the stored frame it reproduces (`solid/frames/<name>.png`) and the name a failure prints |
+| `page` | `sensors`, `widgets`, `dialog`, `form`, `list` or `sky`: the page `bun solid/main.ts <page>` runs |
+| `size` | `[width, height]` in pixels; it must be the page's own (`list` is 360x400, `sky` 360x760) |
+| `theme` | `"dark"` or `"light"` (`THEME` is ignored: the file is the record) |
+| `reducedMotion` | `true`, or left out: no travel and no waiting, as `--reduced-motion` |
+| `steps` | the events, in order, each `{ "t", "kind", ... }` |
+
+A step's `t` is seconds from the start, rounded to the nearest 1/60s frame — a frame is what carries input — and a step
+whose frame is before the previous step's is a parse error. The kinds:
+
+| `kind` | fields | what it does |
+| --- | --- | --- |
+| `key` | `name`, `down` | `Input.down`/`up`: the names the parts and the focus manager take (`Tab`, `Shift+Tab`, `ArrowDown`, `Enter`, `Space`); a press and its release at one `t` are one tap |
+| `text` | `text` | typed characters (`Input.textInput`), a composed run as SDL's TEXT_INPUT delivers it, not a key |
+| `pointer` | `x`, `y`, `down`, `touch`? | the pointer in the layout's pixels, `down` the button, `touch` a finger's (one pointer either way) |
+| `wheel` | `dx`, `dy` | a wheel delta in SDL's units, the ones `ui.wheel` takes: `dy: -1` is one notch down, `dx: -1` one notch right |
+| `settle` | `frames` | that many frames at rest while a page's motion runs out (`--settle`) |
+| `frame` | — | one frame at 1/60s with nothing in it: a boundary stated rather than left to the gap between two steps |
+
+`solid/src/scene.ts` parses and validates the file and replays it into the loop `main.ts` runs headless: one frame a
+step, declared and laid out every frame and drawn when the hash changed or the step was a discrete input (a key, typed
+text, a wheel, a press or a release), through the page's own `render`/`createFrame`/`createDrawer` — the replayer adds the
+timeline, not a second frame loop. A pointer keeps its last place between steps and starts off the window at -1,-1; the
+touch and reduced-motion flags are the file's, the theme is its starting one. A run prints its page, size, theme, steps
+and frames; `--png` writes the last frame, `--expect` compares it with `main.ts`'s own message and exit code. A file that
+is not a scene fails with the step's index and why (`scenes/x.json: step 1: out of order: t 0.1 is frame 6, after a step
+at t 0.5 (frame 30)`), and a size that is not the page's fails before a frame runs.
+
+Four scenes are the record of four stored frames, byte for byte (`solid/scene.test.ts` replays each in-process):
+
+| scene | steps | frames | the frame | the ending state |
+| --- | --- | --- | --- | --- |
+| `widgets-switch-on` | Tab, Tab, Space, 30 frames in | 33 | `frames/widgets-switch-on.png` | focus `wifi`: the switch on |
+| `list-select` | Tab, ArrowDown ×12, settle 90 | 133 | `frames/list-select.png` | "Room A3 — 13 of 30", the offset -148 |
+| `sky-scrolled` | a click on the Science tab, 8 notches over the feed, settle 90 | 103 | `frames/sky-scrolled.png` | the feed 78px down, the tab focused |
+| `dialog-menu` | Tab, Tab, Enter, settle 30 | 34 | `frames/dialog-menu.png` | focus `zoom-item-0`: the menu open |
+
+The Sky's scene needs `settle 90`, not 60: the scrollbar's thumb holds 600ms after the track stops and fades over
+0.15s, so a frame 60 frames after the last notch still has it on (2,376 pixels differ); at 90 it is the stored frame. The
+test's mutations are the other half of the proof: the Widgets scene with Space where its first Tab was — the switch never
+turns on — is **964 pixels and 2,892 bytes** off its frame, and the List's scene without its settle compares the frame
+the twelfth ArrowDown left, 43 frames in: the selection is 13 but the reveal is at -33.97, not -148, and the frame is
+**15,445 pixels and 46,544 bytes** off.
+
+What a scene cannot say yet: a drag's velocity (a pointer step is a position; a fling is what the page makes of two of
+them, and a stored frame is one instant of it, not a recorded speed), a window resize (the size is the scene's, one
+window for the run), a font or a device change (the vendored Roboto, one pixel density, the desktop raster), a page's
+own data options (`--count`, `--posts`, `--wide`: a scene has its page at its own size), and a theme change mid-run (`t`
+is a key and works, but `theme` is the starting one). And the scenes are written by hand: nothing records a live window
+into one yet.
+
+
+## The frame as data: command-stream goldens
+
+A stored frame answers "did the pixels change" and not "what changed". `ui_dump_json(path)` (solid/native/ui.c) writes
+the last frame as JSON instead, and `bun solid/dump.ts <page>` renders a page exactly as `main.ts`'s headless path does
+for its stored frame — the same size, input and motion hook, run to rest, no raster — and stores it in `solid/goldens/`:
+
+```sh
+bun solid/dump.ts sensors                  # the JSON to stdout, the counts to stderr
+bun solid/dump.ts sky --out /tmp/sky.json  # ... or to a file
+bun solid/dump.ts widgets --update         # re-store solid/goldens/widgets.json
+bun solid/dump.test.ts                     # every golden, field by field (solid/test.sh runs it)
+```
+
+The JSON carries what a draw reads and nothing else, so a diff of it is a diff of the frame:
+
+- the layout's `size` and the raster's `scale`;
+- `commands`, one a line, each with its `type`, Clay's `id` (a 32-bit hash, printed as a number) and the page's own
+  `element` id string behind it when the element has one (null for an anonymous one), its `box` and `z`, and per type:
+  a text's bytes, colour, font, size, letter spacing, line height, alignment and wrap; a rectangle's colour and corner
+  radii; a border's colour, radii and five widths; an image's path; a clip's axes; a custom's pointer;
+- `effects`, the renderer's side tables beside the commands — the ones `hash_frame` folds in but no command carries: each
+  `shadow`'s offset, blur and colour, each `backdrop`'s blur, each `gradient`'s kind, angle, alpha and stops, each
+  `group`'s alpha, scale, translate and rotation (a neutral group, which makes no scene, is left out as the hash leaves
+  it out), and the `textWeight`;
+- `a11y`, the accessibility snapshot of the same tree (`solid/a11y.ts`): role, name, value, states, hasPopup, level and
+  bounds per node.
+
+`solid/dump.test.ts` compares five goldens and prints the counts: Sensors 10 commands and 0 a11y nodes (the page has no
+roles), Widgets 59 and 28, the List's top 36 and 0, the Sky's Discover settled 35 and 4, and the Dialog's menu two frames
+into its slide 22 and 7 — the one frame with every table in play (a group at alpha 233, scale 0.971 and -1.48°, the
+menu's shadow at blur 3.45, its backdrop at 10, and the float it hangs off its trigger by; the Sky's three cards carry
+the gradients). A miss names the command and the field, not a pixel count:
+
+```
+FAIL sensors: command 2 (text "accel m/s²") colour 150/155/170/255 -> 160/165/180/255
+FAIL sensors: command 2 (text "accel m/s²") id 13290005 -> 836677627 (that is command 3 in the golden: the order moved)
+```
+
+The differ joins a colour or a box into one value, calls a field by the name a page reads it by (`colour`), annotates a
+command with its type and its text, and says where an id that moved is in the golden — two commands swapped is a diff,
+not a mystery. Numbers are written as they are (`%.9g`, a float32's exact round trip) and object keys are sorted where
+their order carries no meaning, so a golden is stable: two processes write the same bytes. The one field that is not:
+a custom command's `pointer`, an address. The frame's hash is written by `ui_dump_json` but left out of a golden, because
+with an image in the frame it hashes the image's pointer, which is a process's own address. Re-store after a deliberate
+change with `--update`, and read the diff first: the golden is the frame, not an opinion.
+
+What it cannot see: the pixels — anti-aliasing, a shadow's raster (the geometry is data, the blur is not), a backdrop's
+blurred pixels, a gradient's dither, a glyph's shaping (ThorVG applies no kerning, and the dump has the declared size and
+the finished box, not the advances), and the raster's density beyond the `scale` it records. Nor anything the frame does
+not declare: a part's handlers and key timing (`widgets.test.ts`, `list.test.ts`), the focus trap (`dialog.test.ts`), a
+hover that has not moved the tree, or what a page would draw next. The per-target half is unfinished on purpose: the C
+pages (`examples/sensors/page.c`), the browser's `browser/dump-commands.c` and the board still compare commands with
+their own tables, so only the desktop's Solid pages have goldens; one dump for every target is the next step, together
+with the scene files of item 4 and the board's own loop.

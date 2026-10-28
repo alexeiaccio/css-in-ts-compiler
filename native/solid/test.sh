@@ -179,3 +179,20 @@ $DEV --warm 30 --keys Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab,Tab --settle 2
 # the panel's three sections against the page's own tree: the 28 rows, the ring after Tab, the hovered box, the phases
 # and the counters (and the four frames of the page)
 bun solid/dev.test.ts
+# a scene as a file (Rune's item 4, docs/map.md): one JSON of typed events with times drives the page's own frame loop,
+# so a stored frame is compared against a *sequence* of input and not one state. The four scenes are the record of four
+# stored frames, byte for byte; scene.test.ts replays them in-process (their steps, frames and ending state), mutates two
+# of them to show the frames move (Space before Tab: 964 pixels; the List's settle dropped: 15,445), and pins the
+# validation messages (an unknown kind, a step out of order, a missing size, a size that is not the page's)
+for scene in widgets-switch-on list-select sky-scrolled dialog-menu; do
+  bun solid/main.ts --scene "solid/scenes/$scene.json" --expect "solid/frames/$scene.png"
+done
+bun solid/scene.test.ts
+# the command-stream goldens (Rune's item 5): five pages' last frames as JSON — every command field a draw reads, the
+# renderer's tables beside the commands (a shadow, a backdrop, a gradient, a group, the text weight) and the a11y
+# snapshot — against solid/goldens/. A pixel diff says 300 pixels moved; a miss here says which command and which field:
+# `FAIL sensors: command 2 (text "accel m/s²") colour 150/155/170/255 -> 160/165/180/255`. The frames are the pages'
+# stored ones (Sensors, Widgets, the List's top, the Sky's Discover settled) and the Dialog's menu two frames into its
+# slide, the one frame that carries every table. Re-store a page after a deliberate change — read the diff first — with
+# `bun solid/dump.ts <page> --update`; one page's JSON alone with `bun solid/dump.ts <page>` (stdout).
+bun solid/dump.test.ts

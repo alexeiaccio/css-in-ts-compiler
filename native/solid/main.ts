@@ -85,6 +85,14 @@ const arg = (name: string, n = 1) => {
 };
 const png = arg("--png")?.[0];
 const expect = arg("--expect")?.[0];
+// headless: a scene, `solid/scenes/*.json` — a typed event log with times that names its own page, size, theme and
+// reduced-motion flag (`solid/src/scene.ts`; the format and the steps are in native/README.md). It runs the same headless
+// loop the flags above run, so `--png`/`--expect` give it a frame, and it exits before any of the page's setup below.
+const sceneFile = arg("--scene")?.[0];
+if (sceneFile) {
+  const { runSceneFile } = await import("./src/scene.ts");
+  process.exit(await runSceneFile(sceneFile, { png, expect }));
+}
 const click = arg("--click", 2)?.map(Number);
 // headless: a second click, after the wheel, the keys and the settle — and the frames at rest after it
 const click2 = arg("--click2", 2)?.map(Number);

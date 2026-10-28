@@ -38,6 +38,8 @@ bun solid/main.ts sky --settle 40 --move 180 300 3 --png out.png          # head
 bun solid/main.ts sky --warm 40 --wheel 4 --wheel-over sky-status --png out.png   # headless: rest first, then four notches past the end (the band)
 bun solid/main.ts widgets --drag 0.25 0.75 --png out.png                 # headless: press the slider's rail at a quarter, hold, move to three quarters
 bun solid/main.ts dialog --reduced-motion --keys Tab,Enter --png out.png # no travel, no waiting (also REDUCED_MOTION=1)
+bun solid/main.ts --scene solid/scenes/list-select.json --expect solid/frames/list-select.png  # a scene: typed events with times, replayed
+bun solid/main.ts --scene solid/scenes/list-select.json --png out.png   # ... its last frame, headless (native/README.md, "A scene as a file")
 bun solid/main.ts --warm 30 --expect examples/sensors/expected-thorvg.png          # one frame against a stored PNG
 bun solid/main.ts --warm 30 --click 180 250 --expect examples/sensors/expected-thorvg-g.png   # host.c's scripted click
 THEME=light bun solid/main.ts --warm 30 --expect examples/sensors/expected-thorvg-light.png
@@ -64,6 +66,8 @@ compile-styles.ts  Node child of the plugin: Vite + cssints, prints a style modu
 compile.tsx.ts     Node child of a `.tsx` whose styles live in it: Solid's JSX first, then cssints on the JS
 stub-bun.mjs       `bun:ffi` for that child: cssints runs the page to read its tokens, and the dylib has no meaning in Node
 src/input.ts       SDL keys to names, and where a key goes: an open modal, the focus manager, the focused part, the page
+src/scene.ts       a scene file: the schema, its validation (a bad step says its index and why), the replay into the page's
+                   own frame loop (one frame a step at 1/60s), and `main.ts --scene`'s `--png`/`--expect`
 a11y.ts            the accessibility tree of a rendered page: snapshot(root) -> { role, name, states, bounds, children }, and a11y(part), the props a page spreads to make a box the part's box
 app/Sensors.tsx    the Sensors page; styles are examples/sensors/styles.ts, the same file the C page's styles.h comes from
 app/Widgets.tsx    the Widgets page: headless button, switch, checkboxes, disclosure, radio, tabs, slider, toolbar, settings tree, and its styles, in the same file
@@ -75,9 +79,11 @@ app/Sky.tsx        the Sky page: csssky's feed in a phone-sized window, the tabl
 app/Sheet.tsx      the text sheet: the app's strings at eight sizes, for the CoreText oracle and the ink-weight metric
 frames/            the pages' stored frames (the Sensors page's are in examples/sensors), and the sheet at 1x and 2x with
                    its two references: text-oracle.png and text-oracle-2x.png (CoreText), text-canvas.png (Canvas2D)
+scenes/            the record of four stored frames: widgets-switch-on, list-select, sky-scrolled, dialog-menu — each a
+                   page's typed events with times, replayed by scene.test.ts (and by main.ts --scene)
 main.ts            the host (window and headless)
-test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, list.test.ts, sky.test.ts, thread.test.ts, text.test.ts
-                   the checks the stored frames cannot make
+test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, list.test.ts, sky.test.ts, thread.test.ts, text.test.ts,
+scene.test.ts      the checks the stored frames cannot make
 test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, a11y.test.ts   the checks the stored frames cannot make
 ```
 
@@ -838,3 +844,51 @@ the `Widgets` component's element, so another page needs its own dev page); the 
   `ui_text_input` starts SDL's text input). The clipboard is a single UTF-8 string up to 4 KB (the host's buffer), and
   copy/cut/paste are Cmd or Ctrl chords only (no middle-click or context menu). The caret's 1px is layout, not an
   overlay: the text after the caret sits 1px right.
+
+## The command-stream goldens
+
+`solid/goldens/` is five pages' last frames as JSON, and `solid/dump.test.ts` is their gate. `ui_dump_json(path)` in
+`solid/native/ui.c` writes the frame (the commands with every field a draw reads, then the renderer's tables beside them:
+the shadows, the backdrops, the gradients, the groups, the text weight), `solid/src/dump.ts` adds the a11y snapshot
+(`dumpPage(root)`) and formats it stably, and `solid/dump.ts` is the script:
+
+```sh
+bun solid/dump.ts sensors                  # the frame to stdout, the counts to stderr
+bun solid/dump.ts sky --out /tmp/sky.json  # ... or a file
+bun solid/dump.ts widgets --update         # re-store solid/goldens/widgets.json
+bun solid/dump.test.ts                     # all five, field by field
+```
+
+| golden | page and state | commands | a11y nodes |
+| --- | --- | --- | --- |
+| `sensors.json` | Sensors at rest | 10 | 0 (no roles: it is not a headless part) |
+| `widgets.json` | Widgets, its initial state | 59 | 28 |
+| `list.json` | the List's top | 36 | 0 (no roles) |
+| `sky.json` | the Sky's Discover, settled | 35 | 4 (the tablist and its tabs) |
+| `dialog.json` | the Dialog's menu two frames into its slide | 22 | 7 |
+
+The dialog's frame is the one that carries every table beside the commands — a group at alpha 233, scale 0.971 and
+-1.48° (the tilt of its slide out of the trigger), the menu's shadow at blur 3.45, its backdrop at 10, and the float it
+hangs off its trigger by — so a change to `ui_shadow`, `ui_backdrop`, the gradient or the group's matrix shows up as a
+field and not only as a count of pixels. The Sky's three cards carry the gradients (three stops lists), and the Widgets
+page is the one with a real a11y tree.
+
+The test prints `sensors: 10 commands, 0 a11y nodes, identical` a page and names a miss exactly:
+
+```
+FAIL sensors: command 2 (text "accel m/s²") colour 150/155/170/255 -> 160/165/180/255
+FAIL sensors: command 2 (text "accel m/s²") id 13290005 -> 836677627 (that is command 3 in the golden: the order moved)
+```
+
+The differ is `solid/dump.test.ts`'s (`compare`): it walks both trees by path, joins a colour or a box to one value, and
+annotates a command with its type and its text. `solid/dump.ts` renders a page the way `main.ts`'s headless path does for
+the same stored pixel frame — the page's size and `View` hooks, `--warm 30`'s 31 frames at rest (the Sky's 41), or the
+Dialog's `Tab,Tab,Enter` and two settles — and never draws: the raster changes no command. Only `./plugin.ts` may be a
+static import in either file; a static import is resolved before the plugin registers and Bun then loads solid-js's
+server build, where signals never update (the List's rows stay empty — the reason `main.ts` is shaped the same way).
+A theme variant is `capture(page, "light")` plus one golden, if a page's light theme ever needs its own.
+
+What the goldens cannot see is the README's list: the pixels (anti-aliasing, a shadow's raster, a backdrop's blurred
+pixels, a gradient's dither), glyph shaping, and everything a frame does not declare (key timing, the focus trap, a
+hover that has not moved the tree). A custom command's pointer is an address and the frame's hash is left out of the
+goldens for the same reason (with an image it hashes the image's pointer).
