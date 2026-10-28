@@ -746,23 +746,32 @@ could redraw only the boxes that moved); a window-expose present (SDL asks for a
 and an idle loop has none in hand, so the next input redraws it); and the terminal and browser targets, which have no
 hash loop of their own.
 
-## Text: the oracle, and why there is no weight correction
+## Text: the oracles, and why there is no weight correction
 
 Rune's item: their text looked thin next to the platform's, so they built an oracle (CoreText drawing the same strings)
 and two numbers per line — the **ink weight** and the **SSIM** — and fixed the drift by emboldening by ~0.1 pt. Same
-method here, other verdict: ThorVG's text on macOS already weighs what CoreText weighs, so a correction would be a
-regression. The instruments are in the tree, because that is what makes the verdict checkable and re-checkable.
+method here, other verdict: ThorVG's text on macOS already weighs what CoreText weighs, at 1x and at 2x, so a correction
+would be a regression. And the one rasteriser that is far from ours is Chrome's Canvas2D, the *web* target's: it is a
+third heavier, which is its gamma, not a glyph we can fix here. The instruments are in the tree, because that is what
+makes the verdicts checkable and re-checkable.
 
 `solid/app/Sheet.tsx` is the sheet: twelve lines of the app's strings and eight sizes (11 to 32 px) in Roboto, one page,
-nothing that moves. `solid/text-oracle.swift` draws the same lines at the same places with CoreText — font smoothing off
-(it is a display gamma with no counterpart in ThorVG), antialiasing and subpixel positioning on — into
-`solid/frames/text-oracle.png`. `solid/src/textmetric.ts` is the metric: a crop's **coverage** per pixel (its luminance
-between the page's and the text's), a line's **ink** (the coverage summed, in pixels of the text's colour), the best
-whole-pixel **shift**, and the standard **SSIM** (11x11 Gaussian, sigma 1.5) over the windows that carry ink — over the
-whole crop it would score every pair 1.0 on empty paper. `solid/text.test.ts` renders the sheet in-process, reads the
-stored oracle and checks every line: no shift, weight in 0.95..1.06, SSIM ≥ 0.95, extent within a pixel. It needs
-neither Swift nor a browser, so it runs in the suite; `bun solid/text-oracle.ts` prints the numbers, `--update`
-re-stores both frames, `--weight N` measures the renderer's dial and `--sweep` a table of them.
+nothing that moves. Two references draw the same lines at the same places, from one spec:
+
+- `solid/text-oracle.swift` — CoreText, the platform's own rasteriser, font smoothing off (it is a display gamma with no
+  counterpart in ThorVG), antialiasing and subpixel positioning on — into `frames/text-oracle.png`, and at the window's
+  pixel density into `frames/text-oracle-2x.png`;
+- `solid/text-canvas.mjs` — Chrome's Canvas2D through Playwright, the browser target's rasteriser, into
+  `frames/text-canvas.png`.
+
+`solid/src/textmetric.ts` is the metric: a crop's **coverage** per pixel (its luminance between the page's and the
+text's), a line's **ink** (the coverage summed, in pixels of the text's colour), the best whole-pixel **shift**, and the
+standard **SSIM** (11x11 Gaussian, sigma 1.5) over the windows that carry ink — over the whole crop it would score every
+pair 1.0 on empty paper. `solid/text.test.ts` renders the sheet in-process at each reference's density and checks every
+line of all three: no shift, an ink weight in that reference's band, an SSIM floor, an extent within a pixel or two. It
+needs neither Swift nor a browser, so it runs in the suite. `bun solid/text-oracle.ts` prints the numbers,
+`--density 2` the Retina pass, `--canvas` the Canvas2D reference, `--update` re-stores the frames, `--weight N` measures
+the renderer's dial and `--sweep` a table of them.
 
 Measured (macOS, Roboto-Regular.ttf, 1x, 2026-10-28; ink in pixels of the text's colour):
 
@@ -789,15 +798,30 @@ advance sum is not drifting either. The one real difference is the **fallback fo
 because a weight alone would call it thin and the SSIM is what sees a wrong glyph, and the test asserts that low SSIM
 rather than hiding it.
 
+**At the window's density.** A Retina window draws the same layout at 2x (`SDL_GetWindowPixelDensity` hands the host
+`ui_density`), and ThorVG scales its root scene, so the question is whether the glyphs are rasterised at 2x or a 1x
+raster is enlarged. The numbers say rasterised: ink is 4.006x the 1x line (3,173 against 792 for "Sensors") and the
+weight **1.005** on average, every line 1.001..1.018 — *closer* to CoreText than at 1x, and SSIM 0.967..0.998. The
+stored `frames/text-sheet-2x.png` is the frame, `frames/text-oracle-2x.png` the reference, and the suite checks it at
+2x with the same bands.
+
+**Against the web target's rasteriser.** Chrome's Canvas2D draws the same twelve lines at **0.729** of our ink
+(0.699..0.781 a line, SSIM 0.843..0.916, every line at shift 0,0 and the same extent within a pixel) — the browser is a
+third *heavier* than the desktop, and the harness and the browser target's own frame agree (the same title 1,014 against
+the stored `browser/expected.png`'s 907 in a tighter crop, "+1.16 -0.72 +10.04" 723 against 715). So the gap is Chrome's
+canvas gamma, not our renderer, and matching it would mean thickening the desktop's text to a rasteriser that is wrong
+next to its own platform. It is stored and pinned in the test (weight band 0.68..0.80) instead: a change in either
+renderer is a failing line, not a surprise.
+
 The dial exists and sits at 0: `ui_text_weight(px)` (`ui.textWeight`) makes the renderer draw every line twice, half the
 weight either side of Clay's place, growing the glyph by that much and keeping its centre. The sweep is why 0 is the
 value: a weight of 0.25 already yields **1.309** mean weight and SSIM 0.883, 0.5 → 1.408 / 0.840, 1.0 → 1.635 / 0.684.
 Rune's 0.1 pt is 0.13 px at 96 dpi, in the same direction and the same order — and against CoreText here it is wrong.
 
-Not covered: the browser target's Canvas2D as a second reference (it is a rasteriser with its own drift, already
-recorded at 6-10 % of pixels, and would measure the web build, not the desktop); the window's 2x pixel density (the
-sheet is laid out and rasterised at 1x, as the stored frames are; ink per layout pixel is what a weight compares); any
-font but Roboto; and the terminal and board targets, whose text is a cell grid and termbox2's.
+Not covered: any font but Roboto-Regular (the stack vendors one face; a second face is a font feature, not a metric),
+and the terminal and board targets, whose text is a cell grid and termbox2's — a different question from a rasteriser's
+ink. And not measured: why Chrome's canvas is that heavy (gamma, contrast enhancement or subpixel coverage — its DOM text
+was not compared with its canvas text), and the light theme's dark-on-light text, where a display gamma differs.
 
 ## Test
 
@@ -813,6 +837,9 @@ bun solid/main.ts widgets                                     # Solid: headless 
 bun solid/main.ts sky --settle 60 --idle 600                  # the page at rest: 0 draws of 600, and the ms the tick takes
 bun solid/main.ts sky --settle 60 --idle 600 --idle-keys 10   # ... and 60 keys, each drawing its own frame (60 draws)
 bun solid/main.ts sky --touch 0.5 0.5 --png out.png           # headless: a finger's tap at the window's middle (ui_touch_map: 0.5,0.5 -> 180,380)
+bun solid/text-oracle.ts                                      # the text sheet's ink weight and SSIM against CoreText, line by line
+bun solid/text-oracle.ts --density 2                          # ... at the window's pixel density; --canvas against Chrome's Canvas2D
+bun solid/text-oracle.ts --update                             # re-store the sheet and its references (needs swiftc; --canvas playwright)
 ./build/sensors/app --press 180 250 --png out.png             # headless: a press held at 180,250, the frame written while pressed
 IMAGE=1 ./build/sensors/app --raster thorvg --png out.png    # the IMAGE=1 variant: the page's 32x32 image, loaded by ThorVG from its path
 sh terminal/build.sh && ./terminal/demo                       # the Sensors page in characters: Tab, Up/Down, Space, t; q quits

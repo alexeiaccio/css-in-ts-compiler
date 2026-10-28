@@ -40,6 +40,8 @@ bun solid/main.ts dialog --reduced-motion --keys Tab,Enter --png out.png # no tr
 bun solid/main.ts --warm 30 --expect examples/sensors/expected-thorvg.png          # one frame against a stored PNG
 bun solid/main.ts --warm 30 --click 180 250 --expect examples/sensors/expected-thorvg-g.png   # host.c's scripted click
 THEME=light bun solid/main.ts --warm 30 --expect examples/sensors/expected-thorvg-light.png
+bun solid/main.ts sheet --density 2 --png out.png   # the text sheet at the window's pixel density (880x1128)
+bun solid/text-oracle.ts                          # the sheet's ink weight and SSIM against CoreText; --density 2, --canvas, --update
 bun solid/main.ts --png out.png --bench 1000     # ms a frame by phase
 bun solid/main.ts sky --settle 60 --idle 600     # the page at rest: 0 draws of 600, and the ms the tick takes
 sh solid/test.sh                                 # all of it; `bun run test` calls it last
@@ -69,8 +71,8 @@ app/Field.tsx      the Text field page: the headless text field, its caret and s
 app/List.tsx       the List page: thirty rows in a viewport Clay clips and scrolls, the wheel and the keys, and its styles
 app/Sky.tsx        the Sky page: csssky's feed in a phone-sized window, the tablist switching it, drawn avatars, wrapped bodies
 app/Sheet.tsx      the text sheet: the app's strings at eight sizes, for the CoreText oracle and the ink-weight metric
-frames/            the pages' stored frames (the Sensors page's are in examples/sensors), and text-oracle.png, the same
-                   sheet drawn by CoreText
+frames/            the pages' stored frames (the Sensors page's are in examples/sensors), and the sheet at 1x and 2x with
+                   its two references: text-oracle.png and text-oracle-2x.png (CoreText), text-canvas.png (Canvas2D)
 main.ts            the host (window and headless)
 test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, list.test.ts, sky.test.ts, text.test.ts   the checks the stored frames cannot make
 test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, a11y.test.ts   the checks the stored frames cannot make
@@ -108,6 +110,7 @@ with an `id`: Clay tells whether the pointer is over it. `onClick` runs on relea
 | `ui_save_png(path)`, `ui_diff_png(ref, actual)`, `ui_pixel(x, y)` | the frame out; pixels that differ from a PNG; one pixel |
 | `ui_pixels_copy(out, cap)`, `ui_load_png(path)`, `ui_png_size(out)`, `ui_png_copy(out, cap)` | the whole frame as RGBA32 (the text metric reads a crop of it every pixel at once); a PNG of the page's size, loaded once, and its size and bytes |
 | `ui_text_weight(px)` | how much thicker than ThorVG's own raster a line is drawn: a second copy of it, half the weight either side of Clay's place (0, the default: one copy) |
+| `ui_density(scale)` | the raster's pixel density: 2 draws the same layout into twice the pixels, as the window on a Retina screen does (`--density 2` headless) |
 | `ui_window_open(title)`, `ui_window_poll(f32[6])`, `ui_window_present()` | SDL3 window (Metal); poll fills pointer x, y, button, quit, the last key's character, and whether the last pointer event was a finger's (1) or the mouse's (0). A finger's `SDL_EVENT_FINGER_DOWN/MOTION/UP` goes through `ui_touch_map` (normalised 0..1 of the window → the layout's pixels) into the same x, y and button, and the first finger owns the pointer until it lifts |
 | `ui_touch_map(fx, fy, f32[2])` | a finger's normalised position in the layout's pixels: the one mapping the poll and the headless `--touch` share |
 | `ui_key_pop(i32[4])` | the oldest key event the polls queued: down (1) or up (0), SDL keycode, `SDL_Keymod`, repeat. 0 when none; 64 are kept |
@@ -681,18 +684,22 @@ spaces only, so a word wider than the card would run over the gutter: the Scienc
 for an embed with no title, the host (`[link: sciencedirect.com]`), not its 60-character URI. And the light theme is the
 TUI palette's light one, not the system's.
 
-## The text sheet, and the oracle behind it
+## The text sheet, and the oracles behind it
 
 `app/Sheet.tsx` is not an app page: twelve lines of the strings and sizes the pages draw (11 to 32 px) in one column,
-nothing that moves. It is the subject of the text oracle. `solid/text-oracle.swift` draws the same lines at the same
-places with CoreText into `frames/text-oracle.png`; `solid/src/textmetric.ts` measures a line's **ink** — its coverage
-against the page's and the text's colour, summed — and its **SSIM** against the reference at the best whole-pixel shift.
-`solid/text.test.ts` holds the frame to the stored oracle per line (no shift, weight 0.95..1.06, SSIM ≥ 0.95, extent
-within a pixel) and prints the table; `bun solid/text-oracle.ts [--weight N|--sweep|--update]` prints and re-stores.
+nothing that moves. It is the subject of the text oracles. `solid/text-oracle.swift` draws the same lines at the same
+places with CoreText (at 1x into `frames/text-oracle.png`, at the window's density into `frames/text-oracle-2x.png`), and
+`solid/text-canvas.mjs` the same with Chrome's Canvas2D (`frames/text-canvas.png`, the web target's rasteriser, through
+Playwright). `solid/src/textmetric.ts` measures a line's **ink** — its coverage against the page's and the text's colour,
+summed — and its **SSIM** against the reference at the best whole-pixel shift. `solid/text.test.ts` holds the frame to
+all three references at their densities (no shift, a weight band per reference, an SSIM floor, the extent within a pixel
+or two) and prints the tables; `bun solid/text-oracle.ts [--density 2|--canvas|--weight N|--sweep|--update]` prints and
+re-stores.
 
-The verdict is in `../README.md` ("Text: the oracle"): ThorVG's text weighs **1.008** of CoreText's on average, so the
-renderer's weight dial is at 0, and its one real defect is that it has no fallback font (the ⅓ of the sheet's quote line
-is an empty box, SSIM 0.459 — asserted, not hidden).
+The verdict is in `../README.md` ("Text: the oracles"): ThorVG's text weighs **1.008** of CoreText's on average (and
+1.005 at the window's 2x density, where the glyphs are rasterised rather than enlarged), so the renderer's weight dial is
+at 0; the browser target's Canvas2D is **1.37x** our ink and is recorded, not matched; and the one real defect is that
+ThorVG has no fallback font (the ⅓ of the sheet's quote line is an empty box, SSIM 0.459 — asserted, not hidden).
 
 ## The accessibility tree
 

@@ -128,6 +128,7 @@ bun solid/sky.test.ts
 # re-draw it with `bun solid/text-oracle.ts --update` (needs swiftc, so only there)
 X="bun solid/main.ts sheet"
 $X --expect solid/frames/text-sheet.png
+$X --density 2 --expect solid/frames/text-sheet-2x.png
 bun solid/text.test.ts
 # the window (src/virtual.ts) with more data than a screen: 1,000 fixed rows and 200 cards of mixed height — the declared
 # subset (nine to eleven rows, at most ten cards), the spacers are the real content, the reveal outside the window, the

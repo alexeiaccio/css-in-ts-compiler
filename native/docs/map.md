@@ -781,8 +781,17 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    is ThorVG's empty box (weight 0.958, SSIM 0.459) and CoreText falls back for it. `solid/text.test.ts` checks every
    line (no shift, weight 0.95..1.06, SSIM ≥ 0.95, extent within a pixel) against the stored oracle, asserts the
    fallback line's low SSIM on purpose, and proves the metric can see a 1 px move (SSIM 0.708) and more ink, so the
-   check cannot pass vacuously. Not done: a Canvas2D reference as a second oracle (it measures the web build and has its
-   own 6-10 % drift), the 2x pixel density, and fonts other than Roboto.
+   check cannot pass vacuously.
+   **Done: the other two references** (2026-10-28, same day). *Density 2*, the window's own path
+   (`ui_density` retargets, ThorVG scales its root scene): the glyphs are rasterised at 2x, not a 1x raster enlarged —
+   ink 4.006x the 1x line and mean weight **1.005** (1.001..1.018 a line, SSIM 0.967..0.998), closer to CoreText than
+   1x; `frames/text-sheet-2x.png` and `frames/text-oracle-2x.png` are stored and the suite checks them. *Chrome's
+   Canvas2D*, the web target's rasteriser (`solid/text-canvas.mjs` through Playwright): **0.729** of our ink
+   (0.699..0.781 a line, SSIM 0.843..0.916, shift 0,0, extent within a pixel) — the browser is a third heavier, and its
+   own frame agrees (`browser/expected.png`: 715.5 against the harness's 723.1 on the same 20 px line), so it is Chrome's
+   canvas gamma, not our renderer: stored as `frames/text-canvas.png` and pinned in the test as a band, not matched.
+   That leaves fonts other than Roboto-Regular (one face is vendored; a second face is a font feature) and the terminal
+   and board, whose text is a cell grid.
 7. **Later:** a dev panel with the a11y tree, bounds and phase timings plus `tune!`-style live values; style reload
    without a restart (our "reload on save"); and a static first frame shown by the window before Bun and the first
    layout are ready.
