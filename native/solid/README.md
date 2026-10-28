@@ -38,6 +38,8 @@ bun solid/main.ts sky --settle 40 --move 180 300 3 --png out.png          # head
 bun solid/main.ts sky --warm 40 --wheel 4 --wheel-over sky-status --png out.png   # headless: rest first, then four notches past the end (the band)
 bun solid/main.ts widgets --drag 0.25 0.75 --png out.png                 # headless: press the slider's rail at a quarter, hold, move to three quarters
 bun solid/main.ts dialog --reduced-motion --keys Tab,Enter --png out.png # no travel, no waiting (also REDUCED_MOTION=1)
+bun solid/main.ts --scene solid/scenes/list-select.json --expect solid/frames/list-select.png  # a scene: typed events with times, replayed
+bun solid/main.ts --scene solid/scenes/list-select.json --png out.png   # ... its last frame, headless (native/README.md, "A scene as a file")
 bun solid/main.ts --warm 30 --expect examples/sensors/expected-thorvg.png          # one frame against a stored PNG
 bun solid/main.ts --warm 30 --click 180 250 --expect examples/sensors/expected-thorvg-g.png   # host.c's scripted click
 THEME=light bun solid/main.ts --warm 30 --expect examples/sensors/expected-thorvg-light.png
@@ -64,6 +66,8 @@ compile-styles.ts  Node child of the plugin: Vite + cssints, prints a style modu
 compile.tsx.ts     Node child of a `.tsx` whose styles live in it: Solid's JSX first, then cssints on the JS
 stub-bun.mjs       `bun:ffi` for that child: cssints runs the page to read its tokens, and the dylib has no meaning in Node
 src/input.ts       SDL keys to names, and where a key goes: an open modal, the focus manager, the focused part, the page
+src/scene.ts       a scene file: the schema, its validation (a bad step says its index and why), the replay into the page's
+                   own frame loop (one frame a step at 1/60s), and `main.ts --scene`'s `--png`/`--expect`
 a11y.ts            the accessibility tree of a rendered page: snapshot(root) -> { role, name, states, bounds, children }, and a11y(part), the props a page spreads to make a box the part's box
 app/Sensors.tsx    the Sensors page; styles are examples/sensors/styles.ts, the same file the C page's styles.h comes from
 app/Widgets.tsx    the Widgets page: headless button, switch, checkboxes, disclosure, radio, tabs, slider, toolbar, settings tree, and its styles, in the same file
@@ -75,9 +79,11 @@ app/Sky.tsx        the Sky page: csssky's feed in a phone-sized window, the tabl
 app/Sheet.tsx      the text sheet: the app's strings at eight sizes, for the CoreText oracle and the ink-weight metric
 frames/            the pages' stored frames (the Sensors page's are in examples/sensors), and the sheet at 1x and 2x with
                    its two references: text-oracle.png and text-oracle-2x.png (CoreText), text-canvas.png (Canvas2D)
+scenes/            the record of four stored frames: widgets-switch-on, list-select, sky-scrolled, dialog-menu — each a
+                   page's typed events with times, replayed by scene.test.ts (and by main.ts --scene)
 main.ts            the host (window and headless)
-test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, list.test.ts, sky.test.ts, thread.test.ts, text.test.ts
-                   the checks the stored frames cannot make
+test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, list.test.ts, sky.test.ts, thread.test.ts, text.test.ts,
+scene.test.ts      the checks the stored frames cannot make
 test.ts, widgets.test.ts, dialog.test.ts, field.test.ts, a11y.test.ts   the checks the stored frames cannot make
 ```
 
