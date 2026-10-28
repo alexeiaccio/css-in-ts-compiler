@@ -1,5 +1,12 @@
 # @cssints/fonts
 
+## 0.11.0
+
+### Patch Changes
+
+- Updated dependencies [02a4ef7]
+  - cssints@0.11.0
+
 ## 0.10.0
 
 ### Patch Changes
