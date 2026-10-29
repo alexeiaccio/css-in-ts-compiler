@@ -218,6 +218,7 @@ export default function cssints({
   exclude,
   devtools = false,
   opencode = false,
+  evaluation,
 }: {
   inner?: boolean;
   /**
@@ -237,17 +238,33 @@ export default function cssints({
    * and tokens plus the instruction. Needs `@opencode/client` installed. Off by default; a build has none of it.
    */
   opencode?: boolean | OpenCodeOptions;
+  /**
+   * The server that evaluates sites, when the app's own ssr environment cannot: a runner that sets `browser` for it (vitest's
+   * browser mode) serves every dependency as ESM — its CJS ones fail — and resolves the library to the browser entry. The plugin
+   * then starts its own server with the app's aliases, conditions and `noExternal`. When that environment inlines everything
+   * (`ssr.noExternal: true`), the list cannot be copied (CJS would break), so `inline` names what a framework needs inlined to
+   * resolve its own builds: `["solid-js", "@solidjs/web"]` for Solid.
+   */
+  evaluation?: { readonly inline?: ReadonlyArray<string | RegExp> };
 } = {}): Plugin[] {
   // an empty list would match everything as `include`
   const excluded = [exclude ?? []].flat().length ? createFilter(exclude) : () => false;
   let server: ViteDevServer | undefined; // dev server (dev) or a private one (build)
-  let ownServer = false;
   let runner: ModuleRunner | undefined; // private runner with DOM bindings; server.environments.ssr.runner stays untouched
   let build = false;
   let root = process.cwd();
   let rootTargets: Target[] | undefined; // the browserslist config of `root`: the support checks of every evaluation
   let cssPlugins: (Plugin | undefined)[] = []; // vite:css, vite:css-post: in build they take the sheet in renderChunk
   let resolveOf: Pick<InlineConfig, "resolve" | "environments"> = {}; // the app's, for the evaluation server of a build
+  // Where modules are evaluated: the app's ssr environment, or a server of the plugin's own when that environment is not an
+  // ssr one — a runner that resolves it with `browser` (vitest's browser mode does) serves its CJS dependencies as ESM and gets
+  // the library's browser entry. `own` means this plugin started it, and closeBundle stops it; a build always evaluates in a
+  // private server. `needed` is decided in configResolved.
+  const evaluator = {
+    server: undefined as ViteDevServer | undefined,
+    own: false,
+    needed: false,
+  };
   const usedBy = new Map<string, string>(); // client module id -> its classes and @property rules, sorted, one a line
   const depsOf = new Map<string, Set<string>>(); // dependency file -> Set<client module id>
   const inflight = new Set<string>(); // client module ids inside transform: their deps are not in depsOf yet
@@ -459,7 +476,7 @@ export default function cssints({
 
     const parsed = yield* instrument(code, id, true, !!devtools && !build);
     if (!parsed) return undefined;
-    const env = server!.environments.ssr;
+    const env = evaluator.server!.environments.ssr;
     // No runner HMR: its full-reload re-imports would run outside the evaluation lock.
     // Stack traces are mapped when an error makes one: Vite's default turns on Node's source map cache, which reads the map
     // of every module body at load (~3 ms each).
@@ -484,7 +501,7 @@ export default function cssints({
     void,
     HookError
   > {
-    server = yield* Effect.tryPromise({
+    const started = yield* Effect.tryPromise({
       try: () =>
         createServer({
           configFile: false,
@@ -503,15 +520,18 @@ export default function cssints({
           cause,
         }),
     });
-    ownServer = true;
+    evaluator.own = true;
+    evaluator.server = started;
+    // A build has no server of its own, so the private one fills both roles; in dev the app's server keeps HMR and the watcher.
+    server ??= started;
   });
 
   const stopServer = Effect.fn("cssints.closeBundle")(function* (): Effect.fn.Return<
     void,
     HookError
   > {
-    if (!ownServer || !server) return;
-    const s = server;
+    if (!evaluator.own || !evaluator.server) return;
+    const s = evaluator.server;
     yield* Effect.tryPromise({
       try: () => s.close(),
       catch: (cause) =>
@@ -522,8 +542,10 @@ export default function cssints({
         }),
     });
     // `vite build --watch` builds again: its buildStart starts a new server, with a new runner
-    server = runner = undefined;
-    ownServer = false;
+    if (server === s) server = undefined;
+    evaluator.server = undefined;
+    evaluator.own = false;
+    runner = undefined;
   });
 
   // Before vite:css-post's renderChunk joins the chunk's CSS: run the sheet through vite:css (LightningCSS) and
@@ -644,13 +666,27 @@ export default function cssints({
       if (!inner) rootTargets = Effect.runSync(targetsOf(undefined, root));
       // A dev server evaluates in its ssr environment, so with the app's aliases and conditions; a build's private server
       // gets them too (cssints-qnif).
+      evaluator.needed = config.environments.ssr?.resolve?.conditions?.includes("browser") === true;
       const ssr = config.environments.ssr?.resolve;
       resolveOf = {
-        resolve: { alias: config.resolve.alias },
+        resolve: { alias: config.resolve.alias, dedupe: config.resolve.dedupe },
+        // `noExternal` is what makes a framework's package resolve by the app's conditions (Solid is inlined, so it picks
+        // its client build); an ssr environment of a runner (vitest's) inlines CJS dependencies instead, which is the other
+        // reason for an evaluation server of our own.
         ...(ssr && {
           environments: {
             ssr: {
-              resolve: { conditions: ssr.conditions, externalConditions: ssr.externalConditions },
+              resolve: {
+                conditions: ssr.conditions,
+                externalConditions: ssr.externalConditions,
+                // `true` means "inline everything", which a browser-mode runner sets and which would serve its CJS dependencies
+                // as ESM: the app's names, plus what the framework needs (the option), and nothing more
+                noExternal: [
+                  ...(Array.isArray(ssr.noExternal) ? ssr.noExternal : []),
+                  ...(evaluation?.inline ?? []),
+                ],
+                ...(ssr.external !== undefined && { external: ssr.external }),
+              },
             },
           },
         }),
@@ -662,6 +698,7 @@ export default function cssints({
     configureServer(s) {
       server = s;
       if (inner) return;
+      evaluator.server = evaluator.needed ? undefined : s;
       // The browser drops an HMR update of a module that has not run yet: on a cold page load the sheet can be
       // fetched, and updated, while other modules are still in transform. The sheet reports what it got.
       s.environments.client.hot.on("cssints:sheet", (v: string) => {
@@ -674,7 +711,7 @@ export default function cssints({
     buildStart() {
       if (inner) return;
       if (build) forgetWarnings(); // `vite build --watch`: each build says its warnings
-      if (server) return;
+      if (evaluator.server) return;
       return run(hook("vite.buildStart", root, startServer()));
     },
     buildEnd() {

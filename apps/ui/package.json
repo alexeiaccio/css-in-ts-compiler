@@ -11,8 +11,7 @@
     "dev": "vp dev",
     "preview": "vp preview",
     "test": "vp test run --config vitest.browser.config.ts",
-    "typecheck": "node ../../scripts/typecheck.mjs && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
-    "test:combos": "node test/combos.mjs"
+    "typecheck": "node ../../scripts/typecheck.mjs && node ../../node_modules/typescript/bin/tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@cssints/headless": "workspace:*",

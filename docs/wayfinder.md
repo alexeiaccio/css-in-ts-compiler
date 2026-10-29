@@ -2014,29 +2014,32 @@ bare leaves (an alias `"{color.bg}"` to one resolved to no token), and `Tokens<>
 `token.<type>` change (a standalone token builder already exists), no value constructors, no `$root`/`$extends`/`$ref` of
 DTCG, and arrays are still `{ $value }` (a `cubicBezier`, a shadow list): the rule is one sentence, "a string or a number".
 
-## vitest browser mode and the evaluation: `cssints/eval`, and why the kit's tests run on the dev server (2026-10-29)
+## vitest browser mode and the evaluation: `cssints/eval` and an evaluation server (2026-10-29)
 
 Asked by the user ("can anything be done about vitest browser mode not running cssints sites?"), after a styled component of
 `apps/ui` could not be imported by a vitest browser test at all: even `export const box = cn(bg("#f00"))` failed, with
 "the plugin helpers run at build time, once the cssints library is loaded" and later `__at is not a function`. **The cause is a
 condition, not a runner**: the plugin prepends `import { __at, __site, … } from "cssints"` to every module with sites, which it
-then evaluates in the app's **ssr** environment; vitest's browser mode puts `browser` in that environment's `resolve.conditions`
+evaluates in the app's **ssr** environment; vitest's browser mode puts `browser` in that environment's `resolve.conditions`
 (its own default for the client, merged into both), so `cssints` resolves to its browser runtime (`_cx`, `_cv` only) — no
-`__at`, no registry, and `globalThis.__cssints` never set. The user's guess ("предилд?") does not help: `browser` is an export
-condition, and the built `dist/` carries the same `browser` branch (`dist/runtime.mjs`). **The fix is a specifier that cannot be
-redirected**: a new `cssints/eval` subpath (development → `src/index.ts`, default → `dist/index.mjs`, no `browser` key) and
-`instrument.ts` prepends it instead of `cssints`; the client copy of a module is pure data (`export const box = "_ajndqy _dku3ci"`),
-so the browser never sees it. Verified: `packages/cssints`' suite green, `apps/lab` (dev server, real evaluation) green, and a
-vitest browser test of `cn(bg("#f00"))` passes. **A second wall stands behind it, and that is where this stopped**: with the
-library loading, the same evaluation fails on `require is not defined` — vitest's ssr environment serves CJS dependencies as ESM
-(`lightningcss`, `magic-string`) — and the alternative, the plugin evaluating in its own private server as a build does (a
-`createServer({ configFile: false, plugins: [cssints({ inner: true })] })`), fails on Solid instead: the evaluated `@cssints/headless`
-modules load `solid-js/dist/server.dev.js` there while the app's environment picks the client build (`solid.dev.js`), and Solid's
-server build crashes with `Cannot set properties of undefined (setting 'server')` (`OBSERVE.server` with `OBSERVE` undefined).
-The private server copies the app's `resolve.alias` and ssr conditions but not its **plugins** (the Solid plugin is what makes
-the client build the right one), and passing resolved plugin instances into a second server is its own risk. So: **the styled
-components' tests run on the dev server** (`apps/ui/test/combos.mjs`: a page of pairs, Chromium, computed styles), the APG
-conformance stays where it belongs (`@cssints/headless`'s own browser tests, and the compiled starters of `apps/ui` that still
-ship a sheet), and `apps/ui`'s vitest suite covers the compiled starters only. **Left**: a test-environment evaluator (case 2
-above) worth its own ticket — the private server needs the app's user plugins (or a way to resolve framework entries as the app
-does), which is what would let a copy ship a vitest test it can run.
+`__at`, no registry, and `globalThis.__cssints` never set. A prebuild does not help: `browser` is an export condition, and the
+built `dist/` carries the same `browser` branch (`dist/runtime.mjs`). **Two changes, both in the engine**: a `cssints/eval`
+subpath (development → `src/index.ts`, default → `dist/index.mjs`, no `browser` key) that `instrument.ts` prepends instead of
+`cssints` — the client copy of a module is pure data (`export const box = "_ajndqy _dku3ci"`), so the browser never sees it —
+and an **evaluation server of the plugin's own** for a runner whose ssr environment is not one: when that environment's
+conditions contain `browser`, the plugin starts `createServer({ configFile: false, root, …resolveOf })` with the app's
+`resolve.alias`, `dedupe`, ssr `conditions`/`externalConditions` and `noExternal`, and evaluates there (the app's server keeps
+HMR and the watcher; a build already did this). The second half took two measurements to get right: **`ssr.noExternal` must be
+copied** — it is what makes Solid resolve its client build (`solid.dev.js`) when inlined, and without it the evaluation loaded
+`solid-js/dist/server.dev.js` and crashed (`OBSERVE.server` with `OBSERVE` undefined) — and a runner sets that field to `true`
+(vitest inlines everything), which cannot be copied because inlined CJS breaks (`require is not defined`, `lightningcss`), so the
+plugin takes `cssints({ evaluation: { inline: ["solid-js", "@solidjs/web", "@solidjs/signals"] } })`: the named packages stay
+inlined, the rest is external and Node loads its CJS. **On the test side**: `test.css: true` (vitest drops CSS imports, and the
+sheet arrives as one), the sheet (`virtual:cssints.css`) loaded in a `beforeAll` — its content is the CSS of the modules transformed
+so far, and a static import can be resolved before the components (a sheet loaded first is just the `@layer` statement) — and the views in a fixture module, since a test
+file that imported `cssints` would be evaluated at build time too. Verified: `apps/ui`'s suite is 199 passed, 7 files, with
+`combos.browser.test.tsx` asserting the frame radius (16/3 px through a wrapper), the mode (`data-mode="dark"` moves the card's
+colour), the size cascade (`data-size="sm"` on a `group()` ancestor), `render` (props, tag, live state), and the field's ids and
+`aria-invalid` on an `Input` and on a `textarea`; `packages/cssints`' own suite and `apps/lab` stay green. **Left**: the copied
+item's `vitest.browser.config.ts` does not carry `evaluation.inline` yet (the registry ships the old config to the compiled
+starters), and nothing reminds a project to import the sheet in a test — a copied styled item would need both.
