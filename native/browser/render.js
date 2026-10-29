@@ -2,8 +2,9 @@
 // command array says: rectangles, borders (inside, the ring between the box and the box inset by each side's width),
 // text, and a scissor via clip(). No framework and no build step: the module is loaded by index.html.
 //
-// The page has two frames: frame(0) is the static generated frame with the base sample, frame(1) the use_g one. w, or the
-// button, switches between them, which is the only state this target has.
+// The state is the wasm's: the generated page's transition table (examples/sensors/page_generated_events.c) is asked on
+// a pointer's press and release, exactly as the desktop host asks it, so a click on the pill toggles the units and `w`
+// (or the button) is the same click at the pill's centre.
 
 const W = 360, H = 360;
 const FONT = 'Roboto, "Helvetica Neue", Arial, sans-serif'; // bundled Roboto (vendor/fonts), system fallback
@@ -133,35 +134,59 @@ async function instantiate() {
     return wasm;
 }
 
-let wasm, useG = 0, lastFrame = [];
+let wasm, lastFrame = [];
 
 const button = document.getElementById('toggle');
 const ms = document.getElementById('ms');
 
-/** One frame: Clay's layout in the wasm, then the draw. Returns the commands, so a test can read the layout. */
-function render(useG_) {
-    useG = useG_ ? 1 : 0;
-    wasm.frame(useG);
+/** One frame of the state the wasm holds: Clay's layout, then the draw. Returns the commands, for a test to read. */
+function render() {
+    wasm.frame();
     lastFrame = readCommands(wasm);
     draw(lastFrame);
-    button.textContent = useG ? 'switch to m/s²' : 'switch to g';
+    button.textContent = lastFrame.some(c => c.text === 'switch to m/s²') ? 'switch to m/s²' : 'switch to g';
     return lastFrame;
 }
+
+/** The pointer's press and release at layout coordinates, through the wasm's table. */
+function press(x, y) { wasm.press(x, y); render(); }
+function release(x, y) { wasm.release(x, y); render(); }
+
+/** The pill's centre: the click `w` and the button make. */
+function clickPill() { press(180, 248); release(180, 248); }
 
 await loadFont();
 wasm = await instantiate();
 wasm.init(W, H);
-render(0);
+render();
 
-function toggle() { render(!useG); }
-button.addEventListener('click', toggle);
-window.addEventListener('keydown', e => { if (e.key === 'w' || e.key === 'W') toggle(); });
+button.addEventListener('click', clickPill);
+window.addEventListener('keydown', e => { if (e.key === 'w' || e.key === 'W') clickPill(); });
+// a click on the page itself: the canvas is 360 CSS px whatever its backing store is
+const canvasXY = e => {
+    const r = canvas.getBoundingClientRect();
+    return [(e.clientX - r.left) * (W / r.width), (e.clientY - r.top) * (H / r.height)];
+};
+canvas.addEventListener('pointerdown', e => { const [x, y] = canvasXY(e); press(x, y); });
+canvas.addEventListener('pointerup', e => { const [x, y] = canvasXY(e); release(x, y); });
 
-// for browser/check.mjs: the commands of the last frame, a frame count for the timing, the Clay error count, and the
-// last frame as the JSON of desktop/clay_dump.c — the dump every target writes, which a check compares with a golden
+// for browser/check.mjs: the commands of the last frame, a frame count for the timing, the Clay error count, the state,
+// and the last frame as the JSON of desktop/clay_dump.c — the dump every target writes, which a check compares
 window.__page = {
     commands: () => lastFrame,
     render,
+    press,
+    release,
+    click: clickPill,
+    state: () => wasm.state(),
+    stateName(i) {
+        const ptr = wasm.state_name(i);
+        if (!ptr) return '';
+        const bytes = new Uint8Array(wasm.memory.buffer);
+        let end = ptr;
+        while (end < bytes.length && bytes[end]) end++;
+        return new TextDecoder().decode(bytes.subarray(ptr, end));
+    },
     errors: () => wasm.errors(),
     dump() {
         const length = wasm.dump();
@@ -171,7 +196,7 @@ window.__page = {
     bench(n = 100) {
         const t0 = performance.now();
         for (let i = 0; i < n; i++) {
-            render(useG);
+            render();
             ctx.getImageData(0, 0, 1, 1); // a readback, so each frame's raster is done, not just queued
         }
         return (performance.now() - t0) / n; // ms a frame: layout in Clay, the commands, the canvas raster
