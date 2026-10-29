@@ -1186,14 +1186,19 @@ and `solid/app/Sensors.tsx` **unmodified**, `browser/solid/build.ts` bundles the
 JSX and cssints loaders as `solid/plugin.ts`), and Clay runs in a second wasm module beside the generated page's.
 
 ```
-browser/ui.c                 the desktop's flat ui_* surface over Clay only: no SDL, no window, no ThorVG
+browser/ui.c                 the desktop's flat ui_* surface over Clay only: no SDL, no window, no ThorVG — and the
+                             renderer's tables beside the commands (a shadow, a backdrop, a gradient, a group, an image)
 browser/solid/ffi-browser.ts the same `ui` object as solid/src/ffi.ts, over the wasm: a growing heap, TextEncoder,
                              the style's Float32Array copied in, Canvas2D answering env.measure
-browser/solid/page.ts        the frame loop: render(Sensors) into an El tree, createDrawer, requestAnimationFrame,
+browser/solid/page.ts        the Sensors frame loop: render(Sensors) into an El tree, createDrawer, requestAnimationFrame,
                              the mouse and the wheel as the pointer, the canvas drawn by browser/draw.js
-browser/solid/build.ts       Bun.build: page.js; one resolution, src/frame.ts's ./ffi.ts -> ffi-browser.ts
-browser/solid/index.html     the canvas and the script
+browser/solid/sky.ts         the Sky page the same way: src/input.ts's own keys from the DOM, the wheel to the page's
+                             scroll track, and each draw carrying the effect tables
+browser/solid/build.ts       Bun.build: page.js and sky.js; one resolution, src/frame.ts's ./ffi.ts -> ffi-browser.ts
+browser/solid/index.html     the Sensors canvas and the script
+browser/solid/sky.html       the Sky page's canvas (360x760) and the script
 browser/solid-check.mjs      Chromium: the commands, a real click, the raster, the sizes and the ms
+browser/sky-check.mjs        Chromium: the Sky page's frame against the desktop's, its gradient, avatars, shadow, entry
 ```
 
 `sh browser/build.sh` builds both modules: `page.wasm` is the no-JS path (unchanged), `ui.wasm` is this one. Neither is
@@ -1201,7 +1206,7 @@ committed. The loop is `src/frame.ts`'s `createDrawer`: the tree is declared and
 and the canvas is drawn only when the frame hash moved or a discrete input came in — a page at rest costs a layout and
 no pixels, as on the desktop. A press or a release runs its frame on the event, so a click cannot land both inside one
 frame. Keys have no page to reach: `Sensors` takes no input, and the desktop's SDL key names (`src/input.ts`) have no
-DOM map here yet.
+DOM map here yet (`sky.ts` gives them their DOM names, which are the ones `src/input.ts` routes).
 
 The two host globals the desktop's modules read are shimmed in `browser/solid/globals.ts`: `Bun.nanoseconds` (the
 frame's phases, `performance.now`) and `Buffer.from` (the page's entry id). Of the desktop binding's pixels,
@@ -1211,39 +1216,100 @@ command array itself is the wasm's (`cmds`, `cmd_count`, `cmd_size`), which is w
 
 | What            | Size                                    |
 | --------------- | --------------------------------------- |
-| `ui.wasm`       | 136,338 B (50,215 B gzip)               |
-| `page.js`       | 228,467 B (54,144 B gzip), unminified   |
-| `index.html`    | 1,181 B                                 |
-| a frame         | 0.08-0.09 ms: declare, layout, commands, Canvas2D, one readback (100 frames, headless Chromium, M2) |
+| `ui.wasm`       | 141,104 B (52,269 B gzip)               |
+| `page.js`       | 154,464 B (38,752 B gzip), unminified   |
+| `sky.js`        | 300,229 B (71,434 B gzip), unminified   |
+| `sky.html`      | 1,301 B                                 |
+| `draw.js`       | 16,733 B (5,732 B gzip)                 |
+| a frame, Sensors | 0.08 ms: declare, layout, commands, Canvas2D, one readback (100 frames, headless Chromium, M2) |
+| a frame, Sky     | 0.73-0.80 ms: the same, with the effect tables read and the avatars drawn from bitmaps |
 
-`browser/solid-check.mjs` is `browser/check.mjs`'s sibling and runs in `solid/test.sh` (skipped, with a message, when
-zig, bun or Playwright's chromium is missing):
+The bundles are the production build of `solid-js` (`build.ts` resolves `solid-js` and `@solidjs/signals` to their
+`dist/*.js`, as `solid/plugin.ts` redirects the desktop's): the bundler's `development` condition picks
+`@solidjs/signals/dist/dev.js`, whose diagnostics refuse the writes a page makes in its component body (`Sky.tsx`'s
+cells), and it is twice the size for rules this target does not run.
+
+`browser/solid-check.mjs` and `browser/sky-check.mjs` are `browser/check.mjs`'s siblings and run in `solid/test.sh`
+(skipped, with a message, when zig, bun or Playwright's chromium is missing):
 
 ```sh
-sh browser/build.sh && bun browser/solid/build.ts   # the two wasms and the bundle, in $TMPDIR
-node browser/solid-check.mjs                        # the base frame, the click, the raster, the sizes
-node browser/solid-check.mjs --serve                # http://127.0.0.1:<port>/browser/solid/index.html, for a person
+sh browser/build.sh && bun browser/solid/build.ts   # the two wasms and the two bundles, in $TMPDIR
+node browser/solid-check.mjs                        # the Sensors base frame, the click, the raster, the sizes
+node browser/sky-check.mjs                          # the Sky page: its frame, gradient, avatars, shadow, entry
+node browser/sky-check.mjs --serve                  # http://127.0.0.1:<port>/browser/solid/sky.html, for a person
 ```
 
-(a) the base frame dumped through the same emitter against `solid/goldens/sensors.json`: 10 commands, every field and
-every box — the worst box 3.38 px, the Units pill sitting that much lower because the measure callback rounds every
-line height up (37.5 -> 38 at 32px, 16.4 -> 17 at 14px, `draw.js`, as the no-JS page's does) while ThorVG's is exact;
-the no-JS page's own check reports the same 3.38 on the same command. (b) a real click: Playwright's mouse on the
-pill, the page's DOM listeners, `src/frame.ts`'s events, the `Units` element's `onClick`; while the pointer is on the
-pill the frame carries its `:hover` (48,53,68), and with the
-pointer off it the use_g frame is the no-JS page's `frame(1)` field for field and box for box, 0 px — two runs of the
-same Clay and the same Canvas2D measure, so a difference could only be this page's. A second click returns to the base
-frame, again identical. (c) the canvas against `browser/expected.png`: 0.00% of pixels differ, worst 8x8 block 0.0/255.
+`solid-check.mjs`: (a) the base frame dumped through the same emitter against `solid/goldens/sensors.json` — 10
+commands, every field and every box, the worst box 3.38 px (the Units pill sitting that much lower because the measure
+callback rounds every line height up, 37.5 -> 38 at 32px and 16.4 -> 17 at 14px, while ThorVG's is exact; the no-JS
+page's own check reports the same 3.38 on the same command). (b) a real click: Playwright's mouse on the pill, the
+page's DOM listeners, `src/frame.ts`'s events, the `Units` element's `onClick`; while the pointer is on the pill the
+frame carries its `:hover` (48,53,68), and with the pointer off it the use_g frame is the no-JS page's `frame(1)` field
+for field and box for box, 0 px. A second click returns to the base frame, again identical. (c) the canvas against
+`browser/expected.png`: 0.00% of pixels differ, worst 8x8 block 0.0/255.
 
-What it still is not, honestly: one page of eight (the others need `src/input.ts`'s key map, the List's and Sky's scroll
-machines, and are untried); no renderer effects — `ui_shadow`, `ui_backdrop`, `ui_backgroundImage` and the value
-channel's group fields (46–50, 55: alpha, scale, translate, rotate, gradient alpha) were ThorVG's tables, and Canvas2D
-here draws only the command array, so a shadow, a gradient, a backdrop, a scene transform or an image is a frame this
-target draws without them (the Sensors page's first-mount entry writes two of them, which is why the check warms 31
-frames and why its commands are the settled ones); no touch (the wasm still has `ui_touch_map`, nothing sends a finger's
-event); no HMR or dev server story — the bundle is built once, by hand; and the framework's cost is the bundle's 229 KB
-(gzip 54 KB) against the no-JS page's 4.7 KB, for a JS tree and a state machine instead of a static frame. The generated
-C stays the no-JS path, which is what the board already is.
+### The renderer's effects, on a command array
+
+The desktop's ThorVG renderer draws four things a Clay command does not carry, from tables beside the commands
+(`browser/ui.c` fills them, `browser/draw.js` reads them back with the commands, `readEffects`):
+
+| effect | from | how it is drawn |
+| --- | --- | --- |
+| shadow | `ui_shadow(x, y, blur, r, g, b, a)`, the value channel's 45 | the element's first command's box, moved by the offset, of the command's radii, filled in the colour and blurred by Canvas2D's `filter: blur(blur / 2)`: the same gaussian, ThorVG's sigma being half the CSS blur |
+| gradient | `ui_backgroundImage(kind, angle, count, stops)`, the value channel's 50 | the element's first rectangle filled with `createLinearGradient` along CSS's gradient line (the direction (sin θ, −cos θ), the length \|w·sinθ\| + \|h·cosθ\|, from the box's centre); at a gradient alpha below 255 the box's solid fill under it, as the desktop cross-fades. **Smooth interpolation: no dither** (see the deviations) |
+| group | the value channel's 46–49 and 55 (`ui_value`) | the element's subtree's commands — the range the C works out from the frame's element tree, which Clay's commands carry as `userData` — drawn into an offscreen canvas of the frame's size and composited once: `globalAlpha` of alpha/255, then the translate, the rotation and the scale about the first command's box centre (one matrix, `Clay_ThorVG_SettleGroup`'s) |
+| image | `ui_image(path)`, a `css.image` style | the picture decoded from its path once (`Image`), `drawImage` scaled into the command's box, as `tvg_picture_set_size` |
+
+A backdrop (`ui_backdrop`) is **recorded and hashed, not blurred**: `draw.js` draws the element's own translucent fill
+and no blur of what is under it. The Sky page has none (the Dialog's menu has the one in this repository, and the Dialog
+is not in the browser yet), so a JS box blur would be a fourth effect with no page to prove it — it is the next thing
+here, and it is cheap (a `getImageData` of the box, three box-blur passes, a `putImageData`).
+
+The image path a style carries is an absolute path in this checkout: `sky.ts` maps the part from `/examples/` on to the
+page's URL, and the check's server serves the repo tree, so the avatars are the committed PNGs.
+
+### The Sky page in the browser
+
+`browser/solid/sky.ts` is `page.ts`'s sibling for `solid/app/Sky.tsx` **unmodified**: `src/input.ts`'s `createInput`,
+with the DOM's `key` names (they are already the parts': `Tab`, `ArrowDown`, `Home`, `PageUp`, `Escape`, `Enter`, `" "`),
+the wheel to `ui.wheel` and then the page's own scroll track (`src/vscroll.ts`), the pointer's press and release on the
+event as `page.ts` has it, and the page's thread loader a promise that never settles (no frame asks a network). It is
+the first page with the effects, and it has all of them but a backdrop: three gradient cards, three drawn avatars, and
+the cards' entry — twelve pixels down and transparent, each card 50 ms after the one before — which is the value
+channel's group, so the entry exists on this target only because the group fields are drawn.
+
+`sky.html?bench=0` leaves out the page's twenty-frame auto bench: the entry has to start at the first frame the check
+asks for. `node browser/sky-check.mjs`:
+
+| what | measured |
+| --- | --- |
+| the settled frame (`warm 45`) against `solid/frames/sky.png` | every command's box mean within **12.8/255** (the worst is `alexjungle.bsky.social`'s card, where Canvas2D's line heights put a line a pixel lower), every text's ink box within **1 px** (`sky`), the frame's mean colour within **2.32/255** |
+| pixels | **73.79%** differ at all, **39.00%** by the dither's one level or two, **7.30%** by more than 2/255 — the threshold the check holds to 12%: the rest is glyph hinting and anti-aliasing, and the gradient's banding (below) |
+| the card's gradient | top **26,31,37** (the panel token is 27,32,38: the desktop rounds its end one level the other way), middle 24,29,34, bottom **21,25,30** (the deep end, exact); a row across it varies by 1/255; 2 stops, 180° |
+| the avatars | three pictures 40x40; michaelwarburton's centre **99,178,255** and body **74,132,214**, sky.test.ts's own numbers, **0/255** off |
+| a shadow (a scratch canvas: no page here has one) | **37/255** of a black shadow's blur 4 px outside its box, nothing 44 px out |
+| the entry (8 frames in) | three groups, the first at alpha **179/255** and **3.59 px** down: inside its card **22,26,31**, between the page's 16,19,22 and the card's resting 25,29,35, and 3 rows below the card's resting edge are the card. At rest: no groups, nothing below the edge |
+| the page at rest | 30 frames draw nothing (`ui_draws`): the frame hash folds the effect tables in, a settled frame's is the one before it |
+| the bar and the wheel | a real click on the Science tab switches the feed (`Erik Strub`'s card), and three notches glide its cards **78.0 px** up (one event is one notch, SDL's sign: `src/vscroll.ts` takes it) |
+
+Every one of them is a mutation the check catches (each measured by breaking `draw.js` alone, the bundle rebuilt):
+a gradient drawn as the box's flat colour — the gradient's bottom reads 27,32,38 instead of 21,25,30 and the frame's
+mean colour goes 5.09/255 off; a group's alpha ignored — the card's inside reads its resting 25,29,35; a group's
+translate ignored — 0 rows below the edge; the pictures not drawn — the avatar reads the card's 26,31,37, 219/255 off
+its author's hue, and its box's mean 139.8/255; the shadow not drawn (or not blurred) — alpha 0 where its blur is.
+
+The deviations, honestly: **no dither.** The desktop stipples every gradient by a 4x4 Bayer pattern of ±1 (its
+`Clay_ThorVG_Dither`), which breaks the banding of a 190 px card; Canvas2D interpolates smoothly and bands where the
+gradient is shallow — the card's 6-level run over 190 px shows as bands of about 30 px. It is why 39% of the pixels
+differ by a level or two, and it is visible in the cards' darkest stretches, not in their means. Everything else that
+differs is the rasteriser: Canvas2D's glyphs against ThorVG's advances (the card boxes move a pixel or two, so a
+region's mean takes the worst 12.8/255), and the anti-aliasing of the avatars' discs and the cards' rounded corners.
+
+What it still is not, honestly: four pages of eight (Widgets, Dialog, Text field, List, Sheet, Dev — the ones that need
+more DOM input than the Sky page does); the backdrop's blur (above); no touch (the wasm still has `ui_touch_map`,
+nothing sends a finger's event); no HMR or dev server story — the bundle is built once, by hand; and the framework's
+cost is the bundle's 300 KB (gzip 71 KB) against the no-JS page's 4.7 KB, for a JS tree and a state machine instead of
+a static frame. The generated C stays the no-JS path, which is what the board already is.
 
 ## The sky screens in a terminal
 

@@ -693,11 +693,32 @@ Each step ends in a check that fails when it breaks.
    identically; with the pointer on it the pill carries its `:hover` (48,53,68), which the generated C cannot have. (c)
    the canvas against `browser/expected.png`: 0.00 % of pixels differ, worst 8x8 block 0.0/255.
    What is still not there: the other seven pages (they need a DOM map for `src/input.ts`'s key names, and the List's and
-   Sky's scroll machines are untried), the renderer's side tables (`ui_shadow`, `ui_backdrop`, `ui_backgroundImage` and
-   the value channel's group fields 46–50 and 55: a command array alone has no scene, so a shadow, a gradient, a
-   backdrop, a transform or an image is a frame this target draws without it — the Sensors page's entry is why the check
-   warms 31 frames), touch (the wasm has `ui_touch_map`, nothing sends a finger's event), and a dev server or HMR (the
-   bundle is built by hand). The generated C is still the no-JS page, unchanged, which is what the board already is.
+   Sky's scroll machines are untried), touch (the wasm has `ui_touch_map`, nothing sends a finger's event), and a dev
+   server or HMR (the bundle is built by hand). The generated C is still the no-JS page, unchanged, which is what the
+   board already is.
+   **Done: the renderer's effects, and the Sky page** (2026-10-29). `browser/ui.c` keeps the desktop's side tables and
+   exposes them beside the commands: `ui_shadow`, `ui_backgroundImage`, `ui_image`, `ui_backdrop`, and the value channel's
+   group fields (46–49 and 55, with 50 the gradient's alpha and 45 the shadow's blur) as one table keyed by the element's
+   Clay id (a group by its tree node, resolved to a command range in `ui_end` the way `Clay_ThorVG_Under` resolves a
+   span — and a clip's close is given the node that opened it, or a group inside the feed's clip swallows the close).
+   `readEffects` in `draw.js` reads them as one `Int32Array` and one `Float32Array` over the same rows, `draw(commands,
+   effects)` draws them: a shadow as its box plus Canvas2D's `blur(blur / 2)` (ThorVG's sigma), a gradient along CSS's
+   gradient line over the box's solid fill at a fading alpha, a group as an offscreen canvas composited once with the
+   alpha and the translate/rotation/scale about the first command's box centre, an image as `drawImage` into its box.
+   A backdrop is recorded, hashed and **not** blurred (the Dialog, its only page, is not in the browser yet).
+   `browser/solid/sky.ts` + `sky.html` run `solid/app/Sky.tsx` unmodified with `src/input.ts`'s keys from the DOM, the
+   wheel through the page's own scroll track, and its thread loader a promise that never settles. Check:
+   `browser/sky-check.mjs` against `solid/frames/sky.png`, per command box and per text line: every box's mean within
+   12.8/255, every text's ink box within 1 px, the frame's mean within 2.32/255, 7.30 % of pixels differing by more than
+   2/255 (73.79 % at all — the desktop's 4×4 Bayer dither of a gradient, which this target's smooth interpolation does
+   not have, so a card bands where the desktop stipples). The card's gradient reads the panel at its top and its deep end
+   at its bottom, the avatars are their authors' hues to 0/255, a scratch canvas proves a shadow's blur, and the entry
+   8 frames in is the group (alpha 179/255, 3.59 px down, three rows of card below its resting edge). Each of those
+   fails if its effect is removed from `draw.js` alone. Cost: `ui.wasm` 141,104 B (52,269 B gzip), `sky.js` 300,229 B
+   (71,434 B gzip), 0.73–0.80 ms a frame with the effects and the avatar bitmaps.
+   Limits: the backdrop's blur, the other six pages, touch, and no HMR; the bundle is the production `solid-js` (the
+   bundler's `development` condition picks `@solidjs/signals`' dev build, whose diagnostics refuse `Sky.tsx`'s writes in
+   its component body).
 
 
 ## What Rune's research gives us (2026-10-23)

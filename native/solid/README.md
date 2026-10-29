@@ -1122,22 +1122,32 @@ stores it (`--update`), and the other hosts only read it.
 
 ## In the browser
 
-This host's modules are the page's, unmodified. `browser/solid/` holds the four files a browser target needs:
+This host's modules are the page's, unmodified. `browser/solid/` holds the files a browser target needs:
 
 ```
-browser/ui.c                the flat ui_* surface over Clay alone (solid/native/ui.c minus SDL, the window, ThorVG,
-                            the renderer's tables and images), compiled by browser/build.sh to ui.wasm
+browser/ui.c                the flat ui_* surface over Clay alone (solid/native/ui.c minus SDL, the window and ThorVG),
+                            with the renderer's tables beside the commands — ui_shadow, ui_backdrop, ui_backgroundImage,
+                            ui_image, and the value channel's group fields (46-50, 55) — compiled by browser/build.sh to
+                            ui.wasm and read by JS through fx/fx_count/fx_stride
 browser/solid/ffi-browser.ts  the same `ui` object this directory's src/ffi.ts exports, over that wasm
 browser/solid/page.ts       the loop: this src/renderer.ts, this src/frame.ts and app/Sensors.tsx, requestAnimationFrame,
                             the mouse as the pointer, browser/draw.js for the raster
+browser/solid/sky.ts        the same for app/Sky.tsx: this src/input.ts's keys from the DOM, the wheel to the page's
+                            scroll track, and each draw carrying the effect tables
 browser/solid/build.ts      Bun.build --target=browser; src/frame.ts's ./ffi.ts is resolved to ffi-browser.ts
 ```
 
-`bun browser/solid/build.ts` writes `page.js` to `${TMPDIR:-/tmp}/cssints-native-web/solid`, and
-`node browser/solid-check.mjs` (which `solid/test.sh` runs last, skipped without zig, bun or Playwright's chromium) holds
-the page to `goldens/sensors.json`, to the no-JS page's use_g frame after a real click, and to
-`browser/expected.png`. The two globals these modules read from the host — `Bun.nanoseconds` and `Buffer.from` — are
-shimmed in `browser/solid/globals.ts`; nothing else of Bun or Node is reached. What the browser surface drops from
-`solid/native/ui.c` (the shadow, backdrop, gradient and group tables, images, the window, key and text queues, the
-clipboard, PNG I/O, `ui_pixel`/`ui_pixels_copy`, `ui_density`, `ui_font`) is listed at the top of `browser/ui.c`; the
-one page it carries, and its cost, are in `native/README.md`'s browser chapter.
+The effects are the desktop renderer's, drawn by Canvas2D: `browser/draw.js` turns a table row into a shadow (the box
+plus a blur), a gradient (a `createLinearGradient` along CSS's line, over the box's solid fill when the value channel has
+faded it), a group (the subtree's commands into an offscreen canvas, composited once with the alpha and the
+scale/rotate/translate about the first command's centre) and an image (a decoded bitmap scaled into the box). No dither
+and no backdrop blur; both are in `native/README.md`'s browser chapter, with the Sky page's measured deviations.
+
+`bun browser/solid/build.ts` writes `page.js` and `sky.js` to `${TMPDIR:-/tmp}/cssints-native-web/solid`, and
+`node browser/solid-check.mjs` and `node browser/sky-check.mjs` (which `solid/test.sh` runs last, skipped without zig,
+bun or Playwright's chromium) hold the pages to `goldens/sensors.json`, to the no-JS page's use_g frame after a real
+click, to `browser/expected.png`, and to `frames/sky.png`. The two globals these modules read from the host —
+`Bun.nanoseconds` and `Buffer.from` — are shimmed in `browser/solid/globals.ts`; nothing else of Bun or Node is reached.
+What the browser surface drops from `solid/native/ui.c` (the window, key and text queues, the clipboard, PNG I/O,
+`ui_pixel`/`ui_pixels_copy`, `ui_density`, `ui_font`) is listed at the top of `browser/ui.c`; the pages it carries, and
+their cost, are in `native/README.md`'s browser chapter.

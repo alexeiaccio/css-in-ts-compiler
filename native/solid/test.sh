@@ -246,17 +246,20 @@ bun solid/settings.test.ts
 bun solid/tune.test.ts
 
 # The same page in a browser, on these modules: the desktop's src/frame.ts and src/renderer.ts over Clay in wasm
-# (browser/ui.c), the command array drawn by browser/draw.js, the pointer from the page's mouse. The check compares the
-# base frame with goldens/sensors.json, a real click on the Units pill with the no-JS page's use_g frame, the raster
-# with browser/expected.png, and prints the bundle's and the wasm's size and the frame's ms. Skips (with a message) when
-# zig, bun or Playwright's chromium is not installed.
+# (browser/ui.c), the command array and the renderer's tables drawn by browser/draw.js, the pointer from the page's
+# mouse. solid-check.mjs compares the Sensors page's base frame with goldens/sensors.json, a real click on the Units pill
+# with the no-JS page's use_g frame, the raster with browser/expected.png; sky-check.mjs the Sky page's settled frame
+# against the desktop's frames/sky.png (per box and per text line), its card's gradient, its avatars and the cards' entry
+# (a group). Both print the bundle's and the wasm's size and the frame's ms. Skips (with a message) when zig, bun or
+# Playwright's chromium is not installed.
 if command -v zig >/dev/null 2>&1 && command -v bun >/dev/null 2>&1 &&
    node -e 'process.exit(require("node:fs").existsSync(require("playwright").chromium.executablePath()) ? 0 : 1)' 2>/dev/null; then
   sh browser/build.sh >/dev/null
   bun browser/solid/build.ts >/dev/null
   node browser/solid-check.mjs
+  node browser/sky-check.mjs
 else
-  echo "solid, in a browser: no zig, bun or Playwright chromium, skipped (sh browser/build.sh && bun browser/solid/build.ts && node browser/solid-check.mjs)"
+  echo "solid, in a browser: no zig, bun or Playwright chromium, skipped (sh browser/build.sh && bun browser/solid/build.ts && node browser/solid-check.mjs && node browser/sky-check.mjs)"
 fi
 # the panel's session file through the host's flag (`--tune`): one entry read before the first frame, and an unknown
 # field failing with its entry and why (a non-zero exit, not a frame). The pick and the save key are the two tests' own.
