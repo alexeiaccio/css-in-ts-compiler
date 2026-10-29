@@ -16,7 +16,6 @@ on:
       - packages/headless/**
       - packages/apg-specs/**
       - scripts/starter-smoke.mjs
-      - bun.lock
       - .github/workflows/ui.yml
   pull_request:
     paths:
@@ -25,7 +24,6 @@ on:
       - packages/headless/**
       - packages/apg-specs/**
       - scripts/starter-smoke.mjs
-      - bun.lock
       - .github/workflows/ui.yml
   workflow_dispatch:
 
