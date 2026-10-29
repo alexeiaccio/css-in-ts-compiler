@@ -16,6 +16,9 @@
 // `<name>(<index>)`, with its index in tree order (the file lists them), for a target whose values are not the
 // build's -- the board's live sample. Without the flag the strings are the page's own, as double-quoted bytes.
 //
+// --prop name=value renders the page with that prop (`--prop image=true`): the page's props are fixed at build time,
+// as its signals are, and a variant a page reaches through a prop (not a signal) is a file of its own.
+//
 // --events <file.c> emits the page as a *state machine* instead of one frame: every state `--states` names, plus the
 // states its handlers lead to (a press and a release over each element with an onClick/onPress, with the page's own
 // :hover/:active), one frame function a state, the count and names, and the transition table
@@ -34,6 +37,13 @@ const fail = (what: string): never => {
   process.exit(1);
 };
 
+/** A `--prop` value as the JS value it names: `true`/`false`, a number, else the string. */
+const literalOf = (raw: string): unknown => {
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  return raw !== "" && !Number.isNaN(Number(raw)) ? Number(raw) : raw;
+};
+
 // ---------- arguments
 
 interface Options {
@@ -49,12 +59,15 @@ interface Options {
   state: string[];
   /** The function the target supplies the strings with, by index: `--text`. */
   text?: string;
+  /** The page's props, fixed at build time: `--prop image=true`. */
+  props: Record<string, unknown>;
 }
-const opts: Partial<Options> & { styles: string[]; state: string[] } = {
+const opts: Partial<Options> & { styles: string[]; state: string[]; props: Record<string, unknown> } = {
   name: "app_frame",
   eventsName: "page",
   styles: [],
   state: [],
+  props: {},
 };
 {
   const argv = process.argv.slice(2);
@@ -69,6 +82,11 @@ const opts: Partial<Options> & { styles: string[]; state: string[] } = {
     else if (a === "--states") opts.states = value();
     else if (a === "--state") opts.state.push(value());
     else if (a === "--text") opts.text = value();
+    else if (a === "--prop") {
+      const [name, ...rest] = value().split("=");
+      if (!name || !rest.length) fail(`${a} takes name=value`);
+      opts.props[name] = literalOf(rest.join("="));
+    }
     else if (a.startsWith("--")) fail(`unknown option ${a}`);
     else if (!opts.page) opts.page = a;
     else fail(`unexpected argument ${a}`);
@@ -143,10 +161,10 @@ function apply(a: Action, root: El, label: string): void {
   flush();
 }
 
-/** A fresh page, with its signals at their defaults and the pointer off it. */
+/** A fresh page, with its signals at their defaults, its props as `--prop` fixed them, and the pointer off it. */
 function openPage(): { root: El; dispose: () => void } {
   const root = new El("root");
-  const dispose = render(() => Page!({}), root);
+  const dispose = render(() => Page!({ ...opts.props }), root);
   flush();
   pointer.id = undefined;
   pointer.down = false;
@@ -592,6 +610,8 @@ if (opts.out) {
   for (const theme of themes) frames.push(frameFunction(theme ? `${opts.name}_${theme}` : opts.name!, page.root, theme));
 
   const notes: string[] = [];
+  if (Object.keys(opts.props).length)
+    notes.push(`props: ${Object.entries(opts.props).map(([k, v]) => `${k}=${String(v)}`).join(", ")}`);
   if (opts.state.length) notes.push(`state: ${opts.state.join(", ")}`);
   if (pointer.id) notes.push(`pointer over ${pointer.id}, ${pointer.down ? "down" : "up"}`);
   if (!notes.length) notes.push("state: the page's defaults");
