@@ -11,7 +11,7 @@
 // *runtime* loader and Bun.build does not take a registered plugin; the children are the same files. On top, one
 // resolution: src/frame.ts's `./ffi.ts` (bun:ffi) is browser/solid/ffi-browser.ts, the wasm's binding.
 import { transform } from "@solidjs/compiler";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 const here = import.meta.dir;
 const root = resolve(here, "../.."); // native/
@@ -24,6 +24,13 @@ const compileTsx = join(root, "solid/compile.tsx.ts");
 // redirects to the client one; the bundler's `browser` condition already picks dist/solid.js, so no redirect is needed.
 
 const ffi = join(here, "ffi-browser.ts");
+// solid-js's package map gives a bundler's `development` condition dist/solid.dev.js, whose diagnostics refuse the writes
+// a page makes in its component body (Sky.tsx's cells) — the desktop runs dist/solid.js (the desktop plugin's redirect of
+// the server build), so the page is the same one here
+const solid = join(dirname(Bun.resolveSync("solid-js/package.json", import.meta.dir)), "dist/solid.js");
+// ... and the same for @solidjs/signals (solid-js's own dependency), whose dev build is the bundler's `development`
+// condition; it is resolved from solid-js's folder, where it is installed
+const signals = join(dirname(Bun.resolveSync("@solidjs/signals/package.json", dirname(solid))), "dist/prod/index.js");
 
 const solidPlugin = {
   name: "cssints-native-browser",
@@ -31,7 +38,10 @@ const solidPlugin = {
     onResolve: (opts: { filter: RegExp }, fn: (args: { path: string; importer: string }) => unknown) => void;
     onLoad: (opts: { filter: RegExp }, fn: (args: { path: string }) => unknown) => void;
   }) {
-    // solid/src/frame.ts and solid/app/Widgets.tsx import the desktop's bun:ffi binding; in the page it is the wasm's
+    build.onResolve({ filter: /^solid-js$/ }, () => ({ path: solid }));
+    build.onResolve({ filter: /^@solidjs\/signals$/ }, () => ({ path: signals }));
+    // solid/src/frame.ts and every page's `../src/ffi.ts` import the desktop's bun:ffi binding; in the page it is the
+    // wasm's
     build.onResolve({ filter: /(^|\/)ffi\.ts$/ }, (args) => {
       if (!args.path.endsWith("ffi.ts") || !args.importer.startsWith(join(root, "solid") + "/")) return undefined;
       return { path: ffi };
@@ -53,8 +63,11 @@ const solidPlugin = {
 };
 
 const result = await Bun.build({
-  entrypoints: [join(here, "page.ts"), join(here, "widgets.ts")],
+  entrypoints: [join(here, "page.ts"), join(here, "widgets.ts"), join(here, "sky.ts")],
   target: "browser",
+  // the bundler's `development` condition would pick @solidjs/signals/dist/dev.js, whose diagnostics refuse the writes a
+  // page makes in its component body (Sky.tsx's cells); the desktop runs the production signals, so the page is the same
+  conditions: ["browser"],
   outdir,
   plugins: [solidPlugin as never],
   sourcemap: "none",

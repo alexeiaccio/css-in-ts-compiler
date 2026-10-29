@@ -1,18 +1,19 @@
 // The Solid page's half of the browser target: the same flat `ui_*` surface solid/native/ui.c gives bun:ffi, over Clay
 // and nothing else — no SDL, no window, no ThorVG. The page (browser/solid/) is the desktop's own modules (src/frame.ts,
-// src/renderer.ts, app/Sensors.tsx) compiled by Bun for the browser; they call these functions through
-// browser/solid/ffi-browser.ts, and the raster is Canvas2D over the command array (browser/draw.js), as the no-JS page's
-// is (browser/page.c).
+// src/renderer.ts, app/Sky.tsx) compiled by Bun for the browser; they call these functions through
+// browser/solid/ffi-browser.ts, and the raster is Canvas2D over the command array and the effect tables (browser/draw.js),
+// as the no-JS page's is (browser/page.c, which declares no effects).
 //
 // Kept from the desktop's ui.c: the packed style floats (45 fields), the text's 10, the value channel, the text arena,
 // Clay's own scroll containers (`ui_scroll_*`), the pointer over an id, the frame hash, the dump through
 // desktop/clay_dump.c and the page's id strings behind Clay's hashes.
-// Dropped, because each was the desktop's renderer or its window:
-//   - ThorVG: ui_shadow, ui_backdrop, ui_backgroundImage and the group/scene table (fields 45-50 and 55 of the value
-//     channel) — Canvas2D here draws the command array alone, so those effects have no target;
-//   - images: ui_image (a path is not a decoded bitmap in the page);
-//   - the window: ui_window_*, SDL's key/text queues, the clipboard, PNG load/save/diff, `ui_pixel`/`ui_pixels_copy`
-//     (the pixels are the page's canvas: ffi-browser reads them with getImageData);
+// Kept as tables beside the commands, as the desktop's renderer keeps them (fields 45-50 and 55 of the value channel
+// included): a shadow (`ui_shadow`), a linear gradient (`ui_backgroundImage`), a group — one element's subtree at an
+// alpha, a scale, a translate and a rotation — an image's path (`ui_image`), and the backdrop's blur (`ui_backdrop`,
+// recorded and hashed; browser/draw.js draws the element's own tint and no blur, see native/README.md).
+// Dropped, because each was the desktop's window:
+//   - ui_window_*, SDL's key/text queues, the clipboard, PNG load/save/diff, `ui_pixel`/`ui_pixels_copy` (the pixels are
+//     the page's canvas: ffi-browser reads them with getImageData);
 //   - `ui_density` (the canvas's devicePixelRatio is the page's), `ui_font` (the page loads Roboto as a FontFace and
 //     Canvas2D measures with it; a font id is the style's), `ui_init_gpu`, `ui_presents`.
 //
@@ -22,7 +23,10 @@
 //   ui_open(id, len, style)    45 floats; ui_text(id, len, bytes, len, style) 10 floats; ui_close()
 //   ui_end(dt)                 layout: the command count
 //   ui_value(id, len, field, v) the frame's overrides, before the tree
+//   ui_shadow(x, y, blur, r, g, b, a), ui_backdrop(blur), ui_image(path, len),
+//   ui_backgroundImage(kind, angle, count, stops)   the next ui_open's effects, as the desktop's
 //   cmd_count(), cmd_size(), cmds(), measure_slot()   the commands of the last frame, for JS to draw
+//   fx(kind), fx_count(kind), fx_stride(kind)        its effect tables (shadow 0, backdrop 1, gradient 2, group 3)
 //   ui_hash()                  the frame's hash, so a host skips the draw of an unchanged frame
 //   dump(), dump_ptr()         the last frame as clay_dump.c's JSON, as browser/page.c has it
 //   malloc(n), free(p)         for JS: the strings, ids and float arrays it passes in
@@ -41,7 +45,7 @@
 // a style is a compile-time literal (solid/plugin.ts packs it once); only the value channel moves its numbers
 #define STYLE_FIELDS 45
 #define TEXT_FIELDS 10
-#define FIELD_SHADOW_BLUR 45 // the desktop's renderer tables: parsed and ignored here (a shadow has no target)
+#define FIELD_SHADOW_BLUR 45 // the blur of the element's shadow: a renderer table, not one of the 45
 #define FIELD_ALPHA 46
 #define FIELD_SCALE 47
 #define FIELD_TRANSLATE_X 48
@@ -57,10 +61,27 @@
 #define MAX_VALUES 64
 // ponytail: 512 names a process, as the desktop's; later ids are unnamed in a dump
 #define MAX_ID_NAMES 512
-// ponytail: 512 elements a frame (a command of one carries its node for the dump's text alignment)
+// ponytail: 512 elements a frame (a command of one carries its node for the dump's text alignment and a group's subtree)
 #define MAX_NODES 512
+// ponytail: 64 elements deep, as the desktop's tree; a deeper page keeps the deepest parent it recorded
+#define MAX_DEPTH 64
 // browser/page.c's 64 is the generated page's; a Solid page's tree is bigger (the Widgets page's is 55 commands)
 #define MAX_COMMANDS 1024
+// the renderer's tables, as the desktop's renderer sizes them: shadows and gradients keyed by the element's Clay id, a
+// backdrop by the element it blurs, a group by the tree node of the element whose subtree it is
+#define MAX_SHADOWS 32
+#define MAX_BACKDROPS 8
+#define MAX_GRADIENTS 16
+#define MAX_GRADIENT_STOPS 8
+#define MAX_GROUPS 16
+// ponytail: 64 distinct image paths a process, never freed; a page with more needs a bigger table
+#define MAX_IMAGES 64
+// a table row in 32-bit slots: the JS reads the id and the counts as an Int32Array and the rest as a Float32Array over
+// the same bytes (readEffects in browser/draw.js), so the layout is the one below and nowhere else
+#define SHADOW_SLOTS 8   // id, x, y, blur, r, g, b, a
+#define BACKDROP_SLOTS 2 // id, blur
+#define GRADIENT_SLOTS (5 + 5 * MAX_GRADIENT_STOPS) // id, kind, angle, alpha, count, then 8 x (offset, r, g, b, a)
+#define GROUP_SLOTS 10   // node, first, last, alpha, scale, tx, ty, rotate, cx, cy
 
 // browser/page.c's WebCommand, unchanged, so draw.js's readCommands reads both wasms the same way
 typedef struct {
@@ -89,6 +110,46 @@ static struct {
     float value;
 } values[MAX_VALUES];
 static int value_count;
+
+// the frame's element tree, in declaration order: a node's Clay id and the node it was declared in (-1 at the root). A
+// group names a node, and Clay's commands carry it (`userData`, index + 1), so a subtree is a range of commands — the
+// same walk the desktop's renderer does (Clay_ThorVG_Under and its spans).
+static uint32_t node_ids[MAX_NODES];
+static int32_t node_parent[MAX_NODES];
+static int32_t open_nodes[MAX_DEPTH];
+static int open_depth;
+
+// the renderer's tables, reset by `ui_begin`: a row of slots per effect, as the desktop's renderer keeps them
+static float shadow_table[MAX_SHADOWS * SHADOW_SLOTS];
+static int shadow_count;
+static float backdrop_table[MAX_BACKDROPS * BACKDROP_SLOTS];
+static int backdrop_count;
+static float gradient_table[MAX_GRADIENTS * GRADIENT_SLOTS];
+static int gradient_count;
+static float group_table[MAX_GROUPS * GROUP_SLOTS];
+static int group_count;
+
+// each command's element node, after `ui_end`: a command that carries none (a scissor's own pair, an overlay) belongs to
+// the last element that had one, so a group's range cannot widen past the element it was declared in
+static int32_t command_node[MAX_COMMANDS];
+
+// the effects the next `ui_open` declares, as the desktop's pendings: Clay has no field for any of them
+static float pending_shadow[3];
+static float pending_shadow_color[4];
+static int has_pending_shadow;
+static float pending_backdrop = -1;
+static struct {
+    int kind; // 1: linear (the only kind cssints/clay writes)
+    float angle;
+    int count;
+    float stops[MAX_GRADIENT_STOPS][5]; // offset (0..1), then r, g, b, a 0-255
+} pending_gradient;
+static int has_pending_gradient;
+// an image's path is one pointer for the process (Clay's image config is that pointer, and the dump prints the path): a
+// per-frame copy would be a different image every frame
+static char *image_paths[MAX_IMAGES];
+static int image_count;
+static const char *pending_image;
 
 // the page's id strings, by Clay's hash: a dump names a command's element from it
 static ClayDumpName id_names[MAX_ID_NAMES];
@@ -180,10 +241,106 @@ EXPORT("ui_begin") void ui_begin(float px, float py, int32_t down, float dt)
     arena_used = 0;
     value_count = 0;
     node_count = 0;
+    open_depth = 0;
+    shadow_count = backdrop_count = gradient_count = group_count = 0;
+    pending_image = NULL;
+    has_pending_shadow = 0;
+    pending_backdrop = -1;
+    has_pending_gradient = 0;
     Clay_SetPointerState((Clay_Vector2){px, py}, down);
     if (auto_scroll) Clay_UpdateScrollContainers(0, (Clay_Vector2){wheel_x, wheel_y}, dt);
     wheel_x = 0, wheel_y = 0;
     Clay_BeginLayout();
+}
+
+// ---------- the renderer's tables: a shadow, a backdrop, a gradient, a group, an image ----------
+
+/** A 32-bit id or count in a row of floats: the JS reads that slot as an int32 (a float32 cannot hold a Clay hash). */
+static void put_u32(float *at, uint32_t v) { memcpy(at, &v, sizeof v); }
+
+/** Room for one more row of `slots` floats, or NULL when the table is full: a full table is not an error, as on the
+ *  desktop (the effect is dropped, and the dump and the hash see what was drawn). */
+static float *row(float *table, int *count, int max, int slots)
+{
+    if (*count == max) return NULL;
+    float *r = table + (size_t)(*count)++ * slots;
+    memset(r, 0, (size_t)slots * sizeof(float));
+    return r;
+}
+
+/** The image the next `ui_open` declares: the path, interned so that one path arrives as one address every frame (Clay's
+ *  image config is that pointer, and browser/draw.js keys its decoded bitmaps on it). */
+EXPORT("ui_image") void ui_image(const char *path, int32_t len)
+{
+    for (int i = 0; i < image_count; i++)
+        if ((int)strlen(image_paths[i]) == len && memcmp(image_paths[i], path, (size_t)len) == 0) {
+            pending_image = image_paths[i];
+            return;
+        }
+    if (image_count == MAX_IMAGES) {
+        errors++;
+        return;
+    }
+    image_paths[image_count] = strndup(path, (size_t)len);
+    pending_image = image_paths[image_count++];
+}
+
+/** The shadow of the next element (`css.shadow`): its box moved by x and y, blurred by blur, in that colour. */
+EXPORT("ui_shadow") void ui_shadow(float x, float y, float blur, float r, float g, float b, float a)
+{
+    pending_shadow[0] = x, pending_shadow[1] = y, pending_shadow[2] = blur;
+    pending_shadow_color[0] = r, pending_shadow_color[1] = g, pending_shadow_color[2] = b, pending_shadow_color[3] = a;
+    has_pending_shadow = 1;
+}
+
+/** The backdrop of the next element (`css.backdrop`): its blur radius. Recorded and hashed; browser/draw.js draws no
+ *  blur (native/README.md's browser chapter says why). */
+EXPORT("ui_backdrop") void ui_backdrop(float blur) { pending_backdrop = blur; }
+
+/** The background image of the next element (`css.backgroundImage`): a linear gradient at `angle` degrees in CSS's reading
+ *  (0 up, 90 right), `count` stops of (offset 0..1, r, g, b, a) each, flattened. */
+EXPORT("ui_backgroundImage") void ui_backgroundImage(int32_t kind, float angle, int32_t count, const float *stops)
+{
+    if (count > MAX_GRADIENT_STOPS) errors++, count = MAX_GRADIENT_STOPS;
+    if (count < 2) errors++;
+    pending_gradient.kind = kind, pending_gradient.angle = angle, pending_gradient.count = count;
+    if (count > 0) memcpy(pending_gradient.stops, stops, (size_t)count * 5 * sizeof(float));
+    has_pending_gradient = 1;
+}
+
+/** The table of one kind of effect (0 shadow, 1 backdrop, 2 gradient, 3 group) and its row count: JS reads it with
+ *  `fx_stride`'s slots a row, the ids as int32 and the rest as floats. */
+EXPORT("fx") float *ui_fx(int32_t kind)
+{
+    switch (kind) {
+    case 0: return shadow_table;
+    case 1: return backdrop_table;
+    case 2: return gradient_table;
+    case 3: return group_table;
+    default: return NULL;
+    }
+}
+
+EXPORT("fx_count") int32_t ui_fx_count(int32_t kind)
+{
+    switch (kind) {
+    case 0: return shadow_count;
+    case 1: return backdrop_count;
+    case 2: return gradient_count;
+    case 3: return group_count;
+    default: return 0;
+    }
+}
+
+EXPORT("fx_stride") int32_t ui_fx_stride(int32_t kind)
+{
+    switch (kind) {
+    case 0: return SHADOW_SLOTS;
+    case 1: return BACKDROP_SLOTS;
+    case 2: return GRADIENT_SLOTS;
+    case 3: return GROUP_SLOTS;
+    default: return 0;
+    }
 }
 
 /** True when the pointer is over the element of that id in the layout of the last frame. */
@@ -216,9 +373,10 @@ static void intern_id(uint32_t id, const char *s, int len)
 }
 
 /** An override of one number of the style of the element with that id, for this frame only: fields 0..44 are the packed
- *  fields, 51..54 the colour of the text with that id. The desktop's renderer fields (45 shadow blur, 46 alpha, 47
- *  scale, 48/49 translate, 50 gradient alpha, 55 rotate) are accepted and ignored: they shifted a ThorVG scene, and a
- *  Canvas2D command array has no scene. */
+ *  fields, 45 the blur of the element's shadow, 46 the opacity of its whole subtree (a group), 47 a scale about its box
+ *  centre, 48/49 a visual offset of it, 50 the opacity of its background image, 51..54 the colour of the text with that id
+ *  and 55 the rotation of its subtree in degrees. The group's fields are not floats of the style: they go to the
+ *  renderer's table, as the shadow's blur does. */
 EXPORT("ui_value") void ui_value(const char *id, int32_t len, int32_t field, float value)
 {
     if (field < 0 || field > FIELD_ROTATE || value_count == MAX_VALUES) {
@@ -239,9 +397,13 @@ EXPORT("ui_open") void ui_open(const char *id, int32_t len, const float *style)
     Clay_ElementId eid = {0};
     if (id) eid = Clay__HashString(slice(id, len), 0);
     if (id) intern_id(eid.id, id, len);
-    // the value channel: this element's overrides, applied to a copy of its own floats
+    // the value channel: this element's overrides, applied to a copy of its own floats. The renderer's fields are not of
+    // the 45: they go to the tables beside the commands, as the desktop's ui.c sends them to its renderer.
     float over[STYLE_FIELDS];
     const float *f = style;
+    float shadow_blur = -1, gradient_alpha = 255;
+    int alpha = 255, grouped = 0;
+    float scale = 1, tx = 0, ty = 0, rotate = 0;
     if (id && value_count) {
         int mine = 0;
         for (int i = 0; i < value_count; i++) mine += values[i].id == eid.id;
@@ -249,9 +411,16 @@ EXPORT("ui_open") void ui_open(const char *id, int32_t len, const float *style)
             memcpy(over, style, sizeof over);
             for (int i = 0; i < value_count; i++) {
                 if (values[i].id != eid.id) continue;
-                // 46..50 and 55 are the desktop renderer's; 51..54 a text's, past these floats
-                if (values[i].field < STYLE_FIELDS && values[i].field < FIELD_SHADOW_BLUR)
-                    over[values[i].field] = values[i].value;
+                const int field = values[i].field;
+                if (field == FIELD_SHADOW_BLUR) shadow_blur = values[i].value;
+                else if (field == FIELD_ALPHA) alpha = (int)(values[i].value + 0.5f), grouped = 1;
+                else if (field == FIELD_SCALE) scale = values[i].value, grouped = 1;
+                else if (field == FIELD_TRANSLATE_X) tx = values[i].value, grouped = 1;
+                else if (field == FIELD_TRANSLATE_Y) ty = values[i].value, grouped = 1;
+                else if (field == FIELD_ROTATE) rotate = values[i].value, grouped = 1;
+                else if (field == FIELD_GRADIENT_ALPHA) gradient_alpha = values[i].value;
+                // 51..54 are a text's, not a box's: ui_text reads them, and they would be past the end of these floats
+                else if (field < STYLE_FIELDS) over[field] = values[i].value;
             }
             f = over;
         }
@@ -280,18 +449,86 @@ EXPORT("ui_open") void ui_open(const char *id, int32_t len, const float *style)
         d.floating.pointerCaptureMode = (Clay_PointerCaptureMode)(int)f[43];
         d.floating.clipTo = (Clay_FloatingClipToElement)(int)f[44];
     }
+    // the style's image (css.image), set by ui_image just before this call; cleared so a sibling cannot inherit it
+    if (pending_image) {
+        d.image.imageData = (void *)pending_image;
+        pending_image = NULL;
+    }
+    // ... and its shadow (css.shadow): the command with this element's id is where the table's row is drawn, and the
+    // value channel's blur (field 45) is what a page animating one writes
+    if (has_pending_shadow) {
+        has_pending_shadow = 0;
+        float *s = id ? row(shadow_table, &shadow_count, MAX_SHADOWS, SHADOW_SLOTS) : NULL;
+        if (s) {
+            put_u32(s, eid.id);
+            s[1] = pending_shadow[0], s[2] = pending_shadow[1];
+            s[3] = shadow_blur >= 0 ? shadow_blur : pending_shadow[2];
+            s[4] = pending_shadow_color[0], s[5] = pending_shadow_color[1], s[6] = pending_shadow_color[2];
+            s[7] = pending_shadow_color[3];
+        }
+    }
+    // ... its backdrop (css.backdrop): recorded for the dump and the hash; the draw draws no blur (ui_backdrop)
+    if (pending_backdrop >= 0) {
+        float *b = id ? row(backdrop_table, &backdrop_count, MAX_BACKDROPS, BACKDROP_SLOTS) : NULL;
+        if (b) put_u32(b, eid.id), b[1] = pending_backdrop;
+        pending_backdrop = -1;
+    }
+    // ... and its gradient (css.backgroundImage): the first rectangle command with this id is filled with it
+    if (has_pending_gradient) {
+        has_pending_gradient = 0;
+        float *g = id ? row(gradient_table, &gradient_count, MAX_GRADIENTS, GRADIENT_SLOTS) : NULL;
+        if (g) {
+            int count = pending_gradient.count;
+            if (count < 2) count = 0;
+            if (gradient_alpha < 0) gradient_alpha = 0;
+            if (gradient_alpha > 255) gradient_alpha = 255;
+            put_u32(g, eid.id);
+            put_u32(g + 1, (uint32_t)pending_gradient.kind);
+            g[2] = pending_gradient.angle;
+            put_u32(g + 3, (uint32_t)(int)gradient_alpha);
+            put_u32(g + 4, (uint32_t)count);
+            for (int k = 0; k < count; k++) memcpy(g + 5 + k * 5, pending_gradient.stops[k], 5 * sizeof(float));
+        }
+    }
     if (id) Clay__OpenElementWithId(eid);
     else Clay__OpenElement();
-    // the node index is what a command carries (userData) and what the dump reads a text's alignment by; an element
-    // that is not a text leaves the two arrays' bytes for its node at Clay's zero
-    if (node_count < MAX_NODES) d.userData = (void *)(uintptr_t)(++node_count);
-    else errors++; // ponytail: MAX_NODES elements a frame; a deeper page needs a bigger table
+    // The frame's element tree, in declaration order: the node's parent is the element that was open before it. Clay gives
+    // an anonymous element an id of its own on open, so it is read back after. The node index is what a command carries
+    // (userData), what a group names and what the dump reads a text's alignment by.
+    if (node_count < MAX_NODES) {
+        Clay_LayoutElement *open = Clay__GetOpenLayoutElement();
+        const int32_t node = node_count++;
+        node_ids[node] = open->id;
+        node_parent[node] = open_depth ? open_nodes[open_depth - 1] : -1;
+        d.userData = (void *)(uintptr_t)(node + 1);
+        // a group is the element's whole subtree at its alpha, scale, translate and rotation: a row per element, its
+        // command range filled in `ui_end` (the commands are not laid out yet)
+        if (grouped) {
+            float *g = row(group_table, &group_count, MAX_GROUPS, GROUP_SLOTS);
+            if (g) {
+                if (alpha < 0) alpha = 0;
+                if (alpha > 255) alpha = 255;
+                if (scale < 0.01f) scale = 0.01f;
+                put_u32(g, (uint32_t)node), put_u32(g + 1, 0), put_u32(g + 2, 0), put_u32(g + 3, (uint32_t)alpha);
+                g[4] = scale, g[5] = tx, g[6] = ty, g[7] = rotate;
+                g[8] = g[9] = 0; // the centre: the first command's box's, in `ui_end`
+                // a group at 255, 1, no offset and no rotation is a scene that draws what the literal already drew: the
+                // desktop's renderer skips it, and its hash does not see it
+                if (alpha >= 255 && scale == 1 && tx == 0 && ty == 0 && rotate == 0) group_count--;
+            }
+        }
+        if (open_depth < MAX_DEPTH) open_nodes[open_depth++] = node;
+    } else errors++; // ponytail: MAX_NODES elements a frame; a deeper page needs a bigger table
     // a clip element is a scroll container: the offset Clay kept for it across frames is what shifts its children
     if (d.clip.horizontal || d.clip.vertical) d.clip.childOffset = Clay_GetScrollOffset();
     Clay__ConfigureOpenElement(d);
 }
 
-EXPORT("ui_close") void ui_close(void) { Clay__CloseElement(); }
+EXPORT("ui_close") void ui_close(void)
+{
+    Clay__CloseElement();
+    if (open_depth) open_depth--;
+}
 
 /** A text element, with an id or NULL. A text's colour is its own four floats: with an id, fields 51..54 override the
  *  colour of its copy of the 10 (the value channel's second kind of target). The bytes are copied for the frame. */
@@ -334,20 +571,81 @@ EXPORT("ui_text") void ui_text(const char *id, int32_t id_len, const char *s, in
         const int32_t node = node_count++;
         c.userData = (void *)(uintptr_t)(node + 1);
         text_align[node] = (unsigned char)tf[8], text_wrap[node] = (unsigned char)tf[9];
+        // the text's own node: its id is the page's when it has one, else the address Clay derives it from (its parent and
+        // its place among the children), and its parent is the element it was declared in, so a group's subtree reaches it
+        Clay_LayoutElement *parent = Clay__GetOpenLayoutElement();
+        node_ids[node] = id ? eid.id : Clay__HashNumber(parent->children.length + parent->floatingChildrenCount,
+                                                       parent->id).id;
+        node_parent[node] = open_depth ? open_nodes[open_depth - 1] : -1;
     } else errors++;
     Clay__OpenTextElement(slice(copy, len), c);
 }
 
 static void hash_frame(void);
 
+/** Is the tree node `node` the element `at` or one of its descendants? The desktop renderer's walk (Clay_ThorVG_Under). */
+static int under(int32_t at, int32_t node)
+{
+    for (int32_t n = node, guard = 0; n >= 0 && guard <= node_count; n = node_parent[n], guard++)
+        if (n == at) return 1;
+    return 0;
+}
+
+/** Each group's command range, after the layout: the commands whose element is the group's node or under it, in depth-first
+ *  order (Clay's own), and the centre of the first command's box, which is the scale's and the rotation's origin. A group
+ *  with no command of its own is dropped, as the desktop drops an empty span. */
+static void settle_groups(void)
+{
+    // a clip's close carries no node of its own (Clay emits it from a derived id): it belongs to the element that opened
+    // the clip, so a group inside the clip cannot swallow the close and leave the page clipped (the desktop's ThorVG
+    // closes the clip with the group's scene, so the next element after it draws unclipped)
+    int32_t opened[64];
+    int depth = 0;
+    for (int32_t i = 0; i < command_count; i++) {
+        if (commands[i].type == CLAY_RENDER_COMMAND_TYPE_SCISSOR_START) {
+            if (depth < (int)(sizeof opened / sizeof *opened)) opened[depth++] = command_node[i];
+        } else if (commands[i].type == CLAY_RENDER_COMMAND_TYPE_SCISSOR_END && depth) {
+            command_node[i] = opened[--depth];
+        }
+    }
+    int kept = 0;
+    for (int g = 0; g < group_count; g++) {
+        float *row_in = group_table + (size_t)g * GROUP_SLOTS;
+        uint32_t node_bits;
+        memcpy(&node_bits, row_in, sizeof node_bits);
+        const int32_t at = (int32_t)node_bits;
+        int32_t first = -1, last = -1;
+        for (int32_t i = 0; i < command_count; i++) {
+            if (!under(at, command_node[i])) continue;
+            if (first < 0) first = i;
+            last = i;
+        }
+        if (first < 0) continue;
+        float *g_out = group_table + (size_t)kept++ * GROUP_SLOTS;
+        memmove(g_out, row_in, GROUP_SLOTS * sizeof(float));
+        put_u32(g_out + 1, (uint32_t)first);
+        put_u32(g_out + 2, (uint32_t)last);
+        const WebCommand *c = &commands[first];
+        g_out[8] = c->x + c->w / 2;
+        g_out[9] = c->y + c->h / 2;
+    }
+    group_count = kept;
+}
+
 /** Closes the layout: Clay computes the boxes. Returns the command count, and hashes the frame for `ui_hash`. */
 EXPORT("ui_end") int32_t ui_end(float dt)
 {
     cmds = Clay_EndLayout(dt);
-    // the commands, as page.c's records: the drawing's view of the same frame
+    // the commands, as page.c's records: the drawing's view of the same frame. Each carries its element's tree node, which
+    // is what a group's range is cut by; a command that carries none (a scissor's derived pair) belongs to the last
+    // element that had one, as the desktop's renderer decides it.
     command_count = 0;
+    int32_t last_node = -1;
     for (int32_t i = 0; i < cmds.length && command_count < MAX_COMMANDS; i++) {
         const Clay_RenderCommand *rc = Clay_RenderCommandArray_Get(&cmds, i);
+        const int32_t node = rc->userData ? (int32_t)(uintptr_t)rc->userData - 1 : -1;
+        if (node >= 0) last_node = node;
+        command_node[command_count] = last_node;
         WebCommand *c = &commands[command_count++];
         c->type = (int32_t)rc->commandType;
         c->id = (int32_t)rc->id;
@@ -385,15 +683,25 @@ EXPORT("ui_end") int32_t ui_end(float dt)
             c->fontSize = rc->renderData.text.fontSize;
             break;
         }
+        case CLAY_RENDER_COMMAND_TYPE_IMAGE: {
+            // the box is where the picture goes; its path rides in the record's text pair, which an image does not use
+            // (the browser draws the picture out of the path, as the desktop's ThorVG loads it)
+            const char *path = (const char *)rc->renderData.image.imageData;
+            c->color = pack(rc->renderData.image.backgroundColor);
+            c->text = (uint32_t)(uintptr_t)path;
+            c->textLength = path ? (uint32_t)strlen(path) : 0;
+            break;
+        }
         default: break;
         }
     }
+    settle_groups();
     hash_frame();
     return cmds.length;
 }
 
-// The frame's hash: FNV-1a over what a draw reads and nothing else. The desktop's folds its renderer's tables in beside
-// the commands; there are none here, so a frame that hashes the same draws the same pixels of this target.
+// The frame's hash: FNV-1a over what a draw reads and nothing else — the commands, and the renderer tables beside them
+// (a group's opacity can animate without moving one byte of the command array).
 static uint64_t hash_bytes(uint64_t h, const void *p, size_t n)
 {
     const unsigned char *b = p;
@@ -467,13 +775,32 @@ static void hash_frame(void)
             h = hash_u32(h, c->renderData.clip.horizontal);
             h = hash_u32(h, c->renderData.clip.vertical);
             break;
+        case CLAY_RENDER_COMMAND_TYPE_IMAGE: {
+            const char *path = (const char *)c->renderData.image.imageData;
+            h = hash_color(h, c->renderData.image.backgroundColor);
+            h = hash_corners(h, c->renderData.image.cornerRadius);
+            h = hash_u32(h, path ? (uint32_t)strlen(path) : 0);
+            if (path) h = hash_bytes(h, path, strlen(path));
+            break;
+        }
         default: break;
         }
+    }
+    // the renderer's tables are what a draw reads beside the commands (a group's opacity moves no box)
+    static const struct { const float *table; const int *count; int slots; } tables[] = {
+        {shadow_table, &shadow_count, SHADOW_SLOTS},
+        {backdrop_table, &backdrop_count, BACKDROP_SLOTS},
+        {gradient_table, &gradient_count, GRADIENT_SLOTS},
+        {group_table, &group_count, GROUP_SLOTS},
+    };
+    for (size_t t = 0; t < sizeof tables / sizeof *tables; t++) {
+        h = hash_u32(h, (uint32_t)*tables[t].count);
+        h = hash_bytes(h, tables[t].table, (size_t)*tables[t].count * (size_t)tables[t].slots * sizeof(float));
     }
     frame_hash = h;
 }
 
-/** The hash of the last frame's commands: the same value twice means the same pixels. */
+/** The hash of the last frame's commands and its tables: the same value twice means the same pixels. */
 EXPORT("ui_hash") uint64_t ui_hash(void) { return frame_hash; }
 
 /** Draws of the page (ui_draw calls): the raster is JS's, so this is only the count a test reads. */
@@ -483,10 +810,53 @@ EXPORT("ui_draws") int32_t ui_draws(void) { return draw_count; }
 
 // ---------- the frame as data: solid/src/dump.ts, the goldens in solid/goldens ----------
 
-/** The last frame as clay_dump.c's tables: the commands, the page's id strings, the text's own two fields and an empty
- *  effect table (this target has no renderer besides the commands). */
+// the tables as clay_dump.c reads them, rebuilt from the float rows at a dump (the dump is a test's path, not a frame's)
+static ClayDumpShadow dump_shadow_table[MAX_SHADOWS];
+static ClayDumpBackdrop dump_backdrop_table[MAX_BACKDROPS];
+static ClayDumpGradient dump_gradient_table[MAX_GRADIENTS];
+static ClayDumpGroup dump_group_table[MAX_GROUPS];
+
+static void dump_tables(void)
+{
+    for (int i = 0; i < shadow_count; i++) {
+        const float *s = shadow_table + (size_t)i * SHADOW_SLOTS;
+        uint32_t id;
+        memcpy(&id, s, sizeof id);
+        dump_shadow_table[i] = (ClayDumpShadow){.id = id, .x = s[1], .y = s[2], .blur = s[3],
+                                           .color = (Clay_Color){s[4], s[5], s[6], s[7]}};
+    }
+    for (int i = 0; i < backdrop_count; i++) {
+        const float *b = backdrop_table + (size_t)i * BACKDROP_SLOTS;
+        uint32_t id;
+        memcpy(&id, b, sizeof id);
+        dump_backdrop_table[i] = (ClayDumpBackdrop){.id = id, .blur = b[1]};
+    }
+    for (int i = 0; i < gradient_count; i++) {
+        const float *g = gradient_table + (size_t)i * GRADIENT_SLOTS;
+        ClayDumpGradient *d = &dump_gradient_table[i];
+        uint32_t id, kind, alpha, count;
+        memcpy(&id, g, sizeof id), memcpy(&kind, g + 1, sizeof kind);
+        memcpy(&alpha, g + 3, sizeof alpha), memcpy(&count, g + 4, sizeof count);
+        *d = (ClayDumpGradient){.id = id, .kind = (int)kind, .angle = g[2], .alpha = (int)alpha, .count = (int)count};
+        for (int k = 0; k < (int)count && k < CLAY_DUMP_MAX_STOPS; k++) {
+            d->offset[k] = g[5 + k * 5];
+            d->color[k] = (Clay_Color){g[6 + k * 5], g[7 + k * 5], g[8 + k * 5], g[9 + k * 5]};
+        }
+    }
+    for (int i = 0; i < group_count; i++) {
+        const float *g = group_table + (size_t)i * GROUP_SLOTS;
+        uint32_t at, alpha;
+        memcpy(&at, g, sizeof at), memcpy(&alpha, g + 3, sizeof alpha);
+        dump_group_table[i] = (ClayDumpGroup){.at = (int32_t)at, .alpha = (int)alpha, .scale = g[4], .tx = g[5],
+                                         .ty = g[6], .rotate = g[7]};
+    }
+}
+
+/** The last frame as clay_dump.c's tables: the commands, the page's id strings, the text's own two fields, the renderer's
+ *  tables beside them, and the tree a group's element is named by. */
 static ClayDumpFrame dump_frame(void)
 {
+    dump_tables();
     return (ClayDumpFrame){
         .commands = cmds,
         .width = width,
@@ -495,19 +865,19 @@ static ClayDumpFrame dump_frame(void)
         .hash = frame_hash,
         .names = id_names,
         .nameCount = id_name_count,
-        .nodeIds = NULL,
+        .nodeIds = node_ids,
         .nodeCount = node_count,
         .textAlign = text_align,
         .textWrap = text_wrap,
         .textWeight = 0,
-        .shadows = NULL,
-        .shadowCount = 0,
-        .backdrops = NULL,
-        .backdropCount = 0,
-        .gradients = NULL,
-        .gradientCount = 0,
-        .groups = NULL,
-        .groupCount = 0,
+        .shadows = dump_shadow_table,
+        .shadowCount = shadow_count,
+        .backdrops = dump_backdrop_table,
+        .backdropCount = backdrop_count,
+        .gradients = dump_gradient_table,
+        .gradientCount = gradient_count,
+        .groups = dump_group_table,
+        .groupCount = group_count,
     };
 }
 
