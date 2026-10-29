@@ -19,6 +19,7 @@
 // The Widgets page's first-mount entry is off (it is given no motion hook): the entry draws ~21 frames over a page that
 // does not change, and this page is about the frames after that.
 import * as css from "cssints/clay" with { type: "cssints" };
+import { readFileSync, writeFileSync } from "node:fs";
 import { createSignal, flush, For } from "solid-js";
 
 import { snapshot, type A11yNode, type States } from "../a11y.ts";
@@ -114,9 +115,14 @@ export function rowOf(node: A11yNode, depth = 0): Row {
   return { depth, text: `${node.role}${name}${statesText(node.states)} ${boxText(node.bounds)}` };
 }
 
-/** The whole tree as rows in document order, the snapshot's `document` node itself left out. */
-export function rowsOf(node: A11yNode, depth = 0): Row[] {
-  return node.children.flatMap((child) => [rowOf(child, depth), ...rowsOf(child, depth + 1)]);
+/** The whole tree as rows in document order, the snapshot's `document` node itself left out. `mark` is the node the
+ *  panel's cursor is on (the box a click pinned): its row starts with `> `, the tree's own selection. */
+export function rowsOf(node: A11yNode, depth = 0, mark?: A11yNode): Row[] {
+  return node.children.flatMap((child) => {
+    const row = rowOf(child, depth);
+    if (child === mark) row.text = `> ${row.text}`;
+    return [row, ...rowsOf(child, depth + 1, mark)];
+  });
 }
 
 /** The indented row's box: the one style the page makes at run time, kept per depth. */
@@ -154,6 +160,13 @@ function deepest(el: El): El | undefined {
 const isNode = (el: El): boolean =>
   typeof el.props.id === "string" && typeof el.props.role === "string";
 
+/** Every id the page's tree carries: the elements a session file may name. */
+function idsOf(el: El, out = new Set<string>()): Set<string> {
+  if (typeof el.props.id === "string") out.add(el.props.id);
+  for (const c of el.children) if (c instanceof El) idsOf(c, out);
+  return out;
+}
+
 /**
  * The node of the snapshot the box drew: the same role at the same bounds (`ui.bounds` both ways), so the hovered box
  * reads the tree's own name for it.
@@ -166,6 +179,13 @@ function nodeOf(node: A11yNode, role: string, bounds: Float32Array): A11yNode | 
     if (hit) return hit;
   }
   return undefined;
+}
+
+/** The tree's node for a box, by its role and the bounds the last layout gave it (undefined without a box). */
+function nodeFor(el: El, snap: A11yNode): A11yNode | undefined {
+  const id = el.props.id as string;
+  const at = ui.bounds(idBytes(id));
+  return at === undefined ? undefined : nodeOf(snap, el.props.role as string, at);
 }
 
 // --- the live values: the picked box's style numbers, which the value channel can move (the panel's fourth section)
@@ -296,6 +316,104 @@ export function tuneRows(
   return rows;
 }
 
+/**
+ * Every field name the panel can show, with the row a session's entry is checked and written against: the union over
+ * styles, so a name is known even on a box that does not list it this frame (writing it waits until the row exists).
+ */
+export const TUNE_FIELDS: ReadonlyMap<string, TuneRow> = new Map(
+  (
+    [
+      sized("width", FIELDS.WIDTH, 2),
+      sized("height", FIELDS.HEIGHT, 3),
+      ...SIDES.map((side, i) => pixels(`padding.${side}`, FIELDS.PADDING + i)),
+      pixels("gap", FIELDS.GAP),
+      {
+        name: "radius",
+        fields: [FIELDS.RADIUS, FIELDS.RADIUS + 1, FIELDS.RADIUS + 2, FIELDS.RADIUS + 3],
+        step: 1,
+        min: 0,
+        max: 4096,
+        at: (f) => f[FIELDS.RADIUS]!,
+        put: (x) => [x, x, x, x],
+      },
+      ...CORNERS.map((corner, i) => pixels(`radius.${corner}`, FIELDS.RADIUS + i)),
+      ...CHANNELS.map((chan, i) => channel(`bg.${chan}`, FIELDS.BACKGROUND + i)),
+      ...CHANNELS.map((chan, i) => channel(`border.${chan}`, FIELDS.BORDER + i)),
+      pixels("offsetX", FIELDS.OFFSET_X, 4096, -4096),
+      pixels("offsetY", FIELDS.OFFSET_Y, 4096, -4096),
+      pixels("expandW", FIELDS.EXPAND_W),
+      pixels("expandH", FIELDS.EXPAND_H),
+      pixels("zIndex", FIELDS.Z_INDEX, 32767, -32768),
+      pixels("shadowBlur", FIELDS.SHADOW_BLUR, 1024, 0),
+      group("gradientAlpha", FIELDS.GRADIENT_ALPHA, 255, 0.1, 255),
+      group("alpha", FIELDS.ALPHA, 255, 0.1, 255),
+      group("scale", FIELDS.SCALE, 1, 0.01, 8),
+      group("translateX", FIELDS.TRANSLATE_X, 0, 1, 4096, -4096),
+      group("translateY", FIELDS.TRANSLATE_Y, 0, 1, 4096, -4096),
+      group("rotate", FIELDS.ROTATE, 0, 1, 360, -360),
+    ] as TuneRow[]
+  ).map((row) => [row.name, row] as const),
+);
+
+/** A session's one override: the element's id, the panel's name for the field, and the number. */
+export interface SessionEntry {
+  readonly id: string;
+  readonly field: string;
+  readonly value: number;
+}
+
+/** A tuning session: the panel's overrides, data only (`{ "values": [ { "id", "field", "value" } ] }`). */
+export interface Session {
+  readonly values: SessionEntry[];
+}
+
+/** The panel's overrides as a session: ids sorted, each element's entries in the panel's row order, so the same
+ *  session is the same bytes. */
+export function sessionOf(overrides: ReadonlyMap<string, ReadonlyMap<string, number>>): Session {
+  const order = new Map([...TUNE_FIELDS.keys()].map((name, i) => [name, i] as const));
+  return {
+    values: [...overrides.keys()].sort().flatMap((id) =>
+      [...overrides.get(id)!]
+        .sort(([a], [b]) => order.get(a)! - order.get(b)! || a.localeCompare(b))
+        .map(([field, value]) => ({ id, field, value })),
+    ),
+  };
+}
+
+/** A session as the file `s` writes: two spaces a level and a newline at the end. */
+export const sessionText = (session: Session): string => `${JSON.stringify(session, null, 2)}\n`;
+
+/**
+ * A session file's entries, checked before the first frame: a `values` array of `{ id, field, value }`, an element the
+ * page has, a name the panel has a row for, and a number in that row's range. The error names the entry and why.
+ */
+export function parseSession(text: string, ids: ReadonlySet<string>): Session {
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch (error) {
+    throw new Error(`tune: not JSON: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  const values = (data as { values?: unknown } | null)?.values;
+  if (!Array.isArray(values)) throw new Error('tune: no "values" array');
+  return {
+    values: values.map((entry: unknown, index) => {
+      const n = index + 1;
+      const { id, field, value } = (entry ?? {}) as { id?: unknown; field?: unknown; value?: unknown };
+      if (typeof id !== "string") throw new Error(`tune: entry ${n}: no "id"`);
+      if (!ids.has(id)) throw new Error(`tune: entry ${n}: no element "${id}" on the page`);
+      if (typeof field !== "string") throw new Error(`tune: entry ${n}: no "field"`);
+      const row = TUNE_FIELDS.get(field);
+      if (row === undefined) throw new Error(`tune: entry ${n}: "${field}" is not a panel field`);
+      if (typeof value !== "number" || !Number.isFinite(value) || value < row.min || value > row.max)
+        throw new Error(
+          `tune: entry ${n}: ${field} ${String(value)} is out of range ${row.min}..${row.max}`,
+        );
+      return { id, field, value };
+    }),
+  };
+}
+
 /** What the values section says before the pointer has been over a box. */
 const NO_PICK = "nothing yet: the pointer over the page picks a box";
 /** The keys, in the section's one footer line (`r` resets a row, Shift+R all of them; `*` is a live value). */
@@ -338,6 +456,9 @@ export interface DevProps {
   /** The theme the page's styles resolve under (the host's `View.theme`): the live values print the numbers the declare
    *  makes, so the panel resolves its styles under the same theme. */
   readonly theme?: () => string | undefined;
+  /** A tuning session (`main.ts --tune`): read and checked before the first frame, and where `s` writes the current one
+   *  (`dev-tune.json` when the flag is absent). */
+  readonly tune?: string;
 }
 
 /**
@@ -359,15 +480,31 @@ export function Dev(props: DevProps) {
   const pageEl = Widgets({ input: props.input, drag: props.drag }) as unknown as El;
 
   // the live values' state: the box the pointer picked (it stays picked while the pointer is elsewhere — the panel is not
-  // the page, and the keyboard needs the numbers to stay), the rows the last reading made, and this panel's overrides: a
-  // row's name and the number written for it every frame. Picking another box drops them all.
+  // the page, and the keyboard needs the numbers to stay), the box a click pinned (the tree's cursor, the hovered line
+  // and the values, until Escape or a press on empty space), the rows the last reading made, and this panel's overrides:
+  // an element's id, a row's name and the number written for it every frame — a session is the page's, so a box keeps
+  // its numbers when the pointer picks another.
   let picked: El | undefined;
   let pickedId = "";
+  let pinned: El | undefined;
+  let pinnedId = "";
   let tune: TuneRow[] = [];
   let floats: Float32Array | undefined;
   let bounds: Float32Array | undefined;
   let sel = 0;
-  const overrides = new Map<string, number>();
+  const overrides = new Map<string, Map<string, number>>();
+  const mine = (id: string): Map<string, number> => {
+    let fields = overrides.get(id);
+    if (fields === undefined) overrides.set(id, (fields = new Map()));
+    return fields;
+  };
+
+  // `--tune`: the session, read and checked before the first frame. A bad entry throws with its number and why, so a
+  // host that loads it fails on its message rather than on a frame without it.
+  if (props.tune !== undefined) {
+    for (const { id, field, value } of parseSession(readFileSync(props.tune, "utf8"), idsOf(pageEl)).values)
+      mine(id).set(field, value);
+  }
 
   let lastKey = "";
   let again = false;
@@ -379,8 +516,14 @@ export function Dev(props: DevProps) {
     if (id === pickedId) return;
     picked = box;
     pickedId = id;
-    overrides.clear();
     sel = 0;
+  };
+
+  /** The box a click pins (`undefined`: empty space clears it). */
+  const pin = (box: El | undefined) => {
+    pinned = box;
+    pinnedId = box === undefined ? "" : (box.props.id as string);
+    if (box !== undefined) sel = 0;
   };
 
   /** `id  role "name"` of a box, the name from the tree at the same role and bounds (as the hovered line reads it). */
@@ -422,16 +565,16 @@ export function Dev(props: DevProps) {
    * declare resolves it: the host's theme and the states that hold for the box (the pointer is on it while it is picked,
    * and `:focus` where the page's focus is). A style that declares no box fields has no rows.
    */
-  const valuesOf = (snap: A11yNode): Values => {
-    const el = picked;
-    if (el === undefined || pickedId === "") return { target: NO_PICK, rows: [], footer: KEYS };
+  const valuesOf = (snap: A11yNode, el: El | undefined): Values => {
+    if (el === undefined) return { target: NO_PICK, rows: [], footer: KEYS };
+    const id = el.props.id as string;
     const style = el.props.style;
     const states: State[] = [];
-    if (ui.over(idBytes(pickedId))) states.push(":hover");
+    if (ui.over(idBytes(id))) states.push(":hover");
     if (el.props.focused) states.push(":focus");
     const v = style === undefined ? undefined : variant(style, props.theme?.(), states);
     floats = v?.box;
-    bounds = ui.bounds(idBytes(pickedId));
+    bounds = ui.bounds(idBytes(id));
     tune = tuneRows(floats, bounds, v);
     sel = Math.min(sel, Math.max(0, tune.length - 1));
     const at =
@@ -441,8 +584,9 @@ export function Dev(props: DevProps) {
     // the window: as many rows as the panel has lines for, and it follows the selection, so a row being edited is on
     // screen; the footer says which rows of how many it is showing
     const start = Math.max(0, Math.min(sel - Math.floor(ROWS / 2), tune.length - ROWS));
+    const fields = overrides.get(id);
     const rows = tune.slice(start, start + ROWS).map((row, i) => {
-      const live = overrides.get(row.name);
+      const live = fields?.get(row.name);
       const caret = start + i === sel ? ">" : " ";
       return `${caret}${live === undefined ? " " : "*"} ${row.name} ${fmt(live ?? row.at(floats!, bounds))}`;
     });
@@ -457,16 +601,23 @@ export function Dev(props: DevProps) {
    * a frame leaves it the frame it was.
    */
   const write = () => {
-    if (pickedId === "" || overrides.size === 0) return;
-    const id = idBytes(pickedId);
-    for (const [name, value] of overrides) {
-      // a row this style does not have this frame (a state changed): nothing to write, the override waits
-      const row = tune.find((r) => r.name === name);
-      if (row === undefined) continue;
-      const values = row.put(value);
-      row.fields.forEach((field, i) => ui.value(id, field, values[i]!));
+    for (const [id, fields] of overrides) {
+      if (fields.size === 0) continue;
+      const bytes = idBytes(id);
+      // a session file names a row whether or not the box lists it this frame; a write it cannot use (a text's field on
+      // a box) waits in the table with no element to land on, which is ui.value's own business
+      for (const [name, value] of fields) {
+        const row = TUNE_FIELDS.get(name);
+        if (row === undefined) continue;
+        const values = row.put(value);
+        row.fields.forEach((field, i) => ui.value(bytes, field, values[i]!));
+      }
     }
   };
+
+  /** The element the values act on: the pinned box, else the box under the pointer. */
+  const target = (): El | undefined => pinned ?? picked;
+  const targetId = (): string => pinnedId || pickedId;
 
   /** The row the arrows act on: the last reading's, by the selection the keys keep. */
   const row = (): TuneRow | undefined => tune[Math.min(sel, Math.max(0, tune.length - 1))];
@@ -474,13 +625,17 @@ export function Dev(props: DevProps) {
   /** The change of one step: from the override, else the style's own, clamped to the row's range. */
   const step = (dir: 1 | -1) => {
     const r = row();
-    if (r === undefined) return;
-    const now = overrides.get(r.name) ?? r.at(floats!, bounds);
+    const id = targetId();
+    if (r === undefined || id === "") return;
+    const now = overrides.get(id)?.get(r.name) ?? r.at(floats!, bounds);
     // two decimals: a 0.1 step of an alpha would otherwise read 254.90000000000003
-    overrides.set(r.name, clampTo(Math.round((now + dir * r.step) * 100) / 100, r));
+    mine(id).set(r.name, clampTo(Math.round((now + dir * r.step) * 100) / 100, r));
   };
 
-  /** The values section's keys: Up/Down (Home/End) pick a row, Left/Right (and -/+) step it, r resets it, Shift+R all. */
+  /**
+   * The values section's keys: Up/Down (Home/End) pick a row, Left/Right (and -/+) step it, r resets it, Shift+R all,
+   * Escape clears the click's pin and s writes the session to the flag's path.
+   */
   const valuesKey = (name: string): boolean => {
     if (name === "ArrowUp" || name === "ArrowDown" || name === "Home" || name === "End") {
       if (tune.length === 0) return false;
@@ -493,12 +648,22 @@ export function Dev(props: DevProps) {
     if (name === "ArrowLeft" || name === "-") return step(-1), row() !== undefined;
     if (name === "r" || name === "R") {
       const r = row();
-      return r !== undefined && overrides.delete(r.name);
+      return r !== undefined && (overrides.get(targetId())?.delete(r.name) ?? false);
     }
     if (name === "Shift+R") {
-      const had = overrides.size > 0;
-      overrides.clear();
+      const fields = overrides.get(targetId());
+      const had = (fields?.size ?? 0) > 0;
+      fields?.clear();
       return had;
+    }
+    if (name === "Escape") {
+      const had = pinned !== undefined;
+      pin(undefined);
+      return had;
+    }
+    if (name === "s") {
+      writeFileSync(props.tune ?? "dev-tune.json", sessionText(sessionOf(overrides)));
+      return true;
     }
     return false;
   };
@@ -521,7 +686,13 @@ export function Dev(props: DevProps) {
     keyDown: (name: string) => focusPart() === id && (key?.(name) ?? false),
     keyUp: () => false,
   });
-  for (const part of [stop("dev-tree"), stop("dev-hover"), stop("dev-values", valuesKey)])
+  // Escape clears the click's pin wherever the panel's focus is; the values part has its own keys as well
+  const unpin = (name: string): boolean => {
+    if (name !== "Escape" || pinned === undefined) return false;
+    pin(undefined);
+    return true;
+  };
+  for (const part of [stop("dev-tree", unpin), stop("dev-hover", unpin), stop("dev-values", valuesKey)])
     props.input.add(part);
 
   /**
@@ -535,10 +706,12 @@ export function Dev(props: DevProps) {
     flush();
     const snap = snapshot(pageEl);
     const box = deepest(pageEl);
-    const rows = rowsOf(snap);
-    const hover = hoverOf(snap, box);
-    pick(box);
-    const values = valuesOf(snap);
+    // a pin holds the tree's cursor, the hovered line and the values; without one the pointer picks (the values follow
+    // it, and keep their box when it leaves the page)
+    const rows = rowsOf(snap, 0, pinned === undefined ? undefined : nodeFor(pinned, snap));
+    if (pinned === undefined) pick(box);
+    const hover = hoverOf(snap, pinned ?? box);
+    const values = valuesOf(snap, target());
     write();
     const key = `${rows.map((r) => `${r.depth}|${r.text}`).join("\n")}\n${hover.join("\n")}\n${values.target}\n${values.rows.join("\n")}\n${values.footer}`;
     // a change prints at once, and its frame's phases on the next reading: the phases of the frame the change was in
@@ -555,7 +728,15 @@ export function Dev(props: DevProps) {
     setShown({ ...shown(), frame: frameOf() });
   };
 
-  if (props.motion) props.motion.tick = () => sample();
+  if (props.motion) {
+    // a press on the page (not on the panel) pins the innermost node under it; empty space clears the pin
+    let wasDown = false;
+    props.motion.onPointer = (x, _y, down) => {
+      if (down && !wasDown && x < pageSize.width) pin(deepest(pageEl));
+      wasDown = down;
+    };
+    props.motion.tick = () => sample();
+  }
 
   return (
     <box id="dev-root" style={s.root}>

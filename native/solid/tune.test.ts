@@ -9,6 +9,8 @@
 // mechanisms' mutations are named beside the checks they fail — for the write, both of its variants: a width's row
 // writing its neighbour's floats, a radius's row one float along, a reset that writes the live value back instead of
 // dropping it, and a step that is not clamped.
+import { readFileSync, writeFileSync } from "node:fs";
+
 import {
   at,
   fresh,
@@ -23,7 +25,7 @@ import {
   _dispose,
 } from "./dev-harness.ts";
 
-const { tuneRows } = await import("./app/Dev.tsx");
+const { parseSession, tuneRows } = await import("./app/Dev.tsx");
 const { variant } = await import("./src/pack.ts");
 const { keyName } = await import("./src/input.ts");
 
@@ -305,6 +307,144 @@ const WIFI_ROWS = [
   check("End: the last row is the rotation", (selected(p.sections().values) ?? "").endsWith("rotate 0"), true);
   check("... and the window followed it", p.sections().values.footer, "Up/Down  Left/Right  r/Shift+R  * = live  4-21 of 21");
   console.log(`tune: a bordered button: 21 rows, the window shows ${rows.length} rows (${p.sections().values.footer})`);
+}
+
+// --- a click pins a box: the values' keys act on it (not on the pointer), and `r` resets only its row
+{
+  const p = fresh();
+  const wifi = box("wifi");
+  p.click(wifi[0]! + wifi[2]! / 2, wifi[1]! + wifi[3]! / 2);
+  check("the click pinned the switch", p.sections().rows.some((r) => r.startsWith('> switch "Wi-Fi"')), true);
+  p.focus("dev-values");
+  select(p, "width");
+  p.tap("ArrowRight");
+  select(p, "height");
+  p.tap("ArrowRight");
+  check(
+    "the pinned box's rows take the keys",
+    [isLive(rowOf(p, "width")!), isLive(rowOf(p, "height")!)],
+    [true, true],
+  );
+  select(p, "width");
+  p.tap("r");
+  p.idle(2);
+  check(
+    "r resets the pinned row only",
+    [rowValue(rowOf(p, "width")!), isLive(rowOf(p, "height")!), at(box("wifi"))],
+    [280, true, "40,118 280×33"],
+  );
+  console.log(
+    `tune: a click pins the switch; width+1, height+1, r: ${at(box("wifi"))} and height still live ` +
+      `(${rowOf(p, "height")})`,
+  );
+}
+
+// --- a session file: two overrides, loaded before the first frame (`--tune`), are the frame of the same two edits by
+// hand, byte for byte; `s` writes the current one, and the file loads back to the same frame
+// (mutations: the writer naming a field the loader does not know fails `FAIL the written session loads back` with
+// `tune: entry 1: "radius!" is not a panel field`; a loader that takes any name makes the three checks below pass with
+// no message)
+const DIR = process.env.TMPDIR ?? "/tmp";
+{
+  const path = `${DIR}/cssints-tune-load-${process.pid}.json`;
+  writeFileSync(
+    path,
+    '{"values":[{"id":"wifi","field":"radius","value":16},{"id":"wifi","field":"bg.r","value":52}]}\n',
+  );
+  const hand = fresh();
+  hand.hover(WIFI[0], WIFI[1]);
+  hand.tabTo("dev-values");
+  select(hand, "radius");
+  for (let i = 0; i < 8; i++) hand.tap("ArrowRight");
+  select(hand, "bg.r");
+  hand.tap("ArrowRight");
+  hand.idle(2);
+  const edited = pageOf(ui.pixels(660, 760));
+  const loaded = fresh({ tune: path });
+  loaded.hover(WIFI[0], WIFI[1]);
+  loaded.idle(2);
+  check("--tune is the frame of the two edits by hand, byte for byte", same(pageOf(ui.pixels(660, 760)), edited), true);
+  check(
+    "the loaded rows are the file's numbers",
+    [rowValue(rowOf(loaded, "radius")!), rowValue(rowOf(loaded, "bg.r")!)],
+    [16, 52],
+  );
+  console.log(
+    `tune: a 2-entry session file is the frame of radius 16 and bg.r 52 by hand, ` +
+      `${same(pageOf(ui.pixels(660, 760)), edited) ? "byte-identical" : "MOVED"}`,
+  );
+}
+
+{
+  const path = `${DIR}/cssints-tune-save-${process.pid}.json`;
+  writeFileSync(path, '{"values":[]}\n');
+  const p = fresh({ tune: path });
+  p.hover(WIFI[0], WIFI[1]);
+  p.tabTo("dev-values");
+  select(p, "radius");
+  for (let i = 0; i < 8; i++) p.tap("ArrowRight");
+  select(p, "bg.r");
+  p.tap("ArrowRight");
+  p.focus("dev-values");
+  p.tap("s");
+  const saved = JSON.parse(readFileSync(path, "utf8"));
+  check("s writes the panel's own names, one entry a field", saved, {
+    values: [
+      { id: "wifi", field: "radius", value: 16 },
+      { id: "wifi", field: "bg.r", value: 52 },
+    ],
+  });
+  const frame = pageOf(ui.pixels(660, 760));
+  let loaded: Probe | undefined;
+  let error = "";
+  try {
+    loaded = fresh({ tune: path });
+  } catch (e) {
+    error = e instanceof Error ? e.message : String(e);
+  }
+  check("the written session loads back", error, "");
+  if (loaded) {
+    loaded.hover(WIFI[0], WIFI[1]);
+    loaded.idle(2);
+    check("... to the same frame, byte for byte", same(pageOf(ui.pixels(660, 760)), frame), true);
+  }
+  console.log(
+    `tune: s wrote ${JSON.stringify(saved)}; it loads back ` +
+      `${loaded ? "byte-identical" : "FAILED"}, ${readFileSync(path, "utf8").split("\n").length} lines`,
+  );
+}
+
+// --- the session's validation: an unknown id, an unknown field and an out-of-range value each fail with their entry
+{
+  const ids = new Set(["wifi", "press"]);
+  const why = (text: string): string => {
+    try {
+      parseSession(text, ids);
+      return "no error";
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error);
+    }
+  };
+  check(
+    "an unknown id says the entry and that the page has no such element",
+    why('{"values":[{"id":"nope","field":"radius","value":16}]}'),
+    'tune: entry 1: no element "nope" on the page',
+  );
+  check(
+    "an unknown field says the entry and that the panel has no row",
+    why('{"values":[{"id":"wifi","field":"radiusX","value":16}]}'),
+    'tune: entry 1: "radiusX" is not a panel field',
+  );
+  check(
+    "an out-of-range value says the entry, the number and the range",
+    why('{"values":[{"id":"wifi","field":"bg.r","value":300}]}'),
+    "tune: entry 1: bg.r 300 is out of range 0..255",
+  );
+  console.log(
+    `tune: the three failures: ${why('{"values":[{"id":"nope","field":"radius","value":16}]}')}; ` +
+      `${why('{"values":[{"id":"wifi","field":"radiusX","value":16}]}')}; ` +
+      `${why('{"values":[{"id":"wifi","field":"bg.r","value":300}]}')}`,
+  );
 }
 
 // --- the cost: five overrides are five `ui.value` calls and the memcpy `ui_open` already did for any element with one

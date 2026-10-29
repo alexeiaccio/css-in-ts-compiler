@@ -241,3 +241,11 @@ bun solid/settings.test.ts
 # bounds, a colour's fill, the clamps at 255 and 0, `r` and `Shift+R` byte for byte, the `*`, the row window, and the
 # cost with five rows overridden (0.050 ms of declare and 0.033 of layout at rest, 0.048/0.038 with five: the noise).
 bun solid/tune.test.ts
+# the panel's session file through the host's flag (`--tune`): one entry read before the first frame, and an unknown
+# field failing with its entry and why (a non-zero exit, not a frame). The pick and the save key are the two tests' own.
+printf '{"values":[{"id":"wifi","field":"radius","value":16}]}\n' > "${TMPDIR:-/tmp}/cssints-dev-tune.json"
+$DEV --warm 30 --tune "${TMPDIR:-/tmp}/cssints-dev-tune.json" --png "${TMPDIR:-/tmp}/cssints-dev-tune.png"
+printf '{"values":[{"id":"wifi","field":"radiusX","value":16}]}\n' > "${TMPDIR:-/tmp}/cssints-dev-tune-bad.json"
+if $DEV --warm 1 --tune "${TMPDIR:-/tmp}/cssints-dev-tune-bad.json" --png "${TMPDIR:-/tmp}/cssints-dev-tune-bad.png" >/dev/null 2>&1; then
+  echo "FAIL: a session with an unknown field did not fail"; exit 1
+fi

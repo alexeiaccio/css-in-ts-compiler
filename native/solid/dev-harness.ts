@@ -67,6 +67,8 @@ export interface Probe {
   move: (x: number, y: number) => void;
   press: () => void;
   release: () => void;
+  /** A whole click at a point: the pointer there, a press frame, a release frame and one more */
+  click: (x: number, y: number) => void;
   /** N frames at rest through the host's drawer: no input, and a draw only when the frame's hash says so */
   idle: (n: number) => void;
   /** The panel's own focus to a part by id, as Tab would leave it. */
@@ -78,7 +80,7 @@ export interface Probe {
 let dispose = () => {};
 
 /** The page as the window runs it: a fresh Dev, the host's frame over the panel's `stats`, and one step per input. */
-export function fresh(options: { theme?: string } = {}): Probe {
+export function fresh(options: { theme?: string; tune?: string } = {}): Probe {
   dispose();
   stats.length = 0;
   ui.init(size.width, size.height);
@@ -88,7 +90,10 @@ export function fresh(options: { theme?: string } = {}): Probe {
   input.fallback = () => false;
   const drag: { onPointer?: (x: number, y: number, down: boolean) => void } = {};
   const motion: { tick?: (dt: number) => void } = {};
-  dispose = render(() => Dev({ input, motion, drag, theme: () => options.theme }), root);
+  dispose = render(
+    () => Dev({ input, motion, drag, theme: () => options.theme, tune: options.tune }),
+    root,
+  );
   // what the panel sees at each reading: the host's counters and how many frames the frame loop has pushed, taken at the
   // tick, after the page's own sampling. The panel's numbers are asserted against these, not against a guess
   const reads: Probe["reads"] = [];
@@ -104,7 +109,10 @@ export function fresh(options: { theme?: string } = {}): Probe {
     get theme() {
       return options.theme;
     },
-    onPointer: (x, y, down) => drag.onPointer?.(x, y, down),
+    onPointer: (x, y, down, touch) => {
+      drag.onPointer?.(x, y, down);
+      motion.onPointer?.(x, y, down, touch);
+    },
     onPressMiss: () => input.pressMiss(),
   });
   const draw = createDrawer(frame, stats);
@@ -175,6 +183,17 @@ export function fresh(options: { theme?: string } = {}): Probe {
     },
     release() {
       down = false;
+      step();
+    },
+    click(x: number, y: number) {
+      pointer = [x, y];
+      step();
+      step();
+      down = true;
+      step();
+      step();
+      down = false;
+      step();
       step();
     },
     idle(n: number) {
