@@ -24,13 +24,16 @@ P="bun --conditions=development generator/page-to-c.ts solid/app/Sensors.tsx --s
 $P --state use_g=false --out "$OUT/sensors-gen/page_generated.c"
 $P --state use_g=true --name app_frame_g --out "$OUT/sensors-gen/page_generated_g.c"
 $P --state pressed=true --name app_frame_pressed --out "$OUT/sensors-gen/page_generated_pressed.c"
+# the IMAGE=1 variant: the page's 32x32 glyph, a prop of the Solid page (--prop) as page.c's IMAGE=1 is the host's
+$P --prop image=true --name app_frame_image --out "$OUT/sensors-gen/page_generated_image.c"
 $P --events "$OUT/sensors-gen/page_generated_events.c" --events-name sensors
-for f in page_generated.c page_generated_g.c page_generated_pressed.c page_generated_events.c; do
+for f in page_generated.c page_generated_g.c page_generated_pressed.c page_generated_image.c page_generated_events.c; do
   cmp "$OUT/sensors-gen/$f" "examples/sensors/$f" || { echo "FAIL: examples/sensors/$f is stale"; exit 1; }
 done
 cc -std=c99 -Wall -Wno-unused-variable -I "$OUT/sensors" -I "$CLAY_H" -I generator examples/sensors/gen.c \
   "$OUT/sensors-gen/page_generated.c" "$OUT/sensors-gen/page_generated_g.c" \
-  "$OUT/sensors-gen/page_generated_pressed.c" "$OUT/sensors-gen/page_generated_events.c" -lm -o "$OUT/gen"
+  "$OUT/sensors-gen/page_generated_pressed.c" "$OUT/sensors-gen/page_generated_image.c" \
+  "$OUT/sensors-gen/page_generated_events.c" -lm -o "$OUT/gen"
 "$OUT/gen"
 # a page with its styles in the .tsx (InlineDemo.tsx, no styles module): the literals header() prints, compiled
 bun --conditions=development generator/page-to-c.ts solid/app/InlineDemo.tsx --out "$OUT/sensors-gen/inline_generated.c"
@@ -242,8 +245,9 @@ if command -v zig >/dev/null 2>&1 && command -v node >/dev/null 2>&1 &&
    node -e 'process.exit(require("node:fs").existsSync(require("playwright").chromium.executablePath()) ? 0 : 1)' 2>/dev/null; then
   sh browser/build.sh >/dev/null
   node browser/check.mjs
-  # ... and the Solid page in the same browser, on the desktop's own modules (browser/solid/): its check is in
-  # solid/test.sh, which has just run above with the same guard
+  # ... and the Solid pages in the same browser, on the desktop's own modules (browser/solid/): two of them now, Sensors
+  # and Widgets, the second driven by the keyboard. Their check is in solid/test.sh, which has just run above with the
+  # same guard
 else
   echo "browser: no zig, node or Playwright chromium, skipped (sh browser/build.sh && node browser/check.mjs)"
 fi

@@ -1,6 +1,9 @@
-// The Solid page's bundle, for the browser: browser/solid/page.ts and the desktop's own modules, compiled by Bun.
+// The Solid pages' bundles, for the browser: browser/solid/page.ts (Sensors), browser/solid/widgets.ts (the Widgets page,
+// which takes keys) and the desktop's own modules, compiled by Bun. Two entry points, two bundles: page.js and widgets.js
+// are separate files with their own copies of the firmware they share (the shell, the renderer, Clay's binding), because a
+// page loaded alone should need nothing from the other's; the shared code is one source, not one chunk.
 //
-//   bun browser/solid/build.ts [out.directory]   -> <out>/page.js (default ${TMPDIR:-/tmp}/cssints-native-web/solid)
+//   bun browser/solid/build.ts [out.directory]   -> <out>/page.js and <out>/widgets.js (default ${TMPDIR:-/tmp}/cssints-native-web/solid)
 //
 // The loaders are the desktop's (solid/plugin.ts): a `.tsx` through @solidjs/compiler's universal transform, a
 // `styles.ts` through the cssints plugin in a Node child (compile-styles.ts), and a `.tsx` that declares its own styles
@@ -37,9 +40,10 @@ const solidPlugin = {
   }) {
     build.onResolve({ filter: /^solid-js$/ }, () => ({ path: solid }));
     build.onResolve({ filter: /^@solidjs\/signals$/ }, () => ({ path: signals }));
-    // solid/src/frame.ts and solid/app/Sky.tsx import the desktop's bun:ffi binding; in the page it is the wasm's
+    // solid/src/frame.ts and every page's `../src/ffi.ts` import the desktop's bun:ffi binding; in the page it is the
+    // wasm's
     build.onResolve({ filter: /(^|\/)ffi\.ts$/ }, (args) => {
-      if (!args.path.endsWith("ffi.ts") || !args.importer.startsWith(join(root, "solid/"))) return undefined;
+      if (!args.path.endsWith("ffi.ts") || !args.importer.startsWith(join(root, "solid") + "/")) return undefined;
       return { path: ffi };
     });
     build.onLoad({ filter: /\.tsx$/ }, async ({ path }) => {
@@ -59,7 +63,7 @@ const solidPlugin = {
 };
 
 const result = await Bun.build({
-  entrypoints: [join(here, "page.ts"), join(here, "sky.ts")],
+  entrypoints: [join(here, "page.ts"), join(here, "widgets.ts"), join(here, "sky.ts")],
   target: "browser",
   // the bundler's `development` condition would pick @solidjs/signals/dist/dev.js, whose diagnostics refuse the writes a
   // page makes in its component body (Sky.tsx's cells); the desktop runs the production signals, so the page is the same

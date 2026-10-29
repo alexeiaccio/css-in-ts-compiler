@@ -1179,11 +1179,12 @@ check compares it with `solid/goldens/sensors.json` — the same golden the Soli
 the browser has no command table of its own any more. `page.wasm` carries the emitter's `vsnprintf` (about 27 KB) for
 that comparison; the page itself does not need it.
 
-### The Solid page in the browser
+### The Solid pages in the browser
 
 The desktop's modules play in the page too: `browser/solid/page.ts` imports `solid/src/renderer.ts`, `solid/src/frame.ts`
-and `solid/app/Sensors.tsx` **unmodified**, `browser/solid/build.ts` bundles them with Bun (`--target=browser`, the same
-JSX and cssints loaders as `solid/plugin.ts`), and Clay runs in a second wasm module beside the generated page's.
+and `solid/app/Sensors.tsx` **unmodified**, `browser/solid/widgets.ts` does the same with `solid/app/Widgets.tsx`,
+`browser/solid/build.ts` bundles them with Bun (`--target=browser`, the same JSX and cssints loaders as
+`solid/plugin.ts`), and Clay runs in a second wasm module beside the generated page's.
 
 ```
 browser/ui.c                 the desktop's flat ui_* surface over Clay only: no SDL, no window, no ThorVG — and the
@@ -1199,6 +1200,16 @@ browser/solid/index.html     the Sensors canvas and the script
 browser/solid/sky.html       the Sky page's canvas (360x760) and the script
 browser/solid-check.mjs      Chromium: the commands, a real click, the raster, the sizes and the ms
 browser/sky-check.mjs        Chromium: the Sky page's frame against the desktop's, its gradient, avatars, shadow, entry
+browser/solid/shell.ts       what both pages share: the canvas, the loop (createDrawer), the pointer and the wheel, the
+                             keyboard when a page has an Input, and the object the check drives (window.__page)
+browser/solid/keys.ts        a DOM KeyboardEvent as the name src/input.ts takes (the table below), into the page's Input
+browser/solid/page.ts        Sensors: mountPage with the page's own size and its motion hook
+browser/solid/widgets.ts     Widgets: the same, plus createInput() and the page's props as main.ts builds them
+browser/solid/build.ts       Bun.build: page.js and widgets.js (two entry points); one resolution, src/frame.ts's
+                             ./ffi.ts and app/Widgets.tsx's ../src/ffi.ts -> ffi-browser.ts
+browser/solid/index.html     the Sensors canvas and its script
+browser/solid/widgets.html   the Widgets canvas (360x760, tabindex=0) and its script
+browser/solid-check.mjs      Chromium: the commands, a real click, the rasters, the keys, the sizes and the ms
 ```
 
 `sh browser/build.sh` builds both modules: `page.wasm` is the no-JS path (unchanged), `ui.wasm` is this one. Neither is
@@ -1207,12 +1218,47 @@ and the canvas is drawn only when the frame hash moved or a discrete input came 
 no pixels, as on the desktop. A press or a release runs its frame on the event, so a click cannot land both inside one
 frame. Keys have no page to reach: `Sensors` takes no input, and the desktop's SDL key names (`src/input.ts`) have no
 DOM map here yet (`sky.ts` gives them their DOM names, which are the ones `src/input.ts` routes).
+no pixels, as on the desktop. A press, a release, a wheel notch and a key each run their frame on the event, so a quick
+input cannot land two events inside one frame and lose one; the mouse is `src/frame.ts`'s pointer.
+
+**The keys.** A page with an `Input` gets a `keydown`/`keyup` pair on its canvas: the DOM event is named as `src/input.ts`'s
+`keyName` names SDL's, the name goes into `input.down`/`up`, and the frame that changed runs after it — main.ts's order, a
+key queued before the tree is declared. Tab, Space and the arrows are `preventDefault`ed (the canvas has the browser's
+focus, so the browser must not move it to the chrome or scroll the page); Cmd, Ctrl and Alt chords are nobody's, as on the
+desktop, and so is Shift with an arrow, Home, End, Backspace or Delete (a selection chord, not a move). Letters and digits
+are read from `event.code`, because SDL's keycode is the key and not the character: Shift+1 is "1", not "!", and Shift+A
+is the page's own "Shift+A" chord. A typed character is not a key: `Input.textInput` has no DOM path yet.
+
+| `KeyboardEvent` | the name (`src/input.ts`) |
+| --- | --- |
+| `key` "Tab" | `Tab`, and `Shift+Tab` with `shiftKey` |
+| `key` " " (and the legacy "Spacebar") | `" "` — the desktop's name for SDL 32; the parts take `Space` too |
+| `key` "Enter"/"Escape"/"Backspace"/"Delete" | the same |
+| `key` "ArrowUp"/"ArrowDown"/"ArrowLeft"/"ArrowRight" | the same |
+| `key` "Home"/"End"/"PageUp"/"PageDown" | the same |
+| `code` KeyA..KeyZ | `a`..`z`; `Shift+A`..`Shift+Z` with Shift (the page's own chord) |
+| `code` Digit0..Digit9 | `0`..`9`, shifted too |
+| `code` Backquote, Minus, Equal, BracketLeft, Backslash, BracketRight, Semicolon, Quote, Comma, Period, Slash | the unshifted character: `` ` ``, `-`, `=`, `[`, `\`, `]`, `;`, `'`, `,`, `.`, `/` |
+| anything else (F1, Dead, a chord) | nothing: the page never sees it |
+
+**The focus.** The canvas is `tabindex="0"`, and a press on it calls `focus()`: a canvas takes no DOM focus otherwise, and
+a `keydown` goes to the focused element. The page does not take the focus on load — a page should not jump into a reader's
+keyboard — so a person clicks the frame first, and the check does the same (a press on the page's top padding: empty
+space, so nothing is toggled). The ring is the page's own `:focus` style (2px `t.color.ring`), not a browser outline.
+
+**The second page.** Sensors and Widgets share the shell: the same wasm, `src/renderer.ts`, `src/frame.ts`,
+`browser/draw.js`, `ffi-browser.ts`, `globals.ts`, `keys.ts` and `window.__page`. They differ in their component, their
+size (360x360, 360x760), their HTML file, and one prop: Widgets takes an `Input` (made with `createInput()`, as main.ts
+makes it) and a drag state, and its keys go into that Input. The two bundles are separate files (two entry points, no
+shared chunk), so a page loaded alone needs nothing from the other's; the shared code is one source.
 
 The two host globals the desktop's modules read are shimmed in `browser/solid/globals.ts`: `Bun.nanoseconds` (the
 frame's phases, `performance.now`) and `Buffer.from` (the page's entry id). Of the desktop binding's pixels,
 `ui.pixel(x, y)` and `ui.pixels(w, h)` are the page's canvas (`getImageData`, at the raster's density) and
 `png`/`savePng`/`diffPng` have no file system to work on — the check writes the canvas with Playwright instead; the
-command array itself is the wasm's (`cmds`, `cmd_count`, `cmd_size`), which is what `draw.js` and the dump read.
+command array itself is the wasm's (`cmds`, `cmd_count`, `cmd_size`), which is what `draw.js` and the dump read. The
+page's accessibility tree is `solid/a11y.ts`'s `snapshot(root)`: it walks the Solid tree the frame declares, so it runs
+in the page as it does on the desktop (`window.__page.a11y()`), and it is what the keyboard is asserted through.
 
 | What            | Size                                    |
 | --------------- | --------------------------------------- |
@@ -1223,6 +1269,15 @@ command array itself is the wasm's (`cmds`, `cmd_count`, `cmd_size`), which is w
 | `draw.js`       | 16,733 B (5,732 B gzip)                 |
 | a frame, Sensors | 0.08 ms: declare, layout, commands, Canvas2D, one readback (100 frames, headless Chromium, M2) |
 | a frame, Sky     | 0.73-0.80 ms: the same, with the effect tables read and the avatars drawn from bitmaps |
+| What             | Size                                    |
+| ---------------- | --------------------------------------- |
+| `ui.wasm`        | 136,338 B (50,291 B gzip)               |
+| `page.js`        | 239,871 B (57,445 B gzip), unminified   |
+| `index.html`     | 1,320 B                                 |
+| `widgets.js`     | 335,796 B (74,582 B gzip), unminified   |
+| `widgets.html`   | 1,482 B                                 |
+| a frame, Sensors | 0.08-0.09 ms: declare, layout, the commands, Canvas2D, one readback (100 frames, headless Chromium, M2) |
+| a frame, Widgets | 0.25-0.26 ms: the same, on the 59-command page |
 
 The bundles are the production build of `solid-js` (`build.ts` resolves `solid-js` and `@solidjs/signals` to their
 `dist/*.js`, as `solid/plugin.ts` redirects the desktop's): the bundler's `development` condition picks
@@ -1237,6 +1292,10 @@ sh browser/build.sh && bun browser/solid/build.ts   # the two wasms and the two 
 node browser/solid-check.mjs                        # the Sensors base frame, the click, the raster, the sizes
 node browser/sky-check.mjs                          # the Sky page: its frame, gradient, avatars, shadow, entry
 node browser/sky-check.mjs --serve                  # http://127.0.0.1:<port>/browser/solid/sky.html, for a person
+sh browser/build.sh && bun browser/solid/build.ts   # the two wasms and the two bundles, in $TMPDIR
+node browser/solid-check.mjs                        # both pages: the commands, the click, the rasters, the keys
+node browser/solid-check.mjs --update               # ... and re-store browser/expected-widgets.png
+node browser/solid-check.mjs --serve                # the pages' URLs, for a person (/browser/solid/index.html, widgets.html)
 ```
 
 `solid-check.mjs`: (a) the base frame dumped through the same emitter against `solid/goldens/sensors.json` — 10
@@ -1247,6 +1306,25 @@ page's DOM listeners, `src/frame.ts`'s events, the `Units` element's `onClick`; 
 frame carries its `:hover` (48,53,68), and with the pointer off it the use_g frame is the no-JS page's `frame(1)` field
 for field and box for box, 0 px. A second click returns to the base frame, again identical. (c) the canvas against
 `browser/expected.png`: 0.00% of pixels differ, worst 8x8 block 0.0/255.
+(a) each base frame, dumped through the same emitter, against its golden: Sensors 10 commands, every field and every box
+— the worst box 3.38 px, the Units pill sitting that much lower because the measure callback rounds every line height up
+(37.5 -> 38 at 32px, 16.4 -> 17 at 14px, `draw.js`, as the no-JS page's does) while ThorVG's is exact; the no-JS page's own
+check reports the same 3.38 on the same command. Widgets: 59 commands, every field, the worst box 3.16 px ("Storage": the
+rows above it are each a little taller than ThorVG's). (b) a real click on the Sensors pill: Playwright's mouse on the
+pill, the page's DOM listeners, `src/frame.ts`'s events, the `Units` element's `onClick`; while the pointer is on the
+pill the frame carries its `:hover` (48,53,68), and with the pointer off it the use_g frame is the no-JS page's use_g
+frame, field for field and box for box, 0 px — two runs of the same Clay and the same Canvas2D measure, so a difference
+could only be this page's. A second click returns to the base frame, again identical. (c) the rasters: Sensors' canvas
+against `browser/expected.png`, 0.00% of pixels differ, worst 8x8 block 0.0/255; Widgets' against
+`browser/expected-widgets.png` (the canvas's own pixels, not an element screenshot — its CSS box rounds to 761 px), 0.00%
+and 0.0/255; and Widgets against the desktop's own `solid/frames/widgets-initial.png`, the way `check.mjs` holds this
+browser to ThorVG's frame: 8.36% of pixels differ, every command box of at least 16x16 px is within 17.3/255 in the mean
+(a smaller box is more offset than fill: the boxes differ by up to 3.16 px, and an 8x8 dot is half offset), every text's
+ink box is within 3 px, the frame's mean colour within 1.41/255 — `check.mjs`'s numbers (20/255, 4 px, 3/255, 12%) hold.
+(d) the keys: Playwright's keyboard into the Widgets page — a press on the canvas focuses it (`document.activeElement`),
+Tab twice puts the `Wi-Fi` switch's node in the a11y tree at `focused: true` and draws the 2 px ring at its edge
+(90,170,255 one px in), Space sets `checked: true` and turns the track's fill from #3c404e to #f08c32 (the accent at a
+pixel of it), ten more Tabs reach the settings tree (the `Network` item) and ArrowDown moves the roving node to `Wi-Fi`.
 
 ### The renderer's effects, on a command array
 
@@ -1310,6 +1388,16 @@ more DOM input than the Sky page does); the backdrop's blur (above); no touch (t
 nothing sends a finger's event); no HMR or dev server story — the bundle is built once, by hand; and the framework's
 cost is the bundle's 300 KB (gzip 71 KB) against the no-JS page's 4.7 KB, for a JS tree and a state machine instead of
 a static frame. The generated C stays the no-JS path, which is what the board already is.
+What it still is not, honestly: two pages of eight (each other page has its own keys and the List's and Sky's scroll
+machines, which are untried here — `src/vscroll`'s wheel is in, `Input`'s typed text is not, and neither are a page's
+dialogs and floats); no renderer effects — `ui_shadow`, `ui_backdrop`, `ui_backgroundImage` and the value channel's group
+fields (46–50, 55: alpha, scale, translate, rotate, gradient alpha) were ThorVG's tables, and Canvas2D here draws only the
+command array, so a shadow, a gradient, a backdrop, a scene transform or an image is a frame this target draws without
+them (the Sensors page's first-mount entry writes two of them, which is why the check warms 31 frames and why its commands
+are the settled ones); no touch (the wasm still has `ui_touch_map`, nothing sends a finger's event); no HMR or dev server
+story — the bundle is built once, by hand; and the framework's cost is the bundle's 240 KB (Sensors, 57 KB gzip) and
+336 KB (Widgets, 75 KB gzip) against the no-JS page's 5 KB, for a JS tree and 12 Tab stops instead of a static frame. The
+generated C stays the no-JS path, which is what the board already is.
 
 ## The sky screens in a terminal
 
@@ -1405,6 +1493,57 @@ window for the run), a font or a device change (the vendored Roboto, one pixel d
 own data options (`--count`, `--posts`, `--wide`: a scene has its page at its own size), and a theme change mid-run (`t`
 is a key and works, but `theme` is the starting one). And the scenes are written by hand: nothing records a live window
 into one yet.
+
+## The image in a generated page
+
+`css.image(path, { width, height, fit })` is a style whose config is Clay's `Clay_ImageElementConfig`: one pointer,
+`imageData`, which is the path of the picture. Clay passes it through untouched — ThorVG's renderer loads the file from
+it (`Clay_ThorVG_Picture`, once per path) and sizes the picture into the command's box — so a C page needs no image
+data of its own, only that literal. `header()` already printed it: a style with an image becomes
+
+```c
+static const Clay_ElementDeclaration glyph = { .layout = { … 32x32 … },
+  .image = { .imageData = (void *)"examples/sensors/glyph.png" }, .aspectRatio = { .aspectRatio = 1 } };
+```
+
+the path as the style's own escaped C string, in every declaration that style has (`glyph`, `glyph_light`), and
+`examples/sensors/header.c` asserts it against the firmware's `clay.h`. So the style contract never lacked an image
+config; what was missing was a page that proves the generator emits the command.
+
+That page is `examples/sensors/page_generated_image.c`: the Sensors page with the 32x32 glyph of `styles.ts` under the
+title — `page.c`'s `IMAGE=1` variant, which is an env var there and an `image` prop of `solid/app/Sensors.tsx` here.
+A prop is not a signal, so the generator takes it beside the page's signals:
+
+```sh
+bun --conditions=development generator/page-to-c.ts solid/app/Sensors.tsx \
+  --styles examples/sensors/styles.ts --states examples/sensors/states.json \
+  --prop image=true --name app_frame_image --out examples/sensors/page_generated_image.c
+```
+
+`--prop name=value` renders the page with that prop fixed (`true`/`false` as booleans, a number, else a string), and the
+file's header says which (`// props: image=true`). The file is 44 lines, two frame functions (dark and light) and 11
+commands each: the page's 10, and `CLAY(CLAY_ID("Glyph"), glyph)` between the title and the caption.
+
+`examples/sensors/gen.c` compares it with the hand page's same variant at 360x360 and one fixed measure — Clay's
+`Clay_ImageRenderData` is compared too (`backgroundColor`, `cornerRadius`, and the path, `strcmp` of `imageData`), and a
+FAIL names the command's type, so the image is held to its type, id, box and path:
+
+```
+dark, image: 11 commands, identical
+light, image: 11 commands, identical
+2 images, identical
+```
+
+`test.sh` regenerates the file and `cmp`s it, so the committed C cannot rot, and compiles it into `gen`. Mutations:
+one byte of the path fails `FAIL dark, image: command 2 (image) differs at renderData.image.imageData (path)`; a box of
+8x32 instead of 32x32 fails `FAIL dark, image: command 2 (image) differs at boundingBox`; emitting the element with no
+style at all (`{}`) fails `FAIL dark, image: 10 generated commands, 11 hand-written` (an element with no box emits no
+command).
+
+What a generated page still does not carry: a clip's `childOffset` (the scroll is the host's, as on the List), a float
+(`Clay_ElementDeclaration.floating` would print, but the pointer capture and the tree above it are the page's), and
+`:focus` (a prop of an *element*, not a page, and `--prop` sets only the page's). The image variant is a file of its own
+and not a state of `--events` for the same reason: a prop is not a signal the table can dispatch.
 
 ## The generated page's events: a state machine
 
@@ -1504,10 +1643,11 @@ outside `states.json`** (the generator refuses the transition it cannot name, so
 not a silent dead end); **an animation or a clock** (a state is one frame; a settle is the host's frames, and a C page
 has no motion tracks); **pointer hover as a track** (a hovered state is entered by a release over the element, not by
 moving over it — the frame after a click is hovered, a later move away does not change it); a drag, a wheel, typed text,
-a float, an image, `:focus` (a prop, not a signal) and more than one theme variant per page.
+a float, the image variant (a page prop, so a file of its own, above), `:focus` (a prop of an element, not a signal) and
+more than one theme variant per page.
 
 Two mutations are the proof, run by hand: mapping state 2's release to state 3 instead of 4 fails the walk with
-`FAIL step 2: command 7 (1) differs at renderData.rectangle.backgroundColor (state 3 "use_g=true")`, and deleting the
+`FAIL step 2: command 7 (rectangle) differs at renderData.rectangle.backgroundColor (state 3 "use_g=true")`, and deleting the
 order check in `desktop/scene.c` lets a scene whose second step goes back to frame 0 run silently — it ends in state 0
 and `10,114` pixels off `expected-thorvg-g.png` instead of naming `step 1`.
 

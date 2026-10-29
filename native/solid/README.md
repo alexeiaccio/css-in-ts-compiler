@@ -1123,6 +1123,7 @@ stores it (`--update`), and the other hosts only read it.
 ## In the browser
 
 This host's modules are the page's, unmodified. `browser/solid/` holds the files a browser target needs:
+This host's modules are the page's, unmodified. `browser/solid/` holds what a browser target needs:
 
 ```
 browser/ui.c                the flat ui_* surface over Clay alone (solid/native/ui.c minus SDL, the window and ThorVG),
@@ -1135,6 +1136,13 @@ browser/solid/page.ts       the loop: this src/renderer.ts, this src/frame.ts an
 browser/solid/sky.ts        the same for app/Sky.tsx: this src/input.ts's keys from the DOM, the wheel to the page's
                             scroll track, and each draw carrying the effect tables
 browser/solid/build.ts      Bun.build --target=browser; src/frame.ts's ./ffi.ts is resolved to ffi-browser.ts
+browser/solid/shell.ts      what both pages share: the canvas, the loop (createDrawer), the pointer, the wheel, the keys
+                            when a page has an Input, and window.__page (the commands, the dump, the a11y tree, the ms)
+browser/solid/keys.ts       a DOM KeyboardEvent as the name this directory's src/input.ts takes, into the page's Input
+browser/solid/page.ts       Sensors: this src/renderer.ts, this src/frame.ts and app/Sensors.tsx, no Input
+browser/solid/widgets.ts    the Widgets page: the same shell, createInput() and app/Widgets.tsx as main.ts builds it
+browser/solid/build.ts      Bun.build --target=browser, two entry points; this src/frame.ts's ./ffi.ts and
+                            app/Widgets.tsx's ../src/ffi.ts are resolved to ffi-browser.ts
 ```
 
 The effects are the desktop renderer's, drawn by Canvas2D: `browser/draw.js` turns a table row into a shadow (the box
@@ -1151,3 +1159,23 @@ click, to `browser/expected.png`, and to `frames/sky.png`. The two globals these
 What the browser surface drops from `solid/native/ui.c` (the window, key and text queues, the clipboard, PNG I/O,
 `ui_pixel`/`ui_pixels_copy`, `ui_density`, `ui_font`) is listed at the top of `browser/ui.c`; the pages it carries, and
 their cost, are in `native/README.md`'s browser chapter.
+`browser/solid/keys.ts` is this host's other half of `src/input.ts`. The desktop pops SDL's queue and calls `keyName`
+(`main.ts`); the page gets a DOM `keydown`/`keyup` on its canvas and names it with the same answers — `Tab` and
+`Shift+Tab`, `" "` for Space (the parts take `Space` too), `Enter`, `Escape`, `Backspace`, `Delete`, the arrows,
+`Home`/`End`, `PageUp`/`PageDown`, a letter (`Shift+A` is a page's own chord) and a digit or a punctuation mark — and the
+name goes into `input.down(name, repeat)`/`input.up(name)` before the frame runs, exactly as the loop's poll does. Letters
+and digits come from `event.code`, because SDL reports the key and not the character (Shift+1 is `1`, not `!`); Cmd, Ctrl
+and Alt chords are nobody's, as `keyName` decides, and so is Shift with an arrow, Home, End, Backspace or Delete. Tab,
+Space and the arrows are `preventDefault`ed: the canvas holds the DOM's focus (`tabindex="0"`, and a press calls
+`focus()`), so the browser must not take Tab for its chrome or Space and the arrows for a scroll. The table is in
+`native/README.md`'s browser chapter.
+
+`bun browser/solid/build.ts` writes `page.js` and `widgets.js` to `${TMPDIR:-/tmp}/cssints-native-web/solid`, and
+`node browser/solid-check.mjs` (which `solid/test.sh` runs last, skipped without zig, bun or Playwright's chromium) holds
+both pages to their goldens (`goldens/sensors.json`, `goldens/widgets.json`) and their rasters, the Sensors page to the
+no-JS page's use_g frame after a real click, and drives the Widgets page's keys (Tab, Space, the tree's arrows) with
+Playwright's keyboard. The two globals these modules read from the host — `Bun.nanoseconds` and `Buffer.from` — are
+shimmed in `browser/solid/globals.ts`; nothing else of Bun or Node is reached. What the browser surface drops from
+`solid/native/ui.c` (the shadow, backdrop, gradient and group tables, images, the window, key and text queues, the
+clipboard, PNG I/O, `ui_pixel`/`ui_pixels_copy`, `ui_density`, `ui_font`) is listed at the top of `browser/ui.c`; the
+pages it carries, and their cost, are in `native/README.md`'s browser chapter.

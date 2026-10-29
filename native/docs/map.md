@@ -571,12 +571,23 @@ Each step ends in a check that fails when it breaks.
    identical` against `page.c` at every step. What is not there: **run-time signals** (a state is one frame);
    hovering is entered by a release over the element, not tracked by pointer motion; the table's click flips on the
    release (the Solid page's `onClick`) where `page.c`'s `Clay_OnHover` flips on the press edge, so a held generated
-   `--press` shows the current signal. Not emitted: Dialog and
+   `--press` shows the current signal.
+   **Done: the image.** The style contract did carry Clay's `Clay_ImageElementConfig` after all: `header()` prints
+   `.image = { .imageData = (void *)"examples/sensors/glyph.png" }` beside `.aspectRatio`, the path as the style's own
+   C string, in `<name>` and `<name>_light` (asserted in `examples/sensors/header.c`), so what was missing was a page
+   that emits it. The Solid page's `image` prop is `page.c`'s `IMAGE=1`, and `--prop image=true` is how the generator is
+   given it (a prop, where `states.json` holds signals): `examples/sensors/page_generated_image.c`, 44 lines, two frame
+   functions, 11 commands each — the page's 10 and `CLAY(CLAY_ID("Glyph"), glyph)`. `gen.c` compares both themes with
+   the hand page's image frame, the command's type, id, box, `backgroundColor`, `cornerRadius` and path (a `strcmp` of
+   `imageData`) included: `2 images, identical`; `test.sh` regenerates the file and `cmp`s it. Mutations: one byte of
+   the path fails naming `renderData.image.imageData (path)`, an 8x32 box fails at `boundingBox`, and an element with no
+   style emits no command at all (10 against 11).
+   Not emitted: Dialog and
    Widgets' menu (floats; `Clay_ElementDeclaration.floating` would print, but no page proves it and the pointer capture
    is the host's), List (the viewport's offset is `Clay_GetScrollOffset()`, which `ui_open` asks Clay for each frame, not
    a declaration), Field (typing is SDL's text events) and Widgets itself (12 Tab stops and keys; a static frame is
-   possible but unproven). The style contract has no image config, so images cannot be emitted; `clip.childOffset` is
-   the host's too. `:focus` comes from a prop, not a signal, so only a page rendered with `focused` gets it. The fonts
+   possible but unproven); `clip.childOffset` is the host's too. `:focus` comes from a prop, not a signal, so only a page
+   rendered with `focused` gets it. The fonts
    enum (`font_Roboto = 0`) is the header's; the C page carries no font array, and text measure stays the host's
    (gen.c fixes one to compare layout). Text without a style is the renderer's white 14, printed as `white_14_text`.
 6. **Done: the terminal renderer.** `terminal/`: Clay's commands into a grid of character cells (`cells.c`: a
@@ -661,7 +672,7 @@ Each step ends in a check that fails when it breaks.
    drawn by another rasteriser. The browser's own frame is the regression guard, ThorVG's the design. Cost, headless
    Chromium on an M2: 0.08 ms a frame for the layout, the commands and one readback (100 frames), so the raster is the
    cost and it is the compositor's.
-   Limits: no Solid in the page (a static generated frame, as step 5's); the events are the generated table's (a click,
+   Limits: the page itself is a static generated frame, as step 5's; the events are the generated table's (a click,
    its press and release — no keys, no typed text, no wheel, and a hover state is entered by a release, not tracked by
    motion); no ThorVG (Canvas2D instead); no touch, no scrolling, images or floats (the page has none, and
    an image command is counted and not drawn); DPR is one scale factor and nothing else; a browser refuses to fetch the
@@ -719,6 +730,31 @@ Each step ends in a check that fails when it breaks.
    Limits: the backdrop's blur, the other six pages, touch, and no HMR; the bundle is the production `solid-js` (the
    bundler's `development` condition picks `@solidjs/signals`' dev build, whose diagnostics refuse `Sky.tsx`'s writes in
    its component body).
+   **Done: the keyboard and the second page** (2026-10-29). The browser has the desktop's keys. `browser/solid/keys.ts`
+   names a DOM `KeyboardEvent` as `src/input.ts`'s `keyName` names SDL's — Tab and Shift+Tab, `" "` for Space, Enter,
+   Escape, Backspace, Delete, the arrows, Home/End, PageUp/PageDown, letters (`Shift+A` is the page's own chord) and digits,
+   read from `event.code` where SDL's keycode is the key and not the character — and puts the name into the page's `Input`
+   before the frame is declared, as main.ts's loop does; Tab, Space and the arrows are `preventDefault`ed, so the browser
+   neither moves its focus nor scrolls. The canvas is `tabindex="0"` and a press focuses it (the page does not take the
+   focus on load), so a `keydown` reaches it. `browser/solid/shell.ts` is what the two pages share — the canvas, the loop,
+   the pointer, the keys and `window.__page` — and `browser/solid/widgets.ts` with `widgets.html` is the second page:
+   `solid/app/Widgets.tsx` unmodified, its own `createInput()`, 59 commands, its own bundle (335,796 B, 0.25-0.26 ms a
+   frame against Sensors' 239,871 B and 0.08-0.09). Check, in `browser/solid-check.mjs` and `solid/test.sh`: Widgets' base
+   frame against `solid/goldens/widgets.json` (59 commands, every field, worst box 3.16 px), its raster against
+   `browser/expected-widgets.png` (0.00 % of pixels) and against the desktop's `solid/frames/widgets-initial.png` the way
+   `check.mjs` holds this browser to ThorVG's (8.36 % of pixels; command means within 17.3/255, text ink within 3 px, the
+   frame's mean colour 1.41/255), and Playwright's keys: Tab twice focuses the Wi-Fi switch (the a11y snapshot's `focused`
+   and the 2 px ring's pixel), Space checks it (the snapshot, the track's fill #3c404e -> #f08c32, a pixel of it), Tab on
+   to the settings tree (the `Network` item) and ArrowDown move the roving node to `Wi-Fi`. A key that is not mapped leaves
+   the switch unfocused; a frame declared before the key is queued makes the tree and the pixels disagree by one key (the
+   snapshot has `focused` and `checked`, the canvas still draws the page's background at the switch's edge).
+   What is still not there: six more pages (each has its own keys, and the List's and Sky's scroll machines are untried;
+   `src/vscroll`'s wheel is in, `Input`'s typed text is not, and neither are a page's dialogs and floats), the renderer's
+   side tables (`ui_shadow`, `ui_backdrop`, `ui_backgroundImage` and the value channel's group fields 46–50 and 55: a
+   command array alone has no scene, so a shadow, a gradient, a backdrop, a transform or an image is a frame this target
+   draws without it — the Sensors page's entry is why the check warms 31 frames), touch (the wasm has `ui_touch_map`,
+   nothing sends a finger's event), and a dev server or HMR (the bundles are built by hand). The generated C is still the
+   no-JS page, unchanged, which is what the board already is.
 
 
 ## What Rune's research gives us (2026-10-23)
