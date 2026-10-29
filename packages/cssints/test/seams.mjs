@@ -88,6 +88,16 @@ await clash(
   "seam-clash-marker.ts",
   "cssints: kernels chip.a-b and chip-a.b both print the marker _chip-a-b",
 );
+await clash(
+  "seam-clash-own.ts",
+  "cssints: kernels twin.a and twin.b both declare --twin-w: two kernels of one scope may not share one of its custom-property names",
+);
+// Reuse, not a clash: another scope's own name, declared again (motion's --motion-*, which reveal's kernel sets too).
+kernels.clear();
+const shared = await code("seam-share-var.ts");
+assert.ok(shared.includes("_tenant-core") && shared.includes("_guest-core"), shared);
+const sharedCss = sheet("seam-share-var.ts");
+assert.ok(sharedCss.includes("._tenant-core{") && sharedCss.includes("._guest-core{"), sharedCss);
 // across modules too: box.core is held by seam-use, the clash module brings the other key
 kernels.clear();
 client.moduleGraph.invalidateAll();
