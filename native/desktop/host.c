@@ -5,6 +5,10 @@
 //   host --png out.png      one frame headless (the software renderer on a surface), written to out.png
 //   host --expect ref.png   the same frame compared with ref.png pixel for pixel; exit 1 and write
 //                           ref.png.actual.png on a difference
+//   host --dump out.json    the same frame as JSON (desktop/clay_dump.c, the one emitter on every target): the commands
+//                           with their fields and the host's effect tables (this host has none: an empty table each).
+//                           It is the C page's command stream for a golden; the layout is the raster's own, so dump a
+//                           ThorVG frame to compare with a Solid golden
 //   --click X Y             headless: a press and a release at X,Y before the frame that is written
 //   --press X Y             headless: a press at X,Y held down, the frame written while still pressed
 //   --raster thorvg|thorvg-gpu|sdl
@@ -23,6 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "clay_dump.c"
 #include "clay_renderer_SDL3.c"
 #include "clay_renderer_thorvg.c"
 
@@ -94,9 +99,32 @@ static void draw(bool thorvg, Clay_WgTarget *wg, Clay_ThorVGRendererData *tvg, U
     SDL_Clay_RenderClayCommands(sdl, cmds);
 }
 
+/** The frame as JSON at `path`, through desktop/clay_dump.c (the schema is there). The C page has no shadows, backdrops,
+ *  gradients or groups, so those tables are empty; it keeps no id strings either, so a command's `element` is null and a
+ *  differ resolves it by id from the golden of the same page. 0 on success. */
+static int write_dump(const char *path, Clay_RenderCommandArray cmds, Clay_ThorVGRendererData *tvg)
+{
+    const ClayDumpFrame frame = {.commands = cmds,
+                                 .width = APP_W,
+                                 .height = APP_H,
+                                 .scale = tvg->scale,
+                                 .hash = 0, // the frame's hash is the Solid host's (ui_hash)
+                                 .textWeight = tvg->textWeight};
+    const ClayDump dump = Clay_DumpFrame(&frame);
+    if (!dump.bytes) return -1;
+    FILE *f = fopen(path, "wb");
+    if (!f) {
+        Clay_DumpFree(dump);
+        return -1;
+    }
+    const int wrote = fwrite(dump.bytes, 1, (size_t)dump.length, f) == (size_t)dump.length;
+    Clay_DumpFree(dump);
+    return fclose(f) == 0 && wrote ? 0 : -1;
+}
+
 int main(int argc, char **argv)
 {
-    const char *png = NULL, *expect = NULL, *raster = "thorvg";
+    const char *png = NULL, *expect = NULL, *dump = NULL, *raster = "thorvg";
     int bench = 0;
     float click_x = -1, click_y = -1;
     bool hold = false;
@@ -108,6 +136,7 @@ int main(int argc, char **argv)
         }
         if (!strcmp(argv[i], "--png")) png = argv[++i];
         else if (!strcmp(argv[i], "--expect")) expect = argv[++i];
+        else if (!strcmp(argv[i], "--dump")) dump = argv[++i];
         else if (!strcmp(argv[i], "--raster")) raster = argv[++i];
         else if (!strcmp(argv[i], "--bench")) bench = atoi(argv[++i]);
     }
@@ -117,7 +146,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "--raster %s: sdl, thorvg or thorvg-gpu\n", raster);
         return 2;
     }
-    const bool headless = png || expect;
+    const bool headless = png || expect || dump;
     if (!SDL_Init(SDL_INIT_VIDEO) || !TTF_Init()) {
         fprintf(stderr, "init: %s\n", SDL_GetError());
         return 1;
@@ -243,6 +272,10 @@ int main(int argc, char **argv)
                                       : frame_pixels(renderer);
             int status = errors ? 1 : 0;
             if (png) IMG_SavePNG(got, png);
+            if (dump && write_dump(dump, cmds, &tvg)) {
+                fprintf(stderr, "%s: cannot write the frame\n", dump);
+                status = 1;
+            }
             if (expect) {
                 SDL_Surface *ref0 = IMG_Load(expect);
                 SDL_Surface *ref = ref0 ? SDL_ConvertSurface(ref0, SDL_PIXELFORMAT_RGBA32) : NULL;

@@ -987,3 +987,11 @@ What the goldens cannot see is the README's list: the pixels (anti-aliasing, a s
 pixels, a gradient's dither), glyph shaping, and everything a frame does not declare (key timing, the focus trap, a
 hover that has not moved the tree). A custom command's pointer is an address and the frame's hash is left out of the
 goldens for the same reason (with an image it hashes the image's pointer).
+
+`solid/goldens/sensors.json` is also the gate of the page on the other two hosts — the C page on the desktop
+(`desktop/host.c --dump`, compared by `dump-check.ts`) and the wasm in the browser (`browser/page.c`'s `dump()`,
+compared by `browser/check.mjs`) — both through `desktop/clay_dump.c`, the emitter this section's `ui_dump_json` is an
+adapter over. It is one golden because it is one page: the same tree from the same `examples/sensors/styles.ts`, and
+measured first, the C page's commands equal these, boxes included (both are laid out with ThorVG's metrics); the browser
+keeps the 4 px tolerance Canvas2D's advances need. `solid/dump.test.ts` still owns the file: it is the only thing that
+stores it (`--update`), and the other hosts only read it.

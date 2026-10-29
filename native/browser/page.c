@@ -15,6 +15,8 @@
 //   text(ptr, len)           the text bytes are in the same linear memory: (ptr, len) in slots 15, 16
 //   measure_slot()           float[2] the JS measure callback writes (width, height)
 //   errors()                 Clay errors since init
+//   dump()                   the last frame as JSON (desktop/clay_dump.c, the one emitter on every target) into the
+//                            linear memory, its byte length returned; dump_ptr() is where it starts
 // A record is 19 32-bit slots: type, id, x, y, w, h, color (r<<16 | g<<8 | b | a<<24),
 //                             radius tl, tr, br, bl, border l, r, t, b, text ptr, text len, font id, font size.
 #define CLAY_IMPLEMENTATION
@@ -23,6 +25,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "../desktop/clay_dump.c"
 #include "styles.h"
 
 // the generated frames: page_generated.c (use_g=false) and page_generated_g.c (use_g=true)
@@ -50,6 +53,10 @@ static uint32_t clayErrors;
 static Clay_Dimensions layoutSize;
 static char *arena; // Clay_MinMemorySize() bytes, from malloc: ~5.8 MB here, more than a static array should cost
 static float measureSlot[2];
+// the last frame's command array, for dump(): the records above are the drawing's view, the dump is the emitter's
+static Clay_RenderCommandArray lastCommands;
+static char *dumpBytes;
+static int32_t dumpLength;
 
 static void on_error(Clay_ErrorData e)
 {
@@ -98,6 +105,7 @@ __attribute__((export_name("frame"))) void page_frame(int32_t useG)
     if (useG) app_frame_g();
     else app_frame();
     Clay_RenderCommandArray array = Clay_EndLayout(1.0f / 60.0f);
+    lastCommands = array;
 
     commandCount = 0;
     for (int32_t i = 0; i < array.length && commandCount < MAX_COMMANDS; i++) {
@@ -146,3 +154,22 @@ __attribute__((export_name("cmd_size"))) int32_t page_command_size(void) { retur
 __attribute__((export_name("cmds"))) WebCommand *page_commands(void) { return commands; }
 __attribute__((export_name("measure_slot"))) float *page_measure_slot(void) { return measureSlot; }
 __attribute__((export_name("errors"))) uint32_t page_errors(void) { return clayErrors; }
+
+/** The last frame as clay_dump.c's JSON, replacing the previous one: its length, and its bytes at dump_ptr(). The page
+ *  has no shadows, backdrops, gradients or groups (empty tables) and no id strings (a command's `element` is null: the
+ *  check resolves it by id from the golden). */
+__attribute__((export_name("dump"))) int32_t page_dump(void)
+{
+    const ClayDumpFrame frame = {.commands = lastCommands,
+                                 .width = (int)layoutSize.width,
+                                 .height = (int)layoutSize.height,
+                                 .scale = 1,
+                                 .hash = 0,
+                                 .textWeight = 0};
+    const ClayDump dump = Clay_DumpFrame(&frame);
+    free(dumpBytes);
+    dumpBytes = dump.bytes, dumpLength = dump.length;
+    return dumpLength;
+}
+
+__attribute__((export_name("dump_ptr"))) char *page_dump_bytes(void) { return dumpBytes; }

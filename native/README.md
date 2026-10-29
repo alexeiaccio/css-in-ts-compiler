@@ -25,8 +25,9 @@ generator/clay-header.ts   styles.ts -> styles.h through the cssints plugin
 generator/page-to-c.ts     a Solid page at build time to C: renders it, walks the tree, reuses styles.h's names
 examples/units/            the pill proven on the board, and same.c: generated vs hand-written, same render commands
 examples/sensors/          the Sensors page: styles.ts, page.c, its stored frames
-desktop/                   host.c (SDL3 window or a headless frame), clay_renderer_thorvg.c, thorvg_wg.c, build.sh,
-                           build-thorvg-gpu.sh (ThorVG's WebGPU engine, from source)
+desktop/                   host.c (SDL3 window or a headless frame, --dump), clay_renderer_thorvg.c, thorvg_wg.c, build.sh,
+                           build-thorvg-gpu.sh (ThorVG's WebGPU engine, from source), clay_dump.c/.h (a frame as JSON, every target)
+dump-check.ts              a C host's dump against a golden, field by field (desktop/host.c --dump, the C page)
 solid/                     Solid 2 on the desktop: a universal renderer over Clay through bun:ffi; the Sensors and Widgets pages (solid/README.md)
 focus/                     the focus manager: Tab order, roving focus in groups, restore (no DOM), focus/README.md
 terminal/                  the same page in cells: Clay -> terminal/cells.c -> ANSI truecolour; demo, --dump, --keys.
@@ -1048,6 +1049,8 @@ bun solid/text-oracle.ts                                      # the text sheet's
 bun solid/text-oracle.ts --density 2                          # ... at the window's pixel density; --canvas against Chrome's Canvas2D
 bun solid/text-oracle.ts --update                             # re-store the sheet and its references (needs swiftc; --canvas playwright)
 ./build/sensors/app --press 180 250 --png out.png             # headless: a press held at 180,250, the frame written while pressed
+./build/sensors/app --raster thorvg --dump out.json           # headless: the frame as JSON (desktop/clay_dump.c), the Solid goldens' schema
+node dump-check.ts solid/goldens/sensors.json out.json        # ... compared with the Solid Sensors page's golden, field by field
 IMAGE=1 ./build/sensors/app --raster thorvg --png out.png    # the IMAGE=1 variant: the page's 32x32 image, loaded by ThorVG from its path
 sh terminal/build.sh && ./terminal/demo                       # the Sensors page in characters: Tab, Up/Down, Space, t; q quits
 ./terminal/demo --page sky                                    # apps/csssky-tui in characters: the feed; enter opens the thread
@@ -1075,12 +1078,14 @@ node browser/check.mjs --serve # http://127.0.0.1:<port>/browser/index.html — 
 
 | What         | Size       |
 | ------------ | ---------- |
-| `page.wasm`  | 104,375 B  |
-| the page     | 8,505 B (index.html + render.js) |
+| `page.wasm`  | 131,609 B  |
+| the page     | 8,816 B (index.html + render.js) |
 
-`browser/check.mjs` builds nothing: `browser/build.sh` does, into `$TMPDIR`, because the wasm is a build product.
-`browser/dump-commands.c` is how the desktop's command table in the check was produced (Clay + SDL_ttf/Roboto, the
-frame in `examples/sensors/expected-thorvg.png`); it is not part of the page.
+`browser/check.mjs` builds nothing: `browser/build.sh` does, into `$TMPDIR`, because the wasm is a build product. The
+wasm exports `dump()`: the last frame as the JSON of `desktop/clay_dump.c`, the one emitter on every target, and the
+check compares it with `solid/goldens/sensors.json` — the same golden the Solid page and the C page are held to — so
+the browser has no command table of its own any more. `page.wasm` carries the emitter's `vsnprintf` (about 27 KB) for
+that comparison; the page itself does not need it.
 
 ## The sky screens in a terminal
 
@@ -1180,9 +1185,10 @@ into one yet.
 
 ## The frame as data: command-stream goldens
 
-A stored frame answers "did the pixels change" and not "what changed". `ui_dump_json(path)` (solid/native/ui.c) writes
-the last frame as JSON instead, and `bun solid/dump.ts <page>` renders a page exactly as `main.ts`'s headless path does
-for its stored frame — the same size, input and motion hook, run to rest, no raster — and stores it in `solid/goldens/`:
+A stored frame answers "did the pixels change" and not "what changed". One emitter, `desktop/clay_dump.c`, writes the
+last frame as JSON for every target, and `bun solid/dump.ts <page>` renders a page exactly as `main.ts`'s headless path
+does for its stored frame — the same size, input and motion hook, run to rest, no raster — and stores it in
+`solid/goldens/`:
 
 ```sh
 bun solid/dump.ts sensors                  # the JSON to stdout, the counts to stderr
@@ -1190,6 +1196,15 @@ bun solid/dump.ts sky --out /tmp/sky.json  # ... or to a file
 bun solid/dump.ts widgets --update         # re-store solid/goldens/widgets.json
 bun solid/dump.test.ts                     # every golden, field by field (solid/test.sh runs it)
 ```
+
+The emitter is Clay and libc only — no SDL, no ThorVG, no file I/O: it returns the bytes, and each host writes them the way
+its target can (a file, a buffer JS reads out of the wasm's memory). `ClayDumpFrame` (`desktop/clay_dump.h`) is the
+command array plus what a host knows about it: the frame's size, scale and hash; the page's id strings (`names`, by
+Clay's hash, from `ui_open`/`ui_text` — the Solid host interns them, a C page has only the hashes, so a command's
+`element` is null); each node's Clay id and the two text fields a command does not carry (`textAlign`, `textWrap`, per
+node); and the renderer's effect tables (`shadows`, `backdrops`, `gradients`, `groups` — the C page has none of them, so
+it passes them empty). `ui_dump_json` (`solid/native/ui.c`) is now the Solid host's adapter over it and writes the same
+bytes it always has: the five goldens did not change.
 
 The JSON carries what a draw reads and nothing else, so a diff of it is a diff of the frame:
 
@@ -1228,7 +1243,44 @@ What it cannot see: the pixels — anti-aliasing, a shadow's raster (the geometr
 blurred pixels, a gradient's dither, a glyph's shaping (ThorVG applies no kerning, and the dump has the declared size and
 the finished box, not the advances), and the raster's density beyond the `scale` it records. Nor anything the frame does
 not declare: a part's handlers and key timing (`widgets.test.ts`, `list.test.ts`), the focus trap (`dialog.test.ts`), a
-hover that has not moved the tree, or what a page would draw next. The per-target half is unfinished on purpose: the C
-pages (`examples/sensors/page.c`), the browser's `browser/dump-commands.c` and the board still compare commands with
-their own tables, so only the desktop's Solid pages have goldens; one dump for every target is the next step, together
-with the scene files of item 4 and the board's own loop.
+hover that has not moved the tree, or what a page would draw next.
+
+### The C page and the browser, through the same emitter
+
+The desktop host takes `--dump out.json` (`desktop/host.c`), so the C page's command stream is the same emitter's and
+its layout is the raster's own:
+
+```sh
+./build/sensors/app --raster thorvg --dump /tmp/sensors.json       # the C page (examples/sensors)
+node dump-check.ts solid/goldens/sensors.json /tmp/sensors.json    # vs the Solid page's golden
+sensors: 10 commands, identical
+```
+
+One golden, not a second one beside the C page: the hand-written C page and the Solid page are the same tree from the
+same `styles.ts`, and both are laid out with ThorVG's metrics, so all 10 commands compare equal field by field, the
+boxes included — measured before the golden was shared. `dump-check.ts` settles the three things a C host does not know
+and the golden does, and compares the rest byte for byte as `solid/src/format.ts` writes it (the formatter `solid/dump.ts`
+stores the goldens with): a command's `element` is resolved by id (the same page, the same ids, the host keeps no
+strings); the frame's hash is dropped (a C host writes zero, a golden never stores one); the `a11y` snapshot is dropped
+(the Solid host's alone). A miss names the command and the field, as the Solid test's does — a colour in
+`examples/sensors/styles.ts`:
+
+```
+FAIL sensors: command 2 (text "accel m/s²") colour 150/155/170/255 -> 160/165/180/255
+FAIL sensors: command 4 (text "gyro °/s") colour 150/155/170/255 -> 160/165/180/255
+FAIL sensors: command 9 (border) colour 150/155/170/255 -> 160/165/180/255
+```
+
+The browser is the third host: `browser/page.c` exports `dump()`, which writes the wasm's last frame through the same
+emitter into its linear memory, and `browser/check.mjs` compares that JSON with `solid/goldens/sensors.json` — the
+same golden, no table of its own any more (`browser/dump-commands.c` is gone). Every field is exact but the `box`: the
+golden's boxes are ThorVG's metrics, the wasm's are Canvas2D's, which does not hint a font, so a 20px line comes out up
+to 3px wider and a centred box starts half of that to the side; the 4px tolerance is the one the old table had. A box
+that moves fails as `FAIL commands frame(0): command 7's box is 10.00px off the golden's` (measured by widening the
+Units pill to 210), and a colour as a named field. The wasm's `use_g` frame has no golden of its own: its two stored
+rasters are its gate.
+
+What is still per-target: the board has no dump at all; a golden of a page's light theme (a variant is
+`capture(page, "light")` plus one file) and of the use_g frame; a custom command's pointer (an address, kept out of the
+goldens) and a frame's hash (with an image it hashes the image's pointer; also kept out). Nothing here sees the pixels,
+glyph shaping, a shadow's raster or a gradient's dither: the raster stays the final gate.
