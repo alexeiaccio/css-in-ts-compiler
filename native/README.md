@@ -1393,6 +1393,57 @@ own data options (`--count`, `--posts`, `--wide`: a scene has its page at its ow
 is a key and works, but `theme` is the starting one). And the scenes are written by hand: nothing records a live window
 into one yet.
 
+## The image in a generated page
+
+`css.image(path, { width, height, fit })` is a style whose config is Clay's `Clay_ImageElementConfig`: one pointer,
+`imageData`, which is the path of the picture. Clay passes it through untouched — ThorVG's renderer loads the file from
+it (`Clay_ThorVG_Picture`, once per path) and sizes the picture into the command's box — so a C page needs no image
+data of its own, only that literal. `header()` already printed it: a style with an image becomes
+
+```c
+static const Clay_ElementDeclaration glyph = { .layout = { … 32x32 … },
+  .image = { .imageData = (void *)"examples/sensors/glyph.png" }, .aspectRatio = { .aspectRatio = 1 } };
+```
+
+the path as the style's own escaped C string, in every declaration that style has (`glyph`, `glyph_light`), and
+`examples/sensors/header.c` asserts it against the firmware's `clay.h`. So the style contract never lacked an image
+config; what was missing was a page that proves the generator emits the command.
+
+That page is `examples/sensors/page_generated_image.c`: the Sensors page with the 32x32 glyph of `styles.ts` under the
+title — `page.c`'s `IMAGE=1` variant, which is an env var there and an `image` prop of `solid/app/Sensors.tsx` here.
+A prop is not a signal, so the generator takes it beside the page's signals:
+
+```sh
+bun --conditions=development generator/page-to-c.ts solid/app/Sensors.tsx \
+  --styles examples/sensors/styles.ts --states examples/sensors/states.json \
+  --prop image=true --name app_frame_image --out examples/sensors/page_generated_image.c
+```
+
+`--prop name=value` renders the page with that prop fixed (`true`/`false` as booleans, a number, else a string), and the
+file's header says which (`// props: image=true`). The file is 44 lines, two frame functions (dark and light) and 11
+commands each: the page's 10, and `CLAY(CLAY_ID("Glyph"), glyph)` between the title and the caption.
+
+`examples/sensors/gen.c` compares it with the hand page's same variant at 360x360 and one fixed measure — Clay's
+`Clay_ImageRenderData` is compared too (`backgroundColor`, `cornerRadius`, and the path, `strcmp` of `imageData`), and a
+FAIL names the command's type, so the image is held to its type, id, box and path:
+
+```
+dark, image: 11 commands, identical
+light, image: 11 commands, identical
+2 images, identical
+```
+
+`test.sh` regenerates the file and `cmp`s it, so the committed C cannot rot, and compiles it into `gen`. Mutations:
+one byte of the path fails `FAIL dark, image: command 2 (image) differs at renderData.image.imageData (path)`; a box of
+8x32 instead of 32x32 fails `FAIL dark, image: command 2 (image) differs at boundingBox`; emitting the element with no
+style at all (`{}`) fails `FAIL dark, image: 10 generated commands, 11 hand-written` (an element with no box emits no
+command).
+
+What a generated page still does not carry: a clip's `childOffset` (the scroll is the host's, as on the List), a float
+(`Clay_ElementDeclaration.floating` would print, but the pointer capture and the tree above it are the page's), and
+`:focus` (a prop of an *element*, not a page, and `--prop` sets only the page's). The image variant is a file of its own
+and not a state of `--events` for the same reason: a prop is not a signal the table can dispatch.
+
 ## The generated page's events: a state machine
 
 The generated C page used to be one static frame per file: a host that wanted the clicked or pressed frame had to be given
@@ -1491,10 +1542,11 @@ outside `states.json`** (the generator refuses the transition it cannot name, so
 not a silent dead end); **an animation or a clock** (a state is one frame; a settle is the host's frames, and a C page
 has no motion tracks); **pointer hover as a track** (a hovered state is entered by a release over the element, not by
 moving over it — the frame after a click is hovered, a later move away does not change it); a drag, a wheel, typed text,
-a float, an image, `:focus` (a prop, not a signal) and more than one theme variant per page.
+a float, the image variant (a page prop, so a file of its own, above), `:focus` (a prop of an element, not a signal) and
+more than one theme variant per page.
 
 Two mutations are the proof, run by hand: mapping state 2's release to state 3 instead of 4 fails the walk with
-`FAIL step 2: command 7 (1) differs at renderData.rectangle.backgroundColor (state 3 "use_g=true")`, and deleting the
+`FAIL step 2: command 7 (rectangle) differs at renderData.rectangle.backgroundColor (state 3 "use_g=true")`, and deleting the
 order check in `desktop/scene.c` lets a scene whose second step goes back to frame 0 run silently — it ends in state 0
 and `10,114` pixels off `expected-thorvg-g.png` instead of naming `step 1`.
 

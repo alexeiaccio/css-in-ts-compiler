@@ -571,12 +571,23 @@ Each step ends in a check that fails when it breaks.
    identical` against `page.c` at every step. What is not there: **run-time signals** (a state is one frame);
    hovering is entered by a release over the element, not tracked by pointer motion; the table's click flips on the
    release (the Solid page's `onClick`) where `page.c`'s `Clay_OnHover` flips on the press edge, so a held generated
-   `--press` shows the current signal. Not emitted: Dialog and
+   `--press` shows the current signal.
+   **Done: the image.** The style contract did carry Clay's `Clay_ImageElementConfig` after all: `header()` prints
+   `.image = { .imageData = (void *)"examples/sensors/glyph.png" }` beside `.aspectRatio`, the path as the style's own
+   C string, in `<name>` and `<name>_light` (asserted in `examples/sensors/header.c`), so what was missing was a page
+   that emits it. The Solid page's `image` prop is `page.c`'s `IMAGE=1`, and `--prop image=true` is how the generator is
+   given it (a prop, where `states.json` holds signals): `examples/sensors/page_generated_image.c`, 44 lines, two frame
+   functions, 11 commands each — the page's 10 and `CLAY(CLAY_ID("Glyph"), glyph)`. `gen.c` compares both themes with
+   the hand page's image frame, the command's type, id, box, `backgroundColor`, `cornerRadius` and path (a `strcmp` of
+   `imageData`) included: `2 images, identical`; `test.sh` regenerates the file and `cmp`s it. Mutations: one byte of
+   the path fails naming `renderData.image.imageData (path)`, an 8x32 box fails at `boundingBox`, and an element with no
+   style emits no command at all (10 against 11).
+   Not emitted: Dialog and
    Widgets' menu (floats; `Clay_ElementDeclaration.floating` would print, but no page proves it and the pointer capture
    is the host's), List (the viewport's offset is `Clay_GetScrollOffset()`, which `ui_open` asks Clay for each frame, not
    a declaration), Field (typing is SDL's text events) and Widgets itself (12 Tab stops and keys; a static frame is
-   possible but unproven). The style contract has no image config, so images cannot be emitted; `clip.childOffset` is
-   the host's too. `:focus` comes from a prop, not a signal, so only a page rendered with `focused` gets it. The fonts
+   possible but unproven); `clip.childOffset` is the host's too. `:focus` comes from a prop, not a signal, so only a page
+   rendered with `focused` gets it. The fonts
    enum (`font_Roboto = 0`) is the header's; the C page carries no font array, and text measure stays the host's
    (gen.c fixes one to compare layout). Text without a style is the renderer's white 14, printed as `white_14_text`.
 6. **Done: the terminal renderer.** `terminal/`: Clay's commands into a grid of character cells (`cells.c`: a
