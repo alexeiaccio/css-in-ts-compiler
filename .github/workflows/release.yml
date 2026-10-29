@@ -3,7 +3,8 @@
 #   - none (the version PR was merged): builds, checks and stages the packages (scripts/release.mjs), then publishes the
 #     versions that are not on npm yet with `changeset publish` (dist-tag latest), and pushes the git tags.
 # Publishing uses npm trusted publishing (OIDC): no token. Each package must name this file, release.yml, as its trusted
-# publisher on npmjs.com (RELEASING.md). The repository is private, so npm adds no provenance.
+# publisher on npmjs.com (RELEASING.md). The repository is public, so `NPM_CONFIG_PROVENANCE` gives every package a
+# provenance attestation (the source commit and this workflow) on top of the OIDC signature.
 name: release
 
 on:
@@ -22,7 +23,10 @@ jobs:
     permissions:
       contents: write # the version commit, the tags
       pull-requests: write # the "Version Packages" pull request
-      id-token: write # npm trusted publishing
+      id-token: write # npm trusted publishing, and provenance
+    env:
+      # a public repository can attest: npm links every published tarball to this run and its commit
+      NPM_CONFIG_PROVENANCE: "true"
     steps:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
