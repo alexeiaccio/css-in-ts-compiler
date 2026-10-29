@@ -96,6 +96,19 @@ const consumed = (name: string): boolean =>
   name === "ArrowRight";
 
 /**
+ * The chords a text field selects with and `keyName` lets through: Shift with Left, Right, Home or End — the set
+ * `selectionName` keeps for SDL (`src/input.ts`), named as the parts take it (`"Shift+ArrowLeft"`). A shifted letter is
+ * not one (it is a page's own chord, `keyName`'s "Shift+A"), and a chord with Cmd, Ctrl or Alt is nobody's.
+ */
+export function selectionChord(event: KeyboardEvent): string | undefined {
+  if (!event.shiftKey || chord(event)) return undefined;
+  const name = base(event);
+  return name === "ArrowLeft" || name === "ArrowRight" || name === "Home" || name === "End"
+    ? `Shift+${name}`
+    : undefined;
+}
+
+/**
  * The keyboard of a page: a `keydown`/`keyup` pair on the canvas (the element with the DOM's focus, `tabindex=0`), the key
  * into `input` and then the frame it changed — the order main.ts's loop has, a key queued before the tree is declared.
  * `frame` runs one frame on the event, as a press does, so a quick key pair cannot land inside one frame.
