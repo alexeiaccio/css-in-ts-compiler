@@ -208,7 +208,7 @@ const dispose = render(
             : page === "sheet"
               ? () => Sheet()
               : page === "dev"
-                ? () => Dev({ input, motion, drag: dragState })
+                ? () => Dev({ input, motion, drag: dragState, theme: () => theme })
                 : () => Sensors({ motion }),
   root,
 );

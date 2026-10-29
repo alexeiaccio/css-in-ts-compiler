@@ -1,23 +1,12 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "lib": [
-      "ESNext",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "jsx": "preserve",
     "jsxImportSource": "@solidjs/web",
-    "types": [
-      "vite/client"
-    ],
+    "types": ["vite/client"],
     "resolveJsonModule": true,
     "plugins": []
   },
-  "include": [
-    "src",
-    "scripts",
-    "vite.config.ts",
-    "vitest.browser.config.ts"
-  ]
+  "include": ["src", "scripts", "vite.config.ts", "vitest.browser.config.ts"]
 }

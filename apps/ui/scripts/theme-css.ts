@@ -2,11 +2,17 @@
 // custom property, whatever the page happens to use.
 //
 // cssints writes a token only when a class reads it, which keeps an app's sheet small — and
-// which means a copied component cannot lean on `var(--color-border)` unless the app happens
-// to use that exact token. The registry ships this file instead, so a starter's plain CSS
-// reads the whole theme.
+// which means a project without the plugin cannot lean on `var(--color-border)` unless the app
+// happens to use that exact token. The registry ships this file instead, so a plain stylesheet
+// reads the whole theme. `--check` compares it with the file in the tree (CI), and says nothing
+// when they agree.
 //
 //   node scripts/theme-css.ts > src/registry/theme.css
+//   node scripts/theme-css.ts --check
+//
+//   node scripts/theme-css.ts > src/registry/theme.css
+import { readFileSync } from "node:fs";
+
 import { darkTheme, forcedColorsTheme, lightTokens } from "../src/registry/tokens.ts";
 
 const kebab = (path: ReadonlyArray<string>): string =>
@@ -85,4 +91,14 @@ const sheet = [
   "",
 ].join("\n");
 
-process.stdout.write(sheet);
+if (process.argv.includes("--check")) {
+  const file = new URL("../src/registry/theme.css", import.meta.url);
+  if (readFileSync(file, "utf8") !== sheet) {
+    process.stderr.write(
+      "theme.css is stale: node scripts/theme-css.ts > src/registry/theme.css\n",
+    );
+    process.exit(1);
+  }
+} else {
+  process.stdout.write(sheet);
+}

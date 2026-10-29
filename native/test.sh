@@ -61,6 +61,14 @@ IMAGE=1 ./build/sensors/app --raster thorvg --expect examples/sensors/expected-t
 if [ -x ./build/sensors/app-gpu ]; then
   ./build/sensors/app-gpu --raster thorvg-gpu --expect examples/sensors/expected-thorvg-gpu.png
 fi
+# The C page's command stream, through the emitter every target dumps with (desktop/clay_dump.c), against solid/goldens/
+# sensors.json — the Solid Sensors page's last frame, not a golden of the C page's own: the two pages are the same tree
+# from the same styles.ts, and both are laid out with ThorVG's metrics, so their commands are the same fields with the
+# same values (measured: all 10 commands, boxes included). A C host keeps no id strings, so a command's `element` is null
+# and dump-check.ts resolves it by id from the golden; that script compares the two byte for byte after solid/src/
+# format.ts, and names the command and the field when one moved.
+./build/sensors/app --raster thorvg --dump "$OUT/sensors-commands.json"
+node dump-check.ts solid/goldens/sensors.json "$OUT/sensors-commands.json" --name sensors
 
 # Solid 2 on the desktop: the Sensors page as JSX, its frames against the same stored ThorVG frames
 sh solid/test.sh
@@ -203,10 +211,11 @@ fi
 
 # Step 8: the browser target. Clay + the generated C page as WebAssembly (zig cc -target wasm32-wasi: a libc, no
 # emscripten), drawn on a canvas by browser/render.js. The check builds it, opens browser/index.html in Chromium
-# through Playwright, compares the command array the wasm exposes with the desktop's own (the same generated C,
-# measured with SDL_ttf) and the raster with two stored frames: the browser's own and ThorVG's, as per-region means
-# and text ink boxes, because another rasteriser's anti-aliasing and font metrics are not pixel-identical. Skips when
-# zig, node or Playwright's chromium is not installed.
+# through Playwright, dumps the wasm's last frame through the same emitter (desktop/clay_dump.c) and compares it with
+# solid/goldens/sensors.json, the golden the Solid page and the C page are held to (the boxes keep a 4px tolerance:
+# Canvas2D does not hint a font, the golden's ThorVG metrics sum glyph advances), then the raster with two stored
+# frames: the browser's own and ThorVG's, as per-region means and text ink boxes, because another rasteriser's
+# anti-aliasing and font metrics are not pixel-identical. Skips when zig, node or Playwright's chromium is not installed.
 if command -v zig >/dev/null 2>&1 && command -v node >/dev/null 2>&1 &&
    node -e 'process.exit(require("node:fs").existsSync(require("playwright").chromium.executablePath()) ? 0 : 1)' 2>/dev/null; then
   sh browser/build.sh >/dev/null

@@ -49,9 +49,9 @@ jobs:
       - run: bun run build:packages
       # the conformance walk needs a real browser
       - run: bunx playwright install --with-deps chromium
-      - name: The generated sheets are current
+      - name: The compiled theme is current
         working-directory: apps/ui
-        run: bun run css:check
+        run: bun run theme:check
       - name: The starters' own conformance
         working-directory: apps/ui
         run: bun run test

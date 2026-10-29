@@ -33,6 +33,14 @@
       "types": "./dist/vite.d.mts",
       "default": "./dist/vite.mjs"
     },
+    "./eval": {
+      "development": {
+        "types": "./src/index.ts",
+        "default": "./src/index.ts"
+      },
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    },
     "./plugin": {
       "development": {
         "types": "./src/author.ts",

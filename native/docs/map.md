@@ -606,18 +606,19 @@ Each step ends in a check that fails when it breaks.
 
 8. **Done: the browser.** `browser/page.c` is Clay plus **step 5's generated C, unchanged** (`page_generated.c` and
    `page_generated_g.c`), compiled by `zig cc -target wasm32-wasi` (a libc; there is no emscripten and no `wasm-ld` on
-   this machine, and Apple's clang has no wasm target) into 104,375 bytes: 10 commands, 19 slots each, read out of the
+   this machine, and Apple's clang has no wasm target) into 131,609 bytes: 10 commands, 19 slots each, read out of the
    wasm's memory by `browser/render.js` — type, id, box, colour, corner radii, border widths, text bytes. The one import
    is `env.measure`: Clay's measure callback calls Canvas2D, so the layout is the font the canvas draws with (Roboto
    from `vendor/fonts`), not a table from another raster. The draw is Canvas2D: `roundRect` fills, borders as the
    even-odd ring inside the box as ThorVG draws them, `fillText` on the alphabetic baseline one ascent below Clay's line
    box, `clip()` for a scissor. `frame(0)`/`frame(1)` are the two generated frames; `w` or the button toggles them, which
    is the only state on this target (the generated C has no events). No framework and no build step in the page: a static
-   `index.html` plus the wasm, 8,505 bytes of page.
-   Check: `browser/check.mjs`, Chromium through Playwright, in `test.sh`. (a) the command array against the desktop's own
-   for the same C (`browser/dump-commands.c`, Clay + SDL_ttf/Roboto, the frame of `expected-thorvg.png`): 10 commands,
-   same order, ids, colours, strings and font sizes; the worst box is 3.09 px out, because Canvas2D does not hint and
-   SDL_ttf sums integer advances, so a 20 px line is up to 3 px wider and a centred box moves by half of that. (b) the
+   `index.html` plus the wasm, 8,816 bytes of page.
+   Check: `browser/check.mjs`, Chromium through Playwright, in `test.sh`. (a) the wasm's `dump()` — the last frame
+   through `desktop/clay_dump.c`, the emitter every target writes — against `solid/goldens/sensors.json`, the Solid
+   Sensors page's own golden: 10 commands, field by field, the boxes inside 4 px (Canvas2D does not hint a font and the
+   golden's ThorVG metrics sum glyph advances, so a 20 px line is up to 3 px wider and a centred box moves by half of
+   that); the hand-written table the check had is gone. (b) the
    raster against two stored frames, as per-region (command box) mean colours plus each text line's ink box, not per
    pixel: against its own `browser/expected.png` every 8×8 block is within 3/255 (identical here); against ThorVG's frame
    6.4 % (base) and 10.0 % (`use_g`) of pixels differ, every region mean within 13.9/255, every text ink box within 4 px,
@@ -858,8 +859,9 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    `--count`/`--posts`/`--wide`, and a theme change mid-run.
 5. **Command-stream goldens, not only pixels.** When a frame differs by 300 pixels the image does not say what changed;
    a JSON of `cmds` plus the a11y snapshot does (Rune keeps `golden/*-tree.json`). We already compare command arrays
-   field by field in `examples/sensors/gen.c` and `browser/dump-commands.c`; one `ui_dump_json` for every target, with
-   the raster as the final gate, is a small step.
+   field by field in `examples/sensors/gen.c` and, before this, in a hand-written table in `browser/check.mjs` (its
+   `dump-commands.c` is gone, see below); one `ui_dump_json` for every target, with the raster as the final gate, is a
+   small step.
    **Done: `ui_dump_json`, five goldens, a path-aware differ** (2026-10-28). `ui_dump_json(path)` (`solid/native/ui.c`)
    writes the last frame as JSON: every command with the fields a draw reads (type, Clay's id and the page's id string
    behind it, box and z, then a text's bytes/colour/font/size/spacing/line height/alignment/wrap — the last two from the
@@ -877,11 +879,28 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    subtitle's ink `150 155 170 → 160 165 180` fails exactly that line (and command 4, "gyro °/s", on the same token);
    swapping two commands' emission order in the dump fails
    `command 2 (text "accel m/s²") id 13290005 -> 836677627 (that is command 3 in the golden: the order moved)`.
-   Not covered: the C pages, the browser and the board still compare commands with their own tables (`gen.c`,
-   `browser/dump-commands.c`), so "one dump for every target" is not there yet — nor is a golden of a page's light
-   theme (a variant is `capture(page, "light")` plus one file), a custom command's pointer (an address, kept out of the
-   goldens) or a frame's hash (with an image it hashes the image's pointer; also kept out). Nothing here sees the
-   pixels, glyph shaping, a shadow's raster or a gradient's dither: the raster stays the final gate.
+   **Done: one emitter, and the C page and the browser are held to the Solid goldens** (2026-10-29). The writer moved
+   out of `ui.c` into `desktop/clay_dump.c` + `clay_dump.h` (Clay and libc only: no SDL, no ThorVG, no file I/O — it
+   returns the bytes and each host writes them its own way), with `ClayDumpFrame` carrying the command array and what a host
+   knows beside it: the size, scale and hash, the page's id strings (`names`, by Clay's hash), each node's id and the
+   text's own two fields (`textAlign`/`textWrap`, per node, since a command carries neither), and the renderer's effect
+   tables. `ui_dump_json` is the Solid host's adapter over it and writes the same bytes: the five goldens did not change.
+   The desktop host takes `--dump out.json`, so the C page (`examples/sensors`) dumps its frame through the same emitter
+   and `dump-check.ts` compares it with `solid/goldens/sensors.json` — the *same* golden, not one beside the C page:
+   measured first, the C page's 10 commands equal the Solid page's field by field, boxes included (same tree, same
+   `styles.ts`, both laid out with ThorVG's metrics). The differ resolves a command's `element` by id (a C host keeps no
+   id strings), drops the hash and the a11y snapshot (a C host has neither) and compares the rest byte for byte as
+   `solid/src/format.ts` writes it. The browser: `browser/page.c` exports `dump()` (the wasm's frame through the same
+   emitter) and `browser/check.mjs` compares it with the same golden, exact on every field but the boxes' 4 px tolerance
+   for Canvas2D's advances; `browser/dump-commands.c` and its hand-written table are deleted. Mutations: a muted token
+   `150 155 170 → 160 165 180` fails `FAIL sensors: command 2 (text "accel m/s²") colour 150/155/170/255 ->
+   160/165/180/255` (and commands 4 and 9, the same token), and the Units pill's width 200 → 210 fails the browser as
+   `FAIL commands frame(0): command 7's box is 10.00px off the golden's`. `test.sh`: 86 `identical` lines (85 before).
+   Not covered: the board still has no dump; a golden of a page's light theme (a variant is `capture(page, "light")`
+   plus one file), of the browser's `use_g` frame (its two stored rasters are its gate) or of the C page's pressed look;
+   a custom command's pointer (an address, kept out of the goldens) or a frame's hash (with an image it hashes the
+   image's pointer; also kept out). Nothing here sees the pixels, glyph shaping, a shadow's raster or a gradient's
+   dither: the raster stays the final gate.
 6. **Done: text quality against an oracle** (2026-10-28). Rune built a CoreText oracle and an ink-weight + SSIM metric
    and found its text thin (0.1 pt of centred emboldening fixed most of it). We built the same instruments — a sheet page
    (`solid/app/Sheet.tsx`: the app's strings at 11..32 px), CoreText drawing the same lines at the same places
@@ -908,7 +927,7 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    canvas gamma, not our renderer: stored as `frames/text-canvas.png` and pinned in the test as a band, not matched.
    That leaves fonts other than Roboto-Regular (one face is vendored; a second face is a font feature) and the terminal
    and board, whose text is a cell grid.
-7. **Partly done: the dev panel.** `bun solid/main.ts dev` (`solid/app/Dev.tsx`, 660x760) is the Widgets page in its own
+7. **Done: the dev panel.** `bun solid/main.ts dev` (`solid/app/Dev.tsx`, 660x760) is the Widgets page in its own
    360px column with a 300px panel beside it, in the same frame: the page's **a11y tree** as indented rows
    (`role "name" [states] x,y w×h` — `a11y.ts`'s snapshot of the page's own subtree, bounds from `ui.bounds`, and `no
    bounds` where the page drew no box; 28 rows for that page), the **box under the pointer** (the innermost box with an
@@ -926,9 +945,27 @@ Parley text and per-platform shells — not our stack, and none of its code is p
    `dev.png`, `dev-hover.png`, `dev-light.png`, `dev-tree.png`. Check: `solid/dev.test.ts` — the 28 rows and their
    states, the switch's row and the ring after Tab, the hovered box (the tab, not its tablist), the four phases against
    the frame that changed the page, `0.00` ms of draw and a still `ui.draws()` over 20 idle frames, the light theme,
-   reduced motion — and three mutations with their messages. Still later: **`tune!`-style live values** (a control in
-   the panel that writes a style field through the value channel while the page runs) and picking an element by clicking
-   it into the tree. Also later: style reload without a restart (our "reload on save"); and a static first frame shown
+   reduced motion — and three mutations with their messages.
+   **Done: `tune!`-style live values** (2026-10-29) — the panel's fourth section. The picked box's style numbers that the
+   value channel can move are rows with their numbers: `width`/`height` (a stretch or fit axis reads the laid-out size,
+   and a step pins the axis to a pixel), the padding's four sides, `gap`, `radius` (a corner a row where they differ),
+   the background's and border's channels, a float's offsets/expand/`zIndex`, a shadow's blur, a gradient's alpha, and
+   the group's `alpha`/`scale`/`translateX`/`translateY`/`rotate` — live even where a field only matters at layout,
+   because the page re-declares every frame. Not rows: a text's colour (a text's own floats, reachable only through a
+   text with an id) and the modes and enums of the 45 (`capture`, `clip`, the sizing type, an alignment, a float's
+   attach). `Tab`/`Shift+Tab` walk the page then the panel's three stops (the tree, the hovered box, the values);
+   `Up`/`Down` pick a row, `Left`/`Right` (or `-`/`+`) step it (1 a pixel, 4 a colour channel, 0.1 an alpha, 1 a degree),
+   clamped to the field's range; `r` resets the row and `Shift+R` all of them — by *dropping* the override, so the
+   declare is the style's literal again and the page is byte-identical to before the edit; `*` marks a live value, `>`
+   (and the accent) the cursor, and a list longer than 18 rows is a window with `4-21 of 21` in its footer (the panel
+   cannot scroll: Clay squeezes a fitted column into its box, so its four sections have to fit the 760px). Measured: 120
+   frames at rest, declare 0.050 ms and layout 0.033 ms with nothing overridden, 0.048/0.038 ms with five rows
+   overridden (the noise; a write is one float, and `ui_open`'s 180-byte `memcpy` is per overridden element). Check:
+   `solid/tune.test.ts` (the 17 rows of the switch, a radius's corner pixel, a width's a11y bounds, a colour's fill, the
+   clamps, `r` and `Shift+R` byte for byte, the window, the cost) and four mutations with their messages. Still later
+   here: picking an element by clicking it into the tree; and no pointer on a row (no dragging a number, no colour
+   picker), no script of a tuning session into a file, and no editing a style the page did not declare.
+   Also later: style reload without a restart (our "reload on save"); and a static first frame shown
    by the window before Bun and the first layout are ready.
 
 Not taking: Rust, Taffy, wgpu, Parley, AccessKit, their per-OS shells, split-process development, subsecond

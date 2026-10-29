@@ -5,13 +5,17 @@ import { darkTheme, forcedColorsTheme, lightTokens } from "./tokens.ts";
 // The theme the starters are written against: one lightness scale, one hue and one chroma per
 // colour family, and the semantic colours made of them. The data lives in tokens.ts, so the
 // registry can compile it to a plain theme.css without the cssints plugin; this module is the
-// same theme for the demo page, with the contrast gate.
+// same theme for the components and the demo page, with the contrast gate.
 const t = createTokens(lightTokens);
 
 // The dark mode is the lightness scale turned over, so every step and every colour made of it follows: the text is still
 // gray-1200, it is just a light gray now. The page and the surface are the reference's own dark values, and the popover shadow
 // deepens because a shadow on a dark page reads as a smudge.
 createGlobalTheme(t, media("(prefers-color-scheme: dark)"), darkTheme);
+
+// The same dark look as a scope a page can ask for: `<div data-mode="dark">` moves every token inside it, and a surface or a
+// frame under it follows without a prop. Layers app < author < viewer come from the look's source: an app look, here.
+createGlobalTheme(t, '[data-mode="dark"]', darkTheme);
 
 // One preset, because the theme is neutral: the reference's indigo, as its two numbers. The others are in its theme.css.
 createGlobalTheme(t, '[data-tint="indigo"]', {

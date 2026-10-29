@@ -21,6 +21,21 @@ export const ring = scope("ring", {
   core: { css: "&{outline:var(--bx-w) solid}", atProperty },
   ring: { uses: ["core"], chain: width },
 }).export().ring;
+// a scope's own name, declared again by another scope's kernel: reuse, as reveal's kernel sets motion's --motion-*
+export const tenant = scope("tenant", {
+  core: { css: "&{--tenant-w:2px;border:var(--tenant-w) solid}" },
+  tenant: { uses: ["core"], chain: width },
+}).export().tenant;
+export const guest = scope("guest", {
+  core: { css: "&{--tenant-w:1px;outline:var(--tenant-w) solid}" },
+  guest: { uses: ["core"], chain: width },
+}).export().guest;
+// two kernels of one scope that declare one of its own names: a build error
+export const twin = scope("twin", {
+  a: { css: "&{--twin-w:1px}" },
+  b: { css: "&{--twin-w:2px}" },
+  twin: { uses: ["a", "b"], chain: width },
+}).export().twin;
 // two scopes whose kernels print the same marker: _chip-a-b
 export const chip = scope("chip", {
   "a-b": { css: "&{--chip-r:4px}" },
