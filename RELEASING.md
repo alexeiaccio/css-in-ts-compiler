@@ -9,7 +9,9 @@ Twenty-seven packages go to npm: `cssints` and the 26 `@cssints/*` packages in `
 - **The tag is `latest` (since 0.2.0, 2026-10-11).** 0.1.0 went out under `next`, and npm put `latest` on it too (the first publish of a package always does). With 0.2.0 removing `cx`, `npm install cssints` without a tag would have kept the old API, so releases publish to `latest` (`release:publish` is `changeset publish`) and the alpha is said by the 0.x version and the docs. `scripts/trust.sh` also drops the stale `next` tags. Changesets' prerelease mode (`0.2.0-next.0`) was not wanted.
 - **Peer ranges stay loose.** `onlyUpdatePeerDependentsWhenOutOfRange` in `.changeset/config.json`: a patch does not change `cssints: ^0.1.0` in the plugins, a minor (0.2.0) does.
 - **Every package has a `prepublishOnly` guard** that fails: a plain `npm publish` in a package directory would send the repository manifest (`workspace:*`, `src`). Staged copies have no scripts, so the guard does not touch the real publish.
-- **No provenance.** The repository is private, and npm makes no provenance for a private repository, even with trusted publishing.
+- **Provenance.** The repository is public (2026-10-29), so `release.yml` publishes with `NPM_CONFIG_PROVENANCE=true` and
+  npm links every tarball to the run and the commit it came from. While the repository was private npm made none, even with
+  trusted publishing.
 
 ## Check at any time
 
